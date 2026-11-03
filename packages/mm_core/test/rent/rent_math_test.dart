@@ -21,6 +21,27 @@ void main() {
     });
   });
 
+  group('billingDueDate', () {
+    test('never before the billing start', () {
+      expect(
+        RentMath.billingDueDate(
+          MonthPeriod(2026, 9),
+          5,
+          CalendarDate(2026, 9, 15),
+        ),
+        CalendarDate(2026, 9, 15),
+      );
+      expect(
+        RentMath.billingDueDate(
+          MonthPeriod(2026, 10),
+          5,
+          CalendarDate(2026, 9, 15),
+        ),
+        CalendarDate(2026, 10, 5),
+      );
+    });
+  });
+
   group('proratedRent', () {
     test('full month returns the rent unchanged', () {
       expect(

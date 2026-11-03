@@ -48,6 +48,15 @@ abstract final class RentMath {
     return period.dayClamped(dueDay);
   }
 
+  /// The due date of a billed month: [dueDate], but never before the day
+  /// billing starts — a tenant who moves in on the 15th is not due on the 5th.
+  /// Mirrors the database's generated rent charges.
+  static CalendarDate billingDueDate(
+    MonthPeriod period,
+    int dueDay,
+    CalendarDate billingStartsOn,
+  ) => CalendarDate.max(dueDate(period, dueDay), billingStartsOn);
+
   /// Number of days of [period] covered by [occupancy].
   static int occupiedDays(MonthPeriod period, DateRange occupancy) {
     final overlap = DateRange(
@@ -68,7 +77,9 @@ abstract final class RentMath {
     final days = occupiedDays(period, occupancy);
     if (days == period.lengthInDays) return monthlyRent;
     if (days == 0) return Money.zero;
-    return monthlyRent.multiply(days, period.lengthInDays).roundToRupee();
+    // One rounding, half-up to whole rupees — identical to the database's
+    // app.prorated_rent (verified by the shared contract vectors).
+    return monthlyRent.multiplyToStep(days, period.lengthInDays);
   }
 
   /// The rent after an increment of [basisPoints] (10% = 1000), rounded to
@@ -81,8 +92,11 @@ abstract final class RentMath {
     if (basisPoints < 0) {
       throw ArgumentError.value(basisPoints, 'basisPoints', 'must be >= 0');
     }
-    final raised = currentRent + currentRent.percentage(basisPoints);
-    return raised.roundToStep(rounding.stepRupees);
+    return currentRent.multiplyToStep(
+      10000 + basisPoints,
+      10000,
+      stepRupees: rounding.stepRupees,
+    );
   }
 
   /// The first anniversary of [leaseStart] (every [intervalMonths]) that is

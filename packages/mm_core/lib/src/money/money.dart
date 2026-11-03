@@ -193,6 +193,34 @@ final class Money implements Comparable<Money> {
     );
   }
 
+  /// Multiplies by the exact ratio [numerator]/[denominator] and rounds the
+  /// result **once** to a multiple of [stepRupees] whole rupees.
+  ///
+  /// Prefer this to chaining [multiply] and [roundToStep]: that rounds twice
+  /// (first to paisa, then to the step), which can differ from the
+  /// database's single rounding — e.g. an exact Rs 12.495 would become 12.50
+  /// and then 13 instead of 12.
+  Money multiplyToStep(
+    int numerator,
+    int denominator, {
+    int stepRupees = 1,
+    RoundingMode mode = RoundingMode.halfUp,
+  }) {
+    if (denominator == 0) {
+      throw ArgumentError.value(denominator, 'denominator', 'must not be 0');
+    }
+    if (stepRupees <= 0) {
+      throw ArgumentError.value(stepRupees, 'stepRupees', 'must be > 0');
+    }
+    final step = BigInt.from(stepRupees * paisaPerRupee);
+    final steps = divideRounded(
+      BigInt.from(paisa) * BigInt.from(numerator),
+      BigInt.from(denominator) * step,
+      mode,
+    );
+    return Money.fromPaisa((steps * step).toInt());
+  }
+
   /// [basisPoints] hundredths of a percent of this amount
   /// (10% = 1000 basis points).
   Money percentage(

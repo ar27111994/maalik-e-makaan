@@ -128,7 +128,8 @@ final class PercentLateFee extends LateFeePolicy {
 
   @override
   Money computeFee({required Money overdueAmount, required int daysLate}) =>
-      overdueAmount.percentage(basisPoints);
+      // Round once, straight to rupees, exactly like the database.
+      overdueAmount.multiplyToStep(basisPoints, 10000);
 
   @override
   bool operator ==(Object other) =>

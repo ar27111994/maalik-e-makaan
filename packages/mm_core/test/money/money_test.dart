@@ -194,6 +194,34 @@ void main() {
       expect(() => Money.zero.roundToStep(0), throwsArgumentError);
     });
 
+    test('multiplyToStep rounds once, straight to the step', () {
+      // Exact value Rs 12.495: two-step rounding would give 12.50 -> 13.
+      expect(
+        const Money.fromPaisa(1249500).multiplyToStep(1, 1000),
+        const Money.fromRupees(12),
+      );
+      expect(
+        const Money.fromPaisa(1249500).multiply(1, 1000).roundToRupee(),
+        const Money.fromRupees(13),
+        reason: 'documents the double-rounding hazard multiplyToStep avoids',
+      );
+      expect(
+        const Money.fromRupees(47300)
+            .multiplyToStep(11000, 10000, stepRupees: 100),
+        const Money.fromRupees(52000),
+      );
+      expect(
+        const Money.fromRupees(-15)
+            .multiplyToStep(1, 2, mode: RoundingMode.halfEven),
+        const Money.fromRupees(-8),
+      );
+      expect(() => Money.zero.multiplyToStep(1, 0), throwsArgumentError);
+      expect(
+        () => Money.zero.multiplyToStep(1, 1, stepRupees: 0),
+        throwsArgumentError,
+      );
+    });
+
     test('large values stay exact (BigInt path)', () {
       // 999,999,999,999.99 * 9999 / 10000 would overflow 2^63 without BigInt.
       final result = Money.maxValue.multiply(9999, 10000);
