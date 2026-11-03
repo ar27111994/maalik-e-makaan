@@ -1,0 +1,13 @@
+# Dart pub workspace: one shared lockfile and package config for every Dart/Flutter
+# package in this repository. See https://dart.dev/tools/pub/workspaces
+name: maalik_e_makaan_workspace
+description: Pub workspace root for the Maalik-e-Makaan Flutter app and its packages.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - app
+  - packages/mm_core
+  - packages/mm_ui

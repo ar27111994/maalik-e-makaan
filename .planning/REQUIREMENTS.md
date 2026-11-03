@@ -18,6 +18,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
 ## Must-Have (v1.0)
 
 ### Accounts & access (AUTH)
+
 - ☐ AUTH-01: Email + password sign-up and sign-in, with email verification and password reset.
 - ☐ AUTH-02: The session persists, tokens refresh automatically, and signing out clears local
   caches.
@@ -27,6 +28,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   Urdu UI is fully RTL.
 
 ### Portfolios & team (TEAM)
+
 - ☐ TEAM-01: A user creates portfolios and becomes their owner. There is a per-user limit to
   prevent abuse.
 - ☐ TEAM-02: Four roles: owner, manager (caretaker), accountant and viewer. The permission
@@ -41,6 +43,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   by owners and managers. CNIC values are redacted in the trail.
 
 ### Properties & units (PROP)
+
 - ☐ PROP-01: Create, edit and archive properties with:
   - type, address, locality, city and province (jurisdiction);
   - plot size (marla, kanal, sq ft, sq yd) and covered area;
@@ -52,6 +55,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   unavailable.
 
 ### Tenants (TEN)
+
 - ☐ TEN-01: Tenant profiles with:
   - name and S/O, D/O or W/O name;
   - CNIC (validated, masked by default) and CNIC expiry;
@@ -66,6 +70,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   served through short-lived signed URLs.
 
 ### Tenancies (LEASE)
+
 - ☐ LEASE-01: Create a lease with:
   - start date and term (11 months, 12 months, custom or periodic);
   - rent, due day and grace days;
@@ -89,6 +94,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   settlement flow opens.
 
 ### Ledger (LEDGER)
+
 - ☐ LEDGER-01: Monthly rent dues are generated automatically for active leases.
   - Generation is idempotent and backfills from the billing start.
   - The first month is optionally prorated.
@@ -117,10 +123,12 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
 - ☐ LEDGER-11: Cash handovers from a caretaker to an owner, and cash in hand per member.
 
 ### Expenses (EXP)
+
 - ☐ EXP-01: Expenses by portfolio, property or unit and category, with payee, method and a receipt
   photo. They can be linked to a maintenance job.
 
 ### Utilities (UTIL)
+
 - ☐ UTIL-01: Utility connections per property or unit:
   - type and provider (12 DISCOs including K-Electric and HAZECO, SNGPL, SSGC, water, internet,
     other);
@@ -133,10 +141,12 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   landlord-named connections and for the 200-unit protected-tariff threshold.
 
 ### Maintenance (MAINT)
+
 - ☐ MAINT-01: Requests with category, priority, a status workflow, vendor and phone, estimate,
   resolution and photos.
 
 ### Documents (DOC)
+
 - ☐ DOC-01: Attach photos and PDFs to any entity.
   - They live in a private bucket with path-scoped RLS.
   - Images up to 10 MB are accepted, as JPEG, PNG, WebP, HEIC or PDF.
@@ -144,6 +154,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
 - ☐ DOC-02: Images are compressed on device before upload (target ≤ ~300 KB).
 
 ### Reminders & notifications (REM)
+
 - ☐ REM-01: A WhatsApp reminder composer.
   - Templates for upcoming, due today, overdue, payment received and utility bill.
   - Each template in English, Urdu and Roman Urdu.
@@ -158,6 +169,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   - utility bill unpaid.
 
 ### Dashboard & insights (INS)
+
 - ☐ INS-01: Dashboard: this month's expected vs collected rent, collection rate, outstanding and
   overdue amounts, aging buckets (not due, 1–30, 31–60, 61–90, 90+ days), occupancy, vacant
   units and the upcoming timeline.
@@ -177,6 +189,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   gross and net yield.
 
 ### Reports & exports (RPT)
+
 - ☐ RPT-01: A tax-year (Jul–Jun) statement per property, as PDF and CSV, labelled "not tax
   advice". It shows gross rent, tax withheld, the 1/5 repairs allowance, other deductible
   expenses and net property income.
@@ -185,9 +198,11 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   injection, and files carry a UTF-8 BOM.
 
 ### Search (SRCH)
+
 - ☐ SRCH-01: Global fuzzy search across properties, units and tenants (trigram-indexed).
 
 ### Website (WEB)
+
 - ☐ WEB-01: A bilingual static site (English, plus Urdu RTL) with:
   - home, features and how it works;
   - guides on police registration by province, the agreement checklist, rental tax and
@@ -204,6 +219,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   cited, well-structured content.
 
 ### Non-functional (NFR)
+
 - ☐ NFR-01: Mobile-first and responsive from a 320 dp phone to desktop web, with adaptive
   navigation (bottom bar, rail or drawer).
 - ☐ NFR-02: The design-system package provides:
@@ -212,6 +228,7 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   - a component library and gallery, with golden tests.
 
   The UI meets WCAG 2.2 AA: contrast, 48 dp targets, semantics, 200% text scale, reduced motion.
+
 - ☐ NFR-03: Full English and Urdu localisation with RTL, and locale-aware dates, numbers and
   currency.
 - ☐ NFR-04: Performance:

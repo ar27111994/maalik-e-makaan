@@ -1,0 +1,26 @@
+# Git hooks (https://lefthook.dev). Installed by `npm install` via the
+# "prepare" script. Every check here also runs in CI, so hooks are a fast
+# local feedback loop rather than the only gate.
+pre-commit:
+  parallel: true
+  commands:
+    unicode-guard:
+      run: python3 tool/check_unicode.py {staged_files}
+    dart-format:
+      glob: "*.dart"
+      exclude:
+        - "*.g.dart"
+        - "*.freezed.dart"
+        - "**/l10n/generated/**"
+      run: dart format --output=none --set-exit-if-changed {staged_files}
+    prettier:
+      glob: "*.{md,yml,yaml,json,jsonc}"
+      run: npx --no-install prettier --check {staged_files}
+    deno-fmt:
+      glob: "supabase/functions/**/*.ts"
+      run: deno fmt --check {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx --no-install commitlint --edit {1}

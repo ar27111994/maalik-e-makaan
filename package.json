@@ -1,0 +1,25 @@
+{
+  "name": "maalik-e-makaan-repo",
+  "private": true,
+  "description": "Repository tooling (commit conventions, git hooks, docs formatting). App code lives in app/, packages/, supabase/ and website/.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "prepare": "lefthook install || true",
+    "commitlint": "commitlint --edit",
+    "format": "prettier --write \"**/*.{md,yml,yaml,json,jsonc}\"",
+    "format:check": "prettier --check \"**/*.{md,yml,yaml,json,jsonc}\"",
+    "lint:md": "markdownlint-cli2 \"**/*.md\"",
+    "lint:unicode": "python3 tool/check_unicode.py"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "lefthook": "2.2.2",
+    "markdownlint-cli2": "0.24.0",
+    "prettier": "3.9.10"
+  }
+}

@@ -16,12 +16,12 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 
 ## Users & Segments
 
-| Segment | Core job | What wins them |
-| --- | --- | --- |
+| Segment                       | Core job                                                       | What wins them                                               |
+| ----------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
 | A. Local landlord, 1–10 units | Know who owes what and since when; collect without awkwardness | Auto dues, overdue list, one-tap WhatsApp reminder, receipts |
-| B. Overseas owner + caretaker | Trust and visibility from abroad | Roles, audit trail, cash-in-hand, monthly statement PDF |
-| C. Hostel/PG/plaza owner | Many small units, high churn | Unit/bed model, bulk dues, occupancy, vacancy loss |
-| D. Small commercial landlord | Company tenants, withholding, increments | s.155 tracking, increment schedule, tax-year statement |
+| B. Overseas owner + caretaker | Trust and visibility from abroad                               | Roles, audit trail, cash-in-hand, monthly statement PDF      |
+| C. Hostel/PG/plaza owner      | Many small units, high churn                                   | Unit/bed model, bulk dues, occupancy, vacancy loss           |
+| D. Small commercial landlord  | Company tenants, withholding, increments                       | s.155 tracking, increment schedule, tax-year statement       |
 
 ## Tech Stack (decided 2026-11-03)
 

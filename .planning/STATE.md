@@ -40,6 +40,7 @@ progress: { total_phases: 12, completed_phases: 0, percent: 0 }
 ## Session Notes
 
 2026-11-03:
+
 - Kicked off the project.
 - The user confirmed: a new Supabase project, Flutter plus Astro, and Vercel hosting.
 - Research briefs are archived in `.planning/research/`.
