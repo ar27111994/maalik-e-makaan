@@ -77,6 +77,14 @@ test-integration: ## Flutter integration tests on the Linux desktop target (need
 test-db: ## Migrations + pgTAP suite on a local Postgres (see tool/db/test.sh)
 	tool/db/test.sh
 
+.PHONY: test-db-concurrency
+test-db-concurrency: ## Parallel payments, retries and billing races keep the ledger invariants
+	tool/db/concurrency_test.sh
+
+.PHONY: test-db-stress
+test-db-stress: ## Report latency budgets, index usage and pgbench throughput (STRESS_SECONDS=10)
+	tool/db/stress_test.sh
+
 .PHONY: test-functions
 test-functions: ## Edge Function unit tests with coverage
 	cd supabase/functions && $(DENO) task test
