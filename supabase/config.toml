@@ -1,0 +1,120 @@
+# Supabase CLI configuration for local development and CI (`supabase start`,
+# `supabase db reset`, `supabase test db`). Based on the Supabase CLI v3
+# template. Hosted-project settings (auth URLs, SMTP, auth rate limits) are
+# managed in the dashboard; see docs/runbooks/supabase.md.
+project_id = "maalik-e-makaan"
+
+[api]
+enabled = true
+port = 54321
+# Only `public` is exposed through the Data API. The `app` and `private`
+# schemas hold helpers and internals and must never be added here.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[db]
+port = 54322
+shadow_port = 54320
+health_timeout = "2m"
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[realtime]
+# Not used by the app; disabled to keep the local stack light.
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[local_smtp]
+# Captures auth e-mails locally (confirmation, password reset, invites).
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+# Matches the documents bucket limit set in the migrations.
+file_size_limit = "10MiB"
+
+[storage.s3_protocol]
+enabled = false
+
+[auth]
+enabled = true
+# The Flutter web app in local development (`flutter run -d web-server --web-port 8080`).
+site_url = "http://127.0.0.1:8080"
+additional_redirect_urls = [
+  "http://127.0.0.1:8080/**",
+  "http://localhost:8080/**",
+  "io.github.ar27111994.maalikemakaan://auth-callback",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 10
+password_requirements = "lower_upper_letters_digits"
+
+[auth.rate_limit]
+email_sent = 30
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+token_verifications = 30
+web3 = 30
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = true
+max_frequency = "1m0s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+inspector_port = 8083
+deno_version = 2
+
+# The functions use publishable/secret API keys and authorise callers in code
+# (@supabase/server), so the gateway's legacy JWT check is disabled for them.
+[functions.delete-account]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false
+
+[analytics]
+enabled = false
