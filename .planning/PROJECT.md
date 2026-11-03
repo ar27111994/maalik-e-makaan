@@ -79,6 +79,14 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 - D-13: **The Data API is opt-in.** Default privileges are revoked, every grant is explicit (with
   column-level grants where clients must not write), and `pgrst.db_pre_request` rate-limits writes
   per user and per IP.
+- D-14: **The hosted migration history names the migrations.** Migrations are applied to the
+  hosted project with the Supabase MCP `apply_migration`, and each local file is renamed to the
+  version the platform assigns. `tool/db/schema_fingerprint.sql` and `tool/db/fingerprint_diff.py`
+  prove that the hosted schema equals the local chain, object by object.
+- D-15: **Write RPCs are SECURITY DEFINER by design; read RPCs are SECURITY INVOKER.** Payments,
+  memberships and invitations are written only through RPCs that bypass row-level security, so
+  each must authorise its caller first. The 20 reviewed RPCs are pinned by a pgTAP allowlist, which
+  covers Supabase lint 0029 under its option 3.
 
 ## Constraints
 
