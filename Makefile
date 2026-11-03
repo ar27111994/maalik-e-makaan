@@ -85,6 +85,14 @@ test-db-concurrency: ## Parallel payments, retries and billing races keep the le
 test-db-stress: ## Report latency budgets, index usage and pgbench throughput (STRESS_SECONDS=10)
 	tool/db/stress_test.sh
 
+.PHONY: contracts
+contracts: ## Regenerate the rent-maths contract vectors shared by Dart and SQL
+	python3 tool/contracts/generate.py
+
+.PHONY: contracts-check
+contracts-check: ## Fail when the committed contract vectors are stale
+	python3 tool/contracts/generate.py --check
+
 .PHONY: test-functions
 test-functions: ## Edge Function unit tests with coverage
 	cd supabase/functions && $(DENO) task test
