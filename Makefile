@@ -44,7 +44,7 @@ analyze: ## Static analysis for every package
 	cd packages/mm_core && $(DART) analyze --fatal-infos
 	cd packages/mm_ui && $(FLUTTER) analyze --fatal-infos
 	cd app && $(FLUTTER) analyze --fatal-infos
-	cd supabase/functions && $(DENO) lint && $(DENO) check **/*.ts
+	cd supabase/functions && $(DENO) lint && $(DENO) task check
 	python3 tool/check_unicode.py
 
 .PHONY: test-core
@@ -94,8 +94,9 @@ contracts-check: ## Fail when the committed contract vectors are stale
 	python3 tool/contracts/generate.py --check
 
 .PHONY: test-functions
-test-functions: ## Edge Function unit tests with coverage
+test-functions: ## Edge Function tests with the 100% coverage gate
 	cd supabase/functions && $(DENO) task test
+	python3 tool/coverage/check.py supabase/functions/coverage/lcov.info --min 100
 
 .PHONY: test-web
 test-web: ## Website build, e2e, accessibility and SEO checks
