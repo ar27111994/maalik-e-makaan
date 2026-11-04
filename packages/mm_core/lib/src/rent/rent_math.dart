@@ -87,6 +87,30 @@ abstract final class RentMath {
     );
   }
 
+  /// The rent the ledger bills for [period], exactly as the database's
+  /// `sync_lease_billing` generates it: nothing before the month billing
+  /// starts; in that month, when [prorateFirstMonth] and billing starts
+  /// after the 1st, [monthlyRent] × days billed ÷ days in the month (see
+  /// [proratedRent]); every later month in full. The month a tenant moves out
+  /// is billed in full too — settling a partial last month is agreed between
+  /// the parties (waive part of it, or use the deposit), not prorated.
+  /// [monthlyRent] is the rent in force for [period].
+  static Money billedRent({
+    required Money monthlyRent,
+    required MonthPeriod period,
+    required CalendarDate billingStartsOn,
+    required bool prorateFirstMonth,
+  }) {
+    final firstMonth = MonthPeriod.of(billingStartsOn);
+    if (period.compareTo(firstMonth) < 0) return Money.zero;
+    if (period != firstMonth || !prorateFirstMonth) return monthlyRent;
+    return proratedRent(
+      monthlyRent: monthlyRent,
+      period: period,
+      occupancy: DateRange(billingStartsOn),
+    );
+  }
+
   /// The rent after an increment of [basisPoints] (10% = 1000), rounded to
   /// [rounding]. Rounding is half-up.
   static Money incrementedRent(

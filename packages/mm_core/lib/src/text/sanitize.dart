@@ -102,6 +102,7 @@ bool _isOtherWhitespace(int rune) =>
 
 const Set<int> _invisible = {
   0x00AD, // soft hyphen
+  0x061C, // Arabic letter mark (the database rejects it: contracts/clean_text.json)
   0x180E, // Mongolian vowel separator
   0x200B, // zero-width space
   0x2060, // word joiner

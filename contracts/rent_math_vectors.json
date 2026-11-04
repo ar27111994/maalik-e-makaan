@@ -373,5 +373,296 @@
       "grace_days": 5,
       "expected": "5000.00"
     }
+  ],
+  "allocation": [
+    {
+      "name": "oldest due first",
+      "payment": "1200.00",
+      "charges": [
+        {
+          "id": "01a1a2d1-0001-7000-8000-00000000000a",
+          "due_date": "2026-10-05",
+          "outstanding": "1000.00"
+        },
+        {
+          "id": "01a1a2d1-0001-7000-8000-00000000000b",
+          "due_date": "2026-09-05",
+          "outstanding": "500.00"
+        },
+        {
+          "id": "01a1a2d1-0001-7000-8000-00000000000c",
+          "due_date": "2026-11-05",
+          "outstanding": "700.00"
+        }
+      ],
+      "chosen_charge_ids": [],
+      "expected_allocations": [
+        {
+          "charge_id": "01a1a2d1-0001-7000-8000-00000000000b",
+          "amount": "500.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0001-7000-8000-00000000000a",
+          "amount": "700.00"
+        }
+      ],
+      "expected_unallocated": "0.00"
+    },
+    {
+      "name": "chosen first, in the order given",
+      "payment": "1000.00",
+      "charges": [
+        {
+          "id": "01a1a2d1-0002-7000-8000-00000000000a",
+          "due_date": "2026-10-05",
+          "outstanding": "1000.00"
+        },
+        {
+          "id": "01a1a2d1-0002-7000-8000-00000000000b",
+          "due_date": "2026-09-05",
+          "outstanding": "500.00"
+        },
+        {
+          "id": "01a1a2d1-0002-7000-8000-00000000000c",
+          "due_date": "2026-11-05",
+          "outstanding": "700.00"
+        }
+      ],
+      "chosen_charge_ids": [
+        "01a1a2d1-0002-7000-8000-00000000000c",
+        "01a1a2d1-0002-7000-8000-00000000000a"
+      ],
+      "expected_allocations": [
+        {
+          "charge_id": "01a1a2d1-0002-7000-8000-00000000000c",
+          "amount": "700.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0002-7000-8000-00000000000a",
+          "amount": "300.00"
+        }
+      ],
+      "expected_unallocated": "0.00"
+    },
+    {
+      "name": "chosen first, then the rest oldest first",
+      "payment": "1500.00",
+      "charges": [
+        {
+          "id": "01a1a2d1-0003-7000-8000-00000000000a",
+          "due_date": "2026-10-05",
+          "outstanding": "1000.00"
+        },
+        {
+          "id": "01a1a2d1-0003-7000-8000-00000000000b",
+          "due_date": "2026-09-05",
+          "outstanding": "500.00"
+        },
+        {
+          "id": "01a1a2d1-0003-7000-8000-00000000000c",
+          "due_date": "2026-11-05",
+          "outstanding": "700.00"
+        }
+      ],
+      "chosen_charge_ids": [
+        "01a1a2d1-0003-7000-8000-00000000000c"
+      ],
+      "expected_allocations": [
+        {
+          "charge_id": "01a1a2d1-0003-7000-8000-00000000000c",
+          "amount": "700.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0003-7000-8000-00000000000b",
+          "amount": "500.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0003-7000-8000-00000000000a",
+          "amount": "300.00"
+        }
+      ],
+      "expected_unallocated": "0.00"
+    },
+    {
+      "name": "an overpayment becomes credit",
+      "payment": "5000.00",
+      "charges": [
+        {
+          "id": "01a1a2d1-0004-7000-8000-00000000000a",
+          "due_date": "2026-10-05",
+          "outstanding": "1000.00"
+        },
+        {
+          "id": "01a1a2d1-0004-7000-8000-00000000000b",
+          "due_date": "2026-09-05",
+          "outstanding": "500.00"
+        },
+        {
+          "id": "01a1a2d1-0004-7000-8000-00000000000c",
+          "due_date": "2026-11-05",
+          "outstanding": "700.00"
+        }
+      ],
+      "chosen_charge_ids": [],
+      "expected_allocations": [
+        {
+          "charge_id": "01a1a2d1-0004-7000-8000-00000000000b",
+          "amount": "500.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0004-7000-8000-00000000000a",
+          "amount": "1000.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0004-7000-8000-00000000000c",
+          "amount": "700.00"
+        }
+      ],
+      "expected_unallocated": "2800.00"
+    },
+    {
+      "name": "the same due date is settled in id order",
+      "payment": "400.00",
+      "charges": [
+        {
+          "id": "01a1a2d1-0005-7000-8000-00000000000e",
+          "due_date": "2026-10-05",
+          "outstanding": "300.00"
+        },
+        {
+          "id": "01a1a2d1-0005-7000-8000-00000000000d",
+          "due_date": "2026-10-05",
+          "outstanding": "300.00"
+        }
+      ],
+      "chosen_charge_ids": [],
+      "expected_allocations": [
+        {
+          "charge_id": "01a1a2d1-0005-7000-8000-00000000000d",
+          "amount": "300.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0005-7000-8000-00000000000e",
+          "amount": "100.00"
+        }
+      ],
+      "expected_unallocated": "0.00"
+    },
+    {
+      "name": "a charge chosen twice keeps its first position",
+      "payment": "800.00",
+      "charges": [
+        {
+          "id": "01a1a2d1-0006-7000-8000-00000000000a",
+          "due_date": "2026-10-05",
+          "outstanding": "1000.00"
+        },
+        {
+          "id": "01a1a2d1-0006-7000-8000-00000000000b",
+          "due_date": "2026-09-05",
+          "outstanding": "500.00"
+        },
+        {
+          "id": "01a1a2d1-0006-7000-8000-00000000000c",
+          "due_date": "2026-11-05",
+          "outstanding": "700.00"
+        }
+      ],
+      "chosen_charge_ids": [
+        "01a1a2d1-0006-7000-8000-00000000000b",
+        "01a1a2d1-0006-7000-8000-00000000000c",
+        "01a1a2d1-0006-7000-8000-00000000000b"
+      ],
+      "expected_allocations": [
+        {
+          "charge_id": "01a1a2d1-0006-7000-8000-00000000000b",
+          "amount": "500.00"
+        },
+        {
+          "charge_id": "01a1a2d1-0006-7000-8000-00000000000c",
+          "amount": "300.00"
+        }
+      ],
+      "expected_unallocated": "0.00"
+    },
+    {
+      "name": "paisa amounts",
+      "payment": "120.10",
+      "charges": [
+        {
+          "id": "01a1a2d1-0007-7000-8000-00000000000a",
+          "due_date": "2026-08-05",
+          "outstanding": "100.25"
+        },
+        {
+          "id": "01a1a2d1-0007-7000-8000-00000000000b",
+          "due_date": "2026-08-05",
+          "outstanding": "50.50"
+        }
+      ],
+      "chosen_charge_ids": [],
+      "expected_allocations": [
+        {
+          "charge_id": "01a1a2d1-0007-7000-8000-00000000000a",
+          "amount": "100.25"
+        },
+        {
+          "charge_id": "01a1a2d1-0007-7000-8000-00000000000b",
+          "amount": "19.85"
+        }
+      ],
+      "expected_unallocated": "0.00"
+    }
+  ],
+  "billed_rent": [
+    {
+      "monthly_rent": "45000.00",
+      "month": "2026-11-01",
+      "billing_starts_on": "2026-11-15",
+      "prorate_first_month": true,
+      "expected": "24000.00"
+    },
+    {
+      "monthly_rent": "45000.00",
+      "month": "2026-11-01",
+      "billing_starts_on": "2026-11-15",
+      "prorate_first_month": false,
+      "expected": "45000.00"
+    },
+    {
+      "monthly_rent": "45000.00",
+      "month": "2026-12-01",
+      "billing_starts_on": "2026-11-15",
+      "prorate_first_month": true,
+      "expected": "45000.00"
+    },
+    {
+      "monthly_rent": "45000.00",
+      "month": "2026-10-01",
+      "billing_starts_on": "2026-11-15",
+      "prorate_first_month": true,
+      "expected": "0.00"
+    },
+    {
+      "monthly_rent": "45000.00",
+      "month": "2026-11-01",
+      "billing_starts_on": "2026-11-01",
+      "prorate_first_month": true,
+      "expected": "45000.00"
+    },
+    {
+      "monthly_rent": "0.90",
+      "month": "2026-01-01",
+      "billing_starts_on": "2026-01-02",
+      "prorate_first_month": true,
+      "expected": "0.90"
+    },
+    {
+      "monthly_rent": "33333.33",
+      "month": "2026-02-01",
+      "billing_starts_on": "2026-02-14",
+      "prorate_first_month": true,
+      "expected": "17857.00"
+    }
   ]
 }

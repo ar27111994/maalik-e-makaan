@@ -53,6 +53,49 @@ void main() {
     );
   });
 
+  test('chosen charges come first, in the order given', () {
+    final plan = planFifoAllocation(
+      const Money.fromRupees(50000),
+      [sep, oct, nov],
+      chosenChargeIds: ['c3', 'c2'],
+    );
+    expect(plan.allocations, [
+      const ChargeAllocation(chargeId: 'c3', amount: Money.fromRupees(45000)),
+      const ChargeAllocation(chargeId: 'c2', amount: Money.fromRupees(5000)),
+    ]);
+    expect(
+      () => planFifoAllocation(
+        const Money.fromRupees(1),
+        [sep],
+        chosenChargeIds: ['nope'],
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('a deposit adjustment never pays the security deposit', () {
+    final deposit = OpenCharge(
+      id: 'c-1',
+      dueDate: CalendarDate.parse('2026-09-01'),
+      outstanding: const Money.fromRupees(90000),
+      isSecurityDeposit: true,
+    );
+    final adjustment = planFifoAllocation(const Money.fromRupees(50000), [
+      deposit,
+      sep,
+    ], depositAdjustment: true);
+    expect(adjustment.allocations, [
+      const ChargeAllocation(chargeId: 'c1', amount: Money.fromRupees(45000)),
+    ]);
+    expect(adjustment.unallocated, const Money.fromRupees(5000));
+    // An ordinary payment settles the deposit first (it is due first).
+    final payment = planFifoAllocation(const Money.fromRupees(50000), [
+      deposit,
+      sep,
+    ]);
+    expect(payment.allocations.single.chargeId, 'c-1');
+  });
+
   test('ChargeAllocation value semantics', () {
     const a = ChargeAllocation(chargeId: 'x', amount: Money.fromRupees(1));
     expect(

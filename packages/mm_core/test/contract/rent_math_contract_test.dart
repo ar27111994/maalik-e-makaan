@@ -75,6 +75,55 @@ void main() {
     }
   });
 
+  group('allocation', () {
+    for (final v in cases('allocation')) {
+      test(v['name'] as String, () {
+        final charges = [
+          for (final c
+              in (v['charges'] as List<dynamic>).cast<Map<String, dynamic>>())
+            OpenCharge(
+              id: c['id'] as String,
+              dueDate: date(c['due_date']),
+              outstanding: money(c['outstanding']),
+            ),
+        ];
+        final plan = planFifoAllocation(
+          money(v['payment']),
+          charges,
+          chosenChargeIds: (v['chosen_charge_ids'] as List<dynamic>)
+              .cast<String>(),
+        );
+        expect(plan.allocations, [
+          for (final a
+              in (v['expected_allocations'] as List<dynamic>)
+                  .cast<Map<String, dynamic>>())
+            ChargeAllocation(
+              chargeId: a['charge_id'] as String,
+              amount: money(a['amount']),
+            ),
+        ]);
+        expect(plan.unallocated, money(v['expected_unallocated']));
+      });
+    }
+  });
+
+  group('billed_rent', () {
+    for (final v in cases('billed_rent')) {
+      test('${v['monthly_rent']} for ${v['month']} '
+          'from ${v['billing_starts_on']}', () {
+        expect(
+          RentMath.billedRent(
+            monthlyRent: money(v['monthly_rent']),
+            period: month(v['month']),
+            billingStartsOn: date(v['billing_starts_on']),
+            prorateFirstMonth: v['prorate_first_month'] as bool,
+          ),
+          money(v['expected']),
+        );
+      });
+    }
+  });
+
   group('late_fee', () {
     for (final v in cases('late_fee')) {
       test('${v['type']} ${v['value']} on ${v['outstanding']}', () {

@@ -8,6 +8,8 @@
 **/*.g.dart
 **/*.freezed.dart
 pubspec.lock
+# Written by tool/contracts/generate.py; `make contracts-check` keeps it current.
+contracts/rent_math_vectors.json
 package-lock.json
 **/package-lock.json
 deno.lock

@@ -42,6 +42,27 @@ void main() {
     });
   });
 
+  group('billedRent', () {
+    final start = CalendarDate(2026, 11, 15);
+    Money billed(MonthPeriod period, {bool prorate = true}) =>
+        RentMath.billedRent(
+          monthlyRent: rent,
+          period: period,
+          billingStartsOn: start,
+          prorateFirstMonth: prorate,
+        );
+
+    test('nothing is billed before billing starts', () {
+      expect(billed(MonthPeriod(2026, 10)), Money.zero);
+    });
+
+    test('only the first month is prorated, and only when configured', () {
+      expect(billed(nov), const Money.fromRupees(24000));
+      expect(billed(nov, prorate: false), rent);
+      expect(billed(MonthPeriod(2026, 12)), rent);
+    });
+  });
+
   group('proratedRent', () {
     test('full month returns the rent unchanged', () {
       expect(

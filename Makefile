@@ -108,7 +108,8 @@ test-web: ## Website build, e2e, accessibility and SEO checks
 	cd website && npm run check && npm run build && npm run test:e2e
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, generators)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard)
+	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 
 .PHONY: test
