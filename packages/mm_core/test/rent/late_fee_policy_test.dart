@@ -107,6 +107,34 @@ void main() {
       );
     });
 
+    test('a capped fee is rounded first, so it never exceeds its cap', () {
+      // 33.35 × 3 = 100.05 rounds to 100, above the 99.50 cap: 99.50.
+      expect(
+        DailyLateFee(
+          Money.parseDecimal('33.35'),
+          cap: Money.parseDecimal('99.50'),
+        ).feeFor(overdueAmount: overdue, daysLate: 3, graceDays: 0),
+        Money.parseDecimal('99.50'),
+      );
+    });
+
+    test('fees never exceed what a charge can hold', () {
+      const crore = Money.fromRupees(10000000);
+      expect(
+        const DailyLateFee(crore)
+            .feeFor(overdueAmount: overdue, daysLate: 200000, graceDays: 5),
+        LateFeePolicy.maxFee,
+      );
+      expect(
+        const DailyLateFee(
+          crore,
+          cap: Money.fromRupees(5000),
+        ).feeFor(overdueAmount: overdue, daysLate: 200000, graceDays: 5),
+        const Money.fromRupees(5000),
+      );
+      expect(LateFeePolicy.maxFee.isWithinStorageRange, isTrue);
+    });
+
     test('type names and value semantics', () {
       expect(const NoLateFee().type, 'none');
       expect(const FlatLateFee(Money.zero).type, 'flat');

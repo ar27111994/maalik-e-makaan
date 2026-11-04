@@ -3,7 +3,7 @@
 -- so the app's previews always match the ledger the database writes.
 begin;
 \ir _helpers.psql
-select plan(53);
+select plan(57);
 
 select is(app.due_date_for('2026-02-01', 1), '2026-02-01'::date, 'due date 2026-02-01 day 1');
 select is(app.due_date_for('2026-02-01', 5), '2026-02-05'::date, 'due date 2026-02-01 day 5');
@@ -38,6 +38,7 @@ select is(app.prorated_rent(37500.00, '2026-01-01', '2026-01-17'), 18145.00::num
 select is(app.prorated_rent(45.00, '2026-02-01', '2026-02-15'), 23.00::numeric, 'proration of 45.00 from 2026-02-15');
 select is(app.prorated_rent(45000.00, '2026-12-01', '2026-11-15'), 45000.00::numeric, 'proration of 45000.00 from 2026-11-15');
 select is(app.prorated_rent(999999.99, '2026-07-01', '2026-07-02'), 967742.00::numeric, 'proration of 999999.99 from 2026-07-02');
+select is(app.prorated_rent(0.90, '2026-01-01', '2026-01-02'), 0.90::numeric, 'proration of 0.90 from 2026-01-02');
 select is(app.next_anniversary('2025-03-15', '2025-01-01', 12), '2026-03-15'::date, 'anniversary of 2025-03-15 as of 2025-01-01 every 12 months');
 select is(app.next_anniversary('2025-03-15', '2025-03-15', 12), '2026-03-15'::date, 'anniversary of 2025-03-15 as of 2025-03-15 every 12 months');
 select is(app.next_anniversary('2025-03-15', '2026-03-15', 12), '2026-03-15'::date, 'anniversary of 2025-03-15 as of 2026-03-15 every 12 months');
@@ -58,6 +59,9 @@ select is(app.late_fee_amount('daily', 100.00, null, 40000.00, 6, 5), 600.00::nu
 select is(app.late_fee_amount('daily', 100.00, 2500.00, 40000.00, 56, 5), 2500.00::numeric, 'daily late fee 100.00 on 40000.00 after 56 days');
 select is(app.late_fee_amount('daily', 33.35, null, 10.00, 3, 0), 100.00::numeric, 'daily late fee 33.35 on 10.00 after 3 days');
 select is(app.late_fee_amount('percent', 10.00, null, 0.00, 30, 0), 0.00::numeric, 'percent late fee 10.00 on 0.00 after 30 days');
+select is(app.late_fee_amount('daily', 33.35, 99.50, 10.00, 3, 0), 99.50::numeric, 'daily late fee 33.35 on 10.00 after 3 days');
+select is(app.late_fee_amount('daily', 10000000.00, null, 40000.00, 200000, 5), 999999999999.00::numeric, 'daily late fee 10000000.00 on 40000.00 after 200000 days');
+select is(app.late_fee_amount('daily', 10000000.00, 5000.00, 40000.00, 200000, 5), 5000.00::numeric, 'daily late fee 10000000.00 on 40000.00 after 200000 days');
 
 select * from finish();
 rollback;

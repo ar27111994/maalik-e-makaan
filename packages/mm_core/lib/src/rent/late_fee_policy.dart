@@ -46,6 +46,10 @@ sealed class LateFeePolicy {
     return money;
   }
 
+  /// The largest fee ever charged: whole rupees below the 10^12 limit of a
+  /// `numeric(14,2)` charge amount. Mirrors `app.late_fee_amount`.
+  static const Money maxFee = Money.fromRupees(999999999999);
+
   /// The database `late_fee_type` value.
   String get type;
 
@@ -53,6 +57,9 @@ sealed class LateFeePolicy {
   /// date, given a grace period of [graceDays] days.
   ///
   /// No fee is charged while `daysLate <= graceDays` or when nothing is owed.
+  /// The fee is rounded half-up to whole rupees first and capped afterwards,
+  /// so it never exceeds the policy's cap (see [capFee]) nor [maxFee] — the
+  /// same order as the database.
   Money feeFor({
     required Money overdueAmount,
     required int daysLate,
@@ -62,15 +69,20 @@ sealed class LateFeePolicy {
       throw ArgumentError.value(graceDays, 'graceDays', 'must be >= 0');
     }
     if (!overdueAmount.isPositive || daysLate <= graceDays) return Money.zero;
-    return computeFee(
+    final rounded = computeFee(
       overdueAmount: overdueAmount,
       daysLate: daysLate,
     ).roundToRupee();
+    return Money.min(capFee(rounded), maxFee);
   }
 
-  /// Policy-specific fee before grace handling and rounding.
+  /// Policy-specific fee before grace handling, rounding and capping.
   @protected
   Money computeFee({required Money overdueAmount, required int daysLate});
+
+  /// Applies the policy's own limit to the rounded fee. Uncapped by default.
+  @protected
+  Money capFee(Money roundedFee) => roundedFee;
 }
 
 /// No late fee.
@@ -155,9 +167,17 @@ final class DailyLateFee extends LateFeePolicy {
 
   @override
   Money computeFee({required Money overdueAmount, required int daysLate}) {
-    final fee = perDay.multiply(daysLate);
+    // Exact product, held below maxFee so years of daily fees cannot
+    // overflow (anything above it is clamped to maxFee after rounding anyway).
+    final fee = BigInt.from(perDay.paisa) * BigInt.from(daysLate);
+    final limit = BigInt.from(LateFeePolicy.maxFee.paisa);
+    return Money.fromPaisa((fee > limit ? limit : fee).toInt());
+  }
+
+  @override
+  Money capFee(Money roundedFee) {
     final limit = cap;
-    return limit == null ? fee : Money.min(fee, limit);
+    return limit == null ? roundedFee : Money.min(roundedFee, limit);
   }
 
   @override

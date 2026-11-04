@@ -75,6 +75,18 @@ void main() {
       );
     });
 
+    test('rounding never lifts a prorated month above the rent', () {
+      // 30 of 31 days of Rs 0.90 is 0.87, which rounds up to 1: capped.
+      expect(
+        RentMath.proratedRent(
+          monthlyRent: Money.parseDecimal('0.90'),
+          period: MonthPeriod(2026, 1),
+          occupancy: DateRange(CalendarDate(2026, 1, 2)),
+        ),
+        Money.parseDecimal('0.90'),
+      );
+    });
+
     test('move-out and no-overlap cases', () {
       expect(
         RentMath.proratedRent(

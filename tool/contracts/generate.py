@@ -28,6 +28,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+# Largest late fee ever charged: whole rupees below numeric(14,2)'s 10^12.
+MAX_FEE = Fraction(999999999999)
+
 
 def half_up(value: Fraction) -> int:
     """Round to the nearest integer, ties away from zero."""
@@ -55,7 +58,8 @@ def due_date_for(month: date, due_day: int) -> date:
 def prorated_rent(rent: Fraction, month: date, billing_start: date) -> Fraction:
     days = calendar.monthrange(month.year, month.month)[1]
     if (billing_start.year, billing_start.month) == (month.year, month.month) and billing_start.day > 1:
-        return Fraction(half_up(rent * (days - billing_start.day + 1) / days))
+        # Never above the rent: 0.90 x 30/31 would otherwise round up to 1.
+        return min(rent, Fraction(half_up(rent * (days - billing_start.day + 1) / days)))
     return rent
 
 
@@ -81,9 +85,12 @@ def late_fee(kind: str, value: Fraction | None, cap: Fraction | None, outstandin
         raw = outstanding * value / 100
     else:
         raw = value * days_late
-        if cap is not None:
-            raw = min(raw, cap)
-    return Fraction(half_up(raw))
+    # Round first, cap afterwards: a fee never exceeds its cap (99.50 stays
+    # 99.50 instead of rounding up to 100), nor what a charge can hold.
+    fee = Fraction(half_up(raw))
+    if kind == "daily" and cap is not None:
+        fee = min(fee, cap)
+    return min(fee, MAX_FEE)
 
 
 def build() -> dict:
@@ -117,6 +124,7 @@ def build() -> dict:
         ("45.00", "2026-02-01", "2026-02-15"),
         ("45000.00", "2026-12-01", "2026-11-15"),
         ("999999.99", "2026-07-01", "2026-07-02"),
+        ("0.90", "2026-01-01", "2026-01-02"),
     ]:
         expected = prorated_rent(money(rent), date.fromisoformat(month), date.fromisoformat(start))
         prorations.append({"monthly_rent": rent, "month": month, "billing_starts_on": start,
@@ -150,6 +158,9 @@ def build() -> dict:
         ("daily", "100.00", "2500.00", "40000.00", 56, 5),
         ("daily", "33.35", None, "10.00", 3, 0),
         ("percent", "10.00", None, "0.00", 30, 0),
+        ("daily", "33.35", "99.50", "10.00", 3, 0),
+        ("daily", "10000000.00", None, "40000.00", 200000, 5),
+        ("daily", "10000000.00", "5000.00", "40000.00", 200000, 5),
     ]:
         fee = late_fee(kind, money(value) if value else None, money(cap) if cap else None,
                        money(outstanding), days, grace)

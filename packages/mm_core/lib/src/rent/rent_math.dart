@@ -68,7 +68,9 @@ abstract final class RentMath {
 
   /// Rent payable for [period] when the tenancy [occupancy] covers only part
   /// of the month: `monthlyRent × occupiedDays ÷ daysInMonth`, rounded
-  /// half-up to whole rupees. A fully-occupied month returns [monthlyRent].
+  /// half-up to whole rupees but never above [monthlyRent] (Rs 0.90 for 30
+  /// of 31 days would otherwise round up to Rs 1). A fully-occupied month
+  /// returns [monthlyRent].
   static Money proratedRent({
     required Money monthlyRent,
     required MonthPeriod period,
@@ -77,9 +79,12 @@ abstract final class RentMath {
     final days = occupiedDays(period, occupancy);
     if (days == period.lengthInDays) return monthlyRent;
     if (days == 0) return Money.zero;
-    // One rounding, half-up to whole rupees — identical to the database's
-    // app.prorated_rent (verified by the shared contract vectors).
-    return monthlyRent.multiplyToStep(days, period.lengthInDays);
+    // One rounding, half-up to whole rupees, capped at the rent — identical
+    // to the database's app.prorated_rent (verified by the contract vectors).
+    return Money.min(
+      monthlyRent,
+      monthlyRent.multiplyToStep(days, period.lengthInDays),
+    );
   }
 
   /// The rent after an increment of [basisPoints] (10% = 1000), rounded to

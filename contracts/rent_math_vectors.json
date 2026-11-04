@@ -182,6 +182,12 @@
       "month": "2026-07-01",
       "billing_starts_on": "2026-07-02",
       "expected": "967742.00"
+    },
+    {
+      "monthly_rent": "0.90",
+      "month": "2026-01-01",
+      "billing_starts_on": "2026-01-02",
+      "expected": "0.90"
     }
   ],
   "next_anniversary": [
@@ -339,6 +345,33 @@
       "days_late": 30,
       "grace_days": 0,
       "expected": "0.00"
+    },
+    {
+      "type": "daily",
+      "value": "33.35",
+      "cap": "99.50",
+      "outstanding": "10.00",
+      "days_late": 3,
+      "grace_days": 0,
+      "expected": "99.50"
+    },
+    {
+      "type": "daily",
+      "value": "10000000.00",
+      "cap": null,
+      "outstanding": "40000.00",
+      "days_late": 200000,
+      "grace_days": 5,
+      "expected": "999999999999.00"
+    },
+    {
+      "type": "daily",
+      "value": "10000000.00",
+      "cap": "5000.00",
+      "outstanding": "40000.00",
+      "days_late": 200000,
+      "grace_days": 5,
+      "expected": "5000.00"
     }
   ]
 }
