@@ -61,7 +61,10 @@ Widget themed(Widget child, {MmVariant variant = MmVariant.light}) {
     theme: variant.theme,
     locale: variant.locale,
     supportedLocales: const [Locale('en'), Locale('ur')],
-    localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    localizationsDelegates: const [
+      MmLocalizations.delegate,
+      ...GlobalMaterialLocalizations.delegates,
+    ],
     builder: (context, app) => MediaQuery(
       data: MediaQuery.of(context)
           .copyWith(textScaler: TextScaler.linear(variant.textScale)),
@@ -111,3 +114,36 @@ Future<void> expectGolden(String name, MmVariant variant) => expectLater(
   find.byKey(subjectKey),
   matchesGoldenFile('goldens/${name}_${variant.name}.png'),
 );
+
+/// Registers one widget test per variant, named `<description> (<variant>)`.
+void testEveryVariant(
+  String description,
+  Future<void> Function(WidgetTester tester, MmVariant variant) body, {
+  Iterable<MmVariant> variants = MmVariant.values,
+}) {
+  for (final variant in variants) {
+    testWidgets(
+      '$description (${variant.name})',
+      (tester) => body(tester, variant),
+    );
+  }
+}
+
+/// Registers, for every variant, a test that pumps [build]'s widget on a
+/// phone-sized surface, checks the accessibility guidelines and compares it
+/// with the approved golden `goldens/<name>_<variant>.png`.
+///
+/// Call it from a file tagged `@Tags(['golden'])` so `make goldens` can
+/// re-record just the images.
+void goldenEveryVariant(
+  String name,
+  Widget Function() build, {
+  Size size = const Size(360, 740),
+  Iterable<MmVariant> variants = MmVariant.values,
+}) {
+  testEveryVariant('$name golden', (tester, variant) async {
+    await pumpThemed(tester, build(), variant: variant, size: size);
+    await expectAccessible(tester);
+    await expectGolden(name, variant);
+  }, variants: variants);
+}
