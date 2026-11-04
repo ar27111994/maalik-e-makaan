@@ -137,13 +137,13 @@ select is(
 );
 
 -- Each of them authorises the caller: by portfolio role (directly or through
--- the lease lock) or, for operations on the caller's own identity, by
+-- the lease or portfolio lock helpers) or, for operations on the caller's own identity, by
 -- rejecting anonymous calls. Behaviour is covered by 03_rls_matrix.
 select is(
   (select coalesce(array_agg(p.proname::text order by p.proname), '{}')
    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.prosecdef and has_function_privilege('authenticated', p.oid, 'execute')
-     and p.prosrc !~ '(app\.require_portfolio_role|private\.lock_lease_for_write)\('
+     and p.prosrc !~ '(app\.require_portfolio_role|private\.lock_lease_for_write|private\.lock_portfolio_for_change)\('
      and not (p.prosrc ~ 'v_uid uuid := \(select auth\.uid\(\)\);'
               and p.prosrc ~ 'if v_uid is null then\s+perform app\.forbid\(\);')),
   '{}'::text[],

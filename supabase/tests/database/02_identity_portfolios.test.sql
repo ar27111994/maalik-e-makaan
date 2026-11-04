@@ -1,7 +1,7 @@
 -- Profiles, portfolios, memberships and invitations.
 begin;
 \ir _helpers.psql
-select plan(43);
+select plan(49);
 
 -- Arrange ------------------------------------------------------------------
 select tests.create_user('owner@example.com') as owner \gset
@@ -215,10 +215,61 @@ select throws_ok(
 select tests.clear_authentication();
 select tests.add_member(:'pid', :'owner2', 'owner');
 select tests.authenticate_as(:'owner');
+select (public.create_invitation(:'pid', 'stepdown@example.com', 'viewer')) ->> 'invitation_id' as inv_stepdown \gset
 select lives_ok(
   format('select public.update_member_role(%L, %L, %L)', :'pid', :'owner', 'manager'),
   'an owner can step down when another owner exists'
 );
+select tests.clear_authentication();
+select ok(
+  (select revoked_at is not null from public.portfolio_invitations where id = :'inv_stepdown'),
+  'invitations carry their inviter''s authority: a demoted owner''s pending ones are revoked'
+);
+select tests.authenticate_as(:'owner');
+select is(
+  (public.create_portfolio('Gulberg Homes', :'pid')).id, :'pid'::uuid,
+  'the creator''s offline retry still works while they belong to the portfolio'
+);
+
+-- A removed owner's pending invitations go with them, and an invitation whose
+-- inviter is no longer an owner is void even if it escaped revocation.
+select tests.authenticate_as(:'owner2');
+select public.update_member_role(:'pid', :'owner', 'owner');
+select tests.authenticate_as(:'owner');
+select (public.create_invitation(:'pid', 'removed.inviter@example.com', 'viewer')) ->> 'invitation_id' as inv_removed \gset
+select tests.authenticate_as(:'owner2');
+select public.remove_member(:'pid', :'owner');
+select tests.clear_authentication();
+select ok(
+  (select revoked_at is not null from public.portfolio_invitations where id = :'inv_removed'),
+  'a removed owner''s pending invitations are revoked'
+);
+select tests.authenticate_as(:'owner');
+select throws_ok(
+  format($f$select public.create_portfolio('Gulberg Homes', %L)$f$, :'pid'),
+  '42501', 'forbidden', 'a removed creator''s retry no longer returns the portfolio'
+);
+select tests.clear_authentication();
+select tests.create_user('late.joiner@example.com') as late \gset
+select tests.authenticate_as(:'owner2');
+select public.create_invitation(:'pid', 'late.joiner@example.com', 'viewer') as inv_late \gset
+-- The membership trigger that revokes invitations is bypassed here, to show
+-- that acceptance checks the inviter's authority on its own.
+select tests.clear_authentication();
+alter table public.portfolio_members disable trigger portfolio_members_after_owner_ends;
+update public.portfolio_members set role = 'manager' where portfolio_id = :'pid' and user_id = :'owner2';
+alter table public.portfolio_members enable trigger portfolio_members_after_owner_ends;
+select tests.authenticate_as(:'late');
+select is(
+  public.accept_invitation((:'inv_late')::jsonb ->> 'token') ->> 'status', 'revoked',
+  'an invitation is void once its inviter is no longer an owner'
+);
+select tests.clear_authentication();
+select ok(
+  (select revoked_at is not null from public.portfolio_invitations where id = ((:'inv_late')::jsonb ->> 'invitation_id')::uuid),
+  'and the revocation is recorded, so the invitation stays void if the inviter becomes an owner again'
+);
+update public.portfolio_members set role = 'owner' where portfolio_id = :'pid' and user_id = :'owner2';
 
 select tests.authenticate_as(:'manager');
 select throws_ok(

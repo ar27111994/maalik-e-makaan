@@ -1,7 +1,7 @@
 -- Utilities, expenses, maintenance, reminders, documents and storage RLS.
 begin;
 \ir _helpers.psql
-select plan(28);
+select plan(32);
 
 set local app.today_override = '2026-11-03';
 
@@ -125,6 +125,16 @@ select throws_ok(
 -- Documents --------------------------------------------------------------------------------
 \set doc_id '01a1a2d2-0000-7000-8000-000000000001'
 select format('%s/tenant/%s/%s.jpg', :'pid', (:'r')::jsonb ->> 'tenant_id', :'doc_id') as doc_path \gset
+select throws_ok(
+  format($f$insert into public.documents (portfolio_id, entity_type, entity_id, kind, storage_path, file_name, mime_type, size_bytes)
+            values (%L, 'tenant', %L, 'cnic_front', %L, 'cnic-front.jpg', 'image/jpeg', 182344)$f$,
+         :'pid', (:'r')::jsonb ->> 'tenant_id', :'doc_path'),
+  '22023', 'document_file_missing', 'a document row records an uploaded file: upload first'
+);
+select lives_ok(
+  format($f$insert into storage.objects (bucket_id, name, owner) values ('documents', %L, auth.uid())$f$, :'doc_path'),
+  'members upload into their portfolio folder'
+);
 select lives_ok(
   format($f$insert into public.documents (portfolio_id, entity_type, entity_id, kind, storage_path, file_name, mime_type, size_bytes)
             values (%L, 'tenant', %L, 'cnic_front', %L, 'cnic-front.jpg', 'image/jpeg', 182344)$f$,
@@ -157,12 +167,17 @@ select throws_ok(
          format('%s/lease/%s/%s.pdf', :'pid', '01a1a2d2-ffff-7000-8000-000000000000', gen_random_uuid())),
   '22023', 'document_entity_not_found', 'documents must belong to an existing entity of the same portfolio'
 );
+select tests.authenticate_as(:'other');
+select throws_ok(
+  format($f$insert into public.documents (portfolio_id, entity_type, entity_id, storage_path, file_name, mime_type, size_bytes)
+            values (%L, 'tenant', %L, %L, 'x.jpg', 'image/jpeg', 1)$f$,
+         :'pid', (:'r')::jsonb ->> 'tenant_id',
+         format('%s/tenant/%s/%s.jpg', :'pid', (:'r')::jsonb ->> 'tenant_id', gen_random_uuid())),
+  '42501', 'forbidden', 'outsiders are refused before anything of the portfolio is looked up or locked'
+);
+select tests.authenticate_as(:'accountant');
 
 -- Storage object policies --------------------------------------------------------------------
-select lives_ok(
-  format($f$insert into storage.objects (bucket_id, name, owner) values ('documents', %L, auth.uid())$f$, :'doc_path'),
-  'members upload into their portfolio folder'
-);
 select throws_ok(
   format($f$insert into storage.objects (bucket_id, name) values ('documents', %L)$f$,
          format('%s/tenant/%s/%s.jpg', :'other_pid', gen_random_uuid(), gen_random_uuid())),
@@ -184,6 +199,22 @@ select throws_ok(
 
 select tests.authenticate_as(:'other');
 select is((select count(*)::integer from storage.objects where bucket_id = 'documents'), 0, 'other portfolios cannot see the files');
+
+-- A file a live document references is deleted by deleting its row (which
+-- queues the file), never directly; an upload without a row may be removed.
+select tests.authenticate_as(:'owner');
+delete from storage.objects where bucket_id = 'documents' and name = :'doc_path';
+select is(
+  (select count(*)::integer from storage.objects where name = :'doc_path'), 1,
+  'a file a live document references cannot be deleted through storage'
+);
+select format('%s/tenant/%s/%s.jpg', :'pid', (:'r')::jsonb ->> 'tenant_id', gen_random_uuid()) as stray_path \gset
+insert into storage.objects (bucket_id, name, owner) values ('documents', :'stray_path', auth.uid());
+delete from storage.objects where bucket_id = 'documents' and name = :'stray_path';
+select is(
+  (select count(*)::integer from storage.objects where name = :'stray_path'), 0,
+  'an upload whose row was never written can be removed'
+);
 
 select * from finish();
 rollback;

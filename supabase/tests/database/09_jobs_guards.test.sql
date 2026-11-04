@@ -2,7 +2,7 @@
 -- primitives and account deletion (including cascades through payments).
 begin;
 \ir _helpers.psql
-select plan(45);
+select plan(47);
 
 set local app.today_override = '2026-11-03';
 
@@ -181,6 +181,18 @@ select is(
   (select count(*)::integer from public.portfolio_members where portfolio_id = :'shared'), 1,
   'shared portfolios survive; the user''s membership is removed'
 );
+-- Until the auth user itself is deleted, the account is frozen: other devices
+-- can neither create a portfolio nor join one.
+select tests.authenticate_as(:'owner');
+select throws_ok(
+  $$select public.create_portfolio('After deletion')$$,
+  '22023', 'account_deleted', 'an account being deleted cannot create portfolios'
+);
+select throws_ok(
+  format($f$select public.accept_invitation(%L)$f$, gen_random_uuid() || '.' || repeat('A', 43)),
+  '22023', 'account_deleted', 'nor accept invitations'
+);
+select tests.clear_authentication();
 
 -- Edge Function rate limits (secret key only) -----------------------------------------
 select tests.authenticate_as_service_role();
