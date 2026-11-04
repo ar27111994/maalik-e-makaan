@@ -45,6 +45,8 @@ GoogleService-Info.plist
 **/doc/api/
 build/
 coverage/
+# ...but not the coverage gate tool itself.
+!/tool/coverage/
 *.symbols
 app.*.map.json
 .widget_preview/

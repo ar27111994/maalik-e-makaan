@@ -96,7 +96,8 @@ contracts-check: ## Fail when the committed contract vectors are stale
 .PHONY: test-functions
 test-functions: ## Edge Function tests with the 100% coverage gate
 	cd supabase/functions && $(DENO) task test
-	python3 tool/coverage/check.py supabase/functions/coverage/lcov.info --min 100
+	python3 tool/coverage/check.py supabase/functions/coverage/lcov.info \
+	  --min 100 --min-branches 100 --min-functions 100
 
 .PHONY: test-functions-e2e
 test-functions-e2e: ## Edge Functions against a running local stack (supabase start)
@@ -106,8 +107,12 @@ test-functions-e2e: ## Edge Functions against a running local stack (supabase st
 test-web: ## Website build, e2e, accessibility and SEO checks
 	cd website && npm run check && npm run build && npm run test:e2e
 
+.PHONY: test-tools
+test-tools: ## Unit tests of the repository tooling (coverage gate, generators)
+	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
+
 .PHONY: test
-test: test-core test-ui test-app test-db test-functions ## Run every fast test suite
+test: test-tools test-core test-ui test-app test-db test-functions ## Run every fast test suite
 
 .PHONY: build-web-app
 build-web-app: ## Release build of the Flutter web app
