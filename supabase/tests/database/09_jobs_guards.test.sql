@@ -2,7 +2,7 @@
 -- primitives and account deletion (including cascades through payments).
 begin;
 \ir _helpers.psql
-select plan(24);
+select plan(30);
 
 set local app.today_override = '2026-11-03';
 
@@ -98,6 +98,32 @@ select is(
 select is(
   (select count(*)::integer from public.portfolio_members where portfolio_id = :'shared'), 1,
   'shared portfolios survive; the user''s membership is removed'
+);
+
+-- Edge Function rate limits (secret key only) -----------------------------------------
+select tests.authenticate_as_service_role();
+select is(
+  (select bool_and(public.admin_hit_rate_limit('invite_email:u1', 2, 3600)) from generate_series(1, 2)),
+  true, 'functions may count hits within their limit'
+);
+select is(public.admin_hit_rate_limit('invite_email:u1', 2, 3600), false, 'the next hit is refused');
+select throws_ok(
+  $$select public.admin_hit_rate_limit('k', 1, 7200)$$,
+  '22023', 'invalid_rate_limit', 'windows over an hour are rejected (cleanup keeps two hours)'
+);
+select throws_ok(
+  $$select public.admin_hit_rate_limit('', 1, 60)$$,
+  '22023', 'invalid_rate_limit', 'empty keys are rejected'
+);
+select tests.authenticate_as(:'member');
+select throws_ok(
+  $$select public.admin_hit_rate_limit('k', 1, 60)$$,
+  '42501', null, 'signed-in users cannot touch function limits'
+);
+select tests.clear_authentication();
+select is(
+  (select hits from private.rate_limit_buckets where bucket_key = 'fn:invite_email:u1'), 3,
+  'function limits are namespaced with fn: and count every hit'
 );
 
 select * from finish();
