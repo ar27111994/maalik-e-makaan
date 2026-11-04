@@ -78,7 +78,8 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   citizens. Rupees use Western grouping by default, with lakh/crore available.
 - D-13: **The Data API is opt-in.** Default privileges are revoked, every grant is explicit (with
   column-level grants where clients must not write), and `pgrst.db_pre_request` rate-limits writes
-  per user and per IP.
+  per signed-in user (120 a minute). There is no per-IP limit: Pakistani mobile networks put many
+  users behind one carrier-grade NAT address, and every write needs a signed-in user anyway.
 - D-14: **The hosted migration history names the migrations.** Migrations are applied to the
   hosted project with the Supabase MCP `apply_migration`, and each local file is renamed to the
   version the platform assigns. `tool/db/schema_fingerprint.sql` and `tool/db/fingerprint_diff.py`

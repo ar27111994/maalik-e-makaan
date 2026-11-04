@@ -34,7 +34,9 @@ Dependencies: Phase 1.
 Deno functions on the `@supabase/server` SDK:
 
 - `delete-account`;
-- `invite-member`, which sends the e-mail when SMTP is configured;
+- `invite-member`, which e-mails the invitation through the Resend HTTP API when
+  `RESEND_API_KEY` and `MAIL_FROM` are set (Edge Functions cannot open SMTP ports; Auth's own
+  SMTP settings are separate), and always returns the link for sharing;
 - `health`;
 - shared utilities: CORS, constant-time comparison, validation, rate limits, error envelopes.
 

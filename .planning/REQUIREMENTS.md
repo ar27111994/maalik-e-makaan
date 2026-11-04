@@ -240,7 +240,8 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   - RLS on every exposed table, and tenant isolation through composite foreign keys;
   - explicit, column-level grants;
   - hardened `SECURITY DEFINER` functions;
-  - per-user and per-IP write limits plus per-action limits;
+  - per-user write limits plus per-action limits (no per-IP limit, which would throttle
+    everyone behind a mobile carrier's shared NAT address);
   - constant-time token checks;
   - text sanitisation of control and bidi characters;
   - private storage; no secrets in the client.
