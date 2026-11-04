@@ -108,9 +108,26 @@ test-web: ## Website build, e2e, accessibility and SEO checks
 	cd website && npm run check && npm run build && npm run test:e2e
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, tokens)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
+	python3 -m unittest discover -s tool/design -p 'test_*.py'
+
+.PHONY: tokens
+tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)
+	python3 tool/design/build_tokens.py
+
+.PHONY: tokens-check
+tokens-check: ## Fail when the design tokens are invalid or their outputs are stale
+	python3 tool/design/build_tokens.py --check
+
+.PHONY: icons
+icons: ## Rebuild the MmIcons font subset and constants (needs npm ci)
+	python3 tool/design/build_icons.py
+
+.PHONY: icons-check
+icons-check: ## Fail when the icon font or MmIcons are out of date with design/icons/icons.json
+	python3 tool/design/build_icons.py --check
 
 .PHONY: test
 test: test-tools test-core test-ui test-app test-db test-functions ## Run every fast test suite

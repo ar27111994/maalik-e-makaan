@@ -1,0 +1,314 @@
+---
+name: Maalik-e-Makaan
+description: "A raseed book made trustworthy on a phone: carbon-copy cobalt ink on cool white paper, a brass nameplate for what deserves honour, Atkinson Hyperlegible Next and Noto Nastaliq Urdu."
+colors:
+  bg: "#F4F5F7"
+  surface: "#FFFFFF"
+  surfaceSunken: "#EBEDF0"
+  ink: "#1F2328"
+  inkMuted: "#57606A"
+  outline: "#79828D"
+  rule: "#D5DAE0"
+  primary: "#1D3F8F"
+  onPrimary: "#FFFFFF"
+  primaryContainer: "#DDE6F8"
+  onPrimaryContainer: "#0F2556"
+  brass: "#A07A2C"
+  brassText: "#7A5A17"
+  brassContainer: "#F5EBD3"
+  onBrassContainer: "#4A3608"
+  paid: "#1C6B47"
+  paidContainer: "#DCF1E5"
+  onPaidContainer: "#0D3B26"
+  overdue: "#B42318"
+  overdueContainer: "#FCE4E1"
+  onOverdueContainer: "#6B130C"
+  dueSoon: "#8A5A00"
+  dueSoonContainer: "#FBEED3"
+  onDueSoonContainer: "#4D3200"
+  credit: "#0B6B70"
+  creditContainer: "#D7EFF0"
+  onCreditContainer: "#043B3E"
+  focus: "#1D3F8F"
+typography:
+  amount:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 32px
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: 0px
+  headline:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 24px
+    fontWeight: 700
+    lineHeight: 1.3333
+    letterSpacing: 0px
+  title:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 20px
+    fontWeight: 600
+    lineHeight: 1.4
+    letterSpacing: 0px
+  titleSmall:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 1.5
+    letterSpacing: 0px
+  body:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 16px
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: 0px
+  bodySmall:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 14px
+    fontWeight: 400
+    lineHeight: 1.4286
+    letterSpacing: 0px
+  label:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 14px
+    fontWeight: 600
+    lineHeight: 1.4286
+    letterSpacing: 0.1px
+  caption:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 12px
+    fontWeight: 400
+    lineHeight: 1.3333
+    letterSpacing: 0.2px
+  urdu-amount:
+    fontFamily: Atkinson Hyperlegible Next
+    fontSize: 32px
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: 0px
+  urdu-headline:
+    fontFamily: Noto Nastaliq Urdu
+    fontSize: 26px
+    fontWeight: 700
+    lineHeight: 2
+    letterSpacing: 0px
+  urdu-title:
+    fontFamily: Noto Nastaliq Urdu
+    fontSize: 22px
+    fontWeight: 600
+    lineHeight: 2
+    letterSpacing: 0px
+  urdu-title-small:
+    fontFamily: Noto Nastaliq Urdu
+    fontSize: 18px
+    fontWeight: 600
+    lineHeight: 2
+    letterSpacing: 0px
+  urdu-body:
+    fontFamily: Noto Nastaliq Urdu
+    fontSize: 18px
+    fontWeight: 400
+    lineHeight: 2
+    letterSpacing: 0px
+  urdu-body-small:
+    fontFamily: Noto Nastaliq Urdu
+    fontSize: 16px
+    fontWeight: 400
+    lineHeight: 2
+    letterSpacing: 0px
+  urdu-label:
+    fontFamily: Noto Nastaliq Urdu
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 1.875
+    letterSpacing: 0px
+  urdu-caption:
+    fontFamily: Noto Nastaliq Urdu
+    fontSize: 14px
+    fontWeight: 400
+    lineHeight: 2
+    letterSpacing: 0px
+rounded:
+  none: 0px
+  xs: 4px
+  sm: 8px
+  md: 12px
+  lg: 16px
+  full: 999px
+spacing:
+  s0: 0px
+  sHalf: 2px
+  s1: 4px
+  s2: 8px
+  s3: 12px
+  s4: 16px
+  s5: 20px
+  s6: 24px
+  s8: 32px
+  s10: 40px
+  s12: 48px
+  s16: 64px
+components:
+  page:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.ink}"
+  button-primary:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.onPrimary}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    height: "48px"
+    padding: "16px"
+  button-secondary:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.primary}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    height: "48px"
+    padding: "16px"
+  card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    padding: "16px"
+  field:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.sm}"
+    height: "56px"
+  caption:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.inkMuted}"
+    typography: "{typography.caption}"
+  chip-paid:
+    backgroundColor: "{colors.paidContainer}"
+    textColor: "{colors.onPaidContainer}"
+    typography: "{typography.label}"
+    rounded: "{rounded.xs}"
+  chip-overdue:
+    backgroundColor: "{colors.overdueContainer}"
+    textColor: "{colors.onOverdueContainer}"
+    typography: "{typography.label}"
+    rounded: "{rounded.xs}"
+  chip-due-soon:
+    backgroundColor: "{colors.dueSoonContainer}"
+    textColor: "{colors.onDueSoonContainer}"
+    typography: "{typography.label}"
+    rounded: "{rounded.xs}"
+  chip-credit:
+    backgroundColor: "{colors.creditContainer}"
+    textColor: "{colors.onCreditContainer}"
+    typography: "{typography.label}"
+    rounded: "{rounded.xs}"
+  nameplate:
+    backgroundColor: "{colors.brassContainer}"
+    textColor: "{colors.onBrassContainer}"
+    typography: "{typography.title}"
+    rounded: "{rounded.xs}"
+    padding: "12px"
+  amount:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.amount}"
+---
+
+## Overview
+
+The look is a Pakistani landlord's **raseed book** made trustworthy on a phone: carbon-copy
+cobalt ink on cool white paper, every amount in clear, even figures, the counterfoil kept for
+the record. The one ornament is the **brass house nameplate** from the gate of a Pakistani
+home, an engraved, honoured name, used only where a record deserves honour: a property's name,
+a receipt's seal. Everything else is plain paper and ink, legible in sunlight on a ten-thousand-rupee
+Android phone, in Urdu Nastaliq as naturally as in English.
+
+## Colors
+
+Cobalt carries the one action that matters on a screen; ink carries everything people read;
+brass appears at most once per screen and never as text on its own. Status colours always
+travel with an icon and a word, never alone.
+
+- **Page (`bg`):** cool paper. Never cream or beige; the paper of a receipt book, not a menu.
+- **Surface (`surface`):** cards, sheets and list groups sit on it.
+- **Ink (`ink`):** text and icons. **Muted ink (`inkMuted`):** captions, dates, metadata.
+- **Outline (`outline`):** field and control borders, at 3:1 or better. **Rule (`rule`):**
+  decorative dividers only, never the only boundary of a control.
+- **Cobalt (`primary`):** the single filled action per view, links, selection, focus.
+- **Brass (`brass`):** the nameplate border, the receipt seal, a featured property. Use
+  `brassText` when brass must carry words.
+- **Status:** `paid` (settled), `overdue` (past grace, errors), `dueSoon` (inside the reminder
+  window, warnings), `credit` (tenant advance, information), each with a container and an
+  on-container colour for chips and banners.
+
+Dark and high-contrast modes keep the same roles (see `design/tokens/maalik.tokens.json`); every
+pairing above is checked at build time: 4.5:1 for text and 3:1 for controls, and 7:1 for text in
+the high-contrast modes.
+
+## Typography
+
+- **Latin: Atkinson Hyperlegible Next.** Designed for low vision: 0 and O, 1, l and I, 5 and S
+  stay distinct, which matters for rupee amounts, CNICs and phone numbers read at a glance.
+- **Urdu: Noto Nastaliq Urdu.** Nastaliq is how Urdu readers expect Urdu to look. It needs
+  about twice the line height of Latin and a size step larger; never squeeze it to fit.
+- **Amounts** use the Latin face with tabular figures in both languages, so columns of rupees
+  line up and a 1 never looks like a 7.
+- Roles: `amount` (one large figure per screen), `headline` (screen titles), `title` (section
+  and card titles), `titleSmall`, `body` (default), `bodySmall`, `label` (buttons, chips),
+  `caption` (dates and metadata; 12 px is the floor).
+- Text scales to 200%: layouts reflow and wrap; nothing truncates a name or an amount silently.
+
+## Layout
+
+A 4 dp grid. Phones first, from 320 dp: one column, the primary action within thumb reach at
+the bottom. At 600 dp a navigation rail replaces the bottom bar; at 840 dp lists and their
+details sit side by side; reading columns stop at 720 dp. Mirror everything for Urdu (start and
+end, never left and right): icons that point, progress and swipe directions flip; amounts stay
+in Western order. Lists of money align amounts to the end edge.
+
+## Elevation & Depth
+
+Paper does not float. Surfaces are separated by tone and spacing, not shadows: the page, cards
+on it, inset wells for search and the receipt counterfoil. Shadow is reserved for things that
+are truly on top: bottom sheets, dialogs, menus and the floating action button.
+
+## Shapes
+
+Radii step with size and purpose: `xs` 4 for badges and chips, `sm` 8 for buttons and fields,
+`md` 12 for cards and list groups, `lg` 16 for sheets and dialogs, `full` for avatars. A
+receipt's edge is straight with a perforation, not rounded.
+
+## Components
+
+- **Button:** one filled cobalt button per view for the main action; outlined for the
+  alternative; text buttons for low-emphasis actions. 48 dp tall; labels are verbs ("Record
+  payment"), never "OK".
+- **Field:** labelled above, helper or error text below in words (not colour alone), 56 dp tall,
+  currency fields show "Rs" and format as you type.
+- **Card:** a surface with 16 dp padding that groups one thing; cards never nest.
+- **Status chip:** container colour, an icon and a word ("Paid", "Overdue 12 days").
+- **Money text:** tabular figures, rupee prefix, lakh/crore or Western grouping per setting;
+  negative balances say "credit" in words, not a minus sign alone.
+- **Nameplate:** the property name on a brass-bordered plate in property headers.
+- **Receipt:** paper surface, perforated top edge, brass seal with the receipt number; the same
+  layout prints to PDF.
+- **Empty, error and loading states:** say what happened and the next step in one sentence,
+  with one action; skeletons, not spinners, for lists.
+
+## Do's and Don'ts
+
+### Do
+
+- Put one primary action on a screen and make it the thing the landlord came to do.
+- Show who owes what and since when before anything else.
+- Pair every status colour with an icon and a word, in both languages.
+- Use start/end (`EdgeInsetsDirectional`, `AlignmentDirectional`) everywhere.
+
+### Don't
+
+- Don't use purple, indigo, gradients, glass, glows or neon: this is a ledger, not a launch page.
+- Don't put the page on cream or beige, set headings in a serif, or reach for sage green.
+- Don't add shadows to cards, coloured side stripes, cards inside cards, or big rounded icon
+  tiles above headings.
+- Don't write tiny tracked all-caps labels above sections.
+- Don't show money in proportional figures, or let a rupee amount wrap mid-number.
+- Don't shrink or tighten Urdu to match English line heights.
+- Don't signal paid, overdue or errors by colour alone.
