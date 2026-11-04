@@ -51,6 +51,30 @@ void main() {
     });
   });
 
+  group('removeUnsafeCharacters', () {
+    test('returns clean text unchanged, spaces and breaks included', () {
+      const typed = '  Ali  Raza\n\nگلبرگ\u200c ';
+      expect(removeUnsafeCharacters(typed), same(typed));
+    });
+
+    test('removes controls, bidi overrides and invisible characters', () {
+      expect(
+        removeUnsafeCharacters(
+          'Rs\u202E 500\u0000 paid\u200B\u2066x\u2069\u061C\uFEFF',
+        ),
+        'Rs 500 paidx',
+      );
+    });
+
+    test('agrees with containsUnsafeCharacters', () {
+      for (final sample in ['a\u0007b', '\uFDD0', 'tab\there', 'ok']) {
+        final cleaned = removeUnsafeCharacters(sample);
+        expect(containsUnsafeCharacters(cleaned), isFalse, reason: sample);
+      }
+      expect(removeUnsafeCharacters('tab\there'), 'tab\there');
+    });
+  });
+
   group('helpers', () {
     test('sanitizeOptional returns null for blank input', () {
       expect(sanitizeOptional(null), isNull);

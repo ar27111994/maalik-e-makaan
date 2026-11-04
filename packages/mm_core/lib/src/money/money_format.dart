@@ -113,14 +113,44 @@ final class MoneyFormat {
 
   /// Formats only the number (no currency marker), honouring every other
   /// option. Useful for form fields and charts.
-  String formatNumber(Money amount) => MoneyFormat(
-    grouping: grouping,
-    notation: notation,
-    currency: CurrencyDisplay.none,
-    paisa: paisa,
-    language: language,
-    nativeDigits: nativeDigits,
-  ).format(amount);
+  String formatNumber(Money amount) =>
+      copyWith(currency: CurrencyDisplay.none).format(amount);
+
+  /// This format with the given options replaced.
+  MoneyFormat copyWith({
+    DigitGrouping? grouping,
+    MoneyNotation? notation,
+    CurrencyDisplay? currency,
+    PaisaDisplay? paisa,
+    MoneyLanguage? language,
+    bool? nativeDigits,
+  }) => MoneyFormat(
+    grouping: grouping ?? this.grouping,
+    notation: notation ?? this.notation,
+    currency: currency ?? this.currency,
+    paisa: paisa ?? this.paisa,
+    language: language ?? this.language,
+    nativeDigits: nativeDigits ?? this.nativeDigits,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is MoneyFormat &&
+      other.grouping == grouping &&
+      other.notation == notation &&
+      other.currency == currency &&
+      other.paisa == paisa &&
+      other.language == language &&
+      other.nativeDigits == nativeDigits;
+
+  @override
+  int get hashCode =>
+      Object.hash(grouping, notation, currency, paisa, language, nativeDigits);
+
+  @override
+  String toString() =>
+      'MoneyFormat(${grouping.name}, ${notation.name}, ${currency.name}, '
+      '${paisa.name}, ${language.name}, nativeDigits: $nativeDigits)';
 
   String _standardNumber(Money magnitude) {
     final showPaisa = switch (paisa) {

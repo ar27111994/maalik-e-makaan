@@ -54,6 +54,22 @@ String? sanitizeOptional(String? input, {int? maxLength}) {
 /// that the sanitisers would remove. Ordinary whitespace is not "unsafe".
 bool containsUnsafeCharacters(String input) => input.runes.any(_isUnsafe);
 
+/// Removes only the characters the sanitisers would strip (controls, bidi
+/// overrides and isolates, invisible spoofing characters, non-characters),
+/// leaving whitespace, line breaks and everything else exactly as typed.
+///
+/// Use it while the user is typing or pasting (a text-field formatter), where
+/// trimming or collapsing spaces would fight the cursor; sanitise with
+/// [sanitizeSingleLine] or [sanitizeMultiline] before saving.
+String removeUnsafeCharacters(String input) {
+  if (!containsUnsafeCharacters(input)) return input;
+  final buffer = StringBuffer();
+  for (final rune in input.runes) {
+    if (!_isUnsafe(rune)) buffer.writeCharCode(rune);
+  }
+  return buffer.toString();
+}
+
 /// Counts user-perceived characters (grapheme clusters) in [input].
 int graphemeLength(String input) => input.characters.length;
 

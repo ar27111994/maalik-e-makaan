@@ -95,6 +95,56 @@ void main() {
     });
   });
 
+  group('MoneyFormat value semantics', () {
+    const base = MoneyFormat();
+
+    test('equal options make equal formats', () {
+      // Built at run time, so not canonicalised like const instances.
+      final built = MoneyFormat(grouping: DigitGrouping.values.first);
+      expect(built, base);
+      expect(built.hashCode, base.hashCode);
+      expect(identical(built, base), isFalse);
+    });
+
+    test('each option takes part in equality', () {
+      final variants = [
+        base.copyWith(grouping: DigitGrouping.southAsian),
+        base.copyWith(notation: MoneyNotation.compact),
+        base.copyWith(currency: CurrencyDisplay.code),
+        base.copyWith(paisa: PaisaDisplay.always),
+        base.copyWith(language: MoneyLanguage.urdu),
+        base.copyWith(nativeDigits: true),
+      ];
+      for (final variant in variants) {
+        expect(variant, isNot(base), reason: variant.toString());
+      }
+      expect(variants.toSet(), hasLength(variants.length));
+      expect(base == Object(), isFalse);
+    });
+
+    test('copyWith keeps the options it is not given', () {
+      const urdu = MoneyFormat(
+        grouping: DigitGrouping.southAsian,
+        language: MoneyLanguage.urdu,
+        nativeDigits: true,
+      );
+      expect(urdu.copyWith(), urdu);
+      final compact = urdu.copyWith(notation: MoneyNotation.compact);
+      expect(compact.grouping, DigitGrouping.southAsian);
+      expect(compact.language, MoneyLanguage.urdu);
+      expect(compact.nativeDigits, isTrue);
+      expect(compact.notation, MoneyNotation.compact);
+    });
+
+    test('toString names every option', () {
+      expect(
+        base.toString(),
+        'MoneyFormat(western, standard, symbol, auto, english, '
+        'nativeDigits: false)',
+      );
+    });
+  });
+
   group('MoneyFormat compact (lakh/crore)', () {
     const compact = MoneyFormat(notation: MoneyNotation.compact);
     const compactUrdu = MoneyFormat(
