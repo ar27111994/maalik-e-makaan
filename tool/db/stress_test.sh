@@ -164,6 +164,35 @@ measure "search_portfolio" 150 "select * from public.search_portfolio('01a1a2e0-
 measure "lease ledger (1 lease)" 50 "select * from public.charges where lease_id = (select id from bench.leases where n = 7) order by due_date"
 measure "unit occupancy list" 400 "select * from public.unit_occupancy where portfolio_id = '01a1a2e0-0000-7000-8000-000000000000'"
 
+echo "▸ Daily job (every lease of every portfolio, then the once-a-day work)"
+job_run() {
+  psql_db <<SQL
+set app.today_override = '2026-11-04';
+select json_build_object(
+  'ms', round(extract(epoch from (clock_timestamp() - s.started)) * 1000),
+  'result', r.result
+)
+from (select clock_timestamp() as started) s
+cross join lateral (select private.run_daily_jobs('2026-11-04', 10000) as result) r;
+SQL
+}
+MAINTAIN="$(job_run)"
+NOTIFY="$(job_run)"
+if python3 - "$MAINTAIN" "$NOTIFY" <<'PY'
+import json, sys
+maintain, notify = (json.loads(arg) for arg in sys.argv[1:3])
+m, n = maintain["result"], notify["result"]
+ok_m = maintain["ms"] <= 5000 and m["leases_failed"] == 0 and m["leases_pending"] == 0
+ok_n = notify["ms"] <= 15000 and n["leases_processed"] == 0 and n["notifications"] is not None
+print(f"  {'✓' if ok_m else '✗'} {m['leases_processed']} leases maintained in {maintain['ms']} ms "
+      f"(budget 5000 ms), {m['leases_failed']} failed, {m['leases_pending']} pending")
+# The Plaza has 200 managers, so each reminder fans out 200-fold.
+print(f"  {'✓' if ok_n else '✗'} once-a-day notifications in {notify['ms']} ms (budget 15000 ms, "
+      f"200 managers x 300 leases)")
+sys.exit(0 if ok_m and ok_n else 1)
+PY
+then :; else FAILED=1; fi
+
 echo "▸ Index usage"
 PLAN="$(psql_db <<'SQL'
 begin;

@@ -7,7 +7,7 @@
 -- are: deposit 90,000 (09-01), Sep 45,000 (09-05), Oct 45,000, Nov 45,000.
 begin;
 \ir _helpers.psql
-select plan(53);
+select plan(66);
 
 set local app.today_override = '2026-11-03';
 
@@ -72,6 +72,19 @@ select is((select count(*)::integer from public.payments), 2, 'retries never cre
 select throws_ok(
   format($f$select public.record_payment(%L, 999, '2026-09-02', 'cash', '00000000-0000-4000-8000-0000000000a1')$f$, :'lease'),
   '22023', 'idempotency_key_reused', 'a key reused for a different payment is rejected'
+);
+select is(
+  public.record_payment(:'lease', 100000.00, '2026-09-02', 'cash', '00000000-0000-4000-8000-0000000000a1')
+    -> 'payment' ->> 'receipt_number',
+  'MM-2026-00001', 'the same amount written with another scale is the same request'
+);
+select throws_ok(
+  format($f$select public.record_payment(%L, 100000, '2026-09-02', 'raast', '00000000-0000-4000-8000-0000000000a1')$f$, :'lease'),
+  '22023', 'idempotency_key_reused', 'a retry must repeat the request exactly (another method is refused)'
+);
+select throws_ok(
+  format($f$select public.record_payment(%L, 100000, '2026-09-02', 'cash', '00000000-0000-4000-8000-0000000000a1', 'IBFT-2')$f$, :'lease'),
+  '22023', 'idempotency_key_reused', 'a retry with another reference is refused'
 );
 select throws_ok(
   format($f$select public.record_payment(%L, 999, '2026-09-02', 'cash', null)$f$, :'lease'),
@@ -151,9 +164,10 @@ select results_eq(
   $$values (45000.00::numeric), (6200.00), (45000.00)$$,
   'dues paid by the voided payment are open again'
 );
-select throws_ok(
-  format($f$select public.void_payment(%L, 'Again')$f$, (:'p4')::jsonb -> 'payment' ->> 'id'),
-  '22023', 'already_voided', 'a payment can be voided once'
+select is(
+  public.void_payment(((:'p4')::jsonb -> 'payment' ->> 'id')::uuid, 'Again') -> 'payment',
+  (:'v4')::jsonb -> 'payment',
+  'voiding a voided payment again (a retry) changes nothing and reports it'
 );
 
 -- Waiving and voiding charges --------------------------------------------------------------
@@ -170,6 +184,7 @@ select throws_ok(
 insert into public.charges (portfolio_id, lease_id, kind, due_date, amount)
 values (:'pid', :'lease', 'damages', '2026-11-20', 3000) returning id as dmg \gset
 select ok((public.void_charge(:'dmg', 'Repaired by tenant')).voided_at is not null, 'unpaid charges can be voided');
+select is((public.void_charge(:'dmg', 'Again')).void_reason, 'Repaired by tenant', 'voiding a voided charge again changes nothing');
 select throws_ok(
   format($f$update public.charges set amount = 1 where id = %L$f$, :'dmg'),
   '22023', 'charge_voided', 'voided charges are frozen'
@@ -215,10 +230,65 @@ select throws_ok(
   $$select public.void_deposit_refund((select id from public.deposit_refunds limit 1), 'Bounced')$$,
   '42501', 'forbidden', 'only owners void refunds'
 );
+select tests.authenticate_as(:'owner');
+select (public.void_deposit_refund((select id from public.deposit_refunds limit 1), 'Bounced')).voided_at as refund_voided_at \gset
+select is(
+  (public.void_deposit_refund((select id from public.deposit_refunds limit 1), 'Twice')).voided_at::text,
+  :'refund_voided_at', 'voiding a voided refund again changes nothing'
+);
+select is((public.get_deposit_position(:'lease') ->> 'held')::numeric, 80000.00, 'a voided refund is held again');
+select tests.authenticate_as(:'manager');
 
 -- Receipt numbering is gapless even when a payment fails ------------------------------------
 select public.record_payment(:'lease', 100, '2026-11-03', 'cash', gen_random_uuid()) -> 'payment' ->> 'receipt_number' as rn \gset
 select is(:'rn'::text, 'MM-2026-00006', 'the next receipt continues the sequence without gaps');
+
+-- Receipt numbers never truncate --------------------------------------------------------------
+reset role;
+update private.receipt_counters set last_value = 99999 where portfolio_id = :'pid';
+select tests.authenticate_as(:'manager');
+select is(
+  public.record_payment(:'lease', 100, '2026-11-03', 'cash', gen_random_uuid()) -> 'payment' ->> 'receipt_number',
+  'MM-2026-100000', 'receipt numbers grow past five digits instead of wrapping into duplicates'
+);
+
+-- Keys are unique per portfolio; a raised deposit picks up credit -----------------------------
+reset role;
+select tests.create_rental(:'pid', 'punjab', 'Annexe') as r2 \gset
+select tests.create_lease(:'pid', :'r2', '2026-11-01', 10000) as lease2 \gset
+select tests.authenticate_as(:'manager');
+select throws_ok(
+  format($f$select public.record_payment(%L, 100000, '2026-09-02', 'cash', '00000000-0000-4000-8000-0000000000a1')$f$, :'lease2'),
+  '22023', 'idempotency_key_reused', 'a key already used on another lease of the portfolio is refused'
+);
+select is(
+  (public.record_payment(:'lease2', 15000, '2026-11-03', 'cash', gen_random_uuid()) ->> 'lease_credit')::numeric,
+  5000.00, 'an overpayment of the first rent leaves credit'
+);
+update public.leases set security_deposit = 20000 where id = :'lease2';
+select is(
+  (select paid_amount from public.charges
+   where lease_id = :'lease2' and kind = 'security_deposit' and voided_at is null),
+  5000.00, 'raising the deposit applies the unallocated credit to it'
+);
+
+-- Billing resumes after the newest automatic month ------------------------------------------
+insert into public.charges (portfolio_id, lease_id, kind, period_month, due_date, amount, description)
+values (:'pid', :'lease2', 'rent', '2027-03-01', '2027-03-05', 10000, 'Agreed in advance');
+reset role;
+select is(
+  private.sync_lease_billing(:'lease2', '2027-04-01'), 4,
+  'a month billed by hand does not stop billing of the months before it'
+);
+select results_eq(
+  format($f$select period_month, source from public.charges
+            where lease_id = %L and kind = 'rent' order by period_month$f$, :'lease2'),
+  $$values ('2026-11-01'::date, 'auto_rent'::text), ('2026-12-01', 'auto_rent'), ('2027-01-01', 'auto_rent'),
+           ('2027-02-01', 'auto_rent'), ('2027-03-01', 'manual'), ('2027-04-01', 'auto_rent')$$,
+  'every month is billed exactly once'
+);
+select is(private.sync_lease_billing(:'lease2', '2027-04-01'), 0, 'syncing again creates nothing');
+select tests.authenticate_as(:'manager');
 
 -- Global invariants --------------------------------------------------------------------------
 select tests.clear_authentication();
