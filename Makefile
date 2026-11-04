@@ -98,6 +98,10 @@ test-functions: ## Edge Function tests with the 100% coverage gate
 	cd supabase/functions && $(DENO) task test
 	python3 tool/coverage/check.py supabase/functions/coverage/lcov.info --min 100
 
+.PHONY: test-functions-e2e
+test-functions-e2e: ## Edge Functions against a running local stack (supabase start)
+	cd supabase/functions && $(DENO) task test:e2e
+
 .PHONY: test-web
 test-web: ## Website build, e2e, accessibility and SEO checks
 	cd website && npm run check && npm run build && npm run test:e2e
