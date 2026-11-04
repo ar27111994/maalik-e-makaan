@@ -21,6 +21,7 @@ export type ErrorCode =
   | 'conflict'
   | 'rate_limited'
   | 'deep_check_disabled'
+  | 'temporarily_unavailable'
   | 'server_misconfigured'
   | 'upstream_error'
   | 'internal_error';
@@ -57,6 +58,31 @@ export function invalidField(field: string, reason: string): HttpError {
   });
 }
 
+/** 401 with the `WWW-Authenticate: Bearer` challenge RFC 6750 asks for. */
+export function unauthorized(
+  message = 'Sign in to continue.',
+  details?: Record<string, unknown>,
+): HttpError {
+  return new HttpError(401, 'unauthorized', message, {
+    details,
+    headers: { 'www-authenticate': 'Bearer' },
+  });
+}
+
+/**
+ * 401 asking for a fresh sign-in (RFC 9470 step-up authentication): the
+ * challenge names the maximum sign-in age the operation accepts.
+ */
+export function reauthenticationRequired(maxAgeSeconds: number, message: string): HttpError {
+  return new HttpError(401, 'reauthentication_required', message, {
+    details: { reauth_max_age_seconds: maxAgeSeconds },
+    headers: {
+      'www-authenticate':
+        `Bearer error="insufficient_user_authentication", max_age=${maxAgeSeconds}`,
+    },
+  });
+}
+
 /** The parts of an `@supabase/server` AuthError the pipeline relies on. */
 export interface AuthFailure {
   readonly status: number;
@@ -71,9 +97,7 @@ export interface AuthFailure {
  */
 export function fromAuthFailure(failure: AuthFailure): HttpError {
   if (failure.status === 401) {
-    return new HttpError(401, 'unauthorized', 'Sign in to continue.', {
-      details: { reason: failure.code },
-    });
+    return unauthorized('Sign in to continue.', { reason: failure.code });
   }
   return new HttpError(500, 'server_misconfigured', 'Authentication is not configured.', {
     details: { reason: failure.code },
@@ -89,19 +113,53 @@ export interface DatabaseFailure {
   readonly hint?: string | null;
 }
 
+/** The longest wait a database 429 may announce (one day). */
+const MAX_RETRY_AFTER_SECONDS = 86_400;
+
 /**
- * Maps a failed RPC or query to an HttpError.
+ * Retry-After for a database 429: the database puts the exact wait in the
+ * error hint (private.raise_rate_limited). Anything else is ignored, and the
+ * header is then omitted rather than guessed.
+ */
+export function retryAfterFromHint(hint: string | null | undefined): Record<string, string> {
+  if (typeof hint !== 'string' || !/^[1-9][0-9]{0,5}$/.test(hint)) return {};
+  return Number(hint) <= MAX_RETRY_AFTER_SECONDS ? { 'retry-after': hint } : {};
+}
+
+function rateLimited(failure: DatabaseFailure): HttpError {
+  return new HttpError(429, 'rate_limited', 'Too many requests. Please wait a moment.', {
+    headers: retryAfterFromHint(failure.hint),
+  });
+}
+
+/**
+ * Transient database conditions worth retrying: deadlock (40P01),
+ * serialisation failure (40001), lock not available (55P03) and statement
+ * timeout (57014).
+ */
+const TRANSIENT_CODES = new Set(['40P01', '40001', '55P03', '57014']);
+
+function temporarilyUnavailable(failure: DatabaseFailure): HttpError {
+  return new HttpError(503, 'temporarily_unavailable', 'The service is busy. Please try again.', {
+    headers: { 'retry-after': '1' },
+    cause: failure,
+  });
+}
+
+/**
+ * Maps a failed RPC or query made **as the caller** (the context client).
  *
  * The database reports domain failures as SQLSTATE 22023 with a stable
  * message key (app.fail), authorisation failures as 42501, and rate limits as
- * HTTP 429 with code `rate_limited` (private.raise_rate_limited).
+ * HTTP 429 with code `rate_limited`. PostgREST reports JWT problems as 401
+ * with PGRST30x codes.
  */
 export function fromDatabaseFailure(failure: DatabaseFailure, status?: number): HttpError {
-  if (status === 429 || failure.code === 'rate_limited') {
-    return new HttpError(429, 'rate_limited', 'Too many requests. Please wait a moment.', {
-      headers: { 'retry-after': '60' },
-    });
+  if (status === 429 || failure.code === 'rate_limited') return rateLimited(failure);
+  if (status === 401 || (failure.code ?? '').startsWith('PGRST30')) {
+    return unauthorized('Sign in to continue.', { reason: failure.code ?? 'unauthorized' });
   }
+  if (TRANSIENT_CODES.has(failure.code ?? '')) return temporarilyUnavailable(failure);
   switch (failure.code) {
     case '42501':
       return new HttpError(403, 'forbidden', 'You do not have access to this.');
@@ -117,14 +175,22 @@ export function fromDatabaseFailure(failure: DatabaseFailure, status?: number): 
       return new HttpError(422, 'validation_failed', 'The request was rejected.', {
         details: { reason: 'constraint_violation' },
       });
-    case 'PGRST301':
-    case 'PGRST302':
-      return new HttpError(401, 'unauthorized', 'Sign in to continue.', {
-        details: { reason: failure.code },
-      });
     default:
       return new HttpError(502, 'upstream_error', 'The database could not complete the request.', {
         cause: failure,
       });
   }
+}
+
+/**
+ * Maps a failed RPC or query made **by the function itself** with the secret
+ * key. Such a call never fails because of the caller's input or rights (the
+ * function validated both), so nothing here is reported as the caller's
+ * fault: transient conditions are 503, everything else is 502.
+ */
+export function fromServiceFailure(failure: DatabaseFailure): HttpError {
+  if (TRANSIENT_CODES.has(failure.code ?? '')) return temporarilyUnavailable(failure);
+  return new HttpError(502, 'upstream_error', 'The database could not complete the request.', {
+    cause: failure,
+  });
 }

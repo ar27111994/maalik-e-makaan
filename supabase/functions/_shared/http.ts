@@ -40,11 +40,21 @@ export function errorResponse(error: HttpError, requestId: string): Response {
   );
 }
 
-/** Copies [response] with extra headers (CORS, request id) merged in. */
-export function withHeaders(response: Response, headers: Record<string, string>): Response {
-  const merged = new Headers(response.headers);
+/**
+ * Copies [response] with [headers] set and the security headers added where
+ * the response does not set them itself. With [dropBody] (HEAD requests) the
+ * copy has no body.
+ */
+export function withHeaders(
+  response: Response,
+  headers: Record<string, string>,
+  dropBody = false,
+): Response {
+  const merged = new Headers(SECURITY_HEADERS);
+  response.headers.forEach((value, name) => merged.set(name, value));
   for (const [name, value] of Object.entries(headers)) merged.set(name, value);
-  return new Response(response.body, {
+  if (dropBody) void response.body?.cancel();
+  return new Response(dropBody ? null : response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: merged,
@@ -53,21 +63,29 @@ export function withHeaders(response: Response, headers: Record<string, string>)
 
 export const DEFAULT_MAX_BODY_BYTES = 16 * 1024;
 
+const JSON_MEDIA_TYPE = /^application\/json\s*(;|$)/i;
+const CHARSET_PARAMETER = /;\s*charset\s*=\s*"?([^";\s]+)"?/i;
+
 /**
  * Reads a JSON object from the request body.
  *
- * Rejects non-JSON content types (415), bodies larger than [maxBytes] (413,
- * checked against Content-Length and again while streaming, so a lying
- * header cannot bypass it), malformed JSON (400) and anything that is not a
- * plain object (422).
+ * Rejects non-JSON content types and charsets other than UTF-8 (415),
+ * bodies larger than [maxBytes] (413, checked against Content-Length and
+ * again while streaming, so a lying header cannot bypass it), bodies that are
+ * not valid UTF-8, cannot be read or are not JSON (400), and anything that is
+ * not a plain object (422).
  */
 export async function readJsonObject(
   req: Request,
   maxBytes = DEFAULT_MAX_BODY_BYTES,
 ): Promise<Record<string, unknown>> {
   const contentType = req.headers.get('content-type') ?? '';
-  if (!/^application\/json\s*(;|$)/i.test(contentType)) {
+  if (!JSON_MEDIA_TYPE.test(contentType)) {
     throw new HttpError(415, 'unsupported_media_type', 'Send the body as application/json.');
+  }
+  const charset = CHARSET_PARAMETER.exec(contentType)?.[1]?.toLowerCase();
+  if (charset !== undefined && charset !== 'utf-8' && charset !== 'utf8') {
+    throw new HttpError(415, 'unsupported_media_type', 'Send the body as UTF-8.');
   }
   const declared = Number(req.headers.get('content-length') ?? '0');
   if (Number.isFinite(declared) && declared > maxBytes) {
@@ -101,14 +119,20 @@ async function readTextLimited(req: Request, maxBytes: number): Promise<string> 
   const chunks: Uint8Array[] = [];
   let total = 0;
   while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch (cause) {
+      // The client aborted or the stream broke: the caller's problem, not ours.
+      throw new HttpError(400, 'invalid_json', 'The request body could not be read.', { cause });
+    }
+    if (chunk.done) break;
+    total += chunk.value.byteLength;
     if (total > maxBytes) {
       await reader.cancel();
       throw tooLarge(maxBytes);
     }
-    chunks.push(value);
+    chunks.push(chunk.value);
   }
   const bytes = new Uint8Array(total);
   let offset = 0;
@@ -116,5 +140,10 @@ async function readTextLimited(req: Request, maxBytes: number): Promise<string> 
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+  try {
+    // Fatal: malformed UTF-8 is rejected instead of silently becoming U+FFFD.
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    throw new HttpError(400, 'invalid_json', 'The request body is not valid UTF-8.');
+  }
 }

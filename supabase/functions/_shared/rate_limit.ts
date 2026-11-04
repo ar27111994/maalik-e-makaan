@@ -4,14 +4,9 @@
  */
 
 import { HttpError } from './errors.ts';
+import type { Context } from './handler.ts';
 
-/** The slice of a Supabase client this module needs (the admin client). */
-export interface RpcClient {
-  rpc(
-    fn: string,
-    args: Record<string, unknown>,
-  ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
-}
+type Admin = Context['supabaseAdmin'];
 
 export interface RateLimit {
   /** Namespaced key, e.g. `invite_email:user:<uuid>`. Never raw personal data. */
@@ -22,12 +17,32 @@ export interface RateLimit {
   readonly windowSeconds: number;
 }
 
+/** The origin of the database's fixed windows (`date_bin(..., '2000-01-01')`). */
+const WINDOW_ORIGIN_SECONDS = Date.UTC(2000, 0, 1) / 1000;
+
+/**
+ * Seconds until the fixed window of [windowSeconds] that contains [now]
+ * ends: the honest Retry-After for a request refused in it (at least 1).
+ */
+export function retryAfterSeconds(now: Date, windowSeconds: number): number {
+  const elapsed = Math.floor(now.getTime() / 1000) - WINDOW_ORIGIN_SECONDS;
+  const remaining = windowSeconds - (((elapsed % windowSeconds) + windowSeconds) % windowSeconds);
+  return Math.max(1, remaining);
+}
+
+/** A 429 for [rule], with the wait until its window ends. */
+export function rateLimitedError(now: Date, rule: RateLimit): HttpError {
+  return new HttpError(429, 'rate_limited', 'Too many requests. Please wait a moment.', {
+    headers: { 'retry-after': String(retryAfterSeconds(now, rule.windowSeconds)) },
+  });
+}
+
 /**
  * Counts one hit against [rule] and reports whether it is within the limit.
  * Throws an `upstream_error` HttpError when the limiter itself fails, so
  * callers decide whether to fail open or closed.
  */
-export async function hitRateLimit(admin: RpcClient, rule: RateLimit): Promise<boolean> {
+export async function hitRateLimit(admin: Admin, rule: RateLimit): Promise<boolean> {
   const { data, error } = await admin.rpc('admin_hit_rate_limit', {
     p_key: rule.key,
     p_limit: rule.limit,

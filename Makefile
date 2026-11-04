@@ -101,7 +101,8 @@ test-functions: ## Edge Function tests with the 100% coverage gate
 
 .PHONY: test-functions-e2e
 test-functions-e2e: ## Edge Functions against a running local stack (supabase start)
-	cd supabase/functions && $(DENO) task test:e2e
+	set -a && eval "$$(supabase status -o env)" && set +a && \
+	  cd supabase/functions && $(DENO) task test:e2e
 
 .PHONY: test-web
 test-web: ## Website build, e2e, accessibility and SEO checks

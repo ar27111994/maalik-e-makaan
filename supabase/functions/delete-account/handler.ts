@@ -1,24 +1,41 @@
 /**
  * delete-account: in-app account deletion (requirement AUTH-03).
  *
- *   GET  → preview: the portfolios that would be deleted with the account
- *          (those where the caller is the only owner).
- *   POST → delete. Requires `{ "confirm_email": "<the caller's e-mail>" }`,
- *          a sign-in within REAUTH_MAX_AGE_SECONDS, and a second factor when
- *          the account has one.
+ *   GET  → preview: { portfolios_to_delete, reauth_max_age_seconds,
+ *          second_factor_required }. Portfolios the caller owns alone are
+ *          deleted with the account; from the others the caller is removed.
+ *   POST { "confirm_email": "<the account's e-mail>" }
+ *        → { deleted, deleted_portfolio_ids, files_removed }
  *
- * Deletion order is chosen so that a failure at any step can simply be
- * retried and so that no personal files can outlive their records:
- *   1. files of the sole-owned portfolios (CNIC photos, agreements …);
- *   2. the portfolios themselves, memberships and notifications
- *      (admin_delete_account_data);
- *   3. the auth user (profile and sessions cascade). An already-deleted user
- *      counts as success.
+ * Every check fails closed, in this order:
+ *   1. at most 10 calls per user per 10 minutes;
+ *   2. the session is still live: Auth rejects signed-out sessions. A retry
+ *      after a completed deletion finds the account gone and gets success;
+ *   3. confirm_email equals the account's e-mail as Auth stores it now (not
+ *      the token's copy), ignoring case;
+ *   4. a first-factor sign-in (password, one-time code, magic link, OAuth,
+ *      SSO, …) within REAUTH_MAX_AGE_SECONDS. A second factor or a token
+ *      refresh is not a sign-in, so a stolen session cannot step itself up;
+ *   5. accounts with a verified second factor must present it (aal2).
+ *
+ * Then the database deletes the portfolios the caller owns alone (queuing
+ * their files) and removes every membership, under locks that keep a
+ * co-owner's simultaneous deletion from orphaning a portfolio; the auth user
+ * is deleted (already gone counts as success); and the deleted portfolios'
+ * files are removed for up to CLEANUP_BUDGET_MS, the storage-cleanup
+ * function finishing whatever is left. Each step can simply be retried.
  */
 
-import type { JWTClaims, SupabaseContext } from '@supabase/server';
-import { fromDatabaseFailure, HttpError, invalidField } from '../_shared/errors.ts';
+import type { User } from '@supabase/supabase-js';
 import {
+  fromServiceFailure,
+  HttpError,
+  invalidField,
+  reauthenticationRequired,
+  unauthorized,
+} from '../_shared/errors.ts';
+import {
+  type Context,
   createHandler,
   defaultDeps,
   type PipelineDeps,
@@ -26,200 +43,237 @@ import {
   requireUser,
 } from '../_shared/handler.ts';
 import { json, readJsonObject } from '../_shared/http.ts';
-import { rejectUnknownFields, requireEmail } from '../_shared/validation.ts';
+import { hitRateLimit, type RateLimit, rateLimitedError } from '../_shared/rate_limit.ts';
+import { drainStorageCleanup } from '../_shared/storage.ts';
+import { rejectUnknownFields, requireText } from '../_shared/validation.ts';
 
-export const DOCUMENTS_BUCKET = 'documents';
-/** Storage list page size (the API maximum). */
-export const LIST_PAGE_SIZE = 1000;
-/** Objects removed per storage API call. */
-export const REMOVE_BATCH_SIZE = 100;
-/** Safety valve against runaway listings. */
-export const MAX_OBJECTS = 100_000;
+type Admin = Context['supabaseAdmin'];
 
-/** Authentication methods that do not prove the account holder signed in recently. */
-const NON_INTERACTIVE_METHODS = new Set(['anonymous', 'token_refresh']);
+/** Calls per user, shared by the preview and the deletion. */
+export const DELETE_ACCOUNT_LIMIT = { limit: 10, windowSeconds: 600 } as const;
+/** How long the request itself spends removing files before leaving the rest to storage-cleanup. */
+export const CLEANUP_BUDGET_MS = 8_000;
+/** Longest accepted confirmation (an e-mail address is at most 320 characters). */
+export const MAX_CONFIRMATION_LENGTH = 320;
+/** Clock skew tolerated on sign-in timestamps. */
+export const MAX_CLOCK_SKEW_SECONDS = 60;
 
-interface ScopeRow {
-  readonly portfolio_id: string;
-  readonly portfolio_name: string;
-  readonly other_members: number;
+/**
+ * `amr` methods that prove the account holder signed in: a first factor.
+ * Deliberately absent: `totp` and other second factors, `token_refresh`,
+ * `anonymous`, `invite` and `email_change` (they prove no sign-in), and
+ * `oauth_provider/*` (consent given to a third-party app).
+ */
+export const FIRST_FACTOR_METHODS: ReadonlySet<string> = new Set([
+  'password',
+  'otp',
+  'magiclink',
+  'oauth',
+  'sso/saml',
+  'web3',
+  'recovery',
+  'email/signup',
+]);
+
+export interface DeleteAccountDeps extends PipelineDeps {
+  /** Monotonic milliseconds. */
+  readonly clock: () => number;
 }
 
-type Admin = SupabaseContext['supabaseAdmin'];
-
-/** Unix time (seconds) of the caller's most recent interactive sign-in, from the `amr` claim. */
-export function lastSignInAt(claims: JWTClaims | null): number | null {
+/**
+ * Unix time (seconds) of the caller's latest first-factor sign-in, from the
+ * `amr` claim. Entries with a timestamp that is not a whole number of
+ * seconds, or lies in the future, are ignored.
+ */
+export function lastSignInAt(claims: Context['jwtClaims'], nowSeconds: number): number | null {
   const amr = claims?.['amr'];
   if (!Array.isArray(amr)) return null;
   let latest: number | null = null;
   for (const entry of amr) {
     if (entry === null || typeof entry !== 'object') continue;
     const { method, timestamp } = entry as { method?: unknown; timestamp?: unknown };
-    if (typeof method !== 'string' || NON_INTERACTIVE_METHODS.has(method)) continue;
-    if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) continue;
+    if (typeof method !== 'string' || !FIRST_FACTOR_METHODS.has(method)) continue;
+    if (typeof timestamp !== 'number' || !Number.isSafeInteger(timestamp)) continue;
+    if (timestamp > nowSeconds + MAX_CLOCK_SKEW_SECONDS) continue;
     latest = latest === null ? timestamp : Math.max(latest, timestamp);
   }
   return latest;
 }
 
 function ensureRecentSignIn(ctx: RequestContext): void {
-  const signedInAt = lastSignInAt(ctx.supabase.jwtClaims);
   const nowSeconds = Math.floor(ctx.now().getTime() / 1000);
-  const maxAge = ctx.config.reauthMaxAgeSeconds;
+  const signedInAt = lastSignInAt(ctx.supabase.jwtClaims, nowSeconds);
+  const maxAge = ctx.config.reauthMaxAgeSeconds();
   if (signedInAt === null || nowSeconds - signedInAt > maxAge) {
-    throw new HttpError(401, 'reauthentication_required', 'Sign in again to delete your account.', {
-      details: { max_age_seconds: maxAge },
-    });
+    throw reauthenticationRequired(maxAge, 'Sign in again to delete your account.');
   }
 }
 
-/** Accounts with a verified second factor must present it (aal2) to delete themselves. */
-async function ensureStrongAuthentication(ctx: RequestContext, userId: string): Promise<void> {
-  if (ctx.supabase.jwtClaims?.['aal'] === 'aal2') return;
-  const { data, error } = await ctx.supabase.supabaseAdmin.auth.admin.mfa.listFactors({ userId });
-  if (error !== null) {
-    throw new HttpError(502, 'upstream_error', 'Could not check two-step verification.', {
-      cause: error,
-    });
-  }
-  if (data.factors.some((factor) => factor.status === 'verified')) {
+function hasVerifiedFactor(user: User): boolean {
+  return (user.factors ?? []).some((factor) => factor.status === 'verified');
+}
+
+function ensureStrongAuthentication(ctx: RequestContext, user: User): void {
+  if (hasVerifiedFactor(user) && ctx.supabase.jwtClaims?.['aal'] !== 'aal2') {
     throw new HttpError(403, 'mfa_required', 'Verify with your second factor to continue.');
   }
 }
 
-async function deletionScope(admin: Admin, userId: string): Promise<ScopeRow[]> {
-  const { data, error, status } = await admin.rpc('admin_account_deletion_scope', {
-    p_user_id: userId,
-  });
-  if (error !== null) throw fromDatabaseFailure(error, status);
-  return (data ?? []) as ScopeRow[];
+async function enforceLimit(ctx: RequestContext, userId: string): Promise<void> {
+  const rule: RateLimit = { key: `delete_account:user:${userId}`, ...DELETE_ACCOUNT_LIMIT };
+  if (!await hitRateLimit(ctx.supabase.supabaseAdmin, rule)) {
+    throw rateLimitedError(ctx.now(), rule);
+  }
 }
 
-/** Every object path under [prefix] (recursive; folders have a null id). */
-export async function listObjects(
-  admin: Admin,
-  prefix: string,
-  maxObjects: number = MAX_OBJECTS,
-): Promise<string[]> {
-  const bucket = admin.storage.from(DOCUMENTS_BUCKET);
-  const files: string[] = [];
-  const folders = [prefix];
-  while (folders.length > 0) {
-    const folder = folders.pop() as string;
-    for (let offset = 0;; offset += LIST_PAGE_SIZE) {
-      const { data, error } = await bucket.list(folder, {
-        limit: LIST_PAGE_SIZE,
-        offset,
-        sortBy: { column: 'name', order: 'asc' },
-      });
-      if (error !== null) {
-        throw new HttpError(502, 'upstream_error', 'Could not list stored documents.', {
-          cause: error,
-        });
-      }
-      for (const entry of data) {
-        const path = `${folder}/${entry.name}`;
-        if (entry.id === null) {
-          folders.push(path);
-        } else {
-          files.push(path);
-        }
-        if (files.length > maxObjects) {
-          throw new HttpError(
-            502,
-            'upstream_error',
-            'Too many stored documents to delete at once.',
-          );
-        }
-      }
-      if (data.length < LIST_PAGE_SIZE) break;
-    }
-  }
-  return files;
+function bearerToken(req: Request): string {
+  const match = /^Bearer\s+(\S+)$/i.exec(req.headers.get('authorization') ?? '');
+  if (match === null) throw unauthorized();
+  return match[1] as string;
 }
 
-/** Removes every object of a portfolio's folder; returns how many were removed. */
-export async function removePortfolioFiles(admin: Admin, portfolioId: string): Promise<number> {
-  const paths = await listObjects(admin, portfolioId);
-  const bucket = admin.storage.from(DOCUMENTS_BUCKET);
-  for (let start = 0; start < paths.length; start += REMOVE_BATCH_SIZE) {
-    const { error } = await bucket.remove(paths.slice(start, start + REMOVE_BATCH_SIZE));
-    if (error !== null) {
-      throw new HttpError(502, 'upstream_error', 'Could not delete stored documents.', {
-        cause: error,
-      });
-    }
+type Account = { readonly kind: 'live'; readonly user: User } | { readonly kind: 'deleted' };
+
+/** Auth error codes and statuses that mean "this session or user is gone". */
+const GONE_CODES = new Set(['session_not_found', 'user_not_found', 'bad_jwt']);
+const GONE_STATUSES = new Set([401, 403, 404]);
+
+function isGone(error: { status?: number; code?: string }): boolean {
+  return GONE_CODES.has(error.code ?? '') || GONE_STATUSES.has(error.status ?? 0);
+}
+
+/**
+ * The caller's account as Auth stores it now, read with the caller's own
+ * token, so a session that was signed out is refused even though its JWT is
+ * still unexpired. When the session is gone, a deleted account is reported
+ * as such (for idempotent retries); a live one means the session ended.
+ */
+async function liveAccount(ctx: RequestContext, userId: string): Promise<Account> {
+  const admin = ctx.supabase.supabaseAdmin;
+  const { data, error } = await admin.auth.getUser(bearerToken(ctx.req));
+  if (error === null) {
+    if (data.user.id !== userId) throw unauthorized();
+    return { kind: 'live', user: data.user };
   }
-  return paths.length;
+  if (!isGone(error)) {
+    throw new HttpError(502, 'upstream_error', 'Could not check your session.', { cause: error });
+  }
+  const lookup = await admin.auth.admin.getUserById(userId);
+  if (lookup.error !== null) {
+    if (lookup.error.status === 404 || lookup.error.code === 'user_not_found') {
+      return { kind: 'deleted' };
+    }
+    throw new HttpError(502, 'upstream_error', 'Could not check your account.', {
+      cause: lookup.error,
+    });
+  }
+  throw unauthorized('Your session has ended. Sign in again.', { reason: 'session_ended' });
+}
+
+async function deletionScope(admin: Admin, userId: string) {
+  const { data, error } = await admin.rpc('admin_account_deletion_scope', { p_user_id: userId });
+  if (error !== null) throw fromServiceFailure(error);
+  return data ?? [];
+}
+
+function parseDeletedIds(data: unknown): string[] {
+  const ids = (data as { deleted_portfolio_ids?: unknown } | null)?.deleted_portfolio_ids;
+  if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string')) {
+    throw new HttpError(502, 'upstream_error', 'The account data could not be deleted.', {
+      cause: new Error('unexpected admin_delete_account_data response'),
+    });
+  }
+  return ids;
 }
 
 async function preview(ctx: RequestContext): Promise<Response> {
-  const user = requireUser(ctx);
-  const scope = await deletionScope(ctx.supabase.supabaseAdmin, user.id);
+  const caller = requireUser(ctx);
+  await enforceLimit(ctx, caller.id);
+  const account = await liveAccount(ctx, caller.id);
+  if (account.kind === 'deleted') {
+    throw unauthorized('Your session has ended. Sign in again.', { reason: 'session_ended' });
+  }
+  const scope = await deletionScope(ctx.supabase.supabaseAdmin, caller.id);
   return json({
     portfolios_to_delete: scope.map((row) => ({
       id: row.portfolio_id,
       name: row.portfolio_name,
       other_members: row.other_members,
     })),
-    sign_in_max_age_seconds: ctx.config.reauthMaxAgeSeconds,
+    reauth_max_age_seconds: ctx.config.reauthMaxAgeSeconds(),
+    second_factor_required: hasVerifiedFactor(account.user),
   });
 }
 
-async function deleteAccount(ctx: RequestContext): Promise<Response> {
-  const user = requireUser(ctx);
+async function deleteAccount(ctx: RequestContext, deps: DeleteAccountDeps): Promise<Response> {
+  const caller = requireUser(ctx);
+  await enforceLimit(ctx, caller.id);
   const body = await readJsonObject(ctx.req);
   rejectUnknownFields(body, ['confirm_email']);
-  const confirmEmail = requireEmail(body, 'confirm_email');
+  const confirmation = requireText(body, 'confirm_email', MAX_CONFIRMATION_LENGTH);
 
-  ensureRecentSignIn(ctx);
-  await ensureStrongAuthentication(ctx, user.id);
-  if (user.email === null || confirmEmail !== user.email.trim().toLowerCase()) {
+  const account = await liveAccount(ctx, caller.id);
+  if (account.kind === 'deleted') {
+    ctx.log.info('account_already_deleted', { user_id: caller.id });
+    return json({ deleted: true, deleted_portfolio_ids: [], files_removed: 0 });
+  }
+  const email = account.user.email?.trim().toLowerCase() ?? '';
+  if (email === '') throw invalidField('confirm_email', 'account_has_no_email');
+  if (confirmation.toLowerCase() !== email) {
     throw invalidField('confirm_email', 'does_not_match_account');
   }
+  ensureRecentSignIn(ctx);
+  ensureStrongAuthentication(ctx, account.user);
 
   const admin = ctx.supabase.supabaseAdmin;
-  const scope = await deletionScope(admin, user.id);
-  let filesRemoved = 0;
-  for (const row of scope) {
-    filesRemoved += await removePortfolioFiles(admin, row.portfolio_id);
-  }
+  const deletion = await admin.rpc('admin_delete_account_data', { p_user_id: caller.id });
+  if (deletion.error !== null) throw fromServiceFailure(deletion.error);
+  const deletedIds = parseDeletedIds(deletion.data);
 
-  const { data, error, status } = await admin.rpc('admin_delete_account_data', {
-    p_user_id: user.id,
-  });
-  if (error !== null) throw fromDatabaseFailure(error, status);
-  const deletedPortfolioIds = (data as { deleted_portfolio_ids?: string[] } | null)
-    ?.deleted_portfolio_ids ?? [];
-
-  const { error: authError } = await admin.auth.admin.deleteUser(user.id);
+  const { error: authError } = await admin.auth.admin.deleteUser(caller.id);
   if (authError !== null && authError.status !== 404) {
     throw new HttpError(502, 'upstream_error', 'The account could not be deleted.', {
       cause: authError,
     });
   }
 
+  // The account is gone; files left over are queued and storage-cleanup
+  // removes them, so a failure here is logged, not reported.
+  let filesRemoved = 0;
+  if (deletedIds.length > 0) {
+    try {
+      const report = await drainStorageCleanup(admin, {
+        paths: deletedIds.map((id) => `${id}/`),
+        deadline: deps.clock() + CLEANUP_BUDGET_MS,
+        clock: deps.clock,
+      });
+      filesRemoved = report.objectsRemoved;
+    } catch (error) {
+      ctx.log.error('account_files_cleanup_deferred', { user_id: caller.id, error });
+    }
+  }
+
   ctx.log.info('account_deleted', {
-    user_id: user.id,
-    portfolios_deleted: deletedPortfolioIds.length,
+    user_id: caller.id,
+    portfolios_deleted: deletedIds.length,
     files_removed: filesRemoved,
   });
-  return json({
-    deleted: true,
-    deleted_portfolio_ids: deletedPortfolioIds,
-    files_removed: filesRemoved,
-  });
+  return json({ deleted: true, deleted_portfolio_ids: deletedIds, files_removed: filesRemoved });
 }
 
+export const defaultDeleteAccountDeps: DeleteAccountDeps = {
+  ...defaultDeps,
+  clock: () => performance.now(),
+};
+
 export function createDeleteAccountHandler(
-  deps: PipelineDeps = defaultDeps,
+  deps: DeleteAccountDeps = defaultDeleteAccountDeps,
 ): (req: Request) => Promise<Response> {
   return createHandler(
     {
       name: 'delete-account',
-      methods: ['GET', 'POST'],
       auth: 'user',
-      handle: (ctx) => ctx.req.method === 'GET' ? preview(ctx) : deleteAccount(ctx),
+      routes: { GET: preview, POST: (ctx) => deleteAccount(ctx, deps) },
     },
     deps,
   );

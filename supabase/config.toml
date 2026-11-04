@@ -108,8 +108,16 @@ policy = "per_worker"
 inspector_port = 8083
 deno_version = 2
 
-# The functions use publishable/secret API keys and authorise callers in code
-# (@supabase/server), so the gateway's legacy JWT check is disabled for them.
+# The gateway's verify_jwt check only understands the legacy HS256 JWT
+# secret: it rejects requests that carry the new publishable/secret API keys
+# instead of a JWT. Every function therefore authorises its callers itself:
+#   delete-account, invite-member  a signed-in user's access token, verified by
+#                                  @supabase/server against the project's JWKS
+#                                  (audience "authenticated");
+#   health                         public liveness; deep checks need
+#                                  x-health-token (HEALTH_CHECK_TOKEN);
+#   storage-cleanup                x-cleanup-token (STORAGE_CLEANUP_TOKEN), sent
+#                                  by pg_cron through pg_net.
 [functions.delete-account]
 verify_jwt = false
 
@@ -117,6 +125,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.health]
+verify_jwt = false
+
+[functions.storage-cleanup]
 verify_jwt = false
 
 [analytics]

@@ -26,7 +26,7 @@
 **/l10n/generated/** linguist-generated=true
 pubspec.lock linguist-generated=true -diff
 package-lock.json linguist-generated=true -diff
-deno.lock linguist-generated=true -diff
+deno.lock linguist-generated=true
 supabase/functions/_shared/database.types.ts linguist-generated=true
 
 # Approved golden images are binary snapshots.

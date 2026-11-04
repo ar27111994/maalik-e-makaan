@@ -9,7 +9,10 @@
 import { invalidField } from './errors.ts';
 import { isCleanText } from './text.ts';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// The database's uuid shape (8-4-4-4-12 hex digits, any version or variant):
+// ids may come from clients (create_portfolio accepts a client id), so the
+// database, not this check, decides whether a row exists.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Same rule as the database's e-mail CHECKs (after lower-casing).
 const EMAIL = /^[^@\s]+@[^@\s]+\.[a-z]{2,63}$/;
 
@@ -31,7 +34,7 @@ function requireString(body: JsonObject, field: string): string {
   return value;
 }
 
-/** A UUID (any RFC 9562 version), returned in lower case. */
+/** A UUID in canonical 8-4-4-4-12 form, returned in lower case. */
 export function requireUuid(body: JsonObject, field: string): string {
   const value = requireString(body, field).trim();
   if (!UUID.test(value)) throw invalidField(field, 'not_a_uuid');
@@ -42,6 +45,18 @@ export function requireUuid(body: JsonObject, field: string): string {
 export function requireEmail(body: JsonObject, field: string): string {
   const value = requireString(body, field).trim().toLowerCase();
   if (value.length > 254 || !EMAIL.test(value)) throw invalidField(field, 'not_an_email');
+  return value;
+}
+
+/**
+ * A clean, non-empty string of at most [maxLength] characters, trimmed. For
+ * values compared against something authoritative (a typed confirmation),
+ * where a format rule would only lock out people the platform accepted.
+ */
+export function requireText(body: JsonObject, field: string, maxLength: number): string {
+  const value = requireString(body, field).trim();
+  if (value === '') throw invalidField(field, 'required');
+  if (Array.from(value).length > maxLength) throw invalidField(field, 'too_long');
   return value;
 }
 

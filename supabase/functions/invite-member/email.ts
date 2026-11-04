@@ -5,6 +5,11 @@
  * unknown; the inviter's language comes first. Every interpolated value is
  * escaped, and the inviter's verified e-mail address is shown next to their
  * name so a recipient can tell who is really inviting them.
+ *
+ * Names are chosen by users, so they never reach the subject (which inboxes
+ * show before any context), they appear in the body only as quoted data,
+ * and a name that looks like a link, domain or e-mail address is left out
+ * altogether: the product's domain must not carry someone's phishing text.
  */
 
 import type { EmailMessage } from '../_shared/email.ts';
@@ -41,9 +46,32 @@ const UNNAMED_INVITER: Readonly<Record<Locale, string>> = {
   ur: 'مالکِ مکان کے ایک صارف',
 };
 
+export const SUBJECTS: Readonly<Record<Locale, string>> = {
+  en: "You're invited to a portfolio on Maalik-e-Makaan",
+  ur: 'مالکِ مکان پر ایک پورٹ فولیو میں شمولیت کی دعوت',
+};
+
+const LINK_LIKE = [
+  /[a-z][a-z0-9+.-]*:\/\//i, // a URL scheme
+  /\bwww\./i,
+  /[^\s@]@[^\s@]/, // an e-mail address
+  /[a-z0-9-]\.[a-z]{2,63}(?![a-z0-9-])/i, // a domain name
+];
+
+/** Whether [text] contains something a mail client could present as a link. */
+export function looksLikeLink(text: string): boolean {
+  return LINK_LIKE.some((pattern) => pattern.test(text));
+}
+
+/** A user-chosen name fit for the e-mail body: one line, bounded, never link-like. */
+export function displayName(name: string, max: number): string {
+  const clean = truncate(singleLine(name), max);
+  return looksLikeLink(clean) ? '' : clean;
+}
+
 /** "Name (address)" from whichever parts exist; a neutral phrase when neither does. */
 export function inviterLabel(name: string, email: string | null, locale: Locale): string {
-  const shortName = truncate(singleLine(name), 60);
+  const shortName = displayName(name, 60);
   const address = email === null || email === '' ? null : email;
   if (shortName !== '' && address !== null) return `${shortName} (${address})`;
   return shortName !== '' ? shortName : address ?? UNNAMED_INVITER[locale];
@@ -60,12 +88,14 @@ const COLORS = {
   rule: '#D8DCE1',
 } as const;
 
-function formatExpiry(date: Date, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale === 'ur' ? 'ur-PK' : 'en-PK', {
+/** The expiry in Pakistan time, saying so (recipients may be abroad). */
+export function formatExpiry(date: Date, locale: Locale): string {
+  const formatted = new Intl.DateTimeFormat(locale === 'ur' ? 'ur-PK' : 'en-PK', {
     timeZone: 'Asia/Karachi',
     dateStyle: 'long',
     timeStyle: 'short',
   }).format(date);
+  return locale === 'ur' ? `${formatted} (پاکستانی وقت)` : `${formatted} (Pakistan time)`;
 }
 
 interface Copy {
@@ -80,11 +110,13 @@ interface Copy {
 function copy(locale: Locale, input: InvitationEmailInput, inviter: string): Copy {
   const role = ROLE_NAMES[locale][input.role];
   const expiry = formatExpiry(input.expiresAt, locale);
+  const named = input.portfolioName !== '';
   if (locale === 'ur') {
     return {
       heading: 'آپ کو دعوت دی گئی ہے',
-      intro:
-        `${inviter} نے آپ کو مالکِ مکان پر "${input.portfolioName}" میں بطور ${role} شامل ہونے کی دعوت دی ہے۔`,
+      intro: named
+        ? `${inviter} نے آپ کو مالکِ مکان پر "${input.portfolioName}" نامی پورٹ فولیو میں بطور ${role} شامل ہونے کی دعوت دی ہے۔`
+        : `${inviter} نے آپ کو مالکِ مکان پر ایک پورٹ فولیو میں بطور ${role} شامل ہونے کی دعوت دی ہے۔`,
       button: 'دعوت قبول کریں',
       validity:
         `یہ لنک صرف ایک بار، ${expiry} تک، اور صرف ${input.recipient} کے لیے کارآمد ہے۔ قبول کرنے کے لیے اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں۔`,
@@ -94,7 +126,9 @@ function copy(locale: Locale, input: InvitationEmailInput, inviter: string): Cop
   }
   return {
     heading: 'You have been invited',
-    intro: `${inviter} invited you to join "${input.portfolioName}" on Maalik-e-Makaan as ${role}.`,
+    intro: named
+      ? `${inviter} invited you to join the portfolio named "${input.portfolioName}" on Maalik-e-Makaan as ${role}.`
+      : `${inviter} invited you to join a portfolio on Maalik-e-Makaan as ${role}.`,
     button: 'Accept invitation',
     validity:
       `This link works once, until ${expiry}, and only for ${input.recipient}. Sign in or create an account with that address to accept.`,
@@ -131,16 +165,12 @@ function htmlSection(locale: Locale, text: Copy, url: string): string {
 
 /** Renders the invitation as a complete e-mail message. */
 export function renderInvitationEmail(input: InvitationEmailInput): EmailMessage {
-  const portfolioName = truncate(singleLine(input.portfolioName), 80);
+  const portfolioName = displayName(input.portfolioName, 80);
   const safe = { ...input, portfolioName };
   const label = (locale: Locale) => inviterLabel(input.inviterName, input.inviterEmail, locale);
-  const inviter = label(input.locale);
   const order: readonly Locale[] = input.locale === 'ur' ? ['ur', 'en'] : ['en', 'ur'];
   const sections = order.map((locale) => ({ locale, text: copy(locale, safe, label(locale)) }));
-
-  const subject = input.locale === 'ur'
-    ? `${inviter} کی طرف سے "${portfolioName}" میں شمولیت کی دعوت`
-    : `${inviter} invited you to "${portfolioName}" on Maalik-e-Makaan`;
+  const subject = SUBJECTS[input.locale];
 
   const html = `<!doctype html>
 <html lang="${input.locale}">

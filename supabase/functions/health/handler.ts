@@ -1,7 +1,7 @@
 /**
  * health: liveness for uptime monitors, plus an authenticated readiness check.
  *
- *   GET /health          → 200 { status: "ok", … } (no dependencies touched)
+ *   GET|HEAD /health     → 200 { status: "ok", … } (no dependencies touched)
  *   GET /health?deep=1   → checks the database, storage and auth services.
  *                          Requires `x-health-token: <HEALTH_CHECK_TOKEN>`
  *                          (compared in constant time); 200 when every check
@@ -13,7 +13,7 @@
 
 import { resolveEnv } from '@supabase/server/core';
 import { timingSafeEqual } from '../_shared/crypto.ts';
-import { HttpError } from '../_shared/errors.ts';
+import { HttpError, unauthorized } from '../_shared/errors.ts';
 import {
   createHandler,
   defaultDeps,
@@ -21,6 +21,7 @@ import {
   type RequestContext,
 } from '../_shared/handler.ts';
 import { json } from '../_shared/http.ts';
+import { DOCUMENTS_BUCKET } from '../_shared/storage.ts';
 
 export const SERVICE = 'maalik-e-makaan';
 export const CHECK_TIMEOUT_MS = 3_000;
@@ -68,13 +69,13 @@ export async function runCheck(
 }
 
 async function requireHealthToken(ctx: RequestContext): Promise<void> {
-  const expected = ctx.config.healthCheckToken;
+  const expected = ctx.config.healthCheckToken();
   if (expected === null) {
     throw new HttpError(403, 'deep_check_disabled', 'Deep health checks are not enabled.');
   }
   const presented = ctx.req.headers.get('x-health-token') ?? '';
   if (!await timingSafeEqual(presented, expected)) {
-    throw new HttpError(401, 'unauthorized', 'A valid health check token is required.');
+    throw unauthorized('A valid health check token is required.');
   }
 }
 
@@ -85,14 +86,18 @@ async function deepChecks(
   const admin = ctx.supabase.supabaseAdmin;
   const [database, storage, auth] = await Promise.all([
     runCheck(async (signal) => {
-      const { error } = await admin
+      // A real read (not HEAD): error bodies are parsed, and only 200/206
+      // count, so a missing table or a misrouted request is not "healthy".
+      const { error, status } = await admin
         .from('portfolios')
-        .select('id', { head: true, count: 'estimated' })
+        .select('id')
+        .limit(1)
         .abortSignal(signal);
       if (error !== null) throw new Error(`database: ${error.code ?? 'error'}`);
+      if (status !== 200 && status !== 206) throw new Error(`database: HTTP ${status}`);
     }),
     runCheck(async () => {
-      const { error } = await admin.storage.getBucket('documents');
+      const { error } = await admin.storage.getBucket(DOCUMENTS_BUCKET);
       if (error !== null) throw new Error('storage: bucket unavailable');
     }),
     runCheck(async (signal) => {
@@ -145,7 +150,7 @@ export function createHealthHandler(
   deps: HealthDeps = defaultHealthDeps,
 ): (req: Request) => Promise<Response> {
   return createHandler(
-    { name: 'health', methods: ['GET'], auth: 'none', handle: (ctx) => health(ctx, deps) },
+    { name: 'health', auth: 'none', routes: { GET: (ctx) => health(ctx, deps) } },
     deps,
   );
 }

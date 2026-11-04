@@ -14,7 +14,7 @@
  * send to servers, so it cannot leak into access logs or Referer headers.
  */
 
-import { type EmailConfig, type FunctionConfig } from '../_shared/config.ts';
+import { ConfigError, type EmailConfig } from '../_shared/config.ts';
 import { sha256Hex } from '../_shared/crypto.ts';
 import { createResendSender, type EmailSender } from '../_shared/email.ts';
 import { fromDatabaseFailure, HttpError } from '../_shared/errors.ts';
@@ -78,25 +78,55 @@ function parseInvitation(data: unknown): Invitation {
   return value as Invitation;
 }
 
-function requireAppUrl(config: FunctionConfig): string {
-  if (config.appUrl === null) {
-    throw new HttpError(500, 'server_misconfigured', 'Invitations are not configured.', {
-      details: { variable: 'APP_URL' },
-    });
+const GMAIL_DOMAINS = new Set(['gmail.com', 'googlemail.com']);
+
+/**
+ * The mailbox an address delivers to, for counting e-mails per recipient:
+ * lower-cased, without a `+tag`, and for Gmail without dots and with
+ * googlemail.com folded into gmail.com, so aliases of one mailbox share one
+ * quota. The invitation itself keeps the address as typed.
+ */
+export function canonicalMailbox(address: string): string {
+  const at = address.lastIndexOf('@');
+  let local = address.slice(0, at).toLowerCase();
+  let domain = address.slice(at + 1).toLowerCase();
+  const plus = local.indexOf('+');
+  if (plus > 0) local = local.slice(0, plus);
+  if (GMAIL_DOMAINS.has(domain)) {
+    local = local.replaceAll('.', '');
+    domain = 'gmail.com';
   }
-  return config.appUrl;
+  return `${local}@${domain}`;
 }
 
+/**
+ * Charges the e-mail quotas, the recipient's first so that an inviter is not
+ * charged for a message the recipient's cap would stop anyway.
+ */
 async function withinEmailLimits(ctx: RequestContext, inviterId: string, recipient: string) {
   const admin = ctx.supabase.supabaseAdmin;
   const rules: RateLimit[] = [
+    {
+      key: `invite_email:to:${await sha256Hex(canonicalMailbox(recipient))}`,
+      ...EMAIL_LIMITS.perRecipient,
+    },
     { key: `invite_email:user:${inviterId}`, ...EMAIL_LIMITS.perInviter },
-    { key: `invite_email:to:${await sha256Hex(recipient)}`, ...EMAIL_LIMITS.perRecipient },
   ];
   for (const rule of rules) {
     if (!await hitRateLimit(admin, rule)) return false;
   }
   return true;
+}
+
+/** The e-mail settings, or null when e-mail is off; a broken setup is logged and treated as failed delivery. */
+function emailSettings(ctx: RequestContext): EmailConfig | null | 'misconfigured' {
+  try {
+    return ctx.config.email();
+  } catch (error) {
+    if (!(error instanceof ConfigError)) throw error;
+    ctx.log.error('email_misconfigured', { variable: error.variable });
+    return 'misconfigured';
+  }
 }
 
 async function sendInvitationEmail(
@@ -108,12 +138,12 @@ async function sendInvitationEmail(
   inviteUrl: string,
   locale: Locale,
 ): Promise<EmailDelivery> {
-  const email = ctx.config.email;
+  const email = emailSettings(ctx);
   if (email === null) return 'not_configured';
+  if (email === 'misconfigured') return 'failed';
 
   try {
-    if (!await withinEmailLimits(ctx, inviter.id, invitation.email)) return 'rate_limited';
-
+    // Look up and render before charging any quota: a failure here costs nothing.
     const client = ctx.supabase.supabase;
     const [portfolio, profile] = await Promise.all([
       client.from('portfolios').select('name').eq('id', portfolioId).maybeSingle(),
@@ -124,8 +154,7 @@ async function sendInvitationEmail(
       throw new Error('portfolio name unavailable');
     }
     const fullName = (profile.data as { full_name?: unknown } | null)?.full_name;
-
-    await deps.createSender(email).send(renderInvitationEmail({
+    const message = renderInvitationEmail({
       invitationId: invitation.invitation_id,
       recipient: invitation.email,
       role: invitation.role,
@@ -135,7 +164,10 @@ async function sendInvitationEmail(
       inviterName: typeof fullName === 'string' ? fullName : '',
       inviterEmail: inviter.email,
       locale,
-    }));
+    });
+
+    if (!await withinEmailLimits(ctx, inviter.id, invitation.email)) return 'rate_limited';
+    await deps.createSender(email).send(message);
     return 'sent';
   } catch (error) {
     // The invitation exists and its link is returned; e-mail is best effort.
@@ -156,7 +188,7 @@ async function inviteMember(ctx: RequestContext, deps: InviteMemberDeps): Promis
   const role = requireEnum(body, 'role', INVITE_ROLES);
   const locale = optionalEnum(body, 'locale', LOCALES, 'en');
   // Fail before creating an invitation that could not be linked to.
-  const appUrl = requireAppUrl(ctx.config);
+  const appUrl = ctx.config.appUrl();
 
   const { data, error, status } = await ctx.supabase.supabase.rpc('create_invitation', {
     p_portfolio_id: portfolioId,
@@ -205,12 +237,7 @@ export function createInviteMemberHandler(
   deps: InviteMemberDeps = defaultInviteDeps,
 ): (req: Request) => Promise<Response> {
   return createHandler(
-    {
-      name: 'invite-member',
-      methods: ['POST'],
-      auth: 'user',
-      handle: (ctx) => inviteMember(ctx, deps),
-    },
+    { name: 'invite-member', auth: 'user', routes: { POST: (ctx) => inviteMember(ctx, deps) } },
     deps,
   );
 }

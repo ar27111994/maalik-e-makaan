@@ -1,11 +1,12 @@
 /**
  * Text safety shared by every function.
  *
- * The forbidden set matches the database's `app.is_clean_text` CHECK, the
- * Dart sanitiser in mm_core and tool/check_unicode.py: control characters
- * (except tab, line feed and carriage return), bidirectional overrides and
- * isolates ("Trojan Source"), and invisible spoofing characters. Urdu's
- * zero-width (non-)joiner and the LRM/RLM marks remain allowed.
+ * The forbidden set is the database's `app.is_clean_text` CHECK, which every
+ * stored text column enforces: control characters (except tab, line feed and
+ * carriage return), bidirectional overrides and isolates ("Trojan Source"),
+ * and invisible spoofing characters. Urdu's zero-width (non-)joiner and the
+ * LRM/RLM marks remain allowed. contracts/clean_text.json pins the same set
+ * for the database, the Dart sanitiser and this module.
  */
 
 /**
@@ -61,8 +62,14 @@ export function singleLine(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
 
-/** Shortens [value] to at most [max] characters, ending with an ellipsis. */
+const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+
+/**
+ * Shortens [value] to at most [max] user-perceived characters (grapheme
+ * clusters), ending with an ellipsis, so an emoji sequence or an Urdu letter
+ * with its diacritics is never cut in half.
+ */
 export function truncate(value: string, max: number): string {
-  const chars = Array.from(value);
-  return chars.length <= max ? value : `${chars.slice(0, Math.max(0, max - 1)).join('')}…`;
+  const clusters = Array.from(GRAPHEMES.segment(value), (part) => part.segment);
+  return clusters.length <= max ? value : `${clusters.slice(0, Math.max(0, max - 1)).join('')}…`;
 }
