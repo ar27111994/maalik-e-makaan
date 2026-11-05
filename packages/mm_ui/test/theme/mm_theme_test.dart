@@ -114,7 +114,7 @@ void main() {
     });
 
     test('button colours follow their state', () {
-      final colors = MmColorModes.light;
+      const colors = MmColorModes.light;
       final theme = MmTheme.data(brightness: Brightness.light);
       final elevated = theme.elevatedButtonTheme.style!;
       expect(elevated.backgroundColor!.resolve({}), colors.primary);
@@ -134,7 +134,7 @@ void main() {
     });
 
     test('the navigation bar marks the selected destination', () {
-      final colors = MmColorModes.light;
+      const colors = MmColorModes.light;
       final bar = MmTheme.data(brightness: Brightness.light).navigationBarTheme;
       expect(
         bar.labelTextStyle!.resolve({WidgetState.selected})!.color,
