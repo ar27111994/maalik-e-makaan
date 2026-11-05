@@ -1,20 +1,21 @@
 @Tags(['golden'])
 library;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 void _changed(bool? _) {}
 
 void main() {
   goldenEveryVariant(
     'mm_checkbox_tile',
-    () => Localised(
-      (context, tr) => GoldenColumn(
-        gap: 0,
+    () => GoldenPage(
+      (context, tr) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           MmCheckboxTile(
             label: tr('Rent includes electricity', 'کرایہ میں بجلی شامل ہے'),

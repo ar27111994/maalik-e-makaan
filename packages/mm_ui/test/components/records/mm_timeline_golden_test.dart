@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'golden_page.dart';
+import '../../support/testing.dart';
 
 /// A tenant's history, newest first: icon and dot markers in each tone, an
 /// item with no detail line, and a title long enough to wrap.

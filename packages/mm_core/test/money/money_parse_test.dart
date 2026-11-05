@@ -79,6 +79,36 @@ void main() {
       expect(paisa('−500', allowNegative: true), -50000);
       expect(paisa('Rs -500', allowNegative: true), -50000);
     });
+
+    test('direction marks are ignored wherever they appear', () {
+      expect(paisa('\u200E-500', allowNegative: true), -50000);
+      expect(paisa('\u200F5,000 روپے\u200F'), 500000);
+      expect(paisa('Rs\u061C 1,2\u200E00'), 120000);
+      expect(paisa('\u200E'), isNull);
+      expect(paisa('\u200E-500'), isNull);
+    });
+  });
+
+  test('round-trips negative amounts with MoneyFormat', () {
+    const formats = [
+      MoneyFormat(),
+      MoneyFormat(language: MoneyLanguage.urdu),
+      MoneyFormat(language: MoneyLanguage.urdu, nativeDigits: true),
+      MoneyFormat(currency: CurrencyDisplay.code),
+      MoneyFormat(currency: CurrencyDisplay.none),
+    ];
+    for (final rupees in [-1, -5000, -125000, -99999999]) {
+      final amount = Money.fromRupees(rupees);
+      for (final format in formats) {
+        final text = format.format(amount);
+        expect(
+          parseMoneyInput(text, allowNegative: true),
+          amount,
+          reason: text,
+        );
+        expect(parseMoneyInput(text), isNull, reason: text);
+      }
+    }
   });
 
   test('round-trips with MoneyFormat for random amounts', () {

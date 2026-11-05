@@ -4,8 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 const List<MmOption<String>> _properties = [
   MmOption(value: 'gulberg', label: 'Gulberg Heights', icon: MmIcons.property),
@@ -44,7 +43,6 @@ Widget _field<T>({
   errorText: errorText,
   required: required,
   optional: optional,
-  noMatchesText: 'No matches',
   onChanged: enabled ? (value) => log?.add(value) : null,
 );
 
@@ -81,7 +79,6 @@ class _DisablingState extends State<_Disabling> {
   Widget build(BuildContext context) => MmSelectField<String>(
     label: 'Property',
     options: _properties,
-    noMatchesText: 'No matches',
     onChanged: enabled ? widget.log.add : null,
   );
 }
@@ -390,6 +387,20 @@ void main() {
       expect(find.byType(ListTile), findsWidgets);
     });
 
+    testWidgets('says that nothing matches in Urdu in the Urdu UI', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        _field(options: _units, label: 'یونٹ'),
+        variant: MmVariant.urdu,
+      );
+      await _open(tester);
+      await tester.enterText(find.byType(TextField), 'Gulberg');
+      await tester.pumpAndSettle();
+      expect(find.text(MmLocalizations.urdu.noMatches), findsOneWidget);
+    });
+
     testWidgets('eight options have no search field', (tester) async {
       await pumpThemed(
         tester,
@@ -469,7 +480,6 @@ void main() {
         () => MmSelectField<String>(
           label: 'Property',
           options: _properties,
-          noMatchesText: 'No matches',
           required: true,
           optional: true,
           onChanged: null,
@@ -509,22 +519,25 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone, sheet included', (
       tester,
     ) async {
-      final field = Localised(
-        (context, tr) => _field(
-          options: [
-            for (var i = 1; i <= 10; i++)
-              MmOption(
-                value: i,
-                label: tr('Upper portion, House $i', 'بالائی حصہ، مکان $i'),
-                description: tr('Ayesha Khan, Rs 1,25,000', 'عائشہ خان'),
-                icon: MmIcons.home,
-              ),
-          ],
-          value: 4,
-          label: tr('Unit rented by Ali Raza', 'علی رضا کا کرایہ کا یونٹ'),
-          required: true,
-          helper: tr('Gulberg, Lahore', 'گلبرگ، لاہور'),
-        ),
+      final field = Builder(
+        builder: (context) {
+          final tr = sayIn(context);
+          return _field(
+            options: [
+              for (var i = 1; i <= 10; i++)
+                MmOption(
+                  value: i,
+                  label: tr('Upper portion, House $i', 'بالائی حصہ، مکان $i'),
+                  description: tr('Ayesha Khan, Rs 1,25,000', 'عائشہ خان'),
+                  icon: MmIcons.home,
+                ),
+            ],
+            value: 4,
+            label: tr('Unit rented by Ali Raza', 'علی رضا کا کرایہ کا یونٹ'),
+            required: true,
+            helper: tr('Gulberg, Lahore', 'گلبرگ، لاہور'),
+          );
+        },
       );
       await expectFitsNarrowLargeText(tester, field);
       await tester.tap(find.byType(MmChoiceBox));

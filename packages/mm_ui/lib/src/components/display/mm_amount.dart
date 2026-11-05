@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
-import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -108,24 +107,22 @@ class MmAmount extends StatelessWidget {
     final credit = creditLabel != null && amount.isNegative;
     final shown = credit ? amount.abs() : amount;
     final words = credit ? ' $creditLabel' : '';
-    final rupees = MmLocalizations.of(context).rupees;
     final colors = context.mm.colors;
-    final style = _style(context).copyWith(
-      color: (credit ? MmAmountTone.credit : tone).colorIn(colors),
-      // The Urdu currency word and credit label are set in Nastaliq: the
-      // Latin face has no Arabic-script letters.
-      fontFamilyFallback: const [MmFontFamily.urdu],
-      package: 'mm_ui',
-    );
+    // The Latin face, which falls back to Nastaliq for the Urdu currency
+    // word and credit label.
+    final style = _style(context)
+        .copyWith(color: (credit ? MmAmountTone.credit : tone).colorIn(colors));
     return Semantics(
       container: true,
-      label: '${spokenNumber(shown, format)} $rupees$words',
+      label: '${MmFormats.spokenMoney(context, shown, format: format)}$words',
       excludeSemantics: true,
       child: FittedBox(
         fit: BoxFit.scaleDown,
         alignment: _alignment(textAlign ?? TextAlign.start),
         child: Text(
-          '${_isolated(format.format(shown))}$words',
+          // A negative amount comes with a left-to-right mark before its
+          // minus sign, so the sign stays before the digits in Urdu.
+          '${format.format(shown)}$words',
           style: style,
           maxLines: 1,
           softWrap: false,
@@ -138,8 +135,10 @@ class MmAmount extends StatelessWidget {
   TextStyle _style(BuildContext context) => switch (size) {
     MmAmountSize.large => context.mm.amountLarge,
     MmAmountSize.regular => context.mm.amount,
-    MmAmountSize.small => MmTypeScale.latinBodySmall.copyWith(
-      fontFeatures: const [FontFeature.tabularFigures()],
+    MmAmountSize.small => MmSemantics.withUrduFallback(
+      MmTypeScale.latinBodySmall.copyWith(
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
     ),
   };
 
@@ -154,20 +153,4 @@ class MmAmount extends StatelessWidget {
     TextAlign.right =>
       Alignment.centerRight, // design-lint: allow explicit TextAlign.right
   };
-
-  /// [formatted] with a left-to-right mark before a leading minus sign, so
-  /// in right-to-left text the sign stays before the digits ("-5,000")
-  /// instead of drifting to their other side. Other amounts are unchanged.
-  static String _isolated(String formatted) =>
-      formatted.startsWith('-') ? '\u200E$formatted' : formatted;
-
-  /// [amount] as a screen reader should say it: the plain number without
-  /// grouping, with paisa only when [format] shows them ("125000",
-  /// "1500.50", "-5000").
-  static String spokenNumber(Money amount, MoneyFormat format) {
-    final shown = format.paisa == PaisaDisplay.never
-        ? amount.roundToRupee()
-        : amount;
-    return shown.hasPaisa ? shown.toDecimalString() : '${shown.wholeRupees}';
-  }
 }

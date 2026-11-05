@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/display/mm_reflow.dart';
 import 'package:mm_ui/src/components/display/mm_surface.dart';
-import 'package:mm_ui/src/components/display/mm_user_text.dart';
+import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -92,12 +91,12 @@ class MmListTile extends StatelessWidget {
     final trailing = this.trailing;
 
     final body = MmReflow(
-      start: Text(title, style: mm.userStyleFor(title, titleStyle)),
+      start: Text(title, style: mm.styleFor(title, titleStyle)),
       below: subtitle == null
           ? null
           : Text(
               subtitle,
-              style: mm.userStyleFor(subtitle, subtitleStyle),
+              style: mm.styleFor(subtitle, subtitleStyle),
               maxLines: subtitleMaxLines,
               overflow: TextOverflow.ellipsis,
             ),

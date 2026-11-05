@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 import 'support.dart';
 
 const _message = 'Rs 45,000 recorded for Ayesha Khan';

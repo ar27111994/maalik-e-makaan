@@ -5,10 +5,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
-import 'package:mm_ui/src/components/feedback/mm_filled_action.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const _title = 'Remove Ali Raza?';
 const _message = 'His ledger for Flat 3, Gulberg III is kept for your records.';
@@ -167,7 +165,7 @@ void main() {
       final answer = await _open(tester, context, destructive: true);
       final colors = colorsOf(variant);
       expect(_confirmMaterial(tester).color, colors.overdue);
-      expect(styleOf(tester, _confirm).color, MmFilledAction.onOverdue(colors));
+      expect(styleOf(tester, _confirm).color, colors.surface);
       final cancel = MmLocalizations.forLocale(variant.locale).cancel;
       expect(focusedAt(tester, cancel), isTrue);
       // A stray Enter cancels.

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 import 'editing.dart';
 
 void main() {
@@ -607,26 +607,25 @@ void main() {
 
   group('MmTextField layout', () {
     testWidgets('fits 200% text on a 320 dp wide screen', (tester) async {
-      await expectFitsNarrowLargeText(
-        tester,
-        const Column(
-          children: [
-            MmTextField(
-              label: 'Name of the tenant as written on the CNIC',
-              required: true,
-              helper: 'Include the middle name if there is one',
-              maxLength: 60,
-              prefixIcon: MmIcons.person,
-            ),
-            MmTextField(
-              label: 'Unit',
-              optional: true,
-              errorText: 'Enter the unit number before saving the lease',
-            ),
-          ],
-        ),
+      const fields = Column(
+        children: [
+          MmTextField(
+            label: 'Name of the tenant as written on the CNIC',
+            required: true,
+            helper: 'Include the middle name if there is one',
+            maxLength: 60,
+            prefixIcon: MmIcons.person,
+          ),
+          MmTextField(
+            label: 'Unit',
+            optional: true,
+            errorText: 'Enter the unit number before saving the lease',
+          ),
+        ],
       );
+      await expectFitsNarrowLargeText(tester, fields);
       // The long label wraps onto more lines instead of being cut.
+      await pumpLargeNarrow(tester, const SingleChildScrollView(child: fields));
       expect(
         tester
             .getSize(

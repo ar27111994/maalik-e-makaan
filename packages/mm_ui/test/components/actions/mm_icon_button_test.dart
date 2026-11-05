@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 
 const _edit = 'Edit tenant';
 
@@ -30,9 +30,6 @@ Color _iconColor(WidgetTester tester, IconData icon) => tester
     .text
     .style!
     .color!;
-
-MmColorTokens _colorsOf(MmVariant variant) =>
-    MmTheme.tokensFor(variant.brightness, highContrast: variant.highContrast);
 
 void main() {
   group('MmIconButton', () {
@@ -212,7 +209,7 @@ void main() {
       tester,
       variant,
     ) async {
-      final colors = _colorsOf(variant);
+      final colors = colorsOf(variant);
       final scheme = variant.theme.colorScheme;
       // (fill, icon colour) by variant and `selected`; a null fill is none.
       final expected = <(MmIconButtonVariant, bool?), (Color?, Color)>{
@@ -283,19 +280,22 @@ void main() {
       tester,
       variant,
     ) async {
-      final colors = _colorsOf(variant);
-      // On a cobalt fill the ring takes the icon colour; elsewhere the
-      // focus colour.
-      final rings = <(MmIconButtonVariant, bool?), Color>{
-        (MmIconButtonVariant.standard, null): colors.focus,
-        (MmIconButtonVariant.filled, null): colors.onPrimary,
-        (MmIconButtonVariant.filled, false): colors.focus,
-        (MmIconButtonVariant.tonal, null): colors.focus,
-        (MmIconButtonVariant.outlined, false): colors.focus,
-        (MmIconButtonVariant.outlined, true): colors.onPrimary,
+      final colors = colorsOf(variant);
+      // Any icon button may be filled, so the theme draws every ring outside
+      // the button, past a gap, in the focus colour: it shows on a cobalt
+      // fill too. The button keeps its own edge.
+      final edges = <(MmIconButtonVariant, bool?), BorderSide>{
+        (MmIconButtonVariant.standard, null): BorderSide.none,
+        (MmIconButtonVariant.filled, null): BorderSide.none,
+        (MmIconButtonVariant.filled, false): BorderSide.none,
+        (MmIconButtonVariant.tonal, null): BorderSide.none,
+        (MmIconButtonVariant.outlined, false): BorderSide(
+          color: colors.outline,
+        ),
+        (MmIconButtonVariant.outlined, true): BorderSide.none,
       };
-      for (final MapEntry(key: (kind, selected), value: ring)
-          in rings.entries) {
+      for (final MapEntry(key: (kind, selected), value: edge)
+          in edges.entries) {
         await pumpThemed(
           tester,
           MmIconButton(
@@ -307,13 +307,19 @@ void main() {
           ),
           variant: variant,
         );
+        final reason = '${kind.name} $selected';
+        expect(
+          _material(tester).shape,
+          isNot(isA<MmFocusRingBorder>()),
+          reason: reason,
+        );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
-        expect(
-          _side(tester),
-          BorderSide(color: ring, width: MmSize.focusRing),
-          reason: '${kind.name} $selected',
-        );
+        final ring = _material(tester).shape! as MmFocusRingBorder;
+        expect(ring.color, colors.focus, reason: reason);
+        expect(ring.width, MmSize.focusRing, reason: reason);
+        expect(ring.gap, MmSize.focusGap, reason: reason);
+        expect(ring.side, edge, reason: reason);
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
       }

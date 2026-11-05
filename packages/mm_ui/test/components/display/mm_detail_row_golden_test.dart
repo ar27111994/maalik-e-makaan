@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'golden_page.dart';
+import '../../support/testing.dart';
 
 /// A receipt's rows: a name typed in English, a CNIC, a long address that
 /// moves under its label, an amount with a badge, and an emphasized total.

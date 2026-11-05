@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const ValueKey<String> _listKey = ValueKey('list');
 const ValueKey<String> _detailKey = ValueKey('detail');

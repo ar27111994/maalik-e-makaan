@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const _labels = ['Dues', 'Payments', 'Notes'];
 const _many = ['Overview', 'Payments', 'Documents', 'Utilities', 'History'];
@@ -37,20 +36,29 @@ void main() {
     ) async {
       final colors = colorsOf(variant);
       await pumpThemed(tester, _tabs(), variant: variant);
+      // The theme styles the bar; the tabs add no colours of their own.
       final bar = _bar(tester);
-      expect(bar.labelColor, colors.primary);
-      expect(bar.unselectedLabelColor, colors.inkMuted);
-      final indicator = bar.indicator! as UnderlineTabIndicator;
+      expect(bar.labelColor, isNull);
+      expect(bar.indicator, isNull);
+      final theme = TabBarTheme.of(tester.element(find.byType(MmTabs)));
+      final indicator = theme.indicator! as UnderlineTabIndicator;
       expect(indicator.borderSide.color, colors.primary);
-      expect(indicator.borderSide.width, MmTabs.indicatorWeight);
-      expect(bar.indicatorSize, TabBarIndicatorSize.label);
-      expect(bar.dividerColor, colors.rule);
-      expect(bar.dividerHeight, MmSize.hairline);
+      expect(indicator.borderSide.width, MmSize.tabIndicator);
+      expect(theme.indicatorSize, TabBarIndicatorSize.label);
+      expect(theme.dividerColor, colors.rule);
+      expect(theme.dividerHeight, MmSize.hairline);
+      // As painted: the selected label cobalt, the others muted, all in the
+      // label style they are measured in.
       final label = Theme.of(tester.element(find.byType(MmTabs)))
           .textTheme
-          .labelLarge;
+          .labelLarge!;
       expect(bar.labelStyle, label);
       expect(bar.unselectedLabelStyle, label);
+      final selected = styleOf(tester, _labels.first);
+      expect(selected.color, colors.primary);
+      expect(selected.fontSize, label.fontSize);
+      expect(selected.fontWeight, label.fontWeight);
+      expect(styleOf(tester, _labels.last).color, colors.inkMuted);
     });
 
     testWidgets('labels that fit share the width equally', (tester) async {

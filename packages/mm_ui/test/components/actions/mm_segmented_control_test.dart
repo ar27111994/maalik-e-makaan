@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 
 enum _Period { month, quarter, year }
 
@@ -68,9 +68,6 @@ bool _inView(WidgetTester tester, String label) {
   final text = tester.getRect(find.text(label));
   return text.left >= viewport.left - 0.5 && text.right <= viewport.right + 0.5;
 }
-
-MmColorTokens _colorsOf(MmVariant variant) =>
-    MmTheme.tokensFor(variant.brightness, highContrast: variant.highContrast);
 
 void main() {
   group('MmSegment', () {
@@ -207,7 +204,7 @@ void main() {
       tester,
       variant,
     ) async {
-      final colors = _colorsOf(variant);
+      final colors = colorsOf(variant);
       await pumpThemed(tester, _control(onChanged: (_) {}), variant: variant);
       expect(_material(tester, 'Monthly').color, colors.primaryContainer);
       expect(_textColor(tester, 'Monthly'), colors.onPrimaryContainer);
@@ -219,7 +216,7 @@ void main() {
       tester,
       variant,
     ) async {
-      final colors = _colorsOf(variant);
+      final colors = colorsOf(variant);
       await pumpThemed(tester, _control(), variant: variant);
       expect(_material(tester, 'Monthly').color, colors.surfaceSunken);
       expect(_textColor(tester, 'Monthly'), colors.inkMuted);
@@ -232,12 +229,10 @@ void main() {
     ) async {
       await pumpThemed(tester, _control(onChanged: (_) {}));
       const colors = MmColorModes.light;
-      final side = tester
-          .widget<SegmentedButton<_Period>>(
-            find.byType(SegmentedButton<_Period>),
-          )
-          .style!
-          .side!;
+      final button = find.byType(SegmentedButton<_Period>);
+      // The theme styles the control; it adds no style of its own.
+      expect(tester.widget<SegmentedButton<_Period>>(button).style, isNull);
+      final side = SegmentedButtonTheme.of(tester.element(button)).style!.side!;
       expect(side.resolve({}), BorderSide(color: colors.outline));
       expect(
         side.resolve({WidgetState.focused}),

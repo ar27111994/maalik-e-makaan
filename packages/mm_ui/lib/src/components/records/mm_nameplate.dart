@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/records/mm_record_style.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -52,10 +51,7 @@ class MmNameplate extends StatelessWidget {
     final on = colors.onBrassContainer;
     final subtitle = this.subtitle;
     final icon = this.icon;
-    final nameStyle = mm.dataStyleFor(
-      name,
-      text.titleLarge!.copyWith(color: on),
-    );
+    final nameStyle = mm.styleFor(name, text.titleLarge!.copyWith(color: on));
     // The icon grows with the text, up to half as large again, and is
     // centred on the name's first line.
     final textScaler = MediaQuery.textScalerOf(context);
@@ -65,11 +61,11 @@ class MmNameplate extends StatelessWidget {
     final nameLine = textScaler.scale(nameStyle.fontSize!) * nameStyle.height!;
     // An engraved hairline runs inside the brass frame, as on a cast
     // plate: the frame, a gap as wide as the frame, then the hairline.
-    const engraving = MmRecordMetrics.frame * 2;
+    const engraving = MmSize.frame * 2;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.brassContainer,
-        border: Border.all(color: colors.brass, width: MmRecordMetrics.frame),
+        border: Border.all(color: colors.brass, width: MmSize.frame),
         borderRadius: const BorderRadius.all(Radius.circular(MmRadius.xs)),
       ),
       child: Padding(
@@ -109,7 +105,7 @@ class MmNameplate extends StatelessWidget {
                           container: true,
                           child: Text(
                             subtitle,
-                            style: mm.dataStyleFor(
+                            style: mm.styleFor(
                               subtitle,
                               text.bodyMedium!.copyWith(color: on),
                             ),

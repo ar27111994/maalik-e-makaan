@@ -23,7 +23,7 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///   ),
 /// )
 /// ```
-class MmFab extends StatefulWidget {
+class MmFab extends StatelessWidget {
   /// Creates a floating action button that calls [onPressed] when
   /// activated.
   const new({
@@ -49,37 +49,27 @@ class MmFab extends StatefulWidget {
   final bool extended;
 
   @override
-  State<MmFab> createState() => _MmFabState();
-}
-
-class _MmFabState extends State<MmFab> {
-  /// The theme marks focus with a cobalt overlay on the cobalt fill, which
-  /// cannot be seen; the button draws a ring in its icon colour instead.
-  bool _focused = false;
-
-  @override
   Widget build(BuildContext context) {
     final colors = context.mm.colors;
-    final enabled = widget.onPressed != null;
-    final BorderSide side;
-    if (!enabled) {
-      side = BorderSide(color: colors.rule);
-    } else if (_focused) {
-      side = BorderSide(color: colors.onPrimary, width: MmSize.focusRing);
-    } else {
-      side = BorderSide(color: colors.primary);
-    }
-    final icon = Icon(widget.icon);
-    Widget fab = FloatingActionButton(
-      onPressed: widget.onPressed,
+    final enabled = onPressed != null;
+    final icon = Icon(this.icon);
+    final fab = FloatingActionButton(
+      onPressed: onPressed,
+      // The theme draws an enabled button, its focus ring included. A
+      // disabled one lies flat on sunken paper inside the rule border, in
+      // muted ink, as the theme's disabled filled buttons do.
       backgroundColor: enabled ? null : colors.surfaceSunken,
       foregroundColor: enabled ? null : colors.inkMuted,
       disabledElevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: const BorderRadius.all(Radius.circular(MmRadius.md)),
-        side: side,
-      ),
-      child: widget.extended
+      shape: enabled
+          ? null
+          : RoundedRectangleBorder(
+              borderRadius: const BorderRadius.all(
+                Radius.circular(MmRadius.md),
+              ),
+              side: BorderSide(color: colors.rule),
+            ),
+      child: extended
           ? Padding(
               padding: const EdgeInsetsDirectional.fromSTEB(
                 MmSpace.s4,
@@ -92,45 +82,28 @@ class _MmFabState extends State<MmFab> {
                 spacing: MmSpace.s3,
                 children: [
                   icon,
-                  Flexible(
-                    child: Text(widget.label, textAlign: TextAlign.center),
-                  ),
+                  Flexible(child: Text(label, textAlign: TextAlign.center)),
                 ],
               ),
             )
-          : Semantics(label: widget.label, child: icon),
+          : Semantics(label: label, child: icon),
     );
-    if (widget.extended) {
+    if (extended) {
       // Material's extended button lays its label out on one line however
       // long it is; this one keeps the standard size as a minimum and grows
       // to fit a wrapped label instead.
-      fab = FloatingActionButtonTheme(
+      return FloatingActionButtonTheme(
         data: FloatingActionButtonTheme.of(context).copyWith(
           sizeConstraints: const BoxConstraints(
-            minWidth: _minSize,
-            minHeight: _minSize,
+            minWidth: MmSize.fab,
+            minHeight: MmSize.fab,
           ),
         ),
         child: fab,
       );
-    } else {
-      // The label is the semantics label already; a second tooltip node
-      // would make screen readers say it twice.
-      fab = Tooltip(
-        message: widget.label,
-        excludeFromSemantics: true,
-        child: fab,
-      );
     }
-    return Focus(
-      canRequestFocus: false,
-      skipTraversal: true,
-      includeSemantics: false,
-      onFocusChange: (focused) => setState(() => _focused = focused),
-      child: fab,
-    );
+    // The label is the semantics label already; a second tooltip node
+    // would make screen readers say it twice.
+    return Tooltip(message: label, excludeFromSemantics: true, child: fab);
   }
-
-  /// The standard floating action button is as tall as a field: 56 dp.
-  static const double _minSize = MmSize.fieldHeight;
 }

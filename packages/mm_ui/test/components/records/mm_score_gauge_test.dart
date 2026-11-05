@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const _spoken = 'Payment score 82 out of 100, good';
 const _caption = 'Based on 12 months of payments';

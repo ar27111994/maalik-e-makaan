@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/icons/mm_icons.g.dart';
+import 'package:mm_ui/src/theme/mm_focus_ring.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -9,6 +11,14 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// only what deserves honour (a nameplate, a receipt seal), so components
 /// take it from `context.mm` deliberately. Surfaces are flat paper: no tint
 /// overlays and no shadows except on true overlays (sheets, dialogs, menus).
+///
+/// Keyboard focus is a [MmSize.focusRing] ring in the focus colour: on the
+/// edge of outlined and text buttons, segmented buttons, chips and fields,
+/// and outside filled, elevated and icon buttons and the floating action
+/// button, past a [MmSize.focusGap] gap ([MmFocusRingBorder]), because a
+/// ring on a filled control's edge would be the colour of its fill.
+/// Disabled buttons are muted ink; filled ones sit on sunken paper inside
+/// the rule border of a disabled outlined button.
 abstract final class MmTheme {
   /// The theme for [brightness], [script] and contrast preference.
   static ThemeData data({
@@ -33,11 +43,30 @@ abstract final class MmTheme {
           return states.contains(WidgetState.focused) ? focusSide : resting;
         });
 
-    final buttonShape = WidgetStateProperty.all<OutlinedBorder>(
-      const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(MmRadius.sm)),
-      ),
+    // Colours a button style only while disabled, leaving each kind of
+    // button its own enabled colours.
+    WidgetStateProperty<Color?> whileDisabled(Color color) =>
+        WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled) ? color : null,
+        );
+
+    const buttonOutline = RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(MmRadius.sm)),
     );
+    const buttonShape = WidgetStatePropertyAll<OutlinedBorder>(buttonOutline);
+    // Filled buttons: the focus ring goes outside, past a gap; their only
+    // border is the rule around a disabled one.
+    final filledShape = MmFocusRingBorder.whenFocused(
+      buttonOutline,
+      color: colors.focus,
+    );
+    final filledSide = WidgetStateProperty.resolveWith<BorderSide?>(
+      (states) => states.contains(WidgetState.disabled)
+          ? BorderSide(color: colors.rule)
+          : BorderSide.none,
+    );
+    final disabledFill = whileDisabled(colors.surfaceSunken);
+    final disabledInk = whileDisabled(colors.inkMuted);
     const minimumButtonSize = WidgetStatePropertyAll<Size>(
       Size(64, MmSize.buttonHeight),
     );
@@ -83,29 +112,37 @@ abstract final class MmTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
-          shape: buttonShape,
+          shape: filledShape,
           minimumSize: minimumButtonSize,
           padding: buttonPadding,
           textStyle: labelStyle,
-          side: outlinedSide(BorderSide.none),
+          side: filledSide,
           elevation: const WidgetStatePropertyAll(0),
+          backgroundColor: disabledFill,
+          foregroundColor: disabledInk,
+          iconColor: disabledInk,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         // Paper does not float: elevated buttons render like filled ones.
         style: ButtonStyle(
-          shape: buttonShape,
+          shape: filledShape,
           minimumSize: minimumButtonSize,
           padding: buttonPadding,
           textStyle: labelStyle,
-          side: outlinedSide(BorderSide.none),
+          side: filledSide,
           elevation: const WidgetStatePropertyAll(0),
           backgroundColor: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.disabled)
-                ? colors.rule
+                ? colors.surfaceSunken
                 : colors.primary,
           ),
           foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.disabled)
+                ? colors.inkMuted
+                : colors.onPrimary,
+          ),
+          iconColor: WidgetStateProperty.resolveWith(
             (states) => states.contains(WidgetState.disabled)
                 ? colors.inkMuted
                 : colors.onPrimary,
@@ -123,6 +160,7 @@ abstract final class MmTheme {
                 ? colors.inkMuted
                 : colors.primary,
           ),
+          iconColor: disabledInk,
           side: outlinedSide(BorderSide(color: colors.outline)),
         ),
       ),
@@ -134,6 +172,8 @@ abstract final class MmTheme {
           ),
           padding: buttonPadding,
           textStyle: labelStyle,
+          foregroundColor: disabledInk,
+          iconColor: disabledInk,
           side: outlinedSide(BorderSide.none),
         ),
       ),
@@ -142,22 +182,36 @@ abstract final class MmTheme {
           minimumSize: const WidgetStatePropertyAll(
             Size.square(MmSize.minTarget),
           ),
-          side: outlinedSide(BorderSide.none),
+          // Any icon button may be filled, so all draw the ring outside
+          // themselves. No side here: an outlined icon button keeps the
+          // outline of its own variant.
+          shape: MmFocusRingBorder.whenFocused(
+            const StadiumBorder(),
+            color: colors.focus,
+          ),
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colors.primary,
         foregroundColor: colors.onPrimary,
+        // State layers in the colour of the icon, which shows on the fill.
+        focusColor: colors.onPrimary.withValues(alpha: 0.1),
+        hoverColor: colors.onPrimary.withValues(alpha: 0.08),
+        splashColor: colors.onPrimary.withValues(alpha: 0.1),
         elevation: 3,
         focusElevation: 3,
         hoverElevation: 4,
         highlightElevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(MmRadius.md)),
-          side: BorderSide(color: colors.primary),
+        shape: MmFocusRingBorder.whenFocused(
+          RoundedRectangleBorder(
+            borderRadius: const BorderRadius.all(Radius.circular(MmRadius.md)),
+            side: BorderSide(color: colors.primary),
+          ),
+          color: colors.focus,
         ),
         extendedTextStyle: text.labelLarge,
       ),
+      segmentedButtonTheme: _segmentedButtonTheme(colors, text, focusSide),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: colors.surface,
@@ -187,12 +241,66 @@ abstract final class MmTheme {
         secondaryLabelStyle: text.labelLarge?.copyWith(
           color: colors.onPrimaryContainer,
         ),
-        side: BorderSide(color: colors.outline),
+        // Muted ink rather than the field outline: a chip's border runs as
+        // close to its label as the label's own strokes, and the thin
+        // strokes of Nastaliq must not read fainter than the frame around
+        // them. Selected chips are framed in cobalt.
+        side: WidgetStateBorderSide.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return BorderSide(color: colors.rule);
+          }
+          if (states.contains(WidgetState.focused)) return focusSide;
+          return BorderSide(
+            color: states.contains(WidgetState.selected)
+                ? colors.primary
+                : colors.inkMuted,
+          );
+        }),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(MmRadius.xs)),
         ),
         padding: const EdgeInsetsDirectional.symmetric(horizontal: MmSpace.s2),
+        // Room above and below the label for the tall strokes of Nastaliq;
+        // the avatar and check mark keep an icon's size however tall the
+        // label is.
+        labelPadding: const EdgeInsetsDirectional.symmetric(
+          horizontal: MmSpace.s2,
+          vertical: MmSpace.s1,
+        ),
+        avatarBoxConstraints: const BoxConstraints.tightFor(
+          width: MmSize.iconMd,
+          height: MmSize.iconMd,
+        ),
         checkmarkColor: colors.onPrimaryContainer,
+      ),
+      // Counts are set like amounts: the Latin face with tabular figures, in
+      // both languages (a Nastaliq line would make the badge taller than
+      // the icon it sits on).
+      badgeTheme: BadgeThemeData(
+        backgroundColor: colors.overdue,
+        textColor: scheme.onError,
+        textStyle: MmTypeScale.latinCaption.copyWith(
+          fontWeight: FontWeight.w600,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: colors.primary,
+        unselectedLabelColor: colors.inkMuted,
+        labelStyle: text.labelLarge,
+        unselectedLabelStyle: text.labelLarge,
+        indicator: UnderlineTabIndicator(
+          borderSide: BorderSide(
+            color: colors.primary,
+            width: MmSize.tabIndicator,
+          ),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(MmSize.tabIndicator),
+          ),
+        ),
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: colors.rule,
+        dividerHeight: MmSize.hairline,
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: colors.surface,
@@ -313,9 +421,16 @@ abstract final class MmTheme {
     final urdu = script == MmScript.urdu;
     // Urdu UI text is set in Nastaliq (with its natural word spacing); user
     // data written in Latin script goes through MmSemantics.styleFor, which
-    // sets it in Atkinson instead of Nastaliq's serif Latin.
-    TextStyle style(TextStyle latin, TextStyle nastaliq) =>
-        (urdu ? nastaliq : latin).copyWith(color: colors.ink);
+    // sets it in Atkinson instead of Nastaliq's serif Latin. Styles in the
+    // Latin face (all of English, and Urdu amounts) fall back to Nastaliq
+    // for Arabic-script letters, such as a name typed in Urdu.
+    TextStyle style(TextStyle latin, TextStyle nastaliq) {
+      final chosen = (urdu ? nastaliq : latin).copyWith(color: colors.ink);
+      return chosen.fontFamily == _latinFamily
+          ? MmSemantics.withUrduFallback(chosen)
+          : chosen;
+    }
+
     final amount = style(MmTypeScale.latinAmount, MmTypeScale.urduAmount);
     final headline = style(MmTypeScale.latinHeadline, MmTypeScale.urduHeadline);
     final title = style(MmTypeScale.latinTitle, MmTypeScale.urduTitle);
@@ -346,6 +461,78 @@ abstract final class MmTheme {
       labelLarge: label,
       labelMedium: caption.copyWith(fontWeight: label.fontWeight),
       labelSmall: caption,
+    );
+  }
+
+  /// The Latin face as mm_ui's text styles name it.
+  static const _latinFamily = 'packages/mm_ui/${MmFontFamily.latin}';
+
+  /// Segmented buttons as `MmSegmentedControl` draws them: paper segments,
+  /// the selected one cobalt-tonal with a check, the field outline (a focus
+  /// ring around the whole control while a segment has focus) and segments
+  /// 48 dp tall at the standard text size.
+  static SegmentedButtonThemeData _segmentedButtonTheme(
+    MmColorTokens colors,
+    TextTheme text,
+    BorderSide focusSide,
+  ) {
+    WidgetStateProperty<Color> byState({
+      required Color selected,
+      required Color resting,
+      required Color disabledSelected,
+      required Color disabled,
+    }) => WidgetStateProperty.resolveWith((states) {
+      final isSelected = states.contains(WidgetState.selected);
+      if (states.contains(WidgetState.disabled)) {
+        return isSelected ? disabledSelected : disabled;
+      }
+      return isSelected ? selected : resting;
+    });
+    final ink = byState(
+      selected: colors.onPrimaryContainer,
+      resting: colors.ink,
+      disabledSelected: colors.inkMuted,
+      disabled: colors.inkMuted,
+    );
+    // Material sizes a segment by its padding around one line of the label,
+    // so the padding makes up the rest of the button height.
+    final label = text.labelLarge!;
+    final line = label.fontSize! * label.height!;
+    final vertical = ((MmSize.buttonHeight - line) / 2).ceilToDouble();
+    return SegmentedButtonThemeData(
+      selectedIcon: const Icon(MmIcons.check),
+      style: ButtonStyle(
+        textStyle: WidgetStatePropertyAll(label),
+        backgroundColor: byState(
+          selected: colors.primaryContainer,
+          resting: colors.surface,
+          disabledSelected: colors.surfaceSunken,
+          disabled: colors.surface,
+        ),
+        foregroundColor: ink,
+        iconColor: ink,
+        iconSize: const WidgetStatePropertyAll(MmSize.iconMd),
+        side: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return BorderSide(color: colors.rule);
+          }
+          if (states.contains(WidgetState.focused)) return focusSide;
+          return BorderSide(color: colors.outline);
+        }),
+        shape: const WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(MmRadius.sm)),
+          ),
+        ),
+        padding: WidgetStatePropertyAll(
+          EdgeInsetsDirectional.symmetric(
+            horizontal: MmSpace.s3,
+            vertical: vertical,
+          ),
+        ),
+        // The segments are 48 dp targets themselves.
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
     );
   }
 

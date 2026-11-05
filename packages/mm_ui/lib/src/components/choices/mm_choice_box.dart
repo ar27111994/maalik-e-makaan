@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
-import 'package:mm_ui/src/components/choices/mm_focus_ring.dart';
+import 'package:mm_ui/src/foundation/mm_field_label.dart';
+import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -108,7 +108,7 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
       shown,
       Theme.of(context).textTheme.bodyLarge!.copyWith(color: ink),
     );
-    final marker = MmChoiceFrame.markerOf(
+    final marker = MmFieldLabel.markerOf(
       context,
       required: widget.required,
       optional: widget.optional,

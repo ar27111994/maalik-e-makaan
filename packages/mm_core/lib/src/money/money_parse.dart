@@ -16,10 +16,17 @@ import 'package:mm_core/src/text/digits.dart';
 /// Plain numbers may have at most two decimal places. Amounts written with a
 /// unit word are rounded half-up to the nearest paisa (`1.234567 lakh`).
 ///
+/// Direction marks (U+200E, U+200F and the Arabic letter mark U+061C) are
+/// ignored wherever they appear: `MoneyFormat` writes one before the minus
+/// sign of a negative amount, and text copied from right-to-left messages
+/// often carries them.
+///
 /// Returns `null` for empty, malformed, negative (unless [allowNegative]) or
 /// out-of-range input.
 Money? parseMoneyInput(String input, {bool allowNegative = false}) {
-  var text = normalizeDigits(input).toLowerCase().trim();
+  var text = normalizeDigits(input.replaceAll(_directionMarks, ''))
+      .toLowerCase()
+      .trim();
   if (text.isEmpty) return null;
 
   var negative = false;
@@ -78,6 +85,9 @@ Money? parseMoneyInput(String input, {bool allowNegative = false}) {
 }
 
 final RegExp _numberPattern = RegExp(r'^(\d+)(?:\.(\d+))?$');
+
+/// The left-to-right, right-to-left and Arabic letter marks.
+final RegExp _directionMarks = RegExp('[\u200E\u200F\u061C]');
 
 final List<RegExp> _currencyMarkers = [
   RegExp(r'^(?:rs\.?|pkr|₨|rupees?|روپے|روپیہ|روپیے)\s*'),

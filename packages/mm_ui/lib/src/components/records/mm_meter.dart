@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/records/mm_record_line.dart';
-import 'package:mm_ui/src/components/records/mm_record_style.dart';
+import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -113,17 +112,18 @@ class MmMeter extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          MmRecordLine(
+          MmReflow(
+            alignment: MmReflowAlignment.baseline,
             start: Text(
               label,
-              style: mm.dataStyleFor(
+              style: mm.styleFor(
                 label,
                 text.labelLarge!.copyWith(color: colors.ink),
               ),
             ),
             end: Text(
               valueLabel,
-              style: mm.dataStyleFor(
+              style: mm.styleFor(
                 valueLabel,
                 text.bodyMedium!.copyWith(
                   color: colors.inkMuted,

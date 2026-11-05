@@ -3,8 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const _label = 'Monthly rent';
 const _value = 'Rs 45,000';

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const _label = 'Rent collected';
 const _value = 'Rs 90,000 of Rs 1,25,000';
@@ -220,7 +219,10 @@ void main() {
       expect(styleOf(tester, 'رضا منزل').fontFamilyFallback, [
         'packages/mm_ui/${MmFontFamily.urdu}',
       ]);
-      expect(styleOf(tester, _label).fontFamilyFallback, isNull);
+      // The theme gives Latin text the same fallback.
+      expect(styleOf(tester, _label).fontFamilyFallback, [
+        'packages/mm_ui/${MmFontFamily.urdu}',
+      ]);
     });
   });
 }

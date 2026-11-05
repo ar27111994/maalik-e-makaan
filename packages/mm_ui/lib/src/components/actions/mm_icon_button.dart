@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_button_styles.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -106,10 +107,12 @@ class MmIconButton extends StatelessWidget {
     return Tooltip(message: tooltip, excludeFromSemantics: true, child: button);
   }
 
-  /// The enabled colours of each variant and toggle state, the outline of
-  /// the outlined variant (the theme draws none by default), and a focus
-  /// ring that shows on a cobalt fill. Disabled buttons keep the variant's
-  /// own disabled colours.
+  /// The enabled colours of each variant and toggle state. The theme draws
+  /// the focus ring (outside the button, so it shows on a cobalt fill) and
+  /// the outlined variant keeps Material's outline, except where this
+  /// changes it: none once an outlined toggle is on (it is filled then),
+  /// and the rule colour while disabled, as on every disabled outlined
+  /// control. Disabled buttons keep the variant's own disabled colours.
   ButtonStyle _style(MmColorTokens colors) {
     final on = selected ?? false;
     final outlined = variant == MmIconButtonVariant.outlined;
@@ -150,29 +153,18 @@ class MmIconButton extends StatelessWidget {
         colors.onPrimaryContainer,
       ),
     };
-    // The theme's focus ring is cobalt, invisible on a cobalt fill; there
-    // the ring takes the icon colour instead.
-    final ring = fill == colors.primary && ink != null ? ink : colors.focus;
     return ButtonStyle(
       iconSize: const WidgetStatePropertyAll(MmSize.iconLg),
-      backgroundColor: fill == null ? null : _whileEnabled(fill),
-      foregroundColor: ink == null ? null : _whileEnabled(ink),
-      side: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.disabled)) {
-          return outlined ? BorderSide(color: colors.rule) : null;
-        }
-        if (states.contains(WidgetState.focused)) {
-          return BorderSide(color: ring, width: MmSize.focusRing);
-        }
-        return outlined && !on ? BorderSide(color: colors.outline) : null;
-      }),
+      backgroundColor: fill == null ? null : MmButtonStyles.whileEnabled(fill),
+      foregroundColor: ink == null ? null : MmButtonStyles.whileEnabled(ink),
+      side: outlined
+          ? WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) {
+                return BorderSide(color: colors.rule);
+              }
+              return on ? BorderSide.none : null;
+            })
+          : null,
     );
   }
-
-  /// [color] while the button is enabled; the variant's disabled colours
-  /// otherwise.
-  static WidgetStateProperty<Color?> _whileEnabled(Color color) =>
-      WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.disabled) ? null : color,
-      );
 }

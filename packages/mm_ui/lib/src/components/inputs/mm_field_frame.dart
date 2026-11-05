@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/icons/mm_icons.g.dart';
-import 'package:mm_ui/src/l10n/mm_localizations.dart';
-import 'package:mm_ui/src/theme/mm_semantics.dart';
-import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
+import 'package:mm_ui/src/foundation/mm_field_label.dart';
 
 /// The anatomy every field of the inputs family shares, around the field
 /// itself ([child], a [TextFormField] decorated with [decoration]):
@@ -14,8 +11,8 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///   word as its hint), and the visible copy is hidden from assistive
 ///   technology so it is not read twice;
 /// * helper text sits below the field in muted ink, and an error replaces
-///   it in the overdue colour with the error icon ([error]), announced as a
-///   live region.
+///   it in the overdue colour with the error icon (`MmFieldError`, the
+///   text field's error builder), announced as a live region.
 ///
 /// Internal to the inputs family: the public fields build it.
 class MmFieldFrame extends StatelessWidget {
@@ -51,7 +48,7 @@ class MmFieldFrame extends StatelessWidget {
   /// [helper] below it in muted ink (wrapping, never cut short), and the
   /// optional affixes, sized within [affixConstraints] (by default at least
   /// the 48 dp touch target, for icons and buttons). Errors come from the
-  /// field's `forceErrorText` or validator through [error].
+  /// field's `forceErrorText` or validator, shown by `MmFieldError`.
   static InputDecoration decoration(
     BuildContext context, {
     String? hint,
@@ -73,81 +70,27 @@ class MmFieldFrame extends StatelessWidget {
     );
   }
 
-  /// The error line below a field: the error icon and [message] in the
-  /// overdue colour (never colour alone), announced as a live region. The
-  /// icon grows with the text and is hidden from assistive technology.
-  static Widget error(BuildContext context, String message) {
-    final colors = context.mm.colors;
-    return Semantics(
-      liveRegion: true,
-      child: Text.rich(
-        TextSpan(
-          children: [
-            WidgetSpan(
-              alignment: PlaceholderAlignment.middle,
-              child: Padding(
-                padding: const EdgeInsetsDirectional.only(end: MmSpace.s1),
-                child: Icon(
-                  MmIcons.error,
-                  size: MmSize.iconSm,
-                  color: colors.overdue,
-                ),
-              ),
-            ),
-            TextSpan(text: message),
-          ],
-        ),
-        semanticsLabel: message,
-        style: Theme.of(context).inputDecorationTheme.errorStyle,
-      ),
-    );
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final colors = context.mm.colors;
-    final strings = MmLocalizations.of(context);
-    final marker = required
-        ? strings.requiredField
-        : optional
-        ? strings.optionalField
-        : null;
-    final labelStyle = text.labelLarge?.copyWith(
-      color: enabled ? colors.ink : colors.inkMuted,
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ExcludeSemantics(
-          child: Padding(
-            padding: const EdgeInsetsDirectional.only(bottom: MmSpace.s2),
-            child: Text.rich(
-              TextSpan(
-                text: label,
-                children: [
-                  if (marker != null)
-                    TextSpan(
-                      text: '  $marker',
-                      style: TextStyle(
-                        color: colors.inkMuted,
-                        fontWeight: text.bodyMedium?.fontWeight,
-                      ),
-                    ),
-                ],
-              ),
-              style: labelStyle,
-            ),
-          ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      MmFieldLabel(
+        label: label,
+        required: required,
+        optional: optional,
+        enabled: enabled,
+      ),
+      Semantics(
+        label: label,
+        hint: MmFieldLabel.markerOf(
+          context,
+          required: required,
+          optional: optional,
         ),
-        Semantics(
-          label: label,
-          hint: marker,
-          isRequired: required ? true : (optional ? false : null),
-          child: child,
-        ),
-      ],
-    );
-  }
+        isRequired: required ? true : (optional ? false : null),
+        child: child,
+      ),
+    ],
+  );
 }

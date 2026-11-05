@@ -33,6 +33,8 @@ enum MmLocalizations {
     showAsChart: 'Show as a chart',
     copied: 'Copied',
     rupees: 'rupees',
+    noMatches: 'No matches',
+    hiddenDigits: _englishHiddenDigits,
   ),
 
   /// Urdu.
@@ -57,6 +59,8 @@ enum MmLocalizations {
     showAsChart: 'چارٹ کی شکل میں دکھائیں',
     copied: 'کاپی ہو گیا',
     rupees: 'روپے',
+    noMatches: 'کوئی نتیجہ نہیں ملا',
+    hiddenDigits: _urduHiddenDigits,
   );
 
   new({
@@ -80,6 +84,8 @@ enum MmLocalizations {
     required this.showAsChart,
     required this.copied,
     required this.rupees,
+    required this.noMatches,
+    required this.hiddenDigits,
   });
 
   /// The delegate that loads these strings for English and Urdu.
@@ -159,7 +165,21 @@ enum MmLocalizations {
   /// number ("125000 rupees"), since grouped figures such as 1,25,000 are
   /// read out unreliably.
   final String rupees;
+
+  /// Shown when a search or filter finds nothing ("No matches").
+  final String noMatches;
+
+  /// What a screen reader says in place of the digits a masked value hides,
+  /// given how many there are: a masked CNIC is read as "35202, 7 hidden
+  /// digits, 1" rather than skipping the middle silently.
+  final String Function(int count) hiddenDigits;
 }
+
+String _englishHiddenDigits(int count) =>
+    count == 1 ? '1 hidden digit' : '$count hidden digits';
+
+String _urduHiddenDigits(int count) =>
+    count == 1 ? '1 چھپا ہوا ہندسہ' : '$count چھپے ہوئے ہندسے';
 
 final class _MmLocalizationsDelegate
     extends LocalizationsDelegate<MmLocalizations> {

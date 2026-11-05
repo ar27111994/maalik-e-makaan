@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const _destinations = [
   MmDestination(icon: MmIcons.property, label: 'Properties'),
@@ -331,8 +330,10 @@ void main() {
     ) async {
       await pumpScreen(tester, _scaffold(), variant: variant);
       final text = tester.widget<Text>(find.text('3'));
-      final badge = tester.widget<Badge>(find.byType(Badge));
-      expect(badge.textStyle!.fontFamily, contains(MmFontFamily.latin));
+      // The theme sets counts in the Latin face with tabular figures.
+      final style = styleOf(tester, '3');
+      expect(style.fontFamily, contains(MmFontFamily.latin));
+      expect(style.fontFeatures, contains(const FontFeature.tabularFigures()));
       expect(
         MediaQuery.textScalerOf(tester.element(find.text('3'))).scale(10),
         closeTo(10 * (variant.textScale > 1.3 ? 1.3 : variant.textScale), 0.01),

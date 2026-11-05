@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mm_ui/src/components/inputs/mm_clean_text_formatter.dart';
 import 'package:mm_ui/src/components/inputs/mm_text_input.dart';
+import 'package:mm_ui/src/foundation/mm_clean_text_formatter.dart';
 
 /// A labelled text field for anything a landlord types in words: a
 /// tenant's name, an address, a note.

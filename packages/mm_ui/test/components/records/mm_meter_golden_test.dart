@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'golden_page.dart';
+import '../../support/testing.dart';
 
 /// A property's month at a glance: one meter in each tone, from an empty
 /// share to a nearly full one.

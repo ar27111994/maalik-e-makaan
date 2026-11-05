@@ -245,22 +245,15 @@ class _DestinationIcon extends StatelessWidget {
     final count = destination.badgeCount ?? 0;
     if (count == 0) return icon;
     // The badge may say "999+"; screen readers get the full count, read
-    // after the destination's label. Counts are set in the Latin face in
-    // both languages, like amounts, and grow with the text only as far as
-    // the bar's labels do, so the badge never hides its icon.
+    // after the destination's label. The theme sets counts in the Latin
+    // face in both languages, like amounts; they grow with the text only as
+    // far as the bar's labels do, so the badge never hides its icon.
     return Semantics(
       value: '$count',
       child: ExcludeSemantics(
         child: MediaQuery.withClampedTextScaling(
           maxScaleFactor: _maxBadgeTextScale,
-          child: Badge.count(
-            count: count,
-            textStyle: MmTypeScale.latinCaption.copyWith(
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-            child: icon,
-          ),
+          child: Badge.count(count: count, child: icon),
         ),
       ),
     );

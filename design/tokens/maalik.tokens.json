@@ -1163,6 +1163,13 @@
       },
       "$description": "Buttons."
     },
+    "fab": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The floating action button: its size, and the minimum height of an extended one."
+    },
     "iconSm": {
       "$value": {
         "value": 16,
@@ -1180,6 +1187,13 @@
         "value": 24,
         "unit": "px"
       }
+    },
+    "iconXl": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "Decorative icons that lead an empty or error state."
     },
     "appBar": {
       "$value": {
@@ -1200,12 +1214,33 @@
       },
       "$description": "Readable column width on large screens."
     },
+    "sheetMax": {
+      "$value": {
+        "value": 640,
+        "unit": "px"
+      },
+      "$description": "Widest a bottom sheet grows on large screens."
+    },
+    "stateMax": {
+      "$value": {
+        "value": 400,
+        "unit": "px"
+      },
+      "$description": "Widest an empty, error or loading state grows, so its sentence keeps a readable measure."
+    },
     "focusRing": {
       "$value": {
         "value": 2,
         "unit": "px"
       },
-      "$description": "Focus ring stroke; drawn 2 dp outside the control."
+      "$description": "Focus ring stroke: on the edge of outlined and text controls and fields; outside filled controls, beyond the focus gap."
+    },
+    "focusGap": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "Gap between a filled control and its focus ring, so the ring stands apart from any fill."
     },
     "hairline": {
       "$value": {
@@ -1213,6 +1248,27 @@
         "unit": "px"
       },
       "$description": "Borders and rules."
+    },
+    "stroke": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "Lines that draw progress or data: spinners inside controls, chart lines and outlined bars."
+    },
+    "frame": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "Ornamental frames: the nameplate's brass border, the receipt seal and the void stamp."
+    },
+    "tabIndicator": {
+      "$value": {
+        "value": 3,
+        "unit": "px"
+      },
+      "$description": "The line under the selected tab."
     }
   },
   "breakpoint": {
@@ -1260,6 +1316,13 @@
         "unit": "ms"
       },
       "$description": "A payment being recorded (the receipt stamp)."
+    },
+    "pulse": {
+      "$value": {
+        "value": 1000,
+        "unit": "ms"
+      },
+      "$description": "One fade, in or out, of a skeleton's looping pulse; with reduced motion the skeleton holds still."
     }
   },
   "easing": {

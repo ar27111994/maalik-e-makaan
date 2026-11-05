@@ -1,11 +1,11 @@
 @Tags(['golden'])
 library;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 enum _Status { overdue, dueSoon, paid }
 
@@ -16,7 +16,7 @@ void _changed(Object? _) {}
 void main() {
   goldenEveryVariant(
     'mm_filter_chips',
-    () => Localised((context, tr) {
+    () => GoldenPage((context, tr) {
       final statuses = [
         MmFilterOption(
           value: _Status.overdue,
@@ -42,7 +42,10 @@ void main() {
           label: tr('Islamabad', 'اسلام آباد'),
         ),
       ];
-      return GoldenColumn(
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: MmSpace.s4,
         children: [
           MmFilterChips<_Status>(
             options: statuses,

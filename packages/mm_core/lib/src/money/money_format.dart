@@ -64,6 +64,10 @@ enum MoneyLanguage {
 /// const MoneyFormat(language: MoneyLanguage.urdu)
 ///     .format(Money.fromRupees(5000));                            // 5,000 روپے
 /// ```
+///
+/// A negative amount starts with an invisible left-to-right mark (U+200E)
+/// before its minus sign, so the sign stays on the left of the figures in
+/// right-to-left text as well (see [format]).
 @immutable
 final class MoneyFormat {
   /// Creates a formatter. All options have sensible Pakistani defaults.
@@ -95,10 +99,24 @@ final class MoneyFormat {
   /// (Extended Arabic-Indic) numerals `۰۱۲۳۴۵۶۷۸۹`.
   final bool nativeDigits;
 
+  /// U+200E LEFT-TO-RIGHT MARK, which [format] puts before the minus sign
+  /// of a negative amount.
+  static const String leftToRightMark = '\u200E';
+
   static const int _lakhPaisa = 100000 * Money.paisaPerRupee;
   static const int _crorePaisa = 10000000 * Money.paisaPerRupee;
 
   /// Formats [amount].
+  ///
+  /// A negative amount is written with a minus sign before it, preceded by
+  /// [leftToRightMark]: `\u200E-5,000 روپے`, `\u200E-Rs 5,000`. In
+  /// right-to-left text (an Urdu sentence or screen) the bidirectional
+  /// algorithm would otherwise give the minus the paragraph's direction and
+  /// show it on the right of the figures (`5,000-`); after the mark, the
+  /// sign, figures and Latin currency markers form one left-to-right run, so
+  /// the amount reads `-5,000` in either direction. The mark is invisible, is
+  /// kept by the text sanitisers (it is not a bidi override or isolate) and
+  /// is ignored by `parseMoneyInput`.
   String format(Money amount) {
     final negative = amount.isNegative;
     final number =
@@ -202,7 +220,7 @@ final class MoneyFormat {
   }
 
   String _decorate(String number, {required bool negative}) {
-    final sign = negative ? '-' : '';
+    final sign = negative ? '$leftToRightMark-' : '';
     switch ((currency, language)) {
       case (CurrencyDisplay.none, _):
         return '$sign$number';

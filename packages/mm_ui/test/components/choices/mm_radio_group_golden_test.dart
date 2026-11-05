@@ -1,11 +1,11 @@
 @Tags(['golden'])
 library;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 enum _Method { cash, bank, card }
 
@@ -16,8 +16,11 @@ void _changed(Object? _) {}
 void main() {
   goldenEveryVariant(
     'mm_radio_group',
-    () => Localised(
-      (context, tr) => GoldenColumn(
+    () => GoldenPage(
+      (context, tr) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: MmSpace.s4,
         children: [
           MmRadioGroup<_Method>(
             label: tr('Received by', 'وصولی کا طریقہ'),

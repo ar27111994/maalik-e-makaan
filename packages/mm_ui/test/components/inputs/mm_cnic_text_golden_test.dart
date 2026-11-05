@@ -6,15 +6,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 void main() {
   goldenEveryVariant(
     'mm_cnic_text',
-    () => Localised(
-      (context, tr) => GoldenColumn(
-        gap: 8,
+    () => GoldenPage(
+      (context, tr) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 8,
         children: [
           Text(
             tr('Ali Raza', 'علی رضا'),

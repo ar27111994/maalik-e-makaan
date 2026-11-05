@@ -5,15 +5,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 void _changed(String _) {}
 
 void main() {
   goldenEveryVariant(
     'mm_select_field',
-    () => Localised((context, tr) {
+    () => GoldenPage((context, tr) {
       final properties = [
         MmOption(
           value: 'gulberg',
@@ -26,8 +25,10 @@ void main() {
           icon: MmIcons.home,
         ),
       ];
-      final noMatches = tr('No matches', 'کوئی نتیجہ نہیں');
-      return GoldenColumn(
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: MmSpace.s4,
         children: [
           MmSelectField<String>(
             label: tr('Property', 'جائیداد'),
@@ -35,7 +36,6 @@ void main() {
             value: 'gulberg',
             required: true,
             helper: tr('Gulberg, Lahore', 'گلبرگ، لاہور'),
-            noMatchesText: noMatches,
             onChanged: _changed,
           ),
           MmSelectField<String>(
@@ -45,7 +45,6 @@ void main() {
             ],
             placeholder: tr('Choose a unit', 'یونٹ منتخب کریں'),
             optional: true,
-            noMatchesText: noMatches,
             onChanged: _changed,
           ),
           MmSelectField<String>(
@@ -54,7 +53,6 @@ void main() {
             placeholder: tr('Choose a tenant', 'کرایہ دار منتخب کریں'),
             required: true,
             errorText: tr('Choose who rents the unit', 'کرایہ دار منتخب کریں'),
-            noMatchesText: noMatches,
             onChanged: _changed,
           ),
           MmSelectField<String>(
@@ -67,7 +65,6 @@ void main() {
               ),
             ],
             value: 'bank',
-            noMatchesText: noMatches,
             onChanged: null,
           ),
         ],

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 /// A stepper whose value follows what it reports, as an app's would.
 class _Controlled extends StatefulWidget {
@@ -258,18 +258,21 @@ void main() {
       );
     });
 
-    testWidgets('the minus glyph takes the button colour', (tester) async {
+    testWidgets('the minus button shows the minus icon in its colour', (
+      tester,
+    ) async {
       await pumpThemed(tester, _stepper(value: 0));
-      final bar = tester.widget<Container>(
-        find.descendant(
-          of: find.byTooltip('Fewer rooms'),
-          matching: find.byType(Container),
-        ),
+      final minus = find.descendant(
+        of: find.byTooltip('Fewer rooms'),
+        matching: find.byIcon(MmIcons.minus),
       );
-      final color = (bar.decoration! as BoxDecoration).color!;
+      expect(minus, findsOneWidget);
+      final glyph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: minus, matching: find.byType(RichText)),
+      );
       // Disabled at the lower limit: a faint ink.
-      expect(color.a, lessThan(0.5));
-      expect(tester.getSize(find.byWidget(bar)), const Size(14, 2));
+      expect(glyph.text.style!.color!.a, lessThan(0.5));
+      expect(tester.getSize(minus), const Size.square(MmSize.iconLg));
     });
 
     test('checks its limits', () {
@@ -292,24 +295,27 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone', (tester) async {
       await expectFitsNarrowLargeText(
         tester,
-        Localised(
-          (context, tr) => MmStepperField(
-            label: tr(
-              'Months of advance rent from Ali Raza',
-              'علی رضا سے پیشگی کرایہ کے مہینے',
-            ),
-            value: 12,
-            min: 0,
-            max: 24,
-            decreaseLabel: tr('Fewer months', 'کم مہینے'),
-            increaseLabel: tr('More months', 'زیادہ مہینے'),
-            format: (months) => tr('$months months', '$months مہینے'),
-            helper: tr(
-              'Rs 5,40,000 at Rs 45,000 a month',
-              '45,000 روپے ماہانہ پر 5,40,000 روپے',
-            ),
-            onChanged: (_) {},
-          ),
+        Builder(
+          builder: (context) {
+            final tr = sayIn(context);
+            return MmStepperField(
+              label: tr(
+                'Months of advance rent from Ali Raza',
+                'علی رضا سے پیشگی کرایہ کے مہینے',
+              ),
+              value: 12,
+              min: 0,
+              max: 24,
+              decreaseLabel: tr('Fewer months', 'کم مہینے'),
+              increaseLabel: tr('More months', 'زیادہ مہینے'),
+              format: (months) => tr('$months months', '$months مہینے'),
+              helper: tr(
+                'Rs 5,40,000 at Rs 45,000 a month',
+                '45,000 روپے ماہانہ پر 5,40,000 روپے',
+              ),
+              onChanged: (_) {},
+            );
+          },
         ),
       );
     });

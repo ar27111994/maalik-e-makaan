@@ -158,7 +158,7 @@ class _MmStepperFieldState extends State<MmStepperField> {
                 focusNode: _decreaseFocus,
                 tooltip: widget.decreaseLabel,
                 onPressed: canDecrease ? _decrease : null,
-                icon: const _MinusGlyph(),
+                icon: const Icon(MmIcons.minus),
               ),
               Expanded(
                 child: Semantics(
@@ -189,37 +189,6 @@ class _MmStepperFieldState extends State<MmStepperField> {
               ),
               const SizedBox(width: MmSpace.s1),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Lucide's `minus` (a 14 dp stroke across a 24 dp square, round caps),
-/// which the MmIcons font does not include yet. It takes its colour and
-/// size from the [IconTheme] like an [Icon], so the button's enabled and
-/// disabled colours apply.
-class _MinusGlyph extends StatelessWidget {
-  const new();
-
-  @override
-  Widget build(BuildContext context) {
-    // IconTheme.of resolves every property.
-    final icon = IconTheme.of(context);
-    final size = icon.size!;
-    final color = icon.color!;
-    // Lucide draws on a 24-unit grid with 2-unit strokes, from x 5 to 19.
-    final unit = size / 24;
-    return SizedBox.square(
-      dimension: size,
-      child: Center(
-        child: Container(
-          width: 14 * unit,
-          height: 2 * unit,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: color.a * icon.opacity!),
-            borderRadius: BorderRadius.all(Radius.circular(unit)),
           ),
         ),
       ),

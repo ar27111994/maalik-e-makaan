@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 import 'support.dart';
 
 const _label = 'Collected in October';
@@ -77,8 +77,11 @@ void main() {
     test('each direction has its icon', () {
       expect(MmTrendDirection.up.icon, MmIcons.trendUp);
       expect(MmTrendDirection.down.icon, MmIcons.trendDown);
-      expect(MmTrendDirection.flat.icon, MmIcons.forward);
-      expect(MmIcons.forward.matchTextDirection, isTrue);
+      expect(MmTrendDirection.flat.icon, MmIcons.trendFlat);
+      // Time runs from the start edge, so every trend mirrors in Urdu.
+      for (final direction in MmTrendDirection.values) {
+        expect(direction.icon.matchTextDirection, isTrue);
+      }
     });
   });
 
@@ -242,7 +245,7 @@ void main() {
         ),
         variant: MmVariant.urdu,
       );
-      expect(_trendIcon(tester).icon, MmIcons.forward);
+      expect(_trendIcon(tester).icon, MmIcons.trendFlat);
       expect(
         Directionality.of(tester.element(find.byType(Icon))),
         TextDirection.rtl,

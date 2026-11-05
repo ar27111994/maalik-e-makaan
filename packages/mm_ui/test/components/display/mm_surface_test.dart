@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/display/mm_surface.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 
 /// Pumps a tappable surface in [theme] and focuses it from the keyboard.
 Future<Material> _focusedIn(WidgetTester tester, ThemeData theme) async {

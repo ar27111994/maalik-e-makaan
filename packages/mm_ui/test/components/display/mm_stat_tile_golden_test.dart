@@ -6,8 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'golden_page.dart';
+import '../../support/testing.dart';
 
 /// Two tiles side by side (a favourable and an unfavourable trend) and a
 /// tappable tile with a caption and a flat trend.

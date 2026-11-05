@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -42,32 +43,13 @@ class MmSurface extends StatefulWidget {
   State<MmSurface> createState() => _MmSurfaceState();
 }
 
-class _MmSurfaceState extends State<MmSurface> {
+class _MmSurfaceState extends State<MmSurface>
+    with MmFocusHighlight<MmSurface> {
   bool _focused = false;
-  late bool _keyboard;
 
-  @override
-  void initState() {
-    super.initState();
-    _keyboard = _isKeyboard(FocusManager.instance.highlightMode);
-    FocusManager.instance.addHighlightModeListener(_handleHighlightMode);
+  void _handleFocusChange(bool focused) {
+    if (focused != _focused) setState(() => _focused = focused);
   }
-
-  @override
-  void dispose() {
-    FocusManager.instance.removeHighlightModeListener(_handleHighlightMode);
-    super.dispose();
-  }
-
-  void _handleHighlightMode(FocusHighlightMode mode) =>
-      setState(() => _keyboard = _isKeyboard(mode));
-
-  void _handleFocusChange(bool focused) => setState(() => _focused = focused);
-
-  /// Whether focus should be drawn: only while the user drives the app from
-  /// a keyboard, as Material does for its own focus highlights.
-  static bool _isKeyboard(FocusHighlightMode mode) =>
-      mode == FocusHighlightMode.traditional;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +58,7 @@ class _MmSurfaceState extends State<MmSurface> {
     final resting = widget.outlined
         ? card.shape ?? _cardShape
         : const RoundedRectangleBorder();
-    final shape = _focused && _keyboard && resting is OutlinedBorder
+    final shape = _focused && showsFocusHighlights && resting is OutlinedBorder
         ? resting.copyWith(
             side: BorderSide(color: colors.focus, width: MmSize.focusRing),
           )

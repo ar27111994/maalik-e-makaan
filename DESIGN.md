@@ -251,6 +251,10 @@ the high-contrast modes.
   about twice the line height of Latin and a size step larger; never squeeze it to fit.
 - **Amounts** use the Latin face with tabular figures in both languages, so columns of rupees
   line up and a 1 never looks like a 7.
+- **User data keeps its own script's face.** Latin-script data in the Urdu UI (a name typed in
+  English, a CNIC) is set in Atkinson, not Nastaliq's serif Latin; Urdu letters in the English
+  UI (a tenant's name typed in Urdu, the rupee word after an amount) fall back to Nastaliq,
+  never to a platform face or empty boxes.
 - Roles: `amount` (one large figure per screen), `headline` (screen titles), `title` (section
   and card titles), `titleSmall`, `body` (default), `bodySmall`, `label` (buttons, chips),
   `caption` (dates and metadata; 12 px is the floor).
@@ -262,7 +266,9 @@ A 4 dp grid. Phones first, from 320 dp: one column, the primary action within th
 the bottom. At 600 dp a navigation rail replaces the bottom bar; at 840 dp lists and their
 details sit side by side; reading columns stop at 720 dp. Mirror everything for Urdu (start and
 end, never left and right): icons that point, progress and swipe directions flip; amounts stay
-in Western order. Lists of money align amounts to the end edge.
+in Western order. Trends and charts run along time from the start edge, so trend arrows mirror
+too. A minus sign stays on the left of the figures in Urdu as in English. Lists of money align
+amounts to the end edge.
 
 ## Elevation & Depth
 
@@ -292,6 +298,12 @@ receipt's edge is straight with a perforation, not rounded.
   layout prints to PDF.
 - **Empty, error and loading states:** say what happened and the next step in one sentence,
   with one action; skeletons, not spinners, for lists.
+- **Focus:** keyboard focus is a 2 dp ring in `focus`. Outlined and text controls and fields
+  draw it on their edge. Filled controls (filled and icon buttons, the floating action button)
+  draw it 2 dp outside, past a gap of whatever they sit on, so it shows on any fill, cobalt
+  included; leave 4 dp around them so nothing covers it.
+- **Disabled:** muted ink. A filled control turns to sunken paper inside a `rule` border, never
+  cobalt at low opacity, so it stays readable in every mode.
 
 ## Do's and Don'ts
 

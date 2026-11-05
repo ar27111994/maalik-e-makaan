@@ -94,25 +94,7 @@ class MmFilterChips<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final material = MaterialLocalizations.of(context);
-    final colors = context.mm.colors;
     final onChanged = this.onChanged;
-    final side = WidgetStateBorderSide.resolveWith((states) {
-      if (states.contains(WidgetState.disabled)) {
-        return BorderSide(color: colors.rule);
-      }
-      if (states.contains(WidgetState.focused)) {
-        return BorderSide(color: colors.focus, width: MmSize.focusRing);
-      }
-      // Muted ink rather than the field outline: a chip's border runs as
-      // close to its label as the label's own strokes, and the thin
-      // strokes of Nastaliq must not read fainter than the frame around
-      // them.
-      return BorderSide(
-        color: states.contains(WidgetState.selected)
-            ? colors.primary
-            : colors.inkMuted,
-      );
-    });
     final chips = [
       for (final option in options)
         _chip(
@@ -122,7 +104,6 @@ class MmFilterChips<T> extends StatelessWidget {
           count: option.count == null
               ? null
               : material.formatDecimal(option.count!),
-          side: side,
           onSelected: onChanged == null
               ? null
               : (_) => onChanged(_toggled(option.value)),
@@ -142,7 +123,6 @@ class MmFilterChips<T> extends StatelessWidget {
     MmFilterOption<T> option, {
     required bool selected,
     required String? count,
-    required WidgetStateBorderSide side,
     required ValueChanged<bool>? onSelected,
   }) {
     // Chip labels stay on one line, so the count never wraps away. The
@@ -174,13 +154,6 @@ class MmFilterChips<T> extends StatelessWidget {
           selected: selected,
           showCheckmark: false,
           avatar: selected ? const Icon(MmIcons.check) : null,
-          side: side,
-          // Room above and below the label for the tall strokes of
-          // Nastaliq; Latin labels stay within the standard 32 dp chip.
-          labelPadding: const EdgeInsetsDirectional.symmetric(
-            horizontal: MmSpace.s2,
-            vertical: MmSpace.s1,
-          ),
           onSelected: onSelected,
         ),
       ),

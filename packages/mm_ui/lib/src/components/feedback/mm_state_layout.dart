@@ -3,7 +3,7 @@ import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// The anatomy the empty and error states share: a centred block, at most
-/// [maxWidth] wide, of a large decorative icon, an optional title (a
+/// [MmSize.stateMax] wide, of a large decorative icon, an optional title (a
 /// heading), a one-sentence message in muted ink, an optional action and
 /// optional extra content below it.
 ///
@@ -26,12 +26,6 @@ class MmStateLayout extends StatelessWidget {
     this.extra,
     super.key,
   });
-
-  /// The widest the block grows on large screens, so lines stay readable.
-  static const double maxWidth = 400;
-
-  /// The size of the icon: twice the large icon size.
-  static const double iconSize = MmSize.iconLg * 2;
 
   /// The icon above the text, hidden from assistive technology.
   final IconData icon;
@@ -65,12 +59,12 @@ class MmStateLayout extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(MmSpace.s4),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: maxWidth),
+          constraints: const BoxConstraints(maxWidth: MmSize.stateMax),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ExcludeSemantics(
-                child: Icon(icon, size: iconSize, color: iconColor),
+                child: Icon(icon, size: MmSize.iconXl, color: iconColor),
               ),
               const SizedBox(height: MmSpace.s4),
               if (title != null) ...[

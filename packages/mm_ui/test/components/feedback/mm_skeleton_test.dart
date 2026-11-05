@@ -4,8 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/feedback/mm_skeleton_pulse.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 /// The shapes the skeletons under [of] paint.
 List<ShapeDecoration> _bones(WidgetTester tester, {Finder? of}) => tester
@@ -226,9 +225,9 @@ void main() {
     testWidgets('pulses slowly between full and half opacity', (tester) async {
       await _pumpPulsing(tester, const MmSkeleton.box(width: 100, height: 20));
       expect(_opacity(tester), 1);
-      await tester.pump(MmSkeletonPulse.halfPeriod);
+      await tester.pump(MmDuration.pulse);
       expect(_opacity(tester), moreOrLessEquals(MmSkeletonPulse.faintest));
-      await tester.pump(MmSkeletonPulse.halfPeriod);
+      await tester.pump(MmDuration.pulse);
       expect(_opacity(tester), moreOrLessEquals(1));
       expect(tester.hasRunningAnimations, isTrue);
     });
@@ -249,7 +248,7 @@ void main() {
     ) async {
       const bone = MmSkeleton.box(width: 100, height: 20);
       await _pumpPulsing(tester, _motion(bone, still: false));
-      await tester.pump(MmSkeletonPulse.halfPeriod);
+      await tester.pump(MmDuration.pulse);
       expect(_opacity(tester), moreOrLessEquals(MmSkeletonPulse.faintest));
 
       await tester.pumpWidget(themed(_motion(bone, still: true)));
@@ -260,7 +259,7 @@ void main() {
       await tester.pumpWidget(themed(_motion(bone, still: false)));
       await tester.pump();
       expect(tester.hasRunningAnimations, isTrue);
-      await tester.pump(MmSkeletonPulse.halfPeriod);
+      await tester.pump(MmDuration.pulse);
       expect(_opacity(tester), moreOrLessEquals(MmSkeletonPulse.faintest));
     });
 
@@ -279,7 +278,7 @@ void main() {
       );
       final opacities = _fades(tester).map((fade) => fade.opacity).toSet();
       expect(opacities, hasLength(1));
-      await tester.pump(MmSkeletonPulse.halfPeriod);
+      await tester.pump(MmDuration.pulse);
       expect(_opacity(tester), moreOrLessEquals(MmSkeletonPulse.faintest));
     });
 

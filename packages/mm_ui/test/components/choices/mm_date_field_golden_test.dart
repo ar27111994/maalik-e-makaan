@@ -6,8 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 void _changed(CalendarDate? _) {}
 
@@ -17,8 +16,11 @@ final _last = CalendarDate(2030, 12, 31);
 void main() {
   goldenEveryVariant(
     'mm_date_field',
-    () => Localised(
-      (context, tr) => GoldenColumn(
+    () => GoldenPage(
+      (context, tr) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: MmSpace.s4,
         children: [
           MmDateField(
             label: tr('Lease start', 'لیز کا آغاز'),

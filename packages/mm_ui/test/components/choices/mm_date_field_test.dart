@@ -5,8 +5,7 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 final _first = CalendarDate(2020, 1, 1);
 final _last = CalendarDate(2030, 12, 31);
@@ -602,28 +601,31 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone', (tester) async {
       await expectFitsNarrowLargeText(
         tester,
-        Localised(
-          (context, tr) => Column(
-            children: [
-              _field(
-                label: tr('Agreement signed on', 'معاہدے پر دستخط کی تاریخ'),
-                value: CalendarDate(2026, 9, 30),
-                optional: true,
-                helper: tr(
-                  'The day Ayesha Khan signed the lease',
-                  'جس دن عائشہ خان نے دستخط کیے',
+        Builder(
+          builder: (context) {
+            final tr = sayIn(context);
+            return Column(
+              children: [
+                _field(
+                  label: tr('Agreement signed on', 'معاہدے پر دستخط کی تاریخ'),
+                  value: CalendarDate(2026, 9, 30),
+                  optional: true,
+                  helper: tr(
+                    'The day Ayesha Khan signed the lease',
+                    'جس دن عائشہ خان نے دستخط کیے',
+                  ),
                 ),
-              ),
-              _field(
-                label: tr('Rent due date', 'کرایہ کی آخری تاریخ'),
-                required: true,
-                errorText: tr(
-                  'Choose the date rent is due',
-                  'کرایہ کی تاریخ منتخب کریں',
+                _field(
+                  label: tr('Rent due date', 'کرایہ کی آخری تاریخ'),
+                  required: true,
+                  errorText: tr(
+                    'Choose the date rent is due',
+                    'کرایہ کی تاریخ منتخب کریں',
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
       );
     });

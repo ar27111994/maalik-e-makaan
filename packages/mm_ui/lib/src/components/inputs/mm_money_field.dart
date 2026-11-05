@@ -4,7 +4,6 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/inputs/mm_input_editing.dart';
 import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
-import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -109,11 +108,6 @@ class MmMoneyField extends StatelessWidget {
     );
   }
 
-  /// The amount as a screen reader should say it: digits without
-  /// grouping, paisa only when present.
-  static String _spoken(Money amount) =>
-      amount.hasPaisa ? amount.toDecimalString() : '${amount.wholeRupees}';
-
   Money? _accept(String text) {
     final amount = _amountOf(text);
     if (amount == null) return null;
@@ -154,7 +148,7 @@ class MmMoneyField extends StatelessWidget {
       describe: (context, text) {
         final amount = _amountOf(text);
         if (amount == null) return null;
-        return '${_spoken(amount)} ${MmLocalizations.of(context).rupees}';
+        return MmFormats.spokenMoney(context, amount, format: plain);
       },
       style: context.mm.amount,
       prefixIcon: before.isEmpty ? null : _Currency(before, leading: true),

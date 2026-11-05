@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
-import 'package:mm_ui/src/components/choices/mm_focus_ring.dart';
+import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 enum _Method { cash, bank, card }
 
@@ -61,7 +60,7 @@ bool _ringShown(WidgetTester tester, String label) {
         .descendant(
           of: find.ancestor(
             of: find.text(label),
-            matching: find.byType(MmFocusRing),
+            matching: find.byType(MmFocusWithin),
           ),
           matching: find.byType(DecoratedBox),
         )
@@ -254,30 +253,33 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone', (tester) async {
       await expectFitsNarrowLargeText(
         tester,
-        Localised(
-          (context, tr) => MmRadioGroup<_Method>(
-            label: tr(
-              'How Ali Raza paid the rent',
-              'علی رضا نے کرایہ کیسے دیا',
-            ),
-            options: [
-              MmOption(
-                value: _Method.bank,
-                label: tr(
-                  'Bank transfer to Meezan Bank',
-                  'میزان بینک میں ٹرانسفر',
-                ),
-                description: tr(
-                  'Rs 1,25,000 on 5 November',
-                  '5 نومبر کو 1,25,000 روپے',
-                ),
-                icon: MmIcons.bank,
+        Builder(
+          builder: (context) {
+            final tr = sayIn(context);
+            return MmRadioGroup<_Method>(
+              label: tr(
+                'How Ali Raza paid the rent',
+                'علی رضا نے کرایہ کیسے دیا',
               ),
-              MmOption(value: _Method.cash, label: tr('Cash', 'نقد')),
-            ],
-            value: _Method.bank,
-            onChanged: (_) {},
-          ),
+              options: [
+                MmOption(
+                  value: _Method.bank,
+                  label: tr(
+                    'Bank transfer to Meezan Bank',
+                    'میزان بینک میں ٹرانسفر',
+                  ),
+                  description: tr(
+                    'Rs 1,25,000 on 5 November',
+                    '5 نومبر کو 1,25,000 روپے',
+                  ),
+                  icon: MmIcons.bank,
+                ),
+                MmOption(value: _Method.cash, label: tr('Cash', 'نقد')),
+              ],
+              value: _Method.bank,
+              onChanged: (_) {},
+            );
+          },
         ),
       );
     });

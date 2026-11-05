@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
-import 'package:mm_ui/src/components/choices/mm_focus_ring.dart';
+import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 Widget _tile({
   bool value = false,
@@ -24,7 +23,7 @@ bool _ringShown(WidgetTester tester) {
   final box = tester.widget<DecoratedBox>(
     find
         .descendant(
-          of: find.byType(MmFocusRing),
+          of: find.byType(MmFocusWithin),
           matching: find.byType(DecoratedBox),
         )
         .first,
@@ -159,19 +158,22 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone', (tester) async {
       await expectFitsNarrowLargeText(
         tester,
-        Localised(
-          (context, tr) => MmSwitchTile(
-            label: tr(
-              'Add a late fee after the grace period',
-              'رعایتی مدت کے بعد تاخیر کی فیس شامل کریں',
-            ),
-            description: tr(
-              'Rs 500 a day, up to Rs 5,000',
-              'روزانہ 500 روپے، زیادہ سے زیادہ 5,000 روپے',
-            ),
-            value: true,
-            onChanged: (_) {},
-          ),
+        Builder(
+          builder: (context) {
+            final tr = sayIn(context);
+            return MmSwitchTile(
+              label: tr(
+                'Add a late fee after the grace period',
+                'رعایتی مدت کے بعد تاخیر کی فیس شامل کریں',
+              ),
+              description: tr(
+                'Rs 500 a day, up to Rs 5,000',
+                'روزانہ 500 روپے، زیادہ سے زیادہ 5,000 روپے',
+              ),
+              value: true,
+              onChanged: (_) {},
+            );
+          },
         ),
       );
     });

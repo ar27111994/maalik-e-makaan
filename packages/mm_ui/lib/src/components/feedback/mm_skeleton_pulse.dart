@@ -3,7 +3,8 @@ import 'package:mm_ui/src/theme/mm_motion.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// The slow pulse that tells a sighted reader skeletons stand for content
-/// on its way: their opacity breathes between full and [faintest].
+/// on its way: their opacity breathes between full and [faintest], one
+/// fade in or out every [MmDuration.pulse].
 ///
 /// Every skeleton under one pulse breathes in step from a single
 /// animation: `MmSkeletonList` puts one around all of its rows, and an
@@ -18,9 +19,6 @@ class MmSkeletonPulse extends StatefulWidget {
 
   /// The opacity the pulse fades skeletons to before they return.
   static const double faintest = 0.5;
-
-  /// How long one fade (in or out) takes: three emphasized beats.
-  static final Duration halfPeriod = MmDuration.emphasized * 3;
 
   /// The subtree whose skeletons pulse.
   final Widget child;
@@ -47,7 +45,7 @@ class _MmSkeletonPulseState extends State<MmSkeletonPulse>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _nested = context.getInheritedWidgetOfExactType<_PulseScope>() != null;
-    final duration = MmMotion.of(context, MmSkeletonPulse.halfPeriod);
+    final duration = MmMotion.of(context, MmDuration.pulse);
     if (_nested || duration == Duration.zero) {
       _controller?.stop();
       _controller?.value = 0;

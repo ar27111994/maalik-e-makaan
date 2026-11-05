@@ -5,8 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'editing.dart';
+import '../../support/testing.dart';
 
 final _cnic = Cnic.parse('35202-1234567-1');
 
@@ -39,7 +38,8 @@ void main() {
       final handle = tester.ensureSemantics();
       await pumpThemed(tester, MmCnicText(cnic: _cnic));
       final masked = tester.getSemantics(find.text(_shown('35202-•••••••-1')));
-      expect(masked.label, '35202 … 1');
+      // The digits on screen, and how many are hidden between them.
+      expect(masked.label, '35202, 7 hidden digits, 1');
       expect(masked.label, isNot(contains('1234567')));
       expect(
         tester.getSemantics(find.byType(IconButton)),
@@ -51,6 +51,20 @@ void main() {
       expect(
         tester.getSemantics(find.text(_shown('35202-1234567-1'))),
         isSemantics(label: '35202-1234567-1'),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('says how many digits are hidden in Urdu', (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpThemed(
+        tester,
+        MmCnicText(cnic: _cnic),
+        variant: MmVariant.urdu,
+      );
+      expect(
+        tester.getSemantics(find.text(_shown('35202-•••••••-1'))).label,
+        '35202, ${MmLocalizations.urdu.hiddenDigits(7)}, 1',
       );
       handle.dispose();
     });
@@ -102,11 +116,10 @@ void main() {
     });
 
     testWidgets('fits 200% text on a 320 dp wide screen', (tester) async {
-      await expectFitsNarrowLargeText(
-        tester,
-        MmCnicText(cnic: _cnic, initiallyMasked: false),
-      );
+      final cnic = MmCnicText(cnic: _cnic, initiallyMasked: false);
+      await expectFitsNarrowLargeText(tester, cnic);
       // The number keeps one line; the button moves below it instead.
+      await pumpLargeNarrow(tester, cnic);
       final number = tester.getRect(find.text(_shown('35202-1234567-1')));
       expect(number.height, lessThan(60));
       expect(

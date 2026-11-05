@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mm_ui/src/components/inputs/mm_clean_text_formatter.dart';
 import 'package:mm_ui/src/components/inputs/mm_field_frame.dart';
+import 'package:mm_ui/src/foundation/mm_clean_text_formatter.dart';
+import 'package:mm_ui/src/foundation/mm_field_error.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 
 /// The one text field the inputs family is built on: a [TextFormField] (so
@@ -225,7 +226,7 @@ class _MmTextInputState extends State<MmTextInput> {
         forceErrorText: widget.errorText,
         validator: widget.validator,
         autovalidateMode: widget.autovalidateMode,
-        errorBuilder: MmFieldFrame.error,
+        errorBuilder: (context, message) => MmFieldError(message),
         decoration: MmFieldFrame.decoration(
           context,
           hint: widget.hint,

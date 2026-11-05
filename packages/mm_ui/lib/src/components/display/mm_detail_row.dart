@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/display/mm_reflow.dart';
-import 'package:mm_ui/src/components/display/mm_user_text.dart';
+import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -20,12 +19,10 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// value the landlord edits (use a field).
 ///
 /// ```dart
-/// final format = MmFormats.moneyOf(context);
 /// MmDetailRow(
 ///   label: l10n.monthlyRent,
-///   value: format.format(lease.rent),
-///   semanticValue: '${MmAmount.spokenNumber(lease.rent, format)} '
-///       '${MmLocalizations.of(context).rupees}',
+///   value: MmFormats.moneyOf(context).format(lease.rent),
+///   semanticValue: MmFormats.spokenMoney(context, lease.rent),
 ///   userData: false,
 /// )
 /// ```
@@ -58,7 +55,7 @@ class MmDetailRow extends StatelessWidget {
 
   /// How a screen reader says the value when that differs from how it
   /// looks: a grouped amount as "45000 rupees" (see
-  /// `MmAmount.spokenNumber`), a date in words.
+  /// `MmFormats.spokenMoney`), a date in words.
   final String? semanticValue;
 
   /// A widget after the value, such as an `MmStatusBadge` or a copy button.
@@ -81,7 +78,7 @@ class MmDetailRow extends StatelessWidget {
     final Widget valueText = ExcludeSemantics(
       child: Text(
         value,
-        style: userData ? mm.userStyleFor(value, valueStyle) : valueStyle,
+        style: userData ? mm.styleFor(value, valueStyle) : valueStyle,
       ),
     );
     return MergeSemantics(

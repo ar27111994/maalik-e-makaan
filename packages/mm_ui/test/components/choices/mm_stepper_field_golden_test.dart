@@ -1,19 +1,22 @@
 @Tags(['golden'])
 library;
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 void _changed(int _) {}
 
 void main() {
   goldenEveryVariant(
     'mm_stepper_field',
-    () => Localised(
-      (context, tr) => GoldenColumn(
+    () => GoldenPage(
+      (context, tr) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: MmSpace.s4,
         children: [
           MmStepperField(
             label: tr('Advance rent', 'پیشگی کرایہ'),

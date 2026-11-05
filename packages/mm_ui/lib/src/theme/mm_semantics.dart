@@ -35,20 +35,48 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
     required bool highContrast,
   }) {
     // Amounts are always set in the Latin face with tabular figures, in both
-    // languages, so columns of rupees line up and stay unambiguous.
+    // languages, so columns of rupees line up and stay unambiguous. The
+    // Urdu currency word (روپے) after an amount falls back to Nastaliq.
     const tabular = [FontFeature.tabularFigures()];
     return MmSemantics(
       colors: colors,
       script: script,
       highContrast: highContrast,
-      amountLarge: MmTypeScale.latinAmount.copyWith(
-        color: colors.ink,
-        fontFeatures: tabular,
+      amountLarge: withUrduFallback(
+        MmTypeScale.latinAmount.copyWith(
+          color: colors.ink,
+          fontFeatures: tabular,
+        ),
       ),
-      amount: MmTypeScale.latinTitleSmall.copyWith(
-        color: colors.ink,
-        fontFeatures: tabular,
+      amount: withUrduFallback(
+        MmTypeScale.latinTitleSmall.copyWith(
+          color: colors.ink,
+          fontFeatures: tabular,
+        ),
       ),
+    );
+  }
+
+  /// [style] with Noto Nastaliq Urdu as its fallback face.
+  ///
+  /// The Latin face has no Arabic-script letters. Without a fallback, Urdu
+  /// in a Latin style (a tenant's name typed in Urdu in the English UI, the
+  /// currency word after an amount) is set in whatever face the platform
+  /// offers, or as empty boxes. The theme's Latin text styles and amount
+  /// styles already have it; use this for a style built from
+  /// [MmTypeScale] directly.
+  ///
+  /// [style] must be set in one of mm_ui's bundled faces (any style of the
+  /// theme, `context.mm` or [MmTypeScale]): the fallback is named the way
+  /// the package declares its fonts.
+  static TextStyle withUrduFallback(TextStyle style) {
+    assert(
+      style.fontFamily?.startsWith('packages/mm_ui/') ?? false,
+      "withUrduFallback needs a style in one of mm_ui's faces",
+    );
+    return style.copyWith(
+      fontFamilyFallback: const [MmFontFamily.urdu],
+      package: 'mm_ui',
     );
   }
 

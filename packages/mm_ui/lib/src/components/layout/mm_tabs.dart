@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// Tabs that switch between the views of one screen ("Dues", "Payments",
@@ -35,9 +34,6 @@ class MmTabs extends StatelessWidget {
   /// Creates tabs labelled [labels].
   const new({required this.labels, this.controller, this.onTap, super.key});
 
-  /// The thickness of the line under the selected tab.
-  static const double indicatorWeight = 3;
-
   /// The tabs' labels, in order. As many as [controller] (or the
   /// [DefaultTabController]) has tabs.
   final List<String> labels;
@@ -53,7 +49,9 @@ class MmTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     assert(labels.isNotEmpty, 'MmTabs needs at least one label');
-    final colors = context.mm.colors;
+    // The theme colours the bar: cobalt label and underline over a hairline
+    // rule. The tabs are sized here, which a theme cannot do, so the labels
+    // are set in the very style they are measured in.
     final style = Theme.of(context).textTheme.labelLarge;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -78,20 +76,6 @@ class MmTabs extends StatelessWidget {
           ],
           labelStyle: style,
           unselectedLabelStyle: style,
-          labelColor: colors.primary,
-          unselectedLabelColor: colors.inkMuted,
-          indicator: UnderlineTabIndicator(
-            borderSide: BorderSide(
-              color: colors.primary,
-              width: indicatorWeight,
-            ),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(indicatorWeight),
-            ),
-          ),
-          indicatorSize: TabBarIndicatorSize.label,
-          dividerColor: colors.rule,
-          dividerHeight: MmSize.hairline,
         );
       },
     );

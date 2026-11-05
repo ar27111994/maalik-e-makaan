@@ -4,9 +4,6 @@ import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
-/// The widest a sheet grows; on wider windows it is centred.
-const double _maxSheetWidth = 640;
-
 /// Shows a modal bottom sheet titled [title] with [builder]'s content, and
 /// completes with the value the sheet is closed with (null when it is
 /// dismissed).
@@ -16,8 +13,9 @@ const double _maxSheetWidth = 640;
 /// below it scrolls when it is taller than the space. The sheet grows with
 /// its content up to the height of the window, keeps clear of the system
 /// bars and of the on-screen keyboard (so a form's fields stay visible),
-/// and is at most 640 dp wide, centred on wide windows. The drag handle,
-/// a tap outside, the back button and Escape also close it.
+/// and is at most [MmSize.sheetMax] (640 dp) wide, centred on wide
+/// windows. The drag handle, a tap outside, the back button and Escape also
+/// close it.
 ///
 /// Use it for a short task in the context of a screen: recording a
 /// payment, choosing a filter, sharing a receipt. For a yes or no question,
@@ -43,7 +41,7 @@ Future<T?> showMmSheet<T>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    constraints: const BoxConstraints(maxWidth: _maxSheetWidth),
+    constraints: const BoxConstraints(maxWidth: MmSize.sheetMax),
     sheetAnimationStyle: AnimationStyle(
       duration: duration,
       reverseDuration: duration,

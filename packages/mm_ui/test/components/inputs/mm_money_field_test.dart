@@ -4,7 +4,7 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 import 'editing.dart';
 
 const _rent = Money.fromRupees(125000);
@@ -334,7 +334,9 @@ void main() {
         tester,
         _Host(initial: const Money.fromRupees(-500), changes: changes),
       );
-      expect(valueOf(tester).text, '-500');
+      // The format marks the minus left to right, so it stays before the
+      // figures in a right-to-left field too.
+      expect(valueOf(tester).text, '\u200E-500');
       await tester.enterText(find.byType(TextField), '500');
       expect(changes, [const Money.fromRupees(500)]);
     });

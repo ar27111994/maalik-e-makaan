@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 InputDecoration _decoration(WidgetTester tester) =>
     tester.widget<TextField>(find.byType(TextField)).decoration!;
@@ -256,14 +255,17 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone', (tester) async {
       await expectFitsNarrowLargeText(
         tester,
-        Localised(
-          (context, tr) => MmSearchField(
-            hint: tr(
-              'Search tenants and properties',
-              'کرایہ دار اور جائیداد تلاش کریں',
-            ),
-            controller: TextEditingController(text: 'Ali Raza, Gulberg'),
-          ),
+        Builder(
+          builder: (context) {
+            final tr = sayIn(context);
+            return MmSearchField(
+              hint: tr(
+                'Search tenants and properties',
+                'کرایہ دار اور جائیداد تلاش کریں',
+              ),
+              controller: TextEditingController(text: 'Ali Raza, Gulberg'),
+            );
+          },
         ),
       );
     });

@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 const _rent = Money.fromRupees(45000);
 const _advance = Money.fromRupees(-5000);
@@ -177,30 +176,6 @@ void main() {
         variant: MmVariant.urdu,
       );
       expect(_shown(tester), '\u200E-5,000 روپے');
-    });
-
-    test('says paisa only when the format shows them', () {
-      const format = MoneyFormat();
-      expect(
-        MmAmount.spokenNumber(const Money.fromPaisa(150050), format),
-        '1500.50',
-      );
-      expect(MmAmount.spokenNumber(_rent, format), '45000');
-      expect(
-        MmAmount.spokenNumber(
-          const Money.fromPaisa(150050),
-          format.copyWith(paisa: PaisaDisplay.never),
-        ),
-        '1501',
-      );
-      expect(
-        MmAmount.spokenNumber(
-          _rent,
-          format.copyWith(paisa: PaisaDisplay.always),
-        ),
-        '45000',
-      );
-      expect(MmAmount.spokenNumber(_advance, format), '-5000');
     });
 
     testWidgets('stays on one line and scales down when too narrow', (

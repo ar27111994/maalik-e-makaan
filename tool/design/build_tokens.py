@@ -63,6 +63,8 @@ CONTRAST_PAIRS = [
     ("onCreditContainer", "creditContainer", 4.5, "credit chip text"),
     ("focus", "surface", 3.0, "focus ring on cards"),
     ("focus", "bg", 3.0, "focus ring on the page"),
+    ("focus", "surfaceSunken", 3.0, "focus ring on sunken wells"),
+    ("inkMuted", "surfaceSunken", 4.5, "labels of disabled filled controls"),
 ]
 
 # Font families as the mm_ui package declares them in pubspec.yaml.

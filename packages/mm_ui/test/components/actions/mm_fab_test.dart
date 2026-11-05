@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 
 const _add = 'Add tenant';
 
@@ -17,9 +17,6 @@ Material _material(WidgetTester tester) => tester.widget(
 /// The side of the button's outline.
 BorderSide _side(WidgetTester tester) =>
     (_material(tester).shape! as OutlinedBorder).side;
-
-MmColorTokens _colorsOf(MmVariant variant) =>
-    MmTheme.tokensFor(variant.brightness, highContrast: variant.highContrast);
 
 void main() {
   group('MmFab', () {
@@ -123,7 +120,7 @@ void main() {
         MmFab(label: _add, icon: MmIcons.invite, onPressed: () {}),
         variant: variant,
       );
-      final colors = _colorsOf(variant);
+      final colors = colorsOf(variant);
       final material = _material(tester);
       expect(material.color, colors.primary);
       expect(material.elevation, greaterThan(0));
@@ -139,7 +136,7 @@ void main() {
         const MmFab(label: _add, icon: MmIcons.invite, onPressed: null),
         variant: variant,
       );
-      final colors = _colorsOf(variant);
+      final colors = colorsOf(variant);
       final material = _material(tester);
       expect(material.color, colors.surfaceSunken);
       expect(material.elevation, 0);
@@ -153,11 +150,11 @@ void main() {
       expect(_side(tester), BorderSide(color: colors.rule));
     });
 
-    testEveryVariant('a focused button draws a ring in its icon colour', (
+    testEveryVariant('a focused button draws the ring outside its fill', (
       tester,
       variant,
     ) async {
-      final colors = _colorsOf(variant);
+      final colors = colorsOf(variant);
       for (final extended in [true, false]) {
         await pumpThemed(
           tester,
@@ -169,12 +166,16 @@ void main() {
           ),
           variant: variant,
         );
+        expect(_material(tester).shape, isNot(isA<MmFocusRingBorder>()));
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
-        expect(
-          _side(tester),
-          BorderSide(color: colors.onPrimary, width: MmSize.focusRing),
-        );
+        // The theme's ring, in the focus colour past a gap, so it shows on
+        // the cobalt fill; the button keeps its own edge.
+        final ring = _material(tester).shape! as MmFocusRingBorder;
+        expect(ring.color, colors.focus);
+        expect(ring.width, MmSize.focusRing);
+        expect(ring.gap, MmSize.focusGap);
+        expect(ring.side, BorderSide(color: colors.primary));
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
         expect(_side(tester), BorderSide(color: colors.primary));

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
-import 'package:mm_ui/src/components/choices/mm_focus_ring.dart';
 import 'package:mm_ui/src/components/choices/mm_option.dart';
 import 'package:mm_ui/src/components/choices/mm_search_field.dart';
+import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
+import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -30,7 +31,6 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// MmSelectField<String>(
 ///   label: l10n.property,
 ///   placeholder: l10n.chooseProperty,
-///   noMatchesText: l10n.noMatches,
 ///   options: [
 ///     for (final property in properties)
 ///       MmOption(value: property.id, label: property.name),
@@ -46,7 +46,6 @@ class MmSelectField<T> extends StatefulWidget {
     required this.label,
     required this.options,
     required this.onChanged,
-    required this.noMatchesText,
     this.value,
     this.placeholder,
     this.helper,
@@ -89,11 +88,6 @@ class MmSelectField<T> extends StatefulWidget {
   /// outline turns overdue.
   final String? errorText;
 
-  /// Shown in the sheet, and announced, when the search matches no option
-  /// ("No matches"). Comes from the app's localisations until
-  /// `MmLocalizations` has the word.
-  final String noMatchesText;
-
   /// Whether the label says "Required".
   final bool required;
 
@@ -124,7 +118,6 @@ class _MmSelectFieldState<T> extends State<MmSelectField<T>> {
         title: widget.label,
         options: widget.options,
         value: widget.value,
-        noMatchesText: widget.noMatchesText,
       ),
     );
     if (!mounted) return;
@@ -168,17 +161,11 @@ class _MmSelectFieldState<T> extends State<MmSelectField<T>> {
 /// The sheet of an [MmSelectField]: its title, a search field when there
 /// are many options, and the options, the chosen one checked and focused.
 class _SelectSheet<T> extends StatefulWidget {
-  const new({
-    required this.title,
-    required this.options,
-    required this.value,
-    required this.noMatchesText,
-  });
+  const new({required this.title, required this.options, required this.value});
 
   final String title;
   final List<MmOption<T>> options;
   final T? value;
-  final String noMatchesText;
 
   @override
   State<_SelectSheet<T>> createState() => _SelectSheetState<T>();
@@ -245,7 +232,7 @@ class _SelectSheetState<T> extends State<_SelectSheet<T>> {
               child: Semantics(
                 liveRegion: true,
                 child: Text(
-                  widget.noMatchesText,
+                  MmLocalizations.of(context).noMatches,
                   style: textTheme.bodyLarge?.copyWith(color: colors.inkMuted),
                 ),
               ),
@@ -287,7 +274,7 @@ class _OptionRow<T> extends StatelessWidget {
     final colors = mm.colors;
     final ink = selected ? colors.onPrimaryContainer : colors.ink;
     final muted = selected ? colors.onPrimaryContainer : colors.inkMuted;
-    return MmFocusRing(
+    return MmFocusWithin(
       radius: MmRadius.none,
       child: MergeSemantics(
         child: Semantics(

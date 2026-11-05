@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:ui' show SemanticsRole;
 
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/records/mm_record_style.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -146,7 +145,7 @@ class MmTimeline extends StatelessWidget {
   static const double dotMarker = MmSpace.s3;
 
   /// The thickness of the rail.
-  static const double railWidth = MmSpace.sHalf;
+  static const double railWidth = MmSize.stroke;
 
   @override
   Widget build(BuildContext context) {
@@ -242,11 +241,11 @@ class _TimelineEntry extends StatelessWidget {
                 children: [
                   Text(
                     item.dateLabel,
-                    style: mm.dataStyleFor(item.dateLabel, dateStyle),
+                    style: mm.styleFor(item.dateLabel, dateStyle),
                   ),
                   Text(
                     item.title,
-                    style: mm.dataStyleFor(
+                    style: mm.styleFor(
                       item.title,
                       text.titleMedium!.copyWith(color: colors.ink),
                     ),
@@ -254,7 +253,7 @@ class _TimelineEntry extends StatelessWidget {
                   if (subtitle != null)
                     Text(
                       subtitle,
-                      style: mm.dataStyleFor(
+                      style: mm.styleFor(
                         subtitle,
                         text.bodyMedium!.copyWith(color: colors.inkMuted),
                       ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/display/mm_reflow.dart';
-import 'package:mm_ui/src/components/display/mm_user_text.dart';
+import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 
 /// The heading of a section of a page ("Tenants", "October dues"), with an
@@ -62,7 +61,7 @@ class MmSectionHeader extends StatelessWidget {
       start: Semantics(
         container: true,
         header: true,
-        child: Text(title, style: mm.userStyleFor(title, text.titleLarge!)),
+        child: Text(title, style: mm.styleFor(title, text.titleLarge!)),
       ),
       below: subtitle == null
           ? null

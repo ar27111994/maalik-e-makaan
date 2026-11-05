@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mm_ui/mm_ui.dart';
-
-import '../../support/harness.dart';
 
 /// The editable text of the field [field] finds (the only one by default).
 Finder editableIn([Finder? field]) => field == null
@@ -30,25 +27,6 @@ Future<void> edit(
   );
   await tester.pump();
 }
-
-/// Pumps [child] on a 320 dp wide surface at 200% text and asserts that
-/// nothing overflowed.
-Future<void> expectFitsNarrowLargeText(
-  WidgetTester tester,
-  Widget child,
-) async {
-  await pumpThemed(
-    tester,
-    SingleChildScrollView(child: child),
-    variant: MmVariant.largeText,
-    size: const Size(320, 740),
-  );
-  expect(tester.takeException(), isNull);
-}
-
-/// The colour tokens of [variant].
-MmColorTokens colorsOf(MmVariant variant) =>
-    MmTheme.tokensFor(variant.brightness, highContrast: variant.highContrast);
 
 /// The colour the text [finder] finds is painted in (its style merged with
 /// the ambient default text style).

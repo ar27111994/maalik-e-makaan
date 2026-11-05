@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../support/harness.dart';
+import '../support/testing.dart';
 
 void main() {
   group('MmWindowSize', () {
@@ -101,6 +101,72 @@ void main() {
       );
       expect(seen, [lakh, const MoneyFormat()]);
     });
+
+    test('spokenNumber says paisa only when the format shows them', () {
+      const format = MoneyFormat();
+      const rent = Money.fromRupees(45000);
+      const withPaisa = Money.fromPaisa(150050);
+      expect(MmFormats.spokenNumber(withPaisa, format), '1500.50');
+      expect(MmFormats.spokenNumber(rent, format), '45000');
+      expect(
+        MmFormats.spokenNumber(
+          withPaisa,
+          format.copyWith(paisa: PaisaDisplay.never),
+        ),
+        '1501',
+      );
+      expect(
+        MmFormats.spokenNumber(
+          rent,
+          format.copyWith(paisa: PaisaDisplay.always),
+        ),
+        '45000',
+      );
+      // Ungrouped whatever the grouping, with a plain minus sign.
+      expect(
+        MmFormats.spokenNumber(
+          const Money.fromRupees(-125000),
+          format.copyWith(grouping: DigitGrouping.southAsian),
+        ),
+        '-125000',
+      );
+    });
+
+    testWidgets('spokenMoney says the number and the currency in the '
+        "context's language and format", (tester) async {
+      final spoken = <String>[];
+      Widget reader({MoneyFormat? format}) => Builder(
+        builder: (context) {
+          spoken.add(
+            MmFormats.spokenMoney(
+              context,
+              const Money.fromPaisa(12500050),
+              format: format,
+            ),
+          );
+          return const SizedBox();
+        },
+      );
+      await pumpThemed(tester, reader());
+      await pumpThemed(tester, reader(), variant: MmVariant.urdu);
+      await pumpThemed(
+        tester,
+        MmFormats(
+          money: const MoneyFormat(paisa: PaisaDisplay.never),
+          child: reader(),
+        ),
+      );
+      await pumpThemed(
+        tester,
+        reader(format: const MoneyFormat(paisa: PaisaDisplay.never)),
+      );
+      expect(spoken, [
+        '125000.50 rupees',
+        '125000.50 روپے',
+        '125001 rupees',
+        '125001 rupees',
+      ]);
+    });
   });
 
   group('MmLocalizations', () {
@@ -126,6 +192,8 @@ void main() {
         l.showAsChart,
         l.copied,
         l.rupees,
+        l.noMatches,
+        l.hiddenDigits(7),
       ];
       final english = strings(MmLocalizations.english);
       final urdu = strings(MmLocalizations.urdu);
@@ -141,6 +209,15 @@ void main() {
       }
       expect(english.toSet(), hasLength(english.length));
       expect(urdu.toSet(), hasLength(urdu.length));
+    });
+
+    test('hidden digits are counted, in the singular for one', () {
+      const english = MmLocalizations.english;
+      const urdu = MmLocalizations.urdu;
+      expect(english.hiddenDigits(7), '7 hidden digits');
+      expect(english.hiddenDigits(1), '1 hidden digit');
+      expect(urdu.hiddenDigits(7), '7 چھپے ہوئے ہندسے');
+      expect(urdu.hiddenDigits(1), '1 چھپا ہوا ہندسہ');
     });
 
     test('forLocale picks Urdu only for ur', () {

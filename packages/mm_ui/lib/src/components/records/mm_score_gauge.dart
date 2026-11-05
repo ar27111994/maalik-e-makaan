@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/records/mm_record_icon_label.dart';
 import 'package:mm_ui/src/components/records/mm_record_style.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -180,7 +180,7 @@ class MmScoreGauge extends StatelessWidget {
                     horizontal: MmSpace.s2,
                     vertical: MmSpace.sHalf,
                   ),
-                  child: MmRecordIconLabel(
+                  child: MmIconLabel(
                     icon: band.icon,
                     label: bandLabel,
                     style: text.labelLarge!.copyWith(color: onBand),

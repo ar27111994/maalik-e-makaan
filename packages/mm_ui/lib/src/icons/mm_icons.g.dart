@@ -156,18 +156,28 @@ abstract final class MmIcons {
     fontPackage: 'mm_ui',
   );
 
-  /// Lucide `trending-up`.
+  /// Lucide `trending-up` (mirrored in right-to-left layouts).
   static const IconData trendUp = IconData(
     0xe191,
     fontFamily: 'MmIcons',
     fontPackage: 'mm_ui',
+    matchTextDirection: true,
   );
 
-  /// Lucide `trending-down`.
+  /// Lucide `trending-down` (mirrored in right-to-left layouts).
   static const IconData trendDown = IconData(
     0xe190,
     fontFamily: 'MmIcons',
     fontPackage: 'mm_ui',
+    matchTextDirection: true,
+  );
+
+  /// Lucide `move-right` (mirrored in right-to-left layouts).
+  static const IconData trendFlat = IconData(
+    0xe490,
+    fontFamily: 'MmIcons',
+    fontPackage: 'mm_ui',
+    matchTextDirection: true,
   );
 
   /// Lucide `zap`.
@@ -392,6 +402,13 @@ abstract final class MmIcons {
   /// Lucide `plus`.
   static const IconData add = IconData(
     0xe13d,
+    fontFamily: 'MmIcons',
+    fontPackage: 'mm_ui',
+  );
+
+  /// Lucide `minus`.
+  static const IconData minus = IconData(
+    0xe11c,
     fontFamily: 'MmIcons',
     fontPackage: 'mm_ui',
   );
@@ -650,6 +667,7 @@ abstract final class MmIcons {
     'reports': reports,
     'trendUp': trendUp,
     'trendDown': trendDown,
+    'trendFlat': trendFlat,
     'electricity': electricity,
     'gas': gas,
     'water': water,
@@ -682,6 +700,7 @@ abstract final class MmIcons {
     'hide': hide,
     'signOut': signOut,
     'add': add,
+    'minus': minus,
     'edit': edit,
     'delete': delete,
     'archive': archive,

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 
 const _record = 'Record payment';
 
@@ -49,9 +49,6 @@ double _contrast(Color a, Color b) {
   return (math.max(x, y) + 0.05) / (math.min(x, y) + 0.05);
 }
 
-MmColorTokens _colorsOf(MmVariant variant) =>
-    MmTheme.tokensFor(variant.brightness, highContrast: variant.highContrast);
-
 void main() {
   group('MmButton', () {
     testWidgets('each variant is the matching Material button', (tester) async {
@@ -90,7 +87,7 @@ void main() {
         MmButton(label: _record, onPressed: () {}),
         variant: variant,
       );
-      final colors = _colorsOf(variant);
+      final colors = colorsOf(variant);
       expect(
         _material(tester, find.byType(FilledButton)).color,
         colors.primary,
@@ -111,53 +108,16 @@ void main() {
           ),
           variant: variant,
         );
-        final colors = _colorsOf(variant);
+        final colors = colorsOf(variant);
         final fill = _material(tester, find.byType(FilledButton)).color!;
         final text = _textColor(tester, 'Remove tenant');
         expect(fill, colors.overdue);
-        expect(text, MmButton.onOverdue(colors));
+        // The theme's on-error colour: the surface role.
+        expect(text, colors.surface);
         expect(_contrast(fill, text), greaterThanOrEqualTo(4.5));
         expect(_iconColor(tester, MmIcons.delete), text);
       },
     );
-
-    test('the destructive text takes whichever role contrasts more', () {
-      const light = MmColorModes.light;
-      // The surface wins in every shipped mode.
-      expect(MmButton.onOverdue(light), light.surface);
-      // With a dark surface and light ink, the ink wins.
-      final inverted = MmColorTokens(
-        bg: light.bg,
-        surface: light.ink,
-        surfaceSunken: light.surfaceSunken,
-        ink: light.surface,
-        inkMuted: light.inkMuted,
-        outline: light.outline,
-        rule: light.rule,
-        primary: light.primary,
-        onPrimary: light.onPrimary,
-        primaryContainer: light.primaryContainer,
-        onPrimaryContainer: light.onPrimaryContainer,
-        brass: light.brass,
-        brassText: light.brassText,
-        brassContainer: light.brassContainer,
-        onBrassContainer: light.onBrassContainer,
-        paid: light.paid,
-        paidContainer: light.paidContainer,
-        onPaidContainer: light.onPaidContainer,
-        overdue: light.overdue,
-        overdueContainer: light.overdueContainer,
-        onOverdueContainer: light.onOverdueContainer,
-        dueSoon: light.dueSoon,
-        dueSoonContainer: light.dueSoonContainer,
-        onDueSoonContainer: light.onDueSoonContainer,
-        credit: light.credit,
-        creditContainer: light.creditContainer,
-        onCreditContainer: light.onCreditContainer,
-        focus: light.focus,
-      );
-      expect(MmButton.onOverdue(inverted), inverted.ink);
-    });
 
     testWidgets('a disabled destructive button takes the disabled colours', (
       tester,
@@ -525,31 +485,35 @@ void main() {
     });
 
     testEveryVariant('a focused button shows a ring', (tester, variant) async {
-      final colors = _colorsOf(variant);
-      final rings = {
-        // On a filled button, the ring takes the text colour.
-        MmButtonVariant.primary: colors.onPrimary,
-        MmButtonVariant.destructive: MmButton.onOverdue(colors),
-        // The theme draws the others in the focus colour.
-        MmButtonVariant.secondary: colors.focus,
-        MmButtonVariant.tertiary: colors.focus,
-      };
-      for (final MapEntry(key: kind, value: ring) in rings.entries) {
+      final colors = colorsOf(variant);
+      for (final kind in MmButtonVariant.values) {
         await pumpThemed(
           tester,
           MmButton(label: _record, variant: kind, onPressed: () {}),
           variant: variant,
         );
         final button = find.byType(MmButton);
-        final resting =
-            (_material(tester, button).shape! as OutlinedBorder).side;
-        expect(resting.width, lessThan(MmSize.focusRing), reason: kind.name);
+        final resting = _material(tester, button).shape! as OutlinedBorder;
+        expect(resting, isNot(isA<MmFocusRingBorder>()), reason: kind.name);
+        expect(resting.side.width, lessThan(MmSize.focusRing));
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
-        final focused =
-            (_material(tester, button).shape! as OutlinedBorder).side;
-        expect(focused.color, ring, reason: kind.name);
-        expect(focused.width, MmSize.focusRing, reason: kind.name);
+        final focused = _material(tester, button).shape!;
+        switch (kind) {
+          // A filled button keeps its fill and edge; the theme draws the
+          // ring outside it, past a gap, so it shows on any fill.
+          case MmButtonVariant.primary || MmButtonVariant.destructive:
+            expect(focused, isA<MmFocusRingBorder>(), reason: kind.name);
+            final ring = focused as MmFocusRingBorder;
+            expect(ring.color, colors.focus);
+            expect(ring.width, MmSize.focusRing);
+            expect(ring.gap, MmSize.focusGap);
+          // The others draw the ring on their edge.
+          case MmButtonVariant.secondary || MmButtonVariant.tertiary:
+            final side = (focused as OutlinedBorder).side;
+            expect(side.color, colors.focus, reason: kind.name);
+            expect(side.width, MmSize.focusRing, reason: kind.name);
+        }
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
       }

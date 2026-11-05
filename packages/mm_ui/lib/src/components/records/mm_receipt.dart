@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mm_core/mm_core.dart';
-import 'package:mm_ui/src/components/records/mm_record_icon_label.dart';
-import 'package:mm_ui/src/components/records/mm_record_line.dart';
 import 'package:mm_ui/src/components/records/mm_record_style.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
-import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -128,7 +127,6 @@ class MmReceipt extends StatelessWidget {
     final colors = mm.colors;
     final text = Theme.of(context).textTheme;
     final format = MmFormats.moneyOf(context);
-    final rupees = MmLocalizations.of(context).rupees;
     final footer = this.footer;
     final voidedLabel = this.voidedLabel;
 
@@ -148,7 +146,7 @@ class MmReceipt extends StatelessWidget {
     final issuerPart = part(
       Text(
         issuer,
-        style: mm.dataStyleFor(
+        style: mm.styleFor(
           issuer,
           text.titleMedium!.copyWith(color: colors.ink),
         ),
@@ -159,6 +157,7 @@ class MmReceipt extends StatelessWidget {
       _Seal(numberLabel: numberLabel, receiptNumber: receiptNumber),
       label: '$numberLabel $receiptNumber',
     );
+    final spokenAmount = MmFormats.spokenMoney(context, amount, format: format);
     final amountPart = part(
       _AmountBlock(
         label: amountLabel,
@@ -166,7 +165,7 @@ class MmReceipt extends StatelessWidget {
         format: format,
         voided: voidedLabel != null,
       ),
-      label: '$amountLabel, ${_spokenNumber(amount, format)} $rupees',
+      label: '$amountLabel, $spokenAmount',
     );
     final rowParts = [
       for (final row in rows)
@@ -180,10 +179,7 @@ class MmReceipt extends StatelessWidget {
         : part(
             Text(
               footer,
-              style: mm.dataStyleFor(
-                footer,
-                mmSmallPrint(text.bodySmall!, colors),
-              ),
+              style: mm.styleFor(footer, mmSmallPrint(text.bodySmall!, colors)),
             ),
           );
     final voidPart = voidedLabel == null
@@ -210,10 +206,10 @@ class MmReceipt extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              MmRecordLine(
+              MmReflow(
                 start: issuerPart,
                 end: sealPart,
-                alignment: MmRecordLineAlignment.top,
+                alignment: MmReflowAlignment.top,
                 stackedAtEnd: true,
               ),
               if (voidPart != null) ...[
@@ -240,15 +236,6 @@ class MmReceipt extends StatelessWidget {
       ),
     );
   }
-
-  /// [amount] as a screen reader should say it: the plain number without
-  /// grouping, with paisa only when [format] shows them.
-  static String _spokenNumber(Money amount, MoneyFormat format) {
-    final shown = format.paisa == PaisaDisplay.never
-        ? amount.roundToRupee()
-        : amount;
-    return shown.hasPaisa ? shown.toDecimalString() : '${shown.wholeRupees}';
-  }
 }
 
 /// The brass seal at the top end of a receipt, carrying its number.
@@ -267,7 +254,7 @@ class _Seal extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.brassContainer,
-        border: Border.all(color: colors.brass, width: MmRecordMetrics.frame),
+        border: Border.all(color: colors.brass, width: MmSize.frame),
         borderRadius: const BorderRadius.all(Radius.circular(MmRadius.sm)),
       ),
       child: Padding(
@@ -286,7 +273,7 @@ class _Seal extends StatelessWidget {
             Text(
               receiptNumber,
               textAlign: TextAlign.center,
-              style: mm.dataStyleFor(
+              style: mm.styleFor(
                 receiptNumber,
                 text.labelLarge!.copyWith(
                   color: on,
@@ -321,12 +308,9 @@ class _AmountBlock extends StatelessWidget {
     final mm = context.mm;
     final colors = mm.colors;
     final text = Theme.of(context).textTheme;
-    final formatted = format.format(amount);
+    // The Latin face, which falls back to Nastaliq for the Urdu currency
+    // word.
     final style = mm.amountLarge.copyWith(
-      // The Urdu currency word is set in Nastaliq: the Latin face has no
-      // Arabic-script letters.
-      fontFamilyFallback: const [MmFontFamily.urdu],
-      package: 'mm_ui',
       decoration: voided ? TextDecoration.lineThrough : null,
       decorationColor: colors.overdue,
       decorationThickness: 2,
@@ -340,9 +324,9 @@ class _AmountBlock extends StatelessWidget {
           fit: BoxFit.scaleDown,
           alignment: AlignmentDirectional.centerStart,
           child: Text(
-            // A left-to-right mark keeps a leading minus sign before the
-            // digits in right-to-left text.
-            formatted.startsWith('-') ? '‎$formatted' : formatted,
+            // A negative amount comes with a left-to-right mark before its
+            // minus sign, so the sign stays before the digits in Urdu.
+            format.format(amount),
             style: style,
             maxLines: 1,
             softWrap: false,
@@ -366,14 +350,15 @@ class _Row extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsetsDirectional.symmetric(vertical: MmSpace.s1),
-      child: MmRecordLine(
+      child: MmReflow(
+        alignment: MmReflowAlignment.baseline,
         start: Text(
           row.label,
           style: text.bodyMedium!.copyWith(color: colors.inkMuted),
         ),
         end: Text(
           row.value,
-          style: mm.dataStyleFor(
+          style: mm.styleFor(
             row.value,
             text.bodyLarge!.copyWith(
               color: colors.ink,
@@ -401,7 +386,7 @@ class _VoidBanner extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.overdueContainer,
-        border: Border.all(color: colors.overdue, width: MmRecordMetrics.frame),
+        border: Border.all(color: colors.overdue, width: MmSize.frame),
         borderRadius: const BorderRadius.all(Radius.circular(MmRadius.xs)),
       ),
       child: Padding(
@@ -409,7 +394,7 @@ class _VoidBanner extends StatelessWidget {
           horizontal: MmSpace.s3,
           vertical: MmSpace.s2,
         ),
-        child: MmRecordIconLabel(
+        child: MmIconLabel(
           icon: MmIcons.error,
           label: label,
           style: text.labelLarge!.copyWith(color: on),

@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'golden_page.dart';
+import '../../support/testing.dart';
 
 /// Nameplates as property headers: with an address and a house icon, a
 /// shop with no address, and a name written in English with no icon.

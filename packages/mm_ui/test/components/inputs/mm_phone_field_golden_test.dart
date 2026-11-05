@@ -6,14 +6,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 void main() {
   goldenEveryVariant(
     'mm_phone_field',
-    () => Localised(
-      (context, tr) => GoldenColumn(
+    () => GoldenPage(
+      (context, tr) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: MmSpace.s4,
         children: [
           MmPhoneField(
             label: tr('Mobile number', 'موبائل نمبر'),

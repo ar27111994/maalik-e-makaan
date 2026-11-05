@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/feedback/mm_skeleton_pulse.dart';
 
-import '../../support/harness.dart';
-import 'support.dart';
+import '../../support/testing.dart';
 
 /// [child] with motion reduced, so the pulse holds still and settles.
 Widget _still(Widget child) => Builder(
@@ -77,7 +76,7 @@ void main() {
           .map((fade) => fade.opacity)
           .toSet();
       expect(opacities, hasLength(1));
-      await tester.pump(MmSkeletonPulse.halfPeriod);
+      await tester.pump(MmDuration.pulse);
       expect(
         opacities.single.value,
         moreOrLessEquals(MmSkeletonPulse.faintest),

@@ -4,9 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
-import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// One option of an [MmSegmentedControl].
@@ -183,6 +181,9 @@ class _MmSegmentedControlState<T> extends State<MmSegmentedControl<T>> {
   @override
   Widget build(BuildContext context) {
     final onChanged = widget.onChanged;
+    // The theme styles the segments: paper, the selected one cobalt-tonal
+    // with a check mark, the field outline with a focus ring, muted ink
+    // while disabled, and 48 dp tall.
     final button = SegmentedButton<T>(
       key: _buttonKey,
       segments: _segments,
@@ -190,8 +191,6 @@ class _MmSegmentedControlState<T> extends State<MmSegmentedControl<T>> {
       onSelectionChanged: onChanged == null
           ? null
           : (selection) => onChanged(selection.single),
-      selectedIcon: const Icon(MmIcons.check),
-      style: _style(context),
     );
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
@@ -204,87 +203,17 @@ class _MmSegmentedControlState<T> extends State<MmSegmentedControl<T>> {
       ),
     );
   }
-
-  /// Cobalt-tonal fill and ink for the selected segment, paper for the
-  /// others, the field outline with a focus ring around the whole control
-  /// while a segment has focus, and 48 dp tall segments.
-  ButtonStyle _style(BuildContext context) {
-    final colors = context.mm.colors;
-    // Disabled segments stay readable (muted ink, as the theme's disabled
-    // buttons), and the selected one keeps a tonal fill and its check mark.
-    WidgetStateProperty<Color> byState({
-      required Color selected,
-      required Color resting,
-      required Color disabledSelected,
-      required Color disabled,
-    }) => WidgetStateProperty.resolveWith((states) {
-      final isSelected = states.contains(WidgetState.selected);
-      if (states.contains(WidgetState.disabled)) {
-        return isSelected ? disabledSelected : disabled;
-      }
-      return isSelected ? selected : resting;
-    });
-    final ink = byState(
-      selected: colors.onPrimaryContainer,
-      resting: colors.ink,
-      disabledSelected: colors.inkMuted,
-      disabled: colors.inkMuted,
-    );
-    return ButtonStyle(
-      textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.labelLarge),
-      backgroundColor: byState(
-        selected: colors.primaryContainer,
-        resting: colors.surface,
-        disabledSelected: colors.surfaceSunken,
-        disabled: colors.surface,
-      ),
-      foregroundColor: ink,
-      iconColor: ink,
-      iconSize: const WidgetStatePropertyAll(MmSize.iconMd),
-      side: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.disabled)) {
-          return BorderSide(color: colors.rule);
-        }
-        if (states.contains(WidgetState.focused)) {
-          return BorderSide(color: colors.focus, width: MmSize.focusRing);
-        }
-        return BorderSide(color: colors.outline);
-      }),
-      shape: const WidgetStatePropertyAll(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(MmRadius.sm)),
-        ),
-      ),
-      padding: const WidgetStatePropertyAll(
-        EdgeInsetsDirectional.symmetric(
-          horizontal: MmSpace.s3,
-          vertical: MmSpace.s2,
-        ),
-      ),
-      // Segments are at least 48 dp tall themselves (see _SegmentLabel), so
-      // no invisible tap padding is added around the control.
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-  }
 }
 
-/// A segment's label: centred, wrapping, and tall enough that the segment,
-/// with its 8 dp vertical padding, is a 48 dp target like every button.
+/// A segment's label: centred, and wrapping when space runs short.
 class _SegmentLabel extends StatelessWidget {
   const new(this.label, {super.key});
 
   final String label;
 
   @override
-  Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(
-      minHeight: MmSize.buttonHeight - 2 * MmSpace.s2,
-    ),
-    child: Align(
-      widthFactor: 1,
-      child: Text(label, textAlign: TextAlign.center),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      Align(widthFactor: 1, child: Text(label, textAlign: TextAlign.center));
 }
 
 /// Lays its child out no wider than the viewport, so segment labels wrap

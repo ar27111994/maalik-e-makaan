@@ -12,7 +12,8 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///
 /// Use it wherever a tenant's CNIC is shown, so it is not exposed on a
 /// shared screen or in a screenshot by accident. While masked, a screen
-/// reader hears only the digits that show, never the hidden ones. The
+/// reader hears only the digits that show and how many are hidden
+/// ("35202, 7 hidden digits, 1"), never the hidden ones themselves. The
 /// number is set in the Latin face in both languages.
 ///
 /// To enter a CNIC, use `MmCnicField`.
@@ -44,6 +45,10 @@ class MmCnicText extends StatefulWidget {
 }
 
 class _MmCnicTextState extends State<MmCnicText> {
+  /// The digits [Cnic.masked] shows before and after the hidden ones.
+  static const _shownAtStart = 5;
+  static const _shownAtEnd = 1;
+
   late bool _masked;
 
   @override
@@ -69,11 +74,14 @@ class _MmCnicTextState extends State<MmCnicText> {
       '-',
       '-\u200B',
     );
-    // While masked, only the digits on screen are spoken; the ellipsis
-    // stands for the hidden ones.
-    final spoken = _masked
-        ? '${cnic.digits.substring(0, 5)} … ${cnic.digits[Cnic.length - 1]}'
-        : cnic.formatted;
+    // While masked, only the digits on screen are spoken, and how many
+    // are hidden between them: "35202, 7 hidden digits, 1".
+    final first = cnic.digits.substring(0, _shownAtStart);
+    final last = cnic.digits.substring(Cnic.length - _shownAtEnd);
+    final hidden = strings.hiddenDigits(
+      Cnic.length - _shownAtStart - _shownAtEnd,
+    );
+    final spoken = _masked ? '$first, $hidden, $last' : cnic.formatted;
     final style = widget.style ?? Theme.of(context).textTheme.bodyLarge!;
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,

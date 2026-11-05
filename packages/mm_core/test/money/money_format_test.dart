@@ -33,12 +33,56 @@ void main() {
       );
     });
 
-    test('negative amounts carry a leading sign', () {
-      expect(const MoneyFormat().format(rs(-5000)), '-Rs 5,000');
-      expect(
-        const MoneyFormat(language: MoneyLanguage.urdu).format(rs(-5000)),
-        '-5,000 روپے',
-      );
+    test(
+      'negative amounts carry a leading sign after a left-to-right mark',
+      () {
+        expect(MoneyFormat.leftToRightMark, '\u200E');
+        expect(const MoneyFormat().format(rs(-5000)), '\u200E-Rs 5,000');
+        expect(
+          const MoneyFormat(language: MoneyLanguage.urdu).format(rs(-5000)),
+          '\u200E-5,000 روپے',
+        );
+        expect(
+          const MoneyFormat(
+            language: MoneyLanguage.urdu,
+            nativeDigits: true,
+          ).format(rs(-5000)),
+          '\u200E-۵,۰۰۰ روپے',
+        );
+        expect(
+          const MoneyFormat(currency: CurrencyDisplay.code).format(rs(-5000)),
+          '\u200E-PKR 5,000',
+        );
+        expect(
+          const MoneyFormat(language: MoneyLanguage.urdu)
+              .formatNumber(const Money.fromPaisa(-150050)),
+          '\u200E-1,500.50',
+        );
+      },
+    );
+
+    test('the mark is the only addition, and only for negative amounts', () {
+      for (final format in [
+        const MoneyFormat(),
+        const MoneyFormat(language: MoneyLanguage.urdu),
+        const MoneyFormat(notation: MoneyNotation.compact),
+      ]) {
+        final positive = format.format(rs(250000));
+        final negative = format.format(rs(-250000));
+        expect(positive, isNot(contains(MoneyFormat.leftToRightMark)));
+        expect(negative, '${MoneyFormat.leftToRightMark}-$positive');
+        expect(format.format(Money.zero), isNot(startsWith('-')));
+      }
+    });
+
+    test('a negative amount survives the text sanitisers unchanged', () {
+      // The mark is allowed by the clean-text contract (unlike bidi
+      // isolates), so a formatted amount can go into a saved note or a
+      // reminder message as it is.
+      final formatted = const MoneyFormat(language: MoneyLanguage.urdu)
+          .format(rs(-5000));
+      expect(containsUnsafeCharacters(formatted), isFalse);
+      expect(sanitizeSingleLine(formatted), formatted);
     });
 
     test('paisa display policies', () {
@@ -169,7 +213,7 @@ void main() {
       expect(compact.format(rs(12500000)), 'Rs 1.25 crore');
       expect(compact.format(rs(9999999)), 'Rs 1 crore');
       expect(compact.format(rs(1500000000)), 'Rs 150 crore');
-      expect(compact.format(rs(-250000)), '-Rs 2.5 lakh');
+      expect(compact.format(rs(-250000)), '\u200E-Rs 2.5 lakh');
     });
 
     test('Urdu compact units', () {

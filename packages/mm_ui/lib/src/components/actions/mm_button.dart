@@ -1,8 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_button_styles.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
-import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// How much emphasis an [MmButton] carries.
@@ -89,7 +87,7 @@ class MmButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final callback = busy && onPressed != null ? _ignorePress : onPressed;
-    final style = _style(context.mm.colors);
+    final style = _style(Theme.of(context).colorScheme);
     final content = _ButtonContent(label: label, icon: icon, busy: busy);
     final Widget button = switch (variant) {
       MmButtonVariant.primary || MmButtonVariant.destructive => FilledButton(
@@ -113,67 +111,21 @@ class MmButton extends StatelessWidget {
   }
 
   /// What this button adds to the theme's button styles: room for wrapped
-  /// labels, the icon size, the destructive colours, a focus ring that shows
-  /// on a filled button, and a press that does nothing visible while busy.
-  ButtonStyle _style(MmColorTokens colors) {
-    // The fill and text colours of a filled button. The theme draws its
-    // focus ring in the focus colour, which is the cobalt of the primary
-    // fill itself; a filled button draws its ring in its text colour.
-    final (fill, ink) = switch (variant) {
-      MmButtonVariant.primary => (colors.primary, colors.onPrimary),
-      MmButtonVariant.destructive => (colors.overdue, onOverdue(colors)),
-      MmButtonVariant.secondary || MmButtonVariant.tertiary => (null, null),
-    };
-    final destructive = variant == MmButtonVariant.destructive;
-    return ButtonStyle(
-      padding: const WidgetStatePropertyAll(
-        EdgeInsetsDirectional.symmetric(
-          horizontal: MmSpace.s4,
-          vertical: MmSpace.s2,
-        ),
-      ),
-      iconSize: const WidgetStatePropertyAll(MmSize.iconMd),
-      backgroundColor: destructive ? _whileEnabled(fill) : null,
-      foregroundColor: destructive ? _whileEnabled(ink) : null,
-      side: ink == null
-          ? null
-          : WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.focused)
-                  ? BorderSide(color: ink, width: MmSize.focusRing)
-                  : null,
-            ),
-      overlayColor: busy
-          ? const WidgetStatePropertyAll(Colors.transparent)
-          : null,
-      splashFactory: busy ? NoSplash.splashFactory : null,
-      enableFeedback: busy ? false : null,
-      mouseCursor: busy
-          ? const WidgetStatePropertyAll(SystemMouseCursors.progress)
-          : null,
+  /// labels and the icon size ([MmButtonStyles.labelled]), the destructive
+  /// colours, and a press that does nothing visible while busy. The theme
+  /// draws the focus ring, outside the button when it is filled.
+  ButtonStyle _style(ColorScheme scheme) {
+    final base = variant == MmButtonVariant.destructive
+        ? MmButtonStyles.destructive(scheme)
+        : MmButtonStyles.labelled;
+    if (!busy) return base;
+    return base.copyWith(
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+      splashFactory: NoSplash.splashFactory,
+      enableFeedback: false,
+      mouseCursor: const WidgetStatePropertyAll(SystemMouseCursors.progress),
     );
   }
-
-  /// The text colour on the overdue fill of a destructive button: whichever
-  /// of the surface and ink roles contrasts more with it. The token build
-  /// checks the surface on overdue at 4.5:1 or better in every mode.
-  static Color onOverdue(MmColorTokens colors) {
-    final fill = colors.overdue.computeLuminance();
-    double contrast(Color color) {
-      final other = color.computeLuminance();
-      return (math.max(fill, other) + 0.05) / (math.min(fill, other) + 0.05);
-    }
-
-    return contrast(colors.surface) >= contrast(colors.ink)
-        ? colors.surface
-        : colors.ink;
-  }
-
-  /// [color] while the button is enabled; the theme's disabled colours
-  /// otherwise.
-  static WidgetStateProperty<Color?> _whileEnabled(Color? color) =>
-      WidgetStateProperty.resolveWith(
-        (states) => states.contains(WidgetState.disabled) ? null : color,
-      );
 }
 
 /// The inside of an [MmButton]: its icon and label, or the busy indicator.
@@ -246,7 +198,7 @@ class _BusyIndicator extends StatelessWidget {
         padding: const EdgeInsets.all(MmSpace.sHalf),
         child: CircularProgressIndicator(
           value: MediaQuery.disableAnimationsOf(context) ? _stillValue : null,
-          strokeWidth: MmSpace.sHalf,
+          strokeWidth: MmSize.stroke,
           color: color,
           backgroundColor: color?.withValues(alpha: 0.24),
         ),

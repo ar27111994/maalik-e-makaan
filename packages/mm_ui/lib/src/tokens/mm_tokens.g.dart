@@ -303,20 +303,44 @@ abstract final class MmSize {
 
   /// Buttons.
   static const double buttonHeight = 48;
+
+  /// The floating action button: its size, and the minimum height of an extended one.
+  static const double fab = 56;
   static const double iconSm = 16;
   static const double iconMd = 20;
   static const double iconLg = 24;
+
+  /// Decorative icons that lead an empty or error state.
+  static const double iconXl = 48;
   static const double appBar = 64;
   static const double navRail = 80;
 
   /// Readable column width on large screens.
   static const double contentMax = 720;
 
-  /// Focus ring stroke; drawn 2 dp outside the control.
+  /// Widest a bottom sheet grows on large screens.
+  static const double sheetMax = 640;
+
+  /// Widest an empty, error or loading state grows, so its sentence keeps a readable measure.
+  static const double stateMax = 400;
+
+  /// Focus ring stroke: on the edge of outlined and text controls and fields; outside filled controls, beyond the focus gap.
   static const double focusRing = 2;
+
+  /// Gap between a filled control and its focus ring, so the ring stands apart from any fill.
+  static const double focusGap = 2;
 
   /// Borders and rules.
   static const double hairline = 1;
+
+  /// Lines that draw progress or data: spinners inside controls, chart lines and outlined bars.
+  static const double stroke = 2;
+
+  /// Ornamental frames: the nameplate's brass border, the receipt seal and the void stamp.
+  static const double frame = 2;
+
+  /// The line under the selected tab.
+  static const double tabIndicator = 3;
 }
 
 /// Window widths where the layout changes.
@@ -336,6 +360,9 @@ abstract final class MmDuration {
 
   /// A payment being recorded (the receipt stamp).
   static const Duration emphasized = Duration(milliseconds: 320);
+
+  /// One fade, in or out, of a skeleton's looping pulse; with reduced motion the skeleton holds still.
+  static const Duration pulse = Duration(milliseconds: 1000);
 }
 
 /// Easing curves.

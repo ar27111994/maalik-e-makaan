@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/display/mm_surface.dart';
-import 'package:mm_ui/src/components/display/mm_user_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 
@@ -95,7 +94,7 @@ class MmAvatar extends StatelessWidget {
           fit: BoxFit.scaleDown,
           child: Text(
             initials,
-            style: mm.userStyleFor(initials, style),
+            style: mm.styleFor(initials, style),
             maxLines: 1,
             softWrap: false,
             textScaler: TextScaler.noScaling,

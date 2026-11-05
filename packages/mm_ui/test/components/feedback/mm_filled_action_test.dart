@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/feedback/mm_filled_action.dart';
 
-import '../../support/harness.dart';
+import '../../support/testing.dart';
 import 'support.dart';
 
 const _label = 'Add tenant';
@@ -63,46 +63,10 @@ void main() {
       final fill = _material(tester).color!;
       final ink = styleOf(tester, 'Delete property').color!;
       expect(fill, colors.overdue);
-      expect(ink, MmFilledAction.onOverdue(colors));
+      // The theme's on-error colour: the surface role.
+      expect(ink, colors.surface);
       expect(_contrast(fill, ink), greaterThanOrEqualTo(4.5));
       expect(iconColorOf(tester, MmIcons.delete), ink);
-    });
-
-    test('the destructive text takes whichever role contrasts more', () {
-      const light = MmColorModes.light;
-      expect(MmFilledAction.onOverdue(light), light.surface);
-      // With a dark surface and light ink, the ink wins.
-      final inverted = MmColorTokens(
-        bg: light.bg,
-        surface: light.ink,
-        surfaceSunken: light.surfaceSunken,
-        ink: light.surface,
-        inkMuted: light.inkMuted,
-        outline: light.outline,
-        rule: light.rule,
-        primary: light.primary,
-        onPrimary: light.onPrimary,
-        primaryContainer: light.primaryContainer,
-        onPrimaryContainer: light.onPrimaryContainer,
-        brass: light.brass,
-        brassText: light.brassText,
-        brassContainer: light.brassContainer,
-        onBrassContainer: light.onBrassContainer,
-        paid: light.paid,
-        paidContainer: light.paidContainer,
-        onPaidContainer: light.onPaidContainer,
-        overdue: light.overdue,
-        overdueContainer: light.overdueContainer,
-        onOverdueContainer: light.onOverdueContainer,
-        dueSoon: light.dueSoon,
-        dueSoonContainer: light.dueSoonContainer,
-        onDueSoonContainer: light.onDueSoonContainer,
-        credit: light.credit,
-        creditContainer: light.creditContainer,
-        onCreditContainer: light.onCreditContainer,
-        focus: light.focus,
-      );
-      expect(MmFilledAction.onOverdue(inverted), inverted.ink);
     });
 
     testWidgets('a disabled action takes the theme disabled colours', (
@@ -158,7 +122,7 @@ void main() {
       );
     });
 
-    testEveryVariant('keyboard focus draws a ring in the text colour', (
+    testEveryVariant('keyboard focus draws the ring outside the fill', (
       tester,
       variant,
     ) async {
@@ -176,20 +140,15 @@ void main() {
         );
         final colors = colorsOf(variant);
         final shape = _material(tester).shape! as OutlinedBorder;
+        expect(shape, isNot(isA<MmFocusRingBorder>()));
         expect(shape.side, BorderSide.none);
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
         expect(focusedAt(tester, _label), isTrue);
-        final focused = _material(tester).shape! as OutlinedBorder;
-        expect(
-          focused.side,
-          BorderSide(
-            color: destructive
-                ? MmFilledAction.onOverdue(colors)
-                : colors.onPrimary,
-            width: MmSize.focusRing,
-          ),
-        );
+        final focused = _material(tester).shape! as MmFocusRingBorder;
+        expect(focused.color, colors.focus);
+        expect(focused.width, MmSize.focusRing);
+        expect(focused.side, BorderSide.none);
       }
     });
 

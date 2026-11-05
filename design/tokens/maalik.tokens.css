@@ -24,20 +24,29 @@
   --mm-size-min-target: 48px;
   --mm-size-field-height: 56px;
   --mm-size-button-height: 48px;
+  --mm-size-fab: 56px;
   --mm-size-icon-sm: 16px;
   --mm-size-icon-md: 20px;
   --mm-size-icon-lg: 24px;
+  --mm-size-icon-xl: 48px;
   --mm-size-app-bar: 64px;
   --mm-size-nav-rail: 80px;
   --mm-size-content-max: 720px;
+  --mm-size-sheet-max: 640px;
+  --mm-size-state-max: 400px;
   --mm-size-focus-ring: 2px;
+  --mm-size-focus-gap: 2px;
   --mm-size-hairline: 1px;
+  --mm-size-stroke: 2px;
+  --mm-size-frame: 2px;
+  --mm-size-tab-indicator: 3px;
   --mm-breakpoint-medium: 600px;
   --mm-breakpoint-expanded: 840px;
   --mm-breakpoint-large: 1200px;
   --mm-duration-quick: 120ms;
   --mm-duration-standard: 200ms;
   --mm-duration-emphasized: 320ms;
+  --mm-duration-pulse: 1000ms;
   --mm-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --mm-easing-decelerate: cubic-bezier(0, 0, 0, 1);
   --mm-easing-accelerate: cubic-bezier(0.3, 0, 1, 1);
@@ -208,5 +217,6 @@
     --mm-duration-quick: 0ms;
     --mm-duration-standard: 0ms;
     --mm-duration-emphasized: 0ms;
+    --mm-duration-pulse: 0ms;
   }
 }

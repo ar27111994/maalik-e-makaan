@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/display/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';

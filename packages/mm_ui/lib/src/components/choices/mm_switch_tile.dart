@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/choices/mm_focus_ring.dart';
+import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -54,7 +54,7 @@ class MmSwitchTile extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final description = this.description;
     final enabled = onChanged != null;
-    return MmFocusRing(
+    return MmFocusWithin(
       radius: MmRadius.none,
       child: SwitchListTile(
         value: value,

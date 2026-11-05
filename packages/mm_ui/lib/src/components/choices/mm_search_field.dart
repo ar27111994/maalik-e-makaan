@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:mm_core/mm_core.dart';
+import 'package:mm_ui/src/foundation/mm_clean_text_formatter.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -150,7 +149,7 @@ class _MmSearchFieldState extends State<MmSearchField> {
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
         textInputAction: TextInputAction.search,
-        inputFormatters: const [_SafeTextFormatter()],
+        inputFormatters: const [MmCleanTextFormatter()],
         style: style,
         decoration: InputDecoration(
           // The hint is the field's name, given once above; shown here,
@@ -190,49 +189,6 @@ class _MmSearchFieldState extends State<MmSearchField> {
                 ),
         ),
       ),
-    );
-  }
-}
-
-/// Removes, as they are typed or pasted, the characters mm_core's
-/// `removeUnsafeCharacters` strips (controls, bidirectional overrides and
-/// isolates, invisible spoofing characters), keeping the caret and the
-/// composing region on the characters around them.
-class _SafeTextFormatter extends TextInputFormatter {
-  const new();
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
-    final cleaned = removeUnsafeCharacters(text);
-    if (cleaned.length == text.length) return newValue;
-
-    /// Where [offset] in the typed text lands in the cleaned text: after
-    /// the characters before it that are kept.
-    int map(int offset) => offset < 0
-        ? offset
-        : removeUnsafeCharacters(
-            text.substring(0, offset.clamp(0, text.length)),
-          ).length;
-
-    final selection = newValue.selection;
-    final composing = newValue.composing;
-    final mapped = TextRange(
-      start: map(composing.start),
-      end: map(composing.end),
-    );
-    return TextEditingValue(
-      text: cleaned,
-      selection: selection.copyWith(
-        baseOffset: map(selection.baseOffset),
-        extentOffset: map(selection.extentOffset),
-      ),
-      composing: mapped.isValid && !mapped.isCollapsed
-          ? mapped
-          : TextRange.empty,
     );
   }
 }

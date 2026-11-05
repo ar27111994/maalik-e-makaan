@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/choices/mm_focus_ring.dart';
 import 'package:mm_ui/src/components/choices/mm_option.dart';
+import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -91,7 +91,7 @@ class MmRadioGroup<T> extends StatelessWidget {
               ),
             ),
             for (final option in options)
-              MmFocusRing(
+              MmFocusWithin(
                 radius: MmRadius.none,
                 child: RadioListTile<T>(
                   value: option.value,

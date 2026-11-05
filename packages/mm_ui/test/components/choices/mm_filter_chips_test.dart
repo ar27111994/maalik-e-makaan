@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'samples.dart';
+import '../../support/testing.dart';
 
 enum _Status { overdue, dueSoon, paid }
 
@@ -157,8 +156,12 @@ void main() {
       await pumpThemed(tester, _chips(log: log));
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
+      // The theme rings a focused chip; the chip adds no border of its own.
       final chip = tester.widget<FilterChip>(_chip('Overdue'));
-      final side = chip.side! as WidgetStateBorderSide;
+      expect(chip.side, isNull);
+      final side =
+          ChipTheme.of(tester.element(_chip('Overdue'))).side!
+              as WidgetStateBorderSide;
       expect(
         side.resolve({WidgetState.focused}),
         BorderSide(color: MmColorModes.light.focus, width: MmSize.focusRing),
@@ -177,8 +180,9 @@ void main() {
       tester,
     ) async {
       await pumpThemed(tester, _chips());
+      expect(tester.widget<FilterChip>(_chip('Paid')).side, isNull);
       final side =
-          tester.widget<FilterChip>(_chip('Paid')).side!
+          ChipTheme.of(tester.element(_chip('Paid'))).side!
               as WidgetStateBorderSide;
       const colors = MmColorModes.light;
       expect(side.resolve({}), BorderSide(color: colors.inkMuted));
@@ -292,28 +296,31 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone, and wraps when wider', (
       tester,
     ) async {
-      final chips = Localised(
-        (context, tr) => MmFilterChips<_Status>(
-          options: [
-            MmFilterOption(
-              value: _Status.overdue,
-              label: tr('Overdue more than a month', 'ایک ماہ سے زیادہ واجب'),
-              count: 3,
-            ),
-            MmFilterOption(
-              value: _Status.dueSoon,
-              label: tr('Due this week', 'اس ہفتے واجب'),
-              count: 5,
-            ),
-            MmFilterOption(
-              value: _Status.paid,
-              label: tr('Paid', 'ادا شدہ'),
-              count: 12,
-            ),
-          ],
-          selected: const {_Status.overdue},
-          onChanged: (_) {},
-        ),
+      final chips = Builder(
+        builder: (context) {
+          final tr = sayIn(context);
+          return MmFilterChips<_Status>(
+            options: [
+              MmFilterOption(
+                value: _Status.overdue,
+                label: tr('Overdue more than a month', 'ایک ماہ سے زیادہ واجب'),
+                count: 3,
+              ),
+              MmFilterOption(
+                value: _Status.dueSoon,
+                label: tr('Due this week', 'اس ہفتے واجب'),
+                count: 5,
+              ),
+              MmFilterOption(
+                value: _Status.paid,
+                label: tr('Paid', 'ادا شدہ'),
+                count: 12,
+              ),
+            ],
+            selected: const {_Status.overdue},
+            onChanged: (_) {},
+          );
+        },
       );
       await expectFitsNarrowLargeText(tester, chips);
       await expectFitsNarrowLargeText(tester, chips, width: 640);

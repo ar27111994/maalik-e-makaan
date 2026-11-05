@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-import '../../support/harness.dart';
-import 'editing.dart';
+import '../../support/testing.dart';
 
 bool _obscured(WidgetTester tester) =>
     tester.widget<EditableText>(find.byType(EditableText)).obscureText;
