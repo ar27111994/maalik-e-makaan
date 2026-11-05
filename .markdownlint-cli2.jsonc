@@ -26,6 +26,7 @@
     "**/build/**",
     "**/dist/**",
     "**/.dart_tool/**",
+    "**/flutter/ephemeral/**",
     "**/CHANGELOG.md",
     ".planning/research/**",
     "app/ios/**",

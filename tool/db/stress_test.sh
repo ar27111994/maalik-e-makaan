@@ -228,6 +228,11 @@ echo "  throughput: ${TPS} payments/s, failed transactions: ${FAILED_TX}"
 python3 -c "import sys; sys.exit(0 if float('${TPS:-0}') >= 50 else 1)" || { echo "  ✗ throughput below 50 tps"; FAILED=1; }
 
 INVARIANTS="$(psql_db -c "select count(*) from public.charges c left join (select charge_id, sum(amount) t from public.payment_allocations group by charge_id) a on a.charge_id = c.id where c.paid_amount <> coalesce(a.t, 0)")"
-[[ "$INVARIANTS" == "0" ]] && echo "  ✓ ledger invariants hold after the load test" || { echo "  ✗ ledger invariants broken"; FAILED=1; }
+if [[ "$INVARIANTS" == "0" ]]; then
+  echo "  ✓ ledger invariants hold after the load test"
+else
+  echo "  ✗ ledger invariants broken"
+  FAILED=1
+fi
 
 exit "$FAILED"

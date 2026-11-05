@@ -1,0 +1,26 @@
+# Secret scanning (https://github.com/gitleaks/gitleaks), run by CI over the
+# whole history. Extends the default rules; the allowlist names each fake
+# credential used by a test fixture, and only inside the test directories, so
+# a real key in the same files is still reported.
+title = "maalik-e-makaan"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake credentials in test fixtures"
+condition = "AND"
+paths = [
+  '''^app/test/''',
+  '''^packages/[^/]+/test/''',
+  '''^supabase/functions/tests/''',
+]
+regexTarget = "match"
+regexes = [
+  # invitation token: <uuid>.<signature> built by the e-mail tests
+  '''token=0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8aa0\.q83vEjRWeJCrze-_AbCdEf''',
+  # placeholder publishable key the app config tests parse
+  '''sb_publishable_abc123''',
+  # storage-cleanup token the handler tests send
+  '''stc-7f3a9c1e5b8d2f4a6c0e9b7d5f3a1c8e''',
+]

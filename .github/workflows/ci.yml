@@ -1,0 +1,295 @@
+# Quality, test and coverage gates. Every job runs a Makefile target, so a
+# green `make` locally means a green job here. "CI passed" is the single
+# required status check for branch protection.
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FLUTTER_VERSION: 3.47.9
+  DENO_VERSION: 2.9.6
+  SUPABASE_CLI_VERSION: 2.122.1
+  # Colour in logs, no telemetry prompts.
+  FORCE_COLOR: "1"
+  DO_NOT_TRACK: "1"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Commit messages follow the conventions (pull request)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: npx --no-install commitlint --from "$BASE" --to "$HEAD" --verbose
+      - name: Commit messages follow the conventions (push)
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          # A force-push can leave `before` outside the new history; check the head commit then.
+          if git merge-base --is-ancestor "$BEFORE" "$AFTER" 2>/dev/null; then
+            npx --no-install commitlint --from "$BEFORE" --to "$AFTER" --verbose
+          else
+            npx --no-install commitlint --last --verbose
+          fi
+      - name: Formatting (Markdown, YAML, JSON)
+        run: npm run format:check
+      - name: Markdown lint
+        run: npm run lint:md
+      - name: No hidden or bidirectional Unicode
+        run: python3 tool/check_unicode.py
+      - name: Shell scripts
+        run: shellcheck tool/db/*.sh
+      - name: Repository tooling tests
+        run: make test-tools
+      - name: Generated files are up to date
+        run: make tokens-check icons-check contracts-check
+      - name: DESIGN.md is valid
+        run: npx --yes --package @google/design.md@0.4.0 designmd lint DESIGN.md
+
+  dart:
+    name: Dart · ${{ matrix.package }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: mm_core
+            dir: packages/mm_core
+            analyzer: dart
+            target: test-core
+          - package: mm_ui
+            dir: packages/mm_ui
+            analyzer: flutter
+            target: test-ui
+          - package: app
+            dir: app
+            analyzer: flutter
+            target: test-app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Resolve the workspace
+        run: flutter pub get
+      - name: Localisations are up to date
+        if: matrix.package == 'app'
+        working-directory: app
+        run: |
+          flutter gen-l10n
+          git diff --exit-code -- lib/l10n/generated
+      - name: Formatting
+        env:
+          DIR: ${{ matrix.dir }}
+        run: dart format --output=none --set-exit-if-changed "$DIR"
+      - name: Static analysis
+        working-directory: ${{ matrix.dir }}
+        env:
+          ANALYZER: ${{ matrix.analyzer }}
+        run: '"$ANALYZER" analyze --fatal-infos'
+      - name: Tests with the coverage gate
+        env:
+          TARGET: ${{ matrix.target }}
+        run: make "$TARGET"
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-${{ matrix.package }}
+          path: ${{ matrix.dir }}/coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload golden-test failures
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: golden-failures-${{ matrix.package }}
+          path: ${{ matrix.dir }}/test/**/failures/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  web-build:
+    name: Flutter web release build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Build
+        working-directory: app
+        # The example configuration is enough to prove the release build compiles;
+        # deployments build with the real values.
+        run: >
+          flutter build web --release --no-web-resources-cdn
+          --dart-define-from-file=config/production.example.json
+
+  android-build:
+    name: Android release build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Build an app bundle (debug-signed outside releases)
+        working-directory: app
+        run: >
+          flutter build appbundle --release
+          --dart-define-from-file=config/production.example.json
+
+  functions:
+    name: Edge Functions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+          cache: true
+          cache-hash: ${{ hashFiles('supabase/functions/deno.lock') }}
+      - name: Format, lint and type-check
+        working-directory: supabase/functions
+        run: |
+          deno fmt --check
+          deno lint
+          deno task check
+      - name: Tests with the 100% coverage gate
+        run: make test-functions
+
+  database:
+    name: Database (pgTAP and concurrency)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL 16 and pgTAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            postgresql-16 postgresql-16-pgtap libtap-parser-sourcehandler-pgtap-perl
+          sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -c "alter role postgres password 'postgres'"
+      - name: Migrations and pgTAP suites
+        run: make test-db
+      - name: Concurrency scenarios and invariants
+        run: make test-db-concurrency
+
+  supabase-stack:
+    name: Supabase stack (pgTAP, lint, function e2e)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+          cache: true
+          cache-hash: ${{ hashFiles('supabase/functions/deno.lock') }}
+      - name: Function secrets for the local stack
+        run: cp supabase/functions/.env.example supabase/functions/.env
+      - name: Start the stack
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,realtime,postgres-meta
+      - name: Database lint (plpgsql_check)
+        run: supabase db lint --level error --fail-on error
+      - name: pgTAP suites on the real stack
+        run: supabase test db
+      - name: Edge Functions end to end
+        run: |
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=SUPABASE_URL \
+            --override-name auth.publishable_key=SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.secret_key=SUPABASE_SECRET_KEY)"
+          set +a
+          cd supabase/functions && deno task test:e2e
+      - name: Function logs
+        if: failure()
+        run: docker logs "$(docker ps -q --filter name=supabase_edge_runtime)" 2>&1 | tail -200
+      - name: Stop the stack
+        if: always()
+        run: supabase stop --no-backup
+
+  passed:
+    name: CI passed
+    if: always()
+    needs: [hygiene, dart, web-build, android-build, functions, database, supabase-stack]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for result in $RESULTS; do
+            [[ "$result" == "success" ]] || { echo "::error::A required job did not succeed"; exit 1; }
+          done

@@ -16,7 +16,10 @@ export default {
         'web',
         'ci',
         'deps',
+        // Dependabot's scope for development dependencies.
+        'deps-dev',
         'docs',
+        'formal',
         'planning',
         'release',
         'repo',

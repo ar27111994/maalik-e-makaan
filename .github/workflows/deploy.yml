@@ -1,0 +1,62 @@
+# Production deployment of the Supabase backend: migrations, then Edge
+# Functions, then a smoke test. Runs when a release is published, or by hand.
+# The "production" environment should require a reviewer (repository settings).
+name: Deploy
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  supabase:
+    name: Supabase (migrations and functions)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.SUPABASE_URL }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+          persist-credentials: false
+      - name: Deployment is configured
+        run: |
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD PROJECT_REF SUPABASE_URL; do
+            [[ -n "${!name}" ]] || { echo "::error::$name is not set (docs/operations.md, Deployment)"; exit 1; }
+          done
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: 2.122.1
+      - name: Link the project
+        run: supabase link --project-ref "$PROJECT_REF"
+      - name: Pending migrations
+        run: supabase db push --linked --dry-run
+      - name: Apply migrations
+        run: supabase db push --linked
+      - name: Deploy Edge Functions
+        # verify_jwt per function comes from supabase/config.toml.
+        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api
+      - name: Smoke test
+        run: |
+          status="$(curl -sS -o "$RUNNER_TEMP/health.json" -w '%{http_code}' \
+            --retry 5 --retry-delay 5 --retry-all-errors "$SUPABASE_URL/functions/v1/health")"
+          cat "$RUNNER_TEMP/health.json"; echo
+          [[ "$status" == "200" ]] || { echo "::error::health answered $status"; exit 1; }
