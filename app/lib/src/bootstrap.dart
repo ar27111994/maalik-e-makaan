@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/config/app_config.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
+import 'package:mm_ui/mm_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -66,7 +68,9 @@ void _reportErrors() {
 }
 
 /// Shown when the build was compiled without its settings: a developer
-/// error, so the message names the missing `--dart-define`.
+/// error, so the message names the missing `--dart-define`. The title follows
+/// the device's language and the brand theme; the technical details stay in
+/// English, left to right.
 class ConfigErrorApp extends StatelessWidget {
   const new({required this.error, super.key});
 
@@ -75,25 +79,50 @@ class ConfigErrorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'This build is not set up',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 12),
-              SelectableText('${error.variable} ${error.problem}.'),
-              const SizedBox(height: 12),
-              const SelectableText(
-                'Build with --dart-define-from-file=config/<environment>.json '
-                '(see app/config/*.example.json).',
-              ),
-            ],
+    supportedLocales: AppLocalizations.supportedLocales,
+    localizationsDelegates: appLocalizationsDelegates,
+    theme: MmTheme.data(brightness: Brightness.light),
+    darkTheme: MmTheme.data(brightness: Brightness.dark),
+    // The script, and so the font, follows the language the device chose.
+    builder: (context, child) => Theme(
+      data: MmTheme.data(
+        brightness: Theme.of(context).brightness,
+        script: MmScript.of(Localizations.localeOf(context)),
+      ),
+      child: child!,
+    ),
+    home: Builder(
+      builder: (context) => Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(MmSpace.s6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  header: true,
+                  child: Text(
+                    AppLocalizations.of(context).configErrorTitle,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
+                const SizedBox(height: MmSpace.s3),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SelectableText('${error.variable} ${error.problem}.'),
+                      const SizedBox(height: MmSpace.s3),
+                      const SelectableText(
+                        'Build with --dart-define-from-file=config/<environment>.json '
+                        '(see app/config/*.example.json).',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

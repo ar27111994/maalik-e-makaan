@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/bootstrap.dart';
+import 'package:maalik_e_makaan/src/config/app_config.dart';
 
 void main() {
   testWidgets('a build without its settings explains what is missing', (
@@ -26,5 +28,25 @@ void main() {
       isTrue,
     );
     FlutterError.onError!(FlutterErrorDetails(exception: StateError('y')));
+  });
+
+  testWidgets('on an Urdu device the title is Urdu, the details stay LTR', (
+    tester,
+  ) async {
+    tester.platformDispatcher.localesTestValue = const [Locale('ur')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    await tester.pumpWidget(
+      ConfigErrorApp(error: ConfigException('APP_URL', 'is required')),
+    );
+    await tester.pumpAndSettle();
+    final title = find.text('یہ بلڈ ترتیب نہیں دیا گیا');
+    expect(title, findsOneWidget);
+    expect(Directionality.of(tester.element(title)), TextDirection.rtl);
+    final details = find.text('APP_URL is required.');
+    expect(Directionality.of(tester.element(details)), TextDirection.ltr);
+    expect(
+      tester.getSemantics(title),
+      matchesSemantics(label: 'یہ بلڈ ترتیب نہیں دیا گیا', isHeader: true),
+    );
   });
 }
