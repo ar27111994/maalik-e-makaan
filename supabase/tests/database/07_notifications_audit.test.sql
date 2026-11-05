@@ -25,24 +25,26 @@ where id = ((:'r')::jsonb ->> 'tenant_id')::uuid;
 select is(private.generate_notifications('2026-11-03') > 0, true, 'notifications are generated');
 select is(private.generate_notifications('2026-11-03'), 0, 'regeneration is idempotent');
 
+-- Every query below is scoped to this test's portfolio: `supabase start` loads
+-- the demo seed, whose tenancies produce notifications too.
 select set_eq(
-  $$select distinct kind::text from public.notifications$$,
+  format($f$select distinct kind::text from public.notifications where portfolio_id = %L$f$, :'pid'),
   $$values ('rent_due_soon'), ('rent_overdue'), ('lease_expiring'), ('increment_due'),
            ('police_registration_overdue'), ('cnic_expiring')$$,
   'every applicable kind is produced'
 );
 select is(
-  (select count(distinct user_id)::integer from public.notifications),
+  (select count(distinct user_id)::integer from public.notifications where portfolio_id = :'pid'),
   2, 'owners and managers are notified, viewers are not'
 );
 select is(
   (select count(*)::integer from public.notifications
-   where kind = 'lease_expiring' and user_id = :'owner'),
+   where kind = 'lease_expiring' and user_id = :'owner' and portfolio_id = :'pid'),
   2, 'agreement expiry is announced at 90 and at 30 days'
 );
 select ok(
   (select params ? 'tenant_name' and params ? 'amount' and params ? 'due_date'
-   from public.notifications where kind = 'rent_due_soon' limit 1),
+   from public.notifications where kind = 'rent_due_soon' and portfolio_id = :'pid' limit 1),
   'notification params carry what the app needs to render localised text'
 );
 

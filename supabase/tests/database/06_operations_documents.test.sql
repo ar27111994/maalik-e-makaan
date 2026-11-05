@@ -203,6 +203,9 @@ select is((select count(*)::integer from storage.objects where bucket_id = 'docu
 -- A file a live document references is deleted by deleting its row (which
 -- queues the file), never directly; an upload without a row may be removed.
 select tests.authenticate_as(:'owner');
+-- Supabase Storage blocks direct DELETEs unless storage.allow_delete_query is
+-- set, as the Storage API does for its own deletes; the policies still apply.
+set local storage.allow_delete_query = 'true';
 delete from storage.objects where bucket_id = 'documents' and name = :'doc_path';
 select is(
   (select count(*)::integer from storage.objects where name = :'doc_path'), 1,
@@ -211,6 +214,7 @@ select is(
 select format('%s/tenant/%s/%s.jpg', :'pid', (:'r')::jsonb ->> 'tenant_id', gen_random_uuid()) as stray_path \gset
 insert into storage.objects (bucket_id, name, owner) values ('documents', :'stray_path', auth.uid());
 delete from storage.objects where bucket_id = 'documents' and name = :'stray_path';
+reset storage.allow_delete_query;
 select is(
   (select count(*)::integer from storage.objects where name = :'stray_path'), 0,
   'an upload whose row was never written can be removed'

@@ -55,7 +55,10 @@ select :'pid' || '/tenant/' || :'tenant' || '/' || gen_random_uuid() || '.jpg' a
 insert into storage.objects (bucket_id, name) values ('documents', :'gone_file');
 insert into public.documents (portfolio_id, entity_type, entity_id, storage_path, file_name, mime_type, size_bytes)
 values (:'pid', 'tenant', :'tenant', :'gone_file', 'old.jpg', 'image/jpeg', 1000);
+-- As the Storage API does (Supabase blocks direct DELETEs otherwise).
+set local storage.allow_delete_query = 'true';
 delete from storage.objects where name = :'gone_file';
+reset storage.allow_delete_query;
 delete from public.documents where storage_path = :'gone_file';
 select is_empty(
   format($f$select 1 from private.storage_cleanup_queue where path = %L$f$, :'gone_file'),

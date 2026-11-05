@@ -27,13 +27,16 @@ select id as daily_oct from public.charges where lease_id = :'l_daily' and perio
 select id as flat_oct from public.charges where lease_id = :'l_flat' and period_month = '2026-10-01' \gset
 
 -- Late fees (assessed per lease under its lock, as the daily job does) ------------
+-- Only this test's tenancies: `supabase start` loads the demo seed, whose
+-- leases would be assessed too.
+select set_config('tests.pid', :'pid', true);
 create function pg_temp.assess(p_as_of date)
 returns integer
 language sql
 as $$
   select coalesce(sum(private.assess_late_fees(l.id, p_as_of)), 0)::integer
   from public.leases l
-  where l.status = 'active'
+  where l.status = 'active' and l.portfolio_id = current_setting('tests.pid')::uuid
 $$;
 
 -- The error a statement raises, as JSON (PostgREST errors carry JSON text).
@@ -56,7 +59,7 @@ $$;
 select is(pg_temp.assess('2026-10-10'), 0, 'no fees within the grace period (5 days late, grace 5)');
 select is(pg_temp.assess('2026-10-11'), 3, 'fees start once the grace period is over');
 select set_eq(
-  $$select lease_id, amount from public.charges where kind = 'late_fee'$$,
+  format($f$select lease_id, amount from public.charges where kind = 'late_fee' and portfolio_id = %L$f$, :'pid'),
   format($f$values (%L::uuid, 600.00::numeric), (%L, 1000.00), (%L, 1000.00)$f$, :'l_daily', :'l_flat', :'l_pct'),
   'flat 1,000; 2.5 percent of 40,000 = 1,000; daily 100 x 6 days = 600'
 );
