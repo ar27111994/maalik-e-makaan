@@ -385,8 +385,9 @@ abstract final class MmTheme {
     surfaceContainerHighest: colors.surfaceSunken,
     outline: colors.outline,
     outlineVariant: colors.rule,
-    shadow: Colors.black,
-    scrim: Colors.black,
+    // Material draws shadows and scrims in black and sets their opacity.
+    shadow: Colors.black, // design-lint: allow Material shadow colour
+    scrim: Colors.black, // design-lint: allow Material scrim colour
     inverseSurface: inverse.surface,
     onInverseSurface: inverse.ink,
     inversePrimary: inverse.primary,

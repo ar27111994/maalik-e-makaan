@@ -64,6 +64,11 @@ lint: ## Lint Python, shell, workflows, migrations, docs and plain text
 	ec
 	npx --no-install markdownlint-cli2 "**/*.md"
 	python3 tool/check_unicode.py
+	$(MAKE) --no-print-directory design-lint
+
+.PHONY: design-lint
+design-lint: ## UI code takes colours, type, spacing, radii and motion from tokens, and is RTL-safe
+	python3 tool/design/lint_hardcoded.py
 
 .PHONY: analyze
 analyze: ## Static analysis for every package

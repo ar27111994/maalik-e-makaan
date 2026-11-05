@@ -34,6 +34,9 @@ pre-commit:
     workflows:
       glob: ".github/workflows/*.yml"
       run: PATH="$PWD/.venv/bin:$PATH" actionlint {staged_files}
+    design-lint:
+      glob: "{packages/mm_ui,app}/lib/**/*.dart"
+      run: python3 tool/design/lint_hardcoded.py {staged_files}
     migrations:
       glob: "supabase/migrations/*.sql"
       run: PATH="$PWD/.venv/bin:$PATH" tool/db/lint_migrations.sh
