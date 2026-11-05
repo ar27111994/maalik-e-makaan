@@ -10,7 +10,6 @@ pre-commit:
       glob: "*.dart"
       exclude:
         - "*.g.dart"
-        - "*.freezed.dart"
         - "**/l10n/generated/**"
       run: dart format --output=none --set-exit-if-changed {staged_files}
     prettier:

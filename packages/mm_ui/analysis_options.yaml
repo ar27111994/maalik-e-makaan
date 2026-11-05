@@ -7,5 +7,4 @@ analyzer:
     strict-raw-types: true
   exclude:
     - "**/*.g.dart"
-    - "**/*.freezed.dart"
     - build/**

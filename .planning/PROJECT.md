@@ -27,7 +27,8 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 
 - **App:** Flutter 3.47 / Dart 3.13. Android (API 24+), iOS and web, plus a Linux desktop target
   used for headless integration tests.
-- **State and routing:** Riverpod 3 and go_router 18. Models use freezed 4 and json_serializable.
+- **State and routing:** Riverpod 3 and go_router 18. Models are hand-written immutable classes with
+  value equality; the only code generation is `flutter gen-l10n`.
 - **Packages:** a Dart pub workspace.
   - `packages/mm_core`: pure-Dart domain logic, 100% unit tested.
   - `packages/mm_ui`: the design system, with tokens, themes, components, a gallery and golden tests.

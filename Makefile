@@ -22,9 +22,7 @@ bootstrap: ## Install every toolchain dependency (pub, npm, deno cache)
 	cd supabase/functions && $(DENO) install
 
 .PHONY: codegen
-codegen: ## Regenerate freezed/json_serializable code and localisations
-	cd packages/mm_core && $(DART) run build_runner build --delete-conflicting-outputs
-	cd app && $(DART) run build_runner build --delete-conflicting-outputs
+codegen: ## Regenerate the app's localisations from its ARB files
 	cd app && $(FLUTTER) gen-l10n
 
 .PHONY: format

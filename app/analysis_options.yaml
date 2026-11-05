@@ -7,7 +7,6 @@ analyzer:
     strict-raw-types: true
   exclude:
     - "**/*.g.dart"
-    - "**/*.freezed.dart"
     - "lib/l10n/generated/**"
     - "build/**"
     - android/**
