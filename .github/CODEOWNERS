@@ -1,0 +1,9 @@
+# Every change is reviewed by the maintainer. Paths that guard money, access or
+# the release pipeline are listed explicitly so they stay owned if the default
+# line ever changes.
+*                               @ar27111994
+/supabase/migrations/           @ar27111994
+/supabase/functions/            @ar27111994
+/packages/mm_core/              @ar27111994
+/formal/                        @ar27111994
+/.github/                       @ar27111994

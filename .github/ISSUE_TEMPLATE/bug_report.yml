@@ -1,0 +1,54 @@
+name: Bug report
+description: Something does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting. Please leave out tenants' names, CNICs, phone numbers and amounts that could identify anyone.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Tap …
+        3. See …
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where
+      options:
+        - Android app
+        - iPhone app
+        - Web app
+        - Website
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: App language
+      options:
+        - English
+        - اردو (Urdu)
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings → About, or the release tag.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logs
+      description: Redact any personal details first.
