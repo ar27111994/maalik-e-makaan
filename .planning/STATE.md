@@ -83,6 +83,16 @@ progress: { total_phases: 12, completed_phases: 3, percent: 25 }
   (`https://maalik-e-makaan.vercel.app/auth/callback`), and the GitHub secrets, variables and
   `production`/`release` environments the Deploy and Release workflows read.
 
+## Deployed
+
+- Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version 1
+  on the hosted project (deployed 2026-11-05 from commit b41771d through the Supabase connector,
+  verify_jwt off as in config.toml). A byte-for-byte comparison with the repository matches,
+  except one line of `invite-member/email.ts` where three `\u` escapes in a regular expression
+  arrived as the literal characters (same behaviour); the Deploy workflow's CLI upload restores
+  exact parity at the first release. Live checks: health 200; the other three refuse
+  unauthenticated calls with 401 and allow the app's origin.
+
 ## Hosting
 
 - Vercel team `ar27111994s-projects`: project `maalik-e-makaan` (web app, production address
