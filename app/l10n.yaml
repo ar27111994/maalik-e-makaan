@@ -1,0 +1,9 @@
+# flutter gen-l10n: English is the template; every key exists in Urdu too
+# (the build fails on a missing translation).
+arb-dir: lib/l10n/arb
+template-arb-file: app_en.arb
+output-dir: lib/l10n/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+required-resource-attributes: true
