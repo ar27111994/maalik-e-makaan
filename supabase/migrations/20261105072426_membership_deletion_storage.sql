@@ -1182,9 +1182,7 @@ $$;
 -- Owners and managers may delete an uploaded file only while no document row
 -- references it (an upload whose row was never written). A referenced file
 -- is deleted by deleting its row, which queues the file for the cleaner.
-drop policy documents_objects_delete on storage.objects;
-create policy documents_objects_delete on storage.objects
-  for delete to authenticated
+alter policy documents_objects_delete on storage.objects
   using (
     bucket_id = 'documents'
     and app.document_object_portfolio(name) = any ((select app.my_portfolio_ids(
