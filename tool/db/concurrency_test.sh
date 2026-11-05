@@ -706,7 +706,48 @@ only_errors "never-allowed" "$WORK"/handed_*.err
   echo "✗ the handed-over portfolio survived"; exit 1
 }
 
-# 18. Invariants --------------------------------------------------------------------------
+# 18. A tenancy deleted while a charge is added to it (both orders) -------------------------
+# Deleting a lease must never take a charge someone entered with it: either the
+# charge commits first and the delete is refused, or the delete commits first
+# and the charge's foreign key fails. Odd rounds delete first, even rounds
+# charge first; each holds its transaction open so the other has to wait.
+echo "▸ A tenancy deleted while a charge is added to it (both orders, 6 rounds)"
+reset_limits
+CLERK="$(new_user "clerk@example.com")"
+for round in 1 2 3 4 5 6; do
+  ESTATE="$(new_estate "$CLERK" "Mistake ${round}" 1)"
+  MISTAKE="$(psql_db -c "select id from public.leases where portfolio_id = '${ESTATE}'")"
+  ADD_CHARGE="insert into public.charges (portfolio_id, lease_id, kind, due_date, amount, description) values ('${ESTATE}', '${MISTAKE}', 'damages', '2026-11-03', 700, 'Round ${round}');"
+  DELETE_LEASE="delete from public.leases where id = '${MISTAKE}';"
+  if (( round % 2 )); then
+    as_user "$CLERK" "${DELETE_LEASE} select pg_sleep(0.5);" | psql_db >/dev/null 2>"$WORK/mistake_del_${round}.err" &
+    sleep 0.2
+    as_user "$CLERK" "${ADD_CHARGE}" | psql_db >/dev/null 2>"$WORK/mistake_chg_${round}.err" &
+  else
+    as_user "$CLERK" "${ADD_CHARGE} select pg_sleep(0.5);" | psql_db >/dev/null 2>"$WORK/mistake_chg_${round}.err" &
+    sleep 0.2
+    as_user "$CLERK" "${DELETE_LEASE}" | psql_db >/dev/null 2>"$WORK/mistake_del_${round}.err" &
+  fi
+  wait
+  LEASE_LEFT="$(psql_db -c "select count(*) from public.leases where id = '${MISTAKE}'")"
+  ENTERED_LEFT="$(psql_db -c "select count(*) from public.charges where lease_id = '${MISTAKE}' and source = 'manual'")"
+  if (( round % 2 )); then
+    if [[ "$LEASE_LEFT" != "0" || "$ENTERED_LEFT" != "0" ]] \
+      || ! grep -q 'violates foreign key constraint' "$WORK/mistake_chg_${round}.err"; then
+      echo "✗ round ${round}: the delete came first, so the charge must fail"; exit 1
+    fi
+  else
+    if [[ "$LEASE_LEFT" != "1" || "$ENTERED_LEFT" != "1" ]] \
+      || ! grep -q "ERROR:  lease_has_records" "$WORK/mistake_del_${round}.err"; then
+      echo "✗ round ${round}: the charge came first, so the delete must be refused"; exit 1
+    fi
+  fi
+done
+no_deadlocks "$WORK"/mistake_*.err
+only_errors_matching 'lease_has_records|insert or update on table "charges" violates foreign key constraint' \
+  "$WORK"/mistake_*.err
+
+# 19. Invariants --------------------------------------------------------------------------
 echo "▸ Checking invariants"
 RESULT="$(psql_db <<SQL
 select json_build_object(
