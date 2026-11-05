@@ -320,6 +320,8 @@ Deno.test('createLogger marks a failure that is not an Error as unknown', () => 
   const { records, sink } = collect();
   const thrower = {
     toJSON() {
+      // A non-Error throw is exactly what this test exercises.
+      // deno-lint-ignore no-throw-literal
       throw 'nope';
     },
   };
