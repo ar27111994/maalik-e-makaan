@@ -1,17 +1,30 @@
 ---
-active_phase: "3"
+active_phase: "4"
 next_action: execute-phase
-next_phases: ["3", "4"]
-progress: { total_phases: 12, completed_phases: 2, percent: 17 }
+next_phases: ["4", "5", "11"]
+progress: { total_phases: 12, completed_phases: 3, percent: 25 }
 ---
 
 # Project State: Maalik-e-Makaan
 
-## Current Position
+## Current Position (2026-11-05)
 
-- Milestone v1.0. Phase 1 (Foundations) and Phase 2 (Database) are complete.
-- Next: Phase 3 (Edge Functions) and Phase 4 (Design System), which are independent of each
-  other. After those, Phase 5 (App Core).
+- Milestone v1.0. Phases 1 (Foundations), 2 (Database) and 3 (Edge Functions, code and tests)
+  are complete. The functions are not deployed yet: they need secrets only the owner can enter
+  (see Blockers).
+- Phase 4 (Design System): tokens, icons, themes, foundations, localisation, window sizes and the
+  test harness are committed. The component families (actions, inputs, choices, display, records,
+  feedback, layout, charts) and the gallery are being built and reviewed.
+- Phase 5 (App Core): configuration, failures, settings, auth repository, offline cache, router
+  guards and the adaptive shell are committed (76 tests, 96% coverage). The auth and settings
+  screens wait for the components.
+- Phase 11 (CI/CD): CI, Security, Scorecard, PR-title, Release and Deploy workflows, Dependabot,
+  CODEOWNERS, templates, SECURITY.md and CONTRIBUTING.md are committed. The first runs are being
+  checked.
+- Formal verification (requested by the user, across phases): TLA+ models of membership and
+  storage cleanup, invitations, the ledger, late fees and the rate limiter; Lean 4 and Z3 proofs of
+  the money arithmetic; and the Bend proofs (36 laws) are being finished against the current code,
+  then wired into `make verify`.
 
 ## Active Decisions
 
@@ -27,12 +40,13 @@ progress: { total_phases: 12, completed_phases: 2, percent: 17 }
 ## Hosted Supabase Project
 
 - Ref `aaifamxzzjspohwksxyr` ("maalik-e-makaan"), org AR Labs, region ap-south-1, Postgres 17.11.
-- Twelve migrations are applied (the file names in `supabase/migrations/` are the hosted versions).
+- Fifteen migrations are applied, the latest `20261105072426_membership_deletion_storage` (the
+  file names in `supabase/migrations/` are the hosted versions).
 - pg_cron jobs:
   - `mm-daily-jobs`: `5 19 * * *` UTC, which is 00:05 PKT;
   - `mm-rate-limit-cleanup`: hourly.
 - `authenticator` has `pgrst.db_pre_request = app.check_request`.
-- Drift check (2026-11-03): all 1,070 objects match the local chain, by function, relation,
+- Drift check (2026-11-05): all 1,166 objects match the local chain, by function, relation,
   column, constraint, index, trigger, policy, enum, schema ACL and bucket.
 - Advisors (2026-11-03):
   - Security: only the 20 reviewed definer RPCs (lint 0029, intentional; see D-15).
@@ -54,10 +68,22 @@ progress: { total_phases: 12, completed_phases: 2, percent: 17 }
 - `*.supabase.co` and `supabase.com` are blocked from the container. Use the Supabase MCP tools
   for the hosted project; `search_docs` reads the documentation.
 - `git ls-remote` against GitHub works, which is how GitHub Actions get pinned to commit SHAs.
+- The session scratchpad holds the formal-verification toolchain (tla2tools, Lean 4.35.0 and
+  4.34.0, z3-solver, Bend) and is lost with the container; `tool/formal/install.sh` reinstalls the
+  pinned versions with checksums.
+- The GitHub MCP tools can read workflow runs and job logs (`actions_list`, `get_job_logs`).
 
-## Blockers
+## Blockers (need the owner)
 
-- None.
+- Edge Function secrets can only be typed by the owner (Supabase dashboard, Edge Functions,
+  Secrets, or `supabase secrets set`): `APP_URL`, `STORAGE_CLEANUP_TOKEN` (also stored in Vault as
+  `mm_storage_cleanup_token`), optionally `HEALTH_CHECK_TOKEN`, `RESEND_API_KEY` and `MAIL_FROM`.
+  `APP_URL` waits for the web app's address on Vercel.
+- GitHub settings for the Deploy and Release workflows: secrets `SUPABASE_ACCESS_TOKEN` (a scoped
+  token), `SUPABASE_DB_PASSWORD`, `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+  `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, optionally `RELEASE_PLEASE_TOKEN`; variables
+  `SUPABASE_PROJECT_REF`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `APP_URL`; environments
+  `production` (with a required reviewer) and `release`.
 
 ## Completed Phases
 
@@ -65,7 +91,7 @@ progress: { total_phases: 12, completed_phases: 2, percent: 17 }
   - `mm_core`: money, PKT dates, CNIC/phone/IBAN identity, rent maths and late fees, with shared
     contract vectors;
   - repository tooling.
-- Phase 2, Database. Twelve migrations:
+- Phase 2, Database. Twelve migrations at first, fifteen now:
   - identity and portfolios;
   - properties, units and tenants;
   - leases;
@@ -78,12 +104,26 @@ progress: { total_phases: 12, completed_phases: 2, percent: 17 }
   - two hardening migrations.
 
   Also delivered:
-  - 357 pgTAP tests;
+  - pgTAP suites (510 tests today);
   - the concurrency and stress harnesses: 271 payments/s, dashboard 61 ms with 300 leases;
   - the demo seed;
   - schema-fingerprint drift detection.
 
+- Phase 3, Edge Functions: `delete-account`, `invite-member`, `health` and `storage-cleanup`, with
+  352 tests at 100% line, branch and function coverage, plus end-to-end tests for the local stack.
+
 ## Session Notes
+
+2026-11-04 and 2026-11-05:
+
+- Formal models (TLA+, Bend) found real races; migrations `ledger_jobs_hardening` and
+  `membership_deletion_storage` fixed them, each proven by a concurrency scenario that fails on
+  the old code. Highlights: the daily jobs claim work with SKIP LOCKED; account deletion freezes
+  the account and retries its lock-and-delete on deadlock; portfolio ids are single-use;
+  invitations carry the inviter's authority; documents cannot point at missing or doomed files;
+  the storage cleanup queue is durable and fair.
+- The Supabase connector asks the owner to confirm destructive SQL; `ALTER POLICY` instead of
+  drop-and-create avoids the prompt when the change allows it.
 
 2026-11-03:
 
