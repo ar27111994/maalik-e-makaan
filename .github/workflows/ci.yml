@@ -44,6 +44,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tool/requirements.txt
+      - name: Python tooling dependencies (hash-pinned)
+        run: python3 -m pip install --require-hashes -r tool/requirements.txt
       - name: Commit messages follow the conventions (pull request)
         if: github.event_name == 'pull_request'
         env:

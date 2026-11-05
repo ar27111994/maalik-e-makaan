@@ -69,3 +69,16 @@ updates:
         update-types: [minor, patch]
     cooldown:
       default-days: 7
+
+  - package-ecosystem: pip
+    directory: /tool
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7
