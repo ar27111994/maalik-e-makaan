@@ -75,15 +75,19 @@ progress: { total_phases: 12, completed_phases: 3, percent: 25 }
 
 ## Blockers (need the owner)
 
-- Edge Function secrets can only be typed by the owner (Supabase dashboard, Edge Functions,
-  Secrets, or `supabase secrets set`): `APP_URL`, `STORAGE_CLEANUP_TOKEN` (also stored in Vault as
-  `mm_storage_cleanup_token`), optionally `HEALTH_CHECK_TOKEN`, `RESEND_API_KEY` and `MAIL_FROM`.
-  `APP_URL` waits for the web app's address on Vercel.
-- GitHub settings for the Deploy and Release workflows: secrets `SUPABASE_ACCESS_TOKEN` (a scoped
-  token), `SUPABASE_DB_PASSWORD`, `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-  `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, optionally `RELEASE_PLEASE_TOKEN`; variables
-  `SUPABASE_PROJECT_REF`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `APP_URL`; environments
-  `production` (with a required reviewer) and `release`.
+- Supabase Vault needs `mm_storage_cleanup_token` with the same value as the
+  `STORAGE_CLEANUP_TOKEN` function secret (`mm_project_url` is set); until then the scheduler
+  reports `not_configured` and deleted files stay queued (docs/operations.md, Storage cleanup).
+- Done by the owner on 2026-11-05: the Edge Function secrets (`APP_URL`, `STORAGE_CLEANUP_TOKEN`,
+  `RESEND_API_KEY`, `MAIL_FROM`), Supabase Auth's Site URL and redirect
+  (`https://maalik-e-makaan.vercel.app/auth/callback`), and the GitHub secrets, variables and
+  `production`/`release` environments the Deploy and Release workflows read.
+
+## Hosting
+
+- Vercel team `ar27111994s-projects`: project `maalik-e-makaan` (web app, production address
+  `maalik-e-makaan.vercel.app`, a placeholder page until the first web release) and
+  `maalik-e-makaan-site` (the website). Previews require a Vercel login; production is public.
 
 ## Completed Phases
 

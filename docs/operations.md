@@ -91,6 +91,53 @@ A malformed optional secret breaks only the feature that uses it (the function a
 because CORS needs it on every request. `supabase/functions/.env.example` lists the same secrets
 for local development.
 
+## Hosting (Vercel)
+
+Two Vercel projects in the `ar27111994s-projects` team. Previews need a Vercel login;
+production is public.
+
+| Project                | Serves                         | Production address                      |
+| ---------------------- | ------------------------------ | --------------------------------------- |
+| `maalik-e-makaan`      | the Flutter web app (`app/`)   | <https://maalik-e-makaan.vercel.app>    |
+| `maalik-e-makaan-site` | the Astro website (`website/`) | assigned at its first production deploy |
+
+`maalik-e-makaan.vercel.app` is the app's `APP_URL`: Supabase Auth's Site URL, its redirect
+`APP_URL/auth/callback`, the invitation links and the Edge Functions' allowed origin. Until the
+web app's first release it serves a short "being built" page in English and Urdu, with the same
+security headers.
+
+## Deployment (GitHub Actions)
+
+The Deploy workflow (`.github/workflows/deploy.yml`) runs when a release is published and pushes
+migrations and Edge Functions to Supabase; the Release workflow builds the signed Android app and
+the web app. They read these repository settings:
+
+| Setting                     | Kind     | What it is                                               |
+| --------------------------- | -------- | -------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`     | secret   | A Supabase personal access token scoped to this project  |
+| `SUPABASE_DB_PASSWORD`      | secret   | The database password, for `supabase db push`            |
+| `ANDROID_KEYSTORE_BASE64`   | secret   | The upload keystore (`.jks`), base64-encoded             |
+| `ANDROID_KEYSTORE_PASSWORD` | secret   | The keystore's password                                  |
+| `ANDROID_KEY_ALIAS`         | secret   | The key's name in the keystore (`upload`)                |
+| `ANDROID_KEY_PASSWORD`      | secret   | The key's password                                       |
+| `RELEASE_PLEASE_TOKEN`      | secret   | Optional: a token whose release pull requests trigger CI |
+| `SUPABASE_PROJECT_REF`      | variable | `aaifamxzzjspohwksxyr`                                   |
+| `SUPABASE_URL`              | variable | `https://aaifamxzzjspohwksxyr.supabase.co`               |
+| `SUPABASE_PUBLISHABLE_KEY`  | variable | The project's publishable (client) key                   |
+| `APP_URL`                   | variable | `https://maalik-e-makaan.vercel.app`                     |
+
+The `production` environment should require a reviewer; `release` holds the signing secrets.
+
+Create the keystore once, on a machine with a JDK (`keytool` ships with it; Android Studio's is
+under `jbr/bin`):
+
+```bash
+keytool -genkey -v -keystore upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+Keep it and its passwords out of the repository and backed up. With Google Play App Signing it is
+the upload key, which Google can reset if lost.
+
 ## After every migration
 
 1. Apply it to the hosted project and keep the migration file's version equal to the version the
