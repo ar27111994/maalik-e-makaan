@@ -48,9 +48,9 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-          cache-dependency-path: tool/requirements.txt
-      - name: Python tooling dependencies (hash-pinned)
-        run: python3 -m pip install --require-hashes -r tool/requirements.txt
+          cache-dependency-path: tool/requirements*.txt
+      - name: Python tools, formatters and linters (hash-pinned)
+        run: python3 -m pip install --require-hashes -r tool/requirements.txt -r tool/requirements-lint.txt
       - name: Commit messages follow the conventions (pull request)
         if: github.event_name == 'pull_request'
         env:
@@ -69,14 +69,10 @@ jobs:
           else
             npx --no-install commitlint --last --verbose
           fi
-      - name: Formatting (Markdown, YAML, JSON)
-        run: npm run format:check
-      - name: Markdown lint
-        run: npm run lint:md
-      - name: No hidden or bidirectional Unicode
-        run: python3 tool/check_unicode.py
-      - name: Shell scripts
-        run: shellcheck tool/db/*.sh
+      - name: Formatting (Python, shell, Markdown, YAML, JSON)
+        run: make format-check-repo
+      - name: Lint (Python, shell, workflows, migrations, Markdown, plain text, Unicode)
+        run: make lint
       - name: Repository tooling tests
         run: make test-tools
       - name: Generated files are up to date

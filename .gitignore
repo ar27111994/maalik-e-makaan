@@ -142,3 +142,6 @@ supabase/.test-results/
 .buildlog/
 tmp/
 .tmp/
+
+# Python tools installed by `make bootstrap`.
+.venv/

@@ -8,6 +8,12 @@ FLUTTER ?= flutter
 DART ?= dart
 DENO ?= deno
 PACKAGES := packages/mm_core packages/mm_ui app
+# Pinned Python formatters and linters (tool/requirements-lint.txt) live in
+# .venv after `make bootstrap`; CI installs the same pins on the runner.
+VENV := $(CURDIR)/.venv
+export PATH := $(VENV)/bin:$(PATH)
+PYTHON_SOURCES := $(wildcard tool formal)
+SHELL_SOURCES = $(shell git ls-files '*.sh')
 
 .PHONY: help
 help: ## Show this help
@@ -15,7 +21,10 @@ help: ## Show this help
 	  awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: bootstrap
-bootstrap: ## Install every toolchain dependency (pub, npm, deno cache)
+bootstrap: ## Install every toolchain dependency (pub, npm, deno cache, Python tools)
+	python3 -m venv $(VENV)
+	$(VENV)/bin/python -m pip install --quiet --require-hashes \
+	  -r tool/requirements.txt -r tool/requirements-lint.txt
 	$(FLUTTER) pub get
 	npm ci
 	cd website && npm ci
@@ -26,16 +35,35 @@ codegen: ## Regenerate the app's localisations from its ARB files
 	cd app && $(FLUTTER) gen-l10n
 
 .PHONY: format
-format: ## Format Dart, TypeScript and docs
+format: ## Format Dart, TypeScript, Python, shell and docs
 	$(DART) format $(PACKAGES)
 	cd supabase/functions && $(DENO) fmt
+	black --quiet $(PYTHON_SOURCES)
+	ruff check --quiet --fix $(PYTHON_SOURCES)
+	shfmt --write $(SHELL_SOURCES)
 	npx --no-install prettier --write "**/*.{md,yml,yaml,json,jsonc}"
 
 .PHONY: format-check
 format-check: ## Verify formatting without writing
 	$(DART) format --output=none --set-exit-if-changed $(PACKAGES)
 	cd supabase/functions && $(DENO) fmt --check
+	$(MAKE) --no-print-directory format-check-repo
+
+.PHONY: format-check-repo
+format-check-repo: ## Formatting of Python, shell and docs (no Flutter or Deno needed)
+	black --check --quiet $(PYTHON_SOURCES)
+	shfmt --diff $(SHELL_SOURCES)
 	npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
+
+.PHONY: lint
+lint: ## Lint Python, shell, workflows, migrations, docs and plain text
+	ruff check $(PYTHON_SOURCES)
+	shellcheck $(SHELL_SOURCES)
+	actionlint
+	tool/db/lint_migrations.sh
+	ec
+	npx --no-install markdownlint-cli2 "**/*.md"
+	python3 tool/check_unicode.py
 
 .PHONY: analyze
 analyze: ## Static analysis for every package

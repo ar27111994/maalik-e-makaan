@@ -109,7 +109,11 @@ def render_dart(resolved: list[tuple[str, str, int, bool]], version: str) -> str
         if mirror:
             out.append("    matchTextDirection: true,")
         out.append("  );")
-    out += ["", "  /// Every icon by name, for the gallery and tests.", "  static const Map<String, IconData> all = {"]
+    out += [
+        "",
+        "  /// Every icon by name, for the gallery and tests.",
+        "  static const Map<String, IconData> all = {",
+    ]
     out += [f"    '{name}': {name}," for name, _, _, _ in resolved]
     out += ["  };", "}", ""]
     return "\n".join(out)
@@ -161,7 +165,9 @@ def main(argv: list[str]) -> int:
         if not DART_OUT.exists() or DART_OUT.read_text(encoding="utf-8") != dart:
             problems.append(f"{DART_OUT.relative_to(ROOT)} is stale")
         if not FONT_OUT.exists() or font_codepoints(FONT_OUT) != wanted:
-            problems.append(f"{FONT_OUT.relative_to(ROOT)} does not hold exactly the icon set's glyphs")
+            problems.append(
+                f"{FONT_OUT.relative_to(ROOT)} does not hold exactly the icon set's glyphs"
+            )
         if not LICENSE_OUT.exists() or LICENSE_OUT.read_text(encoding="utf-8") != license_text:
             problems.append(f"{LICENSE_OUT.relative_to(ROOT)} is missing or stale")
         for problem in problems:

@@ -1,0 +1,15 @@
+{
+  "Exclude": [
+    "\\.(png|jpg|webp|ico|ttf|otf|woff2?|jar)$",
+    "^app/(android|ios|linux|macos|web|windows)/",
+    "(^|/)(pubspec|package-lock)\\.(lock|json)$",
+    "deno\\.lock$",
+    "\\.snap$",
+    "^packages/mm_ui/test/.*/goldens/",
+    "^packages/mm_ui/assets/fonts/OFL-.*\\.txt$"
+  ],
+  "Disable": {
+    "IndentSize": true
+  },
+  "SpacesAfterTabs": true
+}

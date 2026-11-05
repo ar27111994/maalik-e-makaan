@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import contextlib
 import io
-import os
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
-import check  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent))
+import check
 
 FULL = """\
 SF:/src/a.ts
@@ -89,10 +89,14 @@ class GateTest(unittest.TestCase):
         self.assertEqual(gate("--min", "100", text=text)[0], 0)
         self.assertEqual(gate("--min", "100", "--min-branches", "100", text=text)[0], 1)
         self.assertEqual(gate("--min", "100", "--min-functions", "100", text=text)[0], 1)
-        self.assertEqual(gate("--min", "50", "--min-branches", "50", "--min-functions", "50", text=text)[0], 0)
+        self.assertEqual(
+            gate("--min", "50", "--min-branches", "50", "--min-functions", "50", text=text)[0], 0
+        )
 
     def test_requested_metrics_must_be_present(self) -> None:
-        code, out, _ = gate("--min", "100", "--min-branches", "100", text="SF:/x\nDA:1,1\nend_of_record\n")
+        code, out, _ = gate(
+            "--min", "100", "--min-branches", "100", text="SF:/x\nDA:1,1\nend_of_record\n"
+        )
         self.assertEqual(code, 1)
         self.assertIn("no branches data", out)
 
@@ -116,7 +120,7 @@ class GateTest(unittest.TestCase):
             with contextlib.redirect_stderr(err):
                 self.assertEqual(check.run([handle.name + ".missing", "--min", "100"]), 2)
         finally:
-            os.unlink(handle.name)
+            Path(handle.name).unlink()
 
     def test_main_uses_the_process_arguments(self) -> None:
         saved = sys.argv

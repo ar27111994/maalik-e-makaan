@@ -5,7 +5,6 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-import os
 import shutil
 import sys
 import tempfile
@@ -13,8 +12,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, os.path.dirname(__file__))
-import build_icons as bi  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent))
+import build_icons as bi
 
 HAVE_LUCIDE = (bi.LUCIDE / "font" / "lucide.ttf").exists()
 
@@ -54,7 +53,9 @@ class IconSetTest(unittest.TestCase):
 
 class RenderTest(unittest.TestCase):
     def test_dart_constants_and_mirroring(self) -> None:
-        dart = bi.render_dart([("home", "house", 0xE0F5, False), ("back", "arrow-left", 0xE048, True)], "9.9.9")
+        dart = bi.render_dart(
+            [("home", "house", 0xE0F5, False), ("back", "arrow-left", 0xE048, True)], "9.9.9"
+        )
         self.assertIn("static const IconData home = IconData(\n    0xe0f5,", dart)
         self.assertIn("fontFamily: 'MmIcons',", dart)
         self.assertIn("    matchTextDirection: true,\n  );", dart)

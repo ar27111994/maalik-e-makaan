@@ -56,12 +56,17 @@ def add_months(d: date, months: int) -> date:
 
 
 def due_date_for(month: date, due_day: int) -> date:
-    return date(month.year, month.month, min(due_day, calendar.monthrange(month.year, month.month)[1]))
+    return date(
+        month.year, month.month, min(due_day, calendar.monthrange(month.year, month.month)[1])
+    )
 
 
 def prorated_rent(rent: Fraction, month: date, billing_start: date) -> Fraction:
     days = calendar.monthrange(month.year, month.month)[1]
-    if (billing_start.year, billing_start.month) == (month.year, month.month) and billing_start.day > 1:
+    if (billing_start.year, billing_start.month) == (
+        month.year,
+        month.month,
+    ) and billing_start.day > 1:
         # Never above the rent: 0.90 x 30/31 would otherwise round up to 1.
         return min(rent, Fraction(half_up(rent * (days - billing_start.day + 1) / days)))
     return rent
@@ -79,8 +84,14 @@ def next_anniversary(start: date, as_of: date, interval: int) -> date:
     return candidate
 
 
-def late_fee(kind: str, value: Fraction | None, cap: Fraction | None, outstanding: Fraction,
-             days_late: int, grace: int) -> Fraction:
+def late_fee(
+    kind: str,
+    value: Fraction | None,
+    cap: Fraction | None,
+    outstanding: Fraction,
+    days_late: int,
+    grace: int,
+) -> Fraction:
     if kind == "none" or outstanding <= 0 or days_late <= grace:
         return Fraction(0)
     if kind == "flat":
@@ -97,8 +108,11 @@ def late_fee(kind: str, value: Fraction | None, cap: Fraction | None, outstandin
     return min(fee, MAX_FEE)
 
 
-def allocate(payment: Fraction, charges: list[dict], chosen: list[str]) -> tuple[list[dict], Fraction]:
+def allocate(
+    payment: Fraction, charges: list[dict], chosen: list[str]
+) -> tuple[list[dict], Fraction]:
     """Chosen charges first (first occurrence wins), then oldest due date, then id."""
+
     def rank(charge: dict) -> int:
         return chosen.index(charge["id"]) if charge["id"] in chosen else len(chosen)
 
@@ -108,7 +122,7 @@ def allocate(payment: Fraction, charges: list[dict], chosen: list[str]) -> tuple
         if remaining <= 0:
             break
         applied = min(remaining, money(charge["outstanding"]))
-        allocations.append({"charge_id": charge["id"], "amount": "%.2f" % applied})
+        allocations.append({"charge_id": charge["id"], "amount": f"{applied:.2f}"})
         remaining -= applied
     return allocations, remaining
 
@@ -138,7 +152,12 @@ def build_allocations() -> list[dict]:
 
     cases = [
         ("oldest due first", "1200.00", abc(1), []),
-        ("chosen first, in the order given", "1000.00", abc(2), [charge_id(2, "c"), charge_id(2, "a")]),
+        (
+            "chosen first, in the order given",
+            "1000.00",
+            abc(2),
+            [charge_id(2, "c"), charge_id(2, "a")],
+        ),
         ("chosen first, then the rest oldest first", "1500.00", abc(3), [charge_id(3, "c")]),
         ("an overpayment becomes credit", "5000.00", abc(4), []),
         (
@@ -169,14 +188,16 @@ def build_allocations() -> list[dict]:
     vectors = []
     for name, payment, charges, chosen in cases:
         allocations, remaining = allocate(money(payment), charges, chosen)
-        vectors.append({
-            "name": name,
-            "payment": payment,
-            "charges": charges,
-            "chosen_charge_ids": chosen,
-            "expected_allocations": allocations,
-            "expected_unallocated": "%.2f" % remaining,
-        })
+        vectors.append(
+            {
+                "name": name,
+                "payment": payment,
+                "charges": charges,
+                "chosen_charge_ids": chosen,
+                "expected_allocations": allocations,
+                "expected_unallocated": f"{remaining:.2f}",
+            }
+        )
     return vectors
 
 
@@ -191,14 +212,18 @@ def build_billed_rents() -> list[dict]:
         ("0.90", "2026-01-01", "2026-01-02", True),
         ("33333.33", "2026-02-01", "2026-02-14", True),
     ]:
-        expected = billed_rent(money(rent), date.fromisoformat(month), date.fromisoformat(start), prorate)
-        vectors.append({
-            "monthly_rent": rent,
-            "month": month,
-            "billing_starts_on": start,
-            "prorate_first_month": prorate,
-            "expected": "%.2f" % expected,
-        })
+        expected = billed_rent(
+            money(rent), date.fromisoformat(month), date.fromisoformat(start), prorate
+        )
+        vectors.append(
+            {
+                "monthly_rent": rent,
+                "month": month,
+                "billing_starts_on": start,
+                "prorate_first_month": prorate,
+                "expected": f"{expected:.2f}",
+            }
+        )
     return vectors
 
 
@@ -207,7 +232,9 @@ def build() -> dict:
     for month in ["2026-02-01", "2028-02-01", "2026-04-01", "2026-11-01", "2026-12-01"]:
         for day in [1, 5, 10, 28]:
             m = date.fromisoformat(month)
-            due_dates.append({"month": month, "due_day": day, "expected": due_date_for(m, day).isoformat()})
+            due_dates.append(
+                {"month": month, "due_day": day, "expected": due_date_for(m, day).isoformat()}
+            )
 
     billing_due_dates = []
     for month, day, start in [
@@ -217,10 +244,14 @@ def build() -> dict:
         ("2026-02-01", 28, "2026-02-01"),
     ]:
         m, s = date.fromisoformat(month), date.fromisoformat(start)
-        billing_due_dates.append({
-            "month": month, "due_day": day, "billing_starts_on": start,
-            "expected": max(due_date_for(m, day), s).isoformat(),
-        })
+        billing_due_dates.append(
+            {
+                "month": month,
+                "due_day": day,
+                "billing_starts_on": start,
+                "expected": max(due_date_for(m, day), s).isoformat(),
+            }
+        )
 
     prorations = []
     for rent, month, start in [
@@ -236,8 +267,14 @@ def build() -> dict:
         ("0.90", "2026-01-01", "2026-01-02"),
     ]:
         expected = prorated_rent(money(rent), date.fromisoformat(month), date.fromisoformat(start))
-        prorations.append({"monthly_rent": rent, "month": month, "billing_starts_on": start,
-                           "expected": "%.2f" % expected})
+        prorations.append(
+            {
+                "monthly_rent": rent,
+                "month": month,
+                "billing_starts_on": start,
+                "expected": f"{expected:.2f}",
+            }
+        )
 
     anniversaries = []
     for start, as_of, interval in [
@@ -251,8 +288,16 @@ def build() -> dict:
         ("2024-01-31", "2024-02-15", 1),
         ("2025-09-15", "2026-11-03", 12),
     ]:
-        anniversaries.append({"start": start, "as_of": as_of, "interval_months": interval,
-                              "expected": next_anniversary(date.fromisoformat(start), date.fromisoformat(as_of), interval).isoformat()})
+        anniversaries.append(
+            {
+                "start": start,
+                "as_of": as_of,
+                "interval_months": interval,
+                "expected": next_anniversary(
+                    date.fromisoformat(start), date.fromisoformat(as_of), interval
+                ).isoformat(),
+            }
+        )
 
     late_fees = []
     for kind, value, cap, outstanding, days, grace in [
@@ -271,10 +316,25 @@ def build() -> dict:
         ("daily", "10000000.00", None, "40000.00", 200000, 5),
         ("daily", "10000000.00", "5000.00", "40000.00", 200000, 5),
     ]:
-        fee = late_fee(kind, money(value) if value else None, money(cap) if cap else None,
-                       money(outstanding), days, grace)
-        late_fees.append({"type": kind, "value": value, "cap": cap, "outstanding": outstanding,
-                          "days_late": days, "grace_days": grace, "expected": "%.2f" % fee})
+        fee = late_fee(
+            kind,
+            money(value) if value else None,
+            money(cap) if cap else None,
+            money(outstanding),
+            days,
+            grace,
+        )
+        late_fees.append(
+            {
+                "type": kind,
+                "value": value,
+                "cap": cap,
+                "outstanding": outstanding,
+                "days_late": days,
+                "grace_days": grace,
+                "expected": f"{fee:.2f}",
+            }
+        )
 
     return {
         "$comment": "Generated by tool/contracts/generate.py — do not edit by hand.",
@@ -349,7 +409,9 @@ def clean_text_contract() -> dict:
 
 
 def forbidden_ranges(contract: dict) -> list[tuple[int, int, str]]:
-    ranges = [(code_point(r["from"]), code_point(r["to"]), r["label"]) for r in contract["forbidden"]]
+    ranges = [
+        (code_point(r["from"]), code_point(r["to"]), r["label"]) for r in contract["forbidden"]
+    ]
     for low, high, label in ranges:
         if low > high:
             raise ValueError(f"empty range: {label}")
@@ -417,7 +479,8 @@ def render_ledger_sql(vectors: dict) -> str:
             else "array[" + ", ".join(sql_literal(i) for i in v["chosen_charge_ids"]) + "]::uuid[]"
         )
         expected = ", ".join(
-            f"({sql_literal(a['charge_id'])}::text, {a['amount']}::numeric)" for a in v["expected_allocations"]
+            f"({sql_literal(a['charge_id'])}::text, {a['amount']}::numeric)"
+            for a in v["expected_allocations"]
         )
         body += [
             f"-- allocation: {v['name']}",
@@ -445,8 +508,11 @@ def render_ledger_sql(vectors: dict) -> str:
     body += ["reset role;", "set local app.today_override = '2026-12-15';"]
     for index, v in enumerate(vectors["billed_rent"], start=1):
         overrides = (
-            '{"billing_starts_on": "' + v["billing_starts_on"] + '", "prorate_first_month": '
-            + ("true" if v["prorate_first_month"] else "false") + "}"
+            '{"billing_starts_on": "'
+            + v["billing_starts_on"]
+            + '", "prorate_first_month": '
+            + ("true" if v["prorate_first_month"] else "false")
+            + "}"
         )
         flag = "prorated" if v["prorate_first_month"] else "not prorated"
         body += [
@@ -479,10 +545,13 @@ def outputs() -> dict[Path, str]:
     vectors = build()
     database_tests = ROOT / "supabase" / "tests" / "database"
     return {
-        ROOT / "contracts" / "rent_math_vectors.json": json.dumps(vectors, indent=2, ensure_ascii=False)
+        ROOT
+        / "contracts"
+        / "rent_math_vectors.json": json.dumps(vectors, indent=2, ensure_ascii=False)
         + "\n",
         database_tests / "10_contract_vectors.test.sql": render_sql(vectors),
-        database_tests / "12_clean_text_contract.test.sql": render_clean_text_sql(clean_text_contract()),
+        database_tests
+        / "12_clean_text_contract.test.sql": render_clean_text_sql(clean_text_contract()),
         database_tests / "13_ledger_contract.test.sql": render_ledger_sql(vectors),
     }
 
@@ -501,7 +570,9 @@ def main(argv: list[str]) -> int:
             stale.append(path.relative_to(ROOT))
 
     if stale:
-        print("Generated contract files are stale; run tool/contracts/generate.py:", file=sys.stderr)
+        print(
+            "Generated contract files are stale; run tool/contracts/generate.py:", file=sys.stderr
+        )
         for path in stale:
             print(f"  {path}", file=sys.stderr)
         return 1

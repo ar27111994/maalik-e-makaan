@@ -32,9 +32,27 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT = ROOT / "contracts" / "clean_text.json"
 
 BINARY_SUFFIXES = {
-    ".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico", ".ttf", ".otf",
-    ".woff", ".woff2", ".pdf", ".jar", ".keystore", ".jks", ".zip",
-    ".gz", ".mp4", ".webm", ".avif", ".heic", ".svgz",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".ico",
+    ".ttf",
+    ".otf",
+    ".woff",
+    ".woff2",
+    ".pdf",
+    ".jar",
+    ".keystore",
+    ".jks",
+    ".zip",
+    ".gz",
+    ".mp4",
+    ".webm",
+    ".avif",
+    ".heic",
+    ".svgz",
 }
 
 
@@ -48,7 +66,9 @@ def code_point(text: str) -> int:
 def load_forbidden(path: Path = CONTRACT) -> list[tuple[int, int, str]]:
     """The contract's forbidden ranges as (low, high, label), sorted."""
     contract = json.loads(path.read_text(encoding="utf-8"))
-    ranges = [(code_point(r["from"]), code_point(r["to"]), r["label"]) for r in contract["forbidden"]]
+    ranges = [
+        (code_point(r["from"]), code_point(r["to"]), r["label"]) for r in contract["forbidden"]
+    ]
     for low, high, label in ranges:
         if low > high:
             raise ValueError(f"empty range in {path}: {label}")
@@ -64,7 +84,10 @@ def reason_for(cp: int, ranges: list[tuple[int, int, str]]) -> str | None:
 
 def tracked_files() -> list[Path]:
     out = subprocess.run(
-        ["git", "ls-files", "-z"], check=True, capture_output=True, cwd=ROOT
+        ["git", "ls-files", "-z"],  # noqa: S607 - git from PATH, as in every git hook
+        check=True,
+        capture_output=True,
+        cwd=ROOT,
     ).stdout.decode("utf-8")
     return [ROOT / p for p in out.split("\0") if p]
 

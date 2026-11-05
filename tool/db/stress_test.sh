@@ -121,13 +121,14 @@ end
 $$;
 analyze;
 SQL
-echo "  seeded in $(( $(date +%s) - SEED_START ))s: $(psql_db -c "select count(*) || ' charges, ' || (select count(*) from public.payments) || ' payments' from public.charges")"
+echo "  seeded in $(($(date +%s) - SEED_START))s: $(psql_db -c "select count(*) || ' charges, ' || (select count(*) from public.payments) || ' payments' from public.charges")"
 
 # Latency budgets (milliseconds, server execution time under RLS) -----------------
 measure() {
   local label="$1" budget="$2" sql="$3"
   local ms
-  ms="$(psql_db <<SQL | grep -m1 -oE 'Execution Time: [0-9.]+' | grep -oE '[0-9.]+'
+  ms="$(
+    psql_db <<SQL | grep -m1 -oE 'Execution Time: [0-9.]+' | grep -oE '[0-9.]+'
 set app.today_override = '2026-11-03';
 begin;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-4000-8000-000000000000","role":"authenticated"}';
@@ -135,9 +136,10 @@ set local role authenticated;
 explain (analyze, format text) ${sql};
 rollback;
 SQL
-)"
+  )"
   # Second run (warm cache) is the one we judge.
-  ms="$(psql_db <<SQL | grep -m1 -oE 'Execution Time: [0-9.]+' | grep -oE '[0-9.]+'
+  ms="$(
+    psql_db <<SQL | grep -m1 -oE 'Execution Time: [0-9.]+' | grep -oE '[0-9.]+'
 set app.today_override = '2026-11-03';
 begin;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-4000-8000-000000000000","role":"authenticated"}';
@@ -145,11 +147,12 @@ set local role authenticated;
 explain (analyze, format text) ${sql};
 rollback;
 SQL
-)"
+  )"
   if python3 -c "import sys; sys.exit(0 if float('$ms') <= $budget else 1)"; then
     printf '  ✓ %-28s %8.1f ms (budget %s ms)\n' "$label" "$ms" "$budget"
   else
-    printf '  ✗ %-28s %8.1f ms (budget %s ms)\n' "$label" "$ms" "$budget"; FAILED=1
+    printf '  ✗ %-28s %8.1f ms (budget %s ms)\n' "$label" "$ms" "$budget"
+    FAILED=1
   fi
 }
 
@@ -194,7 +197,8 @@ PY
 then :; else FAILED=1; fi
 
 echo "▸ Index usage"
-PLAN="$(psql_db <<'SQL'
+PLAN="$(
+  psql_db <<'SQL'
 begin;
 set local "request.jwt.claims" to '{"sub":"00000000-0000-4000-8000-000000000000","role":"authenticated"}';
 set local role authenticated;
@@ -205,7 +209,9 @@ SQL
 if grep -qE "Index (Only )?Scan|Bitmap Index Scan" <<<"$PLAN"; then
   echo "  ✓ open-charge lookup uses an index"
 else
-  echo "  ✗ open-charge lookup does not use an index:"; echo "$PLAN"; FAILED=1
+  echo "  ✗ open-charge lookup does not use an index:"
+  echo "$PLAN"
+  FAILED=1
 fi
 
 # Throughput ------------------------------------------------------------------------
@@ -224,8 +230,15 @@ rm -f "/tmp/mm_bench_$$.sql"
 TPS="$(grep -oE 'tps = [0-9.]+' <<<"$BENCH" | head -1 | grep -oE '[0-9.]+')"
 FAILED_TX="$(grep -oE 'number of failed transactions: [0-9]+' <<<"$BENCH" | grep -oE '[0-9]+$' || echo 0)"
 echo "  throughput: ${TPS} payments/s, failed transactions: ${FAILED_TX}"
-[[ "${FAILED_TX:-0}" == "0" ]] || { echo "  ✗ pgbench reported failures"; echo "$BENCH"; FAILED=1; }
-python3 -c "import sys; sys.exit(0 if float('${TPS:-0}') >= 50 else 1)" || { echo "  ✗ throughput below 50 tps"; FAILED=1; }
+[[ "${FAILED_TX:-0}" == "0" ]] || {
+  echo "  ✗ pgbench reported failures"
+  echo "$BENCH"
+  FAILED=1
+}
+python3 -c "import sys; sys.exit(0 if float('${TPS:-0}') >= 50 else 1)" || {
+  echo "  ✗ throughput below 50 tps"
+  FAILED=1
+}
 
 INVARIANTS="$(psql_db -c "select count(*) from public.charges c left join (select charge_id, sum(amount) t from public.payment_allocations group by charge_id) a on a.charge_id = c.id where c.paid_amount <> coalesce(a.t, 0)")"
 if [[ "$INVARIANTS" == "0" ]]; then

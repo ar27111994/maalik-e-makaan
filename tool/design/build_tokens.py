@@ -84,7 +84,7 @@ def _channel(value: float) -> float:
 
 
 def relative_luminance(hex_: str) -> float:
-    r, g, b = (int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    r, g, b = (int(hex_[i : i + 2], 16) / 255 for i in (1, 3, 5))
     return 0.2126 * _channel(r) + 0.7152 * _channel(g) + 0.0722 * _channel(b)
 
 
@@ -110,19 +110,23 @@ def color_hex(token: dict, where: str) -> str:
     _require(isinstance(value, dict), f"{where}: colour $value must be an object")
     _require(value.get("colorSpace") == "srgb", f"{where}: only srgb colours are supported")
     hex_ = value.get("hex", "")
-    _require(isinstance(hex_, str) and len(hex_) == 7 and hex_.startswith("#"), f"{where}: hex must be #RRGGBB")
+    _require(
+        isinstance(hex_, str) and len(hex_) == 7 and hex_.startswith("#"),
+        f"{where}: hex must be #RRGGBB",
+    )
     try:
-        channels = [int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        channels = [int(hex_[i : i + 2], 16) / 255 for i in (1, 3, 5)]
     except ValueError:
         raise TokenError(f"{where}: hex must be #RRGGBB") from None
     components = value.get("components")
     _require(
-        isinstance(components, list) and len(components) == 3
+        isinstance(components, list)
+        and len(components) == 3
         and all(isinstance(c, (int, float)) for c in components),
         f"{where}: components must be three numbers",
     )
     _require(
-        all(abs(c - h) <= 0.5 / 255 + 1e-6 for c, h in zip(components, channels)),
+        all(abs(c - h) <= 0.5 / 255 + 1e-6 for c, h in zip(components, channels, strict=True)),
         f"{where}: components {components} disagree with {hex_}",
     )
     _require(value.get("alpha", 1) == 1, f"{where}: colours must be opaque")
@@ -132,7 +136,9 @@ def color_hex(token: dict, where: str) -> str:
 def dimension(token: dict, where: str) -> float:
     value = token.get("$value")
     _require(
-        isinstance(value, dict) and value.get("unit") == "px" and isinstance(value.get("value"), (int, float)),
+        isinstance(value, dict)
+        and value.get("unit") == "px"
+        and isinstance(value.get("value"), (int, float)),
         f"{where}: dimension $value must be {{value, unit: px}}",
     )
     return value["value"]
@@ -141,7 +147,9 @@ def dimension(token: dict, where: str) -> float:
 def duration_ms(token: dict, where: str) -> int:
     value = token.get("$value")
     _require(
-        isinstance(value, dict) and value.get("unit") == "ms" and isinstance(value.get("value"), int),
+        isinstance(value, dict)
+        and value.get("unit") == "ms"
+        and isinstance(value.get("value"), int),
         f"{where}: duration $value must be {{value, unit: ms}}",
     )
     return value["value"]
@@ -161,7 +169,10 @@ def load(path: Path | None = None) -> dict:
         }
     roles = list(modes["light"])
     for mode in COLOR_MODES[1:]:
-        _require(list(modes[mode]) == roles, f"color.{mode} must define the same roles as color.light, in order")
+        _require(
+            list(modes[mode]) == roles,
+            f"color.{mode} must define the same roles as color.light, in order",
+        )
 
     for mode, palette in modes.items():
         for fg, bg, minimum, why in CONTRAST_PAIRS:
@@ -179,12 +190,12 @@ def load(path: Path | None = None) -> dict:
             for name, token in _tokens(raw[group]).items()
         }
 
-    families = {
-        name: token["$value"] for name, token in _tokens(raw["font"]["family"]).items()
-    }
+    families = {name: token["$value"] for name, token in _tokens(raw["font"]["family"]).items()}
     for name, stack in families.items():
-        _require(isinstance(stack, list) and stack and stack[0] in FLUTTER_FAMILIES,
-                 f"font.family.{name}: the first family must be one mm_ui bundles")
+        _require(
+            isinstance(stack, list) and stack and stack[0] in FLUTTER_FAMILIES,
+            f"font.family.{name}: the first family must be one mm_ui bundles",
+        )
 
     typography = {}
     for script, styles in _tokens(raw["typography"]).items():
@@ -192,12 +203,18 @@ def load(path: Path | None = None) -> dict:
             value = token["$value"]
             where = f"typography.{script}.{role}"
             family_ref = value.get("fontFamily", "")
-            _require(family_ref.startswith("{font.family.") and family_ref.endswith("}"), f"{where}: fontFamily must reference a font.family token")
-            family = family_ref[len("{font.family."):-1]
+            _require(
+                family_ref.startswith("{font.family.") and family_ref.endswith("}"),
+                f"{where}: fontFamily must reference a font.family token",
+            )
+            family = family_ref[len("{font.family.") : -1]
             _require(family in families, f"{where}: unknown family {family}")
             size = value["fontSize"]["value"]
             weight = value["fontWeight"]
-            _require(weight in (100, 200, 300, 400, 500, 600, 700, 800, 900), f"{where}: fontWeight must be a multiple of 100")
+            _require(
+                weight in (100, 200, 300, 400, 500, 600, 700, 800, 900),
+                f"{where}: fontWeight must be a multiple of 100",
+            )
             _require(size >= 12, f"{where}: text smaller than 12 px is not allowed")
             typography[(script, role)] = {
                 "family": family,
@@ -214,7 +231,9 @@ def load(path: Path | None = None) -> dict:
     easings = {}
     for name, token in _tokens(raw["easing"]).items():
         value = token["$value"]
-        _require(isinstance(value, list) and len(value) == 4, f"easing.{name}: must be four numbers")
+        _require(
+            isinstance(value, list) and len(value) == 4, f"easing.{name}: must be four numbers"
+        )
         easings[name] = value
 
     return {
@@ -272,31 +291,44 @@ def render_dart(model: dict) -> str:
     roles = list(model["modes"]["light"])
     out += [f"    required this.{role}," for role in roles]
     out += ["  });", ""]
-    out += _members([
-        _doc(model["modes"]["light"][role][1], "  ") + [f"  final Color {role};"] for role in roles
-    ])
-    out += ["}", "", "/// The four colour modes; every pairing the UI uses is contrast-checked at build time.",
-            "abstract final class MmColorModes {"]
+    out += _members(
+        [
+            [*_doc(model["modes"]["light"][role][1], "  "), f"  final Color {role};"]
+            for role in roles
+        ]
+    )
+    out += [
+        "}",
+        "",
+        "/// The four colour modes; every pairing the UI uses is contrast-checked at build time.",
+        "abstract final class MmColorModes {",
+    ]
     labels = {
         "light": "Light mode.",
         "dark": "Dark mode.",
         "lightHighContrast": "Light high-contrast mode (7:1 text).",
         "darkHighContrast": "Dark high-contrast mode (7:1 text).",
     }
-    out += _members([
-        [f"  /// {labels[mode]}", f"  static const MmColorTokens {mode} = MmColorTokens("]
-        + [f"    {role}: Color(0xFF{hex_[1:]})," for role, (hex_, _) in palette.items()]
-        + ["  );"]
-        for mode, palette in model["modes"].items()
-    ])
+    out += _members(
+        [
+            [f"  /// {labels[mode]}", f"  static const MmColorTokens {mode} = MmColorTokens("]
+            + [f"    {role}: Color(0xFF{hex_[1:]})," for role, (hex_, _) in palette.items()]
+            + ["  );"]
+            for mode, palette in model["modes"].items()
+        ]
+    )
     out.append("}")
 
     def numbers(cls: str, doc: str, group: str) -> None:
         out.extend(["", f"/// {doc}", f"abstract final class {cls} {{"])
-        out.extend(_members([
-            _doc(description, "  ") + [f"  static const double {name} = {_num(value)};"]
-            for name, (value, description) in model[group].items()
-        ]))
+        out.extend(
+            _members(
+                [
+                    [*_doc(description, "  "), f"  static const double {name} = {_num(value)};"]
+                    for name, (value, description) in model[group].items()
+                ]
+            )
+        )
         out.append("}")
 
     numbers("MmSpace", "Spacing on the 4 dp grid.", "space")
@@ -304,41 +336,68 @@ def render_dart(model: dict) -> str:
     numbers("MmSize", "Fixed sizes: touch targets, controls, icons.", "size")
     numbers("MmBreakpoint", "Window widths where the layout changes.", "breakpoint")
 
-    out += ["", "/// Motion durations (zero when the platform asks for reduced motion).",
-            "abstract final class MmDuration {"]
-    out += _members([
-        _doc(description, "  ") + [f"  static const Duration {name} = Duration(milliseconds: {ms});"]
-        for name, (ms, description) in model["duration"].items()
-    ])
+    out += [
+        "",
+        "/// Motion durations (zero when the platform asks for reduced motion).",
+        "abstract final class MmDuration {",
+    ]
+    out += _members(
+        [
+            [
+                *_doc(description, "  "),
+                f"  static const Duration {name} = Duration(milliseconds: {ms});",
+            ]
+            for name, (ms, description) in model["duration"].items()
+        ]
+    )
     out += ["}", "", "/// Easing curves.", "abstract final class MmEasing {"]
-    out += _members([
-        [f"  /// The {name} curve.",
-         f"  static const Cubic {name} = Cubic({_num(x1)}, {_num(y1)}, {_num(x2)}, {_num(y2)});"]
-        for name, (x1, y1, x2, y2) in model["easing"].items()
-    ])
-    out += ["}", "", "/// Font families bundled with mm_ui (pass `package: 'mm_ui'`).",
-            "abstract final class MmFontFamily {"]
-    out += _members([
-        [f"  /// {stack[0]}.", f"  static const String {name} = '{FLUTTER_FAMILIES[stack[0]]}';"]
-        for name, stack in model["families"].items()
-    ])
-    out += ["}", "", "/// Text styles of each script (Latin for English, Nastaliq for Urdu).",
-            "abstract final class MmTypeScale {"]
+    out += _members(
+        [
+            [
+                f"  /// The {name} curve.",
+                f"  static const Cubic {name} = Cubic({_num(x1)}, {_num(y1)}, {_num(x2)}, {_num(y2)});",
+            ]
+            for name, (x1, y1, x2, y2) in model["easing"].items()
+        ]
+    )
+    out += [
+        "}",
+        "",
+        "/// Font families bundled with mm_ui (pass `package: 'mm_ui'`).",
+        "abstract final class MmFontFamily {",
+    ]
+    out += _members(
+        [
+            [
+                f"  /// {stack[0]}.",
+                f"  static const String {name} = '{FLUTTER_FAMILIES[stack[0]]}';",
+            ]
+            for name, stack in model["families"].items()
+        ]
+    )
+    out += [
+        "}",
+        "",
+        "/// Text styles of each script (Latin for English, Nastaliq for Urdu).",
+        "abstract final class MmTypeScale {",
+    ]
     styles = []
     for (script, role), style in model["typography"].items():
         name = f"{script}{role[0].upper()}{role[1:]}"
         family = FLUTTER_FAMILIES[model["families"][style["family"]][0]]
-        styles.append([
-            f"  /// {script.capitalize()} {role}: {_num(style['size'])} px on a {_num(round(style['size'] * style['height'], 2))} px line.",
-            f"  static const TextStyle {name} = TextStyle(",
-            f"    fontFamily: '{family}',",
-            "    package: 'mm_ui',",
-            f"    fontSize: {_num(style['size'])},",
-            f"    height: {_num(style['height'])},",
-            f"    fontWeight: FontWeight.w{style['weight']},",
-            f"    letterSpacing: {_num(style['tracking'])},",
-            "  );",
-        ])
+        styles.append(
+            [
+                f"  /// {script.capitalize()} {role}: {_num(style['size'])} px on a {_num(round(style['size'] * style['height'], 2))} px line.",
+                f"  static const TextStyle {name} = TextStyle(",
+                f"    fontFamily: '{family}',",
+                "    package: 'mm_ui',",
+                f"    fontSize: {_num(style['size'])},",
+                f"    height: {_num(style['height'])},",
+                f"    fontWeight: FontWeight.w{style['weight']},",
+                f"    letterSpacing: {_num(style['tracking'])},",
+                "  );",
+            ]
+        )
     out += _members(styles)
     out.append("}")
     return "\n".join(out) + "\n"
@@ -350,7 +409,10 @@ def _kebab(name: str) -> str:
 
 def render_css(model: dict) -> str:
     def colors(mode: str, indent: str) -> list[str]:
-        return [f"{indent}--mm-color-{_kebab(role)}: {hex_};" for role, (hex_, _) in model["modes"][mode].items()]
+        return [
+            f"{indent}--mm-color-{_kebab(role)}: {hex_};"
+            for role, (hex_, _) in model["modes"][mode].items()
+        ]
 
     out = [
         "/* GENERATED by tool/design/build_tokens.py from design/tokens/maalik.tokens.json. */",
@@ -360,22 +422,44 @@ def render_css(model: dict) -> str:
         "  color-scheme: light dark;",
     ]
     for group in ("space", "radius", "size", "breakpoint"):
-        out += [f"  --mm-{group}-{_kebab(name)}: {_num(value)}px;" for name, (value, _) in model[group].items()]
+        out += [
+            f"  --mm-{group}-{_kebab(name)}: {_num(value)}px;"
+            for name, (value, _) in model[group].items()
+        ]
     out += [f"  --mm-duration-{name}: {ms}ms;" for name, (ms, _) in model["duration"].items()]
     out += [
         f"  --mm-easing-{name}: cubic-bezier({', '.join(_num(v) for v in value)});"
         for name, value in model["easing"].items()
     ]
     out += [
-        f"  --mm-font-{name}: {', '.join(repr(f) if ' ' in f else f for f in stack)};".replace("'", '"')
+        f"  --mm-font-{name}: {', '.join(repr(f) if ' ' in f else f for f in stack)};".replace(
+            "'", '"'
+        )
         for name, stack in model["families"].items()
     ]
-    out += colors("light", "  ") + ["}", ""]
-    out += ["@media (prefers-color-scheme: dark) {", "  :root:not([data-theme]) {"] + colors("dark", "    ") + ["  }", "}", ""]
-    out += ['[data-theme="dark"] {'] + colors("dark", "  ") + ["}", ""]
-    out += ["@media (prefers-contrast: more) {", "  :root:not([data-theme]) {"] + colors("lightHighContrast", "    ") + ["  }", "}", ""]
-    out += ["@media (prefers-contrast: more) and (prefers-color-scheme: dark) {", "  :root:not([data-theme]) {"]
-    out += colors("darkHighContrast", "    ") + ["  }", "}", ""]
+    out += [*colors("light", "  "), "}", ""]
+    out += [
+        "@media (prefers-color-scheme: dark) {",
+        "  :root:not([data-theme]) {",
+        *colors("dark", "    "),
+        "  }",
+        "}",
+        "",
+    ]
+    out += ['[data-theme="dark"] {', *colors("dark", "  "), "}", ""]
+    out += [
+        "@media (prefers-contrast: more) {",
+        "  :root:not([data-theme]) {",
+        *colors("lightHighContrast", "    "),
+        "  }",
+        "}",
+        "",
+    ]
+    out += [
+        "@media (prefers-contrast: more) and (prefers-color-scheme: dark) {",
+        "  :root:not([data-theme]) {",
+    ]
+    out += [*colors("darkHighContrast", "    "), "  }", "}", ""]
     out += ["@media (prefers-reduced-motion: reduce) {", "  :root {"]
     out += [f"    --mm-duration-{name}: 0ms;" for name in model["duration"]] + ["  }", "}", ""]
     return "\n".join(out)
@@ -385,43 +469,75 @@ def render_css(model: dict) -> str:
 DESIGN_COMPONENTS = {
     "page": {"backgroundColor": "{colors.bg}", "textColor": "{colors.ink}"},
     "button-primary": {
-        "backgroundColor": "{colors.primary}", "textColor": "{colors.onPrimary}",
-        "typography": "{typography.label}", "rounded": "{rounded.sm}", "height": "48px", "padding": "16px",
+        "backgroundColor": "{colors.primary}",
+        "textColor": "{colors.onPrimary}",
+        "typography": "{typography.label}",
+        "rounded": "{rounded.sm}",
+        "height": "48px",
+        "padding": "16px",
     },
     "button-secondary": {
-        "backgroundColor": "{colors.surface}", "textColor": "{colors.primary}",
-        "typography": "{typography.label}", "rounded": "{rounded.sm}", "height": "48px", "padding": "16px",
+        "backgroundColor": "{colors.surface}",
+        "textColor": "{colors.primary}",
+        "typography": "{typography.label}",
+        "rounded": "{rounded.sm}",
+        "height": "48px",
+        "padding": "16px",
     },
     "card": {
-        "backgroundColor": "{colors.surface}", "textColor": "{colors.ink}",
-        "rounded": "{rounded.md}", "padding": "16px",
+        "backgroundColor": "{colors.surface}",
+        "textColor": "{colors.ink}",
+        "rounded": "{rounded.md}",
+        "padding": "16px",
     },
     "field": {
-        "backgroundColor": "{colors.surface}", "textColor": "{colors.ink}",
-        "typography": "{typography.body}", "rounded": "{rounded.sm}", "height": "56px",
+        "backgroundColor": "{colors.surface}",
+        "textColor": "{colors.ink}",
+        "typography": "{typography.body}",
+        "rounded": "{rounded.sm}",
+        "height": "56px",
     },
-    "caption": {"backgroundColor": "{colors.surface}", "textColor": "{colors.inkMuted}", "typography": "{typography.caption}"},
+    "caption": {
+        "backgroundColor": "{colors.surface}",
+        "textColor": "{colors.inkMuted}",
+        "typography": "{typography.caption}",
+    },
     "chip-paid": {
-        "backgroundColor": "{colors.paidContainer}", "textColor": "{colors.onPaidContainer}",
-        "typography": "{typography.label}", "rounded": "{rounded.xs}",
+        "backgroundColor": "{colors.paidContainer}",
+        "textColor": "{colors.onPaidContainer}",
+        "typography": "{typography.label}",
+        "rounded": "{rounded.xs}",
     },
     "chip-overdue": {
-        "backgroundColor": "{colors.overdueContainer}", "textColor": "{colors.onOverdueContainer}",
-        "typography": "{typography.label}", "rounded": "{rounded.xs}",
+        "backgroundColor": "{colors.overdueContainer}",
+        "textColor": "{colors.onOverdueContainer}",
+        "typography": "{typography.label}",
+        "rounded": "{rounded.xs}",
     },
     "chip-due-soon": {
-        "backgroundColor": "{colors.dueSoonContainer}", "textColor": "{colors.onDueSoonContainer}",
-        "typography": "{typography.label}", "rounded": "{rounded.xs}",
+        "backgroundColor": "{colors.dueSoonContainer}",
+        "textColor": "{colors.onDueSoonContainer}",
+        "typography": "{typography.label}",
+        "rounded": "{rounded.xs}",
     },
     "chip-credit": {
-        "backgroundColor": "{colors.creditContainer}", "textColor": "{colors.onCreditContainer}",
-        "typography": "{typography.label}", "rounded": "{rounded.xs}",
+        "backgroundColor": "{colors.creditContainer}",
+        "textColor": "{colors.onCreditContainer}",
+        "typography": "{typography.label}",
+        "rounded": "{rounded.xs}",
     },
     "nameplate": {
-        "backgroundColor": "{colors.brassContainer}", "textColor": "{colors.onBrassContainer}",
-        "typography": "{typography.title}", "rounded": "{rounded.xs}", "padding": "12px",
+        "backgroundColor": "{colors.brassContainer}",
+        "textColor": "{colors.onBrassContainer}",
+        "typography": "{typography.title}",
+        "rounded": "{rounded.xs}",
+        "padding": "12px",
     },
-    "amount": {"backgroundColor": "{colors.surface}", "textColor": "{colors.ink}", "typography": "{typography.amount}"},
+    "amount": {
+        "backgroundColor": "{colors.surface}",
+        "textColor": "{colors.ink}",
+        "typography": "{typography.amount}",
+    },
 }
 
 DESIGN_DESCRIPTION = (
@@ -454,7 +570,10 @@ def lint_design_components(model: dict) -> None:
         resolved = {}
         for key, value in properties.items():
             if value.startswith("{"):
-                _require(value.endswith("}"), f"DESIGN.md components.{component}.{key}: malformed reference")
+                _require(
+                    value.endswith("}"),
+                    f"DESIGN.md components.{component}.{key}: malformed reference",
+                )
                 group, _, name = value[1:-1].partition(".")
                 _require(
                     group in groups and name in groups[group],
@@ -463,7 +582,10 @@ def lint_design_components(model: dict) -> None:
                 resolved[key] = groups[group][name]
         if "textColor" in resolved and "backgroundColor" in resolved:
             ratio = contrast_ratio(resolved["textColor"], resolved["backgroundColor"])
-            _require(ratio >= 4.5, f"DESIGN.md components.{component}: text contrast {ratio:.2f}:1 is below 4.5:1")
+            _require(
+                ratio >= 4.5,
+                f"DESIGN.md components.{component}: text contrast {ratio:.2f}:1 is below 4.5:1",
+            )
 
 
 def render_design_frontmatter(model: dict) -> str:
@@ -501,7 +623,7 @@ def render_design_md(model: dict, current: str) -> str:
     if end < 0:
         raise TokenError("DESIGN.md frontmatter is not closed")
     lint_design_components(model)
-    return render_design_frontmatter(model) + current[end + len("\n---\n"):]
+    return render_design_frontmatter(model) + current[end + len("\n---\n") :]
 
 
 def outputs(model: dict) -> dict[Path, str]:

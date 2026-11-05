@@ -1,0 +1,10 @@
+# Formatters and linters for the repository's Python, shell, SQL migrations and
+# plain-text files. Compile the locked, hashed tool/requirements-lint.txt with:
+#   pip-compile --generate-hashes --allow-unsafe tool/requirements-lint.in
+black==26.10.1
+ruff==0.17.2
+shellcheck-py==0.11.0.1
+shfmt-py==4.2.0
+squawk-cli==2.70.0
+editorconfig-checker==3.11.1
+actionlint-py==1.7.12.25

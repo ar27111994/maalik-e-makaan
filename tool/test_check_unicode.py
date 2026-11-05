@@ -5,14 +5,13 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(__file__))
-import check_unicode  # noqa: E402
+sys.path.insert(0, str(Path(__file__).parent))
+import check_unicode
 
 RANGES = check_unicode.load_forbidden()
 
@@ -27,7 +26,9 @@ class ContractTest(unittest.TestCase):
         expected = {
             cp
             for r in contract["forbidden"]
-            for cp in range(check_unicode.code_point(r["from"]), check_unicode.code_point(r["to"]) + 1)
+            for cp in range(
+                check_unicode.code_point(r["from"]), check_unicode.code_point(r["to"]) + 1
+            )
         }
         flagged = {cp for cp in range(0x110000) if check_unicode.reason_for(cp, RANGES) is not None}
         self.assertEqual(flagged, expected)
@@ -41,7 +42,9 @@ class ContractTest(unittest.TestCase):
             check_unicode.code_point("202E")
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "contract.json"
-            path.write_text(json.dumps({"forbidden": [{"from": "U+0010", "to": "U+0001", "label": "x"}]}))
+            path.write_text(
+                json.dumps({"forbidden": [{"from": "U+0010", "to": "U+0001", "label": "x"}]})
+            )
             with self.assertRaises(ValueError):
                 check_unicode.load_forbidden(path)
 

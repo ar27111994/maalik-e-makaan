@@ -22,6 +22,7 @@ import fnmatch
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 
 DEFAULT_EXCLUDES = [
     "*.g.dart",
@@ -73,7 +74,11 @@ def parse_lcov(text: str) -> list[FileCoverage]:
                 _merge(current.lines, int(line_no), int(hits))
             elif line.startswith("BRDA:"):
                 line_no, block, branch, taken = line[5:].split(",", 3)
-                _merge(current.branches, (int(line_no), block, branch), 0 if taken == "-" else int(taken))
+                _merge(
+                    current.branches,
+                    (int(line_no), block, branch),
+                    0 if taken == "-" else int(taken),
+                )
             elif line.startswith("FN:"):
                 _, name = line[3:].split(",", 1)
                 current.functions.setdefault(name, 0)
@@ -125,8 +130,7 @@ def describe_gaps(f: FileCoverage) -> str | None:
 
 
 def _read(path: str) -> str:
-    with open(path, encoding="utf-8") as handle:
-        return handle.read()
+    return Path(path).read_text(encoding="utf-8")
 
 
 def run(argv: list[str], read: Callable[[str], str] = _read) -> int:
@@ -159,7 +163,11 @@ def run(argv: list[str], read: Callable[[str], str] = _read) -> int:
             print(gaps)
 
     totals = metrics(files)
-    gates = [("lines", args.min), ("branches", args.min_branches), ("functions", args.min_functions)]
+    gates = [
+        ("lines", args.min),
+        ("branches", args.min_branches),
+        ("functions", args.min_functions),
+    ]
     failed = False
     for key, minimum in gates:
         if minimum is None:
@@ -169,7 +177,9 @@ def run(argv: list[str], read: Callable[[str], str] = _read) -> int:
             print(f"{metric.name} coverage: no {key} data in the report (minimum {minimum}%)")
             failed = True
             continue
-        print(f"{metric.name} coverage: {metric.hit}/{metric.found} = {metric.percent:.2f}% (minimum {minimum}%)")
+        print(
+            f"{metric.name} coverage: {metric.hit}/{metric.found} = {metric.percent:.2f}% (minimum {minimum}%)"
+        )
         if metric.percent + 1e-9 < minimum:
             failed = True
     if failed:

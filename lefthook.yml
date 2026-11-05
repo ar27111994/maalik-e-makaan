@@ -1,11 +1,14 @@
 # Git hooks (https://lefthook.dev). Installed by `npm install` via the
 # "prepare" script. Every check here also runs in CI, so hooks are a fast
-# local feedback loop rather than the only gate.
+# local feedback loop rather than the only gate. Python tools come from .venv
+# (`make bootstrap`).
 pre-commit:
   parallel: true
   commands:
     unicode-guard:
       run: python3 tool/check_unicode.py {staged_files}
+    editorconfig:
+      run: PATH="$PWD/.venv/bin:$PATH" ec {staged_files}
     dart-format:
       glob: "*.dart"
       exclude:
@@ -18,6 +21,22 @@ pre-commit:
     deno-fmt:
       glob: "supabase/functions/**/*.ts"
       run: deno fmt --check {staged_files}
+    python:
+      glob: "*.py"
+      run: >-
+        PATH="$PWD/.venv/bin:$PATH" black --check --quiet {staged_files}
+        && PATH="$PWD/.venv/bin:$PATH" ruff check {staged_files}
+    shell:
+      glob: "*.sh"
+      run: >-
+        PATH="$PWD/.venv/bin:$PATH" shfmt --diff {staged_files}
+        && PATH="$PWD/.venv/bin:$PATH" shellcheck {staged_files}
+    workflows:
+      glob: ".github/workflows/*.yml"
+      run: PATH="$PWD/.venv/bin:$PATH" actionlint {staged_files}
+    migrations:
+      glob: "supabase/migrations/*.sql"
+      run: PATH="$PWD/.venv/bin:$PATH" tool/db/lint_migrations.sh
 
 commit-msg:
   commands:

@@ -9,17 +9,22 @@ You need Flutter 3.47 (Dart 3.13), Deno 2.9, Node 22, Python 3.12+, and, for the
 database suites, PostgreSQL 16 with pgTAP (or the Supabase CLI and Docker).
 
 ```sh
-make bootstrap   # pub, npm and deno dependencies; installs the git hooks
+make bootstrap   # pub, npm and deno dependencies, the pinned Python tools in .venv, git hooks
 make help        # every target, with a one-line description
 ```
 
 ## Before you push
 
 ```sh
-make format-check analyze
+make format        # Dart, TypeScript, Python (black, ruff), shell (shfmt) and docs
+make format-check analyze lint
 make test          # tooling, Dart packages, app, database and Edge Functions
 make test-db-concurrency
 ```
+
+`make lint` runs ruff, shellcheck, actionlint, squawk (on migrations newer than its baseline),
+editorconfig-checker, markdownlint and the Unicode guard. The Dart packages use
+`very_good_analysis` and the Edge Functions `deno lint`.
 
 CI runs the same targets, so a green `make` means a green pull request.
 

@@ -1,0 +1,33 @@
+# Squawk (https://squawkhq.com) lints Postgres migrations for operations that
+# lock or rewrite live tables. Every migration after the baseline below must
+# pass; silence a reviewed statement with "-- squawk-ignore <rule>" and a reason.
+pg_version = "17.0"
+# supabase db push runs each migration file in a transaction.
+assume_in_transaction = true
+excluded_rules = [
+  # Migrations run once, in order, inside a transaction.
+  "prefer-robust-stmts",
+  # smallint/integer columns are deliberate (days, counts, basis points).
+  "prefer-bigint-over-int",
+  "prefer-bigint-over-smallint",
+]
+# The baseline: reviewed and applied to the hosted project before squawk was
+# adopted (2026-11-05). Applied migrations are never edited.
+excluded_paths = [
+  "supabase/migrations/20261103192528_foundation.sql",
+  "supabase/migrations/20261103192722_identity_portfolios.sql",
+  "supabase/migrations/20261103192902_properties_units_tenants.sql",
+  "supabase/migrations/20261103193403_leases.sql",
+  "supabase/migrations/20261103193658_ledger.sql",
+  "supabase/migrations/20261103194151_operations.sql",
+  "supabase/migrations/20261103194240_documents_storage.sql",
+  "supabase/migrations/20261103194402_notifications_audit.sql",
+  "supabase/migrations/20261103194625_reports.sql",
+  "supabase/migrations/20261103194829_jobs_and_api_guards.sql",
+  "supabase/migrations/20261103195939_revoke_api_maintain_privilege.sql",
+  "supabase/migrations/20261103200528_deposit_position_invoker.sql",
+  "supabase/migrations/20261104080502_function_rate_limits.sql",
+  "supabase/migrations/20261104143928_ledger_jobs_hardening.sql",
+  "supabase/migrations/20261105072426_membership_deletion_storage.sql",
+  "supabase/migrations/20261105085837_lease_delete_guard.sql",
+]

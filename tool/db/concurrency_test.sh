@@ -64,7 +64,8 @@ psql_db() { psql -X -q -At -v ON_ERROR_STOP=1 -d "$MM_TEST_DB" "$@"; }
 
 # Fixture: one owner, one lease with 24 months of unpaid rent (so payments
 # always have dues to settle).
-IFS="|" read -r OWNER LEASE PORTFOLIO < <(psql_db <<'SQL'
+IFS="|" read -r OWNER LEASE PORTFOLIO < <(
+  psql_db <<'SQL'
 set app.today_override = '2026-11-03';
 with u as (
   insert into auth.users (id, email, email_confirmed_at)
@@ -115,7 +116,9 @@ for i in $(seq 1 40); do
 done
 wait
 if grep -l . "$WORK"/distinct_*.err >/dev/null 2>&1; then
-  echo "✗ errors during parallel payments:"; cat "$WORK"/distinct_*.err; exit 1
+  echo "✗ errors during parallel payments:"
+  cat "$WORK"/distinct_*.err
+  exit 1
 fi
 
 # 2. Same idempotency key in parallel ---------------------------------------------
@@ -127,10 +130,15 @@ for i in $(seq 1 25); do
 done
 wait
 if grep -l . "$WORK"/same_*.err >/dev/null 2>&1; then
-  echo "✗ errors during idempotent retries:"; cat "$WORK"/same_*.err; exit 1
+  echo "✗ errors during idempotent retries:"
+  cat "$WORK"/same_*.err
+  exit 1
 fi
 SAME_RECEIPTS="$(cat "$WORK"/same_*.out | sort -u | grep -c .)"
-[[ "$SAME_RECEIPTS" == "1" ]] || { echo "✗ retries returned ${SAME_RECEIPTS} different receipts"; exit 1; }
+[[ "$SAME_RECEIPTS" == "1" ]] || {
+  echo "✗ retries returned ${SAME_RECEIPTS} different receipts"
+  exit 1
+}
 
 # 3. Billing sync racing payments -----------------------------------------------------
 echo "▸ 10 billing syncs racing 10 payments"
@@ -141,7 +149,9 @@ for i in $(seq 1 10); do
 done
 wait
 if grep -l . "$WORK"/sync_*.err "$WORK"/race_*.err >/dev/null 2>&1; then
-  echo "✗ errors while racing billing and payments:"; cat "$WORK"/sync_*.err "$WORK"/race_*.err; exit 1
+  echo "✗ errors while racing billing and payments:"
+  cat "$WORK"/sync_*.err "$WORK"/race_*.err
+  exit 1
 fi
 
 # 4. Daily job racing syncs and payments ------------------------------------------------
@@ -196,14 +206,16 @@ for round in $(seq 1 "$JOB_ROUNDS"); do
   done
   random_payment | psql_db >/dev/null 2>"$WORK/jpay_${round}_1.err" &
   random_payment | psql_db >/dev/null 2>"$WORK/jpay_${round}_2.err" &
-  sleep "0.0$(( (round % 9) + 1 ))"
+  sleep "0.0$(((round % 9) + 1))"
   # Two coordinators: the second must skip at once, not queue behind the first.
   run_job "$AS_OF" 1000 | psql_db >/dev/null 2>"$WORK/job_${round}_1.err" &
   run_job "$AS_OF" 1000 | psql_db >/dev/null 2>"$WORK/job_${round}_2.err" &
   wait
 done
 if grep -l . "$WORK"/job_*.err "$WORK"/jsync_*.err "$WORK"/jpay_*.err >/dev/null 2>&1; then
-  echo "✗ errors while racing the daily job:"; cat "$WORK"/job_*.err "$WORK"/jsync_*.err "$WORK"/jpay_*.err; exit 1
+  echo "✗ errors while racing the daily job:"
+  cat "$WORK"/job_*.err "$WORK"/jsync_*.err "$WORK"/jpay_*.err
+  exit 1
 fi
 # Runs until one maintains nothing: that run finds the day done and does the
 # once-a-day work (notifications never run while lease locks are held).
@@ -242,11 +254,21 @@ HOLDER=$!
 sleep 1
 START="$(date +%s%N)"
 BUSY="$(run_job 2026-11-20 1000 "->> 'leases_busy'" | psql_db)"
-ELAPSED_MS=$(( ($(date +%s%N) - START) / 1000000 ))
+ELAPSED_MS=$((($(date +%s%N) - START) / 1000000))
 wait "$HOLDER"
-[[ ! -s "$WORK/holder.err" ]] || { echo "✗ the lock holder failed:"; cat "$WORK/holder.err"; exit 1; }
-[[ "$BUSY" == "1" ]] || { echo "✗ expected 1 busy lease, got '${BUSY}'"; exit 1; }
-(( ELAPSED_MS < 2500 )) || { echo "✗ the job waited ${ELAPSED_MS} ms for a busy lease"; exit 1; }
+[[ ! -s "$WORK/holder.err" ]] || {
+  echo "✗ the lock holder failed:"
+  cat "$WORK/holder.err"
+  exit 1
+}
+[[ "$BUSY" == "1" ]] || {
+  echo "✗ expected 1 busy lease, got '${BUSY}'"
+  exit 1
+}
+((ELAPSED_MS < 2500)) || {
+  echo "✗ the job waited ${ELAPSED_MS} ms for a busy lease"
+  exit 1
+}
 echo "  skipped the busy lease in ${ELAPSED_MS} ms"
 
 # 6. One idempotency key, two leases, in parallel ---------------------------------------
@@ -256,21 +278,24 @@ OTHER_LEASE="$(psql_db -c "select id from public.leases where id <> '${LEASE}' o
 SHARED_KEY="22222222-3333-4444-8555-666666666666"
 for i in $(seq 1 10); do
   TARGET="$LEASE"
-  (( i % 2 == 0 )) && TARGET="$OTHER_LEASE"
+  ((i % 2 == 0)) && TARGET="$OTHER_LEASE"
   as_owner "select public.record_payment('${TARGET}', 777, '2026-11-03', 'cash', '${SHARED_KEY}') -> 'payment' ->> 'receipt_number';" \
     | psql_db >"$WORK/key_$i.out" 2>"$WORK/key_$i.err" &
 done
 wait
 for f in "$WORK"/key_*.err; do
   if [[ -s "$f" ]] && ! grep -q "ERROR:  idempotency_key_reused" "$f"; then
-    echo "✗ unexpected error for a shared key:"; cat "$f"; exit 1
+    echo "✗ unexpected error for a shared key:"
+    cat "$f"
+    exit 1
   fi
 done
 KEY_PAYMENTS="$(psql_db -c "select count(*) from public.payments where idempotency_key = '${SHARED_KEY}'")"
 KEY_REPLIES="$(cat "$WORK"/key_*.out | grep -c . || true)"
 KEY_RECEIPTS="$(cat "$WORK"/key_*.out | sort -u | grep -c . || true)"
 [[ "$KEY_PAYMENTS" == "1" && "$KEY_REPLIES" == "5" && "$KEY_RECEIPTS" == "1" ]] || {
-  echo "✗ shared key: ${KEY_PAYMENTS} payments, ${KEY_REPLIES} replies, ${KEY_RECEIPTS} receipts"; exit 1
+  echo "✗ shared key: ${KEY_PAYMENTS} payments, ${KEY_REPLIES} replies, ${KEY_RECEIPTS} receipts"
+  exit 1
 }
 
 # Session helpers for the membership and deletion races.
@@ -316,7 +341,9 @@ only_errors() {
   shift
   for file in "$@"; do
     if [[ -s "$file" ]] && ! grep -q "ERROR:  ${allowed}" "$file"; then
-      echo "✗ unexpected error in $(basename "$file"):"; cat "$file"; exit 1
+      echo "✗ unexpected error in $(basename "$file"):"
+      cat "$file"
+      exit 1
     fi
   done
 }
@@ -337,12 +364,21 @@ sleep 0.7
 as_user "$OWNER_B" "select public.update_member_role('${TEAM}', '${MANAGER_C}', 'viewer');" \
   | psql_db >/dev/null 2>"$WORK/stale.err" || true
 wait "$REMOVER"
-[[ ! -s "$WORK/remove.err" ]] || { echo "✗ the removal failed:"; cat "$WORK/remove.err"; exit 1; }
+[[ ! -s "$WORK/remove.err" ]] || {
+  echo "✗ the removal failed:"
+  cat "$WORK/remove.err"
+  exit 1
+}
 grep -q "ERROR:  forbidden" "$WORK/stale.err" || {
-  echo "✗ the removed owner was not refused:"; cat "$WORK/stale.err"; exit 1
+  echo "✗ the removed owner was not refused:"
+  cat "$WORK/stale.err"
+  exit 1
 }
 ROLE_C="$(psql_db -c "select role from public.portfolio_members where portfolio_id = '${TEAM}' and user_id = '${MANAGER_C}'")"
-[[ "$ROLE_C" == "manager" ]] || { echo "✗ the manager's role became ${ROLE_C}"; exit 1; }
+[[ "$ROLE_C" == "manager" ]] || {
+  echo "✗ the manager's role became ${ROLE_C}"
+  exit 1
+}
 
 # 8. Co-owners deleting their accounts at once ----------------------------------------------
 echo "▸ Co-owners deleting their accounts at once never orphan their portfolio"
@@ -358,7 +394,8 @@ as_service "select public.admin_delete_account_data('${OWNER_Y}');" | psql_db >/
 wait "$FIRST"
 only_errors "never-allowed" "$WORK/delete_x.err" "$WORK/delete_y.err"
 [[ "$(psql_db -c "select count(*) from public.portfolios where id = '${ESTATE}'")" == "0" ]] || {
-  echo "✗ the shared portfolio outlived both owners"; exit 1
+  echo "✗ the shared portfolio outlived both owners"
+  exit 1
 }
 
 # 9. Deleting portfolios while their leases are written ---------------------------------
@@ -398,7 +435,7 @@ SQL
   as_user "$DOOMED_OWNER" "select public.sync_portfolio_billing('${DOOMED}');" \
     | psql_db >/dev/null 2>"$WORK/doomed_sync_${round}.err" &
   run_job "2026-11-2${round}" 1000 | psql_db >/dev/null 2>"$WORK/doomed_job_${round}.err" &
-  sleep "0.0$(( round * 3 ))"
+  sleep "0.0$((round * 3))"
   as_user "$DOOMED_OWNER" "select public.delete_portfolio('${DOOMED}', 'Doomed ${round}');" \
     | psql_db >/dev/null 2>"$WORK/doomed_delete_${round}.err" &
   wait
@@ -406,7 +443,8 @@ done
 only_errors "forbidden" "$WORK"/doomed_pay_*.err "$WORK"/doomed_sync_*.err
 only_errors "never-allowed" "$WORK"/doomed_job_*.err "$WORK"/doomed_delete_*.err
 [[ "$(psql_db -c "select count(*) from public.portfolios where name like 'Doomed %'")" == "0" ]] || {
-  echo "✗ a doomed portfolio survived its deletion"; exit 1
+  echo "✗ a doomed portfolio survived its deletion"
+  exit 1
 }
 
 # 10. Accepting an invitation while the portfolio is deleted ----------------------------
@@ -425,10 +463,13 @@ for round in 1 2 3; do
 done
 only_errors "never-allowed" "$WORK"/accept_*.err "$WORK"/venue_delete_*.err
 if grep -hv -e '^accepted$' -e '^invalid$' "$WORK"/accept_*.out | grep -q .; then
-  echo "✗ unexpected acceptance status:"; cat "$WORK"/accept_*.out; exit 1
+  echo "✗ unexpected acceptance status:"
+  cat "$WORK"/accept_*.out
+  exit 1
 fi
 [[ "$(psql_db -c "select count(*) from public.portfolios where name like 'Venue %'")" == "0" ]] || {
-  echo "✗ an invited portfolio survived its deletion"; exit 1
+  echo "✗ an invited portfolio survived its deletion"
+  exit 1
 }
 
 # A portfolio named $2, owned by $1, with $3 tenancies; prints its id.
@@ -492,13 +533,17 @@ only_errors_matching() {
   shift
   for file in "$@"; do
     if [[ -s "$file" ]] && grep "ERROR:" "$file" | grep -qvE "ERROR:  (${allowed})"; then
-      echo "✗ unexpected error in $(basename "$file"):"; cat "$file"; exit 1
+      echo "✗ unexpected error in $(basename "$file"):"
+      cat "$file"
+      exit 1
     fi
   done
 }
 no_deadlocks() {
   if cat "$@" 2>/dev/null | grep -q "deadlock detected"; then
-    echo "✗ deadlock:"; grep -l "deadlock detected" "$@"; exit 1
+    echo "✗ deadlock:"
+    grep -l "deadlock detected" "$@"
+    exit 1
   fi
 }
 
@@ -539,7 +584,8 @@ no_deadlocks "$WORK"/track_*.err
 only_errors "never-allowed" "$WORK"/track_pay_*.err "$WORK"/track_delete_*.err
 only_errors_matching "$LOSER_ERRORS" "$WORK"/track_reminder_*.err "$WORK"/track_lease_*.err "$WORK"/track_sync_*.err
 [[ "$(psql_db -c "select count(*) from public.portfolios where name like 'Racing %'")" == "0" ]] || {
-  echo "✗ a racing portfolio survived its deletion"; exit 1
+  echo "✗ a racing portfolio survived its deletion"
+  exit 1
 }
 
 # 12. An audited client UPDATE during a long cascade -------------------------------------
@@ -565,10 +611,12 @@ wait
 no_deadlocks "$WORK"/long_*.err
 only_errors "never-allowed" "$WORK"/long_delete.err "$WORK"/long_rename.err
 [[ "$(psql_db -c "select count(*) from public.portfolios where id = '${LONG}'")" == "0" ]] || {
-  echo "✗ the long portfolio survived its deletion"; exit 1
+  echo "✗ the long portfolio survived its deletion"
+  exit 1
 }
 [[ "$(psql_db -c "select count(*) from private.storage_cleanup_queue where path = '${LONG}/'")" == "1" ]] || {
-  echo "✗ the long portfolio's folder was not queued"; exit 1
+  echo "✗ the long portfolio's folder was not queued"
+  exit 1
 }
 
 # 13. A document attached while its entity is deleted ------------------------------------
@@ -597,11 +645,13 @@ for order in insert_first delete_first; do
   only_errors "never-allowed" "$WORK/doc_${order}_remove.err"
   only_errors_matching "document_entity_not_found" "$WORK/doc_${order}_attach.err"
   [[ "$(psql_db -c "select count(*) from public.documents where entity_id = '${SHORT_STAY}'")" == "0" ]] || {
-    echo "✗ ${order}: a document outlived its tenant"; exit 1
+    echo "✗ ${order}: a document outlived its tenant"
+    exit 1
   }
   if [[ ! -s "$WORK/doc_${order}_attach.err" ]] \
-     && [[ "$(psql_db -c "select count(*) from private.storage_cleanup_queue where path = '${CNIC_FILE}'")" != "1" ]]; then
-    echo "✗ ${order}: the attached file was not queued with its tenant"; exit 1
+    && [[ "$(psql_db -c "select count(*) from private.storage_cleanup_queue where path = '${CNIC_FILE}'")" != "1" ]]; then
+    echo "✗ ${order}: the attached file was not queued with its tenant"
+    exit 1
   fi
 done
 
@@ -623,13 +673,20 @@ as_user "$LEAVER" "select (public.create_portfolio('Replayed offline', '01a1a2ff
 wait
 only_errors "never-allowed" "$WORK/leaver_delete.err"
 grep -q "ERROR:  account_deleted" "$WORK/leaver_accept.err" || {
-  echo "✗ the acceptance was not refused:"; cat "$WORK"/leaver_accept.*; exit 1
+  echo "✗ the acceptance was not refused:"
+  cat "$WORK"/leaver_accept.*
+  exit 1
 }
 grep -q "ERROR:  account_deleted" "$WORK/leaver_create.err" || {
-  echo "✗ the replayed create was not refused:"; cat "$WORK"/leaver_create.*; exit 1
+  echo "✗ the replayed create was not refused:"
+  cat "$WORK"/leaver_create.*
+  exit 1
 }
 as_user "$HOST_O" "select public.remove_member('${HALL}', '${HOST_O}');" | psql_db >/dev/null 2>"$WORK/hall_leave.err" || true
-grep -q "ERROR:  last_owner" "$WORK/hall_leave.err" || { echo "✗ the hall's only owner could leave"; exit 1; }
+grep -q "ERROR:  last_owner" "$WORK/hall_leave.err" || {
+  echo "✗ the hall's only owner could leave"
+  exit 1
+}
 
 # 15. Manual charges and payments on one lease -------------------------------------------
 # A manual charge took its lease only after the insert's foreign-key check had
@@ -653,7 +710,8 @@ done
 no_deadlocks "$WORK"/manual_*.err
 only_errors "never-allowed" "$WORK"/manual_*.err
 [[ "$(psql_db -c "select count(*) from public.charges where lease_id = '${BILLED_LEASE}' and kind = 'maintenance'")" == "30" ]] || {
-  echo "✗ manual charges went missing"; exit 1
+  echo "✗ manual charges went missing"
+  exit 1
 }
 
 # 16. Claiming a portfolio's id while it is deleted ---------------------------------------
@@ -672,10 +730,14 @@ done
 wait
 only_errors "never-allowed" "$WORK/claim_delete.err"
 for i in $(seq 1 10); do
-  grep -q "ERROR:  forbidden" "$WORK/claim_${i}.err" || { echo "✗ claim ${i} was not refused"; exit 1; }
+  grep -q "ERROR:  forbidden" "$WORK/claim_${i}.err" || {
+    echo "✗ claim ${i} was not refused"
+    exit 1
+  }
 done
 [[ "$(psql_db -c "select count(*) from public.portfolios where id = '${CLAIMED}'")" == "0" ]] || {
-  echo "✗ a deleted portfolio's id was claimed"; exit 1
+  echo "✗ a deleted portfolio's id was claimed"
+  exit 1
 }
 
 # 17. An auth user deleted while a co-owner deletes their portfolio --------------------------
@@ -703,7 +765,8 @@ wait
 no_deadlocks "$WORK"/handed_*.err
 only_errors "never-allowed" "$WORK"/handed_*.err
 [[ "$(psql_db -c "select count(*) from public.portfolios where id = '${HANDED}'")" == "0" ]] || {
-  echo "✗ the handed-over portfolio survived"; exit 1
+  echo "✗ the handed-over portfolio survived"
+  exit 1
 }
 
 # 18. A tenancy deleted while a charge is added to it (both orders) -------------------------
@@ -719,7 +782,7 @@ for round in 1 2 3 4 5 6; do
   MISTAKE="$(psql_db -c "select id from public.leases where portfolio_id = '${ESTATE}'")"
   ADD_CHARGE="insert into public.charges (portfolio_id, lease_id, kind, due_date, amount, description) values ('${ESTATE}', '${MISTAKE}', 'damages', '2026-11-03', 700, 'Round ${round}');"
   DELETE_LEASE="delete from public.leases where id = '${MISTAKE}';"
-  if (( round % 2 )); then
+  if ((round % 2)); then
     as_user "$CLERK" "${DELETE_LEASE} select pg_sleep(0.5);" | psql_db >/dev/null 2>"$WORK/mistake_del_${round}.err" &
     sleep 0.2
     as_user "$CLERK" "${ADD_CHARGE}" | psql_db >/dev/null 2>"$WORK/mistake_chg_${round}.err" &
@@ -731,15 +794,17 @@ for round in 1 2 3 4 5 6; do
   wait
   LEASE_LEFT="$(psql_db -c "select count(*) from public.leases where id = '${MISTAKE}'")"
   ENTERED_LEFT="$(psql_db -c "select count(*) from public.charges where lease_id = '${MISTAKE}' and source = 'manual'")"
-  if (( round % 2 )); then
+  if ((round % 2)); then
     if [[ "$LEASE_LEFT" != "0" || "$ENTERED_LEFT" != "0" ]] \
       || ! grep -q 'violates foreign key constraint' "$WORK/mistake_chg_${round}.err"; then
-      echo "✗ round ${round}: the delete came first, so the charge must fail"; exit 1
+      echo "✗ round ${round}: the delete came first, so the charge must fail"
+      exit 1
     fi
   else
     if [[ "$LEASE_LEFT" != "1" || "$ENTERED_LEFT" != "1" ]] \
       || ! grep -q "ERROR:  lease_has_records" "$WORK/mistake_del_${round}.err"; then
-      echo "✗ round ${round}: the charge came first, so the delete must be refused"; exit 1
+      echo "✗ round ${round}: the charge came first, so the delete must be refused"
+      exit 1
     fi
   fi
 done
@@ -749,7 +814,8 @@ only_errors_matching 'lease_has_records|insert or update on table "charges" viol
 
 # 19. Invariants --------------------------------------------------------------------------
 echo "▸ Checking invariants"
-RESULT="$(psql_db <<SQL
+RESULT="$(
+  psql_db <<SQL
 select json_build_object(
   'payments', (select count(*) from public.payments where portfolio_id = '${PORTFOLIO}'),
   'receipts_distinct', (select count(distinct receipt_number) from public.payments where portfolio_id = '${PORTFOLIO}'),
