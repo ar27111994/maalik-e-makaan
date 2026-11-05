@@ -64,12 +64,16 @@ Deno.test({
   name: 'functions refuse unknown browser origins',
   ignore: !ENABLED,
   async fn() {
+    // A real request, not a preflight: the local stack's gateway answers
+    // preflights itself, while the function's own origin check is what
+    // protects every environment (preflights are covered by the unit tests).
     const response = await fetch(functionUrl('invite-member'), {
-      method: 'OPTIONS',
-      headers: { origin: 'https://evil.example', 'access-control-request-method': 'POST' },
+      method: 'POST',
+      headers: { origin: 'https://evil.example', 'content-type': 'application/json' },
+      body: '{}',
     });
     assertEquals(response.status, 403);
-    await response.body?.cancel();
+    assertEquals((await response.json()).error.code, 'origin_not_allowed');
   },
 });
 
