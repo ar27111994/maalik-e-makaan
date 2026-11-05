@@ -42,7 +42,10 @@ export function errorResponse(error: HttpError, requestId: string): Response {
 
 /**
  * Copies [response] with [headers] set and the security headers added where
- * the response does not set them itself. With [dropBody] (HEAD requests) the
+ * the response does not set them itself. Every header of the response is
+ * kept as it was (several Set-Cookie headers included), and a Vary in
+ * [headers] is merged into the response's own Vary rather than replacing it,
+ * so shared caches still key on both. With [dropBody] (HEAD requests) the
  * copy has no body.
  */
 export function withHeaders(
@@ -50,15 +53,39 @@ export function withHeaders(
   headers: Record<string, string>,
   dropBody = false,
 ): Response {
-  const merged = new Headers(SECURITY_HEADERS);
-  response.headers.forEach((value, name) => merged.set(name, value));
-  for (const [name, value] of Object.entries(headers)) merged.set(name, value);
+  const merged = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    if (!merged.has(name)) merged.set(name, value);
+  }
+  for (const [name, value] of Object.entries(headers)) {
+    if (name.toLowerCase() === 'vary') {
+      merged.set('vary', mergeVary(merged.get('vary'), value));
+    } else {
+      merged.set(name, value);
+    }
+  }
   if (dropBody) void response.body?.cancel();
   return new Response(dropBody ? null : response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: merged,
   });
+}
+
+/**
+ * The union of two Vary header values: each field name once (compared
+ * case-insensitively, first spelling kept), and `*` when either is `*`.
+ */
+export function mergeVary(current: string | null, extra: string): string {
+  const fields: string[] = [];
+  const seen = new Set<string>();
+  for (const field of `${current ?? ''},${extra}`.split(',')) {
+    const name = field.trim();
+    if (name === '' || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    fields.push(name);
+  }
+  return seen.has('*') ? '*' : fields.join(', ');
 }
 
 export const DEFAULT_MAX_BODY_BYTES = 16 * 1024;

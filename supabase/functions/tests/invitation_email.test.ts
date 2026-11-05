@@ -327,6 +327,37 @@ Deno.test('looksLikeLink flags URL schemes, www., e-mail addresses and domain na
   for (const [text, expected] of cases) assertEquals(looksLikeLink(text), expected, text);
 });
 
+Deno.test('looksLikeLink sees through disguised domains', () => {
+  const zwnj = '\u200c';
+  const zwj = '\u200d';
+  const lrm = '\u200e';
+  const rlm = '\u200f';
+  const disguised = [
+    `evil${zwnj}.com`, // a joiner before the dot renders as evil.com
+    `evil.${zwj}com`,
+    `evil${lrm}.com`,
+    `evil.${rlm}com`,
+    'evil\uff0ecom', // full-width full stop
+    'evil\u3002com', // ideographic full stop (IDNA maps it to a dot)
+    'evil\uff61com', // half-width ideographic full stop
+    '\uff45\uff56\uff49\uff4c.\uff43\uff4f\uff4d', // full-width letters
+    '\u043f\u0440\u0438\u043c\u0435\u0440.\u0440\u0444', // an internationalised domain
+    `w${zwnj}ww.example`,
+    `https${zwj}://x`,
+  ];
+  for (const text of disguised) assertEquals(looksLikeLink(text), true, JSON.stringify(text));
+  // Urdu with its own full stop, and names with joiners, stay names.
+  for (
+    const text of [
+      '\u0627\u062d\u0645\u062f \u0631\u0636\u0627\u06d4',
+      `\u0646\u06cc${zwnj}\u0645`,
+      'Block A.B',
+    ]
+  ) {
+    assertEquals(looksLikeLink(text), false, JSON.stringify(text));
+  }
+});
+
 Deno.test('displayName keeps one line of at most max graphemes, or nothing when link-like', () => {
   const family = '\u{1F468}‍\u{1F469}‍\u{1F467}';
   const meemKasra = 'مِ';

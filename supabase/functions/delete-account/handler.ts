@@ -248,7 +248,14 @@ async function deleteAccount(ctx: RequestContext, deps: DeleteAccountDeps): Prom
         clock: deps.clock,
       });
       filesRemoved = report.objectsRemoved;
+      if (report.failure !== null) {
+        ctx.log.error('account_files_cleanup_deferred', {
+          user_id: caller.id,
+          error: report.failure,
+        });
+      }
     } catch (error) {
+      // The account is already gone; the queued files are removed later.
       ctx.log.error('account_files_cleanup_deferred', { user_id: caller.id, error });
     }
   }

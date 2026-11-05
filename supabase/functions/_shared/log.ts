@@ -22,7 +22,7 @@ export interface Logger {
   error(event: string, fields?: Record<string, unknown>): void;
 }
 
-const SENSITIVE_KEY = /token|secret|password|authorization|apikey|api_key|cookie|email|jwt/i;
+const SENSITIVE_KEY = /token|secret|password|authorization|api[-_]?key|cookie|email|jwt/i;
 const MAX_DEPTH = 6;
 /** Longest string value kept in a record. */
 export const MAX_STRING_LENGTH = 1_000;
@@ -35,6 +35,8 @@ export const MAX_RECORD_BYTES = 8_192;
  */
 export function redact(value: unknown, depth = 0): unknown {
   if (depth > MAX_DEPTH) return '[truncated]';
+  // JSON cannot represent a BigInt; its digits are what a reader needs.
+  if (typeof value === 'bigint') return value.toString();
   if (typeof value === 'string') {
     return value.length <= MAX_STRING_LENGTH
       ? value
@@ -87,12 +89,32 @@ export function boundRecord(record: LogRecord): LogRecord {
   };
 }
 
-/** A logger whose records all carry [base] fields (function name, request id). */
+/**
+ * A logger whose records all carry [base] fields (function name, request
+ * id). Logging never throws: a record that cannot be serialised (a value
+ * whose toJSON or getter throws) is replaced by a marker with its level,
+ * event and request id, because a logging failure inside an error handler
+ * would otherwise replace the response the caller is owed.
+ */
 export function createLogger(base: Record<string, unknown>, sink: LogSink = consoleSink): Logger {
   const write = (level: LogLevel, event: string, fields: Record<string, unknown> = {}) => {
-    sink(
-      boundRecord({ ...(redact({ ...base, ...fields }) as Record<string, unknown>), level, event }),
-    );
+    let record: LogRecord;
+    try {
+      record = boundRecord({
+        ...(redact({ ...base, ...fields }) as Record<string, unknown>),
+        level,
+        event,
+      });
+    } catch (error) {
+      record = {
+        level,
+        event,
+        fn: base['fn'],
+        request_id: base['request_id'],
+        unserialisable: error instanceof Error ? error.name : 'unknown',
+      };
+    }
+    sink(record);
   };
   return {
     info: (event, fields) => write('info', event, fields),

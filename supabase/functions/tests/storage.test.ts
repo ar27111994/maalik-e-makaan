@@ -1,4 +1,10 @@
-import { assert, assertEquals, assertFalse, assertRejects, assertStrictEquals } from '@std/assert';
+import {
+  assert,
+  assertEquals,
+  assertFalse,
+  assertInstanceOf,
+  assertStrictEquals,
+} from '@std/assert';
 import { HttpError } from '../_shared/errors.ts';
 import {
   CLAIM_LEASE_SECONDS,
@@ -57,7 +63,15 @@ function page(objects: readonly string[]): Result {
 }
 
 function report(counts: Partial<CleanupReport> = {}): CleanupReport {
-  return { claimed: 0, done: 0, rescheduled: 0, retried: 0, objectsRemoved: 0, ...counts };
+  return {
+    claimed: 0,
+    done: 0,
+    rescheduled: 0,
+    retried: 0,
+    objectsRemoved: 0,
+    failure: null,
+    ...counts,
+  };
 }
 
 // --- a scripted queue -------------------------------------------------------------
@@ -224,7 +238,7 @@ Deno.test('claims round after round until the queue answers empty', async () => 
   assertEquals(admin.calls, expected);
 });
 
-Deno.test('a failing claim throws 502 upstream_error, or 503 temporarily_unavailable on deadlock', async () => {
+Deno.test('a failing claim stops the run with a 502 upstream_error, or a 503 on deadlock', async () => {
   const cases: ReadonlyArray<
     readonly [Record<string, unknown>, number, string, Record<string, string>]
   > = [
@@ -238,23 +252,37 @@ Deno.test('a failing claim throws 502 upstream_error, or 503 temporarily_unavail
   for (const [error, status, code, headers] of cases) {
     const label = JSON.stringify(error);
     const admin = queue({ claims: [{ error }] });
-    const thrown = await assertRejects(() => drain(admin), HttpError);
+    const { failure, ...counts } = await drain(admin);
+    assertInstanceOf(failure, HttpError, label);
     assertEquals(
-      { status: thrown.status, code: thrown.code, headers: thrown.headers },
+      { status: failure.status, code: failure.code, headers: failure.headers },
       { status, code, headers },
       label,
     );
-    assertStrictEquals(thrown.cause, error, label);
+    assertStrictEquals(failure.cause, error, label);
+    assertEquals({ ...counts, failure: null }, report(), label);
     assertEquals(admin.calls, [claimCall()], label);
   }
 });
 
-Deno.test('a claim failing in a later round throws after the earlier items were completed', async () => {
+Deno.test('a claim failing in a later round reports the work of the earlier rounds', async () => {
   const error = { code: '40001', message: 'could not serialize access' };
-  const admin = queue({ claims: [{ data: [file(1)] }, { error }] });
-  const thrown = await assertRejects(() => drain(admin), HttpError);
-  assertEquals([thrown.status, thrown.code], [503, 'temporarily_unavailable']);
-  assertEquals(admin.calls, [claimCall(), listCall(1), completeCall(1, true), claimCall()]);
+  const admin = queue({
+    claims: [{ data: [file(1)] }, { error }],
+    listings: { 1: [page([file(1).path])] },
+  });
+  const { failure, ...counts } = await drain(admin);
+  assertInstanceOf(failure, HttpError);
+  assertEquals([failure.status, failure.code], [503, 'temporarily_unavailable']);
+  assertEquals({ ...counts, failure: null }, report({ claimed: 1, done: 1, objectsRemoved: 1 }));
+  assertEquals(admin.calls, [
+    claimCall(),
+    listCall(1),
+    removeCall(DOCUMENTS_BUCKET, [file(1).path]),
+    listCall(1),
+    completeCall(1, true),
+    claimCall(),
+  ]);
 });
 
 // --- cleaning an item ------------------------------------------------------------------------
@@ -554,17 +582,64 @@ Deno.test('a "missing" answer (the item already left the queue) is counted nowhe
   assertEquals(await drain(admin), report({ claimed: 2, done: 1 }));
 });
 
-Deno.test('a failing completion throws and leaves the rest of the claim to lapse', async () => {
+Deno.test('a failing completion stops the run, keeps its count and leaves the rest to lapse', async () => {
   const cases: ReadonlyArray<readonly [Record<string, unknown>, number, string]> = [
     [{ code: 'XX000', message: 'internal error' }, 502, 'upstream_error'],
     [{ code: '40001', message: 'could not serialize access' }, 503, 'temporarily_unavailable'],
   ];
   for (const [error, status, code] of cases) {
-    const admin = queue({ claims: [{ data: [file(1), file(2)] }], complete: () => ({ error }) });
-    const thrown = await assertRejects(() => drain(admin), HttpError);
-    assertEquals([thrown.status, thrown.code], [status, code], code);
-    assertStrictEquals(thrown.cause, error, code);
-    assertEquals(admin.calls, [claimCall(), listCall(1), completeCall(1, true)], code);
+    const admin = queue({
+      claims: [{ data: [file(1), file(2)] }],
+      listings: { 1: [page([file(1).path])] },
+      complete: () => ({ error }),
+    });
+    const { failure, ...counts } = await drain(admin);
+    assertInstanceOf(failure, HttpError, code);
+    assertEquals([failure.status, failure.code], [status, code], code);
+    assertStrictEquals(failure.cause, error, code);
+    // The file was removed before the completion failed: it is counted.
+    assertEquals({ ...counts, failure: null }, report({ claimed: 2, objectsRemoved: 1 }), code);
+    assertEquals(admin.calls, [
+      claimCall(),
+      listCall(1),
+      removeCall(DOCUMENTS_BUCKET, [file(1).path]),
+      listCall(1),
+      completeCall(1, true),
+    ], code);
+  }
+});
+
+Deno.test('only objects the Storage API reports as deleted are counted', async () => {
+  const admin = queue({
+    claims: [{ data: [folder(1)] }],
+    listings: { 1: [page(['a', 'b', 'c'])] },
+    // Storage deleted one of the three (the others were already gone).
+    remove: () => ({ data: [{ name: 'a' }] }),
+  });
+  assertEquals(await drain(admin), report({ claimed: 1, done: 1, objectsRemoved: 1 }));
+  const nothing = queue({
+    claims: [{ data: [folder(1)] }],
+    listings: { 1: [page(['a'])] },
+    remove: () => ({ data: null }),
+  });
+  assertEquals(await drain(nothing), report({ claimed: 1, done: 1, objectsRemoved: 0 }));
+});
+
+Deno.test('a listing failing with an empty code records the message; with neither, "failed"', async () => {
+  const cases: ReadonlyArray<readonly [Record<string, unknown>, string]> = [
+    [{ code: '', message: 'TypeError: fetch failed' }, 'list: TypeError: fetch failed'],
+    [{ code: '', message: '' }, 'list: failed'],
+    [{ code: '57014', message: 'canceling statement' }, 'list: 57014'],
+  ];
+  for (const [error, recorded] of cases) {
+    const admin = queue({ claims: [{ data: [file(9)] }], listings: { 9: [{ error }] } });
+    await drain(admin);
+    assertEquals(admin.calls, [
+      claimCall(),
+      listCall(9),
+      completeCall(9, false, recorded),
+      claimCall(),
+    ], recorded);
   }
 });
 

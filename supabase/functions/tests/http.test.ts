@@ -4,6 +4,7 @@ import {
   DEFAULT_MAX_BODY_BYTES,
   errorResponse,
   json,
+  mergeVary,
   readJsonObject,
   SECURITY_HEADERS,
   withHeaders,
@@ -162,6 +163,34 @@ Deno.test('withHeaders lets the given headers override the response and the secu
     'referrer-policy': 'same-origin',
     'x-request-id': 'from-pipeline',
   });
+});
+
+Deno.test('withHeaders keeps every Set-Cookie of the response', () => {
+  const original = new Response('{}', {
+    headers: [['set-cookie', 'a=1'], ['set-cookie', 'b=2']],
+  });
+  assertEquals(withHeaders(original, {}).headers.getSetCookie(), ['a=1', 'b=2']);
+});
+
+Deno.test("withHeaders merges a Vary into the response's own instead of replacing it", () => {
+  const cases: ReadonlyArray<readonly [string | null, string, string]> = [
+    [null, 'Origin', 'Origin'],
+    ['Accept-Language', 'Origin', 'Accept-Language, Origin'],
+    ['origin', 'Origin', 'origin'],
+    ['Accept-Language, Origin', 'Origin', 'Accept-Language, Origin'],
+    ['*', 'Origin', '*'],
+  ];
+  for (const [own, added, merged] of cases) {
+    const original = new Response('{}', own === null ? {} : { headers: { vary: own } });
+    assertEquals(withHeaders(original, { vary: added }).headers.get('vary'), merged, String(own));
+  }
+});
+
+Deno.test('mergeVary lists each field once, ignores empty entries and lets * win', () => {
+  assertEquals(mergeVary(null, 'Origin'), 'Origin');
+  assertEquals(mergeVary('', ''), '');
+  assertEquals(mergeVary(' Accept ,, Origin ', 'ORIGIN, Cookie'), 'Accept, Origin, Cookie');
+  assertEquals(mergeVary('Accept', '*'), '*');
 });
 
 Deno.test('withHeaders with dropBody answers no body, keeps status and headers, cancels the original', async () => {

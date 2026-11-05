@@ -1374,7 +1374,7 @@ Deno.test('POST deletes the data, then the auth user, then the files of the dele
       ...deleted(PORTFOLIO_ID, OTHER_PORTFOLIO_ID),
       ...cleanupQueue([ITEM_1, ITEM_2], { 41: [FILES_1], 42: [FILES_2] }),
     },
-    remove: () => ({ data: [] }),
+    remove: (_bucket, paths) => ({ data: paths.map((name) => ({ name })) }),
   });
   const { response, calls, logs } = await confirm({ admin });
   assertEquals(response.status, 200);
@@ -1488,7 +1488,7 @@ Deno.test('POST treats an auth user that is already gone (404) as deleted', asyn
     deleteUser: () => ({
       error: { message: 'User not found', status: 404, code: 'user_not_found' },
     }),
-    remove: () => ({ data: [] }),
+    remove: (_bucket, paths) => ({ data: paths.map((name) => ({ name })) }),
   });
   const { response, calls, logs } = await confirm({ admin });
   assertEquals(await response.json(), {
@@ -1579,6 +1579,79 @@ Deno.test('a failing cleanup is left to storage-cleanup: still 200, and the defe
   }
 });
 
+Deno.test('files removed before the cleanup failed are still reported', async () => {
+  const error = { code: 'XX000', message: 'could not complete' };
+  const admin = adminClient({
+    rpc: {
+      ...deleted(PORTFOLIO_ID),
+      ...cleanupQueue([ITEM_1], { 41: [FILES_1] }),
+      admin_complete_storage_cleanup: { error },
+    },
+    remove: (_bucket, paths) => ({ data: paths.map((name) => ({ name })) }),
+  });
+  const { response, calls, logs } = await confirm({ admin });
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), {
+    deleted: true,
+    deleted_portfolio_ids: [PORTFOLIO_ID],
+    files_removed: FILES_1.length,
+  });
+  assertEquals(calls, [
+    LIMIT_CALL,
+    GET_USER_CALL,
+    DELETE_DATA_CALL,
+    DELETE_USER_CALL,
+    claimCall([`${PORTFOLIO_ID}/`]),
+    listCall(41),
+    removeCall(FILES_1),
+    listCall(41),
+    completeCall(41, true),
+  ]);
+  assertEquals(logs, [
+    {
+      ...BASE_LOG,
+      user_id: USER_ID,
+      error: {
+        name: 'HttpError',
+        message: 'The database could not complete the request.',
+        cause: error,
+      },
+      level: 'error',
+      event: 'account_files_cleanup_deferred',
+    },
+    deletedLog(1, FILES_1.length),
+    accessLog('POST', 200),
+  ]);
+});
+
+Deno.test('an unexpected Storage exception during the cleanup still answers 200', async () => {
+  const thrown = new TypeError('storage client exploded');
+  const admin = adminClient({
+    rpc: { ...deleted(PORTFOLIO_ID), ...cleanupQueue([ITEM_1], { 41: [FILES_1] }) },
+    remove: () => {
+      throw thrown;
+    },
+  });
+  const { response, logs } = await confirm({ admin });
+  assertEquals(response.status, 200);
+  assertEquals(await response.json(), {
+    deleted: true,
+    deleted_portfolio_ids: [PORTFOLIO_ID],
+    files_removed: 0,
+  });
+  assertEquals(logs, [
+    {
+      ...BASE_LOG,
+      user_id: USER_ID,
+      error: { name: 'TypeError', message: 'storage client exploded', cause: undefined },
+      level: 'error',
+      event: 'account_files_cleanup_deferred',
+    },
+    deletedLog(1, 0),
+    accessLog('POST', 200),
+  ]);
+});
+
 Deno.test('the cleanup stops when CLEANUP_BUDGET_MS have passed since it started', async () => {
   const cases: ReadonlyArray<readonly [string, number, boolean]> = [
     // [label, milliseconds the first page takes, the folder is finished]
@@ -1592,9 +1665,9 @@ Deno.test('the cleanup stops when CLEANUP_BUDGET_MS have passed since it started
     time.advance(5_000); // the monotonic clock reads 5 s when the request starts
     const admin = adminClient({
       rpc: { ...deleted(PORTFOLIO_ID), ...cleanupQueue([ITEM_1], { 41: [FILES_1] }) },
-      remove: () => {
+      remove: (_bucket, paths) => {
         time.advance(pageMs);
-        return { data: [] };
+        return { data: paths.map((name) => ({ name })) };
       },
     });
     const { response, calls, logs } = await confirm({ admin, clock: time.clock });
@@ -1652,7 +1725,7 @@ Deno.test('the logs never contain the e-mail addresses or the access token', asy
       post({
         admin: adminClient({
           rpc: { ...deleted(PORTFOLIO_ID), ...cleanupQueue([ITEM_1], { 41: [FILES_1] }) },
-          remove: () => ({ data: [] }),
+          remove: (_bucket, paths) => ({ data: paths.map((name) => ({ name })) }),
         }),
       }),
     ],

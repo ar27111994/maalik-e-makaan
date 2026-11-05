@@ -10,7 +10,7 @@
  * finished, swept again later, or retried with backoff.
  */
 
-import { fromServiceFailure } from './errors.ts';
+import { fromServiceFailure, type HttpError } from './errors.ts';
 import type { Context } from './handler.ts';
 
 export const DOCUMENTS_BUCKET = 'documents';
@@ -40,8 +40,14 @@ export interface CleanupReport {
   rescheduled: number;
   /** Items that failed and will be retried with backoff. */
   retried: number;
-  /** Objects deleted. */
+  /** Objects the Storage API reported as deleted. */
   objectsRemoved: number;
+  /**
+   * The database failure that stopped the run early, or null. The counts
+   * cover the work done before it; claimed items lapse on their own and are
+   * taken up again by a later run.
+   */
+  failure: HttpError | null;
 }
 
 export interface CleanupOptions {
@@ -73,10 +79,12 @@ async function cleanItem(
       p_limit: PAGE_SIZE,
     });
     if (listing.error !== null) {
+      // supabase-js reports a failed fetch with an empty code: fall back to
+      // its message, so the queue records why.
       return {
         finished: false,
         removed,
-        error: `list: ${listing.error.code ?? listing.error.message}`,
+        error: `list: ${listing.error.code || listing.error.message || 'failed'}`,
       };
     }
     const names = (listing.data ?? []).map((row) => row.name);
@@ -93,25 +101,24 @@ async function cleanItem(
     if (deletion.error !== null) {
       return { finished: false, removed, error: `remove: ${deletion.error.message}` };
     }
-    removed += names.length;
+    removed += (deletion.data ?? []).length;
   }
   return { finished: false, removed, error: null };
 }
 
-async function complete(admin: Admin, item: CleanupItem, outcome: ItemOutcome): Promise<string> {
-  const { data, error } = await admin.rpc('admin_complete_storage_cleanup', {
+function complete(admin: Admin, item: CleanupItem, outcome: ItemOutcome) {
+  return admin.rpc('admin_complete_storage_cleanup', {
     p_item_id: item.id,
     p_finished: outcome.finished,
     ...(outcome.error === null ? {} : { p_error: outcome.error }),
   });
-  if (error !== null) throw fromServiceFailure(error);
-  return data;
 }
 
 /**
  * Claims due queue items and cleans them until the queue is empty or the
  * deadline passes. Items claimed but not reached are handed back at once.
- * Throws when the database itself fails (claims then lapse on their own).
+ * A database failure stops the run and is returned in the report's
+ * `failure`, with the counts of the work done before it.
  */
 export async function drainStorageCleanup(
   admin: Admin,
@@ -123,6 +130,7 @@ export async function drainStorageCleanup(
     rescheduled: 0,
     retried: 0,
     objectsRemoved: 0,
+    failure: null,
   };
   while (options.clock() < options.deadline) {
     const { data, error } = await admin.rpc('admin_claim_storage_cleanup', {
@@ -130,7 +138,7 @@ export async function drainStorageCleanup(
       p_lease_seconds: CLAIM_LEASE_SECONDS,
       ...(options.paths === undefined ? {} : { p_paths: [...options.paths] }),
     });
-    if (error !== null) throw fromServiceFailure(error);
+    if (error !== null) return { ...report, failure: fromServiceFailure(error) };
     const items = (data ?? []) as CleanupItem[];
     if (items.length === 0) break;
     report.claimed += items.length;
@@ -140,7 +148,8 @@ export async function drainStorageCleanup(
         ? await cleanItem(admin, item, options)
         : { finished: false, removed: 0, error: null };
       report.objectsRemoved += outcome.removed;
-      const result = await complete(admin, item, outcome);
+      const { data: result, error: failure } = await complete(admin, item, outcome);
+      if (failure !== null) return { ...report, failure: fromServiceFailure(failure) };
       if (result === 'done') report.done += 1;
       else if (result === 'retry') report.retried += 1;
       else if (result === 'rescheduled') report.rescheduled += 1;

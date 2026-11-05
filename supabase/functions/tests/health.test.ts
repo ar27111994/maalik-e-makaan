@@ -556,12 +556,12 @@ Deno.test('the database check passes on 200 and 206 only, and otherwise names th
     {
       name: 'an error without a code',
       answer: { error: { message: 'upstream connect error' }, status: 502 },
-      check: failed('database: error'),
+      check: failed('database: unreachable'),
     },
     {
       name: 'an error with a null code',
       answer: { error: { code: null, message: 'no code' }, status: 500 },
-      check: failed('database: error'),
+      check: failed('database: unreachable'),
     },
   ];
   for (const { name, answer, check } of cases) {
@@ -592,8 +592,7 @@ Deno.test('a database the API cannot reach (postgrest-js: empty code, status 0) 
   assertEquals(res.status, 503);
   const body = await res.json();
   assertEquals([body.status, body.checks.database.ok], ['degraded', false]);
-  // Only the prefix is pinned: the empty code leaves nothing after it yet.
-  assertMatch(body.checks.database.error, /^database: /);
+  assertEquals(body.checks.database.error, 'database: unreachable');
 });
 
 Deno.test('the storage check looks up the documents bucket and fails when it is unavailable', async (t) => {
@@ -645,6 +644,8 @@ Deno.test('the auth check sends GET <url>/auth/v1/health with the publishable ke
     check: CheckResult;
     /** Whether the answer has a body, which must then be released. */
     body?: boolean;
+    /** The URL probed, when it is not simply `<endpoint url>/auth/v1/health`. */
+    url?: string;
   }> = [
     { name: '200 with a body', check: HEALTHY, body: true },
     {
@@ -684,8 +685,15 @@ Deno.test('the auth check sends GET <url>/auth/v1/health with the publishable ke
       check: failed('failed'),
     },
     { name: 'no endpoint', endpoint: null, check: failed('auth: endpoint not configured') },
+    {
+      name: 'a project URL with trailing slashes',
+      endpoint: { url: 'https://project.supabase.co//', publishableKey: 'sb_publishable_x' },
+      check: HEALTHY,
+      body: true,
+      url: AUTH_HEALTH_URL,
+    },
   ];
-  for (const { name, endpoint, respond, check, body } of cases) {
+  for (const { name, endpoint, respond, check, body, url } of cases) {
     await t.step(name, async () => {
       const s = setup({ authEndpoint: endpoint, authFetch: respond });
       const res = await s.deep();
@@ -697,7 +705,7 @@ Deno.test('the auth check sends GET <url>/auth/v1/health with the publishable ke
         s.fetched.map((sent) => [sent.url, sent.init?.headers]),
         target === null
           ? []
-          : [[`${target.url}/auth/v1/health`, { apikey: target.publishableKey }]],
+          : [[url ?? `${target.url}/auth/v1/health`, { apikey: target.publishableKey }]],
       );
       if (body !== undefined) assertEquals(s.authResponses[0]?.bodyUsed, body);
     });

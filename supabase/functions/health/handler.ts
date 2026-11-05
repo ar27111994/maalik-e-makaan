@@ -93,7 +93,8 @@ async function deepChecks(
         .select('id')
         .limit(1)
         .abortSignal(signal);
-      if (error !== null) throw new Error(`database: ${error.code ?? 'error'}`);
+      // supabase-js reports a failed fetch with an empty code.
+      if (error !== null) throw new Error(`database: ${error.code || 'unreachable'}`);
       if (status !== 200 && status !== 206) throw new Error(`database: HTTP ${status}`);
     }),
     runCheck(async () => {
@@ -103,7 +104,7 @@ async function deepChecks(
     runCheck(async (signal) => {
       const endpoint = deps.authEndpoint();
       if (endpoint === null) throw new Error('auth: endpoint not configured');
-      const response = await deps.fetch(`${endpoint.url}/auth/v1/health`, {
+      const response = await deps.fetch(`${endpoint.url.replace(/\/+$/, '')}/auth/v1/health`, {
         headers: { apikey: endpoint.publishableKey },
         signal,
       });

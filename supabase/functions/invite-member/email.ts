@@ -52,15 +52,28 @@ export const SUBJECTS: Readonly<Record<Locale, string>> = {
 };
 
 const LINK_LIKE = [
-  /[a-z][a-z0-9+.-]*:\/\//i, // a URL scheme
-  /\bwww\./i,
-  /[^\s@]@[^\s@]/, // an e-mail address
-  /[a-z0-9-]\.[a-z]{2,63}(?![a-z0-9-])/i, // a domain name
+  /\p{L}[\p{L}\p{N}+.-]*:\/\//iu, // a URL scheme
+  /(?<![\p{L}\p{N}])www\./iu,
+  /[^\s@]@[^\s@]/u, // an e-mail address
+  /[\p{L}\p{N}-]\.\p{L}{2,63}(?![\p{L}\p{N}-])/u, // a domain name, internationalised ones included
 ];
 
-/** Whether [text] contains something a mail client could present as a link. */
+/** Dots that IDNA (UTS #46) treats as the label separator. */
+const IDEOGRAPHIC_DOTS = /[\u3002\uFF61\uFE52]/g;
+/** Invisible formatting characters (joiners, direction marks, soft hyphen). */
+const FORMAT_CHARACTERS = /\p{Cf}/gu;
+
+/**
+ * Whether [text] contains something a mail client could present as a link.
+ * Checked on a normalised copy, so a domain disguised with full-width
+ * letters or dots, ideographic dots or invisible joiners and direction
+ * marks is still recognised.
+ */
 export function looksLikeLink(text: string): boolean {
-  return LINK_LIKE.some((pattern) => pattern.test(text));
+  const normalised = text.normalize('NFKC')
+    .replace(FORMAT_CHARACTERS, '')
+    .replace(IDEOGRAPHIC_DOTS, '.');
+  return LINK_LIKE.some((pattern) => pattern.test(normalised));
 }
 
 /** A user-chosen name fit for the e-mail body: one line, bounded, never link-like. */

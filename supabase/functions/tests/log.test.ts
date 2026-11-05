@@ -69,6 +69,8 @@ const SENSITIVE_KEYS = [
   'apikey',
   'apiKey',
   'api_key',
+  'api-key',
+  'x-api-key',
   'cookie',
   'Set-Cookie',
   'jwt',
@@ -281,6 +283,54 @@ Deno.test('createLogger writes the base and event fields with the level and even
       code: 'internal_error',
       level: 'error',
       event: 'request_failed',
+    },
+  ]);
+});
+
+Deno.test('createLogger never throws: BigInts become digits, an unserialisable record a marker', () => {
+  const { records, sink } = collect();
+  const log = createLogger({ fn: 'delete-account', request_id: REQUEST_ID }, sink);
+  log.error('request_failed', { error: new Error('x', { cause: { rows: 10n } }), count: 2n });
+  const explosive = {
+    toJSON() {
+      throw new TypeError('cannot serialise');
+    },
+  };
+  log.warn('odd', { value: explosive });
+  assertEquals(records, [
+    {
+      fn: 'delete-account',
+      request_id: REQUEST_ID,
+      error: { name: 'Error', message: 'x', cause: { rows: '10' } },
+      count: '2',
+      level: 'error',
+      event: 'request_failed',
+    },
+    {
+      level: 'warn',
+      event: 'odd',
+      fn: 'delete-account',
+      request_id: REQUEST_ID,
+      unserialisable: 'TypeError',
+    },
+  ]);
+});
+
+Deno.test('createLogger marks a failure that is not an Error as unknown', () => {
+  const { records, sink } = collect();
+  const thrower = {
+    toJSON() {
+      throw 'nope';
+    },
+  };
+  createLogger({ fn: 'health' }, sink).info('event', { thrower });
+  assertEquals(records, [
+    {
+      level: 'info',
+      event: 'event',
+      fn: 'health',
+      request_id: undefined,
+      unserialisable: 'unknown',
     },
   ]);
 });

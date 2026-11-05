@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertFalse } from '@std/assert';
+import { assert, assertEquals, assertFalse, assertThrows } from '@std/assert';
 import {
   escapeHtml,
   isCleanText,
@@ -164,6 +164,18 @@ Deno.test('singleLine collapses every run of whitespace to one space and trims',
 });
 
 // --- truncate ------------------------------------------------------------------
+
+Deno.test('truncate refuses a max that is not a positive whole number', () => {
+  for (const max of [0, -5, 1.5, Number.NaN]) {
+    assertThrows(
+      () => truncate('abc', max),
+      RangeError,
+      'max must be a positive integer',
+      String(max),
+    );
+  }
+  assertEquals(truncate('abc', 1), '…');
+});
 
 Deno.test('truncate keeps text of at most max grapheme clusters unchanged', () => {
   const cases: ReadonlyArray<readonly [string, number]> = [

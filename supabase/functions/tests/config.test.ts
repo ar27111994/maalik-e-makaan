@@ -49,7 +49,8 @@ const NO_QUERY = 'must not contain a query or fragment';
 const MAILBOX = 'must be an e-mail address, optionally with a display name';
 const TOKEN_LENGTH = 'must be at least 32 characters';
 const REAUTH_RANGE = 'must be a whole number between 60 and 3600';
-const bareOrigin = (entry: string) => `"${entry}" must be a bare origin (scheme://host[:port])`;
+const bareOrigin = (entry: string) =>
+  `"${entry}" must be an origin only (scheme://host[:port]), without a path, query or credentials`;
 
 const TOKEN = 't'.repeat(MIN_TOKEN_LENGTH);
 
@@ -149,10 +150,21 @@ Deno.test('ALLOWED_ORIGINS accepts https origins and http on loopback hosts', ()
     ['http://localhost:3000', 'http://localhost:3000'],
     ['http://127.0.0.1:8080', 'http://127.0.0.1:8080'],
     ['http://[::1]:8080', 'http://[::1]:8080'],
+    // Any spelling of an origin is reduced to the one browsers send.
+    ['HTTPS://APP.EXAMPLE.COM', 'https://app.example.com'],
+    ['https://app.example.com:443', 'https://app.example.com'],
+    ['http://LOCALHOST:3000', 'http://localhost:3000'],
+    ['https://b\u00fccher.example', 'https://xn--bcher-kva.example'],
   ];
   for (const [entry, origin] of cases) {
     assertEquals(loadConfig(env({ ALLOWED_ORIGINS: entry })).allowedOrigins, [origin], entry);
   }
+  // Spellings of the same origin count once.
+  assertEquals(
+    loadConfig(env({ ALLOWED_ORIGINS: 'https://a.example.com, HTTPS://A.EXAMPLE.COM:443/' }))
+      .allowedOrigins,
+    ['https://a.example.com'],
+  );
 });
 
 Deno.test('ALLOWED_ORIGINS of separators only allows no origin rather than the default', () => {

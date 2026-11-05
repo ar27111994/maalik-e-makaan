@@ -152,11 +152,14 @@ function temporarilyUnavailable(failure: DatabaseFailure): HttpError {
  * The database reports domain failures as SQLSTATE 22023 with a stable
  * message key (app.fail), authorisation failures as 42501, and rate limits as
  * HTTP 429 with code `rate_limited`. PostgREST reports JWT problems as 401
- * with PGRST30x codes.
+ * with PGRST301-PGRST303 (PGRST300, a server without a JWT secret, is a
+ * misconfiguration and must not send the user back to sign in).
  */
+const JWT_FAILURE_CODES = /^PGRST30[1-3]$/;
+
 export function fromDatabaseFailure(failure: DatabaseFailure, status?: number): HttpError {
   if (status === 429 || failure.code === 'rate_limited') return rateLimited(failure);
-  if (status === 401 || (failure.code ?? '').startsWith('PGRST30')) {
+  if (status === 401 || JWT_FAILURE_CODES.test(failure.code ?? '')) {
     return unauthorized('Sign in to continue.', { reason: failure.code ?? 'unauthorized' });
   }
   if (TRANSIENT_CODES.has(failure.code ?? '')) return temporarilyUnavailable(failure);

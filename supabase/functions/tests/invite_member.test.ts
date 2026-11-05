@@ -889,7 +889,7 @@ Deno.test('a broken e-mail setup fails delivery only: email_misconfigured names 
   }
 });
 
-Deno.test('an error other than ConfigError from config.email() propagates: 500 internal_error after create_invitation', async () => {
+Deno.test('settings that cannot be read at all are failed delivery too: 201, the error logged', async () => {
   const config: FunctionConfig = {
     ...testConfig({ email: EMAIL }),
     email: () => {
@@ -898,17 +898,20 @@ Deno.test('an error other than ConfigError from config.email() propagates: 500 i
   };
   const t = setup({ config });
   const res = await t.send();
-  assertEquals(res.status, 500);
-  assertEquals(await errorOf(res), {
-    code: 'internal_error',
-    message: 'Something went wrong. Please try again.',
-    request_id: REQUEST_ID,
-  });
+  assertEquals(res.status, 201);
+  assertEquals(await res.json(), created('failed'));
   assertEquals(t.user.calls, [createCall()]);
   assertEquals([t.admin.calls, t.senders], [[], []]);
   assertEquals(t.logs, [
-    failedLog('internal_error', logged('TypeError', 'email settings unreadable')),
-    accessLog(500),
+    {
+      fn: FN,
+      request_id: REQUEST_ID,
+      error: logged('TypeError', 'email settings unreadable'),
+      level: 'error',
+      event: 'email_misconfigured',
+    },
+    createdLog('failed'),
+    accessLog(201),
   ]);
 });
 

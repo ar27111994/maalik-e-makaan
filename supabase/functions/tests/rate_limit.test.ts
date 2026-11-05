@@ -1,4 +1,10 @@
-import { assertEquals, assertInstanceOf, assertRejects, assertStrictEquals } from '@std/assert';
+import {
+  assertEquals,
+  assertInstanceOf,
+  assertRejects,
+  assertStrictEquals,
+  assertThrows,
+} from '@std/assert';
 import { HttpError } from '../_shared/errors.ts';
 import {
   hitRateLimit,
@@ -71,8 +77,17 @@ Deno.test('retryAfterSeconds stays within one second and the full window at ever
       assertEquals(retryAfterSeconds(now, windowSeconds), windowSeconds - offset);
     }
   }
-  // The floor holds even for a window shorter than a second.
-  assertEquals(retryAfterSeconds(NOW, 0.5), 1);
+});
+
+Deno.test('retryAfterSeconds refuses a window that is not a positive whole number of seconds', () => {
+  for (const windowSeconds of [0, -1, 0.5, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assertThrows(
+      () => retryAfterSeconds(NOW, windowSeconds),
+      RangeError,
+      'windowSeconds must be a positive integer',
+      String(windowSeconds),
+    );
+  }
 });
 
 // --- rateLimitedError ----------------------------------------------------------

@@ -67,9 +67,12 @@ const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 /**
  * Shortens [value] to at most [max] user-perceived characters (grapheme
  * clusters), ending with an ellipsis, so an emoji sequence or an Urdu letter
- * with its diacritics is never cut in half.
+ * with its diacritics is never cut in half. [max] must be a positive integer.
  */
 export function truncate(value: string, max: number): string {
+  if (!Number.isInteger(max) || max < 1) {
+    throw new RangeError(`truncate: max must be a positive integer, got ${max}`);
+  }
   const clusters = Array.from(GRAPHEMES.segment(value), (part) => part.segment);
   return clusters.length <= max ? value : `${clusters.slice(0, Math.max(0, max - 1)).join('')}…`;
 }

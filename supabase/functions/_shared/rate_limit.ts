@@ -21,10 +21,16 @@ export interface RateLimit {
 const WINDOW_ORIGIN_SECONDS = Date.UTC(2000, 0, 1) / 1000;
 
 /**
- * Seconds until the fixed window of [windowSeconds] that contains [now]
- * ends: the honest Retry-After for a request refused in it (at least 1).
+ * Seconds until the fixed window of [windowSeconds] (a positive integer)
+ * that contains [now] ends: the honest Retry-After for a request refused in
+ * it (at least 1).
  */
 export function retryAfterSeconds(now: Date, windowSeconds: number): number {
+  if (!Number.isInteger(windowSeconds) || windowSeconds < 1) {
+    throw new RangeError(
+      `retryAfterSeconds: windowSeconds must be a positive integer, got ${windowSeconds}`,
+    );
+  }
   const elapsed = Math.floor(now.getTime() / 1000) - WINDOW_ORIGIN_SECONDS;
   const remaining = windowSeconds - (((elapsed % windowSeconds) + windowSeconds) % windowSeconds);
   return Math.max(1, remaining);

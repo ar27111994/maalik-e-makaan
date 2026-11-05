@@ -104,13 +104,18 @@ function parseOrigins(env: Env): readonly string[] {
     }
   }
   const origins = raw.split(',').map((entry) => entry.trim()).filter((entry) => entry !== '');
+  // Each entry is reduced to the origin a browser sends (lower-case scheme
+  // and host, no default port, punycode), so any spelling of the same origin
+  // works; anything beyond an origin is refused.
   return [
     ...new Set(origins.map((entry) => {
       const url = parseWebUrl('ALLOWED_ORIGINS', entry);
-      if (url.origin !== entry.replace(/\/+$/, '')) {
+      const bare = !entry.includes('?') && !entry.includes('#') && /^\/*$/.test(url.pathname) &&
+        url.username === '' && url.password === '';
+      if (!bare) {
         throw new ConfigError(
           'ALLOWED_ORIGINS',
-          `"${entry}" must be a bare origin (scheme://host[:port])`,
+          `"${entry}" must be an origin only (scheme://host[:port]), without a path, query or credentials`,
         );
       }
       return url.origin;

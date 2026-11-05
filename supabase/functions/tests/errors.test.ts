@@ -241,6 +241,14 @@ Deno.test('fromDatabaseFailure answers 429 for a 429 status or a rate_limited co
   }
 });
 
+Deno.test('PGRST300 and other PGRST30x codes are server faults, never a prompt to sign in again', () => {
+  // PGRST300 is "server lacks JWT secret": a misconfiguration a user cannot fix.
+  for (const code of ['PGRST300', 'PGRST304', 'PGRST3011']) {
+    const error = fromDatabaseFailure({ code, message: 'm' }, 500);
+    assertEquals([error.status, error.code], [502, 'upstream_error'], code);
+  }
+});
+
 Deno.test('fromDatabaseFailure answers 401 with a Bearer challenge for a 401 status or a PostgREST JWT code', () => {
   const cases: Array<[string, DatabaseFailure, number | undefined, string]> = [
     ['PGRST301 with 401', { code: 'PGRST301', message: 'JWT expired' }, 401, 'PGRST301'],

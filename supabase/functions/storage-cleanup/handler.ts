@@ -44,10 +44,15 @@ async function requireCleanupToken(ctx: RequestContext): Promise<void> {
 
 async function cleanup(ctx: RequestContext, deps: StorageCleanupDeps): Promise<Response> {
   await requireCleanupToken(ctx);
-  const report = await drainStorageCleanup(ctx.supabase.supabaseAdmin, {
+  const { failure, ...report } = await drainStorageCleanup(ctx.supabase.supabaseAdmin, {
     deadline: deps.clock() + TIME_BUDGET_MS,
     clock: deps.clock,
   });
+  if (failure !== null) {
+    // The work done so far is kept; the error response tells pg_net why.
+    ctx.log.warn('storage_cleanup_interrupted', { ...report });
+    throw failure;
+  }
   ctx.log.info('storage_cleanup', { ...report });
   return json({
     claimed: report.claimed,

@@ -118,13 +118,20 @@ async function withinEmailLimits(ctx: RequestContext, inviterId: string, recipie
   return true;
 }
 
-/** The e-mail settings, or null when e-mail is off; a broken setup is logged and treated as failed delivery. */
+/**
+ * The e-mail settings, or null when e-mail is off. Any failure to read them
+ * (a malformed secret, or an environment the runtime may not read) is logged
+ * and treated as failed delivery: the invitation already exists, and its
+ * link is returned either way.
+ */
 function emailSettings(ctx: RequestContext): EmailConfig | null | 'misconfigured' {
   try {
     return ctx.config.email();
   } catch (error) {
-    if (!(error instanceof ConfigError)) throw error;
-    ctx.log.error('email_misconfigured', { variable: error.variable });
+    ctx.log.error(
+      'email_misconfigured',
+      error instanceof ConfigError ? { variable: error.variable } : { error },
+    );
     return 'misconfigured';
   }
 }

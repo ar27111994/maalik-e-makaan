@@ -207,6 +207,18 @@ function cleanupLog(counts: Record<string, number>): LogRecord {
   return { fn: FN, request_id: REQUEST_ID, ...counts, level: 'info', event: 'storage_cleanup' };
 }
 
+function interruptedLog(counts: Record<string, number>): LogRecord {
+  return {
+    fn: FN,
+    request_id: REQUEST_ID,
+    ...counts,
+    level: 'warn',
+    event: 'storage_cleanup_interrupted',
+  };
+}
+
+const NOTHING_DONE = { claimed: 0, done: 0, rescheduled: 0, retried: 0, objectsRemoved: 0 };
+
 // --- a successful run -----------------------------------------------------------------------
 
 Deno.test('POST with the cleanup token drains the queue and answers what it did', async () => {
@@ -535,8 +547,9 @@ Deno.test('a failing claim is a 502 upstream_error, or a 503 with Retry-After on
     assertEquals(Object.fromEntries(res.headers), { ...JSON_HEADERS, ...headers }, code);
     assertEquals(await errorOf(res), { code, message, request_id: REQUEST_ID }, code);
     assertEquals(t.admin.calls, [claimCall], code);
-    // No storage_cleanup record: the run did not finish.
+    // The work done before the failure (none here) is logged, then the error.
     assertEquals(t.logs, [
+      interruptedLog(NOTHING_DONE),
       failedLog(code, { name: 'HttpError', message, cause: error }),
       accessLog('POST', status),
     ], code);
