@@ -99,7 +99,10 @@ test-functions: ## Edge Function tests with the 100% coverage gate
 
 .PHONY: test-functions-e2e
 test-functions-e2e: ## Edge Functions against a running local stack (supabase start)
-	set -a && eval "$$(supabase status -o env)" && set +a && \
+	set -a && eval "$$(supabase status -o env \
+	    --override-name api.url=SUPABASE_URL \
+	    --override-name auth.publishable_key=SUPABASE_PUBLISHABLE_KEY \
+	    --override-name auth.secret_key=SUPABASE_SECRET_KEY)" && set +a && \
 	  cd supabase/functions && $(DENO) task test:e2e
 
 .PHONY: test-web
