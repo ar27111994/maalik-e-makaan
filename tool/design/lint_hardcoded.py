@@ -15,8 +15,10 @@ and the app's lib/ folders):
   friends, ``Positioned(left: …)``: use the Directional variants.
 
 Zero is always allowed. Generated token files and generated localisations are
-skipped. A reviewed exception carries ``// design-lint: allow <reason>`` on the
-same line; the reason is required.
+skipped. A reviewed exception carries ``// design-lint: allow <reason>`` at the
+end of the line, or ``// design-lint: allow-next-line <reason>`` on its own line
+just above it (where the formatter would move a trailing comment); the reason is
+required.
 
 Usage: lint_hardcoded.py [DIR-OR-FILE ...]   Exits 1 when it finds anything.
 """
@@ -32,7 +34,8 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DIRS = ("packages/mm_ui/lib", "app/lib")
 SKIP = (re.compile(r"\.g\.dart$"), re.compile(r"/l10n/generated/"))
 ALLOW = re.compile(r"//\s*design-lint:\s*allow\s+\S")
-ALLOW_WITHOUT_REASON = re.compile(r"//\s*design-lint:\s*allow\s*$")
+ALLOW_NEXT = re.compile(r"^\s*//\s*design-lint:\s*allow-next-line\s+\S")
+ALLOW_WITHOUT_REASON = re.compile(r"//\s*design-lint:\s*allow(?:-next-line)?\s*$")
 
 # A non-zero numeric literal (12, 12.5, .5), not part of an identifier.
 NUM = r"(?<![\w.])(?:[1-9]\d*(?:\.\d+)?|0?\.\d*[1-9]\d*)(?![\w.])"
@@ -98,12 +101,17 @@ def _code(line: str) -> str:
 
 def lint_text(path: Path, text: str) -> list[Finding]:
     findings: list[Finding] = []
+    allow_next = False
     for number, line in enumerate(text.splitlines(), start=1):
-        stripped = line.lstrip()
-        if stripped.startswith(("//", "///", "*", "/*")):
-            continue
+        allowed, allow_next = allow_next, False
         if ALLOW_WITHOUT_REASON.search(line):
             findings.append(Finding(path, number, "allow", line, "an allowance needs a reason"))
+            continue
+        if ALLOW_NEXT.search(line):
+            allow_next = True
+            continue
+        stripped = line.lstrip()
+        if allowed or stripped.startswith(("//", "///", "*", "/*")):
             continue
         if ALLOW.search(line):
             continue

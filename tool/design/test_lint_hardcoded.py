@@ -85,6 +85,17 @@ class ExemptionTest(unittest.TestCase):
     def test_an_allowance_needs_a_reason(self) -> None:
         self.assertEqual(rules("Colors.black, // design-lint: allow Material scrim"), [])
         self.assertEqual(rules("Colors.black, // design-lint: allow"), ["allow"])
+        self.assertEqual(
+            rules("// design-lint: allow-next-line\nColors.black,"), ["allow", "colour"]
+        )
+
+    def test_an_allowance_can_sit_on_the_line_above(self) -> None:
+        source = (
+            "  // design-lint: allow-next-line safe-area insets\n  EdgeInsets.fromLTRB(a, b, c, d),"
+        )
+        self.assertEqual(rules(source), [])
+        # It covers only the next line.
+        self.assertEqual(rules(source + "\n  Alignment.centerLeft,"), ["rtl"])
 
 
 class FilesTest(unittest.TestCase):
