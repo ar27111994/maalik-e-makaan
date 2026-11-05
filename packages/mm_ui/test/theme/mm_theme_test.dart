@@ -112,6 +112,40 @@ void main() {
       );
       expect(theme.materialTapTargetSize, MaterialTapTargetSize.padded);
     });
+
+    test('button colours follow their state', () {
+      final colors = MmColorModes.light;
+      final theme = MmTheme.data(brightness: Brightness.light);
+      final elevated = theme.elevatedButtonTheme.style!;
+      expect(elevated.backgroundColor!.resolve({}), colors.primary);
+      expect(
+        elevated.backgroundColor!.resolve({WidgetState.disabled}),
+        colors.rule,
+      );
+      expect(elevated.foregroundColor!.resolve({}), colors.onPrimary);
+      expect(
+        elevated.foregroundColor!.resolve({WidgetState.disabled}),
+        colors.inkMuted,
+      );
+      expect(
+        theme.outlinedButtonTheme.style!.foregroundColor!.resolve({}),
+        colors.primary,
+      );
+    });
+
+    test('the navigation bar marks the selected destination', () {
+      final colors = MmColorModes.light;
+      final bar = MmTheme.data(brightness: Brightness.light).navigationBarTheme;
+      expect(
+        bar.labelTextStyle!.resolve({WidgetState.selected})!.color,
+        colors.ink,
+      );
+      expect(bar.labelTextStyle!.resolve({})!.color, colors.inkMuted);
+      final selected = bar.iconTheme!.resolve({WidgetState.selected})!;
+      expect(selected.color, colors.onPrimaryContainer);
+      expect(selected.size, MmSize.iconLg);
+      expect(bar.iconTheme!.resolve({})!.color, colors.inkMuted);
+    });
   });
 
   group('MmScript', () {
