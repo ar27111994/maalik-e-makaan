@@ -21,7 +21,13 @@ A person can belong to many portfolios, with one role in each.
 
 1. **Row-level security** on every table limits rows to portfolios the caller
    belongs to, and limits writes by role. Policies call
-   `app.my_portfolio_ids(roles)` once per statement.
+   `app.my_portfolio_ids(roles)` once per statement. Write policies call
+   `app.lock_my_portfolio_ids(roles)` instead: it locks the caller's
+   portfolios (key share, id order) before the statement locks any row, so
+   client writes keep the global lock order. A client write therefore costs
+   more the more portfolios the caller belongs to, and waits while any of
+   them is being deleted or its members changed (see
+   [Concurrency](#concurrency)).
 2. **Column grants** limit which columns a client may insert or update. Columns
    the system owns (balances, receipt numbers, `created_by`, voids) are never
    writable from the app, and secrets such as an invitation's `verifier_hash`
@@ -31,8 +37,9 @@ A person can belong to many portfolios, with one role in each.
    locks in the global order (account, portfolio, lease, other rows). Their
    names are on a pgTAP allowlist.
 4. **Triggers** keep invariants a policy cannot express: only manual charges
-   can change amount, voided rows are frozen, a document's file must exist, and
-   a deleted account cannot write.
+   can change amount, voided rows are frozen, a document's file must exist, a
+   file a document refers to cannot be deleted (whoever deletes it), and a
+   deleted account cannot write.
 5. **Storage policies** scope files to `<portfolio_id>/…` folders.
 6. **Edge Functions** handle what needs the service key: deleting an account and
    sending invitation e-mails. Each one verifies the caller's token first.
@@ -129,7 +136,9 @@ original receipt instead of charging twice.
 
 A document row can only point at a file that exists and is not queued for
 deletion. Deleting the row queues the file; the `storage-cleanup` function
-deletes it through the Storage API.
+deletes it through the Storage API. No delete removes a file a document refers
+to, whether it comes from a member, the Storage API's own superuser step, the
+service role or SQL: a trigger on `storage.objects` keeps it.
 
 ### Reports, search, notifications and audit
 
@@ -151,6 +160,69 @@ deletes it through the Storage API.
 Deleting an account removes every portfolio where you are the only owner and
 your memberships elsewhere. From the moment deletion starts, the account can no
 longer write (`account_deleted`).
+
+## Concurrency
+
+The database takes locks in one order: the account, then the portfolio, then
+the lease, then other rows. Deleting a portfolio or an account, and changing a
+portfolio's members, lock the portfolio `FOR UPDATE` and then work through its
+rows. To keep that order, every client write first locks, `FOR KEY SHARE` and
+in id order, every portfolio where the caller has the role the write needs
+(`app.lock_my_portfolio_ids`), before it locks any row. Clients never wait for
+each other on these locks; they wait only for deletions and membership changes.
+
+A document and its file are serialised on the file's `storage.objects` row: a
+document insert locks it, and every delete of the file must lock it too and
+then passes a trigger that keeps a file a document refers to. Neither side
+takes an entry in PostgreSQL's shared lock table per file.
+
+### What it costs
+
+Measured on PostgreSQL 16 on a 4-CPU machine, before and after
+`20261105170557_concurrency_findings.sql` (ranges are repeated runs):
+
+| Measure                                                                                                       | Before                       | After                        |
+| ------------------------------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------- |
+| WAL per one-row client update, caller in 1 portfolio                                                          | 0.79 kB                      | 0.85–1.22 kB                 |
+| The same, caller in 20 portfolios                                                                             | 0.79–0.89 kB                 | 1.91–2.02 kB                 |
+| The same, caller in 200 portfolios                                                                            | 0.82–0.92 kB                 | 12.07–12.14 kB               |
+| Time per one-row update (one `psql` transaction), caller in 200 portfolios                                    | 2.5–2.7 ms                   | 3.6–3.9 ms                   |
+| Unit updates by 200 managers of one shared portfolio, 8 clients (`tool/db/stress_test.sh`)                    | 1,461–1,600 a second         | 933–1,273 a second           |
+| Multixacts created in those 10 s                                                                              | 0–2                          | 9,243–12,577                 |
+| Unit updates by 8 managers of the same 30 portfolios, 8 clients                                               | 1,449–1,715 a second         | 738–986 a second             |
+| Multixacts created in those 10 s                                                                              | 0–47                         | 8,960–13,041                 |
+| A write in another portfolio while one of the caller's portfolios is held `FOR UPDATE` for 1.5 s              | 63–67 ms                     | 1,248–1,251 ms               |
+| `update_member_role` (30 calls) while 8 clients write the portfolio's units                                   | median 79–86 ms, max 138     | median 213–219 ms, max 1,227 |
+| Deleting the stress harness's Plaza portfolio (7,800 charges, 7,631 payments, 32,716 audit rows, 201 members) | 1.2–1.7 s                    | 1.3–1.7 s                    |
+| A user deleting 1,000 unattached files at once: advisory locks held until commit                              | 0 (1,001 with the first fix) | 0                            |
+
+What follows from it:
+
+- A write costs about 56 bytes of WAL more for each portfolio where the caller
+  has the role, and writers sharing a portfolio create multixacts. Watch
+  `mxid_age(datminmxid)` ([operations](../operations.md#health-checks)) and the
+  largest number of portfolios one person belongs to:
+  `select max(n) from (select count(*) n from public.portfolio_members group by user_id) m;`.
+  Revisit the design before people hold hundreds of portfolios each.
+- Deleting a portfolio or changing its members holds up its members' writes in
+  every portfolio they belong to, for as long as it runs; a deletion holds its
+  lock for its whole cascade (the Plaza: about 1.5 s). Signed-in requests on
+  Supabase time out after 8 s, so while a portfolio about five times the
+  Plaza's size is deleted, its members' writes would fail.
+- A waiting `FOR UPDATE` does not stop new key-share requests. A write that
+  arrived while a role change waited took 11 ms, and the role change finished
+  only after it (1.57 s, against about 1 s without it). Under steady writes by
+  members, a membership change or deletion waits for a moment when none is in
+  flight, and a member can delay their own removal by keeping writes going.
+- The membership functions and `delete_portfolio` wait rather than give up: a
+  `lock_timeout` with a bounded retry would fail where waiting succeeds. With a
+  1 s or 0.2 s `lock_timeout` and three tries, a role change behind one 4 s
+  request (within the 8 s timeout) failed with `portfolio_busy` after 3.4 s or
+  1.0 s, where waiting succeeded after 3.8 s; under the load above the tries
+  did not lower the latency (median 121–295 ms, max 1.3–2.5 s).
+- A delete of many files is about 2.5 times slower than before (1,000 files:
+  225–268 ms before, 598–661 ms after), as the delete policy and the trigger
+  run for each file.
 
 ## Changing a rule
 

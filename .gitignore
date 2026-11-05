@@ -145,3 +145,5 @@ tmp/
 
 # Python tools installed by `make bootstrap`.
 .venv/
+# Downloaded tools of the formal tracks (formal/tla/*/run.sh: .cache/formal/tla2tools.jar).
+/.cache/

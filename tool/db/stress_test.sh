@@ -6,7 +6,9 @@
 #   * times the hot read RPCs as an authenticated member (RLS active) against
 #     latency budgets;
 #   * checks the planner uses indexes for the hottest access paths;
-#   * runs pgbench: parallel record_payment calls from 200 distinct members.
+#   * runs pgbench: parallel record_payment calls from 200 distinct members,
+#     then client unit updates by managers of 1 and of 30 portfolios (each
+#     client write locks every portfolio where the caller has the role).
 #
 #   tool/db/stress_test.sh            # seed + measure
 #   STRESS_SECONDS=30 tool/db/stress_test.sh
@@ -239,6 +241,66 @@ python3 -c "import sys; sys.exit(0 if float('${TPS:-0}') >= 50 else 1)" || {
   echo "  ✗ throughput below 50 tps"
   FAILED=1
 }
+
+# Client writes ------------------------------------------------------------------------
+# Every client UPDATE, DELETE and INSERT first locks, FOR KEY SHARE, every
+# portfolio where the caller has the role (app.lock_my_portfolio_ids,
+# 20261105170557_concurrency_findings.sql), so its cost grows with the
+# caller's memberships: WAL for each lock, and multixacts when several
+# writers share portfolios. A Data API PATCH of one unit's notes, first by
+# the Plaza's managers (one portfolio each), then by 8 agency managers who
+# manage all 30 small portfolios.
+psql_db >/dev/null <<'SQL'
+insert into auth.users (id, email, email_confirmed_at)
+select ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'agent' || n || '@example.com', now()
+from generate_series(231, 238) n;
+insert into public.portfolio_members (portfolio_id, user_id, role)
+select p.id, ('00000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'manager'
+from public.portfolios p cross join generate_series(231, 238) n
+where p.name like 'Small %';
+create table bench.units (portfolio text not null, n integer not null, id uuid not null, primary key (portfolio, n));
+insert into bench.units
+select case when p.name = 'Plaza' then 'plaza' else 'small' end,
+       row_number() over (partition by p.name = 'Plaza' order by u.id), u.id
+from public.units u join public.portfolios p on p.id = u.portfolio_id;
+grant select on bench.units to authenticated;
+analyze;
+SQL
+client_writes() { # label, user expression, unit set, unit count
+  local label="$1" script="/tmp/mm_bench_writes_$$.sql" out wal_before mxid_before tx wal mxids tps failed
+  cat >"$script" <<SQL
+\set u random(1, $4)
+\set m random(1, 200)
+\set a random(231, 238)
+begin;
+select set_config('request.jwt.claims', json_build_object('sub', $2, 'role', 'authenticated')::text, true);
+set local role authenticated;
+with pgrst_source as (
+  update public.units set notes = 'Checked ' || :u
+  where id = (select id from bench.units where portfolio = '$3' and n = :u)
+  returning 1
+) select count(*) from pgrst_source;
+commit;
+SQL
+  wal_before="$(psql_db -c "select pg_current_wal_lsn()")"
+  mxid_before="$(psql_db -c "select mxid_age(datminmxid) from pg_database where datname = current_database()")"
+  out="$(pgbench -n -c 8 -j 4 -T "$SECONDS_TO_RUN" -f "$script" "$MM_TEST_DB" 2>&1)"
+  rm -f "$script"
+  tx="$(grep -oE 'number of transactions actually processed: [0-9]+' <<<"$out" | grep -oE '[0-9]+$' || echo 0)"
+  wal="$(psql_db -c "select round((pg_current_wal_lsn() - '${wal_before}'::pg_lsn) / greatest(${tx:-0}, 1))")"
+  mxids="$(psql_db -c "select mxid_age(datminmxid) - ${mxid_before} from pg_database where datname = current_database()")"
+  tps="$(grep -oE 'tps = [0-9.]+' <<<"$out" | head -1 | grep -oE '[0-9.]+')"
+  failed="$(grep -oE 'number of failed transactions: [0-9]+' <<<"$out" | grep -oE '[0-9]+$' || echo 0)"
+  echo "  ${label}: ${tps} writes/s, ${wal} bytes of WAL per write, ${mxids} multixacts, failed: ${failed}"
+  if [[ "${failed:-0}" != "0" ]] || ! python3 -c "import sys; sys.exit(0 if float('${tps:-0}') >= 50 else 1)"; then
+    echo "  ✗ client writes failed or fell below 50 per second"
+    echo "$out"
+    FAILED=1
+  fi
+}
+echo "▸ pgbench: client unit updates (Data API PATCH shape), 8 clients, ${SECONDS_TO_RUN}s each"
+client_writes "200 managers of 1 portfolio (the Plaza)" "(select id from bench.users where n = :m)" plaza 300
+client_writes "8 managers of the same 30 portfolios" "'00000000-0000-4000-8000-' || lpad(:a::text, 12, '0')" small 300
 
 INVARIANTS="$(psql_db -c "select count(*) from public.charges c left join (select charge_id, sum(amount) t from public.payment_allocations group by charge_id) a on a.charge_id = c.id where c.paid_amount <> coalesce(a.t, 0)")"
 if [[ "$INVARIANTS" == "0" ]]; then
