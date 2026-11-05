@@ -273,4 +273,114 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get configErrorTitle => 'This build is not set up';
+
+  @override
+  String get reasonAlreadyMember => 'This person is already in the portfolio.';
+
+  @override
+  String get reasonMemberNotFound =>
+      'This person is no longer in the portfolio.';
+
+  @override
+  String get reasonInvalidRole =>
+      'Choose one of the roles: owner, manager, accountant or viewer.';
+
+  @override
+  String get reasonInvalidEmail => 'Enter a valid e-mail address.';
+
+  @override
+  String get reasonAlreadyVoided => 'This entry was already voided.';
+
+  @override
+  String get reasonAmountExceedsOutstanding =>
+      'The amount is more than this tenancy owes.';
+
+  @override
+  String get reasonChargeHasPayments =>
+      'Money has been received against this charge. Void that payment first.';
+
+  @override
+  String get reasonChargeNotEditable =>
+      'Only charges you added can change amount. Void this one and add a new one instead.';
+
+  @override
+  String get reasonChargeVoided =>
+      'This charge was voided and can no longer change.';
+
+  @override
+  String get reasonDepositAlreadyUsed =>
+      'The deposit has been used since, so this cannot be undone.';
+
+  @override
+  String get reasonDepositBelowReceived =>
+      'The deposit cannot be less than what has already been received.';
+
+  @override
+  String get reasonInsufficientDeposit =>
+      'The deposit held is less than this amount.';
+
+  @override
+  String get reasonDocumentEntityNotFound =>
+      'The record this document belongs to no longer exists.';
+
+  @override
+  String get reasonDocumentFileMissing =>
+      'The file did not finish uploading. Please upload it again.';
+
+  @override
+  String get reasonDocumentFilePendingDeletion =>
+      'This file is being deleted. Please upload it again.';
+
+  @override
+  String get reasonIdempotencyKeyReused =>
+      'This payment was already recorded with different details. Check the ledger before trying again.';
+
+  @override
+  String get reasonInvalidAmount =>
+      'Enter an amount above zero, with no more than two decimal places.';
+
+  @override
+  String get reasonInvalidChargeSelection =>
+      'Choose charges from this tenancy that are still owed.';
+
+  @override
+  String get reasonInvalidDate => 'Choose a valid date.';
+
+  @override
+  String get reasonInvalidTaxWithheld =>
+      'Tax withheld cannot be more than the payment.';
+
+  @override
+  String get reasonInvalidTaxYear => 'Choose a valid tax year.';
+
+  @override
+  String get reasonInvalidMethod => 'Choose how the money was paid.';
+
+  @override
+  String get reasonInvalidReason => 'Choose why the rent is changing.';
+
+  @override
+  String get reasonReasonRequired => 'Please give a reason.';
+
+  @override
+  String get reasonLeaseHasRecords =>
+      'This tenancy has money recorded against it, so it cannot be deleted. End the tenancy instead.';
+
+  @override
+  String get reasonLeaseNotActive => 'This tenancy is not active.';
+
+  @override
+  String get reasonLeaseNotOnConnection =>
+      'This tenancy is not on that utility connection.';
+
+  @override
+  String get reasonTenantArchived =>
+      'This tenant is archived. Restore them first.';
+
+  @override
+  String get reasonUnitArchived => 'This unit is archived. Restore it first.';
+
+  @override
+  String get reasonConstraintViolation =>
+      'Some details are not valid, or refer to something that no longer exists.';
 }

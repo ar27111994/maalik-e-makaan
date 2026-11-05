@@ -273,4 +273,113 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get configErrorTitle => 'یہ بلڈ ترتیب نہیں دیا گیا';
+
+  @override
+  String get reasonAlreadyMember => 'یہ شخص پہلے سے اس پورٹ فولیو میں شامل ہے۔';
+
+  @override
+  String get reasonMemberNotFound => 'یہ شخص اب اس پورٹ فولیو میں شامل نہیں۔';
+
+  @override
+  String get reasonInvalidRole =>
+      'ان میں سے ایک کردار منتخب کریں: مالک، منیجر، اکاؤنٹنٹ یا ناظر۔';
+
+  @override
+  String get reasonInvalidEmail => 'درست ای میل ایڈریس درج کریں۔';
+
+  @override
+  String get reasonAlreadyVoided => 'یہ اندراج پہلے ہی منسوخ ہو چکا ہے۔';
+
+  @override
+  String get reasonAmountExceedsOutstanding =>
+      'یہ رقم اس کرایہ داری کے واجبات سے زیادہ ہے۔';
+
+  @override
+  String get reasonChargeHasPayments =>
+      'اس واجب الادا رقم کے خلاف ادائیگی وصول ہو چکی ہے۔ پہلے وہ ادائیگی منسوخ کریں۔';
+
+  @override
+  String get reasonChargeNotEditable =>
+      'صرف آپ کی شامل کردہ واجب الادا رقم بدلی جا سکتی ہے۔ اسے منسوخ کر کے نئی رقم شامل کریں۔';
+
+  @override
+  String get reasonChargeVoided =>
+      'یہ واجب الادا رقم منسوخ ہو چکی ہے اور اب تبدیل نہیں ہو سکتی۔';
+
+  @override
+  String get reasonDepositAlreadyUsed =>
+      'اس کے بعد زرِ ضمانت استعمال ہو چکا ہے، اس لیے یہ واپس نہیں ہو سکتا۔';
+
+  @override
+  String get reasonDepositBelowReceived =>
+      'زرِ ضمانت پہلے سے وصول شدہ رقم سے کم نہیں ہو سکتا۔';
+
+  @override
+  String get reasonInsufficientDeposit => 'جمع شدہ زرِ ضمانت اس رقم سے کم ہے۔';
+
+  @override
+  String get reasonDocumentEntityNotFound =>
+      'جس ریکارڈ کے ساتھ یہ دستاویز تھی وہ اب موجود نہیں۔';
+
+  @override
+  String get reasonDocumentFileMissing =>
+      'فائل مکمل اپ لوڈ نہیں ہوئی۔ براہِ کرم اسے دوبارہ اپ لوڈ کریں۔';
+
+  @override
+  String get reasonDocumentFilePendingDeletion =>
+      'یہ فائل حذف ہو رہی ہے۔ براہِ کرم اسے دوبارہ اپ لوڈ کریں۔';
+
+  @override
+  String get reasonIdempotencyKeyReused =>
+      'یہ ادائیگی مختلف تفصیلات کے ساتھ پہلے ہی درج ہو چکی ہے۔ دوبارہ کوشش سے پہلے حساب دیکھ لیں۔';
+
+  @override
+  String get reasonInvalidAmount =>
+      'صفر سے زیادہ رقم درج کریں، اعشاریہ کے بعد زیادہ سے زیادہ دو ہندسے۔';
+
+  @override
+  String get reasonInvalidChargeSelection =>
+      'اس کرایہ داری کی وہ واجب الادا رقوم منتخب کریں جو ابھی باقی ہیں۔';
+
+  @override
+  String get reasonInvalidDate => 'درست تاریخ منتخب کریں۔';
+
+  @override
+  String get reasonInvalidTaxWithheld =>
+      'منہا شدہ ٹیکس ادائیگی سے زیادہ نہیں ہو سکتا۔';
+
+  @override
+  String get reasonInvalidTaxYear => 'درست ٹیکس سال منتخب کریں۔';
+
+  @override
+  String get reasonInvalidMethod => 'ادائیگی کا طریقہ منتخب کریں۔';
+
+  @override
+  String get reasonInvalidReason => 'کرایہ بدلنے کی وجہ منتخب کریں۔';
+
+  @override
+  String get reasonReasonRequired => 'براہِ کرم وجہ بتائیں۔';
+
+  @override
+  String get reasonLeaseHasRecords =>
+      'اس کرایہ داری میں رقوم درج ہیں، اس لیے اسے حذف نہیں کیا جا سکتا۔ اس کے بجائے کرایہ داری ختم کریں۔';
+
+  @override
+  String get reasonLeaseNotActive => 'یہ کرایہ داری فعال نہیں ہے۔';
+
+  @override
+  String get reasonLeaseNotOnConnection =>
+      'یہ کرایہ داری اس یوٹیلیٹی کنکشن پر نہیں ہے۔';
+
+  @override
+  String get reasonTenantArchived =>
+      'یہ کرایہ دار آرکائیو میں ہے۔ پہلے انہیں بحال کریں۔';
+
+  @override
+  String get reasonUnitArchived =>
+      'یہ یونٹ آرکائیو میں ہے۔ پہلے اسے بحال کریں۔';
+
+  @override
+  String get reasonConstraintViolation =>
+      'کچھ تفصیلات درست نہیں، یا کسی ایسی چیز کی طرف اشارہ کرتی ہیں جو اب موجود نہیں۔';
 }

@@ -559,6 +559,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This build is not set up'**
   String get configErrorTitle;
+
+  /// Inviting an existing member.
+  ///
+  /// In en, this message translates to:
+  /// **'This person is already in the portfolio.'**
+  String get reasonAlreadyMember;
+
+  /// Changing a member who already left.
+  ///
+  /// In en, this message translates to:
+  /// **'This person is no longer in the portfolio.'**
+  String get reasonMemberNotFound;
+
+  /// An unknown role.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one of the roles: owner, manager, accountant or viewer.'**
+  String get reasonInvalidRole;
+
+  /// The server refused an e-mail address.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid e-mail address.'**
+  String get reasonInvalidEmail;
+
+  /// Voiding something twice.
+  ///
+  /// In en, this message translates to:
+  /// **'This entry was already voided.'**
+  String get reasonAlreadyVoided;
+
+  /// Waiving or applying more than is owed.
+  ///
+  /// In en, this message translates to:
+  /// **'The amount is more than this tenancy owes.'**
+  String get reasonAmountExceedsOutstanding;
+
+  /// Voiding a charge that has payments.
+  ///
+  /// In en, this message translates to:
+  /// **'Money has been received against this charge. Void that payment first.'**
+  String get reasonChargeHasPayments;
+
+  /// Editing the amount of a generated charge.
+  ///
+  /// In en, this message translates to:
+  /// **'Only charges you added can change amount. Void this one and add a new one instead.'**
+  String get reasonChargeNotEditable;
+
+  /// Editing a voided charge.
+  ///
+  /// In en, this message translates to:
+  /// **'This charge was voided and can no longer change.'**
+  String get reasonChargeVoided;
+
+  /// Voiding a deposit refund after the deposit was used.
+  ///
+  /// In en, this message translates to:
+  /// **'The deposit has been used since, so this cannot be undone.'**
+  String get reasonDepositAlreadyUsed;
+
+  /// Lowering a deposit below what was paid.
+  ///
+  /// In en, this message translates to:
+  /// **'The deposit cannot be less than what has already been received.'**
+  String get reasonDepositBelowReceived;
+
+  /// Refunding or applying more deposit than is held.
+  ///
+  /// In en, this message translates to:
+  /// **'The deposit held is less than this amount.'**
+  String get reasonInsufficientDeposit;
+
+  /// Attaching a document to a deleted record.
+  ///
+  /// In en, this message translates to:
+  /// **'The record this document belongs to no longer exists.'**
+  String get reasonDocumentEntityNotFound;
+
+  /// A document whose file never arrived.
+  ///
+  /// In en, this message translates to:
+  /// **'The file did not finish uploading. Please upload it again.'**
+  String get reasonDocumentFileMissing;
+
+  /// A document pointing at a file queued for deletion.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is being deleted. Please upload it again.'**
+  String get reasonDocumentFilePendingDeletion;
+
+  /// A retried payment whose details changed.
+  ///
+  /// In en, this message translates to:
+  /// **'This payment was already recorded with different details. Check the ledger before trying again.'**
+  String get reasonIdempotencyKeyReused;
+
+  /// The server refused an amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount above zero, with no more than two decimal places.'**
+  String get reasonInvalidAmount;
+
+  /// Paying charges that are not open on this tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose charges from this tenancy that are still owed.'**
+  String get reasonInvalidChargeSelection;
+
+  /// The server refused a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a valid date.'**
+  String get reasonInvalidDate;
+
+  /// Withholding more tax than was paid.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax withheld cannot be more than the payment.'**
+  String get reasonInvalidTaxWithheld;
+
+  /// The server refused a tax year.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a valid tax year.'**
+  String get reasonInvalidTaxYear;
+
+  /// A missing or reserved payment method.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how the money was paid.'**
+  String get reasonInvalidMethod;
+
+  /// A rent change without a known reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose why the rent is changing.'**
+  String get reasonInvalidReason;
+
+  /// A void or waiver without a reason.
+  ///
+  /// In en, this message translates to:
+  /// **'Please give a reason.'**
+  String get reasonReasonRequired;
+
+  /// Deleting a tenancy with money records.
+  ///
+  /// In en, this message translates to:
+  /// **'This tenancy has money recorded against it, so it cannot be deleted. End the tenancy instead.'**
+  String get reasonLeaseHasRecords;
+
+  /// Acting on an ended tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'This tenancy is not active.'**
+  String get reasonLeaseNotActive;
+
+  /// Billing a utility to a tenancy elsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'This tenancy is not on that utility connection.'**
+  String get reasonLeaseNotOnConnection;
+
+  /// Using an archived tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'This tenant is archived. Restore them first.'**
+  String get reasonTenantArchived;
+
+  /// Using an archived unit.
+  ///
+  /// In en, this message translates to:
+  /// **'This unit is archived. Restore it first.'**
+  String get reasonUnitArchived;
+
+  /// A database check or reference refused the change.
+  ///
+  /// In en, this message translates to:
+  /// **'Some details are not valid, or refer to something that no longer exists.'**
+  String get reasonConstraintViolation;
 }
 
 class _AppLocalizationsDelegate

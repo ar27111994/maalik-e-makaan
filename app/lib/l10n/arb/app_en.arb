@@ -1,179 +1,461 @@
 {
   "@@locale": "en",
   "appName": "Maalik-e-Makaan",
-  "@appName": { "description": "The app's name, shown in titles and the window bar." },
-
+  "@appName": {
+    "description": "The app's name, shown in titles and the window bar."
+  },
   "welcomeTitle": "Welcome to Maalik-e-Makaan",
-  "@welcomeTitle": { "description": "First-launch screen heading, shown before a language is chosen." },
+  "@welcomeTitle": {
+    "description": "First-launch screen heading, shown before a language is chosen."
+  },
   "welcomeBody": "Rent, tenants and receipts for your properties, in Urdu or English. Choose your language; you can change it later in Settings.",
-  "@welcomeBody": { "description": "First-launch explanation under the heading." },
+  "@welcomeBody": {
+    "description": "First-launch explanation under the heading."
+  },
   "languageEnglish": "English",
-  "@languageEnglish": { "description": "The English language option, always written in English." },
+  "@languageEnglish": {
+    "description": "The English language option, always written in English."
+  },
   "languageUrdu": "اردو",
-  "@languageUrdu": { "description": "The Urdu language option, always written in Urdu." },
+  "@languageUrdu": {
+    "description": "The Urdu language option, always written in Urdu."
+  },
   "continueAction": "Continue",
-  "@continueAction": { "description": "Button that moves on to the next step." },
-
+  "@continueAction": {
+    "description": "Button that moves on to the next step."
+  },
   "signInTitle": "Sign in",
-  "@signInTitle": { "description": "Heading of the sign-in screen." },
+  "@signInTitle": {
+    "description": "Heading of the sign-in screen."
+  },
   "signInAction": "Sign in",
-  "@signInAction": { "description": "Button that signs the user in." },
+  "@signInAction": {
+    "description": "Button that signs the user in."
+  },
   "signUpTitle": "Create your account",
-  "@signUpTitle": { "description": "Heading of the sign-up screen." },
+  "@signUpTitle": {
+    "description": "Heading of the sign-up screen."
+  },
   "signUpAction": "Create account",
-  "@signUpAction": { "description": "Button that creates an account." },
+  "@signUpAction": {
+    "description": "Button that creates an account."
+  },
   "noAccountPrompt": "New to Maalik-e-Makaan?",
-  "@noAccountPrompt": { "description": "Text before the link to the sign-up screen." },
+  "@noAccountPrompt": {
+    "description": "Text before the link to the sign-up screen."
+  },
   "haveAccountPrompt": "Already have an account?",
-  "@haveAccountPrompt": { "description": "Text before the link to the sign-in screen." },
+  "@haveAccountPrompt": {
+    "description": "Text before the link to the sign-in screen."
+  },
   "forgotPasswordAction": "Forgot password?",
-  "@forgotPasswordAction": { "description": "Link to reset a forgotten password." },
+  "@forgotPasswordAction": {
+    "description": "Link to reset a forgotten password."
+  },
   "emailLabel": "E-mail",
-  "@emailLabel": { "description": "Label of the e-mail field." },
+  "@emailLabel": {
+    "description": "Label of the e-mail field."
+  },
   "passwordLabel": "Password",
-  "@passwordLabel": { "description": "Label of the password field." },
+  "@passwordLabel": {
+    "description": "Label of the password field."
+  },
   "newPasswordLabel": "New password",
-  "@newPasswordLabel": { "description": "Label of the field for a new password." },
+  "@newPasswordLabel": {
+    "description": "Label of the field for a new password."
+  },
   "passwordHelper": "At least 8 characters, with a letter and a number.",
-  "@passwordHelper": { "description": "Rules for a new password, under the field." },
+  "@passwordHelper": {
+    "description": "Rules for a new password, under the field."
+  },
   "fullNameLabel": "Your name",
-  "@fullNameLabel": { "description": "Label of the full name field on sign-up." },
+  "@fullNameLabel": {
+    "description": "Label of the full name field on sign-up."
+  },
   "resetPasswordTitle": "Reset your password",
-  "@resetPasswordTitle": { "description": "Heading of the forgotten-password screen." },
+  "@resetPasswordTitle": {
+    "description": "Heading of the forgotten-password screen."
+  },
   "resetPasswordBody": "Enter the e-mail address of your account and we will send you a link to choose a new password.",
-  "@resetPasswordBody": { "description": "Explanation on the forgotten-password screen." },
+  "@resetPasswordBody": {
+    "description": "Explanation on the forgotten-password screen."
+  },
   "sendResetLinkAction": "Send reset link",
-  "@sendResetLinkAction": { "description": "Button that e-mails a password-reset link." },
+  "@sendResetLinkAction": {
+    "description": "Button that e-mails a password-reset link."
+  },
   "checkEmailTitle": "Check your e-mail",
-  "@checkEmailTitle": { "description": "Heading shown after an e-mail was sent." },
+  "@checkEmailTitle": {
+    "description": "Heading shown after an e-mail was sent."
+  },
   "checkEmailBody": "We sent a link to {email}. Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.",
   "@checkEmailBody": {
     "description": "Explanation after a confirmation or reset e-mail was sent.",
-    "placeholders": { "email": { "type": "String", "example": "ali.raza@example.com" } }
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "ali.raza@example.com"
+      }
+    }
   },
   "resendEmailAction": "Send the e-mail again",
-  "@resendEmailAction": { "description": "Button that sends the confirmation e-mail again." },
+  "@resendEmailAction": {
+    "description": "Button that sends the confirmation e-mail again."
+  },
   "backToSignInAction": "Back to sign in",
-  "@backToSignInAction": { "description": "Link back to the sign-in screen." },
+  "@backToSignInAction": {
+    "description": "Link back to the sign-in screen."
+  },
   "choosePasswordTitle": "Choose a new password",
-  "@choosePasswordTitle": { "description": "Heading of the screen opened from a password-reset link." },
+  "@choosePasswordTitle": {
+    "description": "Heading of the screen opened from a password-reset link."
+  },
   "savePasswordAction": "Save password",
-  "@savePasswordAction": { "description": "Button that saves a new password." },
+  "@savePasswordAction": {
+    "description": "Button that saves a new password."
+  },
   "signingInCallback": "Signing you in…",
-  "@signingInCallback": { "description": "Shown while an e-mail link signs the user in." },
-
+  "@signingInCallback": {
+    "description": "Shown while an e-mail link signs the user in."
+  },
   "validationRequired": "Enter this to continue.",
-  "@validationRequired": { "description": "A required field is empty." },
+  "@validationRequired": {
+    "description": "A required field is empty."
+  },
   "validationEmail": "Enter an e-mail address like name@example.com.",
-  "@validationEmail": { "description": "The e-mail address is not valid." },
+  "@validationEmail": {
+    "description": "The e-mail address is not valid."
+  },
   "validationPassword": "Use at least 8 characters, with a letter and a number.",
-  "@validationPassword": { "description": "The new password does not meet the rules." },
-
+  "@validationPassword": {
+    "description": "The new password does not meet the rules."
+  },
   "navHome": "Home",
-  "@navHome": { "description": "Navigation destination: the dashboard." },
+  "@navHome": {
+    "description": "Navigation destination: the dashboard."
+  },
   "navTenants": "Tenants",
-  "@navTenants": { "description": "Navigation destination: tenants and tenancies." },
+  "@navTenants": {
+    "description": "Navigation destination: tenants and tenancies."
+  },
   "navMoney": "Money",
-  "@navMoney": { "description": "Navigation destination: dues, payments and receipts." },
+  "@navMoney": {
+    "description": "Navigation destination: dues, payments and receipts."
+  },
   "navProperties": "Properties",
-  "@navProperties": { "description": "Navigation destination: properties and units." },
+  "@navProperties": {
+    "description": "Navigation destination: properties and units."
+  },
   "navMore": "More",
-  "@navMore": { "description": "Navigation destination: settings, team and account." },
-
+  "@navMore": {
+    "description": "Navigation destination: settings, team and account."
+  },
   "settingsTitle": "Settings",
-  "@settingsTitle": { "description": "Heading of the settings screen." },
+  "@settingsTitle": {
+    "description": "Heading of the settings screen."
+  },
   "settingsLanguage": "Language",
-  "@settingsLanguage": { "description": "Settings section: app language." },
+  "@settingsLanguage": {
+    "description": "Settings section: app language."
+  },
   "settingsAppearance": "Appearance",
-  "@settingsAppearance": { "description": "Settings section: theme and contrast." },
+  "@settingsAppearance": {
+    "description": "Settings section: theme and contrast."
+  },
   "themeSystem": "Same as the phone",
-  "@themeSystem": { "description": "Theme option that follows the device setting." },
+  "@themeSystem": {
+    "description": "Theme option that follows the device setting."
+  },
   "themeLight": "Light",
-  "@themeLight": { "description": "Light theme option." },
+  "@themeLight": {
+    "description": "Light theme option."
+  },
   "themeDark": "Dark",
-  "@themeDark": { "description": "Dark theme option." },
+  "@themeDark": {
+    "description": "Dark theme option."
+  },
   "highContrastLabel": "High contrast",
-  "@highContrastLabel": { "description": "Switch for high-contrast colours." },
+  "@highContrastLabel": {
+    "description": "Switch for high-contrast colours."
+  },
   "highContrastHelper": "Stronger colours and outlines, easier to read in sunlight.",
-  "@highContrastHelper": { "description": "Explanation under the high-contrast switch." },
+  "@highContrastHelper": {
+    "description": "Explanation under the high-contrast switch."
+  },
   "settingsNumbers": "Numbers",
-  "@settingsNumbers": { "description": "Settings section: how amounts are grouped." },
+  "@settingsNumbers": {
+    "description": "Settings section: how amounts are grouped."
+  },
   "groupingWestern": "Western (Rs 1,250,000)",
-  "@groupingWestern": { "description": "Digit grouping option in threes, with an example." },
+  "@groupingWestern": {
+    "description": "Digit grouping option in threes, with an example."
+  },
   "groupingSouthAsian": "Lakh and crore (Rs 12,50,000)",
-  "@groupingSouthAsian": { "description": "Digit grouping option in lakh and crore, with an example." },
+  "@groupingSouthAsian": {
+    "description": "Digit grouping option in lakh and crore, with an example."
+  },
   "settingsAccount": "Account",
-  "@settingsAccount": { "description": "Settings section: the user's account." },
+  "@settingsAccount": {
+    "description": "Settings section: the user's account."
+  },
   "signOutAction": "Sign out",
-  "@signOutAction": { "description": "Button that signs the user out." },
+  "@signOutAction": {
+    "description": "Button that signs the user out."
+  },
   "deleteAccountAction": "Delete account",
-  "@deleteAccountAction": { "description": "Opens account deletion." },
-
+  "@deleteAccountAction": {
+    "description": "Opens account deletion."
+  },
   "failureNetwork": "No connection. Check your internet and try again.",
-  "@failureNetwork": { "description": "The request could not reach the server." },
+  "@failureNetwork": {
+    "description": "The request could not reach the server."
+  },
   "failureSessionExpired": "Your session has ended. Please sign in again.",
-  "@failureSessionExpired": { "description": "The user must sign in again." },
+  "@failureSessionExpired": {
+    "description": "The user must sign in again."
+  },
   "failureReauthenticate": "For your safety, sign in again before doing this.",
-  "@failureReauthenticate": { "description": "A sensitive action needs a fresh sign-in." },
+  "@failureReauthenticate": {
+    "description": "A sensitive action needs a fresh sign-in."
+  },
   "failureForbidden": "You do not have permission to do this.",
-  "@failureForbidden": { "description": "The user's role does not allow the action." },
+  "@failureForbidden": {
+    "description": "The user's role does not allow the action."
+  },
   "failureNotFound": "This was not found. It may have been deleted.",
-  "@failureNotFound": { "description": "The record does not exist or is not visible." },
+  "@failureNotFound": {
+    "description": "The record does not exist or is not visible."
+  },
   "failureConflict": "This already exists.",
-  "@failureConflict": { "description": "A duplicate was refused." },
+  "@failureConflict": {
+    "description": "A duplicate was refused."
+  },
   "failureRateLimited": "Too many attempts. Please wait a moment and try again.",
-  "@failureRateLimited": { "description": "The user was rate limited, wait unknown." },
+  "@failureRateLimited": {
+    "description": "The user was rate limited, wait unknown."
+  },
   "failureRateLimitedFor": "Too many attempts. Try again in {seconds, plural, =1{1 second} other{{seconds} seconds}}.",
   "@failureRateLimitedFor": {
     "description": "The user was rate limited for a known time.",
-    "placeholders": { "seconds": { "type": "int", "example": "30" } }
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
   },
   "failureBusy": "The service is busy. Please try again.",
-  "@failureBusy": { "description": "A temporary server-side conflict or timeout." },
+  "@failureBusy": {
+    "description": "A temporary server-side conflict or timeout."
+  },
   "failureServer": "Something went wrong on our side. Please try again later.",
-  "@failureServer": { "description": "A server error." },
+  "@failureServer": {
+    "description": "A server error."
+  },
   "failureUnexpected": "Something went wrong. Please try again.",
-  "@failureUnexpected": { "description": "An unexpected app error." },
+  "@failureUnexpected": {
+    "description": "An unexpected app error."
+  },
   "failureRejected": "This could not be saved. Check the details and try again.",
-  "@failureRejected": { "description": "A refusal without a specific message." },
+  "@failureRejected": {
+    "description": "A refusal without a specific message."
+  },
   "reasonInvalidCredentials": "The e-mail or password is not right.",
-  "@reasonInvalidCredentials": { "description": "Sign-in failed." },
+  "@reasonInvalidCredentials": {
+    "description": "Sign-in failed."
+  },
   "reasonEmailNotConfirmed": "Confirm your e-mail first: open the link we sent you.",
-  "@reasonEmailNotConfirmed": { "description": "Sign-in before confirming the e-mail." },
+  "@reasonEmailNotConfirmed": {
+    "description": "Sign-in before confirming the e-mail."
+  },
   "reasonEmailTaken": "An account with this e-mail already exists. Sign in instead.",
-  "@reasonEmailTaken": { "description": "Sign-up with an existing e-mail." },
+  "@reasonEmailTaken": {
+    "description": "Sign-up with an existing e-mail."
+  },
   "reasonWeakPassword": "Choose a stronger password: at least 8 characters, with a letter and a number.",
-  "@reasonWeakPassword": { "description": "The server refused a weak password." },
+  "@reasonWeakPassword": {
+    "description": "The server refused a weak password."
+  },
   "reasonSamePassword": "Choose a password you have not used before.",
-  "@reasonSamePassword": { "description": "The new password equals the old one." },
+  "@reasonSamePassword": {
+    "description": "The new password equals the old one."
+  },
   "reasonLastOwner": "A portfolio needs at least one owner. Make someone else an owner first.",
-  "@reasonLastOwner": { "description": "Removing or demoting the last owner." },
+  "@reasonLastOwner": {
+    "description": "Removing or demoting the last owner."
+  },
   "reasonConfirmationMismatch": "The name you typed does not match.",
-  "@reasonConfirmationMismatch": { "description": "Typed confirmation did not match." },
+  "@reasonConfirmationMismatch": {
+    "description": "Typed confirmation did not match."
+  },
   "reasonAccountDeleted": "This account is being deleted.",
-  "@reasonAccountDeleted": { "description": "Action refused because the account is being deleted." },
+  "@reasonAccountDeleted": {
+    "description": "Action refused because the account is being deleted."
+  },
   "reasonPortfolioLimit": "You can own up to 20 portfolios.",
-  "@reasonPortfolioLimit": { "description": "Portfolio creation limit reached." },
-
+  "@reasonPortfolioLimit": {
+    "description": "Portfolio creation limit reached."
+  },
   "retryAction": "Try again",
-  "@retryAction": { "description": "Button that retries a failed load." },
+  "@retryAction": {
+    "description": "Button that retries a failed load."
+  },
   "updatedAt": "Updated {time}",
   "@updatedAt": {
     "description": "When cached data was last fetched.",
-    "placeholders": { "time": { "type": "String", "example": "10:42 am" } }
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "10:42 am"
+      }
+    }
   },
   "offlineShowingSaved": "You are offline. Showing what was saved at {time}.",
   "@offlineShowingSaved": {
     "description": "Banner shown when only cached data is available.",
-    "placeholders": { "time": { "type": "String", "example": "10:42 am" } }
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "10:42 am"
+      }
+    }
   },
   "comingSoonTitle": "{section} is being built",
   "@comingSoonTitle": {
     "description": "Heading of a section that is not available yet.",
-    "placeholders": { "section": { "type": "String", "example": "Money" } }
+    "placeholders": {
+      "section": {
+        "type": "String",
+        "example": "Money"
+      }
+    }
   },
   "comingSoonBody": "This part of the app arrives in the next update.",
-  "@comingSoonBody": { "description": "Explanation of a section that is not available yet." },
+  "@comingSoonBody": {
+    "description": "Explanation of a section that is not available yet."
+  },
   "configErrorTitle": "This build is not set up",
-  "@configErrorTitle": { "description": "Developer-facing error when build settings are missing." }
+  "@configErrorTitle": {
+    "description": "Developer-facing error when build settings are missing."
+  },
+  "reasonAlreadyMember": "This person is already in the portfolio.",
+  "@reasonAlreadyMember": {
+    "description": "Inviting an existing member."
+  },
+  "reasonMemberNotFound": "This person is no longer in the portfolio.",
+  "@reasonMemberNotFound": {
+    "description": "Changing a member who already left."
+  },
+  "reasonInvalidRole": "Choose one of the roles: owner, manager, accountant or viewer.",
+  "@reasonInvalidRole": {
+    "description": "An unknown role."
+  },
+  "reasonInvalidEmail": "Enter a valid e-mail address.",
+  "@reasonInvalidEmail": {
+    "description": "The server refused an e-mail address."
+  },
+  "reasonAlreadyVoided": "This entry was already voided.",
+  "@reasonAlreadyVoided": {
+    "description": "Voiding something twice."
+  },
+  "reasonAmountExceedsOutstanding": "The amount is more than this tenancy owes.",
+  "@reasonAmountExceedsOutstanding": {
+    "description": "Waiving or applying more than is owed."
+  },
+  "reasonChargeHasPayments": "Money has been received against this charge. Void that payment first.",
+  "@reasonChargeHasPayments": {
+    "description": "Voiding a charge that has payments."
+  },
+  "reasonChargeNotEditable": "Only charges you added can change amount. Void this one and add a new one instead.",
+  "@reasonChargeNotEditable": {
+    "description": "Editing the amount of a generated charge."
+  },
+  "reasonChargeVoided": "This charge was voided and can no longer change.",
+  "@reasonChargeVoided": {
+    "description": "Editing a voided charge."
+  },
+  "reasonDepositAlreadyUsed": "The deposit has been used since, so this cannot be undone.",
+  "@reasonDepositAlreadyUsed": {
+    "description": "Voiding a deposit refund after the deposit was used."
+  },
+  "reasonDepositBelowReceived": "The deposit cannot be less than what has already been received.",
+  "@reasonDepositBelowReceived": {
+    "description": "Lowering a deposit below what was paid."
+  },
+  "reasonInsufficientDeposit": "The deposit held is less than this amount.",
+  "@reasonInsufficientDeposit": {
+    "description": "Refunding or applying more deposit than is held."
+  },
+  "reasonDocumentEntityNotFound": "The record this document belongs to no longer exists.",
+  "@reasonDocumentEntityNotFound": {
+    "description": "Attaching a document to a deleted record."
+  },
+  "reasonDocumentFileMissing": "The file did not finish uploading. Please upload it again.",
+  "@reasonDocumentFileMissing": {
+    "description": "A document whose file never arrived."
+  },
+  "reasonDocumentFilePendingDeletion": "This file is being deleted. Please upload it again.",
+  "@reasonDocumentFilePendingDeletion": {
+    "description": "A document pointing at a file queued for deletion."
+  },
+  "reasonIdempotencyKeyReused": "This payment was already recorded with different details. Check the ledger before trying again.",
+  "@reasonIdempotencyKeyReused": {
+    "description": "A retried payment whose details changed."
+  },
+  "reasonInvalidAmount": "Enter an amount above zero, with no more than two decimal places.",
+  "@reasonInvalidAmount": {
+    "description": "The server refused an amount."
+  },
+  "reasonInvalidChargeSelection": "Choose charges from this tenancy that are still owed.",
+  "@reasonInvalidChargeSelection": {
+    "description": "Paying charges that are not open on this tenancy."
+  },
+  "reasonInvalidDate": "Choose a valid date.",
+  "@reasonInvalidDate": {
+    "description": "The server refused a date."
+  },
+  "reasonInvalidTaxWithheld": "Tax withheld cannot be more than the payment.",
+  "@reasonInvalidTaxWithheld": {
+    "description": "Withholding more tax than was paid."
+  },
+  "reasonInvalidTaxYear": "Choose a valid tax year.",
+  "@reasonInvalidTaxYear": {
+    "description": "The server refused a tax year."
+  },
+  "reasonInvalidMethod": "Choose how the money was paid.",
+  "@reasonInvalidMethod": {
+    "description": "A missing or reserved payment method."
+  },
+  "reasonInvalidReason": "Choose why the rent is changing.",
+  "@reasonInvalidReason": {
+    "description": "A rent change without a known reason."
+  },
+  "reasonReasonRequired": "Please give a reason.",
+  "@reasonReasonRequired": {
+    "description": "A void or waiver without a reason."
+  },
+  "reasonLeaseHasRecords": "This tenancy has money recorded against it, so it cannot be deleted. End the tenancy instead.",
+  "@reasonLeaseHasRecords": {
+    "description": "Deleting a tenancy with money records."
+  },
+  "reasonLeaseNotActive": "This tenancy is not active.",
+  "@reasonLeaseNotActive": {
+    "description": "Acting on an ended tenancy."
+  },
+  "reasonLeaseNotOnConnection": "This tenancy is not on that utility connection.",
+  "@reasonLeaseNotOnConnection": {
+    "description": "Billing a utility to a tenancy elsewhere."
+  },
+  "reasonTenantArchived": "This tenant is archived. Restore them first.",
+  "@reasonTenantArchived": {
+    "description": "Using an archived tenant."
+  },
+  "reasonUnitArchived": "This unit is archived. Restore it first.",
+  "@reasonUnitArchived": {
+    "description": "Using an archived unit."
+  },
+  "reasonConstraintViolation": "Some details are not valid, or refer to something that no longer exists.",
+  "@reasonConstraintViolation": {
+    "description": "A database check or reference refused the change."
+  }
 }
