@@ -6,7 +6,7 @@
 -- with real parallel sessions in tool/db/concurrency_test.sh.
 begin;
 \ir _helpers.psql
-select plan(53);
+select plan(54);
 
 set local app.today_override = '2026-11-03';
 
@@ -294,7 +294,23 @@ select is_empty(
 );
 
 -- Scheduling and access ---------------------------------------------------------------------
+-- What the scheduler does depends on the platform: plain PostgreSQL
+-- (tool/db/test.sh) has neither pg_net nor Vault; the Supabase stack has both,
+-- and the scheduler calls the function only once its Vault secrets exist.
+select (to_regnamespace('net') is not null and to_regclass('vault.decrypted_secrets') is not null)
+  as has_net \gset
+\if :has_net
+select is(private.request_storage_cleanup(), 'not_configured', 'without its Vault secrets the scheduler does nothing');
+select vault.create_secret('http://127.0.0.1:54321', 'mm_project_url') is not null;
+select vault.create_secret(repeat('t', 40), 'mm_storage_cleanup_token') is not null;
+select is(
+  private.request_storage_cleanup(), 'requested',
+  'with them it asks the storage-cleanup function to drain the queue'
+);
+\else
 select is(private.request_storage_cleanup(), 'unavailable', 'without pg_net the scheduler does nothing');
+select skip('the request path needs pg_net and Vault (the Supabase stack)', 1);
+\endif
 select tests.authenticate_as(:'owner');
 select throws_ok($$select * from public.admin_claim_storage_cleanup()$$, '42501', null, 'users cannot claim cleanup work');
 select throws_ok(
