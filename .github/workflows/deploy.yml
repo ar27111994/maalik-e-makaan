@@ -1,7 +1,8 @@
 # Production deployment: the Supabase backend (migrations, then Edge Functions),
-# then the Flutter web app on Vercel, each followed by a smoke test. Runs when a
-# release is published, or by hand. The "production" environment should
-# require a reviewer (repository settings).
+# then the Flutter web app on Vercel, and, independently of both, the website
+# (website/) on Vercel, each followed by a smoke test. Runs when a release is
+# published, or by hand. The "production" environment should require a
+# reviewer (repository settings).
 name: Deploy
 
 on:
@@ -133,3 +134,62 @@ jobs:
           npx --yes vercel@65.8.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
       - name: Smoke test
         run: tool/web/smoke_test.sh "$SITE_URL" "$ANDROID_PACKAGE" "$SUPABASE_URL"
+
+  site:
+    # The marketing site does not use Supabase, so it does not wait for it.
+    name: Website (Vercel)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://maalik-e-makaan-site.vercel.app
+    env:
+      # The project's production address until a custom domain is attached
+      # (docs/operations.md, Hosting). Canonical URLs, hreflang, the sitemap,
+      # robots.txt and llms.txt are built for it.
+      SITE_URL: https://maalik-e-makaan-site.vercel.app
+      PUBLIC_APP_URL: ${{ vars.APP_URL }}
+      # Team ar27111994s-projects, project maalik-e-makaan-site (public identifiers).
+      VERCEL_ORG_ID: team_APuR5C9ajzlq0OLwjgkjl3hQ
+      VERCEL_PROJECT_ID: prj_hGrXXKBhAGxmKrfdwjBegAbyd4E7
+      VERCEL_TELEMETRY_DISABLED: "1"
+      ASTRO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+          persist-credentials: false
+      - name: Deployment is configured
+        # The token reaches only this step and the deploy, not the build's packages.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          [[ -n "$VERCEL_TOKEN" ]] || {
+            echo "::error::Secret VERCEL_TOKEN is not set (docs/operations.md, Deployment)"; exit 1; }
+          [[ -n "$PUBLIC_APP_URL" ]] || {
+            echo "::error::Repository variable APP_URL is not set (docs/operations.md, Deployment)"; exit 1; }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          # No cache in a release workflow (cache poisoning); npx fetches the pinned CLI.
+          package-manager-cache: false
+      - name: Project settings, from the repository
+        # What `vercel pull` would fetch, fixed here so the build does not depend
+        # on the dashboard: the site lives in website/, whose vercel.json sets
+        # the install and build commands, the output, trailing slashes and headers.
+        run: |
+          mkdir -p .vercel
+          jq -n --arg org "$VERCEL_ORG_ID" --arg project "$VERCEL_PROJECT_ID" \
+            '{orgId: $org, projectId: $project, projectName: "maalik-e-makaan-site",
+              settings: {framework: "astro", rootDirectory: "website", nodeVersion: "22.x"}}' \
+            > .vercel/project.json
+      - name: Build (Vercel Build Output API, with vercel.json's headers)
+        # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
+        run: npx --yes vercel@65.8.0 build --prod
+      - name: Deploy to production
+        # Uploads .vercel/output as is; nothing is built on Vercel.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@65.8.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+      - name: Smoke test
+        run: tool/web/site_smoke_test.sh "$SITE_URL"

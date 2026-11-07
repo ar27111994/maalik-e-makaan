@@ -17,23 +17,28 @@ npm run build          # the static site in dist/
 npm run preview        # serve dist/ the way Vercel does (headers, redirects, 404s)
 ```
 
-| Script               | What it does                                                                                |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `npm run check`      | `astro check`, `tsc --noEmit`, ESLint, Stylelint and `prettier --check`; all must be clean  |
-| `npm run lint`       | ESLint and Stylelint only                                                                   |
-| `npm run format`     | Prettier, writing changes                                                                   |
-| `npm test`           | Vitest unit tests, including every vector in `contracts/rent_math_vectors.json`             |
-| `npm run test:links` | checks every link, image and `#fragment` in `dist/` (no network)                            |
-| `npm run test:e2e`   | the link check, then Playwright against `dist/` (build first)                               |
-| `npm run lighthouse` | Lighthouse CI on every page of `dist/`, mobile profile; each category must score 95 or more |
-| `npm run og`         | redraws the Open Graph images and icons in `public/` (after `npm run build`)                |
+| Script                  | What it does                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm run check`         | `astro check`, `tsc --noEmit`, ESLint, Stylelint and `prettier --check`; all must be clean         |
+| `npm run lint`          | ESLint and Stylelint only                                                                          |
+| `npm run format`        | Prettier, writing changes                                                                          |
+| `npm test`              | Vitest unit tests, including every vector in `contracts/rent_math_vectors.json`                    |
+| `npm run test:links`    | checks every link, image and `#fragment` in `dist/` (no network)                                   |
+| `npm run test:e2e`      | the link check, then Playwright against `dist/` (build first)                                      |
+| `npm run lighthouse`    | Lighthouse CI on every page of `dist/`, mobile profile; each category must score 95 or more        |
+| `npm run lighthouse:ci` | the same on eight pages (home, a guide, a calculator and the FAQ, in both languages); CI runs this |
+| `npm run og`            | redraws the Open Graph images and icons in `public/` (after `npm run build`)                       |
 
-`make test-web` at the repository root runs `npm run check && npm run build && npm run test:e2e`.
+`make test-web` at the repository root runs `npm run check`, `npm test`, `npm run build`,
+`npm run test:e2e` and `npm run lighthouse:ci`, the same sequence as CI's `website` job.
 
-Playwright is pinned to 1.63.0, the version whose Chromium is preinstalled in the development
-environment, so the suite never downloads a browser. Lighthouse CI uses the same Chromium
-(`chromium.executablePath()` from Playwright); set `LIGHTHOUSE_CHROME_PATH` to use another. Astro's
-anonymous build telemetry is switched off in the scripts.
+Playwright is pinned to 1.63.0 and uses its own Chromium build: preinstalled in the development
+environment (`PLAYWRIGHT_BROWSERS_PATH`), installed in CI by
+`npx playwright install --with-deps chromium`. Set `PW_CHROMIUM_PATH` to run the e2e suite on
+another Chromium binary. Lighthouse CI uses the same Chromium (`chromium.executablePath()` from
+Playwright), or `LIGHTHOUSE_CHROME_PATH`, then `PW_CHROMIUM_PATH`, when set; it ignores the generic
+`CHROME_PATH`, which may name a different system Chrome. Astro's anonymous build telemetry is
+switched off in the scripts.
 
 ## Environment variables
 
@@ -52,8 +57,10 @@ path for `SITE_URL`) and redeploy; nothing else changes.
 
 ## Deploying on Vercel
 
-The Vercel project `maalik-e-makaan-site` uses the root directory `website/` and the Astro framework
-preset. [`vercel.json`](vercel.json) fixes the rest: `npm ci`, `npm run build`, the `dist/` output,
+The Deploy workflow's `site` job builds and deploys the site (`vercel build --prod`, then
+`vercel deploy --prebuilt --prod`) and smoke-tests it; see
+[`docs/operations.md`](../docs/operations.md). The Vercel project `maalik-e-makaan-site` uses the
+root directory `website/` and the Astro framework preset. [`vercel.json`](vercel.json) fixes the rest: `npm ci`, `npm run build`, the `dist/` output,
 trailing slashes and the response headers.
 
 - The build reads files outside `website/`: the design tokens (`../design/tokens/`), the fonts and

@@ -6,8 +6,14 @@
 //
 //   npm run build && npm run lighthouse
 //
-// Chromium is the browser Playwright 1.63.0 pins and the environment
-// preinstalls (no download); set LIGHTHOUSE_CHROME_PATH to use another.
+// CI runs a subset of the pages instead: lighthouserc.ci.cjs
+// (`npm run lighthouse:ci`).
+//
+// Chromium is the browser Playwright 1.63.0 pins (preinstalled in the
+// development environment, installed by `npx playwright install chromium` in
+// CI). Set LIGHTHOUSE_CHROME_PATH, or PW_CHROMIUM_PATH as for the e2e suite, to
+// use another binary. The generic CHROME_PATH is deliberately not read: some
+// machines set it to a system Google Chrome that is not the pinned build.
 const { readdirSync, statSync } = require("node:fs");
 const { join, relative } = require("node:path");
 const { chromium } = require("@playwright/test");
@@ -51,7 +57,10 @@ module.exports = {
       startServerReadyPattern: "Serving",
       url: pages.map((path) => `http://127.0.0.1:${port}${path}`),
       numberOfRuns: 3,
-      chromePath: process.env.LIGHTHOUSE_CHROME_PATH ?? chromium.executablePath(),
+      chromePath:
+        process.env.LIGHTHOUSE_CHROME_PATH ??
+        process.env.PW_CHROMIUM_PATH ??
+        chromium.executablePath(),
       settings: {
         onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
         // --no-sandbox: Chromium will not start as root (CI containers) without it.

@@ -38,6 +38,23 @@ updates:
     cooldown:
       default-days: 7
 
+  # The website (Astro). Its README lists the overrides in package.json and why.
+  - package-ecosystem: npm
+    directory: /website
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      website:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+
   - package-ecosystem: pub
     directories: ["/", "/app", "/packages/mm_core", "/packages/mm_ui"]
     schedule:

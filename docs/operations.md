@@ -99,10 +99,10 @@ for local development.
 Two Vercel projects in the `ar27111994s-projects` team. Previews need a Vercel login;
 production is public.
 
-| Project                | Serves                         | Production address                      |
-| ---------------------- | ------------------------------ | --------------------------------------- |
-| `maalik-e-makaan`      | the Flutter web app (`app/`)   | <https://maalik-e-makaan.vercel.app>    |
-| `maalik-e-makaan-site` | the Astro website (`website/`) | assigned at its first production deploy |
+| Project                | Serves                         | Production address                        |
+| ---------------------- | ------------------------------ | ----------------------------------------- |
+| `maalik-e-makaan`      | the Flutter web app (`app/`)   | <https://maalik-e-makaan.vercel.app>      |
+| `maalik-e-makaan-site` | the Astro website (`website/`) | <https://maalik-e-makaan-site.vercel.app> |
 
 `maalik-e-makaan.vercel.app` is the app's `APP_URL`: Supabase Auth's Site URL, its redirect
 `APP_URL/auth/callback`, the invitation links and the Edge Functions' allowed origin. Until the
@@ -176,6 +176,39 @@ node tool/web/browser_check.cjs /tmp/web/.vercel/output --offline-host placehold
 unexpected failed request or an app that does not start. CI's web build runs
 `tool/web/smoke_test.sh` against the same local server on every push.
 
+### The website on Vercel
+
+The website is built in GitHub Actions too, not by Vercel. The Deploy workflow writes the
+project's settings into `.vercel/project.json` (root directory `website`, framework Astro), so
+`vercel build --prod` runs `website/vercel.json`'s `npm ci` and `npm run build` and turns that
+file's headers, trailing slashes and `dist/404.html` into a Build Output API directory;
+`vercel deploy --prebuilt --prod` uploads it. The headers and the Content-Security-Policy are
+described in [`website/README.md`](../website/README.md#security-headers).
+
+The build bakes the site's own address into every page (canonical and `hreflang` links, Open
+Graph URLs, the sitemap, `robots.txt`, `llms.txt`), so it takes two values from the workflow:
+
+| Variable         | Value in the Deploy workflow                                | Used for                                 |
+| ---------------- | ----------------------------------------------------------- | ---------------------------------------- |
+| `SITE_URL`       | `https://maalik-e-makaan-site.vercel.app` (in `deploy.yml`) | the site's canonical origin              |
+| `PUBLIC_APP_URL` | the `APP_URL` repository variable                           | the "Open the web app" links and JSON-LD |
+
+`maalik-e-makaan-site.vercel.app` is the project's default production domain (Vercel assigned it
+when the project was created); every production deployment is aliased to it.
+
+To move the site to a custom domain later:
+
+1. In the Vercel project `maalik-e-makaan-site`, Settings, Domains, add the domain (for example
+   `www.example.pk`, plus the apex redirecting to it) and create the DNS records Vercel shows;
+   wait until it reads "Valid Configuration".
+2. Set `SITE_URL` and the `site` job's `environment.url` in `.github/workflows/deploy.yml` to
+   `https://<the domain>` (https, no path), and update `DEFAULT_SITE_URL` in `website/src/config/urls.ts` and
+   `website/README.md` if the domain is to be the default for local builds too.
+3. Run the Deploy workflow. The smoke test checks that the canonical links, `robots.txt` and the
+   sitemap name the new origin.
+4. Keep `maalik-e-makaan-site.vercel.app`, but redirect it to the domain (Settings, Domains,
+   Edit, Redirect to) so search engines see one address.
+
 ## Deployment (GitHub Actions)
 
 The Deploy workflow (`.github/workflows/deploy.yml`) runs when a release is published, or by hand
@@ -194,23 +227,41 @@ job then:
    `nosniff` and a revalidated `Cache-Control`. It also checks that
    `/.well-known/assetlinks.json` answers 200 as JSON, delegating to the Android package.
 
+Its `site` job deploys the website. It does not wait for Supabase (the site never calls it), so it
+runs alongside the other two. It:
+
+1. fails at once if the `VERCEL_TOKEN` secret or the `APP_URL` variable is missing;
+2. writes `.vercel/project.json` and runs `vercel build --prod` with `SITE_URL` and
+   `PUBLIC_APP_URL` set (see Hosting, The website on Vercel); the build fails on a page without
+   its twin in the other language or with inline code;
+3. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
+4. runs `tool/web/site_smoke_test.sh`: `/`, `/ur/`, `/robots.txt`, `/sitemap-index.xml` and
+   `/llms.txt` must answer 200 with the right type, the canonical links, `robots.txt` and the
+   sitemap must name `SITE_URL`, a missing page must answer 404, and every response must carry
+   the Content-Security-Policy, HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`,
+   `Permissions-Policy` and `Cross-Origin-Opener-Policy`.
+
+CI's `website` job checks every push first: `npm run check`, `npm test`, `npm run build`,
+`npm run test:e2e` (links, then Playwright with axe) and Lighthouse on eight pages
+(`npm run lighthouse:ci`); `make test-web` runs the same sequence.
+
 The Release workflow builds the signed Android app and attaches the web build to the release. The
 workflows read these repository settings:
 
-| Setting                     | Kind     | What it is                                               |
-| --------------------------- | -------- | -------------------------------------------------------- |
-| `SUPABASE_ACCESS_TOKEN`     | secret   | A Supabase personal access token scoped to this project  |
-| `SUPABASE_DB_PASSWORD`      | secret   | The database password, for `supabase db push`            |
-| `ANDROID_KEYSTORE_BASE64`   | secret   | The upload keystore (`.jks`), base64-encoded             |
-| `ANDROID_KEYSTORE_PASSWORD` | secret   | The keystore's password                                  |
-| `ANDROID_KEY_ALIAS`         | secret   | The key's name in the keystore (`upload`)                |
-| `ANDROID_KEY_PASSWORD`      | secret   | The key's password                                       |
-| `RELEASE_PLEASE_TOKEN`      | secret   | Optional: a token whose release pull requests trigger CI |
-| `VERCEL_TOKEN`              | secret   | A Vercel token for the `ar27111994s-projects` team       |
-| `SUPABASE_PROJECT_REF`      | variable | `aaifamxzzjspohwksxyr`                                   |
-| `SUPABASE_URL`              | variable | `https://aaifamxzzjspohwksxyr.supabase.co`               |
-| `SUPABASE_PUBLISHABLE_KEY`  | variable | The project's publishable (client) key                   |
-| `APP_URL`                   | variable | `https://maalik-e-makaan.vercel.app`                     |
+| Setting                     | Kind     | What it is                                                                |
+| --------------------------- | -------- | ------------------------------------------------------------------------- |
+| `SUPABASE_ACCESS_TOKEN`     | secret   | A Supabase personal access token scoped to this project                   |
+| `SUPABASE_DB_PASSWORD`      | secret   | The database password, for `supabase db push`                             |
+| `ANDROID_KEYSTORE_BASE64`   | secret   | The upload keystore (`.jks`), base64-encoded                              |
+| `ANDROID_KEYSTORE_PASSWORD` | secret   | The keystore's password                                                   |
+| `ANDROID_KEY_ALIAS`         | secret   | The key's name in the keystore (`upload`)                                 |
+| `ANDROID_KEY_PASSWORD`      | secret   | The key's password                                                        |
+| `RELEASE_PLEASE_TOKEN`      | secret   | Optional: a token whose release pull requests trigger CI                  |
+| `VERCEL_TOKEN`              | secret   | A Vercel token for the `ar27111994s-projects` team                        |
+| `SUPABASE_PROJECT_REF`      | variable | `aaifamxzzjspohwksxyr`                                                    |
+| `SUPABASE_URL`              | variable | `https://aaifamxzzjspohwksxyr.supabase.co`                                |
+| `SUPABASE_PUBLISHABLE_KEY`  | variable | The project's publishable (client) key                                    |
+| `APP_URL`                   | variable | `https://maalik-e-makaan.vercel.app`; also the website's `PUBLIC_APP_URL` |
 
 The `production` environment should require a reviewer; `release` holds the signing secrets.
 
@@ -260,6 +311,58 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
 ```
 
 A debug build is signed with the debug key, which is not listed, so it stays unverified.
+
+## Deleting a user account
+
+Users delete their own accounts in the app (the `delete-account` Edge Function). It calls
+`public.admin_delete_account_data` and only then deletes the Auth user. When an operator must
+delete a user (a support request, abuse), keep that order:
+
+1. In the SQL editor, run the account-data deletion first. It deletes every portfolio where the
+   user is the only owner (with its data and files), removes their other memberships, revokes
+   their pending invitations and stops the account from joining or creating portfolios:
+
+   ```sql
+   select public.admin_delete_account_data('<user id>');
+   ```
+
+2. Then delete the user in the dashboard (Authentication → Users) or through the Auth admin API.
+
+Never delete a user in Auth alone:
+
+- Portfolios the user owned alone stay behind with no member at all, so no app user can reach or
+  delete them (checked on PostgreSQL 16).
+- The deletion can deadlock with an acceptance of one of the user's invitations (finding F3 of
+  `formal/tla/Invitations`): GoTrue's `DELETE` holds the `auth.users` row and its
+  `ON DELETE SET NULL` waits for the invitation the acceptance holds, while the acceptance's
+  membership insert waits for the `auth.users` row. PostgreSQL aborts one of them with 40P01: the invitee sees an
+  error, or the deletion fails and must be repeated. A create by the user can fail the same way
+  (or with 23503). Step 1 takes the account and then the portfolios `FOR UPDATE`, in the order
+  every other writer uses, so in-flight requests finish first and later ones are refused; the
+  Auth deletion then has nothing left to wait for (`formal/tla/Invitations/replay_findings.sh`
+  checks both orders).
+
+If a user was deleted in Auth alone, their pending invitations are revoked anyway (since
+`20261107230000_invitation_findings.sql`), but their sole-owned portfolios are left without
+members. Find and delete them in the SQL editor (the deletion queues their files for
+storage-cleanup):
+
+```sql
+select p.id, p.name from public.portfolios p
+where not exists (select 1 from public.portfolio_members m where m.portfolio_id = p.id);
+
+begin;
+select private.lock_portfolios_for_deletion(array['<portfolio id>']::uuid[]);
+select private.delete_locked_portfolios(array['<portfolio id>']::uuid[]);
+commit;
+```
+
+Why no trigger on `auth.users` does step 1 for you: a `BEFORE DELETE` trigger runs only after
+PostgreSQL has locked the `auth.users` row, so it would lock the account and the portfolios after
+that row, while every insert that names the user locks that row last (its foreign-key check). On
+PostgreSQL 16.15 such a trigger still deadlocked with an acceptance in the same interleaving
+(`replay_findings.sh` keeps that check). It would also run inside GoTrue's transaction, where any
+error it raised would fail the Auth deletion.
 
 ## After every migration
 
