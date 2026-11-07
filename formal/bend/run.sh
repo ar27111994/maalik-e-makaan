@@ -19,11 +19,12 @@
 #   ci   the verdict only (about 15 s)
 #   all  every step (a few minutes; needs Dart and a PostgreSQL server)
 #
-# Environment:
-#   BEND          bend 2.0.39 (default: bend on PATH, else /usr/local/bin/bend)
+# Environment (tool/formal/install.sh installs both pinned tools and writes
+# .cache/formal/env.sh, which this script reads; a variable already set wins):
+#   BEND          bend 2.0.39 (default: from env.sh, else bend on PATH)
 #   LEAN434_HOME  Lean 4.34.0 (its bin/ goes first on PATH: --verdict builds
-#                 BendTT's kernel with it). Default: lean on PATH if it is
-#                 4.34.0, else the formal-verification scratch toolchain.
+#                 BendTT's kernel with it, into ~/.bend/bendtt). Default: from
+#                 env.sh, else lean on PATH if it is 4.34.0.
 #   DART          dart (all only; default: dart on PATH, else
 #                 /opt/flutter/bin/dart). The pub workspace must be resolved
 #                 (.dart_tool/package_config.json, `make bootstrap`).
@@ -38,7 +39,6 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
-SCRATCH_TOOLS="/tmp/claude-0/-home-user-maalik-e-makaan/65cec986-d5bd-5e66-96c4-4b2ed1d37e27/scratchpad/tools"
 PYTHON="${PYTHON:-python3}"
 # nothing is written next to the sources, not even __pycache__
 export PYTHONDONTWRITEBYTECODE=1
@@ -51,22 +51,31 @@ case "$MODE" in
     ;;
 esac
 
-if [[ -z "${BEND:-}" ]]; then
-  BEND="$(command -v bend || echo /usr/local/bin/bend)"
+# The pinned tools of tool/formal/install.sh, unless set already.
+if [[ -f "$REPO/.cache/formal/env.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "$REPO/.cache/formal/env.sh"
 fi
-[[ -x "$BEND" ]] || {
-  echo "run.sh: bend not found at '$BEND' (set BEND; install: curl -fsSL https://bend-lang.com/install.sh | sh)" >&2
+INSTALL_HINT="run tool/formal/install.sh, or set BEND and LEAN434_HOME"
+# No update check against bend-lang.com from a verification run.
+export BEND_NO_TELEMETRY=1
+BEND="${BEND:-$(command -v bend || true)}"
+[[ -n "$BEND" && -x "$BEND" ]] || {
+  echo "run.sh: bend 2.0.39 not found (BEND='$BEND'): $INSTALL_HINT" >&2
+  exit 2
+}
+bend_version="$("$BEND" version 2>/dev/null | head -1 || true)"
+[[ "$bend_version" == "bend 2.0.39" ]] || {
+  echo "run.sh: needs bend 2.0.39, '$BEND' is ${bend_version:-not runnable}: $INSTALL_HINT" >&2
   exit 2
 }
 if [[ -n "${LEAN434_HOME:-}" ]]; then
   PATH="$LEAN434_HOME/bin:$PATH"
-elif ! lean --version 2>/dev/null | grep -q 'version 4\.34\.0'; then
-  PATH="$SCRATCH_TOOLS/lean/lean-4.34.0-linux/bin:$PATH"
 fi
 export PATH
 lean_version="$(lean --version 2>/dev/null || true)"
 [[ "$lean_version" == *"version 4.34.0"* ]] || {
-  echo "run.sh: --verdict needs Lean 4.34.0 (set LEAN434_HOME); found: ${lean_version:-no lean}" >&2
+  echo "run.sh: --verdict needs Lean 4.34.0, found: ${lean_version:-no lean}: $INSTALL_HINT" >&2
   exit 2
 }
 
@@ -77,7 +86,7 @@ mkdir -p "$LOGS" "$SRC/soundness"
 cp "$HERE"/SPEC.bend "$HERE"/LAWS.bend "$HERE"/PROOF.bend "$SRC/"
 cp "$HERE"/soundness/USE.bend "$HERE"/soundness/NEG.bend "$SRC/soundness/"
 
-echo "Bend: $BEND ($("$BEND" version 2>/dev/null | head -1)); Lean $(grep -o 'version [0-9.]*' <<<"$lean_version")"
+echo "Bend: $BEND ($bend_version); Lean $(grep -o 'version [0-9.]*' <<<"$lean_version")"
 echo "Mode: $MODE, logs in $LOGS"
 printf '%-8s %-44s %-40s %-8s %s\n' RESULT STEP EXPECTED SECONDS DETAIL
 

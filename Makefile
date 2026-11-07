@@ -74,6 +74,7 @@ design-lint: ## UI code takes colours, type, spacing, radii and motion from toke
 analyze: ## Static analysis for every package
 	cd packages/mm_core && $(DART) analyze --fatal-infos
 	cd packages/mm_ui && $(FLUTTER) analyze --fatal-infos
+	cd packages/mm_ui/example && $(FLUTTER) analyze --fatal-infos
 	cd app && $(FLUTTER) analyze --fatal-infos
 	cd supabase/functions && $(DENO) lint && $(DENO) task check
 	python3 tool/check_unicode.py
@@ -95,6 +96,10 @@ test-app: ## App unit/widget/golden tests with coverage gate
 	cd app && $(FLUTTER) test --coverage
 	python3 tool/coverage/check.py app/coverage/lcov.info --min 90
 
+.PHONY: test-gallery
+test-gallery: ## mm_ui gallery: every page in every theme, Urdu and 200% text, with the accessibility checks
+	cd packages/mm_ui/example && $(FLUTTER) test --no-pub
+
 .PHONY: goldens
 goldens: ## Re-record golden images (review the diff before committing!)
 	cd packages/mm_ui && $(FLUTTER) test --update-goldens --tags golden
@@ -115,6 +120,18 @@ test-db-concurrency: ## Parallel payments, retries and billing races keep the le
 .PHONY: test-db-stress
 test-db-stress: ## Report latency budgets, index usage and pgbench throughput (STRESS_SECONDS=10)
 	tool/db/stress_test.sh
+
+.PHONY: formal-install
+formal-install: ## Install the pinned, checksum-verified formal-verification tools into .cache/formal
+	tool/formal/install.sh
+
+.PHONY: verify
+verify: ## Formal verification, fast set: every TLA+, Lean, Z3 and Bend track (as CI runs it)
+	tool/formal/verify.sh ci
+
+.PHONY: verify-all
+verify-all: ## Formal verification, everything: all configurations and mutants (bend needs Dart and PostgreSQL)
+	tool/formal/verify.sh all
 
 .PHONY: contracts
 contracts: ## Regenerate the rent-maths contract vectors shared by Dart and SQL
@@ -143,11 +160,12 @@ test-web: ## Website build, e2e, accessibility and SEO checks
 	cd website && npm run check && npm run build && npm run test:e2e
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, tokens, web packaging)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, tokens, web packaging, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/design -p 'test_*.py'
 	python3 -m unittest discover -s tool/web -p 'test_*.py'
+	python3 -m unittest discover -s tool/formal -p 'test_*.py'
 
 .PHONY: tokens
 tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)
@@ -166,7 +184,7 @@ icons-check: ## Fail when the icon font or MmIcons are out of date with design/i
 	python3 tool/design/build_icons.py --check
 
 .PHONY: test
-test: test-tools test-core test-ui test-app test-db test-functions ## Run every fast test suite
+test: test-tools test-core test-ui test-app test-gallery test-db test-functions ## Run every fast test suite
 
 .PHONY: build-web-app
 build-web-app: ## Release build of the Flutter web app

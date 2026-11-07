@@ -251,11 +251,10 @@ formal/tla/LateFees/run.sh all         # 48 configurations
 formal/tla/LateFees/replay/run.sh      # F1, F2, F3 fixed, on PostgreSQL (tool/db/env.sh)
 ```
 
-The runner is `../StorageCleanup/run.sh` with two changes: when
-`TLA2TOOLS` is unset and `.cache/formal/tla2tools.jar` is missing it falls
-back to the formal-verification scratch copy, and a configuration that
-ends in a TLC error is reported as `error` instead of stopping the runner.
-`TLC_JOBS` (default 2), `TLC_WORKERS` (default 1), `TMPDIR` and
+The runner is the same file as `../StorageCleanup/run.sh`. A
+configuration that ends in a TLC error is reported as `error`, not as
+`no result`. `TLA2TOOLS` comes from `.cache/formal/env.sh`
+(`tool/formal/install.sh`) unless set. `TLC_JOBS` (default 2), `TLC_WORKERS` (default 1), `TMPDIR` and
 `KEEP_LOGS` work as there. Each `cfg/*.cfg` names its expected outcome
 (`\* EXPECT:`) and mode (`\* MODE:`). The replay builds the disposable
 database `mm_fv_latefees` with `tool/db/reset.sh` and drops it. It exits

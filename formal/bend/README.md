@@ -46,11 +46,12 @@ formal/bend/run.sh all    # verdict, soundness, mutants and fidelity (about 5 mi
 `run.sh` works from any directory and writes only below a fresh directory in
 `${TMPDIR:-/tmp}`. It needs:
 
-- Bend 2.0.39 (`BEND`, default `bend` on `PATH`, then `/usr/local/bin/bend`;
-  install with `curl -fsSL https://bend-lang.com/install.sh | sh`).
-- Lean 4.34.0 (`LEAN434_HOME`): `--verdict` builds BendTT's kernel with it.
-  The fallback is `lean` on `PATH` if it is 4.34.0, then the formal
-  verification toolchain in the scratch directory.
+- Bend 2.0.39 (`BEND`) and Lean 4.34.0 (`LEAN434_HOME`): `--verdict`
+  builds BendTT's kernel with that Lean, once, into `~/.bend/bendtt`.
+  `tool/formal/install.sh` (`make formal-install`) installs both, pinned
+  and checksum-verified, and writes `.cache/formal/env.sh`, which `run.sh`
+  reads. Without it, `run.sh` takes `bend` and `lean` from `PATH` and
+  checks their versions.
 - For `all` only: Dart with the resolved pub workspace (`DART`, default
   `dart` on `PATH`, then `/opt/flutter/bin/dart`; run `make bootstrap`
   first), and a PostgreSQL 16 server (`PGHOST`, `PGPORT`, `PGUSER`, defaults

@@ -291,7 +291,8 @@ formal/tla/Membership/run.sh all deposit   # only names containing "deposit"
 ```
 
 It works from any directory. `TLA2TOOLS` points to `tla2tools.jar` (TLC
-2.19; default `.cache/formal/tla2tools.jar` in the repository, which git ignores); `java` must be on `PATH`. `TLC_JOBS` (default 2) configurations run
+2.19; default from `.cache/formal/env.sh`, which `tool/formal/install.sh` writes, else
+`.cache/formal/tla2tools.jar` in the repository, which git ignores); `java` must be on `PATH`. `TLC_JOBS` (default 2) configurations run
 at once with `TLC_WORKERS` (default 1) workers each. Scratch goes under
 `${TMPDIR:-/tmp}` and is kept when a configuration does not match its
 expectation (`KEEP_LOGS=1` keeps it always). Each `cfg/*.cfg` states its

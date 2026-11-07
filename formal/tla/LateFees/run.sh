@@ -13,13 +13,15 @@
 #
 #   run.sh [ci|all] [name-filter]
 #
-# Environment: TLA2TOOLS (tla2tools.jar, TLC 2.19; default
-# .cache/formal/tla2tools.jar in the repository, then the formal-verification
-# scratch copy; java on PATH), TLC_JOBS (configs checked at once, default 2),
-# TLC_WORKERS (workers per TLC, default 1).
-# Keep TLC_JOBS x TLC_WORKERS within the CPUs you may use. Scratch (copies
-# of the specs, TLC state, logs) goes under ${TMPDIR:-/tmp}; it is kept
-# when a configuration fails, or always with KEEP_LOGS=1.
+# Environment: TLA2TOOLS (tla2tools.jar, TLC 2.19; default: from
+# .cache/formal/env.sh, which tool/formal/install.sh writes, else
+# .cache/formal/tla2tools.jar in the repository; java 11+ on PATH), TLC_JOBS
+# (configs checked at once, default 2), TLC_WORKERS (workers per TLC,
+# default 1). Keep TLC_JOBS x TLC_WORKERS within the CPUs you may use.
+# Scratch (copies of the specs, TLC state, logs) goes under ${TMPDIR:-/tmp};
+# it is kept when a configuration fails, or always with KEEP_LOGS=1. Only
+# TLA2TOOLS is used by this track; LEAN_HOME, LEAN434_HOME, Z3_PYTHON and
+# BEND belong to the other formal tracks.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -34,12 +36,17 @@ case "$MODE" in
 esac
 
 REPO="$(cd "$HERE/../../.." && pwd)"
+# The pinned tools of tool/formal/install.sh, unless set already.
+if [[ -f "$REPO/.cache/formal/env.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "$REPO/.cache/formal/env.sh"
+fi
 TLA2TOOLS="${TLA2TOOLS:-$REPO/.cache/formal/tla2tools.jar}"
 JOBS="${TLC_JOBS:-2}"
 WORKERS="${TLC_WORKERS:-1}"
 [[ -f "$TLA2TOOLS" ]] || {
   echo "tla2tools.jar (TLC 2.19) not found at $TLA2TOOLS:" \
-    "set TLA2TOOLS to it, or put it at .cache/formal/tla2tools.jar in the repository" >&2
+    "run tool/formal/install.sh, or set TLA2TOOLS" >&2
   exit 2
 }
 command -v java >/dev/null || {

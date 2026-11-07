@@ -13,7 +13,9 @@ python overflow.py ci|all
 python dart_sql.py ci|all
 ```
 
-The Python needs the `z3-solver` package. `run.sh` uses `Z3_PYTHON`.
+The Python needs the `z3-solver` package. `run.sh` uses `Z3_PYTHON`, which
+`tool/formal/install.sh` sets up (z3-solver 5.3.1.0, hash-pinned in
+`tool/formal/requirements.txt`).
 
 ## Bounds
 

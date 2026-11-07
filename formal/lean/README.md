@@ -141,8 +141,11 @@ formal/lean/run.sh all         # also every Z3 check and every Lean mutant
 formal/lean/run.sh ci lean     # only the Lean part (or: smt)
 ```
 
-Set `LEAN_HOME` to a Lean 4.35.0 toolchain (or put `lake` on `PATH`) and
-`Z3_PYTHON` to a Python with `z3-solver`. `LEAN_JOBS` mutants build at once
+`tool/formal/install.sh` (`make formal-install`) installs Lean 4.35.0 and
+a `z3-solver` environment, pinned and checksum-verified, and `run.sh` reads
+them from `.cache/formal/env.sh`. Otherwise set `LEAN_HOME` to a Lean
+4.35.0 toolchain (or put `lake` on `PATH`) and `Z3_PYTHON` to a Python with
+`z3-solver`. `LEAN_JOBS` mutants build at once
 (default 2). By hand: `lake build`, then
 `lake exe check-vectors ../../contracts/rent_math_vectors.json` and
 `lake env lean Axioms.lean`.

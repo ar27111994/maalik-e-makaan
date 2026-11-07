@@ -8,15 +8,16 @@
 #   \* Simulate: num=N depth=D seed=S  (random simulation instead of BFS)
 #
 # A configuration matches when TLC exits 0 with "No error has been found" for
-# PASS, or exits 12 with exactly "Error: Invariant <Name> is violated." for
+# PASS (a simulation: exits 0, "Finished in" and no error), or exits 12 with exactly "Error: Invariant <Name> is violated." for
 # FAIL. Anything else (another invariant, a deadlock, a parse error, a TLC
 # crash) is a mismatch, and any mismatch fails the run.
 #
 # Usage: run.sh [ci|all|<config name or file> ...]     (default: ci)
 #
 # Environment:
-#   TLA2TOOLS     tla2tools.jar (TLC 2.19; default .cache/formal/tla2tools.jar
-#                 in the repository)
+#   TLA2TOOLS     tla2tools.jar (TLC 2.19; default: from .cache/formal/env.sh,
+#                 which tool/formal/install.sh writes, else
+#                 .cache/formal/tla2tools.jar in the repository)
 #   JAVA          java binary (default: java on PATH)
 #   TLC_WORKERS   TLC worker threads (default 2)
 #   TLC_HEAP      JVM heap (default 2g)
@@ -27,6 +28,11 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
+# The pinned tools of tool/formal/install.sh, unless set already.
+if [[ -f "$REPO/.cache/formal/env.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "$REPO/.cache/formal/env.sh"
+fi
 TLA2TOOLS="${TLA2TOOLS:-$REPO/.cache/formal/tla2tools.jar}"
 JAVA="${JAVA:-java}"
 TLC_WORKERS="${TLC_WORKERS:-2}"
@@ -34,7 +40,7 @@ TLC_HEAP="${TLC_HEAP:-2g}"
 
 if [[ ! -f "$TLA2TOOLS" ]]; then
   echo "run.sh: tla2tools.jar (TLC 2.19) not found at '$TLA2TOOLS':" \
-    "set TLA2TOOLS to it, or put it at .cache/formal/tla2tools.jar in the repository" >&2
+    "run tool/formal/install.sh, or set TLA2TOOLS" >&2
   exit 2
 fi
 command -v "$JAVA" >/dev/null 2>&1 || {
@@ -115,9 +121,19 @@ for cfg in "${configs[@]}"; do
   secs=$(($(date +%s) - start))
 
   got="$(grep -m1 -oE 'Error: Invariant [A-Za-z0-9_]+ is violated\.|Deadlock reached|No error has been found' "$log" || true)"
+  # A simulation that reaches num= traces says only "Finished in ...": TLC
+  # 2.19 prints no "No error has been found" for it. Exit 0, that line and no
+  # error at all is its pass.
+  if [[ -n "$sim_line" && -z "$got" && $rc -eq 0 ]] && grep -q '^Finished in' "$log" \
+    && ! grep -q '^Error' "$log"; then
+    got="No error has been found"
+  fi
   stats="$(grep -E 'states generated' "$log" | tail -1 | sed -E 's/^([0-9,]+) states generated, ([0-9,]+) distinct states found.*/\1 (\2)/' || true)"
   depth_found="$(grep -oE 'depth of the complete state graph search is [0-9]+' "$log" | grep -oE '[0-9]+$' || true)"
-  [[ -n "$sim_line" ]] && stats="simulation: $(grep -oE '[0-9,]+ states checked|checked [0-9,]+ states|[0-9,]+ traces' "$log" | head -2 | tr '\n' ' ')"
+  if [[ -n "$sim_line" ]]; then
+    # || true: a TLC error prints none of these, and must still be reported.
+    stats="simulation: $(grep -oE '[0-9,]+ states checked|checked [0-9,]+ states|[0-9,]+ traces' "$log" | head -2 | tr '\n' ' ' || true)"
+  fi
 
   verdict=MISMATCH
   if [[ "$expect" == PASS && $rc -eq 0 && "$got" == "No error has been found" ]]; then

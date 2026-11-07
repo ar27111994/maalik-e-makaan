@@ -23,15 +23,15 @@ that global tools ignore:
 
 ## How it is built
 
-| Part             | Where                   | What                                                                                                                                |
-| ---------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| App              | `app/`                  | Flutter 3.47 for Android, iOS and the web. Riverpod 3, go_router 18, English and Urdu (right to left).                              |
-| Domain library   | `packages/mm_core/`     | Pure Dart: exact money in paisa, rent and late-fee maths, Pakistan time, CNIC, phone and IBAN checks.                               |
-| Design system    | `packages/mm_ui/`       | Tokens, themes (light, dark, high contrast), icons and accessible components. See [`DESIGN.md`](DESIGN.md).                         |
-| Database         | `supabase/migrations`   | Postgres 17 on Supabase: row-level security on every table, a ledger with idempotent payments and gapless receipts, scheduled jobs. |
-| Edge Functions   | `supabase/functions`    | Deno 2: account deletion, invitations, health checks and storage clean-up.                                                          |
-| Formal models    | `formal/` (being added) | TLA+ models of the concurrent paths; Lean 4, Bend and Z3 proofs of the money arithmetic.                                            |
-| Shared contracts | `contracts/`            | Test vectors that keep Dart, SQL and TypeScript in agreement (rent maths, text cleaning).                                           |
+| Part             | Where                 | What                                                                                                                                 |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| App              | `app/`                | Flutter 3.47 for Android, iOS and the web. Riverpod 3, go_router 18, English and Urdu (right to left).                               |
+| Domain library   | `packages/mm_core/`   | Pure Dart: exact money in paisa, rent and late-fee maths, Pakistan time, CNIC, phone and IBAN checks.                                |
+| Design system    | `packages/mm_ui/`     | Tokens, themes (light, dark, high contrast), icons and accessible components. See [`DESIGN.md`](DESIGN.md).                          |
+| Database         | `supabase/migrations` | Postgres 17 on Supabase: row-level security on every table, a ledger with idempotent payments and gapless receipts, scheduled jobs.  |
+| Edge Functions   | `supabase/functions`  | Deno 2: account deletion, invitations, health checks and storage clean-up.                                                           |
+| Formal models    | `formal/`             | TLA+ models of the concurrent paths; Lean 4, Bend and Z3 proofs of the money arithmetic. See [`formal/README.md`](formal/README.md). |
+| Shared contracts | `contracts/`          | Test vectors that keep Dart, SQL and TypeScript in agreement (rent maths, text cleaning).                                            |
 
 Key decisions are recorded in [`.planning/PROJECT.md`](.planning/PROJECT.md):
 
@@ -72,6 +72,8 @@ Every change runs through CI ([`ci.yml`](.github/workflows/ci.yml)):
 - Edge Function tests at 100% line, branch and function coverage;
 - the pgTAP suites and the concurrency scenarios on PostgreSQL, and again on the real Supabase
   stack;
+- the formal models: every TLA+ model's fast set of configurations, the Lean, Bend and Z3 proofs,
+  each with its mutants, using exactly pinned, checksum-verified tools (`make verify`);
 - release builds for the web and Android.
 
 Security checks ([`security.yml`](.github/workflows/security.yml)) run CodeQL, gitleaks over the

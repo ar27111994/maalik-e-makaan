@@ -26,6 +26,7 @@
     "**/build/**",
     "**/dist/**",
     "**/.dart_tool/**",
+    "**/.cache/**", // downloaded tools, e.g. tool/formal/install.sh's Lean sources
     "**/flutter/ephemeral/**",
     "**/CHANGELOG.md",
     ".planning/research/**",

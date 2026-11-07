@@ -18,8 +18,9 @@ make help        # every target, with a one-line description
 ```sh
 make format        # Dart, TypeScript, Python (black, ruff), shell (shfmt) and docs
 make format-check analyze lint
-make test          # tooling, Dart packages, app, database and Edge Functions
+make test          # tooling, Dart packages, the mm_ui gallery, app, database and Edge Functions
 make test-db-concurrency
+make formal-install verify   # when you change the ledger, locking or money code (formal/README.md)
 ```
 
 `make lint` runs ruff, shellcheck, actionlint, squawk (on migrations newer than its baseline),

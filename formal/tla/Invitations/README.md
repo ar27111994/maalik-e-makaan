@@ -36,14 +36,14 @@ Results in short:
 ## How to run
 
 ```sh
-formal/tla/Invitations/run.sh ci     # fast set, must be green (about 3.5 minutes)
-formal/tla/Invitations/run.sh all    # every configuration (about TODO minutes)
+formal/tla/Invitations/run.sh ci     # fast set, must be green (about 3 minutes)
+formal/tla/Invitations/run.sh all    # every configuration (about 45 minutes)
 formal/tla/Invitations/run.sh Invitations_current_create_race   # one or more by name
 ```
 
 `run.sh` works from any directory. It needs Java (tested with OpenJDK 21) and TLC 2.19
-(`tla2tools.jar`). Set `TLA2TOOLS` to the jar (the fallback is
-`.cache/formal/tla2tools.jar` in the repository), `JAVA` to another `java`, `TLC_WORKERS` (default 2) and
+(`tla2tools.jar`), which `tool/formal/install.sh` installs. Set `TLA2TOOLS` to another jar
+(the default comes from `.cache/formal/env.sh`), `JAVA` to another `java`, `TLC_WORKERS` (default 2) and
 `TLC_HEAP` (default `2g`). Scratch files go to a fresh directory under
 `${TMPDIR:-/tmp}`; nothing is written next to the model.
 
@@ -156,8 +156,20 @@ check stays on, so a call stuck forever would also be reported.
 
 ## Results
 
-Timings are from the runs on 2026-11-05 with 2 TLC workers, on a 4-CPU machine
-shared with another workload. TODO
+Measured on 2026-11-07 with 2 TLC workers, on a 4-CPU machine shared with
+other work (load average 6 to 15):
+
+- `run.sh ci`: 50/50 configurations as expected in 176 s.
+- `run.sh all`: 58 configurations in 2,767 s. The largest are
+  `Invitations_current_safety` (2,625,877 distinct states, 526 s),
+  `Invitations_current_members_large` (1,460,252, 478 s) and `Invitations`
+  (2,580,967, 345 s). The two random simulations take about 340 s each.
+- In that run the two simulations were reported as mismatches although TLC
+  found no error: with `num=` TLC 2.19 ends a simulation with "Finished in"
+  and no "No error has been found". `run.sh` now takes exit 0, "Finished
+  in" and no `Error` line as a simulation's pass. Run again with that
+  change, both are as expected (311 s and 293 s), so all 58 configurations
+  match.
 
 ## Findings
 

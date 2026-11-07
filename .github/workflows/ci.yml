@@ -100,6 +100,12 @@ jobs:
             dir: app
             analyzer: flutter
             target: test-app
+          # The mm_ui gallery: every page in every theme, Urdu and 200% text,
+          # with the accessibility checks (no coverage gate of its own).
+          - package: mm_ui_gallery
+            dir: packages/mm_ui/example
+            analyzer: flutter
+            target: test-gallery
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -126,7 +132,7 @@ jobs:
         env:
           ANALYZER: ${{ matrix.analyzer }}
         run: '"$ANALYZER" analyze --fatal-infos'
-      - name: Tests with the coverage gate
+      - name: Tests (make ${{ matrix.target }}, with its coverage gate if it has one)
         env:
           TARGET: ${{ matrix.target }}
         run: make "$TARGET"
@@ -288,10 +294,45 @@ jobs:
         if: always()
         run: supabase stop --no-backup
 
+  formal:
+    name: Formal verification (TLA+, Lean, Z3, Bend)
+    runs-on: ubuntu-24.04
+    # `make verify` took 11 minutes on a shared, overloaded 4-CPU machine from a
+    # cold Lean build and Bend kernel (TLA+ 10, Lean and Z3 0.25, Bend 1). The
+    # installer unpacks in under a minute; a cache miss also downloads 1.2 GB.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # TLC 2.19 runs on Java 11 or later.
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      # z3-solver is hash-pinned for the Python requirements.txt is compiled with.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      # The pinned tools (about 7 GB unpacked, mostly the two Lean toolchains)
+      # and the Bend kernel built with Lean 4.34.0. The installer checks every
+      # download's sha256, so a new pin needs a new key: it hashes the installer.
+      - name: Cache the pinned formal-verification tools
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .cache/formal
+            ~/.bend/bendtt
+          key: formal-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tool/formal/install.sh', 'tool/formal/requirements.txt') }}
+      - name: Install the pinned tools (sha256-verified, idempotent)
+        run: make formal-install
+      - name: Every track's ci set (TLA+, Lean and Z3, Bend)
+        run: make verify
+
   passed:
     name: CI passed
     if: always()
-    needs: [hygiene, dart, web-build, android-build, functions, database, supabase-stack]
+    needs: [hygiene, dart, web-build, android-build, functions, database, supabase-stack, formal]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

@@ -12,9 +12,12 @@
 #      must break the proof or vector it names).
 #
 # Environment: LEAN_HOME (a Lean 4.35.0 toolchain with bin/lean and
-# bin/lake; else lean on PATH), Z3_PYTHON (a Python with the z3-solver
-# package), LEAN_JOBS (mutants built at once, default 2). Scratch goes under
-# ${TMPDIR:-/tmp} and is kept when a step fails, or always with KEEP_LOGS=1.
+# bin/lake; else lake on PATH), Z3_PYTHON (a Python with the z3-solver
+# package; else python3), LEAN_JOBS (mutants built at once, default 2).
+# tool/formal/install.sh installs both pinned tools and writes
+# .cache/formal/env.sh, which this script reads; a variable already set wins.
+# Scratch goes under ${TMPDIR:-/tmp} and is kept when a step fails, or always
+# with KEEP_LOGS=1.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,20 +40,17 @@ case "$ONLY" in
     ;;
 esac
 
-FALLBACK=/tmp/claude-0/-home-user-maalik-e-makaan/65cec986-d5bd-5e66-96c4-4b2ed1d37e27/scratchpad/tools
+# The pinned tools of tool/formal/install.sh, unless set already.
+if [[ -f "$REPO/.cache/formal/env.sh" ]]; then
+  # shellcheck source=/dev/null
+  source "$REPO/.cache/formal/env.sh"
+fi
+INSTALL_HINT="run tool/formal/install.sh, or set LEAN_HOME and Z3_PYTHON"
 if [[ -n "${LEAN_HOME:-}" ]]; then
   PATH="$LEAN_HOME/bin:$PATH"
-elif ! command -v lake >/dev/null && [[ -x "$FALLBACK/lean/lean-4.35.0-linux/bin/lake" ]]; then
-  PATH="$FALLBACK/lean/lean-4.35.0-linux/bin:$PATH"
 fi
 export PATH
-if [[ -z "${Z3_PYTHON:-}" ]]; then
-  if [[ -x "$FALLBACK/venv/bin/python" ]]; then
-    Z3_PYTHON="$FALLBACK/venv/bin/python"
-  else
-    Z3_PYTHON=python3
-  fi
-fi
+Z3_PYTHON="${Z3_PYTHON:-python3}"
 JOBS="${LEAN_JOBS:-2}"
 # Keep the repository free of __pycache__.
 export PYTHONDONTWRITEBYTECODE=1
@@ -88,7 +88,13 @@ timed() { # LOG CMD... -> exit status of CMD; output in LOG
 
 run_lean() {
   command -v lake >/dev/null || {
-    echo "lake not found: set LEAN_HOME to a Lean 4.35.0 toolchain" >&2
+    echo "lake (Lean 4.35.0) not found: $INSTALL_HINT" >&2
+    exit 2
+  }
+  local version
+  version="$(cd "$HERE" && lean --version 2>/dev/null || true)"
+  [[ "$version" == *"version 4.35.0"* ]] || {
+    echo "needs Lean 4.35.0, found: ${version:-no lean}: $INSTALL_HINT" >&2
     exit 2
   }
   local start got
@@ -195,7 +201,7 @@ run_mutants() {
 
 run_smt() {
   "$Z3_PYTHON" -c 'import z3' 2>/dev/null || {
-    echo "$Z3_PYTHON cannot import z3: set Z3_PYTHON" >&2
+    echo "$Z3_PYTHON cannot import z3: $INSTALL_HINT" >&2
     exit 2
   }
   local script start status
