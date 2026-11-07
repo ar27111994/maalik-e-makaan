@@ -11,3 +11,4 @@ workspace:
   - app
   - packages/mm_core
   - packages/mm_ui
+  - packages/mm_ui/example
