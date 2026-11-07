@@ -106,14 +106,96 @@ production is public.
 
 `maalik-e-makaan.vercel.app` is the app's `APP_URL`: Supabase Auth's Site URL, its redirect
 `APP_URL/auth/callback`, the invitation links and the Edge Functions' allowed origin. Until the
-web app's first release it serves a short "being built" page in English and Urdu, with the same
-security headers.
+Deploy workflow's first web deployment it serves a short "being built" page in English and Urdu,
+with the same security headers.
+
+### The web app on Vercel
+
+Nothing is built on Vercel. The Deploy workflow builds the app (`flutter build web
+--no-web-resources-cdn`, so CanvasKit is served from the app's own origin), and
+`tool/web/package_vercel.py` turns `app/build/web` into a
+[Build Output API v3](https://vercel.com/docs/build-output-api/configuration) directory
+(`.vercel/output/static` plus `config.json`). `vercel deploy --prebuilt --prod` then uploads that
+directory. The routes in `config.json`, in order:
+
+1. Security headers on every response: the Content-Security-Policy below, HSTS (two years),
+   `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
+   `X-Frame-Options: DENY`, `Cross-Origin-Opener-Policy: same-origin`, and a
+   `Permissions-Policy` that turns off the camera, microphone, geolocation, motion sensors,
+   payment and USB.
+2. `Cache-Control`. Flutter's file names (`main.dart.js`, `canvaskit/*`, `assets/*`) carry no
+   content hash and stay the same from build to build, so every file is revalidated on each load
+   (`no-cache`; an unchanged file answers 304). A file whose name does carry a hash
+   (`name.0123abcd.ext`) gets `max-age=31536000, immutable`. The entry points (`index.html`,
+   `flutter_bootstrap.js`, `flutter_service_worker.js`, `version.json`, `manifest.json`) and
+   `assetlinks.json` are always `no-cache`.
+3. `{"handle": "filesystem"}`: existing files are served.
+4. Every other path, such as `/auth/callback?code=…` or `/invite/…`, serves `index.html` with
+   status 200, and the app's router takes over.
+
+`/.well-known/assetlinks.json` comes from `app/web/.well-known/` (the Flutter build copies it) and
+is served as `application/json`.
+
+The Content-Security-Policy, with `<ref>` the Supabase project:
+
+| Directive         | Sources                                                                              | Why                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `default-src`     | `'self'`                                                                             | Anything not listed comes from the app's origin only                         |
+| `script-src`      | `'self' 'wasm-unsafe-eval'`                                                          | CanvasKit is WebAssembly; without `'wasm-unsafe-eval'` the app never starts  |
+| `style-src`       | `'self' 'unsafe-inline'`                                                             | The engine injects `<style>` elements; a static host cannot hand out nonces  |
+| `img-src`         | `'self' data: blob: https://<ref>.supabase.co`                                       | Storage images, and images the browser decodes                               |
+| `font-src`        | `'self'`                                                                             | The bundled fonts                                                            |
+| `connect-src`     | `'self' https://<ref>.supabase.co wss://<ref>.supabase.co https://fonts.gstatic.com` | Auth, data, Storage, Realtime; the engine `fetch()`es fallback fonts (below) |
+| `worker-src`      | `'self'`                                                                             | The CanvasKit renderer starts no workers                                     |
+| `manifest-src`    | `'self'`                                                                             | `manifest.json`                                                              |
+| `object-src`      | `'none'`                                                                             | No plugins                                                                   |
+| `base-uri`        | `'self'`                                                                             | `index.html` sets `<base href="/">`; `'none'` blocks it                      |
+| `form-action`     | `'self'`                                                                             | Flutter wraps autofill groups in a `<form>`, whose submission it cancels     |
+| `frame-ancestors` | `'none'`                                                                             | The app cannot be framed (clickjacking)                                      |
+
+The bundled fonts cover Latin (Atkinson Hyperlegible Next) and Urdu (Noto Nastaliq Urdu). For any
+other glyph, such as a tenant's name in another script or an emoji, Flutter's engine downloads a
+Noto font from `https://fonts.gstatic.com/s/` (its default `fontFallbackBaseUrl`) with `fetch()`.
+That is why `connect-src` allows exactly that origin and `font-src` stays `'self'`. Bundling every
+fallback font instead would add hundreds of megabytes.
+
+Check a change to the headers or the CSP locally before a release:
+
+```bash
+cd app && flutter build web --release --no-web-resources-cdn \
+  --dart-define-from-file=config/production.example.json && cd ..
+python3 tool/web/package_vercel.py --build app/build/web \
+  --output /tmp/web/.vercel/output --supabase-url https://placeholder-ref.supabase.co
+node tool/web/browser_check.cjs /tmp/web/.vercel/output --offline-host placeholder-ref.supabase.co \
+  --click "Continue in English" --type "日本語 😀" --screenshot /tmp/web/app.png
+```
+
+`browser_check.cjs` needs the `playwright` package and its Chromium. It serves the package with
+`tool/web/serve_output.py`, which applies `config.json` the way Vercel does. It then loads `/`,
+`/auth/callback?code=x` and a random deep path, and fails on a CSP violation, a console error, an
+unexpected failed request or an app that does not start. CI's web build runs
+`tool/web/smoke_test.sh` against the same local server on every push.
 
 ## Deployment (GitHub Actions)
 
-The Deploy workflow (`.github/workflows/deploy.yml`) runs when a release is published and pushes
-migrations and Edge Functions to Supabase; the Release workflow builds the signed Android app and
-the web app. They read these repository settings:
+The Deploy workflow (`.github/workflows/deploy.yml`) runs when a release is published, or by hand
+(Actions, Deploy, Run workflow; only once the workflow is on the default branch). Its `supabase`
+job pushes migrations and Edge Functions to Supabase and calls the `health` function. Its `web`
+job then:
+
+1. fails at once if the `VERCEL_TOKEN` secret or a repository variable is missing;
+2. writes `app/config/production.json` from the repository variables, as the Release workflow
+   does, and runs `flutter build web --release --no-web-resources-cdn`;
+3. packages the build with `tool/web/package_vercel.py` (see Hosting);
+4. runs `vercel deploy --prebuilt --prod` with the CLI pinned to an exact version, for the
+   project's team and project ids;
+5. runs `tool/web/smoke_test.sh`. On `/`, `/auth/callback?code=…` and an `/invite/…` path it
+   checks for a 200 with the app's `index.html`, the CSP (it must allow `SUPABASE_URL`), HSTS,
+   `nosniff` and a revalidated `Cache-Control`. It also checks that
+   `/.well-known/assetlinks.json` answers 200 as JSON, delegating to the Android package.
+
+The Release workflow builds the signed Android app and attaches the web build to the release. The
+workflows read these repository settings:
 
 | Setting                     | Kind     | What it is                                               |
 | --------------------------- | -------- | -------------------------------------------------------- |
@@ -124,6 +206,7 @@ the web app. They read these repository settings:
 | `ANDROID_KEY_ALIAS`         | secret   | The key's name in the keystore (`upload`)                |
 | `ANDROID_KEY_PASSWORD`      | secret   | The key's password                                       |
 | `RELEASE_PLEASE_TOKEN`      | secret   | Optional: a token whose release pull requests trigger CI |
+| `VERCEL_TOKEN`              | secret   | A Vercel token for the `ar27111994s-projects` team       |
 | `SUPABASE_PROJECT_REF`      | variable | `aaifamxzzjspohwksxyr`                                   |
 | `SUPABASE_URL`              | variable | `https://aaifamxzzjspohwksxyr.supabase.co`               |
 | `SUPABASE_PUBLISHABLE_KEY`  | variable | The project's publishable (client) key                   |
@@ -140,6 +223,43 @@ keytool -genkey -v -keystore upload-keystore.jks -storetype JKS -keyalg RSA -key
 
 Keep it and its passwords out of the repository and backed up. With Google Play App Signing it is
 the upload key, which Google can reset if lost.
+
+### Android App Links
+
+`app/web/.well-known/assetlinks.json` lets Android open `https://maalik-e-makaan.vercel.app/auth/callback`
+links in the app (the `autoVerify` intent filter in `app/android/app/src/main/AndroidManifest.xml`).
+It lists the SHA-256 fingerprint of each certificate that signs the app the user installs. Today
+that is only the upload key, which signs the APKs attached to releases.
+
+Once the app is on Google Play, Play re-signs it with the app-signing key. Add that key's
+fingerprint to the list (Play Console, Test and release, App integrity, App signing key
+certificate, SHA-256), keeping the upload key's:
+
+```json
+"sha256_cert_fingerprints": [
+  "96:C8:54:35:77:E8:20:5A:10:E6:01:5A:D0:8F:86:B2:CE:CE:D1:7A:8D:32:AB:B8:43:DF:2A:40:77:54:23:F8",
+  "<the Play app-signing key's SHA-256, upper case, colon-separated>"
+]
+```
+
+`package_vercel.py` refuses a malformed file. The change goes live with the next web deployment.
+
+Verify after a deployment. Google's Digital Asset Links API should answer `"linked": true`:
+
+```bash
+curl -sS 'https://digitalassetlinks.googleapis.com/v1/assetlinks:check?source.web.site=https://maalik-e-makaan.vercel.app&relation=delegate_permission/common.handle_all_urls&target.android_app.package_name=io.github.ar27111994.maalik_e_makaan&target.android_app.certificate.sha256_fingerprint=96:C8:54:35:77:E8:20:5A:10:E6:01:5A:D0:8F:86:B2:CE:CE:D1:7A:8D:32:AB:B8:43:DF:2A:40:77:54:23:F8'
+```
+
+On a device or emulator with the release-signed app installed (Android 12 or later):
+
+```bash
+adb shell pm verify-app-links --re-verify io.github.ar27111994.maalik_e_makaan
+adb shell pm get-app-links io.github.ar27111994.maalik_e_makaan   # maalik-e-makaan.vercel.app: verified
+adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE \
+  -d 'https://maalik-e-makaan.vercel.app/auth/callback?code=test'   # opens the app, not the browser
+```
+
+A debug build is signed with the debug key, which is not listed, so it stays unverified.
 
 ## After every migration
 

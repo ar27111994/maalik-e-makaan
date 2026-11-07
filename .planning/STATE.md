@@ -75,9 +75,16 @@ progress: { total_phases: 12, completed_phases: 3, percent: 25 }
 
 ## Blockers (need the owner)
 
-- Supabase Vault needs `mm_storage_cleanup_token` with the same value as the
-  `STORAGE_CLEANUP_TOKEN` function secret (`mm_project_url` is set); until then the scheduler
-  reports `not_configured` and deleted files stay queued (docs/operations.md, Storage cleanup).
+- The first production run of the Deploy workflow: it must be on the default branch to be run by
+  hand (or a release published). It deploys the web app to Vercel (`web` job, needs
+  `VERCEL_TOKEN`, set) and redeploys the Edge Functions so they send the database's Retry-After
+  (`admin_rate_limit_hit`, 20261107181820); until then the hosted functions use the deprecated
+  `admin_hit_rate_limit`, which still works.
+- Google Play: the organisation account waits for its D-U-N-S number. Once the app is on Play,
+  add the Play app-signing key's SHA-256 to `app/web/.well-known/assetlinks.json`.
+- Done by the owner on 2026-11-07: the Vault secret `mm_storage_cleanup_token` (checked: a
+  cleanup call with it answers 200), the GitHub secret `VERCEL_TOKEN` and the upload key's
+  SHA-256 fingerprint for Android App Links.
 - Done by the owner on 2026-11-05: the Edge Function secrets (`APP_URL`, `STORAGE_CLEANUP_TOKEN`,
   `RESEND_API_KEY`, `MAIL_FROM`), Supabase Auth's Site URL and redirect
   (`https://maalik-e-makaan.vercel.app/auth/callback`), and the GitHub secrets, variables and

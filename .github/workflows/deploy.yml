@@ -1,6 +1,7 @@
-# Production deployment of the Supabase backend: migrations, then Edge
-# Functions, then a smoke test. Runs when a release is published, or by hand.
-# The "production" environment should require a reviewer (repository settings).
+# Production deployment: the Supabase backend (migrations, then Edge Functions),
+# then the Flutter web app on Vercel, each followed by a smoke test. Runs when a
+# release is published, or by hand. The "production" environment should
+# require a reviewer (repository settings).
 name: Deploy
 
 on:
@@ -14,6 +15,10 @@ permissions:
 concurrency:
   group: deploy-production
   cancel-in-progress: false
+
+env:
+  # Keep equal to ci.yml and release.yml.
+  FLUTTER_VERSION: 3.47.9
 
 defaults:
   run:
@@ -60,3 +65,71 @@ jobs:
             --retry 5 --retry-delay 5 --retry-all-errors "$SUPABASE_URL/functions/v1/health")"
           cat "$RUNNER_TEMP/health.json"; echo
           [[ "$status" == "200" ]] || { echo "::error::health answered $status"; exit 1; }
+
+  web:
+    name: Web app (Vercel)
+    needs: supabase
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://maalik-e-makaan.vercel.app
+    env:
+      SITE_URL: https://maalik-e-makaan.vercel.app
+      ANDROID_PACKAGE: io.github.ar27111994.maalik_e_makaan
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+          persist-credentials: false
+      - name: Deployment is configured
+        # The token reaches only this step and the deploy, not the build's packages.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          [[ -n "$VERCEL_TOKEN" ]] || {
+            echo "::error::Secret VERCEL_TOKEN is not set (docs/operations.md, Deployment)"; exit 1; }
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY APP_URL; do
+            [[ -n "${!name}" ]] || { echo "::error::Repository variable $name is not set"; exit 1; }
+          done
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: flutter pub get
+      - name: Production configuration
+        # Public values only, as in release.yml (the publishable key is meant for clients).
+        run: |
+          jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" --arg app "$APP_URL" \
+            '{ENVIRONMENT: "production", SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, APP_URL: $app}' \
+            > app/config/production.json
+      - name: Build
+        working-directory: app
+        run: |
+          flutter build web --release --no-web-resources-cdn \
+            --dart-define-from-file=config/production.json
+      - name: Package (Vercel Build Output API)
+        run: >
+          python3 tool/web/package_vercel.py --build app/build/web
+          --output "$RUNNER_TEMP/vercel/.vercel/output" --supabase-url "$SUPABASE_URL"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          # No cache in a release workflow (cache poisoning); npx fetches the pinned CLI.
+          package-manager-cache: false
+      - name: Deploy to production
+        # Uploads the prebuilt output as is; nothing is built on Vercel.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # Team ar27111994s-projects, project maalik-e-makaan (public identifiers).
+          VERCEL_ORG_ID: team_APuR5C9ajzlq0OLwjgkjl3hQ
+          VERCEL_PROJECT_ID: prj_rFGxDOR4N5EldxCiaXIS4aEosTEM
+          VERCEL_TELEMETRY_DISABLED: "1"
+        run: |
+          cd "$RUNNER_TEMP/vercel"
+          npx --yes vercel@65.8.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+      - name: Smoke test
+        run: tool/web/smoke_test.sh "$SITE_URL" "$ANDROID_PACKAGE" "$SUPABASE_URL"

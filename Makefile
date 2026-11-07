@@ -143,10 +143,11 @@ test-web: ## Website build, e2e, accessibility and SEO checks
 	cd website && npm run check && npm run build && npm run test:e2e
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, tokens)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, tokens, web packaging)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/design -p 'test_*.py'
+	python3 -m unittest discover -s tool/web -p 'test_*.py'
 
 .PHONY: tokens
 tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)

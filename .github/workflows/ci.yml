@@ -151,6 +151,8 @@ jobs:
     name: Flutter web release build
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      PLACEHOLDER_SUPABASE: https://placeholder.supabase.co
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -168,6 +170,18 @@ jobs:
         run: >
           flutter build web --release --no-web-resources-cdn
           --dart-define-from-file=config/production.example.json
+      - name: Package for Vercel, as the Deploy workflow does
+        run: >
+          python3 tool/web/package_vercel.py --build app/build/web
+          --output "$RUNNER_TEMP/vercel/.vercel/output" --supabase-url "$PLACEHOLDER_SUPABASE"
+      - name: Headers, fallback and App Links of the package
+        # The same smoke test as after a deploy, against a local server that
+        # applies the package's config.json the way Vercel does.
+        run: |
+          python3 tool/web/serve_output.py "$RUNNER_TEMP/vercel/.vercel/output" --port 8080 &
+          for _ in {1..20}; do curl -fs -o /dev/null http://127.0.0.1:8080/ && break; sleep 0.5; done
+          tool/web/smoke_test.sh http://127.0.0.1:8080 io.github.ar27111994.maalik_e_makaan \
+            "$PLACEHOLDER_SUPABASE"
 
   android-build:
     name: Android release build
