@@ -85,7 +85,12 @@ Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or 
   status, registration number and date, permitted use, subletting consent.
 - ☐ LEASE-04: Police registration per lease:
   - status, channel, reference number, date and fee;
-  - a deadline by province (Punjab 15 days, Sindh 48 hours, others 1 day as an app default);
+  - a deadline by jurisdiction, from `app.police_registration_rule` (sources:
+    `research/website-facts.md` §1): Punjab 15 days and Sindh 48 hours from possession; KP 7 days
+    (the law excludes public holidays; the app counts calendar days) and Balochistan 3 days from
+    signing the agreement (the lease start when no agreement date is recorded); ICT,
+    Gilgit-Baltistan and Azad Kashmir a 1-day app reminder from possession, flagged as not
+    statutory;
   - deep links to Punjab TRS, Sindh TRUST and ICT TRS.
 - ☐ LEASE-05: Co-occupants (adults) with name, relation, CNIC and phone.
 - ☐ LEASE-06: Rent-change history. On the anniversary, suggest an increment rounded to Rs 100 and

@@ -44,9 +44,10 @@ I use them only to corroborate.
 
 1. Every legal or tax page shows "Last reviewed 2026-11-05". It says plainly that it is not legal or
    tax advice, and it cites the official source inline next to each claim.
-2. State the law, not the app's defaults. The app's police deadline for KP, Balochistan and ICT is 1
-   day (`app.police_registration_deadline_days`), but the law gives KP 7 days and Balochistan 3 days,
-   and ICT has no statutory deadline (§1).
+2. State the law, not the app's defaults. Since migration `20261107172908_police_registration_rules`
+   the app follows §1 (`app.police_registration_rule`: KP 7 calendar days and Balochistan 3 days from
+   the agreement), but for ICT, which has no statutory deadline, it still shows its own 1-day
+   reminder, flagged `statutory = false` (§1).
 3. Never estimate final income tax (D-10). The s.155 calculator shows **withholding only**, labelled
    "adjustable, not your final tax".
 4. Do not publish figures this file marks **Low** or **UNVERIFIED**. In particular, do not publish
