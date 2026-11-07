@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mm_core/mm_core.dart';
-import 'package:mm_ui/src/components/records/mm_record_style.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -123,8 +123,7 @@ class MmReceipt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mm = context.mm;
-    final colors = mm.colors;
+    final colors = context.mm.colors;
     final text = Theme.of(context).textTheme;
     final format = MmFormats.moneyOf(context);
     final footer = this.footer;
@@ -144,12 +143,9 @@ class MmReceipt extends StatelessWidget {
         );
 
     final issuerPart = part(
-      Text(
+      MmScriptText(
         issuer,
-        style: mm.styleFor(
-          issuer,
-          text.titleMedium!.copyWith(color: colors.ink),
-        ),
+        style: text.titleMedium!.copyWith(color: colors.ink),
       ),
       header: true,
     );
@@ -177,9 +173,9 @@ class MmReceipt extends StatelessWidget {
     final footerPart = footer == null
         ? null
         : part(
-            Text(
+            MmScriptText(
               footer,
-              style: mm.styleFor(footer, mmSmallPrint(text.bodySmall!, colors)),
+              style: text.bodySmall!.copyWith(color: colors.inkMuted),
             ),
           );
     final voidPart = voidedLabel == null
@@ -247,8 +243,7 @@ class _Seal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mm = context.mm;
-    final colors = mm.colors;
+    final colors = context.mm.colors;
     final text = Theme.of(context).textTheme;
     final on = colors.onBrassContainer;
     return DecoratedBox(
@@ -270,15 +265,12 @@ class _Seal extends StatelessWidget {
               textAlign: TextAlign.center,
               style: text.bodySmall!.copyWith(color: on),
             ),
-            Text(
+            MmScriptText(
               receiptNumber,
               textAlign: TextAlign.center,
-              style: mm.styleFor(
-                receiptNumber,
-                text.labelLarge!.copyWith(
-                  color: on,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+              style: text.labelLarge!.copyWith(
+                color: on,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],
@@ -345,8 +337,7 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mm = context.mm;
-    final colors = mm.colors;
+    final colors = context.mm.colors;
     final text = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsetsDirectional.symmetric(vertical: MmSpace.s1),
@@ -356,14 +347,11 @@ class _Row extends StatelessWidget {
           row.label,
           style: text.bodyMedium!.copyWith(color: colors.inkMuted),
         ),
-        end: Text(
+        end: MmScriptText(
           row.value,
-          style: mm.styleFor(
-            row.value,
-            text.bodyLarge!.copyWith(
-              color: colors.ink,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+          style: text.bodyLarge!.copyWith(
+            color: colors.ink,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ),

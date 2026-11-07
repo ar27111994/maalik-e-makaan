@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -8,7 +9,8 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// optional extra content below it.
 ///
 /// There is no tile behind the icon (DESIGN.md: no big rounded icon tiles
-/// above headings). Text wraps at any size and is never truncated. Given a
+/// above headings). Text wraps at any size and is never truncated; figures
+/// and Latin words in Urdu text are set in the Latin face. Given a
 /// bounded height (the body of a screen), the block is centred in it and
 /// scrolls when large text makes it taller than the space; otherwise it is
 /// as tall as its content.
@@ -71,9 +73,9 @@ class MmStateLayout extends StatelessWidget {
                 Semantics(
                   container: true,
                   header: true,
-                  child: Text(
+                  child: MmScriptText(
                     title,
-                    style: text.titleLarge,
+                    style: text.titleLarge!,
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -82,9 +84,9 @@ class MmStateLayout extends StatelessWidget {
               Semantics(
                 container: true,
                 liveRegion: liveMessage,
-                child: Text(
+                child: MmScriptText(
                   message,
-                  style: text.bodyLarge?.copyWith(color: colors.inkMuted),
+                  style: text.bodyLarge!.copyWith(color: colors.inkMuted),
                   textAlign: TextAlign.center,
                 ),
               ),

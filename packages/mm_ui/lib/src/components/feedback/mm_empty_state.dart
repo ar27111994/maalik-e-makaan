@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/feedback/mm_filled_action.dart';
 import 'package:mm_ui/src/components/feedback/mm_state_layout.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
+import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// What a screen shows when there is nothing to list yet: no tenants, no
 /// payments this month, no search results.
 ///
-/// A centred block, at most 400 dp wide: a 48 dp [icon] in muted ink (no
-/// tile behind it), the [title] as a heading, a one-sentence [message] that
-/// says what to do next, and at most one filled action. Text wraps at any
-/// size; in a screen's body the block is centred and scrolls when large
-/// text makes it taller than the screen.
+/// A centred block, at most [MmSize.stateMax] wide: an [MmSize.iconXl]
+/// [icon] in muted ink (no tile behind it), the [title] as a heading, a
+/// one-sentence [message] that says what to do next, and at most one filled
+/// action. Text wraps at any size; in a screen's body the block is centred
+/// and scrolls when large text makes it taller than the screen.
 ///
 /// Give [actionLabel] to show the action; it calls [onAction], and is
 /// disabled while [onAction] is null. Use it for a real absence of data.

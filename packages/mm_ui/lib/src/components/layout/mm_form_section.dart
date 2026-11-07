@@ -5,10 +5,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// A titled group of fields in a form ("Tenant details", "Rent"), with an
 /// optional line explaining it.
 ///
-/// The title is set in the theme's `titleMedium` style (the design's
-/// `titleSmall` role) and is a heading for screen readers, so they can jump
-/// between a form's sections; the description is muted ink under it; the
-/// fields follow 16 dp apart. Keyboard focus moves through
+/// The title is set in the theme's `titleLarge` style (the design's
+/// `title` role, as `MmSectionHeader` sets read-only sections), a step
+/// above the fields' labels, and is a heading for screen readers, so they
+/// can jump between a form's sections; the description is muted ink under
+/// it; the fields follow 16 dp apart. Keyboard focus moves through
 /// the section's fields before leaving it. Place sections one after the
 /// other with 32 dp between them.
 ///
@@ -61,7 +62,7 @@ class MmFormSection extends StatelessWidget {
               Semantics(
                 container: true,
                 header: true,
-                child: Text(title, style: text.titleMedium),
+                child: Text(title, style: text.titleLarge),
               ),
               if (description != null)
                 Text(

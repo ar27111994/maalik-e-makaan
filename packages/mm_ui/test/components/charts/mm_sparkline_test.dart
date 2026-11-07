@@ -29,7 +29,8 @@ void main() {
       final colors = colorsOf(variant);
       final painter = _painter(tester);
       expect(painter.color, colors.primary);
-      expect(painter.ringColor, colors.surface);
+      // The ring is what the line sits on: here, the page.
+      expect(painter.ringColor, colors.bg);
       final points = painter.pointsIn(const Size(64, 24));
       expect(
         _line,
@@ -43,7 +44,7 @@ void main() {
             x: points.last.dx,
             y: points.last.dy,
             radius: MmSparkline.dotRadius + MmSparkline.ringWidth,
-            color: colors.surface,
+            color: colors.bg,
           )
           ..circle(
             x: points.last.dx,
@@ -55,6 +56,40 @@ void main() {
       // An 8 dp dot with a 2 dp ring, as the chart marks specify.
       expect(MmSparkline.dotRadius * 2, 8);
       expect(MmSparkline.ringWidth, MmSpace.sHalf);
+    });
+
+    testWidgets('rings the dot in the colour of what it sits on', (
+      tester,
+    ) async {
+      final colors = colorsOf(MmVariant.light);
+      // In a card, the card's colour.
+      await pumpThemed(tester, const Card(child: MmSparkline(values: [1, 2])));
+      expect(
+        _painter(tester).ringColor,
+        Material.of(tester.element(find.byType(MmSparkline))).color,
+      );
+      expect(_painter(tester).ringColor, colors.surface);
+      // On a tinted container, the colour the app gives it.
+      await pumpThemed(
+        tester,
+        ColoredBox(
+          color: colors.primaryContainer,
+          child: MmSparkline(
+            values: const [1, 2],
+            ringColor: colors.primaryContainer,
+          ),
+        ),
+      );
+      expect(_painter(tester).ringColor, colors.primaryContainer);
+      // On a see-through Material, the surface.
+      await pumpThemed(
+        tester,
+        const Material(
+          type: MaterialType.transparency,
+          child: MmSparkline(values: [1, 2]),
+        ),
+      );
+      expect(_painter(tester).ringColor, colors.surface);
     });
 
     testWidgets('is 64 by 24 dp unless told otherwise', (tester) async {

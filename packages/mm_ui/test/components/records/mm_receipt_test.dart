@@ -85,7 +85,7 @@ void main() {
       final colors = colorsOf(variant);
       final seal = _seal(tester);
       expect(seal.color, colors.brassContainer);
-      expect(seal.border, Border.all(color: colors.brass, width: 2));
+      expect(seal.border, Border.all(color: colors.brass, width: MmSize.frame));
       expect(seal.boxShadow, isNull);
       expect(styleOf(tester, 'R-2026-0142').color, colors.onBrassContainer);
       expect(styleOf(tester, 'Receipt no.').color, colors.onBrassContainer);
@@ -151,7 +151,9 @@ void main() {
       final footer = styleOf(tester, _footer);
       expect(footer.color, colors.inkMuted);
       expect(footer.fontSize, text.bodySmall!.fontSize);
-      expect(footer.fontWeight, FontWeight.w500);
+      // The caption of the type scale, weight and all.
+      expect(footer.fontWeight, text.bodySmall!.fontWeight);
+      expect(footer.fontWeight, FontWeight.w400);
       expect(find.text(_void), findsNothing);
     });
 
@@ -188,8 +190,7 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _receipt());
-      final parts = childrenInOrder(_node(tester));
-      expect(parts.map((part) => part.label), [
+      expect(readingOrder(_node(tester)), [
         'Ayesha Khan',
         'Receipt no. R-2026-0142',
         'Amount received, 45000 rupees',
@@ -199,10 +200,13 @@ void main() {
         _footer,
       ]);
       expect(
-        parts.first,
+        tester.getSemantics(find.text('Ayesha Khan')),
         matchesSemantics(label: 'Ayesha Khan', isHeader: true),
       );
-      expect(parts[1], matchesSemantics(label: 'Receipt no. R-2026-0142'));
+      expect(
+        tester.getSemantics(find.text('R-2026-0142')),
+        matchesSemantics(label: 'Receipt no. R-2026-0142'),
+      );
     });
 
     testWidgets('reads the voided state last although it is shown near the '
@@ -271,7 +275,10 @@ void main() {
                   .decoration
               as BoxDecoration;
       expect(banner.color, colors.overdueContainer);
-      expect(banner.border, Border.all(color: colors.overdue, width: 2));
+      expect(
+        banner.border,
+        Border.all(color: colors.overdue, width: MmSize.frame),
+      );
       expect(find.byIcon(MmIcons.error), findsOneWidget);
       expect(
         tester.widget<Icon>(find.byIcon(MmIcons.error)).color,
@@ -364,6 +371,96 @@ void main() {
         receipt.bottom,
         tester.getRect(find.text('Rs 45,000')).bottom + MmSpace.s4,
       );
+    });
+
+    testWidgets('with a footer and no rows, ends with the footer', (
+      tester,
+    ) async {
+      await _pump(tester, _receipt(rows: const []));
+      expect(readingOrder(_node(tester)), [
+        'Ayesha Khan',
+        'Receipt no. R-2026-0142',
+        'Amount received, 45000 rupees',
+        _footer,
+      ]);
+      final receipt = tester.getRect(find.byType(MmReceipt));
+      final footer = tester.getRect(find.text(_footer));
+      expect(receipt.bottom, footer.bottom + MmSpace.s4);
+      expect(
+        tester.getRect(find.text('Rs 45,000')).bottom,
+        lessThan(footer.top),
+      );
+    });
+
+    testWidgets('at 200% on a 320 dp phone, fits long words in English and '
+        'Urdu, with rows or with only a footer', (tester) async {
+      Widget receipt({required bool rows}) => Builder(
+        builder: (context) {
+          final say = sayIn(context);
+          return MmReceipt(
+            issuer: say(
+              'Gulberg Residency Management',
+              'گلبرگ ریزیڈنسی مینجمنٹ',
+            ),
+            numberLabel: say('Receipt no.', 'رسید نمبر'),
+            receiptNumber: 'R-2026-0142',
+            amountLabel: say('Amount received', 'وصول شدہ رقم'),
+            amount: const Money.fromRupees(12500000),
+            rows: [
+              if (rows) ...[
+                MmReceiptRow(
+                  label: say('Property', 'جائیداد'),
+                  value: say(
+                    'House 12, Street 4, Gulberg III, Lahore',
+                    'مکان 12، گلی 4، گلبرگ III، لاہور',
+                  ),
+                ),
+                MmReceiptRow(
+                  label: say('Period', 'مدت'),
+                  value: say('July to September 2026', 'جولائی تا ستمبر 2026'),
+                ),
+              ],
+            ],
+            footer: say(
+              'Thank you. Keep this receipt for your records.',
+              'شکریہ۔ یہ رسید اپنے ریکارڈ کے لیے سنبھال کر رکھیں۔',
+            ),
+            voidedLabel: say(
+              'VOID: cancelled on 12 Oct 2026',
+              'کالعدم: 12 اکتوبر 2026 کو منسوخ',
+            ),
+          );
+        },
+      );
+      await expectFitsNarrowLargeText(
+        tester,
+        receipt(rows: true),
+        height: 1600,
+      );
+      await expectFitsNarrowLargeText(tester, receipt(rows: false));
+    });
+
+    testWidgets('sets the figures inside an Urdu row value in the Latin face', (
+      tester,
+    ) async {
+      const value = 'مکان 12، گلبرگ III، لاہور';
+      await _pump(
+        tester,
+        _receipt(
+          rows: const [
+            MmReceiptRow(label: 'جائیداد', value: value),
+            MmReceiptRow(label: 'رقم', value: '45,000\u00A0روپے'),
+          ],
+          footer: 'رسید 12 ماہ تک سنبھال کر رکھیں۔',
+        ),
+        variant: MmVariant.urdu,
+      );
+      expect(latinRunsIn(tester, value), ['12', 'III']);
+      expect(latinRunsIn(tester, '45,000\u00A0روپے'), ['45,000']);
+      expect(latinRunsIn(tester, 'رسید 12 ماہ'), ['12']);
+      expect(styleOf(tester, value).fontFeatures, [
+        const FontFeature.tabularFigures(),
+      ]);
     });
 
     testWidgets('at 200% on a 320 dp phone, stacks and wraps without '

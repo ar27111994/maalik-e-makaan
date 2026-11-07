@@ -8,10 +8,10 @@ import 'package:mm_ui/mm_ui.dart';
 import '../../support/testing.dart';
 import 'support.dart';
 
-/// The tenants list, with Ayesha Khan selected.
-Widget _tenants(Say say) => ListView(
+/// The tenants list, with Ayesha Khan selected when [selected].
+Widget _tenants(Say say, {required bool selected}) => ListView(
   children: [
-    for (final (name, unit, selected) in [
+    for (final (name, unit, isSelected) in [
       (
         say('Ali Raza', 'علی رضا'),
         say('Flat 3, Gulberg', 'فلیٹ 3، گلبرگ'),
@@ -20,7 +20,7 @@ Widget _tenants(Say say) => ListView(
       (
         say('Ayesha Khan', 'عائشہ خان'),
         say('House 12, DHA Phase 5', 'مکان 12، ڈی ایچ اے فیز 5'),
-        true,
+        selected,
       ),
       (
         say('Bilal Ahmed', 'بلال احمد'),
@@ -29,7 +29,7 @@ Widget _tenants(Say say) => ListView(
       ),
     ])
       ListTile(
-        selected: selected,
+        selected: isSelected,
         onTap: tapped,
         title: Text(name),
         subtitle: Text(unit),
@@ -62,7 +62,7 @@ Widget _window(Size size, {required bool selected}) => WindowPanel(
     builder: (context) {
       final say = sayIn(context);
       return MmListDetail(
-        list: _tenants(say),
+        list: _tenants(say, selected: selected),
         detail: selected
             ? Builder(builder: (context) => _ayesha(context, say))
             : null,

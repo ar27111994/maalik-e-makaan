@@ -170,6 +170,19 @@ void main() {
       tester,
     ) async {
       const long = 'Send the October rent reminder to Ayesha Khan';
+      await expectFitsNarrowLargeText(
+        tester,
+        Builder(
+          builder: (context) => MmFilledAction(
+            label: sayIn(context)(
+              long,
+              'عائشہ خان کو اکتوبر کے کرائے کی یاد دہانی بھیجیں',
+            ),
+            icon: MmIcons.send,
+            onPressed: tapped,
+          ),
+        ),
+      );
       await pumpLargeNarrow(
         tester,
         const MmFilledAction(

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _label = 'Rent collected';
 const _value = 'Rs 90,000 of Rs 1,25,000';
@@ -11,6 +12,7 @@ Widget _meter({
   double value = 0.72,
   String label = _label,
   String valueLabel = _value,
+  String? semanticValue,
   MmMeterTone tone = MmMeterTone.primary,
 }) => SizedBox(
   width: 296,
@@ -18,6 +20,7 @@ Widget _meter({
     value: value,
     label: label,
     valueLabel: valueLabel,
+    semanticValue: semanticValue,
     tone: tone,
   ),
 );
@@ -56,6 +59,18 @@ void main() {
         expect(MmMeterTone.overdue.trackIn(colors), colors.overdueContainer);
       }
     });
+
+    test('agrees with the status colours of the same name', () {
+      const colors = MmColorModes.light;
+      for (final (tone, status) in [
+        (MmMeterTone.paid, MmStatus.paid),
+        (MmMeterTone.dueSoon, MmStatus.dueSoon),
+        (MmMeterTone.overdue, MmStatus.overdue),
+      ]) {
+        expect(tone.fillIn(colors), status.colorIn(colors));
+        expect(tone.trackIn(colors), status.containerIn(colors));
+      }
+    });
   });
 
   group('MmMeter', () {
@@ -88,6 +103,9 @@ void main() {
         const BorderRadius.all(Radius.circular(MmRadius.xs)),
       );
       expect(decoration.boxShadow, isNull);
+      // A hairline in the outline colour shows the whole the fill is a
+      // share of: the tonal track alone is barely distinct from the paper.
+      expect(decoration.border, Border.all(color: colors.outline));
     });
 
     testWidgets('puts the value at the end of the label line', (tester) async {
@@ -167,6 +185,19 @@ void main() {
       );
     });
 
+    testWidgets('reads the semantic value in place of the shown one', (
+      tester,
+    ) async {
+      const spoken = '90000 rupees of 125000 rupees';
+      await pumpThemed(tester, _meter(semanticValue: spoken));
+      expect(
+        tester.getSemantics(find.byType(MmMeter)),
+        matchesSemantics(label: _label, value: spoken),
+      );
+      // The figures as shown stay on screen.
+      expect(find.text(_value), findsOneWidget);
+    });
+
     testWidgets('moves a value that does not fit under its label', (
       tester,
     ) async {
@@ -195,6 +226,53 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(tester.getSize(find.byType(MmMeter)).width, 288);
       expect(tester.getRect(_fillBox).width, closeTo(288 * 0.36, 0.01));
+    });
+
+    testWidgets('at 200% on a 320 dp phone, fits long words in English and '
+        'Urdu', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        Builder(
+          builder: (context) {
+            final say = sayIn(context);
+            return MmMeter(
+              value: 0.36,
+              label: say(
+                'Overdue rent across all properties this month',
+                'اس ماہ تمام جائیدادوں کا بقایا کرایہ',
+              ),
+              valueLabel: say(
+                'Rs\u00A045,000 of Rs\u00A01,25,000',
+                '1,25,000\u00A0روپے میں سے 45,000\u00A0روپے',
+              ),
+              tone: MmMeterTone.overdue,
+            );
+          },
+        ),
+      );
+    });
+
+    testWidgets('sets the figures inside an Urdu value in the Latin face', (
+      tester,
+    ) async {
+      const value = '1,25,000 میں سے 90,000\u00A0روپے';
+      await pumpThemed(
+        tester,
+        _meter(label: 'وصول شدہ کرایہ', valueLabel: value),
+        variant: MmVariant.urdu,
+      );
+      expect(latinRunsIn(tester, value), ['1,25,000', '90,000']);
+      expect(urduRunsIn(tester, value), [' میں سے ', '\u00A0روپے']);
+      // Tabular figures, on the Urdu style's line: figures do not make the
+      // line taller.
+      expect(styleOf(tester, value).fontFeatures, [
+        const FontFeature.tabularFigures(),
+      ]);
+      final body = MmVariant.urdu.theme.textTheme.bodyMedium!;
+      expect(
+        tester.getSize(find.textContaining(value, findRichText: true)).height,
+        moreOrLessEquals(body.fontSize! * body.height!, epsilon: 0.01),
+      );
     });
 
     testWidgets('sets Latin figures in the Latin face in the Urdu UI', (

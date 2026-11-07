@@ -297,6 +297,24 @@ void main() {
     });
 
     testWidgets('lays out at 200% text on a 320 dp phone', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        _motion(
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(MmSpace.s4),
+              child: Row(
+                spacing: MmSpace.s3,
+                children: [
+                  MmSkeleton.circle(diameter: 48),
+                  Expanded(child: MmSkeleton.text(lines: 4)),
+                ],
+              ),
+            ),
+          ),
+          still: true,
+        ),
+      );
       await pumpLargeNarrow(
         tester,
         _motion(

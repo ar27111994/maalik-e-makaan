@@ -160,61 +160,184 @@ void main() {
   });
 
   group('MmProportionBar', () {
-    testEveryVariant('draws each tone so neighbours differ without colour', (
+    testEveryVariant('draws the tones of each bar the app draws apart', (
       tester,
       variant,
     ) async {
+      final colors = colorsOf(variant);
+      final hatch = colors.surface;
+      Future<List<MmChartMark>> marksOf(List<MmSegmentTone> tones) async {
+        await pumpThemed(
+          tester,
+          _bar(
+            segments: [
+              for (final tone in tones)
+                MmProportionSegment(
+                  label: tone.name,
+                  value: const Money.fromRupees(10000),
+                  tone: tone,
+                ),
+            ],
+          ),
+          variant: variant,
+          size: const Size(360, 900),
+        );
+        expect(tester.takeException(), isNull);
+        final marks = [for (final part in _painter(tester).parts) part.mark];
+        // Every legend key is drawn with the mark of its part.
+        expect(_swatches(tester), marks);
+        return marks;
+      }
+
+      // Rent by status.
+      expect(
+        await marksOf(const [
+          MmSegmentTone.paid,
+          MmSegmentTone.dueSoon,
+          MmSegmentTone.overdue,
+          MmSegmentTone.neutral,
+        ]),
+        [
+          MmChartMark(fill: colors.paid),
+          MmChartMark(
+            fill: colors.dueSoon,
+            hatch: MmHatch.falling,
+            hatchColor: hatch,
+          ),
+          MmChartMark(
+            fill: colors.overdue,
+            hatch: MmHatch.rising,
+            hatchColor: hatch,
+          ),
+          MmChartMark(fill: colors.surface, stroke: colors.outline),
+        ],
+      );
+      // Overdue rent by age: the oldest is solid red, in every mode.
+      expect(
+        await marksOf(const [
+          MmSegmentTone.dueSoon,
+          MmSegmentTone.overdue,
+          MmSegmentTone.overdueSevere,
+        ]),
+        [
+          MmChartMark(
+            fill: colors.dueSoon,
+            hatch: MmHatch.falling,
+            hatchColor: hatch,
+          ),
+          MmChartMark(
+            fill: colors.overdue,
+            hatch: MmHatch.rising,
+            hatchColor: hatch,
+          ),
+          MmChartMark(fill: colors.overdue),
+        ],
+      );
+      // Money held for tenants.
+      expect(
+        await marksOf(const [MmSegmentTone.primary, MmSegmentTone.credit]),
+        [
+          MmChartMark(fill: colors.primary),
+          MmChartMark(
+            fill: colors.credit,
+            hatch: MmHatch.falling,
+            hatchColor: hatch,
+          ),
+        ],
+      );
+      // Every tone's colour stands out from the surface (3:1), as does the
+      // neutral outline.
+      for (final color in [
+        colors.paid,
+        colors.dueSoon,
+        colors.overdue,
+        colors.credit,
+        colors.primary,
+        colors.outline,
+      ]) {
+        expect(
+          mmContrastRatio(color, colors.surface),
+          greaterThanOrEqualTo(3),
+          reason: '$color',
+        );
+      }
+    });
+
+    for (final (first, second) in const [
+      (MmSegmentTone.paid, MmSegmentTone.primary),
+      (MmSegmentTone.paid, MmSegmentTone.overdueSevere),
+      (MmSegmentTone.dueSoon, MmSegmentTone.credit),
+    ]) {
+      testWidgets(
+        'refuses ${first.name} beside ${second.name}, apart by colour alone',
+        (tester) async {
+          await pumpThemed(
+            tester,
+            _bar(
+              segments: [
+                MmProportionSegment(
+                  label: 'A',
+                  value: const Money.fromRupees(1),
+                  tone: first,
+                ),
+                MmProportionSegment(
+                  label: 'B',
+                  value: const Money.fromRupees(1),
+                  tone: second,
+                ),
+              ],
+            ),
+          );
+          expect(
+            tester.takeException(),
+            isA<FlutterError>().having(
+              (error) => error.message,
+              'message',
+              contains('differ by colour alone'),
+            ),
+          );
+        },
+      );
+    }
+
+    testWidgets('takes a tone twice', (tester) async {
       await pumpThemed(
         tester,
         _bar(
-          segments: [
-            for (final tone in MmSegmentTone.values)
-              MmProportionSegment(
-                label: tone.name,
-                value: const Money.fromRupees(10000),
-                tone: tone,
-              ),
+          segments: const [
+            _paid,
+            MmProportionSegment(
+              label: 'Paid late',
+              value: Money.fromRupees(5000),
+              tone: MmSegmentTone.paid,
+            ),
           ],
         ),
-        variant: variant,
-        size: const Size(360, 900),
       );
-      final colors = colorsOf(variant);
-      final marks = [for (final part in _painter(tester).parts) part.mark];
-      expect(marks, [
-        MmChartMark(fill: colors.surface, stroke: colors.outline),
-        MmChartMark(fill: colors.paid),
-        MmChartMark(
-          fill: colors.dueSoon,
-          hatch: MmHatch.falling,
-          hatchColor: colors.surface,
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('refuses a negative part', (tester) async {
+      await pumpThemed(
+        tester,
+        _bar(
+          segments: const [
+            _paid,
+            MmProportionSegment(
+              label: 'Written off',
+              value: Money.fromRupees(-500),
+              tone: MmSegmentTone.neutral,
+            ),
+          ],
         ),
-        MmChartMark(
-          fill: colors.overdue,
-          hatch: MmHatch.rising,
-          hatchColor: colors.surface,
-        ),
-        MmChartMark(fill: colors.onOverdueContainer),
-        MmChartMark(
-          fill: colors.credit,
-          hatch: MmHatch.falling,
-          hatchColor: colors.surface,
-        ),
-        MmChartMark(fill: colors.primary),
-      ]);
-      // Every legend key is drawn with the mark of its part.
-      expect(_swatches(tester), marks);
-      // Every mark that carries a tone stands out from the surface (3:1).
-      for (final mark in marks.skip(1)) {
-        expect(
-          mmContrastRatio(mark.fill, colors.surface),
-          greaterThanOrEqualTo(3),
-          reason: '$mark',
-        );
-      }
+      );
       expect(
-        mmContrastRatio(colors.outline, colors.surface),
-        greaterThanOrEqualTo(3),
+        tester.takeException(),
+        isA<AssertionError>().having(
+          (error) => error.message,
+          'message',
+          contains('never negative'),
+        ),
       );
     });
 
@@ -318,7 +441,7 @@ void main() {
             ),
             MmProportionSegment(
               label: 'Written off',
-              value: Money.fromRupees(-500),
+              value: Money.zero,
               tone: MmSegmentTone.neutral,
             ),
           ],
@@ -387,6 +510,63 @@ void main() {
       );
     });
 
+    for (final variant in const [MmVariant.light, MmVariant.urdu]) {
+      testWidgets('lines the figures of every row up on their last digit '
+          '(${variant.name})', (tester) async {
+        await pumpThemed(
+          tester,
+          lakhGrouping(
+            _bar(
+              segments: const [
+                MmProportionSegment(
+                  label: 'Deposits',
+                  value: Money.fromRupees(150000),
+                  tone: MmSegmentTone.primary,
+                ),
+                MmProportionSegment(
+                  label: 'Advance',
+                  value: Money.fromRupees(30000),
+                  tone: MmSegmentTone.credit,
+                ),
+                MmProportionSegment(
+                  label: 'Late fee',
+                  value: Money.fromRupees(500),
+                  tone: MmSegmentTone.neutral,
+                ),
+              ],
+            ),
+          ),
+          variant: variant,
+        );
+
+        /// The right edge of the last character of [text] matching [last].
+        double rightOf(String text, Pattern last) {
+          final paragraph = paragraphOf(tester, text);
+          final end = text.lastIndexOf(last) + 1;
+          final box = paragraph
+              .getBoxesForSelection(
+                TextSelection(baseOffset: end - 1, extentOffset: end),
+              )
+              .single;
+          return paragraph.localToGlobal(Offset(box.right, 0)).dx;
+        }
+
+        final urdu = variant == MmVariant.urdu;
+        final amounts = urdu
+            ? ['1,50,000 روپے', '30,000 روپے', '500 روپے']
+            : ['Rs 1,50,000', 'Rs 30,000', 'Rs 500'];
+        final digits = [for (final text in amounts) rightOf(text, '0')];
+        expect(digits[1], closeTo(digits[0], 0.5));
+        expect(digits[2], closeTo(digits[0], 0.5));
+        // The shares ("83%", "17%", "<1%") end on one line too.
+        final shares = [
+          for (final text in ['83%', '17%', '<1%']) rightOf(text, '%'),
+        ];
+        expect(shares[1], closeTo(shares[0], 0.5));
+        expect(shares[2], closeTo(shares[0], 0.5));
+      });
+    }
+
     testWidgets("formats amounts with the app's money format", (tester) async {
       await pumpThemed(
         tester,
@@ -432,7 +612,8 @@ void main() {
       );
       final decoration = track.decoration as BoxDecoration;
       expect(decoration.color, colors.surfaceSunken);
-      expect(decoration.border, Border.all(color: colors.rule));
+      // The track's edge stands out from the surface (3:1).
+      expect(decoration.border, Border.all(color: colors.outline));
       expect(
         decoration.borderRadius,
         const BorderRadius.all(Radius.circular(MmRadius.xs)),

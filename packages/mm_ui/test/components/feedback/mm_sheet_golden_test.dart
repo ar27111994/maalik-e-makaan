@@ -77,4 +77,51 @@ void _open(BuildContext context) {
 /// The payment sheet open over a tenant's page, scrim included.
 void main() {
   overlayGoldenEveryVariant('mm_sheet', _open, behind: () => const _Page());
+
+  // A long list of units scrolled under the header: the rule appears.
+  testEveryVariant('mm_sheet_scrolled golden', (tester, variant) async {
+    await pumpOverlay(
+      tester,
+      (context) {
+        final say = sayIn(context);
+        unawaited(
+          showMmSheet<void>(
+            context,
+            title: say('Choose a unit', 'یونٹ منتخب کریں'),
+            builder: (context) => Column(
+              children: [
+                for (var unit = 1; unit <= 16; unit++)
+                  ListTile(
+                    title: Text(
+                      say('Flat $unit, Gulberg III', 'فلیٹ $unit، گلبرگ III'),
+                    ),
+                    onTap: tapped,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+      behind: const _Page(),
+      variant: variant,
+    );
+    // Scrolled so that the third unit starts at the top of the content: no
+    // row is cut in half under the header (a sliver of one would fail the
+    // tap target check, as it would trouble a finger).
+    final content = find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.byType(Scrollable),
+    );
+    final position = tester.state<ScrollableState>(content).position;
+    final third = find
+        .descendant(
+          of: find.byType(BottomSheet),
+          matching: find.byType(ListTile),
+        )
+        .at(2);
+    position.jumpTo(tester.getRect(third).top - tester.getRect(content).top);
+    await tester.pumpAndSettle();
+    await expectAccessible(tester);
+    await expectScreenGolden('mm_sheet_scrolled', variant);
+  });
 }

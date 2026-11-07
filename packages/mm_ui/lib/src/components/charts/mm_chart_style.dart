@@ -1,4 +1,5 @@
 import 'package:flutter/painting.dart';
+import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -11,7 +12,9 @@ abstract final class MmChartMetrics {
   /// never by a border drawn around them.
   static const double gap = MmSpace.sHalf;
 
-  /// The side of a legend swatch.
+  /// The side of a legend swatch at 100% text: a chart-specific size with
+  /// no token, a little smaller than a small icon so it keys the words
+  /// beside it without outweighing them.
   static const double swatch = 12;
 }
 
@@ -45,3 +48,19 @@ final RegExp _groupedDigits = RegExp(r'(?<=\d),(\d)');
 /// Urdu UI, where the paragraph's own direction would reorder their runs.
 TextDirection mmDirectionOf(String text) =>
     MmSemantics.hasArabicScript(text) ? TextDirection.rtl : TextDirection.ltr;
+
+/// The words [format] writes around an amount of one [unit] in compact
+/// notation ("Rs" for a rupee, "Rs lakh" for a lakh, "لاکھ روپے" in Urdu),
+/// without the number:
+/// the unit a column or an axis of plain figures is in, said once in its
+/// header or caption. Empty when [format] writes no currency and [unit] is
+/// a rupee.
+String mmUnitWords(MoneyFormat format, Money unit) {
+  final whole = format.copyWith(notation: MoneyNotation.compact).format(unit);
+  final one = format
+      .copyWith(notation: MoneyNotation.standard)
+      .formatNumber(const Money.fromRupees(1));
+  return whole.replaceFirst(one, '').trim().replaceAll(_spaces, ' ');
+}
+
+final RegExp _spaces = RegExp(r'\s+');

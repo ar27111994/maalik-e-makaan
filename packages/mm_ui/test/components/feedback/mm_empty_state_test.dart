@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _title = 'No tenants yet';
 const _message = 'Add your first tenant to start tracking rent in Gulberg.';
@@ -250,6 +251,32 @@ void main() {
       const long =
           'Add the tenants of Flat 3, Gulberg III, Lahore to start '
           'tracking rent, deposits and utility bills.';
+      // In English and in Urdu, on a scrolling page as a screen holds it.
+      await expectFitsNarrowLargeText(
+        tester,
+        Builder(
+          builder: (context) {
+            final say = sayIn(context);
+            return MmEmptyState(
+              icon: MmIcons.tenants,
+              title: say(
+                'No tenants in Gulberg Heights yet',
+                'گلبرگ ہائٹس میں ابھی کوئی کرایہ دار نہیں',
+              ),
+              message: say(
+                long,
+                'کرایہ، ڈپازٹ اور بل درج کرنے کے لیے فلیٹ 3، گلبرگ III، '
+                'لاہور کے کرایہ دار شامل کریں۔',
+              ),
+              actionLabel: say(
+                'Add your first tenant',
+                'پہلا کرایہ دار شامل کریں',
+              ),
+              onAction: tapped,
+            );
+          },
+        ),
+      );
       await pumpLargeNarrow(
         tester,
         const MmEmptyState(
@@ -266,6 +293,24 @@ void main() {
         expect(paragraph.didExceedMaxLines, isFalse);
       }
       expect(tester.getRect(find.text(long)).width, lessThanOrEqualTo(288));
+    });
+
+    testWidgets('sets figures in Urdu text in the Latin face', (tester) async {
+      const title = 'فلیٹ 3 میں کوئی کرایہ دار نہیں';
+      const message =
+          'گلبرگ III میں 45,000 روپے کا کرایہ درج کرنے کے لیے شامل کریں۔';
+      await pumpThemed(
+        tester,
+        const MmEmptyState(
+          icon: MmIcons.tenants,
+          title: title,
+          message: message,
+        ),
+        variant: MmVariant.urdu,
+      );
+      expect(isLatinFace(runStyleIn(tester, title, '3')), isTrue);
+      expect(isLatinFace(runStyleIn(tester, message, '45,000')), isTrue);
+      expect(isLatinFace(runStyleIn(tester, message, 'روپے')), isFalse);
     });
 
     testWidgets('lays out right to left in Urdu', (tester) async {

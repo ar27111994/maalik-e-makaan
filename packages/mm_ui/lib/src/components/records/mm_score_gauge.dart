@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/records/mm_record_style.dart';
-import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/foundation/mm_tone.dart';
+import 'package:mm_ui/src/foundation/mm_tone_chip.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -12,13 +13,18 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// [MmScoreBand.of], so the word and the colour always agree.
 enum MmScoreBand {
   /// 75 and above: pays on time. The paid colours.
-  good,
+  good(MmTone.paid),
 
   /// 50 to 74: sometimes late. The due-soon colours.
-  fair,
+  fair(MmTone.dueSoon),
 
   /// Below 50: often late. The overdue colours.
-  poor;
+  poor(MmTone.overdue);
+
+  new(this._tone);
+
+  /// The design system's colour family this band takes its roles from.
+  final MmTone _tone;
 
   /// The band of [score] (on a scale of 0 to 100).
   static MmScoreBand of(int score) {
@@ -28,25 +34,13 @@ enum MmScoreBand {
   }
 
   /// The colour of the gauge's value arc in [colors].
-  Color colorIn(MmColorTokens colors) => switch (this) {
-    MmScoreBand.good => colors.paid,
-    MmScoreBand.fair => colors.dueSoon,
-    MmScoreBand.poor => colors.overdue,
-  };
+  Color colorIn(MmColorTokens colors) => _tone.colorIn(colors);
 
   /// The fill of the band's chip in [colors].
-  Color containerIn(MmColorTokens colors) => switch (this) {
-    MmScoreBand.good => colors.paidContainer,
-    MmScoreBand.fair => colors.dueSoonContainer,
-    MmScoreBand.poor => colors.overdueContainer,
-  };
+  Color containerIn(MmColorTokens colors) => _tone.containerIn(colors);
 
   /// The colour of the band's word and icon on [containerIn] in [colors].
-  Color onContainerIn(MmColorTokens colors) => switch (this) {
-    MmScoreBand.good => colors.onPaidContainer,
-    MmScoreBand.fair => colors.onDueSoonContainer,
-    MmScoreBand.poor => colors.onOverdueContainer,
-  };
+  Color onContainerIn(MmColorTokens colors) => _tone.onContainerIn(colors);
 
   /// The icon shown before the band's word.
   IconData get icon => switch (this) {
@@ -122,7 +116,6 @@ class MmScoreGauge extends StatelessWidget {
     final stroke = width / 10;
     final innerRadius = width / 2 - stroke;
     final caption = this.caption;
-    final onBand = band.onContainerIn(colors);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -138,12 +131,16 @@ class MmScoreGauge extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 child: SizedBox(
                   width: width,
-                  height: width / 2 + stroke / 2,
+                  height: width / 2,
                   child: CustomPaint(
                     painter: _GaugePainter(
                       fraction: shown / 100,
                       stroke: stroke,
-                      track: colors.rule,
+                      // The outline keeps the whole arc in sight on the
+                      // page. In the high-contrast modes the rule already
+                      // stands out (6:1 and more), and the outline would
+                      // match the band colours.
+                      track: mm.highContrast ? colors.rule : colors.outline,
                       value: band.colorIn(colors),
                       textDirection: Directionality.of(context),
                     ),
@@ -168,36 +165,21 @@ class MmScoreGauge extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: MmSpace.s2),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: band.containerIn(colors),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(MmRadius.xs),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsetsDirectional.symmetric(
-                    horizontal: MmSpace.s2,
-                    vertical: MmSpace.sHalf,
-                  ),
-                  child: MmIconLabel(
-                    icon: band.icon,
-                    label: bandLabel,
-                    style: text.labelLarge!.copyWith(color: onBand),
-                    iconColor: onBand,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+              MmToneChip(
+                tone: band._tone,
+                icon: band.icon,
+                label: bandLabel,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
         if (caption != null) ...[
           const SizedBox(height: MmSpace.s2),
-          Text(
+          MmScriptText(
             caption,
             textAlign: TextAlign.center,
-            style: mmSmallPrint(text.bodySmall!, colors),
+            style: text.bodySmall!.copyWith(color: colors.inkMuted),
           ),
         ],
       ],
@@ -206,7 +188,9 @@ class MmScoreGauge extends StatelessWidget {
 }
 
 /// Paints the gauge: a thin semicircular track and, over it, the thicker
-/// value arc filling from the start side.
+/// value arc filling from the start side. Both have flat ends, so the arc's
+/// length is the score's share of the half circle exactly: a round cap
+/// would add half the stroke's width at each end.
 class _GaugePainter extends CustomPainter {
   const new({
     required this.fraction,
@@ -235,7 +219,6 @@ class _GaugePainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke / 2
-      ..strokeCap = StrokeCap.round
       ..color = track;
     canvas.drawArc(arc, math.pi, math.pi, false, paint);
     if (fraction <= 0) return;

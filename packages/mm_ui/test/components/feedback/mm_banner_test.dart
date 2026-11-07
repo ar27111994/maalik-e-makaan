@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 
 import '../../support/testing.dart';
 import 'support.dart';
@@ -254,7 +257,26 @@ void main() {
         iconColorOf(tester, MmIcons.close),
         MmBannerTone.success.onContainerOf(colorsOf(variant)),
       );
-      expect(tester.getSize(button), const Size.square(MmSize.minTarget));
+      // The glyph grows with the text, as the banner's icon does; the button
+      // is the glyph in its padding, and at least a touch target.
+      final glyph = variant == MmVariant.largeText
+          ? MmSize.iconLg * MmIconLabel.maxIconScale
+          : MmSize.iconLg;
+      expect(tester.getSize(find.byIcon(MmIcons.close)), Size.square(glyph));
+      expect(
+        tester.getSize(button),
+        Size.square(math.max(MmSize.minTarget, glyph + 2 * MmSpace.s2)),
+      );
+      // Centred on the first line of the message.
+      final message = tester.getRect(find.text(_message));
+      final line = styleOf(tester, _message);
+      expect(
+        tester.getCenter(button).dy,
+        moreOrLessEquals(
+          message.top + (variant.textScale * line.fontSize! * line.height!) / 2,
+          epsilon: 1,
+        ),
+      );
       await tester.tap(button);
       expect(dismissals, 1);
       handle.dispose();
@@ -302,17 +324,36 @@ void main() {
       const long =
           'Ali Raza’s lease for Flat 3, Gulberg III, Lahore ends in 14 '
           'days and Rs 1,25,000 is still due.';
-      await pumpLargeNarrow(
+      const subject = MmBanner(
+        tone: MmBannerTone.warning,
+        title: 'Lease ending for Ali Raza',
+        message: long,
+        actionLabel: 'Renew the lease now',
+        onAction: tapped,
+        onDismiss: tapped,
+      );
+      // In English and in Urdu, on a scrolling page as a screen holds it.
+      await expectFitsNarrowLargeText(
         tester,
-        const MmBanner(
-          tone: MmBannerTone.warning,
-          title: 'Lease ending for Ali Raza',
-          message: long,
-          actionLabel: 'Renew the lease now',
-          onAction: tapped,
-          onDismiss: tapped,
+        Builder(
+          builder: (context) {
+            final say = sayIn(context);
+            return MmBanner(
+              tone: MmBannerTone.warning,
+              title: say(subject.title!, 'علی رضا کا معاہدہ ختم ہو رہا ہے'),
+              message: say(
+                long,
+                'فلیٹ 3، گلبرگ III، لاہور میں علی رضا کا معاہدہ 14 دن میں ختم '
+                'ہو گا اور 1,25,000 روپے ابھی واجب الادا ہیں۔',
+              ),
+              actionLabel: say(subject.actionLabel!, 'ابھی معاہدہ تجدید کریں'),
+              onAction: tapped,
+              onDismiss: tapped,
+            );
+          },
         ),
       );
+      await pumpLargeNarrow(tester, subject, height: 1600);
       expect(tester.takeException(), isNull);
       for (final text in [long, 'Lease ending for Ali Raza']) {
         final paragraph = tester.renderObject<RenderParagraph>(find.text(text));
@@ -323,6 +364,86 @@ void main() {
       final dismiss = tester.getRect(find.byType(IconButton));
       expect(dismiss.right, lessThanOrEqualTo(banner.right));
       expect(dismiss.top, lessThan(tester.getRect(find.text(long)).top));
+    });
+
+    testWidgets('the icon grows with the text, up to 150%', (tester) async {
+      for (final (variant, size) in [
+        (MmVariant.light, MmSize.iconLg),
+        (MmVariant.largeText, MmSize.iconLg * MmIconLabel.maxIconScale),
+      ]) {
+        await pumpThemed(
+          tester,
+          const MmBanner(tone: MmBannerTone.info, message: _message),
+          variant: variant,
+        );
+        expect(
+          tester.getSize(find.byIcon(MmIcons.info)),
+          Size.square(size),
+          reason: variant.name,
+        );
+      }
+    });
+
+    testEveryVariant('the action ends in the same place with or without a '
+        'dismiss button', (tester, variant) async {
+      double actionEnd({required bool dismissible}) {
+        final banner = tester.getRect(
+          find.byType(MmBanner).at(dismissible ? 1 : 0),
+        );
+        final action = tester.getRect(
+          find.descendant(
+            of: find.byType(MmBanner).at(dismissible ? 1 : 0),
+            matching: find.byType(TextButton),
+          ),
+        );
+        // The distance from the banner's end edge.
+        return variant == MmVariant.urdu
+            ? action.left - banner.left
+            : banner.right - action.right;
+      }
+
+      await pumpThemed(
+        tester,
+        const Column(
+          spacing: MmSpace.s3,
+          children: [
+            MmBanner(
+              tone: MmBannerTone.error,
+              message: _message,
+              actionLabel: _action,
+              onAction: tapped,
+            ),
+            MmBanner(
+              tone: MmBannerTone.warning,
+              message: _message,
+              actionLabel: _action,
+              onAction: tapped,
+              onDismiss: tapped,
+            ),
+          ],
+        ),
+        variant: variant,
+        size: const Size(360, 1000),
+      );
+      expect(actionEnd(dismissible: true), actionEnd(dismissible: false));
+      expect(actionEnd(dismissible: false), MmSpace.s2);
+    });
+
+    testWidgets('sets figures in Urdu text in the Latin face', (tester) async {
+      const title = 'عائشہ خان کے 2 ماہ';
+      const message = '3 کرایہ داروں سے 1,25,000 روپے واجب الادا ہیں۔';
+      await pumpThemed(
+        tester,
+        const MmBanner(
+          tone: MmBannerTone.error,
+          title: title,
+          message: message,
+        ),
+        variant: MmVariant.urdu,
+      );
+      expect(isLatinFace(runStyleIn(tester, message, '1,25,000')), isTrue);
+      expect(isLatinFace(runStyleIn(tester, message, 'روپے')), isFalse);
+      expect(isLatinFace(runStyleIn(tester, title, '2')), isTrue);
     });
 
     testWidgets('mirrors for Urdu: icon at the right, dismiss at the left', (

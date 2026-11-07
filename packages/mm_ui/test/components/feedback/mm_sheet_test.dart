@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _title = 'Record payment';
 
@@ -286,6 +287,114 @@ void main() {
       expect(
         tester.getRect(_close).left,
         greaterThan(tester.getRect(find.text(title)).right),
+      );
+    });
+
+    testWidgets('fits in Urdu at 200% text on a 320 dp phone', (tester) async {
+      const title = 'عائشہ خان سے اکتوبر کی ادائیگی درج کریں';
+      final context = await pumpUrduLargeNarrow(tester);
+      await _open(tester, context, title: title, content: _tall);
+      expect(tester.takeException(), isNull);
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(title));
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(
+        tester.getRect(_close).right,
+        lessThan(tester.getRect(find.text(title)).left),
+      );
+    });
+
+    testEveryVariant('has the overlay edge where it would melt into the '
+        'page', (tester, variant) async {
+      final context = await _page(tester, variant: variant);
+      await _open(tester, context);
+      final sheet = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(BottomSheet),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      final edge = MmTheme.overlayEdge(
+        variant.colors,
+        brightness: variant.brightness,
+        highContrast: variant.highContrast,
+      );
+      expect((sheet.shape! as OutlinedBorder).side, edge);
+      if (variant == MmVariant.darkHighContrast) {
+        // Black paper on a black page: the outline is the only edge.
+        expect(sheet.color, variant.colors.surface);
+        expect(
+          mmContrastRatio(edge.color, variant.colors.surface),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+        );
+      }
+    });
+
+    testEveryVariant('a rule appears under the header once content scrolls '
+        'under it', (tester, variant) async {
+      Color? rule() => tester
+          .widget<Divider>(
+            find.descendant(
+              of: find.byType(BottomSheet),
+              matching: find.byType(Divider),
+            ),
+          )
+          .color;
+
+      final context = await _page(tester, variant: variant);
+      await _open(tester, context, content: _tall);
+      expect(rule(), Colors.transparent);
+      final top = tester.getRect(find.text('Flat 1')).top;
+      final content = find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byType(Scrollable),
+      );
+      await tester.drag(content, const Offset(0, -200));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.text('Flat 1')).top, lessThan(top));
+      // The theme's divider colour: the rule.
+      expect(rule(), isNull);
+      expect(
+        tester
+            .widget<Divider>(
+              find.descendant(
+                of: find.byType(BottomSheet),
+                matching: find.byType(Divider),
+              ),
+            )
+            .thickness,
+        MmSize.hairline,
+      );
+      final painted = DividerTheme.of(
+        tester.element(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(Divider),
+          ),
+        ),
+      ).color;
+      expect(painted ?? Theme.of(context).dividerColor, variant.colors.rule);
+
+      // Back at the top, the rule goes.
+      await tester.drag(content, const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(rule(), Colors.transparent);
+    });
+
+    testWidgets('short content shows no rule under the header', (tester) async {
+      final context = await _page(tester);
+      await _open(tester, context);
+      expect(
+        tester
+            .widget<Divider>(
+              find.descendant(
+                of: find.byType(BottomSheet),
+                matching: find.byType(Divider),
+              ),
+            )
+            .color,
+        Colors.transparent,
       );
     });
 

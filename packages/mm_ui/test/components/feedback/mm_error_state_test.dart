@@ -152,7 +152,13 @@ void main() {
           await tester.tap(toggle);
           await tester.pumpAndSettle();
           expect(find.text(_details), findsOneWidget);
-          expect(find.byType(SelectableText), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(SelectionArea),
+              matching: find.text(_details),
+            ),
+            findsOneWidget,
+          );
           expect(find.byIcon(MmIcons.collapse), findsOneWidget);
           expect(
             tester.getSemantics(toggle),
@@ -186,6 +192,84 @@ void main() {
       expect(find.text(_details), findsNothing);
     });
 
+    testEveryVariant('open details meet the accessibility guidelines', (
+      tester,
+      variant,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpThemed(tester, _full(), variant: variant);
+      await tester.tap(find.byIcon(MmIcons.expand));
+      await tester.pumpAndSettle();
+      // Plain text for screen readers, not a read-only field shorter than a
+      // touch target.
+      expect(
+        tester.getSemantics(find.text(_details)),
+        isSemantics(label: _details, isTextField: false),
+      );
+      await expectAccessible(tester);
+      handle.dispose();
+    });
+
+    testWidgets('the keyboard reaches the details, rings them and copies '
+        'them', (tester) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied =
+                (call.arguments as Map<Object?, Object?>)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      BoxDecoration wellDecoration() =>
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .ancestor(
+                          of: find.text(_details),
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
+
+      await pumpThemed(tester, _full(still: true));
+      // Retry, the toggle, then the open well.
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(wellDecoration().border, isNull);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(
+        wellDecoration().border,
+        Border.all(
+          color: MmVariant.light.colors.focus,
+          width: MmSize.focusRing,
+        ),
+      );
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(copied, _details);
+      // Tab moves on, and the ring goes.
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(wellDecoration().border, isNull);
+    });
+
     testEveryVariant('details sit in a sunken well, Latin left to right', (
       tester,
       variant,
@@ -197,7 +281,7 @@ void main() {
       final well = tester.widget<DecoratedBox>(
         find
             .ancestor(
-              of: find.byType(SelectableText),
+              of: find.text(_details),
               matching: find.byType(DecoratedBox),
             )
             .first,
@@ -208,7 +292,7 @@ void main() {
         decoration.border,
         variant.highContrast ? Border.all(color: colors.rule) : isNull,
       );
-      final text = tester.widget<SelectableText>(find.byType(SelectableText));
+      final text = tester.widget<Text>(find.text(_details));
       expect(text.textDirection, TextDirection.ltr);
       // Latin details are set in Atkinson in both languages.
       expect(text.style!.fontFamily, contains(MmFontFamily.latin));
@@ -221,14 +305,14 @@ void main() {
       await pumpThemed(tester, _full(details: urdu), variant: MmVariant.urdu);
       await tester.tap(find.byIcon(MmIcons.expand));
       await tester.pumpAndSettle();
-      final text = tester.widget<SelectableText>(find.byType(SelectableText));
+      final text = tester.widget<Text>(find.text(urdu));
       expect(text.textDirection, isNull);
       expect(text.style!.fontFamily, contains(MmFontFamily.urdu));
       // Latin details in the Urdu UI read left to right in Atkinson.
       await pumpThemed(tester, _full(), variant: MmVariant.urdu);
       await tester.tap(find.byIcon(MmIcons.expand));
       await tester.pumpAndSettle();
-      final latin = tester.widget<SelectableText>(find.byType(SelectableText));
+      final latin = tester.widget<Text>(find.text(_details));
       expect(latin.textDirection, TextDirection.ltr);
       expect(latin.style!.fontFamily, contains(MmFontFamily.latin));
     });
@@ -236,6 +320,31 @@ void main() {
     testWidgets('wraps at 200% text on a 320 dp phone without overflow', (
       tester,
     ) async {
+      // In English and in Urdu, on a scrolling page as a screen holds it,
+      // with the details open.
+      await expectFitsNarrowLargeText(
+        tester,
+        Builder(
+          builder: (context) {
+            final say = sayIn(context);
+            return MmErrorState(
+              title: say(_title, 'کھاتہ دستیاب نہیں'),
+              message: say(
+                _message,
+                'علی رضا کا کھاتہ لوڈ نہیں ہو سکا۔ انٹرنیٹ دیکھ کر دوبارہ '
+                'کوشش کریں۔',
+              ),
+              onRetry: tapped,
+              details: _details,
+              detailsLabel: say(_detailsLabel, 'تکنیکی تفصیلات'),
+            );
+          },
+        ),
+      );
+      await tester.tap(find.byIcon(MmIcons.expand));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
       await pumpLargeNarrow(tester, _full(), height: 1600);
       await tester.tap(find.byIcon(MmIcons.expand));
       await tester.pumpAndSettle();
@@ -245,7 +354,7 @@ void main() {
         expect(paragraph.didExceedMaxLines, isFalse);
       }
       // The details wrap onto several lines inside the 320 dp phone.
-      final details = tester.getRect(find.byType(SelectableText));
+      final details = tester.getRect(find.text(_details));
       expect(details.width, lessThan(320));
       expect(details.height, greaterThan(100));
     });

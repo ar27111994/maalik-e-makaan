@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _title = 'Remove Ali Raza?';
 const _message = 'His ledger for Flat 3, Gulberg III is kept for your records.';
@@ -207,11 +208,22 @@ void main() {
       expect(find.text(_typedLabel), findsOneWidget);
       expect(
         tester.getSemantics(find.byType(TextField)),
-        // Named by the label, then the hint that shows the text to type.
-        isSemantics(label: '$_typedLabel\n$_typed', isTextField: true),
+        // Named by the label, which says what to type.
+        isSemantics(label: _typedLabel, isTextField: true),
       );
+      // No hint: in the empty field it would look like a value already
+      // typed in. The label sets the text to type in bold instead.
       final field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.decoration!.hintText, _typed);
+      expect(field.decoration?.hintText, isNull);
+      expect(find.text(_typed), findsNothing);
+      expect(
+        runStyleIn(tester, _typedLabel, _typed).fontWeight,
+        FontWeight.w700,
+      );
+      expect(
+        runStyleIn(tester, _typedLabel, 'Type').fontWeight,
+        FontWeight.w400,
+      );
       expect(
         tester.getSemantics(_confirmButton),
         isSemantics(isButton: true, isEnabled: false),
@@ -276,15 +288,193 @@ void main() {
       await tester.tap(find.text('منسوخ کریں'));
       await tester.pumpAndSettle();
 
+      const label = 'فلیٹ 3 کی تصدیق کے لیے گلبرگ ہاؤس لکھیں';
       await _open(
         tester,
         urdu,
         typedConfirmation: 'گلبرگ ہاؤس',
-        typedConfirmationLabel: 'تصدیق کے لیے گلبرگ ہاؤس لکھیں',
+        typedConfirmationLabel: label,
       );
       field = tester.widget<TextField>(find.byType(TextField));
       expect(field.textDirection, isNull);
       expect(field.style!.fontFamily, contains(MmFontFamily.urdu));
+      // Urdu text to type stays in Nastaliq, in bold; a figure elsewhere in
+      // the label is in the Latin face.
+      final name = runStyleIn(tester, label, 'گلبرگ ہاؤس');
+      expect(isLatinFace(name), isFalse);
+      expect(name.fontWeight, FontWeight.w700);
+      expect(isLatinFace(runStyleIn(tester, label, '3')), isTrue);
+    });
+
+    testWidgets('in Urdu the Latin text to type is bold Atkinson, typed '
+        'from the same side it is read', (tester) async {
+      const label = 'تصدیق کے لیے Gulberg House لکھیں';
+      final urdu = await _page(tester, variant: MmVariant.urdu);
+      await _open(
+        tester,
+        urdu,
+        destructive: true,
+        typedConfirmation: _typed,
+        typedConfirmationLabel: label,
+      );
+      final name = runStyleIn(tester, label, _typed);
+      expect(isLatinFace(name), isTrue);
+      expect(name.fontWeight, FontWeight.w700);
+      expect(isLatinFace(runStyleIn(tester, label, 'تصدیق')), isFalse);
+
+      // The field is empty (no hint at the right edge for the text to jump
+      // away from), and the name typed into it starts at its left edge.
+      expect(find.text(_typed), findsNothing);
+      final box = tester.getRect(find.byType(TextField));
+      await tester.enterText(find.byType(TextField), _typed);
+      await tester.pump();
+      final editable = tester
+          .state<EditableTextState>(find.byType(EditableText))
+          .renderEditable;
+      final ends = editable.getEndpointsForSelection(
+        const TextSelection(baseOffset: 0, extentOffset: _typed.length),
+      );
+      final first = editable.localToGlobal(ends.first.point).dx;
+      final last = editable.localToGlobal(ends.last.point).dx;
+      expect(first, lessThan(last));
+      expect(first - box.left, lessThanOrEqualTo(MmSpace.s6));
+      expect(box.right - last, greaterThan(first - box.left));
+    });
+
+    testWidgets('sets figures in an Urdu title and message in the Latin '
+        'face', (tester) async {
+      const title = 'گلبرگ ہاؤس کے 4 یونٹ حذف کریں؟';
+      const message = 'اس کے 1,25,000 روپے کا ریکارڈ ختم ہو جائے گا۔';
+      final urdu = await _page(tester, variant: MmVariant.urdu);
+      unawaited(
+        showMmConfirmDialog(
+          urdu,
+          title: title,
+          message: message,
+          confirmLabel: 'حذف کریں',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(isLatinFace(runStyleIn(tester, title, '4')), isTrue);
+      expect(isLatinFace(runStyleIn(tester, message, '1,25,000')), isTrue);
+      expect(isLatinFace(runStyleIn(tester, message, 'روپے')), isFalse);
+      expect(
+        tester.getSemantics(find.text(title)),
+        isSemantics(label: title, isHeader: true),
+      );
+    });
+
+    testEveryVariant('has the overlay edge where it would melt into the '
+        'page', (tester, variant) async {
+      final context = await _page(tester, variant: variant);
+      await _open(tester, context);
+      final dialog = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(AlertDialog),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      final edge = MmTheme.overlayEdge(
+        variant.colors,
+        brightness: variant.brightness,
+        highContrast: variant.highContrast,
+      );
+      final shape = dialog.shape! as RoundedRectangleBorder;
+      expect(shape.side, edge);
+      expect(
+        shape.borderRadius,
+        const BorderRadius.all(Radius.circular(MmRadius.lg)),
+      );
+      if (variant == MmVariant.darkHighContrast) {
+        // Black paper on a black page: the outline is the only edge.
+        expect(dialog.color, variant.colors.surface);
+        expect(edge.color, variant.colors.outline);
+        expect(
+          mmContrastRatio(edge.color, variant.colors.surface),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+        );
+      }
+    });
+
+    testWidgets('keeps at least 16 dp of padding at large text', (
+      tester,
+    ) async {
+      Future<Rect> titleIn(MmVariant variant) async {
+        final context = await _page(
+          tester,
+          variant: variant,
+          size: const Size(320, 740),
+        );
+        await _open(tester, context);
+        return tester.getRect(find.text(_title));
+      }
+
+      final dialogOf = find
+          .descendant(
+            of: find.byType(AlertDialog),
+            matching: find.byType(Material),
+          )
+          .first;
+      final normal = await titleIn(MmVariant.light);
+      final box = tester.getRect(dialogOf);
+      expect(normal.left - box.left, MmSpace.s6);
+      expect(normal.top - box.top, MmSpace.s6);
+      expect(tester.getRect(find.text(_message)).left - box.left, MmSpace.s6);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      final large = await titleIn(MmVariant.largeText);
+      final largeBox = tester.getRect(dialogOf);
+      expect(large.left - largeBox.left, MmSpace.s4);
+      expect(large.top - largeBox.top, MmSpace.s4);
+      expect(
+        tester.getRect(find.text(_message)).left - largeBox.left,
+        MmSpace.s4,
+      );
+      final cancel = tester.getRect(
+        find.ancestor(
+          of: find.text('Cancel'),
+          matching: find.byType(TextButton),
+        ),
+      );
+      expect(largeBox.bottom - cancel.bottom, greaterThanOrEqualTo(MmSpace.s4));
+    });
+
+    testWidgets('fits in Urdu at 200% text on a 320 dp phone', (tester) async {
+      const title = 'گلبرگ ہاؤس حذف کریں؟';
+      const message =
+          'اس کے 4 یونٹ اور 1,25,000 روپے کا ریکارڈ ختم ہو جائے گا۔';
+      const label = 'تصدیق کے لیے Gulberg House لکھیں';
+      final context = await pumpUrduLargeNarrow(tester, height: 640);
+      unawaited(
+        showMmConfirmDialog(
+          context,
+          title: title,
+          message: message,
+          confirmLabel: 'جائیداد حذف کریں',
+          destructive: true,
+          typedConfirmation: _typed,
+          typedConfirmationLabel: label,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      for (final text in [title, message, label]) {
+        final paragraph = tester.renderObject<RenderParagraph>(find.text(text));
+        expect(paragraph.didExceedMaxLines, isFalse, reason: text);
+      }
+      await tester.enterText(find.byType(TextField), _typed);
+      await tester.pump();
+      final confirm = find.ancestor(
+        of: find.text('جائیداد حذف کریں'),
+        matching: find.byType(FilledButton),
+      );
+      await tester.ensureVisible(confirm);
+      await tester.pumpAndSettle();
+      expect(tester.getRect(confirm).bottom, lessThanOrEqualTo(640));
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNotNull);
     });
 
     testWidgets('a typed confirmation needs a label and some text', (
@@ -309,6 +499,19 @@ void main() {
           confirmLabel: _confirm,
           typedConfirmation: '  ',
           typedConfirmationLabel: _typedLabel,
+        ),
+        throwsAssertionError,
+      );
+      // The label must show the text to type, now that the field has no
+      // hint.
+      await expectLater(
+        showMmConfirmDialog(
+          context,
+          title: _title,
+          message: _message,
+          confirmLabel: _confirm,
+          typedConfirmation: _typed,
+          typedConfirmationLabel: 'Type the property name to confirm',
         ),
         throwsAssertionError,
       );

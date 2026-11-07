@@ -55,6 +55,13 @@ typedef MmBarLabel = ({int index, String text, Rect rect});
 /// labels are too wide for every group only every second, third, … group
 /// is labelled, starting with the first.
 ///
+/// A group's bars share its band's centre. With two series, the [outer]
+/// series' bar (the outlined one) is the wide bar and the other series'
+/// bar stands inside it, [innerInset] in from each side, so the two differ
+/// by position and width as well as by fill, at any width: side by side,
+/// a year of months on a phone would leave each bar too narrow to show an
+/// outline.
+///
 /// Internal to the charts family.
 final class MmBarLayout {
   const new _({
@@ -65,13 +72,15 @@ final class MmBarLayout {
     required this.bands,
     required this.bars,
     required this.labels,
+    required this.outer,
     required this.textDirection,
   });
 
   /// Lays out [values] (one list of rupee amounts per group, one amount per
-  /// series) in [width], with a plot [plotHeight] tall. [tickLabel] names a
-  /// tick, [measureTick] and [measureLabel] measure tick and group labels as
-  /// they will be drawn.
+  /// series) in [width], with a plot [plotHeight] tall. With two series,
+  /// [outer] is the one drawn as the wide bar. [tickLabel] names a tick,
+  /// [measureTick] and [measureLabel] measure tick and group labels as they
+  /// will be drawn.
   factory compute({
     required double width,
     required double plotHeight,
@@ -82,7 +91,12 @@ final class MmBarLayout {
     required MmTextMeasure measureTick,
     required MmTextMeasure measureLabel,
     required TextDirection textDirection,
+    int? outer,
   }) {
+    assert(
+      seriesCount == 1 || (outer != null && outer >= 0 && outer < seriesCount),
+      'A layout of two series needs the series drawn as the wide bar.',
+    );
     final rtl = textDirection == TextDirection.rtl;
     final all = [for (final group in values) ...group];
     final low = all.fold<double>(0, math.min);
@@ -144,10 +158,14 @@ final class MmBarLayout {
           plot.height,
         ),
     ];
-    const gap = MmChartMetrics.gap;
-    final barWidth = ((band * bandFill - gap * (seriesCount - 1)) / seriesCount)
-        .clamp(1.0, maxBarWidth);
-    final groupWidth = barWidth * seriesCount + gap * (seriesCount - 1);
+    // Bars fill most of the band, within their least and greatest widths,
+    // and always leave a sliver of air between neighbouring groups.
+    final least = math.max<double>(
+      1,
+      math.min(minBarWidth, band - MmSpace.sHalf),
+    );
+    final barWidth = (band * bandFill).clamp(least, maxBarWidth);
+    final innerWidth = math.max<double>(1, barWidth - 2 * innerInset);
     final zero = yOf(0);
     final bars = [
       for (final (index, group) in values.indexed)
@@ -155,12 +173,11 @@ final class MmBarLayout {
           for (final (series, rupees) in group.indexed)
             _bar(
               bands[index],
-              groupWidth: groupWidth,
-              barWidth: barWidth,
-              series: series,
+              width: seriesCount == 1 || series == outer
+                  ? barWidth
+                  : innerWidth,
               from: zero,
               to: yOf(rupees),
-              rtl: rtl,
             ),
         ],
     ];
@@ -199,6 +216,7 @@ final class MmBarLayout {
       bands: bands,
       bars: bars,
       labels: labels,
+      outer: seriesCount == 1 ? null : outer,
       textDirection: textDirection,
     );
   }
@@ -212,6 +230,16 @@ final class MmBarLayout {
 
   /// The widest a bar gets, however much room there is.
   static const double maxBarWidth = MmSpace.s6;
+
+  /// The narrowest a bar gets while its band has room for it and some air:
+  /// wide enough for an outline on each side, a gap inside each and a
+  /// 4 dp bar of the other series between them.
+  static const double minBarWidth = MmSpace.s3;
+
+  /// How far the inner bar of a two-series group stands in from each side
+  /// of the outer one: the outer bar's outline and a gap of its pale fill,
+  /// so the two never touch.
+  static const double innerInset = MmSize.stroke + MmChartMetrics.gap;
 
   /// The size of the whole chart: plot, axis labels and gutter.
   final Size size;
@@ -236,6 +264,11 @@ final class MmBarLayout {
   /// The group labels shown, in group order.
   final List<MmBarLabel> labels;
 
+  /// In a two-series chart, the series whose bars are the wide ones, which
+  /// are painted first so the other series' bars stand on them; null with
+  /// one series.
+  final int? outer;
+
   /// The direction the groups run in.
   final TextDirection textDirection;
 
@@ -248,25 +281,19 @@ final class MmBarLayout {
     return null;
   }
 
-  /// The bar of [series] in [band], from the zero line at [from] to its
-  /// value at [to]; the group's bars are centred in the band, the first
-  /// series nearest the start edge.
+  /// A bar [width] wide centred in [band], from the zero line at [from] to
+  /// its value at [to].
   static Rect _bar(
     Rect band, {
-    required double groupWidth,
-    required double barWidth,
-    required int series,
+    required double width,
     required double from,
     required double to,
-    required bool rtl,
   }) {
-    final start = band.center.dx - groupWidth / 2;
-    final offset = series * (barWidth + MmChartMetrics.gap);
-    final left = rtl ? start + groupWidth - offset - barWidth : start + offset;
+    final left = band.center.dx - width / 2;
     return Rect.fromLTRB(
       left,
       math.min(from, to),
-      left + barWidth,
+      left + width,
       math.max(from, to),
     );
   }

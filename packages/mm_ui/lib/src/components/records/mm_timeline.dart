@@ -2,6 +2,9 @@ import 'dart:math' as math;
 import 'dart:ui' show SemanticsRole;
 
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/foundation/mm_tone.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -10,53 +13,37 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// a status alone.
 enum MmTimelineTone {
   /// No particular state: a tenant moved in, a note was added.
-  neutral,
+  neutral(MmTone.neutral),
 
   /// Cobalt: an event the landlord started, such as a lease signed.
-  primary,
+  primary(MmTone.primary),
 
   /// The paid colour: a payment received, a bill settled.
-  paid,
+  paid(MmTone.paid),
 
   /// The due-soon colour: rent or a bill falling due.
-  dueSoon,
+  dueSoon(MmTone.dueSoon),
 
   /// The overdue colour: rent or a bill past its grace period.
-  overdue,
+  overdue(MmTone.overdue),
 
   /// The credit colour: an advance or a refund.
-  credit;
+  credit(MmTone.credit);
+
+  new(this._tone);
+
+  /// The design system's colour family this tone takes its roles from.
+  final MmTone _tone;
 
   /// The strong colour of this tone in [colors]: a dot, or the ring of an
   /// icon marker.
-  Color colorIn(MmColorTokens colors) => switch (this) {
-    MmTimelineTone.neutral => colors.outline,
-    MmTimelineTone.primary => colors.primary,
-    MmTimelineTone.paid => colors.paid,
-    MmTimelineTone.dueSoon => colors.dueSoon,
-    MmTimelineTone.overdue => colors.overdue,
-    MmTimelineTone.credit => colors.credit,
-  };
+  Color colorIn(MmColorTokens colors) => _tone.colorIn(colors);
 
   /// The fill of an icon marker in [colors].
-  Color containerIn(MmColorTokens colors) => switch (this) {
-    MmTimelineTone.neutral => colors.surfaceSunken,
-    MmTimelineTone.primary => colors.primaryContainer,
-    MmTimelineTone.paid => colors.paidContainer,
-    MmTimelineTone.dueSoon => colors.dueSoonContainer,
-    MmTimelineTone.overdue => colors.overdueContainer,
-    MmTimelineTone.credit => colors.creditContainer,
-  };
+  Color containerIn(MmColorTokens colors) => _tone.containerIn(colors);
 
   /// The colour of the icon on [containerIn] in [colors].
-  Color onContainerIn(MmColorTokens colors) => switch (this) {
-    MmTimelineTone.neutral => colors.ink,
-    MmTimelineTone.primary => colors.onPrimaryContainer,
-    MmTimelineTone.paid => colors.onPaidContainer,
-    MmTimelineTone.dueSoon => colors.onDueSoonContainer,
-    MmTimelineTone.overdue => colors.onOverdueContainer,
-    MmTimelineTone.credit => colors.onCreditContainer,
-  };
+  Color onContainerIn(MmColorTokens colors) => _tone.onContainerIn(colors);
 }
 
 /// One event of an [MmTimeline]: when it happened, what happened and,
@@ -70,16 +57,20 @@ final class MmTimelineItem {
     this.subtitle,
     this.icon,
     this.tone = MmTimelineTone.neutral,
+    this.semanticLabel,
   });
 
   /// When it happened, formatted by the app ("5 Oct 2026"), shown in muted
   /// caption above the title.
   final String dateLabel;
 
-  /// What happened ("Payment received").
+  /// What happened ("Payment received"). It wraps when it does not fit:
+  /// join the parts of an amount with a no-break space (`Rs\u00A045,000`)
+  /// so a currency never ends a line apart from its number.
   final String title;
 
-  /// An optional detail ("Rs 45,000 by bank transfer").
+  /// An optional detail ("Rs 45,000 by bank transfer"). It wraps like
+  /// [title]: join the parts of an amount with a no-break space.
   final String? subtitle;
 
   /// An icon that says what kind of event it is (a payment, a lease). When
@@ -89,6 +80,14 @@ final class MmTimelineItem {
   /// The colour of the marker.
   final MmTimelineTone tone;
 
+  /// What a screen reader says for the item instead of its date, title and
+  /// detail, when that differs from how they look. Grouped figures such as
+  /// 1,25,000 are read out unreliably, so give amounts as plain numbers
+  /// ("7 Oct 2026, Payment received, 45000 rupees by bank transfer", from
+  /// `MmFormats.spokenMoney`). When null, the date, the title and the detail
+  /// are read, in that order.
+  final String? semanticLabel;
+
   @override
   bool operator ==(Object other) =>
       other is MmTimelineItem &&
@@ -96,10 +95,12 @@ final class MmTimelineItem {
       other.title == title &&
       other.subtitle == subtitle &&
       other.icon == icon &&
-      other.tone == tone;
+      other.tone == tone &&
+      other.semanticLabel == semanticLabel;
 
   @override
-  int get hashCode => Object.hash(dateLabel, title, subtitle, icon, tone);
+  int get hashCode =>
+      Object.hash(dateLabel, title, subtitle, icon, tone, semanticLabel);
 }
 
 /// A record's history as a vertical timeline: a rail on the start side
@@ -107,21 +108,28 @@ final class MmTimelineItem {
 /// caption, the title and an optional detail line.
 ///
 /// Items are shown in the order given (usually newest first). Long titles
-/// and large text wrap; the rail grows with them. Each item is one node
-/// for screen readers, reading the date, the title and the detail, and the
-/// timeline is announced as a list.
+/// and large text wrap; the rail grows with them, and the markers grow
+/// with the text up to half as large again. Each item is one node for
+/// screen readers, reading the date, the title and the detail (or the
+/// item's `semanticLabel`), and the timeline is announced as a list.
 ///
 /// Use it for the history of one tenant, lease or property: rent falling
 /// due, payments, renewals, notices. Don't use it for a list the landlord
 /// acts on (use list tiles) or for a ledger of amounts (use a table).
 ///
 /// ```dart
+/// final date = dates.format(payment.date);
 /// MmTimeline(
 ///   items: [
 ///     MmTimelineItem(
-///       dateLabel: dates.format(payment.date),
+///       dateLabel: date,
 ///       title: l10n.paymentReceived,
 ///       subtitle: format.format(payment.amount),
+///       semanticLabel: [
+///         date,
+///         l10n.paymentReceived,
+///         MmFormats.spokenMoney(context, payment.amount),
+///       ].join(', '),
 ///       icon: MmIcons.payment,
 ///       tone: MmTimelineTone.paid,
 ///     ),
@@ -135,13 +143,14 @@ class MmTimeline extends StatelessWidget {
   /// The events, in the order they are shown.
   final List<MmTimelineItem> items;
 
-  /// The width of the marker column on the start side.
+  /// The width of the marker column on the start side at 100% text size.
+  /// It grows with the text, as the markers do.
   static const double markerColumn = MmSpace.s8;
 
-  /// The diameter of an icon marker.
+  /// The diameter of an icon marker at 100% text size.
   static const double iconMarker = MmSpace.s8;
 
-  /// The diameter of a dot marker.
+  /// The diameter of a dot marker at 100% text size.
   static const double dotMarker = MmSpace.s3;
 
   /// The thickness of the rail.
@@ -179,29 +188,36 @@ class _TimelineEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mm = context.mm;
-    final colors = mm.colors;
+    final colors = context.mm.colors;
     final text = Theme.of(context).textTheme;
     final subtitle = item.subtitle;
     final icon = item.icon;
     final dateStyle = text.bodySmall!.copyWith(color: colors.inkMuted);
+
+    // The markers grow with the text as icons beside words do, up to half
+    // as large again, so a marker still reads beside 200% text.
+    final grow = MmIconLabel.scaledSize(context, MmSize.iconSm) / MmSize.iconSm;
+    final column = MmTimeline.markerColumn * grow;
+    final marker =
+        (icon == null ? MmTimeline.dotMarker : MmTimeline.iconMarker) * grow;
 
     // The marker is centred on the date line; whichever of the two is
     // smaller moves down to meet the other's centre.
     final dateLine =
         MediaQuery.textScalerOf(context).scale(dateStyle.fontSize!) *
         dateStyle.height!;
-    final marker = icon == null ? MmTimeline.dotMarker : MmTimeline.iconMarker;
     final markerTop = math.max(0, dateLine - marker) / 2;
     final contentTop = math.max(0, marker - dateLine) / 2;
     final markerBottom = markerTop + marker;
-    const railStart = (MmTimeline.markerColumn - MmTimeline.railWidth) / 2;
+    final railStart = (column - MmTimeline.railWidth) / 2;
     final rail = ColoredBox(color: colors.rule);
 
     return Semantics(
       container: true,
       role: SemanticsRole.listItem,
-      label: [item.dateLabel, item.title, ?subtitle].join(', '),
+      label:
+          item.semanticLabel ??
+          [item.dateLabel, item.title, ?subtitle].join(', '),
       excludeSemantics: true,
       child: Stack(
         children: [
@@ -222,13 +238,18 @@ class _TimelineEntry extends StatelessWidget {
               child: rail,
             ),
           PositionedDirectional(
-            start: (MmTimeline.markerColumn - marker) / 2,
+            start: (column - marker) / 2,
             top: markerTop,
-            child: _Marker(tone: item.tone, icon: icon, size: marker),
+            child: _Marker(
+              tone: item.tone,
+              icon: icon,
+              size: marker,
+              iconSize: MmSize.iconSm * grow,
+            ),
           ),
           Padding(
             padding: EdgeInsetsDirectional.only(
-              start: MmTimeline.markerColumn + MmSpace.s3,
+              start: column + MmSpace.s3,
               top: contentTop,
               bottom: last ? 0 : MmSpace.s4,
             ),
@@ -239,24 +260,15 @@ class _TimelineEntry extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.dateLabel,
-                    style: mm.styleFor(item.dateLabel, dateStyle),
-                  ),
-                  Text(
+                  MmScriptText(item.dateLabel, style: dateStyle),
+                  MmScriptText(
                     item.title,
-                    style: mm.styleFor(
-                      item.title,
-                      text.titleMedium!.copyWith(color: colors.ink),
-                    ),
+                    style: text.titleMedium!.copyWith(color: colors.ink),
                   ),
                   if (subtitle != null)
-                    Text(
+                    MmScriptText(
                       subtitle,
-                      style: mm.styleFor(
-                        subtitle,
-                        text.bodyMedium!.copyWith(color: colors.inkMuted),
-                      ),
+                      style: text.bodyMedium!.copyWith(color: colors.inkMuted),
                     ),
                 ],
               ),
@@ -270,11 +282,17 @@ class _TimelineEntry extends StatelessWidget {
 
 /// A timeline marker: a dot, or an icon in a ringed circle.
 class _Marker extends StatelessWidget {
-  const new({required this.tone, required this.icon, required this.size});
+  const new({
+    required this.tone,
+    required this.icon,
+    required this.size,
+    required this.iconSize,
+  });
 
   final MmTimelineTone tone;
   final IconData? icon;
   final double size;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -292,11 +310,7 @@ class _Marker extends StatelessWidget {
               ),
         child: icon == null
             ? null
-            : Icon(
-                icon,
-                size: MmSize.iconSm,
-                color: tone.onContainerIn(colors),
-              ),
+            : Icon(icon, size: iconSize, color: tone.onContainerIn(colors)),
       ),
     );
   }

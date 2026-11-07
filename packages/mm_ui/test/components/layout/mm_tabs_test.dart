@@ -213,6 +213,124 @@ void main() {
       expect(taps, [1, 2]);
     });
 
+    testEveryVariant('keyboard focus rings the tab', (tester, variant) async {
+      useKeyboardHighlights();
+      final colors = colorsOf(variant);
+      await pumpThemed(tester, _tabs(), variant: variant);
+      Finder labelPaint(String label) => find
+          .ancestor(of: find.text(label), matching: find.byType(CustomPaint))
+          .first;
+      final ring = paints..rrect(color: colors.focus);
+      expect(labelPaint('Payments'), isNot(ring));
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      // Around the label, 12 dp past it on each side, 4 dp inside the
+      // tab's top and bottom, so clear of the selected tab's underline.
+      final label = tester.getSize(labelPaint('Payments'));
+      final tab = tester.widget<Tab>(
+        find.ancestor(of: find.text('Payments'), matching: find.byType(Tab)),
+      );
+      final edge = Rect.fromCenter(
+        center: label.center(Offset.zero),
+        width: label.width + 2 * MmSpace.s3,
+        height: tab.height! - 2 * MmSpace.s1,
+      ).deflate(MmSize.focusRing / 2);
+      expect(
+        labelPaint('Payments'),
+        paints..rrect(
+          rrect: RRect.fromRectAndRadius(
+            edge,
+            const Radius.circular(MmRadius.sm - MmSize.focusRing / 2),
+          ),
+          color: colors.focus,
+          strokeWidth: MmSize.focusRing,
+          style: PaintingStyle.stroke,
+        ),
+      );
+      expect(labelPaint('Dues'), isNot(ring));
+      for (final background in [colors.bg, colors.surface]) {
+        expect(
+          mmContrastRatio(colors.focus, background),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+        );
+      }
+    });
+
+    testWidgets('a tab focused from the keyboard scrolls wholly into view', (
+      tester,
+    ) async {
+      useKeyboardHighlights();
+      // At 200% the bar scrolls, centred on the selected second tab, so the
+      // first is cut at the start.
+      await pumpLargeNarrow(tester, _tabs(initialIndex: 1, width: 288));
+      final bar = tester.getRect(find.byType(TabBar));
+      Rect tabOf(String label) => tester.getRect(
+        find.ancestor(of: find.text(label), matching: find.byType(InkWell)),
+      );
+      expect(tabOf('Dues').left, lessThan(bar.left));
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(focusedAt(tester, 'Dues'), isTrue);
+      expect(tabOf('Dues').left, bar.left);
+      // And at the other end.
+      for (var i = 0; i < 2; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      }
+      await tester.pumpAndSettle();
+      expect(focusedAt(tester, 'Notes'), isTrue);
+      expect(tabOf('Notes').right, bar.right);
+    });
+
+    testWidgets('no ring for touch focus', (tester) async {
+      await pumpThemed(tester, _tabs());
+      Focus.of(tester.element(find.text('Payments'))).requestFocus();
+      await tester.pumpAndSettle();
+      expect(
+        find
+            .ancestor(
+              of: find.text('Payments'),
+              matching: find.byType(CustomPaint),
+            )
+            .first,
+        isNot(paints..rrect(color: MmColorModes.light.focus)),
+      );
+    });
+
+    testWidgets('scroll in a row of unbounded width', (tester) async {
+      await pumpThemed(
+        tester,
+        const SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DefaultTabController(
+            length: 3,
+            child: MmTabs(labels: _labels),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(_bar(tester).isScrollable, isTrue);
+    });
+
+    testWidgets('keep the label semantics of a stock tab', (tester) async {
+      await pumpThemed(tester, _tabs());
+      final label = tester.widget<Text>(find.text('Payments'));
+      expect(label.softWrap, isFalse);
+      expect(label.overflow, TextOverflow.fade);
+    });
+
+    testWidgets('200% text on a 320 dp phone fits in English and Urdu', (
+      tester,
+    ) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        const DefaultTabController(
+          length: 3,
+          child: MmTabs(labels: ['واجبات', 'ادائیگیاں', 'دستاویزات']),
+        ),
+      );
+    });
+
     testWidgets('needs at least one label', (tester) async {
       await pumpThemed(
         tester,

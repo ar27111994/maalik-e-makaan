@@ -31,14 +31,20 @@ Rect _field(WidgetTester tester, String key) =>
 
 void main() {
   group('MmFormSection', () {
-    testEveryVariant('titles the section in titleMedium, read as a heading', (
+    testEveryVariant('titles the section in titleLarge, read as a heading', (
       tester,
       variant,
     ) async {
       await pumpThemed(tester, _section(), variant: variant);
       final title = tester.widget<Text>(find.text(_title));
       final theme = Theme.of(tester.element(find.text(_title)));
-      expect(title.style, theme.textTheme.titleMedium);
+      expect(title.style, theme.textTheme.titleLarge);
+      // A step above the fields' labels (labelLarge), as MmSectionHeader
+      // titles a read-only section.
+      expect(
+        title.style!.fontSize,
+        greaterThan(theme.textTheme.labelLarge!.fontSize! + 4),
+      );
       expect(
         tester.getSemantics(find.text(_title)),
         isSemantics(label: _title, isHeader: true),
@@ -145,6 +151,19 @@ void main() {
         ),
       );
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('200% text on a 320 dp phone fits in English and Urdu', (
+      tester,
+    ) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        const MmFormSection(
+          title: 'کرایہ دار کی تفصیلات',
+          description: 'جیسا شناختی کارڈ پر لکھا ہے۔',
+          children: [TextField(decoration: InputDecoration(labelText: 'نام'))],
+        ),
+      );
     });
   });
 }

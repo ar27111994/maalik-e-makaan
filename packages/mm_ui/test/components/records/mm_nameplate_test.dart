@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _name = 'Raza Manzil';
 const _address = 'House 12, Street 4, Gulberg III, Lahore';
@@ -50,7 +51,10 @@ void main() {
       final text = variant.theme.textTheme;
       final plate = _plate(tester);
       expect(plate.color, colors.brassContainer);
-      expect(plate.border, Border.all(color: colors.brass, width: 2));
+      expect(
+        plate.border,
+        Border.all(color: colors.brass, width: MmSize.frame),
+      );
       expect(
         plate.borderRadius,
         const BorderRadius.all(Radius.circular(MmRadius.xs)),
@@ -181,6 +185,41 @@ void main() {
           epsilon: 0.01,
         ),
       );
+    });
+
+    testWidgets('at 200% on a 320 dp phone, fits long words in English and '
+        'Urdu', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        Builder(
+          builder: (context) {
+            final say = sayIn(context);
+            return MmNameplate(
+              name: say(
+                'Gulberg Heights Residency, Block C',
+                'گلبرگ ہائٹس ریزیڈنسی، بلاک C',
+              ),
+              subtitle: say(
+                'House 12, Street 4, Gulberg III, Lahore',
+                'مکان 12، گلی 4، گلبرگ III، لاہور',
+              ),
+              icon: MmIcons.property,
+            );
+          },
+        ),
+      );
+    });
+
+    testWidgets('sets the figures and Latin letters inside an Urdu address '
+        'in the Latin face', (tester) async {
+      const address = 'مکان 12، گلی 4، گلبرگ III، لاہور';
+      await pumpThemed(
+        tester,
+        const MmNameplate(name: 'رضا منزل', subtitle: address),
+        variant: MmVariant.urdu,
+      );
+      expect(latinRunsIn(tester, address), ['12', '4', 'III']);
+      expect(latinRunsIn(tester, 'رضا منزل'), isEmpty);
     });
 
     testWidgets('sets a name written in English in the Latin face in the '

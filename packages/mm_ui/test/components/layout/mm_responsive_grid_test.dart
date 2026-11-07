@@ -362,6 +362,22 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('200% text on a 320 dp phone fits in English and Urdu', (
+      tester,
+    ) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        const MmResponsiveGrid(
+          minItemWidth: 120,
+          children: [
+            Text('اس مہینے کا واجب کرایہ'),
+            Text('گلبرگ میں خالی یونٹ'),
+            Text('واجب الادا'),
+          ],
+        ),
+      );
+    });
+
     test('needs a positive item width and no negative spacing', () {
       double zero() => 0;
       expect(

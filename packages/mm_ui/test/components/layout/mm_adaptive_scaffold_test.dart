@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
@@ -39,6 +40,71 @@ Widget _scaffold({
 Rect _labelRect(WidgetTester tester, String label) =>
     tester.getRect(find.text(label));
 
+const _urduDestinations = [
+  MmDestination(icon: MmIcons.property, label: 'جائیدادیں'),
+  MmDestination(icon: MmIcons.tenants, label: 'کرایہ دار'),
+  MmDestination(icon: MmIcons.receipt, label: 'واجبات', badgeCount: 3),
+  MmDestination(icon: MmIcons.reports, label: 'رپورٹس'),
+];
+
+/// Pumps [child] as the whole screen in [locale] at [textScale], in a
+/// window of [size].
+Future<void> _pumpIn(
+  WidgetTester tester,
+  Widget child, {
+  required Locale locale,
+  required double textScale,
+  Size size = _phone,
+}) async {
+  tester.view
+    ..physicalSize = size
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(
+    themedApp(
+      Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child,
+        ),
+      ),
+      locale: locale,
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Where the glyphs of [label] reach on screen, top and bottom.
+({double top, double bottom}) _inkOf(WidgetTester tester, String label) {
+  final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
+  var top = 0.0;
+  var bottom = paragraph.size.height;
+  for (final box in paragraph.getBoxesForSelection(
+    TextSelection(baseOffset: 0, extentOffset: label.length),
+  )) {
+    if (box.top < top) top = box.top;
+    if (box.bottom > bottom) bottom = box.bottom;
+  }
+  final origin = paragraph.localToGlobal(Offset.zero);
+  return (top: origin.dy + top, bottom: origin.dy + bottom);
+}
+
+/// The tap target of the destination labelled [label].
+Rect _targetOf(WidgetTester tester, String label) => tester.getRect(
+  find
+      .ancestor(
+        of: find.text(label),
+        matching: find.byWidgetPredicate((widget) => widget is InkResponse),
+      )
+      .first,
+);
+
+/// The icon of a destination, with what is painted over it.
+Finder _iconPaint(IconData icon) => find
+    .ancestor(of: find.byIcon(icon), matching: find.byType(CustomPaint))
+    .first;
+
 void main() {
   group('MmDestination', () {
     test('has value equality', () {
@@ -71,12 +137,11 @@ void main() {
     });
 
     test('rejects a negative count', () {
+      // Not a constant, so the assertion runs when the test does.
+      final count = int.parse('-1');
       expect(
-        () => MmDestination(
-          icon: MmIcons.home,
-          label: 'Home',
-          badgeCount: -1 + 0 * DateTime.now().year,
-        ),
+        () =>
+            MmDestination(icon: MmIcons.home, label: 'Home', badgeCount: count),
         throwsAssertionError,
       );
     });
@@ -466,6 +531,317 @@ void main() {
         ),
       );
       await tester.tap(find.text('Reports'));
+    });
+
+    for (final (language, destinations) in [
+      ('English', _destinations),
+      ('Urdu', _urduDestinations),
+    ]) {
+      for (final scale in [1.0, 1.3, 2.0]) {
+        testWidgets(
+          'bar: $language labels at ${scale}x stay inside the bar, clear of '
+          'the indicator',
+          (tester) async {
+            await _pumpIn(
+              tester,
+              _scaffold(destinations: destinations),
+              locale: Locale(language == 'Urdu' ? 'ur' : 'en'),
+              textScale: scale,
+              size: const Size(320, 640),
+            );
+            expect(tester.takeException(), isNull);
+            final bar = tester.getRect(find.byType(NavigationBar));
+            expect(bar.height, greaterThanOrEqualTo(72));
+            for (final destination in destinations) {
+              final ink = _inkOf(tester, destination.label);
+              expect(
+                ink.bottom,
+                lessThanOrEqualTo(bar.bottom - MmSpace.s1),
+                reason: destination.label,
+              );
+              // The indicator is 32 dp tall, centred on the icon.
+              final icon = tester.getRect(find.byIcon(destination.icon));
+              expect(
+                ink.top,
+                greaterThanOrEqualTo(icon.center.dy + 16),
+                reason: destination.label,
+              );
+              expect(
+                _targetOf(tester, destination.label).height,
+                greaterThanOrEqualTo(MmSize.minTarget),
+              );
+            }
+            // Whole pixels keep the icons sharp.
+            final icon = tester.getRect(find.byIcon(MmIcons.property));
+            expect(icon.top, icon.top.roundToDouble());
+          },
+        );
+      }
+    }
+
+    testWidgets("bar: sized by the theme's label style by default", (
+      tester,
+    ) async {
+      await _pumpIn(
+        tester,
+        Builder(
+          builder: (context) => Theme(
+            // A bar theme without label styles or a height of its own.
+            data: Theme.of(context)
+                .copyWith(navigationBarTheme: const NavigationBarThemeData()),
+            child: _scaffold(destinations: _urduDestinations),
+          ),
+        ),
+        locale: const Locale('ur'),
+        textScale: 1,
+      );
+      final bar = tester.getRect(find.byType(NavigationBar));
+      expect(bar.height, greaterThan(72));
+      for (final destination in _urduDestinations) {
+        expect(
+          _inkOf(tester, destination.label).bottom,
+          lessThanOrEqualTo(bar.bottom - MmSpace.s1),
+        );
+      }
+    });
+
+    testWidgets('bar: English at 100% keeps the theme height', (tester) async {
+      await pumpScreen(tester, _scaffold());
+      expect(tester.getRect(find.byType(NavigationBar)).height, 72);
+    });
+
+    for (final (name, size) in [
+      ('bar', _phone),
+      ('rail', _tablet),
+      ('extended rail', _desktop),
+    ]) {
+      for (final (language, destinations) in [
+        ('English', _destinations),
+        ('Urdu', _urduDestinations),
+      ]) {
+        for (final scale in [1.0, 2.0]) {
+          testWidgets(
+            '$name: $language destinations at ${scale}x are 48 dp targets',
+            (tester) async {
+              await _pumpIn(
+                tester,
+                _scaffold(destinations: destinations),
+                locale: Locale(language == 'Urdu' ? 'ur' : 'en'),
+                textScale: scale,
+                size: size,
+              );
+              final targets = [
+                for (final destination in destinations)
+                  _targetOf(tester, destination.label),
+              ];
+              for (final target in targets) {
+                expect(target.height, greaterThanOrEqualTo(MmSize.minTarget));
+                expect(target.width, greaterThanOrEqualTo(MmSize.minTarget));
+              }
+            },
+          );
+        }
+      }
+    }
+
+    testWidgets('extended rail: lines of large Urdu labels do not touch', (
+      tester,
+    ) async {
+      await _pumpIn(
+        tester,
+        _scaffold(destinations: _urduDestinations),
+        locale: const Locale('ur'),
+        textScale: 2,
+        size: _desktop,
+      );
+      for (var i = 1; i < _urduDestinations.length; i++) {
+        final above = _labelRect(tester, _urduDestinations[i - 1].label);
+        final below = _labelRect(tester, _urduDestinations[i].label);
+        expect(below.top - above.bottom, greaterThanOrEqualTo(2 * MmSpace.s1));
+      }
+    });
+
+    for (final (name, size, indicator) in [
+      ('bar', _phone, const Size(64, 32)),
+      ('rail', _tablet, const Size(56, 32)),
+      ('extended rail', _desktop, const Size(56, 32)),
+    ]) {
+      testEveryVariant('$name: keyboard focus rings the indicator', (
+        tester,
+        variant,
+      ) async {
+        useKeyboardHighlights();
+        final colors = colorsOf(variant);
+        await pumpScreen(tester, _scaffold(), size: size, variant: variant);
+        final tenants = _iconPaint(MmIcons.tenants);
+        final ring = paints..rrect(color: colors.focus);
+        expect(tenants, isNot(ring));
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        // The ring follows the indicator's edge, centred on the icon.
+        final icon = tester.getSize(tenants);
+        final edge = Rect.fromCenter(
+          center: icon.center(Offset.zero),
+          width: indicator.width,
+          height: indicator.height,
+        ).deflate(MmSize.focusRing / 2);
+        expect(
+          tenants,
+          paints..rrect(
+            rrect: RRect.fromRectAndRadius(
+              edge,
+              Radius.circular(edge.height / 2),
+            ),
+            color: colors.focus,
+            strokeWidth: MmSize.focusRing,
+            style: PaintingStyle.stroke,
+          ),
+        );
+        // Only the focused destination is ringed.
+        expect(_iconPaint(MmIcons.property), isNot(ring));
+        // The ring stands out from the surface and from a selected
+        // destination's indicator.
+        expect(
+          mmContrastRatio(colors.focus, colors.surface),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+        );
+        expect(
+          mmContrastRatio(colors.focus, colors.primaryContainer),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+        );
+        // Focus is the ring alone: no tinted pill that would read as a
+        // second selection.
+        expect(
+          Theme.of(tester.element(find.byIcon(MmIcons.tenants))).focusColor,
+          Colors.transparent,
+        );
+        // The selected destination is ringed too when it has focus.
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pumpAndSettle();
+        expect(_iconPaint(MmIcons.property), ring);
+        expect(_iconPaint(MmIcons.tenants), isNot(ring));
+      });
+
+      testWidgets('$name: no ring for touch focus', (tester) async {
+        await pumpScreen(tester, _scaffold(), size: size);
+        Focus.of(tester.element(find.byIcon(MmIcons.tenants))).requestFocus();
+        await tester.pumpAndSettle();
+        expect(
+          Focus.of(tester.element(find.byIcon(MmIcons.tenants))).hasFocus,
+          isTrue,
+        );
+        expect(
+          _iconPaint(MmIcons.tenants),
+          isNot(paints..rrect(color: MmColorModes.light.focus)),
+        );
+      });
+    }
+
+    testWidgets('bar: Tab moves right to left in Urdu', (tester) async {
+      await pumpScreen(tester, _scaffold(), variant: MmVariant.urdu);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(find.text('Properties')),
+        isSemantics(isFocused: true),
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(find.text('Tenants')),
+        isSemantics(isFocused: true),
+      );
+      expect(
+        _labelRect(tester, 'Tenants').center.dx,
+        lessThan(_labelRect(tester, 'Properties').center.dx),
+      );
+    });
+
+    testWidgets('bar: the indicator moves in the standard duration, or cuts '
+        'with reduced motion', (tester) async {
+      await pumpScreen(tester, _scaffold());
+      expect(
+        tester
+            .widget<NavigationBar>(find.byType(NavigationBar))
+            .animationDuration,
+        MmDuration.standard,
+      );
+      await pumpScreen(tester, withoutAnimations(_scaffold()));
+      expect(
+        tester
+            .widget<NavigationBar>(find.byType(NavigationBar))
+            .animationDuration,
+        Duration.zero,
+      );
+    });
+
+    for (final (name, size) in [('bar', _phone), ('rail', _tablet)]) {
+      testWidgets('$name: a snack bar from the screen clears its action bar', (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          _scaffold(
+            body: Builder(
+              builder: (context) => MmPage(
+                title: 'Record payment',
+                body: const Text('Rs 45,000 from Ayesha Khan'),
+                bottomBar: MmActionBar(
+                  primary: FilledButton(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Payment recorded')),
+                    ),
+                    child: const Text('Save'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          size: size,
+        );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+        final snack = tester.getRect(find.byType(SnackBar));
+        expect(
+          snack.bottom,
+          lessThanOrEqualTo(tester.getRect(find.byType(MmActionBar)).top),
+        );
+        expect(
+          snack.overlaps(tester.getRect(find.byType(FilledButton))),
+          isFalse,
+        );
+      });
+    }
+
+    testWidgets('the body keeps its snack bar across size classes', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        _scaffold(
+          body: Builder(
+            builder: (context) => MmPage(
+              title: 'Dues',
+              body: TextButton(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Reminder sent'),
+                    duration: Duration(minutes: 1),
+                  ),
+                ),
+                child: const Text('Remind'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Remind'));
+      await tester.pumpAndSettle();
+      await resizeScreen(tester, _tablet);
+      expect(find.text('Reminder sent'), findsOneWidget);
     });
 
     testWidgets('needs two destinations and a valid selection', (tester) async {

@@ -2,15 +2,17 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
 import 'samples.dart';
 
-/// Two charts on a dashboard: rent collected against due (two series, the
-/// chart focused so June's readout shows) and net income (one series with a
-/// loss below the zero line), in lakh grouping.
+/// Two charts on a dashboard, in lakh grouping: rent collected against due
+/// (two series), focused from the keyboard with September picked, and net
+/// income (one series with a loss below the zero line) showing the latest
+/// month.
 Widget barChartGolden() => GoldenPage(
   (context, say) => lakhGrouping(
     Column(
@@ -18,17 +20,74 @@ Widget barChartGolden() => GoldenPage(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: MmSpace.s3,
       children: [
-        chartCard(context, rentChart(say, autofocus: true)),
+        chartCard(context, rentChart(say)),
         chartCard(context, netIncomeChart(say)),
       ],
     ),
   ),
 );
 
+/// The rent chart swapped for its table.
+Widget barChartTableGolden() => GoldenPage(
+  (context, say) => lakhGrouping(chartCard(context, rentChart(say))),
+);
+
+/// A year of months on the narrowest phone.
+Widget barChartYearGolden() => GoldenPage(
+  width: 288,
+  (context, say) => lakhGrouping(chartCard(context, yearChart(say))),
+);
+
+Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
+  await tester.sendKeyEvent(key);
+  await tester.pumpAndSettle();
+}
+
 void main() {
+  testEveryVariant('mm_bar_chart golden', (tester, variant) async {
+    useKeyboardHighlights();
+    await pumpThemed(
+      tester,
+      barChartGolden(),
+      variant: variant,
+      size: Size(360, switch (variant) {
+        MmVariant.largeText => 1300,
+        MmVariant.urdu => 1000,
+        _ => 900,
+      }),
+    );
+    // Tab past the table toggle to the chart, go to June and step forward
+    // in time to September (leftward in Urdu).
+    await _press(tester, LogicalKeyboardKey.tab);
+    await _press(tester, LogicalKeyboardKey.tab);
+    await _press(tester, LogicalKeyboardKey.home);
+    final later = variant.locale.languageCode == 'ur'
+        ? LogicalKeyboardKey.arrowLeft
+        : LogicalKeyboardKey.arrowRight;
+    for (var month = 0; month < 3; month++) {
+      await _press(tester, later);
+    }
+    await expectAccessible(tester);
+    await expectGolden('mm_bar_chart', variant);
+  });
+
+  testEveryVariant('mm_bar_chart_table golden', (tester, variant) async {
+    await pumpThemed(
+      tester,
+      barChartTableGolden(),
+      variant: variant,
+      size: Size(360, variant == MmVariant.largeText ? 900 : 740),
+    );
+    await tester.tap(find.byType(TextButton));
+    await tester.pumpAndSettle();
+    await expectAccessible(tester);
+    await expectGolden('mm_bar_chart_table', variant);
+  });
+
   goldenEveryVariant(
-    'mm_bar_chart',
-    barChartGolden,
-    size: const Size(360, 1100),
+    'mm_bar_chart_year',
+    barChartYearGolden,
+    size: const Size(320, 740),
+    sizes: const {MmVariant.largeText: Size(320, 900)},
   );
 }

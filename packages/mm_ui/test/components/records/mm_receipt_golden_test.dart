@@ -74,9 +74,15 @@ Widget receiptGolden() => GoldenPage(
   ),
 );
 
-/// The surface mm_receipt goldens are drawn on.
-const receiptGoldenSize = Size(360, 1800);
-
 void main() {
-  goldenEveryVariant('mm_receipt', receiptGolden, size: receiptGoldenSize);
+  // Two receipts outgrow the phone in Urdu (870 dp tall) and at 200% text
+  // (1435 dp).
+  goldenEveryVariant(
+    'mm_receipt',
+    receiptGolden,
+    sizes: const {
+      MmVariant.urdu: Size(360, 900),
+      MmVariant.largeText: Size(360, 1480),
+    },
+  );
 }

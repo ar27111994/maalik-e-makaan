@@ -11,11 +11,19 @@ import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
-/// The look of an [MmProportionSegment]: a colour role, and for the roles
-/// that could be mistaken for a neighbour by colour alone, an outline or a
-/// hatch, so every pair of tones stays apart for colour-blind readers, in
-/// greyscale and in high contrast. The segment's label says what it means;
-/// the tone never carries it alone.
+/// The look of an [MmProportionSegment]: a colour role and a treatment
+/// that does not rely on colour, so neighbouring parts stay apart for
+/// colour-blind readers, in greyscale and in high contrast. The segment's
+/// label says what it means; the tone never carries it alone.
+///
+/// The treatments are: hollow ([neutral]); solid ([paid], [overdueSevere],
+/// [primary]); hatched with falling lines ([dueSoon], [credit]); hatched
+/// with rising lines ([overdue]). The status colours are about equally
+/// light, so tones that share a treatment differ by hue alone: one bar never
+/// mixes them (debug builds check it). The bars the app draws keep to
+/// that: rent by status (paid, due soon, overdue, not yet due), overdue
+/// rent by age (due soon, overdue, severe) and money held for tenants
+/// (primary, credit).
 enum MmSegmentTone {
   /// An outline in the control-border colour around an empty segment: what
   /// is not yet anything ("Not yet due", "Vacant").
@@ -32,13 +40,10 @@ enum MmSegmentTone {
   /// period ("Overdue", "31 to 60 days").
   overdue,
 
-  /// Solid in the far end of the overdue ramp from the surface (the
-  /// on-overdue-container role): the oldest overdue bucket of an aging
-  /// breakdown ("Over 60 days"). It is deep maroon on light paper and the
-  /// palest overdue tint on dark, so it is the strongest mark in every
-  /// mode, at least 3:1 against the surface. It differs from [overdue] in
-  /// lightness and by having no hatch, and from [paid] in lightness, which
-  /// colour-blind readers still see.
+  /// Solid overdue colour: the oldest overdue bucket of an aging breakdown
+  /// ("Over 60 days"). It is the same red as [overdue] in every mode, with
+  /// no paper showing through, so it reads as the heaviest part, and
+  /// differs from [overdue] by having no hatch.
   overdueSevere,
 
   /// The credit colour hatched with falling lines: a tenant's advance
@@ -46,8 +51,20 @@ enum MmSegmentTone {
   credit,
 
   /// Solid cobalt: a part with no status ("Let", "Collected by bank").
-  primary,
+  primary;
+
+  /// What the tone looks like without its colour: tones of one treatment
+  /// differ by hue alone.
+  _Treatment get _treatment => switch (this) {
+    neutral => _Treatment.hollow,
+    paid || overdueSevere || primary => _Treatment.solid,
+    dueSoon || credit => _Treatment.falling,
+    overdue => _Treatment.rising,
+  };
 }
+
+/// How a [MmSegmentTone] is drawn, apart from its colour.
+enum _Treatment { hollow, solid, falling, rising }
 
 /// The mark of [tone] in [colors].
 MmChartMark _markOf(MmSegmentTone tone, MmColorTokens colors) => switch (tone) {
@@ -66,7 +83,7 @@ MmChartMark _markOf(MmSegmentTone tone, MmColorTokens colors) => switch (tone) {
     hatch: MmHatch.rising,
     hatchColor: colors.surface,
   ),
-  MmSegmentTone.overdueSevere => MmChartMark(fill: colors.onOverdueContainer),
+  MmSegmentTone.overdueSevere => MmChartMark(fill: colors.overdue),
   MmSegmentTone.credit => MmChartMark(
     fill: colors.credit,
     hatch: MmHatch.falling,
@@ -85,8 +102,9 @@ final class MmProportionSegment {
   /// What the part is ("Paid", "Overdue"), from the app's localisations.
   final String label;
 
-  /// How much the part is. A part of a whole is never negative: a negative
-  /// value counts as zero in the bar and its share.
+  /// How much the part is: never negative, since a part of a whole cannot
+  /// be (debug builds check it; release builds count a negative part as
+  /// zero, in the bar and in its share).
   final Money value;
 
   /// How the part is drawn.
@@ -110,9 +128,12 @@ final class MmProportionSegment {
 /// the start edge (from the right in Urdu), each part as long as its share,
 /// with a legend under it that lists every part's label, amount and share.
 ///
-/// Parts are separated by a 2 dp gap, and tones that colour alone could
-/// confuse also differ by outline or hatching ([MmSegmentTone]), so the
-/// parts and their legend keys stay apart without colour. A part of zero
+/// Parts are separated by a 2 dp gap, and the tones of one bar differ by
+/// outline, fill or hatching as well as colour ([MmSegmentTone]), so the
+/// parts and their legend keys stay apart without colour. In the legend the
+/// amounts and shares sit in columns as wide as the widest of them, lined
+/// up on their last digit (on the right in both languages, where a figure
+/// ends), so the figures of every row line up. A part of zero
 /// draws nothing in the bar but keeps its legend row; a part too small to
 /// see is drawn [minPartWidth] wide, so nothing that exists looks like
 /// nothing. When the whole is
@@ -189,7 +210,28 @@ class MmProportionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.mm.colors;
+    assert(
+      segments.every((segment) => !segment.value.isNegative),
+      'An MmProportionSegment is a part of a whole: it is never negative.',
+    );
+    assert(() {
+      final treatments = <_Treatment, MmSegmentTone>{};
+      for (final segment in segments) {
+        final other = treatments.putIfAbsent(
+          segment.tone._treatment,
+          () => segment.tone,
+        );
+        if (other != segment.tone) {
+          throw FlutterError(
+            'An MmProportionBar mixes ${other.name} and ${segment.tone.name}, '
+            'which differ by colour alone.',
+          );
+        }
+      }
+      return true;
+    }(), 'The tones of an MmProportionBar differ by more than colour.');
+    final mm = context.mm;
+    final colors = mm.colors;
     final emptyLabel = this.emptyLabel;
     final weights = [
       for (final segment in segments) math.max(0, segment.value.paisa),
@@ -213,7 +255,9 @@ class MmProportionBar extends StatelessWidget {
                       borderRadius: const BorderRadius.all(
                         Radius.circular(MmRadius.xs),
                       ),
-                      border: Border.all(color: colors.rule),
+                      // The control-border colour, so the empty track
+                      // stands out from the surface (3:1).
+                      border: Border.all(color: colors.outline),
                     ),
                   )
                 : CustomPaint(
@@ -240,20 +284,60 @@ class MmProportionBar extends StatelessWidget {
                 .copyWith(color: colors.inkMuted),
           )
         else
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: MmSpace.s2,
-            children: [
-              for (final (index, segment) in segments.indexed)
-                _LegendRow(
-                  segment: segment,
-                  share: _shareLabel(shares[index], weights[index], total),
-                ),
-            ],
+          Builder(
+            builder: (context) {
+              final format = MmFormats.moneyOf(context);
+              final figures = mm.figures(
+                MmTypeScale.latinBodySmall,
+                colors.ink,
+              );
+              final amountStyle = figures.copyWith(fontWeight: FontWeight.w600);
+              final shareStyle = figures.copyWith(color: colors.inkMuted);
+              final labels = [
+                for (final (index, _) in segments.indexed)
+                  _shareLabel(shares[index], weights[index], total),
+              ];
+              final scaler = MediaQuery.textScalerOf(context);
+              double widest(Iterable<String> texts, TextStyle style) => texts
+                  .map((text) => _widthOf(text, style, scaler))
+                  .fold(0, math.max);
+              final amountWidth = widest([
+                for (final segment in segments) format.format(segment.value),
+              ], amountStyle);
+              final shareWidth = widest(labels, shareStyle);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: MmSpace.s2,
+                children: [
+                  for (final (index, segment) in segments.indexed)
+                    _LegendRow(
+                      segment: segment,
+                      share: labels[index],
+                      amountStyle: amountStyle,
+                      shareStyle: shareStyle,
+                      amountWidth: amountWidth,
+                      shareWidth: shareWidth,
+                    ),
+                ],
+              );
+            },
           ),
       ],
     );
+  }
+
+  /// The width of [text] in [style] at [scaler], rounded up to a whole
+  /// pixel so it never wraps.
+  static double _widthOf(String text, TextStyle style, TextScaler scaler) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout();
+    final width = painter.width.ceilToDouble();
+    painter.dispose();
+    return width;
   }
 
   /// [percent] as shown for a part of [weight] paisa in [total]: a part
@@ -344,10 +428,25 @@ class MmProportionBarPainter extends CustomPainter {
 }
 
 class _LegendRow extends StatelessWidget {
-  const new({required this.segment, required this.share});
+  const new({
+    required this.segment,
+    required this.share,
+    required this.amountStyle,
+    required this.shareStyle,
+    required this.amountWidth,
+    required this.shareWidth,
+  });
 
   final MmProportionSegment segment;
   final String share;
+  final TextStyle amountStyle;
+  final TextStyle shareStyle;
+
+  /// The width of the legend's widest amount, which every amount takes.
+  final double amountWidth;
+
+  /// The width of the legend's widest share, which every share takes.
+  final double shareWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -359,7 +458,6 @@ class _LegendRow extends StatelessWidget {
     final scaler = MediaQuery.textScalerOf(context);
     final lineHeight =
         scaler.scale(labelStyle.fontSize!) * (labelStyle.height ?? 1);
-    final figures = mm.figures(MmTypeScale.latinBodySmall, colors.ink);
     return MergeSemantics(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,16 +482,28 @@ class _LegendRow extends StatelessWidget {
                       format: format,
                     ),
                     excludeSemantics: true,
-                    child: Text(
-                      format.format(segment.value),
-                      style: figures.copyWith(fontWeight: FontWeight.w600),
+                    child: SizedBox(
+                      width: amountWidth,
+                      child: Text(
+                        format.format(segment.value),
+                        style: amountStyle,
+                        softWrap: false,
+                        // Figures end on the right in both languages: in
+                        // Urdu the currency word follows on their left.
+                        textAlign: TextAlign.right,
+                      ),
                     ),
                   ),
-                  Text(
-                    share,
-                    style: figures.copyWith(color: colors.inkMuted),
-                    // "<1%" keeps its sign before the figure in Urdu.
-                    textDirection: TextDirection.ltr,
+                  SizedBox(
+                    width: shareWidth,
+                    child: Text(
+                      share,
+                      style: shareStyle,
+                      softWrap: false,
+                      textAlign: TextAlign.right,
+                      // "<1%" keeps its sign before the figure in Urdu.
+                      textDirection: TextDirection.ltr,
+                    ),
                   ),
                 ],
               ),

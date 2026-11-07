@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
-import 'package:mm_ui/src/components/charts/mm_bar_chart.dart';
 import 'package:mm_ui/src/components/charts/mm_bar_layout.dart';
 
 /// Text measured as [charWidth] per character and [lineHeight] per line.
@@ -22,6 +21,7 @@ MmBarLayout _layout({
     [300],
   ],
   int? seriesCount,
+  int? outer = 1,
   List<String>? labels,
   double tickHeight = 16,
   double labelWidth = 6,
@@ -30,6 +30,7 @@ MmBarLayout _layout({
   width: width,
   plotHeight: 100,
   seriesCount: seriesCount ?? values.first.length,
+  outer: outer,
   values: values,
   groupLabels: labels ?? [for (var i = 0; i < values.length; i++) 'G$i'],
   tickLabel: (rupees) => '$rupees',
@@ -138,35 +139,62 @@ void main() {
       expect(rtl.bands.last.left, closeTo(rtl.plot.left, 1e-9));
     });
 
-    test('centres the bars in their band, at most 24 dp, 2 dp apart', () {
-      final layout = _layout(
-        values: const [
-          [100, 200],
-          [300, 250],
-        ],
-      );
+    test('centres the bars in their band, at most 24 dp wide', () {
+      final layout = _layout();
       for (final (index, bars) in layout.bars.indexed) {
-        final band = layout.bands[index];
-        expect(bars[0].width, MmBarLayout.maxBarWidth);
-        expect(bars[1].left - bars[0].right, closeTo(MmSpace.sHalf, 1e-9));
+        expect(bars.single.width, MmBarLayout.maxBarWidth);
         expect(
-          (bars[0].left + bars[1].right) / 2,
-          closeTo(band.center.dx, 1e-9),
+          bars.single.center.dx,
+          closeTo(layout.bands[index].center.dx, 1e-9),
         );
       }
-      // The first series is nearest the start edge: the right in Urdu.
-      final rtl = _layout(
-        textDirection: TextDirection.rtl,
+      expect(layout.outer, isNull);
+    });
+
+    test('stands the inner series inside the wide outer one', () {
+      for (final direction in TextDirection.values) {
+        final layout = _layout(
+          textDirection: direction,
+          values: const [
+            [100, 200],
+            [300, 250],
+          ],
+        );
+        expect(layout.outer, 1);
+        for (final (index, bars) in layout.bars.indexed) {
+          final [inner, outer] = bars;
+          expect(outer.width, MmBarLayout.maxBarWidth);
+          expect(
+            inner.width,
+            MmBarLayout.maxBarWidth - 2 * MmBarLayout.innerInset,
+          );
+          final centre = layout.bands[index].center.dx;
+          expect(inner.center.dx, closeTo(centre, 1e-9));
+          expect(outer.center.dx, closeTo(centre, 1e-9));
+          // Inside the outline and a gap of the pale fill on each side.
+          expect(
+            inner.left - outer.left,
+            closeTo(MmSize.stroke + MmSpace.sHalf, 1e-9),
+          );
+        }
+      }
+      // Either series can be the outer one.
+      final first = _layout(
+        outer: 0,
         values: const [
           [100, 200],
         ],
       );
-      expect(rtl.bars.single[0].left, greaterThan(rtl.bars.single[1].right));
+      expect(first.outer, 0);
+      expect(
+        first.bars.single[0].width,
+        greaterThan(first.bars.single[1].width),
+      );
     });
 
     test('narrows the bars to leave air between groups', () {
       final layout = _layout(
-        width: 120,
+        width: 140,
         values: const [
           [1, 1],
           [1, 1],
@@ -175,10 +203,48 @@ void main() {
         ],
       );
       final band = layout.bands.first.width;
-      final bars = layout.bars.first;
       expect(
-        bars[0].width * 2 + MmSpace.sHalf,
+        layout.bars.first[1].width,
         closeTo(band * MmBarLayout.bandFill, 1e-9),
+      );
+    });
+
+    test('keeps bars wide enough to tell the series apart in a year', () {
+      // Twelve months in the plot of a 320 dp phone's card.
+      final layout = _layout(
+        width: 230,
+        values: [
+          for (var month = 0; month < 12; month++) [month * 10.0, 120],
+        ],
+      );
+      final [inner, outer] = layout.bars.first;
+      expect(outer.width, greaterThanOrEqualTo(MmBarLayout.minBarWidth));
+      expect(inner.width, greaterThanOrEqualTo(4));
+      expect(layout.bands.first.width - outer.width, greaterThan(2));
+    });
+
+    test('leaves a sliver of air when the band is narrower than a bar', () {
+      final layout = _layout(
+        width: 130,
+        values: [
+          for (var month = 0; month < 12; month++) [1, 1],
+        ],
+      );
+      final band = layout.bands.first.width;
+      expect(band, lessThan(MmBarLayout.minBarWidth + MmSpace.sHalf));
+      expect(layout.bars.first[1].width, closeTo(band - MmSpace.sHalf, 1e-9));
+      expect(layout.bars.first[0].width, 1);
+    });
+
+    test('needs the outer series of two', () {
+      expect(
+        () => _layout(
+          outer: null,
+          values: const [
+            [1, 2],
+          ],
+        ),
+        throwsAssertionError,
       );
     });
 
@@ -290,123 +356,6 @@ void main() {
       expect(layout.groupAt(Offset(layout.bands[2].right - 0.5, 0)), 2);
       expect(layout.groupAt(const Offset(1, 50)), isNull);
       expect(layout.groupAt(Offset(layout.bands[2].right, 50)), isNull);
-    });
-  });
-
-  group('MmReadoutPlacement.place', () {
-    const plot = Rect.fromLTWH(60, 8, 240, 176);
-    const gap = MmReadoutPlacement.gap;
-
-    MmReadoutSpot place(
-      Rect band, {
-      double natural = 120,
-      double least = 80,
-      TextDirection direction = TextDirection.ltr,
-    }) => MmReadoutPlacement.place(
-      band: band,
-      plot: plot,
-      chartWidth: 300,
-      natural: natural,
-      least: least,
-      textDirection: direction,
-    );
-
-    test('goes after the band, at its natural width, when it fits', () {
-      const band = Rect.fromLTWH(60, 8, 40, 176);
-      expect(place(band), (left: 100 + gap, width: 120));
-      // After is to the left in right-to-left text.
-      expect(
-        place(band.shift(const Offset(160, 0)), direction: TextDirection.rtl),
-        (left: 220 - gap - 120, width: 120),
-      );
-    });
-
-    test('goes before the band when it does not fit after', () {
-      const band = Rect.fromLTWH(260, 8, 40, 176);
-      expect(place(band), (left: 260 - gap - 120, width: 120));
-      expect(
-        place(
-          const Rect.fromLTWH(60, 8, 40, 176),
-          direction: TextDirection.rtl,
-        ),
-        (left: 100 + gap, width: 120),
-      );
-    });
-
-    test('wraps over the plot before it covers the axis labels', () {
-      // 92 after the band and 92 before it: too little for 120 either side
-      // over the plot, so the names wrap (80), after the band.
-      const band = Rect.fromLTWH(160, 8, 40, 176);
-      expect(place(band), (left: 200 + gap, width: 80));
-      expect(place(band, direction: TextDirection.rtl), (
-        left: 160 - gap - 80,
-        width: 80,
-      ));
-    });
-
-    test('keeps its natural width before the band rather than wrap after', () {
-      // In right-to-left text, after is the 32 on the left; before, on the
-      // right, has 152.
-      expect(
-        place(
-          const Rect.fromLTWH(100, 8, 40, 176),
-          direction: TextDirection.rtl,
-        ),
-        (left: 140 + gap, width: 120),
-      );
-    });
-
-    test('spreads over the axis labels rather than its own bars', () {
-      // Neither side of the plot has room even wrapped; before the band
-      // over the whole chart has 152.
-      const band = Rect.fromLTWH(160, 8, 40, 176);
-      expect(place(band, natural: 140, least: 100), (
-        left: 160 - gap - 140,
-        width: 140,
-      ));
-      expect(place(band, natural: 180, least: 150), (
-        left: 160 - gap - 150,
-        width: 150,
-      ));
-    });
-
-    test('is centred over the band, inside the chart, when nothing fits', () {
-      const band = Rect.fromLTWH(140, 8, 40, 176);
-      expect(place(band, natural: 200, least: 180), (left: 60, width: 200));
-      expect(
-        place(const Rect.fromLTWH(60, 8, 40, 176), natural: 280, least: 250),
-        (left: 0, width: 280),
-      );
-      expect(place(band, natural: 400, least: 350), (left: 0, width: 300));
-    });
-  });
-
-  group('RenderMmReadoutPlacement', () {
-    test('lays out again when the band, plot or direction change', () {
-      final placement = RenderMmReadoutPlacement(
-        band: Rect.zero,
-        plot: Rect.zero,
-        textDirection: TextDirection.ltr,
-      );
-      expect(placement.band, Rect.zero);
-      expect(placement.plot, Rect.zero);
-      expect(placement.textDirection, TextDirection.ltr);
-      placement
-        ..band = Rect.zero
-        ..plot = Rect.zero
-        ..textDirection = TextDirection.ltr;
-      expect(placement.debugNeedsLayout, isTrue);
-      placement
-        ..band = const Rect.fromLTWH(1, 0, 1, 1)
-        ..plot = const Rect.fromLTWH(0, 0, 10, 10)
-        ..textDirection = TextDirection.rtl;
-      expect(placement.band, const Rect.fromLTWH(1, 0, 1, 1));
-      expect(placement.plot, const Rect.fromLTWH(0, 0, 10, 10));
-      expect(placement.textDirection, TextDirection.rtl);
-      expect(
-        placement.computeDryLayout(BoxConstraints.tight(const Size(30, 20))),
-        const Size(30, 20),
-      );
     });
   });
 }

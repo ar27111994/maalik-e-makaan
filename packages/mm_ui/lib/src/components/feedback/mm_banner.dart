@@ -1,9 +1,9 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/components/feedback/mm_dismiss_button.dart';
 import 'package:mm_ui/src/components/feedback/mm_line_icon.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/foundation/mm_tone.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
-import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -37,29 +37,24 @@ enum MmBannerTone {
   /// live region): warnings and errors.
   bool get urgent => this == warning || this == error;
 
-  /// The fill of a notice of this tone in [colors].
-  Color containerOf(MmColorTokens colors) => switch (this) {
-    info => colors.creditContainer,
-    success => colors.paidContainer,
-    warning => colors.dueSoonContainer,
-    error => colors.overdueContainer,
+  /// The colour family of this tone, shared with every status colour in
+  /// mm_ui: info is credit, success paid, warning due soon and error
+  /// overdue.
+  MmTone get _tone => switch (this) {
+    info => MmTone.credit,
+    success => MmTone.paid,
+    warning => MmTone.dueSoon,
+    error => MmTone.overdue,
   };
+
+  /// The fill of a notice of this tone in [colors].
+  Color containerOf(MmColorTokens colors) => _tone.containerIn(colors);
 
   /// The text and icon colour on [containerOf] in [colors].
-  Color onContainerOf(MmColorTokens colors) => switch (this) {
-    info => colors.onCreditContainer,
-    success => colors.onPaidContainer,
-    warning => colors.onDueSoonContainer,
-    error => colors.onOverdueContainer,
-  };
+  Color onContainerOf(MmColorTokens colors) => _tone.onContainerIn(colors);
 
   /// The tone's own colour in [colors], for an icon on a plain surface.
-  Color colorOf(MmColorTokens colors) => switch (this) {
-    info => colors.credit,
-    success => colors.paid,
-    warning => colors.dueSoon,
-    error => colors.overdue,
-  };
+  Color colorOf(MmColorTokens colors) => _tone.colorIn(colors);
 }
 
 /// An inline notice inside a screen: a lease about to end, reminders that
@@ -67,10 +62,12 @@ enum MmBannerTone {
 ///
 /// A flat panel in the [tone]'s container colour with the tone's icon (or
 /// [icon]) before an optional [title] and the [message]. With
-/// [actionLabel] a text button under the message calls [onAction] (and is
-/// disabled while it is null); with [onDismiss] a close button at the end
-/// ("Dismiss" for screen readers) removes it. Warning and error banners are
-/// announced as soon as they appear. Text wraps at any size.
+/// [actionLabel] a text button at the end of the banner, under the text,
+/// calls [onAction] (and is disabled while it is null); with [onDismiss] a
+/// close button at the end of the first line ("Dismiss" for screen readers)
+/// removes it. Warning and error banners are announced as soon as they
+/// appear. Text wraps at any size, the icon grows with it, and figures and
+/// Latin words in an Urdu message are set in the Latin face.
 ///
 /// Use it for a lasting condition the landlord should know about while
 /// using the screen. For a passing confirmation, use `showMmSnackbar`;
@@ -138,35 +135,50 @@ class MmBanner extends StatelessWidget {
     final messageStyle = text.bodyLarge!.copyWith(color: ink);
     final firstLine = title == null ? messageStyle : titleStyle;
 
-    final body = Column(
-      mainAxisSize: MainAxisSize.min,
+    // The icon and the words, with the dismiss button at the end of the
+    // first line.
+    final head = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (title != null) Text(title, style: titleStyle),
-        Text(message, style: messageStyle),
-        if (actionLabel != null)
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: TextButton(onPressed: onAction, child: Text(actionLabel)),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsetsDirectional.only(
+              start: MmSpace.s4,
+              top: MmSpace.s3,
+              bottom: actionLabel == null ? MmSpace.s3 : MmSpace.s0,
+              end: onDismiss == null ? MmSpace.s4 : MmSpace.s0,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: MmSpace.s3,
+              children: [
+                MmLineIcon(
+                  icon: icon ?? tone.icon,
+                  color: ink,
+                  style: firstLine,
+                ),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (title != null) MmScriptText(title, style: titleStyle),
+                      MmScriptText(message, style: messageStyle),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (onDismiss != null)
+          MmDismissButton(
+            color: ink,
+            onPressed: onDismiss,
+            style: firstLine,
+            textTop: MmSpace.s3,
           ),
       ],
-    );
-
-    final content = Padding(
-      padding: EdgeInsetsDirectional.only(
-        start: MmSpace.s4,
-        top: MmSpace.s3,
-        bottom: actionLabel == null ? MmSpace.s3 : MmSpace.s1,
-        end: onDismiss == null ? MmSpace.s4 : MmSpace.s0,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: MmSpace.s3,
-        children: [
-          MmLineIcon(icon: icon ?? tone.icon, color: ink, style: firstLine),
-          Expanded(child: body),
-        ],
-      ),
     );
 
     return Semantics(
@@ -177,53 +189,32 @@ class MmBanner extends StatelessWidget {
           color: tone.containerOf(colors),
           borderRadius: const BorderRadius.all(Radius.circular(MmRadius.md)),
         ),
-        child: onDismiss == null
-            ? content
-            : Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: actionLabel == null
+            ? head
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: content),
-                  _DismissButton(
-                    color: ink,
-                    onPressed: onDismiss,
-                    // Centres the button on the first line of text.
-                    top: math.max<double>(
-                      0,
-                      MmSpace.s3 +
-                          MmLineIcon.lineHeightOf(context, firstLine) / 2 -
-                          MmSize.minTarget / 2,
+                  head,
+                  // The action spans the banner's width, under the dismiss
+                  // button too, so it ends at the same place with or
+                  // without one.
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(
+                      start: MmSpace.s4,
+                      end: MmSpace.s2,
+                      bottom: MmSpace.s1,
+                    ),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton(
+                        onPressed: onAction,
+                        child: Text(actionLabel),
+                      ),
                     ),
                   ),
                 ],
               ),
-      ),
-    );
-  }
-}
-
-/// The close button at the end of a dismissible banner.
-class _DismissButton extends StatelessWidget {
-  const new({required this.color, required this.onPressed, required this.top});
-
-  final Color color;
-  final VoidCallback onPressed;
-  final double top;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = MmLocalizations.of(context).dismiss;
-    return Padding(
-      padding: EdgeInsetsDirectional.only(top: top, end: MmSpace.s1),
-      // The tooltip's words are already the label; announcing them again as
-      // a tooltip would make screen readers say them twice.
-      child: Tooltip(
-        message: label,
-        excludeFromSemantics: true,
-        child: IconButton(
-          onPressed: onPressed,
-          color: color,
-          icon: Semantics(label: label, child: const Icon(MmIcons.close)),
-        ),
       ),
     );
   }

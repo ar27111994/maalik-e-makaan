@@ -29,6 +29,42 @@ Widget _opener(Widget page, {bool dialog = false}) => Builder(
   ),
 );
 
+const _longTitle = 'Ayesha Khan, House 12, Gulberg';
+const _longUrduTitle = 'عائشہ خان، مکان 12، گلبرگ';
+
+const _edit = IconButton(
+  onPressed: tapped,
+  tooltip: 'Edit tenant',
+  icon: Icon(MmIcons.edit),
+);
+
+/// Pumps [child] as the whole screen in [locale] at 200% text on a
+/// 320 dp phone.
+Future<void> _pumpLarge(
+  WidgetTester tester,
+  Widget child, {
+  required Locale locale,
+}) async {
+  tester.view
+    ..physicalSize = const Size(320, 640)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(
+    themedApp(child, variant: MmVariant.largeText, locale: locale),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// The insets the body sees.
+late EdgeInsets _bodyPadding;
+
+Widget _paddingProbe() => Builder(
+  builder: (context) {
+    _bodyPadding = MediaQuery.paddingOf(context);
+    return _body();
+  },
+);
+
 void main() {
   group('MmPage', () {
     testWidgets('shows its title in the app bar, read as a heading', (
@@ -355,6 +391,258 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+    });
+
+    for (final (language, title) in [
+      ('en', _longTitle),
+      ('ur', _longUrduTitle),
+    ]) {
+      testWidgets('a long title at 200% on a 320 dp phone is set whole, '
+          'at full size, under the toolbar ($language)', (tester) async {
+        await _pumpLarge(
+          tester,
+          _opener(
+            MmPage(
+              title: title,
+              actions: const [_edit],
+              body: const Text('October rent'),
+            ),
+          ),
+          locale: Locale(language),
+        );
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        final paragraph = paragraphOf(tester, title);
+        expect(paragraph.didExceedMaxLines, isFalse);
+        expect(paragraph.maxLines, isNull);
+        // At the text scale of the rest of the screen, not an app bar's
+        // 134%.
+        expect(
+          MediaQuery.textScalerOf(tester.element(find.text(title))).scale(10),
+          20,
+        );
+        // Under the back button and the action, across the width.
+        final rect = tester.getRect(find.text(title));
+        final back = tester.getRect(find.byType(BackButton));
+        expect(rect.top, greaterThanOrEqualTo(back.bottom));
+        expect(rect.left, MmSpace.s4);
+        expect(rect.right, 320 - MmSpace.s4);
+        // The app bar holds it all, and the body starts below.
+        final appBar = tester.getRect(find.byType(AppBar));
+        expect(rect.bottom, lessThanOrEqualTo(appBar.bottom - MmSpace.s3));
+        expect(
+          tester.getRect(find.text('October rent')).top,
+          greaterThanOrEqualTo(appBar.bottom),
+        );
+        expect(
+          tester.getSemantics(find.text(title)),
+          isSemantics(label: title, isHeader: true),
+        );
+      });
+    }
+
+    testWidgets('a title that fits stays in the toolbar at full size', (
+      tester,
+    ) async {
+      await _pumpLarge(
+        tester,
+        _opener(const MmPage(title: 'Dues', actions: [_edit], body: Text('x'))),
+        locale: const Locale('en'),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      final title = tester.getRect(find.text('Dues'));
+      final back = tester.getRect(find.byType(BackButton));
+      expect(title.center.dy, closeTo(back.center.dy, 1));
+      expect(title.left, greaterThan(back.right));
+      expect(
+        MediaQuery.textScalerOf(tester.element(find.text('Dues'))).scale(10),
+        20,
+      );
+      expect(paragraphOf(tester, 'Dues').maxLines, 1);
+    });
+
+    testWidgets('a long title with nothing beside it wraps in the toolbar', (
+      tester,
+    ) async {
+      await _pumpLarge(
+        tester,
+        const MmPage(title: _longTitle, body: Text('October rent')),
+        locale: const Locale('en'),
+      );
+      final title = tester.getRect(find.text(_longTitle));
+      final appBar = tester.getRect(find.byType(AppBar));
+      expect(paragraphOf(tester, _longTitle).didExceedMaxLines, isFalse);
+      expect(title.height, greaterThan(100));
+      expect(title.top - appBar.top, MmSpace.s2);
+      expect(appBar.bottom - title.bottom, MmSpace.s2);
+      expect(
+        tester.getSemantics(find.text(_longTitle)),
+        isSemantics(label: _longTitle, isHeader: true),
+      );
+    });
+
+    testWidgets('a title too wide beside a text action moves under it', (
+      tester,
+    ) async {
+      // Taken for an icon button, the text action leaves room for the
+      // title; laid out, it does not, and the title moves.
+      await pumpScreen(
+        tester,
+        const MmPage(
+          title: 'Ayesha Khan, House 12',
+          actions: [TextButton(onPressed: tapped, child: Text('Save changes'))],
+          body: Text('x'),
+        ),
+      );
+      final title = tester.getRect(find.text('Ayesha Khan, House 12'));
+      final save = tester.getRect(find.text('Save changes'));
+      expect(title.top, greaterThanOrEqualTo(save.bottom));
+      expect(
+        paragraphOf(tester, 'Ayesha Khan, House 12').didExceedMaxLines,
+        isFalse,
+      );
+      // It moves back when the window is wide enough.
+      await resizeScreen(tester, const Size(700, 740));
+      final wide = tester.getRect(find.text('Ayesha Khan, House 12'));
+      expect(
+        wide.center.dy,
+        closeTo(tester.getRect(find.text('Save changes')).center.dy, 1),
+      );
+    });
+
+    for (final (variant, title, latin) in [
+      (MmVariant.urdu, 'Ayesha Khan', true),
+      (MmVariant.urdu, 'عائشہ خان', false),
+      (MmVariant.light, 'Ayesha Khan', true),
+    ]) {
+      testWidgets('the title "$title" keeps its own script\'s face '
+          '(${variant.name})', (tester) async {
+        await pumpScreen(
+          tester,
+          MmPage(title: title, body: _body()),
+          variant: variant,
+        );
+        final family = styleOf(tester, title).fontFamily!;
+        if (latin) {
+          expect(family, contains(MmFontFamily.latin));
+        } else {
+          expect(family, isNot(contains(MmFontFamily.latin)));
+        }
+      });
+    }
+
+    for (final variant in [MmVariant.light, MmVariant.urdu]) {
+      for (final scrollable in [true, false]) {
+        testWidgets('keeps the body clear of cut-outs at the sides '
+            '(${variant.name}, scrollable: $scrollable)', (tester) async {
+          tester.view.padding = const FakeViewPadding(left: 44, right: 30);
+          addTearDown(tester.view.resetPadding);
+          await pumpScreen(
+            tester,
+            MmPage(
+              title: 'Dues',
+              scrollable: scrollable,
+              body: _paddingProbe(),
+            ),
+            size: const Size(560, 360),
+            variant: variant,
+          );
+          final body = tester.getRect(find.byKey(_bodyKey));
+          // Physical sides: the device's cut-out is where it is, in either
+          // language.
+          expect(body.left, 44 + MmSpace.s4);
+          expect(body.right, 560 - 30 - MmSpace.s4);
+          // Lined up with the title (English) or with its end (Urdu).
+          final title = tester.getRect(find.text('Dues'));
+          if (variant == MmVariant.urdu) {
+            expect(title.right, body.right);
+          } else {
+            expect(title.left, body.left);
+          }
+          // The body is not padded for the sides again.
+          expect(_bodyPadding.left, 0);
+          expect(_bodyPadding.right, 0);
+        });
+      }
+    }
+
+    testWidgets('scrolls the end of the body clear of the gesture bar', (
+      tester,
+    ) async {
+      tester.view.padding = const FakeViewPadding(bottom: 34);
+      addTearDown(tester.view.resetPadding);
+      await pumpScreen(
+        tester,
+        MmPage(
+          title: 'Dues',
+          body: Column(
+            children: [const SizedBox(height: 1200), _paddingProbe()],
+          ),
+        ),
+      );
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -3000),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.byKey(_bodyKey)).bottom,
+        740 - 34 - MmSpace.s4,
+      );
+      expect(_bodyPadding.bottom, 0);
+    });
+
+    testWidgets('leaves the bottom safe area to a body that fills the page', (
+      tester,
+    ) async {
+      tester.view.padding = const FakeViewPadding(bottom: 34);
+      addTearDown(tester.view.resetPadding);
+      await pumpScreen(
+        tester,
+        MmPage(title: 'Dues', scrollable: false, body: _paddingProbe()),
+      );
+      expect(_bodyPadding.bottom, 34);
+      expect(tester.getRect(find.byKey(_bodyKey)).bottom, 740);
+    });
+
+    testWidgets('with a bottom bar, the bar takes the bottom safe area', (
+      tester,
+    ) async {
+      tester.view.padding = const FakeViewPadding(bottom: 34);
+      addTearDown(tester.view.resetPadding);
+      await pumpScreen(
+        tester,
+        MmPage(
+          title: 'Dues',
+          body: Column(
+            children: [const SizedBox(height: 1200), _paddingProbe()],
+          ),
+          bottomBar: const MmActionBar(
+            primary: FilledButton(onPressed: tapped, child: Text('Save')),
+          ),
+        ),
+      );
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -3000),
+      );
+      await tester.pumpAndSettle();
+      final bar = tester.getRect(find.byType(MmActionBar));
+      expect(tester.getRect(find.byKey(_bodyKey)).bottom, bar.top - MmSpace.s4);
+    });
+
+    testWidgets('refreshing needs a scrolling page', (tester) async {
+      expect(
+        () => MmPage(
+          title: 'Dues',
+          scrollable: bool.parse('false'),
+          onRefresh: () async {},
+          body: _body(),
+        ),
+        throwsAssertionError,
+      );
     });
 
     testWidgets('Tab reaches the back button and the actions', (tester) async {

@@ -33,8 +33,8 @@ void main() {
               child: MmEmptyState(
                 icon: MmIcons.search,
                 title: say(
-                  'No matches for "Ayesha"',
-                  '"عائشہ" سے کچھ نہیں ملا',
+                  'No matches for “Ayesha”',
+                  'عائشہ کے نام سے کچھ نہیں ملا',
                 ),
                 message: say(
                   'Check the spelling or search by phone number.',

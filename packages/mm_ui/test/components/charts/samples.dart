@@ -83,7 +83,7 @@ MmBarChart rentChart(Say say, {bool autofocus = false}) => MmBarChart(
   autofocus: autofocus,
   series: [
     MmBarSeries(label: say('Collected', 'وصول شدہ')),
-    MmBarSeries(label: say('Due', 'واجب'), fill: MmBarFill.outlined),
+    MmBarSeries(label: say('Due', 'واجب')),
   ],
   groups: [
     for (final (index, month) in months(say).indexed)
@@ -103,5 +103,40 @@ MmBarChart netIncomeChart(Say say) => MmBarChart(
   groups: [
     for (final (index, month) in months(say).indexed)
       MmBarGroup(label: month, values: [netIncome[index]]),
+  ],
+);
+
+/// Rent collected against rent due over a year at a building of shops in
+/// Hall Road, Lahore: collected climbs back towards what is due.
+MmBarChart yearChart(Say say) => MmBarChart(
+  title: say('Rent, last 12 months', 'کرایہ، پچھلے 12 ماہ'),
+  semanticSummary: say(
+    'Rent collected against rent due, December to November. Collected '
+        'rose from Rs 2.5 lakh to Rs 13.5 lakh.',
+    'دسمبر سے نومبر تک وصول شدہ اور واجب کرایہ۔ وصولی 2.5 لاکھ سے بڑھ کر '
+        '13.5 لاکھ روپے ہو گئی۔',
+  ),
+  groupLabel: say('Month', 'مہینہ'),
+  series: [
+    MmBarSeries(label: say('Collected', 'وصول شدہ')),
+    MmBarSeries(label: say('Due', 'واجب')),
+  ],
+  groups: [
+    for (final (index, month) in [
+      say('Dec', 'دسمبر'),
+      say('Jan', 'جنوری'),
+      say('Feb', 'فروری'),
+      say('Mar', 'مارچ'),
+      say('Apr', 'اپریل'),
+      say('May', 'مئی'),
+      ...months(say),
+    ].indexed)
+      MmBarGroup(
+        label: month,
+        values: [
+          Money.fromRupees(250000 + index * 100000),
+          const Money.fromRupees(1250000),
+        ],
+      ),
   ],
 );

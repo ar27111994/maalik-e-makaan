@@ -38,6 +38,7 @@ class MmSparkline extends StatelessWidget {
     required this.values,
     this.width = 64,
     this.height = 24,
+    this.ringColor,
     super.key,
   });
 
@@ -50,6 +51,11 @@ class MmSparkline extends StatelessWidget {
   /// The height of the sparkline.
   final double height;
 
+  /// The colour of the ring that parts the dot from the line: what the
+  /// sparkline sits on. When null it is the colour of the nearest
+  /// [Material] (a card, the page), or the surface when that has none.
+  final Color? ringColor;
+
   /// The width of the line.
   static const double lineWidth = MmSize.stroke;
 
@@ -60,6 +66,12 @@ class MmSparkline extends StatelessWidget {
   /// The width of the surface-coloured ring around the dot, which parts it
   /// from the line running into it.
   static const double ringWidth = MmSpace.sHalf;
+
+  /// The opaque colour of the nearest [Material], if it has one.
+  static Color? _groundOf(BuildContext context) {
+    final color = Material.maybeOf(context)?.color;
+    return color != null && color.a == 1 ? color : null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +85,7 @@ class MmSparkline extends StatelessWidget {
               if (value.isFinite) value,
           ],
           color: colors.primary,
-          ringColor: colors.surface,
+          ringColor: ringColor ?? _groundOf(context) ?? colors.surface,
           textDirection: Directionality.of(context),
         ),
       ),

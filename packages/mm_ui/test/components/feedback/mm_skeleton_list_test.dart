@@ -112,6 +112,7 @@ void main() {
     });
 
     testWidgets('lays out at 200% text on a 320 dp phone', (tester) async {
+      await expectFitsNarrowLargeText(tester, _still(const MmSkeletonList()));
       await pumpLargeNarrow(tester, _still(const MmSkeletonList()));
       expect(tester.takeException(), isNull);
       // The rows grow with the text.

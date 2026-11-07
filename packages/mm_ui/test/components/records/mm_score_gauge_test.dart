@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _spoken = 'Payment score 82 out of 100, good';
 const _caption = 'Based on 12 months of payments';
@@ -68,6 +69,21 @@ void main() {
       expect(MmScoreBand.fair.icon, MmIcons.warning);
       expect(MmScoreBand.poor.icon, MmIcons.error);
     });
+
+    test('agrees with the status of the same colours', () {
+      const colors = MmColorModes.light;
+      for (final (band, status) in [
+        (MmScoreBand.good, MmStatus.paid),
+        (MmScoreBand.fair, MmStatus.dueSoon),
+        (MmScoreBand.poor, MmStatus.overdue),
+      ]) {
+        expect(band.colorIn(colors), status.colorIn(colors));
+        expect(band.containerIn(colors), status.containerIn(colors));
+        expect(band.onContainerIn(colors), status.onContainerIn(colors));
+      }
+      // Overdue and a poor score both say so with the error icon.
+      expect(MmScoreBand.poor.icon, MmStatus.overdue.icon);
+    });
   });
 
   group('MmScoreGauge', () {
@@ -77,6 +93,17 @@ void main() {
     ) async {
       await pumpThemed(tester, _gauge(), variant: variant);
       final colors = colorsOf(variant);
+      // The track stays in sight on the page: the outline, or in the
+      // high-contrast modes the rule, which there is already strong and
+      // unlike the band colours.
+      final highContrast =
+          variant == MmVariant.lightHighContrast ||
+          variant == MmVariant.darkHighContrast;
+      final track = highContrast ? colors.rule : colors.outline;
+      expect(
+        mmContrastRatio(track, colors.bg),
+        greaterThanOrEqualTo(mmMinimumIconContrast),
+      );
       final box = tester.getSize(_arcBox);
       final stroke = box.width / 10;
       final arc = Rect.fromCircle(
@@ -91,9 +118,9 @@ void main() {
             rect: arc,
             startAngle: math.pi,
             sweepAngle: math.pi,
-            color: colors.rule,
+            color: track,
             strokeWidth: stroke / 2,
-            strokeCap: StrokeCap.round,
+            strokeCap: StrokeCap.butt,
           )
           ..arc(
             rect: arc,
@@ -102,6 +129,9 @@ void main() {
             sweepAngle: (ltr ? 1 : -1) * math.pi * 0.82,
             color: colors.paid,
             strokeWidth: stroke,
+            // Flat ends: the arc is exactly the score's share of the half
+            // circle. A round cap would add half the stroke at each end.
+            strokeCap: StrokeCap.butt,
           ),
       );
     });
@@ -189,14 +219,64 @@ void main() {
       await pumpThemed(tester, _gauge(size: 96, caption: _caption));
       final box = tester.getSize(_arcBox);
       expect(box.width, 96);
-      expect(box.height, 96 / 2 + 96 / 10 / 2);
+      // Flat ends stop at the arc's diameter: nothing hangs below it.
+      expect(box.height, 96 / 2);
       final band = tester.getRect(find.byIcon(MmIcons.success));
       expect(tester.getRect(find.text(_caption)).top, greaterThan(band.bottom));
       expect(
         tester.getCenter(find.text(_caption)).dx,
         moreOrLessEquals(tester.getCenter(_arcBox).dx, epsilon: 0.01),
       );
-      expect(styleOf(tester, _caption).color, MmColorModes.light.inkMuted);
+      final caption = styleOf(tester, _caption);
+      expect(caption.color, MmColorModes.light.inkMuted);
+      // The caption of the type scale, weight and all.
+      final bodySmall = MmVariant.light.theme.textTheme.bodySmall!;
+      expect(caption.fontSize, bodySmall.fontSize);
+      expect(caption.fontWeight, bodySmall.fontWeight);
+      expect(caption.fontWeight, FontWeight.w400);
+    });
+
+    testWidgets('sets the figures inside an Urdu caption in the Latin face', (
+      tester,
+    ) async {
+      const caption = '12 ماہ کی ادائیگیوں کی بنیاد پر';
+      await pumpThemed(
+        tester,
+        const MmScoreGauge(
+          score: 82,
+          bandLabel: 'اچھا',
+          semanticLabel: 'ادائیگی کا اسکور 100 میں سے 82، اچھا',
+          caption: caption,
+        ),
+        variant: MmVariant.urdu,
+      );
+      expect(latinRunsIn(tester, caption), ['12']);
+      expect(urduRunsIn(tester, caption), [' ماہ کی ادائیگیوں کی بنیاد پر']);
+    });
+
+    testWidgets('at 200% on a 320 dp phone, fits long words in English and '
+        'Urdu', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        Builder(
+          builder: (context) {
+            final say = sayIn(context);
+            return MmScoreGauge(
+              score: 61,
+              bandLabel: say('Sometimes late', 'کبھی کبھی تاخیر'),
+              semanticLabel: say(
+                'Payment score 61 out of 100, sometimes late',
+                'ادائیگی کا اسکور 100 میں سے 61، کبھی کبھی تاخیر',
+              ),
+              caption: say(
+                'Based on 12 months of rent and utility payments',
+                'کرائے اور بلوں کی 12 ماہ کی ادائیگیوں کی بنیاد پر',
+              ),
+              size: 200,
+            );
+          },
+        ),
+      );
     });
 
     testWidgets('grows with the text size', (tester) async {

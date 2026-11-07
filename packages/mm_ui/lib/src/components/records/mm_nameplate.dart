@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -45,13 +46,12 @@ class MmNameplate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mm = context.mm;
-    final colors = mm.colors;
+    final colors = context.mm.colors;
     final text = Theme.of(context).textTheme;
     final on = colors.onBrassContainer;
     final subtitle = this.subtitle;
     final icon = this.icon;
-    final nameStyle = mm.styleFor(name, text.titleLarge!.copyWith(color: on));
+    final nameStyle = text.titleLarge!.copyWith(color: on);
     // The icon grows with the text, up to half as large again, and is
     // centred on the name's first line.
     final textScaler = MediaQuery.textScalerOf(context);
@@ -98,17 +98,14 @@ class MmNameplate extends StatelessWidget {
                       Semantics(
                         container: true,
                         header: true,
-                        child: Text(name, style: nameStyle),
+                        child: MmScriptText(name, style: nameStyle),
                       ),
                       if (subtitle != null)
                         Semantics(
                           container: true,
-                          child: Text(
+                          child: MmScriptText(
                             subtitle,
-                            style: mm.styleFor(
-                              subtitle,
-                              text.bodyMedium!.copyWith(color: on),
-                            ),
+                            style: text.bodyMedium!.copyWith(color: on),
                           ),
                         ),
                     ],

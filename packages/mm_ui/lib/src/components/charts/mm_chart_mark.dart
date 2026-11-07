@@ -48,10 +48,14 @@ final class MmChartMark {
   /// paper showing through the ink.
   final Color? hatchColor;
 
-  /// The distance between hatching lines along the mark's width.
+  /// The distance between hatching lines along the mark's width: a chart
+  /// geometry with no token, close enough for two lines to cross a 12 dp
+  /// legend swatch.
   static const double hatchStep = 6;
 
-  /// The width of a hatching line.
+  /// The width of a hatching line: a chart geometry with no token, between
+  /// the hairline (too faint to read as texture) and the 2 dp stroke (which
+  /// would leave little of the fill's colour between the lines).
   static const double hatchWidth = 1.5;
 
   /// Paints this mark in [shape] on [canvas].

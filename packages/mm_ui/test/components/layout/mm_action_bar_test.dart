@@ -366,5 +366,14 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(_primary(tester).top, greaterThan(_secondary(tester).bottom));
     });
+
+    testWidgets('200% text on a 320 dp phone fits in English and Urdu', (
+      tester,
+    ) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        _bar(secondary: 'واٹس ایپ پر بھیجیں', primary: 'ادائیگی درج کریں'),
+      );
+    });
   });
 }

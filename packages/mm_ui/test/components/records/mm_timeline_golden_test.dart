@@ -19,8 +19,8 @@ Widget timelineGolden() => GoldenPage(
             dateLabel: say('7 Oct 2026', '7 اکتوبر 2026'),
             title: say('Payment received', 'ادائیگی موصول ہوئی'),
             subtitle: say(
-              'Rs 45,000 by bank transfer',
-              'بینک ٹرانسفر سے 45,000 روپے',
+              'Rs\u00A045,000 by bank transfer',
+              'بینک ٹرانسفر سے 45,000\u00A0روپے',
             ),
             icon: MmIcons.payment,
             tone: MmTimelineTone.paid,
@@ -28,21 +28,21 @@ Widget timelineGolden() => GoldenPage(
           MmTimelineItem(
             dateLabel: say('5 Oct 2026', '5 اکتوبر 2026'),
             title: say('October rent due', 'اکتوبر کا کرایہ واجب الادا'),
-            subtitle: say('Rs 45,000', '45,000 روپے'),
+            subtitle: say('Rs\u00A045,000', '45,000\u00A0روپے'),
             tone: MmTimelineTone.dueSoon,
           ),
           MmTimelineItem(
             dateLabel: say('11 Sep 2026', '11 ستمبر 2026'),
             title: say('September rent overdue', 'ستمبر کا کرایہ بقایا'),
             subtitle: say('6 days late', '6 دن تاخیر'),
-            icon: MmIcons.warning,
+            icon: MmIcons.error,
             tone: MmTimelineTone.overdue,
           ),
           MmTimelineItem(
             dateLabel: say('1 Sep 2026', '1 ستمبر 2026'),
             title: say(
-              'Lease renewed for 11 months at Rs 45,000',
-              'معاہدے کی 11 ماہ کے لیے 45,000 روپے پر تجدید',
+              'Lease renewed for 11 months at Rs\u00A045,000',
+              'معاہدے کی 11 ماہ کے لیے 45,000\u00A0روپے پر تجدید',
             ),
             icon: MmIcons.lease,
             tone: MmTimelineTone.primary,
@@ -57,10 +57,11 @@ Widget timelineGolden() => GoldenPage(
   ),
 );
 
-/// The surface mm_timeline goldens are drawn on: tall enough for the
-/// history at 200% text.
-const timelineGoldenSize = Size(360, 1100);
-
 void main() {
-  goldenEveryVariant('mm_timeline', timelineGolden, size: timelineGoldenSize);
+  // The history outgrows the phone at 200% text (1001 dp tall).
+  goldenEveryVariant(
+    'mm_timeline',
+    timelineGolden,
+    sizes: const {MmVariant.largeText: Size(360, 1040)},
+  );
 }

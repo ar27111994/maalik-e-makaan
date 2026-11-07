@@ -3,6 +3,7 @@ import 'dart:ui' show SemanticsRole;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 
 import '../../support/testing.dart';
 import 'support.dart';
@@ -55,7 +56,7 @@ void main() {
       ]) {
         final expected = {
           MmTimelineTone.neutral: (
-            colors.outline,
+            colors.inkMuted,
             colors.surfaceSunken,
             colors.ink,
           ),
@@ -93,6 +94,22 @@ void main() {
         }
       }
     });
+
+    test('agrees with the status colours of the same name', () {
+      for (final colors in [MmColorModes.light, MmColorModes.dark]) {
+        for (final (tone, status) in [
+          (MmTimelineTone.neutral, MmStatus.neutral),
+          (MmTimelineTone.paid, MmStatus.paid),
+          (MmTimelineTone.dueSoon, MmStatus.dueSoon),
+          (MmTimelineTone.overdue, MmStatus.overdue),
+          (MmTimelineTone.credit, MmStatus.credit),
+        ]) {
+          expect(tone.colorIn(colors), status.colorIn(colors), reason: '$tone');
+          expect(tone.containerIn(colors), status.containerIn(colors));
+          expect(tone.onContainerIn(colors), status.onContainerIn(colors));
+        }
+      }
+    });
   });
 
   group('MmTimelineItem', () {
@@ -110,6 +127,17 @@ void main() {
       expect(_movedIn.tone, MmTimelineTone.neutral);
       expect(_movedIn.icon, isNull);
       expect(_movedIn.subtitle, isNull);
+      expect(_movedIn.semanticLabel, isNull);
+      const spoken = MmTimelineItem(
+        dateLabel: '7 Oct 2026',
+        title: 'Payment received',
+        subtitle: 'Rs 45,000 by bank transfer',
+        icon: MmIcons.payment,
+        tone: MmTimelineTone.paid,
+        semanticLabel: '7 Oct 2026, Payment received, 45000 rupees',
+      );
+      expect(spoken, isNot(_paid));
+      expect(spoken.hashCode, isNot(_paid.hashCode));
     });
   });
 
@@ -138,22 +166,26 @@ void main() {
         'tone', (tester, variant) async {
       await pumpThemed(tester, _timeline([_paid, _due]), variant: variant);
       final colors = colorsOf(variant);
+      // Markers grow with the text, by half at 200%.
+      final grow = variant == MmVariant.largeText
+          ? MmIconLabel.maxIconScale
+          : 1.0;
       final ring = _markerAt(tester, 0);
       expect(ring.color, colors.paidContainer);
       expect(ring.border, Border.all(color: colors.paid));
       final icon = tester.widget<Icon>(find.byIcon(MmIcons.payment));
       expect(icon.color, colors.onPaidContainer);
-      expect(icon.size, MmSize.iconSm);
+      expect(icon.size, MmSize.iconSm * grow);
       expect(
         tester.getSize(_markers.at(0)),
-        const Size.square(MmTimeline.iconMarker),
+        Size.square(MmTimeline.iconMarker * grow),
       );
       final dot = _markerAt(tester, 1);
       expect(dot.color, colors.dueSoon);
       expect(dot.border, isNull);
       expect(
         tester.getSize(_markers.at(1)),
-        const Size.square(MmTimeline.dotMarker),
+        Size.square(MmTimeline.dotMarker * grow),
       );
     });
 
@@ -245,19 +277,44 @@ void main() {
       await pumpThemed(tester, _timeline([_paid, _movedIn]));
       final list = tester.getSemantics(find.byType(MmTimeline));
       expect(list.getSemanticsData().role, SemanticsRole.list);
-      final items = childrenInOrder(list);
-      expect(items, hasLength(2));
+      expect(readingOrder(list), [
+        '7 Oct 2026, Payment received, Rs 45,000 by bank transfer',
+        '1 Aug 2025, Ali Raza moved in',
+      ]);
+      final item = tester.getSemantics(find.text(_paid.title));
+      expect(item.getSemanticsData().role, SemanticsRole.listItem);
       expect(
-        items[0],
+        item,
         matchesSemantics(
           label: '7 Oct 2026, Payment received, Rs 45,000 by bank transfer',
         ),
       );
-      expect(items[0].getSemanticsData().role, SemanticsRole.listItem);
-      expect(
-        items[1],
-        matchesSemantics(label: '1 Aug 2025, Ali Raza moved in'),
+    });
+
+    testWidgets('reads the semantic label of an item in place of its words', (
+      tester,
+    ) async {
+      const spoken =
+          '7 Oct 2026, Payment received, 45000 rupees by bank '
+          'transfer';
+      await pumpThemed(
+        tester,
+        _timeline(const [
+          MmTimelineItem(
+            dateLabel: '7 Oct 2026',
+            title: 'Payment received',
+            subtitle: 'Rs 45,000 by bank transfer',
+            semanticLabel: spoken,
+          ),
+          _movedIn,
+        ]),
       );
+      expect(readingOrder(tester.getSemantics(find.byType(MmTimeline))), [
+        spoken,
+        '1 Aug 2025, Ali Raza moved in',
+      ]);
+      // The figures as shown stay on screen.
+      expect(find.text('Rs 45,000 by bank transfer'), findsOneWidget);
     });
 
     testWidgets('an empty timeline shows nothing', (tester) async {
@@ -291,6 +348,139 @@ void main() {
         rail.bottom,
         greaterThanOrEqualTo(tester.getRect(find.text(long.subtitle!)).bottom),
       );
+    });
+
+    testWidgets('at 200% grows its markers by half, keeping the rail and the '
+        'words in step', (tester) async {
+      await pumpLargeNarrow(tester, const MmTimeline(items: [_paid, _due]));
+      const grow = MmIconLabel.maxIconScale;
+      const column = MmTimeline.markerColumn * grow;
+      expect(
+        tester.widget<Icon>(find.byIcon(MmIcons.payment)).size,
+        MmSize.iconSm * grow,
+      );
+      expect(
+        tester.getSize(_markers.at(0)),
+        const Size.square(MmTimeline.iconMarker * grow),
+      );
+      expect(
+        tester.getSize(_markers.at(1)),
+        const Size.square(MmTimeline.dotMarker * grow),
+      );
+      final timeline = tester.getRect(find.byType(MmTimeline));
+      final rail = tester.getRect(_rails(MmColorModes.light.rule).first);
+      expect(rail.center.dx, timeline.left + column / 2);
+      for (var i = 0; i < 2; i++) {
+        expect(tester.getCenter(_markers.at(i)).dx, timeline.left + column / 2);
+      }
+      expect(
+        tester.getRect(find.text(_paid.title)).left,
+        timeline.left + column + MmSpace.s3,
+      );
+      // Still centred on the date line.
+      expect(
+        tester.getCenter(_markers.at(0)).dy,
+        moreOrLessEquals(
+          tester.getCenter(find.text(_paid.dateLabel)).dy,
+          epsilon: 0.01,
+        ),
+      );
+    });
+
+    testWidgets('at 200% on a 320 dp phone, fits long words in English and '
+        'Urdu', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        Builder(
+          builder: (context) {
+            final say = sayIn(context);
+            return MmTimeline(
+              items: [
+                MmTimelineItem(
+                  dateLabel: say('1 Sep 2026', '1 ستمبر 2026'),
+                  title: say(
+                    'Lease renewed for 11 months at Rs\u00A045,000',
+                    'معاہدے کی 11 ماہ کے لیے 45,000\u00A0روپے پر تجدید',
+                  ),
+                  subtitle: say(
+                    'House 12, Street 4, Gulberg III, Lahore',
+                    'مکان 12، گلی 4، گلبرگ III، لاہور',
+                  ),
+                  icon: MmIcons.lease,
+                  tone: MmTimelineTone.primary,
+                ),
+                MmTimelineItem(
+                  dateLabel: say('1 Aug 2025', '1 اگست 2025'),
+                  title: say(
+                    'Ali Raza moved in with his family',
+                    'علی رضا اپنے خاندان کے ساتھ منتقل ہوئے',
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        height: 1200,
+      );
+    });
+
+    testWidgets('keeps an amount joined by a no-break space on one line', (
+      tester,
+    ) async {
+      // At some widths an ordinary space lets the currency word start a
+      // new line apart from its figures; the no-break space never does.
+      Future<bool> together(double width, String space) async {
+        final subtitle = 'بینک ٹرانسفر سے 45,000$spaceروپے';
+        await pumpThemed(
+          tester,
+          SizedBox(
+            width: width,
+            child: MmTimeline(
+              items: [
+                MmTimelineItem(
+                  dateLabel: '7 اکتوبر 2026',
+                  title: 'ادائیگی موصول ہوئی',
+                  subtitle: subtitle,
+                ),
+              ],
+            ),
+          ),
+          variant: MmVariant.urdu,
+        );
+        return onOneLine(tester, subtitle, '45,000$spaceروپے');
+      }
+
+      // From the narrowest column that holds the amount and its currency
+      // (96 dp of text beside the markers) to a 320 dp phone.
+      final widths = [for (var w = 140.0; w <= 320; w += 4) w];
+      var brokeWithSpace = false;
+      for (final width in widths) {
+        expect(await together(width, '\u00A0'), isTrue, reason: '$width');
+        brokeWithSpace |= !await together(width, ' ');
+      }
+      expect(brokeWithSpace, isTrue);
+    });
+
+    testWidgets('sets the figures inside Urdu words in the Latin face', (
+      tester,
+    ) async {
+      const item = MmTimelineItem(
+        dateLabel: '1 ستمبر 2026',
+        title: 'معاہدے کی 11 ماہ کے لیے تجدید',
+        subtitle: 'بینک ٹرانسفر سے 45,000\u00A0روپے',
+      );
+      await pumpThemed(
+        tester,
+        _timeline(const [item]),
+        variant: MmVariant.urdu,
+      );
+      expect(latinRunsIn(tester, item.dateLabel), ['1', '2026']);
+      expect(latinRunsIn(tester, item.title), ['11']);
+      expect(latinRunsIn(tester, item.subtitle!), ['45,000']);
+      expect(urduRunsIn(tester, item.title), [
+        'معاہدے کی ',
+        ' ماہ کے لیے تجدید',
+      ]);
     });
 
     testWidgets('sets Latin data in the Latin face in the Urdu UI and '

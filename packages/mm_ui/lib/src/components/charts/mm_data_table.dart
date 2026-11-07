@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
+import 'package:mm_ui/src/components/charts/mm_chart_focus_ring.dart';
 import 'package:mm_ui/src/components/charts/mm_chart_style.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -16,8 +17,12 @@ final class MmDataColumn {
   final String label;
 
   /// Whether the column holds figures (amounts, counts, percentages). Its
-  /// cells and header align to the end edge and are set in the Latin face
-  /// with tabular figures, so the digits of every row line up.
+  /// cells are set in the Latin face with tabular figures and, with its
+  /// header, line up on the right, where a figure's last digit is in both
+  /// languages, so the digits of every row line up. Its cells hold plain
+  /// figures ("1,25,000"); the unit goes once in the header ("Rent (Rs)",
+  /// "کرایہ (روپے)"), since a currency word after each figure would push
+  /// the digits of shorter figures out of line in Urdu.
   final bool numeric;
 
   @override
@@ -35,12 +40,15 @@ final class MmDataColumn {
 /// separated by hairline rules like the lines of a ledger, with no zebra
 /// stripes.
 ///
-/// Numeric columns align to the end edge in the Latin face with tabular
-/// figures, so columns of rupees line up in both languages. Columns take
-/// the width of their widest cell and the first column takes any width to
-/// spare; when the table is wider than its space it scrolls sideways (with
-/// a scrollbar, and with the arrow keys once focused). Columns run from the
-/// start edge, so in Urdu the first column is on the right.
+/// Numeric columns hold plain figures, with their unit in the header, in
+/// the Latin face with tabular figures, lined up on their last digit, so
+/// columns of rupees line up in both languages. Columns take the width of
+/// their widest cell and the first column takes any width to spare, so the
+/// numeric columns keep to the end edge; when the table is wider than its
+/// space it scrolls sideways (with a scrollbar in the control-border colour,
+/// and with the arrow keys once focused, when a focus ring is drawn around
+/// it). Columns run from the start edge, so in Urdu the first column is on
+/// the right.
 ///
 /// Each cell keeps its own text's direction, so Latin-script data and plain
 /// figures (a phone number, a CNIC) read left to right in the Urdu table
@@ -48,8 +56,8 @@ final class MmDataColumn {
 ///
 /// Screen readers read it as a table: the header cells are column headers,
 /// then each cell is its own node, row by row. Figures in numeric cells are
-/// read without their grouping commas ("Rs 125000"), since grouped figures
-/// such as 1,25,000 are read out unreliably.
+/// read without their grouping commas ("125000", under the header "Rent
+/// (Rs)"), since grouped figures such as 1,25,000 are read out unreliably.
 ///
 /// Use it for a short list of records compared across a few columns (a
 /// rent roll) and as the accessible twin of a chart (`MmBarChart` shows its
@@ -61,11 +69,11 @@ final class MmDataColumn {
 ///   caption: l10n.rentRollOctober,
 ///   columns: [
 ///     MmDataColumn(label: l10n.tenant),
-///     MmDataColumn(label: l10n.rent, numeric: true),
+///     MmDataColumn(label: l10n.rentInRupees, numeric: true),
 ///   ],
 ///   rows: [
 ///     for (final lease in leases)
-///       [lease.tenantName, format.format(lease.rent)],
+///       [lease.tenantName, format.formatNumber(lease.rent)],
 ///   ],
 /// )
 /// ```
@@ -108,7 +116,32 @@ class _MmDataTableState extends State<MmDataTable> {
     ),
   };
 
-  final Map<Type, Action<Intent>> _actions = {ScrollIntent: ScrollAction()};
+  late final Map<Type, Action<Intent>> _actions = {
+    ScrollIntent: CallbackAction<ScrollIntent>(onInvoke: _scrollToward),
+  };
+
+  /// How far one press of an arrow key scrolls: a line, as Flutter's own
+  /// `ScrollAction` steps.
+  static const double _step = MmSpace.s12;
+
+  /// Scrolls one step to show more of the table toward [intent]'s
+  /// direction on screen (the left or the right, in either language).
+  ///
+  /// The focus is around the scroll view, not inside it, so taking focus
+  /// never scrolls the table to its far end.
+  Object? _scrollToward(ScrollIntent intent) {
+    final position = _scroll.position;
+    // Content further along the scroll view's own direction lies off its
+    // far edge: the right in English, the left in Urdu.
+    final along = intent.direction == position.axisDirection ? 1 : -1;
+    _scroll.jumpTo(
+      (position.pixels + along * _step).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      ),
+    );
+    return null;
+  }
 
   @override
   void dispose() {
@@ -174,62 +207,63 @@ class _MmDataTableState extends State<MmDataTable> {
               ),
             ),
           ),
-        DecoratedBox(
-          position: DecorationPosition.foreground,
-          decoration: _focusShown
-              ? BoxDecoration(
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(MmRadius.xs),
-                  ),
-                  border: Border.all(
-                    color: colors.focus,
-                    width: MmSize.focusRing,
-                  ),
-                )
-              : const BoxDecoration(),
-          child: LayoutBuilder(
-            builder: (context, constraints) =>
-                NotificationListener<ScrollMetricsNotification>(
-                  onNotification: _handleMetrics,
-                  child: Scrollbar(
-                    controller: _scroll,
-                    thumbVisibility: _overflows,
-                    child: SingleChildScrollView(
-                      controller: _scroll,
-                      scrollDirection: Axis.horizontal,
-                      child: FocusableActionDetector(
-                        enabled: _overflows,
-                        includeFocusSemantics: false,
-                        shortcuts: _shortcuts,
-                        actions: _actions,
-                        onShowFocusHighlight: _handleFocusHighlight,
-                        child: Padding(
-                          // Room for the scrollbar under the last rule.
-                          padding: EdgeInsetsDirectional.only(
-                            bottom: _overflows ? MmSpace.s3 : 0,
-                          ),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minWidth: constraints.maxWidth,
+        FocusableActionDetector(
+          enabled: _overflows,
+          includeFocusSemantics: false,
+          shortcuts: _shortcuts,
+          actions: _actions,
+          onShowFocusHighlight: _handleFocusHighlight,
+          child: MmChartFocusRing(
+            shown: _focusShown,
+            child: LayoutBuilder(
+              builder: (context, constraints) =>
+                  NotificationListener<ScrollMetricsNotification>(
+                    onNotification: _handleMetrics,
+                    // The scrollbar is the only sign the table scrolls: its
+                    // thumb is in the control-border colour, 3:1 or more
+                    // against the surface in every mode.
+                    child: ScrollbarTheme(
+                      data: ScrollbarTheme.of(context).copyWith(
+                        thumbColor: WidgetStatePropertyAll(colors.outline),
+                      ),
+                      child: Scrollbar(
+                        controller: _scroll,
+                        thumbVisibility: _overflows,
+                        child: SingleChildScrollView(
+                          controller: _scroll,
+                          scrollDirection: Axis.horizontal,
+                          child: Padding(
+                            // Room for the scrollbar under the last rule.
+                            padding: EdgeInsetsDirectional.only(
+                              bottom: _overflows ? MmSpace.s3 : 0,
                             ),
-                            child: table,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: constraints.maxWidth,
+                              ),
+                              child: table,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  /// Where a cell's text sits in its column: figures at the end edge, so
-  /// their digits line up, words at the start.
-  static AlignmentGeometry _alignment(MmDataColumn column) => column.numeric
-      ? AlignmentDirectional.centerEnd
-      : AlignmentDirectional.centerStart;
+  /// Where a cell's text sits in its column: figures on the right, where
+  /// their last digit is in both directions (figures read left to right in
+  /// Urdu too), so their digits line up; words at the start.
+  static AlignmentGeometry _alignment(MmDataColumn column) =>
+      column.numeric ? _figures : AlignmentDirectional.centerStart;
+
+  /// Figures end on the right in both directions.
+  // design-lint: allow-next-line figures end on the right in both directions
+  static const AlignmentGeometry _figures = Alignment.centerRight;
 
   /// The padding of a cell in column [index]: a gap from the previous
   /// column, none at the table's outer edges.

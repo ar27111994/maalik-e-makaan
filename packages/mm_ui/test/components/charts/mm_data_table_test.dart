@@ -3,17 +3,18 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/components/charts/mm_chart_focus_ring.dart';
 
 import '../../support/testing.dart';
 
 const _columns = [
   MmDataColumn(label: 'Tenant'),
-  MmDataColumn(label: 'Rent', numeric: true),
+  MmDataColumn(label: 'Rent (Rs)', numeric: true),
 ];
 
 const _rows = [
-  ['Ali Raza', 'Rs 45,000'],
-  ['Ayesha Khan', 'Rs 1,25,000'],
+  ['Ali Raza', '45,000'],
+  ['Ayesha Khan', '1,25,000'],
 ];
 
 /// A table [width] wide on the page.
@@ -93,7 +94,7 @@ void main() {
       variant,
     ) async {
       await pumpThemed(tester, _table(), variant: variant);
-      final figures = styleOf(tester, 'Rs 45,000');
+      final figures = styleOf(tester, '45,000');
       expect(figures.fontFamily, contains(MmFontFamily.latin));
       expect(figures.fontFeatures, [const FontFeature.tabularFigures()]);
       expect(figures.color, colorsOf(variant).ink);
@@ -106,9 +107,9 @@ void main() {
       final table = tester.getRect(find.byType(MmDataTable));
       expect(tester.getRect(find.text('Ali Raza')).left, table.left);
       expect(tester.getRect(find.text('Tenant')).left, table.left);
-      expect(tester.getRect(find.text('Rs 45,000')).right, table.right);
-      expect(tester.getRect(find.text('Rs 1,25,000')).right, table.right);
-      expect(tester.getRect(find.text('Rent')).right, table.right);
+      expect(tester.getRect(find.text('45,000')).right, table.right);
+      expect(tester.getRect(find.text('1,25,000')).right, table.right);
+      expect(tester.getRect(find.text('Rent (Rs)')).right, table.right);
     });
 
     testWidgets('runs its columns from the right in Urdu', (tester) async {
@@ -117,10 +118,11 @@ void main() {
         _table(
           columns: const [
             MmDataColumn(label: 'کرایہ دار'),
-            MmDataColumn(label: 'کرایہ', numeric: true),
+            MmDataColumn(label: 'کرایہ (روپے)', numeric: true),
           ],
           rows: const [
-            ['علی رضا', '45,000 روپے'],
+            ['علی رضا', '45,000'],
+            ['عائشہ خان', '1,25,000'],
           ],
         ),
         variant: MmVariant.urdu,
@@ -128,7 +130,15 @@ void main() {
       final table = tester.getRect(find.byType(MmDataTable));
       expect(tester.getRect(find.text('علی رضا')).right, table.right);
       expect(tester.getRect(find.text('کرایہ دار')).right, table.right);
-      expect(tester.getRect(find.text('45,000 روپے')).left, table.left);
+      // The figures keep to the end edge (the left) and line up on their
+      // last digit, on the right, as in English; their header too.
+      final short = tester.getRect(find.text('45,000'));
+      final long = tester.getRect(find.text('1,25,000'));
+      final header = tester.getRect(find.text('کرایہ (روپے)'));
+      expect(header.left, table.left);
+      expect(short.right, long.right);
+      expect(header.right, long.right);
+      expect(short.left, greaterThan(long.left));
     });
 
     testWidgets('keeps each cell in its own direction', (tester) async {
@@ -199,23 +209,23 @@ void main() {
         tester.getSemantics(find.text('Rent roll')),
         matchesSemantics(label: 'Rent roll', isHeader: true),
       );
-      final header = tester.getSemantics(find.text('Rent'));
-      expect(header.label, 'Rent');
+      final header = tester.getSemantics(find.text('Rent (Rs)'));
+      expect(header.label, 'Rent (Rs)');
       expect(header.role, SemanticsRole.columnHeader);
       expect(header.flagsCollection.isHeader, isTrue);
       final cell = tester.getSemantics(find.text('Ali Raza'));
       expect(cell.role, SemanticsRole.cell);
       // Grouped figures are read as one number.
-      expect(tester.getSemantics(find.text('Rs 1,25,000')).label, 'Rs 125000');
+      expect(tester.getSemantics(find.text('1,25,000')).label, '125000');
       final table = tester.getSemantics(find.byType(Table));
       expect(table.role, SemanticsRole.table);
       expect(labelsIn(table), [
         'Tenant',
-        'Rent',
+        'Rent (Rs)',
         'Ali Raza',
-        'Rs 45000',
+        '45000',
         'Ayesha Khan',
-        'Rs 125000',
+        '125000',
       ]);
       handle.dispose();
     });
@@ -225,7 +235,7 @@ void main() {
     ) async {
       await pumpThemed(tester, _table());
       final table = tester.getRect(find.byType(MmDataTable));
-      final rent = tester.getRect(find.text('Rs 1,25,000'));
+      final rent = tester.getRect(find.text('1,25,000'));
       // The figure column is only as wide as its widest cell and its gap.
       expect(rent.left, greaterThan(table.center.dx));
       expect(_scrollOf(tester).maxScrollExtent, 0);
@@ -249,6 +259,29 @@ void main() {
       await tester.drag(find.text('Ali Raza'), const Offset(-200, 0));
       await tester.pumpAndSettle();
       expect(position.pixels, greaterThan(0));
+    });
+
+    testEveryVariant('draws the scrollbar in the control-border colour', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(tester, _wideTable(), variant: variant);
+      final colors = colorsOf(variant);
+      final theme = ScrollbarTheme.of(
+        tester.element(find.byType(SingleChildScrollView)),
+      );
+      for (final states in [
+        <WidgetState>{},
+        {WidgetState.hovered},
+        {WidgetState.dragged},
+      ]) {
+        expect(theme.thumbColor!.resolve(states), colors.outline);
+      }
+      // The only sign the table scrolls stands out from the card (3:1).
+      expect(
+        mmContrastRatio(colors.outline, colors.surface),
+        greaterThanOrEqualTo(3),
+      );
     });
 
     testWidgets('stops showing the scrollbar when it fits again', (
@@ -277,24 +310,16 @@ void main() {
       final position = _scrollOf(tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      final ring = tester
-          .widgetList<DecoratedBox>(
-            find.descendant(
-              of: find.byType(MmDataTable),
-              matching: find.byType(DecoratedBox),
-            ),
-          )
-          .map((box) => box.decoration)
-          .whereType<BoxDecoration>()
-          .where((decoration) => decoration.border != null)
-          .single;
-      expect(
-        ring.border,
-        Border.all(
-          color: colorsOf(MmVariant.light).focus,
-          width: MmSize.focusRing,
-        ),
+      // Taking focus leaves the table at its start.
+      expect(position.pixels, 0);
+      final ring = find.descendant(
+        of: find.byType(MmDataTable),
+        matching: find.byType(MmChartFocusRing),
       );
+      expect(tester.widget<MmChartFocusRing>(ring).shown, isTrue);
+      // The ring goes round the scrolling area, outside it, so it covers
+      // neither the first column's text nor the scrollbar.
+      expect(tester.getRect(ring), tester.getRect(find.byType(Scrollbar)));
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
       await tester.pumpAndSettle();
       expect(position.pixels, greaterThan(0));
@@ -305,19 +330,7 @@ void main() {
       // Focus leaves: the ring goes.
       FocusManager.instance.primaryFocus!.unfocus();
       await tester.pumpAndSettle();
-      expect(
-        tester
-            .widgetList<DecoratedBox>(
-              find.descendant(
-                of: find.byType(MmDataTable),
-                matching: find.byType(DecoratedBox),
-              ),
-            )
-            .map((box) => box.decoration)
-            .whereType<BoxDecoration>()
-            .where((decoration) => decoration.border != null),
-        isEmpty,
-      );
+      expect(tester.widget<MmChartFocusRing>(ring).shown, isFalse);
     });
 
     testWidgets('takes no focus when it fits', (tester) async {
@@ -350,10 +363,18 @@ void main() {
       final position = _scrollOf(tester);
       final since = tester.getRect(find.text('2021')).left;
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(position.pixels, 0);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pumpAndSettle();
       expect(position.pixels, greaterThan(0));
       expect(tester.getRect(find.text('2021')).left, greaterThan(since));
+      // The right arrow goes back, and stops at the start.
+      for (var press = 0; press < 20; press++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      }
+      await tester.pumpAndSettle();
+      expect(position.pixels, 0);
     });
 
     testWidgets('at 200% on a 320 dp phone, scrolls instead of overflowing', (
@@ -366,11 +387,11 @@ void main() {
           columns: [
             MmDataColumn(label: 'Tenant'),
             MmDataColumn(label: 'Unit'),
-            MmDataColumn(label: 'Rent', numeric: true),
-            MmDataColumn(label: 'Owes', numeric: true),
+            MmDataColumn(label: 'Rent (Rs)', numeric: true),
+            MmDataColumn(label: 'Owes (Rs)', numeric: true),
           ],
           rows: [
-            ['Ayesha Khan', 'Shop 4', 'Rs 1,25,000', 'Rs 30,000'],
+            ['Ayesha Khan', 'Shop 4', '1,25,000', '30,000'],
           ],
         ),
       );
