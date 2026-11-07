@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/components/actions/mm_action_icon.dart';
 import 'package:mm_ui/src/foundation/mm_button_styles.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -30,9 +31,11 @@ enum MmButtonVariant {
 /// never truncates them.
 ///
 /// Set [busy] while the action's work runs: the button keeps its colours and
-/// its size, shows a progress indicator in place of its icon (or, without an
-/// icon, in place of its label), ignores further presses, and screen readers
-/// hear "Record payment, Loading".
+/// its size, shows a progress indicator in place of its icon, ignores
+/// further presses, and screen readers hear "Record payment, Loading".
+/// Without an icon the indicator takes the label's place, centred: beside
+/// the label it would widen the button and move what is around it, while
+/// the landlord has just read the label to press it.
 ///
 /// Don't use it for an icon on its own (use `MmIconButton`), for the screen's
 /// floating action (use `MmFab`) or to choose between options (use
@@ -68,7 +71,8 @@ class MmButton extends StatelessWidget {
   /// The emphasis of the button.
   final MmButtonVariant variant;
 
-  /// An icon shown before the label (after it in right-to-left layouts).
+  /// An icon shown before the label (after it in right-to-left layouts). It
+  /// grows with the text size, up to half as large again.
   final IconData? icon;
 
   /// Whether the button's action is running: it shows a progress indicator,
@@ -138,11 +142,17 @@ class _ButtonContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = Text(label, textAlign: TextAlign.center);
+    // As wide as its longest line, so a wrapped label stays beside its icon
+    // instead of centring its lines across the whole button.
+    final text = Text(
+      label,
+      textAlign: TextAlign.center,
+      textWidthBasis: TextWidthBasis.longestLine,
+    );
     final icon = this.icon;
     if (!busy) {
       if (icon == null) return text;
-      return _withLeading(Icon(icon), text);
+      return _withLeading(MmActionIcon(icon), text);
     }
     const indicator = _BusyIndicator();
     final content = icon == null
@@ -179,8 +189,9 @@ class _ButtonContent extends StatelessWidget {
   );
 }
 
-/// A small progress ring in the button's icon colour and size. When the
-/// platform asks for reduced motion it stands still as an open ring.
+/// A small progress ring in the button's icon colour and size (grown with
+/// the text, as the icon it replaces would be). When the platform asks for
+/// reduced motion it stands still as an open ring.
 class _BusyIndicator extends StatelessWidget {
   const new();
 
@@ -189,11 +200,10 @@ class _BusyIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final icon = IconTheme.of(context);
-    final size = icon.size ?? MmSize.iconMd;
-    final color = icon.color ?? DefaultTextStyle.of(context).style.color;
+    final color =
+        IconTheme.of(context).color ?? DefaultTextStyle.of(context).style.color;
     return SizedBox.square(
-      dimension: size,
+      dimension: MmActionIcon.sizeIn(context),
       child: Padding(
         padding: const EdgeInsets.all(MmSpace.sHalf),
         child: CircularProgressIndicator(

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 /// A stepper whose value follows what it reports, as an app's would.
 class _Controlled extends StatefulWidget {
@@ -124,6 +126,8 @@ void main() {
           value: '3',
           increasedValue: '4',
           decreasedValue: '2',
+          hasEnabledState: true,
+          isEnabled: true,
           hasIncreaseAction: true,
           hasDecreaseAction: true,
         ),
@@ -152,6 +156,8 @@ void main() {
           label: 'Rooms',
           value: '12',
           decreasedValue: '11',
+          hasEnabledState: true,
+          isEnabled: true,
           hasDecreaseAction: true,
         ),
       );
@@ -167,6 +173,8 @@ void main() {
           value: '3 months',
           increasedValue: '4 months',
           decreasedValue: '2 months',
+          hasEnabledState: true,
+          isEnabled: true,
           hasIncreaseAction: true,
           hasDecreaseAction: true,
         ),
@@ -250,7 +258,8 @@ void main() {
       expect(_enabled(tester, 'Fewer rooms'), isFalse);
       expect(
         tester.getSemantics(_value),
-        matchesSemantics(label: 'Rooms', value: '3'),
+        // Announced as disabled, with nothing to adjust.
+        matchesSemantics(label: 'Rooms', value: '3', hasEnabledState: true),
       );
       expect(
         tester.widget<Text>(find.text('3')).style!.color,
@@ -270,9 +279,79 @@ void main() {
       final glyph = tester.renderObject<RenderParagraph>(
         find.descendant(of: minus, matching: find.byType(RichText)),
       );
-      // Disabled at the lower limit: a faint ink.
-      expect(glyph.text.style!.color!.a, lessThan(0.5));
+      // Disabled at the lower limit: muted ink, still readable; the plus
+      // beside it, which can still be pressed, is ink.
+      expect(glyph.text.style!.color, MmColorModes.light.inkMuted);
+      expect(iconColorOf(tester, MmIcons.add), MmColorModes.light.ink);
       expect(tester.getSize(minus), const Size.square(MmSize.iconLg));
+    });
+
+    testEveryVariant('a sign at its limit is muted ink, readable', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(tester, _stepper(value: 0), variant: variant);
+      final colors = variant.colors;
+      expect(iconColorOf(tester, MmIcons.minus), colors.inkMuted);
+      expect(iconColorOf(tester, MmIcons.add), colors.ink);
+      expect(
+        mmContrastRatio(colors.inkMuted, colors.surface),
+        greaterThanOrEqualTo(mmMinimumIconContrast),
+      );
+    });
+
+    testWidgets('keyboard focus rings a button on its edge, inside the box', (
+      tester,
+    ) async {
+      useKeyboardHighlights();
+      await pumpThemed(tester, _stepper());
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      final plus = find.widgetWithIcon(IconButton, MmIcons.add);
+      final material = tester.widget<Material>(
+        find.descendant(of: plus, matching: find.byType(Material)),
+      );
+      expect(
+        (material.shape! as StadiumBorder).side,
+        BorderSide(color: MmColorModes.light.focus, width: MmSize.focusRing),
+      );
+      // The ring stays clear of the box's outline and clip.
+      final box = tester.getRect(
+        find.ancestor(of: plus, matching: find.byType(Material)).last,
+      );
+      final button = tester.getRect(plus);
+      expect(box.right - button.right, greaterThanOrEqualTo(MmSpace.s1));
+      expect(button.top - box.top, greaterThanOrEqualTo(MmSpace.s1));
+    });
+
+    testWidgets('a mouse over a button lights it, not at its limit', (
+      tester,
+    ) async {
+      await pumpThemed(tester, _stepper(value: 0));
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset.zero);
+      for (final (icon, active) in [
+        (MmIcons.add, true),
+        (MmIcons.minus, false),
+      ]) {
+        final button = find.widgetWithIcon(IconButton, icon);
+        await mouse.moveTo(tester.getCenter(button));
+        await tester.pumpAndSettle();
+        final states = tester
+            .widget<ButtonStyleButton>(
+              find.descendant(
+                of: button,
+                matching: find.byWidgetPredicate(
+                  (widget) => widget is ButtonStyleButton,
+                ),
+              ),
+            )
+            .statesController!
+            .value;
+        expect(states.contains(WidgetState.hovered), active, reason: '$icon');
+      }
     });
 
     test('checks its limits', () {

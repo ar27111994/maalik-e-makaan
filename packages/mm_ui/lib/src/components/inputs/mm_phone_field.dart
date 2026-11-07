@@ -12,7 +12,9 @@ import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
 /// (`0300 1234567`), landlines as one run of digits. A complete Pakistani
 /// number written another way becomes national; numbers abroad keep their
 /// `+` and country code. The number is set in the Latin face in both
-/// languages, read out digit by digit, and offered to autofill.
+/// languages, on one line that is never cut short (at large text sizes it
+/// is set only as much smaller as it needs to fit), read out digit by
+/// digit, and offered to autofill.
 ///
 /// [onChanged] receives the number (E.164 inside, `+923001234567`) once it
 /// is a plausible one, and null until then.
@@ -37,10 +39,14 @@ class MmPhoneField extends StatelessWidget {
     this.value,
     this.helper,
     this.errorText,
+    this.validator,
+    this.autovalidateMode,
+    this.onSubmitted,
     this.required = false,
     this.optional = false,
     this.enabled = true,
     this.focusNode,
+    this.autofocus = false,
     this.textInputAction,
     super.key,
   }) : assert(
@@ -63,8 +69,22 @@ class MmPhoneField extends StatelessWidget {
   /// Guidance shown below the field in muted ink.
   final String? helper;
 
-  /// Shown below the field with the error icon while set.
+  /// Shown below the field with the error icon while set; it wins over
+  /// [validator]'s error.
   final String? errorText;
+
+  /// Checks the number (null while the text is not a plausible one) when
+  /// the enclosing `Form` validates, or as [autovalidateMode] says, and
+  /// returns the error to show, or null.
+  final FormFieldValidator<PhoneNumber>? validator;
+
+  /// When the field validates itself; by default only when the `Form`
+  /// asks.
+  final AutovalidateMode? autovalidateMode;
+
+  /// Called with the number (null when the text is not one) when the user
+  /// submits from the keyboard.
+  final ValueChanged<PhoneNumber?>? onSubmitted;
 
   /// Whether the label says "Required".
   final bool required;
@@ -77,6 +97,9 @@ class MmPhoneField extends StatelessWidget {
 
   /// The field's focus node.
   final FocusNode? focusNode;
+
+  /// Whether the field takes focus when first shown.
+  final bool autofocus;
 
   /// The keyboard's action button (next, done).
   final TextInputAction? textInputAction;
@@ -95,10 +118,14 @@ class MmPhoneField extends StatelessWidget {
       spellOut: true,
       helper: helper,
       errorText: errorText,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      onSubmitted: onSubmitted,
       required: required,
       optional: optional,
       enabled: enabled,
       focusNode: focusNode,
+      autofocus: autofocus,
       textInputAction: textInputAction,
     );
   }

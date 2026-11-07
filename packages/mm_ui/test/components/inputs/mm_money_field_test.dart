@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 
 import '../../support/testing.dart';
 import 'editing.dart';
@@ -102,7 +103,9 @@ void main() {
       );
     });
 
-    testWidgets('shows "روپے" after the amount in Urdu', (tester) async {
+    testWidgets('shows "روپے" after the amount in Urdu, against it', (
+      tester,
+    ) async {
       await pumpThemed(
         tester,
         MmMoneyField(label: 'کرایہ', value: _rent, onChanged: (_) {}),
@@ -111,13 +114,37 @@ void main() {
       expect(find.text('Rs'), findsNothing);
       expect(find.text('روپے'), findsOneWidget);
       // After the amount in reading order: to its left in right to left.
-      expect(
-        tester.getRect(find.text('روپے')).right,
-        lessThan(tester.getRect(find.byType(EditableText)).left),
-      );
+      final marker = tester.getRect(find.text('روپے'));
+      final box = tester.getRect(find.byType(EditableText));
+      expect(marker.right, lessThan(box.left));
       final editable = tester.widget<EditableText>(find.byType(EditableText));
       expect(editable.textDirection, TextDirection.ltr);
-      expect(editable.textAlign, TextAlign.right);
+      // The amount sits against the marker, not across the field from it:
+      // its first figure is about a space's width from the marker.
+      expect(editable.textAlign, TextAlign.left);
+      final firstFigure = renderEditableOf(tester)
+          .getLocalRectForCaret(const TextPosition(offset: 0));
+      expect(box.left + firstFigure.left - marker.right, lessThan(MmSpace.s3));
+    });
+
+    testEveryVariant('the marker sits on the line of the amount', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(tester, const _Host(initial: _rent), variant: variant);
+      final marker = variant == MmVariant.urdu ? 'روپے' : 'Rs';
+      double baselineOf(RenderBox box) =>
+          box.localToGlobal(Offset.zero).dy +
+          box.getDryBaseline(box.constraints, TextBaseline.alphabetic)!;
+      expect(
+        baselineOf(paragraphOf(tester, marker)),
+        moreOrLessEquals(baselineOf(renderEditableOf(tester)), epsilon: 0.01),
+      );
+      // The same line box: neither makes the field taller.
+      expect(
+        tester.getSize(find.text(marker)).height,
+        moreOrLessEquals(renderEditableOf(tester).size.height),
+      );
     });
 
     testWidgets('follows the currency style of the money format', (
@@ -288,10 +315,16 @@ void main() {
       expect(_host(tester).value, isNull);
     });
 
-    testWidgets('ignores letters typed among the digits', (tester) async {
+    testWidgets('refuses letters typed among the digits, drops spaces', (
+      tester,
+    ) async {
       await pumpThemed(tester, const _Host(initial: Money.fromRupees(4500)));
-      await edit(tester, '4,500 ', caret: 6);
+      await edit(tester, '4,5a00', caret: 4);
       expect(valueOf(tester).text, '4,500');
+      expect(_host(tester).value, const Money.fromRupees(4500));
+      await edit(tester, '4,5 00', caret: 4);
+      expect(valueOf(tester).text, '4,500');
+      expect(valueOf(tester).selection.baseOffset, 3);
     });
   });
 
@@ -326,19 +359,18 @@ void main() {
       expect(changes, [Money.zero]);
     });
 
-    testWidgets('a negative amount from outside is shown, and replaced', (
+    testWidgets('takes no negative amount: a credit is said in words', (
       tester,
     ) async {
-      final changes = <Money?>[];
-      await pumpThemed(
-        tester,
-        _Host(initial: const Money.fromRupees(-500), changes: changes),
+      await pumpThemed(tester, const _Host(initial: Money.fromRupees(-500)));
+      expect(
+        tester.takeException(),
+        isA<AssertionError>().having(
+          (error) => error.message,
+          'message',
+          contains('zero or more'),
+        ),
       );
-      // The format marks the minus left to right, so it stays before the
-      // figures in a right-to-left field too.
-      expect(valueOf(tester).text, '\u200E-500');
-      await tester.enterText(find.byType(TextField), '500');
-      expect(changes, [const Money.fromRupees(500)]);
     });
   });
 
@@ -404,6 +436,23 @@ void main() {
       expect(
         tester.getSemantics(find.byType(EditableText)),
         isSemantics(value: '1,500.505'),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('an empty field says the amount is in rupees', (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpThemed(tester, const _Host());
+      expect(
+        tester.getSemantics(find.byType(EditableText)),
+        isSemantics(label: 'Monthly rent', value: '', hint: 'rupees'),
+      );
+      await tester.enterText(find.byType(TextField), '45000');
+      await tester.pump();
+      // Once there is an amount, it is read with the currency instead.
+      expect(
+        tester.getSemantics(find.byType(EditableText)),
+        isSemantics(value: '45000 rupees', hint: ''),
       );
       handle.dispose();
     });
@@ -532,6 +581,146 @@ void main() {
           onChanged: (_) {},
         ),
       );
+    });
+
+    testWidgets('a crore shows whole at 200% on a 320 dp phone, unshrunk', (
+      tester,
+    ) async {
+      await expectWholeValues(
+        tester,
+        Builder(
+          builder: (context) => MmFormats(
+            money: MmFormats.defaultFor(Localizations.localeOf(context))
+                .copyWith(grouping: DigitGrouping.southAsian),
+            child: MmMoneyField(
+              label: 'Security deposit',
+              value: const Money.fromRupees(12500000),
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+        check: (locale) async {
+          expect(valueOf(tester).text, '1,25,00,000');
+          expect(textScaleOf(tester), 2, reason: locale.languageCode);
+          // The currency marker grows only to 150%, leaving the figures
+          // their room.
+          final marker = locale.languageCode == 'ur' ? 'روپے' : 'Rs';
+          expect(
+            tester.widget<Text>(find.text(marker)).textScaler,
+            const TextScaler.linear(MmIconLabel.maxIconScale),
+          );
+        },
+      );
+    });
+
+    testWidgets('the largest amount shows whole, set only as small as it '
+        'needs', (tester) async {
+      final scales = <double>[];
+      for (final grouping in DigitGrouping.values) {
+        await expectWholeValues(
+          tester,
+          Builder(
+            builder: (context) => MmFormats(
+              money: MmFormats.defaultFor(Localizations.localeOf(context))
+                  .copyWith(grouping: grouping),
+              child: MmMoneyField(
+                label: 'Security deposit',
+                value: Money.maxValue,
+                helper: 'Returned when the tenant moves out',
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+          check: (locale) async {
+            final scale = textScaleOf(tester);
+            scales.add(scale);
+            // Smaller than the reader's 200%, larger than the 100% text.
+            expect(scale, inExclusiveRange(1, 2));
+            // Set any larger, it would not fit.
+            final editable = renderEditableOf(tester);
+            expect(
+              editable.getMaxIntrinsicWidth(double.infinity) * 1.01,
+              greaterThan(editable.size.width),
+            );
+            // The helper keeps the reader's size.
+            expect(
+              MediaQuery.textScalerOf(
+                tester.element(find.text('Returned when the tenant moves out')),
+              ).scale(1),
+              2,
+            );
+          },
+        );
+      }
+      expect(scales, hasLength(4));
+    });
+
+    testWidgets('a field narrower than a phone sets a value no smaller than '
+        'a caption', (tester) async {
+      await pumpThemed(
+        tester,
+        SizedBox(
+          width: 120,
+          child: MmMoneyField(
+            label: 'Rent',
+            value: Money.maxValue,
+            onChanged: (_) {},
+          ),
+        ),
+        variant: MmVariant.largeText,
+      );
+      expect(
+        textScaleOf(tester) * MmTypeScale.latinTitleSmall.fontSize!,
+        moreOrLessEquals(MmTypeScale.latinCaption.fontSize!),
+      );
+    });
+
+    testWidgets('submits, validates and takes focus like a text field', (
+      tester,
+    ) async {
+      final form = GlobalKey<FormState>();
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final submitted = <Money?>[];
+      await pumpThemed(
+        tester,
+        Form(
+          key: form,
+          child: MmMoneyField(
+            label: 'Monthly rent',
+            focusNode: focus,
+            autofocus: true,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            validator: (amount) => amount == null ? 'Enter the rent' : null,
+            onSubmitted: submitted.add,
+            onChanged: (_) {},
+          ),
+        ),
+      );
+      expect(focus.hasFocus, isTrue);
+      expect(form.currentState!.validate(), isFalse);
+      await tester.pump();
+      expect(
+        find.textContaining('Enter the rent', findRichText: true),
+        findsOne,
+      );
+      await tester.enterText(find.byType(TextField), '45000');
+      await tester.pump();
+      expect(
+        find.textContaining('Enter the rent', findRichText: true),
+        findsNothing,
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      expect(submitted, [const Money.fromRupees(45000)]);
+      // Text that is not an acceptable amount is checked as no amount.
+      await tester.enterText(find.byType(TextField), '1500.505');
+      await tester.pump();
+      expect(
+        find.textContaining('Enter the rent', findRichText: true),
+        findsOne,
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      expect(submitted, [const Money.fromRupees(45000), null]);
     });
   });
 }

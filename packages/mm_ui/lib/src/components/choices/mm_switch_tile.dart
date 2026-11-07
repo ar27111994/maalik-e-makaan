@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_focus_within.dart';
-import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -9,9 +8,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///
 /// The whole row is the target: tapping anywhere on it, or pressing Enter
 /// or Space while it has focus, flips the switch. The switch sits at the
-/// end; while on, its thumb carries a check mark, so the state does not
-/// rest on colour or position alone. Assistive technology hears one
-/// element: the label and description, and whether it is on.
+/// end; while on, its thumb carries a check mark (the theme draws it), so
+/// the state does not rest on colour or position alone. Disabled, the
+/// switch and its words turn muted ink, still readable. Assistive
+/// technology hears one element: the label and description, and whether
+/// it is on.
 ///
 /// Use it for settings that apply immediately. For a choice that is saved
 /// with a form, or agreeing to something, use an `MmCheckboxTile`.
@@ -77,11 +78,6 @@ class MmSwitchTile extends StatelessWidget {
                   text.bodyMedium!.copyWith(color: colors.inkMuted),
                 ),
               ),
-        thumbIcon: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? const Icon(MmIcons.check)
-              : null,
-        ),
       ),
     );
   }

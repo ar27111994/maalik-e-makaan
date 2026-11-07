@@ -23,10 +23,12 @@ void main() {
             maxLength: 40,
             helper: tr('As on the CNIC', 'جیسا شناختی کارڈ پر لکھا ہے'),
           ),
+          // Focused, as when the landlord has just moved to it.
           MmTextField(
             label: tr("Father's name", 'والد کا نام'),
             optional: true,
-            hint: tr('Muhammad Raza', 'محمد رضا'),
+            autofocus: true,
+            hint: tr('For example, Muhammad Raza', 'مثلاً محمد رضا'),
           ),
           MmTextField(
             label: tr('Unit', 'یونٹ'),
@@ -42,6 +44,6 @@ void main() {
         ],
       ),
     ),
-    size: const Size(360, 900),
+    sizes: const {MmVariant.largeText: Size(360, 768)},
   );
 }

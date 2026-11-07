@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _overdue = 'Overdue 12 days';
 
@@ -139,24 +140,54 @@ void main() {
       expect(icon.right, moreOrLessEquals(badge.right - MmSpace.s2));
     });
 
-    testWidgets('wraps a long word at 200% instead of overflowing', (
+    testWidgets('wraps a long label at 200% in whole words instead of '
+        'overflowing', (tester) async {
+      const label = 'Overdue since 5 October, reminder sent twice';
+      await expectWholeAtLargeText(
+        tester,
+        const Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: MmStatusBadge(status: MmStatus.overdue, label: label),
+        ),
+        then: (_) {
+          final badge = tester.getSize(find.byType(MmStatusBadge));
+          expect(badge.width, lessThanOrEqualTo(288));
+          // Several lines of 28 px text.
+          expect(badge.height, greaterThan(3 * 28));
+          final icon = tester.getRect(find.byType(Icon));
+          expect(
+            icon.top - tester.getRect(find.byType(MmStatusBadge)).top,
+            lessThan(28),
+          );
+        },
+      );
+    });
+
+    testWidgets('is as wide as its longest line once its words wrap', (
       tester,
     ) async {
-      const label = 'Overdue since 5 October, reminder sent twice';
-      await pumpLargeNarrow(
+      await pumpThemed(
         tester,
-        const MmStatusBadge(status: MmStatus.overdue, label: label),
+        const SizedBox(
+          width: 130,
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: MmStatusBadge(
+              status: MmStatus.overdue,
+              label: 'Overdue 12 days',
+            ),
+          ),
+        ),
+        variant: MmVariant.largeText,
       );
-      expect(tester.takeException(), isNull);
+      // The badge's words (the icon inside them is a paragraph too).
+      final paragraph = paragraphOf(tester, 'Overdue 12 days');
+      expect(paragraph.textWidthBasis, TextWidthBasis.longestLine);
+      // Two lines, and no empty fill after the longer of them.
+      expect(paragraph.size.height, greaterThan(28 * 1.5));
       final badge = tester.getSize(find.byType(MmStatusBadge));
-      expect(badge.width, lessThanOrEqualTo(288));
-      // Several lines of 28 px text.
-      expect(badge.height, greaterThan(3 * 28));
-      final icon = tester.getRect(find.byType(Icon));
-      expect(
-        icon.top - tester.getRect(find.byType(MmStatusBadge)).top,
-        lessThan(28),
-      );
+      expect(badge.width, lessThan(130));
+      expect(badge.width, paragraph.size.width + 2 * MmSpace.s2);
     });
 
     testWidgets('grows its icon with the text, up to one and a half times', (

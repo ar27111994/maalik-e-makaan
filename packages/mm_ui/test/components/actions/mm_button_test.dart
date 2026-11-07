@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _record = 'Record payment';
 
@@ -25,30 +24,6 @@ Future<void> _pumpSpinning(
   await tester.pump();
 }
 
-/// The Material that paints the button found by [button].
-Material _material(WidgetTester tester, Finder button) => tester.widget(
-  find.descendant(of: button, matching: find.byType(Material)).first,
-);
-
-/// The colour [text] is painted in.
-Color _textColor(WidgetTester tester, String text) =>
-    tester.renderObject<RenderParagraph>(find.text(text)).text.style!.color!;
-
-/// The colour [icon] is painted in.
-Color _iconColor(WidgetTester tester, IconData icon) => tester
-    .renderObject<RenderParagraph>(
-      find.descendant(of: find.byIcon(icon), matching: find.byType(RichText)),
-    )
-    .text
-    .style!
-    .color!;
-
-double _contrast(Color a, Color b) {
-  final x = a.computeLuminance();
-  final y = b.computeLuminance();
-  return (math.max(x, y) + 0.05) / (math.min(x, y) + 0.05);
-}
-
 void main() {
   group('MmButton', () {
     testWidgets('each variant is the matching Material button', (tester) async {
@@ -61,7 +36,7 @@ void main() {
       for (final MapEntry(key: variant, value: type) in expected.entries) {
         await pumpThemed(
           tester,
-          MmButton(label: _record, variant: variant, onPressed: () {}),
+          MmButton(label: _record, variant: variant, onPressed: tapped),
         );
         expect(find.byType(type), findsOneWidget, reason: variant.name);
         expect(find.text(_record), findsOneWidget);
@@ -84,15 +59,15 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        MmButton(label: _record, onPressed: () {}),
+        const MmButton(label: _record, onPressed: tapped),
         variant: variant,
       );
       final colors = colorsOf(variant);
       expect(
-        _material(tester, find.byType(FilledButton)).color,
+        materialOf(tester, find.byType(FilledButton)).color,
         colors.primary,
       );
-      expect(_textColor(tester, _record), colors.onPrimary);
+      expect(textColorOf(tester, _record), colors.onPrimary);
     });
 
     testEveryVariant(
@@ -100,40 +75,69 @@ void main() {
       (tester, variant) async {
         await pumpThemed(
           tester,
-          MmButton(
+          const MmButton(
             label: 'Remove tenant',
             icon: MmIcons.delete,
             variant: MmButtonVariant.destructive,
-            onPressed: () {},
+            onPressed: tapped,
           ),
           variant: variant,
         );
         final colors = colorsOf(variant);
-        final fill = _material(tester, find.byType(FilledButton)).color!;
-        final text = _textColor(tester, 'Remove tenant');
+        final fill = materialOf(tester, find.byType(FilledButton)).color!;
+        final text = textColorOf(tester, 'Remove tenant');
         expect(fill, colors.overdue);
         // The theme's on-error colour: the surface role.
         expect(text, colors.surface);
-        expect(_contrast(fill, text), greaterThanOrEqualTo(4.5));
-        expect(_iconColor(tester, MmIcons.delete), text);
+        expect(mmContrastRatio(fill, text), greaterThanOrEqualTo(4.5));
+        expect(iconColorOf(tester, MmIcons.delete), text);
       },
     );
 
-    testWidgets('a disabled destructive button takes the disabled colours', (
+    testEveryVariant('disabled, it is muted ink; filled ones on sunken paper', (
       tester,
+      variant,
     ) async {
-      await pumpThemed(
-        tester,
-        const MmButton(
-          label: 'Remove tenant',
-          variant: MmButtonVariant.destructive,
-          onPressed: null,
+      final colors = colorsOf(variant);
+      // (fill, edge) of each variant while disabled; a null fill is none.
+      final expected = <MmButtonVariant, (Color?, BorderSide)>{
+        MmButtonVariant.primary: (
+          colors.surfaceSunken,
+          BorderSide(color: colors.rule),
         ),
-      );
-      expect(
-        _material(tester, find.byType(FilledButton)).color,
-        isNot(MmColorModes.light.overdue),
-      );
+        MmButtonVariant.destructive: (
+          colors.surfaceSunken,
+          BorderSide(color: colors.rule),
+        ),
+        MmButtonVariant.secondary: (null, BorderSide(color: colors.rule)),
+        // No edge: the theme's none, in the rule colour.
+        MmButtonVariant.tertiary: (
+          null,
+          BorderSide.none.copyWith(color: colors.rule),
+        ),
+      };
+      for (final MapEntry(key: kind, value: (fill, edge)) in expected.entries) {
+        await pumpThemed(
+          tester,
+          MmButton(
+            label: 'Remove tenant',
+            icon: MmIcons.delete,
+            variant: kind,
+            onPressed: null,
+          ),
+          variant: variant,
+        );
+        final button = find.byType(MmButton);
+        final material = materialOf(tester, button);
+        if (fill == null) {
+          expect(material.color?.a ?? 0, 0, reason: kind.name);
+        } else {
+          expect(material.color, fill, reason: kind.name);
+        }
+        expect(sideOf(tester, button), edge, reason: kind.name);
+        expect(textColorOf(tester, 'Remove tenant'), colors.inkMuted);
+        expect(iconColorOf(tester, MmIcons.delete), colors.inkMuted);
+      }
     });
 
     testWidgets('calls onPressed on tap and from the keyboard', (tester) async {
@@ -147,10 +151,7 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(
-        Focus.of(tester.element(find.text(_record))).hasPrimaryFocus,
-        isTrue,
-      );
+      expect(focusedAt(tester, _record), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.pumpAndSettle();
@@ -160,7 +161,10 @@ void main() {
     testWidgets('reads as an enabled, focusable button named by its label', (
       tester,
     ) async {
-      await pumpThemed(tester, MmButton(label: _record, onPressed: () {}));
+      await pumpThemed(
+        tester,
+        const MmButton(label: _record, onPressed: tapped),
+      );
       expect(
         tester.getSemantics(find.text(_record)),
         matchesSemantics(
@@ -191,7 +195,7 @@ void main() {
       // Not focusable: Tab finds nothing to focus.
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(Focus.of(tester.element(find.text(_record))).hasFocus, isFalse);
+      expect(focusedAt(tester, _record), isFalse);
     });
 
     group('busy', () {
@@ -226,43 +230,40 @@ void main() {
         await tester.tap(find.byType(MmButton));
         await tester.pump();
         expect(presses, 1);
-        expect(
-          Focus.of(tester.element(find.text(_record))).hasPrimaryFocus,
-          isTrue,
-        );
+        expect(focusedAt(tester, _record), isTrue);
       });
 
       testWidgets('keeps its enabled colours', (tester) async {
         for (final variant in MmButtonVariant.values) {
           await pumpThemed(
             tester,
-            MmButton(label: _record, variant: variant, onPressed: () {}),
+            MmButton(label: _record, variant: variant, onPressed: tapped),
           );
           final button = find.byType(MmButton);
-          final idle = _material(tester, button).color;
-          final idleText = _textColor(tester, _record);
+          final idle = materialOf(tester, button).color;
+          final idleText = textColorOf(tester, _record);
           await _pumpSpinning(
             tester,
             MmButton(
               label: _record,
               variant: variant,
               busy: true,
-              onPressed: () {},
+              onPressed: tapped,
             ),
           );
-          expect(_material(tester, button).color, idle, reason: variant.name);
-          expect(_textColor(tester, _record), idleText, reason: variant.name);
+          expect(materialOf(tester, button).color, idle, reason: variant.name);
+          expect(textColorOf(tester, _record), idleText, reason: variant.name);
         }
       });
 
       testWidgets('shows a spinning ring in place of the icon', (tester) async {
         await _pumpSpinning(
           tester,
-          MmButton(
+          const MmButton(
             label: _record,
             icon: MmIcons.payment,
             busy: true,
-            onPressed: () {},
+            onPressed: tapped,
           ),
         );
         expect(find.byIcon(MmIcons.payment), findsNothing);
@@ -288,7 +289,7 @@ void main() {
                 label: _record,
                 icon: icon,
                 variant: variant,
-                onPressed: () {},
+                onPressed: tapped,
               ),
             );
             final idle = tester.getSize(find.byType(MmButton));
@@ -299,7 +300,7 @@ void main() {
                 icon: icon,
                 variant: variant,
                 busy: true,
-                onPressed: () {},
+                onPressed: tapped,
               ),
             );
             expect(
@@ -316,7 +317,7 @@ void main() {
       ) async {
         await _pumpSpinning(
           tester,
-          MmButton(label: _record, busy: true, onPressed: () {}),
+          const MmButton(label: _record, busy: true, onPressed: tapped),
         );
         final ring = tester.getCenter(find.byType(CircularProgressIndicator));
         expect(ring, tester.getCenter(find.byType(MmButton)));
@@ -342,7 +343,7 @@ void main() {
             label: label,
             icon: MmIcons.payment,
             busy: true,
-            onPressed: () {},
+            onPressed: tapped,
           ),
           variant: variant,
         );
@@ -365,11 +366,8 @@ void main() {
       ) async {
         await pumpThemed(
           tester,
-          Builder(
-            builder: (context) => MediaQuery(
-              data: MediaQuery.of(context).copyWith(disableAnimations: true),
-              child: MmButton(label: _record, busy: true, onPressed: () {}),
-            ),
+          withoutAnimations(
+            const MmButton(label: _record, busy: true, onPressed: tapped),
           ),
         );
         final ring = tester.widget<CircularProgressIndicator>(
@@ -402,7 +400,7 @@ void main() {
       ) async {
         await _pumpSpinning(
           tester,
-          MmButton(label: _record, busy: true, onPressed: () {}),
+          const MmButton(label: _record, busy: true, onPressed: tapped),
         );
         final style = tester
             .widget<FilledButton>(find.byType(FilledButton))
@@ -422,10 +420,13 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        MmButton(label: _record, expand: true, onPressed: () {}),
+        const MmButton(label: _record, expand: true, onPressed: tapped),
       );
       expect(tester.getSize(find.byType(FilledButton)).width, 328);
-      await pumpThemed(tester, MmButton(label: _record, onPressed: () {}));
+      await pumpThemed(
+        tester,
+        const MmButton(label: _record, onPressed: tapped),
+      );
       expect(tester.getSize(find.byType(FilledButton)).width, lessThan(328));
     });
 
@@ -433,7 +434,7 @@ void main() {
       for (final variant in MmButtonVariant.values) {
         await pumpThemed(
           tester,
-          MmButton(label: _record, variant: variant, onPressed: () {}),
+          MmButton(label: _record, variant: variant, onPressed: tapped),
         );
         expect(tester.getSize(find.byType(MmButton)).height, 48);
       }
@@ -450,7 +451,7 @@ void main() {
             label: label,
             icon: MmIcons.reminder,
             variant: variant,
-            onPressed: () {},
+            onPressed: tapped,
           ),
           variant: MmVariant.largeText,
           size: const Size(320, 740),
@@ -465,13 +466,97 @@ void main() {
       }
     });
 
+    testWidgets('its icon and busy ring grow with the text, at most 150%', (
+      tester,
+    ) async {
+      for (final (scale, size) in [(1.0, 20.0), (1.25, 25.0), (2.0, 30.0)]) {
+        Widget scaled(Widget child) => Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
+            child: child,
+          ),
+        );
+        await pumpThemed(
+          tester,
+          scaled(
+            const MmButton(
+              label: _record,
+              icon: MmIcons.payment,
+              onPressed: tapped,
+            ),
+          ),
+        );
+        expect(tester.getSize(find.byIcon(MmIcons.payment)).width, size);
+        await _pumpSpinning(
+          tester,
+          scaled(
+            const MmButton(
+              label: _record,
+              icon: MmIcons.payment,
+              busy: true,
+              onPressed: tapped,
+            ),
+          ),
+        );
+        expect(
+          tester.getSize(find.byType(CircularProgressIndicator)).width,
+          size - 2 * MmSpace.sHalf,
+        );
+      }
+    });
+
+    testWidgets('a wrapped label stays beside its icon', (tester) async {
+      const label = 'Send the October rent reminder to Ayesha Khan';
+      for (final variant in [MmVariant.light, MmVariant.urdu]) {
+        await pumpThemed(
+          tester,
+          const MmButton(
+            label: label,
+            icon: MmIcons.reminder,
+            variant: MmButtonVariant.secondary,
+            onPressed: tapped,
+          ),
+          variant: variant,
+        );
+        final text = paragraphOf(tester, label);
+        expect(text.size.height, greaterThan(2 * 19), reason: variant.name);
+        // As wide as its longest line, so the words start (or, in Urdu,
+        // end) the row's gap away from the icon: not the half of the spare
+        // width that centring the lines across the whole button would add.
+        final ink = text
+            .getBoxesForSelection(
+              const TextSelection(baseOffset: 0, extentOffset: label.length),
+            )
+            .map((box) => box.toRect())
+            .reduce((a, b) => a.expandToInclude(b))
+            .shift(tester.getTopLeft(find.text(label)));
+        final icon = tester.getRect(find.byIcon(MmIcons.reminder));
+        final gap = variant == MmVariant.urdu
+            ? icon.left - ink.right
+            : ink.left - icon.right;
+        // The row's gap, give or take a line's trailing space or a
+        // Nastaliq stroke that overhangs its advance (centred across the
+        // whole button instead, the lines started 30 dp from the icon).
+        expect(
+          gap,
+          inInclusiveRange(MmSpace.s1, MmSpace.s2 + 6),
+          reason: variant.name,
+        );
+      }
+    });
+
     testWidgets('the icon leads the label, on the right in Urdu', (
       tester,
     ) async {
       for (final variant in [MmVariant.light, MmVariant.urdu]) {
         await pumpThemed(
           tester,
-          MmButton(label: _record, icon: MmIcons.payment, onPressed: () {}),
+          const MmButton(
+            label: _record,
+            icon: MmIcons.payment,
+            onPressed: tapped,
+          ),
           variant: variant,
         );
         final icon = tester.getCenter(find.byIcon(MmIcons.payment)).dx;
@@ -489,16 +574,16 @@ void main() {
       for (final kind in MmButtonVariant.values) {
         await pumpThemed(
           tester,
-          MmButton(label: _record, variant: kind, onPressed: () {}),
+          MmButton(label: _record, variant: kind, onPressed: tapped),
           variant: variant,
         );
         final button = find.byType(MmButton);
-        final resting = _material(tester, button).shape! as OutlinedBorder;
+        final resting = materialOf(tester, button).shape! as OutlinedBorder;
         expect(resting, isNot(isA<MmFocusRingBorder>()), reason: kind.name);
         expect(resting.side.width, lessThan(MmSize.focusRing));
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
-        final focused = _material(tester, button).shape!;
+        final focused = materialOf(tester, button).shape!;
         switch (kind) {
           // A filled button keeps its fill and edge; the theme draws the
           // ring outside it, past a gap, so it shows on any fill.
@@ -519,25 +604,47 @@ void main() {
       }
     });
 
+    testWidgets('fits 200% text on 320 dp in English and Urdu', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        Column(
+          children: [
+            for (final kind in MmButtonVariant.values)
+              MmButton(
+                label: 'عائشہ خان کو اکتوبر کے کرایے کی یاد دہانی بھیجیں',
+                icon: MmIcons.reminder,
+                variant: kind,
+                expand: kind == MmButtonVariant.primary,
+                onPressed: tapped,
+              ),
+            const MmButton(
+              label: 'Record payment from Ali Raza',
+              onPressed: null,
+            ),
+          ],
+        ),
+      );
+    });
+
     testEveryVariant('fits a 320 dp surface in every variant', (
       tester,
       variant,
     ) async {
       await pumpThemed(
         tester,
-        Column(
+        const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             MmButton(
               label: 'Record payment from Ali Raza',
               icon: MmIcons.payment,
               expand: true,
-              onPressed: () {},
+              onPressed: tapped,
             ),
             MmButton(
               label: 'View the ledger',
               variant: MmButtonVariant.tertiary,
-              onPressed: () {},
+              onPressed: tapped,
             ),
           ],
         ),

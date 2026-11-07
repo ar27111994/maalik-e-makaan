@@ -20,6 +20,7 @@ class MmIconLabel extends StatelessWidget {
     required this.iconColor,
     this.iconSize = MmSize.iconSm,
     this.textAlign = TextAlign.start,
+    this.textWidthBasis = TextWidthBasis.parent,
     super.key,
   });
 
@@ -41,9 +42,24 @@ class MmIconLabel extends StatelessWidget {
   /// How the lines of the words are aligned.
   final TextAlign textAlign;
 
+  /// How wide the paragraph is once its words wrap: the width it is given
+  /// ([TextWidthBasis.parent]), or its longest line
+  /// ([TextWidthBasis.longestLine]) for a label on a fill of its own, such
+  /// as a badge, which would otherwise keep empty space after its lines.
+  final TextWidthBasis textWidthBasis;
+
   /// The most the icon grows with the text size: beyond it a large icon
   /// would crowd the words it only illustrates.
   static const maxIconScale = 1.5;
+
+  /// [size] grown with the ambient text size, up to [maxIconScale] times:
+  /// the size of an icon that stands beside words on its own (a field's
+  /// leading icon, chevron or buttons), so it keeps pace with the text
+  /// without crowding it.
+  static double scaledSize(BuildContext context, double size) =>
+      MediaQuery.textScalerOf(context)
+          .clamp(maxScaleFactor: maxIconScale)
+          .scale(size);
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +94,7 @@ class MmIconLabel extends StatelessWidget {
         ),
         style: style,
         textAlign: textAlign,
+        textWidthBasis: textWidthBasis,
       ),
     );
   }

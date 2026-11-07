@@ -1,6 +1,9 @@
+import 'dart:ui' show SemanticsValidationResult;
+
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_field_label.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -11,9 +14,10 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// Space while it has focus, calls [onTap].
 ///
 /// The tappable part is one button for assistive technology, named by
-/// [label], with the shown text as its value and the placeholder and the
-/// "Required" or "Optional" word as its hint. [actions] (a clear button, a
-/// picker button) sit inside the box after it, as buttons of their own.
+/// [label], with the shown text as its value, the placeholder and the
+/// "Required" or "Optional" word as its hint, and invalid while the field
+/// has an error. [actions] (a clear button, a picker button) sit inside the
+/// box after it, as buttons of their own, styled by [buttonStyle].
 ///
 /// Internal to the choices family: the public fields build it.
 class MmChoiceBox extends StatefulWidget {
@@ -30,9 +34,37 @@ class MmChoiceBox extends StatefulWidget {
     this.hasError = false,
     this.required = false,
     this.optional = false,
+    this.latinFigures = false,
     this.focusNode,
     super.key,
   });
+
+  /// The style of a button inside the box: its icon in [color] (muted ink
+  /// while disabled, which stays readable), grown with the text size up
+  /// to one and a half times, and its keyboard focus ring on its own edge.
+  /// The theme draws an icon button's ring outside it, past a gap, which a
+  /// 56 dp box has no room for: there the box's outline would run through
+  /// the ring and its clip would cut it.
+  static ButtonStyle buttonStyle(BuildContext context, {required Color color}) {
+    final colors = context.mm.colors;
+    final focused = BorderSide(color: colors.focus, width: MmSize.focusRing);
+    return ButtonStyle(
+      iconSize: WidgetStatePropertyAll(
+        MmIconLabel.scaledSize(context, MmSize.iconLg),
+      ),
+      iconColor: WidgetStateProperty.resolveWith(
+        (states) =>
+            states.contains(WidgetState.disabled) ? colors.inkMuted : color,
+      ),
+      shape: WidgetStateProperty.resolveWith(
+        (states) => StadiumBorder(
+          side: states.contains(WidgetState.focused)
+              ? focused
+              : BorderSide.none,
+        ),
+      ),
+    );
+  }
 
   /// The field's name, its accessible name.
   final String label;
@@ -68,6 +100,11 @@ class MmChoiceBox extends StatefulWidget {
 
   /// Whether the field is optional (announced, and marked by the frame).
   final bool optional;
+
+  /// Whether figures in [text] are set in the Latin face even when the
+  /// rest is Urdu (a date: "5 نومبر، 2026"), as amounts and counts are, so
+  /// they match the figures everywhere else in the Urdu UI.
+  final bool latinFigures;
 
   /// The focus node of the tappable part.
   final FocusNode? focusNode;
@@ -119,6 +156,7 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
     ].join('\n');
     final leading = widget.leading;
     final trailing = widget.trailing;
+    final iconSize = MmIconLabel.scaledSize(context, MmSize.iconLg);
     final content = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: MmSize.fieldHeight),
       child: Padding(
@@ -132,10 +170,14 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
           spacing: MmSpace.s3,
           children: [
             if (leading != null)
-              Icon(leading, size: MmSize.iconLg, color: colors.inkMuted),
-            Expanded(child: Text(shown, style: style)),
+              Icon(leading, size: iconSize, color: colors.inkMuted),
+            Expanded(
+              child: widget.latinFigures
+                  ? Text.rich(_byScript(shown, style, mm))
+                  : Text(shown, style: style),
+            ),
             if (trailing != null)
-              Icon(trailing, size: MmSize.iconLg, color: colors.inkMuted),
+              Icon(trailing, size: iconSize, color: colors.inkMuted),
           ],
         ),
       ),
@@ -160,11 +202,17 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
               isRequired: widget.required
                   ? true
                   : (widget.optional ? false : null),
+              validationResult: widget.hasError
+                  ? SemanticsValidationResult.invalid
+                  : SemanticsValidationResult.none,
               child: InkWell(
                 focusNode: widget.focusNode,
                 canRequestFocus: enabled,
                 onTap: widget.onTap,
                 onFocusChange: _handleFocusChange,
+                // The ring shows keyboard focus. A tint would cover only
+                // the tappable part and stop short of the box's buttons.
+                focusColor: Colors.transparent,
                 child: ExcludeSemantics(child: content),
               ),
             ),
@@ -175,4 +223,28 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
       ),
     );
   }
+}
+
+/// [text] in [style], with each run of characters outside the Arabic
+/// script (figures, Latin letters and the spaces between them) set in the
+/// Latin face as [MmSemantics.styleFor] sets them.
+TextSpan _byScript(String text, TextStyle style, MmSemantics mm) {
+  final runs = <TextSpan>[];
+  final run = StringBuffer();
+  bool? arabic;
+  void flush() {
+    if (run.isEmpty) return;
+    final words = run.toString();
+    runs.add(TextSpan(text: words, style: mm.styleFor(words, style)));
+    run.clear();
+  }
+
+  for (final character in text.characters) {
+    final isArabic = MmSemantics.hasArabicScript(character);
+    if (isArabic != arabic) flush();
+    arabic = isArabic;
+    run.write(character);
+  }
+  flush();
+  return TextSpan(style: style, children: runs);
 }

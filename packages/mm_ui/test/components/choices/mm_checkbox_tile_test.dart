@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
-import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 Widget _tile({
   bool? value = false,
@@ -19,19 +19,6 @@ Widget _tile({
   tristate: tristate,
   onChanged: enabled ? (checked) => log?.add(checked) : null,
 );
-
-/// Whether the tile draws its focus ring.
-bool _ringShown(WidgetTester tester) {
-  final box = tester.widget<DecoratedBox>(
-    find
-        .descendant(
-          of: find.byType(MmFocusWithin),
-          matching: find.byType(DecoratedBox),
-        )
-        .first,
-  );
-  return (box.decoration as BoxDecoration).border != null;
-}
 
 void main() {
   group('MmCheckboxTile', () {
@@ -118,7 +105,7 @@ void main() {
       await pumpThemed(tester, _tile(value: true, log: log));
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(_ringShown(tester), isTrue);
+      expect(ringShown(tester), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.pumpAndSettle();
@@ -144,6 +131,44 @@ void main() {
       );
       final text = tester.widget<Text>(find.text('Rent includes electricity'));
       expect(text.style!.color, MmColorModes.light.inkMuted);
+    });
+
+    testEveryVariant('disabled, the box stays readable', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(
+        tester,
+        Column(
+          children: [_tile(value: true, enabled: false), _tile(enabled: false)],
+        ),
+        variant: variant,
+      );
+      final colors = variant.colors;
+      final theme = CheckboxTheme.of(
+        tester.element(find.byType(Checkbox).first),
+      );
+      const checked = {WidgetState.disabled, WidgetState.selected};
+      const unchecked = {WidgetState.disabled};
+      BorderSide side(Set<WidgetState> states) =>
+          WidgetStateProperty.resolveAs<BorderSide?>(theme.side, states)!;
+      // A muted-ink frame either way; checked, sunken paper with a
+      // muted-ink check instead of cobalt.
+      expect(side(unchecked).color, colors.inkMuted);
+      expect(side(checked).color, colors.inkMuted);
+      expect(theme.fillColor!.resolve(checked), colors.surfaceSunken);
+      expect(theme.checkColor!.resolve(checked), colors.inkMuted);
+      expect(
+        mmContrastRatio(colors.inkMuted, colors.surface),
+        greaterThanOrEqualTo(mmMinimumIconContrast),
+      );
+      expect(
+        mmContrastRatio(colors.inkMuted, colors.surfaceSunken),
+        greaterThanOrEqualTo(mmMinimumIconContrast),
+      );
+      // Enabled, the frame is ink and a checked box cobalt.
+      expect(side({}).color, colors.ink);
+      expect(theme.fillColor!.resolve({WidgetState.selected}), colors.primary);
     });
 
     testWidgets('right to left: the box sits at the right', (tester) async {

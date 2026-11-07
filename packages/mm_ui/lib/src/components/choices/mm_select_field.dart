@@ -5,6 +5,8 @@ import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
 import 'package:mm_ui/src/components/choices/mm_option.dart';
 import 'package:mm_ui/src/components/choices/mm_search_field.dart';
 import 'package:mm_ui/src/foundation/mm_focus_within.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_modal_sheet.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -15,12 +17,12 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///
 /// The field shows the chosen option's label (and icon), or [placeholder]
 /// in muted ink. Tapping it, or pressing Enter or Space while it has
-/// focus, opens a bottom sheet titled with [label] that lists the options;
-/// the chosen one carries a check mark, not colour alone. With more than
-/// eight options the sheet starts with a search field that filters the
-/// labels as the landlord types (ignoring case, and reading Urdu digits as
-/// Western ones). Choosing an option closes the sheet and focus returns to
-/// the field.
+/// focus, opens a bottom sheet titled with [label], with a close button,
+/// that lists the options; the chosen one carries a check mark, not colour
+/// alone. With more than eight options the sheet starts with a search
+/// field that filters the labels as the landlord types (ignoring case, and
+/// reading Urdu digits as Western ones). Choosing an option closes the
+/// sheet and focus returns to the field.
 ///
 /// The label sits above the field, helper or error text below it, as for
 /// text fields. Use it for a handful to a few dozen options. For two to
@@ -110,10 +112,8 @@ class _MmSelectFieldState<T> extends State<MmSelectField<T>> {
   Future<void> _choose() async {
     // A record, so an option whose value is null is not mistaken for the
     // sheet being dismissed.
-    final chosen = await showModalBottomSheet<(T,)>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
+    final chosen = await showMmModalSheet<(T,)>(
+      context,
       builder: (context) => _SelectSheet<T>(
         title: widget.label,
         options: widget.options,
@@ -158,8 +158,9 @@ class _MmSelectFieldState<T> extends State<MmSelectField<T>> {
   }
 }
 
-/// The sheet of an [MmSelectField]: its title, a search field when there
-/// are many options, and the options, the chosen one checked and focused.
+/// The sheet of an [MmSelectField]: its title and close button, a search
+/// field when there are many options, and the options, the chosen one
+/// checked and focused.
 class _SelectSheet<T> extends StatefulWidget {
   const new({required this.title, required this.options, required this.value});
 
@@ -199,60 +200,63 @@ class _SelectSheetState<T> extends State<_SelectSheet<T>> {
     ];
     final textTheme = Theme.of(context).textTheme;
     final colors = context.mm.colors;
+    // When some options have icons, every row keeps the icon's place, so
+    // the labels line up.
+    final icons = widget.options.any((option) => option.icon != null);
     const inset = EdgeInsetsDirectional.symmetric(horizontal: MmSpace.s4);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: inset,
-            child: Semantics(
-              header: true,
-              child: Text(widget.title, style: textTheme.titleLarge),
-            ),
-          ),
-          if (searchable)
-            Padding(
-              padding: inset.add(
-                const EdgeInsetsDirectional.only(top: MmSpace.s3),
-              ),
-              child: MmSearchField(
-                onChanged: (query) =>
-                    setState(() => _query = _normalise(query)),
-              ),
-            ),
-          const SizedBox(height: MmSpace.s2),
-          if (matches.isEmpty)
-            Padding(
-              padding: inset.add(
-                const EdgeInsetsDirectional.symmetric(vertical: MmSpace.s4),
-              ),
-              child: Semantics(
-                liveRegion: true,
-                child: Text(
-                  MmLocalizations.of(context).noMatches,
-                  style: textTheme.bodyLarge?.copyWith(color: colors.inkMuted),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MmSheetHeader(title: widget.title),
+            if (searchable)
+              Padding(
+                padding: inset.add(
+                  const EdgeInsetsDirectional.only(top: MmSpace.s3),
+                ),
+                child: MmSearchField(
+                  onChanged: (query) =>
+                      setState(() => _query = _normalise(query)),
                 ),
               ),
-            )
-          else
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final option in matches)
-                    _OptionRow<T>(
-                      key: option.value == widget.value ? _selectedKey : null,
-                      option: option,
-                      selected: option.value == widget.value,
+            const SizedBox(height: MmSpace.s2),
+            if (matches.isEmpty)
+              Padding(
+                padding: inset.add(
+                  const EdgeInsetsDirectional.symmetric(vertical: MmSpace.s4),
+                ),
+                child: Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    MmLocalizations.of(context).noMatches,
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: colors.inkMuted,
                     ),
-                ],
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final option in matches)
+                      _OptionRow<T>(
+                        key: option.value == widget.value ? _selectedKey : null,
+                        option: option,
+                        selected: option.value == widget.value,
+                        iconSlot: icons,
+                      ),
+                  ],
+                ),
               ),
-            ),
-          const SizedBox(height: MmSpace.s4),
-        ],
+            const SizedBox(height: MmSpace.s4),
+          ],
+        ),
       ),
     );
   }
@@ -260,10 +264,19 @@ class _SelectSheetState<T> extends State<_SelectSheet<T>> {
 
 /// One option in the sheet: a row that closes the sheet with its value.
 class _OptionRow<T> extends StatelessWidget {
-  const new({required this.option, required this.selected, super.key});
+  const new({
+    required this.option,
+    required this.selected,
+    required this.iconSlot,
+    super.key,
+  });
 
   final MmOption<T> option;
   final bool selected;
+
+  /// Whether the row keeps an icon's place before its label, with or
+  /// without an icon of its own.
+  final bool iconSlot;
 
   @override
   Widget build(BuildContext context) {
@@ -274,6 +287,7 @@ class _OptionRow<T> extends StatelessWidget {
     final colors = mm.colors;
     final ink = selected ? colors.onPrimaryContainer : colors.ink;
     final muted = selected ? colors.onPrimaryContainer : colors.inkMuted;
+    final iconSize = MmIconLabel.scaledSize(context, MmSize.iconLg);
     return MmFocusWithin(
       radius: MmRadius.none,
       child: MergeSemantics(
@@ -283,7 +297,9 @@ class _OptionRow<T> extends StatelessWidget {
             selected: selected,
             autofocus: selected,
             selectedColor: ink,
-            leading: icon == null ? null : Icon(icon, size: MmSize.iconLg),
+            leading: icon != null
+                ? Icon(icon, size: iconSize)
+                : (iconSlot ? SizedBox.square(dimension: iconSize) : null),
             title: Text(
               option.label,
               style: mm.styleFor(
@@ -301,7 +317,7 @@ class _OptionRow<T> extends StatelessWidget {
                     ),
                   ),
             trailing: selected
-                ? Icon(MmIcons.check, size: MmSize.iconLg, color: ink)
+                ? Icon(MmIcons.check, size: iconSize, color: ink)
                 : null,
             onTap: () => Navigator.pop(context, (option.value,)),
           ),

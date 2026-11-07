@@ -7,16 +7,21 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///
 /// It takes the theme's card look: surface colour, a hairline rule border,
 /// `md` corners and no shadow (paper does not float). With [onTap] the whole
-/// card is one button: it shows ink when pressed, a 2 dp focus ring while it
-/// has keyboard focus, activates with Enter or Space, and screen readers
-/// read its contents (or [semanticLabel]) as that button's label. Without
-/// [onTap] it is static: one group whose text is read together, while any
-/// controls inside it stay separate.
+/// card is one button: its border takes the outline colour (the rule is
+/// never the only boundary of a control), it shows ink when pressed, a 2 dp
+/// focus ring while it has keyboard focus, activates with Enter or Space,
+/// and screen readers read its contents (or [semanticLabel]) as that
+/// button's label. A tappable card therefore holds no buttons or fields of
+/// its own: they could not be reached, and in debug builds one is reported.
+/// Without [onTap] it is static: one group whose text is read together,
+/// while the buttons inside it stay separate and ring themselves when they
+/// have focus.
 ///
 /// Cards never nest: in debug builds an [MmCard] inside another throws a
 /// [FlutterError]. Inside a card, group with `MmDetailRow`, `MmListTile`,
-/// `MmSectionHeader` and dividers instead. Don't use it for a single figure
-/// (use `MmStatTile`) or for something on top of the page (use a sheet or a
+/// `MmSectionHeader` and dividers instead; an `MmStatTile` may sit in one,
+/// and drops its own border there. Don't use it for a single figure (use
+/// `MmStatTile`) or for something on top of the page (use a sheet or a
 /// dialog).
 ///
 /// ```dart
@@ -67,8 +72,9 @@ class MmCard extends StatelessWidget {
       button: tappable,
       label: semanticLabel,
       child: MmSurface(
+        owner: 'MmCard',
         onTap: onTap,
-        child: _MmCardScope(
+        child: MmCardScope(
           child: Padding(
             padding: padding,
             child: semanticLabel == null
@@ -83,7 +89,7 @@ class MmCard extends StatelessWidget {
 
   /// Throws when [context] is already inside an [MmCard].
   static bool _debugCheckNotNested(BuildContext context) {
-    if (context.getInheritedWidgetOfExactType<_MmCardScope>() != null) {
+    if (MmCardScope.isIn(context)) {
       throw FlutterError.fromParts([
         ErrorSummary('An MmCard was placed inside another MmCard.'),
         ErrorDescription(
@@ -100,12 +106,4 @@ class MmCard extends StatelessWidget {
     }
     return true;
   }
-}
-
-/// Marks the subtree inside an [MmCard], so a nested card can tell.
-class _MmCardScope extends InheritedWidget {
-  const new({required super.child});
-
-  @override
-  bool updateShouldNotify(_MmCardScope oldWidget) => false;
 }

@@ -225,6 +225,20 @@ abstract final class MmTheme {
         errorStyle: text.bodyMedium?.copyWith(color: colors.overdue),
         prefixStyle: text.bodyLarge?.copyWith(color: colors.inkMuted),
         suffixStyle: text.bodyLarge?.copyWith(color: colors.inkMuted),
+        // Counts are set like badges: the Latin face with tabular figures in
+        // both languages, not in Nastaliq's serif Latin in the Urdu UI.
+        counterStyle: MmSemantics.withUrduFallback(
+          MmTypeScale.latinCaption.copyWith(
+            color: colors.inkMuted,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        // Icons and buttons inside a field (a start icon, the show-password
+        // button) are muted ink in every state: an error is said by the
+        // outline and the error line, not by tinting them, and disabled is
+        // muted ink, not ink at a lower opacity.
+        prefixIconColor: colors.inkMuted,
+        suffixIconColor: colors.inkMuted,
         floatingLabelBehavior: FloatingLabelBehavior.never,
         border: _fieldBorder(colors.outline, 1),
         enabledBorder: _fieldBorder(colors.outline, 1),
@@ -249,16 +263,24 @@ abstract final class MmTheme {
           if (states.contains(WidgetState.disabled)) {
             return BorderSide(color: colors.rule);
           }
-          if (states.contains(WidgetState.focused)) return focusSide;
-          return BorderSide(
-            color: states.contains(WidgetState.selected)
-                ? colors.primary
-                : colors.inkMuted,
-          );
+          final selected = states.contains(WidgetState.selected);
+          if (states.contains(WidgetState.focused) && !selected) {
+            return focusSide;
+          }
+          return BorderSide(color: selected ? colors.primary : colors.inkMuted);
         }),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(MmRadius.xs)),
-        ),
+        // A selected chip is filled and already framed in cobalt, so its
+        // focus ring goes outside it, past a gap, as on filled buttons: a
+        // thicker cobalt frame would barely change.
+        shape: WidgetStateOutlinedBorder.resolveWith((states) {
+          const chip = RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(MmRadius.xs)),
+          );
+          return states.contains(WidgetState.focused) &&
+                  states.contains(WidgetState.selected)
+              ? MmFocusRingBorder(chip, color: colors.focus)
+              : chip;
+        }),
         padding: const EdgeInsetsDirectional.symmetric(horizontal: MmSpace.s2),
         // Room above and below the label for the tall strokes of Nastaliq;
         // the avatar and check mark keep an icon's size however tall the
@@ -402,6 +424,154 @@ abstract final class MmTheme {
         ),
         textStyle: text.bodyMedium?.copyWith(color: scheme.onInverseSurface),
       ),
+      // Switches, checkboxes and radio buttons: ink while they can be used,
+      // cobalt while on, and muted ink while disabled, which stays readable
+      // in every mode (Material's ink at 38% falls under 3:1). A disabled
+      // control that is on trades its cobalt for sunken paper.
+      switchTheme: _switchTheme(colors),
+      checkboxTheme: _checkboxTheme(colors),
+      radioTheme: _radioTheme(colors),
+      datePickerTheme: _datePickerTheme(
+        colors,
+        overlayEdge(colors, brightness: brightness, highContrast: highContrast),
+      ),
+    );
+  }
+
+  /// The edge of a sheet or dialog: the outline in dark and high-contrast
+  /// modes, where the surface would otherwise melt into the dimmed page
+  /// behind it (black on black in dark high contrast), and none in light
+  /// mode, where white paper stands out from the dimmed page by itself.
+  static BorderSide overlayEdge(
+    MmColorTokens colors, {
+    required Brightness brightness,
+    required bool highContrast,
+  }) => brightness == Brightness.dark || highContrast
+      ? BorderSide(color: colors.outline)
+      : BorderSide.none;
+
+  /// Switches: an ink thumb and outline on a sunken track while off, a
+  /// paper thumb with a check mark on a cobalt track while on (so on is
+  /// not told by colour or position alone), and a muted-ink thumb and
+  /// outline on a sunken track while disabled.
+  static SwitchThemeData _switchTheme(MmColorTokens colors) {
+    bool disabled(Set<WidgetState> states) =>
+        states.contains(WidgetState.disabled);
+    bool on(Set<WidgetState> states) => states.contains(WidgetState.selected);
+    return SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (disabled(states)) return colors.inkMuted;
+        return on(states) ? colors.onPrimary : colors.ink;
+      }),
+      trackColor: WidgetStateProperty.resolveWith(
+        (states) => on(states) && !disabled(states)
+            ? colors.primary
+            : colors.surfaceSunken,
+      ),
+      trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+        if (disabled(states)) return colors.inkMuted;
+        return on(states) ? colors.primary : colors.ink;
+      }),
+      thumbIcon: WidgetStateProperty.resolveWith(
+        (states) => on(states)
+            ? Icon(
+                MmIcons.check,
+                color: disabled(states)
+                    ? colors.surface
+                    : colors.onPrimaryContainer,
+              )
+            : null,
+      ),
+    );
+  }
+
+  /// Checkboxes: an ink frame while unchecked, cobalt with a paper check
+  /// while checked, and a muted-ink frame (on sunken paper, with a
+  /// muted-ink check, when checked) while disabled.
+  static CheckboxThemeData _checkboxTheme(MmColorTokens colors) {
+    bool disabled(Set<WidgetState> states) =>
+        states.contains(WidgetState.disabled);
+    bool checked(Set<WidgetState> states) =>
+        states.contains(WidgetState.selected);
+    return CheckboxThemeData(
+      fillColor: WidgetStateProperty.resolveWith((states) {
+        if (!checked(states)) return Colors.transparent;
+        return disabled(states) ? colors.surfaceSunken : colors.primary;
+      }),
+      checkColor: WidgetStateProperty.resolveWith(
+        (states) => disabled(states) ? colors.inkMuted : colors.onPrimary,
+      ),
+      side: WidgetStateBorderSide.resolveWith((states) {
+        if (disabled(states)) {
+          return BorderSide(color: colors.inkMuted, width: MmSize.stroke);
+        }
+        return checked(states)
+            ? BorderSide.none
+            : BorderSide(color: colors.ink, width: MmSize.stroke);
+      }),
+    );
+  }
+
+  /// Radio buttons: an ink ring, cobalt with a dot while chosen, and muted
+  /// ink while disabled.
+  static RadioThemeData _radioTheme(MmColorTokens colors) => RadioThemeData(
+    fillColor: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.disabled)) return colors.inkMuted;
+      return states.contains(WidgetState.selected)
+          ? colors.primary
+          : colors.ink;
+    }),
+  );
+
+  /// The date picker as a dialog of the system: paper with the `lg`
+  /// corners of dialogs and the [edge] of overlays, ink text, and days,
+  /// years and weekday letters set in the Latin face with tabular figures
+  /// in both languages (Urdu dates are written in Western digits), so a
+  /// day's two digits stay as narrow as the grid needs. Days that cannot be
+  /// chosen are muted ink.
+  static DatePickerThemeData _datePickerTheme(
+    MmColorTokens colors,
+    BorderSide edge,
+  ) {
+    final figures = MmSemantics.withUrduFallback(
+      MmTypeScale.latinBody.copyWith(
+        color: colors.ink,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+    WidgetStateProperty<Color?> ink(Color resting) =>
+        WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return colors.onPrimary;
+          if (states.contains(WidgetState.disabled)) return colors.inkMuted;
+          return resting;
+        });
+    final chosen = WidgetStateProperty.resolveWith<Color?>(
+      (states) => states.contains(WidgetState.selected) ? colors.primary : null,
+    );
+    return DatePickerThemeData(
+      backgroundColor: colors.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.all(Radius.circular(MmRadius.lg)),
+        side: edge,
+      ),
+      headerBackgroundColor: colors.surface,
+      headerForegroundColor: colors.ink,
+      // The month and year above the days, and the arrows beside them:
+      // muted ink, where Material's ink at 60% falls under 4.5:1.
+      subHeaderForegroundColor: colors.inkMuted,
+      dividerColor: colors.rule,
+      weekdayStyle: figures,
+      dayStyle: figures,
+      yearStyle: figures,
+      dayForegroundColor: ink(colors.ink),
+      dayBackgroundColor: chosen,
+      todayForegroundColor: ink(colors.primary),
+      todayBackgroundColor: chosen,
+      todayBorder: BorderSide(color: colors.primary),
+      yearForegroundColor: ink(colors.ink),
+      yearBackgroundColor: chosen,
     );
   }
 

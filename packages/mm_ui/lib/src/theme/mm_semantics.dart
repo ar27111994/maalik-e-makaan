@@ -114,6 +114,65 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
         (rune >= 0xFE70 && rune <= 0xFEFF),
   );
 
+  /// The direction of [text]'s first letter: right to left for a letter of
+  /// a right-to-left script (Urdu, Arabic, Hebrew), left to right for any
+  /// other letter, and null when [text] has no letter (a CNIC, a phone
+  /// number, an amount). Digits and punctuation take the direction of the
+  /// text around them, so they do not decide it.
+  static TextDirection? firstStrongDirection(String text) {
+    final letter = _letter.firstMatch(text);
+    if (letter == null) return null;
+    return _rightToLeftLetter.hasMatch(letter[0]!)
+        ? TextDirection.rtl
+        : TextDirection.ltr;
+  }
+
+  /// [text] as it should sit in a paragraph running in [direction]: kept
+  /// apart in its own direction (a Unicode isolate) when that differs, so
+  /// it reads in its own order. Unchanged when it already runs that way.
+  ///
+  /// The landlord's data comes in either script. Without this, an Urdu
+  /// address in the English UI wraps with its words in left-to-right order,
+  /// a sentence typed in English ends with its full stop on the wrong side
+  /// in the Urdu UI, and the groups of a number such as "0412 3345 6789"
+  /// come out reversed in the Urdu UI. Text without letters runs left to
+  /// right. Show the result, but give screen readers [text] itself.
+  static String isolated(String text, TextDirection direction) {
+    final own = firstStrongDirection(text) ?? TextDirection.ltr;
+    if (text.isEmpty || own == direction) return text;
+    return own == TextDirection.rtl
+        ? '$_rightToLeftIsolate$text$_popIsolate'
+        : '$_leftToRightIsolate$text$_popIsolate';
+  }
+
+  /// [text], an identifier (a CNIC, a phone, account or consumer number),
+  /// kept left to right and on one line wherever it sits. Inside an Urdu
+  /// sentence the groups of "0412 3345 6789" would otherwise come out in
+  /// reverse order, and anywhere they could be split across two lines; its
+  /// spaces become no-break spaces.
+  ///
+  /// Use it when building a sentence around a number from the app's
+  /// localisations:
+  ///
+  /// ```dart
+  /// l10n.consumerNumber(MmSemantics.leftToRight(bill.consumerNumber))
+  /// ```
+  static String leftToRight(String text) =>
+      '$_leftToRightIsolate${text.replaceAll(' ', _noBreakSpace)}$_popIsolate';
+
+  static const _noBreakSpace = '\u00A0';
+
+  static const _leftToRightIsolate = '\u2066';
+  static const _rightToLeftIsolate = '\u2067';
+  static const _popIsolate = '\u2069';
+
+  static final _letter = RegExp(r'\p{L}', unicode: true);
+  static final _rightToLeftLetter = RegExp(
+    r'[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}'
+    r'\p{Script=Thaana}\p{Script=Nko}]',
+    unicode: true,
+  );
+
   @override
   MmSemantics copyWith({
     MmColorTokens? colors,

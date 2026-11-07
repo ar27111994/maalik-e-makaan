@@ -18,7 +18,7 @@ const _up = MmTrend(
 const _tile = MmStatTile(
   label: _label,
   value: MmAmount(amount: Money.fromRupees(95000), size: MmAmountSize.large),
-  caption: _caption,
+  caption: Text(_caption),
   trend: _up,
 );
 
@@ -66,12 +66,15 @@ void main() {
       );
       expect(
         const MmTrend(
-          direction: MmTrendDirection.flat,
-          label: 'Same',
+          direction: MmTrendDirection.down,
+          label: 'Down',
           favourable: false,
         ).toString(),
-        'MmTrend(flat, "Same", unfavourable)',
+        'MmTrend(down, "Down", unfavourable)',
       );
+      const flat = MmTrend(direction: MmTrendDirection.flat, label: 'Same');
+      expect(flat.favourable, isNull);
+      expect(flat.toString(), 'MmTrend(flat, "Same", neutral)');
     });
 
     test('each direction has its icon', () {
@@ -156,6 +159,62 @@ void main() {
       expect(_trendIcon(tester).size, MmSize.iconMd);
     });
 
+    testEveryVariant('a neutral trend is in muted ink', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmStatTile(
+          label: 'Occupied units',
+          value: Text('12 of 14'),
+          trend: MmTrend(
+            direction: MmTrendDirection.flat,
+            label: 'Same as September',
+          ),
+        ),
+        variant: variant,
+      );
+      final muted = colorsOf(variant).inkMuted;
+      expect(styleOf(tester, 'Same as September').color, muted);
+      expect(_trendIcon(tester).icon, MmIcons.trendFlat);
+      expect(_trendIcon(tester).color, muted);
+    });
+
+    testWidgets('a caption may hold an amount that never breaks', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmStatTile(
+          label: _label,
+          value: Text('Rs 95,000'),
+          caption: Wrap(
+            spacing: MmSpace.s1,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('of'),
+              MmAmount(
+                amount: Money.fromRupees(125000),
+                size: MmAmountSize.small,
+                tone: MmAmountTone.muted,
+              ),
+              Text('due'),
+            ],
+          ),
+        ),
+      );
+      expect(styleOf(tester, 'of').color, MmColorModes.light.inkMuted);
+      expect(
+        styleOf(tester, 'of').fontSize,
+        MmVariant.light.theme.textTheme.bodyMedium!.fontSize,
+      );
+      expect(
+        tester.getSemantics(find.byType(MmStatTile)),
+        matchesSemantics(label: '$_label\nRs 95,000\nof\n125000 rupees\ndue'),
+      );
+    });
+
     testWidgets('a plain text value takes the headline style', (tester) async {
       await pumpThemed(
         tester,
@@ -237,11 +296,7 @@ void main() {
         const MmStatTile(
           label: 'آباد یونٹ',
           value: Text('14 میں سے 12'),
-          trend: MmTrend(
-            direction: MmTrendDirection.flat,
-            label: 'ستمبر جتنے',
-            favourable: true,
-          ),
+          trend: MmTrend(direction: MmTrendDirection.flat, label: 'ستمبر جتنے'),
         ),
         variant: MmVariant.urdu,
       );
@@ -252,9 +307,22 @@ void main() {
       );
     });
 
-    testWidgets('fits 200% text on a 320 dp phone, two to a row', (
-      tester,
-    ) async {
+    testWidgets('fits 200% text on a 320 dp phone one to a row, in whole '
+        'words, its figure above its 100% size', (tester) async {
+      await expectWholeAtLargeText(
+        tester,
+        const Column(spacing: MmSpace.s3, children: [_tile, _tile]),
+        height: 1200,
+        then: (_) {
+          final figure = tester.getRect(find.byType(MmAmount).first);
+          // Large amounts are 32 px at 100% text: drawn no smaller.
+          expect(figure.height, greaterThanOrEqualTo(40));
+        },
+      );
+    });
+
+    testWidgets('two to a row at 200% on a 320 dp phone breaks words and '
+        'squeezes the figure, and both are caught', (tester) async {
       await pumpLargeNarrow(
         tester,
         const Row(
@@ -266,7 +334,54 @@ void main() {
         ),
         height: 1000,
       );
-      expect(tester.takeException(), isNull);
+      // The figure was squeezed below its 100% size.
+      expect(tester.takeException(), isNotNull);
+      // And lines break inside words and the caption's amount.
+      final broken = brokenWords(tester);
+      expect(broken, contains('Collect|ed'));
+      expect(broken.any((word) => word.startsWith('1,2')), isTrue);
+      expect(() => expectWholeWords(tester), throwsA(isA<TestFailure>()));
+    });
+
+    testEveryVariant('inside a card it drops its border and fill', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(
+        tester,
+        MmCard(
+          child: MmStatTile(
+            label: _label,
+            value: const Text('Rs 95,000'),
+            onTap: () {},
+          ),
+        ),
+        variant: variant,
+      );
+      final surface = surfaceOf(tester, find.byType(MmStatTile));
+      expect(surface.color, Colors.transparent);
+      expect(sideOf(tester, find.byType(MmStatTile)), BorderSide.none);
+      // Its keyboard focus still shows.
+      useKeyboardHighlights();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(
+        sideOf(tester, find.byType(MmStatTile)),
+        BorderSide(color: colorsOf(variant).focus, width: MmSize.focusRing),
+      );
+    });
+
+    testWidgets('a tappable tile is bounded by the outline colour', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        MmStatTile(label: _label, value: const Text('Rs 95,000'), onTap: () {}),
+      );
+      expect(
+        sideOf(tester, find.byType(MmStatTile)),
+        BorderSide(color: MmColorModes.light.outline),
+      );
     });
   });
 }

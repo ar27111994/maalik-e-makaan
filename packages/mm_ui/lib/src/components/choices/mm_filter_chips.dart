@@ -43,7 +43,13 @@ class MmFilterOption<T> {
 ///
 /// On phones (compact windows) the chips stay on one line and the row
 /// scrolls sideways, so large text never squeezes them; on medium and
-/// wider windows they wrap onto as many lines as they need.
+/// wider windows they wrap onto as many lines as they need. To let the
+/// scrolling row run to the screen's edges, place it without the page's
+/// side margins and pass them as [padding]: the first chip then lines up
+/// with the page's content, and the others scroll in from the edge.
+///
+/// Disabled (a null [onChanged]), the chips sit on sunken paper in muted
+/// ink, still readable, and take no taps or focus.
 ///
 /// Use it to narrow a list the landlord is looking at. To choose a value
 /// for a form, use an `MmSelectField`, an `MmRadioGroup` or checkboxes.
@@ -58,6 +64,9 @@ class MmFilterOption<T> {
 ///     MmFilterOption(value: RentStatus.paid, label: l10n.paid, count: 12),
 ///   ],
 ///   selected: filters,
+///   padding: const EdgeInsetsDirectional.symmetric(
+///     horizontal: MmSpace.s4,
+///   ),
 ///   onChanged: (filters) => setState(() => this.filters = filters),
 /// )
 /// ```
@@ -68,6 +77,7 @@ class MmFilterChips<T> extends StatelessWidget {
     required this.selected,
     required this.onChanged,
     this.multiSelect = true,
+    this.padding = EdgeInsetsDirectional.zero,
     super.key,
   });
 
@@ -85,6 +95,10 @@ class MmFilterChips<T> extends StatelessWidget {
   /// a chip deselects the others.
   final bool multiSelect;
 
+  /// Space around the chips, inside the row: the page's side margins when
+  /// the scrolling row runs to the screen's edges.
+  final EdgeInsetsGeometry padding;
+
   Set<T> _toggled(T value) {
     final wasSelected = selected.contains(value);
     if (!multiSelect) return wasSelected ? <T>{} : {value};
@@ -100,63 +114,115 @@ class MmFilterChips<T> extends StatelessWidget {
         _chip(
           context.mm,
           option,
+          enabled: onChanged != null,
           selected: selected.contains(option.value),
           count: option.count == null
               ? null
               : material.formatDecimal(option.count!),
           onSelected: onChanged == null
-              ? null
+              ? _inert
               : (_) => onChanged(_toggled(option.value)),
         ),
     ];
     if (MmWindowSize.of(context).atLeast(MmWindowSize.medium)) {
-      return Wrap(spacing: MmSpace.s2, runSpacing: MmSpace.s2, children: chips);
+      return Padding(
+        padding: padding,
+        child: Wrap(
+          spacing: MmSpace.s2,
+          runSpacing: MmSpace.s2,
+          children: chips,
+        ),
+      );
     }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(spacing: MmSpace.s2, children: chips),
+    // A focused, selected chip draws its ring outside itself: the row
+    // clips the scrolling chips that far past its edges, not at them.
+    return ClipRect(
+      clipper: const _RingRoom(),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        padding: padding,
+        child: Row(spacing: MmSpace.s2, children: chips),
+      ),
     );
   }
+
+  /// What a disabled chip does when selected: nothing. Material fades a
+  /// chip without a handler to 38% (under 3:1), so a disabled row keeps
+  /// its chips enabled for painting, styles them as disabled, and takes
+  /// their taps, focus and semantics away.
+  static void _inert(bool selected) {}
 
   Widget _chip(
     MmSemantics mm,
     MmFilterOption<T> option, {
+    required bool enabled,
     required bool selected,
     required String? count,
-    required ValueChanged<bool>? onSelected,
+    required ValueChanged<bool> onSelected,
   }) {
+    final colors = mm.colors;
     // Chip labels stay on one line, so the count never wraps away. The
     // count is set like an amount, in the Latin face in both languages;
     // a label typed in Latin script (a city, a property) is too.
     final suffix = count == null ? null : ' · $count';
+    final label = count == null ? option.label : '${option.label} $count';
+    final chip = FilterChip(
+      label: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: option.label,
+              style: mm.styleFor(option.label, const TextStyle()),
+            ),
+            if (suffix != null)
+              TextSpan(
+                text: suffix,
+                style: mm.styleFor(suffix, const TextStyle()),
+              ),
+          ],
+        ),
+        semanticsLabel: label,
+      ),
+      selected: selected,
+      showCheckmark: false,
+      avatar: selected
+          ? Icon(MmIcons.check, color: enabled ? null : colors.inkMuted)
+          : null,
+      backgroundColor: enabled ? null : colors.surfaceSunken,
+      selectedColor: enabled ? null : colors.surfaceSunken,
+      side: enabled ? null : BorderSide(color: colors.rule),
+      labelStyle: enabled ? null : TextStyle(color: colors.inkMuted),
+      onSelected: onSelected,
+    );
     return MergeSemantics(
       child: Semantics(
         inMutuallyExclusiveGroup: multiSelect ? null : true,
-        child: FilterChip(
-          label: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: option.label,
-                  style: mm.styleFor(option.label, const TextStyle()),
+        child: enabled
+            ? chip
+            : Semantics(
+                button: true,
+                enabled: false,
+                selected: selected,
+                label: label,
+                child: ExcludeSemantics(
+                  child: ExcludeFocus(child: IgnorePointer(child: chip)),
                 ),
-                if (suffix != null)
-                  TextSpan(
-                    text: suffix,
-                    style: mm.styleFor(suffix, const TextStyle()),
-                  ),
-              ],
-            ),
-            semanticsLabel: count == null
-                ? option.label
-                : '${option.label} $count',
-          ),
-          selected: selected,
-          showCheckmark: false,
-          avatar: selected ? const Icon(MmIcons.check) : null,
-          onSelected: onSelected,
-        ),
+              ),
       ),
     );
   }
+}
+
+/// The scrolling row's clip: its own bounds and the reach of a focus ring
+/// drawn outside a chip (the gap and the ring) beyond them.
+class _RingRoom extends CustomClipper<Rect> {
+  const new();
+
+  @override
+  Rect getClip(Size size) =>
+      (Offset.zero & size).inflate(MmSize.focusGap + MmSize.focusRing);
+
+  @override
+  bool shouldReclip(_RingRoom oldClipper) => false;
 }

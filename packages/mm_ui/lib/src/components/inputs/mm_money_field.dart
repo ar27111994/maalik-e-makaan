@@ -4,8 +4,8 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/inputs/mm_input_editing.dart';
 import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
+import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
-import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// A labelled field for a rupee amount: rent, a payment, a deposit.
 ///
@@ -14,14 +14,21 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// caret beside the digit being edited. It takes Urdu digits and pasted
 /// text such as "Rs 1,25,000" or "1.5 lakh", and shows the currency the
 /// way the money format writes it: "Rs" before the amount in English,
-/// "روپے" after it in Urdu. Figures are tabular in the Latin amount face,
-/// and a screen reader hears the plain number and the currency
-/// ("125000 rupees"), since grouped figures are read out unreliably.
+/// "روپے" after it in Urdu, with the amount against it. Figures are
+/// tabular in the Latin amount face, on one line that is never cut short:
+/// at large text sizes a long amount is set only as much smaller as it
+/// needs to fit. A screen reader hears the plain number and the currency
+/// ("125000 rupees"), since grouped figures are read out unreliably, and
+/// the currency's name while the field is empty.
 ///
 /// [onChanged] receives the amount, or null while the field is empty or
 /// the text is not an acceptable amount (more than two decimals, zero when
 /// [allowZero] is false, above [max]); the text keeps what was typed, so
-/// pass the matching [errorText].
+/// pass the matching [errorText], or check the amount in [validator].
+///
+/// The field takes amounts of zero or more, as people pay and are owed
+/// them: [value] is never negative. Say a credit in words beside the
+/// field instead of passing a negative amount.
 ///
 /// For a number that is not money (a meter reading, a percentage), use
 /// `MmTextField` with a number keyboard.
@@ -48,10 +55,14 @@ class MmMoneyField extends StatelessWidget {
     this.allowZero = true,
     this.helper,
     this.errorText,
+    this.validator,
+    this.autovalidateMode,
+    this.onSubmitted,
     this.required = false,
     this.optional = false,
     this.enabled = true,
     this.focusNode,
+    this.autofocus = false,
     this.textInputAction,
     super.key,
   }) : assert(
@@ -63,7 +74,7 @@ class MmMoneyField extends StatelessWidget {
   final String label;
 
   /// The amount shown; null for an empty field. Pass back what [onChanged]
-  /// reports, or a new amount to replace the text.
+  /// reports, or a new amount to replace the text. Never negative.
   final Money? value;
 
   /// Called whenever the amount changes: the amount, or null while the
@@ -79,8 +90,22 @@ class MmMoneyField extends StatelessWidget {
   /// Guidance shown below the field in muted ink.
   final String? helper;
 
-  /// Shown below the field with the error icon while set.
+  /// Shown below the field with the error icon while set; it wins over
+  /// [validator]'s error.
   final String? errorText;
+
+  /// Checks the amount (null while the text is not an acceptable amount)
+  /// when the enclosing `Form` validates, or as [autovalidateMode] says,
+  /// and returns the error to show, or null.
+  final FormFieldValidator<Money>? validator;
+
+  /// When the field validates itself; by default only when the `Form`
+  /// asks.
+  final AutovalidateMode? autovalidateMode;
+
+  /// Called with the amount (null when the text is not an acceptable
+  /// amount) when the user submits from the keyboard.
+  final ValueChanged<Money?>? onSubmitted;
 
   /// Whether the label says "Required".
   final bool required;
@@ -93,6 +118,9 @@ class MmMoneyField extends StatelessWidget {
 
   /// The field's focus node.
   final FocusNode? focusNode;
+
+  /// Whether the field takes focus when first shown.
+  final bool autofocus;
 
   /// The keyboard's action button (next, done).
   final TextInputAction? textInputAction;
@@ -118,6 +146,10 @@ class MmMoneyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    assert(
+      !(value?.isNegative ?? false),
+      'MmMoneyField takes amounts of zero or more; say a credit in words.',
+    );
     final app = MmFormats.moneyOf(context);
     // The field always writes the full amount with Western digits; only
     // the grouping and the currency's place follow the app's format.
@@ -135,6 +167,7 @@ class MmMoneyField extends StatelessWidget {
     final at = marked.indexOf(zero);
     final before = marked.substring(0, at).trim();
     final after = marked.substring(at + zero.length).trim();
+    final marker = before.isNotEmpty ? before : after;
 
     return MmValueField<Money>(
       label: label,
@@ -151,42 +184,22 @@ class MmMoneyField extends StatelessWidget {
         return MmFormats.spokenMoney(context, amount, format: plain);
       },
       style: context.mm.amount,
-      prefixIcon: before.isEmpty ? null : _Currency(before, leading: true),
-      suffixIcon: after.isEmpty ? null : _Currency(after, leading: false),
-      // The marker is text, not a button: it takes only its own width.
-      affixConstraints: const BoxConstraints(),
+      // The marker is always visible, and hidden from assistive technology:
+      // the amount is announced with the currency.
+      marker: marker.isEmpty ? null : marker,
+      markerLeading: before.isNotEmpty,
+      unit: MmLocalizations.of(context).rupees,
       helper: helper,
       errorText: errorText,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      onSubmitted: onSubmitted,
       required: required,
       optional: optional,
       enabled: enabled,
       focusNode: focusNode,
+      autofocus: autofocus,
       textInputAction: textInputAction,
-    );
-  }
-}
-
-/// The currency marker inside a money field, always visible. It is hidden
-/// from assistive technology: the amount is announced with the currency.
-class _Currency extends StatelessWidget {
-  const new(this.marker, {required this.leading});
-
-  final String marker;
-
-  /// Whether the marker comes before the amount (start) or after it (end).
-  final bool leading;
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).inputDecorationTheme.prefixStyle!;
-    return ExcludeSemantics(
-      child: Padding(
-        padding: EdgeInsetsDirectional.only(
-          start: leading ? MmSpace.s4 : MmSpace.s1,
-          end: leading ? MmSpace.s1 : MmSpace.s4,
-        ),
-        child: Text(marker, style: context.mm.styleFor(marker, style)),
-      ),
     );
   }
 }

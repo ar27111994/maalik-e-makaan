@@ -213,5 +213,82 @@ void main() {
         ),
       );
     });
+
+    testWidgets('the number shows whole at 200% on a 320 dp phone', (
+      tester,
+    ) async {
+      await expectWholeValues(
+        tester,
+        MmCnicField(label: "Tenant's CNIC", value: _cnic, onChanged: (_) {}),
+        check: (locale) async {
+          expect(valueOf(tester).text, '35202-1234567-1');
+          // It fits at the reader's size: nothing is set smaller.
+          expect(textScaleOf(tester), 2, reason: locale.languageCode);
+        },
+      );
+    });
+
+    testWidgets('in Urdu, at the Latin body size on the Urdu line', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        Column(
+          children: [
+            MmCnicField(label: 'شناختی کارڈ', value: _cnic, onChanged: (_) {}),
+            const MmTextField(label: 'نام', initialValue: 'علی رضا'),
+          ],
+        ),
+        variant: MmVariant.urdu,
+      );
+      final style = tester
+          .widget<EditableText>(find.byType(EditableText).first)
+          .style;
+      expect(style.fontFamily, contains(MmFontFamily.latin));
+      expect(style.fontSize, MmTypeScale.latinBody.fontSize);
+      // As tall as the Urdu text field beside it.
+      final fields = find.byType(InputDecorator);
+      expect(
+        tester.getSize(fields.first).height,
+        tester.getSize(fields.last).height,
+      );
+    });
+
+    testWidgets('submits, validates and takes focus like a text field', (
+      tester,
+    ) async {
+      final form = GlobalKey<FormState>();
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final submitted = <Cnic?>[];
+      await pumpThemed(
+        tester,
+        Form(
+          key: form,
+          child: MmCnicField(
+            label: "Tenant's CNIC",
+            focusNode: focus,
+            autofocus: true,
+            autovalidateMode: AutovalidateMode.disabled,
+            validator: (cnic) => cnic == null ? 'Enter all 13 digits' : null,
+            onSubmitted: submitted.add,
+            onChanged: (_) {},
+          ),
+        ),
+      );
+      expect(focus.hasFocus, isTrue);
+      await tester.enterText(find.byType(TextField), '352021');
+      expect(form.currentState!.validate(), isFalse);
+      await tester.pump();
+      expect(
+        find.textContaining('Enter all 13 digits', findRichText: true),
+        findsOne,
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.enterText(find.byType(TextField), '3520212345671');
+      expect(form.currentState!.validate(), isTrue);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      expect(submitted, [null, _cnic]);
+    });
   });
 }

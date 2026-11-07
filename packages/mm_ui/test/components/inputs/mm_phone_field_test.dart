@@ -259,5 +259,91 @@ void main() {
         ),
       );
     });
+
+    testWidgets('a mobile and a number abroad show whole at 200% on a '
+        '320 dp phone', (tester) async {
+      await expectWholeValues(
+        tester,
+        Column(
+          children: [
+            MmPhoneField(
+              label: 'Mobile number',
+              value: _mobile,
+              onChanged: (_) {},
+            ),
+            MmPhoneField(
+              label: 'Number abroad',
+              value: PhoneNumber.fromE164('+447700900123'),
+              onChanged: (_) {},
+            ),
+          ],
+        ),
+        check: (locale) async {
+          for (final field in find.byType(MmPhoneField).evaluate()) {
+            // They fit at the reader's size: nothing is set smaller.
+            expect(
+              textScaleOf(tester, find.byWidget(field.widget)),
+              2,
+              reason: locale.languageCode,
+            );
+          }
+        },
+      );
+    });
+
+    testWidgets('the longest number shows whole, set only as small as it '
+        'needs', (tester) async {
+      await expectWholeValues(
+        tester,
+        const _Host(),
+        check: (locale) async {
+          await tester.enterText(find.byType(TextField), '00123456789012345');
+          await tester.pumpAndSettle();
+          final editable = renderEditableOf(tester);
+          expect(
+            editable.getMaxIntrinsicWidth(double.infinity),
+            lessThanOrEqualTo(editable.size.width),
+          );
+          expect(textScaleOf(tester), inExclusiveRange(1, 2));
+        },
+      );
+    });
+
+    testWidgets('submits, validates and takes focus like a text field', (
+      tester,
+    ) async {
+      final form = GlobalKey<FormState>();
+      final focus = FocusNode();
+      addTearDown(focus.dispose);
+      final submitted = <PhoneNumber?>[];
+      await pumpThemed(
+        tester,
+        Form(
+          key: form,
+          child: MmPhoneField(
+            label: 'Mobile number',
+            focusNode: focus,
+            autofocus: true,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            validator: (phone) =>
+                phone?.type == PhoneNumberType.mobile ? null : 'Not a mobile',
+            onSubmitted: submitted.add,
+            onChanged: (_) {},
+          ),
+        ),
+      );
+      expect(focus.hasFocus, isTrue);
+      await tester.enterText(find.byType(TextField), '042 3576 1234');
+      await tester.pump();
+      expect(find.textContaining('Not a mobile', findRichText: true), findsOne);
+      await tester.enterText(find.byType(TextField), '03001234567');
+      await tester.pump();
+      expect(
+        find.textContaining('Not a mobile', findRichText: true),
+        findsNothing,
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      expect(submitted, [_mobile]);
+    });
   });
 }

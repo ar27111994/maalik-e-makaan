@@ -23,9 +23,11 @@ void main() {
             required: true,
             helper: tr('At least 8 characters', 'کم از کم ۸ حروف'),
           ),
+          // Focused with an error: the outline stays the overdue colour.
           MmPasswordField(
             label: tr('Password', 'پاس ورڈ'),
             initialValue: 'lahore',
+            autofocus: true,
             errorText: tr('Wrong password', 'پاس ورڈ درست نہیں'),
           ),
           MmPasswordField(

@@ -11,7 +11,8 @@ import 'package:mm_ui/src/l10n/mm_localizations.dart';
 /// "Optional" in words, helper or error below) and offers the password
 /// manager the saved password, or with [newPassword] a new one to store.
 /// Suggestions and autocorrect are off, and the password reads left to
-/// right exactly as typed in both languages.
+/// right exactly as typed in both languages. Disabling the field hides the
+/// password again.
 ///
 /// Use it only for secrets the user types. To keep a tenant's CNIC off a
 /// shared screen, show it with `MmCnicText`, which masks it.
@@ -120,6 +121,14 @@ class MmPasswordField extends StatefulWidget {
 
 class _MmPasswordFieldState extends State<MmPasswordField> {
   bool _revealed = false;
+
+  @override
+  void didUpdateWidget(MmPasswordField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A disabled field cannot be hidden again from its button, so it never
+    // stays revealed.
+    if (!widget.enabled) _revealed = false;
+  }
 
   @override
   Widget build(BuildContext context) {

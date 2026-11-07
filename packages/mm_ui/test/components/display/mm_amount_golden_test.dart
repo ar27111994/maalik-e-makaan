@@ -9,8 +9,8 @@ import 'package:mm_ui/mm_ui.dart';
 import '../../support/testing.dart';
 
 /// The three sizes, every tone, a credit, a negative balance, lakh/crore
-/// grouping, the compact notation, the end alignment and an amount scaled
-/// down to fit a narrow space.
+/// grouping, the compact notation, the end alignment, and a large amount in
+/// a box that holds it at 100% text, scaled back down to fit at 200%.
 void main() {
   goldenEveryVariant(
     'mm_amount',
@@ -80,9 +80,9 @@ void main() {
           DecoratedBox(
             decoration: BoxDecoration(border: Border.all(color: rule)),
             child: const SizedBox(
-              width: 120,
+              width: 200,
               child: MmAmount(
-                amount: Money.fromRupees(12500000),
+                amount: Money.fromRupees(45000),
                 size: MmAmountSize.large,
               ),
             ),

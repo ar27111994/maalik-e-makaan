@@ -27,10 +27,12 @@ void main() {
           MmFormats(
             money: MmFormats.defaultFor(Localizations.localeOf(context))
                 .copyWith(grouping: DigitGrouping.southAsian),
+            // Focused, as when the landlord has just moved to it.
             child: MmMoneyField(
               label: tr('Security deposit', 'زرِ ضمانت'),
               value: const Money.fromRupees(125000),
               optional: true,
+              autofocus: true,
               onChanged: (_) {},
             ),
           ),
@@ -49,6 +51,6 @@ void main() {
         ],
       ),
     ),
-    size: const Size(360, 860),
+    sizes: const {MmVariant.largeText: Size(360, 800)},
   );
 }

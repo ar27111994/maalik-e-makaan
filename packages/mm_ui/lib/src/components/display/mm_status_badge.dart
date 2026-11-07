@@ -111,6 +111,9 @@ class MmStatusBadge extends StatelessWidget {
             iconColor: onContainer,
             style: Theme.of(context).textTheme.labelLarge!
                 .copyWith(color: onContainer),
+            // Wrapped words keep the badge as wide as its longest line,
+            // without empty fill after it.
+            textWidthBasis: TextWidthBasis.longestLine,
           ),
         ),
       ),

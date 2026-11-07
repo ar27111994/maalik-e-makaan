@@ -10,7 +10,9 @@ import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
 /// It takes digits only (Urdu digits become Western ones), inserts the
 /// dashes as the digits are typed (`35202-1234567-1`) and stops at 13
 /// digits, keeping the caret beside the digit being edited. The number is
-/// set in the Latin face in both languages and read out digit by digit.
+/// set in the Latin face in both languages, on one line that is never cut
+/// short (at large text sizes it is set only as much smaller as it needs
+/// to fit), and read out digit by digit.
 ///
 /// [onChanged] receives the CNIC once the 13 digits make a valid number,
 /// and null until then (and whenever it stops being one).
@@ -35,10 +37,14 @@ class MmCnicField extends StatelessWidget {
     this.value,
     this.helper,
     this.errorText,
+    this.validator,
+    this.autovalidateMode,
+    this.onSubmitted,
     this.required = false,
     this.optional = false,
     this.enabled = true,
     this.focusNode,
+    this.autofocus = false,
     this.textInputAction,
     super.key,
   }) : assert(
@@ -60,8 +66,22 @@ class MmCnicField extends StatelessWidget {
   /// Guidance shown below the field in muted ink.
   final String? helper;
 
-  /// Shown below the field with the error icon while set.
+  /// Shown below the field with the error icon while set; it wins over
+  /// [validator]'s error.
   final String? errorText;
+
+  /// Checks the CNIC (null while the digits do not make a valid one) when
+  /// the enclosing `Form` validates, or as [autovalidateMode] says, and
+  /// returns the error to show, or null.
+  final FormFieldValidator<Cnic>? validator;
+
+  /// When the field validates itself; by default only when the `Form`
+  /// asks.
+  final AutovalidateMode? autovalidateMode;
+
+  /// Called with the CNIC (null when the text is not one) when the user
+  /// submits from the keyboard.
+  final ValueChanged<Cnic?>? onSubmitted;
 
   /// Whether the label says "Required".
   final bool required;
@@ -74,6 +94,9 @@ class MmCnicField extends StatelessWidget {
 
   /// The field's focus node.
   final FocusNode? focusNode;
+
+  /// Whether the field takes focus when first shown.
+  final bool autofocus;
 
   /// The keyboard's action button (next, done).
   final TextInputAction? textInputAction;
@@ -91,10 +114,14 @@ class MmCnicField extends StatelessWidget {
       spellOut: true,
       helper: helper,
       errorText: errorText,
+      validator: validator,
+      autovalidateMode: autovalidateMode,
+      onSubmitted: onSubmitted,
       required: required,
       optional: optional,
       enabled: enabled,
       focusNode: focusNode,
+      autofocus: autofocus,
       textInputAction: textInputAction,
     );
   }

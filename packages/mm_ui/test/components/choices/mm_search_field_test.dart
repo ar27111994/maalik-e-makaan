@@ -56,6 +56,47 @@ void main() {
       );
     });
 
+    testEveryVariant("the well is framed where its tone is the page's", (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(tester, const MmSearchField(), variant: variant);
+      final colors = variant.colors;
+      final framed =
+          variant.brightness == Brightness.dark || variant.highContrast;
+      final atRest = _decoration(tester).enabledBorder!.borderSide;
+      expect(
+        atRest,
+        framed ? BorderSide(color: colors.outline) : BorderSide.none,
+      );
+      if (framed) {
+        // The well's own tone is all but the page's ...
+        expect(mmContrastRatio(colors.surfaceSunken, colors.bg), lessThan(1.2));
+        // ... so the outline marks where it is, at 3:1.
+        expect(
+          mmContrastRatio(colors.outline, colors.bg),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+        );
+      }
+    });
+
+    testWidgets('its icons grow with the text, up to half again', (
+      tester,
+    ) async {
+      final controller = TextEditingController(text: 'Ali');
+      addTearDown(controller.dispose);
+      await pumpLargeNarrow(tester, MmSearchField(controller: controller));
+      for (final icon in [MmIcons.search, MmIcons.close]) {
+        final glyph = tester.widget<RichText>(
+          find.descendant(
+            of: find.byIcon(icon),
+            matching: find.byType(RichText),
+          ),
+        );
+        expect(glyph.text.style!.fontSize, MmSize.iconLg * 1.5);
+      }
+    });
+
     testWidgets('a hint names the field', (tester) async {
       await pumpThemed(tester, const MmSearchField(hint: 'Search tenants'));
       expect(find.text('Search tenants'), findsOneWidget);

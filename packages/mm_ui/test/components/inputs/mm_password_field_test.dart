@@ -8,6 +8,18 @@ import '../../support/testing.dart';
 bool _obscured(WidgetTester tester) =>
     tester.widget<EditableText>(find.byType(EditableText)).obscureText;
 
+/// The shape of the show-password button.
+ShapeBorder? _buttonShape(WidgetTester tester) => tester
+    .widget<Material>(
+      find
+          .descendant(
+            of: find.byType(IconButton),
+            matching: find.byType(Material),
+          )
+          .first,
+    )
+    .shape;
+
 void main() {
   group('MmPasswordField', () {
     testEveryVariant('hides the password until the button shows it', (
@@ -44,6 +56,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
+      expect(hasFocus(tester, find.byIcon(MmIcons.show)), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();
       expect(_obscured(tester), isFalse);
@@ -171,6 +184,49 @@ void main() {
         find.textContaining('At least 8 characters', findRichText: true),
         findsOne,
       );
+    });
+
+    testEveryVariant('the button draws the focus ring outside itself', (
+      tester,
+      variant,
+    ) async {
+      useKeyboardHighlights();
+      await pumpThemed(
+        tester,
+        const MmPasswordField(label: 'Password', initialValue: 'lahore'),
+        variant: variant,
+      );
+      expect(_buttonShape(tester), isNot(isA<MmFocusRingBorder>()));
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      final ring = _buttonShape(tester)! as MmFocusRingBorder;
+      expect(ring.color, colorsOf(variant).focus);
+      expect(ring.width, MmSize.focusRing);
+      expect(ring.gap, MmSize.focusGap);
+    });
+
+    testWidgets('disabling the field hides the password again', (tester) async {
+      Widget build({required bool enabled}) => themed(
+        MmPasswordField(
+          label: 'Password',
+          initialValue: 'gulberg',
+          enabled: enabled,
+        ),
+      );
+      await pumpThemed(
+        tester,
+        const MmPasswordField(label: 'Password', initialValue: 'gulberg'),
+      );
+      await tester.tap(find.byTooltip('Show password'));
+      await tester.pump();
+      expect(_obscured(tester), isFalse);
+      // Its button cannot hide it while disabled, so it is hidden for it.
+      await tester.pumpWidget(build(enabled: false));
+      expect(_obscured(tester), isTrue);
+      expect(find.byIcon(MmIcons.show), findsOneWidget);
+      await tester.pumpWidget(build(enabled: true));
+      expect(_obscured(tester), isTrue);
     });
 
     testWidgets('a disabled field cannot be revealed', (tester) async {

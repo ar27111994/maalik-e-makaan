@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsValidationResult;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -472,6 +474,120 @@ void main() {
       expect(
         tester.getSemantics(find.bySemanticsLabel('Choose a property')),
         isSemantics(label: 'Choose a property', isLiveRegion: true),
+      );
+      // The field itself is marked invalid while it has an error.
+      expect(
+        tester.getSemantics(_box),
+        isSemantics(
+          label: 'Property',
+          validationResult: SemanticsValidationResult.invalid,
+        ),
+      );
+    });
+
+    testWidgets('the sheet closes with its close button; focus comes back', (
+      tester,
+    ) async {
+      final log = <String>[];
+      await pumpThemed(tester, _field(options: _properties, log: log));
+      await _open(tester);
+      final close = find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byIcon(MmIcons.close),
+      );
+      expect(
+        tester.getSemantics(close),
+        matchesSemantics(
+          label: 'Close',
+          isButton: true,
+          hasEnabledState: true,
+          isEnabled: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasFocusAction: true,
+        ),
+      );
+      await tester.tap(close);
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(log, isEmpty);
+      expect(FocusManager.instance.primaryFocus?.debugLabel, 'MmSelectField');
+    });
+
+    testWidgets('the sheet opens as every sheet does', (tester) async {
+      await pumpThemed(
+        tester,
+        _field(options: _properties),
+        size: const Size(1000, 740),
+      );
+      await _open(tester);
+      // At most the widest a sheet grows, centred, in the system's time.
+      final sheet = tester.getRect(
+        find
+            .descendant(
+              of: find.byType(BottomSheet),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(sheet.width, MmSize.sheetMax);
+      expect(sheet.center.dx, 500);
+      final route = ModalRoute.of(tester.element(find.byType(BottomSheet)))!;
+      expect(route.transitionDuration, MmDuration.standard);
+      // With reduced motion it opens at once.
+      Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+      await tester.pumpAndSettle();
+      await pumpThemed(tester, withoutAnimations(_field(options: _properties)));
+      await tester.tap(_box);
+      await tester.pump();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(
+        ModalRoute.of(tester.element(find.byType(BottomSheet)))!
+            .transitionDuration,
+        Duration.zero,
+      );
+    });
+
+    testEveryVariant('the sheet has an edge where the page is dark', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(tester, _field(options: _properties), variant: variant);
+      await _open(tester);
+      final shape =
+          tester.widget<BottomSheet>(find.byType(BottomSheet)).shape!
+              as RoundedRectangleBorder;
+      final framed =
+          variant.brightness == Brightness.dark || variant.highContrast;
+      expect(
+        shape.side,
+        framed ? BorderSide(color: variant.colors.outline) : BorderSide.none,
+      );
+      expect(
+        shape.borderRadius,
+        const BorderRadius.vertical(top: Radius.circular(MmRadius.lg)),
+      );
+    });
+
+    testWidgets('labels line up whether or not a row has an icon', (
+      tester,
+    ) async {
+      await pumpThemed(tester, _field(options: _properties));
+      await _open(tester);
+      final starts = {
+        for (final option in _properties)
+          tester.getTopLeft(find.text(option.label).last).dx,
+      };
+      expect(starts, hasLength(1));
+      // Without any icon, rows keep no room for one.
+      Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+      await tester.pumpAndSettle();
+      await pumpThemed(tester, _field(options: _units));
+      await _open(tester);
+      expect(
+        tester.getTopLeft(find.text('Flat A-1')).dx -
+            tester.getTopLeft(_row('Flat A-1')).dx,
+        MmSpace.s4,
       );
     });
 

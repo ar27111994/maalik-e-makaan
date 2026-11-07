@@ -21,12 +21,17 @@ void main() {
             label: tr("Tenant's CNIC", 'کرایہ دار کا شناختی کارڈ'),
             value: Cnic.parse('35202-1234567-1'),
             required: true,
-            helper: tr('13 digits, as on the card', '۱۳ ہندسے'),
+            helper: tr(
+              '13 digits, as on the card',
+              '۱۳ ہندسے، جیسے کارڈ پر لکھے ہیں',
+            ),
             onChanged: (_) {},
           ),
+          // Focused, as when the landlord has just moved to it.
           MmCnicField(
             label: tr("Guarantor's CNIC", 'ضامن کا شناختی کارڈ'),
             optional: true,
+            autofocus: true,
             onChanged: (_) {},
           ),
           MmCnicField(
@@ -47,6 +52,6 @@ void main() {
         ],
       ),
     ),
-    size: const Size(360, 860),
+    sizes: const {MmVariant.largeText: Size(360, 760)},
   );
 }

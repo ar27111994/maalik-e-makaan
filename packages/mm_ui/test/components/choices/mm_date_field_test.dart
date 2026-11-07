@@ -1,11 +1,15 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 final _first = CalendarDate(2020, 1, 1);
 final _last = CalendarDate(2030, 12, 31);
@@ -90,12 +94,46 @@ BorderSide _outline(WidgetTester tester) {
 Future<void> _pickDay(WidgetTester tester, String day) async {
   await tester.tap(find.text(day));
   await tester.pumpAndSettle();
-  await tester.tap(find.text('OK'));
+  await tester.tap(find.text('Choose a date'));
   await tester.pumpAndSettle();
 }
 
 MmColorTokens _colors(MmVariant variant) =>
     MmTheme.tokensFor(variant.brightness, highContrast: variant.highContrast);
+
+/// The open picker.
+Finder get _picker => find.byType(DatePickerDialog);
+
+/// The Material of the icon button showing [icon].
+Material _buttonOf(WidgetTester tester, IconData icon) => tester.widget(
+  find.descendant(
+    of: find.widgetWithIcon(IconButton, icon),
+    matching: find.byType(Material),
+  ),
+);
+
+/// Opens the picker of a field in [locale] at 200% text on a 320 dp phone.
+Future<void> _openLargeNarrow(WidgetTester tester, Locale locale) async {
+  tester.view
+    ..physicalSize = const Size(320, 740)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(
+    themedApp(
+      Scaffold(
+        body: _field(
+          label: locale.languageCode == 'ur' ? 'لیز کا آغاز' : 'Lease start',
+          value: CalendarDate(2026, 9, 30),
+        ),
+      ),
+      variant: MmVariant.largeText,
+      locale: locale,
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(_box);
+  await tester.pumpAndSettle();
+}
 
 void main() {
   group('MmDateField date conversion', () {
@@ -168,7 +206,7 @@ void main() {
         _field(value: CalendarDate(2026, 11, 5), required: true),
       );
       expect(find.text('Lease start  Required', findRichText: true), findsOne);
-      expect(find.text('Nov 5, 2026'), findsOneWidget);
+      expect(find.text('5 Nov 2026'), findsOneWidget);
       expect(find.byIcon(MmIcons.calendar), findsOneWidget);
       expect(find.byIcon(MmIcons.close), findsNothing);
       expect(
@@ -187,6 +225,163 @@ void main() {
       expect(find.textContaining('2026'), findsOneWidget);
     });
 
+    testWidgets('English dates put the day first, as Pakistan writes them', (
+      tester,
+    ) async {
+      final log = <CalendarDate?>[];
+      await pumpThemed(
+        tester,
+        _field(log: log, value: CalendarDate(2026, 11, 5)),
+      );
+      expect(find.text('5 Nov 2026'), findsOneWidget);
+      await tester.tap(_box);
+      await tester.pumpAndSettle();
+      final dates = MaterialLocalizations.of(tester.element(_picker));
+      expect(
+        Localizations.localeOf(tester.element(_picker)).toString(),
+        'en_IN',
+      );
+      // Weeks start on Sunday, as in the Urdu calendar.
+      expect(dates.firstDayOfWeekIndex, 0);
+      expect(find.text('Thu, 5 Nov'), findsOneWidget);
+      // Typed dates are day first: 03/11/2026 is 3 November, not 11 March.
+      await tester.tap(find.byIcon(MmIcons.edit));
+      await tester.pumpAndSettle();
+      expect(find.text('5/11/2026'), findsOneWidget);
+      expect(find.text('dd/mm/yyyy'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '03/11/2026');
+      await tester.tap(find.text('Choose a date'));
+      await tester.pumpAndSettle();
+      expect(log, [CalendarDate(2026, 11, 3)]);
+    });
+
+    testWidgets('the Urdu picker keeps Urdu, also day first', (tester) async {
+      await pumpThemed(
+        tester,
+        _field(value: CalendarDate(2026, 11, 5), label: 'لیز کا آغاز'),
+        variant: MmVariant.urdu,
+      );
+      await tester.tap(_box);
+      await tester.pumpAndSettle();
+      expect(
+        Localizations.localeOf(tester.element(_picker)).languageCode,
+        'ur',
+      );
+      expect(
+        MaterialLocalizations.of(tester.element(_picker)).firstDayOfWeekIndex,
+        0,
+      );
+      expect(find.text('منسوخ کریں'), findsOneWidget);
+      expect(find.text('تاریخ منتخب کریں'), findsOneWidget);
+    });
+
+    testWidgets('Urdu dates set their figures in the Latin face', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        _field(value: CalendarDate(2026, 11, 5), label: 'لیز کا آغاز'),
+        variant: MmVariant.urdu,
+      );
+      final date = tester.widget<Text>(find.textContaining('نومبر'));
+      final runs = (date.textSpan! as TextSpan).children!.cast<TextSpan>();
+      String? family(String text) =>
+          runs.firstWhere((run) => run.text!.contains(text)).style?.fontFamily;
+      expect(family('5'), contains(MmFontFamily.latin));
+      expect(family('2026'), contains(MmFontFamily.latin));
+      expect(family('نومبر'), contains(MmFontFamily.urdu));
+    });
+
+    testWidgets('the picker speaks the system: words, icons, corners', (
+      tester,
+    ) async {
+      await pumpThemed(tester, _field(value: CalendarDate(2026, 11, 5)));
+      await tester.tap(_box);
+      await tester.pumpAndSettle();
+      // A verb confirms, not "OK"; the entry modes switch with MmIcons.
+      expect(find.text('OK'), findsNothing);
+      expect(find.text('Choose a date'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Lease start'), findsWidgets);
+      expect(find.byIcon(MmIcons.edit), findsOneWidget);
+      await tester.tap(find.byIcon(MmIcons.edit));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: _picker, matching: find.byIcon(MmIcons.calendar)),
+        findsOneWidget,
+      );
+      final shape =
+          DatePickerTheme.of(tester.element(_picker)).shape!
+              as RoundedRectangleBorder;
+      expect(
+        shape.borderRadius,
+        const BorderRadius.all(Radius.circular(MmRadius.lg)),
+      );
+    });
+
+    testEveryVariant('the picker has an edge where the page is dark', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(
+        tester,
+        _field(value: CalendarDate(2026, 11, 5)),
+        variant: variant,
+      );
+      await tester.tap(_box);
+      await tester.pumpAndSettle();
+      final side =
+          (DatePickerTheme.of(tester.element(_picker)).shape!
+                  as RoundedRectangleBorder)
+              .side;
+      final framed =
+          variant.brightness == Brightness.dark || variant.highContrast;
+      expect(
+        side,
+        framed ? BorderSide(color: variant.colors.outline) : BorderSide.none,
+      );
+      // Days that cannot be chosen are muted ink, chosen ones on cobalt.
+      final theme = DatePickerTheme.of(tester.element(_picker));
+      expect(
+        theme.dayForegroundColor!.resolve({WidgetState.disabled}),
+        variant.colors.inkMuted,
+      );
+      expect(
+        theme.dayBackgroundColor!.resolve({WidgetState.selected}),
+        variant.colors.primary,
+      );
+    });
+
+    for (final locale in const [Locale('en'), Locale('ur')]) {
+      testWidgets('at 200% text on a 320 dp phone the picker fits '
+          '(${locale.languageCode})', (tester) async {
+        await _openLargeNarrow(tester, locale);
+        final scaler = MediaQuery.textScalerOf(
+          tester.element(find.byType(CalendarDatePicker)),
+        );
+        expect(scaler.scale(10), 10 * MmDateField.pickerTextScale);
+        expectTextWhole(tester, _picker);
+        // The typing mode fits too.
+        await tester.tap(find.byIcon(MmIcons.edit));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expectTextWhole(tester, _picker);
+      });
+    }
+
+    testWidgets('below the limit the picker keeps the text size', (
+      tester,
+    ) async {
+      await pumpThemed(tester, _field(value: CalendarDate(2026, 11, 5)));
+      await tester.tap(_box);
+      await tester.pumpAndSettle();
+      expect(
+        MediaQuery.textScalerOf(tester.element(find.byType(CalendarDatePicker)))
+            .scale(10),
+        10,
+      );
+    });
+
     testWidgets('is one button named by its label, with the full date', (
       tester,
     ) async {
@@ -198,7 +393,7 @@ void main() {
         tester.getSemantics(_box),
         matchesSemantics(
           label: 'Lease start',
-          value: 'Thursday, November 5, 2026',
+          value: 'Thursday, 5 November 2026',
           hint: 'Required',
           isButton: true,
           hasEnabledState: true,
@@ -384,7 +579,7 @@ void main() {
       await pumpThemed(tester, _field(value: CalendarDate(2026, 11, 5)));
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      final focus = Focus.of(tester.element(find.text('Nov 5, 2026')));
+      final focus = Focus.of(tester.element(find.text('5 Nov 2026')));
       expect(focus.hasPrimaryFocus, isTrue);
       // The focused field draws the focus ring.
       expect(_outline(tester).width, MmSize.focusRing);
@@ -464,6 +659,117 @@ void main() {
         ),
         isSemantics(label: 'Choose the date rent is due', isLiveRegion: true),
       );
+      // The field itself is marked invalid while it has an error.
+      expect(
+        tester.getSemantics(_box),
+        isSemantics(
+          label: 'Lease start',
+          validationResult: SemanticsValidationResult.invalid,
+        ),
+      );
+      await pumpThemed(tester, _field(helper: 'The day Ali Raza moves in'));
+      expect(
+        tester.getSemantics(_box),
+        isSemantics(
+          label: 'Lease start',
+          validationResult: SemanticsValidationResult.none,
+        ),
+      );
+    });
+
+    testWidgets('keyboard focus rings a button inside the box, uncut', (
+      tester,
+    ) async {
+      useKeyboardHighlights();
+      await pumpThemed(
+        tester,
+        _Controlled(initial: CalendarDate(2027, 10, 31)),
+      );
+      expect(_buttonOf(tester, MmIcons.close).shape, isA<StadiumBorder>());
+      expect(
+        (_buttonOf(tester, MmIcons.close).shape! as StadiumBorder).side,
+        BorderSide.none,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      // The ring is on the button's own edge, inside the box's outline.
+      final ring =
+          (_buttonOf(tester, MmIcons.close).shape! as StadiumBorder).side;
+      expect(
+        ring,
+        BorderSide(color: MmColorModes.light.focus, width: MmSize.focusRing),
+      );
+      final button = tester.getRect(
+        find.widgetWithIcon(IconButton, MmIcons.close),
+      );
+      final box = tester.getRect(find.byType(MmChoiceBox));
+      expect(button.top - box.top, greaterThanOrEqualTo(MmSpace.s1));
+      expect(box.bottom - button.bottom, greaterThanOrEqualTo(MmSpace.s1));
+      // No tint on the field's tappable part: the ring shows focus.
+      expect(tester.widget<InkWell>(_box).focusColor, Colors.transparent);
+    });
+
+    testEveryVariant('its icons are muted ink, readable when disabled', (
+      tester,
+      variant,
+    ) async {
+      final colors = variant.colors;
+      for (final enabled in [true, false]) {
+        await pumpThemed(
+          tester,
+          _field(
+            value: CalendarDate(2026, 11, 5),
+            optional: true,
+            enabled: enabled,
+          ),
+          variant: variant,
+        );
+        expect(iconColorOf(tester, MmIcons.calendar), colors.inkMuted);
+        expect(
+          mmContrastRatio(colors.inkMuted, colors.surface),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+        );
+      }
+    });
+
+    testWidgets('its icons grow with the text, up to half again', (
+      tester,
+    ) async {
+      await pumpLargeNarrow(
+        tester,
+        _field(value: CalendarDate(2026, 11, 5), optional: true),
+      );
+      for (final icon in [MmIcons.calendar, MmIcons.close]) {
+        expect(
+          tester.getSize(find.byIcon(icon)),
+          const Size.square(MmSize.iconLg * MmIconLabel.maxIconScale),
+        );
+      }
+    });
+
+    testWidgets('a mouse over the field lights it, not when disabled', (
+      tester,
+    ) async {
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      addTearDown(mouse.removePointer);
+      await mouse.addPointer(location: Offset.zero);
+      for (final enabled in [true, false]) {
+        await pumpThemed(tester, _field(enabled: enabled));
+        final hover = Theme.of(tester.element(_box)).hoverColor;
+        final ink = Material.of(tester.element(_box));
+        await mouse.moveTo(tester.getCenter(_box));
+        await tester.pumpAndSettle();
+        expect(
+          ink,
+          enabled
+              ? (paints..rect(color: hover))
+              : isNot(paints..rect(color: hover)),
+          reason: 'enabled: $enabled',
+        );
+        await mouse.moveTo(Offset.zero);
+        await tester.pumpAndSettle();
+      }
     });
 
     testWidgets('an optional field clears; focus stays in the field', (
@@ -493,7 +799,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(log, [null]);
       expect(find.byIcon(MmIcons.close), findsNothing);
-      expect(find.text('Oct 31, 2027'), findsNothing);
+      expect(find.text('31 Oct 2027'), findsNothing);
       expect(FocusManager.instance.primaryFocus?.debugLabel, 'MmDateField');
       expect(_outline(tester).width, MmSize.focusRing);
     });
@@ -536,7 +842,7 @@ void main() {
         tester.getSemantics(_box),
         matchesSemantics(
           label: 'Lease start',
-          value: 'Wednesday, October 28, 2026',
+          value: 'Wednesday, 28 October 2026',
           isButton: true,
           hasEnabledState: true,
         ),

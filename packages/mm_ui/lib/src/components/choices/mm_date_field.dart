@@ -2,20 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
+import 'package:mm_ui/src/foundation/mm_date_locale.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
+import 'package:mm_ui/src/theme/mm_semantics.dart';
 
 /// A field for one calendar date: a lease's start, a rent due date, the
 /// day a payment was received.
 ///
-/// The date is shown read-only in the app's language with its year
-/// ("Nov 5, 2026", "5 نومبر، 2026"), and announced in full with its
-/// weekday. Tapping the field or its calendar button, or pressing Enter or
-/// Space while it has focus, opens the Material date picker limited to
-/// [firstDate]..[lastDate]; the picker opens on the chosen date, or on
-/// today in Pakistan. An [optional] field with a date also shows a clear
-/// button. Focus returns to the field when the picker or the clear button
-/// is done.
+/// The date is shown read-only in the app's language with its year, the
+/// day first as Pakistan writes it ("5 Nov 2026", "5 نومبر، 2026"; see
+/// `MmDateLocale`), and announced in full with its weekday. Tapping the
+/// field or its calendar button, or pressing Enter or Space while it has
+/// focus, opens the Material date picker limited to
+/// [firstDate]..[lastDate], in the same conventions (typed as dd/mm/yyyy,
+/// weeks from Sunday); the picker opens on the chosen date, or on today in
+/// Pakistan. An [optional] field with a date also shows a clear button.
+/// Focus returns to the field when the picker or the clear button is done.
+///
+/// The picker's text grows with the landlord's text size only up to
+/// [pickerTextScale]: Material lays the picker out in fixed slots (seven
+/// day columns, a month label beside the arrows, a header of fixed
+/// height), and beyond that size its month names are cut short and its
+/// Urdu header overflows on a 320 dp phone. The field itself grows to
+/// 200% and more.
 ///
 /// The label sits above the field, helper or error text below it, as for
 /// text fields. Dates travel as [CalendarDate] (no time of day, no time
@@ -88,6 +98,14 @@ class MmDateField extends StatefulWidget {
   /// Whether the field can be changed.
   final bool enabled;
 
+  /// The largest text scale the date picker is drawn at: the largest, in
+  /// steps of 5%, at which it fits a 320 dp wide phone in English and in
+  /// Urdu, in its calendar and its typing mode (the tests open it there at
+  /// 200% and check that no text is cut). At 110% "September 2026" no
+  /// longer fits beside the month arrows, and at 115% the Urdu header
+  /// outgrows its fixed height.
+  static const pickerTextScale = 1.05;
+
   /// [date] as the [DateTime] Material's date pickers work in: local
   /// midnight at the start of that day. Built from the date's fields, so
   /// no time-zone conversion can move it to a neighbouring day.
@@ -129,13 +147,23 @@ class _MmDateFieldState extends State<MmDateField> {
       first,
       CalendarDate.min(last, widget.value ?? today),
     );
+    final strings = MmLocalizations.of(context);
     final picked = await showDatePicker(
       context: context,
+      locale: MmDateLocale.forLocale(Localizations.localeOf(context)),
       initialDate: MmDateField.toDateTime(initial),
       firstDate: MmDateField.toDateTime(first),
       lastDate: MmDateField.toDateTime(last),
       currentDate: MmDateField.toDateTime(today),
       helpText: widget.label,
+      cancelText: strings.cancel,
+      confirmText: strings.chooseDate,
+      switchToInputEntryModeIcon: const Icon(MmIcons.edit),
+      switchToCalendarEntryModeIcon: const Icon(MmIcons.calendar),
+      builder: (context, picker) => MediaQuery.withClampedTextScaling(
+        maxScaleFactor: MmDateField.pickerTextScale,
+        child: picker!,
+      ),
     );
     if (!mounted) return;
     _focusNode.requestFocus();
@@ -157,11 +185,23 @@ class _MmDateFieldState extends State<MmDateField> {
       'MmDateField: firstDate (${widget.firstDate}) is after lastDate '
       '(${widget.lastDate}).',
     );
+    // Formatted in Pakistan's conventions: the day before the month.
+    return MmDateLocale(child: Builder(builder: _buildField));
+  }
+
+  Widget _buildField(BuildContext context) {
     final strings = MmLocalizations.of(context);
     final material = MaterialLocalizations.of(context);
+    final colors = context.mm.colors;
     final value = widget.value;
     final enabled = widget.enabled;
     final date = value == null ? null : MmDateField.toDateTime(value);
+    // Icons inside a field are muted ink in every state, as in text
+    // fields: the field's own outline and text say it is disabled.
+    final buttonStyle = MmChoiceBox.buttonStyle(
+      context,
+      color: colors.inkMuted,
+    );
     return MmChoiceFrame(
       label: widget.label,
       helper: widget.helper,
@@ -176,17 +216,20 @@ class _MmDateFieldState extends State<MmDateField> {
         hasError: widget.errorText != null,
         required: widget.required,
         optional: widget.optional,
+        latinFigures: true,
         focusNode: _focusNode,
         onTap: enabled ? _choose : null,
         actions: [
           if (widget.optional && value != null && enabled)
             IconButton(
               tooltip: strings.clearText,
+              style: buttonStyle,
               onPressed: _clear,
               icon: const Icon(MmIcons.close),
             ),
           IconButton(
             tooltip: strings.chooseDate,
+            style: buttonStyle,
             focusNode: _calendarFocusNode,
             onPressed: enabled ? _choose : null,
             icon: const Icon(MmIcons.calendar),

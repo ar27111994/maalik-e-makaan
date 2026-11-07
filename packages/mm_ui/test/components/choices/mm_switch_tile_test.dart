@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
-import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 Widget _tile({
   bool value = false,
@@ -17,19 +17,6 @@ Widget _tile({
   value: value,
   onChanged: enabled ? (on) => log?.add(on) : null,
 );
-
-/// Whether the tile draws its focus ring.
-bool _ringShown(WidgetTester tester) {
-  final box = tester.widget<DecoratedBox>(
-    find
-        .descendant(
-          of: find.byType(MmFocusWithin),
-          matching: find.byType(DecoratedBox),
-        )
-        .first,
-  );
-  return (box.decoration as BoxDecoration).border != null;
-}
 
 void main() {
   group('MmSwitchTile', () {
@@ -71,9 +58,57 @@ void main() {
 
     testWidgets('the thumb carries a check mark while on', (tester) async {
       await pumpThemed(tester, _tile(value: true));
-      final thumb = tester.widget<Switch>(find.byType(Switch)).thumbIcon!;
+      final thumb = SwitchTheme.of(tester.element(find.byType(Switch)))
+          .thumbIcon!;
       expect(thumb.resolve({WidgetState.selected})!.icon, MmIcons.check);
       expect(thumb.resolve({}), isNull);
+    });
+
+    testEveryVariant('disabled, the switch stays readable', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(
+        tester,
+        Column(
+          children: [_tile(value: true, enabled: false), _tile(enabled: false)],
+        ),
+        variant: variant,
+      );
+      final colors = variant.colors;
+      final theme = SwitchTheme.of(tester.element(find.byType(Switch).first));
+      for (final on in [true, false]) {
+        final states = {WidgetState.disabled, if (on) WidgetState.selected};
+        final thumb = theme.thumbColor!.resolve(states)!;
+        final track = theme.trackColor!.resolve(states)!;
+        final outline = theme.trackOutlineColor!.resolve(states)!;
+        // Muted ink, not cobalt or ink at 38%, on sunken paper.
+        expect(thumb, colors.inkMuted, reason: 'on: $on');
+        expect(outline, colors.inkMuted, reason: 'on: $on');
+        expect(track, colors.surfaceSunken, reason: 'on: $on');
+        expect(
+          mmContrastRatio(thumb, track),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+          reason: 'on: $on',
+        );
+        expect(
+          mmContrastRatio(outline, colors.surface),
+          greaterThanOrEqualTo(mmMinimumIconContrast),
+          reason: 'on: $on',
+        );
+      }
+      // The check mark on a disabled thumb is paper on muted ink.
+      final icon = theme.thumbIcon!.resolve({
+        WidgetState.disabled,
+        WidgetState.selected,
+      })!;
+      expect(
+        mmContrastRatio(icon.color!, colors.inkMuted),
+        greaterThanOrEqualTo(mmMinimumIconContrast),
+      );
+      // Enabled, the switch is ink (off) or cobalt (on), unlike disabled.
+      expect(theme.thumbColor!.resolve({}), colors.ink);
+      expect(theme.trackColor!.resolve({WidgetState.selected}), colors.primary);
     });
 
     testWidgets('Enter and Space toggle; keyboard focus draws a ring', (
@@ -81,10 +116,10 @@ void main() {
     ) async {
       final log = <bool>[];
       await pumpThemed(tester, _tile(log: log));
-      expect(_ringShown(tester), isFalse);
+      expect(ringShown(tester), isFalse);
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(_ringShown(tester), isTrue);
+      expect(ringShown(tester), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.pumpAndSettle();
@@ -92,7 +127,7 @@ void main() {
       // Touching the screen hides the ring; focus stays.
       await tester.tapAt(const Offset(4, 4));
       await tester.pumpAndSettle();
-      expect(_ringShown(tester), isFalse);
+      expect(ringShown(tester), isFalse);
     });
 
     testWidgets('a null onChanged disables the row, readably', (tester) async {

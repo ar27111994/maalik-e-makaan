@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _title = 'Tenants';
 const _subtitle = '3 overdue this month';
@@ -28,8 +29,8 @@ void main() {
       expect(title.fontWeight, text.titleLarge!.fontWeight);
       expect(title.letterSpacing, 0);
       expect(title.color, colors.ink);
-      expect(find.text(_title), findsOneWidget);
-      expect(find.text(_title.toUpperCase()), findsNothing);
+      expect(find.textContaining(_title), findsOneWidget);
+      expect(find.textContaining(_title.toUpperCase()), findsNothing);
       expect(styleOf(tester, _subtitle).color, colors.inkMuted);
       expect(find.byType(TextButton), findsNothing);
     });
@@ -102,16 +103,18 @@ void main() {
       );
     });
 
-    testWidgets('puts the action at the end, mirrored right to left', (
-      tester,
-    ) async {
+    testWidgets("lines the action's words up with the end edge, mirrored "
+        'right to left', (tester) async {
       await pumpThemed(
         tester,
         MmSectionHeader(title: _title, actionLabel: _action, onAction: () {}),
       );
       var header = tester.getRect(find.byType(MmSectionHeader));
       var button = tester.getRect(find.byType(TextButton));
-      expect(button.right, header.right);
+      // The button's padding hangs past the edge; its words end on it.
+      expect(tester.getRect(find.text(_action)).right, header.right);
+      expect(button.right, header.right + MmSpace.s4);
+      expect(button.height, MmSize.minTarget);
       expect(tester.getRect(find.text(_title)).left, header.left);
 
       await pumpThemed(
@@ -125,14 +128,52 @@ void main() {
       );
       header = tester.getRect(find.byType(MmSectionHeader));
       button = tester.getRect(find.byType(TextButton));
-      expect(button.left, header.left);
+      expect(tester.getRect(find.text('سب دیکھیں')).left, header.left);
+      expect(button.left, header.left - MmSpace.s4);
       expect(tester.getRect(find.text('کرایہ دار')).right, header.right);
     });
 
-    testWidgets('wraps a long title and moves the action under it at 200%', (
+    testWidgets('keeps 48 dp of a short action inside the column', (
       tester,
     ) async {
-      await pumpLargeNarrow(
+      await pumpThemed(
+        tester,
+        MmSectionHeader(title: _title, actionLabel: 'Edit', onAction: () {}),
+      );
+      final header = tester.getRect(find.byType(MmSectionHeader));
+      final button = tester.getRect(find.byType(TextButton));
+      expect(button.width, lessThan(MmSize.minTarget + MmSpace.s4));
+      expect(header.right - button.left, MmSize.minTarget);
+      expect(button.right, greaterThan(header.right));
+    });
+
+    testWidgets('takes taps on the part of the action past the edge', (
+      tester,
+    ) async {
+      var actions = 0;
+      await pumpThemed(
+        tester,
+        Padding(
+          padding: const EdgeInsets.all(MmSpace.s4),
+          child: MmSectionHeader(
+            title: _title,
+            actionLabel: _action,
+            onAction: () => actions++,
+          ),
+        ),
+      );
+      final header = tester.getRect(find.byType(MmSectionHeader));
+      final button = tester.getRect(find.byType(TextButton));
+      await tester.tapAt(Offset(header.right + MmSpace.s2, button.center.dy));
+      expect(actions, 1);
+      // Below the header, still inside the padding around it, nothing is.
+      await tester.tapAt(Offset(button.center.dx, header.bottom + MmSpace.s2));
+      expect(actions, 1);
+    });
+
+    testWidgets('wraps a long title in whole words and moves the action '
+        'under it at 200%, its words on the start edge', (tester) async {
+      await expectWholeAtLargeText(
         tester,
         MmSectionHeader(
           title: _long,
@@ -140,27 +181,42 @@ void main() {
           actionLabel: _action,
           onAction: () {},
         ),
+        then: (locale) {
+          final title = tester.getRect(find.textContaining(_long));
+          final subtitle = tester.getRect(find.text(_subtitle));
+          final words = tester.getRect(find.text(_action));
+          expect(title.height, greaterThan(2 * 40));
+          expect(words.top, greaterThanOrEqualTo(subtitle.bottom));
+          if (locale.languageCode == 'ur') {
+            expect(words.right, title.right);
+          } else {
+            expect(words.left, title.left);
+          }
+        },
       );
-      expect(tester.takeException(), isNull);
-      final title = tester.getRect(find.text(_long));
-      final subtitle = tester.getRect(find.text(_subtitle));
-      final button = tester.getRect(find.byType(TextButton));
-      expect(title.height, greaterThan(2 * 40));
-      expect(button.top, greaterThanOrEqualTo(subtitle.bottom));
-      expect(button.left, title.left);
     });
 
-    testWidgets('sets a Latin title in the Latin face in the Urdu UI', (
-      tester,
-    ) async {
+    testWidgets('sets a Latin title in the Latin face, left to right, in '
+        'the Urdu UI', (tester) async {
       await pumpThemed(
         tester,
-        const MmSectionHeader(title: 'Gulberg Heights'),
+        const MmSectionHeader(title: 'Gulberg Heights.'),
         variant: MmVariant.urdu,
       );
       expect(
-        styleOf(tester, 'Gulberg Heights').fontFamily,
+        styleOf(tester, 'Gulberg Heights.').fontFamily,
         contains(MmFontFamily.latin),
+      );
+      // Its full stop stays at its end, on the right.
+      final paragraph = paragraphOf(tester, 'Gulberg Heights.');
+      final text = paragraph.text.toPlainText();
+      double xOf(int offset) => paragraph
+          .getOffsetForCaret(TextPosition(offset: offset), Rect.zero)
+          .dx;
+      expect(xOf(text.indexOf('.')), greaterThan(xOf(text.indexOf('G'))));
+      expect(
+        tester.getSemantics(find.textContaining('Gulberg')),
+        matchesSemantics(label: 'Gulberg Heights.', isHeader: true),
       );
     });
   });

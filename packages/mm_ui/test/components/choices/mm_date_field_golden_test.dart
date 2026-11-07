@@ -7,6 +7,7 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 void _changed(CalendarDate? _) {}
 
@@ -14,6 +15,7 @@ final _first = CalendarDate(2020, 1, 1);
 final _last = CalendarDate(2030, 12, 31);
 
 void main() {
+  tearDown(resetFocusHighlights);
   goldenEveryVariant(
     'mm_date_field',
     () => GoldenPage(
@@ -31,13 +33,17 @@ void main() {
             helper: tr('The day Ali Raza moves in', 'جس دن علی رضا آئیں گے'),
             onChanged: _changed,
           ),
-          MmDateField(
-            label: tr('Lease end', 'لیز کا اختتام'),
-            value: CalendarDate(2027, 10, 31),
-            firstDate: _first,
-            lastDate: _last,
-            optional: true,
-            onChanged: _changed,
+          // Keyboard focus on the clear button: its ring sits inside the box.
+          KeyboardFocused(
+            index: 1,
+            child: MmDateField(
+              label: tr('Lease end', 'لیز کا اختتام'),
+              value: CalendarDate(2027, 10, 31),
+              firstDate: _first,
+              lastDate: _last,
+              optional: true,
+              onChanged: _changed,
+            ),
           ),
           MmDateField(
             label: tr('Rent due date', 'کرایہ کی آخری تاریخ'),

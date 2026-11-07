@@ -37,6 +37,10 @@ enum MmReflowAlignment {
 /// moves under the text so neither is squeezed: at the start edge, or at the
 /// end edge when [stackedAtEnd].
 ///
+/// An [end] widget with inner space of its own at its edges (a text button's
+/// padding) can hang past the edge it sits on by [endOverhang], so its
+/// content lines up with the text instead of sitting that far inside it.
+///
 /// This is how a label and its value, a title and its trailing widget, and
 /// a heading and its action reflow at 200% text. It mirrors in right-to-left
 /// layouts, and reads, paints and hit-tests its children in reading order.
@@ -51,8 +55,9 @@ class MmReflow
     this.end,
     this.alignment = MmReflowAlignment.center,
     this.stackedAtEnd = false,
+    this.endOverhang = 0,
     super.key,
-  });
+  }) : assert(endOverhang >= 0, 'endOverhang must not be negative');
 
   /// The space between the text and [end] when they sit side by side.
   static const double spacing = MmSpace.s4;
@@ -76,6 +81,16 @@ class MmReflow
   /// seal); otherwise it moves to the start edge (a value under its label).
   final bool stackedAtEnd;
 
+  /// How far [end] hangs past the edge it sits on: past the end edge beside
+  /// the text (or stacked at the end), past the start edge when it moves
+  /// under the text. Pass the horizontal padding of a text button, so its
+  /// label lines up with the text above or beside it. It never hangs so far
+  /// that less than [MmSize.minTarget] of it stays inside, so a full touch
+  /// target always does. The part that hangs out takes taps too where the
+  /// widgets around the reflow reach that far (a page's padding around it
+  /// does; a column between them, narrower than the padding, does not).
+  final double endOverhang;
+
   @override
   Iterable<MmReflowSlot> get slots => MmReflowSlot.values;
 
@@ -90,6 +105,7 @@ class MmReflow
   RenderMmReflow createRenderObject(BuildContext context) => RenderMmReflow(
     alignment: alignment,
     stackedAtEnd: stackedAtEnd,
+    endOverhang: endOverhang,
     textDirection: Directionality.of(context),
   );
 
@@ -98,6 +114,7 @@ class MmReflow
     renderObject
       ..alignment = alignment
       ..stackedAtEnd = stackedAtEnd
+      ..endOverhang = endOverhang
       ..textDirection = Directionality.of(context);
   }
 }
@@ -119,6 +136,7 @@ class RenderMmReflow extends RenderBox
     required this._alignment,
     required this._textDirection,
     this._stackedAtEnd = false,
+    this._endOverhang = 0,
   });
 
   /// How the end child lines up with the text when they sit side by side.
@@ -139,6 +157,20 @@ class RenderMmReflow extends RenderBox
     _stackedAtEnd = value;
     markNeedsLayout();
   }
+
+  /// How far the end child may hang past the edge it sits on.
+  double get endOverhang => _endOverhang;
+  double _endOverhang;
+  set endOverhang(double value) {
+    if (value == _endOverhang) return;
+    _endOverhang = value;
+    markNeedsLayout();
+  }
+
+  /// How far an end child [width] wide hangs out: [endOverhang], but never
+  /// so far that less than a touch target of it stays inside.
+  double _overhangOf(double width) =>
+      math.max(0, math.min(endOverhang, width - MmSize.minTarget));
 
   /// The direction that decides which edge is the start.
   TextDirection get textDirection => _textDirection;
@@ -177,16 +209,25 @@ class RenderMmReflow extends RenderBox
     final endNatural = end?.getMaxIntrinsicWidth(double.infinity);
     final sideBySide =
         endNatural != null &&
-        startNatural + MmReflow.spacing + endNatural <= width;
+        startNatural +
+                MmReflow.spacing +
+                endNatural -
+                _overhangOf(endNatural) <=
+            width;
 
     // The end widget first: beside the text it may use whatever the text
-    // does not need; under the text it has the whole width.
+    // does not need; under the text it has the whole width. Either way it
+    // may also take the space it hangs out into.
     final endConstraints = BoxConstraints(
-      maxWidth: sideBySide ? width - MmReflow.spacing - startNatural : width,
+      maxWidth:
+          (sideBySide ? width - MmReflow.spacing - startNatural : width) +
+          endOverhang,
     );
     final endSize = end == null ? Size.zero : layoutChild(end, endConstraints);
+    final overhang = _overhangOf(endSize.width);
+    final inside = endSize.width - overhang;
     final textConstraints = BoxConstraints(
-      maxWidth: sideBySide ? width - MmReflow.spacing - endSize.width : width,
+      maxWidth: sideBySide ? width - MmReflow.spacing - inside : width,
     );
     final startSize = layoutChild(start, textConstraints);
     final belowSize = below == null
@@ -197,7 +238,7 @@ class RenderMmReflow extends RenderBox
       width.isFinite
           ? width
           : math.max(startSize.width, belowSize.width) +
-                (end == null ? 0 : MmReflow.spacing + endSize.width),
+                (end == null ? 0 : MmReflow.spacing + inside),
     );
 
     var textTop = 0.0;
@@ -234,7 +275,7 @@ class RenderMmReflow extends RenderBox
       size: constraints.constrain(Size(boxWidth, height)),
       start: Offset(atStart(startSize.width), textTop),
       below: Offset(atStart(belowSize.width), textTop + startSize.height),
-      end: Offset(endAtEnd == rtl ? 0 : boxWidth - endSize.width, endTop),
+      end: Offset(endAtEnd == rtl ? -overhang : boxWidth - inside, endTop),
       textConstraints: textConstraints,
     );
   }
@@ -294,7 +335,8 @@ class RenderMmReflow extends RenderBox
     );
     final end = _end;
     if (end == null) return text;
-    return text + MmReflow.spacing + end.getMaxIntrinsicWidth(double.infinity);
+    final endWidth = end.getMaxIntrinsicWidth(double.infinity);
+    return text + MmReflow.spacing + endWidth - _overhangOf(endWidth);
   }
 
   @override
@@ -311,6 +353,22 @@ class RenderMmReflow extends RenderBox
       final parentData = child.parentData! as BoxParentData;
       context.paintChild(child, offset + parentData.offset);
     }
+  }
+
+  /// Takes taps on the part of the end child that hangs past the box, as
+  /// well as inside it.
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    final reach = Rect.fromLTRB(
+      -endOverhang,
+      0,
+      size.width + endOverhang,
+      size.height,
+    );
+    if (!reach.contains(position)) return false;
+    if (!hitTestChildren(result, position: position)) return false;
+    result.add(BoxHitTestEntry(this, position));
+    return true;
   }
 
   @override

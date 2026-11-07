@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
@@ -11,10 +12,12 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// the button's accessible label).
 ///
 /// Use it wherever a tenant's CNIC is shown, so it is not exposed on a
-/// shared screen or in a screenshot by accident. While masked, a screen
-/// reader hears only the digits that show and how many are hidden
-/// ("35202, 7 hidden digits, 1"), never the hidden ones themselves. The
-/// number is set in the Latin face in both languages.
+/// shared screen or in a screenshot by accident. A screen reader spells the
+/// digit groups out digit by digit; while masked, it hears only the digits
+/// that show and how many are hidden ("3 5 2 0 2, 7 hidden digits, 1"),
+/// never the hidden ones themselves. The number is set in the Latin face in
+/// both languages; when it does not fit on one line it wraps only between
+/// its digit groups, and copying it gives the number as written.
 ///
 /// To enter a CNIC, use `MmCnicField`.
 ///
@@ -45,10 +48,6 @@ class MmCnicText extends StatefulWidget {
 }
 
 class _MmCnicTextState extends State<MmCnicText> {
-  /// The digits [Cnic.masked] shows before and after the hidden ones.
-  static const _shownAtStart = 5;
-  static const _shownAtEnd = 1;
-
   late bool _masked;
 
   @override
@@ -63,35 +62,66 @@ class _MmCnicTextState extends State<MmCnicText> {
     if (widget.cnic != oldWidget.cnic) _masked = widget.initiallyMasked;
   }
 
+  /// What a screen reader says for [groups]: each group of digits spelled
+  /// out, and in place of a masked group how many digits it hides, with a
+  /// pause between them.
+  AttributedString _spoken(BuildContext context, List<String> groups) {
+    final strings = MmLocalizations.of(context);
+    // The comma of the language: a pause in both.
+    final pause = context.mm.script == MmScript.urdu ? '، ' : ', ';
+    final words = StringBuffer();
+    final attributes = <StringAttribute>[];
+    for (final (index, group) in groups.indexed) {
+      if (index > 0) words.write(pause);
+      if (group.codeUnits.every((unit) => unit >= 0x30 && unit <= 0x39)) {
+        final start = words.length;
+        words.write(group);
+        attributes.add(
+          SpellOutStringAttribute(
+            range: TextRange(start: start, end: words.length),
+          ),
+        );
+      } else {
+        words.write(strings.hiddenDigits(group.length));
+      }
+    }
+    return AttributedString(words.toString(), attributes: attributes);
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = MmLocalizations.of(context);
     final cnic = widget.cnic;
-    // A dash followed by digits does not allow a line break, so a large
-    // style would break the number mid-group; a zero-width space after each
-    // dash lets it wrap only between the groups.
-    final shown = (_masked ? cnic.masked : cnic.formatted).replaceAll(
-      '-',
-      '-\u200B',
+    final shown = _masked ? cnic.masked : cnic.formatted;
+    // The groups between the dashes, as mm_core writes them: digits, or the
+    // mask of the hidden ones.
+    final groups = shown.split('-');
+    final style = context.mm.styleFor(
+      shown,
+      widget.style ?? Theme.of(context).textTheme.bodyLarge!,
     );
-    // While masked, only the digits on screen are spoken, and how many
-    // are hidden between them: "35202, 7 hidden digits, 1".
-    final first = cnic.digits.substring(0, _shownAtStart);
-    final last = cnic.digits.substring(Cnic.length - _shownAtEnd);
-    final hidden = strings.hiddenDigits(
-      Cnic.length - _shownAtStart - _shownAtEnd,
-    );
-    final spoken = _masked ? '$first, $hidden, $last' : cnic.formatted;
-    final style = widget.style ?? Theme.of(context).textTheme.bodyLarge!;
+    final last = groups.length - 1;
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: MmSpace.s1,
       children: [
-        Text(
-          shown,
-          semanticsLabel: spoken,
-          textDirection: TextDirection.ltr,
-          style: context.mm.styleFor(shown, style),
+        Semantics(
+          container: true,
+          attributedLabel: _spoken(context, groups),
+          excludeSemantics: true,
+          // One piece per group, each ending in its dash: a line breaks
+          // only between groups, never inside one.
+          child: Wrap(
+            textDirection: TextDirection.ltr,
+            children: [
+              for (final (index, group) in groups.indexed)
+                Text(
+                  index < last ? '$group-' : group,
+                  style: style,
+                  textDirection: TextDirection.ltr,
+                ),
+            ],
+          ),
         ),
         IconButton(
           onPressed: () => setState(() => _masked = !_masked),

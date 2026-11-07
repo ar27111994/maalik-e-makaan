@@ -1,4 +1,5 @@
-/// Text entry fields: plain text, password, money, CNIC and phone.
+/// Text entry fields (plain text, password, money, CNIC and phone) and the
+/// masked display of a saved CNIC.
 library;
 
 export 'mm_cnic_field.dart';

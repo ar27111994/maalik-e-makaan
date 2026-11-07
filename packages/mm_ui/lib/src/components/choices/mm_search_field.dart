@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_clean_text_formatter.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -8,11 +9,13 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// A search box: an inset well at the top of a list of tenants, properties
 /// or payments, or of a long `MmSelectField` sheet.
 ///
-/// It is a sunken well with no outline at rest and the focus ring while it
-/// has focus, a search icon at the start, and a clear button once there is
-/// text. Its accessible name is [hint] ("Search" unless given). Control
-/// and spoofing characters (bidirectional overrides, zero-width spaces)
-/// are removed as they are typed or pasted, as in every text field.
+/// It is a sunken well with the focus ring while it has focus, a search
+/// icon at the start, and a clear button once there is text. In light mode
+/// the well has no outline at rest; in dark and high-contrast modes, where
+/// its tone is all but the page's, it is framed in the field outline. Its
+/// accessible name is [hint] ("Search" unless given). Control and spoofing
+/// characters (bidirectional overrides, zero-width spaces) are removed as
+/// they are typed or pasted, as in every text field.
 ///
 /// Filter as the landlord types with [onChanged]; search on submit with
 /// [onSubmitted]. Clearing calls [onChanged] with the empty text and keeps
@@ -136,9 +139,13 @@ class _MmSearchFieldState extends State<MmSearchField> {
     // Atkinson; Urdu stays in Nastaliq.
     final style = mm.styleFor(_controller.text, body);
     const radius = BorderRadius.all(Radius.circular(MmRadius.sm));
-    const atRest = OutlineInputBorder(
+    // The well's tone is within 1.1:1 of the page in dark and high-contrast
+    // modes, so there the outline marks where it is.
+    final framed =
+        Theme.of(context).brightness == Brightness.dark || mm.highContrast;
+    final atRest = OutlineInputBorder(
       borderRadius: radius,
-      borderSide: BorderSide.none,
+      borderSide: framed ? BorderSide(color: colors.outline) : BorderSide.none,
     );
     return Semantics(
       label: hint,
@@ -177,13 +184,14 @@ class _MmSearchFieldState extends State<MmSearchField> {
           ),
           prefixIcon: Icon(
             MmIcons.search,
-            size: MmSize.iconLg,
+            size: MmIconLabel.scaledSize(context, MmSize.iconLg),
             color: colors.inkMuted,
           ),
           suffixIcon: _empty
               ? null
               : IconButton(
                   tooltip: strings.clearText,
+                  iconSize: MmIconLabel.scaledSize(context, MmSize.iconLg),
                   onPressed: _clear,
                   icon: const Icon(MmIcons.close),
                 ),

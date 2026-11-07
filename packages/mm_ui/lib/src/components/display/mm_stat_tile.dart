@@ -29,17 +29,14 @@ enum MmTrendDirection {
 /// How a figure on an [MmStatTile] changed, in words.
 ///
 /// Whether a change is good depends on the figure: collections going up is
-/// [favourable], overdue rent going up is not. A favourable trend is set in
-/// the paid colour, an unfavourable one in the overdue colour, and both
-/// carry an icon and the [label], so colour never carries it alone.
+/// [favourable], overdue rent going up is not, and no change is neither. A
+/// favourable trend is set in the paid colour, an unfavourable one in the
+/// overdue colour and a neutral one in muted ink, and each carries an icon
+/// and the [label], so colour never carries it alone.
 @immutable
 final class MmTrend {
   /// A trend in [direction], said by [label].
-  const new({
-    required this.direction,
-    required this.label,
-    required this.favourable,
-  });
+  const new({required this.direction, required this.label, this.favourable});
 
   /// Which way the figure moved.
   final MmTrendDirection direction;
@@ -48,8 +45,9 @@ final class MmTrend {
   /// September").
   final String label;
 
-  /// Whether the change is good news for the landlord.
-  final bool favourable;
+  /// Whether the change is good news for the landlord: true or false, or
+  /// null when it is neither (the figure stayed the same).
+  final bool? favourable;
 
   @override
   bool operator ==(Object other) =>
@@ -64,35 +62,57 @@ final class MmTrend {
   @override
   String toString() =>
       'MmTrend(${direction.name}, "$label", '
-      '${favourable ? 'favourable' : 'unfavourable'})';
+      '${switch (favourable) {
+        true => 'favourable',
+        false => 'unfavourable',
+        null => 'neutral',
+      }})';
 }
 
 /// One figure of a dashboard: what it is ([label]), the figure ([value],
 /// usually an `MmAmount`), an optional [caption] that gives it context and
 /// an optional [trend].
 ///
-/// It is its own flat surface with the card's rule border, so stat tiles can
-/// sit in a grid on the page or inside a card without nesting cards. Screen
-/// readers read it as one node: label, value, caption and trend. With
-/// [onTap] it is a button that opens the figure's detail, with ink, a focus
-/// ring and Enter or Space activation.
+/// On the page it is its own flat surface with the card's border; inside an
+/// `MmCard` it drops that border and becomes a region of the card, so it
+/// never reads as a card inside a card. Screen readers read it as one node:
+/// label, value, caption and trend. With [onTap] it is a button that opens
+/// the figure's detail, with the outline colour for its border, ink, a
+/// focus ring and Enter or Space activation; like any button it holds no
+/// other controls.
+///
+/// Its words wrap and its figure scales down to fit, but a tile needs room:
+/// at 200% text two tiles side by side on a phone break their words
+/// mid-letter and shrink the figure below its 100% size (which debug builds
+/// report). Lay tiles out with `MmResponsiveGrid`, scaling its
+/// `minItemWidth` with the text, so that large text gets one tile to a row
+/// and the page's one large figure gets the width it needs:
+///
+/// ```dart
+/// MmResponsiveGrid(
+///   minItemWidth: MediaQuery.textScalerOf(context).scale(200),
+///   children: [
+///     MmStatTile(
+///       label: l10n.collectedThisMonth,
+///       value: MmAmount(amount: collected, size: MmAmountSize.large),
+///       caption: Text(l10n.ofDue(formattedDue)),
+///       trend: MmTrend(
+///         direction: MmTrendDirection.up,
+///         label: l10n.upFromLastMonth('12%'),
+///         favourable: true,
+///       ),
+///       onTap: openCollections,
+///     ),
+///     MmStatTile(
+///       label: l10n.occupiedUnits,
+///       value: Text(l10n.unitsOf(12, 14)),
+///     ),
+///   ],
+/// )
+/// ```
 ///
 /// Don't use it for a list of records (use `MmListTile`) or for a figure
 /// that is part of a receipt (use `MmDetailRow`).
-///
-/// ```dart
-/// MmStatTile(
-///   label: l10n.collectedThisMonth,
-///   value: MmAmount(amount: collected, size: MmAmountSize.large),
-///   caption: l10n.ofDue(formattedDue),
-///   trend: MmTrend(
-///     direction: MmTrendDirection.up,
-///     label: l10n.upFromLastMonth('12%'),
-///     favourable: true,
-///   ),
-///   onTap: openCollections,
-/// )
-/// ```
 class MmStatTile extends StatelessWidget {
   /// Creates a tile showing [value] under [label].
   const new({
@@ -111,8 +131,30 @@ class MmStatTile extends StatelessWidget {
   /// style is set in the headline style.
   final Widget value;
 
-  /// Context for the figure in muted ink ("of Rs 1,25,000 due").
-  final String? caption;
+  /// Context for the figure ("of Rs 1,25,000 due"), usually a [Text];
+  /// text without its own style is set in muted ink. An amount in it can
+  /// be an `MmAmount` between the words of a [Wrap], so it never breaks
+  /// inside its number and is read as rupees:
+  ///
+  /// ```dart
+  /// Wrap(
+  ///   spacing: MediaQuery.textScalerOf(context).scale(MmSpace.s1),
+  ///   crossAxisAlignment: WrapCrossAlignment.center,
+  ///   children: [
+  ///     Text(l10n.of),
+  ///     MmAmount(
+  ///       amount: due,
+  ///       size: MmAmountSize.small,
+  ///       tone: MmAmountTone.muted,
+  ///     ),
+  ///     Text(l10n.due),
+  ///   ],
+  /// )
+  /// ```
+  ///
+  /// (Not a `WidgetSpan` in a `Text.rich`: the tile reads its parts as one
+  /// node, and text around a widget span is lost from that node.)
+  final Widget? caption;
 
   /// How the figure changed since the last period.
   final MmTrend? trend;
@@ -132,15 +174,18 @@ class MmStatTile extends StatelessWidget {
       child: Semantics(
         button: onTap != null,
         child: MmSurface(
+          owner: 'MmStatTile',
           onTap: onTap,
+          outlined: !MmCardScope.isIn(context),
           child: Padding(
             padding: const EdgeInsetsDirectional.all(MmSpace.s4),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               spacing: MmSpace.s1,
-              // Each part is its own node so the tile, which merges them,
-              // reads them in this order.
+              // Each part is its own node, and so is each piece of a part
+              // (the words and the amount of a caption), so the tile, which
+              // merges them, reads them in this order.
               children: [
                 for (final part in [
                   Text(
@@ -148,10 +193,15 @@ class MmStatTile extends StatelessWidget {
                     style: text.labelLarge!.copyWith(color: colors.inkMuted),
                   ),
                   DefaultTextStyle(style: text.headlineSmall!, child: value),
-                  if (caption != null) Text(caption, style: muted),
+                  if (caption != null)
+                    DefaultTextStyle(style: muted, child: caption),
                   if (trend != null) _TrendLine(trend),
                 ])
-                  Semantics(container: true, child: part),
+                  Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    child: part,
+                  ),
               ],
             ),
           ),
@@ -161,7 +211,7 @@ class MmStatTile extends StatelessWidget {
   }
 }
 
-/// A trend's icon and words in the paid or overdue colour.
+/// A trend's icon and words in the paid, overdue or muted colour.
 class _TrendLine extends StatelessWidget {
   const new(this.trend);
 
@@ -170,7 +220,11 @@ class _TrendLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.mm.colors;
-    final color = trend.favourable ? colors.paid : colors.overdue;
+    final color = switch (trend.favourable) {
+      true => colors.paid,
+      false => colors.overdue,
+      null => colors.inkMuted,
+    };
     return MmIconLabel(
       icon: trend.direction.icon,
       label: trend.label,

@@ -6,11 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
-/// A header with an action, with a subtitle, with a disabled action beside
-/// a long title, and on its own.
+/// A header with an action focused from the keyboard, with a subtitle, with
+/// a disabled action under a long title, and on its own. Each action's
+/// words line up with the content's edge.
 void main() {
-  goldenEveryVariant(
+  focusedGoldenEveryVariant(
     'mm_section_header',
     () => GoldenPage(
       (context, say) => Column(
@@ -40,5 +42,6 @@ void main() {
         ],
       ),
     ),
+    focused: textIn('See all', 'سب دیکھیں'),
   );
 }

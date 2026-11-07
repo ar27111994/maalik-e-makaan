@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -12,8 +13,9 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///
 /// The value sits in the middle of a field-shaped box, with a minus button
 /// at the start and a plus button at the end that move it by [step]; each
-/// button is disabled at its limit ([min], [max]). When the button with
-/// keyboard focus reaches its limit, focus moves to the other one.
+/// button is disabled at its limit ([min], [max]), its sign turning from
+/// ink to muted ink. When the button with keyboard focus reaches its
+/// limit, focus moves to the other one.
 ///
 /// Assistive technology hears the value as an adjustable element named
 /// [label] (swipe up or down to change it), and the two buttons by
@@ -133,6 +135,9 @@ class _MmStepperFieldState extends State<MmStepperField> {
     final canIncrease = enabled && widget.value < widget.max;
     final shown = format(widget.value);
     final ink = enabled ? colors.ink : colors.inkMuted;
+    // The signs are ink while they can be pressed, so a button at its
+    // limit (muted ink) stands apart from the other.
+    final buttonStyle = MmChoiceBox.buttonStyle(context, color: colors.ink);
     // Figures are set in the Latin face with tabular figures, like amounts;
     // words in Urdu stay in Nastaliq.
     final style = MmSemantics.hasArabicScript(shown)
@@ -157,12 +162,14 @@ class _MmStepperFieldState extends State<MmStepperField> {
               IconButton(
                 focusNode: _decreaseFocus,
                 tooltip: widget.decreaseLabel,
+                style: buttonStyle,
                 onPressed: canDecrease ? _decrease : null,
                 icon: const Icon(MmIcons.minus),
               ),
               Expanded(
                 child: Semantics(
                   container: true,
+                  enabled: enabled,
                   label: widget.label,
                   value: shown,
                   increasedValue: canIncrease ? format(_higher) : null,
@@ -184,6 +191,7 @@ class _MmStepperFieldState extends State<MmStepperField> {
               IconButton(
                 focusNode: _increaseFocus,
                 tooltip: widget.increaseLabel,
+                style: buttonStyle,
                 onPressed: canIncrease ? _increase : null,
                 icon: const Icon(MmIcons.add),
               ),

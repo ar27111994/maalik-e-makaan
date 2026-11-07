@@ -111,6 +111,72 @@ void main() {
       );
     });
 
+    testEveryVariant('the hint shows in the empty field, in muted ink', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmTextField(
+          label: "Father's name",
+          hint: 'For example, Muhammad Raza',
+        ),
+        variant: variant,
+      );
+      final hint = find.text('For example, Muhammad Raza');
+      expect(hint, findsOneWidget);
+      expect(styleOf(tester, 'For example').color, colorsOf(variant).inkMuted);
+      // Inside the field, at its start.
+      final field = tester.getRect(find.byType(InputDecorator));
+      final words = tester.getRect(hint);
+      expect(field.contains(words.center), isTrue);
+      if (variant == MmVariant.urdu) {
+        expect(field.right - words.right, moreOrLessEquals(MmSpace.s4));
+      } else {
+        expect(words.left - field.left, moreOrLessEquals(MmSpace.s4));
+      }
+      double opacity() => tester
+          .widget<AnimatedOpacity>(
+            find.ancestor(of: hint, matching: find.byType(AnimatedOpacity)),
+          )
+          .opacity;
+      expect(opacity(), 1);
+      // Typing replaces it.
+      await tester.enterText(find.byType(TextField), 'Muhammad');
+      await tester.pumpAndSettle();
+      expect(opacity(), 0);
+    });
+
+    testWidgets('a long hint wraps at large text instead of being cut', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      const hint = 'For example, Muhammad Raza';
+      await pumpLargeNarrow(
+        tester,
+        const MmTextField(label: "Father's name", hint: hint),
+      );
+      final text = tester.widget<Text>(find.text(hint));
+      expect(text.maxLines, isNull);
+      expect(text.overflow, isNull);
+      final lines = tester.getSize(find.text(hint)).height;
+      expect(lines, greaterThan(styleOf(tester, hint).fontSize! * 2 * 1.5));
+      // The field is as tall as its hint, typed in or not.
+      final empty = tester.getSize(find.byType(InputDecorator)).height;
+      expect(empty, greaterThan(lines));
+      await tester.enterText(find.byType(TextField), 'Muhammad Raza');
+      await tester.pumpAndSettle();
+      expect(tester.getSize(find.byType(InputDecorator)).height, empty);
+      // A screen reader still hears it with the field's name.
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(find.byType(EditableText)).label,
+        contains(hint),
+      );
+      handle.dispose();
+    });
+
     testWidgets('helper text sits below in muted ink and wraps', (
       tester,
     ) async {
@@ -154,13 +220,7 @@ void main() {
         expect(find.text('As on the door'), findsNothing);
         final icon = tester.widget<Icon>(find.byIcon(MmIcons.error));
         expect(icon.color, colors.overdue);
-        expect(
-          inkOf(
-            tester,
-            find.textContaining('Enter the unit number', findRichText: true),
-          ),
-          colors.overdue,
-        );
+        expect(styleOf(tester, 'Enter the unit number').color, colors.overdue);
         // The icon sits on the line of the words, at their start.
         final iconRect = tester.getRect(find.byIcon(MmIcons.error));
         final words = tester.getRect(
@@ -455,6 +515,42 @@ void main() {
       expect(find.text('House 12, Gulberg III, Lahore'), findsOneWidget);
     });
 
+    testWidgets('a read-only field keeps its text and opens no keyboard', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      final changes = <String>[];
+      await pumpThemed(
+        tester,
+        MmTextField(
+          label: 'Lease reference',
+          initialValue: 'GH-12',
+          readOnly: true,
+          onChanged: changes.add,
+        ),
+      );
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      // It takes focus, so the text can be selected and copied...
+      expect(
+        tester
+            .state<EditableTextState>(find.byType(EditableText))
+            .widget
+            .focusNode
+            .hasFocus,
+        isTrue,
+      );
+      // ...but no keyboard connects to change it.
+      expect(tester.testTextInput.hasAnyClients, isFalse);
+      expect(valueOf(tester).text, 'GH-12');
+      expect(changes, isEmpty);
+      expect(
+        tester.getSemantics(find.byType(EditableText)),
+        isSemantics(isReadOnly: true, value: 'GH-12'),
+      );
+      semantics.dispose();
+    });
+
     testWidgets('a controller drives the text', (tester) async {
       final first = TextEditingController(text: 'Ali Raza');
       final second = TextEditingController(text: 'علی رضا');
@@ -479,6 +575,21 @@ void main() {
         tester.widget<EditableText>(find.byType(EditableText)).style.fontFamily,
         contains(MmFontFamily.urdu),
       );
+    });
+
+    testEveryVariant('the counter is in the Latin face, with even figures', (
+      tester,
+      variant,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmTextField(label: 'Note', initialValue: 'علی', maxLength: 40),
+        variant: variant,
+      );
+      final style = styleOf(tester, '3/40');
+      expect(style.fontFamily, contains(MmFontFamily.latin));
+      expect(style.fontFeatures, contains(const FontFeature.tabularFigures()));
+      expect(style.color, colorsOf(variant).inkMuted);
     });
 
     testWidgets('counts characters as a reader perceives them', (tester) async {
@@ -545,10 +656,7 @@ void main() {
           enabled: false,
         ),
       );
-      expect(
-        inkOf(tester, find.text('Property', findRichText: true)),
-        MmColorModes.light.inkMuted,
-      );
+      expect(styleOf(tester, 'Property').color, MmColorModes.light.inkMuted);
       final field = tester.widget<EditableText>(find.byType(EditableText));
       expect(field.style.color, MmColorModes.light.inkMuted);
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);

@@ -27,16 +27,21 @@ void main() {
             ),
             onChanged: (_) {},
           ),
+          // Focused, as when the landlord has just moved to it.
           MmPhoneField(
             label: tr('Home number', 'گھر کا نمبر'),
             value: PhoneNumber.tryParse('042 35761234'),
             optional: true,
+            autofocus: true,
             onChanged: (_) {},
           ),
           MmPhoneField(
-            label: tr('Number abroad', 'بیرونِ ملک نمبر'),
+            label: tr('Number for reminders', 'یاد دہانی کا نمبر'),
             value: PhoneNumber.tryParse('+447700900123'),
-            errorText: tr('Not a mobile number', 'یہ نمبر موبائل نہیں'),
+            errorText: tr(
+              'Reminders go only to Pakistani mobiles',
+              'یاد دہانی صرف پاکستانی موبائل پر جاتی ہے',
+            ),
             onChanged: (_) {},
           ),
           MmPhoneField(
@@ -48,6 +53,6 @@ void main() {
         ],
       ),
     ),
-    size: const Size(360, 860),
+    sizes: const {MmVariant.largeText: Size(360, 760)},
   );
 }

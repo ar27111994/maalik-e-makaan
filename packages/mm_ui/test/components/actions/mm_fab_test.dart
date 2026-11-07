@@ -4,25 +4,108 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _add = 'Add tenant';
 
-/// The Material that paints the floating action button.
-Material _material(WidgetTester tester) => tester.widget(
-  find
-      .descendant(of: find.byType(MmFab), matching: find.byType(Material))
-      .first,
-);
-
-/// The side of the button's outline.
-BorderSide _side(WidgetTester tester) =>
-    (_material(tester).shape! as OutlinedBorder).side;
+/// The floating action button under test.
+final Finder _fab = find.byType(MmFab);
 
 void main() {
   group('MmFab', () {
-    testWidgets('is extended by default', (tester) async {
+    testWidgets('is extended by default, with the shared hero tag', (
+      tester,
+    ) async {
       const fab = MmFab(label: _add, icon: MmIcons.invite, onPressed: null);
       expect(fab.extended, isTrue);
+      const other = MmFab(
+        label: 'Add property',
+        icon: MmIcons.add,
+        onPressed: null,
+      );
+      expect(fab.heroTag, isNotNull);
+      expect(fab.heroTag, other.heroTag);
+      expect(fab.heroTag.toString(), '<MmFab hero tag>');
+    });
+
+    testWidgets('passes its hero tag to the button, or none', (tester) async {
+      for (final tag in ['add tenant', null]) {
+        await pumpThemed(
+          tester,
+          MmFab(
+            label: _add,
+            icon: MmIcons.invite,
+            heroTag: tag,
+            onPressed: tapped,
+          ),
+        );
+        expect(
+          tester
+              .widget<FloatingActionButton>(find.byType(FloatingActionButton))
+              .heroTag,
+          tag,
+        );
+        expect(find.byType(Hero), tag == null ? findsNothing : findsOneWidget);
+      }
+    });
+
+    testWidgets('two on one route move to the next screen with their own '
+        'tags', (tester) async {
+      Widget screen(String title, {required bool ownTags}) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title),
+              if (ownTags) ...[
+                const MmFab(
+                  label: _add,
+                  icon: MmIcons.invite,
+                  heroTag: 'tenant',
+                  onPressed: tapped,
+                ),
+                const MmFab(
+                  label: 'Add property',
+                  icon: MmIcons.add,
+                  extended: false,
+                  heroTag: 'property',
+                  onPressed: tapped,
+                ),
+              ] else ...[
+                const MmFab(
+                  label: _add,
+                  icon: MmIcons.invite,
+                  onPressed: tapped,
+                ),
+                const MmFab(
+                  label: 'Add property',
+                  icon: MmIcons.add,
+                  extended: false,
+                  onPressed: tapped,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+      for (final ownTags in [true, false]) {
+        await tester.pumpWidget(themedApp(screen('Tenants', ownTags: ownTags)));
+        tester
+            .state<NavigatorState>(find.byType(Navigator))
+            .push(
+              MaterialPageRoute<void>(
+                builder: (_) => screen('Gulberg', ownTags: ownTags),
+              ),
+            );
+        await tester.pumpAndSettle();
+        // Sharing the default tag, the two heroes collide.
+        expect(
+          tester.takeException(),
+          ownTags ? isNull : isFlutterError,
+          reason: 'own tags: $ownTags',
+        );
+        await tester.pumpWidget(const SizedBox());
+      }
     });
 
     testWidgets('extended, shows its icon and label, read as one button', (
@@ -30,7 +113,7 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        MmFab(label: _add, icon: MmIcons.invite, onPressed: () {}),
+        const MmFab(label: _add, icon: MmIcons.invite, onPressed: tapped),
       );
       expect(find.byType(FloatingActionButton), findsOneWidget);
       expect(find.byIcon(MmIcons.invite), findsOneWidget);
@@ -58,11 +141,11 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        MmFab(
+        const MmFab(
           label: _add,
           icon: MmIcons.invite,
           extended: false,
-          onPressed: () {},
+          onPressed: tapped,
         ),
       );
       expect(find.text(_add), findsNothing);
@@ -117,14 +200,44 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        MmFab(label: _add, icon: MmIcons.invite, onPressed: () {}),
+        const MmFab(label: _add, icon: MmIcons.invite, onPressed: tapped),
         variant: variant,
       );
       final colors = colorsOf(variant);
-      final material = _material(tester);
+      final material = materialOf(tester, _fab);
       expect(material.color, colors.primary);
       expect(material.elevation, greaterThan(0));
-      expect(_side(tester), BorderSide(color: colors.primary));
+      expect(sideOf(tester, _fab), BorderSide(color: colors.primary));
+    });
+
+    testWidgets('disabled, it keeps the theme corners with a rule border', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmFab(label: _add, icon: MmIcons.invite, onPressed: null),
+      );
+      final theme =
+          WidgetStateProperty.resolveAs<ShapeBorder?>(
+                FloatingActionButtonTheme.of(tester.element(_fab)).shape,
+                const {WidgetState.disabled},
+              )!
+              as OutlinedBorder;
+      expect(
+        materialOf(tester, _fab).shape,
+        theme.copyWith(side: BorderSide(color: MmColorModes.light.rule)),
+      );
+
+      // Under a theme without a shape of its own, Material's stays.
+      await pumpThemed(
+        tester,
+        const FloatingActionButtonTheme(
+          data: FloatingActionButtonThemeData(),
+          child: MmFab(label: _add, icon: MmIcons.invite, onPressed: null),
+        ),
+      );
+      final material = materialOf(tester, _fab).shape! as OutlinedBorder;
+      expect(material.side, BorderSide.none);
     });
 
     testEveryVariant('disabled, it is flat, muted and out of reach', (
@@ -137,17 +250,17 @@ void main() {
         variant: variant,
       );
       final colors = colorsOf(variant);
-      final material = _material(tester);
+      final material = materialOf(tester, _fab);
       expect(material.color, colors.surfaceSunken);
       expect(material.elevation, 0);
-      expect(_side(tester), BorderSide(color: colors.rule));
+      expect(sideOf(tester, _fab), BorderSide(color: colors.rule));
       expect(
         tester.getSemantics(find.text(_add)),
         matchesSemantics(label: _add, isButton: true, hasEnabledState: true),
       );
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(_side(tester), BorderSide(color: colors.rule));
+      expect(sideOf(tester, _fab), BorderSide(color: colors.rule));
     });
 
     testEveryVariant('a focused button draws the ring outside its fill', (
@@ -162,23 +275,23 @@ void main() {
             label: _add,
             icon: MmIcons.invite,
             extended: extended,
-            onPressed: () {},
+            onPressed: tapped,
           ),
           variant: variant,
         );
-        expect(_material(tester).shape, isNot(isA<MmFocusRingBorder>()));
+        expect(materialOf(tester, _fab).shape, isNot(isA<MmFocusRingBorder>()));
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
         // The theme's ring, in the focus colour past a gap, so it shows on
         // the cobalt fill; the button keeps its own edge.
-        final ring = _material(tester).shape! as MmFocusRingBorder;
+        final ring = materialOf(tester, _fab).shape! as MmFocusRingBorder;
         expect(ring.color, colors.focus);
         expect(ring.width, MmSize.focusRing);
         expect(ring.gap, MmSize.focusGap);
         expect(ring.side, BorderSide(color: colors.primary));
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
-        expect(_side(tester), BorderSide(color: colors.primary));
+        expect(sideOf(tester, _fab), BorderSide(color: colors.primary));
       }
     });
 
@@ -188,7 +301,7 @@ void main() {
       const label = 'Record the October payment for the Gulberg, Lahore flat';
       await pumpThemed(
         tester,
-        MmFab(label: label, icon: MmIcons.payment, onPressed: () {}),
+        const MmFab(label: label, icon: MmIcons.payment, onPressed: tapped),
         variant: MmVariant.largeText,
         size: const Size(320, 740),
       );
@@ -204,6 +317,67 @@ void main() {
       );
     });
 
+    testWidgets('extended, its icon grows with the text, at most 150%', (
+      tester,
+    ) async {
+      for (final (scale, size) in [(1.0, 24.0), (1.25, 30.0), (2.0, 36.0)]) {
+        for (final extended in [true, false]) {
+          await pumpThemed(
+            tester,
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: TextScaler.linear(scale)),
+                child: MmFab(
+                  label: _add,
+                  icon: MmIcons.invite,
+                  extended: extended,
+                  onPressed: tapped,
+                ),
+              ),
+            ),
+          );
+          // Compact, it has no words to keep up with.
+          expect(
+            tester.getSize(find.byIcon(MmIcons.invite)).width,
+            extended ? size : MmSize.iconLg,
+            reason: 'scale $scale extended $extended',
+          );
+        }
+      }
+    });
+
+    testWidgets('a wrapped label stays beside its icon', (tester) async {
+      const label = 'Record payment for the Gulberg, Lahore flat';
+      for (final variant in [MmVariant.light, MmVariant.urdu]) {
+        await pumpThemed(
+          tester,
+          const MmFab(label: label, icon: MmIcons.payment, onPressed: tapped),
+          variant: variant,
+        );
+        final text = paragraphOf(tester, label);
+        expect(text.size.height, greaterThan(2 * 19), reason: variant.name);
+        final ink = text
+            .getBoxesForSelection(
+              const TextSelection(baseOffset: 0, extentOffset: label.length),
+            )
+            .map((box) => box.toRect())
+            .reduce((a, b) => a.expandToInclude(b))
+            .shift(tester.getTopLeft(find.text(label)));
+        final icon = tester.getRect(find.byIcon(MmIcons.payment));
+        final gap = variant == MmVariant.urdu
+            ? icon.left - ink.right
+            : ink.left - icon.right;
+        // The row's gap, give or take a line's trailing space or a Nastaliq
+        // stroke that overhangs its advance.
+        expect(
+          gap,
+          inInclusiveRange(MmSpace.s2, MmSpace.s3 + 6),
+          reason: variant.name,
+        );
+      }
+    });
+
     testWidgets('the icon leads the label, on the right in Urdu', (
       tester,
     ) async {
@@ -211,7 +385,7 @@ void main() {
         final label = variant == MmVariant.urdu ? 'کرایہ دار شامل کریں' : _add;
         await pumpThemed(
           tester,
-          MmFab(label: label, icon: MmIcons.invite, onPressed: () {}),
+          MmFab(label: label, icon: MmIcons.invite, onPressed: tapped),
           variant: variant,
         );
         final icon = tester.getCenter(find.byIcon(MmIcons.invite)).dx;
@@ -224,26 +398,57 @@ void main() {
       }
     });
 
+    testWidgets('fits 200% text on 320 dp in English and Urdu', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          spacing: MmSpace.s4,
+          children: [
+            MmFab(
+              label: 'گلبرگ، لاہور والے فلیٹ کی ادائیگی درج کریں',
+              icon: MmIcons.payment,
+              heroTag: 'payment',
+              onPressed: tapped,
+            ),
+            MmFab(
+              label: 'Add a tenant to Gulberg House',
+              icon: MmIcons.invite,
+              heroTag: 'tenant',
+              onPressed: tapped,
+            ),
+            MmFab(
+              label: 'Add property',
+              icon: MmIcons.add,
+              extended: false,
+              heroTag: null,
+              onPressed: null,
+            ),
+          ],
+        ),
+      );
+    });
+
     testEveryVariant('fits a 320 dp surface in every variant', (
       tester,
       variant,
     ) async {
       await pumpThemed(
         tester,
-        Column(
+        const Column(
           mainAxisSize: MainAxisSize.min,
           spacing: MmSpace.s4,
           children: [
             MmFab(
               label: 'Add a tenant to Gulberg House',
               icon: MmIcons.invite,
-              onPressed: () {},
+              onPressed: tapped,
             ),
             MmFab(
               label: 'Add property',
               icon: MmIcons.add,
               extended: false,
-              onPressed: () {},
+              onPressed: tapped,
             ),
           ],
         ),

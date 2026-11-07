@@ -62,6 +62,6 @@ void main() {
         ],
       ),
     ),
-    size: const Size(360, 1000),
+    sizes: {MmVariant.largeText: const Size(360, 1000)},
   );
 }

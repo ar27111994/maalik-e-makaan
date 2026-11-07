@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 enum _Status { overdue, dueSoon, paid }
 
@@ -18,10 +20,12 @@ Widget _chips({
   List<Set<_Status>>? log,
   bool multiSelect = true,
   bool enabled = true,
+  EdgeInsetsGeometry padding = EdgeInsetsDirectional.zero,
 }) => MmFilterChips<_Status>(
   options: _statuses,
   selected: selected,
   multiSelect: multiSelect,
+  padding: padding,
   onChanged: enabled ? (value) => log?.add(value) : null,
 );
 
@@ -176,6 +180,53 @@ void main() {
       ]);
     });
 
+    testWidgets('a focused, selected chip rings itself outside, uncut', (
+      tester,
+    ) async {
+      useKeyboardHighlights();
+      await pumpThemed(tester, _chips(selected: {_Status.overdue}));
+      final theme = ChipTheme.of(tester.element(_chip('Overdue')));
+      final shape = theme.shape! as WidgetStateOutlinedBorder;
+      const colors = MmColorModes.light;
+      // Selected and focused: a ring past a gap, the cobalt frame kept.
+      final focused = shape.resolve({
+        WidgetState.focused,
+        WidgetState.selected,
+      })!;
+      expect(focused, isA<MmFocusRingBorder>());
+      expect((focused as MmFocusRingBorder).color, colors.focus);
+      final side = theme.side! as WidgetStateBorderSide;
+      expect(
+        side.resolve({WidgetState.focused, WidgetState.selected}),
+        BorderSide(color: colors.primary),
+      );
+      // Unselected and focused: the ring on the edge, as before.
+      expect(
+        shape.resolve({WidgetState.focused}),
+        isNot(isA<MmFocusRingBorder>()),
+      );
+      // The scrolling row leaves the ring room at its ends.
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      final clip = tester.renderObject<RenderClipRect>(
+        find
+            .descendant(
+              of: find.byType(MmFilterChips<_Status>),
+              matching: find.byType(ClipRect),
+            )
+            .first,
+      );
+      final room = clip.clipper!.getClip(clip.size);
+      // The room depends on the row's size alone.
+      expect(clip.clipper!.shouldReclip(clip.clipper!), isFalse);
+      final chip = tester.getRect(_chip('Overdue'));
+      final row = tester.getRect(find.byType(MmFilterChips<_Status>));
+      expect(
+        chip.left - (row.left + room.left),
+        greaterThanOrEqualTo(MmSize.focusGap + MmSize.focusRing),
+      );
+    });
+
     testWidgets('outlines: muted ink, cobalt when selected, rule disabled', (
       tester,
     ) async {
@@ -215,6 +266,81 @@ void main() {
           hasEnabledState: true,
         ),
       );
+      // Painted as enabled, a disabled chip still reports nothing.
+      tester.widget<FilterChip>(_chip('Overdue')).onSelected!(true);
+      await tester.pumpAndSettle();
+      expect(log, isEmpty);
+      // Not reachable from the keyboard either.
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(
+        FocusManager.instance.primaryFocus?.context
+            ?.findAncestorWidgetOfExactType<FilterChip>(),
+        isNull,
+      );
+    });
+
+    testEveryVariant('disabled chips stay readable', (tester, variant) async {
+      await pumpThemed(
+        tester,
+        _chips(selected: {_Status.paid}, enabled: false),
+        variant: variant,
+      );
+      final colors = variant.colors;
+      for (final label in ['Overdue', 'Paid']) {
+        final chip = tester.widget<FilterChip>(_chip(label));
+        // Painted as enabled, so Material does not fade the label to 38%.
+        expect(chip.onSelected, isNotNull);
+        expect(chip.labelStyle!.color, colors.inkMuted);
+        expect(chip.backgroundColor, colors.surfaceSunken);
+        expect(chip.selectedColor, colors.surfaceSunken);
+        expect(chip.side, BorderSide(color: colors.rule));
+        expect(
+          mmContrastRatio(colors.inkMuted, colors.surfaceSunken),
+          greaterThanOrEqualTo(mmMinimumTextContrast),
+        );
+      }
+      expect(iconColorOf(tester, MmIcons.check), colors.inkMuted);
+      // The label is painted in muted ink at full strength, not faded.
+      final label = paragraphOf(tester, 'Paid');
+      expect(label.text.style!.color, colors.inkMuted);
+      expect(
+        find.ancestor(
+          of: find.textContaining('Paid', findRichText: true),
+          matching: find.byType(Opacity),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('padding lets the row run edge to edge, lined up', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        Scaffold(
+          body: Align(
+            alignment: AlignmentDirectional.topStart,
+            child: _chips(
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: MmSpace.s4,
+              ),
+            ),
+          ),
+        ),
+      );
+      final row = tester.getRect(find.byType(MmFilterChips<_Status>));
+      expect(row.left, 0);
+      expect(row.width, 360);
+      // The first chip lines up with the page's 16 dp margin; the row
+      // scrolls to the screen's edge.
+      expect(tester.getRect(_chip('Overdue')).left, MmSpace.s4);
+      await tester.drag(_chip('Due soon'), const Offset(-400, 0));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(_chip('Paid')).right, 360 - MmSpace.s4);
+      // Wrapped on a wide window, the chips sit inside the padding too.
+      await resizeScreen(tester, const Size(700, 600));
+      expect(tester.getRect(_chip('Overdue')).left, MmSpace.s4);
     });
 
     testWidgets('scrolls sideways on a phone, wraps on a tablet', (

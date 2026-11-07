@@ -15,7 +15,7 @@ void main() {
       (context, tr) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: 8,
+        spacing: MmSpace.s2,
         children: [
           Text(
             tr('Ali Raza', 'علی رضا'),

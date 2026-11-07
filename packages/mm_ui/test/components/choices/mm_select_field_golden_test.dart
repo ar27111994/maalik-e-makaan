@@ -6,10 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 void _changed(String _) {}
 
 void main() {
+  tearDown(resetFocusHighlights);
   goldenEveryVariant(
     'mm_select_field',
     () => GoldenPage((context, tr) {
@@ -38,14 +40,17 @@ void main() {
             helper: tr('Gulberg, Lahore', 'گلبرگ، لاہور'),
             onChanged: _changed,
           ),
-          MmSelectField<String>(
-            label: tr('Unit', 'یونٹ'),
-            options: [
-              MmOption(value: 'a1', label: tr('Flat A-1', 'فلیٹ اے-1')),
-            ],
-            placeholder: tr('Choose a unit', 'یونٹ منتخب کریں'),
-            optional: true,
-            onChanged: _changed,
+          // Keyboard focus: the box is ringed.
+          KeyboardFocused(
+            child: MmSelectField<String>(
+              label: tr('Unit', 'یونٹ'),
+              options: [
+                MmOption(value: 'a1', label: tr('Flat A-1', 'فلیٹ اے-1')),
+              ],
+              placeholder: tr('Choose a unit', 'یونٹ منتخب کریں'),
+              optional: true,
+              onChanged: _changed,
+            ),
           ),
           MmSelectField<String>(
             label: tr('Tenant', 'کرایہ دار'),

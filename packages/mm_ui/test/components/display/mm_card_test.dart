@@ -153,7 +153,7 @@ void main() {
         MmCard(onTap: () {}, child: _content()),
         variant: variant,
       );
-      expect(sideOf(tester, card), BorderSide(color: colors.rule));
+      expect(sideOf(tester, card), BorderSide(color: colors.outline));
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
@@ -167,7 +167,7 @@ void main() {
       await tester.tap(card);
       await tester.pumpAndSettle();
       expect(focusedAt(tester, _name), isTrue);
-      expect(sideOf(tester, card), BorderSide(color: colors.rule));
+      expect(sideOf(tester, card), BorderSide(color: colors.outline));
 
       // Back to the keyboard, the ring returns.
       await tester.sendKeyEvent(LogicalKeyboardKey.shift);
@@ -274,6 +274,31 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.byType(MmCard), findsNWidgets(2));
+      // Inside the card the tile is a region of it, without a border of its
+      // own, so it does not read as a card inside a card.
+      expect(sideOf(tester, find.byType(MmStatTile)), BorderSide.none);
+    });
+
+    testWidgets('a tappable card holding a control is reported', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        MmCard(
+          onTap: () {},
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(_name),
+              TextButton(onPressed: () {}, child: const Text('Remind')),
+            ],
+          ),
+        ),
+      );
+      expect(
+        (tester.takeException()! as FlutterError).toStringDeep(),
+        contains('A tappable MmCard holds a control.'),
+      );
     });
 
     testWidgets('rebuilds with new content', (tester) async {
@@ -283,8 +308,10 @@ void main() {
       expect(find.text(_name), findsNothing);
     });
 
-    testWidgets('fits 200% text on a 320 dp phone', (tester) async {
-      await pumpLargeNarrow(
+    testWidgets('fits 200% text on a 320 dp phone, in whole words', (
+      tester,
+    ) async {
+      await expectWholeAtLargeText(
         tester,
         MmCard(
           onTap: () {},
@@ -293,9 +320,8 @@ void main() {
             'due on 5 November',
           ),
         ),
+        then: (_) => expect(tester.getSize(find.byType(MmCard)).width, 288),
       );
-      expect(tester.takeException(), isNull);
-      expect(tester.getSize(find.byType(MmCard)).width, 288);
     });
   });
 }

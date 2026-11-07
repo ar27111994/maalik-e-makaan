@@ -1,35 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
 const _edit = 'Edit tenant';
 
-/// The Material that paints the icon button.
-Material _material(WidgetTester tester) => tester.widget(
-  find
-      .descendant(
-        of: find.byType(MmIconButton),
-        matching: find.byType(Material),
-      )
-      .first,
-);
+/// The icon button under test.
+final Finder _button = find.byType(MmIconButton);
 
-/// The side of the icon button's outline.
-BorderSide _side(WidgetTester tester) =>
-    (_material(tester).shape! as OutlinedBorder).side;
-
-/// The colour [icon] is painted in.
-Color _iconColor(WidgetTester tester, IconData icon) => tester
-    .renderObject<RenderParagraph>(
-      find.descendant(of: find.byIcon(icon), matching: find.byType(RichText)),
-    )
-    .text
-    .style!
-    .color!;
+/// The fill the icon button shows on [page]: its own, or the page through a
+/// transparent one.
+Color _fillOn(WidgetTester tester, Color page) {
+  final fill = materialOf(tester, _button).color ?? page;
+  return Color.alphaBlend(fill, page);
+}
 
 void main() {
   group('MmIconButton', () {
@@ -52,7 +39,7 @@ void main() {
             icon: MmIcons.edit,
             tooltip: _edit,
             variant: variant,
-            onPressed: () {},
+            onPressed: tapped,
           ),
         );
         expect(find.byType(IconButton), findsOneWidget);
@@ -64,7 +51,11 @@ void main() {
     testWidgets('the tooltip is its label, announced once', (tester) async {
       await pumpThemed(
         tester,
-        MmIconButton(icon: MmIcons.edit, tooltip: _edit, onPressed: () {}),
+        const MmIconButton(
+          icon: MmIcons.edit,
+          tooltip: _edit,
+          onPressed: tapped,
+        ),
       );
       final node = tester.getSemantics(find.byIcon(MmIcons.edit));
       expect(
@@ -122,12 +113,73 @@ void main() {
           tester.getSemantics(find.byIcon(MmIcons.edit)),
           matchesSemantics(label: _edit, isButton: true, hasEnabledState: true),
         );
-        final side = _side(tester);
-        if (variant == MmIconButtonVariant.outlined) {
-          expect(side.color, MmColorModes.light.rule);
-        } else {
-          expect(side.style, BorderStyle.none);
-        }
+        // Not focusable: Tab finds nothing to focus.
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        expect(hasFocus(tester, find.byIcon(MmIcons.edit)), isFalse);
+      }
+    });
+
+    testEveryVariant('disabled, it is muted ink; on and off still differ', (
+      tester,
+      variant,
+    ) async {
+      final colors = colorsOf(variant);
+      final none = colors.bg.withValues(alpha: 0);
+      // (fill, edge) while disabled, by variant and `selected`. Filled
+      // controls sit on sunken paper inside the rule border; an outlined
+      // one keeps a rule outline; a toggle that is on is filled in the rule
+      // colour.
+      final expected = <(MmIconButtonVariant, bool?), (Color, BorderSide)>{
+        for (final selected in [null, false])
+          (MmIconButtonVariant.standard, selected): (none, BorderSide.none),
+        for (final selected in [null, false])
+          (MmIconButtonVariant.outlined, selected): (
+            none,
+            BorderSide(color: colors.rule),
+          ),
+        for (final kind in [
+          MmIconButtonVariant.filled,
+          MmIconButtonVariant.tonal,
+        ])
+          for (final selected in [null, false])
+            (kind, selected): (
+              colors.surfaceSunken,
+              BorderSide(color: colors.rule),
+            ),
+        for (final kind in MmIconButtonVariant.values)
+          (kind, true): (colors.rule, BorderSide.none),
+      };
+      for (final MapEntry(key: (kind, selected), value: (fill, edge))
+          in expected.entries) {
+        await pumpThemed(
+          tester,
+          MmIconButton(
+            icon: MmIcons.lock,
+            tooltip: 'Lock receipt',
+            variant: kind,
+            selected: selected,
+            onPressed: null,
+          ),
+          variant: variant,
+        );
+        final reason = '${kind.name} $selected';
+        expect(
+          _fillOn(tester, colors.bg),
+          Color.alphaBlend(fill, colors.bg),
+          reason: reason,
+        );
+        expect(sideOf(tester, _button), edge, reason: reason);
+        expect(iconColorOf(tester, MmIcons.lock), colors.inkMuted);
+      }
+      for (final kind in MmIconButtonVariant.values) {
+        final (offFill, offEdge) = expected[(kind, false)]!;
+        final (onFill, onEdge) = expected[(kind, true)]!;
+        expect(
+          (Color.alphaBlend(offFill, colors.bg), offEdge),
+          isNot((Color.alphaBlend(onFill, colors.bg), onEdge)),
+          reason: kind.name,
+        );
       }
     });
 
@@ -140,7 +192,7 @@ void main() {
             selectedIcon: MmIcons.notifications,
             tooltip: 'Rent reminders',
             selected: on,
-            onPressed: () {},
+            onPressed: tapped,
           ),
         );
         final shown = on ? MmIcons.notifications : MmIcons.notificationsOff;
@@ -169,11 +221,11 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        MmIconButton(
+        const MmIconButton(
           icon: MmIcons.lock,
           tooltip: 'Lock receipt',
           selected: true,
-          onPressed: () {},
+          onPressed: tapped,
         ),
       );
       expect(find.byIcon(MmIcons.lock), findsOneWidget);
@@ -182,11 +234,11 @@ void main() {
     testWidgets('a plain button has no toggled state', (tester) async {
       await pumpThemed(
         tester,
-        MmIconButton(
+        const MmIconButton(
           icon: MmIcons.edit,
           selectedIcon: MmIcons.check,
           tooltip: _edit,
-          onPressed: () {},
+          onPressed: tapped,
         ),
       );
       expect(find.byIcon(MmIcons.edit), findsOneWidget);
@@ -212,37 +264,27 @@ void main() {
       final colors = colorsOf(variant);
       final scheme = variant.theme.colorScheme;
       // (fill, icon colour) by variant and `selected`; a null fill is none.
+      // A toggle that is on is cobalt in every variant.
       final expected = <(MmIconButtonVariant, bool?), (Color?, Color)>{
         (MmIconButtonVariant.standard, null): (null, scheme.onSurfaceVariant),
         (MmIconButtonVariant.standard, false): (null, colors.inkMuted),
-        (MmIconButtonVariant.standard, true): (
-          colors.primaryContainer,
-          colors.onPrimaryContainer,
-        ),
         (MmIconButtonVariant.filled, null): (colors.primary, colors.onPrimary),
         (MmIconButtonVariant.filled, false): (
-          colors.surfaceSunken,
+          colors.primaryContainer,
           colors.primary,
         ),
-        (MmIconButtonVariant.filled, true): (colors.primary, colors.onPrimary),
         (MmIconButtonVariant.tonal, null): (
           colors.primaryContainer,
           colors.onPrimaryContainer,
         ),
         (MmIconButtonVariant.tonal, false): (
-          colors.surfaceSunken,
-          colors.inkMuted,
-        ),
-        (MmIconButtonVariant.tonal, true): (
           colors.primaryContainer,
           colors.onPrimaryContainer,
         ),
         (MmIconButtonVariant.outlined, null): (null, scheme.onSurfaceVariant),
         (MmIconButtonVariant.outlined, false): (null, colors.inkMuted),
-        (MmIconButtonVariant.outlined, true): (
-          colors.primary,
-          colors.onPrimary,
-        ),
+        for (final kind in MmIconButtonVariant.values)
+          (kind, true): (colors.primary, colors.onPrimary),
       };
       for (final MapEntry(key: (kind, selected), value: (fill, ink))
           in expected.entries) {
@@ -253,26 +295,64 @@ void main() {
             tooltip: _edit,
             variant: kind,
             selected: selected,
-            onPressed: () {},
+            onPressed: tapped,
           ),
           variant: variant,
         );
         final reason = '${kind.name} $selected';
-        final material = _material(tester);
+        final material = materialOf(tester, _button);
         if (fill == null) {
           expect(material.color?.a ?? 0, 0, reason: reason);
         } else {
           expect(material.color, fill, reason: reason);
         }
-        expect(_iconColor(tester, MmIcons.edit), ink, reason: reason);
-        // Only an unselected outlined button draws an outline.
+        expect(iconColorOf(tester, MmIcons.edit), ink, reason: reason);
+        // Only an outlined button that is not on draws an outline.
         final outlined =
             kind == MmIconButtonVariant.outlined && !(selected ?? false);
         expect(
-          _side(tester),
+          sideOf(tester, _button),
           outlined ? BorderSide(color: colors.outline) : BorderSide.none,
           reason: reason,
         );
+      }
+    });
+
+    testEveryVariant('a toggle that is on stands 3:1 apart from off', (
+      tester,
+      variant,
+    ) async {
+      final colors = colorsOf(variant);
+      // On the page and on a card: wherever an icon button sits.
+      for (final page in [colors.bg, colors.surface]) {
+        for (final kind in MmIconButtonVariant.values) {
+          final fills = <bool, Color>{};
+          for (final on in [false, true]) {
+            await pumpThemed(
+              tester,
+              MmIconButton(
+                icon: MmIcons.lock,
+                tooltip: 'Lock receipt',
+                variant: kind,
+                selected: on,
+                onPressed: tapped,
+              ),
+              variant: variant,
+            );
+            fills[on] = _fillOn(tester, page);
+            // Its icon stands out from its own fill, too.
+            expect(
+              mmContrastRatio(iconColorOf(tester, MmIcons.lock), fills[on]!),
+              greaterThanOrEqualTo(mmMinimumIconContrast),
+              reason: '${kind.name} on: $on',
+            );
+          }
+          expect(
+            mmContrastRatio(fills[true]!, fills[false]!),
+            greaterThanOrEqualTo(mmMinimumIconContrast),
+            reason: '${kind.name} on $page',
+          );
+        }
       }
     });
 
@@ -303,19 +383,19 @@ void main() {
             tooltip: _edit,
             variant: kind,
             selected: selected,
-            onPressed: () {},
+            onPressed: tapped,
           ),
           variant: variant,
         );
         final reason = '${kind.name} $selected';
         expect(
-          _material(tester).shape,
+          materialOf(tester, _button).shape,
           isNot(isA<MmFocusRingBorder>()),
           reason: reason,
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
-        final ring = _material(tester).shape! as MmFocusRingBorder;
+        final ring = materialOf(tester, _button).shape! as MmFocusRingBorder;
         expect(ring.color, colors.focus, reason: reason);
         expect(ring.width, MmSize.focusRing, reason: reason);
         expect(ring.gap, MmSize.focusGap, reason: reason);
@@ -329,7 +409,11 @@ void main() {
       for (final variant in [MmVariant.light, MmVariant.urdu]) {
         await pumpThemed(
           tester,
-          MmIconButton(icon: MmIcons.back, tooltip: 'Back', onPressed: () {}),
+          const MmIconButton(
+            icon: MmIcons.back,
+            tooltip: 'Back',
+            onPressed: tapped,
+          ),
           variant: variant,
         );
         expect(
@@ -340,6 +424,26 @@ void main() {
           variant == MmVariant.urdu ? findsOneWidget : findsNothing,
         );
       }
+    });
+
+    testWidgets('fits 200% text on 320 dp in English and Urdu', (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        Wrap(
+          children: [
+            for (final kind in MmIconButtonVariant.values)
+              for (final selected in [null, false, true])
+                MmIconButton(
+                  icon: MmIcons.notificationsOff,
+                  selectedIcon: MmIcons.notifications,
+                  tooltip: 'کرایے کی یاد دہانیاں',
+                  variant: kind,
+                  selected: selected,
+                  onPressed: tapped,
+                ),
+          ],
+        ),
+      );
     });
 
     testEveryVariant('fits a 320 dp surface in every variant', (
@@ -357,7 +461,7 @@ void main() {
                 tooltip: 'Share receipt',
                 variant: kind,
                 selected: kind == MmIconButtonVariant.tonal ? true : null,
-                onPressed: () {},
+                onPressed: tapped,
               ),
           ],
         ),

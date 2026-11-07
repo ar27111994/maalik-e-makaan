@@ -10,9 +10,17 @@ import 'package:mm_ui/src/foundation/mm_field_label.dart';
 ///   field's own semantics node (with the required state and the marker
 ///   word as its hint), and the visible copy is hidden from assistive
 ///   technology so it is not read twice;
+/// * the text, the hint, the helper and the error all start at the field's
+///   content padding (16 dp), as the values and helper lines of the
+///   choice fields do, so a form that mixes them lines up;
 /// * helper text sits below the field in muted ink, and an error replaces
 ///   it in the overdue colour with the error icon (`MmFieldError`, the
 ///   text field's error builder), announced as a live region.
+///
+/// Material animates a field's outline and its helper and error line
+/// (167 ms fades, the error sliding a quarter of its height into place)
+/// whatever the platform's reduced-motion setting says: the durations are
+/// fixed inside Flutter's `InputDecorator` and cannot be set from here.
 ///
 /// Internal to the inputs family: the public fields build it.
 class MmFieldFrame extends StatelessWidget {
@@ -23,6 +31,7 @@ class MmFieldFrame extends StatelessWidget {
     this.required = false,
     this.optional = false,
     this.enabled = true,
+    this.hint,
     super.key,
   }) : assert(
          !(required && optional),
@@ -41,14 +50,27 @@ class MmFieldFrame extends StatelessWidget {
   /// Whether the field accepts input; a disabled field's label is muted.
   final bool enabled;
 
+  /// More words for assistive technology after "Required" or "Optional"
+  /// (the unit an empty amount is in), on a line of their own.
+  final String? hint;
+
   /// The text field.
   final Widget child;
 
-  /// The decoration of a framed field: [hint] inside it while it is empty,
-  /// [helper] below it in muted ink (wrapping, never cut short), and the
+  /// The decoration of a framed field: [hint] inside it while it is empty
+  /// and [helper] below it, both in muted ink and wrapping rather than cut
+  /// short at large text sizes (a hint that wraps makes the field as tall
+  /// as it, typed in or not, so the field does not jump), and the
   /// optional affixes, sized within [affixConstraints] (by default at least
   /// the 48 dp touch target, for icons and buttons). Errors come from the
   /// field's `forceErrorText` or validator, shown by `MmFieldError`.
+  ///
+  /// The outline leaves no gap for a floating label (the label sits above
+  /// the field), so Material does not inset the text, the hint and the
+  /// helper line by that gap either: they start at the content padding.
+  ///
+  /// [subtextScaler], when set, is the text scale of the helper line, for a
+  /// field whose own line is set at another scale (see [atScale]).
   static InputDecoration decoration(
     BuildContext context, {
     String? hint,
@@ -57,40 +79,67 @@ class MmFieldFrame extends StatelessWidget {
     String? prefixText,
     Widget? suffixIcon,
     BoxConstraints? affixConstraints,
+    TextScaler? subtextScaler,
   }) {
-    final helperStyle = Theme.of(context).inputDecorationTheme.helperStyle;
+    final theme = Theme.of(context).inputDecorationTheme;
     return InputDecoration(
-      hintText: hint,
-      helper: helper == null ? null : Text(helper, style: helperStyle),
+      hint: hint == null ? null : Text(hint, style: theme.hintStyle),
+      helper: helper == null
+          ? null
+          : atScale(subtextScaler, Text(helper, style: theme.helperStyle)),
       prefixIcon: prefixIcon,
       prefixText: prefixText,
       suffixIcon: suffixIcon,
       prefixIconConstraints: affixConstraints,
       suffixIconConstraints: affixConstraints,
+      border: _flush(theme.border),
+      enabledBorder: _flush(theme.enabledBorder),
+      focusedBorder: _flush(theme.focusedBorder),
+      errorBorder: _flush(theme.errorBorder),
+      focusedErrorBorder: _flush(theme.focusedErrorBorder),
+      disabledBorder: _flush(theme.disabledBorder),
+    );
+  }
+
+  /// [border] without the gap an outline keeps for a floating label.
+  static InputBorder? _flush(InputBorder? border) =>
+      border is OutlineInputBorder ? border.copyWith(gapPadding: 0) : border;
+
+  /// [child] at the text scale [scaler], or as it is when [scaler] is null.
+  static Widget atScale(TextScaler? scaler, Widget child) {
+    if (scaler == null) return child;
+    return Builder(
+      builder: (context) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: scaler),
+        child: child,
+      ),
     );
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      MmFieldLabel(
-        label: label,
-        required: required,
-        optional: optional,
-        enabled: enabled,
-      ),
-      Semantics(
-        label: label,
-        hint: MmFieldLabel.markerOf(
-          context,
+  Widget build(BuildContext context) {
+    final marker = MmFieldLabel.markerOf(
+      context,
+      required: required,
+      optional: optional,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MmFieldLabel(
+          label: label,
           required: required,
           optional: optional,
+          enabled: enabled,
         ),
-        isRequired: required ? true : (optional ? false : null),
-        child: child,
-      ),
-    ],
-  );
+        Semantics(
+          label: label,
+          hint: [?marker, ?hint].join('\n'),
+          isRequired: required ? true : (optional ? false : null),
+          child: child,
+        ),
+      ],
+    );
+  }
 }

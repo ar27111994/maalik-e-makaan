@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
-import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 
 import '../../support/testing.dart';
+import 'focus.dart';
 
 enum _Method { cash, bank, card }
 
@@ -52,22 +52,6 @@ Finder _row(String label) => find.ancestor(
   of: find.text(label),
   matching: find.byType(RadioListTile<_Method>),
 );
-
-/// Whether the row showing [label] draws the focus ring.
-bool _ringShown(WidgetTester tester, String label) {
-  final box = tester.widget<DecoratedBox>(
-    find
-        .descendant(
-          of: find.ancestor(
-            of: find.text(label),
-            matching: find.byType(MmFocusWithin),
-          ),
-          matching: find.byType(DecoratedBox),
-        )
-        .first,
-  );
-  return (box.decoration as BoxDecoration).border != null;
-}
 
 void main() {
   group('MmRadioGroup', () {
@@ -141,6 +125,73 @@ void main() {
       );
     });
 
+    testWidgets('the label sits as a field label does, with its marker', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MmSelectField<String>(
+              label: 'Property',
+              options: const [MmOption(value: 'g', label: 'Gulberg Heights')],
+              onChanged: (_) {},
+            ),
+            MmRadioGroup<_Method>(
+              label: 'Received by',
+              options: _methods,
+              value: null,
+              required: true,
+              helper: 'As written on the receipt',
+              onChanged: (_) {},
+            ),
+          ],
+        ),
+      );
+      // The same inset and gap as a field's label.
+      final field = tester.getRect(find.text('Property', findRichText: true));
+      final group = tester.getRect(
+        find.text('Received by  Required', findRichText: true),
+      );
+      expect(group.left, field.left);
+      final firstRow = tester.getRect(_row('Cash'));
+      expect(firstRow.top - group.bottom, MmSpace.s2);
+      expect(find.text('As written on the receipt'), findsOneWidget);
+      final semantics = tester.getSemantics(find.byType(RadioGroup<_Method>));
+      expect(semantics.label, 'Received by');
+      expect(semantics.hint, 'Required');
+    });
+
+    testWidgets('an error replaces the helper, with an icon, live', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        MmRadioGroup<_Method>(
+          label: 'Received by',
+          options: _methods,
+          value: null,
+          optional: true,
+          helper: 'As written on the receipt',
+          errorText: 'Choose how the rent was paid',
+          onChanged: (_) {},
+        ),
+      );
+      expect(find.text('As written on the receipt'), findsNothing);
+      expect(find.byIcon(MmIcons.error), findsOneWidget);
+      expect(
+        tester.getSemantics(
+          find.bySemanticsLabel('Choose how the rent was paid'),
+        ),
+        isSemantics(label: 'Choose how the rent was paid', isLiveRegion: true),
+      );
+      expect(
+        tester.getSemantics(find.byType(RadioGroup<_Method>)).hint,
+        'Optional',
+      );
+    });
+
     testWidgets('tapping anywhere on a row chooses it', (tester) async {
       final log = <_Method?>[];
       await pumpThemed(tester, _Controlled(log: log));
@@ -161,12 +212,12 @@ void main() {
       await pumpThemed(tester, _Controlled(log: log, initial: _Method.bank));
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(_ringShown(tester, 'Bank transfer'), isTrue);
-      expect(_ringShown(tester, 'Cash'), isFalse);
+      expect(ringShown(tester, 'Bank transfer'), isTrue);
+      expect(ringShown(tester, 'Cash'), isFalse);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       await tester.pumpAndSettle();
       expect(log, [_Method.card]);
-      expect(_ringShown(tester, 'Card'), isTrue);
+      expect(ringShown(tester, 'Card'), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.pumpAndSettle();

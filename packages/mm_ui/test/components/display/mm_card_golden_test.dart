@@ -7,10 +7,14 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
+import 'support.dart';
 
-/// A static card, a tappable card and a card grouping rows edge to edge.
+/// A static card bounded by the rule, a tappable card focused from the
+/// keyboard (its border turned to the focus ring), a tappable card at rest
+/// bounded by the outline colour, and a card grouping rows edge to edge
+/// whose amounts keep to the end edge.
 void main() {
-  goldenEveryVariant(
+  focusedGoldenEveryVariant(
     'mm_card',
     () => GoldenPage((context, say) {
       final text = Theme.of(context).textTheme;
@@ -66,6 +70,21 @@ void main() {
             ),
           ),
           MmCard(
+            onTap: tapped,
+            child: Row(
+              spacing: MmSpace.s3,
+              children: [
+                Expanded(
+                  child: Text(
+                    say('Gulberg Heights, 6 units', 'گلبرگ ہائٹس، 6 یونٹ'),
+                    style: text.titleMedium,
+                  ),
+                ),
+                Icon(MmIcons.chevronEnd, color: context.mm.colors.inkMuted),
+              ],
+            ),
+          ),
+          MmCard(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
@@ -86,5 +105,7 @@ void main() {
         ],
       );
     }),
+    focused: textIn('Ayesha Khan', 'عائشہ خان'),
+    sizes: {MmVariant.largeText: const Size(360, 1000)},
   );
 }

@@ -17,6 +17,11 @@ import 'package:mm_ui/src/foundation/mm_clean_text_formatter.dart';
 /// Use `MmPasswordField` for passwords and the money, CNIC and phone
 /// fields for those values: they format and parse them as they are typed.
 ///
+/// Material fades the outline and the helper or error line in and out
+/// over 167 ms (the error also slides a quarter of its height into place)
+/// whatever the platform's reduced-motion setting: Flutter's
+/// `InputDecorator` fixes those durations, so no field can turn them off.
+///
 /// ```dart
 /// MmTextField(
 ///   label: l10n.tenantName,
