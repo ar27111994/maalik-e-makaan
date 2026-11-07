@@ -1,0 +1,3 @@
+# Lake build output (oleans, the check-vectors binary) and its manifest.
+/.lake/
+/lake-manifest.json

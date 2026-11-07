@@ -1,0 +1,14 @@
+# Machine-checked proofs of Maalik-e-Makaan's money and rent arithmetic.
+# No dependencies (Lean core only), so `lake build` works offline and in CI.
+name = "maalik"
+version = "0.1.0"
+defaultTargets = ["Maalik", "check-vectors"]
+
+[[lean_lib]]
+name = "Maalik"
+
+# Re-checks contracts/rent_math_vectors.json against the proven Lean model:
+#   lake exe check-vectors ../../contracts/rent_math_vectors.json
+[[lean_exe]]
+name = "check-vectors"
+root = "Main"
