@@ -1,0 +1,305 @@
+/*
+ * The calculators: a form on paper and a result drawn like a raseed's
+ * counterfoil (a perforated top edge, figures on ruled lines). Not scoped,
+ * because the result's markup is built by two renderers (the page at build
+ * time and the browser script) that must look the same.
+ */
+
+.calculator {
+  display: grid;
+  gap: var(--mm-space-s6);
+}
+
+@media (width >= 64rem) {
+  .calculator {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .calculator__noscript {
+    grid-column: 1 / -1;
+  }
+}
+
+.calculator__noscript {
+  padding: var(--mm-space-s3) var(--mm-space-s4);
+  border: var(--mm-size-hairline) solid var(--mm-color-outline);
+  border-radius: var(--mm-radius-sm);
+  background-color: var(--mm-color-due-soon-container);
+  color: var(--mm-color-on-due-soon-container);
+}
+
+.calculator__form {
+  display: grid;
+  gap: var(--mm-space-s6);
+  padding: var(--mm-space-s4);
+  border: var(--mm-size-hairline) solid var(--mm-color-rule);
+  border-radius: var(--mm-radius-md);
+  background-color: var(--mm-color-surface);
+}
+
+@media (width >= 40rem) {
+  .calculator__form {
+    padding: var(--mm-space-s6);
+  }
+}
+
+/* ---- Fields ---- */
+
+.field {
+  display: grid;
+  gap: var(--mm-space-s1);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field__label {
+  padding: 0;
+  font-weight: 600;
+}
+
+.field__label--small {
+  font-weight: 400;
+}
+
+.field__hint {
+  color: var(--mm-color-ink-muted);
+  font-size: var(--mm-type-body-small-size);
+  line-height: var(--mm-type-body-small-line);
+}
+
+html[lang="ur"] .field__hint {
+  font-size: var(--mm-type-urdu-body-small-size);
+  line-height: var(--mm-type-urdu-body-small-line);
+}
+
+/* An error is a sentence in words, in bold; the field's own outline turns red and thickens too. */
+.field__error {
+  color: var(--mm-color-overdue);
+  font-weight: 600;
+}
+
+.field__control {
+  display: flex;
+  align-items: stretch;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  margin-block-start: var(--mm-space-s1);
+  border: var(--mm-size-hairline) solid var(--mm-color-outline);
+  border-radius: var(--mm-radius-sm);
+  background-color: var(--mm-color-surface);
+}
+
+.field__affix {
+  display: flex;
+  align-items: center;
+  padding-inline: var(--mm-space-s3);
+  background-color: var(--mm-color-surface-sunken);
+  color: var(--mm-color-ink-muted);
+  font-weight: 600;
+}
+
+.field__affix:first-child {
+  border-inline-end: var(--mm-size-hairline) solid var(--mm-color-outline);
+  border-start-start-radius: var(--mm-radius-sm);
+  border-end-start-radius: var(--mm-radius-sm);
+}
+
+.field__affix:last-child {
+  border-inline-start: var(--mm-size-hairline) solid var(--mm-color-outline);
+  border-start-end-radius: var(--mm-radius-sm);
+  border-end-end-radius: var(--mm-radius-sm);
+}
+
+.field__input,
+.field__select {
+  min-block-size: var(--mm-size-field-height);
+  min-inline-size: 0;
+  margin: 0;
+  padding-inline: var(--mm-space-s3);
+  border: 0;
+  border-radius: var(--mm-radius-sm);
+  background-color: var(--mm-color-surface);
+  color: var(--mm-color-ink);
+  font: inherit;
+  font-family: var(--mm-font-latin), var(--mm-font-urdu);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The day, month and year fields stand alone, with their own border. */
+.field--inline .field__input {
+  inline-size: auto;
+  border: var(--mm-size-hairline) solid var(--mm-color-outline);
+}
+
+/* Inside a control with an affix, the ring is drawn just inside the input's edge. */
+.field__control .field__input:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: calc(-1 * var(--mm-size-focus-ring));
+}
+
+.field__select {
+  max-inline-size: 100%;
+  border: var(--mm-size-hairline) solid var(--mm-color-outline);
+  font-family: inherit;
+}
+
+html[lang="ur"] .field__select {
+  line-height: var(--mm-type-urdu-body-line);
+}
+
+.field__input[aria-invalid="true"] {
+  outline: var(--mm-size-stroke) solid var(--mm-color-overdue);
+  outline-offset: calc(-1 * var(--mm-size-stroke));
+}
+
+.field__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mm-space-s4);
+}
+
+/* ---- Choices (radio buttons) ---- */
+
+.choices {
+  display: grid;
+  gap: var(--mm-space-s2);
+  margin-block-start: var(--mm-space-s1);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mm-space-s3);
+  min-block-size: var(--mm-size-min-target);
+  padding: var(--mm-space-s2) var(--mm-space-s3);
+  border: var(--mm-size-hairline) solid var(--mm-color-outline);
+  border-radius: var(--mm-radius-sm);
+  cursor: pointer;
+}
+
+.choice:has(:checked) {
+  border-color: var(--mm-color-primary);
+  background-color: var(--mm-color-primary-container);
+  color: var(--mm-color-on-primary-container);
+}
+
+.choice__input {
+  flex: none;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin: 0;
+  margin-block-start: 0.125rem;
+  accent-color: var(--mm-color-primary);
+}
+
+html[lang="ur"] .choice__input {
+  margin-block-start: 0.5rem;
+}
+
+.calculator__actions {
+  display: flex;
+}
+
+/* ---- The result: a counterfoil ---- */
+
+.result {
+  display: grid;
+  gap: var(--mm-space-s4);
+  padding: var(--mm-space-s5) var(--mm-space-s4) var(--mm-space-s4);
+  border: var(--mm-size-hairline) solid var(--mm-color-rule);
+  border-block-start: var(--mm-size-stroke) dashed var(--mm-color-outline);
+  background-color: var(--mm-color-surface);
+}
+
+@media (width >= 40rem) {
+  .result {
+    padding-inline: var(--mm-space-s6);
+  }
+}
+
+.result__summary {
+  font-weight: 600;
+}
+
+.result__body {
+  display: grid;
+  gap: var(--mm-space-s4);
+}
+
+.result__figures {
+  display: grid;
+  gap: var(--mm-space-s2);
+}
+
+.result__figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--mm-space-s1) var(--mm-space-s4);
+  padding-block-end: var(--mm-space-s2);
+  border-block-end: var(--mm-size-hairline) solid var(--mm-color-rule);
+}
+
+.result__figure dt {
+  color: var(--mm-color-ink-muted);
+}
+
+.result__figure dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: end;
+}
+
+.result__figure--primary dd {
+  font-size: var(--mm-type-amount-size);
+  font-weight: var(--mm-type-amount-weight);
+  line-height: var(--mm-type-amount-line);
+}
+
+.result__steps {
+  display: grid;
+  gap: var(--mm-space-s2);
+  margin: 0;
+  padding-inline-start: var(--mm-space-s6);
+}
+
+.result__notes {
+  display: grid;
+  gap: var(--mm-space-s2);
+  margin: 0;
+  padding-inline-start: var(--mm-space-s6);
+  color: var(--mm-color-ink-muted);
+  font-size: var(--mm-type-body-small-size);
+  line-height: var(--mm-type-body-small-line);
+}
+
+html[lang="ur"] .result__notes {
+  font-size: var(--mm-type-urdu-body-small-size);
+  line-height: var(--mm-type-urdu-body-small-line);
+}
+
+/*
+ * Figures inside sentences: Latin face, left to right, and moved to the next
+ * line as a whole rather than split, so a sum never reads out of order in Urdu.
+ */
+.math {
+  display: inline-block;
+  max-inline-size: 100%;
+  font-family: var(--mm-font-latin), var(--mm-font-urdu);
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+}
+
+@media (forced-colors: active) {
+  .calculator__form,
+  .result,
+  .choice,
+  .field__control,
+  .field__select {
+    border-color: currentcolor;
+  }
+}

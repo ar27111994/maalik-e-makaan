@@ -1,0 +1,115 @@
+---
+import { getEntry } from "astro:content";
+import { SITE } from "../config/site.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { licenceText } from "../lib/licence-texts.ts";
+import { copyrightLine, fontLicence, fontLicencePath } from "../lib/licences.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("licences", locale);
+if (entry === undefined) throw new Error(`src/content/licences/${locale}.yaml is missing`);
+const page = entry.data;
+const fonts = page.fonts.items.map((item) => {
+  const font = fontLicence(item.licence);
+  const [before = "", after = ""] = page.fonts.linkLabel.split("{font}");
+  return {
+    ...item,
+    family: font.family,
+    href: fontLicencePath(font.slug),
+    copyright: copyrightLine(licenceText(font.slug)),
+    linkBefore: before,
+    linkAfter: after,
+  };
+});
+---
+
+<BaseLayout
+  locale={locale}
+  path="/licences/"
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  breadcrumbs={[{ label: page.heading, path: "/licences/" }]}
+>
+  <article class="container reading section licences">
+    <h1>{page.heading}</h1>
+    <p class="licences__intro">{page.intro}</p>
+
+    <section aria-labelledby="code-heading">
+      <h2 id="code-heading">{page.code.heading}</h2>
+      <p>{page.code.body}</p>
+      <p>
+        <a href={SITE.licenceUrl}>{page.code.linkLabel}</a>
+      </p>
+    </section>
+
+    <section aria-labelledby="fonts-heading">
+      <h2 id="fonts-heading">{page.fonts.heading}</h2>
+      <p>{page.fonts.body}</p>
+      {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+      {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+      <ul class="licences__fonts" role="list">
+        {fonts.map((font) => (
+          <li class="card">
+            <h3 lang="en">{font.family}</h3>
+            <p>{font.role}</p>
+            <p class="licences__copyright" lang="en">
+              {font.copyright}
+            </p>
+            <p>
+              <a href={font.href}>
+                {font.linkBefore}
+                <span lang="en">{font.family}</span>
+                {font.linkAfter}
+              </a>
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p>{page.fonts.note}</p>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .licences {
+    display: grid;
+    gap: var(--mm-space-s8);
+    padding-block-start: var(--mm-space-s6);
+  }
+
+  .licences section {
+    display: grid;
+    gap: var(--mm-space-s3);
+  }
+
+  .licences__intro {
+    color: var(--mm-color-ink-muted);
+    font-size: 1.125rem;
+  }
+
+  .licences__fonts {
+    display: grid;
+    gap: var(--mm-space-s4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .licences__fonts h3 {
+    margin-block-end: var(--mm-space-s1);
+  }
+
+  .licences__copyright {
+    color: var(--mm-color-ink-muted);
+    font-size: var(--mm-type-body-small-size);
+    line-height: var(--mm-type-body-small-line);
+    overflow-wrap: anywhere;
+  }
+</style>

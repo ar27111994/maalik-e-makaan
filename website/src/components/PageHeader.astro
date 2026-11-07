@@ -1,0 +1,35 @@
+---
+/** A page's heading and introduction, with optional lines of metadata after them. */
+interface Props {
+  heading: string;
+  intro?: string | undefined;
+}
+
+const { heading, intro } = Astro.props;
+---
+
+<header class="page-header">
+  <h1>{heading}</h1>
+  {intro !== undefined && <p class="page-header__intro">{intro}</p>}
+  <slot />
+</header>
+
+<style>
+  .page-header {
+    display: grid;
+    gap: var(--mm-space-s3);
+    max-inline-size: var(--reading-max);
+    padding-block: var(--mm-space-s6) var(--mm-space-s8);
+  }
+
+  .page-header__intro {
+    color: var(--mm-color-ink-muted);
+    font-size: 1.125rem;
+    line-height: 1.6;
+  }
+
+  :global(html[lang="ur"]) .page-header__intro {
+    font-size: 1.25rem;
+    line-height: var(--mm-type-urdu-body-line);
+  }
+</style>

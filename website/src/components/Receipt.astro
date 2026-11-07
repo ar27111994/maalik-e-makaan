@@ -1,0 +1,148 @@
+---
+/**
+ * An example receipt drawn in HTML: the product's central artefact, a numbered
+ * bilingual raseed with a brass seal. The data is made up and the caption says so.
+ */
+import type { Locale } from "../i18n/locales.ts";
+import type { HomeContent } from "../lib/content/schemas.ts";
+import { Money, formatMoney } from "../lib/money/index.ts";
+import StatusChip from "./StatusChip.astro";
+
+interface Props {
+  locale: Locale;
+  receipt: HomeContent["receipt"];
+}
+
+const { locale, receipt } = Astro.props;
+const language = locale === "en" ? "english" : "urdu";
+const amount = formatMoney(Money.fromRupees(receipt.amountRupees), { language });
+const balance = formatMoney(Money.ZERO, { language });
+---
+
+<figure class="receipt">
+  <div class="receipt__paper">
+    <div class="receipt__head">
+      <p class="receipt__title">{receipt.title}</p>
+      <p class="receipt__seal">
+        <span class="receipt__seal-label">{receipt.numberLabel}</span>
+        <span class="receipt__number" dir="ltr">
+          {receipt.number}
+        </span>
+      </p>
+    </div>
+    <dl class="receipt__lines">
+      <div class="receipt__line">
+        <dt>{receipt.payerLabel}</dt>
+        <dd>{receipt.payer}</dd>
+      </div>
+      <div class="receipt__line receipt__line--amount">
+        <dt>{receipt.lineLabel}</dt>
+        <dd class="amount">{amount}</dd>
+      </div>
+      <div class="receipt__line">
+        <dt>{receipt.methodLabel}</dt>
+        <dd>{receipt.method}</dd>
+      </div>
+      <div class="receipt__line">
+        <dt>{receipt.balanceLabel}</dt>
+        <dd class="amount">{balance}</dd>
+      </div>
+    </dl>
+    <StatusChip status="paid" label={receipt.status} />
+  </div>
+  <figcaption class="receipt__caption">{receipt.caption}</figcaption>
+</figure>
+
+<style>
+  .receipt {
+    margin: 0;
+  }
+
+  .receipt__paper {
+    display: grid;
+    gap: var(--mm-space-s4);
+    padding: var(--mm-space-s5) var(--mm-space-s4) var(--mm-space-s4);
+    border: var(--mm-size-hairline) solid var(--mm-color-rule);
+    border-block-start: var(--mm-size-stroke) dashed var(--mm-color-outline);
+    background-color: var(--mm-color-surface);
+  }
+
+  .receipt__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mm-space-s3);
+  }
+
+  .receipt__title {
+    font-size: var(--mm-type-title-size);
+    font-weight: var(--mm-type-title-weight);
+    line-height: var(--mm-type-title-line);
+  }
+
+  .receipt__seal {
+    display: inline-flex;
+    gap: var(--mm-space-s1);
+    align-items: baseline;
+    padding-block: var(--mm-space-s1);
+    padding-inline: var(--mm-space-s3);
+    border: var(--mm-size-stroke) solid var(--mm-color-brass);
+    border-radius: var(--mm-radius-full);
+    background-color: var(--mm-color-brass-container);
+    color: var(--mm-color-on-brass-container);
+    font-weight: 600;
+  }
+
+  .receipt__number {
+    font-family: var(--mm-font-latin);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .receipt__lines {
+    display: grid;
+    gap: var(--mm-space-s2);
+  }
+
+  .receipt__line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--mm-space-s1) var(--mm-space-s4);
+    padding-block-end: var(--mm-space-s2);
+    border-block-end: var(--mm-size-hairline) solid var(--mm-color-rule);
+  }
+
+  .receipt__line dt {
+    color: var(--mm-color-ink-muted);
+  }
+
+  .receipt__line dd {
+    margin: 0;
+    font-weight: 600;
+    text-align: end;
+  }
+
+  .receipt__line--amount dd {
+    font-size: var(--mm-type-headline-size);
+    font-weight: var(--mm-type-amount-weight);
+    line-height: var(--mm-type-headline-line);
+  }
+
+  .receipt__caption {
+    margin-block-start: var(--mm-space-s2);
+    color: var(--mm-color-ink-muted);
+    font-size: var(--mm-type-body-small-size);
+    line-height: var(--mm-type-body-small-line);
+  }
+
+  :global(html[lang="ur"]) .receipt__title {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  :global(html[lang="ur"]) .receipt__caption {
+    font-size: var(--mm-type-urdu-body-small-size);
+    line-height: var(--mm-type-urdu-body-small-line);
+  }
+</style>

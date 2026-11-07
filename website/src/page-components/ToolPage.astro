@@ -1,0 +1,185 @@
+---
+/**
+ * A calculator page: the introduction, the calculator (with a worked result
+ * for its default inputs, so the page reads without JavaScript), worked
+ * examples, the method and the law (Markdown), and the sources.
+ */
+import type { CollectionEntry } from "astro:content";
+import Markdown from "../components/Markdown.astro";
+import PageHeader from "../components/PageHeader.astro";
+import SourcesList from "../components/SourcesList.astro";
+import Calculator from "../components/tools/Calculator.astro";
+import IncrementScript from "../components/tools/IncrementScript.astro";
+import ProrationScript from "../components/tools/ProrationScript.astro";
+import WithholdingScript from "../components/tools/WithholdingScript.astro";
+import { formatDate } from "../i18n/dates.ts";
+import { absoluteUrl, localisePath, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { parseLocalisedId } from "../lib/content/guides.ts";
+import { webApplicationNode } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+import { calculatorExamples, renderCalculator } from "../tools/registry.ts";
+
+interface Props {
+  locale: Locale;
+  entry: CollectionEntry<"tools">;
+}
+
+const { locale, entry } = Astro.props;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+const { slug } = parseLocalisedId(entry.id, "tools");
+const path = `/tools/${slug}/`;
+const url = absoluteUrl(site, localisePath(path, locale));
+const tool = entry.data;
+const strings = ui(locale);
+const html = entry.rendered?.html ?? "";
+if (html === "") throw new Error(`Tool ${entry.id} has no body`);
+const calculator = renderCalculator(tool.calculator, locale);
+const examples = calculatorExamples(tool.calculator, locale);
+---
+
+<BaseLayout
+  locale={locale}
+  path={path}
+  title={documentTitle(tool.title, locale)}
+  description={tool.description}
+  pageName={tool.title}
+  breadcrumbs={[
+    { label: strings.tools.heading, path: "/tools/" },
+    { label: tool.title, path },
+  ]}
+  extraNodes={[
+    webApplicationNode({ site, url, name: tool.title, description: tool.description, locale }),
+  ]}
+>
+  <div class="container tool">
+    <PageHeader heading={tool.title} intro={tool.intro}>
+      <p class="tool__reviewed">
+        {`${strings.guide.lastReviewed}: `}
+        <time datetime={tool.lastReviewed}>{formatDate(tool.lastReviewed, locale)}</time>
+      </p>
+    </PageHeader>
+    {tool.disclaimer !== undefined && (
+      <p class="tool__disclaimer">
+        <svg class="tool__disclaimer-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="6.25" fill="none" stroke-width="1.5" />
+          <path d="M8 7.25v4M8 4.75v.01" fill="none" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+        <span>{tool.disclaimer}</span>
+      </p>
+    )}
+    <Calculator
+      id={calculator.id}
+      locale={locale}
+      items={calculator.items}
+      view={calculator.view}
+      noscript={tool.noscript}
+    />
+    <div class="reading tool__text">
+      <div class="tool__examples">
+        <h2 id="examples-heading">{tool.examples.heading}</h2>
+        <p>{tool.examples.intro}</p>
+        <div class="table-scroll" role="region" aria-labelledby="examples-heading" tabindex="0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                {examples.head.map((cell) => (
+                  <th scope="col">{cell}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {examples.rows.map((row) => (
+                <tr>
+                  {row.map((cell, index) =>
+                    index === 0 ? (
+                      <th scope="row" class="amount">
+                        {cell}
+                      </th>
+                    ) : (
+                      <td class="amount">{cell}</td>
+                    ),
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Markdown html={html} />
+      <p class="tool__notice">{strings.tools.notAdvice}</p>
+      <SourcesList locale={locale} sources={tool.sources} />
+    </div>
+  </div>
+  {tool.calculator === "increment" && <IncrementScript />}
+  {tool.calculator === "proration" && <ProrationScript />}
+  {tool.calculator === "withholding" && <WithholdingScript />}
+</BaseLayout>
+
+<style>
+  .tool__reviewed {
+    color: var(--mm-color-ink-muted);
+  }
+
+  .tool__disclaimer {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mm-space-s3);
+    max-inline-size: var(--reading-max);
+    margin-block-end: var(--mm-space-s6);
+    padding: var(--mm-space-s3) var(--mm-space-s4);
+    border: var(--mm-size-hairline) solid transparent;
+    border-radius: var(--mm-radius-sm);
+    background-color: var(--mm-color-due-soon-container);
+    color: var(--mm-color-on-due-soon-container);
+    font-weight: 600;
+  }
+
+  .tool__disclaimer-icon {
+    flex: none;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    margin-block-start: 0.125rem;
+    stroke: currentcolor;
+  }
+
+  :global(html[lang="ur"]) .tool__disclaimer-icon {
+    margin-block-start: 0.5rem;
+  }
+
+  .tool__text {
+    display: grid;
+    gap: var(--mm-space-s8);
+    margin-block-start: var(--section-gap);
+  }
+
+  .tool__text > *,
+  .tool__examples {
+    min-inline-size: 0;
+  }
+
+  /* Five columns of amounts: readable widths, scrolling sideways on a phone. */
+  .tool__examples :global(.data-table) {
+    min-inline-size: max(100%, 40rem);
+  }
+
+  .tool__examples {
+    display: grid;
+    gap: var(--mm-space-s3);
+  }
+
+  .tool__notice {
+    padding: var(--mm-space-s3) var(--mm-space-s4);
+    border: var(--mm-size-hairline) solid var(--mm-color-outline);
+    border-radius: var(--mm-radius-sm);
+    background-color: var(--mm-color-surface);
+  }
+
+  @media (forced-colors: active) {
+    .tool__disclaimer {
+      border-color: currentcolor;
+    }
+  }
+</style>

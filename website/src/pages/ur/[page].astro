@@ -1,0 +1,17 @@
+---
+import { getCollection } from "astro:content";
+import { pairedEntries } from "../../lib/content/guides.ts";
+import TextPage from "../../page-components/TextPage.astro";
+
+/** Pages of running text: /ur/privacy/ and /ur/terms/ (src/content/pages/ur/). */
+export async function getStaticPaths() {
+  return pairedEntries(await getCollection("pages"), "ur", "pages").map((entry) => ({
+    params: { page: entry.ref.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+---
+
+<TextPage locale="ur" entry={entry} />

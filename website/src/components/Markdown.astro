@@ -1,0 +1,18 @@
+---
+/**
+ * The body of a Markdown entry (a guide, a calculator page, a text page), as
+ * Astro rendered it at build time, with wide tables made scrollable.
+ */
+import { wrapTables } from "../lib/markdown/tables.ts";
+
+interface Props {
+  /** `entry.rendered.html` of a content collection entry. */
+  html: string;
+}
+
+const { html } = Astro.props;
+---
+
+<div class="prose">
+  <Fragment set:html={wrapTables(html)} />
+</div>

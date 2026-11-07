@@ -1,0 +1,56 @@
+---
+import { alternateLinks, LOCALE_INFO, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import { ogImage, ogLocales, siteName } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+  /** The full document title. */
+  title: string;
+  description: string;
+  /** The locale-neutral page path, e.g. "/licences/"; omitted for error pages. */
+  path?: string | undefined;
+  /** Error pages are kept out of search results and carry no canonical URL. */
+  noindex?: boolean;
+  ogType?: "website" | "article";
+}
+
+const { locale, title, description, path, noindex = false, ogType = "website" } = Astro.props;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+const alternates = path === undefined ? [] : alternateLinks(site, path);
+const canonical = alternates.find((link) => link.hreflang === LOCALE_INFO[locale].hreflang)?.href;
+const image = ogImage(locale);
+const imageUrl = new URL(image.path, site).href;
+const { locale: ogLocale, alternate: ogLocaleAlternate } = ogLocales(locale);
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+{noindex ? (
+  <meta name="robots" content="noindex" />
+) : (
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+)}
+{canonical !== undefined && <link rel="canonical" href={canonical} />}
+{alternates.map((link) => (
+  <link rel="alternate" hreflang={link.hreflang} href={link.href} />
+))}
+
+<meta property="og:type" content={ogType} />
+<meta property="og:site_name" content={siteName(locale)} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+{canonical !== undefined && <meta property="og:url" content={canonical} />}
+<meta property="og:locale" content={ogLocale} />
+<meta property="og:locale:alternate" content={ogLocaleAlternate} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:image:type" content={image.type} />
+<meta property="og:image:width" content={String(image.width)} />
+<meta property="og:image:height" content={String(image.height)} />
+<meta property="og:image:alt" content={ui(locale).ogImageAlt} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={imageUrl} />
+<meta name="twitter:image:alt" content={ui(locale).ogImageAlt} />

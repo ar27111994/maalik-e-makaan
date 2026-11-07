@@ -1,0 +1,45 @@
+---
+import { getCollection } from "astro:content";
+import PageHeader from "../components/PageHeader.astro";
+import { localisePath, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { pairedEntries } from "../lib/content/guides.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = ui(locale);
+const tools = pairedEntries(await getCollection("tools"), locale, "tools").sort(
+  (a, b) => a.data.order - b.data.order,
+);
+---
+
+<BaseLayout
+  locale={locale}
+  path="/tools/"
+  title={documentTitle(strings.tools.title, locale)}
+  description={strings.tools.description}
+  pageName={strings.tools.title}
+  pageType="CollectionPage"
+  breadcrumbs={[{ label: strings.tools.heading, path: "/tools/" }]}
+>
+  <div class="container">
+    <PageHeader heading={strings.tools.heading} intro={strings.tools.intro} />
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ul class="index-list" role="list">
+      {tools.map((tool) => (
+        <li class="card index-list__item">
+          <h2 class="index-list__title">
+            <a href={localisePath(`/tools/${tool.ref.slug}/`, locale)}>{tool.data.title}</a>
+          </h2>
+          <p>{tool.data.description}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</BaseLayout>

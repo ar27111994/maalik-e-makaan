@@ -1,0 +1,10 @@
+---
+/** The withholding calculator's browser script (bundled by Astro as a module file). */
+---
+
+<script>
+  import { mountCalculator } from "../../scripts/calculator.ts";
+  import { withholdingCalculator } from "../../tools/withholding.ts";
+
+  mountCalculator(withholdingCalculator);
+</script>

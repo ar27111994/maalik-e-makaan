@@ -1,0 +1,108 @@
+---
+import { getEntry } from "astro:content";
+import AppStatus from "../components/AppStatus.astro";
+import PageHeader from "../components/PageHeader.astro";
+import StatusChip from "../components/StatusChip.astro";
+import { APP_URL } from "../config/app-url.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { contentHref } from "../lib/content/links.ts";
+import { ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("features", locale);
+if (entry === undefined) throw new Error(`src/content/features/${locale}.yaml is missing`);
+const page = entry.data;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+---
+
+<BaseLayout
+  locale={locale}
+  path="/features/"
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  pageExtra={{ about: { "@id": ids.app(site) } }}
+  breadcrumbs={[{ label: page.heading, path: "/features/" }]}
+>
+  <div class="container">
+    <PageHeader heading={page.heading} intro={page.intro}>
+      <AppStatus locale={locale} variant="notice" />
+    </PageHeader>
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ul class="features" role="list">
+      {page.sections.map((section) => (
+        <li class="card features__item" id={section.id}>
+          <h2 class="features__heading">{section.heading}</h2>
+          <StatusChip
+            status={section.status === "v1" ? "due-soon" : "credit"}
+            label={page.status[section.status]}
+          />
+          <p>{section.body}</p>
+          <ul class="features__points">
+            {section.points.map((point) => (
+              <li>{point}</li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+    <p class="features__note">{page.status.note}</p>
+    <section class="closing-band" aria-labelledby="features-closing">
+      <h2 id="features-closing">{page.closing.heading}</h2>
+      <p>{page.closing.body}</p>
+      <a class="button button--primary" href={contentHref(page.closing.cta.href, locale, APP_URL)}>
+        {page.closing.cta.label}
+      </a>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: var(--mm-space-s4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .features__item {
+    display: grid;
+    align-content: start;
+    gap: var(--mm-space-s3);
+  }
+
+  .features__heading {
+    font-size: var(--mm-type-title-size);
+    font-weight: var(--mm-type-title-weight);
+    line-height: var(--mm-type-title-line);
+  }
+
+  :global(html[lang="ur"]) .features__heading {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .features__points {
+    display: grid;
+    gap: var(--mm-space-s2);
+    margin: 0;
+    padding-inline-start: var(--mm-space-s5);
+    color: var(--mm-color-ink-muted);
+  }
+
+  .features__note {
+    margin-block-start: var(--mm-space-s6);
+    max-inline-size: var(--reading-max);
+    color: var(--mm-color-ink-muted);
+  }
+</style>

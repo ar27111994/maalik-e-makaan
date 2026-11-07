@@ -1,0 +1,185 @@
+---
+/**
+ * A calculator: the form (labels above fields, hints and errors in words) and
+ * the result, rendered here for the default inputs so the page shows a worked
+ * example without JavaScript. The page adds the calculator's script, which
+ * recalculates when the form is submitted and announces the new summary in
+ * the live region.
+ */
+import type { Locale } from "../../i18n/locales.ts";
+import { CHROME, calculatorIds } from "../../tools/chrome.ts";
+import type { FormItem, ResultView } from "../../tools/types.ts";
+import "../../styles/calculator.css";
+import ResultBody from "./ResultBody.astro";
+
+interface Props {
+  id: string;
+  locale: Locale;
+  items: readonly FormItem[];
+  view: ResultView;
+  /** Shown when JavaScript is off: the result below is a worked example, not the reader's. */
+  noscript: string;
+}
+
+const { id, locale, items, view, noscript } = Astro.props;
+const chrome = CHROME[locale];
+const ids = calculatorIds(id);
+const describedBy = (...values: (string | false | undefined)[]) =>
+  values.filter((value): value is string => typeof value === "string").join(" ") || undefined;
+---
+
+<div class="calculator">
+  <noscript>
+    <p class="calculator__noscript">{noscript}</p>
+  </noscript>
+  <form id={ids.form} class="calculator__form" novalidate>
+    {items.map((item) => {
+      if (item.kind === "text") {
+        return (
+          <div class="field">
+            <label class="field__label" for={ids.field(item.name)}>
+              {item.label}
+            </label>
+            {item.hint !== undefined && (
+              <p class="field__hint" id={ids.hint(item.name)}>
+                {item.hint}
+              </p>
+            )}
+            <p class="field__error" id={ids.error(item.name)} data-error-for={item.name} hidden />
+            <div class="field__control">
+              {item.prefix !== undefined && (
+                <span class="field__affix" aria-hidden="true">
+                  {item.prefix}
+                </span>
+              )}
+              <input
+                class="field__input"
+                id={ids.field(item.name)}
+                name={item.name}
+                type="text"
+                inputmode={item.inputMode}
+                autocomplete="off"
+                spellcheck="false"
+                size={item.size}
+                value={item.defaultValue}
+                aria-describedby={describedBy(item.hint !== undefined && ids.hint(item.name))}
+              />
+              {item.suffix !== undefined && (
+                <span class="field__affix" aria-hidden="true">
+                  {item.suffix}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      }
+      if (item.kind === "select") {
+        return (
+          <div class="field">
+            <label class="field__label" for={ids.field(item.name)}>
+              {item.label}
+            </label>
+            {item.hint !== undefined && (
+              <p class="field__hint" id={ids.hint(item.name)}>
+                {item.hint}
+              </p>
+            )}
+            <select
+              class="field__select"
+              id={ids.field(item.name)}
+              name={item.name}
+              aria-describedby={describedBy(item.hint !== undefined && ids.hint(item.name))}
+            >
+              {item.options.map((option) => (
+                <option value={option.value} selected={option.value === item.defaultValue}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      }
+      if (item.kind === "radio") {
+        return (
+          <fieldset
+            class="field field--choices"
+            aria-describedby={describedBy(item.hint !== undefined && ids.hint(item.name))}
+          >
+            <legend class="field__label">{item.legend}</legend>
+            {item.hint !== undefined && (
+              <p class="field__hint" id={ids.hint(item.name)}>
+                {item.hint}
+              </p>
+            )}
+            <div class="choices">
+              {item.options.map((option) => (
+                <label class="choice">
+                  <input
+                    class="choice__input"
+                    type="radio"
+                    name={item.name}
+                    value={option.value}
+                    checked={option.value === item.defaultValue}
+                  />
+                  <span class="choice__label">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        );
+      }
+      return (
+        <fieldset
+          class="field field--group"
+          data-group={item.name}
+          aria-describedby={describedBy(item.hint !== undefined && ids.hint(item.name))}
+        >
+          <legend class="field__label">{item.legend}</legend>
+          {item.hint !== undefined && (
+            <p class="field__hint" id={ids.hint(item.name)}>
+              {item.hint}
+            </p>
+          )}
+          <p class="field__error" id={ids.error(item.name)} data-error-for={item.name} hidden />
+          <div class="field__row">
+            {item.fields.map((field) => (
+              <div class="field field--inline">
+                <label class="field__label field__label--small" for={ids.field(field.name)}>
+                  {field.label}
+                </label>
+                <input
+                  class="field__input"
+                  id={ids.field(field.name)}
+                  name={field.name}
+                  type="text"
+                  inputmode={field.inputMode}
+                  autocomplete="off"
+                  spellcheck="false"
+                  size={field.size}
+                  value={field.defaultValue}
+                />
+              </div>
+            ))}
+          </div>
+        </fieldset>
+      );
+    })}
+    <div class="calculator__actions">
+      <button class="button button--primary" type="submit">
+        {chrome.submit}
+      </button>
+    </div>
+  </form>
+
+  <section class="result" aria-labelledby={ids.resultHeading}>
+    <h2 class="result__heading" id={ids.resultHeading}>
+      {chrome.resultHeading}
+    </h2>
+    <p class="result__summary" id={ids.status} role="status">
+      {view.summary}
+    </p>
+    <div class="result__body" id={ids.body}>
+      <ResultBody id={id} locale={locale} view={view} />
+    </div>
+  </section>
+</div>

@@ -1,0 +1,75 @@
+---
+import type { Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+
+export interface BreadcrumbLink {
+  readonly label: string;
+  /** Root-relative URL path, e.g. "/ur/". */
+  readonly href: string;
+}
+
+interface Props {
+  locale: Locale;
+  /** From the home page to the current page; the last item is the current page. */
+  items: readonly BreadcrumbLink[];
+}
+
+const { locale, items } = Astro.props;
+---
+
+<nav class="breadcrumbs" aria-label={ui(locale).breadcrumbLabel}>
+  <ol class="breadcrumbs__list">
+    {items.map((item, index) =>
+      index === items.length - 1 ? (
+        <li class="breadcrumbs__item">
+          <a href={item.href} aria-current="page">
+            {item.label}
+          </a>
+        </li>
+      ) : (
+        <li class="breadcrumbs__item">
+          <a href={item.href}>{item.label}</a>
+        </li>
+      ),
+    )}
+  </ol>
+</nav>
+
+<style>
+  .breadcrumbs {
+    padding-block: var(--mm-space-s4) 0;
+  }
+
+  .breadcrumbs__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--mm-color-ink-muted);
+  }
+
+  .breadcrumbs__item {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* The separator is decoration: the empty alternative text keeps it out of screen readers. */
+  .breadcrumbs__item + .breadcrumbs__item::before {
+    content: "/" / "";
+    padding-inline: var(--mm-space-s2);
+    color: var(--mm-color-ink-muted);
+  }
+
+  .breadcrumbs a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--mm-size-min-target);
+  }
+
+  .breadcrumbs a[aria-current="page"] {
+    color: var(--mm-color-ink);
+    text-decoration-line: none;
+  }
+</style>

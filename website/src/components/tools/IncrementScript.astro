@@ -1,0 +1,10 @@
+---
+/** The increment calculator's browser script (bundled by Astro as a module file). */
+---
+
+<script>
+  import { mountCalculator } from "../../scripts/calculator.ts";
+  import { incrementCalculator } from "../../tools/increment.ts";
+
+  mountCalculator(incrementCalculator);
+</script>

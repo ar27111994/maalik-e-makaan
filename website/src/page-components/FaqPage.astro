@@ -1,0 +1,84 @@
+---
+import { getEntry } from "astro:content";
+import PageHeader from "../components/PageHeader.astro";
+import { SITE } from "../config/site.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { faqEntities, ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("faq", locale);
+if (entry === undefined) throw new Error(`src/content/faq/${locale}.yaml is missing`);
+const page = entry.data;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+const questions = page.groups.flatMap((group) => group.items);
+---
+
+<BaseLayout
+  locale={locale}
+  path="/faq/"
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  pageType="FAQPage"
+  pageExtra={{ about: { "@id": ids.app(site) }, mainEntity: faqEntities(questions) }}
+  breadcrumbs={[{ label: page.heading, path: "/faq/" }]}
+>
+  <div class="container reading">
+    <PageHeader heading={page.heading} intro={page.intro} />
+    <div id="faq" class="faq-groups">
+      {page.groups.map((group, index) => (
+        <section class="faq-group" aria-labelledby={`faq-group-${index + 1}`}>
+          <h2 id={`faq-group-${index + 1}`}>{group.heading}</h2>
+          <div class="faq-group__items">
+            {group.items.map((item) => (
+              <div class="faq-group__item">
+                <h3>{item.question}</h3>
+                <p>{item.answer}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+    <p class="faq-closing">
+      {page.closing.body} <a href={`${SITE.repositoryUrl}/issues`}>{page.closing.linkLabel}</a>
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  .faq-groups {
+    display: grid;
+    gap: var(--mm-space-s12);
+  }
+
+  .faq-group {
+    display: grid;
+    gap: var(--mm-space-s6);
+  }
+
+  .faq-group h2 {
+    padding-block-end: var(--mm-space-s2);
+    border-block-end: var(--mm-size-hairline) solid var(--mm-color-rule);
+  }
+
+  .faq-group__items {
+    display: grid;
+    gap: var(--mm-space-s6);
+  }
+
+  .faq-group__item h3 {
+    margin-block-end: var(--mm-space-s2);
+  }
+
+  .faq-closing {
+    margin-block-start: var(--section-gap);
+  }
+</style>

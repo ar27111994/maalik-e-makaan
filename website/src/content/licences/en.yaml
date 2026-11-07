@@ -1,0 +1,19 @@
+# The English licences page. Its Urdu twin is ur.yaml; keep both in step.
+title: "Licences"
+description: "The licences behind this website: its code is released under the MIT licence, and its two fonts are used under the SIL Open Font License 1.1."
+heading: "Licences"
+intro: "Maalik-e-Makaan is open source. These are the licences for everything this website sends to your browser."
+code:
+  heading: "The code"
+  body: "The website and the app are released under the MIT licence. It lets anyone use, copy, modify and distribute the code, provided the copyright notice and the licence text are included."
+  linkLabel: "Read the MIT licence on GitHub"
+fonts:
+  heading: "The fonts"
+  body: "The text is set in two typefaces, served from this site rather than from a font service. Both are licensed under the SIL Open Font License, version 1.1."
+  items:
+    - licence: ofl-atkinson-hyperlegible-next
+      role: "For English text, and for amounts and other numbers in both languages."
+    - licence: ofl-noto-nastaliq-urdu
+      role: "For Urdu text, in the Nastaliq style Urdu readers expect."
+  linkLabel: "Licence text for {font}"
+  note: "To keep pages light, the site serves subsets of the fonts: each file holds only the characters the site needs, in a compressed web format. The licence allows this."

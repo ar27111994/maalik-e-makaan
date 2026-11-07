@@ -1,0 +1,110 @@
+---
+import { getEntry } from "astro:content";
+import AppStatus from "../components/AppStatus.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { APP_URL } from "../config/app-url.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { contentHref } from "../lib/content/links.ts";
+import { ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("howItWorks", locale);
+if (entry === undefined) throw new Error(`src/content/how-it-works/${locale}.yaml is missing`);
+const page = entry.data;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+---
+
+<BaseLayout
+  locale={locale}
+  path="/how-it-works/"
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  pageExtra={{ about: { "@id": ids.app(site) } }}
+  breadcrumbs={[{ label: page.heading, path: "/how-it-works/" }]}
+>
+  <div class="container">
+    <PageHeader heading={page.heading} intro={page.intro}>
+      <AppStatus locale={locale} variant="notice" />
+    </PageHeader>
+    <ol class="journey">
+      {page.steps.map((step) => (
+        <li class="journey__step">
+          <h2 class="journey__heading">{step.heading}</h2>
+          <p>{step.body}</p>
+          {step.points.length > 0 && (
+            <ul class="journey__points">
+              {step.points.map((point) => (
+                <li>{point}</li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ol>
+    <section class="closing-band" aria-labelledby="how-closing">
+      <h2 id="how-closing">{page.closing.heading}</h2>
+      <p>{page.closing.body}</p>
+      <a class="button button--primary" href={contentHref(page.closing.cta.href, locale, APP_URL)}>
+        {page.closing.cta.label}
+      </a>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .journey {
+    display: grid;
+    gap: var(--mm-space-s8);
+    max-inline-size: var(--reading-max);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  /* As on the home page: a cobalt rule above each step and its number in cobalt. */
+  .journey__step {
+    display: grid;
+    gap: var(--mm-space-s2);
+    padding-block-start: var(--mm-space-s3);
+    border-block-start: var(--mm-size-stroke) solid var(--mm-color-primary);
+    counter-increment: step;
+  }
+
+  /* The number is drawn by CSS; the ordered list tells screen readers the order. */
+  .journey__step::before {
+    content: counter(step) / "";
+    color: var(--mm-color-primary);
+    font-family: var(--mm-font-latin);
+    font-size: var(--mm-type-headline-size);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .journey__heading {
+    font-size: var(--mm-type-title-size);
+    font-weight: var(--mm-type-title-weight);
+    line-height: var(--mm-type-title-line);
+  }
+
+  :global(html[lang="ur"]) .journey__heading {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .journey__points {
+    display: grid;
+    gap: var(--mm-space-s1);
+    margin: 0;
+    padding-inline-start: var(--mm-space-s5);
+    color: var(--mm-color-ink-muted);
+  }
+</style>

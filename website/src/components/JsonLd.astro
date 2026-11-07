@@ -1,0 +1,13 @@
+---
+import { serializeJsonLd, type JsonLdGraph } from "../lib/seo/json-ld.ts";
+
+interface Props {
+  graph: JsonLdGraph;
+}
+
+// A data block, not a script: browsers never run it, so the Content-Security-Policy
+// (script-src 'self') does not apply to it. serializeJsonLd escapes "<".
+const json = serializeJsonLd(Astro.props.graph);
+---
+
+<script type="application/ld+json" is:inline set:html={json} />

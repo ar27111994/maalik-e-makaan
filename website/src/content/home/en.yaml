@@ -1,0 +1,79 @@
+# The English home page. Its Urdu twin is ur.yaml; keep both in step (same
+# number of items, in the same order). British English.
+title: "Maalik-e-Makaan: rent and tenant records for Pakistani landlords"
+description: "Track rent, issue receipts in English and Urdu, remind tenants on WhatsApp, and keep police registration, utility and tax-year records in one place."
+hero:
+  heading: "Rent, receipts and records for Pakistani landlords"
+  lede: "Maalik-e-Makaan replaces the register, the spreadsheet and the WhatsApp thread with one ledger you can trust. It shows who owes what, and since when, in English or Urdu."
+  primaryCta:
+    label: "Open the web app"
+    href: "app"
+  secondaryCta:
+    label: "See the features"
+    href: "/features/"
+receipt:
+  caption: "An example receipt. The name and amount are made up."
+  title: "Receipt"
+  numberLabel: "No."
+  number: "2026-0042"
+  payerLabel: "Received from"
+  payer: "Ayesha Khan"
+  lineLabel: "Rent for November 2026"
+  amountRupees: 45000
+  methodLabel: "Paid by"
+  method: "Cash"
+  status: "Paid"
+  balanceLabel: "Balance due"
+features:
+  heading: "What version 1.0 will do"
+  items:
+    - title: "Dues that create themselves"
+      body: "Rent falls due automatically each month for every active tenancy, with an optional part-month first payment, late fees and deposits. The overdue list shows who owes what, and since when."
+    - title: "Numbered receipts in two languages"
+      body: "Record payments in cash, by bank transfer, Raast, JazzCash, Easypaisa or cheque. Each one gets the next receipt number in an unbroken series and a PDF receipt in English and Urdu to share on WhatsApp."
+    - title: "Reminders on WhatsApp"
+      body: "Polite reminders in English, Urdu or Roman Urdu open in WhatsApp and go from your own number, with nothing to pay per message."
+    - title: "Caretakers and overseas owners"
+      body: "Give a relative or caretaker a role of their own. Every payment they record and the cash they hold stay in an audit trail that the owner can read from abroad."
+    - title: "Police registration and agreements"
+      body: "Keep each tenant's police registration and rent agreement on record, including Punjab Rent Registrar details, and see which registrations are still pending."
+    - title: "Utilities and tax-year statements"
+      body: "Keep electricity and gas connections, bills and meter readings for each unit. After the July–June tax year, get a statement of rent, tax withheld under section 155 and the one-fifth repairs allowance for your tax adviser. It is not tax advice."
+steps:
+  heading: "How it will work"
+  items:
+    - title: "Add your properties and units"
+      body: "Houses, portions, flats, shops, rooms or beds, each with its asking rent."
+    - title: "Add tenants and tenancies"
+      body: "The rent, due day, deposit, yearly increase and late-fee terms, as agreed."
+    - title: "Record payments as they arrive"
+      body: "Dues appear each month. Record what you receive and share the receipt."
+    - title: "See where you stand"
+      body: "The dashboard shows rent collected and outstanding, tenants who are late and tenancies that are due for renewal."
+trust:
+  heading: "Built to be trusted"
+  items:
+    - title: "Exact to the paisa"
+      body: "Amounts are stored exactly, never as rounded approximations. Financial records are cancelled with a reason, never deleted."
+    - title: "Private from the start"
+      body: "Each portfolio's records are kept apart in the database, CNIC numbers are masked on screen and identity documents are held in private storage."
+    - title: "English and Urdu as equals"
+      body: "Choose either language when you first open the app. Urdu reads right to left in Nastaliq, and every receipt is in both languages."
+    - title: "Open source"
+      body: "The code is public on GitHub under the MIT licence, so anyone can check how it works."
+faq:
+  heading: "Questions"
+  items:
+    - question: "Does Maalik-e-Makaan collect rent online?"
+      answer: "No. It records the payments you receive, whether in cash or through a bank or mobile wallet, and issues receipts for them. It does not take payments itself."
+    - question: "Does it work out my income tax?"
+      answer: "No. It records tax that tenants withhold under section 155, works out the one-fifth repairs allowance and gives you a July–June statement for your tax adviser. It does not estimate your final tax, and the statement is not tax advice."
+  more:
+    label: "All questions and answers"
+    href: "/faq/"
+closing:
+  heading: "Keep every rupee accounted for"
+  body: "Open the web app on your phone or computer."
+  cta:
+    label: "Open the web app"
+    href: "app"

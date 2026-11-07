@@ -1,0 +1,12 @@
+{
+  "printWidth": 100,
+  "proseWrap": "preserve",
+  "singleQuote": false,
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": "*.astro",
+      "options": { "parser": "astro", "plugins": ["prettier-plugin-astro"] }
+    }
+  ]
+}

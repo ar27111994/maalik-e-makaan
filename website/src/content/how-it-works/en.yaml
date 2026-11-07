@@ -1,0 +1,48 @@
+# The how-it-works page (/how-it-works/). Its Urdu twin is ur.yaml; keep both
+# in step. Each step follows the requirements of version 1.0 in
+# .planning/REQUIREMENTS.md. British English.
+title: "How it works"
+description: "How Maalik-e-Makaan version 1.0 will work, step by step: add properties and tenants, record payments and share receipts, stay on top of dues and paperwork."
+heading: "How it works"
+intro: "Version 1.0 is still being built. These are the steps a landlord will follow, from the first day to the end of the tax year."
+steps:
+  - heading: "Choose your language and sign up"
+    body: "Pick English or Urdu when you first open the app, and sign up with your email address and a password."
+    points:
+      - "Your email is verified before the account is used, and a forgotten password can be reset."
+      - "You stay signed in on your phone, and signing out clears the app's saved records from it."
+  - heading: "Add your properties and units"
+    body: "A house, a building of portions or flats, a plaza of shops, or a hostel of rooms and beds: add each property with its province, then the units inside it with their asking rent."
+    points:
+      - "The province decides which police-registration deadline applies."
+      - "Each unit shows whether it is occupied, vacant (and for how long) or unavailable."
+  - heading: "Add each tenant and the tenancy"
+    body: "Record the tenant's details and the terms you agreed: the rent, the day it is due, the grace days, the deposit, the yearly increase, any late fee and the notice period."
+    points:
+      - "Add the agreement's e-stamp and Rent Registrar details, and the police registration, as you complete them."
+      - "Onboarding a tenant who has been with you for years? Start billing from this month."
+      - "Two tenancies on the same unit can never overlap."
+  - heading: "Invite the people who help you"
+    body: "Optional: invite a relative, caretaker or accountant by email with a role of their own, and see everything they record."
+    points:
+      - "An overseas owner sees the cash a caretaker holds and every handover."
+  - heading: "Record payments as they arrive"
+    body: "Dues appear each month by themselves. When rent arrives, in cash or by transfer, record it and share the numbered receipt on WhatsApp."
+    points:
+      - "The payment settles the oldest dues first; anything extra is kept as credit for next month."
+      - "Tax a company tenant withholds is recorded with its certificate number, so the gross rent is settled."
+  - heading: "Keep on top of what is due"
+    body: "Each day the app lists what needs you: rent due and overdue, police registrations pending, agreements ending, increases due and unpaid bills."
+    points:
+      - "Send a polite reminder from your own WhatsApp in one tap."
+      - "On the tenancy's anniversary, the app suggests the new rent."
+  - heading: "Close the year"
+    body: "After 30 June, download each property's tax-year statement for your tax adviser, and the tenant statements if you need them."
+    points:
+      - "The statement shows gross rent, tax withheld, the one-fifth repairs allowance and expenses. It is not tax advice."
+closing:
+  heading: "Questions before you start?"
+  body: "What the app records, who can see it, and what the law asks of landlords."
+  cta:
+    label: "Read the answers"
+    href: "/faq/"
