@@ -7,13 +7,14 @@ import { brandAssets } from "./integrations/brand-assets.ts";
 import { siteChecks } from "./integrations/site-checks.ts";
 import { resolveSiteUrl } from "./src/config/urls.ts";
 import { LOCALE_INFO } from "./src/i18n/locales.ts";
-import { sitemapItemWithDefault } from "./src/lib/seo/sitemap.ts";
+import { contentDates, sitemapItem } from "./src/lib/seo/sitemap.ts";
 
 // SITE_URL comes from the environment (the Vercel project, or website/.env
 // locally); see README.md. It defaults to the Vercel production address.
 const env = loadEnv(process.env.NODE_ENV ?? "production", process.cwd(), "");
 const site = resolveSiteUrl(env.SITE_URL);
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
+const dates = contentDates(fileURLToPath(new URL("./src/content/", import.meta.url)));
 
 export default defineConfig({
   site,
@@ -38,7 +39,8 @@ export default defineConfig({
         locales: { en: LOCALE_INFO.en.hreflang, ur: LOCALE_INFO.ur.hreflang },
       },
       filter: (page) => !/\/404\/?$/.test(new URL(page).pathname),
-      serialize: sitemapItemWithDefault,
+      // Dated pages (guides, calculators, privacy and terms) carry their review date as <lastmod>.
+      serialize: (item) => sitemapItem(item, dates),
     }),
     siteChecks(),
   ],
@@ -47,6 +49,10 @@ export default defineConfig({
       // Never inline scripts, styles or fonts as data: URIs; the CSP allows
       // only same-origin files.
       assetsInlineLimit: 0,
+      // One stylesheet for the whole site (about 10 KB compressed) instead of
+      // up to four render-blocking files per page; after the first page it is
+      // cached for a year (vercel.json).
+      cssCodeSplit: false,
     },
     server: {
       // The dev server reads the design tokens and fonts from the repository.

@@ -10,7 +10,7 @@ import type { Locale } from "../i18n/locales.ts";
 import { CalendarDate, DateRange, MonthPeriod, daysInMonth } from "../lib/money/calendar.ts";
 import { Money } from "../lib/money/money.ts";
 import { proratedRent } from "../lib/money/rent-math.ts";
-import { count, figure, money, readInteger, readRupees } from "./input.ts";
+import { count, figure, money, readInteger, readRent, rentMessage } from "./input.ts";
 import type { Calculator, FieldErrors, FormItem, ResultView, Segment } from "./types.ts";
 
 export interface ProrationInput {
@@ -148,7 +148,7 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
       "۔",
     ],
     stepRound: (rounded) => [
-      "قریب ترین روپے تک پورا کرنے پر (آدھا اوپر کی طرف): ",
+      "قریب ترین روپے تک گول کرنے پر (آدھا اوپر کی طرف): ",
       { math: rounded },
       "۔",
     ],
@@ -211,8 +211,9 @@ function items(locale: Locale): FormItem[] {
 function parse(values: Readonly<Record<string, string>>, locale: Locale) {
   const s = STRINGS[locale];
   const errors: Record<string, string> = {};
-  const rent = readRupees(values.rent ?? "");
-  if (rent === null) errors.rent = s.rent.error;
+  const read = readRent(values.rent ?? "");
+  const rent = read.ok ? read.value : null;
+  if (!read.ok) errors.rent = rentMessage(read.problem, locale, s.rent.error);
   const year = readInteger(values.year ?? "", 2000, 2100);
   const month = readInteger(values.month ?? "", 1, 12);
   const day = readInteger(values.day ?? "", 1, 31);

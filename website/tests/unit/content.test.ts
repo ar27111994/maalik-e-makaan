@@ -85,9 +85,20 @@ describe.each(collections)("the $name collection", ({ name, schema }) => {
 describe("content facts", () => {
   test("the home page never claims to estimate final tax (D-10)", () => {
     const en = JSON.stringify(read("home/en.yaml"));
-    expect(en).toContain("It does not estimate your final tax");
+    expect(en).toContain("It will not estimate your final tax");
     expect(en).toMatch(/not tax advice/);
     expect(en).not.toMatch(/\b(calculates|estimates|works out) your (income )?tax\b/i);
+  });
+
+  test("until version 1.0 ships, the home page speaks of the app in the future tense", () => {
+    const en = read("home/en.yaml") as { description: string; hero: { lede: string } };
+    expect(en.description).toMatch(/^An app in development/);
+    expect(en.hero.lede).toMatch(/will replace/);
+    expect(en.hero.lede).not.toMatch(/\b(replaces|shows) /);
+    const ur = read("home/ur.yaml") as { hero: { lede: string } };
+    // The product's name is also the word for "landlord": as a subject it is "مالکِ مکان ایپ".
+    expect(ur.hero.lede).toMatch(/^مالکِ مکان ایپ /);
+    expect(ur.hero.lede).toMatch(/دے گی/);
   });
 
   test("no guides are published in one language only", async () => {

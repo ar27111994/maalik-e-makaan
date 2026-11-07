@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { NAMED_CRAWLERS, robotsTxt } from "../../src/lib/robots.ts";
-import { sitemapItemWithDefault } from "../../src/lib/seo/sitemap.ts";
+import { fileURLToPath } from "node:url";
+import { contentDates, sitemapItem, sitemapItemWithDefault } from "../../src/lib/seo/sitemap.ts";
 
 describe("robots.txt", () => {
   const text = robotsTxt("https://example.pk");
@@ -65,5 +66,33 @@ describe("sitemap entries", () => {
       ],
     };
     expect(sitemapItemWithDefault(done)).toBe(done);
+  });
+});
+
+describe("sitemap <lastmod>", () => {
+  const dates = contentDates(fileURLToPath(new URL("../../src/content/", import.meta.url)));
+
+  test("every guide, calculator and text page in both languages has its date", () => {
+    for (const path of [
+      "/guides/rental-income-tax/",
+      "/ur/guides/rental-income-tax/",
+      "/tools/s155-withholding-calculator/",
+      "/ur/tools/rent-increase-calculator/",
+      "/privacy/",
+      "/ur/terms/",
+    ]) {
+      expect(dates.get(path), path).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+    expect(dates.size).toBe(18);
+  });
+
+  test("a dated page gets <lastmod>; a page without a date does not", () => {
+    const dated = sitemapItem(
+      { url: "https://example.pk/ur/guides/rental-income-tax/", links: [] },
+      dates,
+    );
+    expect(dated.lastmod).toBe(dates.get("/ur/guides/rental-income-tax/"));
+    const undated = sitemapItem({ url: "https://example.pk/faq/", links: [] }, dates);
+    expect(undated.lastmod).toBeUndefined();
   });
 });

@@ -1,11 +1,14 @@
 # The English home page. Its Urdu twin is ur.yaml; keep both in step (same
 # number of items, in the same order). British English.
-title: "Maalik-e-Makaan: rent and tenant records for Pakistani landlords"
-description: "Track rent, issue receipts in English and Urdu, remind tenants on WhatsApp, and keep police registration, utility and tax-year records in one place."
+title: "Maalik-e-Makaan: rent records for Pakistani landlords"
+description: "An app in development for Pakistani landlords: rent, receipts in English and Urdu, WhatsApp reminders, police registration and tax-year records in one place."
 hero:
   heading: "Rent, receipts and records for Pakistani landlords"
-  lede: "Maalik-e-Makaan replaces the register, the spreadsheet and the WhatsApp thread with one ledger you can trust. It shows who owes what, and since when, in English or Urdu."
+  lede: "Maalik-e-Makaan will replace the register, the spreadsheet and the WhatsApp thread with one ledger you can trust. It will show who owes what, and since when, in English or Urdu. Until it is released, the calculators and guides on this site are free to use."
   primaryCta:
+    label: "Try the calculators"
+    href: "/tools/"
+  appCta:
     label: "Open the web app"
     href: "app"
   secondaryCta:
@@ -54,26 +57,30 @@ trust:
   heading: "Built to be trusted"
   items:
     - title: "Exact to the paisa"
-      body: "Amounts are stored exactly, never as rounded approximations. Financial records are cancelled with a reason, never deleted."
+      body: "Amounts will be stored exactly, never as rounded approximations. Financial records will be cancelled with a reason, never deleted."
     - title: "Private from the start"
-      body: "Each portfolio's records are kept apart in the database, CNIC numbers are masked on screen and identity documents are held in private storage."
+      body: "Each portfolio's records will be kept apart in the database, CNIC numbers will be masked on screen by default and identity documents will be held in private storage."
     - title: "English and Urdu as equals"
-      body: "Choose either language when you first open the app. Urdu reads right to left in Nastaliq, and every receipt is in both languages."
+      body: "You will choose either language when you first open the app. Urdu will read right to left in Nastaliq, and every receipt will be in both languages. This site already works that way."
     - title: "Open source"
       body: "The code is public on GitHub under the MIT licence, so anyone can check how it works."
 faq:
   heading: "Questions"
   items:
-    - question: "Does Maalik-e-Makaan collect rent online?"
-      answer: "No. It records the payments you receive, whether in cash or through a bank or mobile wallet, and issues receipts for them. It does not take payments itself."
-    - question: "Does it work out my income tax?"
-      answer: "No. It records tax that tenants withhold under section 155, works out the one-fifth repairs allowance and gives you a July–June statement for your tax adviser. It does not estimate your final tax, and the statement is not tax advice."
+    - question: "Will Maalik-e-Makaan collect rent online?"
+      answer: "No. It will record the payments you receive, whether in cash or through a bank or mobile wallet, and issue receipts for them. It will not take payments itself."
+    - question: "Will it work out my income tax?"
+      answer: "No. It will record tax that tenants withhold under section 155, work out the one-fifth repairs allowance and give you a July–June statement for your tax adviser. It will not estimate your final tax, and the statement is not tax advice."
   more:
     label: "All questions and answers"
     href: "/faq/"
 closing:
   heading: "Keep every rupee accounted for"
-  body: "Open the web app on your phone or computer."
+  body: "Version 1.0 is not out yet. The download page says where the app will be: on the web, on Android and on iPhone."
   cta:
+    label: "Where to get the app"
+    href: "/download/"
+  appBody: "Open the web app on your phone or computer."
+  appCta:
     label: "Open the web app"
     href: "app"

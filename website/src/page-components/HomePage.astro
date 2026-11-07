@@ -3,6 +3,7 @@ import { getEntry } from "astro:content";
 import AppStatus from "../components/AppStatus.astro";
 import Receipt from "../components/Receipt.astro";
 import { APP_URL } from "../config/app-url.ts";
+import { SITE } from "../config/site.ts";
 import type { Locale } from "../i18n/locales.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { contentHref } from "../lib/content/links.ts";
@@ -21,6 +22,12 @@ if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
 const site = Astro.site;
 
 const hrefOf = (href: string) => contentHref(href, locale, APP_URL);
+// Until version 1.0 ships the web app's address shows only a holding page, so
+// the main buttons lead to something the reader can use today.
+const released = SITE.appStatus === "available";
+const primaryCta = released ? home.hero.appCta : home.hero.primaryCta;
+const closingBody = released ? home.closing.appBody : home.closing.body;
+const closingCta = released ? home.closing.appCta : home.closing.cta;
 ---
 
 <BaseLayout
@@ -39,8 +46,8 @@ const hrefOf = (href: string) => contentHref(href, locale, APP_URL);
         <p class="hero__lede">{home.hero.lede}</p>
         <AppStatus locale={locale} variant="notice" />
         <div class="hero__actions">
-          <a class="button button--primary" href={hrefOf(home.hero.primaryCta.href)}>
-            {home.hero.primaryCta.label}
+          <a class="button button--primary" href={hrefOf(primaryCta.href)}>
+            {primaryCta.label}
           </a>
           <a class="button button--secondary" href={hrefOf(home.hero.secondaryCta.href)}>
             {home.hero.secondaryCta.label}
@@ -128,9 +135,9 @@ const hrefOf = (href: string) => contentHref(href, locale, APP_URL);
     <div class="container">
       <div class="closing">
         <h2 id="closing-heading">{home.closing.heading}</h2>
-        <p>{home.closing.body}</p>
-        <a class="button button--primary" href={hrefOf(home.closing.cta.href)}>
-          {home.closing.cta.label}
+        <p>{closingBody}</p>
+        <a class="button button--primary" href={hrefOf(closingCta.href)}>
+          {closingCta.label}
         </a>
       </div>
     </div>

@@ -199,9 +199,19 @@ for (const site of pages) {
       }
 
       if (site.path === "/" || site.path === "/ur/") {
+        // Until version 1.0 ships the app's address shows a holding page, so no main
+        // button leads there: the hero offers the calculators, the closing band the
+        // download page. (src/config/site.ts: appStatus.)
         const app = byType("SoftwareApplication")[0];
-        const cta = await page.locator(".hero .button--primary").getAttribute("href");
-        expect(app?.url).toBe(cta);
+        const appUrl = String(app?.url);
+        const buttons = await page
+          .locator(".button--primary")
+          .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
+        expect(buttons).toEqual([
+          site.path === "/" ? "/tools/" : "/ur/tools/",
+          site.path === "/" ? "/download/" : "/ur/download/",
+        ]);
+        expect(buttons).not.toContain(appUrl);
       }
 
       // The questions page is the site's one FAQPage, and states exactly the questions shown.
@@ -331,7 +341,9 @@ for (const site of pages) {
         const primary = run.family.split(",")[0]?.replace(/"/g, "").trim() ?? "";
         for (const char of run.text) {
           const code = char.codePointAt(0) ?? 0;
-          if (/\s/.test(char)) continue;
+          // Spaces, and invisible format controls such as the bidi isolates U+2066 and
+          // U+2069 around a figure in Urdu text, are never drawn, so need no glyph.
+          if (/[\s\p{Cf}]/u.test(char)) continue;
           const arabic = code >= 0x0600 && code <= 0x06ff;
           const set = arabic ? (primary === "MM Nastaliq Label" ? label : urdu) : latin;
           if (!set.has(code))

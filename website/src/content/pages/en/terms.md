@@ -1,6 +1,6 @@
 ---
 title: "Terms of use"
-description: "The terms for using this website, its guides and calculators, and the Maalik-e-Makaan app: free, open source, provided as it is, and not legal or tax advice."
+description: "The terms for using this website, its free guides and calculators, and the Maalik-e-Makaan app: open source, provided as it is, and not legal or tax advice."
 lastUpdated: 2026-11-07
 ---
 
@@ -22,7 +22,7 @@ Version 1.0 of the app is in development, and these terms will be completed befo
 - **It is a record-keeping tool.** It records rent and payments; it does not collect, hold or transfer money. You remain responsible for your tenancies, your records, your tax returns and what the law requires of you, such as registering tenants with the police.
 - **You are responsible for what you enter**, including your tenants' personal details: collect only what you need, with their consent, and keep it accurate.
 - **Use it lawfully**, and only for records you are entitled to keep.
-- **It is provided as it is.** The app is open source under the [MIT licence](https://github.com/ar27111994/maalik-e-makaan/blob/main/LICENSE), which says that it comes without warranty of any kind. Keep your own copies of anything important; the app lets you export your records.
+- **It is provided as it is.** The app is open source under the [MIT licence](https://github.com/ar27111994/maalik-e-makaan/blob/main/LICENSE), which says that it comes without warranty of any kind. Keep your own copies of anything important; the app will let you export your records.
 
 ## The code
 

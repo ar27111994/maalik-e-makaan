@@ -48,7 +48,7 @@ For a landlord who is an individual or an association of persons (AOP), the [FBR
 
 For a landlord that is a company, the rate is 15% of the gross rent if it is on the ATL and 30% if it is not, according to the [FBR's tax year 2026 card](https://download1.fbr.gov.pk/Docs/20258181281745641WHT-RateCard.pdf); the excerpt of the tax year 2027 card we could read did not show the company row, and neither the [FBR's circular on the Finance Act 2026](https://download1.fbr.gov.pk/Docs/202698139527880CircularNo.2of2026-27.pdf) nor the other sources we read mention a change.
 
-The calculator works in exact figures and rounds only to show the result. Each band includes its upper edge: a rent of exactly Rs 600,000 is in the second band.
+The calculator works in exact figures and does not round: where a figure is not a whole number of rupees, it shows the paisa. The FBR's card states no rounding rule. Each band includes its upper edge: a rent of exactly Rs 600,000 is in the second band.
 
 ### Where the figures are less certain
 

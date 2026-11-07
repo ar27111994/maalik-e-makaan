@@ -3,7 +3,7 @@
 # Facts about the law come from .planning/research/website-facts.md; facts
 # about the app from .planning/REQUIREMENTS.md and STATE.md. British English.
 title: "Questions and answers"
-description: "Answers about Maalik-e-Makaan: what it records, what it costs, languages, caretakers, privacy, tax withholding, police registration and the calculators."
+description: "Answers about Maalik-e-Makaan: what it will record, languages, caretakers, privacy, tax withholding, police registration and the calculators."
 heading: "Questions and answers"
 intro: "Short answers about the app, the law it helps you keep track of, and this website. Version 1.0 of the app is still being built, so the answers about the app describe what it is being built to do."
 groups:
@@ -11,10 +11,10 @@ groups:
     items:
       - question: "What is Maalik-e-Makaan?"
         answer: "An app for landlords in Pakistan to keep one trustworthy record of their properties, tenants, rent, payments, receipts, utility bills and paperwork, in English or Urdu. It is meant for the owner of a few portions, flats or shops, the overseas owner whose property a relative looks after, and the small hostel or plaza owner."
-      - question: "Can I use it yet?"
+      - question: "Can it be used yet?"
         answer: "Not yet. Version 1.0 is in development and has not been released. The web app's address is reserved, and the Android and iPhone apps will be listed on the download page when they are published."
-      - question: "Does Maalik-e-Makaan collect rent online?"
-        answer: "No. It records the payments you receive, whether in cash or through a bank or mobile wallet, and issues receipts for them. It does not take or hold payments itself."
+      - question: "Will Maalik-e-Makaan collect rent online?"
+        answer: "No. It will record the payments you receive, whether in cash or through a bank or mobile wallet, and issue receipts for them. It will not take or hold payments itself."
       - question: "Will it work on a slow connection?"
         answer: "It is being built for mid-range Android phones and patchy mobile data: it shows the last data it loaded straight away while it refreshes, and a payment sent twice because the connection dropped is still recorded only once."
       - question: "Which languages does it support?"
@@ -33,8 +33,8 @@ groups:
         answer: "Yes. The first month can be charged by the days the tenant is in, and the app suggests the yearly increase on each anniversary, rounded to Rs 100. The calculators on this site use the same arithmetic."
   - heading: "Tax"
     items:
-      - question: "Does it work out my income tax?"
-        answer: "No. It records tax that tenants withhold under section 155, works out the one-fifth repairs allowance and gives you a July–June statement for your tax adviser. It does not estimate your final tax, and the statement is not tax advice."
+      - question: "Will the app work out my income tax?"
+        answer: "No. It will record tax that tenants withhold under section 155, work out the one-fifth repairs allowance and give you a July–June statement for your tax adviser. It will not estimate your final tax, and the statement is not tax advice."
       - question: "Which tenants have to deduct tax from rent?"
         answer: "Under section 155, the FBR's guidance lists governments, companies, non-profit organisations and charities, foreign diplomatic missions, some businesses such as private schools and hospitals, and individuals or associations of persons who pay Rs 1.5 million or more in rent a year. The rent guide has the details and the sources."
       - question: "Is the tax deducted from my rent my final tax?"
@@ -44,7 +44,7 @@ groups:
       - question: "Do I have to register my tenant with the police?"
         answer: "In Punjab, Sindh, Khyber Pakhtunkhwa and Balochistan, provincial laws require it, with deadlines from 48 hours to 15 days. Islamabad's police say registration is mandatory, but we found no statute that sets a deadline. The police registration guide sets out each province's law and its sources."
       - question: "How will the app remind me about police registration?"
-        answer: "It will count from the date each province's law uses: 15 days in Punjab and 2 days (48 hours) in Sindh from the tenant moving in, 7 calendar days in Khyber Pakhtunkhwa and 3 days in Balochistan from the signing of the agreement. In Islamabad, Gilgit-Baltistan and Azad Kashmir it gives its own reminder one day after the tenant moves in; that is the app's suggestion, not a legal deadline."
+        answer: "It will count from the date each province's law uses: 15 days in Punjab and the end of the second day in Sindh (where the law gives 48 hours, so register sooner) from the tenant moving in, 7 calendar days in Khyber Pakhtunkhwa and 3 days in Balochistan from the signing of the agreement, so record that date. In Islamabad, Gilgit-Baltistan and Azad Kashmir it suggests a deadline one day after the tenant moves in; that is the app's suggestion, not a legal deadline."
       - question: "Why are so many agreements for 11 months?"
         answer: "Under the Registration Act 1908, a lease for more than a year, or from year to year, must be registered. That is the usual explanation for 11-month agreements, but no official source we found describes the practice itself."
   - heading: "Privacy"

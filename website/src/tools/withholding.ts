@@ -14,7 +14,7 @@ import {
   type S155Result,
   type Tenant,
 } from "../lib/tax/s155.ts";
-import { figure, money, readRupees } from "./input.ts";
+import { figure, isolateLtr, money, readRent, rentMessage } from "./input.ts";
 import type { Calculator, FieldErrors, FormItem, ResultView, Segment } from "./types.ts";
 
 export type RentPeriod = "month" | "year";
@@ -138,7 +138,7 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
     summary: (amount, effective) =>
       `The tenant deducts ${amount} over the year: ${effective} of the gross rent. It counts towards your final tax; it is not your final tax.`,
     summaryNotRequired: (threshold, amount) =>
-      `This tenant does not have to deduct tax under section 155: an individual or AOP tenant must deduct only from ${threshold} a year. For information, the rate card gives ${amount} a year.`,
+      `This tenant does not have to deduct tax under section 155: an individual or AOP tenant deducts only when the rent is ${threshold} a year or more. For information, the rate card gives ${amount} a year.`,
     figures: {
       annual: "Tax deducted over the year",
       annualInfo: "Rate-card figure for the year (for information)",
@@ -233,7 +233,7 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
       individual: "کوئی فرد، یا افراد کی انجمن (اے او پی)",
     },
     summary: (amount, effective) =>
-      `کرایہ دار سال بھر میں ${amount} کاٹے گا، جو مجموعی کرایے کا ${effective} ہے۔ یہ رقم آپ کے حتمی ٹیکس میں شمار ہوتی ہے؛ یہ آپ کا حتمی ٹیکس نہیں۔`,
+      `کرایہ دار سال بھر میں ${amount} کاٹے گا، جو مجموعی کرایے کا ${isolateLtr(effective)} ہے۔ یہ رقم آپ کے حتمی ٹیکس میں شمار ہوتی ہے؛ یہ آپ کا حتمی ٹیکس نہیں۔`,
     summaryNotRequired: (threshold, amount) =>
       `اس کرایہ دار پر دفعہ 155 کے تحت ٹیکس کاٹنا لازم نہیں: کوئی فرد یا اے او پی کرایہ دار صرف ${threshold} سالانہ یا اس سے زیادہ کرایے پر ٹیکس کاٹتا ہے۔ معلومات کے لیے، ریٹ کارڈ کے مطابق یہ رقم ${amount} سالانہ بنتی ہے۔`,
     figures: {
@@ -276,7 +276,9 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
       "۔",
     ],
     stepCompany: (onAtl, bandRate, gross, total) => [
-      `اے ٹی ایل ${onAtl ? "میں شامل" : "سے باہر"} کمپنی کے مجموعی کرایے سے ${bandRate} کٹتا ہے: `,
+      `اے ٹی ایل ${onAtl ? "میں شامل" : "سے باہر"} کمپنی کے مجموعی کرایے سے `,
+      { math: bandRate },
+      " کٹتا ہے: ",
       { math: `${bandRate} × ${gross} = ${total}` },
       "۔",
     ],
@@ -365,8 +367,12 @@ function items(locale: Locale): FormItem[] {
 
 function parse(values: Readonly<Record<string, string>>, locale: Locale) {
   const s = STRINGS[locale];
-  const rent = readRupees(values.rent ?? "");
-  if (rent === null) return { ok: false, errors: { rent: s.rent.error } as FieldErrors } as const;
+  const read = readRent(values.rent ?? "");
+  if (!read.ok) {
+    const message = rentMessage(read.problem, locale, s.rent.error);
+    return { ok: false, errors: { rent: message } as FieldErrors } as const;
+  }
+  const rent = read.value;
   return {
     ok: true,
     value: {

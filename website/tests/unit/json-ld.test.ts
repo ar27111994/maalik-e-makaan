@@ -8,6 +8,7 @@ import {
   organizationNode,
   serializeJsonLd,
   softwareApplicationNode,
+  webApplicationNode,
   webPageNode,
   websiteNode,
 } from "../../src/lib/seo/json-ld.ts";
@@ -134,6 +135,12 @@ describe("page nodes", () => {
       dateModified: "2026-11-05",
       inLanguage: "en-GB",
       mainEntityOfPage: { "@id": "https://example.pk/guides/x/#webpage" },
+      image: {
+        "@type": "ImageObject",
+        url: "https://example.pk/og/en.png",
+        width: 1200,
+        height: 630,
+      },
       citation: [
         {
           "@type": "CreativeWork",
@@ -160,5 +167,24 @@ describe("the graph and its serialisation", () => {
     expect(json).not.toContain("<");
     expect(json).not.toMatch(/[\u2028\u2029]/);
     expect(JSON.parse(json)).toEqual(value);
+  });
+});
+
+describe("calculators", () => {
+  test("WebApplication: free (an offer at 0 PKR), with no rating or review", () => {
+    const tool = webApplicationNode({
+      site,
+      url: "https://example.pk/tools/x/",
+      name: "A calculator",
+      description: "…",
+      locale: "ur",
+    });
+    expect(tool).toMatchObject({
+      "@type": "WebApplication",
+      isAccessibleForFree: true,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "PKR" },
+    });
+    expect(tool).not.toHaveProperty("aggregateRating");
+    expect(tool).not.toHaveProperty("review");
   });
 });

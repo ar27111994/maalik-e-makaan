@@ -165,9 +165,14 @@ const examples = calculatorExamples(tool.calculator, locale);
     min-inline-size: max(100%, 40rem);
   }
 
+  /* The worked examples may use the page's full width: in Urdu they need more than the reading column. */
   .tool__examples {
     display: grid;
     gap: var(--mm-space-s3);
+  }
+
+  .tool__text > .tool__examples {
+    max-inline-size: none;
   }
 
   .tool__notice {

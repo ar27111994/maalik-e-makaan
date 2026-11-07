@@ -147,3 +147,122 @@ test("forced colours keep controls and cards outlined, and focus visible", async
   );
   expect(outline).toBe("solid");
 });
+
+test("the header's Tab order follows the order on screen, on phones and on wide screens", async ({
+  page,
+}) => {
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const path of ["/", "/ur/"]) {
+      await page.goto(path);
+      // The DOM order of the header's three parts, and of the links in the nav. On a phone
+      // the nav scrolls sideways, so its links are compared with each other and the nav's
+      // own box with the brand and the switch.
+      const parts = await page
+        .locator(".site-header :is(.brand, .site-nav, [data-language-switch])")
+        .evaluateAll((elements) =>
+          elements.map((element) => {
+            const box = element.getBoundingClientRect();
+            return {
+              x: box.x,
+              right: box.right,
+              y: Math.round(box.y),
+              name: element.getAttribute("class") ?? "",
+            };
+          }),
+        );
+      const links = await page.locator(".site-nav__link").evaluateAll((elements) =>
+        elements.map((element) => {
+          const box = element.getBoundingClientRect();
+          return { x: box.x, right: box.right, y: Math.round(box.y), name: element.textContent };
+        }),
+      );
+      expect(parts).toHaveLength(3);
+      const rtl = path === "/ur/";
+      for (const stops of [parts, links]) {
+        for (let index = 1; index < stops.length; index += 1) {
+          const before = stops[index - 1];
+          const after = stops[index];
+          if (before === undefined || after === undefined) continue;
+          // In the reading direction: on a later row, or further along the same one.
+          const laterRow = after.y > before.y + 8;
+          const furtherAlong = rtl ? after.right <= before.x + 1 : after.x >= before.right - 1;
+          expect(
+            laterRow || furtherAlong,
+            `${path} at ${width} px: ${before.name} → ${after.name}`,
+          ).toBe(true);
+        }
+      }
+    }
+  }
+});
+
+test("on a phone the header is at most two rows, and its links scroll sideways in one", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const path of ["/", "/ur/"]) {
+    await page.goto(path);
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    const header = await page.locator(".site-header").boundingBox();
+    expect(header?.height ?? 999, path).toBeLessThanOrEqual(130);
+    const rows = await page
+      .locator(".site-nav__link")
+      .evaluateAll(
+        (links) => new Set(links.map((link) => Math.round(link.getBoundingClientRect().y))).size,
+      );
+    expect(rows, path).toBe(1);
+    // A link off screen scrolls into view when it takes focus.
+    const last = page.locator(".site-nav__link").last();
+    await last.focus();
+    const box = await last.boundingBox();
+    expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+  }
+});
+
+test("a long breadcrumb wraps with its separator at the end of the line, not the start of the next", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const path of [
+    "/tools/s155-withholding-calculator/",
+    "/ur/tools/s155-withholding-calculator/",
+  ]) {
+    await page.goto(path);
+    const items = await page.locator(".breadcrumbs__item").evaluateAll((elements) =>
+      elements.map((element) => ({
+        after: getComputedStyle(element, "::after").content,
+        before: getComputedStyle(element, "::before").content,
+      })),
+    );
+    expect(items.length).toBe(3);
+    for (const [index, item] of items.entries()) {
+      expect(item.before).toBe("none");
+      expect(item.after, `${path} crumb ${index}`).toBe(
+        index === items.length - 1 ? "none" : '"/" / ""',
+      );
+    }
+  }
+});
+
+test("the worked examples on a calculator page use the full width on a wide screen", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const path of [
+    "/ur/tools/s155-withholding-calculator/",
+    "/tools/s155-withholding-calculator/",
+  ]) {
+    await page.goto(path);
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    const clipped = await page
+      .locator(".tool__examples .table-scroll")
+      .evaluate((box) => box.scrollWidth - box.clientWidth);
+    expect(clipped, path).toBeLessThanOrEqual(1);
+  }
+});

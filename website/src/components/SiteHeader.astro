@@ -50,9 +50,8 @@ const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
       </span>
       <span class="visually-hidden">{strings.homeHint}</span>
     </a>
-    <LanguageSwitch locale={locale} href={switchHref} />
     <nav class="site-nav" aria-label={strings.navLabel}>
-      <ul class="site-nav__list">
+      <ul class="site-nav__list scroll-cue">
         {navItems.map((item) => (
           <li>
             <a class="site-nav__link" href={item.href} aria-current={item.current}>
@@ -62,6 +61,8 @@ const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
         ))}
       </ul>
     </nav>
+    {/* After the nav, where it is drawn: the Tab order follows what the reader sees. */}
+    <LanguageSwitch locale={locale} href={switchHref} />
   </div>
 </header>
 
@@ -71,15 +72,21 @@ const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
     background-color: var(--mm-color-surface);
   }
 
+  /*
+   * Phones: the brand on its own row, then one row of section links that
+   * scrolls sideways (with a shadow where links are hidden) and the language
+   * switch at its end. Wider screens: brand, links and switch on one row. In
+   * both, the order on screen is the order in the page, so Tab follows it.
+   */
   .site-header__inner {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "brand switch"
-      "nav nav";
+      "brand brand"
+      "nav switch";
     align-items: center;
-    gap: var(--mm-space-s2) var(--mm-space-s4);
-    padding-block: var(--mm-space-s3);
+    gap: var(--mm-space-s1) var(--mm-space-s2);
+    padding-block: var(--mm-space-s2);
   }
 
   .brand {
@@ -107,15 +114,26 @@ const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
 
   .site-nav {
     grid-area: nav;
+    min-inline-size: 0;
   }
 
   .site-nav__list {
+    --scroll-cue-bg: var(--mm-color-surface);
+
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--mm-space-s1) var(--mm-space-s2);
+    gap: var(--mm-space-s1);
     margin: 0;
-    padding: 0;
+
+    /* Room inside the scrolling box for the links' focus rings, which it would otherwise clip. */
+    padding: var(--mm-space-s1);
+    overflow-x: auto;
     list-style: none;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .site-nav__list > li {
+    flex: none;
   }
 
   .site-nav__link {
@@ -150,12 +168,19 @@ const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
 
   @media (width >= 52.5rem) {
     .site-header__inner {
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       grid-template-areas: "brand nav switch";
+      gap: var(--mm-space-s2) var(--mm-space-s4);
+      padding-block: var(--mm-space-s3);
     }
 
     .site-nav__list {
+      flex-wrap: wrap;
       justify-content: flex-end;
+      gap: var(--mm-space-s1) var(--mm-space-s2);
+      padding: 0;
+      overflow-x: visible;
+      background: none;
     }
   }
 </style>

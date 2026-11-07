@@ -59,6 +59,8 @@ export interface UiStrings {
     readonly notAdvice: string;
     readonly sources: string;
     readonly accessed: string;
+    /** Beside a source served only over plain HTTP. */
+    readonly insecure: string;
   };
   /** The guides index (/guides/). */
   readonly guides: SectionStrings & { readonly readGuide: string };
@@ -130,6 +132,8 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
         "This guide is general information, not legal or tax advice. Check the official sources, or ask a lawyer or tax adviser about your situation.",
       sources: "Official sources",
       accessed: "accessed",
+      insecure:
+        "this site uses plain HTTP, which is not encrypted; we could not confirm a secure (HTTPS) address for it",
     },
     guides: {
       title: "Guides for landlords in Pakistan",
@@ -202,6 +206,8 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
         "یہ رہنمائی عمومی معلومات ہے، قانونی یا ٹیکس مشورہ نہیں۔ سرکاری ذرائع ضرور دیکھیں، یا اپنی صورتِ حال کے بارے میں کسی وکیل یا ٹیکس مشیر سے رجوع کریں۔",
       sources: "سرکاری ذرائع",
       accessed: "رسائی کی تاریخ",
+      insecure:
+        "یہ سائٹ سادہ ایچ ٹی ٹی پی استعمال کرتی ہے جو خفیہ کاری کے بغیر ہے؛ ہم اس کے محفوظ (ایچ ٹی ٹی پی ایس) پتے کی تصدیق نہیں کر سکے",
     },
     guides: {
       title: "پاکستانی مالکانِ مکان کے لیے رہنمائی",

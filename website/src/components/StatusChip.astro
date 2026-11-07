@@ -1,11 +1,13 @@
 ---
 /**
  * A status in words with an icon, never colour alone (DESIGN.md: status chip).
- * "paid" is settled (a tick); "due-soon" is in progress (a clock); "credit" is
- * information about later (a calendar).
+ * "paid" is settled (a tick); "due-soon" is a warning about time running out (a
+ * clock, in the warning colour, so kept for real warnings); "planned" is
+ * something on its way, such as a feature of version 1.0 (a clock, in the
+ * neutral brand colour); "credit" is information about later (a calendar).
  */
 interface Props {
-  status: "paid" | "due-soon" | "credit";
+  status: "paid" | "due-soon" | "planned" | "credit";
   label: string;
 }
 
@@ -38,7 +40,7 @@ const { status, label } = Astro.props;
     {status === "paid" && (
       <path d="m5.25 8.25 1.9 1.9 3.6-3.9" fill="none" stroke-width="1.5" stroke-linecap="round" />
     )}
-    {status === "due-soon" && (
+    {(status === "due-soon" || status === "planned") && (
       <path d="M8 4.5V8l2.25 1.5" fill="none" stroke-width="1.5" stroke-linecap="round" />
     )}
   </svg>
@@ -74,6 +76,11 @@ const { status, label } = Astro.props;
   .chip--due-soon {
     background-color: var(--mm-color-due-soon-container);
     color: var(--mm-color-on-due-soon-container);
+  }
+
+  .chip--planned {
+    background-color: var(--mm-color-primary-container);
+    color: var(--mm-color-on-primary-container);
   }
 
   .chip--credit {

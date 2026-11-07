@@ -362,6 +362,27 @@ html[lang="ur"] .button {
   border-radius: var(--mm-radius-xs);
 }
 
+/*
+ * A shadow on the side where more of a scrolling box is hidden, so it is clear
+ * that it scrolls. Two covers in the box's own background colour scroll with
+ * the content ("local") and hide the shadows ("scroll") once an edge is
+ * reached. The layers are symmetrical, so they need no mirroring in Urdu.
+ */
+.scroll-cue,
+.table-scroll {
+  --scroll-cue-bg: var(--mm-color-bg);
+
+  background:
+    linear-gradient(to right, var(--scroll-cue-bg) 40%, transparent) left center / 2rem 100%
+      no-repeat local,
+    linear-gradient(to left, var(--scroll-cue-bg) 40%, transparent) right center / 2rem 100%
+      no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--mm-color-outline), transparent) left center /
+      0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--mm-color-outline), transparent) right center /
+      0.75rem 100% no-repeat scroll;
+}
+
 .data-table,
 .table-scroll table {
   min-inline-size: 100%;

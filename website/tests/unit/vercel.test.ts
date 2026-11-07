@@ -67,6 +67,16 @@ describe("vercel.json", () => {
     expect(page["cache-control"]).toBeUndefined();
   });
 
+  test("resources stay same-origin, except the link-preview images; images and icons are cached for a week", () => {
+    expect(page["cross-origin-resource-policy"]).toBe("same-origin");
+    const og = headersFor(config, "/og/en.png");
+    expect(og["cross-origin-resource-policy"]).toBe("cross-origin");
+    expect(og["cache-control"]).toBe("public, max-age=604800");
+    for (const icon of ["/favicon.ico", "/favicon.svg", "/apple-touch-icon.png", "/icon-512.png"]) {
+      expect(headersFor(config, icon)["cache-control"], icon).toBe("public, max-age=604800");
+    }
+  });
+
   test("text files are served as UTF-8 (llms.txt and the licences hold Urdu)", () => {
     expect(headersFor(config, "/llms.txt")["content-type"]).toBe("text/plain; charset=utf-8");
     expect(headersFor(config, "/licences/ofl-noto-nastaliq-urdu.txt")["content-type"]).toBe(

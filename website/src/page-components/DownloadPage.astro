@@ -38,7 +38,7 @@ const site = Astro.site;
       {page.platforms.map((platform) => (
         <li class="card platforms__item">
           <h2 class="platforms__name">{platform.name}</h2>
-          <StatusChip status={platform.available ? "paid" : "due-soon"} label={platform.status} />
+          <StatusChip status={platform.available ? "paid" : "planned"} label={platform.status} />
           <p>{platform.body}</p>
         </li>
       ))}

@@ -7,6 +7,7 @@
  */
 import { SITE } from "../../config/site.ts";
 import { LOCALE_INFO, type Locale } from "../../i18n/locales.ts";
+import { ogImage } from "./meta.ts";
 
 export type JsonLdNode = {
   readonly "@type": string | readonly string[];
@@ -191,11 +192,19 @@ export function articleNode({
   datePublished?: string | undefined;
   citations: readonly Citation[];
 }): JsonLdNode {
+  const image = ogImage(locale);
   return {
     "@type": "Article",
     "@id": ids.article(url),
     headline,
     description,
+    // The page's Open Graph card: the same image a link preview shows.
+    image: {
+      "@type": "ImageObject",
+      url: new URL(image.path, site).href,
+      width: image.width,
+      height: image.height,
+    },
     inLanguage: inLanguage(locale),
     datePublished: datePublished ?? dateModified,
     dateModified,
@@ -213,8 +222,9 @@ export function articleNode({
 }
 
 /**
- * A calculator that runs in the browser. It is free to use and needs nothing
- * but a browser with JavaScript; no price or rating is claimed.
+ * A calculator that runs in the browser. It is free to use (an offer at a
+ * price of 0) and needs nothing but a browser with JavaScript. No rating or
+ * review is claimed: there are none.
  */
 export function webApplicationNode({
   site,
@@ -240,6 +250,7 @@ export function webApplicationNode({
     browserRequirements: "Requires JavaScript",
     inLanguage: inLanguage(locale),
     isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "PKR" },
     publisher: { "@id": ids.organization(site) },
     mainEntityOfPage: { "@id": ids.webPage(url) },
   };

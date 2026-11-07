@@ -22,8 +22,9 @@ Version 1.0 has not been released. This section describes how it is being built;
 
 ### What it stores
 
-- **Your account:** your email address and your choice of language.
+- **Your account:** your email address, your name, your phone number if you give one, and your choice of language. The sign-in service, Supabase Auth, also keeps a scrambled (hashed) form of your password and sign-in details such as when you last signed in.
 - **What you enter:** your properties and units; your tenants' details (such as names, CNIC numbers, phone numbers and references); tenancies, rent, payments, receipts, expenses, utility bills and meter readings; and any photos or documents you attach.
+- **Reminders:** a log of each WhatsApp reminder you open from the app: when, to which tenancy, in which language, and a short preview of the message.
 - **Who did what:** an audit trail of changes to the records and the money, with who made each one and when, so that an owner can trust what a caretaker records. CNIC numbers are not written into that trail.
 
 ### Where it is kept, and who can see it
@@ -41,9 +42,17 @@ The app has no advertising, no analytics and no trackers.
 
 When you record a tenant, you hold their personal details. The app asks you to record the tenant's consent, the date it was given and its purpose. Collect only what you need, such as what the police registration asks for, and keep it up to date.
 
+### How long it is kept
+
+Your records are kept until you delete them, or delete your account. Version 1.0 will not delete identity documents automatically when a tenancy ends; that is planned for a later version. Financial records that are cancelled are kept, marked as cancelled, so that the receipt series stays complete.
+
 ### Deleting your account
 
 You will be able to delete your account from inside the app. Deletion removes your account and every portfolio in which you are the only owner, with its records and files, and removes you from portfolios that others own.
+
+## Who runs it, and how to reach us
+
+The website and the app are run by Ahmed Rehan, the project's maintainer, who decides how this data is used. There is no contact address other than GitHub yet; one will be added here before the app is released.
 
 ## Questions
 

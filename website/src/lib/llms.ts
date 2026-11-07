@@ -197,7 +197,9 @@ export function llmsTxt(input: LlmsInput): string {
     "## Optional",
     "",
     `- [Full text](${absoluteUrl(input.site, "/llms-full.txt")}): every page of this site, in English and Urdu, in one Markdown file.`,
-    `- [Web app](${input.appUrl}): ${SITE.name} itself.`,
+    SITE.appStatus === "available"
+      ? `- [Web app](${input.appUrl}): ${SITE.name} itself.`
+      : `- [Web app](${input.appUrl}): the address reserved for ${SITE.name}; it shows a holding page until version 1.0 is released.`,
     `- [Source code](${SITE.repositoryUrl}): the app, its database and this website, under the MIT licence.`,
     "",
   );
@@ -229,12 +231,11 @@ function homeSection(input: LlmsInput, locale: Locale): string[] {
   out.push("", `### ${line(home.faq.heading)}`, "");
   for (const item of home.faq.items)
     out.push(`#### ${line(item.question)}`, "", line(item.answer), "");
-  out.push(
-    `### ${line(home.closing.heading)}`,
-    "",
-    `${line(home.closing.body)} ${input.appUrl}`,
-    "",
-  );
+  const closing =
+    SITE.appStatus === "available"
+      ? `${line(home.closing.appBody)} ${input.appUrl}`
+      : `${line(home.closing.body)} ${pageUrl(input.site, home.closing.cta.href, locale)}`;
+  out.push(`### ${line(home.closing.heading)}`, "", closing, "");
   return out;
 }
 

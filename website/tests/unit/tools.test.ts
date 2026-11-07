@@ -12,7 +12,13 @@ import {
   incrementExampleTable,
   incrementSchedule,
 } from "../../src/tools/increment.ts";
-import { readInteger, readPercent, readRupees } from "../../src/tools/input.ts";
+import {
+  readInteger,
+  readPercent,
+  readRent,
+  readRupees,
+  rentMessage,
+} from "../../src/tools/input.ts";
 import {
   PRORATION_EXAMPLES,
   prorate,
@@ -70,6 +76,45 @@ describe("reading typed amounts", () => {
       expect(readRupees(input), input).toBeNull();
     }
     expect(readRupees("100000000")?.equals(rs(100_000_000))).toBe(true);
+  });
+
+  test("a decimal comma is questioned, not read as a thousands separator", () => {
+    // "45,5" would otherwise become Rs 455: parseMoneyInput drops every comma.
+    for (const [input, suggestion] of [
+      ["45,5", "45.5"],
+      ["45,50", "45.50"],
+      ["Rs 45,5", "45.5"],
+      ["۴۵,۵", "45.5"],
+      ["45,5 روپے", "45.5"],
+    ] as const) {
+      expect(readRent(input), input).toEqual({
+        ok: false,
+        problem: { kind: "decimalComma", suggestion },
+      });
+      expect(readRupees(input), input).toBeNull();
+    }
+    // Thousands and lakh grouping are still read.
+    expect(readRupees("1,50,000")?.equals(rs(150_000))).toBe(true);
+    expect(readRupees("45,000")?.equals(rs(45_000))).toBe(true);
+  });
+
+  test("each problem has its own message in each language", () => {
+    expect(rentMessage({ kind: "decimalComma", suggestion: "45.5" }, "en", "x")).toContain(
+      "did you mean 45.5?",
+    );
+    expect(rentMessage({ kind: "decimalComma", suggestion: "45.5" }, "ur", "x")).toContain(
+      "\u206645.5\u2069",
+    );
+    expect(readRent("100000001")).toEqual({ ok: false, problem: { kind: "tooLarge" } });
+    expect(rentMessage({ kind: "tooLarge" }, "en", "x")).toBe(
+      "This calculator takes a rent of up to Rs\u00A0100,000,000 (Rs 10 crore). Check the number of zeros.",
+    );
+    expect(rentMessage({ kind: "format" }, "en", "the example")).toBe("the example");
+    const parsed = incrementCalculator.parse(
+      { rent: "100000001", percent: "10", rounding: "nearest100", years: "1" },
+      "en",
+    );
+    expect(parsed.ok ? "" : parsed.errors.rent).toContain("up to");
   });
 
   test("percentages in either digits, with % or ٪, to two decimals", () => {
@@ -143,6 +188,45 @@ describe("the rent increase calculator", () => {
       "en",
     );
     expect(text(odd.steps[0] ?? [])).toContain("≈");
+  });
+
+  test("a rounding step larger than the increase: the fall is said in words, never as a bare minus", () => {
+    for (const input of [
+      { rent: rs(499), basisPoints: 0, rounding: "nearest1000", years: 1 },
+      { rent: rs(1), basisPoints: 1, rounding: "nearest1000", years: 2 },
+      { rent: rs(45_049), basisPoints: 0, rounding: "nearest100", years: 1 },
+    ] as const) {
+      for (const locale of ["en", "ur"] as const) {
+        const view = incrementCalculator.view(input, locale);
+        for (const shown of strings(view)) {
+          expect(shown, shown).not.toMatch(/[-\u2212]\s*(?:Rs)?\s*\d|\d\s*[-\u2212]\s*روپے/u);
+        }
+      }
+    }
+    const en = incrementCalculator.view(
+      { rent: rs(499), basisPoints: 0, rounding: "nearest1000", years: 1 },
+      "en",
+    );
+    expect(en.summary).toBe(
+      "Rounded to the nearest Rs\u00A01,000, the rent would become Rs\u00A00 a month, a decrease of Rs\u00A0499. The rounding step is larger than the increase: choose a smaller one.",
+    );
+    expect(en.figures[1]).toEqual({ label: "Decrease", value: "Rs\u00A0499" });
+    expect(en.table?.head).toEqual(["Year", "Monthly rent", "Change"]);
+    expect(en.table?.rows[1]).toEqual(["After 1 year", "Rs\u00A00", "Rs\u00A0499 less"]);
+    expect(en.notes[0]).toContain("takes this rent below what it is now");
+    const ur = incrementCalculator.view(
+      { rent: rs(499), basisPoints: 0, rounding: "nearest1000", years: 1 },
+      "ur",
+    );
+    expect(ur.table?.rows[1]?.[2]).toBe("499\u00A0روپے کم");
+    expect(ur.figures[1]?.label).toBe("کمی");
+    // A rise keeps the usual wording and column.
+    const rise = incrementCalculator.view(
+      { rent: rs(45_000), basisPoints: 1000, rounding: "nearest100", years: 1 },
+      "en",
+    );
+    expect(rise.table?.head[2]).toBe("Increase");
+    expect(rise.notes).toHaveLength(1);
   });
 
   test("the form's answers are read, or each wrong one gets its own message", () => {

@@ -8,7 +8,7 @@ import type { Locale } from "../i18n/locales.ts";
 import { percentFromBasisPoints } from "../lib/money/basis-points.ts";
 import { Money } from "../lib/money/money.ts";
 import { RENT_ROUNDING, incrementedRent, type RentRounding } from "../lib/money/rent-math.ts";
-import { figure, money, readInteger, readPercent, readRupees } from "./input.ts";
+import { figure, money, readInteger, readPercent, readRent, rentMessage } from "./input.ts";
 import type { Calculator, FieldErrors, FormItem, ResultView, Segment } from "./types.ts";
 
 export interface IncrementInput {
@@ -56,7 +56,9 @@ interface Strings {
   readonly rounding: { label: string; options: Readonly<Record<RentRounding, string>> };
   readonly years: { label: string; hint: string; error: string };
   summary(newRent: string, increase: string): string;
-  readonly figures: { newRent: string; increase: string; rate: string };
+  /** When rounding takes the new rent below the current one. */
+  summaryFall(newRent: string, fall: string, rounding: string): string;
+  readonly figures: { newRent: string; increase: string; decrease: string; rate: string };
   stepIncrease(rent: string, percent: string, increase: string, exact: boolean): Segment[];
   stepAdd(rent: string, increase: string, total: string, exact: boolean): Segment[];
   stepRound(rounding: string, rounded: string, unchanged: boolean): Segment[];
@@ -64,10 +66,16 @@ interface Strings {
   readonly table: {
     caption: string;
     head: readonly [string, string, string];
+    /** The third column's heading when some year's rent falls. */
+    changeHead: string;
+    /** A fall in rent, in words: never a bare minus sign (DESIGN.md). */
+    fall(amount: string): string;
     now: string;
     after(year: number): string;
   };
   readonly note: string;
+  /** Added when rounding takes the rent below the current rent. */
+  noteFall(rounding: string): string;
 }
 
 const STRINGS: Readonly<Record<Locale, Strings>> = {
@@ -101,9 +109,12 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
     },
     summary: (newRent, increase) =>
       `After one year the rent becomes ${newRent} a month, an increase of ${increase}.`,
+    summaryFall: (newRent, fall, rounding) =>
+      `Rounded to ${rounding}, the rent would become ${newRent} a month, a decrease of ${fall}. The rounding step is larger than the increase: choose a smaller one.`,
     figures: {
       newRent: "New monthly rent",
       increase: "Increase",
+      decrease: "Decrease",
       rate: "Yearly increase",
     },
     stepIncrease: (rent, percent, increase, exact) => [
@@ -128,10 +139,14 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
     table: {
       caption: "Monthly rent, year by year",
       head: ["Year", "Monthly rent", "Increase"],
+      changeHead: "Change",
+      fall: (amount) => `${amount} less`,
       now: "Now",
       after: (year) => (year === 1 ? "After 1 year" : `After ${year} years`),
     },
     note: "Rounding is a convention, not a rule of law. The increase that counts is the one in your agreement (and, in Islamabad, the law's 10% if the agreement says nothing).",
+    noteFall: (rounding) =>
+      `Rounding to ${rounding} takes this rent below what it is now, because the step is larger than the increase. An agreed increase never lowers the rent, so round to a smaller step or to the nearest rupee.`,
   },
   ur: {
     rent: {
@@ -146,7 +161,7 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
       error: "سالانہ اضافہ صفر سے سو کے درمیان فیصد میں لکھیں، مثلاً 10۔",
     },
     rounding: {
-      label: "نئے کرایے کو پورا کریں",
+      label: "نئے کرایے کو گول کریں",
       options: {
         none: "قریب ترین روپے تک",
         nearest10: "قریب ترین 10\u00A0روپے تک",
@@ -163,9 +178,12 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
     },
     summary: (newRent, increase) =>
       `ایک سال بعد کرایہ ${newRent} ماہانہ ہو جائے گا، یعنی ${increase} کا اضافہ۔`,
+    summaryFall: (newRent, fall, rounding) =>
+      `${rounding} گول کرنے پر کرایہ ${newRent} ماہانہ رہ جائے گا، یعنی ${fall} کی کمی۔ گول کرنے کا درجہ اضافے سے بڑا ہے: اس سے چھوٹا درجہ چنیں۔`,
     figures: {
       newRent: "نیا ماہانہ کرایہ",
       increase: "اضافہ",
+      decrease: "کمی",
       rate: "سالانہ اضافہ",
     },
     stepIncrease: (rent, percent, increase, exact) => [
@@ -174,26 +192,30 @@ const STRINGS: Readonly<Record<Locale, Strings>> = {
       "۔",
     ],
     stepAdd: (rent, increase, total, exact) => [
-      "پورا کرنے سے پہلے نیا کرایہ: ",
+      "گول کرنے سے پہلے نیا کرایہ: ",
       { math: `${rent} + ${increase} ${exact ? "=" : "≈"} ${total}` },
       "۔",
     ],
     stepRound: (rounding, rounded, unchanged) =>
       unchanged
-        ? [`${rounding} پورا کرنے پر بھی یہ `, { math: rounded }, " ہی رہتا ہے۔"]
-        : [`${rounding} پورا کرنے پر (آدھا اوپر کی طرف) یہ `, { math: rounded }, " ہو جاتا ہے۔"],
+        ? [`${rounding} گول کرنے پر بھی یہ `, { math: rounded }, " ہی رہتا ہے۔"]
+        : [`${rounding} گول کرنے پر (آدھا اوپر کی طرف) یہ `, { math: rounded }, " ہو جاتا ہے۔"],
     stepLater: (percent) => [
-      "اس کے بعد ہر سال پچھلے سال کے پورا کیے گئے کرایے پر ",
+      "اس کے بعد ہر سال پچھلے سال کے گول کیے گئے کرایے پر ",
       { math: `${percent}%` },
-      " اضافہ کر کے دوبارہ پورا کیا جاتا ہے۔",
+      " اضافہ کر کے دوبارہ گول کیا جاتا ہے۔",
     ],
     table: {
       caption: "سال بہ سال ماہانہ کرایہ",
       head: ["سال", "ماہانہ کرایہ", "اضافہ"],
+      changeHead: "فرق",
+      fall: (amount) => `${amount} کم`,
       now: "ابھی",
       after: (year) => (year === 1 ? "ایک سال بعد" : `${year} سال بعد`),
     },
-    note: "کرایہ پورا کرنا ایک رواج ہے، قانون نہیں۔ اصل اضافہ وہی ہے جو آپ کے کرایہ نامے میں لکھا ہے (اور اسلام آباد میں، اگر کرایہ نامے میں کچھ نہ لکھا ہو تو قانون کے مطابق 10 فیصد)۔",
+    note: "کرایہ گول کرنا ایک رواج ہے، قانون نہیں۔ اصل اضافہ وہی ہے جو آپ کے کرایہ نامے میں لکھا ہے (اور اسلام آباد میں، اگر کرایہ نامے میں کچھ نہ لکھا ہو تو قانون کے مطابق 10 فیصد)۔",
+    noteFall: (rounding) =>
+      `${rounding} گول کرنے سے یہ کرایہ موجودہ کرایے سے کم ہو جاتا ہے، کیونکہ گول کرنے کا درجہ اضافے سے بڑا ہے۔ طے شدہ اضافہ کرایہ کبھی کم نہیں کرتا، اس لیے چھوٹا درجہ چنیں یا قریب ترین روپے تک گول کریں۔`,
   },
 };
 
@@ -242,8 +264,9 @@ function items(locale: Locale): FormItem[] {
 function parse(values: Readonly<Record<string, string>>, locale: Locale) {
   const s = STRINGS[locale];
   const errors: Record<string, string> = {};
-  const rent = readRupees(values.rent ?? "");
-  if (rent === null) errors.rent = s.rent.error;
+  const read = readRent(values.rent ?? "");
+  const rent = read.ok ? read.value : null;
+  if (!read.ok) errors.rent = rentMessage(read.problem, locale, s.rent.error);
   const basisPoints = readPercent(values.percent ?? "");
   if (basisPoints === null) errors.percent = s.percent.error;
   const rounding = ROUNDINGS.find((value) => value === values.rounding) ?? "nearest100";
@@ -286,27 +309,38 @@ function view(input: IncrementInput, locale: Locale): ResultView {
     ),
   ];
   if (input.years > 1) steps.push(s.stepLater(percent));
+  const rounding = s.rounding.options[input.rounding];
+  const firstFalls = first.increase.isNegative;
+  const anyFalls = schedule.some((row) => row.increase.isNegative);
+  // A fall is said in words with a positive amount, never with a bare minus sign.
+  const change = (amount: Money) =>
+    amount.isNegative ? s.table.fall(money(amount.negate(), locale)) : money(amount, locale);
+  const [yearHead, rentHead, increaseHead] = s.table.head;
   return {
-    summary: s.summary(money(first.rent, locale), money(first.increase, locale)),
+    summary: firstFalls
+      ? s.summaryFall(money(first.rent, locale), money(first.increase.negate(), locale), rounding)
+      : s.summary(money(first.rent, locale), money(first.increase, locale)),
     figures: [
       { label: s.figures.newRent, value: money(first.rent, locale), primary: true },
-      { label: s.figures.increase, value: money(first.increase, locale) },
+      firstFalls
+        ? { label: s.figures.decrease, value: money(first.increase.negate(), locale) }
+        : { label: s.figures.increase, value: money(first.increase, locale) },
       { label: s.figures.rate, value: `${percent}%` },
     ],
     steps,
     table: {
       caption: s.table.caption,
-      head: s.table.head,
+      head: [yearHead, rentHead, anyFalls ? s.table.changeHead : increaseHead],
       rows: [
         [s.table.now, money(input.rent, locale), "–"],
         ...schedule.map((row) => [
           s.table.after(row.year),
           money(row.rent, locale),
-          money(row.increase, locale),
+          change(row.increase),
         ]),
       ],
     },
-    notes: [s.note],
+    notes: anyFalls ? [s.noteFall(rounding), s.note] : [s.note],
   };
 }
 
@@ -331,7 +365,7 @@ export function incrementExampleTable(locale: Locale) {
   const head =
     locale === "en"
       ? ["Current rent", "Increase", "Rounded to", "New rent"]
-      : ["موجودہ کرایہ", "اضافہ", "پورا کیا گیا", "نیا کرایہ"];
+      : ["موجودہ کرایہ", "اضافہ", "گول کیا گیا", "نیا کرایہ"];
   return {
     head,
     rows: INCREMENT_EXAMPLES.map((example) => [

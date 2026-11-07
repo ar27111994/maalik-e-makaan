@@ -514,6 +514,10 @@ I use them only to corroborate.
   three years). The citation (possibly 2025 SCP 350) is unverified.
   - Source: [Supreme Court latest judgments](https://www.supremecourt.gov.pk/wp-content/plugins/my-plugin/latest_judgements.php).
   - Accessed 2026-11-05. Confidence: **Medium**.
+  - Added 2026-11-07: an unofficial copy of the Act is at [nasirlawsite](https://www.nasirlawsite.com/laws/cantrent.htm)
+    (last updated 2008, so it may miss amendments); no Pakistan Code copy appeared in a WebSearch. The site's
+    rent-increase calculator and agreement checklist now carry a "Cantonment areas" note citing both, at
+    **Medium** confidence.
 
 ### 2.7 Practical agreement checklist (for the site)
 
@@ -584,8 +588,13 @@ This is a practical list, not a legal requirement unless an item cites one.
   - Source: [PwC, taxes on personal income](https://taxsummaries.pwc.com/pakistan/individual/taxes-on-personal-income).
   - Accessed 2026-11-05. Confidence: **Medium**.
 - **TX-5.** Section 7E (tax on deemed income from immovable property):
-  - The Federal Constitutional Court declared it ultra vires. KPMG gives the order date as 6 May 2026 in
-    one brief and 7 May 2026 in a tax alert (C.P.L.A. 1442-K/2022).
+  - The Federal Constitutional Court declared it ultra vires **the Constitution** (not "beyond the
+    government's power") and void ab initio. KPMG gives the order date as 6 May 2026 in one brief and 7 May
+    2026 in a tax alert (C.P.L.A. 1442-K/2022). The press reports the short order on 7 May 2026
+    ([Dawn 1998420](https://www.dawn.com/news/1998420), [ProPakistani](https://propakistani.pk/2026/05/07/constitutional-court-declares-section-7e-null-and-void-in-major-relief-for-property-sector/),
+    [Tribune 2606812](https://tribune.com.pk/story/2606812/fcc-dismisses-fbr-appeals-declares-section-7e-unconstitutional))
+    and the detailed judgment in June 2026 ([Dawn 2008456](https://www.dawn.com/news/2008456)). Checked
+    2026-11-07 by WebSearch; the judgment itself was not read.
   - The **Finance Act 2026 omitted s.7E** and, with it, the rate provision in Division VIIIC.
   - FBR Circular No. 02 of 2026-27 explains the amendments.
   - Sources: [FBR Circular 02 of 2026-27](https://download1.fbr.gov.pk/Docs/202698139527880CircularNo.2of2026-27.pdf),
@@ -752,7 +761,10 @@ Circular 02 of 2026-27 nor the KPMG brief of the Finance Act 2026 lists a s.155 
 
 - Band edges are inclusive: "does not exceed" → `<=`.
 - Use exact integer or decimal arithmetic.
-- Round only for display, to the nearest rupee. The FBR states no rounding rule; this is a convention.
+- No rounding: the calculator shows the exact figure, with paisa where the result is not a whole number of
+  rupees (for example Rs 0.05 at a gross rent of Rs 300,001). The FBR states no rounding rule. (Changed
+  2026-11-07 from "round only for display, to the nearest rupee", to match what the calculator does and
+  what the page says.)
 
 ### 3.6 Worked examples (computed by `s155_vectors.py`)
 
@@ -844,8 +856,16 @@ These rows can become the calculator's unit-test vectors.
     [SSGC form](https://www.ssgc.com.pk/web/wp-content/uploads/2025/09/new_rlng_domestic_form.pdf).
   - Accessed 2026-11-05. Confidence: **Medium**.
 - **UT-11.** **Protected domestic consumers.**
-  - A protected consumer is a non-ToU residential consumer using **under 200 kWh a month consistently for
-    the past six months**. One month over 200 units means unprotected rates for the next six months.
+  - A protected consumer is a non-ToU residential consumer using **up to 200 kWh a month (200 or fewer)
+    consistently for the past six months**. One month over 200 units means unprotected rates for the next
+    six months. (Corrected 2026-11-07: "under 200" was wrong; NEPRA's wording is "<=200".)
+  - NEPRA's own documents: the [Ministry of Energy policy guidelines, admission notice July 2021](https://www.nepra.org.pk/Admission%20Notices/2021/07%20July/Policy%20guidelines%20of%20MoE.PDF)
+    and the [TRF-100 determination for the ex-WAPDA DISCOs, 23 September 2021](https://www.nepra.org.pk/tariff/Tariff/Ex-WAPDA%20DISCOS/2021/TRF-100%20Determination%20XWDISCOs%2023-09-2021%2037543-45.PDF).
+    Seen 2026-11-07 through WebSearch excerpts only; the PDFs could not be fetched (proxy 403).
+  - The threshold is under review: [ARY News](https://arynews.tv/pakistan-govt-may-shift-non-protected-electricity-tariff-to-301-units)
+    reported a proposal to move it to 301 units, and [ARY News](https://arynews.tv/protected-consumers-pakistan-to-abolish-electricity-subsidies)
+    a proposal to abolish the category. No final decision was found. The site says to check the DISCO's
+    current notification.
   - NEPRA kept 2026 end-consumer tariffs unchanged. The Power Division added fixed monthly charges.
   - Do not publish prices; they change.
   - Sources: [Business Recorder (KE proposal)](https://www.brecorder.com/news/40318041),

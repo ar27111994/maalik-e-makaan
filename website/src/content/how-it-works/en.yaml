@@ -30,7 +30,7 @@ steps:
     body: "Dues appear each month by themselves. When rent arrives, in cash or by transfer, record it and share the numbered receipt on WhatsApp."
     points:
       - "The payment settles the oldest dues first; anything extra is kept as credit for next month."
-      - "Tax a company tenant withholds is recorded with its certificate number, so the gross rent is settled."
+      - "Tax a tenant withholds is recorded with its certificate number, so the gross rent is settled."
   - heading: "Keep on top of what is due"
     body: "Each day the app lists what needs you: rent due and overdue, police registrations pending, agreements ending, increases due and unpaid bills."
     points:

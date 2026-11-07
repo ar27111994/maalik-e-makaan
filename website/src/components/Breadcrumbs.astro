@@ -55,8 +55,12 @@ const { locale, items } = Astro.props;
     align-items: center;
   }
 
-  /* The separator is decoration: the empty alternative text keeps it out of screen readers. */
-  .breadcrumbs__item + .breadcrumbs__item::before {
+  /*
+   * The separator is decoration: the empty alternative text keeps it out of
+   * screen readers. It ends the crumb before it, so when a long title wraps
+   * onto a new line, that line starts with the title, not with a stray "/".
+   */
+  .breadcrumbs__item:not(:last-child)::after {
     content: "/" / "";
     padding-inline: var(--mm-space-s2);
     color: var(--mm-color-ink-muted);

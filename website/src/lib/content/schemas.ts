@@ -80,7 +80,10 @@ export const homeSchema = z.strictObject({
   hero: z.strictObject({
     heading: text(10, 90),
     lede: text(40, 320),
+    /** The main button until version 1.0 ships: something the reader can do today. */
     primaryCta: link,
+    /** The main button once SITE.appStatus is "available": the web app itself. */
+    appCta: link,
     secondaryCta: link,
   }),
   receipt: z.strictObject({
@@ -105,7 +108,14 @@ export const homeSchema = z.strictObject({
     items: z.array(question).min(2).max(4),
     more: link,
   }),
-  closing: z.strictObject({ heading: text(5, 80), body: text(10, 200), cta: link }),
+  /** `body` and `cta` until version 1.0 ships; `appBody` and `appCta` once it is available. */
+  closing: z.strictObject({
+    heading: text(5, 80),
+    body: text(10, 200),
+    cta: link,
+    appBody: text(10, 200),
+    appCta: link,
+  }),
 });
 
 const fontLicenceSlugs = FONT_LICENCES.map((font) => font.slug) as [string, ...string[]];

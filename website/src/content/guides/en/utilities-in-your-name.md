@@ -11,6 +11,14 @@ sources:
     publisher: "National Electric Power Regulatory Authority (NEPRA)"
     url: "https://nepra.org.pk/Admission%20Notices/2021/12%20Dec/NEPRA%20Consumer%20Eligibility%20Criteria%20%28Distribution%20Licensee%29%20Regulations%202021.pdf"
     accessed: 2026-11-05
+  - title: "Policy guidelines of the Ministry of Energy on protected consumers, 2021"
+    publisher: "National Electric Power Regulatory Authority (NEPRA)"
+    url: "https://www.nepra.org.pk/Admission%20Notices/2021/07%20July/Policy%20guidelines%20of%20MoE.PDF"
+    accessed: 2026-11-07
+  - title: "Tariff determination for the ex-WAPDA distribution companies, 23 September 2021"
+    publisher: "National Electric Power Regulatory Authority (NEPRA)"
+    url: "https://www.nepra.org.pk/tariff/Tariff/Ex-WAPDA%20DISCOS/2021/TRF-100%20Determination%20XWDISCOs%2023-09-2021%2037543-45.PDF"
+    accessed: 2026-11-07
   - title: "Decision in complaint TCD-05 against LESCO, 18 February 2026"
     publisher: "National Electric Power Regulatory Authority (NEPRA)"
     url: "https://nepra.org.pk/consumer%20affairs/cad/Authority%20Decisions/LESCO/2026/02%20Feb/TCD-05%20740%2018-02-2026%20LESCO.PDF"
@@ -33,7 +41,7 @@ sources:
     accessed: 2026-11-05
 ---
 
-Most rented homes and shops in Pakistan keep their electricity and gas connections in the owner's name. That keeps the connection with the property, but an unpaid bill stays with the property too. This guide explains what the regulators' rules say, and how to protect yourself.
+Many rented homes and shops in Pakistan keep their electricity and gas connections in the owner's name. That keeps the connection with the property, but an unpaid bill stays with the property too. This guide explains what the regulators' rules say, and how to protect yourself.
 
 ## Electricity
 
@@ -42,13 +50,13 @@ The rules are in NEPRA's [Consumer Service Manual](https://nepra.org.pk/Legislat
 - **Arrears stop new connections and changes of name.** A new connection needs "no arrears of electricity bills" outstanding against the occupier or owner of the premises, under NEPRA's [eligibility regulations of 2021](https://nepra.org.pk/Admission%20Notices/2021/12%20Dec/NEPRA%20Consumer%20Eligibility%20Criteria%20%28Distribution%20Licensee%29%20Regulations%202021.pdf). When a property is sold, the new owner applies for a change of name with the last paid bill, on condition that no arrears, deferred amounts or instalments are pending.
 - **A defaulter's premises can be disconnected.** NEPRA cited the manual's rule that premises are liable to disconnection when the consumer is a defaulter in a [March 2026 decision](https://nepra.org.pk/consumer%20affairs/cad/Authority%20Decisions/K-Electric/2026/03%20March/TCD-09%20K-ELECTRIC%2012-03-2026%201029.PDF).
 - **If you support a tenant's own connection, you guarantee it.** When an owner supports a tenant's application for a connection in the tenant's name, the owner affirms on a Rs 50 non-judicial stamp paper that they will be **responsible for paying the tenant's default amount**, if any.
-- **You can ask for a defaulting tenant to be cut off.** The connection can be disconnected at the owner's request if the tenant has not paid the electricity bills for **three months in a row**.
+- **You can ask for a defaulting tenant to be cut off.** The tenant's own connection can be disconnected at the owner's request if the tenant has not paid the electricity bills for **three months in a row**.
 
 One case shows how this can play out. In a [February 2026 decision about LESCO](https://nepra.org.pk/consumer%20affairs/cad/Authority%20Decisions/LESCO/2026/02%20Feb/TCD-05%20740%2018-02-2026%20LESCO.PDF), the company had neither disconnected a defaulting tenant nor taken security. NEPRA decided that the arrears from before the tenant left were to be recovered from the tenant, the bills after the tenant left were the owner's, and the Rs 200,000 security deposit the owner held for the tenant was to be recovered **from the owner** towards the tenant's dues. That was one case on its own facts, not a general rule, but it shows why the deposit and the final bills belong together.
 
 ### The protected tariff
 
-A "protected" domestic consumer is a residential consumer, not on a time-of-use meter, who has used **under 200 units a month for the past six months**, as the rule is [reported by Business Recorder](https://www.brecorder.com/news/40318041); we did not read it in NEPRA's own text. One month over 200 units means unprotected rates for the next six months. Where a meter is shared between portions or sub-metered, one heavy month can raise everyone's bills. We do not publish tariff prices, because they change.
+A "protected" domestic consumer is a residential consumer, not on a time-of-use meter, who has used **up to 200 units a month (200 or fewer) in each of the past six months**, as NEPRA's [2021 policy guidelines](https://www.nepra.org.pk/Admission%20Notices/2021/07%20July/Policy%20guidelines%20of%20MoE.PDF) and [tariff determination](https://www.nepra.org.pk/tariff/Tariff/Ex-WAPDA%20DISCOS/2021/TRF-100%20Determination%20XWDISCOs%2023-09-2021%2037543-45.PDF) describe the category; we read them through search excerpts, not the full documents. One month over 200 units means unprotected rates for the next six months ([as Business Recorder reports the rule](https://www.brecorder.com/news/40318041)). The government has proposed changing this threshold, to 300 units or by abolishing the category ([ARY News](https://arynews.tv/pakistan-govt-may-shift-non-protected-electricity-tariff-to-301-units), [press reports](https://arynews.tv/protected-consumers-pakistan-to-abolish-electricity-subsidies)), so check your distribution company's current notification. Where a meter is shared between portions or sub-metered, one heavy month can raise everyone's bills. We do not publish tariff prices, because they change.
 
 ## Gas
 

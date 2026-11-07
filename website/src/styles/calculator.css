@@ -214,6 +214,11 @@ html[lang="ur"] .choice__input {
   background-color: var(--mm-color-surface);
 }
 
+/* The scroll cue's covers match the counterfoil, not the page. */
+.result .table-scroll {
+  --scroll-cue-bg: var(--mm-color-surface);
+}
+
 @media (width >= 40rem) {
   .result {
     padding-inline: var(--mm-space-s6);
@@ -260,11 +265,40 @@ html[lang="ur"] .choice__input {
   line-height: var(--mm-type-amount-line);
 }
 
+/*
+ * The step numbers are drawn in a box of their own, not as list markers. A
+ * marker shares the line with the step, so in Urdu a "3." beside a formula
+ * that starts the step read as part of the figure ("600,000.3"). As its own
+ * box the number is a separate bidi paragraph, in a column of its own. The
+ * <ol> still gives each step its position for screen readers, so the drawn
+ * number has empty alternative text.
+ */
 .result__steps {
   display: grid;
   gap: var(--mm-space-s2);
   margin: 0;
-  padding-inline-start: var(--mm-space-s6);
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.result__steps > li {
+  position: relative;
+  padding-inline-start: var(--mm-space-s8);
+  counter-increment: step;
+}
+
+.result__steps > li::before {
+  position: absolute;
+  inset-inline-start: 0;
+  min-inline-size: var(--mm-space-s6);
+  content: counter(step) "." / "";
+  color: var(--mm-color-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+html[lang="ur"] .result__steps > li::before {
+  content: counter(step) "\06D4" / "";
 }
 
 .result__notes {

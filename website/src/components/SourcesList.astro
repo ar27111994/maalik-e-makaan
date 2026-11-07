@@ -29,12 +29,19 @@ const comma = locale === "en" ? ", " : "، ";
         <span {...scriptAttributes(source.publisher, locale)}>{source.publisher}</span> (
         {strings.accessed}:{" "}
         <time datetime={source.accessed}>{formatDate(source.accessed, locale)}</time>)
+        {source.url.startsWith("http:") && (
+          <span class="sources__insecure"> ({strings.insecure})</span>
+        )}
       </li>
     ))}
   </ol>
 </section>
 
 <style>
+  .sources__insecure {
+    color: var(--mm-color-ink-muted);
+  }
+
   .sources ol {
     display: grid;
     gap: var(--mm-space-s2);

@@ -1,5 +1,5 @@
 ---
-title: "Tax on rental income and section 155 withholding"
+title: "Tax on rent and section 155 withholding"
 description: "How rent is taxed in Pakistan in tax year 2027: income from property, the one-fifth repairs allowance, and the tax some tenants deduct from rent under section 155."
 lastReviewed: 2026-11-05
 sources:
@@ -50,13 +50,13 @@ Since tax year 2022, an individual's or AOP's income from property has **no long
 - **Repairs:** an allowance of **one-fifth** of the rent of the building for the year, worked out before any other deduction under the section.
 - The premium paid to insure the building.
 - Interest or profit on a mortgage or other capital charge on the property.
-- Expenses of earning the rent, including administration and collection charges up to a cap. PwC gives the cap as 4% of the rent; an older reproduction of the law says 6%. Check the current text with your adviser.
+- Expenses of earning the rent, including administration and collection charges up to a cap. [PwC's tax summary](https://taxsummaries.pwc.com/pakistan/individual/income-determination) (a secondary source) gives the cap as 4% of the rent; an [older reproduction of the law](https://pkrevenue.com/tax-on-income-from-property-under-updated-ordinance/) (also secondary) says 6%. Check the current text with your adviser.
 
 Other items are mentioned in secondary guides, but we could not confirm them from an official text.
 
 ### Section 7E has gone
 
-The Federal Constitutional Court declared section 7E (tax on deemed income from immovable property) beyond the government's power in May 2026, and the [Finance Act 2026](https://download1.fbr.gov.pk/Docs/20266291261044366FinanceAct2026.pdf) removed it, as the FBR's [Circular No. 2 of 2026-27](https://download1.fbr.gov.pk/Docs/202698139527880CircularNo.2of2026-27.pdf) explains.
+In a short order of 7 May 2026, the Federal Constitutional Court declared section 7E (tax on deemed income from immovable property) unconstitutional and void, holding it ultra vires the Constitution ([Dawn's report of the order](https://www.dawn.com/news/1998420), a press report; the court gave its detailed reasons in June 2026, [also reported by Dawn](https://www.dawn.com/news/2008456)). We have not read the judgment itself. The [Finance Act 2026](https://download1.fbr.gov.pk/Docs/20266291261044366FinanceAct2026.pdf) removed it, as the FBR's [Circular No. 2 of 2026-27](https://download1.fbr.gov.pk/Docs/202698139527880CircularNo.2of2026-27.pdf) explains.
 
 ## Withholding under section 155
 
@@ -73,7 +73,7 @@ Only a "prescribed person". The [FBR's guidance](https://download1.fbr.gov.pk/Do
 - private educational institutions, boutiques, beauty parlours, hospitals, clinics and maternity homes;
 - individuals and associations of persons paying gross rent of **Rs 1.5 million or more a year**.
 
-So an individual or a family paying less than Rs 1.5 million a year does not deduct. The deduction is made from the **gross rent**, including any advance, and including amounts for furniture, fixtures and services relating to the property. We have not seen the 2026 consolidated text of the Ordinance, only this guidance; no later change to the list came up in our search.
+So a family renting a home for less than Rs 1.5 million a year does not deduct. A person running a private school, hospital, clinic, maternity home, boutique or beauty parlour is on the list whatever the rent, even when that person is an individual. The deduction is made from the **gross rent**, including any advance, and including amounts for furniture, fixtures and services relating to the property. We have not seen the 2026 consolidated text of the Ordinance, only this guidance; no later change to the list came up in our search.
 
 ### The rates for tax year 2027
 
@@ -86,13 +86,13 @@ These are the rates on the [FBR's rate card for tax year 2027](https://download1
 | over Rs 600,000, up to Rs 2,000,000 | Rs 15,000 plus 10% of the amount over Rs 600,000    | Rs 30,000 plus 20% of the amount over Rs 600,000    |
 | over Rs 2,000,000                   | Rs 155,000 plus 25% of the amount over Rs 2,000,000 | Rs 310,000 plus 50% of the amount over Rs 2,000,000 |
 
-For a landlord that is a company: **15%** of the gross rent if it is on the ATL, **30%** if it is not ([tax year 2026 card](https://download1.fbr.gov.pk/Docs/20258181281745641WHT-RateCard.pdf)). The Finance Act 2026 made no change to these rates that we could find.
+For a landlord that is a company: **15%** of the gross rent if it is on the ATL, **30%** if it is not ([tax year 2026 card](https://download1.fbr.gov.pk/Docs/20258181281745641WHT-RateCard.pdf)). The excerpt of the tax year 2027 card we could read did not show the company row, and neither the Finance Act 2026 nor the FBR's circular on it mentions a change that we could find.
 
 For example, a company tenant paying Rs 100,000 a month to a landlord on the ATL pays Rs 1,200,000 a year, and deducts Rs 15,000 plus 10% of Rs 600,000: **Rs 75,000 over the year**. The [section 155 calculator](/tools/s155-withholding-calculator/) works this out for any rent, step by step.
 
 ### What is uncertain
 
-- **Landlords not on the ATL.** The current FBR cards double the individual and AOP rates for a landlord not on the ATL, citing rule 1 of the Tenth Schedule, and PwC agrees. But the FBR's 2020 and 2021 cards said the Tenth Schedule did not apply to section 155, and we did not find the law that changed that. Check this column with a tax adviser.
+- **Landlords not on the ATL.** The current FBR cards double the individual and AOP rates for a landlord not on the ATL, citing rule 1 of the Tenth Schedule, and [PwC](https://taxsummaries.pwc.com/pakistan/individual/income-determination) (secondary) agrees. But the FBR's 2020 and 2021 cards said the Tenth Schedule did not apply to section 155, and we did not find the law that changed that. Check this column with a tax adviser.
 - **Monthly payments.** The rates are set on the year's gross rent, and tax is deducted when rent is paid. We found no official rule on how a tenant spreads the year's tax over monthly payments, or handles a part year or a change of rent during the year.
 
 ### What the deduction means for the landlord
