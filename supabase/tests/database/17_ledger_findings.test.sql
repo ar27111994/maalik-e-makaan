@@ -337,6 +337,8 @@ select is(
 select set_config('app.today_override', '2026-10-12', true);
 create temporary table grace_case (label text primary key, lease uuid, rent uuid, fee uuid) on commit drop;
 grant select on grace_case to authenticated;
+-- The test's own portfolio: a seeded database (the Supabase stack) has others.
+select set_config('tests.pid', :'pid', true);
 do $$
 declare
   v_label text;
@@ -344,8 +346,8 @@ declare
 begin
   foreach v_label in array array['in_grace', 'overpaid', 'after_grace', 'fee_paid'] loop
     v_lease := tests.create_lease(
-      (select portfolio_id from public.leases limit 1),
-      tests.create_rental((select portfolio_id from public.leases limit 1)),
+      current_setting('tests.pid')::uuid,
+      tests.create_rental(current_setting('tests.pid')::uuid),
       '2026-10-01', 1000, '{"late_fee_type": "daily", "late_fee_value": 100}'
     );
     perform private.assess_late_fees(v_lease, '2026-10-12');
