@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/layout/mm_focus_ring.dart';
-import 'package:mm_ui/src/components/layout/mm_text_metrics.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
+import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/foundation/mm_window.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -69,7 +69,13 @@ final class MmDestination {
 ///
 /// * **compact** (phones): [body] above a bottom [NavigationBar], so the
 ///   destinations sit within thumb reach. The bar grows taller with large
-///   text and with Nastaliq labels, so no label is clipped.
+///   text and with Nastaliq labels, so no label is clipped. A label wraps
+///   only between its words, never inside one: when a word would not fit
+///   its destination at the reader's text size (five destinations at 200%
+///   text), the labels are set only as much smaller as that word needs, but
+///   never below their standard size; if a word does not fit even then, the
+///   bar shows icons alone, and each label is the destination's tooltip and
+///   is still read by screen readers.
 /// * **medium** and **expanded**: a [NavigationRail] at the start edge with
 ///   every label shown under its icon, a hairline rule, then [body].
 /// * **large** (desktop web): the rail extended, labels beside the icons.
@@ -289,8 +295,70 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
     final style =
         barTheme.labelTextStyle?.resolve({WidgetState.selected}) ??
         Theme.of(context).textTheme.labelMedium;
-    final scaler = MediaQuery.textScalerOf(context)
-        .clamp(maxScaleFactor: _maxBarLabelTextScale);
+    final slot = width / widget.destinations.length;
+    final reader = MediaQuery.textScalerOf(context)
+        .clamp(maxScaleFactor: _maxBarLabelTextScale)
+        .scale(1);
+    // The largest scale, up to the reader's, at which the longest word of
+    // every label fits its destination: labels wrap between words only.
+    var fit = reader;
+    for (final destination in widget.destinations) {
+      final word = MmTextMetrics.of(
+        context,
+        destination.label,
+        style,
+        textScaler: TextScaler.noScaling,
+      ).minIntrinsicWidth;
+      // A pixel to spare: glyph widths do not scale exactly linearly.
+      if (word > 0) fit = math.min(fit, (slot - 1) / word);
+    }
+    // Never smaller than the standard size: below it a label is too small
+    // to read, and the icons alone say more.
+    final hidden = fit < math.min(1, reader);
+    // The badges grow as the labels do; with the labels hidden, as far as
+    // the bar lets labels grow.
+    final scaler = TextScaler.linear(hidden ? reader : fit);
+    final bar = hidden
+        ? NavigationBar(
+            selectedIndex: widget.selectedIndex,
+            onDestinationSelected: widget.onDestinationSelected,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+            animationDuration: MmMotion.of(context, MmDuration.standard),
+            destinations: _barDestinations(),
+          )
+        : _labelledBar(context, width, style, scaler);
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: scaler),
+      child: bar,
+    );
+  }
+
+  /// The bar's destinations.
+  List<Widget> _barDestinations() => [
+    for (final destination in widget.destinations)
+      NavigationDestination(
+        icon: _DestinationIcon(
+          destination,
+          selected: false,
+          indicator: _barIndicator,
+        ),
+        selectedIcon: _DestinationIcon(
+          destination,
+          selected: true,
+          indicator: _barIndicator,
+        ),
+        label: destination.label,
+      ),
+  ];
+
+  /// The bar [width] wide with its labels shown, in [style] at [scaler].
+  Widget _labelledBar(
+    BuildContext context,
+    double width,
+    TextStyle? style,
+    TextScaler scaler,
+  ) {
+    final barTheme = NavigationBarTheme.of(context);
     var line = 0.0;
     var above = 0.0;
     var below = 0.0;
@@ -323,22 +391,7 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
       height: height,
       labelPadding: EdgeInsets.only(top: labelGap),
       animationDuration: MmMotion.of(context, MmDuration.standard),
-      destinations: [
-        for (final destination in widget.destinations)
-          NavigationDestination(
-            icon: _DestinationIcon(
-              destination,
-              selected: false,
-              indicator: _barIndicator,
-            ),
-            selectedIcon: _DestinationIcon(
-              destination,
-              selected: true,
-              indicator: _barIndicator,
-            ),
-            label: destination.label,
-          ),
-      ],
+      destinations: _barDestinations(),
     );
   }
 }

@@ -173,7 +173,8 @@ class _ButtonContent extends StatelessWidget {
           )
         : _withLeading(indicator, text);
     return Semantics(
-      label: '$label, ${MmLocalizations.of(context).loading}',
+      label: MmLocalizations.of(context)
+          .joined([label, MmLocalizations.of(context).loading]),
       child: ExcludeSemantics(child: content),
     );
   }

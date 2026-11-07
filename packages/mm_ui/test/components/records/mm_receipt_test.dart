@@ -159,7 +159,7 @@ void main() {
 
     testWidgets('formats the amount as the landlord set it', (tester) async {
       await _pump(tester, _receipt(amount: const Money.fromRupees(125000)));
-      expect(find.text('Rs 125,000'), findsOneWidget);
+      expect(find.text('Rs\u00A0125,000'), findsOneWidget);
 
       await _pump(
         tester,
@@ -168,10 +168,10 @@ void main() {
           child: _receipt(amount: const Money.fromRupees(125000)),
         ),
       );
-      expect(find.text('Rs 1,25,000'), findsOneWidget);
+      expect(find.text('Rs\u00A01,25,000'), findsOneWidget);
 
       await _pump(tester, _receipt(), variant: MmVariant.urdu);
-      expect(find.text('45,000 روپے'), findsOneWidget);
+      expect(find.text('45,000\u00A0روپے'), findsOneWidget);
       expect(styleOf(tester, '45,000').fontFamilyFallback, [
         'packages/mm_ui/${MmFontFamily.urdu}',
       ]);
@@ -183,7 +183,7 @@ void main() {
         _receipt(amount: const Money.fromRupees(-5000)),
         variant: MmVariant.urdu,
       );
-      expect(find.text('‎-5,000 روپے'), findsOneWidget);
+      expect(find.text('‎-5,000\u00A0روپے'), findsOneWidget);
     });
 
     testWidgets('reads issuer, number, amount, rows and footer in order', (
@@ -200,27 +200,27 @@ void main() {
         _footer,
       ]);
       expect(
-        tester.getSemantics(find.text('Ayesha Khan')),
+        tester.getSemantics(find.textContaining('Ayesha Khan')),
         matchesSemantics(label: 'Ayesha Khan', isHeader: true),
       );
       expect(
-        tester.getSemantics(find.text('R-2026-0142')),
+        tester.getSemantics(find.textContaining('R-2026-0142')),
         matchesSemantics(label: 'Receipt no. R-2026-0142'),
       );
     });
 
-    testWidgets('reads the voided state last although it is shown near the '
-        'top', (tester) async {
+    testWidgets('reads the voided state right after the receipt number, '
+        'where it is shown, before the amount', (tester) async {
       await _pump(tester, _receipt(voidedLabel: _void));
       expect(readingOrder(_node(tester)), [
         'Ayesha Khan',
         'Receipt no. R-2026-0142',
+        _void,
         'Amount received, 45000 rupees',
         'Tenant, Ali Raza',
         'Period, October 2026',
         'Late fee, 500 rupees',
         _footer,
-        _void,
       ]);
       expect(
         tester.getRect(find.textContaining(_void, findRichText: true)).bottom,
@@ -232,7 +232,7 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _receipt(amount: const Money.fromPaisa(4500050)));
-      expect(find.text('Rs 45,000.50'), findsOneWidget);
+      expect(find.text('Rs\u00A045,000.50'), findsOneWidget);
       expect(
         readingOrder(_node(tester)),
         contains('Amount received, 45000.50 rupees'),
@@ -245,7 +245,7 @@ void main() {
           child: _receipt(amount: const Money.fromPaisa(4500050)),
         ),
       );
-      expect(find.text('Rs 45,001'), findsOneWidget);
+      expect(find.text('Rs\u00A045,001'), findsOneWidget);
       expect(
         readingOrder(_node(tester)),
         contains('Amount received, 45001 rupees'),
@@ -254,7 +254,7 @@ void main() {
       await _pump(tester, _receipt(), variant: MmVariant.urdu);
       expect(
         readingOrder(_node(tester)),
-        contains('Amount received, 45000 روپے'),
+        contains('Amount received، 45000 روپے'),
       );
     });
 
@@ -292,7 +292,7 @@ void main() {
       );
       expect(
         banded.top,
-        greaterThan(tester.getRect(find.text('Ayesha Khan')).bottom),
+        greaterThan(tester.getRect(find.textContaining('Ayesha Khan')).bottom),
       );
     });
 
@@ -310,9 +310,9 @@ void main() {
             .first,
       );
       expect(seal.right, receipt.right - MmSpace.s4);
-      expect(seal.top, tester.getRect(find.text('Ayesha Khan')).top);
+      expect(seal.top, tester.getRect(find.textContaining('Ayesha Khan')).top);
       expect(
-        tester.getRect(find.text('Ayesha Khan')).left,
+        tester.getRect(find.textContaining('Ayesha Khan')).left,
         receipt.left + MmSpace.s4,
       );
 
@@ -328,11 +328,11 @@ void main() {
       );
       expect(seal.left, receipt.left + MmSpace.s4);
       expect(
-        tester.getRect(find.text('Ayesha Khan')).right,
+        tester.getRect(find.textContaining('Ayesha Khan')).right,
         receipt.right - MmSpace.s4,
       );
       expect(
-        tester.getRect(find.text('Ali Raza')).left,
+        tester.getRect(find.textContaining('Ali Raza')).left,
         receipt.left + MmSpace.s4,
       );
     });
@@ -369,7 +369,7 @@ void main() {
       final receipt = tester.getRect(find.byType(MmReceipt));
       expect(
         receipt.bottom,
-        tester.getRect(find.text('Rs 45,000')).bottom + MmSpace.s4,
+        tester.getRect(find.text('Rs\u00A045,000')).bottom + MmSpace.s4,
       );
     });
 
@@ -387,7 +387,7 @@ void main() {
       final footer = tester.getRect(find.text(_footer));
       expect(receipt.bottom, footer.bottom + MmSpace.s4);
       expect(
-        tester.getRect(find.text('Rs 45,000')).bottom,
+        tester.getRect(find.text('Rs\u00A045,000')).bottom,
         lessThan(footer.top),
       );
     });
@@ -449,14 +449,14 @@ void main() {
         _receipt(
           rows: const [
             MmReceiptRow(label: 'جائیداد', value: value),
-            MmReceiptRow(label: 'رقم', value: '45,000\u00A0روپے'),
+            MmReceiptRow(label: 'جرمانہ', value: '500\u00A0روپے'),
           ],
           footer: 'رسید 12 ماہ تک سنبھال کر رکھیں۔',
         ),
         variant: MmVariant.urdu,
       );
       expect(latinRunsIn(tester, value), ['12', 'III']);
-      expect(latinRunsIn(tester, '45,000\u00A0روپے'), ['45,000']);
+      expect(latinRunsIn(tester, '500\u00A0روپے'), ['500']);
       expect(latinRunsIn(tester, 'رسید 12 ماہ'), ['12']);
       expect(styleOf(tester, value).fontFeatures, [
         const FontFeature.tabularFigures(),
@@ -488,7 +488,7 @@ void main() {
       expect(tester.takeException(), isNull);
       final receipt = tester.getRect(find.byType(MmReceipt));
       expect(receipt.width, 288);
-      final amount = tester.getRect(find.text('Rs 12,500,000'));
+      final amount = tester.getRect(find.text('Rs\u00A012,500,000'));
       expect(amount.width, lessThanOrEqualTo(288 - 2 * MmSpace.s4));
       expect(amount.height, lessThan(2 * 40 * 2));
       // The seal moves under the issuer, still at the end.

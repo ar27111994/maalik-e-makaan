@@ -3,6 +3,8 @@ import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
 import 'package:mm_ui/src/components/choices/mm_option.dart';
 import 'package:mm_ui/src/foundation/mm_field_label.dart';
 import 'package:mm_ui/src/foundation/mm_focus_within.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -119,29 +121,28 @@ class MmRadioGroup<T> extends StatelessWidget {
                     value: option.value,
                     enabled: enabled,
                     controlAffinity: ListTileControlAffinity.leading,
-                    title: Text(
+                    title: MmUserText(
                       option.label,
-                      style: mm.styleFor(
-                        option.label,
-                        text.bodyLarge!.copyWith(
-                          color: enabled ? colors.ink : colors.inkMuted,
-                        ),
+                      style: text.bodyLarge!.copyWith(
+                        color: enabled ? colors.ink : colors.inkMuted,
                       ),
                     ),
                     subtitle: option.description == null
                         ? null
-                        : Text(
+                        : MmUserText(
                             option.description!,
-                            style: mm.styleFor(
-                              option.description!,
-                              text.bodyMedium!.copyWith(color: colors.inkMuted),
+                            style: text.bodyMedium!.copyWith(
+                              color: colors.inkMuted,
                             ),
                           ),
                     secondary: option.icon == null
                         ? null
                         : Icon(
                             option.icon,
-                            size: MmSize.iconLg,
+                            size: MmIconLabel.scaledSize(
+                              context,
+                              MmSize.iconLg,
+                            ),
                             color: colors.inkMuted,
                           ),
                   ),

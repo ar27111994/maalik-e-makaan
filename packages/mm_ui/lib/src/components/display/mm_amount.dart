@@ -167,9 +167,7 @@ class MmAmount extends StatelessWidget {
     MmAmountSize.large => context.mm.amountLarge,
     MmAmountSize.regular => context.mm.amount,
     MmAmountSize.small => MmSemantics.withUrduFallback(
-      MmTypeScale.latinBodySmall.copyWith(
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
+      MmSemantics.withTabularFigures(MmTypeScale.latinBodySmall),
     ),
   };
 

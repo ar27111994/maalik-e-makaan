@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 /// Every variant (the primary one with keyboard focus), an icon, a wrapped
 /// label, the busy and disabled states.

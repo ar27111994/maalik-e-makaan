@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/layout/mm_text_metrics.dart';
+import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';

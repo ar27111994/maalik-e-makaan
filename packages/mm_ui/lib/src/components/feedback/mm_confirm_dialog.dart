@@ -6,7 +6,6 @@ import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
-import 'package:mm_ui/src/theme/mm_theme.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// Asks the landlord to confirm an action before it happens, and completes
@@ -160,8 +159,6 @@ class _MmConfirmDialogState extends State<MmConfirmDialog> {
   @override
   Widget build(BuildContext context) {
     final strings = MmLocalizations.of(context);
-    final theme = Theme.of(context);
-    final mm = context.mm;
     final expected = widget.typedConfirmation;
     // Material shrinks a dialog's padding to 8 dp at 200% text; this keeps
     // at least the page's 16 dp, given to the title, content and actions
@@ -172,7 +169,6 @@ class _MmConfirmDialogState extends State<MmConfirmDialog> {
       MmSpace.s4,
       ((scale - 1) / (_smallestPaddingScale - 1)).clamp(0, 1),
     )!;
-    final shape = theme.dialogTheme.shape;
     return AlertDialog(
       scrollable: true,
       semanticLabel: widget.title,
@@ -180,15 +176,6 @@ class _MmConfirmDialogState extends State<MmConfirmDialog> {
         horizontal: MmSpace.s4,
         vertical: MmSpace.s6,
       ),
-      shape: shape is OutlinedBorder
-          ? shape.copyWith(
-              side: MmTheme.overlayEdge(
-                mm.colors,
-                brightness: theme.brightness,
-                highContrast: mm.highContrast,
-              ),
-            )
-          : shape,
       titlePadding: EdgeInsets.zero,
       title: Padding(
         padding: EdgeInsetsDirectional.only(

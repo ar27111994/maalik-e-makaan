@@ -15,7 +15,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// optional [title] as a heading, and the [message], which says what
 /// happened and what to do next in one sentence and is announced as soon as
 /// it appears (a live region). With [onRetry] a filled "Try again" button
-/// follows (the word comes from `MmLocalizations`).
+/// follows (the word comes from `MmLocalizations`). When trying again is not
+/// the way out (a session that expired, an app that must be updated), give
+/// the action its own verb with [actionLabel] ("Sign in again") and, if the
+/// refresh arrow does not fit it, its own [actionIcon]; [onRetry] is then
+/// what that action does.
 ///
 /// Give [details] (an error code, a server message) for support: they sit
 /// in a collapsed section labelled [detailsLabel] ("Technical details"),
@@ -44,6 +48,8 @@ class MmErrorState extends StatelessWidget {
     required this.message,
     this.title,
     this.onRetry,
+    this.actionLabel,
+    this.actionIcon = MmIcons.refresh,
     this.details,
     this.detailsLabel,
     super.key,
@@ -62,6 +68,15 @@ class MmErrorState extends StatelessWidget {
   /// Called when the retry button is activated. Without it no retry button
   /// is shown.
   final VoidCallback? onRetry;
+
+  /// The label of the button that calls [onRetry]: "Try again" (from
+  /// `MmLocalizations`) when null, or the verb of another way out ("Sign in
+  /// again", "Update the app").
+  final String? actionLabel;
+
+  /// The icon before [actionLabel] on the button: the refresh arrow by
+  /// default.
+  final IconData actionIcon;
 
   /// Technical details of the failure, shown on request.
   final String? details;
@@ -83,8 +98,8 @@ class MmErrorState extends StatelessWidget {
       action: onRetry == null
           ? null
           : MmFilledAction(
-              label: MmLocalizations.of(context).retry,
-              icon: MmIcons.refresh,
+              label: actionLabel ?? MmLocalizations.of(context).retry,
+              icon: actionIcon,
               onPressed: onRetry,
             ),
       extra: details == null

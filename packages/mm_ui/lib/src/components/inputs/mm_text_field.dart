@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mm_ui/src/components/inputs/mm_text_input.dart';
 import 'package:mm_ui/src/foundation/mm_clean_text_formatter.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// A labelled text field for anything a landlord types in words: a
 /// tenant's name, an address, a note.
@@ -64,6 +66,7 @@ class MmTextField extends StatelessWidget {
     this.required = false,
     this.optional = false,
     this.inputFormatters,
+    this.leftToRight = false,
     super.key,
   }) : assert(
          controller == null || initialValue == null,
@@ -93,8 +96,15 @@ class MmTextField extends StatelessWidget {
   /// Guidance shown below the field in muted ink.
   final String? helper;
 
-  /// An error from outside the field, such as a server check; it is shown
-  /// instead of [validator]'s while set.
+  /// An error from outside the field, such as a server check ("This name is
+  /// already taken"), shown below the field with the error icon at once, in
+  /// place of [helper], and announced.
+  ///
+  /// While it is set it wins: [validator] is not called, and the field
+  /// counts as invalid, so the enclosing `Form`'s `validate()` returns false.
+  /// Typing does not clear it: set it back to null once the user changes
+  /// what it is about (in [onChanged], say). The field then shows
+  /// [validator]'s error again only when it next validates.
   final String? errorText;
 
   /// Checks the text when the enclosing `Form` validates (or as
@@ -147,13 +157,16 @@ class MmTextField extends StatelessWidget {
   /// Whether the field takes focus when first shown.
   final bool autofocus;
 
-  /// An icon at the start inside the field.
+  /// An icon at the start inside the field. It grows with the text size,
+  /// up to one and a half times.
   final IconData? prefixIcon;
 
   /// Text before the input while the field is focused or filled.
   final String? prefixText;
 
-  /// A widget at the end inside the field, such as an action button.
+  /// A widget at the end inside the field, such as an action button. Icons
+  /// in it that set no size of their own grow with the text, up to one and
+  /// a half times; an `IconButton` takes its size from its `iconSize`.
   final Widget? suffix;
 
   /// Whether the label says "Required".
@@ -164,6 +177,13 @@ class MmTextField extends StatelessWidget {
 
   /// More formatters, applied after [MmCleanTextFormatter].
   final List<TextInputFormatter>? inputFormatters;
+
+  /// Whether the text reads left to right in both languages, exactly as
+  /// typed: an email address, a web address, an account or meter number.
+  /// It still sits at the start edge of the field like the rest of the form
+  /// (the right edge in Urdu). Words a person writes (a name, an address, a
+  /// note) keep the default, which follows the text's own script.
+  final bool leftToRight;
 
   @override
   Widget build(BuildContext context) {
@@ -189,12 +209,29 @@ class MmTextField extends StatelessWidget {
       readOnly: readOnly,
       focusNode: focusNode,
       autofocus: autofocus,
-      prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
+      // The icon grows with the text, as icons beside words do, up to
+      // one and a half times.
+      prefixIcon: prefixIcon == null
+          ? null
+          : Icon(
+              prefixIcon,
+              size: MmIconLabel.scaledSize(context, MmSize.iconLg),
+            ),
       prefixText: prefixText,
-      suffixIcon: suffix,
+      // An icon in the suffix grows with the text too, unless it sets its
+      // own size.
+      suffixIcon: suffix == null
+          ? null
+          : IconTheme.merge(
+              data: IconThemeData(
+                size: MmIconLabel.scaledSize(context, MmSize.iconLg),
+              ),
+              child: suffix!,
+            ),
       required: required,
       optional: optional,
       inputFormatters: inputFormatters,
+      leftToRight: leftToRight,
     );
   }
 }

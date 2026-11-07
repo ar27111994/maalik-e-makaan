@@ -294,8 +294,9 @@ void main() {
           badge.textStyle!.fontFeatures,
           contains(const FontFeature.tabularFigures()),
         );
-        expect(badge.backgroundColor, MmColorModes.light.overdue);
-        expect(badge.textColor, theme.colorScheme.onError);
+        // A count, not a status: ink with paper figures.
+        expect(badge.backgroundColor, MmColorModes.light.ink);
+        expect(badge.textColor, MmColorModes.light.surface);
       }
     });
 

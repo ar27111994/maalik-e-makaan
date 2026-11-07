@@ -43,7 +43,7 @@ class MmListDetail extends StatefulWidget {
   });
 
   /// The width of the list column when the panes sit side by side.
-  static const double listWidth = 360;
+  static const double listWidth = MmSize.listPane;
 
   /// The list of items, usually scrolling by itself.
   final Widget list;

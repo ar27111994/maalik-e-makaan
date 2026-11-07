@@ -5,10 +5,9 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 const _label = 'Monthly rent';
-const _value = 'Rs 45,000';
+const _value = 'Rs\u00A045,000';
 const _address = 'House 12, Street 4, Gulberg III, Lahore';
 const _rent = Money.fromRupees(45000);
 const _cnic = '35202-1234567-1';
@@ -56,12 +55,12 @@ void main() {
         tester,
         const MmDetailRow(
           label: 'Total due',
-          value: 'Rs 1,25,000',
+          value: 'Rs\u00A01,25,000',
           emphasized: true,
         ),
       );
       final titleMedium = MmVariant.light.theme.textTheme.titleMedium!;
-      for (final text in ['Total due', 'Rs 1,25,000']) {
+      for (final text in ['Total due', 'Rs\u00A01,25,000']) {
         final style = styleOf(tester, text);
         expect(style.color, MmColorModes.light.ink);
         expect(style.fontSize, titleMedium.fontSize);
@@ -145,9 +144,9 @@ void main() {
           emphasized: true,
         ),
       );
-      expect(find.text('Rs 5,000 credit'), findsOneWidget);
+      expect(find.text('Rs\u00A05,000 credit'), findsOneWidget);
       expect(
-        styleOf(tester, 'Rs 5,000 credit').color,
+        styleOf(tester, 'Rs\u00A05,000 credit').color,
         MmColorModes.light.credit,
       );
       expect(
@@ -164,7 +163,7 @@ void main() {
     testWidgets('an amount does not break; it moves under its label', (
       tester,
     ) async {
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         const MmDetailRow.amount(
           label: 'Rent for October and November',
@@ -197,7 +196,7 @@ void main() {
 
     testWidgets('at 200% on a 320 dp phone, wraps in whole words without '
         'overflowing', (tester) async {
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         Column(
           children: [
@@ -298,7 +297,7 @@ void main() {
       expect(find.text('\u2066Ali Raza\u2069'), findsOneWidget);
       expect(
         tester.getSemantics(find.byType(MmDetailRow)),
-        matchesSemantics(label: 'کرایہ دار, Ali Raza'),
+        matchesSemantics(label: 'کرایہ دار، Ali Raza'),
       );
 
       await pumpThemed(

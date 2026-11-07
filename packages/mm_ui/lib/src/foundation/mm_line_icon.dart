@@ -11,7 +11,9 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// It grows with the text size, up to [MmIconLabel.maxIconScale] times its
 /// [MmSize.iconLg] size, as every icon beside words in mm_ui does. It is
 /// hidden from assistive technology: the text beside it carries the
-/// meaning. Internal to the feedback family (banners and snackbars).
+/// meaning: a banner's or snackbar's icon, a nameplate's property icon.
+///
+/// Internal to mm_ui: any component family may use it.
 class MmLineIcon extends StatelessWidget {
   /// Creates an icon centred on the first line of text set in [style].
   const new({

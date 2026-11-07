@@ -65,9 +65,9 @@ class MmFieldFrame extends StatelessWidget {
   /// the 48 dp touch target, for icons and buttons). Errors come from the
   /// field's `forceErrorText` or validator, shown by `MmFieldError`.
   ///
-  /// The outline leaves no gap for a floating label (the label sits above
-  /// the field), so Material does not inset the text, the hint and the
-  /// helper line by that gap either: they start at the content padding.
+  /// The theme's outline leaves no gap for a floating label (the label sits
+  /// above the field), so Material does not inset the text, the hint and
+  /// the helper line by that gap either: they start at the content padding.
   ///
   /// [subtextScaler], when set, is the text scale of the helper line, for a
   /// field whose own line is set at another scale (see [atScale]).
@@ -92,18 +92,8 @@ class MmFieldFrame extends StatelessWidget {
       suffixIcon: suffixIcon,
       prefixIconConstraints: affixConstraints,
       suffixIconConstraints: affixConstraints,
-      border: _flush(theme.border),
-      enabledBorder: _flush(theme.enabledBorder),
-      focusedBorder: _flush(theme.focusedBorder),
-      errorBorder: _flush(theme.errorBorder),
-      focusedErrorBorder: _flush(theme.focusedErrorBorder),
-      disabledBorder: _flush(theme.disabledBorder),
     );
   }
-
-  /// [border] without the gap an outline keeps for a floating label.
-  static InputBorder? _flush(InputBorder? border) =>
-      border is OutlineInputBorder ? border.copyWith(gapPadding: 0) : border;
 
   /// [child] at the text scale [scaler], or as it is when [scaler] is null.
   static Widget atScale(TextScaler? scaler, Widget child) {

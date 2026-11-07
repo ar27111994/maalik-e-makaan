@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mm_ui/src/components/actions/mm_action_icon.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
+import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -189,17 +190,16 @@ class _MmSegmentedControlState<T> extends State<MmSegmentedControl<T>>
         ).defaultStyleOf(context).minimumSize?.resolve(const {})?.width ??
         0;
     for (final segment in widget.segments) {
-      final painter = TextPainter(
-        text: TextSpan(text: segment.label, style: textStyle),
-        textDirection: Directionality.of(context),
+      final label = MmTextMetrics.of(
+        context,
+        segment.label,
+        textStyle,
         textScaler: textScaler,
-        locale: Localizations.maybeLocaleOf(context),
-      )..layout();
+      );
       widest = math.max(
         widest,
-        padding + icon + _SegmentLabel.iconGap + painter.minIntrinsicWidth,
+        padding + icon + _SegmentLabel.iconGap + label.minIntrinsicWidth,
       );
-      painter.dispose();
     }
     return widest * widget.segments.length;
   }

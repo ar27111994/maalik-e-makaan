@@ -246,4 +246,37 @@ void main() {
       ]);
     });
   });
+
+  group('MmNameplate as the landlord wrote it', () {
+    testWidgets('keeps a name in English in its own direction and the Latin '
+        'face in the Urdu UI, read as written', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await pumpThemed(
+        tester,
+        const MmNameplate(
+          name: 'Raza Manzil',
+          subtitle: 'مکان 12، Gulberg III، لاہور',
+          icon: MmIcons.home,
+        ),
+        variant: MmVariant.urdu,
+      );
+      final name = paragraphOf(tester, 'Raza Manzil');
+      expect(name.text.toPlainText(), '\u2066Raza Manzil\u2069');
+      expect(name.text.style!.fontFamily, contains(MmFontFamily.latin));
+      expect(find.bySemanticsLabel('Raza Manzil'), findsOneWidget);
+      // The address is Urdu: its own direction already; its Latin parts
+      // are in the Latin face.
+      final address = paragraphOf(tester, 'Gulberg III');
+      final latin = <String>[];
+      address.text.visitChildren((span) {
+        if (span is TextSpan &&
+            (span.style?.fontFamily?.contains(MmFontFamily.latin) ?? false)) {
+          latin.add(span.text!);
+        }
+        return true;
+      });
+      expect(latin, ['12', 'Gulberg III']);
+      semantics.dispose();
+    });
+  });
 }

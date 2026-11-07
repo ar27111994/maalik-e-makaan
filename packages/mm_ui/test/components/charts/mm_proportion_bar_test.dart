@@ -553,8 +553,8 @@ void main() {
 
         final urdu = variant == MmVariant.urdu;
         final amounts = urdu
-            ? ['1,50,000 روپے', '30,000 روپے', '500 روپے']
-            : ['Rs 1,50,000', 'Rs 30,000', 'Rs 500'];
+            ? ['1,50,000\u00A0روپے', '30,000\u00A0روپے', '500\u00A0روپے']
+            : ['Rs\u00A01,50,000', 'Rs\u00A030,000', 'Rs\u00A0500'];
         final digits = [for (final text in amounts) rightOf(text, '0')];
         expect(digits[1], closeTo(digits[0], 0.5));
         expect(digits[2], closeTo(digits[0], 0.5));
@@ -582,7 +582,7 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Rs 1,50,000'), findsOneWidget);
+      expect(find.text('Rs\u00A01,50,000'), findsOneWidget);
       expect(find.text('100%'), findsOneWidget);
     });
 
@@ -644,7 +644,7 @@ void main() {
         ),
       );
       expect(find.text('0%'), findsNWidgets(2));
-      expect(find.text('Rs 0'), findsNWidgets(2));
+      expect(find.text('Rs\u00A00'), findsNWidgets(2));
     });
 
     testWidgets('repaints only when the parts or direction change', (
@@ -724,7 +724,7 @@ void main() {
         ),
       );
       final label = tester.getRect(find.text('Security deposits held'));
-      final amount = tester.getRect(find.text('Rs 150,000'));
+      final amount = tester.getRect(find.text('Rs\u00A0150,000'));
       expect(amount.top, greaterThanOrEqualTo(label.bottom));
       expect(amount.left, label.left);
     });
@@ -747,7 +747,7 @@ void main() {
       );
       final amount = styleOf(tester, '75,000');
       expect(amount.fontFamily, contains(MmFontFamily.latin));
-      expect(find.text('75,000 روپے'), findsOneWidget);
+      expect(find.text('75,000\u00A0روپے'), findsOneWidget);
       // The share keeps its order ("<1%", "100%") in Urdu.
       expect(paragraphOf(tester, '100%').textDirection, TextDirection.ltr);
     });

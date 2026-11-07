@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mm_ui/src/components/inputs/mm_text_input.dart';
+import 'package:mm_ui/src/components/inputs/mm_value_entry.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -53,6 +54,8 @@ class MmValueField<T extends Object> extends StatefulWidget {
     this.helper,
     this.errorText,
     this.validator,
+    this.invalidText,
+    this.onEntryChanged,
     this.autovalidateMode,
     this.onSubmitted,
     this.required = false,
@@ -124,6 +127,15 @@ class MmValueField<T extends Object> extends StatefulWidget {
   /// Checks the value (null while the text is not one) when the enclosing
   /// `Form` validates, and returns the error to show, or null.
   final FormFieldValidator<T>? validator;
+
+  /// The error shown when the field validates while its text is not empty
+  /// and is not a value ([MmValueEntry.isInvalid]); [validator] then is
+  /// not asked. Without it, [validator] gets null for such text, as for an
+  /// empty field.
+  final String? invalidText;
+
+  /// Called with the text and the value after every change of the text.
+  final ValueChanged<MmValueEntry<T>>? onEntryChanged;
 
   /// When the field validates itself.
   final AutovalidateMode? autovalidateMode;
@@ -218,9 +230,22 @@ class _MmValueFieldState<T extends Object> extends State<MmValueField<T>> {
 
   void _handleChanged(String text) {
     final next = widget.parse(text);
+    widget.onEntryChanged?.call(MmValueEntry(text: text, value: next));
     if (next == _current) return;
     _current = next;
     widget.onChanged(next);
+  }
+
+  /// The error for [text] when the field validates: the field's
+  /// `invalidText` for text that is not a value, otherwise its validator's.
+  String? _validate(String text) {
+    final value = widget.parse(text);
+    final invalidText = widget.invalidText;
+    if (invalidText != null &&
+        MmValueEntry<T>(text: text, value: value).isInvalid) {
+      return invalidText;
+    }
+    return widget.validator?.call(value);
   }
 
   /// Lays the value's line out in a field [width] wide holding [text]: at
@@ -333,16 +358,15 @@ class _MmValueFieldState<T extends Object> extends State<MmValueField<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final validator = widget.validator;
     final onSubmitted = widget.onSubmitted;
     return MmTextInput(
       label: widget.label,
       controller: _controller,
       helper: widget.helper,
       errorText: widget.errorText,
-      validator: validator == null
+      validator: widget.validator == null && widget.invalidText == null
           ? null
-          : (text) => validator(widget.parse(text ?? '')),
+          : (text) => _validate(text ?? ''),
       autovalidateMode: widget.autovalidateMode,
       onChanged: _handleChanged,
       onSubmitted: onSubmitted == null

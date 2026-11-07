@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/inputs/mm_input_editing.dart';
+import 'package:mm_ui/src/components/inputs/mm_value_entry.dart';
 import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
@@ -56,6 +57,8 @@ class MmMoneyField extends StatelessWidget {
     this.helper,
     this.errorText,
     this.validator,
+    this.invalidText,
+    this.onEntryChanged,
     this.autovalidateMode,
     this.onSubmitted,
     this.required = false,
@@ -90,14 +93,32 @@ class MmMoneyField extends StatelessWidget {
   /// Guidance shown below the field in muted ink.
   final String? helper;
 
-  /// Shown below the field with the error icon while set; it wins over
-  /// [validator]'s error.
+  /// An error from outside the field, such as a server check ("More than the
+  /// balance due"), shown below the field with the error icon at once, in place
+  /// of [helper], and announced.
+  ///
+  /// While it is set it wins: [validator] is not called, and the field
+  /// counts as invalid, so the enclosing `Form`'s `validate()` returns false.
+  /// Typing does not clear it: set it back to null once the user changes
+  /// what it is about (in [onChanged], say). The field then shows
+  /// [validator]'s error again only when it next validates.
   final String? errorText;
 
   /// Checks the amount (null while the text is not an acceptable amount)
   /// when the enclosing `Form` validates, or as [autovalidateMode] says,
   /// and returns the error to show, or null.
   final FormFieldValidator<Money>? validator;
+
+  /// The error shown when the field validates while it holds text that is not
+  /// an amount, not nothing; [validator] is not asked then. Without it,
+  /// [validator] gets null for such text, as for an empty field, so an optional
+  /// field would take the mistake for no value.
+  final String? invalidText;
+
+  /// Called after every change of the text with the text and the value it
+  /// stands for, so an empty field and one holding text that is not an amount
+  /// can be told apart ([MmValueEntry.isEmpty], [MmValueEntry.isInvalid]).
+  final ValueChanged<MmValueEntry<Money>>? onEntryChanged;
 
   /// When the field validates itself; by default only when the `Form`
   /// asks.
@@ -192,6 +213,8 @@ class MmMoneyField extends StatelessWidget {
       helper: helper,
       errorText: errorText,
       validator: validator,
+      invalidText: invalidText,
+      onEntryChanged: onEntryChanged,
       autovalidateMode: autovalidateMode,
       onSubmitted: onSubmitted,
       required: required,

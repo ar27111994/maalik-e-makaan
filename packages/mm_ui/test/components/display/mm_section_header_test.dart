@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 const _title = 'Tenants';
 const _subtitle = '3 overdue this month';
@@ -173,7 +172,7 @@ void main() {
 
     testWidgets('wraps a long title in whole words and moves the action '
         'under it at 200%, its words on the start edge', (tester) async {
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         MmSectionHeader(
           title: _long,

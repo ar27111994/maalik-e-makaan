@@ -100,8 +100,18 @@ void main() {
         (context) => _open(context, []),
         variant: variant,
       );
+      // The sheet's own paper, shaped by the theme.
       final shape =
-          tester.widget<BottomSheet>(find.byType(BottomSheet)).shape!
+          tester
+                  .widget<Material>(
+                    find
+                        .descendant(
+                          of: find.byType(BottomSheet),
+                          matching: find.byType(Material),
+                        )
+                        .first,
+                  )
+                  .shape!
               as RoundedRectangleBorder;
       final framed =
           variant.brightness == Brightness.dark || variant.highContrast;
@@ -167,5 +177,51 @@ void main() {
         greaterThanOrEqualTo(tester.getRect(find.byType(IconButton)).right),
       );
     });
+  });
+
+  group('MmSheetHeader', () {
+    for (final (variant, title) in [
+      (MmVariant.light, 'Property'),
+      (MmVariant.urdu, 'جائیداد'),
+      (MmVariant.largeText, 'Property'),
+    ]) {
+      testWidgets('centres the close button on the first line of the title, '
+          'its glyph growing with the text (${variant.name})', (tester) async {
+        late TextStyle style;
+        await pumpThemed(
+          tester,
+          Builder(
+            builder: (context) {
+              style = Theme.of(context).textTheme.titleLarge!;
+              return MmSheetHeader(title: title);
+            },
+          ),
+          variant: variant,
+        );
+        final scale = variant == MmVariant.largeText ? 2.0 : 1.0;
+        final line = style.fontSize! * scale * style.height!;
+        final paragraph = paragraphOf(tester, title);
+        final firstLine = paragraph.localToGlobal(Offset.zero).dy + line / 2;
+        final button = tester.getRect(find.byType(IconButton));
+        expect(button.center.dy, closeTo(firstLine, 0.01));
+        // The title keeps at least 8 dp above it.
+        expect(
+          paragraph.localToGlobal(Offset.zero).dy -
+              tester.getTopLeft(find.byType(MmSheetHeader)).dy,
+          greaterThanOrEqualTo(MmSpace.s2),
+        );
+        final glyph = tester.widget<RichText>(
+          find.descendant(
+            of: find.byIcon(MmIcons.close),
+            matching: find.byType(RichText),
+          ),
+        );
+        expect(
+          glyph.text.style!.fontSize,
+          MmSize.iconLg * (scale > 1.5 ? 1.5 : scale),
+        );
+        expect(button.height, greaterThanOrEqualTo(MmSize.minTarget));
+      });
+    }
   });
 }

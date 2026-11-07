@@ -1,7 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/foundation/mm_line_icon.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -40,10 +39,6 @@ class MmNameplate extends StatelessWidget {
   /// shop, a flat).
   final IconData? icon;
 
-  /// The most the icon grows with the text size: beyond it a large icon
-  /// would crowd the name it only illustrates.
-  static const _maxIconScale = 1.5;
-
   @override
   Widget build(BuildContext context) {
     final colors = context.mm.colors;
@@ -52,13 +47,6 @@ class MmNameplate extends StatelessWidget {
     final subtitle = this.subtitle;
     final icon = this.icon;
     final nameStyle = text.titleLarge!.copyWith(color: on);
-    // The icon grows with the text, up to half as large again, and is
-    // centred on the name's first line.
-    final textScaler = MediaQuery.textScalerOf(context);
-    final iconSize = textScaler
-        .clamp(maxScaleFactor: _maxIconScale)
-        .scale(MmSize.iconLg);
-    final nameLine = textScaler.scale(nameStyle.fontSize!) * nameStyle.height!;
     // An engraved hairline runs inside the brass frame, as on a cast
     // plate: the frame, a gap as wide as the frame, then the hairline.
     const engraving = MmSize.frame * 2;
@@ -80,14 +68,9 @@ class MmNameplate extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (icon != null) ...[
-                  Padding(
-                    padding: EdgeInsetsDirectional.only(
-                      top: math.max(0, nameLine - iconSize) / 2,
-                    ),
-                    child: ExcludeSemantics(
-                      child: Icon(icon, size: iconSize, color: on),
-                    ),
-                  ),
+                  // The icon grows with the text, up to half as large again,
+                  // and is centred on the name's first line.
+                  MmLineIcon(icon: icon, color: on, style: nameStyle),
                   const SizedBox(width: MmSpace.s3),
                 ],
                 Flexible(
@@ -98,12 +81,12 @@ class MmNameplate extends StatelessWidget {
                       Semantics(
                         container: true,
                         header: true,
-                        child: MmScriptText(name, style: nameStyle),
+                        child: MmUserText(name, style: nameStyle),
                       ),
                       if (subtitle != null)
                         Semantics(
                           container: true,
-                          child: MmScriptText(
+                          child: MmUserText(
                             subtitle,
                             style: text.bodyMedium!.copyWith(color: on),
                           ),

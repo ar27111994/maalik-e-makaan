@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/display/mm_amount.dart';
 import 'package:mm_ui/src/components/display/mm_no_controls.dart';
-import 'package:mm_ui/src/components/display/mm_user_text.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
+import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -129,11 +130,11 @@ class MmDetailRow extends StatelessWidget {
       spoken = MmAmount.spokenLabel(context, amount, creditLabel: creditLabel);
     } else {
       final value = this.value!;
-      final valueStyle = (emphasized ? text.titleMedium! : text.bodyLarge!)
-          .copyWith(
-            color: colors.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          );
+      final valueStyle = MmSemantics.withTabularFigures(
+        (emphasized ? text.titleMedium! : text.bodyLarge!).copyWith(
+          color: colors.ink,
+        ),
+      );
       shown = userData
           ? MmUserText(value, style: valueStyle)
           : Text(value, style: valueStyle);
@@ -142,7 +143,7 @@ class MmDetailRow extends StatelessWidget {
     final Widget valueText = ExcludeSemantics(child: shown);
     final Widget row = MergeSemantics(
       child: Semantics(
-        label: '$label, $spoken',
+        label: MmLocalizations.of(context).joined([label, spoken]),
         child: Padding(
           padding: const EdgeInsetsDirectional.symmetric(vertical: MmSpace.s2),
           child: MmReflow(

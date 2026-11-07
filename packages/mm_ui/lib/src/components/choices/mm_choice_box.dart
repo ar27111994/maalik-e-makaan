@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_field_label.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -174,7 +175,11 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
             Expanded(
               child: widget.latinFigures
                   ? Text.rich(_byScript(shown, style, mm))
-                  : Text(shown, style: style),
+                  : MmUserText(
+                      shown,
+                      style: Theme.of(context).textTheme.bodyLarge!
+                          .copyWith(color: ink),
+                    ),
             ),
             if (trailing != null)
               Icon(trailing, size: iconSize, color: colors.inkMuted),

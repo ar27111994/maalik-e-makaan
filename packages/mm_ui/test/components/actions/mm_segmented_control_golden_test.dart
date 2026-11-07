@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 enum _Period { month, quarter, year }
 

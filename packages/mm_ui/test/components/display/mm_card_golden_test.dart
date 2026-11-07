@@ -7,7 +7,6 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 /// A static card bounded by the rule, a tappable card focused from the
 /// keyboard (its border turned to the focus ring), a tappable card at rest

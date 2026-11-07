@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/display/mm_surface.dart';
+import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
+import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// A round badge with a person's initials (or an icon) on the cobalt tonal
 /// fill: the leading mark of a tenant's list row or header. On a selected
@@ -30,12 +32,18 @@ import 'package:mm_ui/src/theme/mm_semantics.dart';
 /// ```
 class MmAvatar extends StatelessWidget {
   /// Creates an avatar for [name].
-  const new({required this.name, this.size = 40, this.icon, super.key});
+  const new({
+    required this.name,
+    this.size = MmSize.avatar,
+    this.icon,
+    super.key,
+  });
 
   /// The person's or place's name, as the landlord wrote it.
   final String name;
 
-  /// The diameter, in logical pixels.
+  /// The diameter, in logical pixels: [MmSize.avatar] by default, the size
+  /// of a list row's avatar.
   final double size;
 
   /// An icon shown in place of the initials.
@@ -172,25 +180,20 @@ class MmAvatar extends StatelessWidget {
     return (above, below);
   }
 
-  /// How wide [initials] are in [style], in ems.
+  /// How wide [initials] are in [style], in ems, as set in [context].
   static double _inkWidth(
+    BuildContext context,
     String initials,
     TextStyle style,
-    TextDirection direction,
-  ) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: initials,
-        style: style.copyWith(fontSize: _measureSize),
-      ),
-      textDirection: direction,
-      textScaler: TextScaler.noScaling,
-      maxLines: 1,
-    )..layout();
-    final width = painter.width / _measureSize;
-    painter.dispose();
-    return width;
-  }
+  ) =>
+      MmTextMetrics.of(
+        context,
+        initials,
+        style.copyWith(fontSize: _measureSize),
+        textScaler: TextScaler.noScaling,
+        maxLines: 1,
+      ).size.width /
+      _measureSize;
 
   static const _nonJoiner = '\u200C';
 
@@ -246,7 +249,7 @@ class MmAvatar extends StatelessWidget {
           : _latinShare;
       final (above, below) = _inkOf(initials);
       final room = size * _fillShare;
-      final width = _inkWidth(initials, style, Directionality.of(context));
+      final width = _inkWidth(context, initials, style);
       final fontSize = [
         size * share,
         if (width > 0) room / width,

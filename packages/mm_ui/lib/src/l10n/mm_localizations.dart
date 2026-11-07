@@ -34,6 +34,7 @@ enum MmLocalizations {
     copied: 'Copied',
     rupees: 'rupees',
     noMatches: 'No matches',
+    listSeparator: ', ',
     hiddenDigits: _englishHiddenDigits,
   ),
 
@@ -60,6 +61,7 @@ enum MmLocalizations {
     copied: 'کاپی ہو گیا',
     rupees: 'روپے',
     noMatches: 'کوئی نتیجہ نہیں ملا',
+    listSeparator: '، ',
     hiddenDigits: _urduHiddenDigits,
   );
 
@@ -85,6 +87,7 @@ enum MmLocalizations {
     required this.copied,
     required this.rupees,
     required this.noMatches,
+    required this.listSeparator,
     required this.hiddenDigits,
   });
 
@@ -168,6 +171,15 @@ enum MmLocalizations {
 
   /// Shown when a search or filter finds nothing ("No matches").
   final String noMatches;
+
+  /// What parts a screen reader says in one breath are joined with: the
+  /// comma of the language and a space (", " in English, the Urdu comma
+  /// "، " in Urdu), a short pause in both. See [joined].
+  final String listSeparator;
+
+  /// [parts] joined with [listSeparator], as one spoken label: "Monthly
+  /// rent, 45000 rupees", "ماہانہ کرایہ، 45000 روپے".
+  String joined(Iterable<String> parts) => parts.join(listSeparator);
 
   /// What a screen reader says in place of the digits a masked value hides,
   /// given how many there are: a masked CNIC is read as "35202, 7 hidden

@@ -1,4 +1,6 @@
 import 'package:flutter/widgets.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// An icon followed by words, set as one paragraph so the words wrap under
@@ -6,7 +8,10 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// a status badge, a trend, a void stamp, an error line.
 ///
 /// The icon grows with the text size, up to one and a half times its size,
-/// and mirrors with the text direction when its glyph points. It is
+/// and mirrors with the text direction when its glyph points. The words
+/// are set as [MmScriptText] sets them: in the Urdu UI, figures and Latin
+/// letters among Urdu words ("12 دن سے واجب") are in the Latin face, on
+/// the Urdu style's lines, like amounts everywhere else. It is
 /// decorative: assistive technology reads only [label], which joins the
 /// semantics node of the nearest container or merging ancestor.
 ///
@@ -72,6 +77,7 @@ class MmIconLabel extends StatelessWidget {
     final capped =
         textScaler.clamp(maxScaleFactor: maxIconScale).scale(fontSize) /
         fontSize;
+    final mixed = MmScriptText.spansOf(context, label, style);
     return Semantics(
       label: label,
       excludeSemantics: true,
@@ -89,10 +95,11 @@ class MmIconLabel extends StatelessWidget {
                 ),
               ),
             ),
-            TextSpan(text: label),
+            if (mixed == null) TextSpan(text: label) else ...mixed.spans,
           ],
         ),
-        style: style,
+        style: mixed == null ? context.mm.styleFor(label, style) : style,
+        strutStyle: mixed?.strut,
         textAlign: textAlign,
         textWidthBasis: textWidthBasis,
       ),

@@ -65,10 +65,7 @@ void main() {
 
     testWidgets('is at least 56 dp tall', (tester) async {
       await pumpThemed(tester, const MmListTile(title: _name));
-      expect(
-        tester.getSize(find.byType(MmListTile)).height,
-        MmSize.fieldHeight,
-      );
+      expect(tester.getSize(find.byType(MmListTile)).height, MmSize.listRow);
     });
 
     testWidgets('icons take the muted ink at 24 dp', (tester) async {
@@ -91,6 +88,22 @@ void main() {
         const MmListTile(title: _name, trailing: Text('5 Nov')),
       );
       expect(styleOf(tester, '5 Nov').color, MmColorModes.light.inkMuted);
+    });
+
+    testWidgets('icons grow with the text, up to half again', (tester) async {
+      await pumpThemed(
+        tester,
+        const MmListTile(
+          title: _name,
+          leading: Icon(MmIcons.person),
+          trailing: Icon(MmIcons.chevronEnd),
+        ),
+        variant: MmVariant.largeText,
+      );
+      for (final icon in [MmIcons.person, MmIcons.chevronEnd]) {
+        final theme = IconTheme.of(tester.element(find.byIcon(icon)));
+        expect(theme.size, MmSize.iconLg * 1.5);
+      }
     });
 
     testWidgets('the trailing widget sits at the end when it fits', (
@@ -158,7 +171,7 @@ void main() {
 
     testWidgets('at 200% on a 320 dp phone, wraps the title in whole words '
         'and moves the trailing widget below', (tester) async {
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         const MmListTile(
           title: _long,

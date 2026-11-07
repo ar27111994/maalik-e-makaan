@@ -231,7 +231,9 @@ travel with an icon and a word, never alone.
 - **Surface (`surface`):** cards, sheets and list groups sit on it.
 - **Ink (`ink`):** text and icons. **Muted ink (`inkMuted`):** captions, dates, metadata.
 - **Outline (`outline`):** field and control borders, at 3:1 or better. **Rule (`rule`):**
-  decorative dividers only, never the only boundary of a control.
+  decorative dividers only, never the only boundary of a control. In the high-contrast modes
+  the rule stays at 3:1 or better against the page but at least 3:1 apart from the outline, so
+  a disabled control inside its rule border never reads as an enabled outlined one.
 - **Cobalt (`primary`):** the single filled action per view, links, selection, focus.
 - **Brass (`brass`):** the nameplate border, the receipt seal, a featured property. Use
   `brassText` when brass must carry words.
@@ -289,10 +291,15 @@ receipt's edge is straight with a perforation, not rounded.
   payment"), never "OK".
 - **Field:** labelled above, helper or error text below in words (not colour alone), 56 dp tall,
   currency fields show "Rs" and format as you type.
-- **Card:** a surface with 16 dp padding that groups one thing; cards never nest.
+- **Card:** a surface with 16 dp padding that groups one thing; cards never nest. A card or
+  tile that only shows information is bounded by a `rule` hairline (or by tone alone); one you
+  can tap is a control, so it is bounded by the `outline` colour, at 3:1 or better.
 - **Status chip:** container colour, an icon and a word ("Paid", "Overdue 12 days").
+- **Count badge:** ink with paper figures, never a status colour: a count says how many things
+  wait; the label beside it says what they are.
 - **Money text:** tabular figures, rupee prefix, lakh/crore or Western grouping per setting;
-  negative balances say "credit" in words, not a minus sign alone.
+  the currency and its figures are joined by a no-break space, so they never part at a line
+  end; negative balances say "credit" in words, not a minus sign alone.
 - **Nameplate:** the property name on a brass-bordered plate in property headers.
 - **Receipt:** paper surface, perforated top edge, brass seal with the receipt number; the same
   layout prints to PDF.

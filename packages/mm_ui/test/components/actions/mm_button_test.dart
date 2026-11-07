@@ -337,6 +337,8 @@ void main() {
         final loading = urdu
             ? MmLocalizations.urdu.loading
             : MmLocalizations.english.loading;
+        // Joined by the comma of the language: "،" in Urdu.
+        final comma = urdu ? '،' : ',';
         await _pumpSpinning(
           tester,
           MmButton(
@@ -350,7 +352,7 @@ void main() {
         expect(
           tester.getSemantics(find.byType(FilledButton)),
           matchesSemantics(
-            label: '$label, $loading',
+            label: '$label$comma $loading',
             isButton: true,
             hasEnabledState: true,
             isEnabled: true,

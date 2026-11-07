@@ -554,8 +554,18 @@ void main() {
     ) async {
       await pumpThemed(tester, _field(options: _properties), variant: variant);
       await _open(tester);
+      // The sheet's own paper, shaped by the theme.
       final shape =
-          tester.widget<BottomSheet>(find.byType(BottomSheet)).shape!
+          tester
+                  .widget<Material>(
+                    find
+                        .descendant(
+                          of: find.byType(BottomSheet),
+                          matching: find.byType(Material),
+                        )
+                        .first,
+                  )
+                  .shape!
               as RoundedRectangleBorder;
       final framed =
           variant.brightness == Brightness.dark || variant.highContrast;
@@ -660,6 +670,22 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(BottomSheet), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('MmSelectField options the landlord named', () {
+    testWidgets('keep their own direction and face in the Urdu UI', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        _field(options: _properties, label: 'جائیداد'),
+        variant: MmVariant.urdu,
+      );
+      await _open(tester);
+      final option = paragraphOf(tester, 'Gulberg Heights');
+      expect(option.text.toPlainText(), '\u2066Gulberg Heights\u2069');
+      expect(option.text.style!.fontFamily, contains(MmFontFamily.latin));
     });
   });
 }

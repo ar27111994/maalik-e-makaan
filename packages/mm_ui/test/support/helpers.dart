@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import 'harness.dart';
+import 'words.dart';
 
 /// The colour roles of [variant] (the same as [MmVariant.colors]).
 MmColorTokens colorsOf(MmVariant variant) => variant.colors;
@@ -44,12 +45,16 @@ Future<void> pumpLargeNarrow(
 
 /// Pumps [child] at 200% text on a phone [width] wide (320 dp by default),
 /// in English and in Urdu, in a scrolling page as a screen would hold it,
-/// and fails on any overflow or other layout error.
+/// and fails on any overflow or other reported error and on any line that
+/// breaks inside a word or a number ([brokenWords]): text at large sizes
+/// wraps between words, never mid-word, and an amount never mid-number.
+/// [then] checks more in each language.
 Future<void> expectFitsNarrowLargeText(
   WidgetTester tester,
   Widget child, {
   double width = 320,
   double height = 740,
+  void Function(Locale locale)? then,
 }) async {
   tester.view
     ..physicalSize = Size(width, height)
@@ -70,8 +75,20 @@ Future<void> expectFitsNarrowLargeText(
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull, reason: locale.languageCode);
+    final broken = brokenWords(tester);
+    expect(
+      broken,
+      isEmpty,
+      reason: '${locale.languageCode}: lines break inside words: $broken',
+    );
+    then?.call(locale);
   }
 }
+
+/// The `Text` that says [english], or [urdu] in the Urdu variant.
+Finder textIn(String english, String urdu) => find.byWidgetPredicate(
+  (widget) => widget is Text && (widget.data == english || widget.data == urdu),
+);
 
 /// The paragraph whose text contains [text].
 RenderParagraph paragraphOf(WidgetTester tester, String text) =>

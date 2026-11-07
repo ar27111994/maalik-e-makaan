@@ -8,6 +8,7 @@ import '../support/testing.dart';
 const _label = 'Overdue by 12 days since the 5th of October';
 
 Widget _iconLabel({
+  String label = _label,
   IconData icon = MmIcons.warning,
   double iconSize = MmSize.iconSm,
   TextAlign textAlign = TextAlign.start,
@@ -16,7 +17,7 @@ Widget _iconLabel({
   child: Builder(
     builder: (context) => MmIconLabel(
       icon: icon,
-      label: _label,
+      label: label,
       style: Theme.of(context).textTheme.bodyMedium!,
       iconColor: context.mm.colors.overdue,
       iconSize: iconSize,
@@ -52,12 +53,24 @@ void main() {
     testWidgets('mirrors right to left, the icon at the start edge', (
       tester,
     ) async {
-      await pumpThemed(tester, _iconLabel(), variant: MmVariant.urdu);
-      final box = tester.getRect(find.byType(MmIconLabel));
-      expect(
-        tester.getRect(find.byIcon(MmIcons.warning)).right,
-        moreOrLessEquals(box.right, epsilon: MmSpace.s1),
-      );
+      // An Urdu label that wraps, as the Urdu UI shows one, and a short
+      // Latin one: the icon ends on the start (right) edge.
+      for (final label in [
+        '5 اکتوبر سے 12 دن واجب الادا، کرایہ ابھی تک ادا نہیں ہوا',
+        'CNIC',
+      ]) {
+        await pumpThemed(
+          tester,
+          _iconLabel(label: label),
+          variant: MmVariant.urdu,
+        );
+        final box = tester.getRect(find.byType(MmIconLabel));
+        expect(
+          tester.getRect(find.byIcon(MmIcons.warning)).right,
+          moreOrLessEquals(box.right, epsilon: 0.5),
+          reason: label,
+        );
+      }
     });
 
     testWidgets('grows the icon with the text, at most one and a half times', (

@@ -568,9 +568,9 @@
       "rule": {
         "$value": {
           "colorSpace": "srgb",
-          "components": [0.3529, 0.3843, 0.4235],
+          "components": [0.5176, 0.5451, 0.5804],
           "alpha": 1,
-          "hex": "#5A626C"
+          "hex": "#848B94"
         },
         "$description": "Decorative dividers that separate but carry no meaning."
       },
@@ -822,9 +822,9 @@
       "rule": {
         "$value": {
           "colorSpace": "srgb",
-          "components": [0.6039, 0.6431, 0.6863],
+          "components": [0.3922, 0.4275, 0.4706],
           "alpha": 1,
-          "hex": "#9AA4AF"
+          "hex": "#646D78"
         },
         "$description": "Decorative dividers that separate but carry no meaning."
       },
@@ -1195,6 +1195,13 @@
       },
       "$description": "Decorative icons that lead an empty or error state."
     },
+    "avatar": {
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      },
+      "$description": "A person's avatar in a list row, and the circle a loading list row shows in its place."
+    },
     "appBar": {
       "$value": {
         "value": 64,
@@ -1227,6 +1234,20 @@
         "unit": "px"
       },
       "$description": "Widest an empty, error or loading state grows, so its sentence keeps a readable measure."
+    },
+    "listRow": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The shortest list row: one line of text, or an avatar, with the row's padding."
+    },
+    "listPane": {
+      "$value": {
+        "value": 360,
+        "unit": "px"
+      },
+      "$description": "The list's column beside its details on wide windows: about a phone's width, so a list reads as it does on a phone."
     },
     "focusRing": {
       "$value": {

@@ -29,11 +29,14 @@
   --mm-size-icon-md: 20px;
   --mm-size-icon-lg: 24px;
   --mm-size-icon-xl: 48px;
+  --mm-size-avatar: 40px;
   --mm-size-app-bar: 64px;
   --mm-size-nav-rail: 80px;
   --mm-size-content-max: 720px;
   --mm-size-sheet-max: 640px;
   --mm-size-state-max: 400px;
+  --mm-size-list-row: 56px;
+  --mm-size-list-pane: 360px;
   --mm-size-focus-ring: 2px;
   --mm-size-focus-gap: 2px;
   --mm-size-hairline: 1px;
@@ -154,7 +157,7 @@
     --mm-color-ink: #000000;
     --mm-color-ink-muted: #2B3036;
     --mm-color-outline: #3A4048;
-    --mm-color-rule: #5A626C;
+    --mm-color-rule: #848B94;
     --mm-color-primary: #0A2463;
     --mm-color-on-primary: #FFFFFF;
     --mm-color-primary-container: #C9D7F5;
@@ -187,7 +190,7 @@
     --mm-color-ink: #FFFFFF;
     --mm-color-ink-muted: #D7DDE4;
     --mm-color-outline: #C2CAD3;
-    --mm-color-rule: #9AA4AF;
+    --mm-color-rule: #646D78;
     --mm-color-primary: #C2D4FF;
     --mm-color-on-primary: #000F33;
     --mm-color-primary-container: #1C3672;

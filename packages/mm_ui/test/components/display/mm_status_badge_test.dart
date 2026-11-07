@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 const _overdue = 'Overdue 12 days';
 
@@ -143,7 +142,7 @@ void main() {
     testWidgets('wraps a long label at 200% in whole words instead of '
         'overflowing', (tester) async {
       const label = 'Overdue since 5 October, reminder sent twice';
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         const Align(
           alignment: AlignmentDirectional.centerStart,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/inputs/mm_input_editing.dart';
+import 'package:mm_ui/src/components/inputs/mm_value_entry.dart';
 import 'package:mm_ui/src/components/inputs/mm_value_field.dart';
 
 /// A labelled field for a CNIC (Computerised National Identity Card)
@@ -38,6 +39,8 @@ class MmCnicField extends StatelessWidget {
     this.helper,
     this.errorText,
     this.validator,
+    this.invalidText,
+    this.onEntryChanged,
     this.autovalidateMode,
     this.onSubmitted,
     this.required = false,
@@ -66,14 +69,32 @@ class MmCnicField extends StatelessWidget {
   /// Guidance shown below the field in muted ink.
   final String? helper;
 
-  /// Shown below the field with the error icon while set; it wins over
-  /// [validator]'s error.
+  /// An error from outside the field, such as a server check ("This CNIC
+  /// belongs to another tenant"), shown below the field with the error icon at
+  /// once, in place of [helper], and announced.
+  ///
+  /// While it is set it wins: [validator] is not called, and the field
+  /// counts as invalid, so the enclosing `Form`'s `validate()` returns false.
+  /// Typing does not clear it: set it back to null once the user changes
+  /// what it is about (in [onChanged], say). The field then shows
+  /// [validator]'s error again only when it next validates.
   final String? errorText;
 
   /// Checks the CNIC (null while the digits do not make a valid one) when
   /// the enclosing `Form` validates, or as [autovalidateMode] says, and
   /// returns the error to show, or null.
   final FormFieldValidator<Cnic>? validator;
+
+  /// The error shown when the field validates while it holds an unfinished or
+  /// impossible CNIC, not nothing; [validator] is not asked then. Without it,
+  /// [validator] gets null for such text, as for an empty field, so an optional
+  /// field would take the mistake for no value.
+  final String? invalidText;
+
+  /// Called after every change of the text with the text and the value it
+  /// stands for, so an empty field and one holding an unfinished or impossible
+  /// CNIC can be told apart ([MmValueEntry.isEmpty], [MmValueEntry.isInvalid]).
+  final ValueChanged<MmValueEntry<Cnic>>? onEntryChanged;
 
   /// When the field validates itself; by default only when the `Form`
   /// asks.
@@ -115,6 +136,8 @@ class MmCnicField extends StatelessWidget {
       helper: helper,
       errorText: errorText,
       validator: validator,
+      invalidText: invalidText,
+      onEntryChanged: onEntryChanged,
       autovalidateMode: autovalidateMode,
       onSubmitted: onSubmitted,
       required: required,

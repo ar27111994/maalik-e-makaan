@@ -25,11 +25,11 @@ void main() {
 
   group('MoneyFormat standard', () {
     test('defaults: Rs, western grouping, no paisa for whole amounts', () {
-      expect(const MoneyFormat().format(rs(150000)), 'Rs 150,000');
-      expect(const MoneyFormat().format(Money.zero), 'Rs 0');
+      expect(const MoneyFormat().format(rs(150000)), 'Rs\u00A0150,000');
+      expect(const MoneyFormat().format(Money.zero), 'Rs\u00A00');
       expect(
         const MoneyFormat().format(const Money.fromPaisa(150050)),
-        'Rs 1,500.50',
+        'Rs\u00A01,500.50',
       );
     });
 
@@ -37,21 +37,21 @@ void main() {
       'negative amounts carry a leading sign after a left-to-right mark',
       () {
         expect(MoneyFormat.leftToRightMark, '\u200E');
-        expect(const MoneyFormat().format(rs(-5000)), '\u200E-Rs 5,000');
+        expect(const MoneyFormat().format(rs(-5000)), '\u200E-Rs\u00A05,000');
         expect(
           const MoneyFormat(language: MoneyLanguage.urdu).format(rs(-5000)),
-          '\u200E-5,000 روپے',
+          '\u200E-5,000\u00A0روپے',
         );
         expect(
           const MoneyFormat(
             language: MoneyLanguage.urdu,
             nativeDigits: true,
           ).format(rs(-5000)),
-          '\u200E-۵,۰۰۰ روپے',
+          '\u200E-۵,۰۰۰\u00A0روپے',
         );
         expect(
           const MoneyFormat(currency: CurrencyDisplay.code).format(rs(-5000)),
-          '\u200E-PKR 5,000',
+          '\u200E-PKR\u00A05,000',
         );
         expect(
           const MoneyFormat(language: MoneyLanguage.urdu)
@@ -75,37 +75,86 @@ void main() {
       }
     });
 
-    test('a negative amount survives the text sanitisers unchanged', () {
-      // The mark is allowed by the clean-text contract (unlike bidi
-      // isolates), so a formatted amount can go into a saved note or a
-      // reminder message as it is.
+    test('a negative amount survives the text sanitisers, its sign intact', () {
+      // The mark and the no-break space are allowed by the clean-text
+      // contract (unlike bidi isolates), so a formatted amount can go into
+      // a saved note or a reminder message. Sanitising before saving keeps
+      // the mark and, as for any no-break space, writes an ordinary space.
       final formatted = const MoneyFormat(language: MoneyLanguage.urdu)
           .format(rs(-5000));
       expect(containsUnsafeCharacters(formatted), isFalse);
-      expect(sanitizeSingleLine(formatted), formatted);
+      expect(removeUnsafeCharacters(formatted), formatted);
+      expect(sanitizeSingleLine(formatted), '\u200E-5,000 روپے');
+    });
+
+    test('joins the figures and the words beside them with a no-break '
+        'space', () {
+      expect(MoneyFormat.noBreakSpace, '\u00A0');
+      const urdu = MoneyFormat(language: MoneyLanguage.urdu);
+      final cases = {
+        const MoneyFormat().format(rs(45000)): ['Rs', '45,000'],
+        const MoneyFormat(currency: CurrencyDisplay.code).format(rs(45000)): [
+          'PKR',
+          '45,000',
+        ],
+        urdu.format(rs(45000)): ['45,000', 'روپے'],
+        const MoneyFormat(notation: MoneyNotation.compact)
+            .format(rs(2350000)): [
+          'Rs',
+          '23.5',
+          'lakh',
+        ],
+        urdu.copyWith(notation: MoneyNotation.compact).format(rs(12500000)): [
+          '1.25',
+          'کروڑ',
+          'روپے',
+        ],
+      };
+      for (final MapEntry(key: formatted, value: parts) in cases.entries) {
+        // No ordinary space is left to break the line at.
+        expect(formatted.contains(' '), isFalse, reason: formatted);
+        expect(formatted.split(MoneyFormat.noBreakSpace), parts);
+      }
+    });
+
+    test('a formatted amount parses back to itself', () {
+      for (final format in const [
+        MoneyFormat(),
+        MoneyFormat(currency: CurrencyDisplay.code),
+        MoneyFormat(language: MoneyLanguage.urdu),
+        MoneyFormat(grouping: DigitGrouping.southAsian),
+      ]) {
+        for (final amount in [rs(45000), rs(125000), rs(-5000)]) {
+          expect(
+            parseMoneyInput(format.format(amount), allowNegative: true),
+            amount,
+            reason: format.format(amount),
+          );
+        }
+      }
     });
 
     test('paisa display policies', () {
       const amount = Money.fromPaisa(123456);
       expect(
         const MoneyFormat(paisa: PaisaDisplay.always).format(rs(5)),
-        'Rs 5.00',
+        'Rs\u00A05.00',
       );
       expect(
         const MoneyFormat(paisa: PaisaDisplay.never).format(amount),
-        'Rs 1,235',
+        'Rs\u00A01,235',
       );
       expect(
         const MoneyFormat(paisa: PaisaDisplay.never)
             .format(const Money.fromPaisa(123449)),
-        'Rs 1,234',
+        'Rs\u00A01,234',
       );
     });
 
     test('currency display and grouping options', () {
       expect(
         const MoneyFormat(currency: CurrencyDisplay.code).format(rs(2000)),
-        'PKR 2,000',
+        'PKR\u00A02,000',
       );
       expect(
         const MoneyFormat(currency: CurrencyDisplay.none).format(rs(2000)),
@@ -114,24 +163,24 @@ void main() {
       expect(
         const MoneyFormat(grouping: DigitGrouping.southAsian)
             .format(rs(150000)),
-        'Rs 1,50,000',
+        'Rs\u00A01,50,000',
       );
     });
 
     test('Urdu places the unit after the amount, optionally native digits', () {
       expect(
         const MoneyFormat(language: MoneyLanguage.urdu).format(rs(5000)),
-        '5,000 روپے',
+        '5,000\u00A0روپے',
       );
       expect(
         const MoneyFormat(
           language: MoneyLanguage.urdu,
           nativeDigits: true,
         ).format(rs(5000)),
-        '۵,۰۰۰ روپے',
+        '۵,۰۰۰\u00A0روپے',
       );
       // Native digits only apply to Urdu.
-      expect(const MoneyFormat(nativeDigits: true).format(rs(5)), 'Rs 5');
+      expect(const MoneyFormat(nativeDigits: true).format(rs(5)), 'Rs\u00A05');
     });
 
     test('formatNumber omits the currency', () {
@@ -197,32 +246,32 @@ void main() {
     );
 
     test('below one lakh is written in full', () {
-      expect(compact.format(rs(99999)), 'Rs 99,999');
+      expect(compact.format(rs(99999)), 'Rs\u00A099,999');
     });
 
     test('lakh with up to two trimmed decimals', () {
-      expect(compact.format(rs(100000)), 'Rs 1 lakh');
-      expect(compact.format(rs(150000)), 'Rs 1.5 lakh');
-      expect(compact.format(rs(1234567)), 'Rs 12.35 lakh');
-      expect(compact.format(rs(2350000)), 'Rs 23.5 lakh');
-      expect(compact.format(rs(105000)), 'Rs 1.05 lakh');
+      expect(compact.format(rs(100000)), 'Rs\u00A01\u00A0lakh');
+      expect(compact.format(rs(150000)), 'Rs\u00A01.5\u00A0lakh');
+      expect(compact.format(rs(1234567)), 'Rs\u00A012.35\u00A0lakh');
+      expect(compact.format(rs(2350000)), 'Rs\u00A023.5\u00A0lakh');
+      expect(compact.format(rs(105000)), 'Rs\u00A01.05\u00A0lakh');
     });
 
     test('crore, including promotion when lakh rounds to 100', () {
-      expect(compact.format(rs(10000000)), 'Rs 1 crore');
-      expect(compact.format(rs(12500000)), 'Rs 1.25 crore');
-      expect(compact.format(rs(9999999)), 'Rs 1 crore');
-      expect(compact.format(rs(1500000000)), 'Rs 150 crore');
-      expect(compact.format(rs(-250000)), '\u200E-Rs 2.5 lakh');
+      expect(compact.format(rs(10000000)), 'Rs\u00A01\u00A0crore');
+      expect(compact.format(rs(12500000)), 'Rs\u00A01.25\u00A0crore');
+      expect(compact.format(rs(9999999)), 'Rs\u00A01\u00A0crore');
+      expect(compact.format(rs(1500000000)), 'Rs\u00A0150\u00A0crore');
+      expect(compact.format(rs(-250000)), '\u200E-Rs\u00A02.5\u00A0lakh');
     });
 
     test('Urdu compact units', () {
-      expect(compactUrdu.format(rs(150000)), '1.5 لاکھ روپے');
-      expect(compactUrdu.format(rs(12500000)), '1.25 کروڑ روپے');
+      expect(compactUrdu.format(rs(150000)), '1.5\u00A0لاکھ\u00A0روپے');
+      expect(compactUrdu.format(rs(12500000)), '1.25\u00A0کروڑ\u00A0روپے');
     });
 
     test('grouping still applies to large crore values', () {
-      expect(compact.format(rs(123456000000)), 'Rs 12,345.6 crore');
+      expect(compact.format(rs(123456000000)), 'Rs\u00A012,345.6\u00A0crore');
     });
   });
 }

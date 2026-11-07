@@ -609,7 +609,7 @@ void main() {
       expect(find.byType(MmChartSwatch), findsNothing);
       expect(find.text('Net income'), findsOneWidget);
       // The readout still shows the latest month's amount.
-      expect(find.text('Rs 60,000'), findsOneWidget);
+      expect(find.text('Rs\u00A060,000'), findsOneWidget);
     });
 
     testWidgets('keeps the key of a single series with no title', (
@@ -704,7 +704,7 @@ void main() {
         await pumpThemed(tester, lakhGrouping(_rent()));
         expect(_readout(tester), isNull);
         expect(_shownGroup(tester), 'Nov');
-        expect(find.text('Rs 45,000'), findsOneWidget);
+        expect(find.text('Rs\u00A045,000'), findsOneWidget);
         // No band is highlighted.
         expect(_painter(tester).active, isNull);
       });
@@ -717,8 +717,8 @@ void main() {
         await tester.pumpAndSettle();
         expect(_readout(tester), 'Jun');
         expect(_shownGroup(tester), 'Jun');
-        expect(find.text('Rs 1,10,000'), findsOneWidget);
-        expect(find.text('Rs 1,25,000'), findsOneWidget);
+        expect(find.text('Rs\u00A01,10,000'), findsOneWidget);
+        expect(find.text('Rs\u00A01,25,000'), findsOneWidget);
         // The readout keys each amount with its series.
         expect(find.byType(MmChartSwatch), findsNWidgets(2));
         expect(find.text('Collected'), findsOneWidget);
@@ -749,7 +749,7 @@ void main() {
         await tester.tapAt(_groupCentre(tester, 3));
         await tester.pumpAndSettle();
         final colors = colorsOf(MmVariant.light);
-        final amount = styleOf(tester, 'Rs 95,000');
+        final amount = styleOf(tester, 'Rs\u00A095,000');
         expect(amount.color, colors.ink);
         expect(amount.fontWeight, FontWeight.w600);
         expect(amount.fontFeatures, [const FontFeature.tabularFigures()]);
@@ -886,19 +886,19 @@ void main() {
             )
             .top;
         await pumpThemed(tester, lakhGrouping(_rent()));
-        expect(nameTop('Collected'), lessThan(amountTop('Rs 45,000') + 8));
-        expect(nameTop('Due'), lessThan(amountTop('Rs 1,25,000') + 8));
+        expect(nameTop('Collected'), lessThan(amountTop('Rs\u00A045,000') + 8));
+        expect(nameTop('Due'), lessThan(amountTop('Rs\u00A01,25,000') + 8));
         await pumpLargeNarrow(tester, lakhGrouping(_rent(width: 288)));
         expect(tester.takeException(), isNull);
         // "Due" would fit beside its amount, but "Collected" would not.
-        expect(nameTop('Collected'), greaterThan(amountTop('Rs 45,000')));
-        expect(nameTop('Due'), greaterThan(amountTop('Rs 1,25,000')));
+        expect(nameTop('Collected'), greaterThan(amountTop('Rs\u00A045,000')));
+        expect(nameTop('Due'), greaterThan(amountTop('Rs\u00A01,25,000')));
         // So do September's, though "Rs 95,000 Collected" would fit: every
         // group's readout is laid out the same way, and as tall.
         final height = _readoutBox(tester).height;
         await tester.tapAt(_groupCentre(tester, 3));
         await tester.pumpAndSettle();
-        expect(nameTop('Collected'), greaterThan(amountTop('Rs 95,000')));
+        expect(nameTop('Collected'), greaterThan(amountTop('Rs\u00A095,000')));
         expect(_readoutBox(tester).height, height);
         // A name is never broken mid-word.
         final name = tester.renderObject<RenderParagraph>(

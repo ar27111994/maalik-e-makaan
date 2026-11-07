@@ -309,7 +309,7 @@ void main() {
 
     testWidgets('fits 200% text on a 320 dp phone one to a row, in whole '
         'words, its figure above its 100% size', (tester) async {
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         const Column(spacing: MmSpace.s3, children: [_tile, _tile]),
         height: 1200,

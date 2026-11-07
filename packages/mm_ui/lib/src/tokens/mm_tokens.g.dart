@@ -199,7 +199,7 @@ abstract final class MmColorModes {
     ink: Color(0xFF000000),
     inkMuted: Color(0xFF2B3036),
     outline: Color(0xFF3A4048),
-    rule: Color(0xFF5A626C),
+    rule: Color(0xFF848B94),
     primary: Color(0xFF0A2463),
     onPrimary: Color(0xFFFFFFFF),
     primaryContainer: Color(0xFFC9D7F5),
@@ -231,7 +231,7 @@ abstract final class MmColorModes {
     ink: Color(0xFFFFFFFF),
     inkMuted: Color(0xFFD7DDE4),
     outline: Color(0xFFC2CAD3),
-    rule: Color(0xFF9AA4AF),
+    rule: Color(0xFF646D78),
     primary: Color(0xFFC2D4FF),
     onPrimary: Color(0xFF000F33),
     primaryContainer: Color(0xFF1C3672),
@@ -312,6 +312,9 @@ abstract final class MmSize {
 
   /// Decorative icons that lead an empty or error state.
   static const double iconXl = 48;
+
+  /// A person's avatar in a list row, and the circle a loading list row shows in its place.
+  static const double avatar = 40;
   static const double appBar = 64;
   static const double navRail = 80;
 
@@ -323,6 +326,12 @@ abstract final class MmSize {
 
   /// Widest an empty, error or loading state grows, so its sentence keeps a readable measure.
   static const double stateMax = 400;
+
+  /// The shortest list row: one line of text, or an avatar, with the row's padding.
+  static const double listRow = 56;
+
+  /// The list's column beside its details on wide windows: about a phone's width, so a list reads as it does on a phone.
+  static const double listPane = 360;
 
   /// Focus ring stroke: on the edge of outlined and text controls and fields; outside filled controls, beyond the focus gap.
   static const double focusRing = 2;

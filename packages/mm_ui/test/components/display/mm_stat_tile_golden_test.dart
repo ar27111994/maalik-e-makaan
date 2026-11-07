@@ -7,7 +7,6 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 /// The screen's one large figure, a tappable tile focused from the keyboard
 /// with an amount in its caption and a favourable trend; then a card

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/display/mm_user_text.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 

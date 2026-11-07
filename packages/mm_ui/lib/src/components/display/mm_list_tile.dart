@@ -3,8 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mm_ui/src/components/display/mm_surface.dart';
-import 'package:mm_ui/src/components/display/mm_user_text.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -70,7 +71,8 @@ class MmListTile extends StatelessWidget {
   final String? subtitle;
 
   /// A widget before the text, such as an `MmAvatar` or an [Icon]. Icons
-  /// take the muted ink colour and the 24 dp size.
+  /// take the muted ink colour and the 24 dp size, growing with the text
+  /// up to one and a half times, unless they set their own.
   final Widget? leading;
 
   /// A widget at the end edge, such as an `MmAmount` or an `MmStatusBadge`.
@@ -93,6 +95,9 @@ class MmListTile extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final ink = selected ? colors.onPrimaryContainer : colors.ink;
     final muted = selected ? colors.onPrimaryContainer : colors.inkMuted;
+    // An icon in either slot that sets no size of its own grows with the
+    // text, as icons beside words do, up to one and a half times.
+    final iconSize = MmIconLabel.scaledSize(context, MmSize.iconLg);
     final titleStyle = text.bodyLarge!.copyWith(
       color: ink,
       fontWeight: selected ? FontWeight.w600 : null,
@@ -116,7 +121,7 @@ class MmListTile extends StatelessWidget {
       end: trailing == null
           ? null
           : IconTheme.merge(
-              data: IconThemeData(color: muted, size: MmSize.iconLg),
+              data: IconThemeData(color: muted, size: iconSize),
               child: DefaultTextStyle(style: subtitleStyle, child: trailing),
             ),
       stackedAtEnd: true,
@@ -132,7 +137,7 @@ class MmListTile extends StatelessWidget {
           outlined: false,
           color: selected ? colors.primaryContainer : null,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: MmSize.fieldHeight),
+            constraints: const BoxConstraints(minHeight: MmSize.listRow),
             child: Padding(
               padding: const EdgeInsetsDirectional.symmetric(
                 horizontal: MmSpace.s4,
@@ -142,7 +147,7 @@ class MmListTile extends StatelessWidget {
                 leading: leading == null
                     ? null
                     : IconTheme.merge(
-                        data: IconThemeData(color: muted, size: MmSize.iconLg),
+                        data: IconThemeData(color: muted, size: iconSize),
                         child: leading,
                       ),
                 body: body,

@@ -7,6 +7,7 @@ import 'package:mm_ui/src/components/choices/mm_search_field.dart';
 import 'package:mm_ui/src/foundation/mm_focus_within.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_modal_sheet.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -300,21 +301,15 @@ class _OptionRow<T> extends StatelessWidget {
             leading: icon != null
                 ? Icon(icon, size: iconSize)
                 : (iconSlot ? SizedBox.square(dimension: iconSize) : null),
-            title: Text(
+            title: MmUserText(
               option.label,
-              style: mm.styleFor(
-                option.label,
-                textTheme.bodyLarge!.copyWith(color: ink),
-              ),
+              style: textTheme.bodyLarge!.copyWith(color: ink),
             ),
             subtitle: description == null
                 ? null
-                : Text(
+                : MmUserText(
                     description,
-                    style: mm.styleFor(
-                      description,
-                      textTheme.bodyMedium!.copyWith(color: muted),
-                    ),
+                    style: textTheme.bodyMedium!.copyWith(color: muted),
                   ),
             trailing: selected
                 ? Icon(MmIcons.check, size: iconSize, color: ink)

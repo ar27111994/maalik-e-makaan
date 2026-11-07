@@ -8,3 +8,4 @@ export 'mm_money_field.dart';
 export 'mm_password_field.dart';
 export 'mm_phone_field.dart';
 export 'mm_text_field.dart';
+export 'mm_value_entry.dart';

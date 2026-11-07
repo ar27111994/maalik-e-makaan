@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/feedback/mm_dismiss_button.dart';
-import 'package:mm_ui/src/components/feedback/mm_line_icon.dart';
+import 'package:mm_ui/src/foundation/mm_line_icon.dart';
 import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_tone.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';

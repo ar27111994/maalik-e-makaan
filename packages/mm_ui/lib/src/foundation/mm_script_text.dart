@@ -25,7 +25,15 @@ typedef MmScriptRun = ({String text, bool latin});
 /// Internal to mm_ui: any component family may use it.
 class MmScriptText extends StatelessWidget {
   /// Shows [text] in [style], its Latin runs in the Latin face.
-  const new(this.text, {required this.style, this.textAlign, super.key});
+  const new(
+    this.text, {
+    required this.style,
+    this.textAlign,
+    this.maxLines,
+    this.overflow,
+    this.semanticsLabel,
+    super.key,
+  });
 
   /// The text, in whatever scripts it was written.
   final String text;
@@ -35,6 +43,15 @@ class MmScriptText extends StatelessWidget {
 
   /// How the lines of [text] are aligned.
   final TextAlign? textAlign;
+
+  /// The most lines the text takes, or null for as many as it needs.
+  final int? maxLines;
+
+  /// How text cut off at [maxLines] ends.
+  final TextOverflow? overflow;
+
+  /// What screen readers say instead of [text], or null for [text].
+  final String? semanticsLabel;
 
   /// [text] cut into runs, each marked whether it is set in the Latin face.
   ///
@@ -89,28 +106,58 @@ class MmScriptText extends StatelessWidget {
     package: 'mm_ui',
   );
 
-  @override
-  Widget build(BuildContext context) {
-    final mm = context.mm;
-    final runs = mm.script == MmScript.urdu && MmSemantics.hasArabicScript(text)
-        ? runsOf(text)
-        : null;
-    if (runs == null || runs.length == 1) {
-      return Text(text, style: mm.styleFor(text, style), textAlign: textAlign);
+  /// [text] as spans for a paragraph in [context] whose style is [style]:
+  /// in the Urdu UI, when [text] mixes Arabic-script letters with Latin
+  /// letters or figures, one span per run with the Latin runs in the Latin
+  /// face, and the strut that keeps every line on the Urdu style's height
+  /// and baseline. Null when the text is set as a whole (see `styleFor`).
+  ///
+  /// A widget that sets text in a paragraph of its own (beside an icon in
+  /// `MmIconLabel`) uses it to set that text as [MmScriptText] would.
+  static ({List<InlineSpan> spans, StrutStyle strut})? spansOf(
+    BuildContext context,
+    String text,
+    TextStyle style,
+  ) {
+    if (context.mm.script != MmScript.urdu ||
+        !MmSemantics.hasArabicScript(text)) {
+      return null;
     }
+    final runs = runsOf(text);
+    if (runs.length == 1) return null;
     final effective = DefaultTextStyle.of(context).style.merge(style);
-    return Text.rich(
-      TextSpan(
-        children: [
-          for (final run in runs)
-            TextSpan(text: run.text, style: run.latin ? _latinFace : null),
-        ],
-      ),
-      style: style,
-      textAlign: textAlign,
+    return (
+      spans: [
+        for (final run in runs)
+          TextSpan(text: run.text, style: run.latin ? _latinFace : null),
+      ],
       // Every line keeps the Urdu style's height and baseline: the Latin
       // face's metrics would otherwise make a line with figures taller.
-      strutStyle: StrutStyle.fromTextStyle(effective, forceStrutHeight: true),
+      strut: StrutStyle.fromTextStyle(effective, forceStrutHeight: true),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mixed = spansOf(context, text, style);
+    if (mixed == null) {
+      return Text(
+        text,
+        style: context.mm.styleFor(text, style),
+        textAlign: textAlign,
+        maxLines: maxLines,
+        overflow: overflow,
+        semanticsLabel: semanticsLabel,
+      );
+    }
+    return Text.rich(
+      TextSpan(children: mixed.spans),
+      style: style,
+      textAlign: textAlign,
+      maxLines: maxLines,
+      overflow: overflow,
+      semanticsLabel: semanticsLabel,
+      strutStyle: mixed.strut,
     );
   }
 }

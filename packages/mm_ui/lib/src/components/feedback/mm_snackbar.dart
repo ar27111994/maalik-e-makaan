@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/feedback/mm_banner.dart';
 import 'package:mm_ui/src/components/feedback/mm_dismiss_button.dart';
-import 'package:mm_ui/src/components/feedback/mm_line_icon.dart';
+import 'package:mm_ui/src/foundation/mm_line_icon.dart';
 import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/theme/mm_theme.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -162,7 +163,6 @@ class _Content extends StatelessWidget {
     final action = this.action;
     final style = DefaultTextStyle.of(context).style;
     final scaler = MediaQuery.textScalerOf(context);
-    final direction = Directionality.of(context);
     final iconWidth = tone == null
         ? 0.0
         : MmLineIcon.sizeOf(context) + MmSpace.s3;
@@ -203,22 +203,19 @@ class _Content extends StatelessWidget {
           );
     if (action == null) return firstRow;
 
-    final label = TextPainter(
-      text: TextSpan(
-        text: action.label,
-        style: Theme.of(context).textTheme.labelLarge,
-      ),
+    final label = MmTextMetrics.of(
+      context,
+      action.label,
+      Theme.of(context).textTheme.labelLarge,
       textScaler: scaler,
-      textDirection: direction,
       maxLines: 1,
-    )..layout();
+    );
     // A text button is its label inside the theme's padding, and at least
     // a touch target wide.
-    final actionWidth = (label.width + 2 * MmSpace.s4).clamp(
+    final actionWidth = (label.size.width + 2 * MmSpace.s4).clamp(
       MmSize.minTarget,
       double.infinity,
     );
-    label.dispose();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -229,13 +226,14 @@ class _Content extends StatelessWidget {
         var beside =
             !dismissible && actionWidth + MmSpace.s2 <= width * actionShare;
         if (beside) {
-          final lines = TextPainter(
-            text: TextSpan(text: message, style: style),
+          final lines = MmTextMetrics.of(
+            context,
+            message,
+            style,
             textScaler: scaler,
-            textDirection: direction,
-          )..layout(maxWidth: width - actionWidth - MmSpace.s2 - iconWidth);
-          beside = lines.computeLineMetrics().length <= linesBesideAction;
-          lines.dispose();
+            maxWidth: width - actionWidth - MmSpace.s2 - iconWidth,
+          );
+          beside = lines.lineCount <= linesBesideAction;
         }
         if (beside) {
           return Row(

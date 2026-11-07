@@ -68,6 +68,11 @@ enum MoneyLanguage {
 /// A negative amount starts with an invisible left-to-right mark (U+200E)
 /// before its minus sign, so the sign stays on the left of the figures in
 /// right-to-left text as well (see [format]).
+///
+/// The figures and the words around them (`Rs`, `PKR`, `روپے`, `lakh`,
+/// `کروڑ`) are joined by a no-break space ([noBreakSpace]), so an amount
+/// that wraps never leaves its currency or its unit at the end of one line
+/// and its figures on the next. It looks like an ordinary space.
 @immutable
 final class MoneyFormat {
   /// Creates a formatter. All options have sensible Pakistani defaults.
@@ -102,6 +107,11 @@ final class MoneyFormat {
   /// U+200E LEFT-TO-RIGHT MARK, which [format] puts before the minus sign
   /// of a negative amount.
   static const String leftToRightMark = '\u200E';
+
+  /// U+00A0 NO-BREAK SPACE, which [format] puts between the figures and
+  /// the currency or unit words beside them, so they never part at a line
+  /// break.
+  static const String noBreakSpace = '\u00A0';
 
   static const int _lakhPaisa = 100000 * Money.paisaPerRupee;
   static const int _crorePaisa = 10000000 * Money.paisaPerRupee;
@@ -216,7 +226,7 @@ final class MoneyFormat {
       (MoneyLanguage.urdu, true) => 'کروڑ',
       (MoneyLanguage.urdu, false) => 'لاکھ',
     };
-    return '$digits $unit';
+    return '$digits$noBreakSpace$unit';
   }
 
   String _decorate(String number, {required bool negative}) {
@@ -225,12 +235,12 @@ final class MoneyFormat {
       case (CurrencyDisplay.none, _):
         return '$sign$number';
       case (CurrencyDisplay.code, _):
-        return '${sign}PKR $number';
+        return '${sign}PKR$noBreakSpace$number';
       case (CurrencyDisplay.symbol, MoneyLanguage.english):
-        return '${sign}Rs $number';
+        return '${sign}Rs$noBreakSpace$number';
       case (CurrencyDisplay.symbol, MoneyLanguage.urdu):
         // Urdu places the unit after the amount ("پانچ ہزار روپے").
-        return '$sign$number روپے';
+        return '$sign$number$noBreakSpaceروپے';
     }
   }
 }

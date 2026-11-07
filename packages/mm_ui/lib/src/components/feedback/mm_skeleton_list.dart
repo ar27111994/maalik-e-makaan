@@ -35,8 +35,8 @@ class MmSkeletonList extends StatelessWidget {
   /// How many rows the placeholder shows.
   final int itemCount;
 
-  /// The diameter of a row's avatar: the default avatar's 40 dp.
-  static const double avatarSize = MmSpace.s10;
+  /// The diameter of a row's avatar: the default avatar's, [MmSize.avatar].
+  static const double avatarSize = MmSize.avatar;
 
   /// The width of a row's amount at the end.
   static const double amountWidth = MmSpace.s16;

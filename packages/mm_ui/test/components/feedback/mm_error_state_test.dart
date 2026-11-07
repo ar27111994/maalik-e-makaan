@@ -369,4 +369,63 @@ void main() {
       expect(find.text('دوبارہ کوشش کریں'), findsOneWidget);
     });
   });
+
+  group('MmErrorState with its own action', () {
+    testEveryVariant('labels the button with the verb it is given, and '
+        'calls onRetry', (tester, variant) async {
+      var pressed = 0;
+      await pumpThemed(
+        tester,
+        MmErrorState(
+          message: 'Your session has ended. Sign in again to see the ledger.',
+          onRetry: () => pressed++,
+          actionLabel: 'Sign in again',
+          actionIcon: MmIcons.person,
+        ),
+        variant: variant,
+      );
+      expect(find.text('Sign in again'), findsOneWidget);
+      expect(find.text(MmLocalizations.english.retry), findsNothing);
+      expect(find.text(MmLocalizations.urdu.retry), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(FilledButton),
+          matching: find.byIcon(MmIcons.person),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byIcon(MmIcons.refresh), findsNothing);
+      await tester.tap(find.text('Sign in again'));
+      expect(pressed, 1);
+      await expectAccessible(tester);
+    });
+
+    testWidgets('keeps the refresh arrow with a label of its own', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmErrorState(
+          message: 'The receipts could not be fetched.',
+          onRetry: tapped,
+          actionLabel: 'Reload receipts',
+        ),
+      );
+      expect(find.text('Reload receipts'), findsOneWidget);
+      expect(find.byIcon(MmIcons.refresh), findsOneWidget);
+    });
+
+    testWidgets('shows no button without onRetry, whatever the label', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmErrorState(
+          message: 'The receipts could not be fetched.',
+          actionLabel: 'Reload receipts',
+        ),
+      );
+      expect(find.byType(FilledButton), findsNothing);
+    });
+  });
 }

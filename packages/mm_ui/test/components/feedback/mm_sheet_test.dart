@@ -123,7 +123,16 @@ void main() {
             .message,
         close,
       );
-      expect(tester.getSize(_close), const Size.square(MmSize.minTarget));
+      // A touch target at least; at 200% its glyph has grown to 150%, in
+      // its 8 dp padding.
+      expect(
+        tester.getSize(_close),
+        Size.square(
+          variant == MmVariant.largeText
+              ? MmSize.iconLg * 1.5 + 2 * MmSpace.s2
+              : MmSize.minTarget,
+        ),
+      );
       final style = styleOf(tester, _title);
       expect(style.fontSize, variant.theme.textTheme.titleLarge!.fontSize);
       handle.dispose();

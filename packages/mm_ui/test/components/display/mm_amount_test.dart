@@ -5,7 +5,6 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 const _rent = Money.fromRupees(45000);
 const _advance = Money.fromRupees(-5000);
@@ -36,13 +35,13 @@ void main() {
         tester,
         const MmAmount(amount: Money.fromRupees(125000)),
       );
-      expect(_shown(tester), 'Rs 125,000');
+      expect(_shown(tester), 'Rs\u00A0125,000');
       await pumpThemed(
         tester,
         const MmAmount(amount: Money.fromRupees(125000)),
         variant: MmVariant.urdu,
       );
-      expect(_shown(tester), '125,000 روپے');
+      expect(_shown(tester), '125,000\u00A0روپے');
     });
 
     testWidgets('formats with the money format the app sets', (tester) async {
@@ -53,7 +52,7 @@ void main() {
           child: MmAmount(amount: Money.fromRupees(125000)),
         ),
       );
-      expect(_shown(tester), 'Rs 1,25,000');
+      expect(_shown(tester), 'Rs\u00A01,25,000');
       await pumpThemed(
         tester,
         const MmFormats(
@@ -61,7 +60,7 @@ void main() {
           child: MmAmount(amount: Money.fromRupees(12500000)),
         ),
       );
-      expect(_shown(tester), 'Rs 1.25 crore');
+      expect(_shown(tester), 'Rs\u00A01.25\u00A0crore');
       expect(_label(tester), '12500000 rupees');
     });
 
@@ -143,7 +142,7 @@ void main() {
           tone: MmAmountTone.overdue,
         ),
       );
-      expect(_shown(tester), 'Rs 5,000 credit');
+      expect(_shown(tester), 'Rs\u00A05,000 credit');
       expect(_shown(tester), isNot(contains('-')));
       expect(_style(tester).color, MmColorModes.light.credit);
       expect(_label(tester), '5000 rupees credit');
@@ -153,7 +152,7 @@ void main() {
         const MmAmount(amount: _advance, creditLabel: 'ایڈوانس'),
         variant: MmVariant.urdu,
       );
-      expect(_shown(tester), '5,000 روپے ایڈوانس');
+      expect(_shown(tester), '5,000\u00A0روپے ایڈوانس');
       expect(_label(tester), '5000 روپے ایڈوانس');
     });
 
@@ -162,7 +161,7 @@ void main() {
         tester,
         const MmAmount(amount: _rent, creditLabel: 'credit'),
       );
-      expect(_shown(tester), 'Rs 45,000');
+      expect(_shown(tester), 'Rs\u00A045,000');
       expect(_label(tester), '45000 rupees');
       expect(_style(tester).color, MmColorModes.light.ink);
     });
@@ -170,14 +169,14 @@ void main() {
     testWidgets('shows a negative amount with a minus sign that stays before '
         'the digits right to left', (tester) async {
       await pumpThemed(tester, const MmAmount(amount: _advance));
-      expect(_shown(tester), '\u200E-Rs 5,000');
+      expect(_shown(tester), '\u200E-Rs\u00A05,000');
       expect(_label(tester), '-5000 rupees');
       await pumpThemed(
         tester,
         const MmAmount(amount: _advance),
         variant: MmVariant.urdu,
       );
-      expect(_shown(tester), '\u200E-5,000 روپے');
+      expect(_shown(tester), '\u200E-5,000\u00A0روپے');
     });
 
     testWidgets('stays on one line, and at large text scales back down to '
@@ -222,7 +221,7 @@ void main() {
         message,
         contains('An MmAmount was squeezed below its size at 100% text.'),
       );
-      expect(message, contains('"Rs 12,500,000"'));
+      expect(message, contains('"Rs\u00A012,500,000"'));
       expect(message, contains('has 100.0 px'));
       expect(message, contains('put stat tiles one to a row'));
       // Release builds keep scaling it down: the whole number, smaller.
@@ -298,7 +297,7 @@ void main() {
     });
 
     testWidgets('fits 200% text on a 320 dp phone', (tester) async {
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         const MmAmount(
           amount: Money.fromRupees(999999999),

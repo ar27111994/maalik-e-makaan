@@ -858,4 +858,124 @@ void main() {
       expect(tester.takeException(), isAssertionError);
     });
   });
+
+  group('MmAdaptiveScaffold bar labels', () {
+    const five = [
+      MmDestination(icon: MmIcons.reports, label: 'Dashboard'),
+      MmDestination(icon: MmIcons.property, label: 'Properties'),
+      MmDestination(icon: MmIcons.tenants, label: 'Tenants'),
+      MmDestination(icon: MmIcons.receipt, label: 'Dues', badgeCount: 3),
+      MmDestination(icon: MmIcons.settings, label: 'Settings'),
+    ];
+
+    /// The text scale the bar's labels are set at.
+    double labelScale(WidgetTester tester, String label) {
+      final paragraph = paragraphOf(tester, label);
+      final size = paragraph.text.style!.fontSize!;
+      return paragraph.textScaler.scale(size) / size;
+    }
+
+    for (final (variant, width) in [
+      (MmVariant.largeText, 320.0),
+      (MmVariant.largeText, 360.0),
+      (MmVariant.light, 320.0),
+    ]) {
+      testWidgets('five destinations never break a word '
+          '(${variant.name}, $width dp)', (tester) async {
+        await pumpScreen(
+          tester,
+          _scaffold(destinations: five),
+          size: Size(width, 740),
+          variant: variant,
+        );
+        expect(tester.takeException(), isNull);
+        expectWholeWords(tester, within: find.byType(NavigationBar));
+        for (final destination in five) {
+          expect(find.text(destination.label), findsOneWidget);
+          // Never below the labels' standard size.
+          expect(
+            labelScale(tester, destination.label),
+            greaterThanOrEqualTo(1),
+          );
+        }
+      });
+    }
+
+    testWidgets('in Urdu at 200%, never break a word either', (tester) async {
+      tester.view
+        ..physicalSize = const Size(320, 740)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        themedApp(
+          _scaffold(
+            destinations: const [
+              MmDestination(icon: MmIcons.reports, label: 'ڈیش بورڈ'),
+              MmDestination(icon: MmIcons.property, label: 'جائیدادیں'),
+              MmDestination(icon: MmIcons.tenants, label: 'کرایہ دار'),
+              MmDestination(icon: MmIcons.receipt, label: 'واجبات'),
+              MmDestination(icon: MmIcons.settings, label: 'ترتیبات'),
+            ],
+          ),
+          variant: MmVariant.largeText,
+          locale: const Locale('ur'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expectWholeWords(tester, within: find.byType(NavigationBar));
+      expect(find.text('جائیدادیں'), findsOneWidget);
+    });
+
+    testWidgets('shrink only as far as the longest word needs', (tester) async {
+      await pumpScreen(
+        tester,
+        _scaffold(destinations: five),
+        size: const Size(320, 740),
+        variant: MmVariant.largeText,
+      );
+      final scale = labelScale(tester, 'Dashboard');
+      // Material lets bar labels grow to 130%; "Dashboard" in a 64 dp
+      // destination cannot.
+      expect(scale, lessThan(1.3));
+      final word = paragraphOf(tester, 'Dashboard');
+      expect(word.size.width, lessThanOrEqualTo(320 / 5));
+      // Every label shares the scale.
+      expect(labelScale(tester, 'Dues'), closeTo(scale, 1e-9));
+
+      // Four destinations at 360 dp have room for 130%.
+      await pumpScreen(tester, _scaffold(), variant: MmVariant.largeText);
+      expect(labelScale(tester, 'Properties'), closeTo(1.3, 1e-9));
+    });
+
+    testWidgets('show icons alone, with the labels as tooltips and for '
+        'screen readers, when a word does not fit even at the standard size', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      const long = [
+        MmDestination(icon: MmIcons.reports, label: 'Dashboard'),
+        MmDestination(icon: MmIcons.property, label: 'Neighbourhoods'),
+        MmDestination(icon: MmIcons.tenants, label: 'Tenancies'),
+        MmDestination(icon: MmIcons.receipt, label: 'Collections'),
+        MmDestination(icon: MmIcons.settings, label: 'Preferences'),
+      ];
+      await pumpScreen(
+        tester,
+        _scaffold(destinations: long),
+        size: const Size(320, 740),
+      );
+      expect(tester.takeException(), isNull);
+      final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+      expect(bar.labelBehavior, NavigationDestinationLabelBehavior.alwaysHide);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is Tooltip && widget.message == 'Neighbourhoods',
+        ),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel(RegExp('Neighbourhoods')), findsOneWidget);
+      semantics.dispose();
+    });
+  });
 }

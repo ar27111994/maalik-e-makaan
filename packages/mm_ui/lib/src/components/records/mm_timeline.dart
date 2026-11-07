@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_tone.dart';
+import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -217,7 +218,8 @@ class _TimelineEntry extends StatelessWidget {
       role: SemanticsRole.listItem,
       label:
           item.semanticLabel ??
-          [item.dateLabel, item.title, ?subtitle].join(', '),
+          MmLocalizations.of(context)
+              .joined([item.dateLabel, item.title, ?subtitle]),
       excludeSemantics: true,
       child: Stack(
         children: [

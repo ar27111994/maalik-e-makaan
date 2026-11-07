@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/inputs/mm_text_input.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
+import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// A labelled password field: the text is hidden, and a button at the end
 /// shows or hides it ("Show password" / "Hide password", which is also the
@@ -74,8 +76,15 @@ class MmPasswordField extends StatefulWidget {
   /// Guidance shown below the field in muted ink ("At least 8 characters").
   final String? helper;
 
-  /// An error from outside the field ("Wrong password"); it is shown
-  /// instead of [validator]'s while set.
+  /// An error from outside the field, such as the server's answer ("Wrong
+  /// password"), shown below the field with the error icon at once, in place of
+  /// [helper], and announced.
+  ///
+  /// While it is set it wins: [validator] is not called, and the field
+  /// counts as invalid, so the enclosing `Form`'s `validate()` returns false.
+  /// Typing does not clear it: set it back to null once the user changes
+  /// what it is about (in [onChanged], say). The field then shows
+  /// [validator]'s error again only when it next validates.
   final String? errorText;
 
   /// Checks the password when the enclosing `Form` validates and returns
@@ -164,6 +173,7 @@ class _MmPasswordFieldState extends State<MmPasswordField> {
             ? () => setState(() => _revealed = !_revealed)
             : null,
         tooltip: _revealed ? strings.hidePassword : strings.showPassword,
+        iconSize: MmIconLabel.scaledSize(context, MmSize.iconLg),
         icon: Icon(_revealed ? MmIcons.hide : MmIcons.show),
       ),
     );

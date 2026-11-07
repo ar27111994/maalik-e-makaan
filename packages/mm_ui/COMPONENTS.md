@@ -19,7 +19,8 @@ first: it is the source of the visual rules this file turns into code convention
 - **Touch targets of 48 dp**, visible focus, complete states: default, hover, focus, pressed,
   disabled, plus busy, error and success where they apply.
 - **Focus rings come from the theme.** Outlined and text buttons, segmented buttons, chips and
-  fields draw a `MmSize.focusRing` ring in `colors.focus` on their edge. Filled, elevated and
+  fields draw a `MmSize.focusRing` ring in `colors.focus` on their edge (`MmSegmentedControl`
+  keeps the control's outline and rings only the focused segment, so the ring says which one). Filled, elevated and
   icon buttons and the floating action button draw it outside themselves, past
   `MmSize.focusGap` (`MmFocusRingBorder`), because on their edge it would be the colour of the
   fill. A component that gives a filled control its own `shape` keeps the ring with
@@ -27,9 +28,13 @@ first: it is the source of the visual rules this file turns into code convention
   controls so neighbours and clips do not cover the ring. A component that draws its own ring
   (a tile, a card, a field-like box) draws it only for keyboard focus: `MmFocusHighlight` tells
   its state when, and `MmFocusWithin` rings a row whose control has focus.
-- **Disabled is muted ink.** The theme's disabled buttons use `inkMuted` for text and icons;
-  filled and elevated ones sit on `surfaceSunken` inside a `rule` border, like a disabled
-  outlined button.
+- **Disabled is muted ink.** The theme's disabled buttons, icon buttons, switches, checkboxes
+  and radio buttons use `inkMuted` for text and icons; filled and elevated buttons sit on
+  `surfaceSunken` inside a `rule` border, like a disabled outlined button. A filled icon button
+  that needs a disabled fill sets it itself (`MmIconButton` does).
+- **Overlays have an edge.** The theme's dialog and bottom-sheet shapes carry
+  `MmTheme.overlayEdge` (the outline in dark and high-contrast modes, none in light mode), so a
+  stock dialog or sheet does not melt into the dimmed page.
 
 ## Code conventions
 
@@ -48,7 +53,21 @@ first: it is the source of the visual rules this file turns into code convention
   - `MmFocusHighlight` (draw focus only for the keyboard) and `MmFocusWithin` (ring a row);
   - `MmReflow` (a label or title and its value side by side, the value moving under it when they
     do not fit; a below line; centre, baseline or top alignment; stacked at either edge);
-  - `MmIconLabel` (an icon and words in one paragraph, the icon growing at most 150%);
+  - `MmIconLabel` (an icon and words in one paragraph, the icon growing at most 150%, the
+    words split by script as `MmScriptText` splits them) and `MmLineIcon` (an icon centred on
+    the first line of the text beside it, growing at most 150%);
+  - `MmScriptText` (text whose Latin letters and figures inside Urdu are set in the Latin face,
+    on the Urdu style's lines) and `MmUserText` (text the landlord wrote: `MmScriptText`, also
+    kept in its own direction with `MmSemantics.isolated`): use `MmUserText` for names,
+    addresses, property names, identifiers and the options a landlord created, and
+    `MmScriptText` for the app's own sentences with figures in them;
+  - `MmTextMetrics` (how much room a label takes as a `Text` sets it: its size, its widest
+    word, its line count and how far Nastaliq rises and falls past its lines);
+  - `MmTone` and `MmToneChip` (the colour families of statuses and the chip that shows one
+    with an icon and a word);
+  - `showMmModalSheet` and `MmSheetHeader` (how every sheet opens, and its title row with a
+    close button centred on the title's first line);
+  - `MmDateLocale` (day-first dates for English, Sunday-first weeks);
   - `MmFieldLabel` (a field's label with "Required" or "Optional") and `MmFieldError` (its error
     line);
   - `MmButtonStyles` (what labelled buttons add to the theme: room for wrapped labels, the icon
@@ -68,11 +87,19 @@ first: it is the source of the visual rules this file turns into code convention
   from `MmDuration` through `MmMotion.of(context, …)`, which is zero when the platform asks for
   reduced motion; curves from `MmEasing`. No literal colours, and no literal sizes where a
   token exists. `MmSize` names the recurring sizes: `fab`, `iconXl` (the icon that leads an
-  empty or error state), `stroke` (spinners inside controls, chart lines, outlined bars),
+  empty or error state), `avatar` (a list row's avatar and its skeleton), `listRow` (the
+  shortest list row), `stroke` (spinners inside controls, chart lines, outlined bars),
   `frame` (the nameplate border, receipt seal and void stamp), `focusRing` and `focusGap`,
-  `tabIndicator`, `sheetMax` and `stateMax` (widest a sheet and a state block grow);
-  `MmDuration.pulse` is one fade of a skeleton's pulse. If a component needs a value the tokens
-  lack, add a token (`design/tokens/maalik.tokens.json`, `make tokens`), not a constant.
+  `tabIndicator`, `sheetMax` and `stateMax` (widest a sheet and a state block grow) and
+  `listPane` (the list column beside its details); `MmDuration.pulse` is one fade of a
+  skeleton's pulse. If a component needs a size the page grid or more than one component
+  shares, or one the design language fixes, add a token (`design/tokens/maalik.tokens.json`,
+  `make tokens`), not a constant. Two kinds of value stay named, documented constants in the
+  component that owns them: the internal geometry of one painter (a chart's plot height, its
+  hatch pitch and legend swatch), which no other component or the website's CSS shares; and
+  how long a message stays on screen (a snackbar's 4 and 10 seconds), which is reading time,
+  not motion: `MmDuration` values drop to zero with reduced motion and would make a message
+  vanish.
 - **Type.** Text styles come from `Theme.of(context).textTheme`. Amounts use
   `context.mm.amount` or `context.mm.amountLarge` (Latin face, tabular figures, in both
   languages). User data that may be in Latin script (a name typed in English, a CNIC, a phone
@@ -80,12 +107,16 @@ first: it is the source of the visual rules this file turns into code convention
   The other way round needs nothing: every style in the Latin face (the English text theme,
   Urdu amounts, `context.mm.amount`) falls back to Nastaliq for Arabic-script letters. A style
   built from `MmTypeScale` directly gets the same fallback from
-  `MmSemantics.withUrduFallback(style)`.
+  `MmSemantics.withUrduFallback(style)`. Figures that count or line up (amounts, counts,
+  percentages, receipt numbers, detail-row values) take `MmSemantics.withTabularFigures(style)`.
 - **Money.** Amounts are `Money` from `mm_core`, formatted with `MmFormats.moneyOf(context)`
   (the app sets Western or lakh/crore grouping once). Screen readers get the plain number and
   the currency's name, `MmFormats.spokenMoney(context, amount)` ("125000 rupees"), because
   grouped figures are read out unreliably.
-  `MoneyFormat` writes a negative amount with a left-to-right mark before its minus
+  `MoneyFormat` joins the figures and the words beside them (`Rs`, `PKR`, `روپے`, `lakh`) with a
+  no-break space (`MoneyFormat.noBreakSpace`), so an amount never wraps away from its unit;
+  match formatted amounts in tests with the formatter's own output, not a typed literal.
+  It writes a negative amount with a left-to-right mark before its minus
   (`MoneyFormat.leftToRightMark`), so the sign stays on the left of the figures in Urdu: show
   formatted amounts as they come, without adding marks or isolates of your own
   (`parseMoneyInput` ignores the mark).
@@ -93,7 +124,10 @@ first: it is the source of the visual rules this file turns into code convention
   one merged node (`MergeSemantics`), decorative parts are excluded (`ExcludeSemantics`), errors
   and snackbars are live regions, and icon-only controls have a tooltip that is also their
   label. Values that look different from how they read (masked CNIC, amounts, gauges) carry an
-  explicit `Semantics(label: …, value: …)`.
+  explicit `Semantics(label: …, value: …)`. Parts of one spoken label are joined with
+  `MmLocalizations.of(context).joined([...])` ("Monthly rent, 45000 rupees"; the Urdu comma
+  "،" in Urdu), never a hard-coded ", ". Content is read in the order it is shown: a
+  receipt's void state right after its number, before its amount.
 - **Documentation.** Every public member has a dartdoc comment (`public_member_api_docs` is on).
   A widget's class comment says when to use it, when not to, and shows a short example.
 - **Stock widgets.** The theme styles the Material widgets the components build on, so use
@@ -115,13 +149,16 @@ first: it is the source of the visual rules this file turns into code convention
   `pumpThemed`, `testEveryVariant`, `goldenEveryVariant`, `expectAccessible`), whole screens and
   overlays (`screen.dart`), golden compositions (`golden_page.dart`: `GoldenPage`, `Say`) and
   small helpers (`helpers.dart`: `colorsOf`, `tapped`, `useKeyboardHighlights`,
-  `withoutAnimations`, `pumpLargeNarrow`, `expectFitsNarrowLargeText`, `paragraphOf`, `styleOf`,
-  `hasFocus`, `focusedAt`, `labelsIn`, `readingOrder`, `painterIn`). A family's own test
-  files keep only what is particular to it.
+  `withoutAnimations`, `pumpLargeNarrow`, `expectFitsNarrowLargeText`, `textIn`, `paragraphOf`,
+  `styleOf`, `hasFocus`, `focusedAt`, `labelsIn`, `readingOrder`, `painterIn`), keyboard focus
+  (`focus.dart`: `focusOn`, `focusedGoldenEveryVariant`) and the whole-word check (`words.dart`:
+  `brokenWords`, `expectWholeWords`). A family's own test files keep only what is particular
+  to it.
 - Behaviour tests: `test/components/<family>/<name>_test.dart`. Cover every parameter, state
   and callback, keyboard activation and focus, semantics (labels, flags, actions), text scale
-  200% on a 320 dp wide surface without overflow (`expectFitsNarrowLargeText` checks English
-  and Urdu), and right-to-left layout. Use `testEveryVariant` where a behaviour must hold in
+  200% on a 320 dp wide surface without overflow and without a line breaking inside a word or
+  a number (`expectFitsNarrowLargeText` checks both, in English and Urdu), and right-to-left
+  layout. Use `testEveryVariant` where a behaviour must hold in
   every theme and language.
 - Golden tests: `test/components/<family>/<name>_golden_test.dart`, tagged `@Tags(['golden'])`,
   using `goldenEveryVariant(name, build)`. It pumps the widget in all six variants (light, dark,
@@ -159,12 +196,26 @@ first: it is the source of the visual rules this file turns into code convention
 | Family     | Components                                                                                                                           |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `actions`  | `MmButton`, `MmIconButton`, `MmFab`, `MmSegmentedControl`                                                                            |
-| `inputs`   | `MmTextField`, `MmPasswordField`, `MmMoneyField`, `MmCnicField`, `MmPhoneField`                                                      |
+| `inputs`   | `MmTextField`, `MmPasswordField`, `MmMoneyField`, `MmCnicField`, `MmPhoneField`, `MmCnicText` (and `MmValueEntry`)                   |
 | `choices`  | `MmDateField`, `MmSelectField`, `MmSwitchTile`, `MmCheckboxTile`, `MmRadioGroup`, `MmSearchField`, `MmFilterChips`, `MmStepperField` |
 | `display`  | `MmCard`, `MmListTile`, `MmStatusBadge`, `MmAmount`, `MmStatTile`, `MmAvatar`, `MmSectionHeader`, `MmDetailRow`                      |
 | `records`  | `MmMeter`, `MmTimeline`, `MmReceipt`, `MmNameplate`, `MmScoreGauge`                                                                  |
-| `feedback` | `MmEmptyState`, `MmErrorState`, `MmSkeleton`, `MmBanner`, `showMmSnackbar`, `showMmConfirmDialog`, `showMmSheet`                     |
+| `feedback` | `MmEmptyState`, `MmErrorState`, `MmSkeleton`, `MmSkeletonList`, `MmBanner`, `showMmSnackbar`, `showMmConfirmDialog`, `showMmSheet`   |
 | `layout`   | `MmAdaptiveScaffold`, `MmPage`, `MmListDetail`, `MmResponsiveGrid`, `MmFormSection`, `MmActionBar`, `MmTabs`                         |
 | `charts`   | `MmBarChart`, `MmProportionBar`, `MmSparkline`, `MmDataTable`                                                                        |
+
+Notes on composing them:
+
+- **Form sections** (`MmFormSection`) title their group of fields in `titleLarge`, one step
+  under a screen's headline, so a long form reads as headed parts.
+- **Snack bars need a `Scaffold`.** `MmAdaptiveScaffold` gives its body a `ScaffoldMessenger`
+  of its own, so a snack bar shown from a screen appears on that screen's `Scaffold`, above
+  its bottom bar. A screen inside it must therefore be (or hold) a `Scaffold`; an `MmPage` is
+  one.
+- **Badges count, they do not judge.** A count on a destination or an icon is ink on paper,
+  not the overdue red: the label beside it says what is counted.
+- **Value fields** (`MmMoneyField`, `MmCnicField`, `MmPhoneField`) report the value, or null
+  for an empty field and for a typo alike; give an optional field `invalidText` or read
+  `onEntryChanged` (`MmValueEntry.isInvalid`) so a mistake is not saved as "none".
 
 The gallery app in `example/` shows every component in every variant.

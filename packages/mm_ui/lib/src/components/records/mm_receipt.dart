@@ -5,7 +5,9 @@ import 'package:mm_ui/src/foundation/mm_formats.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
+import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -55,8 +57,10 @@ final class MmReceiptRow {
 /// colours with an icon and the words, and to strike the amount through.
 ///
 /// Screen readers hear the issuer (as a header), the receipt number, the
-/// amount ("Amount received, 45000 rupees"), each row, the footer and then
-/// the voided state, in that order.
+/// voided state when there is one, the amount ("Amount received, 45000
+/// rupees"), each row and the footer, in that order: the order they are
+/// shown in, so a cancelled receipt is known to be void before its amount
+/// is heard.
 ///
 /// Use it to show or share a receipt for a payment. Don't use it for a
 /// list of payments (use list tiles) or for a payment still being entered
@@ -126,11 +130,14 @@ class MmReceipt extends StatelessWidget {
     final colors = context.mm.colors;
     final text = Theme.of(context).textTheme;
     final format = MmFormats.moneyOf(context);
+    final strings = MmLocalizations.of(context);
     final footer = this.footer;
     final voidedLabel = this.voidedLabel;
 
-    // Every part carries its place in the reading order, so the voided
-    // state is read last although it is shown near the top.
+    // Every part carries its place in the reading order, which follows the
+    // order the parts are made in: the issuer, the number, the voided
+    // state (so a receipt is known to be void before its amount is heard),
+    // the amount, the rows and the footer.
     var order = 0;
     Widget part(Widget child, {String? label, bool header = false}) =>
         Semantics(
@@ -143,16 +150,16 @@ class MmReceipt extends StatelessWidget {
         );
 
     final issuerPart = part(
-      MmScriptText(
-        issuer,
-        style: text.titleMedium!.copyWith(color: colors.ink),
-      ),
+      MmUserText(issuer, style: text.titleMedium!.copyWith(color: colors.ink)),
       header: true,
     );
     final sealPart = part(
       _Seal(numberLabel: numberLabel, receiptNumber: receiptNumber),
       label: '$numberLabel $receiptNumber',
     );
+    final voidPart = voidedLabel == null
+        ? null
+        : part(_VoidBanner(label: voidedLabel), label: voidedLabel);
     final spokenAmount = MmFormats.spokenMoney(context, amount, format: format);
     final amountPart = part(
       _AmountBlock(
@@ -161,13 +168,13 @@ class MmReceipt extends StatelessWidget {
         format: format,
         voided: voidedLabel != null,
       ),
-      label: '$amountLabel, $spokenAmount',
+      label: strings.joined([amountLabel, spokenAmount]),
     );
     final rowParts = [
       for (final row in rows)
         part(
           _Row(row: row),
-          label: '${row.label}, ${row.semanticValue ?? row.value}',
+          label: strings.joined([row.label, row.semanticValue ?? row.value]),
         ),
     ];
     final footerPart = footer == null
@@ -178,9 +185,6 @@ class MmReceipt extends StatelessWidget {
               style: text.bodySmall!.copyWith(color: colors.inkMuted),
             ),
           );
-    final voidPart = voidedLabel == null
-        ? null
-        : part(_VoidBanner(label: voidedLabel), label: voidedLabel);
 
     return Semantics(
       container: true,
@@ -265,12 +269,11 @@ class _Seal extends StatelessWidget {
               textAlign: TextAlign.center,
               style: text.bodySmall!.copyWith(color: on),
             ),
-            MmScriptText(
+            MmUserText(
               receiptNumber,
               textAlign: TextAlign.center,
-              style: text.labelLarge!.copyWith(
-                color: on,
-                fontFeatures: const [FontFeature.tabularFigures()],
+              style: MmSemantics.withTabularFigures(
+                text.labelLarge!.copyWith(color: on),
               ),
             ),
           ],
@@ -347,11 +350,10 @@ class _Row extends StatelessWidget {
           row.label,
           style: text.bodyMedium!.copyWith(color: colors.inkMuted),
         ),
-        end: MmScriptText(
+        end: MmUserText(
           row.value,
-          style: text.bodyLarge!.copyWith(
-            color: colors.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
+          style: MmSemantics.withTabularFigures(
+            text.bodyLarge!.copyWith(color: colors.ink),
           ),
         ),
       ),

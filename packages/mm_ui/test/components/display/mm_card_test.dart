@@ -311,7 +311,7 @@ void main() {
     testWidgets('fits 200% text on a 320 dp phone, in whole words', (
       tester,
     ) async {
-      await expectWholeAtLargeText(
+      await expectFitsNarrowLargeText(
         tester,
         MmCard(
           onTap: () {},

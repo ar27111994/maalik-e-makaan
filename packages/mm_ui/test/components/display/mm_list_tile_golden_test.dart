@@ -7,7 +7,6 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 /// Rows with an avatar and an amount (the first focused from the keyboard),
 /// a selected row, a long title whose badge moves under the text, a bill

@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:mm_ui/src/components/feedback/mm_line_icon.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_line_icon.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';

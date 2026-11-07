@@ -28,10 +28,7 @@ extension MmChartText on MmSemantics {
   /// back to Nastaliq.
   TextStyle figures(TextStyle style, Color color) =>
       MmSemantics.withUrduFallback(
-        style.copyWith(
-          color: color,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
+        MmSemantics.withTabularFigures(style.copyWith(color: color)),
       );
 }
 

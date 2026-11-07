@@ -127,9 +127,8 @@ class MmMeter extends StatelessWidget {
             ),
             end: MmScriptText(
               valueLabel,
-              style: text.bodyMedium!.copyWith(
-                color: colors.inkMuted,
-                fontFeatures: const [FontFeature.tabularFigures()],
+              style: MmSemantics.withTabularFigures(
+                text.bodyMedium!.copyWith(color: colors.inkMuted),
               ),
             ),
           ),

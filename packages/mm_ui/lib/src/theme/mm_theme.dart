@@ -34,6 +34,11 @@ abstract final class MmTheme {
     final scheme = _scheme(colors, inverse, brightness);
     final text = textTheme(script, colors);
     final focusSide = BorderSide(color: colors.focus, width: MmSize.focusRing);
+    final edge = overlayEdge(
+      colors,
+      brightness: brightness,
+      highContrast: highContrast,
+    );
 
     WidgetStateProperty<BorderSide?> outlinedSide(BorderSide resting) =>
         WidgetStateProperty.resolveWith((states) {
@@ -189,6 +194,12 @@ abstract final class MmTheme {
             const StadiumBorder(),
             color: colors.focus,
           ),
+          // Disabled is muted ink, which stays readable in every mode
+          // (Material's ink at 38% falls under 3:1). Only the glyph: a
+          // filled icon button that needs a disabled fill sets its own, as
+          // `MmIconButton` does.
+          foregroundColor: disabledInk,
+          iconColor: disabledInk,
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -228,9 +239,8 @@ abstract final class MmTheme {
         // Counts are set like badges: the Latin face with tabular figures in
         // both languages, not in Nastaliq's serif Latin in the Urdu UI.
         counterStyle: MmSemantics.withUrduFallback(
-          MmTypeScale.latinCaption.copyWith(
-            color: colors.inkMuted,
-            fontFeatures: const [FontFeature.tabularFigures()],
+          MmSemantics.withTabularFigures(
+            MmTypeScale.latinCaption.copyWith(color: colors.inkMuted),
           ),
         ),
         // Icons and buttons inside a field (a start icon, the show-password
@@ -298,12 +308,15 @@ abstract final class MmTheme {
       // Counts are set like amounts: the Latin face with tabular figures, in
       // both languages (a Nastaliq line would make the badge taller than
       // the icon it sits on).
+      // A count is how many things wait (requests to read, dues to chase),
+      // not a status: ink, like the words it sits among, rather than the
+      // overdue red, which would say "overdue" by colour alone. The
+      // destination's label says what is counted.
       badgeTheme: BadgeThemeData(
-        backgroundColor: colors.overdue,
-        textColor: scheme.onError,
-        textStyle: MmTypeScale.latinCaption.copyWith(
-          fontWeight: FontWeight.w600,
-          fontFeatures: const [FontFeature.tabularFigures()],
+        backgroundColor: colors.ink,
+        textColor: colors.surface,
+        textStyle: MmSemantics.withTabularFigures(
+          MmTypeScale.latinCaption.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
       tabBarTheme: TabBarThemeData(
@@ -324,12 +337,16 @@ abstract final class MmTheme {
         dividerColor: colors.rule,
         dividerHeight: MmSize.hairline,
       ),
+      // Sheets and dialogs have the edge of overlays (see overlayEdge), so
+      // a stock dialog or sheet does not melt into the dimmed page in dark
+      // and high-contrast modes either.
       dialogTheme: DialogThemeData(
         backgroundColor: colors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 6,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(MmRadius.lg)),
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(MmRadius.lg)),
+          side: edge,
         ),
         titleTextStyle: text.titleLarge,
         contentTextStyle: text.bodyLarge,
@@ -342,10 +359,11 @@ abstract final class MmTheme {
         modalElevation: 3,
         showDragHandle: true,
         dragHandleColor: colors.outline,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(
             top: Radius.circular(MmRadius.lg),
           ),
+          side: edge,
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -417,6 +435,18 @@ abstract final class MmTheme {
         linearTrackColor: colors.primaryContainer,
         circularTrackColor: colors.primaryContainer,
       ),
+      // The thumb is the only sign that a table or a long list scrolls, so
+      // it is a control's edge: the outline colour, at 3:1 or better on
+      // paper, and muted ink while it is dragged or hovered.
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.dragged) ||
+                  states.contains(WidgetState.hovered)
+              ? colors.inkMuted
+              : colors.outline,
+        ),
+      ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: scheme.inverseSurface,
@@ -431,10 +461,7 @@ abstract final class MmTheme {
       switchTheme: _switchTheme(colors),
       checkboxTheme: _checkboxTheme(colors),
       radioTheme: _radioTheme(colors),
-      datePickerTheme: _datePickerTheme(
-        colors,
-        overlayEdge(colors, brightness: brightness, highContrast: highContrast),
-      ),
+      datePickerTheme: _datePickerTheme(colors, edge),
     );
   }
 
@@ -534,9 +561,8 @@ abstract final class MmTheme {
     BorderSide edge,
   ) {
     final figures = MmSemantics.withUrduFallback(
-      MmTypeScale.latinBody.copyWith(
-        color: colors.ink,
-        fontFeatures: const [FontFeature.tabularFigures()],
+      MmSemantics.withTabularFigures(
+        MmTypeScale.latinBody.copyWith(color: colors.ink),
       ),
     );
     WidgetStateProperty<Color?> ink(Color resting) =>
@@ -637,10 +663,11 @@ abstract final class MmTheme {
   /// The Latin face as mm_ui's text styles name it.
   static const _latinFamily = 'packages/mm_ui/${MmFontFamily.latin}';
 
-  /// Segmented buttons as `MmSegmentedControl` draws them: paper segments,
-  /// the selected one cobalt-tonal with a check, the field outline (a focus
-  /// ring around the whole control while a segment has focus) and segments
-  /// 48 dp tall at the standard text size.
+  /// Segmented buttons: paper segments, the selected one cobalt-tonal with
+  /// a check, the field outline (a focus ring around the whole control
+  /// while a stock segmented button has focus) and segments 48 dp tall at
+  /// the standard text size. `MmSegmentedControl` keeps the outline and
+  /// rings only the focused segment instead, so the ring says which one.
   static SegmentedButtonThemeData _segmentedButtonTheme(
     MmColorTokens colors,
     TextTheme text,
@@ -751,9 +778,14 @@ abstract final class MmTheme {
     surfaceTint: Colors.transparent,
   );
 
+  /// A field's outline. It keeps no gap for a floating label (labels sit
+  /// above fields, never on their outline), so Material does not inset a
+  /// field's text, hint and helper line by that gap either: they start at
+  /// the content padding, in line with the values of the choice fields.
   static OutlineInputBorder _fieldBorder(Color color, double width) =>
       OutlineInputBorder(
         borderRadius: const BorderRadius.all(Radius.circular(MmRadius.sm)),
         borderSide: BorderSide(color: color, width: width),
+        gapPadding: 0,
       );
 }

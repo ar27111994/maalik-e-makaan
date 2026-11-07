@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
-import 'support.dart';
 
 /// Extended (with keyboard focus), compact, a wrapped label, and disabled.
 Widget _fabs() => GoldenPage(

@@ -37,25 +37,33 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
     // Amounts are always set in the Latin face with tabular figures, in both
     // languages, so columns of rupees line up and stay unambiguous. The
     // Urdu currency word (روپے) after an amount falls back to Nastaliq.
-    const tabular = [FontFeature.tabularFigures()];
     return MmSemantics(
       colors: colors,
       script: script,
       highContrast: highContrast,
       amountLarge: withUrduFallback(
-        MmTypeScale.latinAmount.copyWith(
-          color: colors.ink,
-          fontFeatures: tabular,
-        ),
+        withTabularFigures(MmTypeScale.latinAmount.copyWith(color: colors.ink)),
       ),
       amount: withUrduFallback(
-        MmTypeScale.latinTitleSmall.copyWith(
-          color: colors.ink,
-          fontFeatures: tabular,
+        withTabularFigures(
+          MmTypeScale.latinTitleSmall.copyWith(color: colors.ink),
         ),
       ),
     );
   }
+
+  /// [style] with tabular figures: every digit as wide as the others, so
+  /// figures in a column or a counting value line up and a 1 never looks
+  /// narrower than a 7. Keeps the style's other font features.
+  ///
+  /// Amounts, counts, percentages, receipt numbers and the values of
+  /// detail rows use it; [amount] and [amountLarge] already have it.
+  static TextStyle withTabularFigures(TextStyle style) => style.copyWith(
+    fontFeatures: [
+      ...?style.fontFeatures?.where((feature) => feature.feature != 'tnum'),
+      const FontFeature.tabularFigures(),
+    ],
+  );
 
   /// [style] with Noto Nastaliq Urdu as its fallback face.
   ///

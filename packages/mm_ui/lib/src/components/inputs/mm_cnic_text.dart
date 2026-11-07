@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:mm_core/mm_core.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -68,7 +69,7 @@ class _MmCnicTextState extends State<MmCnicText> {
   AttributedString _spoken(BuildContext context, List<String> groups) {
     final strings = MmLocalizations.of(context);
     // The comma of the language: a pause in both.
-    final pause = context.mm.script == MmScript.urdu ? '، ' : ', ';
+    final pause = strings.listSeparator;
     final words = StringBuffer();
     final attributes = <StringAttribute>[];
     for (final (index, group) in groups.indexed) {
@@ -126,6 +127,7 @@ class _MmCnicTextState extends State<MmCnicText> {
         IconButton(
           onPressed: () => setState(() => _masked = !_masked),
           tooltip: _masked ? strings.showFullCnic : strings.hideFullCnic,
+          iconSize: MmIconLabel.scaledSize(context, MmSize.iconLg),
           icon: Icon(_masked ? MmIcons.show : MmIcons.hide),
         ),
       ],
