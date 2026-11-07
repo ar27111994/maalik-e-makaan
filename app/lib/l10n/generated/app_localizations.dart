@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// Rules for a new password, under the field.
   ///
   /// In en, this message translates to:
-  /// **'At least 8 characters, with a letter and a number.'**
+  /// **'At least 10 characters, with capital and small letters and a number.'**
   String get passwordHelper;
 
   /// Label of the full name field on sign-up.
@@ -229,12 +229,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check your e-mail'**
   String get checkEmailTitle;
-
-  /// Explanation after a confirmation or reset e-mail was sent.
-  ///
-  /// In en, this message translates to:
-  /// **'We sent a link to {email}. Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.'**
-  String checkEmailBody(String email);
 
   /// Button that sends the confirmation e-mail again.
   ///
@@ -281,14 +275,8 @@ abstract class AppLocalizations {
   /// The new password does not meet the rules.
   ///
   /// In en, this message translates to:
-  /// **'Use at least 8 characters, with a letter and a number.'**
+  /// **'Use at least 10 characters, with capital and small letters and a number.'**
   String get validationPassword;
-
-  /// Navigation destination: the dashboard.
-  ///
-  /// In en, this message translates to:
-  /// **'Home'**
-  String get navHome;
 
   /// Navigation destination: tenants and tenancies.
   ///
@@ -491,7 +479,7 @@ abstract class AppLocalizations {
   /// The server refused a weak password.
   ///
   /// In en, this message translates to:
-  /// **'Choose a stronger password: at least 8 characters, with a letter and a number.'**
+  /// **'Choose a stronger password: at least 10 characters, with capital and small letters and a number.'**
   String get reasonWeakPassword;
 
   /// The new password equals the old one.
@@ -739,6 +727,498 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Some details are not valid, or refer to something that no longer exists.'**
   String get reasonConstraintViolation;
+
+  /// Navigation destination: the dashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get navDashboard;
+
+  /// First-launch button that chooses English, always written in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue in English'**
+  String get continueInEnglish;
+
+  /// First-launch button that chooses Urdu, always written in Urdu.
+  ///
+  /// In en, this message translates to:
+  /// **'اردو میں جاری رکھیں'**
+  String get continueInUrdu;
+
+  /// A field is longer than the database accepts.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at most {max} characters.'**
+  String validationTooLong(int max);
+
+  /// The repeated password differs.
+  ///
+  /// In en, this message translates to:
+  /// **'The passwords do not match.'**
+  String get validationPasswordMismatch;
+
+  /// The phone number is not valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a phone number like 03001234567.'**
+  String get validationPhone;
+
+  /// The typed confirmation does not match the account's e-mail.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your e-mail address exactly as shown.'**
+  String get validationTypedEmail;
+
+  /// Banner title on the sign-in screen after account deletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted'**
+  String get accountDeletedTitle;
+
+  /// Banner on the sign-in screen after account deletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sign-in, your profile and the portfolios you owned alone are gone. Thank you for using Maalik-e-Makaan.'**
+  String get accountDeletedBody;
+
+  /// Confirmation that an e-mail was sent again.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent the e-mail again.'**
+  String get emailSentAgain;
+
+  /// After an e-mail was sent, when the address is no longer known (the page was reloaded).
+  ///
+  /// In en, this message translates to:
+  /// **'We sent you a link. Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.'**
+  String get checkEmailBodyNoAddress;
+
+  /// Extra explanation after a password-reset e-mail.
+  ///
+  /// In en, this message translates to:
+  /// **'The link works once, for an hour. If no account uses this address, no e-mail is sent.'**
+  String get checkEmailResetHint;
+
+  /// Countdown before an e-mail can be sent again.
+  ///
+  /// In en, this message translates to:
+  /// **'You can send it again in {seconds, plural, =1{1 second} other{{seconds} seconds}}.'**
+  String resendWait(int seconds);
+
+  /// Confirmation after choosing a new password.
+  ///
+  /// In en, this message translates to:
+  /// **'Your new password is saved.'**
+  String get passwordSaved;
+
+  /// Label of the field that repeats the new password.
+  ///
+  /// In en, this message translates to:
+  /// **'Type the new password again'**
+  String get repeatPasswordLabel;
+
+  /// Explanation on the new-password screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the password you will sign in with from now on.'**
+  String get choosePasswordBody;
+
+  /// Heading when an e-mail link cannot be used.
+  ///
+  /// In en, this message translates to:
+  /// **'This link did not work'**
+  String get linkFailedTitle;
+
+  /// An e-mail link that is too old or used.
+  ///
+  /// In en, this message translates to:
+  /// **'This link has expired or was already used. Ask for a new one.'**
+  String get reasonLinkExpired;
+
+  /// A malformed or unknown e-mail link.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a valid sign-in link. Open the latest link we e-mailed you.'**
+  String get reasonLinkInvalid;
+
+  /// An e-mail link opened on another device or browser than the one that asked for it.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the link on the phone or browser where you asked for it. If you were confirming your e-mail, it is confirmed: sign in with your password.'**
+  String get reasonLinkOtherDevice;
+
+  /// Sign-up is turned off on the server.
+  ///
+  /// In en, this message translates to:
+  /// **'New accounts cannot be created right now. Please try again later.'**
+  String get reasonSignupDisabled;
+
+  /// Account deletion needs a second factor the app does not support.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has a second sign-in step, which this app cannot check yet, so it cannot be deleted here.'**
+  String get reasonMfaRequired;
+
+  /// The typed confirmation is not the account's e-mail.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not your account\'s e-mail address.'**
+  String get reasonDoesNotMatchAccount;
+
+  /// Heading of the first-run portfolio screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your portfolio'**
+  String get createFirstPortfolioTitle;
+
+  /// Heading of the screen that creates another portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'New portfolio'**
+  String get newPortfolioTitle;
+
+  /// Explanation on the first-run portfolio screen.
+  ///
+  /// In en, this message translates to:
+  /// **'A portfolio holds your properties, tenants and money records. Name it after the family, the building or the owner, for example “Khan family properties”.'**
+  String get createFirstPortfolioBody;
+
+  /// Explanation on the new-portfolio screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep properties apart when their money is kept apart: a relative\'s house, or a plaza with its own accounts. You will be its owner.'**
+  String get newPortfolioBody;
+
+  /// Label of the portfolio name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio name'**
+  String get portfolioNameLabel;
+
+  /// Helper under the portfolio name field.
+  ///
+  /// In en, this message translates to:
+  /// **'You can rename it later.'**
+  String get portfolioNameHelper;
+
+  /// The server refused the portfolio name.
+  ///
+  /// In en, this message translates to:
+  /// **'This name cannot be used. Use letters, numbers and spaces.'**
+  String get portfolioNameInvalid;
+
+  /// Button that creates a portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Create portfolio'**
+  String get createPortfolioAction;
+
+  /// Button that leaves a form without saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancelAction;
+
+  /// Confirmation after creating a portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is ready.'**
+  String portfolioCreated(String name);
+
+  /// Member role: owner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get roleOwner;
+
+  /// Member role: manager (caretaker).
+  ///
+  /// In en, this message translates to:
+  /// **'Manager'**
+  String get roleManager;
+
+  /// Member role: accountant.
+  ///
+  /// In en, this message translates to:
+  /// **'Accountant'**
+  String get roleAccountant;
+
+  /// Member role: viewer (read-only).
+  ///
+  /// In en, this message translates to:
+  /// **'Viewer'**
+  String get roleViewer;
+
+  /// Title of the portfolio switcher sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch portfolio'**
+  String get switchPortfolioTitle;
+
+  /// Button that opens the portfolio switcher.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch portfolio'**
+  String get switchPortfolioAction;
+
+  /// Spoken label of the mark on the current portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Current portfolio'**
+  String get currentPortfolioLabel;
+
+  /// Button that opens portfolio creation.
+  ///
+  /// In en, this message translates to:
+  /// **'New portfolio'**
+  String get newPortfolioAction;
+
+  /// Section heading for the current portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio'**
+  String get portfolioSection;
+
+  /// The user's role in the current portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Your role: {role}'**
+  String yourRole(String role);
+
+  /// What the settings screen holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Your details, language, appearance and account'**
+  String get settingsSummary;
+
+  /// Spoken while portfolios load.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your portfolios'**
+  String get loadingPortfolios;
+
+  /// Heading when portfolios fail to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Your portfolios could not be loaded'**
+  String get portfoliosLoadFailedTitle;
+
+  /// Heading when the profile fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Your details could not be loaded'**
+  String get profileLoadFailedTitle;
+
+  /// Spoken while the profile loads.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your details'**
+  String get loadingProfile;
+
+  /// The language could not be saved to the profile; reason follows.
+  ///
+  /// In en, this message translates to:
+  /// **'The language changed on this device but could not be saved to your account. {reason}'**
+  String languageNotSavedToProfile(String reason);
+
+  /// Explanation under the language setting.
+  ///
+  /// In en, this message translates to:
+  /// **'The e-mails we send you use it too.'**
+  String get settingsLanguageHelp;
+
+  /// Spoken name of the theme choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get themeLabel;
+
+  /// Label before the signed-in e-mail address.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as'**
+  String get signedInAs;
+
+  /// Settings section: name and phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your details'**
+  String get profileSection;
+
+  /// Explanation of who sees the profile.
+  ///
+  /// In en, this message translates to:
+  /// **'People in your portfolios see your name and phone.'**
+  String get profileSectionHelp;
+
+  /// Label of the phone field.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get phoneLabel;
+
+  /// Helper under the phone field.
+  ///
+  /// In en, this message translates to:
+  /// **'A Pakistani number like 03001234567, or a number abroad starting with 00 and its country code.'**
+  String get phoneHelper;
+
+  /// Button that saves the name and phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Save details'**
+  String get saveDetailsAction;
+
+  /// Confirmation after saving the profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Your details are saved.'**
+  String get detailsSaved;
+
+  /// Settings section: text size preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get textSizeTitle;
+
+  /// The current system text scale and where to change it.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone\'s text size is {percent}%. The app follows it; change it in your phone\'s display settings.'**
+  String textSizeBody(int percent);
+
+  /// Spoken label of the text-size sample.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get textSizePreviewLabel;
+
+  /// A sample tenant name in the text-size preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Ayesha Khan'**
+  String get textSizeSampleName;
+
+  /// A sample tenant detail in the text-size preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop 3, rent due on the 5th'**
+  String get textSizeSampleDetail;
+
+  /// Heading of the account deletion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccountTitle;
+
+  /// Heading when the deletion preview fails.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not check what would be deleted'**
+  String get deletionPreviewFailedTitle;
+
+  /// Spoken while the deletion preview loads.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking what would be deleted'**
+  String get loadingDeletionPreview;
+
+  /// Warning title on the deletion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone'**
+  String get deleteAccountWarningTitle;
+
+  /// Warning on the deletion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted records cannot be recovered, not even by us. Before you continue, keep copies of any receipts and statements you need.'**
+  String get deleteAccountWarningBody;
+
+  /// Section heading on the deletion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'What will be deleted'**
+  String get deleteAccountWhatGoes;
+
+  /// When deletion removes no portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not the only owner of any portfolio, so no portfolio is deleted.'**
+  String get deleteAccountNoPortfolios;
+
+  /// Before the list of portfolios deleted with the account.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{You are the only owner of this portfolio, so it is deleted with everything in it: properties, tenants, payments, receipts and files.} other{You are the only owner of these {count} portfolios, so they are deleted with everything in them: properties, tenants, payments, receipts and files.}}'**
+  String deleteAccountPortfolios(int count);
+
+  /// What deletion does to other memberships.
+  ///
+  /// In en, this message translates to:
+  /// **'You are removed from every other portfolio; its owners keep it and its records.'**
+  String get deleteAccountMemberships;
+
+  /// What deletion does to the account itself.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sign-in and your profile are deleted, and you are signed out.'**
+  String get deleteAccountSignIn;
+
+  /// Form section heading on the deletion screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm it is you'**
+  String get deleteAccountConfirmTitle;
+
+  /// Explanation of the re-authentication and typed confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password, as deleting needs a sign-in from the last {minutes, plural, =1{minute} other{{minutes} minutes}}, and type your e-mail address.'**
+  String deleteAccountConfirmBody(int minutes);
+
+  /// Label of the typed confirmation field.
+  ///
+  /// In en, this message translates to:
+  /// **'Type {email} to confirm'**
+  String typeEmailToConfirm(String email);
+
+  /// Button that deletes the account for good.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get deleteAccountConfirmAction;
+
+  /// A deleted portfolio has no other members.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you use it'**
+  String get doomedPortfolioOnlyYou;
+
+  /// How many others lose a deleted portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 other person loses access} other{{count} other people lose access}}'**
+  String doomedPortfolioOthers(int count);
+
+  /// Before the e-mail address a link was sent to.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a link to:'**
+  String get checkEmailSentTo;
+
+  /// What to do with the e-mailed link.
+  ///
+  /// In en, this message translates to:
+  /// **'Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.'**
+  String get checkEmailInstructions;
+
+  /// Label of the digit grouping choice.
+  ///
+  /// In en, this message translates to:
+  /// **'How amounts are grouped'**
+  String get groupingLabel;
 }
 
 class _AppLocalizationsDelegate

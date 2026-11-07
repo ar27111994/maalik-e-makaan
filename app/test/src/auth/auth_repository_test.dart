@@ -8,7 +8,7 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../data/cache/swr_cache_test.dart' show MemoryStore;
+import '../../support/fakes.dart' show MemoryStore;
 
 class _MockAuth extends Mock implements GoTrueClient;
 
@@ -110,6 +110,10 @@ void main() {
     test('statuses compare by value', () {
       expect(const SignedOut().hashCode, const SignedOut().hashCode);
       expect(
+        const SignedOut(cause: SignOutCause.accountDeleted),
+        isNot(const SignedOut()),
+      );
+      expect(
         const SignedIn(userId: 'a', email: null),
         isNot(const SignedIn(userId: 'a', email: 'x')),
       );
@@ -118,6 +122,10 @@ void main() {
         const RecoveringPassword(userId: 'a').hashCode,
       );
       expect(const RecoveringPassword(userId: 'a'), isNot(const SignedOut()));
+      expect(
+        const SignedIn(userId: 'a', email: 'x').hashCode,
+        const SignedIn(userId: 'a', email: 'x').hashCode,
+      );
     });
   });
 
@@ -255,5 +263,199 @@ void main() {
         verify(() => auth.signOut()).called(1);
       },
     );
+  });
+  group('sign-out reasons', () {
+    test(
+      'a sign-out the user asked for is remembered until a sign-in',
+      () async {
+        when(() => auth.signOut()).thenAnswer((_) async {
+          changes.add(const AuthState(AuthChangeEvent.signedOut, null));
+        });
+        final statuses = <AuthStatus>[];
+        final subscription = repository.watch().listen(statuses.add);
+        await pumpEventQueue();
+        await repository.signOut(cause: SignOutCause.accountDeleted);
+        await pumpEventQueue();
+        expect(
+          repository.status,
+          const SignedOut(cause: SignOutCause.accountDeleted),
+        );
+        expect(
+          statuses.last,
+          const SignedOut(cause: SignOutCause.accountDeleted),
+        );
+        changes.add(AuthState(AuthChangeEvent.signedIn, _session()));
+        await pumpEventQueue();
+        changes.add(const AuthState(AuthChangeEvent.signedOut, null));
+        await pumpEventQueue();
+        await subscription.cancel();
+        // A later session that ends by itself carries no reason.
+        expect(statuses.last, const SignedOut());
+      },
+    );
+
+    test('a reset link clears the remembered reason', () async {
+      when(() => auth.signOut()).thenAnswer((_) async {});
+      await repository.signOut();
+      expect(
+        repository.status,
+        const SignedOut(cause: SignOutCause.userRequest),
+      );
+      final subscription = repository.watch().listen((_) {});
+      await pumpEventQueue();
+      changes.add(AuthState(AuthChangeEvent.passwordRecovery, _session()));
+      await pumpEventQueue();
+      changes.add(const AuthState(AuthChangeEvent.signedOut, null));
+      await pumpEventQueue();
+      await subscription.cancel();
+      expect(repository.status, const SignedOut());
+    });
+  });
+
+  group('reauthenticate', () {
+    test('signs in again with the current address', () async {
+      when(() => auth.currentUser).thenReturn(_user());
+      when(
+        () => auth.signInWithPassword(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async => AuthResponse(session: _session()));
+      await repository.reauthenticate('Secret1234');
+      verify(
+        () => auth.signInWithPassword(
+          email: 'ali.raza@example.com',
+          password: 'Secret1234',
+        ),
+      ).called(1);
+    });
+
+    test('without a user the session has ended', () async {
+      when(() => auth.currentUser).thenReturn(null);
+      await expectLater(
+        repository.reauthenticate('x'),
+        throwsA(isA<SessionExpired>()),
+      );
+    });
+
+    test('a wrong password is invalid_credentials', () async {
+      when(() => auth.currentUser).thenReturn(_user());
+      when(
+        () => auth.signInWithPassword(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenThrow(const AuthApiException('bad', code: 'invalid_credentials'));
+      await expectLater(
+        repository.reauthenticate('x'),
+        throwsA(
+          isA<RejectedFailure>().having(
+            (f) => f.reason,
+            'reason',
+            'invalid_credentials',
+          ),
+        ),
+      );
+    });
+  });
+
+  group('completeEmailLink', () {
+    Matcher rejected(String reason) => throwsA(
+      isA<RejectedFailure>().having((f) => f.reason, 'reason', reason),
+    );
+
+    setUp(() {
+      when(() => auth.exchangeCodeForSession(any())).thenAnswer(
+        (_) async =>
+            AuthSessionUrlResponse(session: _session(), redirectType: null),
+      );
+    });
+
+    test('exchanges the code of the link', () async {
+      await repository.completeEmailLink(
+        Uri.parse('https://app.example.pk/auth/callback?code=abc123'),
+      );
+      verify(() => auth.exchangeCodeForSession('abc123')).called(1);
+    });
+
+    test('reads a code from the fragment too', () async {
+      await repository.completeEmailLink(
+        Uri.parse('https://app.example.pk/auth/callback#code=xyz'),
+      );
+      verify(() => auth.exchangeCodeForSession('xyz')).called(1);
+    });
+
+    test('a link Supabase refused says why, without a request', () async {
+      await expectLater(
+        repository.completeEmailLink(
+          Uri.parse(
+            '/auth/callback?error=access_denied&error_code=otp_expired'
+            '&error_description=Email+link+is+invalid+or+has+expired',
+          ),
+        ),
+        rejected('link_expired'),
+      );
+      await expectLater(
+        repository.completeEmailLink(
+          Uri.parse('/auth/callback#error=server_error'),
+        ),
+        rejected('link_invalid'),
+      );
+      await expectLater(
+        repository.completeEmailLink(Uri.parse('/auth/callback')),
+        rejected('link_invalid'),
+      );
+      await expectLater(
+        repository.completeEmailLink(Uri.parse('/auth/callback?code=')),
+        rejected('link_invalid'),
+      );
+      verifyNever(() => auth.exchangeCodeForSession(any()));
+    });
+
+    test('a link asked for on another device', () async {
+      when(() => auth.exchangeCodeForSession(any())).thenThrow(
+        const AuthException(
+          'Code verifier could not be found in local storage.',
+        ),
+      );
+      await expectLater(
+        repository.completeEmailLink(Uri.parse('/auth/callback?code=abc')),
+        rejected('link_other_device'),
+      );
+    });
+
+    test('the server refusing the code', () async {
+      when(() => auth.exchangeCodeForSession(any())).thenThrow(
+        const AuthApiException(
+          'expired',
+          statusCode: '403',
+          code: 'flow_state_expired',
+        ),
+      );
+      await expectLater(
+        repository.completeEmailLink(Uri.parse('/auth/callback?code=abc')),
+        rejected('link_expired'),
+      );
+      when(() => auth.exchangeCodeForSession(any())).thenThrow(
+        const AuthApiException(
+          'not found',
+          statusCode: '404',
+          code: 'flow_state_not_found',
+        ),
+      );
+      await expectLater(
+        repository.completeEmailLink(Uri.parse('/auth/callback?code=abc')),
+        rejected('link_invalid'),
+      );
+    });
+
+    test('no connection while exchanging', () async {
+      when(() => auth.exchangeCodeForSession(any()))
+          .thenThrow(AuthRetryableFetchException(message: 'offline'));
+      await expectLater(
+        repository.completeEmailLink(Uri.parse('/auth/callback?code=abc')),
+        throwsA(isA<NetworkFailure>()),
+      );
+    });
   });
 }

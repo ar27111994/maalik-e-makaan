@@ -111,12 +111,40 @@ void main() {
         'email_exists': 'email_taken',
         'weak_password': 'weak_password',
         'same_password': 'same_password',
+        'email_address_invalid': 'invalid_email',
+        'signup_disabled': 'signup_disabled',
+        'otp_expired': 'link_expired',
+        'flow_state_expired': 'link_expired',
+        'flow_state_not_found': 'link_invalid',
+        'bad_code_verifier': 'link_invalid',
       };
       for (final MapEntry(key: code, value: reason) in reasons.entries) {
         final failure = AppFailure.from(
           AuthException('m', code: code, statusCode: '400'),
         );
         expect((failure as RejectedFailure).reason, reason, reason: code);
+      }
+    });
+
+    test('a link without a usable code', () {
+      expect(
+        (AppFailure.from(
+          const AuthPKCEGrantCodeExchangeError('no code'),
+        ) as RejectedFailure).reason,
+        'link_invalid',
+      );
+    });
+
+    test('a password change that needs a recent sign-in', () {
+      for (final code in [
+        'reauthentication_needed',
+        'reauthentication_not_valid',
+      ]) {
+        expect(
+          AppFailure.from(AuthException('m', code: code, statusCode: '400')),
+          isA<ReauthenticationRequired>(),
+          reason: code,
+        );
       }
     });
 
@@ -235,6 +263,22 @@ void main() {
 
   test('network exceptions, existing failures and anything else', () {
     expect(AppFailure.from(TimeoutException('slow')), isA<NetworkFailure>());
+    expect(
+      AppFailure.from(const FunctionsFetchException(details: 'offline')),
+      isA<NetworkFailure>(),
+    );
+    expect(
+      (AppFailure.from(
+        const FormatException('id is missing'),
+      ) as ServerFailure).code,
+      'unexpected_response',
+    );
+    expect(
+      (AppFailure.from(
+        _function(403, _envelope('mfa_required')),
+      ) as RejectedFailure).reason,
+      'mfa_required',
+    );
     expect(
       AppFailure.from(ClientException('Connection reset')),
       isA<NetworkFailure>(),

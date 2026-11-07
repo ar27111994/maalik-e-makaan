@@ -23,6 +23,7 @@ final class PreferencesSettingsStore implements SettingsStore {
     AppSettings.themeKey,
     AppSettings.highContrastKey,
     AppSettings.groupingKey,
+    AppSettings.currentPortfolioKey,
   };
 
   final SharedPreferencesWithCache _preferences;
@@ -75,6 +76,10 @@ final class AppSettings {
   static const themeKey = 'mm.settings.theme';
   static const highContrastKey = 'mm.settings.high_contrast';
   static const groupingKey = 'mm.settings.grouping';
+
+  /// The portfolio last chosen on this device, as the user's id, a slash
+  /// and the portfolio's id; the portfolios feature reads and writes it.
+  static const currentPortfolioKey = 'mm.portfolio.current';
 
   /// The chosen language; null until it is picked on first launch.
   final Locale? locale;

@@ -1,17 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 
 const _signedIn = SignedIn(userId: 'u1', email: 'ali@example.com');
 const _signedOut = SignedOut();
 const _recovering = RecoveringPassword(userId: 'u1');
 
-String? _go(String location, AuthStatus auth, {bool languageChosen = true}) =>
-    redirectFor(
-      location: Uri.parse(location),
-      languageChosen: languageChosen,
-      auth: auth,
-    );
+String? _go(
+  String location,
+  AuthStatus auth, {
+  bool languageChosen = true,
+  PortfolioGate portfolios = PortfolioGate.some,
+}) => redirectFor(
+  location: Uri.parse(location),
+  languageChosen: languageChosen,
+  auth: auth,
+  portfolios: portfolios,
+);
 
 void main() {
   test('everything waits for a language, remembering the destination', () {
@@ -65,5 +71,38 @@ void main() {
     expect(_go('/sign-in?from=/welcome', _signedIn), '/');
     // A query of the remembered destination survives.
     expect(_go('/sign-in?from=/money?tab=dues', _signedIn), '/money?tab=dues');
+  });
+
+  test('after signing out on purpose, nothing is remembered', () {
+    for (final cause in SignOutCause.values) {
+      final signedOut = SignedOut(cause: cause);
+      expect(_go('/more/settings', signedOut), '/sign-in', reason: '$cause');
+      expect(_go('/sign-in', signedOut), isNull);
+    }
+  });
+
+  test('a user without a portfolio creates one first', () {
+    const none = PortfolioGate.none;
+    expect(_go('/', _signedIn, portfolios: none), '/portfolios/new');
+    expect(_go('/tenants', _signedIn, portfolios: none), '/portfolios/new');
+    expect(_go('/portfolios/new', _signedIn, portfolios: none), isNull);
+    // Settings stay open: the language, signing out, deleting the account.
+    expect(_go('/more/settings', _signedIn, portfolios: none), isNull);
+    expect(
+      _go('/more/settings/delete-account', _signedIn, portfolios: none),
+      isNull,
+    );
+    expect(_go('/more', _signedIn, portfolios: none), '/portfolios/new');
+    expect(
+      _go('/more/settingsx', _signedIn, portfolios: none),
+      '/portfolios/new',
+    );
+  });
+
+  test('while portfolios load, and with one, nothing is forced', () {
+    for (final gate in [PortfolioGate.unknown, PortfolioGate.some]) {
+      expect(_go('/', _signedIn, portfolios: gate), isNull);
+      expect(_go('/portfolios/new', _signedIn, portfolios: gate), isNull);
+    }
   });
 }

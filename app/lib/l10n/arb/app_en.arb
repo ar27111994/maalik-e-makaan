@@ -64,7 +64,7 @@
   "@newPasswordLabel": {
     "description": "Label of the field for a new password."
   },
-  "passwordHelper": "At least 8 characters, with a letter and a number.",
+  "passwordHelper": "At least 10 characters, with capital and small letters and a number.",
   "@passwordHelper": {
     "description": "Rules for a new password, under the field."
   },
@@ -87,16 +87,6 @@
   "checkEmailTitle": "Check your e-mail",
   "@checkEmailTitle": {
     "description": "Heading shown after an e-mail was sent."
-  },
-  "checkEmailBody": "We sent a link to {email}. Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.",
-  "@checkEmailBody": {
-    "description": "Explanation after a confirmation or reset e-mail was sent.",
-    "placeholders": {
-      "email": {
-        "type": "String",
-        "example": "ali.raza@example.com"
-      }
-    }
   },
   "resendEmailAction": "Send the e-mail again",
   "@resendEmailAction": {
@@ -126,13 +116,9 @@
   "@validationEmail": {
     "description": "The e-mail address is not valid."
   },
-  "validationPassword": "Use at least 8 characters, with a letter and a number.",
+  "validationPassword": "Use at least 10 characters, with capital and small letters and a number.",
   "@validationPassword": {
     "description": "The new password does not meet the rules."
-  },
-  "navHome": "Home",
-  "@navHome": {
-    "description": "Navigation destination: the dashboard."
   },
   "navTenants": "Tenants",
   "@navTenants": {
@@ -272,7 +258,7 @@
   "@reasonEmailTaken": {
     "description": "Sign-up with an existing e-mail."
   },
-  "reasonWeakPassword": "Choose a stronger password: at least 8 characters, with a letter and a number.",
+  "reasonWeakPassword": "Choose a stronger password: at least 10 characters, with capital and small letters and a number.",
   "@reasonWeakPassword": {
     "description": "The server refused a weak password."
   },
@@ -457,5 +443,383 @@
   "reasonConstraintViolation": "Some details are not valid, or refer to something that no longer exists.",
   "@reasonConstraintViolation": {
     "description": "A database check or reference refused the change."
+  },
+  "navDashboard": "Dashboard",
+  "@navDashboard": {
+    "description": "Navigation destination: the dashboard."
+  },
+  "continueInEnglish": "Continue in English",
+  "@continueInEnglish": {
+    "description": "First-launch button that chooses English, always written in English."
+  },
+  "continueInUrdu": "اردو میں جاری رکھیں",
+  "@continueInUrdu": {
+    "description": "First-launch button that chooses Urdu, always written in Urdu."
+  },
+  "validationTooLong": "Use at most {max} characters.",
+  "@validationTooLong": {
+    "description": "A field is longer than the database accepts.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "validationPasswordMismatch": "The passwords do not match.",
+  "@validationPasswordMismatch": {
+    "description": "The repeated password differs."
+  },
+  "validationPhone": "Enter a phone number like 03001234567.",
+  "@validationPhone": {
+    "description": "The phone number is not valid."
+  },
+  "validationTypedEmail": "Type your e-mail address exactly as shown.",
+  "@validationTypedEmail": {
+    "description": "The typed confirmation does not match the account's e-mail."
+  },
+  "accountDeletedTitle": "Your account has been deleted",
+  "@accountDeletedTitle": {
+    "description": "Banner title on the sign-in screen after account deletion."
+  },
+  "accountDeletedBody": "Your sign-in, your profile and the portfolios you owned alone are gone. Thank you for using Maalik-e-Makaan.",
+  "@accountDeletedBody": {
+    "description": "Banner on the sign-in screen after account deletion."
+  },
+  "emailSentAgain": "We sent the e-mail again.",
+  "@emailSentAgain": {
+    "description": "Confirmation that an e-mail was sent again."
+  },
+  "checkEmailBodyNoAddress": "We sent you a link. Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.",
+  "@checkEmailBodyNoAddress": {
+    "description": "After an e-mail was sent, when the address is no longer known (the page was reloaded)."
+  },
+  "checkEmailResetHint": "The link works once, for an hour. If no account uses this address, no e-mail is sent.",
+  "@checkEmailResetHint": {
+    "description": "Extra explanation after a password-reset e-mail."
+  },
+  "resendWait": "You can send it again in {seconds, plural, =1{1 second} other{{seconds} seconds}}.",
+  "@resendWait": {
+    "description": "Countdown before an e-mail can be sent again.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "passwordSaved": "Your new password is saved.",
+  "@passwordSaved": {
+    "description": "Confirmation after choosing a new password."
+  },
+  "repeatPasswordLabel": "Type the new password again",
+  "@repeatPasswordLabel": {
+    "description": "Label of the field that repeats the new password."
+  },
+  "choosePasswordBody": "Choose the password you will sign in with from now on.",
+  "@choosePasswordBody": {
+    "description": "Explanation on the new-password screen."
+  },
+  "linkFailedTitle": "This link did not work",
+  "@linkFailedTitle": {
+    "description": "Heading when an e-mail link cannot be used."
+  },
+  "reasonLinkExpired": "This link has expired or was already used. Ask for a new one.",
+  "@reasonLinkExpired": {
+    "description": "An e-mail link that is too old or used."
+  },
+  "reasonLinkInvalid": "This is not a valid sign-in link. Open the latest link we e-mailed you.",
+  "@reasonLinkInvalid": {
+    "description": "A malformed or unknown e-mail link."
+  },
+  "reasonLinkOtherDevice": "Open the link on the phone or browser where you asked for it. If you were confirming your e-mail, it is confirmed: sign in with your password.",
+  "@reasonLinkOtherDevice": {
+    "description": "An e-mail link opened on another device or browser than the one that asked for it."
+  },
+  "reasonSignupDisabled": "New accounts cannot be created right now. Please try again later.",
+  "@reasonSignupDisabled": {
+    "description": "Sign-up is turned off on the server."
+  },
+  "reasonMfaRequired": "This account has a second sign-in step, which this app cannot check yet, so it cannot be deleted here.",
+  "@reasonMfaRequired": {
+    "description": "Account deletion needs a second factor the app does not support."
+  },
+  "reasonDoesNotMatchAccount": "This is not your account's e-mail address.",
+  "@reasonDoesNotMatchAccount": {
+    "description": "The typed confirmation is not the account's e-mail."
+  },
+  "createFirstPortfolioTitle": "Create your portfolio",
+  "@createFirstPortfolioTitle": {
+    "description": "Heading of the first-run portfolio screen."
+  },
+  "newPortfolioTitle": "New portfolio",
+  "@newPortfolioTitle": {
+    "description": "Heading of the screen that creates another portfolio."
+  },
+  "createFirstPortfolioBody": "A portfolio holds your properties, tenants and money records. Name it after the family, the building or the owner, for example “Khan family properties”.",
+  "@createFirstPortfolioBody": {
+    "description": "Explanation on the first-run portfolio screen."
+  },
+  "newPortfolioBody": "Keep properties apart when their money is kept apart: a relative's house, or a plaza with its own accounts. You will be its owner.",
+  "@newPortfolioBody": {
+    "description": "Explanation on the new-portfolio screen."
+  },
+  "portfolioNameLabel": "Portfolio name",
+  "@portfolioNameLabel": {
+    "description": "Label of the portfolio name field."
+  },
+  "portfolioNameHelper": "You can rename it later.",
+  "@portfolioNameHelper": {
+    "description": "Helper under the portfolio name field."
+  },
+  "portfolioNameInvalid": "This name cannot be used. Use letters, numbers and spaces.",
+  "@portfolioNameInvalid": {
+    "description": "The server refused the portfolio name."
+  },
+  "createPortfolioAction": "Create portfolio",
+  "@createPortfolioAction": {
+    "description": "Button that creates a portfolio."
+  },
+  "cancelAction": "Cancel",
+  "@cancelAction": {
+    "description": "Button that leaves a form without saving."
+  },
+  "portfolioCreated": "{name} is ready.",
+  "@portfolioCreated": {
+    "description": "Confirmation after creating a portfolio.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "roleOwner": "Owner",
+  "@roleOwner": {
+    "description": "Member role: owner."
+  },
+  "roleManager": "Manager",
+  "@roleManager": {
+    "description": "Member role: manager (caretaker)."
+  },
+  "roleAccountant": "Accountant",
+  "@roleAccountant": {
+    "description": "Member role: accountant."
+  },
+  "roleViewer": "Viewer",
+  "@roleViewer": {
+    "description": "Member role: viewer (read-only)."
+  },
+  "switchPortfolioTitle": "Switch portfolio",
+  "@switchPortfolioTitle": {
+    "description": "Title of the portfolio switcher sheet."
+  },
+  "switchPortfolioAction": "Switch portfolio",
+  "@switchPortfolioAction": {
+    "description": "Button that opens the portfolio switcher."
+  },
+  "currentPortfolioLabel": "Current portfolio",
+  "@currentPortfolioLabel": {
+    "description": "Spoken label of the mark on the current portfolio."
+  },
+  "newPortfolioAction": "New portfolio",
+  "@newPortfolioAction": {
+    "description": "Button that opens portfolio creation."
+  },
+  "portfolioSection": "Portfolio",
+  "@portfolioSection": {
+    "description": "Section heading for the current portfolio."
+  },
+  "yourRole": "Your role: {role}",
+  "@yourRole": {
+    "description": "The user's role in the current portfolio.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSummary": "Your details, language, appearance and account",
+  "@settingsSummary": {
+    "description": "What the settings screen holds."
+  },
+  "loadingPortfolios": "Loading your portfolios",
+  "@loadingPortfolios": {
+    "description": "Spoken while portfolios load."
+  },
+  "portfoliosLoadFailedTitle": "Your portfolios could not be loaded",
+  "@portfoliosLoadFailedTitle": {
+    "description": "Heading when portfolios fail to load."
+  },
+  "profileLoadFailedTitle": "Your details could not be loaded",
+  "@profileLoadFailedTitle": {
+    "description": "Heading when the profile fails to load."
+  },
+  "loadingProfile": "Loading your details",
+  "@loadingProfile": {
+    "description": "Spoken while the profile loads."
+  },
+  "languageNotSavedToProfile": "The language changed on this device but could not be saved to your account. {reason}",
+  "@languageNotSavedToProfile": {
+    "description": "The language could not be saved to the profile; reason follows.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsLanguageHelp": "The e-mails we send you use it too.",
+  "@settingsLanguageHelp": {
+    "description": "Explanation under the language setting."
+  },
+  "themeLabel": "Theme",
+  "@themeLabel": {
+    "description": "Spoken name of the theme choice."
+  },
+  "signedInAs": "Signed in as",
+  "@signedInAs": {
+    "description": "Label before the signed-in e-mail address."
+  },
+  "profileSection": "Your details",
+  "@profileSection": {
+    "description": "Settings section: name and phone."
+  },
+  "profileSectionHelp": "People in your portfolios see your name and phone.",
+  "@profileSectionHelp": {
+    "description": "Explanation of who sees the profile."
+  },
+  "phoneLabel": "Phone",
+  "@phoneLabel": {
+    "description": "Label of the phone field."
+  },
+  "phoneHelper": "A Pakistani number like 03001234567, or a number abroad starting with 00 and its country code.",
+  "@phoneHelper": {
+    "description": "Helper under the phone field."
+  },
+  "saveDetailsAction": "Save details",
+  "@saveDetailsAction": {
+    "description": "Button that saves the name and phone."
+  },
+  "detailsSaved": "Your details are saved.",
+  "@detailsSaved": {
+    "description": "Confirmation after saving the profile."
+  },
+  "textSizeTitle": "Text size",
+  "@textSizeTitle": {
+    "description": "Settings section: text size preview."
+  },
+  "textSizeBody": "Your phone's text size is {percent}%. The app follows it; change it in your phone's display settings.",
+  "@textSizeBody": {
+    "description": "The current system text scale and where to change it.",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "textSizePreviewLabel": "Preview",
+  "@textSizePreviewLabel": {
+    "description": "Spoken label of the text-size sample."
+  },
+  "textSizeSampleName": "Ayesha Khan",
+  "@textSizeSampleName": {
+    "description": "A sample tenant name in the text-size preview."
+  },
+  "textSizeSampleDetail": "Shop 3, rent due on the 5th",
+  "@textSizeSampleDetail": {
+    "description": "A sample tenant detail in the text-size preview."
+  },
+  "deleteAccountTitle": "Delete account",
+  "@deleteAccountTitle": {
+    "description": "Heading of the account deletion screen."
+  },
+  "deletionPreviewFailedTitle": "We could not check what would be deleted",
+  "@deletionPreviewFailedTitle": {
+    "description": "Heading when the deletion preview fails."
+  },
+  "loadingDeletionPreview": "Checking what would be deleted",
+  "@loadingDeletionPreview": {
+    "description": "Spoken while the deletion preview loads."
+  },
+  "deleteAccountWarningTitle": "This cannot be undone",
+  "@deleteAccountWarningTitle": {
+    "description": "Warning title on the deletion screen."
+  },
+  "deleteAccountWarningBody": "Deleted records cannot be recovered, not even by us. Before you continue, keep copies of any receipts and statements you need.",
+  "@deleteAccountWarningBody": {
+    "description": "Warning on the deletion screen."
+  },
+  "deleteAccountWhatGoes": "What will be deleted",
+  "@deleteAccountWhatGoes": {
+    "description": "Section heading on the deletion screen."
+  },
+  "deleteAccountNoPortfolios": "You are not the only owner of any portfolio, so no portfolio is deleted.",
+  "@deleteAccountNoPortfolios": {
+    "description": "When deletion removes no portfolio."
+  },
+  "deleteAccountPortfolios": "{count, plural, =1{You are the only owner of this portfolio, so it is deleted with everything in it: properties, tenants, payments, receipts and files.} other{You are the only owner of these {count} portfolios, so they are deleted with everything in them: properties, tenants, payments, receipts and files.}}",
+  "@deleteAccountPortfolios": {
+    "description": "Before the list of portfolios deleted with the account.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteAccountMemberships": "You are removed from every other portfolio; its owners keep it and its records.",
+  "@deleteAccountMemberships": {
+    "description": "What deletion does to other memberships."
+  },
+  "deleteAccountSignIn": "Your sign-in and your profile are deleted, and you are signed out.",
+  "@deleteAccountSignIn": {
+    "description": "What deletion does to the account itself."
+  },
+  "deleteAccountConfirmTitle": "Confirm it is you",
+  "@deleteAccountConfirmTitle": {
+    "description": "Form section heading on the deletion screen."
+  },
+  "deleteAccountConfirmBody": "Enter your password, as deleting needs a sign-in from the last {minutes, plural, =1{minute} other{{minutes} minutes}}, and type your e-mail address.",
+  "@deleteAccountConfirmBody": {
+    "description": "Explanation of the re-authentication and typed confirmation.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "typeEmailToConfirm": "Type {email} to confirm",
+  "@typeEmailToConfirm": {
+    "description": "Label of the typed confirmation field.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteAccountConfirmAction": "Delete my account",
+  "@deleteAccountConfirmAction": {
+    "description": "Button that deletes the account for good."
+  },
+  "doomedPortfolioOnlyYou": "Only you use it",
+  "@doomedPortfolioOnlyYou": {
+    "description": "A deleted portfolio has no other members."
+  },
+  "doomedPortfolioOthers": "{count, plural, =1{1 other person loses access} other{{count} other people lose access}}",
+  "@doomedPortfolioOthers": {
+    "description": "How many others lose a deleted portfolio.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "checkEmailSentTo": "We sent a link to:",
+  "@checkEmailSentTo": {
+    "description": "Before the e-mail address a link was sent to."
+  },
+  "checkEmailInstructions": "Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.",
+  "@checkEmailInstructions": {
+    "description": "What to do with the e-mailed link."
+  },
+  "groupingLabel": "How amounts are grouped",
+  "@groupingLabel": {
+    "description": "Label of the digit grouping choice."
   }
 }

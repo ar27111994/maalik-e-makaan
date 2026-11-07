@@ -4,28 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_core/mm_core.dart';
 
-/// An in-memory [SettingsStore].
-final class MemorySettingsStore implements SettingsStore {
-  new([Map<String, Object>? values]) : values = {...?values};
-
-  final Map<String, Object> values;
-
-  @override
-  String? getString(String key) => values[key] as String?;
-
-  @override
-  bool? getBool(String key) => values[key] as bool?;
-
-  @override
-  Future<void> setString(String key, String value) async => values[key] = value;
-
-  @override
-  Future<void> setBool(String key, {required bool value}) async =>
-      values[key] = value;
-
-  @override
-  Future<void> remove(String key) async => values.remove(key);
-}
+import '../../support/fakes.dart';
 
 ProviderContainer _container(MemorySettingsStore store) =>
     ProviderContainer.test(

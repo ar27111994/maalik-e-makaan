@@ -3,22 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 
-/// An in-memory [KeyValueStore].
-final class MemoryStore implements KeyValueStore {
-  final Map<String, String> values = {};
-
-  @override
-  Future<String?> read(String key) async => values[key];
-
-  @override
-  Future<void> write(String key, String value) async => values[key] = value;
-
-  @override
-  Future<void> delete(String key) async => values.remove(key);
-
-  @override
-  Future<Set<String>> keys() async => values.keys.toSet();
-}
+import '../../../support/fakes.dart';
 
 void main() {
   final saved = DateTime.utc(2026, 11, 5, 10, 30);

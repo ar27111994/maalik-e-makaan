@@ -14,15 +14,29 @@ sealed class AuthStatus {
   const new();
 }
 
+/// Why the last session on this device ended, when the app ended it.
+enum SignOutCause {
+  /// The user chose "Sign out".
+  userRequest,
+
+  /// The account was deleted.
+  accountDeleted,
+}
+
 /// Nobody is signed in.
 final class SignedOut extends AuthStatus {
-  const new();
+  const new({this.cause});
+
+  /// Why the app signed the user out; null when nobody was signed in or the
+  /// session ended by itself (it expired or was revoked elsewhere), in
+  /// which case the user is returned to where they were after signing in.
+  final SignOutCause? cause;
 
   @override
-  bool operator ==(Object other) => other is SignedOut;
+  bool operator ==(Object other) => other is SignedOut && other.cause == cause;
 
   @override
-  int get hashCode => (SignedOut).hashCode;
+  int get hashCode => Object.hash(SignedOut, cause);
 }
 
 /// A signed-in user.
@@ -88,8 +102,22 @@ abstract interface class AuthRepository {
 
   Future<void> updatePassword(String newPassword);
 
+  /// Signs the current user in again with [password], as sensitive actions
+  /// (deleting the account) require a recent sign-in.
+  Future<void> reauthenticate(String password);
+
+  /// Completes the sign-in an e-mail link started (confirming the address
+  /// or resetting the password): exchanges the link's one-time code for a
+  /// session. The link must be opened on the device that asked for it,
+  /// which holds the code's verifier (PKCE).
+  ///
+  /// Throws [RejectedFailure] with `link_expired` (too old or used),
+  /// `link_invalid` (not a sign-in link) or `link_other_device` (asked for
+  /// on another device or browser).
+  Future<void> completeEmailLink(Uri link);
+
   /// Signs out of this device and forgets everything cached for the account.
-  Future<void> signOut();
+  Future<void> signOut({SignOutCause cause = SignOutCause.userRequest});
 }
 
 /// [AuthRepository] over Supabase Auth.
@@ -100,13 +128,14 @@ final class SupabaseAuthRepository implements AuthRepository {
   final SwrCache _cache;
   final AppConfig _config;
   bool _recovering = false;
+  SignOutCause? _signOutCause;
 
   @override
   AuthStatus get status => _statusOf(_auth.currentSession);
 
   AuthStatus _statusOf(sb.Session? session) {
     final user = session?.user;
-    if (user == null) return const SignedOut();
+    if (user == null) return SignedOut(cause: _signOutCause);
     if (_recovering) return RecoveringPassword(userId: user.id);
     return SignedIn(userId: user.id, email: user.email);
   }
@@ -127,7 +156,10 @@ final class SupabaseAuthRepository implements AuthRepository {
 
   Future<AuthStatus> _apply(sb.AuthState change) async {
     final event = change.event;
-    if (event == sb.AuthChangeEvent.passwordRecovery) {
+    if (event == sb.AuthChangeEvent.signedIn) {
+      _signOutCause = null;
+    } else if (event == sb.AuthChangeEvent.passwordRecovery) {
+      _signOutCause = null;
       _recovering = true;
     } else if (event == sb.AuthChangeEvent.userUpdated) {
       // A new password ends the recovery.
@@ -194,7 +226,48 @@ final class SupabaseAuthRepository implements AuthRepository {
       _guard(() => _auth.updateUser(sb.UserAttributes(password: newPassword)));
 
   @override
-  Future<void> signOut() => _guard(() async {
+  Future<void> reauthenticate(String password) => _guard(() async {
+    final email = _auth.currentUser?.email;
+    if (email == null) throw const SessionExpired();
+    await _auth.signInWithPassword(email: email, password: password);
+  });
+
+  @override
+  Future<void> completeEmailLink(Uri link) => _guard(() async {
+    // Supabase reports a refused link in the query or the fragment.
+    final parameters = {
+      ...Uri.splitQueryString(link.fragment),
+      ...link.queryParameters,
+    };
+    final error = parameters['error_code'] ?? parameters['error'];
+    if (error != null) {
+      throw RejectedFailure(
+        error == 'otp_expired' ? 'link_expired' : 'link_invalid',
+      );
+    }
+    final code = parameters['code'];
+    if (code == null || code.isEmpty) {
+      throw const RejectedFailure('link_invalid');
+    }
+    try {
+      await _auth.exchangeCodeForSession(code);
+    } on sb.AuthException catch (error) {
+      // A plain AuthException (no subclass: not the server's answer, not the
+      // network) is raised before any request, when this device holds no
+      // verifier for the code: the link was asked for on another device or
+      // browser.
+      if (error.runtimeType == sb.AuthException) {
+        throw const RejectedFailure('link_other_device');
+      }
+      rethrow;
+    }
+  });
+
+  @override
+  Future<void> signOut({
+    SignOutCause cause = SignOutCause.userRequest,
+  }) => _guard(() async {
+    _signOutCause = cause;
     try {
       await _auth.signOut();
     } finally {
@@ -211,9 +284,4 @@ final authRepositoryProvider = Provider<AuthRepository>(
     cache: ref.watch(swrCacheProvider),
     config: ref.watch(appConfigProvider),
   ),
-);
-
-/// The current [AuthStatus], kept up to date.
-final authStatusProvider = StreamProvider<AuthStatus>(
-  (ref) => ref.watch(authRepositoryProvider).watch(),
 );

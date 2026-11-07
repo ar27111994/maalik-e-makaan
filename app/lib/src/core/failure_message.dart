@@ -60,5 +60,11 @@ String _reason(AppLocalizations l10n, String reason) => switch (reason) {
   'tenant_archived' => l10n.reasonTenantArchived,
   'unit_archived' => l10n.reasonUnitArchived,
   'constraint_violation' => l10n.reasonConstraintViolation,
+  'link_expired' => l10n.reasonLinkExpired,
+  'link_invalid' => l10n.reasonLinkInvalid,
+  'link_other_device' => l10n.reasonLinkOtherDevice,
+  'signup_disabled' => l10n.reasonSignupDisabled,
+  'mfa_required' => l10n.reasonMfaRequired,
+  'does_not_match_account' => l10n.reasonDoesNotMatchAccount,
   _ => l10n.failureRejected,
 };

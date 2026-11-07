@@ -60,7 +60,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passwordHelper =>
-      'At least 8 characters, with a letter and a number.';
+      'At least 10 characters, with capital and small letters and a number.';
 
   @override
   String get fullNameLabel => 'Your name';
@@ -77,11 +77,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get checkEmailTitle => 'Check your e-mail';
-
-  @override
-  String checkEmailBody(String email) {
-    return 'We sent a link to $email. Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.';
-  }
 
   @override
   String get resendEmailAction => 'Send the e-mail again';
@@ -107,10 +102,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validationPassword =>
-      'Use at least 8 characters, with a letter and a number.';
-
-  @override
-  String get navHome => 'Home';
+      'Use at least 10 characters, with capital and small letters and a number.';
 
   @override
   String get navTenants => 'Tenants';
@@ -230,7 +222,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reasonWeakPassword =>
-      'Choose a stronger password: at least 8 characters, with a letter and a number.';
+      'Choose a stronger password: at least 10 characters, with capital and small letters and a number.';
 
   @override
   String get reasonSamePassword =>
@@ -383,4 +375,318 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reasonConstraintViolation =>
       'Some details are not valid, or refer to something that no longer exists.';
+
+  @override
+  String get navDashboard => 'Dashboard';
+
+  @override
+  String get continueInEnglish => 'Continue in English';
+
+  @override
+  String get continueInUrdu => 'اردو میں جاری رکھیں';
+
+  @override
+  String validationTooLong(int max) {
+    return 'Use at most $max characters.';
+  }
+
+  @override
+  String get validationPasswordMismatch => 'The passwords do not match.';
+
+  @override
+  String get validationPhone => 'Enter a phone number like 03001234567.';
+
+  @override
+  String get validationTypedEmail =>
+      'Type your e-mail address exactly as shown.';
+
+  @override
+  String get accountDeletedTitle => 'Your account has been deleted';
+
+  @override
+  String get accountDeletedBody =>
+      'Your sign-in, your profile and the portfolios you owned alone are gone. Thank you for using Maalik-e-Makaan.';
+
+  @override
+  String get emailSentAgain => 'We sent the e-mail again.';
+
+  @override
+  String get checkEmailBodyNoAddress =>
+      'We sent you a link. Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.';
+
+  @override
+  String get checkEmailResetHint =>
+      'The link works once, for an hour. If no account uses this address, no e-mail is sent.';
+
+  @override
+  String resendWait(int seconds) {
+    String _temp0 = intl.Intl.pluralLogic(
+      seconds,
+      locale: localeName,
+      other: '$seconds seconds',
+      one: '1 second',
+    );
+    return 'You can send it again in $_temp0.';
+  }
+
+  @override
+  String get passwordSaved => 'Your new password is saved.';
+
+  @override
+  String get repeatPasswordLabel => 'Type the new password again';
+
+  @override
+  String get choosePasswordBody =>
+      'Choose the password you will sign in with from now on.';
+
+  @override
+  String get linkFailedTitle => 'This link did not work';
+
+  @override
+  String get reasonLinkExpired =>
+      'This link has expired or was already used. Ask for a new one.';
+
+  @override
+  String get reasonLinkInvalid =>
+      'This is not a valid sign-in link. Open the latest link we e-mailed you.';
+
+  @override
+  String get reasonLinkOtherDevice =>
+      'Open the link on the phone or browser where you asked for it. If you were confirming your e-mail, it is confirmed: sign in with your password.';
+
+  @override
+  String get reasonSignupDisabled =>
+      'New accounts cannot be created right now. Please try again later.';
+
+  @override
+  String get reasonMfaRequired =>
+      'This account has a second sign-in step, which this app cannot check yet, so it cannot be deleted here.';
+
+  @override
+  String get reasonDoesNotMatchAccount =>
+      'This is not your account\'s e-mail address.';
+
+  @override
+  String get createFirstPortfolioTitle => 'Create your portfolio';
+
+  @override
+  String get newPortfolioTitle => 'New portfolio';
+
+  @override
+  String get createFirstPortfolioBody =>
+      'A portfolio holds your properties, tenants and money records. Name it after the family, the building or the owner, for example “Khan family properties”.';
+
+  @override
+  String get newPortfolioBody =>
+      'Keep properties apart when their money is kept apart: a relative\'s house, or a plaza with its own accounts. You will be its owner.';
+
+  @override
+  String get portfolioNameLabel => 'Portfolio name';
+
+  @override
+  String get portfolioNameHelper => 'You can rename it later.';
+
+  @override
+  String get portfolioNameInvalid =>
+      'This name cannot be used. Use letters, numbers and spaces.';
+
+  @override
+  String get createPortfolioAction => 'Create portfolio';
+
+  @override
+  String get cancelAction => 'Cancel';
+
+  @override
+  String portfolioCreated(String name) {
+    return '$name is ready.';
+  }
+
+  @override
+  String get roleOwner => 'Owner';
+
+  @override
+  String get roleManager => 'Manager';
+
+  @override
+  String get roleAccountant => 'Accountant';
+
+  @override
+  String get roleViewer => 'Viewer';
+
+  @override
+  String get switchPortfolioTitle => 'Switch portfolio';
+
+  @override
+  String get switchPortfolioAction => 'Switch portfolio';
+
+  @override
+  String get currentPortfolioLabel => 'Current portfolio';
+
+  @override
+  String get newPortfolioAction => 'New portfolio';
+
+  @override
+  String get portfolioSection => 'Portfolio';
+
+  @override
+  String yourRole(String role) {
+    return 'Your role: $role';
+  }
+
+  @override
+  String get settingsSummary =>
+      'Your details, language, appearance and account';
+
+  @override
+  String get loadingPortfolios => 'Loading your portfolios';
+
+  @override
+  String get portfoliosLoadFailedTitle => 'Your portfolios could not be loaded';
+
+  @override
+  String get profileLoadFailedTitle => 'Your details could not be loaded';
+
+  @override
+  String get loadingProfile => 'Loading your details';
+
+  @override
+  String languageNotSavedToProfile(String reason) {
+    return 'The language changed on this device but could not be saved to your account. $reason';
+  }
+
+  @override
+  String get settingsLanguageHelp => 'The e-mails we send you use it too.';
+
+  @override
+  String get themeLabel => 'Theme';
+
+  @override
+  String get signedInAs => 'Signed in as';
+
+  @override
+  String get profileSection => 'Your details';
+
+  @override
+  String get profileSectionHelp =>
+      'People in your portfolios see your name and phone.';
+
+  @override
+  String get phoneLabel => 'Phone';
+
+  @override
+  String get phoneHelper =>
+      'A Pakistani number like 03001234567, or a number abroad starting with 00 and its country code.';
+
+  @override
+  String get saveDetailsAction => 'Save details';
+
+  @override
+  String get detailsSaved => 'Your details are saved.';
+
+  @override
+  String get textSizeTitle => 'Text size';
+
+  @override
+  String textSizeBody(int percent) {
+    return 'Your phone\'s text size is $percent%. The app follows it; change it in your phone\'s display settings.';
+  }
+
+  @override
+  String get textSizePreviewLabel => 'Preview';
+
+  @override
+  String get textSizeSampleName => 'Ayesha Khan';
+
+  @override
+  String get textSizeSampleDetail => 'Shop 3, rent due on the 5th';
+
+  @override
+  String get deleteAccountTitle => 'Delete account';
+
+  @override
+  String get deletionPreviewFailedTitle =>
+      'We could not check what would be deleted';
+
+  @override
+  String get loadingDeletionPreview => 'Checking what would be deleted';
+
+  @override
+  String get deleteAccountWarningTitle => 'This cannot be undone';
+
+  @override
+  String get deleteAccountWarningBody =>
+      'Deleted records cannot be recovered, not even by us. Before you continue, keep copies of any receipts and statements you need.';
+
+  @override
+  String get deleteAccountWhatGoes => 'What will be deleted';
+
+  @override
+  String get deleteAccountNoPortfolios =>
+      'You are not the only owner of any portfolio, so no portfolio is deleted.';
+
+  @override
+  String deleteAccountPortfolios(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'You are the only owner of these $count portfolios, so they are deleted with everything in them: properties, tenants, payments, receipts and files.',
+      one: 'You are the only owner of this portfolio, so it is deleted with everything in it: properties, tenants, payments, receipts and files.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteAccountMemberships =>
+      'You are removed from every other portfolio; its owners keep it and its records.';
+
+  @override
+  String get deleteAccountSignIn =>
+      'Your sign-in and your profile are deleted, and you are signed out.';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Confirm it is you';
+
+  @override
+  String deleteAccountConfirmBody(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: 'minute',
+    );
+    return 'Enter your password, as deleting needs a sign-in from the last $_temp0, and type your e-mail address.';
+  }
+
+  @override
+  String typeEmailToConfirm(String email) {
+    return 'Type $email to confirm';
+  }
+
+  @override
+  String get deleteAccountConfirmAction => 'Delete my account';
+
+  @override
+  String get doomedPortfolioOnlyYou => 'Only you use it';
+
+  @override
+  String doomedPortfolioOthers(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count other people lose access',
+      one: '1 other person loses access',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get checkEmailSentTo => 'We sent a link to:';
+
+  @override
+  String get checkEmailInstructions =>
+      'Open it on this device to continue. If it does not arrive in a few minutes, check your spam folder.';
+
+  @override
+  String get groupingLabel => 'How amounts are grouped';
 }

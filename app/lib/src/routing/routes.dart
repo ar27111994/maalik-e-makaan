@@ -1,4 +1,5 @@
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 
 /// Every path the app routes to.
 abstract final class Routes {
@@ -10,12 +11,15 @@ abstract final class Routes {
   static const updatePassword = '/update-password';
   static const authCallback = '/auth/callback';
 
+  static const createPortfolio = '/portfolios/new';
+
   static const home = '/';
+  static const properties = '/properties';
   static const tenants = '/tenants';
   static const money = '/money';
-  static const properties = '/properties';
   static const more = '/more';
   static const settings = '/more/settings';
+  static const deleteAccount = '/more/settings/delete-account';
 
   /// Reachable without signing in.
   static const Set<String> public = {
@@ -37,14 +41,20 @@ abstract final class Routes {
 
 /// Where navigation to [location] must go instead, or null to allow it.
 ///
-/// In order: a language is chosen before anything else (the first-launch
-/// screen); a password-reset link leads only to choosing a new password;
-/// signed-out users reach only the public screens (remembering where they
-/// were going); signed-in users skip the sign-in screens.
+/// In order:
+/// 1. a language is chosen before anything else (the first-launch screen);
+/// 2. a password-reset link leads only to choosing a new password;
+/// 3. signed-out users reach only the public screens, remembering where
+///    they were going when their session ended by itself (not when they
+///    signed out or deleted the account);
+/// 4. signed-in users skip the sign-in screens;
+/// 5. a signed-in user without a portfolio creates one first (Settings stay
+///    open, to change the language or sign out).
 String? redirectFor({
   required Uri location,
   required bool languageChosen,
   required AuthStatus auth,
+  PortfolioGate portfolios = PortfolioGate.unknown,
 }) {
   final path = location.path;
   if (!languageChosen) {
@@ -55,14 +65,21 @@ String? redirectFor({
   switch (auth) {
     case RecoveringPassword():
       return path == Routes.updatePassword ? null : Routes.updatePassword;
-    case SignedOut():
+    case SignedOut(:final cause):
       if (Routes.public.contains(path)) return null;
-      return _withFrom(Routes.signIn, location);
+      return cause == null ? _withFrom(Routes.signIn, location) : Routes.signIn;
     case SignedIn():
       if (Routes.signedOutOnly.contains(path) || path == Routes.authCallback) {
         return _from(location) ?? Routes.home;
       }
       if (path == Routes.updatePassword) return Routes.home;
+      final settings =
+          path == Routes.settings || path.startsWith('${Routes.settings}/');
+      if (portfolios == PortfolioGate.none &&
+          path != Routes.createPortfolio &&
+          !settings) {
+        return Routes.createPortfolio;
+      }
       return null;
   }
 }

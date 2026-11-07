@@ -57,6 +57,12 @@ void main() {
       'tenant_archived',
       'unit_archived',
       'constraint_violation',
+      'link_expired',
+      'link_invalid',
+      'link_other_device',
+      'signup_disabled',
+      'mfa_required',
+      'does_not_match_account',
       'something_new',
     ])
       RejectedFailure(reason),

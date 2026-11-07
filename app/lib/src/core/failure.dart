@@ -17,9 +17,14 @@ sealed class AppFailure implements Exception {
     AppFailure() => error,
     PostgrestException() => _fromPostgrest(error),
     AuthException() => _fromAuth(error),
+    // The request never reached the function (no connection, DNS, TLS).
+    FunctionsFetchException() => const NetworkFailure(),
     FunctionException() => _fromFunction(error),
     // package:http wraps socket errors in ClientException on every platform.
     TimeoutException() || ClientException() => const NetworkFailure(),
+    // A model refused the server's answer (a missing or mistyped field):
+    // the server and this app version disagree.
+    FormatException() => const ServerFailure('unexpected_response'),
     _ => UnexpectedFailure(error),
   };
 
@@ -48,6 +53,10 @@ sealed class AppFailure implements Exception {
   static AppFailure _fromAuth(AuthException error) {
     if (error is AuthRetryableFetchException) return const NetworkFailure();
     if (error is AuthSessionMissingException) return const SessionExpired();
+    // An e-mail link without a code, or with one the client cannot use.
+    if (error is AuthPKCEGrantCodeExchangeError) {
+      return const RejectedFailure('link_invalid');
+    }
     return switch (error.code) {
       'invalid_credentials' => const RejectedFailure('invalid_credentials'),
       'email_not_confirmed' => const RejectedFailure('email_not_confirmed'),
@@ -55,6 +64,16 @@ sealed class AppFailure implements Exception {
       'email_exists' => const RejectedFailure('email_taken'),
       'weak_password' => const RejectedFailure('weak_password'),
       'same_password' => const RejectedFailure('same_password'),
+      'email_address_invalid' => const RejectedFailure('invalid_email'),
+      'signup_disabled' => const RejectedFailure('signup_disabled'),
+      // An e-mail link that was used already or is too old.
+      'otp_expired' ||
+      'flow_state_expired' => const RejectedFailure('link_expired'),
+      'flow_state_not_found' ||
+      'bad_code_verifier' => const RejectedFailure('link_invalid'),
+      // Changing the password needs a recent sign-in.
+      'reauthentication_needed' ||
+      'reauthentication_not_valid' => const ReauthenticationRequired(),
       'over_email_send_rate_limit' ||
       'over_request_rate_limit' ||
       'over_sms_send_rate_limit' => const RateLimited(null),
@@ -81,6 +100,7 @@ sealed class AppFailure implements Exception {
       ),
       (401, 'reauthentication_required') => const ReauthenticationRequired(),
       (401, _) => const SessionExpired(),
+      (403, 'mfa_required') => const RejectedFailure('mfa_required'),
       (403, _) => const Forbidden(),
       (404, _) => const NotFoundFailure(),
       (409, _) => const ConflictFailure(),

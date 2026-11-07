@@ -1,0 +1,3 @@
+tags:
+  golden:
+    description: Pixel comparisons against approved images (Linux rendering).

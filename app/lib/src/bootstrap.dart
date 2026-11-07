@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/config/app_config.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
+import 'package:maalik_e_makaan/src/data/retry.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +21,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   _reportErrors();
+  // Paths without a `#` on the web, so e-mail links to /auth/callback open
+  // that route (the host serves index.html for every path).
+  usePathUrlStrategy();
 
   final AppConfig config;
   try {
@@ -36,10 +41,15 @@ Future<void> bootstrap() async {
   final supabase = await Supabase.initialize(
     url: config.supabaseUrl.toString(),
     publishableKey: config.supabasePublishableKey,
+    // E-mail links are completed by the /auth/callback screen, which shows
+    // progress and says why a link failed (AuthRepository.completeEmailLink);
+    // the PKCE flow stays the default.
+    authOptions: const FlutterAuthClientOptions(detectSessionInUri: false),
   );
 
   runApp(
     ProviderScope(
+      retry: retryTransientFailures,
       overrides: [
         appConfigProvider.overrideWithValue(config),
         supabaseClientProvider.overrideWithValue(supabase.client),
