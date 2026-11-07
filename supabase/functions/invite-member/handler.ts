@@ -113,7 +113,7 @@ async function withinEmailLimits(ctx: RequestContext, inviterId: string, recipie
     { key: `invite_email:user:${inviterId}`, ...EMAIL_LIMITS.perInviter },
   ];
   for (const rule of rules) {
-    if (!await hitRateLimit(admin, rule)) return false;
+    if (!(await hitRateLimit(admin, rule)).allowed) return false;
   }
   return true;
 }

@@ -54,16 +54,19 @@ Reach_UserWaitsForJob ==
     ~\E r \in Reqs : \E j \in Jobs : /\ pc[r] = "init"
                                     /\ lkL[PInfo(r).lease].x = j
                                     /\ lv[j].lease # PInfo(r).lease
-\* A client's charge UPDATE waits for a row a ledger function holds.
-Reach_ClientEditWaits == ~\E u \in Edits : pc[u] = "cu_row" /\ Blockers(u) # {}
+\* A client's update_charge waits for the lease a ledger function holds.
+Reach_ClientEditWaits == ~\E u \in Edits : pc[u] = "cu_lease" /\ Blockers(u) # {}
+\* end_lease is about to release later rent that has been paid.
+Reach_EndLeaseReleasesPaidRent ==
+    ~\E e \in Ends : pc[e] = "el_void" /\ \E x \in ElVoidRows(e) : ChV(e, x).paid > 0
 
-\* Every ledger writer serialises on the lease row first, so payment-row,
-\* charge-row, unique-index and FK key-share waits never happen (the
-\* EvalPlanQual re-checks are a second layer).
+\* Every ledger writer, client charge edits included (update_charge), serialises
+\* on the lease row first, so payment-row, charge-row, unique-index and FK
+\* key-share waits never happen (the EvalPlanQual re-checks are a second layer).
 Fact_NoRowLockContention ==
     \A p \in Procs :
         pc[p] \in {"al_fetch", "vo_rev", "al_lockpay", "vo_pay", "rp_fk", "sy_fk",
-                   "rp_insert", "sy_ins", "el_void", "cr_upd"} => Blockers(p) = {}
+                   "rp_insert", "sy_ins", "el_void", "cr_upd", "cu_row"} => Blockers(p) = {}
 \* The advisory key lock comes before the INSERT, so no INSERT waits on
 \* payments_idempotency_key.
 Fact_NoIdemIndexWait == \A r \in Reqs : pc[r] = "rp_insert" => KeyWait(r, Key(r)) = {}

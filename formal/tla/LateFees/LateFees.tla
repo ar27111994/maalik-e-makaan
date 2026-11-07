@@ -4,9 +4,11 @@
 (* other writers of a lease's dues, as the CURRENT code implements them.   *)
 (* "hardening" is supabase/migrations/20261104143928_ledger_jobs_          *)
 (* hardening.sql, "findings" is 20261105170557_concurrency_findings.sql,   *)
-(* "ledger" is 20261103193658_ledger.sql and "latest" is                   *)
-(* 20261105072426_membership_deletion_storage.sql; each action names the   *)
-(* function it follows (always its last definition).                       *)
+(* "ledger" is 20261103193658_ledger.sql, "latest" is                      *)
+(* 20261105072426_membership_deletion_storage.sql and "ledger findings" is *)
+(* 20261107181820_ledger_findings.sql (record_payment, end_lease,          *)
+(* update_charge; the client UPDATE of charges is gone); each action names *)
+(* the function it follows (always its last definition).                   *)
 (*                                                                         *)
 (* Granularity and locks follow ../Membership: one step per SQL statement, *)
 (* or per row for a statement that locks rows one by one (the job's        *)
@@ -37,7 +39,6 @@ EXTENDS Naturals, Integers, FiniteSets, Sequences, TLC
 CONSTANTS
     SCENARIO,    \* processes and data (see Script, ScenarioProcs, InitData)
     MUTANT,      \* "none" = current code; otherwise one mechanism removed
-    FIX,         \* "none" = current code; otherwise a proposed fix applied
     MAX_DAY      \* last day the clock reaches
 
 Mutants == {"none",
@@ -58,16 +59,16 @@ Mutants == {"none",
             "stale_policy",        \* assess_late_fees uses the policy read by the scan
             "no_skip_locked",      \* run_daily_jobs waits for a busy lease (FOR UPDATE)
             "no_advisory_lock",    \* run_daily_jobs without pg_try_advisory_xact_lock
-            "no_void_related"}     \* void_charge voids the charge only, not its fee
-Fixes == {"none",
-          "backdated_void",        \* F1: record_payment voids the unpaid automatic fee of a
-                                   \* rent it settles with a payment dated within grace
-          "end_lease_fees",        \* F3: end_lease also voids the unpaid fees of the rent it voids
-          "charge_edit_rpc"}       \* F2: client charge edits lock the lease first (one RPC per lease)
-ASSUME MUTANT \in Mutants /\ FIX \in Fixes /\ MAX_DAY \in Nat
+            "no_void_related",     \* void_charge voids the charge only, not its fee
+            \* The fixes of findings F1-F3 (ledger findings), each removed:
+            "no_backdated_void",   \* F1: record_payment keeps the fee of a rent it settles
+                                   \* with a payment dated within grace
+            "end_lease_keeps_fees",\* F3: end_lease voids later rent but not its fees
+            "edit_no_lease_lock"}  \* F2: a client's charge edit is a multi-row UPDATE in scan
+                                   \* order with no lease lock (policy charges_update)
+ASSUME MUTANT \in Mutants /\ MAX_DAY \in Nat
 
 Mut(m) == MUTANT = m \/ (MUTANT = "rerun_accumulate" /\ m \in {"no_maint_check", "accumulate"})
-Fix(f) == FIX = f
 NoP == "-"
 
 -----------------------------------------------------------------------------
@@ -132,6 +133,9 @@ Script(t) ==
       [] t = "over1"  -> Pr("pay", "L1", NoP, "p1", 105000, -1, 2, <<>>, NoFee, 0)
       \* from day 2, part of the fee, chosen first (p_charge_ids = [the fee])
       [] t = "fee1"   -> Pr("pay", "L1", FR("r1", 1), "p1", 5000, -1, 2, <<>>, NoFee, 0)
+      \* paid within grace (day 1), recorded from day 2, the fee chosen first:
+      \* the fee is paid, then the rent; the fee is voided and its money released
+      [] t = "gfee1"  -> Pr("pay", "L1", FR("r1", 1), "p1", 120000, 1, 2, <<>>, NoFee, 0)
       [] t = "vpay1"  -> Pr("voidpay", "L1", NoP, "p1", 0, 0, 0, <<>>, NoFee, 0)
       [] t = "vrent1" -> Pr("voidchg", "L1", RR("r1"), NoP, 0, 0, 0, <<>>, NoFee, 0)
       [] t = "vfee1"  -> Pr("voidchg", "L1", FR("r1", 1), NoP, 0, 0, 0, <<>>, NoFee, 0)
@@ -151,6 +155,7 @@ ScenarioProcs(s) ==
       [] s = "part_paid"   -> {"J1", "J2", "part1", "pay2"}
       [] s = "fee_paid"    -> {"J1", "J2", "fee1"}
       [] s = "backdated"   -> {"J1", "J2", "late1"}
+      [] s = "backdated_fee" -> {"J1", "J2", "gfee1"}
       [] s = "end_lease"   -> {"J1", "J2", "end1"}
       [] s = "void_rent"   -> {"J1", "J2", "vrent1"}
       [] s = "void_fee"    -> {"J1", "J2", "vfee1"}
@@ -498,17 +503,34 @@ P_Lock(t) ==
 
 AddAlloc(f, r, a) == IF r \in DOMAIN f THEN [f EXCEPT ![r] = @ + a] ELSE f @@ (r :> a)
 
-\* F1's proposed fix: settling a rent with a payment dated within grace voids
-\* the rent's unpaid automatic fee (before the cursor reaches it).
-FixVoidFees(d, t, c, on) ==
-    LET l == RentLease(c)
-        hit == {i \in FeeIdx : d.val[FR(c, i)].ex /\ ~d.val[FR(c, i)].voided /\ d.val[FR(c, i)].paid = 0}
-    IN IF Fix("backdated_void") /\ on <= RentDue(c) + d.val[LR(l)].pol.g /\ hit # {}
-       THEN LET i == CHOOSE i \in hit : TRUE
-            IN Lock(Wr(d, t, FR(c, i), [d.val[FR(c, i)] EXCEPT !.voided = TRUE]), t, FR(c, i))
-       ELSE d
-FixBlockers(t, c, on) ==
-    IF Fix("backdated_void") THEN UNION {Blk(t, FR(c, i)) : i \in FeeIdx} ELSE {}
+\* F1's fix (ledger findings): a rent settled in full by a payment dated within
+\* its grace period loses its automatic fee, unless other money paid part of
+\* the fee. What this payment had put on the fee (it was chosen first) is
+\* released and allocated further. The SQL does this after allocate_payment
+\* and then allocates the payment again in the same order (chosen charges
+\* first, then due order); the rows the cursor had passed are settled, so the
+\* result is the same as voiding when the rent is settled, as here.
+MyAlloc(d, t, r) ==
+    LET al == d.val[PR(Script(t).p)].alloc IN IF r \in DOMAIN al THEN al[r] ELSE 0
+FeeHit(d, t, c, on) ==
+    IF ~Mut("no_backdated_void") /\ on <= RentDue(c) + d.val[LR(RentLease(c))].pol.g
+    THEN {i \in FeeIdx : d.val[FR(c, i)].ex /\ ~d.val[FR(c, i)].voided
+                         /\ d.val[FR(c, i)].paid = MyAlloc(d, t, FR(c, i))}
+    ELSE {}
+FeeFreed(d, t, c, on) ==
+    IF FeeHit(d, t, c, on) = {} THEN 0
+    ELSE MyAlloc(d, t, FR(c, CHOOSE i \in FeeHit(d, t, c, on) : TRUE))
+VoidFees(d, t, c, on) ==
+    IF FeeHit(d, t, c, on) = {} THEN d
+    ELSE LET f == FR(c, CHOOSE i \in FeeHit(d, t, c, on) : TRUE)
+             a == MyAlloc(d, t, f)
+             p == PR(Script(t).p)
+             d1 == Lock(Wr(d, t, f, [d.val[f] EXCEPT !.voided = TRUE, !.paid = @ - a]), t, f)
+             al == d1.val[p].alloc
+         IN IF a = 0 THEN d1
+            ELSE Wr(d1, t, p, [d1.val[p] EXCEPT !.alloc = [x \in DOMAIN al \ {f} |-> al[x]]])
+VoidFeeBlockers(t, c, on) ==
+    IF ~Mut("no_backdated_void") THEN UNION {Blk(t, FR(c, i)) : i \in FeeIdx} ELSE {}
 
 \* One row of allocate_payment's FOR UPDATE cursor (skips rows settled meanwhile)
 P_Alloc(t) ==
@@ -527,10 +549,12 @@ P_Alloc(t) ==
                /\ IF live /\ out > 0
                   THEN LET d1 == Wr(Lock(DB, t, r), t, r, [cur EXCEPT !.paid = @ + a])
                            d2 == Wr(d1, t, p, [val[p] EXCEPT !.alloc = AddAlloc(@, r, a)])
-                           d3 == IF r[1] = "R" /\ out - a = 0 THEN FixVoidFees(d2, t, r[2], on) ELSE d2
-                       IN /\ (r[1] = "R" /\ out - a = 0) => FixBlockers(t, r[2], on) = {}
+                           settled == r[1] = "R" /\ out - a = 0
+                           d3 == IF settled THEN VoidFees(d2, t, r[2], on) ELSE d2
+                           freed == IF settled THEN FeeFreed(d2, t, r[2], on) ELSE 0
+                       IN /\ settled => VoidFeeBlockers(t, r[2], on) = {}
                           /\ SetDB(d3)
-                          /\ lv' = [lv EXCEPT ![t].order = Tail(@), ![t].rem = @ - a]
+                          /\ lv' = [lv EXCEPT ![t].order = Tail(@), ![t].rem = @ - a + freed]
                   ELSE /\ lk' = [lk EXCEPT ![r] = t]
                        /\ lv' = [lv EXCEPT ![t].order = Tail(@)]
                        /\ UNCHANGED <<val, dirty, pre>>
@@ -610,17 +634,28 @@ C_Do(t) ==
     /\ Goto(t, "done")
     /\ UNCHANGED <<today, adv, lv, gh>>
 
-\* end_lease(l, moved out in month m): sync (abstracted), void untouched rent
-\* of later months ("period_month > ... and paid_amount = 0"), status 'ended'.
+\* end_lease(l, moved out in month m) (ledger findings): sync (abstracted);
+\* the live rent of later months and the live automatic fees of rent of
+\* later months, paid or not, have their allocations released (paid 0, the
+\* payments' allocations removed) and are voided; status 'ended'. The freed
+\* money is applied as credit (apply_lease_credit), which allocates nothing
+\* here: no scenario pays a lease it ends. Mutant end_lease_keeps_fees: the
+\* fees stay (finding F3).
 EndRows(t) ==
     LET l == Script(t).l
-        later == {c \in LeaseRents(l) : RentMonth(c) > Script(t).m /\ Rent(c).paid = 0 /\ ~Rent(c).voided}
-        fees == IF Fix("end_lease_fees")
-                THEN {FR(c, i) : <<c, i>> \in {x \in later \X FeeIdx :
-                          Fee(x[1], x[2]).ex /\ Fee(x[1], x[2]).paid = 0 /\ ~Fee(x[1], x[2]).voided}}
-                ELSE {}
-    IN FnOf({RR(c) : c \in later} \cup fees \cup {LR(l)},
-            LAMBDA r : IF r = LR(l) THEN [val[r] EXCEPT !.st = "ended"] ELSE [val[r] EXCEPT !.voided = TRUE])
+        laterAll == {c \in LeaseRents(l) : RentMonth(c) > Script(t).m}
+        later == {c \in laterAll : ~Rent(c).voided}
+        fees == IF Mut("end_lease_keeps_fees") THEN {}
+                ELSE {FR(c, i) : <<c, i>> \in {x \in laterAll \X FeeIdx :
+                          Fee(x[1], x[2]).ex /\ ~Fee(x[1], x[2]).voided}}
+        rows == {RR(c) : c \in later} \cup fees
+        pays == {PR(q) : q \in {q \in {"p1", "p2"} : val[PR(q)].ex /\ ~val[PR(q)].voided
+                                                    /\ DOMAIN val[PR(q)].alloc \cap rows # {}}}
+    IN FnOf(rows \cup pays \cup {LR(l)},
+            LAMBDA r : CASE r = LR(l) -> [val[r] EXCEPT !.st = "ended"]
+                         [] r \in pays -> [val[r] EXCEPT !.alloc = [x \in DOMAIN val[r].alloc \ rows |->
+                                                                    val[r].alloc[x]]]
+                         [] OTHER -> [val[r] EXCEPT !.voided = TRUE, !.paid = 0])
 E_Lock(t) == Kind(t) = "end" /\ pc[t] = "e_lock" /\ LockStep(t, "e_do")
 E_Do(t) ==
     /\ Kind(t) = "end" /\ pc[t] = "e_do"
@@ -634,9 +669,12 @@ E_Do(t) ==
 (* UPDATE leases SET late_fee_type, late_fee_value, late_fee_cap: policy   *)
 (* leases_update (findings) takes the caller's portfolio keys first, then  *)
 (* locks each row in scan order (FOR NO KEY UPDATE) and writes it.         *)
-(* UPDATE charges SET description: policy charges_update (findings), the   *)
-(* same way; before_charge_update (ledger) allows it on any live charge.   *)
-(* No lease lock: the statement locks charge rows directly.                *)
+(* A client's charge edits (ledger findings): public.update_charge, one     *)
+(* call per charge (Cl_Fix). Mutant edit_no_lease_lock is the code before: *)
+(* UPDATE charges SET description under policy charges_update (findings),  *)
+(* the same way as the lease policy; before_charge_update (ledger) allowed *)
+(* it on any live charge. No lease lock: the statement locked charge rows  *)
+(* directly (Cl_Row).                                                      *)
 -----------------------------------------------------------------------------
 ClientRow(t) == Head(lv[t].rows)
 Cl_Row(t) ==
@@ -656,8 +694,10 @@ Cl_Row(t) ==
             /\ UNCHANGED pc
     /\ UNCHANGED <<today, adv, gh>>
 
-\* F2's proposed fix: an RPC per charge that locks its lease first
-\* (lock_lease_for_write) and then the row, and commits.
+\* public.update_charge (ledger findings, F2's fix): one call per charge,
+\* each its own transaction: lock_lease_for_write (the lease first), then
+\* the row, the write, commit. Its credit application allocates nothing
+\* here (a description edit).
 Cl_Fix(t) ==
     /\ Kind(t) = "edit" /\ pc[t] = "u_fix"
     /\ IF lv[t].rows = <<>>
@@ -690,7 +730,7 @@ Need(t) ==
             IF lv[t].order = <<>> \/ lv[t].rem = 0 THEN {}
             ELSE LET r == Head(lv[t].order)
                      fix == IF r[1] = "R" /\ OutR(val[r]) <= lv[t].rem
-                            THEN FixBlockers(t, r[2], val[PR(Script(t).p)].on) ELSE {}
+                            THEN VoidFeeBlockers(t, r[2], val[PR(Script(t).p)].on) ELSE {}
                  IN Blk(t, r) \cup fix
       [] pc[t] \in {"v_lock", "c_lock", "e_lock"} -> Blk(t, LR(Script(t).l))
       [] pc[t] = "v_do" ->
@@ -735,7 +775,7 @@ StartPC(t) ==
       [] Kind(t) = "voidchg" -> "c_wait"
       [] Kind(t) = "end"     -> "e_lock"
       [] Kind(t) = "policy"  -> "u_row"
-      [] Kind(t) = "edit"    -> IF Fix("charge_edit_rpc") THEN "u_fix" ELSE "u_row"
+      [] Kind(t) = "edit"    -> IF Mut("edit_no_lease_lock") THEN "u_row" ELSE "u_fix"
 
 InitVal(r) ==
     CASE r[1] = "L" -> [st |-> "active", pol |-> InitPol(r[2])]
@@ -858,6 +898,8 @@ W_NoFeePosted == \A c \in Rents, i \in FeeIdx : ~CF(c, i).ex \/ InitFee(c).ex
 W_NoFeeRaised == ~gh.raised
 W_NoRentPaidInGrace == \A c \in LiveRents : ~PaidInGrace(c)
 W_NoDeadlockDetected == ~gh.deadlock
+\* No fee is ever voided (by record_payment within grace, or by end_lease).
+W_NoFeeVoided == \A c \in Rents, i \in FeeIdx : ~CF(c, i).voided
 
 (* Sanity: a finished process holds no lock and has no uncommitted write.  *)
 NoLeakedLocks ==

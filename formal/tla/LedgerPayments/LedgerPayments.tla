@@ -11,15 +11,17 @@
 (*      20261104143928_ledger_jobs_hardening.sql ("hardening")             *)
 (*  private.lock_lease_for_write, public.sync_portfolio_billing            *)
 (*      20261105072426_membership_deletion_storage.sql ("membership")      *)
-(*  private.run_daily_jobs, private.before_manual_charge_insert,           *)
-(*    policy charges_update                                                *)
+(*  private.run_daily_jobs, private.before_manual_charge_insert           *)
 (*      20261105170557_concurrency_findings.sql ("findings")               *)
+(*  public.update_charge, public.end_lease, public.record_payment (the     *)
+(*    amount + tax check, which changes nothing modelled here); the        *)
+(*    client UPDATE grant and the charges_update policy are dropped        *)
+(*      20261107181820_ledger_findings.sql ("ledger findings")             *)
 (*  private.allocate_payment, private.apply_lease_credit,                  *)
-(*    public.change_rent, public.end_lease, private.before_charge_update,  *)
-(*    tables charges / payments / payment_allocations, the unique indexes  *)
+(*    public.change_rent, private.before_charge_update, tables charges /   *)
+(*    payments / payment_allocations, the unique indexes                   *)
 (*    charges_rent_period_key, payments_receipt_number_key,                *)
-(*    payments_idempotency_key, grant update (due_date, amount,            *)
-(*    description) on charges to authenticated                             *)
+(*    payments_idempotency_key                                             *)
 (*      20261103193658_ledger.sql ("ledger")                               *)
 (*  private.after_manual_charge_insert (membership).                       *)
 (*                                                                         *)
@@ -72,7 +74,6 @@ EXTENDS Integers, Sequences, FiniteSets, TLC
 CONSTANTS
     SCENARIO,      \* which transactions run (Reqs, Syncs, Jobs, ...)
     MUTANT,        \* "none", or one protection removed (see Mut* below)
-    FIX,           \* "none", or a proposed fix of a finding (see Fix* below)
     RECEIPT_WIDTH, \* lpad width of the OLD next_receipt_number (mutant lpad_truncate)
     COUNTER_START, \* receipts already issued this year in the portfolio
     MAX_ABORTS     \* bound on spontaneous aborts in one behaviour
@@ -130,16 +131,25 @@ MutJobNoTryLock == MUTANT = "job_no_try_lock"
 MutAllocUnordered == MUTANT = "alloc_unordered"
 \* change_rent without the re-pricing UPDATE of untouched rent
 MutCrNoReprice == MUTANT = "cr_no_reprice"
+\* update_charge without lock_lease_for_write: the edit locks its rows in scan
+\* order with no lease lock (the client UPDATE of charges before ledger
+\* findings, finding F1)
+MutCuNoLeaseLock == MUTANT = "cu_no_lease_lock"
+\* update_charge without apply_lease_credit after an amount change (finding F2)
+MutCuNoCredit == MUTANT = "cu_no_credit"
+\* end_lease voids only unpaid later rent, releasing nothing (finding F3)
+MutElNoRelease == MUTANT = "el_no_release"
 
 (***************************************************************************)
-(* Proposed fixes of findings (README.md), as flags.                       *)
+(* The fixes of findings F1-F3 (ledger findings), now today's code.        *)
 (***************************************************************************)
-\* F1/F2: client charge edits go through an RPC that locks the lease first
-\* and applies credit after an amount change
-FixChargeEditRpc == FIX = "charge_edit_rpc"
+\* F1: charge edits go through update_charge, which locks the lease first
+CuLocksLease == ~MutCuNoLeaseLock
+\* F2: update_charge applies the lease's credit after an amount change
+CuAppliesCredit == ~MutCuNoCredit
 \* F3: end_lease releases the allocations of later rent, voids it and
 \* re-applies the credit
-FixEndLeaseRelease == FIX = "end_lease_release"
+ElReleases == ~MutElNoRelease
 
 (***************************************************************************)
 (* Scenario data                                                           *)
@@ -812,7 +822,7 @@ VoRev(v) ==
     /\ UNCHANGED <<chC, pyC, ctC, ctU, lsC, lsU, lkL, maint, resp, aborts, fifoBad>>
 
 (***************************************************************************)
-(* public.end_lease and public.change_rent (ledger)                        *)
+(* public.end_lease (ledger findings), public.change_rent (ledger)        *)
 (***************************************************************************)
 \* end_lease: lock_lease_for_write; status <> 'active' -> 'lease_not_active';
 \* sync_lease_billing(lease, p_moved_out_on) (lock held; status active).
@@ -827,16 +837,17 @@ ElStart(e) ==
             /\ UNCHANGED <<chC, chU, pyC, pyU, ctC, ctU, lsC, lsU, lk, maint, resp, aborts,
                            fifoBad>>
 
-\* update charges set voided_at = now() .. where lease_id = .. and kind =
-\* 'rent' and period_month > move-out month and paid_amount = 0 and
-\* voided_at is null; update leases set status = 'ended', moved_out_on ..
-\* (both on rows the caller locks; a row a client edit holds is waited for).
-\* FIX end_lease_release: later rent with allocations too: reverse them
-\* (paid_amount, the allocations, payments.allocated_amount), void it, and
-\* apply the freed credit.
+\* The later live rent locked in due order, its allocations reversed
+\* (paid_amount, the allocations, payments.allocated_amount), update charges
+\* set voided_at = now() .. where id = any (later rent); apply_lease_credit;
+\* update leases set status = 'ended', moved_out_on .. (rows the caller
+\* locks; one step: every other writer of them holds the lease first). Its
+\* late fees are voided too, but there are none here (../LateFees).
+\* Mutant el_no_release (the code before ledger findings): only later rent
+\* with paid_amount = 0 is voided, nothing is released, no credit applied.
 ElLater(e) == {x \in RentRowsOf(ElLease) : LET row == ChV(e, x) IN
                  row.ex /\ ~row.vd /\ ChInfo[x].period > ElMonth}
-ElVoidRows(e) == {x \in ElLater(e) : FixEndLeaseRelease \/ ChV(e, x).paid = 0}
+ElVoidRows(e) == {x \in ElLater(e) : ElReleases \/ ChV(e, x).paid = 0}
 ElPays(e) == {q \in PayIds : \E x \in ElVoidRows(e) : PyV(e, q).al[x] > 0}
 ElObjs(e) == {"ch" \o x : x \in ElVoidRows(e)} \cup {"py" \o q : q \in ElPays(e)}
 ElVoid(e) ==
@@ -855,7 +866,7 @@ ElVoid(e) ==
                        ELSE pyU[q]]
           /\ lk' = GrabAll(e, ElObjs(e))
           /\ lsU' = [lsU EXCEPT ![ElLease] = [@ EXCEPT !.st = "ended", !.mo = ElMonth]]
-          /\ GotoR(e, IF FixEndLeaseRelease THEN "cr_list" ELSE "tx_commit",
+          /\ GotoR(e, IF ElReleases THEN "cr_list" ELSE "tx_commit",
                    [lv[e] EXCEPT !.cret = "tx_commit"])
     /\ UNCHANGED <<chC, pyC, ctC, ctU, lsC, lkL, maint, resp, aborts, fifoBad>>
 
@@ -933,20 +944,21 @@ McLock(m) ==
     /\ UNCHANGED <<chC, chU, pyC, pyU, ctC, ctU, lsC, lsU, lk, maint, resp, aborts, fifoBad>>
 
 (***************************************************************************)
-(* A client's UPDATE of charges through the Data API (ledger: grant update *)
-(* (due_date, amount, description) to authenticated; findings: policy      *)
-(* charges_update takes the portfolio keys first). It locks each row it    *)
-(* changes in its scan order (FOR NO KEY UPDATE), re-checks the row        *)
-(* (EvalPlanQual), runs before_charge_update (a voided charge ->           *)
-(* 'charge_voided'; an amount change of a non-manual charge ->             *)
-(* 'charge_not_editable') and writes it. It takes no lease lock and        *)
-(* applies no credit.                                                      *)
-(* FIX charge_edit_rpc: an RPC that locks the lease first                  *)
-(* (lock_lease_for_write) and applies credit after an amount change.       *)
+(* A client's charge edits through public.update_charge (ledger           *)
+(* findings): lock_lease_for_write (portfolio key, then the lease FOR      *)
+(* UPDATE), then each charge FOR UPDATE, the rules ('charge_voided'; an    *)
+(* amount change of a non-manual charge -> 'charge_not_editable'), the     *)
+(* write, and apply_lease_credit after an amount change. CU edits two      *)
+(* charges in one transaction (two calls; PostgREST runs each call in its  *)
+(* own transaction, which only releases the lease in between).             *)
+(* Mutant cu_no_lease_lock is the client UPDATE of charges before ledger   *)
+(* findings (grant update (due_date, amount, description); policy          *)
+(* charges_update took the portfolio keys only): rows locked in scan       *)
+(* order, no lease lock. Mutant cu_no_credit applies no credit.            *)
 (***************************************************************************)
 CuStart(u) ==
     /\ pc[u] = "init"
-    /\ Goto(u, IF FixChargeEditRpc THEN "cu_lease" ELSE "cu_row",
+    /\ Goto(u, IF CuLocksLease THEN "cu_lease" ELSE "cu_row",
             [LV0 EXCEPT !.rows = CuRows, !.lease = CuLease])
     /\ UNCHANGED <<chC, chU, pyC, pyU, ctC, ctU, lsC, lsU, lkL, lk, maint, resp, aborts, fifoBad>>
 
@@ -970,7 +982,7 @@ CuRow(u) ==
                   /\ chU' = [chU EXCEPT ![c] = IF CuEdit = "amount" THEN [@ EXCEPT !.amt = @ + 1] ELSE @]
                   /\ IF Tail(r.rows) # <<>>
                      THEN Goto(u, "cu_row", [r EXCEPT !.rows = Tail(r.rows)])
-                     ELSE GotoR(u, IF FixChargeEditRpc /\ CuEdit = "amount" THEN "cr_list" ELSE "tx_commit",
+                     ELSE GotoR(u, IF CuAppliesCredit /\ CuEdit = "amount" THEN "cr_list" ELSE "tx_commit",
                                 [r EXCEPT !.rows = <<>>, !.cret = "tx_commit"])
                   /\ UNCHANGED <<chC, pyC, pyU, ctC, ctU, lsC, lsU, lkL, maint, resp, aborts, fifoBad>>
 

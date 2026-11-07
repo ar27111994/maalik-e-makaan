@@ -147,7 +147,7 @@ function setup(script: Script = {}) {
   const admin = fakeClient({
     rpc: (fn, args) => {
       timeline.push(`rpc ${fn} ${args['p_key']}`);
-      return limits.shift() ?? { data: true };
+      return limits.shift() ?? { data: ALLOW };
     },
   });
   const h = harness({
@@ -240,13 +240,17 @@ function lookupCalls(portfolioId = PORTFOLIO_ID, userId = USER_ID): Call[] {
   ];
 }
 
+/** The limiter's verdicts (public.admin_rate_limit_hit). */
+const ALLOW = { allowed: true, retry_after_seconds: 3600 };
+const DENY = { allowed: false, retry_after_seconds: 3600 };
+
 const RECIPIENT_KEY = `invite_email:to:${MAILBOX_SHA256}`;
 const INVITER_KEY = `invite_email:user:${USER_ID}`;
 
 function hitCall(key: string, limit: number): Call {
   return {
     kind: 'rpc',
-    args: ['admin_hit_rate_limit', { p_key: key, p_limit: limit, p_window_seconds: 3600 }],
+    args: ['admin_rate_limit_hit', { p_key: key, p_limit: limit, p_window_seconds: 3600 }],
   };
 }
 
@@ -386,8 +390,8 @@ Deno.test('POST creates the invitation as the caller, e-mails the link and answe
     'rpc create_invitation',
     'select portfolios',
     'select profiles',
-    `rpc admin_hit_rate_limit ${RECIPIENT_KEY}`,
-    `rpc admin_hit_rate_limit ${INVITER_KEY}`,
+    `rpc admin_rate_limit_hit ${RECIPIENT_KEY}`,
+    `rpc admin_rate_limit_hit ${INVITER_KEY}`,
     'createSender',
     'send',
   ]);
@@ -982,7 +986,7 @@ Deno.test('the recipient quota is keyed by the SHA-256 of the mailbox, so its al
 });
 
 Deno.test('a recipient over its quota is not e-mailed, and the inviter is not charged for it', async () => {
-  const t = setup({ limits: [{ data: false }] });
+  const t = setup({ limits: [{ data: DENY }] });
   const res = await t.send();
   assertEquals(res.status, 201);
   assertEquals(await res.json(), created('rate_limited'));
@@ -992,7 +996,7 @@ Deno.test('a recipient over its quota is not e-mailed, and the inviter is not ch
 });
 
 Deno.test('an inviter over their quota is not e-mailed for: rate_limited after both quotas', async () => {
-  const t = setup({ limits: [{ data: true }, { data: false }] });
+  const t = setup({ limits: [{ data: ALLOW }, { data: DENY }] });
   const res = await t.send();
   assertEquals(res.status, 201);
   assertEquals(await res.json(), created('rate_limited'));
@@ -1012,7 +1016,7 @@ Deno.test('a limiter that fails or answers oddly fails delivery closed, with a w
     ],
     [
       'the inviter check answers null',
-      [{ data: true }, { data: null }],
+      [{ data: ALLOW }, { data: null }],
       [RECIPIENT_HIT, INVITER_HIT],
       logged(
         'HttpError',
@@ -1068,7 +1072,7 @@ Deno.test('no log holds the token, the encoded link or the invitee address, what
       config: testConfig({ email: new ConfigError('MAIL_FROM', 'is required') }),
     }],
     ['portfolio lookup failed', { portfolio: { error: { message: 'boom' } } }],
-    ['recipient over its quota', { limits: [{ data: false }] }],
+    ['recipient over its quota', { limits: [{ data: DENY }] }],
     ['limiter down', { limits: [{ error: { message: 'down' } }] }],
     ['provider refused', {
       send: () => Promise.reject(new EmailDeliveryError(422, 'validation_error')),

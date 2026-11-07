@@ -312,13 +312,14 @@ def waived_amount(guard: bool = True):
     return build
 
 
-def applied_amount(fix: bool = False):
+def applied_amount(sum_check: bool = True):
     """payments.applied_amount numeric(14,2) GENERATED AS (amount +
-    tax_withheld) (also unallocated_amount). public.record_payment checks
-    require_valid_amount(p_amount), require_valid_amount(v_tax, true) and
-    v_tax <= p_amount (payments_tax_withheld_check), each at most
-    999999999999.99 on its own. The fix flag adds the proposed check
-    amount + tax_withheld <= 999999999999.99."""
+    tax_withheld) (also unallocated_amount). public.record_payment
+    (20261107181820_ledger_findings.sql) checks require_valid_amount(p_amount),
+    require_valid_amount(v_tax, true), v_tax <= p_amount
+    (payments_tax_withheld_check), each at most 999999999999.99 on its own,
+    and p_amount + v_tax <= 999999999999.99 (finding A1's fix). sum_check=False
+    is the code before it (finding A1)."""
 
     def build():
         amount, tax = Ints("amount tax_withheld")
@@ -328,7 +329,7 @@ def applied_amount(fix: bool = False):
             tax <= amount,
             outside(amount + tax, NUMERIC_14_2),
         ]
-        if fix:
+        if sum_check:
             constraints.append(amount + tax <= MAX_PAISA)
         return constraints, {"amount": amount, "tax_withheld": tax}
 
@@ -437,18 +438,11 @@ CHECKS = [
     Check(
         "pg: p_as_of - due_date fits int4", "private.assess_late_fees", "unsat", date_difference()
     ),
-    # FINDING: the generated column overflows for admitted inputs.
     Check(
-        "FINDING pg: payments.applied_amount = amount + tax",
-        "payments.applied_amount / record_payment",
-        "sat",
-        applied_amount(),
-    ),
-    Check(
-        "FIX pg: applied_amount with amount + tax <= max",
-        "proposed record_payment check",
+        "pg: payments.applied_amount = amount + tax fits numeric(14,2)",
+        "record_payment amount + tax check (A1)",
         "unsat",
-        applied_amount(fix=True),
+        applied_amount(),
     ),
     # Mutants: each removes the bound that protects a check above.
     Check(
@@ -540,6 +534,12 @@ CHECKS = [
         "app.late_fee_amount before 20261104143928",
         "sat",
         late_fee_charge(cap_fee=False),
+    ),
+    Check(
+        "mutant: record_payment without the amount + tax check (finding A1)",
+        "record_payment before 20261107181820",
+        "sat",
+        applied_amount(sum_check=False),
     ),
     Check(
         "mutant: int4 dates over the whole int4 range",

@@ -131,7 +131,7 @@ select is(
    where c.relnamespace = 'public'::regnamespace and p.polcmd in ('w', 'd', '*')
      and pg_get_expr(p.polqual, p.polrelid) ~ 'app\.lock_my_(portfolio_ids|notification_portfolios)\('),
   array[
-    'charges.charges_update', 'documents.documents_delete', 'documents.documents_update',
+    'documents.documents_delete', 'documents.documents_update',
     'expenses.expenses_delete', 'expenses.expenses_update', 'lease_occupants.lease_occupants_delete',
     'lease_occupants.lease_occupants_update', 'leases.leases_delete', 'leases.leases_update',
     'maintenance_requests.maintenance_requests_delete', 'maintenance_requests.maintenance_requests_update',

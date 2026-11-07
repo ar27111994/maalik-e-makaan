@@ -1878,6 +1878,10 @@ export type Database = {
         Args: { p_key: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      admin_rate_limit_hit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number };
+        Returns: Json;
+      };
       admin_storage_cleanup_objects: {
         Args: { p_item_id: number; p_limit?: number };
         Returns: {
@@ -2276,6 +2280,43 @@ export type Database = {
       sync_portfolio_billing: {
         Args: { p_portfolio_id: string };
         Returns: number;
+      };
+      update_charge: {
+        Args: {
+          p_amount?: number;
+          p_charge_id: string;
+          p_description?: string;
+          p_due_date?: string;
+        };
+        Returns: {
+          amount: number;
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          due_date: string;
+          id: string;
+          kind: Database['public']['Enums']['charge_kind'];
+          lease_id: string;
+          outstanding: number | null;
+          paid_amount: number;
+          period_month: string | null;
+          portfolio_id: string;
+          related_charge_id: string | null;
+          source: string;
+          updated_at: string;
+          utility_bill_id: string | null;
+          void_reason: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+          waive_reason: string | null;
+          waived_amount: number;
+        };
+        SetofOptions: {
+          from: '*';
+          to: 'charges';
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       update_member_role: {
         Args: {

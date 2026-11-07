@@ -55,34 +55,37 @@ JavaScript Numbers carry money only inside Dart on the web.
 | `paid_amount + v_apply` fits                   | `private.allocate_payment`                           | applies `v_remaining` without `least`                   |
 | `waived_amount + v_amount` fits                | `public.waive_charge`                                | no `amount_exceeds_outstanding` check                   |
 | `p_as_of - due_date` fits int4                 | `private.assess_late_fees`                           | dates over the whole int4 range                         |
+| `applied_amount = amount + tax` fits           | `public.record_payment` (A1's fix)                   | no `amount + tax` check (the code before, finding A1)   |
 
 `redundancy: daily fee no clamp, value cap kept` is expected `unsat`: the
 10,000,000-rupee cap alone keeps `perDay * daysLate` below 2^53, so the
 clamp in `DailyLateFee` is a second line of defence, not the only one.
 
-### Finding A1: `payments.applied_amount` overflows for admitted input
+### Finding A1 (fixed): `payments.applied_amount` overflowed for admitted input
 
-- Severity: low. The payment is refused, nothing is corrupted, but the user
-  gets an unmapped `numeric field overflow` (SQLSTATE 22003) instead of
+- Severity: low. The payment was refused, nothing was corrupted, but the
+  user got an unmapped `numeric field overflow` (SQLSTATE 22003) instead of
   `invalid_amount`.
-- Where: `public.record_payment` (`20261104143928_ledger_jobs_hardening.sql`)
-  checks `require_valid_amount(p_amount)`, `require_valid_amount(v_tax,
-true)` and `v_tax <= p_amount`, each at most 999,999,999,999.99 on its own.
-  The insert then computes the generated columns `applied_amount` and
-  `unallocated_amount` (`amount + tax_withheld`, `numeric(14,2)`,
-  `20261103193658_ledger.sql`).
-- Counterexample (Z3 model): `amount = 500,000,000,000.00`,
-  `tax_withheld = 500,000,000,000.00`. Replayed on PostgreSQL 16 with a
-  temporary copy of `public.payments` (`create temp table ... (like
-public.payments including generated including constraints)`), the insert of
-  999,999,999,999.99 + 999,999,999,999.99 fails: `ERROR: numeric field
+- Where: `public.record_payment` checked `require_valid_amount(p_amount)`,
+  `require_valid_amount(v_tax, true)` and `v_tax <= p_amount`, each at most
+  999,999,999,999.99 on its own. The insert then computes the generated
+  columns `applied_amount` and `unallocated_amount` (`amount + tax_withheld`,
+  `numeric(14,2)`, `20261103193658_ledger.sql`).
+- Counterexample (Z3 model, now the mutant `record_payment without the
+amount + tax check`): `amount = 500,000,000,000.00`,
+  `tax_withheld = 500,000,000,000.00`. On PostgreSQL 16 the insert of
+  999,999,999,999.99 + 999,999,999,999.99 failed: `ERROR: numeric field
 overflow. A field with precision 14, scale 2 must round to an absolute
 value less than 10^12.`
-- Proposed fix: in `record_payment`, after the tax check, add
-  `if p_amount + v_tax > 999999999999.99 then perform app.fail('invalid_amount'); end if;`
-  (or a table CHECK `amount + tax_withheld <= 999999999999.99`). The check
-  `FIX pg: applied_amount with amount + tax <= max` applies it and is
-  `unsat`.
+- Fix (`20261107181820_ledger_findings.sql`): `record_payment` refuses
+  `p_amount + v_tax > 999999999999.99` with `invalid_amount`. The check
+  `pg: payments.applied_amount = amount + tax fits numeric(14,2)` is now
+  `unsat` against it, and `17_ledger_findings.test.sql` replays the
+  counterexample (`invalid_amount`) and the boundary (exactly
+  999,999,999,999.99 accepted). No table CHECK: PostgreSQL computes the
+  generated columns before it evaluates CHECK constraints, so the overflow
+  would still come first (a temporary copy of `payments` with such a CHECK
+  still fails with 22003).
 
 ## (b) Dart half-up equals SQL `round`: `dart_sql.py`
 

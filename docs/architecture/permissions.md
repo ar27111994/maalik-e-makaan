@@ -36,10 +36,9 @@ A person can belong to many portfolios, with one role in each.
    table owner (`SECURITY DEFINER`), check the caller's role themselves, and take
    locks in the global order (account, portfolio, lease, other rows). Their
    names are on a pgTAP allowlist.
-4. **Triggers** keep invariants a policy cannot express: only manual charges
-   can change amount, voided rows are frozen, a document's file must exist, a
-   file a document refers to cannot be deleted (whoever deletes it), and a
-   deleted account cannot write.
+4. **Triggers** keep invariants a policy cannot express: voided rows are
+   frozen, a document's file must exist, a file a document refers to cannot be
+   deleted (whoever deletes it), and a deleted account cannot write.
 5. **Storage policies** scope files to `<portfolio_id>/…` folders.
 6. **Edge Functions** handle what needs the service key: deleting an account and
    sending invitation e-mails. Each one verifies the caller's token first.
@@ -96,24 +95,38 @@ Archive what is no longer in use.
 
 ### Money
 
-| Action                                                  | Who                                             | Through                                       |
-| ------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------- |
-| See charges, payments, allocations, deposits, handovers | Members                                         | RLS                                           |
-| Record a payment and print its receipt                  | O, M, A                                         | `record_payment`                              |
-| Void a payment                                          | O, M                                            | `void_payment`                                |
-| Add a manual charge; edit its amount, due date, note    | O, M, A                                         | RLS and column grants                         |
-| Void or waive a charge                                  | O, M                                            | `void_charge`, `waive_charge`                 |
-| Bill a utility bill to the tenant                       | O, M, A                                         | `bill_utility_to_tenant`                      |
-| Apply or refund a security deposit                      | O, M                                            | `apply_deposit`, `refund_deposit`             |
-| Void a deposit refund                                   | O                                               | `void_deposit_refund`                         |
-| Record handing cash to someone                          | O, M, A (as the giver; an owner may record any) | RLS                                           |
-| Confirm or void a cash handover                         | O                                               | `confirm_cash_handover`, `void_cash_handover` |
-| Log a reminder that was sent                            | O, M, A                                         | RLS                                           |
+| Action                                                     | Who                                             | Through                                       |
+| ---------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| See charges, payments, allocations, deposits, handovers    | Members                                         | RLS                                           |
+| Record a payment and print its receipt                     | O, M, A                                         | `record_payment`                              |
+| Void a payment                                             | O, M                                            | `void_payment`                                |
+| Add a manual charge                                        | O, M, A                                         | RLS and column grants                         |
+| Edit a charge's due date or note, a manual charge's amount | O, M, A                                         | `update_charge`                               |
+| Void or waive a charge                                     | O, M                                            | `void_charge`, `waive_charge`                 |
+| Bill a utility bill to the tenant                          | O, M, A                                         | `bill_utility_to_tenant`                      |
+| Apply or refund a security deposit                         | O, M                                            | `apply_deposit`, `refund_deposit`             |
+| Void a deposit refund                                      | O                                               | `void_deposit_refund`                         |
+| Record handing cash to someone                             | O, M, A (as the giver; an owner may record any) | RLS                                           |
+| Confirm or void a cash handover                            | O                                               | `confirm_cash_handover`, `void_cash_handover` |
+| Log a reminder that was sent                               | O, M, A                                         | RLS                                           |
 
 Financial rows are never deleted, only voided with a reason, and a voided row
 cannot change. System charges (rent, late fees) cannot change amount; only
-manual charges can. A retried payment with the same idempotency key returns the
-original receipt instead of charging twice.
+manual charges can, and never below what was paid or waived. Clients cannot
+`UPDATE` charges directly: `update_charge` locks the lease first, as every
+other writer of a lease's money does, and applies the lease's unused credit
+when an amount goes up. A retried payment with the same idempotency key returns
+the original receipt instead of charging twice. A payment and the tax withheld
+with it may not add up to more than 999,999,999,999.99.
+
+A payment dated within a rent's grace period that settles that rent in full
+voids the rent's automatic late fee, even when it is recorded after the daily
+job posted the fee, unless other money already paid part of the fee.
+
+Ending a tenancy (`end_lease`) bills through the move-out month and voids the
+rent of every later month and those months' automatic late fees, paid or not.
+Money that had paid them is released and applied to the tenancy's other open
+dues; what is left stays on the tenancy as credit, to refund or to void.
 
 ### Operations
 
@@ -223,6 +236,28 @@ What follows from it:
 - A delete of many files is about 2.5 times slower than before (1,000 files:
   225–268 ms before, 598–661 ms after), as the delete policy and the trigger
   run for each file.
+
+### Rate limits and failing requests
+
+Write limits (`app.check_request`, 120 writes a minute per user, and the
+per-function limits such as `record_payment`'s) count a hit inside the
+request's own transaction. A request that the limiter admits and that then
+fails (a validation error, a constraint or row-security violation) rolls its
+hit back with everything else, so failing requests never use up a quota
+(`formal/tla/RateLimit`, finding F4). This is accepted:
+
+- committing the hit on its own needs an autonomous transaction; `dblink` back
+  into the same database would open a second connection, with stored
+  credentials, for every write, against the connection pool, and PostgREST's
+  pre-request hook shares the request's transaction;
+- a failing request still needs a signed-in member of the portfolio, fails
+  early (validation runs before the expensive work), and the platform's API
+  gateway limits still apply to it.
+
+Revisit this if failing writes show up as load. Edge Functions are not
+affected: they count a hit through `admin_rate_limit_hit`, which commits on
+its own, and they send the database's `Retry-After` for the window the hit
+was counted in.
 
 ## Changing a rule
 

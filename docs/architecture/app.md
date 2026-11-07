@@ -45,7 +45,9 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
   portfolio, and page with keysets (`created_at, id`), 50 rows at a time.
 - Writes follow the database's rules:
   - money and membership changes go through their functions (`record_payment`,
-    `void_payment`, `change_rent`, `end_lease`, `update_member_role`, …);
+    `void_payment`, `update_charge`, `change_rent`, `end_lease`,
+    `update_member_role`, …); a charge is edited only through `update_charge`
+    (clients cannot `UPDATE` charges);
   - other edits insert or update only the columns the client is granted
     (see `docs/architecture/permissions.md`).
 - Every Supabase error is converted with `AppFailure.from` at the repository

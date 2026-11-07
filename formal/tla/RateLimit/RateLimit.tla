@@ -17,13 +17,12 @@
 (*    the hit runs INSIDE the request's transaction; a refusal raises      *)
 (*    SQLSTATE PGRST with Retry-After = greatest(1, ceil(date_bin(window,  *)
 (*    now()) + window - now())), which rolls the transaction back;         *)
-(*  * public.admin_hit_rate_limit (20261104080502_function_rate_limits.sql)*)
+(*  * public.admin_rate_limit_hit (20261107181820_ledger_findings.sql)     *)
 (*    called by supabase/functions/_shared/rate_limit.ts hitRateLimit (its *)
-(*    own RPC, so its own transaction, committed when it returns), and     *)
-(*    rateLimitedError/retryAfterSeconds (the Edge Function computes       *)
-(*    Retry-After from its own clock, ctx.now(), after the RPC returned),  *)
-(*    used by delete-account (enforceLimit) and invite-member              *)
-(*    (withinEmailLimits);                                                 *)
+(*    own RPC, so its own transaction, committed when it returns): the     *)
+(*    verdict and Retry-After = private.rate_limit_retry_after from the    *)
+(*    same now(), which rateLimitedError sends; used by delete-account     *)
+(*    (enforceLimit) and invite-member (withinEmailLimits);                *)
 (*  * private.cleanup (hardening): delete buckets whose window_start <     *)
 (*    now() - 2 hours (run by the daily job).                              *)
 (*                                                                         *)
@@ -54,10 +53,11 @@ Mutants == {"none",
             "no_namespace",       \* keys not namespaced ('fn:' / action prefixes dropped)
             "long_window",        \* admin_hit_rate_limit without the 3600 s cap: window > cleanup age
             "fixed_retry_after",  \* Retry-After = the window length (the code before hardening)
-            "ra_now_no_floor"}    \* Retry-After from the clock at the refusal, without greatest(1, ...)
+            "ra_now_no_floor",    \* Retry-After from the clock at the refusal, without greatest(1, ...)
+            "edge_clock_retry_after"} \* F5 (the code before ledger findings): the Edge Function
+                                      \* computes Retry-After from its own clock after the RPC
 Fixes == {"none",
-          "autonomous_hit",       \* F4: the tx path's hit commits on its own (as the Edge path's does)
-          "db_retry_after"}       \* F5: admin_hit_rate_limit returns the database's Retry-After
+          "autonomous_hit"}       \* F4 (proposed, not adopted): the tx path's hit commits on its own
 ASSUME MUTANT \in Mutants /\ FIX \in Fixes /\ MAX_TIME \in Nat /\ LIMIT \in 1..3 /\ EDGE_LAG \in 0..1
 
 Mut(m) == MUTANT = m
@@ -279,16 +279,18 @@ Q_End(t) ==
     /\ Goto(t, "done")
     /\ UNCHANGED <<now, lv>>
 
-\* rateLimitedError(ctx.now(), rule): Retry-After from the Edge Function's
-\* clock (retryAfterSeconds), or (fix) the database's value.
+\* rateLimitedError(verdict.retryAfterSeconds): the database's Retry-After,
+\* from the now() of the hit (ledger findings). Mutant edge_clock_retry_after:
+\* rateLimitedError(ctx.now(), rule), from the Edge Function's clock read
+\* after the RPC returned (finding F5).
 Q_Ra(t) ==
     /\ IsReq(t) /\ pc[t] = "q_ra"
     /\ LET k == K(t)
            e == now - EDGE_LAG
            raEdge == Max(1, Win(k) - (e % Win(k)))
            raDb == Max(1, WStart(k, lv[t].s) + Win(k) - lv[t].s)
-       IN gh' = IF Fix("db_retry_after") THEN Refused(gh, t, raDb, lv[t].s)
-                ELSE Refused(gh, t, raEdge, e)
+       IN gh' = IF Mut("edge_clock_retry_after") THEN Refused(gh, t, raEdge, e)
+                ELSE Refused(gh, t, raDb, lv[t].s)
     /\ Goto(t, "done")
     /\ UNCHANGED <<now, val, dirty, pre, lk, lv>>
 

@@ -130,8 +130,9 @@ select is(
   array[
     'accept_invitation', 'apply_deposit', 'bill_utility_to_tenant', 'change_rent', 'confirm_cash_handover',
     'create_invitation', 'create_portfolio', 'delete_portfolio', 'end_lease', 'record_payment',
-    'refund_deposit', 'remove_member', 'revoke_invitation', 'sync_portfolio_billing', 'update_member_role',
-    'void_cash_handover', 'void_charge', 'void_deposit_refund', 'void_payment', 'waive_charge'
+    'refund_deposit', 'remove_member', 'revoke_invitation', 'sync_portfolio_billing', 'update_charge',
+    'update_member_role', 'void_cash_handover', 'void_charge', 'void_deposit_refund', 'void_payment',
+    'waive_charge'
   ]::text[],
   'only the reviewed write RPCs run as SECURITY DEFINER for signed-in users'
 );

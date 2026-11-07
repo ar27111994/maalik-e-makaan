@@ -250,7 +250,10 @@ transliteration:
   in `sync_lease_billing`, the rent in force from `rent_changes`,
   `on conflict do nothing`, the re-pricing in `change_rent` and the voiding
   in `end_lease` are checked by the SQL fidelity run (988 charges), not
-  proven.
+  proven. Since `20261107181820_ledger_findings.sql`, `end_lease` also
+  releases and voids paid rent of later months; the fidelity leases have no
+  payments, so the rent it voids is the same (`17_ledger_findings.test.sql`
+  checks the release).
 - **SQL division.** The model rounds the exact quotient. PostgreSQL
   computes `p_rent * days / dim` to at least 8 decimal places for any
   storable rent (`999999999999.99 * 30 / 31` gives

@@ -1,26 +1,25 @@
 #!/usr/bin/env bash
 # Replays findings F1, F2 and F3 of the LedgerPayments model on a disposable
 # database (every migration, through tool/db/reset.sh; connection settings
-# from tool/db/env.sh; database mm_fv_ledger, rebuilt on every run).
+# from tool/db/env.sh; database mm_fv_ledger, rebuilt on every run), and
+# checks that 20261107181820_ledger_findings.sql fixed them.
 #
 #   F1  a client's two-row UPDATE of charges (rows in scan order, no lease
-#       lock) against record_payment and void_payment (rows in due order):
-#       PostgreSQL detects a deadlock. The client's WHERE sleeps 0.4 s per
-#       row (pg_sleep), only to hold the race window open: the model shows
-#       the interleaving needs no sleep. Then the same race against an
-#       emulation of the proposed fix (an RPC that takes the lease first).
-#   F2  a client raises a manual charge's amount while the lease has
-#       credit: the charge stays open next to the credit. Then the fix's
-#       emulation (the same RPC applies the credit).
+#       lock) against record_payment and void_payment (rows in due order).
+#       Clients can no longer UPDATE charges (refused). The same statement
+#       run as the table owner still deadlocks (the old lock order: the race
+#       is real; the WHERE sleeps 0.4 s per row only to hold the window
+#       open); the same two edits through update_charge (two calls in one
+#       transaction, the lease taken first) never do.
+#   F2  a client raises a manual charge's amount (update_charge) while the
+#       lease has credit: the credit settles it.
 #   F3  credit applied to next month's rent by the billing sync, then
-#       end_lease backdated to the month before: the ended lease keeps a
-#       live, half-unpaid rent for the month after the move-out. Then the
-#       fix's emulation (release later rent's allocations first).
+#       end_lease backdated to the month before: the rent is released and
+#       voided, and its money stays as credit.
 #
-# The emulations are created in the disposable database only (functions
-# named fv_*); nothing in supabase/migrations changes. Exits 0 when every
-# finding reproduces on today's code (F1: at least once in RUNS rounds,
-# default 4) and none does under its emulated fix.
+# Exits 0 when the old lock order deadlocks at least once in RUNS rounds
+# (default 4) against each ledger call, update_charge never does, and F2 and
+# F3 no longer show.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
@@ -78,47 +77,6 @@ begin
   return v_lease;
 end \$\$;
 
--- Emulations of the proposed fix (README.md): client charge edits through
--- an RPC that takes the portfolio key and the lease first (the global
--- order), then the rows, then applies the lease's credit.
-create function public.fv_edit_charges(p_lease uuid, p_description text)
-returns void language plpgsql security definer set search_path = '' as \$\$
-begin
-  perform private.lock_lease_for_write(p_lease, '{owner,manager,accountant}');
-  update public.charges set description = p_description
-  where lease_id = p_lease and pg_sleep(0.4) is not null;
-end \$\$;
-create function public.fv_set_charge_amount(p_charge uuid, p_amount numeric)
-returns void language plpgsql security definer set search_path = '' as \$\$
-declare v_lease uuid := (select lease_id from public.charges where id = p_charge);
-begin
-  perform private.lock_lease_for_write(v_lease, '{owner,manager,accountant}');
-  update public.charges set amount = p_amount where id = p_charge;
-  perform private.apply_lease_credit(v_lease);
-end \$\$;
--- F3's fix: release the allocations of rent after the move-out month, then
--- end_lease (which voids it, now unpaid), then re-apply the freed credit.
-create function public.fv_end_lease(p_lease uuid, p_moved_out_on date)
-returns void language plpgsql security definer set search_path = '' as \$\$
-declare a record;
-begin
-  perform private.lock_lease_for_write(p_lease, '{owner,manager}');
-  for a in
-    select pa.id, pa.payment_id, pa.charge_id, pa.amount
-    from public.payment_allocations pa join public.charges c on c.id = pa.charge_id
-    where c.lease_id = p_lease and c.kind = 'rent' and c.voided_at is null
-      and c.period_month > date_trunc('month', p_moved_out_on)::date
-    order by c.due_date, c.id
-  loop
-    update public.charges set paid_amount = paid_amount - a.amount where id = a.charge_id;
-    update public.payments set allocated_amount = allocated_amount - a.amount where id = a.payment_id;
-    delete from public.payment_allocations where id = a.id;
-  end loop;
-  perform public.end_lease(p_lease, p_moved_out_on, 'tenant_moved_out');
-  perform private.apply_lease_credit(p_lease);
-end \$\$;
-grant execute on function public.fv_edit_charges(uuid, text), public.fv_set_charge_amount(uuid, numeric),
-  public.fv_end_lease(uuid, date) to authenticated;
 SQL
 
 deadlocks() { psql_db -c "select deadlocks from pg_stat_database where datname = current_database()"; }
@@ -141,27 +99,48 @@ f1_lease() {
   psql_db -c "set app.today_override = '2026-12-03'; select private.sync_lease_billing('${lease}')" >/dev/null
   echo "$lease"
 }
-# $1 tag, $2 the client's statement, $3 the ledger call; the ledger call
-# starts 0.5 s after the client's, between its two row locks.
+# The old client statement, as the table owner (clients may no longer run it).
+# Called through f1_race's fourth argument.
+# shellcheck disable=SC2329
+as_table_owner() {
+  printf "set app.today_override = '%s';\nbegin;\n%s\ncommit;\n" "$1" "$2"
+}
+# $1 tag, $2 the client's statement, $3 the ledger call, $4 as_owner or
+# as_table_owner for the client; the ledger call starts 0.5 s after the
+# client's, between its two row locks.
 f1_race() {
   local before after
   reset_limits
   before="$(deadlocks)"
-  as_owner 2026-12-03 "$2" | psql_db >"$OUT/$1.client" 2>&1 &
+  "${4:-as_owner}" 2026-12-03 "$2" | psql_db >"$OUT/$1.client" 2>&1 &
   sleep 0.5
   as_owner 2026-12-03 "$3" | psql_db >"$OUT/$1.ledger" 2>&1 || true
   wait || true
   after="$(deadlocks)"
   echo "$((after - before))"
 }
-echo "F1: client two-row charge UPDATE vs allocate_payment / void_payment"
+echo "F1: client two-row charge edit vs allocate_payment / void_payment"
+EDIT="update public.charges set description = 'Edited' where lease_id = '%L' and pg_sleep(0.4) is not null;"
+lease="$(f1_lease)"
+as_owner 2026-12-03 "${EDIT//%L/$lease}" | psql_db >"$OUT/refused.out" 2>&1 || true
+expect "a client's UPDATE of charges is refused" \
+  "$(grep -q 'permission denied for table charges' "$OUT/refused.out" && echo 0 || echo 1)"
+# update_charge on the manual charge, a pause, then on the rent: the order of
+# the old statement's rows, each call after the lease lock.
+rpc_edits() {
+  local manual rent
+  manual="$(psql_db -c "select id from public.charges where lease_id = '$1' and source = 'manual'")"
+  rent="$(psql_db -c "select id from public.charges where lease_id = '$1' and kind = 'rent'")"
+  echo "select public.update_charge('${manual}', null, null, 'Edited') is not null; select pg_sleep(0.4);
+        select public.update_charge('${rent}', null, null, 'Edited') is not null;"
+}
 pay_hits=0
 void_hits=0
 for round in $(seq 1 "${RUNS:-4}"); do
   lease="$(f1_lease)"
-  n="$(f1_race "pay$round" "update public.charges set description = 'Edited' where lease_id = '${lease}' and pg_sleep(0.4) is not null;" \
-    "select public.record_payment('${lease}', 1500, '2026-12-03', 'cash', gen_random_uuid()) is not null;")"
-  echo "  record_payment round $round: deadlocks detected $n; ledger: $(tr '\n' ' ' <"$OUT/pay$round.ledger" | cut -c1-90); client: $(tr '\n' ' ' <"$OUT/pay$round.client" | cut -c1-60)"
+  n="$(f1_race "pay$round" "${EDIT//%L/$lease}" \
+    "select public.record_payment('${lease}', 1500, '2026-12-03', 'cash', gen_random_uuid()) is not null;" as_table_owner)"
+  echo "  old order vs record_payment round $round: deadlocks detected $n"
   [[ "$n" -ge 1 ]] && pay_hits=$((pay_hits + 1))
 
   lease="$(f1_lease)"
@@ -171,23 +150,29 @@ for round in $(seq 1 "${RUNS:-4}"); do
   # (due a day later, still before the manual charge; a changed indexed
   # column, so a new index entry) to put the manual charge first again.
   psql_db -c "update public.charges set due_date = due_date + 1 where lease_id = '${lease}' and kind = 'rent'" >/dev/null
-  n="$(f1_race "void$round" "update public.charges set description = 'Edited' where lease_id = '${lease}' and pg_sleep(0.4) is not null;" \
-    "select public.void_payment('${pay}', 'Bounced') is not null;")"
-  echo "  void_payment round $round: deadlocks detected $n; ledger: $(tr '\n' ' ' <"$OUT/void$round.ledger" | cut -c1-90); client: $(tr '\n' ' ' <"$OUT/void$round.client" | cut -c1-60)"
+  n="$(f1_race "void$round" "${EDIT//%L/$lease}" "select public.void_payment('${pay}', 'Bounced') is not null;" as_table_owner)"
+  echo "  old order vs void_payment round $round: deadlocks detected $n"
   [[ "$n" -ge 1 ]] && void_hits=$((void_hits + 1))
 
   lease="$(f1_lease)"
-  n="$(f1_race "fix$round" "select public.fv_edit_charges('${lease}', 'Edited');" \
+  n="$(f1_race "fixpay$round" "$(rpc_edits "$lease")" \
     "select public.record_payment('${lease}', 1500, '2026-12-03', 'cash', gen_random_uuid()) is not null;")"
-  errs="$(cat "$OUT/fix$round.client" "$OUT/fix$round.ledger" | grep -c ERROR || true)"
-  echo "  emulated fix round $round: deadlocks detected $n, errors $errs"
-  expect "F1 gone under the emulated fix (round $round)" "$([[ "$n" == 0 && "$errs" == 0 ]] && echo 0 || echo 1)"
+  errs="$(cat "$OUT/fixpay$round.client" "$OUT/fixpay$round.ledger" | grep -c ERROR || true)"
+  echo "  update_charge vs record_payment round $round: deadlocks detected $n, errors $errs"
+  expect "F1 gone with update_charge vs record_payment (round $round)" "$([[ "$n" == 0 && "$errs" == 0 ]] && echo 0 || echo 1)"
+
+  lease="$(f1_lease)"
+  pay="$(as_owner 2026-12-03 "select public.record_payment('${lease}', 1500, '2026-12-03', 'cash', gen_random_uuid()) -> 'payment' ->> 'id';" | psql_db)"
+  n="$(f1_race "fixvoid$round" "$(rpc_edits "$lease")" "select public.void_payment('${pay}', 'Bounced') is not null;")"
+  errs="$(cat "$OUT/fixvoid$round.client" "$OUT/fixvoid$round.ledger" | grep -c ERROR || true)"
+  echo "  update_charge vs void_payment round $round: deadlocks detected $n, errors $errs"
+  expect "F1 gone with update_charge vs void_payment (round $round)" "$([[ "$n" == 0 && "$errs" == 0 ]] && echo 0 || echo 1)"
 done
-# Whether the client's scan meets the manual charge first in the void round
+# Whether the old scan meets the manual charge first in the void round
 # depends on where PostgreSQL put the rewritten rent row, so the void race
 # is reported per round and must deadlock at least once.
-expect "F1 reproduces against record_payment ($pay_hits of ${RUNS:-4} rounds)" "$([[ "$pay_hits" -ge 1 ]] && echo 0 || echo 1)"
-expect "F1 reproduces against void_payment ($void_hits of ${RUNS:-4} rounds)" "$([[ "$void_hits" -ge 1 ]] && echo 0 || echo 1)"
+expect "the old lock order deadlocks record_payment ($pay_hits of ${RUNS:-4} rounds)" "$([[ "$pay_hits" -ge 1 ]] && echo 0 || echo 1)"
+expect "the old lock order deadlocks void_payment ($void_hits of ${RUNS:-4} rounds)" "$([[ "$void_hits" -ge 1 ]] && echo 0 || echo 1)"
 
 # F2 ------------------------------------------------------------------------
 echo "F2: a client raises a manual charge's amount while the lease has credit"
@@ -201,12 +186,9 @@ f2() { # $1: client statement template (%C = charge id); prints open|credit
                 || '|' || (select sum(unallocated_amount) from public.payments where lease_id = '${lease}' and voided_at is null)::int"
 }
 reset_limits
-got="$(f2 "update public.charges set amount = 800 where id = '%C';")"
-echo "  today's code: open dues|credit = $got"
-expect "F2 reproduces (open dues next to credit)" "$([[ "${got%|*}" -gt 0 && "${got#*|}" -gt 0 ]] && echo 0 || echo 1)"
-got="$(f2 "select public.fv_set_charge_amount('%C', 800);")"
-echo "  emulated fix: open dues|credit = $got"
-expect "F2 gone under the emulated fix" "$([[ "${got%|*}" == 0 ]] && echo 0 || echo 1)"
+got="$(f2 "select public.update_charge('%C', 800) is not null;")"
+echo "  update_charge: open dues|credit = $got"
+expect "F2 gone: the credit settles the raised charge" "$([[ "$got" == "0|200" ]] && echo 0 || echo 1)"
 
 # F3 ------------------------------------------------------------------------
 echo "F3: end_lease backdated after the sync applied credit to the next month"
@@ -224,10 +206,7 @@ f3() { # $1: the end-lease statement template (%L = lease id); prints the Novemb
 }
 reset_limits
 got="$(f3 "select public.end_lease('%L', '2026-10-31', 'tenant_moved_out') is not null;")"
-echo "  today's code: lease status|November rent live|paid|outstanding = $got"
-expect "F3 reproduces (ended lease keeps November rent)" "$([[ "$got" == ended\|true\|* ]] && echo 0 || echo 1)"
-got="$(f3 "select public.fv_end_lease('%L', '2026-10-31');")"
-echo "  emulated fix: lease status|November rent live|paid|outstanding = $got"
-expect "F3 gone under the emulated fix" "$([[ "$got" == ended\|false\|* ]] && echo 0 || echo 1)"
+echo "  end_lease: lease status|November rent live|paid|outstanding = $got"
+expect "F3 gone: November's rent is released and voided" "$([[ "$got" == ended\|false\|0\|* ]] && echo 0 || echo 1)"
 
 exit "$status"

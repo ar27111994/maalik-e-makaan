@@ -304,8 +304,9 @@ def prorated_rent_sql(+rent: Nat, first: Bool, +start: Nat, +dim: Nat) -> Nat:
 # v_month (the latest rent_changes row on or before it, else
 # leases.monthly_rent). public.change_rent (20261103193658_ledger.sql)
 # re-prices generated rent nobody has paid or waived with the same case, and
-# public.end_lease (20261103193658_ledger.sql) bills through the move-out
-# month with sync_lease_billing(p_lease_id, p_moved_out_on), so the move-out
+# public.end_lease (last defined in 20261107181820_ledger_findings.sql)
+# bills through the move-out month with
+# sync_lease_billing(p_lease_id, p_moved_out_on), so the move-out
 # month is billed by this rule too: the move-out day is not one of its
 # inputs. prorate = prorate_first_month; first, start and dim are as for
 # prorated_rent_sql. No month before the billing-start month is billed.

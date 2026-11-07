@@ -121,9 +121,8 @@ function ensureStrongAuthentication(ctx: RequestContext, user: User): void {
 
 async function enforceLimit(ctx: RequestContext, userId: string): Promise<void> {
   const rule: RateLimit = { key: `delete_account:user:${userId}`, ...DELETE_ACCOUNT_LIMIT };
-  if (!await hitRateLimit(ctx.supabase.supabaseAdmin, rule)) {
-    throw rateLimitedError(ctx.now(), rule);
-  }
+  const verdict = await hitRateLimit(ctx.supabase.supabaseAdmin, rule);
+  if (!verdict.allowed) throw rateLimitedError(verdict.retryAfterSeconds);
 }
 
 function bearerToken(req: Request): string {

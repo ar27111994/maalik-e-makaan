@@ -6,7 +6,7 @@
 -- cross-portfolio references must be rejected by composite foreign keys.
 begin;
 \ir _helpers.psql
-select plan(62);
+select plan(63);
 
 select tests.create_user('owner.a@example.com') as owner \gset
 select tests.create_user('manager.a@example.com') as manager \gset
@@ -149,7 +149,11 @@ select throws_ok(
 );
 select tests.authenticate_as(:'manager');
 select throws_ok(
-  format($f$update public.charges set amount = 1 where lease_id = %L and kind = 'rent'$f$, :'la'),
+  format($f$update public.charges set description = 'x' where lease_id = %L$f$, :'la'),
+  '42501', null, 'charges cannot be updated directly (update_charge RPC only)'
+);
+select throws_ok(
+  format($f$select public.update_charge(id, 1) from public.charges where lease_id = %L and kind = 'rent'$f$, :'la'),
   '22023', 'charge_not_editable', 'automatic rent charges cannot be re-priced by hand'
 );
 

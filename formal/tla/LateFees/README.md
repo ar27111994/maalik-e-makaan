@@ -3,23 +3,28 @@
 A TLC-checked model of how the daily job posts late fees, as the code
 implements it now, against the other writers of a lease's dues: payments
 and their voids, voided charges, the end of a tenancy, late-fee policy
-changes and a client's own edits of charges.
+changes and a client's own edits of charges (`update_charge`).
 
 Code followed (always the last definition of each function):
 
 - `supabase/migrations/20261105170557_concurrency_findings.sql`
-  ("findings"): `private.run_daily_jobs`, the client `UPDATE` policies
-  `leases_update` and `charges_update`.
+  ("findings"): `private.run_daily_jobs`, the client `UPDATE` policy
+  `leases_update` (and `charges_update`, dropped by "ledger findings": the
+  mutant `edit_no_lease_lock`).
 - `20261104143928_ledger_jobs_hardening.sql` ("hardening"):
   `private.maintain_lease`, `private.assess_late_fees`,
-  `app.late_fee_amount`, `public.record_payment`, `public.void_payment`,
+  `app.late_fee_amount`, `public.void_payment`,
   `public.void_charge`, the pg_cron schedule (`*/10 * * * *`) and
   `private.lease_maintenance`.
 - `20261105072426_membership_deletion_storage.sql` ("latest"):
   `private.lock_lease_for_write`.
 - `20261103193658_ledger.sql` ("ledger"): `charges_late_fee_key`,
-  `private.allocate_payment`, `public.end_lease`,
-  `private.before_charge_update` and the column grants.
+  `private.allocate_payment` and `private.before_charge_update`.
+- `20261107181820_ledger_findings.sql` ("ledger findings"), which fixes F1
+  to F3 below: `public.record_payment` (voids the fee of a rent paid within
+  grace), `public.end_lease` (releases and voids later rent and its fees),
+  `public.update_charge`; the client `UPDATE` grant and the `charges_update`
+  policy on charges are dropped.
 - `20261107172908_police_registration_rules.sql` was read in full. It
   redefines `private.generate_notifications`, which the job runs only in a
   run that holds no lease lock; nothing modelled here changes.
@@ -32,24 +37,24 @@ steps. `Need(t)` lists the transactions `t` waits for, and `Detect` is
 PostgreSQL's deadlock detector. Writes keep a pre-image, so a rollback
 restores them and other snapshots read the committed version.
 
-| Model element                             | Code                                                                                                                                                                                                                                                                                 |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `J_Start`                                 | `run_daily_jobs` (findings): `v_as_of := app.today_pkt()`, then `pg_try_advisory_xact_lock`; a run that does not get it returns `skipped`                                                                                                                                            |
-| `J_Scan`                                  | the loop's query: active leases not maintained for `v_as_of`, in id order, from one snapshot                                                                                                                                                                                         |
-| `J_Lock`                                  | the lease `for update skip locked` (busy: next lease). The portfolio `for key share skip locked` before it conflicts with nothing modelled here                                                                                                                                      |
-| `J_Maint`                                 | `maintain_lease` (hardening): status `active` under the lock, then `assess_late_fees` reads the lease's policy and selects the rent dues that are live, unpaid, past grace and owe a fee, in `due_date, id` order                                                                    |
-| `J_Fee`                                   | one row of the `INSERT ... ON CONFLICT (related_charge_id) DO UPDATE ... WHERE voided_at is null and paid_amount = 0 and waived_amount = 0 and excluded.amount > amount`. The conflicting row is locked before the `WHERE` is evaluated; a fee above `numeric(14,2)` fails the lease |
-| `J_Fee` (no rent left)                    | `insert into private.lease_maintenance` (`maintained_on = v_as_of`)                                                                                                                                                                                                                  |
-| `JobLeaseFailed`, `Detect` (job)          | `exception when others`: rollback to the lease's subtransaction, then `maintained_on = v_as_of, failures + 1` (the lease waits for tomorrow)                                                                                                                                         |
-| `J_Commit`                                | the end of the run: every lease lock taken is held until here                                                                                                                                                                                                                        |
-| `LateFeeAmount`                           | `app.late_fee_amount` (hardening), exactly, in paisa: round half up to whole rupees, then the daily cap, then the clamp                                                                                                                                                              |
-| `P_Wait`, `P_Lock`, `P_Alloc`, `P_Commit` | `record_payment` (hardening): `lock_lease_for_write` (latest), the payment row, `allocate_payment` (ledger): chosen charges first, then `due_date, id`, `for update of c` one row at a time                                                                                          |
-| `V_Lock`, `V_Do`                          | `void_payment` (hardening): reverse the allocations, mark the payment voided                                                                                                                                                                                                         |
-| `C_Lock`, `C_Do`                          | `void_charge` (hardening): the charge and, for a rent, its unpaid fee (`related_charge_id = x and paid_amount = 0`)                                                                                                                                                                  |
-| `E_Lock`, `E_Do`                          | `end_lease` (ledger): void untouched rent of later months, status `ended`                                                                                                                                                                                                            |
-| `Cl_Row` (policy)                         | a client `UPDATE leases SET late_fee_*` (policy `leases_update`, findings): portfolio keys, then each row in scan order                                                                                                                                                              |
-| `Cl_Row` (edit)                           | a client `UPDATE charges SET description` (policy `charges_update`, findings; allowed by `before_charge_update` on any live charge): portfolio keys, then each charge row in scan order, with no lease lock                                                                          |
-| `Tick`                                    | the Pakistan calendar day moves on                                                                                                                                                                                                                                                   |
+| Model element                             | Code                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `J_Start`                                 | `run_daily_jobs` (findings): `v_as_of := app.today_pkt()`, then `pg_try_advisory_xact_lock`; a run that does not get it returns `skipped`                                                                                                                                                                                                                                            |
+| `J_Scan`                                  | the loop's query: active leases not maintained for `v_as_of`, in id order, from one snapshot                                                                                                                                                                                                                                                                                         |
+| `J_Lock`                                  | the lease `for update skip locked` (busy: next lease). The portfolio `for key share skip locked` before it conflicts with nothing modelled here                                                                                                                                                                                                                                      |
+| `J_Maint`                                 | `maintain_lease` (hardening): status `active` under the lock, then `assess_late_fees` reads the lease's policy and selects the rent dues that are live, unpaid, past grace and owe a fee, in `due_date, id` order                                                                                                                                                                    |
+| `J_Fee`                                   | one row of the `INSERT ... ON CONFLICT (related_charge_id) DO UPDATE ... WHERE voided_at is null and paid_amount = 0 and waived_amount = 0 and excluded.amount > amount`. The conflicting row is locked before the `WHERE` is evaluated; a fee above `numeric(14,2)` fails the lease                                                                                                 |
+| `J_Fee` (no rent left)                    | `insert into private.lease_maintenance` (`maintained_on = v_as_of`)                                                                                                                                                                                                                                                                                                                  |
+| `JobLeaseFailed`, `Detect` (job)          | `exception when others`: rollback to the lease's subtransaction, then `maintained_on = v_as_of, failures + 1` (the lease waits for tomorrow)                                                                                                                                                                                                                                         |
+| `J_Commit`                                | the end of the run: every lease lock taken is held until here                                                                                                                                                                                                                                                                                                                        |
+| `LateFeeAmount`                           | `app.late_fee_amount` (hardening), exactly, in paisa: round half up to whole rupees, then the daily cap, then the clamp                                                                                                                                                                                                                                                              |
+| `P_Wait`, `P_Lock`, `P_Alloc`, `P_Commit` | `record_payment` (ledger findings): `lock_lease_for_write` (latest), the payment row, `allocate_payment` (ledger): chosen charges first, then `due_date, id`, `for update of c` one row at a time; a rent settled in full by a payment dated within grace voids its automatic fee unless other money paid part of it (what this payment put on it is released and allocated further) |
+| `V_Lock`, `V_Do`                          | `void_payment` (hardening): reverse the allocations, mark the payment voided                                                                                                                                                                                                                                                                                                         |
+| `C_Lock`, `C_Do`                          | `void_charge` (hardening): the charge and, for a rent, its unpaid fee (`related_charge_id = x and paid_amount = 0`)                                                                                                                                                                                                                                                                  |
+| `E_Lock`, `E_Do`                          | `end_lease` (ledger findings): release and void the rent of later months and those rents' automatic fees, paid or not; status `ended`                                                                                                                                                                                                                                                |
+| `Cl_Row` (policy)                         | a client `UPDATE leases SET late_fee_*` (policy `leases_update`, findings): portfolio keys, then each row in scan order                                                                                                                                                                                                                                                              |
+| `Cl_Fix` (edit)                           | a client's description edits through `update_charge` (ledger findings), one call (transaction) per charge: the lease first, then the row. Mutant `edit_no_lease_lock` (`Cl_Row`) is the old `UPDATE charges SET description` under policy `charges_update`: rows in scan order, no lease lock                                                                                        |
+| `Tick`                                    | the Pakistan calendar day moves on                                                                                                                                                                                                                                                                                                                                                   |
 
 Two leases of one portfolio. Rent dues `r1` (L1) and `r2` (L2) are due on
 day 0; `r3` is L1's next month, due on day 1. Every lease's grace is one
@@ -59,22 +64,22 @@ rupees capped at 250 (or 249.50, or uncapped at 400 a day), 10 % and a flat
 
 ## Properties
 
-| Property                                 | Plain language                                                                                                               | Broken by                                                                   |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `AtMostOneFee`                           | A rent due has at most one automatic late fee, ever: a daily fee grows in place, a flat or percentage fee is posted once.    | `mut_no_unique_index`                                                       |
-| `FeeWithinCap`                           | A fee never exceeds the daily cap of the policy it was computed with.                                                        | `mut_no_cap`, `mut_round_after_cap` (the code before hardening)             |
-| `FeeFitsCharge`                          | A fee always fits a charge (`numeric(14,2)`), so no lease fails on it.                                                       | `mut_no_clamp`                                                              |
-| `FeeOnlyWhenOverdue`                     | The job writes a fee only for a live rent due that is unpaid in the ledger and past its grace period on the day it runs for. | `mut_no_grace_check`, `mut_no_outstanding_check`                            |
-| `NoFeeWhenPaidInGrace`                   | No fee is left on a rent due that payments dated within grace (`paid_on <= due_date + grace_days`) settle in full.           | the current code: finding F1 (`backdated`)                                  |
-| `IdempotentRerun`                        | Running the job again for a day, with nothing changed, changes no fee.                                                       | `mut_rerun_accumulate` (two mechanisms removed: see below)                  |
-| `FeeNotAboveFormula`                     | The job never sets a fee above what the policy defines for a day it assessed (a flat fee is never charged twice).            | `mut_accumulate`                                                            |
-| `FeeOnlyGrows`                           | The job only raises a fee, and never touches one that is voided, paid or waived (even in part).                              | `mut_no_growth_guard`, `mut_no_paid_guard`, `mut_no_void_guard`             |
-| `VoidedFeeStaysVoid`                     | A voided fee is never posted again.                                                                                          | `mut_index_live_only`                                                       |
-| `NoFeeOnVoidedRent`                      | No live, unpaid fee belongs to a voided rent due.                                                                            | `mut_no_void_related`; the current code: finding F3 (`end_lease`)           |
-| `FeeOnlyOnActiveLease`                   | Fees are written only while the lease is active.                                                                             | `mut_no_status_check`                                                       |
-| `FeeUsesPolicyInForce`                   | Fees are computed with the policy in force when the lease is locked.                                                         | `mut_stale_policy`                                                          |
-| `NoWaitCycle`                            | No transaction waits, directly or through others, for itself: the job and the payment path never deadlock.                   | `mut_no_skip_locked`; the current code: finding F2 (`edit_job`, `edit_pay`) |
-| `TypeOK`, `NotOverpaid`, `NoLeakedLocks` | Sanity of the model: types; `paid + waived <= amount`; a finished process holds nothing.                                     | none: model sanity                                                          |
+| Property                                 | Plain language                                                                                                               | Broken by                                                               |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `AtMostOneFee`                           | A rent due has at most one automatic late fee, ever: a daily fee grows in place, a flat or percentage fee is posted once.    | `mut_no_unique_index`                                                   |
+| `FeeWithinCap`                           | A fee never exceeds the daily cap of the policy it was computed with.                                                        | `mut_no_cap`, `mut_round_after_cap` (the code before hardening)         |
+| `FeeFitsCharge`                          | A fee always fits a charge (`numeric(14,2)`), so no lease fails on it.                                                       | `mut_no_clamp`                                                          |
+| `FeeOnlyWhenOverdue`                     | The job writes a fee only for a live rent due that is unpaid in the ledger and past its grace period on the day it runs for. | `mut_no_grace_check`, `mut_no_outstanding_check`                        |
+| `NoFeeWhenPaidInGrace`                   | No fee is left on a rent due that payments dated within grace (`paid_on <= due_date + grace_days`) settle in full.           | `mut_no_backdated_void` (finding F1)                                    |
+| `IdempotentRerun`                        | Running the job again for a day, with nothing changed, changes no fee.                                                       | `mut_rerun_accumulate` (two mechanisms removed: see below)              |
+| `FeeNotAboveFormula`                     | The job never sets a fee above what the policy defines for a day it assessed (a flat fee is never charged twice).            | `mut_accumulate`                                                        |
+| `FeeOnlyGrows`                           | The job only raises a fee, and never touches one that is voided, paid or waived (even in part).                              | `mut_no_growth_guard`, `mut_no_paid_guard`, `mut_no_void_guard`         |
+| `VoidedFeeStaysVoid`                     | A voided fee is never posted again.                                                                                          | `mut_index_live_only`                                                   |
+| `NoFeeOnVoidedRent`                      | No live, unpaid fee belongs to a voided rent due.                                                                            | `mut_no_void_related`, `mut_end_lease_keeps_fees` (finding F3)          |
+| `FeeOnlyOnActiveLease`                   | Fees are written only while the lease is active.                                                                             | `mut_no_status_check`                                                   |
+| `FeeUsesPolicyInForce`                   | Fees are computed with the policy in force when the lease is locked.                                                         | `mut_stale_policy`                                                      |
+| `NoWaitCycle`                            | No transaction waits, directly or through others, for itself: the job and the payment path never deadlock.                   | `mut_no_skip_locked`, `mut_edit_no_lease_lock_job`, `_pay` (finding F2) |
+| `TypeOK`, `NotOverpaid`, `NoLeakedLocks` | Sanity of the model: types; `paid + waived <= amount`; a finished process holds nothing.                                     | none: model sanity                                                      |
 
 `IdempotentRerun` has two independent guards. The scan skips a lease
 already maintained for the day, and the upsert only raises a fee to what
@@ -91,14 +96,24 @@ Witnesses show the scenarios reach what the properties speak about. Each
 is expected to be violated: `w_fee_posted` (fees are posted),
 `w_fee_raised` (a daily fee grows), `w_paid_in_grace` (a payment settles a
 rent within grace, so `NoFeeWhenPaidInGrace` is not vacuous),
-`w_fee_raised_fix` (with F2's fix the job still raises the edited fee) and
-`w_deadlock_job` (F2's deadlock is detected).
+`w_fee_raised_edit` (with charge edits through `update_charge` the job still
+raises the edited fee), `w_deadlock_job` (under `mut_edit_no_lease_lock`
+F2's deadlock is detected), `w_fee_voided_in_grace` and
+`w_fee_voided_released` (record_payment voids a fee, also one its own money
+had paid first) and `w_fee_voided_end` (end_lease voids a fee).
 
-## Finding F1: a fee stays on a rent paid within grace but recorded late
+## Findings F1, F2 and F3 are fixed
 
-Severity: low to medium (a tenant who paid on time is charged a late fee
-until the landlord voids it by hand). Current code; `backdated` reproduces
-it, `backdated_fix` passes with the proposed fix.
+The model found three faults in the code before
+`20261107181820_ledger_findings.sql`. That migration fixes them: the
+scenarios named for each now pass, and the old code is a mutant named for
+the mechanism the fix added.
+
+### F1: a fee stayed on a rent paid within grace but recorded late
+
+Severity: low to medium (a tenant who paid on time was charged a late fee
+until the landlord voided it by hand). `mut_no_backdated_void` reproduces it;
+`backdated` and `backdated_fee` pass.
 
 `assess_late_fees` decides "late" from the ledger on the day it runs. A
 payment is dated by `p_paid_on`, which may lie in the past. The job runs
@@ -113,21 +128,26 @@ rent first (oldest due first). Counterexample (20 states, shortened):
 3. `P_Wait` ... `P_Commit`: the landlord records the tenant's cash, paid on
    day 1, for the full rent. `NoFeeWhenPaidInGrace` is violated.
 
-Replayed on PostgreSQL by `replay/run.sh` (F1): job for 2026-10-11, then a
-payment recorded on 2026-10-11 with `paid_on` 2026-10-09 (grace ended
-2026-10-10). The rent is paid and the 600-rupee fee stays outstanding.
+Replayed on PostgreSQL by `replay/run.sh` before the fix (F1): job for
+2026-10-11, then a payment recorded on 2026-10-11 with `paid_on` 2026-10-09
+(grace ended 2026-10-10). The rent was paid and the 600-rupee fee stayed
+outstanding. Now the replay finds the fee voided ("Rent paid within the grace
+period").
 
-Proposed fix (`FIX = "backdated_void"`): when `record_payment` settles a
-rent due in full with a payment dated within its grace period, it voids
-that rent's unpaid automatic fee (`source = 'auto_late_fee'`,
-`paid_amount = 0`), as `void_charge` does, before allocating further. A
-fee that was already paid in part stays, as everywhere else.
+Fix: after allocating, `record_payment` voids the automatic fee
+(`source = 'auto_late_fee'`) of every rent the payment settled in full when
+the payment is dated within the rent's grace period, unless other money
+already paid part of the fee (as `void_charge` keeps a fee that has
+payments). Money this payment put on the fee (when the fee was chosen first)
+is released and the payment is allocated again, chosen charges first. The
+model voids the fee when the rent is settled and lets the cursor go on with
+the freed money: the same result, as the rows the cursor passed are settled.
 
-## Finding F2: a client's multi-row edit of charges deadlocks with the job and with payments
+### F2: a client's multi-row edit of charges deadlocked with the job and with payments
 
-Severity: low (PostgreSQL detects the deadlock and aborts one side; no data
-is corrupted). Current code; `edit_job` and `edit_pay` reproduce it,
-`edit_job_fix` and `edit_pay_fix` pass with the proposed fix.
+Severity: low (PostgreSQL detected the deadlock and aborted one side; no
+data was corrupted). `mut_edit_no_lease_lock_job` and `_pay` reproduce it;
+`edit_job` and `edit_pay` pass. It is `../LedgerPayments` F1.
 
 `charges_update` (findings) lets an owner, manager or accountant
 `UPDATE` the description, due date or (manual) amount of charges directly
@@ -155,16 +175,19 @@ client gets `40P01`, and a retry with the same idempotency key is safe. A sleep 
 gap between the statement's rows; PostgREST would send a literal, so the
 real race needs the two to meet within a few milliseconds.
 
-Proposed fix (`FIX = "charge_edit_rpc"`): edit charges through an RPC that
-calls `lock_lease_for_write` and then updates the one charge (or the
-charges of one lease), and revoke the client's `UPDATE` on `charges`. The
-job then skips the lease (`SKIP LOCKED`), and a payment waits for it.
+Fix: clients lose `UPDATE` on `charges`; `update_charge` calls
+`lock_lease_for_write` and then updates the one charge, the order the job
+uses (lease, then its charges). The job then skips the lease (`SKIP
+LOCKED`), and a payment waits for it. The replay now checks that a client's
+`UPDATE` is refused, that the old statement (run as the table owner) still
+deadlocks with the job and with `record_payment`, and that the same edits
+through `update_charge` do not.
 
-## Finding F3: ending a tenancy leaves the late fees of the rent it voids
+### F3: ending a tenancy left the late fees of the rent it voided
 
-Severity: low to medium (the tenant's ledger shows late fees for months
-after they left). Current code; `end_lease` reproduces it,
-`end_lease_fix` passes with the proposed fix.
+Severity: low to medium (the tenant's ledger showed late fees for months
+after they left). `mut_end_lease_keeps_fees` reproduces it; `end_lease`
+passes.
 
 `end_lease` voids untouched rent for months after the move-out month. A
 move-out date in the past (allowed: `p_moved_out_on <= today`) means those
@@ -177,13 +200,14 @@ rent's unpaid fee with it; `end_lease` does not. Counterexample
 3. `E_Lock`, `E_Do`: `end_lease` with move-out in month 1 voids `r3`; its
    fee stays live. `NoFeeOnVoidedRent` is violated.
 
-Replayed on PostgreSQL (`replay/run.sh`, F3): a lease from 2026-10-01,
-job for 2026-11-12, `end_lease` moving out on 2026-10-31. November's rent
-is voided ("Lease ended"); its 700-rupee fee stays live.
+Replayed on PostgreSQL (`replay/run.sh`, F3) before the fix: a lease from
+2026-10-01, job for 2026-11-12, `end_lease` moving out on 2026-10-31.
+November's rent was voided ("Lease ended"); its 700-rupee fee stayed live.
+Now the fee is voided with it.
 
-Proposed fix (`FIX = "end_lease_fees"`): in the same `UPDATE` (or right
-after it), void the unpaid automatic fees whose `related_charge_id` is one
-of the voided rents, as `void_charge` does.
+Fix: `end_lease` releases and voids, with the later rent, the automatic
+fees of rent of later months, paid or not (`../LedgerPayments` F3 releases
+paid later rent the same way); the freed money is applied as credit.
 
 ## Bounds, abstractions and why they are adequate
 
@@ -211,16 +235,20 @@ of the voided rents, as `void_charge` does.
   membership changes, which `../Membership` covers. The job takes it with
   `SKIP LOCKED` before the lease, so it never waits for it.
 - A client's description edit changes no value the properties read; only
-  its row locks matter.
+  its locks matter. `update_charge` applies credit only after an amount
+  change, so it allocates nothing here.
+- `end_lease`'s `apply_lease_credit` allocates nothing here: no scenario
+  pays a lease it ends (`../LedgerPayments` checks the release with
+  payments).
 - `void_payment`'s `apply_lease_credit` allocates nothing here: no
   scenario has a second payment on the same lease.
 
 ## How to run
 
 ```sh
-formal/tla/LateFees/run.sh ci          # 32 configurations
-formal/tla/LateFees/run.sh all         # 44 configurations
-formal/tla/LateFees/replay/run.sh      # F1, F2, F3 on PostgreSQL (tool/db/env.sh)
+formal/tla/LateFees/run.sh ci          # 36 configurations
+formal/tla/LateFees/run.sh all         # 48 configurations
+formal/tla/LateFees/replay/run.sh      # F1, F2, F3 fixed, on PostgreSQL (tool/db/env.sh)
 ```
 
 The runner is `../StorageCleanup/run.sh` with two changes: when
@@ -231,22 +259,27 @@ ends in a TLC error is reported as `error` instead of stopping the runner.
 `KEEP_LOGS` work as there. Each `cfg/*.cfg` names its expected outcome
 (`\* EXPECT:`) and mode (`\* MODE:`). The replay builds the disposable
 database `mm_fv_latefees` with `tool/db/reset.sh` and drops it. It exits
-non-zero unless F1, F2 (both cycles) and F3 all show. F2 depends on timing
-(sleeps of 2 to 5 seconds); on a heavily loaded machine run it again.
+non-zero unless F1 and F3 no longer show, a client's `UPDATE` of charges is
+refused, the old statement's lock order (run as the table owner) still
+deadlocks in both cycles, and the same edits through `update_charge` neither
+deadlock nor fail. The deadlock checks depend on timing (sleeps of 1 to 5
+seconds); on a heavily loaded machine run it again.
 
 ## Expected results
 
-Measured on this machine (4 CPUs shared with other work; 1 job x 1
-worker):
+Measured on this machine (4 CPUs shared with other work; 2 jobs x 1
+worker), after `20261107181820_ledger_findings.sql`:
 
-- `run.sh ci`: 32/32 as expected in 78 s wall.
-- `run.sh all`: 44/44 as expected in 305 s wall. The largest are
+- `run.sh ci`: 36/36 as expected in 86 s wall.
+- `run.sh all`: 48/48 as expected in 187 s wall. The largest are
   `part_paid` (298,324 distinct states) and `mut_no_advisory_lock`
   (369,299).
-- `replay/run.sh`: all four checks "yes" in about 70 s.
-- Expected violations: `backdated` (F1), `end_lease` (F3), `edit_job` and
-  `edit_pay` (F2), every `mut_*` except `mut_no_maint_check` and
-  `mut_no_advisory_lock`, and every `w_*` witness.
+- `replay/run.sh`: all ten checks "yes", exit 0, in 33 s.
+- Expected violations: every `mut_*` except `mut_no_maint_check` and
+  `mut_no_advisory_lock` (among them `mut_no_backdated_void`,
+  `mut_edit_no_lease_lock_job`, `mut_edit_no_lease_lock_pay` and
+  `mut_end_lease_keeps_fees`, the code before F1 to F3 were fixed), and
+  every `w_*` witness.
 
 ## Cross-check with the executable tests
 
@@ -257,9 +290,13 @@ worker):
 | `concurrency_test.sh` 4: the job racing id-ordered billing syncs and payments over 121 leases; a second coordinator skips                                            | `pay_mid_run`, `bulk_policy`, `rerun`; `mut_no_skip_locked`                                  |
 | `concurrency_test.sh` 5: a lease held by a user's transaction is skipped at once                                                                                     | `J_Lock` (busy: next lease)                                                                  |
 
-None of these runs a client's own multi-row `UPDATE` of charges against the
-job or a payment (F2), records a payment dated within grace after the job
-ran (F1), or ends a tenancy whose later months already carry fees (F3).
+Before the fixes none of these ran a client's own multi-row `UPDATE` of
+charges against the job or a payment (F2), recorded a payment dated within
+grace after the job ran (F1), or ended a tenancy whose later months already
+carried fees (F3). `17_ledger_findings.test.sql` now covers F1 (in grace,
+overpaid, after grace, fee partly paid first) and F3 (a partly paid fee of a
+later month released and voided), and `concurrency_test.sh` 29 races
+`update_charge` against payments and voids.
 
 ## Not covered
 

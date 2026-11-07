@@ -77,7 +77,13 @@
 #      key → the write is authorised again and does nothing.
 #  28. A SECURITY DEFINER function's manual charge while a membership change
 #      holds the portfolio → it waits and succeeds (not refused).
-#  29. Invariants: paid_amount = Σ allocations, allocated_amount =
+#  29. F1 (20261107181820_ledger_findings.sql): a client edits two charges of
+#      a lease (manual charge first, then rent: the scan order of the old
+#      two-row UPDATE) through update_charge in one transaction, while
+#      record_payment or void_payment works the same lease (8 rounds) → no
+#      deadlock and no error; the direct UPDATE is refused; no credit is
+#      left next to an open due.
+#  30. Invariants: paid_amount = Σ allocations, allocated_amount =
 #      Σ allocations, nothing overpaid, cash conserved; no portfolio is left
 #      without an owner or without members; no document outlives its entity,
 #      references a missing file, or references a file queued for deletion.
@@ -1682,7 +1688,90 @@ check_errors "definer insert" "never-allowed" "$WORK/df_client.err"
 psql_db -c "drop function public.fv_add_manual_charge(uuid, uuid)" >/dev/null
 end_scenario "definer inserts"
 
-# 29. Invariants --------------------------------------------------------------------------
+# 29. F1: charge edits under the lease lock ------------------------------------------------
+# A client's two-row UPDATE of charges locked the manual charge (first in the
+# table), then the rent, without the lease lock, while allocate_payment and
+# void_payment lock the lease and then the rent before the manual charge (due
+# order): PostgreSQL detected a deadlock (formal/tla/LedgerPayments, F1). Now
+# a client can only call update_charge, which takes the portfolio key and the
+# lease first. Two calls in one transaction stand for the old statement's two
+# rows; the sleep between them holds the lease while the ledger call arrives,
+# the window in which the old statement deadlocked.
+echo "▸ F1: charge edits (update_charge) racing payments and voids on one lease (8 rounds)"
+FAILURES=()
+reset_limits
+CE_OWNER="$(new_user "ce-owner@example.com")"
+CE_ESTATE="$(new_portfolio "$CE_OWNER" "Edits")"
+as_user "$CE_OWNER" "update public.charges set description = 'Direct' where portfolio_id = '${CE_ESTATE}';" \
+  | psql_db >/dev/null 2>"$WORK/ce_direct.err" || true
+grep -q "ERROR:  permission denied for table charges" "$WORK/ce_direct.err" \
+  || fail_case "a client's direct UPDATE of charges was not refused: $(cat "$WORK/ce_direct.err")"
+# A lease starting in December with a manual charge (due 20 December) created
+# before December's rent (due 5 December): first in the table, last in due order.
+ce_lease() {
+  local lease
+  lease="$(
+    psql_db -v portfolio="$CE_ESTATE" <<'SQL'
+set app.today_override = '2026-11-20';
+with prop as (
+  insert into public.properties (portfolio_id, name, city, province)
+  values (:'portfolio', 'House ' || gen_random_uuid(), 'Lahore', 'punjab')
+  returning id, portfolio_id
+), unit as (
+  insert into public.units (portfolio_id, property_id, label) select portfolio_id, id, 'Flat' from prop
+  returning id, portfolio_id
+), tenant as (
+  insert into public.tenants (portfolio_id, full_name) select portfolio_id, 'Tenant' from unit
+  returning id, portfolio_id
+), lease as (
+  insert into public.leases (portfolio_id, unit_id, tenant_id, start_date, monthly_rent)
+  select unit.portfolio_id, unit.id, tenant.id, '2026-12-01', 1000 from unit, tenant
+  returning id, portfolio_id
+)
+insert into public.charges (portfolio_id, lease_id, kind, due_date, amount, description)
+select portfolio_id, id, 'maintenance', '2026-12-20', 500, 'Repair' from lease
+returning lease_id;
+SQL
+  )"
+  psql_db -c "set app.today_override = '2026-12-03'; select private.sync_lease_billing('${lease}')" >/dev/null
+  echo "$lease"
+}
+# $1 tag, $2 lease, $3 the ledger call, started 0.2 s into the client's
+# transaction (after its first edit, before its second).
+ce_race() {
+  local before manual rent
+  manual="$(psql_db -c "select id from public.charges where lease_id = '$2' and source = 'manual'")"
+  rent="$(psql_db -c "select id from public.charges where lease_id = '$2' and kind = 'rent'")"
+  before="$(deadlocks)"
+  as_user "$CE_OWNER" "select public.update_charge('${manual}', 700, null, 'Edited') is not null;
+    select pg_sleep(0.4);
+    select public.update_charge('${rent}', null, null, 'Edited') is not null;" \
+    | psql_db >/dev/null 2>"$WORK/ce_$1_client.err" &
+  sleep 0.2
+  as_user "$CE_OWNER" "$3" | psql_db >/dev/null 2>"$WORK/ce_$1_ledger.err" &
+  wait
+  check_deadlocks "$1" "$before"
+  check_errors "$1" "never-allowed" "$WORK/ce_$1_client.err" "$WORK/ce_$1_ledger.err"
+}
+for round in $(seq 1 8); do
+  reset_limits
+  lease="$(ce_lease)"
+  ce_race "pay${round}" "$lease" \
+    "select public.record_payment('${lease}', 1500, '2026-11-03', 'cash', gen_random_uuid()) is not null;"
+  lease="$(ce_lease)"
+  pay="$(as_user "$CE_OWNER" "select public.record_payment('${lease}', 1500, '2026-11-03', 'cash', gen_random_uuid()) -> 'payment' ->> 'id';" | psql_db)"
+  ce_race "void${round}" "$lease" "select public.void_payment('${pay}', 'Bounced') is not null;"
+done
+[[ "$(psql_db -c "select count(*) from public.charges where portfolio_id = '${CE_ESTATE}' and description = 'Edited'")" == "32" ]] \
+  || fail_case "not every edit was applied"
+[[ "$(psql_db -c "select count(*) from public.charges c
+                  where c.portfolio_id = '${CE_ESTATE}' and c.voided_at is null and c.outstanding > 0
+                    and exists (select 1 from public.payments p
+                                where p.lease_id = c.lease_id and p.voided_at is null and p.unallocated_amount > 0)")" == "0" ]] \
+  || fail_case "credit was left next to an open due"
+end_scenario "charge edits under the lease lock"
+
+# 30. Invariants --------------------------------------------------------------------------
 echo "▸ Checking invariants"
 RESULT="$(
   psql_db <<SQL

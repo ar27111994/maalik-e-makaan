@@ -124,7 +124,7 @@ type RpcAnswers = Readonly<Record<string, RpcAnswer>>;
 
 /** A live account that owns nothing alone: every check passes and nothing needs cleaning. */
 const DEFAULT_RPC: RpcAnswers = {
-  admin_hit_rate_limit: { data: true },
+  admin_rate_limit_hit: { data: { allowed: true, retry_after_seconds: 600 } },
   admin_account_deletion_scope: { data: SCOPE_ROWS },
   admin_delete_account_data: { data: { deleted_portfolio_ids: [] } },
 };
@@ -275,7 +275,7 @@ const METHODS = ['GET', 'POST'] as const;
 
 // --- expected calls ------------------------------------------------------------
 
-const LIMIT = 'rpc:admin_hit_rate_limit';
+const LIMIT = 'rpc:admin_rate_limit_hit';
 const GET_USER = 'getUser';
 const LOOKUP = 'getUserById';
 const DELETE_DATA = 'rpc:admin_delete_account_data';
@@ -293,7 +293,7 @@ function trail(calls: readonly Call[]): string[] {
 const LIMIT_CALL: Call = {
   kind: 'rpc',
   args: [
-    'admin_hit_rate_limit',
+    'admin_rate_limit_hit',
     { p_key: `delete_account:user:${USER_ID}`, p_limit: 10, p_window_seconds: 600 },
   ],
 };
@@ -724,20 +724,25 @@ Deno.test('every call first counts a hit on delete_account:user:<id>, 10 per 600
   }
 });
 
-Deno.test('over the limit: 429 with Retry-After until the 600 s window ends, and nothing else', async () => {
-  const cases: ReadonlyArray<readonly [number, string]> = [
-    // [milliseconds after NOW, Retry-After]: NOW starts a 600 s window.
-    [0, '600'],
-    [1_000, '599'],
-    [450_000, '150'],
-    [599_000, '1'],
-    [599_999, '1'],
-    [600_000, '600'],
+Deno.test("over the limit: 429 with the database's Retry-After, whatever the Edge clock, and nothing else", async () => {
+  const cases: ReadonlyArray<readonly [number, number]> = [
+    // [milliseconds after NOW on the Edge clock, the database's wait]. The
+    // database counted the hit in its own window: its wait is sent even when
+    // the Edge clock has moved into the next window (RateLimit F5).
+    [0, 600],
+    [1_000, 599],
+    [450_000, 150],
+    [599_999, 1],
+    [600_000, 1],
+    [601_000, 5],
   ];
   for (const method of METHODS) {
-    for (const [offset, retryAfter] of cases) {
-      const label = `${method} at NOW + ${offset} ms`;
-      const admin = adminClient({ rpc: { admin_hit_rate_limit: { data: false } } });
+    for (const [offset, wait] of cases) {
+      const retryAfter = String(wait);
+      const label = `${method} at NOW + ${offset} ms, database wait ${wait} s`;
+      const admin = adminClient({
+        rpc: { admin_rate_limit_hit: { data: { allowed: false, retry_after_seconds: wait } } },
+      });
       const now = new Date(NOW.getTime() + offset);
       const { req, response, calls, logs } = await send({ ...forMethod(method), admin, now });
       await assertError(response, rateLimited(retryAfter), label);
@@ -752,11 +757,11 @@ Deno.test('a failing rate limiter fails closed with 502 and nothing else', async
   const failures: ReadonlyArray<readonly [string, Result]> = [
     ['an error', { error: { code: 'XX000', message: 'limiter failed' }, status: 500 }],
     ['no answer', { data: null }],
-    ['an answer that is not a boolean', { data: 'false' }],
+    ['an answer that is not a verdict', { data: false }],
   ];
   for (const method of METHODS) {
     for (const [label, answer] of failures) {
-      const admin = adminClient({ rpc: { admin_hit_rate_limit: answer } });
+      const admin = adminClient({ rpc: { admin_rate_limit_hit: answer } });
       const { response, calls } = await send({ ...forMethod(method), admin });
       await assertError(response, LIMITER_DOWN, `${method}: ${label}`);
       assertEquals(calls, [LIMIT_CALL], `${method}: ${label}`);
@@ -1318,7 +1323,9 @@ Deno.test('POST checks in order: rate limit, body, live account, e-mail, sign-in
       'the rate limit before the body',
       {
         body: { force: true },
-        admin: adminClient({ rpc: { admin_hit_rate_limit: { data: false } } }),
+        admin: adminClient({
+          rpc: { admin_rate_limit_hit: { data: { allowed: false, retry_after_seconds: 600 } } },
+        }),
       },
       rateLimited('600'),
       [LIMIT],

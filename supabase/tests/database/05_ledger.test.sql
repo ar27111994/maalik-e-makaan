@@ -186,7 +186,7 @@ values (:'pid', :'lease', 'damages', '2026-11-20', 3000) returning id as dmg \gs
 select ok((public.void_charge(:'dmg', 'Repaired by tenant')).voided_at is not null, 'unpaid charges can be voided');
 select is((public.void_charge(:'dmg', 'Again')).void_reason, 'Repaired by tenant', 'voiding a voided charge again changes nothing');
 select throws_ok(
-  format($f$update public.charges set amount = 1 where id = %L$f$, :'dmg'),
+  format($f$select public.update_charge(%L, 1)$f$, :'dmg'),
   '22023', 'charge_voided', 'voided charges are frozen'
 );
 
