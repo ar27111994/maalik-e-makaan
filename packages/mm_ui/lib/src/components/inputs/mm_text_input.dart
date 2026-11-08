@@ -53,8 +53,17 @@ typedef MmValueLayout = MmValueLine Function(
 ///
 /// The typed text is set in the body style through `context.mm.styleFor`,
 /// so Latin text typed in the Urdu UI (a name in English) is set in
-/// Atkinson while Urdu stays in Nastaliq; the field rebuilds only when the
-/// text changes script.
+/// Atkinson while Urdu stays in Nastaliq. Unless [leftToRight], the text
+/// runs in the direction of its first letter (right to left for Urdu typed
+/// in the English UI, left to right for English typed in the Urdu UI), as
+/// `dir="auto"` does on the web; text without letters runs in the UI's
+/// direction, and the label keeps the UI's direction. A one-line field
+/// keeps its text at the start edge of the form, in line with the fields
+/// around it. A field of several lines aligns its text, as `dir="auto"`
+/// does, to the start of the text's own direction (the right edge for an
+/// Urdu message in the English UI), so every line of a paragraph starts at
+/// the same edge. The field rebuilds only when the text changes script or
+/// direction.
 ///
 /// A value field passes [valueLine] instead: the field then lays its one
 /// line out for its width and its current text (rebuilding as the text
@@ -206,15 +215,18 @@ class MmTextInput extends StatefulWidget {
 }
 
 class _MmTextInputState extends State<MmTextInput> {
-  /// The latest text, and whether it has Urdu letters.
+  /// The latest text, whether it has Urdu letters, and the direction of
+  /// its first letter.
   late String _text;
   late bool _arabic;
+  TextDirection? _direction;
 
   @override
   void initState() {
     super.initState();
     _text = widget.controller?.text ?? widget.initialValue ?? '';
     _arabic = MmSemantics.hasArabicScript(_text);
+    _direction = MmSemantics.firstStrongDirection(_text);
     widget.controller?.addListener(_handleControllerChanged);
   }
 
@@ -227,6 +239,7 @@ class _MmTextInputState extends State<MmTextInput> {
       // build() follows, so no setState.
       _text = widget.controller?.text ?? _text;
       _arabic = MmSemantics.hasArabicScript(_text);
+      _direction = MmSemantics.firstStrongDirection(_text);
     }
   }
 
@@ -245,16 +258,20 @@ class _MmTextInputState extends State<MmTextInput> {
 
   /// Remembers [text]. A value field lays its line out for its text, so it
   /// rebuilds on every change of the text; any other field rebuilds only
-  /// when the text changes script, the only change `styleFor` reacts to.
+  /// when the text changes script (the only change `styleFor` reacts to)
+  /// or the direction of its first letter.
   void _track(String text) {
     if (text == _text) return;
     final arabic = MmSemantics.hasArabicScript(text);
+    final direction = MmSemantics.firstStrongDirection(text);
     final rebuild =
         widget.valueLine != null ||
         widget.emptyHint != null ||
-        arabic != _arabic;
+        arabic != _arabic ||
+        direction != _direction;
     _text = text;
     _arabic = arabic;
+    _direction = direction;
     if (rebuild) setState(() {});
   }
 
@@ -309,13 +326,28 @@ class _MmTextInputState extends State<MmTextInput> {
     );
   }
 
-  /// Where the text sits when nothing else says: at the start edge, also
-  /// when it reads left to right in the Urdu UI.
+  /// The direction the text runs in: left to right for a left-to-right
+  /// field, otherwise the direction of its first letter, or the UI's (null)
+  /// while it has none. A value field lays its own line out.
+  TextDirection? get _textDirection {
+    if (widget.leftToRight) return TextDirection.ltr;
+    if (widget.valueLine != null) return null;
+    return _direction;
+  }
+
+  /// Where the text sits when nothing else says: at the start edge of the
+  /// form, also when it runs against the UI's direction (English in the
+  /// Urdu UI, Urdu in the English UI, a left-to-right field in Urdu). Text
+  /// of several lines typed in the other language starts each line at the
+  /// start of its own direction instead: aligned to the form's edge, each
+  /// line of an Urdu paragraph in the English UI would start somewhere
+  /// else.
   TextAlign _startAlign(BuildContext context) {
-    if (!widget.leftToRight) return TextAlign.start;
-    return Directionality.of(context) == TextDirection.rtl
-        ? TextAlign.right
-        : TextAlign.left;
+    final ui = Directionality.of(context);
+    final own = _textDirection;
+    if (own == null || own == ui) return TextAlign.start;
+    if (widget.maxLines != 1 && !widget.leftToRight) return TextAlign.start;
+    return ui == TextDirection.rtl ? TextAlign.right : TextAlign.left;
   }
 
   Widget _field(
@@ -361,7 +393,7 @@ class _MmTextInputState extends State<MmTextInput> {
     autocorrect: !widget.obscureText,
     enableSuggestions: !widget.obscureText,
     style: style,
-    textDirection: widget.leftToRight ? TextDirection.ltr : null,
+    textDirection: _textDirection,
     textAlign: textAlign,
     inputFormatters: [const MmCleanTextFormatter(), ...?widget.inputFormatters],
   );

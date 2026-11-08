@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/features/leases/application/leases.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
@@ -20,7 +21,8 @@ class TenancyList extends ConsumerWidget {
   final String? unitId;
   final String? tenantId;
 
-  /// Offers starting a tenancy (a unit in use, with no tenancy now).
+  /// Offers starting a tenancy: in a unit in use with no tenancy now, or
+  /// with a tenant in use (the unit is then chosen on the form).
   final bool canStart;
 
   @override
@@ -36,7 +38,9 @@ class TenancyList extends ConsumerWidget {
           title: l10n.tenantTenanciesSection,
           actionLabel: start ? l10n.startTenancyAction : null,
           onAction: start
-              ? () => context.go(Routes.newLease(unitId: unitId))
+              ? () => context.go(
+                  Routes.newLease(unitId: unitId, tenantId: tenantId),
+                )
               : null,
         ),
         const SizedBox(height: MmSpace.s2),
@@ -82,7 +86,13 @@ class _TenancyTile extends StatelessWidget {
       leading: const Icon(MmIcons.lease),
       title: byUnit
           ? lease.tenantName
-          : l10n.unitAtProperty(lease.unitLabel, lease.propertyName),
+          : appText(
+              l10n.unitAtProperty(
+                inSentence(lease.unitLabel, Directionality.of(context)),
+                inSentence(lease.propertyName, Directionality.of(context)),
+              ),
+              Directionality.of(context),
+            ),
       subtitle: l10n.listDetail(
         MmFormats.moneyOf(context).format(terms.monthlyRent),
         period,

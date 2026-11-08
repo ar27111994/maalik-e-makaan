@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
-import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
+import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
 import 'package:maalik_e_makaan/src/features/ledger/application/ledger.dart';
 import 'package:maalik_e_makaan/src/features/ledger/data/ledger.dart';
@@ -304,6 +305,7 @@ class _ReminderComposerState extends ConsumerState<ReminderComposer>
           minLines: 6,
           maxLines: 14,
           maxLength: ReminderLog.maxPreviewLength,
+          inputFormatters: codePointLimit(ReminderLog.maxPreviewLength),
         ),
         const SizedBox(height: MmSpace.s3),
         Text(

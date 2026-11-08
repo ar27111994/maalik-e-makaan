@@ -14,6 +14,7 @@ import 'package:maalik_e_makaan/src/features/ledger/presentation/record_payment_
 import 'package:maalik_e_makaan/src/features/ledger/presentation/tenancy_ledger_screen.dart';
 import 'package:maalik_e_makaan/src/features/notifications/presentation/notifications_screen.dart';
 import 'package:maalik_e_makaan/src/features/reminders/data/reminder.dart';
+import 'package:maalik_e_makaan/src/features/reminders/presentation/reminder_sheet.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/harness.dart';
@@ -278,6 +279,29 @@ void main() {
     size: const Size(360, 1500),
     sizes: {MmVariant.largeText: const Size(360, 3200)},
     act: (tester) => _tapIcon(tester, MmIcons.reminder),
+  );
+
+  // The message in the other language: an Urdu reminder in the English UI
+  // (and an English one in the Urdu UI) starts every line at the start of
+  // its own direction.
+  screenGoldenEveryVariant(
+    'reminder_other_language',
+    () => TenancyLedgerScreen(leaseId: aliLease.id),
+    size: const Size(360, 1500),
+    variants: const [MmVariant.light, MmVariant.urdu],
+    act: (tester) async {
+      await _tapIcon(tester, MmIcons.reminder);
+      final english =
+          Localizations.localeOf(tester.element(find.byType(ReminderComposer)))
+              .languageCode ==
+          'en';
+      // Urdu in the English UI, English in the Urdu UI.
+      final other = find.byType(Radio<ReminderLanguage>).at(english ? 1 : 0);
+      await tester.ensureVisible(other);
+      await tester.pumpAndSettle();
+      await tester.tap(other);
+      await tester.pumpAndSettle();
+    },
   );
 
   screenGoldenEveryVariant(

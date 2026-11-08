@@ -172,7 +172,7 @@ class TenantTile extends StatelessWidget {
           ? l10n.tenantKind(tenant.kind)
           : detailLine(details),
       subtitleMaxLines: 4,
-      trailing: const Icon(MmIcons.chevronEnd),
+      chevron: true,
       onTap: () => context.go(Routes.tenant(tenant.id)),
     );
   }

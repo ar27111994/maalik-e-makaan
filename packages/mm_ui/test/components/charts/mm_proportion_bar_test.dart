@@ -233,6 +233,36 @@ void main() {
           MmChartMark(fill: colors.overdue),
         ],
       );
+      // Overdue rent by age in four buckets: rising lines, then crossed
+      // lines, then solid red, ever heavier.
+      expect(
+        await marksOf(const [
+          MmSegmentTone.neutral,
+          MmSegmentTone.dueSoon,
+          MmSegmentTone.overdue,
+          MmSegmentTone.overdueOlder,
+          MmSegmentTone.overdueSevere,
+        ]),
+        [
+          MmChartMark(fill: colors.surface, stroke: colors.outline),
+          MmChartMark(
+            fill: colors.dueSoon,
+            hatch: MmHatch.falling,
+            hatchColor: hatch,
+          ),
+          MmChartMark(
+            fill: colors.overdue,
+            hatch: MmHatch.rising,
+            hatchColor: hatch,
+          ),
+          MmChartMark(
+            fill: colors.overdue,
+            hatch: MmHatch.crossed,
+            hatchColor: hatch,
+          ),
+          MmChartMark(fill: colors.overdue),
+        ],
+      );
       // Money held for tenants.
       expect(
         await marksOf(const [MmSegmentTone.primary, MmSegmentTone.credit]),

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:mm_core/mm_core.dart';
@@ -288,11 +289,11 @@ final class Property {
 
   /// The editable columns, as the database stores them.
   Map<String, Object?> toWrite() => {
-    'name': sanitizeSingleLine(name, maxLength: maxNameLength),
+    'name': singleLineWithin(name, maxNameLength),
     'type': type.db,
-    'address_line': sanitizeOptional(addressLine, maxLength: maxAddressLength),
-    'locality': sanitizeOptional(locality, maxLength: maxLocalityLength),
-    'city': sanitizeSingleLine(city, maxLength: maxCityLength),
+    'address_line': optionalText(addressLine, maxAddressLength),
+    'locality': optionalText(locality, maxLocalityLength),
+    'city': singleLineWithin(city, maxCityLength),
     'province': province.db,
     'plot_size': plotSize?.toString(),
     'plot_size_unit': plotSize == null ? null : plotSizeUnit?.db,
@@ -302,13 +303,10 @@ final class Property {
     'purchased_on': purchasedOn?.toJson(),
     'estimated_value': estimatedValue?.toJson(),
     'value_estimated_on': valueEstimatedOn?.toJson(),
-    'property_tax_ref': sanitizeOptional(
-      propertyTaxRef,
-      maxLength: maxTaxRefLength,
-    ),
+    'property_tax_ref': optionalText(propertyTaxRef, maxTaxRefLength),
     'notes': notes == null
         ? null
-        : _blankToNull(sanitizeMultiline(notes!, maxLength: maxNotesLength)),
+        : _blankToNull(linesWithin(notes!, maxNotesLength)),
   };
 
   /// The row [Property.fromRow] reads back (the offline cache).
@@ -448,9 +446,9 @@ final class Unit {
 
   /// The editable columns, as the database stores them.
   Map<String, Object?> toWrite() => {
-    'label': sanitizeSingleLine(label, maxLength: maxLabelLength),
+    'label': singleLineWithin(label, maxLabelLength),
     'type': type.db,
-    'floor_label': sanitizeOptional(floorLabel, maxLength: maxFloorLength),
+    'floor_label': optionalText(floorLabel, maxFloorLength),
     'bedrooms': bedrooms,
     'bathrooms': bathrooms,
     'covered_area_sqft': coveredAreaSqft,
@@ -459,9 +457,7 @@ final class Unit {
     'is_available': isAvailable,
     'notes': notes == null
         ? null
-        : _blankToNull(
-            sanitizeMultiline(notes!, maxLength: Property.maxNotesLength),
-          ),
+        : _blankToNull(linesWithin(notes!, Property.maxNotesLength)),
   };
 
   /// The row [Unit.fromRow] reads back (the offline cache).

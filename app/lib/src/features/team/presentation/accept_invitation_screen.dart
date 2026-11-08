@@ -146,7 +146,9 @@ class _Accepted extends ConsumerWidget {
       icon: MmIcons.success,
       title: name == null
           ? l10n.invitationAcceptedNoName
-          : l10n.invitationAcceptedTitle(name),
+          : l10n.invitationAcceptedTitle(
+              inSentence(name, Directionality.of(context)),
+            ),
       message: l10n.invitationAcceptedBody(roleLabel(l10n, outcome.role)),
       actionLabel: l10n.openPortfolioAction,
       onAction: () => context.go(Routes.home),

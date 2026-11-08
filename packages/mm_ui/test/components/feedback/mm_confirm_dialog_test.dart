@@ -574,4 +574,50 @@ void main() {
       expect(openingTime(), Duration.zero);
     });
   });
+
+  group('showMmConfirmDialog cancel label', () {
+    testWidgets('names the way out in its own words when "Cancel" would '
+        'be ambiguous', (tester) async {
+      final context = await _page(tester);
+      final answer = _Answer(
+        showMmConfirmDialog(
+          context,
+          title: 'Cancel the repair?',
+          message: 'The plumber will not be called.',
+          confirmLabel: 'Cancel the repair',
+          cancelLabel: 'Keep the repair',
+          destructive: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Cancel'), findsNothing);
+      final keep = find.ancestor(
+        of: find.text('Keep the repair'),
+        matching: find.byType(TextButton),
+      );
+      expect(keep, findsOneWidget);
+      // It is still the safe answer: it has the focus and answers no.
+      expect(hasFocus(tester, find.text('Keep the repair')), isTrue);
+      await tester.tap(keep);
+      await tester.pumpAndSettle();
+      expect(answer.value, isFalse);
+    });
+
+    testWidgets('sets Latin words in an Urdu cancel label in the Latin face', (
+      tester,
+    ) async {
+      final context = await _page(tester, variant: MmVariant.urdu);
+      unawaited(
+        showMmConfirmDialog(
+          context,
+          title: 'مرمت منسوخ کریں؟',
+          message: 'پلمبر کو نہیں بلایا جائے گا۔',
+          confirmLabel: 'مرمت منسوخ کریں',
+          cancelLabel: 'PDF رکھیں',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('PDF رکھیں', findRichText: true), findsOneWidget);
+    });
+  });
 }

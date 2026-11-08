@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
@@ -31,8 +32,15 @@ PdfColor pdfColor(Color color) => PdfColor.fromInt(color.toARGB32());
 /// inside it) and placed as an image at print resolution; all other text
 /// is PDF text in the bundled Atkinson face, which can be selected and
 /// searched.
+///
+/// Text set apart in Latin letters in an Urdu document (a tenant's name, a
+/// reference) is set as the Urdu UI sets it, at the Urdu type's size
+/// ([latinScale]), not smaller than the Nastaliq around it. A row's label
+/// and value stand on one baseline ([cell], `documentRow`) and a drawn
+/// line's letters, not the room drawn around them, line up with the edge
+/// of their column.
 final class PdfTextWriter {
-  new _(this._latin, this.direction);
+  new _(this._latin, this.direction, {required this._ascent});
 
   /// Loads the Latin face from [bundle] for a document written in
   /// [direction].
@@ -41,8 +49,22 @@ final class PdfTextWriter {
     AssetBundle? bundle,
   }) async {
     final data = await (bundle ?? rootBundle).load(latinFontAsset);
-    return PdfTextWriter._(pw.Font.ttf(data), direction);
+    final metrics = TtfParser(data);
+    return PdfTextWriter._(
+      pw.Font.ttf(data),
+      direction,
+      ascent: metrics.ascent / metrics.unitsPerEm,
+    );
   }
+
+  /// How much larger Latin text is set in an Urdu document: as much as the
+  /// Urdu UI's body type is larger than the English UI's, so a name typed
+  /// in English is as large beside Nastaliq on paper as on screen.
+  static final double urduLatinScale =
+      MmTypeScale.urduBody.fontSize! / MmTypeScale.latinBody.fontSize!;
+
+  /// The Latin face's ascent, in ems: where a PDF text's first baseline is.
+  final double _ascent;
 
   /// Device pixels per PDF point of drawn text (about 300 dpi).
   static const double resolution = 300 / 72;
@@ -55,6 +77,9 @@ final class PdfTextWriter {
   final _drawn = <String, _Drawn>{};
 
   bool get rightToLeft => direction == ui.TextDirection.rtl;
+
+  /// How much larger PDF text in Latin letters is set than [text]'s size.
+  double get latinScale => rightToLeft ? urduLatinScale : 1;
 
   /// The page theme: Atkinson for every PDF text.
   pw.ThemeData get theme => pw.ThemeData.withFont(base: _latin, bold: _latin);
@@ -71,8 +96,29 @@ final class PdfTextWriter {
     bool bold = false,
     bool end = false,
     bool fill = false,
+  }) async => (await cell(
+    text,
+    size: size,
+    color: color,
+    maxWidth: maxWidth,
+    bold: bold,
+    end: end,
+    fill: fill,
+  )).widget;
+
+  /// [text] as [PdfTextWriter.text] writes it, with where its first
+  /// baseline is, in points from its top, so cells side by side can stand
+  /// on one baseline ([onBaseline]).
+  Future<PdfCell> cell(
+    String text, {
+    double size = 10,
+    PdfColor? color,
+    double maxWidth = 480,
+    bool bold = false,
+    bool end = false,
+    bool fill = false,
   }) async {
-    final widget = await _text(
+    final laid = await _text(
       text,
       size: size,
       color: color,
@@ -80,16 +126,32 @@ final class PdfTextWriter {
       bold: bold,
       end: end,
     );
-    if (!fill) return widget;
-    return pw.Align(
-      alignment: end
-          ? pw.AlignmentDirectional.topEnd
-          : pw.AlignmentDirectional.topStart,
-      child: widget,
+    if (!fill) return laid;
+    return (
+      widget: pw.Align(
+        alignment: end
+            ? pw.AlignmentDirectional.topEnd
+            : pw.AlignmentDirectional.topStart,
+        child: laid.widget,
+      ),
+      baseline: laid.baseline,
     );
   }
 
-  Future<pw.Widget> _text(
+  /// [cells] each moved down as far as it needs to stand on the lowest
+  /// first baseline among them.
+  static List<pw.Widget> onBaseline(List<PdfCell> cells) {
+    final baseline = cells.map((cell) => cell.baseline).reduce(math.max);
+    return [
+      for (final cell in cells)
+        pw.Padding(
+          padding: pw.EdgeInsets.only(top: baseline - cell.baseline),
+          child: cell.widget,
+        ),
+    ];
+  }
+
+  Future<PdfCell> _text(
     String text, {
     required double size,
     required PdfColor? color,
@@ -98,14 +160,17 @@ final class PdfTextWriter {
     required bool end,
   }) async {
     final ink = color ?? pdfColor(MmColorModes.light.ink);
+    final right = end != rightToLeft;
     if (!hasArabicScript(text)) {
-      return pw.Text(
-        text,
-        textAlign: (end != rightToLeft)
-            ? pw.TextAlign.right
-            : pw.TextAlign.left,
-        textDirection: pw.TextDirection.ltr,
-        style: pw.TextStyle(font: _latin, fontSize: size, color: ink),
+      final latin = size * latinScale;
+      return (
+        widget: pw.Text(
+          text,
+          textAlign: right ? pw.TextAlign.right : pw.TextAlign.left,
+          textDirection: pw.TextDirection.ltr,
+          style: pw.TextStyle(font: _latin, fontSize: latin, color: ink),
+        ),
+        baseline: _ascent * latin,
       );
     }
     final key = '$size|${ink.toInt()}|$maxWidth|$bold|$end|$text';
@@ -117,10 +182,19 @@ final class PdfTextWriter {
       bold: bold,
       end: end,
     );
-    return pw.Image(
-      pw.MemoryImage(drawn.png),
-      width: drawn.width,
-      height: drawn.height,
+    return (
+      // The room drawn beside the letters (for Nastaliq's strokes) reaches
+      // past the column's edge, so the letters line up with it, as PDF
+      // text does.
+      widget: pw.Transform.translate(
+        offset: PdfPoint(right ? drawn.side : -drawn.side, 0),
+        child: pw.Image(
+          pw.MemoryImage(drawn.png),
+          width: drawn.width,
+          height: drawn.height,
+        ),
+      ),
+      baseline: drawn.baseline,
     );
   }
 
@@ -145,7 +219,9 @@ final class PdfTextWriter {
           ..pushStyle(
             ui.TextStyle(
               color: ink,
-              fontSize: scaled,
+              // Latin words among Urdu ones at the Urdu type's size, as
+              // the Urdu UI sets them.
+              fontSize: urdu ? scaled : scaled * latinScale,
               fontWeight: weight,
               fontVariations: [ui.FontVariation.weight(weight.value * 1.0)],
               fontFamily: urdu
@@ -181,6 +257,8 @@ final class PdfTextWriter {
       png!.buffer.asUint8List(),
       width: width / resolution,
       height: height / resolution,
+      side: side / resolution,
+      baseline: (margin + paragraph.alphabeticBaseline) / resolution,
     );
   }
 
@@ -208,10 +286,26 @@ final class PdfTextWriter {
   }
 }
 
+/// A piece of a document's text, and where its first baseline is, in
+/// points from its top.
+typedef PdfCell = ({pw.Widget widget, double baseline});
+
 final class _Drawn {
-  const new(this.png, {required this.width, required this.height});
+  const new(
+    this.png, {
+    required this.width,
+    required this.height,
+    required this.side,
+    required this.baseline,
+  });
 
   final Uint8List png;
   final double width;
   final double height;
+
+  /// The room drawn beside the letters at each side, in points.
+  final double side;
+
+  /// The first line's baseline, in points from the top.
+  final double baseline;
 }

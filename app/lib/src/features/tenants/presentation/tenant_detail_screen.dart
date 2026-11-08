@@ -262,7 +262,7 @@ class _TenantActionsState extends ConsumerState<_TenantActions>
 
   Future<void> _archive({required bool archived}) async {
     final l10n = AppLocalizations.of(context);
-    final name = widget.tenant.fullName;
+    final name = inSentence(widget.tenant.fullName, Directionality.of(context));
     if (archived) {
       final confirmed = await showMmConfirmDialog(
         context,
@@ -285,7 +285,7 @@ class _TenantActionsState extends ConsumerState<_TenantActions>
 
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context);
-    final name = widget.tenant.fullName;
+    final name = inSentence(widget.tenant.fullName, Directionality.of(context));
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.deleteTenantTitle(name),
@@ -327,7 +327,9 @@ class _TenantActionsState extends ConsumerState<_TenantActions>
           MmButton(
             label: l10n.deleteAction,
             icon: MmIcons.delete,
-            variant: MmButtonVariant.tertiary,
+            // It asks first (or opens the flow that does): the filled red
+            // button is at the point of no return.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: busy ? null : _delete,
           ),
         ],

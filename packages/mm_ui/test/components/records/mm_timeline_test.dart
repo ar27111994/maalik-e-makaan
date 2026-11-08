@@ -474,13 +474,10 @@ void main() {
         _timeline(const [item]),
         variant: MmVariant.urdu,
       );
-      expect(latinRunsIn(tester, item.dateLabel), ['1', '2026']);
-      expect(latinRunsIn(tester, item.title), ['11']);
-      expect(latinRunsIn(tester, item.subtitle!), ['45,000']);
-      expect(urduRunsIn(tester, item.title), [
-        'معاہدے کی ',
-        ' ماہ کے لیے تجدید',
-      ]);
+      expect(latinRunsIn(tester, item.dateLabel), ['1 ', ' 2026']);
+      expect(latinRunsIn(tester, item.title), [' 11 ']);
+      expect(latinRunsIn(tester, item.subtitle!), [' 45,000\u00A0']);
+      expect(urduRunsIn(tester, item.title), ['معاہدے کی', 'ماہ کے لیے تجدید']);
     });
 
     testWidgets('sets Latin data in the Latin face in the Urdu UI and '

@@ -265,9 +265,11 @@ void main() {
         const MmTextField(label: 'نام', initialValue: 'Ali Raza'),
         variant: MmVariant.urdu,
       );
+      // A name typed in English runs left to right from its first letter,
+      // at the start edge of the Urdu form.
       final field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.textDirection, isNull);
-      expect(field.textAlign, TextAlign.start);
+      expect(field.textDirection, TextDirection.ltr);
+      expect(field.textAlign, TextAlign.right);
     });
 
     for (final (variant, size) in [

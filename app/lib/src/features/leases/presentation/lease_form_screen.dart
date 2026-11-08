@@ -5,21 +5,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
-import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
+import 'package:maalik_e_makaan/src/core/dates.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
+import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
 import 'package:maalik_e_makaan/src/features/leases/application/leases.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
 import 'package:maalik_e_makaan/src/features/leases/presentation/lease_labels.dart';
+import 'package:maalik_e_makaan/src/features/leases/presentation/tenancy_choosers.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/properties/application/properties.dart';
 import 'package:maalik_e_makaan/src/features/tenants/application/tenants.dart';
-import 'package:maalik_e_makaan/src/features/tenants/data/tenant.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
@@ -61,8 +64,7 @@ class LeaseFormScreen extends ConsumerWidget {
         ),
       );
     }
-    final unitId = this.unitId;
-    if (unitId == null || portfolio == null) {
+    if (portfolio == null) {
       return MmPage(
         title: l10n.newTenancyTitle,
         body: Semantics(
@@ -72,23 +74,35 @@ class LeaseFormScreen extends ConsumerWidget {
         ),
       );
     }
-    final unit = ref.watch(unitProvider(unitId));
+    // A tenancy starts from its unit (the unit is fixed), from its tenant
+    // (the tenant is chosen, the unit picked here), or from nothing.
+    final unitId = this.unitId;
+    final tenantId = this.tenantId;
+    final unit = unitId == null ? null : ref.watch(unitProvider(unitId));
+    final tenant = tenantId == null
+        ? null
+        : ref.watch(tenantProvider(tenantId));
     final tenants = ref.watch(
       tenantsProvider((portfolioId: portfolio.id, archived: false, search: '')),
     );
     final defaults = ref.watch(portfolioDetailsProvider(portfolio.id)).value;
-    final summary = unit.value?.value;
+    final summary = unit?.value?.value;
+    final chosen = tenant?.value?.value;
     final list = tenants.value?.value;
-    if (summary == null || list == null) {
-      final failed = unit.hasError ? unit : null;
+    if ((unit != null && summary == null) ||
+        (tenant != null && chosen == null) ||
+        list == null) {
+      final states = <AsyncValue<Snapshot<Object>>>[?unit, ?tenant, tenants];
       return MmPage(
         title: l10n.newTenancyTitle,
         body: SnapshotView(
-          state: failed ?? (tenants.hasError ? tenants : unit),
+          state:
+              states.where((state) => state.hasError).firstOrNull ??
+              states.first,
           onRetry: () {
-            ref
-              ..invalidate(unitProvider(unitId))
-              ..invalidate(tenantsProvider);
+            if (unitId != null) ref.invalidate(unitProvider(unitId));
+            if (tenantId != null) ref.invalidate(tenantProvider(tenantId));
+            ref.invalidate(tenantsProvider);
           },
           loadingLabel: l10n.loadingTenancy,
           failedTitle: l10n.tenancyLoadFailedTitle,
@@ -101,12 +115,18 @@ class LeaseFormScreen extends ConsumerWidget {
       );
     }
     return _LeaseForm(
-      key: ValueKey(unitId),
-      unitId: unitId,
-      unitLabel: summary.unit.label,
-      propertyId: summary.unit.propertyId,
-      tenants: list.items,
-      tenantId: tenantId,
+      key: ValueKey('$unitId/$tenantId'),
+      portfolioId: portfolio.id,
+      unit: summary == null
+          ? null
+          : (
+              unitId: summary.unit.id,
+              unitLabel: summary.unit.label,
+              propertyId: summary.unit.propertyId,
+              propertyName: '',
+            ),
+      tenant: chosen == null ? null : (id: chosen.id, name: chosen.fullName),
+      noTenants: list.items.isEmpty,
       defaults: defaults?.value,
     );
   }
@@ -115,22 +135,30 @@ class LeaseFormScreen extends ConsumerWidget {
 class _LeaseForm extends ConsumerStatefulWidget {
   const new({
     this.lease,
-    this.unitId,
-    this.unitLabel,
-    this.propertyId,
-    this.tenants = const [],
-    this.tenantId,
+    this.portfolioId,
+    this.unit,
+    this.tenant,
+    this.noTenants = false,
     this.defaults,
     super.key,
   });
 
   /// The tenancy edited; null to start one.
   final Lease? lease;
-  final String? unitId;
-  final String? unitLabel;
-  final String? propertyId;
-  final List<Tenant> tenants;
-  final String? tenantId;
+
+  /// The portfolio a new tenancy starts in.
+  final String? portfolioId;
+
+  /// The unit a new tenancy starts in, when it started from the unit: it
+  /// is then fixed; otherwise it is chosen here.
+  final UnitChoice? unit;
+
+  /// The tenant a new tenancy starts with, when it started from them; it
+  /// can still be changed.
+  final TenantChoice? tenant;
+
+  /// Whether the portfolio has no tenant in use to choose.
+  final bool noTenants;
   final PortfolioDetails? defaults;
 
   @override
@@ -143,7 +171,8 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
   late final LeaseTerms? _old = widget.lease?.terms;
   late final CalendarDate _today = dates.today(context);
 
-  late String? _tenantId = widget.tenantId;
+  late TenantChoice? _tenant = widget.tenant;
+  late UnitChoice? _unit = widget.unit;
   late CalendarDate _start = _old?.startDate ?? _today;
   late _Term _term = _old == null
       ? _Term.months11
@@ -253,7 +282,8 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
 
   /// Problems the fields cannot say themselves.
   List<String> _problems(AppLocalizations l10n) => [
-    if (!_editing && _tenantId == null) l10n.validationChooseTenant,
+    if (!_editing && _unit == null) l10n.validationChooseUnit,
+    if (!_editing && _tenant == null) l10n.validationChooseTenant,
     if (!_editing && (_rent == null || !_rent!.isPositive)) l10n.validationRent,
     if (_endDate case final end? when end.isBefore(_start))
       l10n.validationEndAfterStart,
@@ -308,14 +338,14 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
           ? await ref.read(leaseProvider(lease.id).notifier).save(terms)
           : await ref
                 .read(
-                  leasesProvider((unitId: widget.unitId, tenantId: null))
+                  leasesProvider((unitId: _unit!.unitId, tenantId: null))
                       .notifier,
                 )
                 .start(
                   id: _attempt,
                   portfolioId: portfolioId,
-                  unitId: widget.unitId!,
-                  tenantId: _tenantId!,
+                  unitId: _unit!.unitId,
+                  tenantId: _tenant!.id,
                   terms: terms,
                 );
     });
@@ -325,11 +355,27 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
         context,
         message: _editing
             ? l10n.tenancySaved
-            : l10n.tenancyStarted(saved.tenantName),
+            : l10n.tenancyStarted(
+                inSentence(saved.tenantName, Directionality.of(context)),
+              ),
         tone: MmBannerTone.success,
       ),
     );
     context.go(Routes.lease(saved.id));
+  }
+
+  Future<void> _chooseTenant() async {
+    final portfolioId = widget.portfolioId;
+    if (portfolioId == null) return;
+    final tenant = await chooseTenant(context, portfolioId: portfolioId);
+    if (tenant != null && mounted) setState(() => _tenant = tenant);
+  }
+
+  Future<void> _chooseUnit() async {
+    final portfolioId = widget.portfolioId;
+    if (portfolioId == null) return;
+    final unit = await chooseUnit(context, portfolioId: portfolioId);
+    if (unit != null && mounted) setState(() => _unit = unit);
   }
 
   Widget _gap() => const SizedBox(height: MmSpace.s4);
@@ -344,6 +390,7 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
     controller: controller,
     optional: true,
     maxLength: max,
+    inputFormatters: codePointLimit(max),
     validator: (value) =>
         Validators.name(l10n, value, maxLength: max, required: false),
     onChanged: _changed,
@@ -370,9 +417,9 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
     final portfolio = ref.watch(currentPortfolioProvider).value;
     final lease = widget.lease;
     if (lease != null) ref.listen(leaseProvider(lease.id), (_, _) {});
-    if (!_editing) {
+    if (_unit case final unit? when !_editing) {
       ref.listen(
-        leasesProvider((unitId: widget.unitId, tenantId: null)),
+        leasesProvider((unitId: unit.unitId, tenantId: null)),
         (_, _) {},
       );
     }
@@ -396,18 +443,52 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
             MmFormSection(
               title: l10n.leaseSectionWho,
               children: [
-                MmDetailRow(
-                  label: l10n.unitLabel,
-                  value: lease == null
-                      ? widget.unitLabel ?? ''
-                      : l10n.unitAtProperty(
-                          lease.unitLabel,
+                if (lease != null)
+                  MmDetailRow(
+                    label: l10n.unitLabel,
+                    value: appText(
+                      l10n.unitAtProperty(
+                        inSentence(lease.unitLabel, Directionality.of(context)),
+                        inSentence(
                           lease.propertyName,
+                          Directionality.of(context),
                         ),
-                ),
+                      ),
+                      Directionality.of(context),
+                    ),
+                  )
+                else if (widget.unit case final unit?)
+                  MmDetailRow(label: l10n.unitLabel, value: unit.unitLabel)
+                else
+                  ChoiceField(
+                    label: l10n.unitLabel,
+                    value: switch (_unit) {
+                      final unit? => appText(
+                        l10n.unitAtProperty(
+                          inSentence(
+                            unit.unitLabel,
+                            Directionality.of(context),
+                          ),
+                          inSentence(
+                            unit.propertyName,
+                            Directionality.of(context),
+                          ),
+                        ),
+                        Directionality.of(context),
+                      ),
+                      null => null,
+                    },
+                    placeholder: l10n.noTenantChosen,
+                    chooseLabel: l10n.chooseUnitAction,
+                    changeLabel: l10n.changeUnitAction,
+                    errorText: _tried && _unit == null
+                        ? l10n.validationChooseUnit
+                        : null,
+                    onChoose: busy ? null : _chooseUnit,
+                  ),
                 if (lease != null)
                   MmDetailRow(label: l10n.tenantLabel, value: lease.tenantName)
-                else if (widget.tenants.isEmpty)
+                else if (widget.noTenants)
                   MmBanner(
                     tone: MmBannerTone.warning,
                     message: l10n.noTenantsToChoose,
@@ -415,18 +496,16 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
                     onAction: () => context.go(Routes.newTenant),
                   )
                 else
-                  MmSelectField<String>(
+                  ChoiceField(
                     label: l10n.tenantLabel,
-                    required: true,
-                    errorText: _tried && _tenantId == null
+                    value: _tenant?.name,
+                    placeholder: l10n.noTenantChosen,
+                    chooseLabel: l10n.chooseTenantAction,
+                    changeLabel: l10n.changeTenantAction,
+                    errorText: _tried && _tenant == null
                         ? l10n.validationChooseTenant
                         : null,
-                    options: [
-                      for (final tenant in widget.tenants)
-                        MmOption(value: tenant.id, label: tenant.fullName),
-                    ],
-                    value: _tenantId,
-                    onChanged: (id) => setState(() => _tenantId = id),
+                    onChoose: busy ? null : _chooseTenant,
                   ),
               ],
             ),
@@ -764,6 +843,9 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
                   minLines: 2,
                   maxLines: 5,
                   maxLength: LeaseTerms.maxUtilitiesLength,
+                  inputFormatters: codePointLimit(
+                    LeaseTerms.maxUtilitiesLength,
+                  ),
                   onChanged: _changed,
                 ),
                 MmTextField(
@@ -773,6 +855,7 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
                   minLines: 3,
                   maxLines: 8,
                   maxLength: LeaseTerms.maxNotesLength,
+                  inputFormatters: codePointLimit(LeaseTerms.maxNotesLength),
                   onChanged: _changed,
                 ),
               ],
@@ -786,16 +869,20 @@ class _LeaseFormState extends ConsumerState<_LeaseForm> with CommandState {
           variant: MmButtonVariant.secondary,
           onPressed: busy
               ? null
-              : () => context.go(
-                  lease != null
-                      ? Routes.lease(lease.id)
-                      : Routes.unit(widget.propertyId!, widget.unitId!),
-                ),
+              : () => context.go(switch ((lease, widget.unit, widget.tenant)) {
+                  (final lease?, _, _) => Routes.lease(lease.id),
+                  (_, final unit?, _) => Routes.unit(
+                    unit.propertyId,
+                    unit.unitId,
+                  ),
+                  (_, _, final tenant?) => Routes.tenant(tenant.id),
+                  _ => Routes.tenants,
+                }),
         ),
         primary: MmButton(
           label: _editing ? l10n.saveAction : l10n.startTenancyAction,
           busy: busy,
-          onPressed: portfolio == null || (!_editing && widget.tenants.isEmpty)
+          onPressed: portfolio == null || (!_editing && widget.noTenants)
               ? null
               : () => _save(portfolio.id),
         ),

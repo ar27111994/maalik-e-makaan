@@ -481,6 +481,55 @@ void main() {
       expect(links.download.path, links.open.path);
     });
 
+    test('thumbnails are signed in one request, photos only', () async {
+      Document photo(String id, {String mime = 'image/jpeg', int size = 1}) =>
+          Document.fromRow({
+            ..._row,
+            'id': id,
+            'mime_type': mime,
+            'size_bytes': size,
+            'storage_path': '${gulberg.id}/tenant/t/$id.jpg',
+          });
+      final shown = photo('p1');
+      final gone = photo('p2');
+      final documents = [
+        shown,
+        gone,
+        // A PDF, a HEIC and a photo too large for a list keep their icons.
+        Document.fromRow(_row),
+        photo('p3', mime: 'image/heic'),
+        photo('p4', size: maxThumbnailBytes + 1),
+      ];
+      supabase.respond = (_) async => jsonResponse([
+        {
+          'path': shown.storagePath,
+          'signedURL': '/object/sign/documents/${shown.storagePath}?token=a',
+        },
+        {'path': gone.storagePath, 'error': 'Either the object does not exist'},
+      ]);
+      final links = await repository.thumbnailLinks(documents);
+      final request = supabase.request;
+      expect(request.method, 'POST');
+      expect(request.url.path, '/storage/v1/object/sign/documents');
+      expect(bodyOf(request), {
+        'expiresIn': 300,
+        'paths': [shown.storagePath, gone.storagePath],
+      });
+      expect(links.keys, [shown.id]);
+      expect(
+        links[shown.id].toString(),
+        '$supabaseUrl/storage/v1/object/sign/documents/'
+        '${shown.storagePath}?token=a',
+      );
+      // Nothing to show asks for nothing.
+      supabase.requests.clear();
+      expect(
+        await repository.thumbnailLinks([Document.fromRow(_row)]),
+        isEmpty,
+      );
+      expect(supabase.requests, isEmpty);
+    });
+
     test('a link to a file that is gone is not found', () async {
       supabase.respond = (_) async =>
           _storageError('404', 'not_found', 'Object not found');

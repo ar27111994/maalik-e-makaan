@@ -126,7 +126,9 @@ class ChargeSheet extends ConsumerWidget {
           MmButton(
             label: l10n.voidChargeAction,
             icon: MmIcons.close,
-            variant: MmButtonVariant.tertiary,
+            // It asks first (or opens the flow that does): the filled red
+            // button is at the point of no return.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: () => _open(
               context,
               l10n.voidChargeAction,

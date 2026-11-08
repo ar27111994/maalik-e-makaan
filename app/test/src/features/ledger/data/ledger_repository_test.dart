@@ -352,6 +352,13 @@ void main() {
       );
       expect(receivable.balance.daysOverdue, 33);
       expect(receivable.tenantPhone, aliRaza.phone);
+      // A number the app cannot dial costs its row the number, not the
+      // whole list of who owes what.
+      expect(
+        Receivable.fromRow({..._receivableRow, 'tenant_phone': '+92300123456'})
+            .tenantPhone,
+        isNull,
+      );
       final refund = DepositRefund.fromRow(_refundRow);
       expect(refund.hashCode, DepositRefund.fromRow(_refundRow).hashCode);
       expect(refund.voided, isFalse);

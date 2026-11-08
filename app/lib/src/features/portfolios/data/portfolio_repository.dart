@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_details.dart';
-import 'package:mm_core/mm_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Portfolios and memberships. Every method throws [AppFailure].
@@ -32,6 +32,16 @@ abstract interface class PortfolioRepository {
   /// [Forbidden]) and returns them as stored. An invalid value is
   /// `constraint_violation`.
   Future<PortfolioDetails> updateDetails(PortfolioDetails details);
+
+  /// Deletes [portfolioId] and everything in it (`delete_portfolio`):
+  /// owners only, and [confirmation] must be the portfolio's name as
+  /// stored (the server ignores case and surrounding spaces). Refusals:
+  /// [Forbidden] (not an owner, or the portfolio is gone),
+  /// `confirmation_mismatch` (a name typed before someone renamed it), and
+  /// [TemporarilyUnavailable] when the deletion kept meeting other writes
+  /// (the server retries three times first). Its documents' files are
+  /// queued for deletion by the server.
+  Future<void> delete(String portfolioId, {required String confirmation});
 }
 
 /// [PortfolioRepository] over `portfolio_members` and `create_portfolio`.
@@ -69,10 +79,7 @@ final class SupabasePortfolioRepository implements PortfolioRepository {
       await _client.rpc<Object?>(
         'create_portfolio',
         params: {
-          'p_name': sanitizeSingleLine(
-            name,
-            maxLength: PortfolioMembership.maxNameLength,
-          ),
+          'p_name': singleLineWithin(name, PortfolioMembership.maxNameLength),
           'p_id': id,
         },
       ),
@@ -106,6 +113,18 @@ final class SupabasePortfolioRepository implements PortfolioRepository {
             .single();
         return PortfolioDetails.fromRow(row);
       });
+
+  @override
+  Future<void> delete(String portfolioId, {required String confirmation}) =>
+      _guard(
+        () => _client.rpc<void>(
+          'delete_portfolio',
+          params: {
+            'p_portfolio_id': portfolioId,
+            'p_confirmation': confirmation,
+          },
+        ),
+      );
 }
 
 /// [memberships] by name, ignoring case, then by id so the order is stable.

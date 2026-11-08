@@ -17,6 +17,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// would otherwise melt into the dimmed page. The drag handle, a tap
 /// outside, the back button and Escape also close it.
 ///
+/// When the title is the landlord's data (a member's name or email, a
+/// document's name), set [userTitle]: the title is then set in its own
+/// script's face (a name typed in English in the Latin face in the Urdu UI,
+/// rather than Nastaliq's serif Latin) and kept in its own direction.
+///
 /// Use it for a short task in the context of a screen: recording a
 /// payment, choosing a filter, sharing a receipt. For a yes or no question,
 /// use `showMmConfirmDialog`. Close it with a value from inside with
@@ -35,16 +40,23 @@ Future<T?> showMmSheet<T>(
   BuildContext context, {
   required String title,
   required WidgetBuilder builder,
+  bool userTitle = false,
 }) => showMmModalSheet<T>(
   context,
-  builder: (context) => _MmSheet(title: title, builder: builder),
+  builder: (context) =>
+      _MmSheet(title: title, userTitle: userTitle, builder: builder),
 );
 
 /// The inside of a sheet: the header row and the scrolling content.
 class _MmSheet extends StatefulWidget {
-  const new({required this.title, required this.builder});
+  const new({
+    required this.title,
+    required this.userTitle,
+    required this.builder,
+  });
 
   final String title;
+  final bool userTitle;
   final WidgetBuilder builder;
 
   @override
@@ -83,7 +95,7 @@ class _MmSheetState extends State<_MmSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            MmSheetHeader(title: widget.title),
+            MmSheetHeader(title: widget.title, userTitle: widget.userTitle),
             // A rule under the header once content has scrolled under it,
             // so the fixed header and the moving content stay apart. It
             // always takes its hairline, so the content does not jump.

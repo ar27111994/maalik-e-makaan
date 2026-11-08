@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart' show StringCharacters;
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:mm_core/mm_core.dart';
 
@@ -54,8 +53,13 @@ abstract final class Validators {
     return value == password ? null : l10n.validationPasswordMismatch;
   }
 
-  /// A name of at most [maxLength] characters once tidied
+  /// A name of at most [maxLength] code points once tidied
   /// (`sanitizeSingleLine`, as it is saved).
+  ///
+  /// The database limits a column with `char_length`, which counts code
+  /// points, not characters as a reader sees them: an Urdu name with
+  /// diacritics (زَید) has more code points than letters, so counting
+  /// letters would pass a name the database then refuses.
   static String? name(
     AppLocalizations l10n,
     String? value, {
@@ -64,7 +68,7 @@ abstract final class Validators {
   }) {
     final tidy = sanitizeSingleLine(value ?? '');
     if (tidy.isEmpty) return required ? l10n.validationRequired : null;
-    return tidy.characters.length > maxLength
+    return tidy.runes.length > maxLength
         ? l10n.validationTooLong(maxLength)
         : null;
   }

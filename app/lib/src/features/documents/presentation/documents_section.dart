@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
@@ -11,6 +12,7 @@ import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/documents.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
@@ -41,6 +43,10 @@ class DocumentsSection extends ConsumerWidget {
     final role = portfolio.role;
     final add = canAdd && role.recordsDocuments;
     final provider = documentsProvider(list);
+    // Photos shown small in their rows; their icons until (or unless)
+    // their links are signed.
+    final thumbnails =
+        ref.watch(documentThumbnailsProvider(list)).value ?? const {};
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -79,12 +85,13 @@ class DocumentsSection extends ConsumerWidget {
                         for (final document in page.items)
                           DocumentTile(
                             document: document,
+                            thumbnail: thumbnails[document.id],
                             onTap: () => showMmSheet<void>(
                               context,
                               // The name is the landlord's, in either
-                              // script: the sheet shows it as their text,
-                              // under a title in the UI's own.
-                              title: l10n.documentSheetTitle,
+                              // script: set as their text, in its own face.
+                              title: document.fileName,
+                              userTitle: true,
                               builder: (_) => DocumentSheet(
                                 document: document,
                                 list: list,
@@ -109,22 +116,34 @@ class DocumentsSection extends ConsumerWidget {
 /// A document in a list: its name, its kind (unless the name is the
 /// kind's), when it was added and its format; its size is on its sheet.
 class DocumentTile extends StatelessWidget {
-  const new({required this.document, required this.onTap, super.key});
-
-  /// More lines than any subtitle here takes, even in Urdu at 200%:
-  /// MmListTile has no setting for "no limit", and a subtitle must wrap,
-  /// never end in an ellipsis.
-  static const subtitleLines = 100;
+  const new({
+    required this.document,
+    required this.onTap,
+    this.thumbnail,
+    super.key,
+  });
 
   final Document document;
   final VoidCallback onTap;
+
+  /// A short-lived link to the photo, shown small in place of the icon
+  /// (`documentThumbnailsProvider`); null for the icon.
+  final Uri? thumbnail;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final kind = l10n.documentKind(document.kind);
+    final icon = Icon(documentIcon(document.fileType));
+    final thumbnail = this.thumbnail;
     return MmListTile(
-      leading: Icon(documentIcon(document.fileType)),
+      leading: thumbnail == null
+          ? icon
+          : _Thumbnail(
+              documentId: document.id,
+              link: thumbnail,
+              fallback: icon,
+            ),
       title: document.fileName,
       subtitle: detailLine([
         if (document.fileName != kind) kind,
@@ -138,11 +157,94 @@ class DocumentTile extends StatelessWidget {
           Directionality.of(context),
         ),
       ]),
-      subtitleMaxLines: subtitleLines,
-      trailing: const Icon(MmIcons.chevronEnd),
+      // It wraps as far as it needs, even in Urdu at 200%, never cut short.
+      subtitleMaxLines: null,
+      chevron: true,
       onTap: onTap,
     );
   }
+}
+
+/// A document's photo, small and square in its row, in place of its icon
+/// ([fallback]) once it is drawn; the icon stays when it cannot be. It is
+/// not read out: the row says what the document is.
+class _Thumbnail extends StatelessWidget {
+  const new({
+    required this.documentId,
+    required this.link,
+    required this.fallback,
+  });
+
+  final String documentId;
+  final Uri link;
+  final Widget fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    const size = MmSize.avatar;
+    final pixels = (size * MediaQuery.devicePixelRatioOf(context)).ceil();
+    return ExcludeSemantics(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(MmRadius.sm),
+        child: Image(
+          // Decoded at the size it is shown, not the photo's.
+          image: ResizeImage.resizeIfNeeded(
+            pixels,
+            null,
+            ThumbnailImage(documentId: documentId, link: link),
+          ),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          frameBuilder: (context, child, frame, synchronous) =>
+              frame == null && !synchronous
+              ? SizedBox.square(
+                  dimension: size,
+                  child: Center(child: fallback),
+                )
+              : child,
+          errorBuilder: (context, error, stack) => SizedBox.square(
+            dimension: size,
+            child: Center(child: fallback),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A document's photo, fetched from [link] and kept (in the image cache
+/// and on screen) by [documentId]: its link is signed again every few
+/// minutes, and a photo already drawn is not fetched again for that.
+@immutable
+class ThumbnailImage extends ImageProvider<ThumbnailImage> {
+  const new({required this.documentId, required this.link});
+
+  /// The document whose photo this is.
+  final String documentId;
+
+  /// Where to fetch it from: a signed link.
+  final Uri link;
+
+  @override
+  Future<ThumbnailImage> obtainKey(ImageConfiguration configuration) =>
+      SynchronousFuture(this);
+
+  @override
+  ImageStreamCompleter loadImage(
+    ThumbnailImage key,
+    ImageDecoderCallback decode,
+  ) {
+    final network = NetworkImage(key.link.toString());
+    return network.loadImage(network, decode);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ThumbnailImage && other.documentId == documentId;
+
+  @override
+  int get hashCode => documentId.hashCode;
 }
 
 /// One document: what it is, opening and downloading its file through a
@@ -274,6 +376,7 @@ class _DocumentSheetState extends ConsumerState<DocumentSheet>
               controller: _name,
               required: true,
               maxLength: Document.maxNameLength,
+              inputFormatters: codePointLimit(Document.maxNameLength),
               validator: (value) {
                 if (documentName(value ?? '').isEmpty) {
                   return l10n.validationRequired;
@@ -305,7 +408,6 @@ class _DocumentSheetState extends ConsumerState<DocumentSheet>
           FailureBanner(failure: failure)
         else if (linkError != null)
           FailureBanner(failure: AppFailure.from(linkError)),
-        MmDetailRow(label: l10n.documentNameLabel, value: document.fileName),
         MmDetailRow(
           label: l10n.documentKindLabel,
           value: l10n.documentKind(document.kind),
@@ -351,7 +453,8 @@ class _DocumentSheetState extends ConsumerState<DocumentSheet>
           MmButton(
             label: l10n.deleteAction,
             icon: MmIcons.delete,
-            variant: MmButtonVariant.destructive,
+            // It asks first: the dialog's button is the filled one.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: busy ? null : _delete,
           ),
         ],
@@ -536,6 +639,7 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
                   optional: true,
                   helper: l10n.documentNameHelp,
                   maxLength: Document.maxNameLength,
+                  inputFormatters: codePointLimit(Document.maxNameLength),
                   validator: (value) => _nameError(l10n, value),
                 ),
                 const SizedBox(height: MmSpace.s4),
@@ -561,9 +665,8 @@ class _ChosenFileCard extends StatelessWidget {
   const new({required this.file});
 
   /// The height of a photo's preview: enough to read a CNIC's layout,
-  /// small enough to leave the form in view. (The design system has no
-  /// size for previews.)
-  static const previewHeight = 160.0;
+  /// small enough to leave the form in view.
+  static const double previewHeight = MmSize.preview;
 
   final PreparedFile file;
 
@@ -621,12 +724,8 @@ class _ChosenFileCard extends StatelessWidget {
                   Icon(
                     documentIcon(file.type),
                     color: colors.inkMuted,
-                    // Grown with the text up to one and a half times, as
-                    // mm_ui grows icons beside words (its MmIconLabel,
-                    // which it does not export).
-                    size: MediaQuery.textScalerOf(context)
-                        .clamp(maxScaleFactor: 1.5)
-                        .scale(MmSize.iconLg),
+                    // Grown with the text, as mm_ui's icons beside words.
+                    size: MmIconSize.withText(context, MmSize.iconLg),
                   ),
                   Expanded(
                     child: Column(

@@ -20,7 +20,9 @@ typedef MmScriptRun = ({String text, bool latin});
 /// `MmSemantics.styleFor`. The English UI needs nothing more: its Latin
 /// styles fall back to Nastaliq for Urdu letters.
 ///
-/// Screen readers get the text as written.
+/// A narrow no-break space (which `intl` puts before AM and PM, and which
+/// neither face draws) is shown as a no-break space
+/// (`MmSemantics.drawableSpaces`). Screen readers get the text as written.
 ///
 /// Internal to mm_ui: any component family may use it.
 class MmScriptText extends StatelessWidget {
@@ -68,9 +70,13 @@ class MmScriptText extends StatelessWidget {
   ///
   /// A Latin run reaches from a Latin letter or a figure (0 to 9) to the
   /// last one before the next Arabic-script letter, taking in the spaces
-  /// and punctuation between them ("Rs 45,000", "1,25,000"). Spaces and
-  /// punctuation beside Arabic-script letters stay with them, as do Urdu's
-  /// own figures and punctuation (۴۵, ، and ۔).
+  /// and punctuation between them ("Rs 45,000", "1,25,000"). It also takes
+  /// the spaces (and the invisible direction marks and isolates) between it
+  /// and the words on either side: Nastaliq's space is about half as wide
+  /// as Atkinson's, so beside a Latin name it looked like no space at all
+  /// ("از Bilal Ahmed بنام"). Punctuation beside Arabic-script letters
+  /// stays with them, as do Urdu's own figures and punctuation (۴۵, ، and
+  /// ۔) and the spaces between Urdu words.
   static List<MmScriptRun> runsOf(String text) {
     final runes = text.runes.toList();
     final runs = <MmScriptRun>[];
@@ -87,9 +93,19 @@ class MmScriptText extends StatelessWidget {
       }
     }
 
+    bool spacing(int index) =>
+        _spacing.hasMatch(String.fromCharCode(runes[index]));
+
     void closeLatin() {
-      final start = latinStart;
+      var start = latinStart;
       if (start == null) return;
+      // The spaces on either side of the run go with it.
+      while (start! > done && spacing(start - 1)) {
+        start--;
+      }
+      while (latinEnd < runes.length && spacing(latinEnd)) {
+        latinEnd++;
+      }
       add(done, start, latin: false);
       add(start, latinEnd, latin: true);
       done = latinEnd;
@@ -111,6 +127,12 @@ class MmScriptText extends StatelessWidget {
   }
 
   static final _latin = RegExp(r'[\p{Script=Latin}0-9]', unicode: true);
+
+  /// Spaces, and the invisible marks and isolates that set direction.
+  static final _spacing = RegExp(
+    r'[\p{White_Space}\u200E\u200F\u061C\u2066-\u2069]',
+    unicode: true,
+  );
 
   static const _latinFace = TextStyle(
     fontFamily: MmFontFamily.latin,
@@ -150,6 +172,8 @@ class MmScriptText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Neither face draws the narrow no-break space intl puts before AM.
+    final text = MmSemantics.drawableSpaces(this.text);
     final mixed = spansOf(context, text, style);
     if (mixed == null) {
       return Text(

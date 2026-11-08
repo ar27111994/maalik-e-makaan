@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
@@ -300,10 +301,7 @@ final class SupabaseLedgerRepository implements LedgerRepository {
         // Empty clears the note; null keeps it.
         'p_description': description == null
             ? null
-            : sanitizeSingleLine(
-                description,
-                maxLength: Charge.maxDescriptionLength,
-              ),
+            : singleLineWithin(description, Charge.maxDescriptionLength),
       },
     );
     return Charge.fromRow(row);
@@ -350,7 +348,7 @@ final class SupabaseLedgerRepository implements LedgerRepository {
         'p_amount': amount.toJson(),
         'p_applied_on': appliedOn.toJson(),
         'p_idempotency_key': idempotencyKey,
-        'p_notes': sanitizeOptional(notes, maxLength: Payment.maxNotesLength),
+        'p_notes': optionalText(notes, Payment.maxNotesLength),
       },
     );
     return PaymentResult.fromJson(result);
@@ -372,11 +370,8 @@ final class SupabaseLedgerRepository implements LedgerRepository {
         'p_amount': amount.toJson(),
         'p_refunded_on': refundedOn.toJson(),
         'p_method': method.db,
-        'p_reference': sanitizeOptional(
-          reference,
-          maxLength: Payment.maxReferenceLength,
-        ),
-        'p_notes': sanitizeOptional(notes, maxLength: Payment.maxNotesLength),
+        'p_reference': optionalText(reference, Payment.maxReferenceLength),
+        'p_notes': optionalText(notes, Payment.maxNotesLength),
       },
     );
     return DepositRefund.fromRow(row);
@@ -420,7 +415,7 @@ final class SupabaseLedgerRepository implements LedgerRepository {
   });
 
   static String _reason(String reason) =>
-      sanitizeSingleLine(reason, maxLength: Charge.maxReasonLength);
+      singleLineWithin(reason, Charge.maxReasonLength);
 }
 
 final ledgerRepositoryProvider = Provider<LedgerRepository>(

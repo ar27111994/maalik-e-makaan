@@ -42,12 +42,15 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
   leases, ledger, operations, documents, reports, notifications), each an
   abstract interface plus a `Supabase…Repository`.
 - Reads select only the columns the screen needs, always filter by the current
-  portfolio, and page with keysets (`created_at, id`), 50 rows at a time.
+  portfolio, and page with keysets (`created_at, id`), 50 rows at a time
+  (`app/lib/src/data/paging.dart`). A list that must be in another order and
+  stays short is read whole up to 50 rows, without paging (the unpaid bills,
+  earliest due first). Ordering a long list by anything else is an open
+  question; see [Open questions](#open-questions).
 - Writes follow the database's rules:
   - money and membership changes go through their functions (`record_payment`,
     `void_payment`, `update_charge`, `change_rent`, `end_lease`,
-    `update_member_role`, …); a charge is edited only through `update_charge`
-    (clients cannot `UPDATE` charges);
+    `update_member_role`, …);
   - other edits insert or update only the columns the client is granted
     (see `docs/architecture/permissions.md`).
 - Every Supabase error is converted with `AppFailure.from` at the repository
@@ -72,9 +75,75 @@ retry.
 - `record_payment` takes an idempotency key: the form creates one UUID when it
   opens and reuses it for every retry until the payment is recorded, so a
   dropped connection never records a payment twice. (Queuing payments while
-  offline is not in v1.)
+  offline is not in v1.) `apply_deposit` takes a key the same way.
 - Refusals show `failureMessage`: inline next to the field when the reason
   belongs to one (`invalid_amount`), otherwise in a snackbar or dialog.
+
+### Retries and lost answers
+
+A request can reach the server and its answer still be lost. Every command
+is safe to send again, or says why it is not:
+
+- **New rows** get their `id` from the app, chosen once when the form opens
+  and kept for every retry. When an insert fails with a unique violation
+  (`23505`), the repository reads the row with that `id`: if it is there, the
+  first try stored it and it is returned; if not, another row clashed and the
+  insert is refused with the form's own reason (for example
+  `duplicate_bill_month`). A form whose first try stored different values
+  says so ("This was already saved, as first entered. Your later changes were
+  not saved").
+- **Payments and deposit applications** carry an idempotency key (see above).
+- **Deposit refunds**: `refund_deposit` takes no key. After a `NetworkFailure`
+  the ledger is read again, and a refund that was not there before, is not
+  voided, and has the same amount, date and method is taken as the one sent.
+  If none is found the failure is passed on, and the sheet closes and asks the
+  landlord to check the deposit instead of offering to send it again: the
+  refund may still have been recorded (`TenancyLedgerController.refundDeposit`,
+  `RefundDepositSheet`).
+- **Charges** are changed only through `update_charge`; clients cannot
+  `UPDATE` charges. A null argument keeps the value and an empty note clears
+  it; only a charge added by hand can change its amount.
+- **Status changes** write only the status columns, never the whole row from
+  the copy on screen, so a tap on a stale screen cannot undo someone else's
+  edit: `setBillPayment` sends `status`, `paid_on` and `paid_by`;
+  `moveMaintenanceRequest` sends `status`, `resolved_on` and
+  `resolution_note`. Editing a bill's details leaves whether it is paid as
+  stored.
+
+### Uploading a document
+
+A document is a file in the private `documents` bucket and a row in
+`documents` that points at it. The database refuses a row whose file is
+missing (`document_file_missing`) or queued for deletion
+(`document_file_pending_deletion`), so the order is fixed:
+
+1. When a file is picked, the upload gets one uuid. It is the document's `id`
+   and the file's name: `<portfolio_id>/<entity>/<entity_id>/<uuid>.<ext>`.
+2. The file is uploaded first. A `409` means an earlier try of this upload
+   stored it already, and counts as success.
+3. Then the row is inserted with that `id`. A primary-key violation on a retry
+   returns the row the first try added.
+4. Retries reuse the same uuid, so a retry never stores the file twice or adds
+   a second row.
+5. If the row is refused with `document_file_missing`, the file is uploaded
+   again under the same uuid. If it is refused with
+   `document_file_pending_deletion` (the file waited without a row long enough
+   for the daily sweep to queue it), the upload gets a new uuid and the file
+   is uploaded again under it. Either way the row is tried once more before
+   the refusal is shown.
+6. If the landlord gives up with the file stored and no row written, owners
+   and managers delete the file on the spot (the storage delete policy lets
+   them delete a file no row refers to; failures are ignored). Accountants may
+   upload but not delete files, so their abandoned file stays until the daily
+   sweep queues it, a day after it was uploaded, and `storage-cleanup` deletes
+   it (see "Documents and files" in `docs/architecture/permissions.md`). An
+   upload still running when its sheet closes is left to finish.
+
+Photos are encoded again from their pixels as JPEG before upload, which drops
+Exif, GPS and other metadata. A file the device cannot decode (HEIC in most
+browsers) has its metadata segments removed byte by byte
+(`documents/data/image_metadata.dart`). Links to a file are signed for five
+minutes and made again while its sheet is open.
 
 ## State
 
@@ -94,4 +163,40 @@ retry.
 - Screens: widget and golden tests in light, dark, high-contrast, Urdu and
   large-text variants, with the tap-target and contrast guidelines; the design
   lint keeps values on tokens.
-- End to end: the local Supabase stack in CI.
+- End to end: the local Supabase stack in CI. Not built yet for the app: the
+  REST requests (including foreign-key embed names such as
+  `utility_bills_charge_id_fkey`) are checked against the SQL by hand, not
+  against a running PostgREST.
+
+## Open questions
+
+### Ordering long lists by something other than when they were added
+
+Keyset paging over `created_at, id` gives exact pages at any depth with one
+index range scan, and the cache stores one cursor shape. The cost is that
+every paged list is in the order rows were added. Two screens want another
+order:
+
+- maintenance requests to do, by priority (urgent first) and then by date;
+- expenses, by the day the money was spent (`spent_on`) rather than the day it
+  was recorded.
+
+The options, for the owner to decide:
+
+1. **Keep the order rows were added** (today). Paging stays exact and cheap,
+   and a back-dated expense appears at the top, where the person who just
+   entered it looks for it. An urgent repair reported after many others is
+   not at the top; its priority badge is the only signal.
+2. **A keyset per order**: `(priority, created_at, id)` for requests and
+   `(spent_on, created_at, id)` for expenses. Pages stay exact. It needs a
+   cursor type per order, matching indexes (today's are
+   `(portfolio_id, status, reported_on desc)` and
+   `(portfolio_id, spent_on desc)`, neither ending in `created_at, id`), and a
+   cache that keeps the cursor's shape.
+3. **Read the short list whole**, as the unpaid bills are: the requests still
+   to do, up to a limit, sorted by priority; closed requests and expenses stay
+   paged. It is simple, but anything past the limit is silently not shown
+   unless the screen says so.
+
+The operations review recommended deciding this before release; the current
+code is option 1.

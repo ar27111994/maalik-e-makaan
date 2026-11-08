@@ -10,6 +10,7 @@ import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -116,6 +117,7 @@ class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen>
               autofillHints: const [AutofillHints.email],
               textInputAction: TextInputAction.done,
               maxLength: 254,
+              inputFormatters: codePointLimit(254),
               validator: (value) => Validators.email(l10n, value),
               onChanged: _clearFailure,
             ),
@@ -156,8 +158,8 @@ class InvitationReady extends ConsumerWidget {
   final InvitationLink link;
   final String portfolioName;
 
-  String _delivery(AppLocalizations l10n) {
-    final email = breakableEmail(link.email);
+  String _delivery(AppLocalizations l10n, TextDirection direction) {
+    final email = inSentence(breakableEmail(link.email), direction);
     return switch (link.delivery) {
       EmailDelivery.sent => l10n.deliverySent(email),
       EmailDelivery.notConfigured => l10n.deliveryNotConfigured(email),
@@ -204,7 +206,7 @@ class InvitationReady extends ConsumerWidget {
         children: [
           MmBanner(
             tone: sent ? MmBannerTone.success : MmBannerTone.warning,
-            message: _delivery(l10n),
+            message: _delivery(l10n, Directionality.of(context)),
           ),
           const SizedBox(height: MmSpace.s4),
           Text(

@@ -11,7 +11,6 @@ import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
-import 'package:maalik_e_makaan/src/core/prose_row.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/features/operations/application/expenses.dart';
@@ -154,7 +153,7 @@ class MaintenanceTile extends StatelessWidget {
         ]),
         direction,
       ),
-      subtitleMaxLines: 12,
+      subtitleMaxLines: null,
       trailing: BelowText(
         child: Wrap(
           alignment: WrapAlignment.end,
@@ -338,9 +337,9 @@ class _RequestDetails extends ConsumerWidget {
                   userData: false,
                 ),
               if (request.description case final text?)
-                ProseRow(label: l10n.descriptionLabel, text: text),
+                MmDetailRow.prose(label: l10n.descriptionLabel, value: text),
               if (request.resolutionNote case final note?)
-                ProseRow(label: l10n.resolutionLabel, text: note),
+                MmDetailRow.prose(label: l10n.resolutionLabel, value: note),
             ],
           ),
         ),
@@ -352,7 +351,7 @@ class _RequestDetails extends ConsumerWidget {
                 leading: const Icon(MmIcons.lease),
                 title: l10n.openTenancyAction,
                 subtitle: request.tenantName,
-                trailing: const Icon(MmIcons.chevronEnd),
+                chevron: true,
                 onTap: () => context.go(Routes.lease(lease)),
               ),
             ],
@@ -403,6 +402,8 @@ class _StatusActionsState extends ConsumerState<_StatusActions>
       title: l10n.cancelRequestTitle,
       message: l10n.cancelRequestBody,
       confirmLabel: l10n.closeAsCancelledAction,
+      // "Cancel" beside cancelling the repair would be ambiguous.
+      cancelLabel: l10n.keepRepairAction,
     );
     if (!confirmed || !mounted) return;
     await _move(MaintenanceStatus.cancelled);
@@ -453,7 +454,9 @@ class _StatusActionsState extends ConsumerState<_StatusActions>
         MmButton(
           label: l10n.cancelRequestAction,
           icon: MmIcons.close,
-          variant: MmButtonVariant.tertiary,
+          // It asks first (or opens the flow that does): the filled red
+          // button is at the point of no return.
+          variant: MmButtonVariant.destructiveOutlined,
           onPressed: busy ? null : _cancel,
         )
       else
@@ -690,7 +693,9 @@ class _DeleteRequestState extends ConsumerState<_DeleteRequest>
         MmButton(
           label: l10n.deleteAction,
           icon: MmIcons.delete,
-          variant: MmButtonVariant.tertiary,
+          // It asks first (or opens the flow that does): the filled red
+          // button is at the point of no return.
+          variant: MmButtonVariant.destructiveOutlined,
           busy: busy,
           onPressed: _delete,
         ),

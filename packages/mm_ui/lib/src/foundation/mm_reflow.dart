@@ -33,9 +33,11 @@ enum MmReflowAlignment {
 
 /// Lays out a [start] text, with an optional [below] line under it, and an
 /// [end] widget side by side when [start] and [end] fit on one line at their
-/// natural widths. When they do not (a narrow screen, large text) [end]
-/// moves under the text so neither is squeezed: at the start edge, or at the
-/// end edge when [stackedAtEnd].
+/// natural widths, and [below] can wrap beside [end] without breaking a word
+/// (its narrowest width fits). When they do not (a narrow screen, large
+/// text, a long email address under a name) [end] moves under the text so
+/// neither is squeezed: at the start edge, or at the end edge when
+/// [stackedAtEnd].
 ///
 /// An [end] widget with inner space of its own at its edges (a text button's
 /// padding) can hang past the edge it sits on by [endOverhang], so its
@@ -206,10 +208,13 @@ class RenderMmReflow extends RenderBox
     final end = _end;
     final width = constraints.maxWidth;
     final startNatural = start.getMaxIntrinsicWidth(double.infinity);
+    // The line below wraps beside the end widget, but no narrower than its
+    // longest word (an email address, an amount that never breaks).
+    final belowNarrowest = below?.getMinIntrinsicWidth(double.infinity) ?? 0;
     final endNatural = end?.getMaxIntrinsicWidth(double.infinity);
     final sideBySide =
         endNatural != null &&
-        startNatural +
+        math.max(startNatural, belowNarrowest) +
                 MmReflow.spacing +
                 endNatural -
                 _overhangOf(endNatural) <=

@@ -180,24 +180,19 @@ MmStatusBadge balanceBadge(BuildContext context, LeaseBalance balance) {
   if (balance.overdue.isPositive && days != null) {
     return MmStatusBadge(
       status: MmStatus.overdue,
-      label: l10n.overdueOldest(
-        wrappableAmount(money.format(balance.overdue)),
-        days,
-      ),
+      label: l10n.overdueOldest(money.format(balance.overdue), days),
     );
   }
   if (balance.outstanding.isPositive) {
     return MmStatusBadge(
       status: MmStatus.dueSoon,
-      label: l10n.owesAmount(
-        wrappableAmount(money.format(balance.outstanding)),
-      ),
+      label: l10n.owesAmount(money.format(balance.outstanding)),
     );
   }
   if (balance.credit.isPositive) {
     return MmStatusBadge(
       status: MmStatus.credit,
-      label: l10n.creditAmount(wrappableAmount(money.format(balance.credit))),
+      label: l10n.creditAmount(money.format(balance.credit)),
     );
   }
   return MmStatusBadge(status: MmStatus.paid, label: l10n.allPaid);

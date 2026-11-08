@@ -375,6 +375,21 @@ void main() {
       expect(find.text('Ali Raza'), findsOneWidget);
     });
 
+    testWidgets('draws the narrow no-break space before AM as a no-break '
+        'space', (tester) async {
+      for (final userData in [true, false]) {
+        await pumpThemed(
+          tester,
+          MmDetailRow(
+            label: 'Paid at',
+            value: '10:42\u202FAM',
+            userData: userData,
+          ),
+        );
+        expect(find.text('10:42\u00A0AM'), findsOneWidget);
+      }
+    });
+
     testWidgets("keeps a number's groups in order in the Urdu UI", (
       tester,
     ) async {
@@ -471,6 +486,125 @@ void main() {
         contains('The trailing widget of an MmDetailRow holds a control.'),
       );
       expect(message, contains('Pass the control as the action of the row'));
+    });
+  });
+
+  group('MmDetailRow.prose', () {
+    const notes =
+        'The tenant paid before the deadline and asked for the receipt '
+        'by WhatsApp.';
+
+    testEveryVariant('sets the label above and the passage under it from '
+        'the start edge, across the whole width', (tester, variant) async {
+      await pumpThemed(
+        tester,
+        const SizedBox(
+          width: 320,
+          child: MmDetailRow.prose(label: 'Notes', value: notes),
+        ),
+        variant: variant,
+      );
+      final row = tester.getRect(find.byType(MmDetailRow));
+      final label = tester.getRect(find.text('Notes'));
+      final passage = paragraphOf(tester, notes);
+      final rect = passage.localToGlobal(Offset.zero) & passage.size;
+      expect(rect.top, greaterThanOrEqualTo(label.bottom));
+      expect(rect.width, row.width);
+      expect(passage.textAlign, TextAlign.start);
+      final colors = colorsOf(variant);
+      final text = variant.theme.textTheme;
+      expect(styleOf(tester, 'Notes').color, colors.inkMuted);
+      expect(styleOf(tester, 'Notes').fontSize, text.bodyMedium!.fontSize);
+      expect(styleOf(tester, notes).color, colors.ink);
+      expect(styleOf(tester, notes).fontSize, text.bodyLarge!.fontSize);
+      // The label sits at the start edge too.
+      if (variant.locale.languageCode == 'ur') {
+        expect(label.right, row.right);
+      } else {
+        expect(label.left, row.left);
+      }
+    });
+
+    testWidgets('sets an English passage in the Urdu UI left to right, '
+        'every line from the left edge, in the Latin face, and reads it as '
+        'written', (tester) async {
+      await pumpThemed(
+        tester,
+        const SizedBox(
+          width: 240,
+          child: MmDetailRow.prose(label: 'نوٹ', value: notes),
+        ),
+        variant: MmVariant.urdu,
+      );
+      final passage = paragraphOf(tester, notes);
+      expect(passage.textDirection, TextDirection.ltr);
+      expect(passage.text.toPlainText(), notes);
+      expect(styleOf(tester, notes).fontFamily, contains(MmFontFamily.latin));
+      // Every line starts at the left edge, where English starts.
+      // The leftmost edge of each line's characters, by line.
+      final lefts = <double, double>{};
+      for (var offset = 0; offset < notes.length; offset++) {
+        for (final box in passage.getBoxesForSelection(
+          TextSelection(baseOffset: offset, extentOffset: offset + 1),
+        )) {
+          final top = box.top.roundToDouble();
+          lefts[top] = lefts.containsKey(top)
+              ? (lefts[top]! < box.left ? lefts[top]! : box.left)
+              : box.left;
+        }
+      }
+      expect(lefts.length, greaterThan(1), reason: 'it wraps');
+      expect(lefts.values, everyElement(moreOrLessEquals(0, epsilon: 1)));
+      expect(
+        tester.getSemantics(find.byType(MmDetailRow)),
+        matchesSemantics(label: 'نوٹ، $notes'),
+      );
+    });
+
+    testWidgets('sets a passage without letters in the UI direction', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmDetailRow.prose(label: 'نوٹ', value: '2026-11-08'),
+        variant: MmVariant.urdu,
+      );
+      // Nothing in it decides a direction: it runs with the Urdu UI, kept
+      // apart left to right like any figures.
+      final passage = paragraphOf(tester, '2026-11-08');
+      expect(passage.textDirection, TextDirection.rtl);
+      expect(passage.text.toPlainText(), '\u20662026-11-08\u2069');
+    });
+
+    testWidgets('is one node, read with its semantic value', (tester) async {
+      await pumpThemed(
+        tester,
+        const MmDetailRow.prose(
+          label: 'Description',
+          value: 'Leaking tap',
+          semanticValue: 'Leaking tap in the kitchen',
+        ),
+      );
+      expect(
+        tester.getSemantics(find.byType(MmDetailRow)),
+        matchesSemantics(label: 'Description, Leaking tap in the kitchen'),
+      );
+    });
+
+    testWidgets("sets words from the app's localisations as they are", (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmDetailRow.prose(
+          label: 'نوٹ',
+          value: 'PDF رسید بھیج دی گئی',
+          userData: false,
+        ),
+        variant: MmVariant.urdu,
+      );
+      // Not isolated, though it starts with a Latin word.
+      expect(find.text('PDF رسید بھیج دی گئی'), findsOneWidget);
     });
   });
 }

@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -164,8 +166,12 @@ class _PropertyFormState extends ConsumerState<_PropertyForm>
       showMmSnackbar(
         context,
         message: _old == null
-            ? l10n.propertyAdded(saved.name)
-            : l10n.propertySaved(saved.name),
+            ? l10n.propertyAdded(
+                inSentence(saved.name, Directionality.of(context)),
+              )
+            : l10n.propertySaved(
+                inSentence(saved.name, Directionality.of(context)),
+              ),
         tone: MmBannerTone.success,
       ),
     );
@@ -212,6 +218,7 @@ class _PropertyFormState extends ConsumerState<_PropertyForm>
                   helper: l10n.propertyNameHelper,
                   errorText: nameError,
                   maxLength: Property.maxNameLength,
+                  inputFormatters: codePointLimit(Property.maxNameLength),
                   textCapitalization: TextCapitalization.words,
                   validator: (value) => Validators.name(
                     l10n,
@@ -241,6 +248,7 @@ class _PropertyFormState extends ConsumerState<_PropertyForm>
                   controller: _address,
                   optional: true,
                   maxLength: Property.maxAddressLength,
+                  inputFormatters: codePointLimit(Property.maxAddressLength),
                   validator: (value) => Validators.name(
                     l10n,
                     value,
@@ -254,6 +262,7 @@ class _PropertyFormState extends ConsumerState<_PropertyForm>
                   controller: _locality,
                   optional: true,
                   maxLength: Property.maxLocalityLength,
+                  inputFormatters: codePointLimit(Property.maxLocalityLength),
                   textCapitalization: TextCapitalization.words,
                   validator: (value) => Validators.name(
                     l10n,
@@ -268,6 +277,7 @@ class _PropertyFormState extends ConsumerState<_PropertyForm>
                   controller: _city,
                   required: true,
                   maxLength: Property.maxCityLength,
+                  inputFormatters: codePointLimit(Property.maxCityLength),
                   textCapitalization: TextCapitalization.words,
                   validator: (value) => Validators.name(
                     l10n,
@@ -395,6 +405,7 @@ class _PropertyFormState extends ConsumerState<_PropertyForm>
                   controller: _taxRef,
                   optional: true,
                   maxLength: Property.maxTaxRefLength,
+                  inputFormatters: codePointLimit(Property.maxTaxRefLength),
                   validator: (value) => Validators.name(
                     l10n,
                     value,
@@ -410,6 +421,7 @@ class _PropertyFormState extends ConsumerState<_PropertyForm>
                   minLines: 3,
                   maxLines: 8,
                   maxLength: Property.maxNotesLength,
+                  inputFormatters: codePointLimit(Property.maxNotesLength),
                   keyboardType: TextInputType.multiline,
                   onChanged: _changed,
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
@@ -49,9 +50,9 @@ abstract interface class TenantRepository {
 /// digits (Urdu digits read too, a leading 0 of a phone number dropped, as
 /// numbers are stored from +92).
 ({String text, String digits}) searchTerms(String search) {
-  final text = sanitizeSingleLine(
+  final text = singleLineWithin(
     search,
-    maxLength: 60,
+    60,
   ).replaceAll(RegExp(r'[,()*%"\\:.]'), ' ').trim();
   var digits = digitsOnly(normalizeDigits(search));
   if (digits.startsWith('0')) digits = digits.substring(1);

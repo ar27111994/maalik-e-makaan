@@ -96,7 +96,7 @@ IconData methodIcon(PaymentMethod method) => switch (method) {
   PaymentMethod.bankTransfer || PaymentMethod.raast => MmIcons.bank,
   PaymentMethod.card => MmIcons.card,
   PaymentMethod.jazzcash || PaymentMethod.easypaisa => MmIcons.phone,
-  PaymentMethod.cheque => MmIcons.receipt,
+  PaymentMethod.cheque => MmIcons.receiptText,
   PaymentMethod.depositAdjustment => MmIcons.deposit,
   PaymentMethod.other => MmIcons.payment,
 };

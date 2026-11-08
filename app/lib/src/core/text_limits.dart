@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:mm_core/mm_core.dart';
 
 /// The longest start of [text] that holds at most [max] code points, in
 /// whole characters (grapheme clusters), so a letter never loses its
@@ -58,3 +59,32 @@ class CodePointLimit extends TextInputFormatter {
 
 /// The formatters that keep a field within [max] code points.
 List<TextInputFormatter> codePointLimit(int max) => [CodePointLimit(max)];
+
+/// [value] tidied as one line (`sanitizeSingleLine`) and kept within [max]
+/// code points, the way the database counts a column's length
+/// (`char_length`). `sanitizeSingleLine`'s own `maxLength` counts
+/// characters as a reader sees them, so an Urdu name with diacritics it
+/// lets through can still be too long for its column.
+String singleLineWithin(String value, int max) =>
+    fitCodePoints(sanitizeSingleLine(value), max).trimRight();
+
+/// [value] tidied as lines of text (`sanitizeMultiline`) and kept within
+/// [max] code points, as [singleLineWithin] keeps one line.
+String linesWithin(String value, int max) =>
+    fitCodePoints(sanitizeMultiline(value), max).trimRight();
+
+/// [value] tidied as one line and kept within [max] code points
+/// ([singleLineWithin]); null when nothing is left.
+String? optionalText(String? value, int max) {
+  if (value == null) return null;
+  final tidy = singleLineWithin(value, max);
+  return tidy.isEmpty ? null : tidy;
+}
+
+/// [value] tidied as lines of text and kept within [max] code points
+/// ([linesWithin]); null when nothing is left.
+String? optionalLines(String? value, int max) {
+  if (value == null) return null;
+  final tidy = linesWithin(value, max);
+  return tidy.isEmpty ? null : tidy;
+}

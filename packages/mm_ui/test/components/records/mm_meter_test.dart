@@ -298,8 +298,8 @@ void main() {
         _meter(label: 'وصول شدہ کرایہ', valueLabel: value),
         variant: MmVariant.urdu,
       );
-      expect(latinRunsIn(tester, value), ['1,25,000', '90,000']);
-      expect(urduRunsIn(tester, value), [' میں سے ', '\u00A0روپے']);
+      expect(latinRunsIn(tester, value), ['1,25,000 ', ' 90,000\u00A0']);
+      expect(urduRunsIn(tester, value), ['میں سے', 'روپے']);
       // Tabular figures, on the Urdu style's line: figures do not make the
       // line taller.
       expect(styleOf(tester, value).fontFeatures, [

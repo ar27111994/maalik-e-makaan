@@ -386,6 +386,18 @@ abstract class AppLocalizations {
   /// **'Delete account'**
   String get deleteAccountAction;
 
+  /// Settings section: about the app, with its open-source licences.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// Button that opens the licences of the open-source software, fonts and icons the app uses.
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licences'**
+  String get licencesAction;
+
   /// The request could not reach the server.
   ///
   /// In en, this message translates to:
@@ -4183,12 +4195,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'File'**
   String get documentFileLabel;
-
-  /// Title of the sheet of one document (its name is shown inside).
-  ///
-  /// In en, this message translates to:
-  /// **'Document'**
-  String get documentSheetTitle;
 
   /// Spoken for the picture of a photo about to be uploaded.
   ///
@@ -8036,12 +8042,6 @@ abstract class AppLocalizations {
   /// **'See tenants'**
   String get seeTenantsAction;
 
-  /// Heading of the split of the oldest overdue rent.
-  ///
-  /// In en, this message translates to:
-  /// **'Of the {amount} over 60 days late:'**
-  String over60Split(String amount);
-
   /// Dashboard of a portfolio without properties.
   ///
   /// In en, this message translates to:
@@ -8342,12 +8342,6 @@ abstract class AppLocalizations {
   /// **'31 to 60 days late'**
   String get age31to60;
 
-  /// Part of the amount owed overdue by more than 60 days.
-  ///
-  /// In en, this message translates to:
-  /// **'Over 60 days late'**
-  String get ageOver60;
-
   /// Part of the amount owed overdue by 61 to 90 days.
   ///
   /// In en, this message translates to:
@@ -8363,12 +8357,13 @@ abstract class AppLocalizations {
   /// What screen readers hear for the bar of what is owed by age.
   ///
   /// In en, this message translates to:
-  /// **'{total} rupees owed: {notDue} not yet due, {early} up to 30 days late, {middle} 31 to 60 days late, {late} over 60 days late.'**
+  /// **'{total} rupees owed: {notDue} not yet due, {early} up to 30 days late, {middle} 31 to 60 days late, {older} 61 to 90 days late, {late} over 90 days late.'**
   String ageingSummary(
     String total,
     String notDue,
     String early,
     String middle,
+    String older,
     String late,
   );
 
@@ -9186,6 +9181,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Days overdue'**
   String get daysOverdueLabel;
+
+  /// A time of day on the 12-hour clock named by its part of the day, as Urdu writes times (CLDR's flexible day periods for Urdu, pattern h:mm B): '10:42 صبح'. Only the Urdu UI shows it; English uses AM and PM. morning is 4:00-11:59, noon 12:00-15:59, afternoon 16:00-17:59, evening 18:00-19:59, other (night) 20:00-3:59.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} {period, select, morning{in the morning} noon{in the afternoon} afternoon{in the late afternoon} evening{in the evening} other{at night}}'**
+  String timeOfDay(String time, String period);
+
+  /// The way out of the dialog that asks to cancel a repair, in place of 'Cancel' beside 'Close as cancelled' (which would be ambiguous): the repair stays as it is.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the repair'**
+  String get keepRepairAction;
+
+  /// The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous, in Urdu too: both are منسوخ کریں): the invitation stays.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the invitation'**
+  String get keepInvitationAction;
+
+  /// Heading of the part of the portfolio settings where an owner deletes the portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this portfolio'**
+  String get deletePortfolioSection;
+
+  /// What deleting a portfolio does, under its heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything in it goes for good, for everyone in it: properties, tenants, tenancies, payments and receipts, expenses and documents. Keep copies of any receipts and statements you need first.'**
+  String get deletePortfolioHelp;
+
+  /// Button that starts deleting the portfolio (it asks for the name first), and the dialog's confirm button.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete portfolio'**
+  String get deletePortfolioAction;
+
+  /// Title of the dialog that confirms deleting a portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name} and everything in it?'**
+  String deletePortfolioTitle(String name);
+
+  /// Body of the dialog that confirms deleting a portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Every member loses it at once, and it cannot be recovered, not even by us.'**
+  String get deletePortfolioBody;
+
+  /// Confirmation after a portfolio was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted.'**
+  String portfolioDeleted(String name);
+
+  /// Title of the sheet that searches the tenants to start a tenancy with.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the tenant'**
+  String get chooseTenantTitle;
+
+  /// Button of the new tenancy form that opens the tenant search, while none is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the tenant'**
+  String get chooseTenantAction;
+
+  /// Button of the new tenancy form that opens the tenant search, once one is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose another tenant'**
+  String get changeTenantAction;
+
+  /// Shown for the tenant or the unit of a new tenancy before one is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not chosen yet'**
+  String get noTenantChosen;
+
+  /// Title of the sheet that lists the properties, then their units, to start a tenancy in.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the unit'**
+  String get chooseUnitTitle;
+
+  /// Button of the new tenancy form that opens the unit list, while none is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the unit'**
+  String get chooseUnitAction;
+
+  /// Button of the new tenancy form that opens the unit list, once one is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose another unit'**
+  String get changeUnitAction;
+
+  /// In the unit sheet, goes back from one property's units to the list of properties.
+  ///
+  /// In en, this message translates to:
+  /// **'Other properties'**
+  String get otherPropertyAction;
+
+  /// Error when a new tenancy is started without a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the unit.'**
+  String get validationChooseUnit;
 }
 
 class _AppLocalizationsDelegate

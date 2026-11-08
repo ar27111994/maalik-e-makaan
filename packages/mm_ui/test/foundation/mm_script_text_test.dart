@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/foundation/mm_script_text.dart';
@@ -23,13 +24,35 @@ void main() {
   group('MmScriptText.runsOf', () {
     test('cuts Latin letters and figures out of Urdu text', () {
       expect(MmScriptText.runsOf('45,000 روپے'), [
-        (text: '45,000', latin: true),
-        (text: ' روپے', latin: false),
+        (text: '45,000 ', latin: true),
+        (text: 'روپے', latin: false),
       ]);
       expect(MmScriptText.runsOf('مکان 12، Gulberg III، لاہور'), [
-        (text: 'مکان ', latin: false),
-        (text: '12', latin: true),
-        (text: '، ', latin: false),
+        (text: 'مکان', latin: false),
+        (text: ' 12', latin: true),
+        (text: '،', latin: false),
+        (text: ' Gulberg III', latin: true),
+        (text: '، لاہور', latin: false),
+      ]);
+    });
+
+    test('sets the spaces between Urdu and Latin words in the Latin face, '
+        "so they keep the Latin space's width", () {
+      // Nastaliq's space is about half as wide as Atkinson's: beside a
+      // Latin name it looked like no space at all.
+      expect(MmScriptText.runsOf('از Bilal Ahmed بنام'), [
+        (text: 'از', latin: false),
+        (text: ' Bilal Ahmed ', latin: true),
+        (text: 'بنام', latin: false),
+      ]);
+      // Through the isolate a name is shown in.
+      expect(MmScriptText.runsOf('از \u2066Bilal\u2069 بنام'), [
+        (text: 'از', latin: false),
+        (text: ' \u2066Bilal\u2069 ', latin: true),
+        (text: 'بنام', latin: false),
+      ]);
+      // Punctuation stays with the Urdu, and so does a space after it.
+      expect(MmScriptText.runsOf('Gulberg III، لاہور'), [
         (text: 'Gulberg III', latin: true),
         (text: '، لاہور', latin: false),
       ]);
@@ -63,9 +86,9 @@ void main() {
       );
       final spans = _spansOf(tester, '45,000 روپے');
       expect(spans, hasLength(2));
-      expect((spans[0] as TextSpan).text, '45,000');
+      expect((spans[0] as TextSpan).text, '45,000 ');
       expect(spans[0].style!.fontFamily, _latin);
-      expect((spans[1] as TextSpan).text, ' روپے');
+      expect((spans[1] as TextSpan).text, 'روپے');
       expect(spans[1].style, isNull);
       final text = tester.widget<RichText>(
         find.descendant(
@@ -75,6 +98,57 @@ void main() {
       );
       expect(text.strutStyle!.forceStrutHeight, isTrue);
     });
+
+    testWidgets('keeps a whole Latin space between Urdu words and a Latin '
+        'name', (tester) async {
+      const text = 'از Bilal Ahmed بنام';
+      await pumpThemed(
+        tester,
+        Builder(
+          builder: (context) =>
+              MmScriptText(text, style: Theme.of(context).textTheme.bodyLarge!),
+        ),
+        variant: MmVariant.urdu,
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.byType(RichText),
+      );
+      double widthAt(int index) => paragraph
+          .getBoxesForSelection(
+            TextSelection(baseOffset: index, extentOffset: index + 1),
+          )
+          .single
+          .toRect()
+          .width;
+      // Nastaliq's own space is about half as wide; the Latin face's
+      // metrics shift the last digit of a width by a fraction of a pixel.
+      final between = widthAt(text.indexOf(' Ahmed'));
+      expect(widthAt(text.indexOf(' Bilal')), closeTo(between, 0.5));
+      expect(widthAt(text.indexOf(' بنام')), closeTo(between, 0.5));
+    });
+
+    for (final variant in [MmVariant.light, MmVariant.urdu]) {
+      testWidgets('draws the narrow no-break space intl puts before AM and '
+          'PM as a no-break space (${variant.name})', (tester) async {
+        for (final text in ['10:42\u202FAM', 'آج، 10:42\u202FAM']) {
+          await pumpThemed(
+            tester,
+            Builder(
+              builder: (context) => MmScriptText(
+                text,
+                style: Theme.of(context).textTheme.bodyLarge!,
+              ),
+            ),
+            variant: variant,
+          );
+          final shown = tester
+              .renderObject<RenderParagraph>(find.byType(RichText))
+              .text
+              .toPlainText();
+          expect(shown, text.replaceAll('\u202F', '\u00A0'));
+        }
+      });
+    }
 
     testWidgets('sets Latin-only text whole in the Latin face in Urdu', (
       tester,

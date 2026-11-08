@@ -218,7 +218,7 @@ void main() {
         const MmNameplate(name: 'رضا منزل', subtitle: address),
         variant: MmVariant.urdu,
       );
-      expect(latinRunsIn(tester, address), ['12', '4', 'III']);
+      expect(latinRunsIn(tester, address), [' 12', ' 4', ' III']);
       expect(latinRunsIn(tester, 'رضا منزل'), isEmpty);
     });
 
@@ -275,7 +275,7 @@ void main() {
         }
         return true;
       });
-      expect(latin, ['12', 'Gulberg III']);
+      expect(latin, [' 12', ' Gulberg III']);
       semantics.dispose();
     });
   });

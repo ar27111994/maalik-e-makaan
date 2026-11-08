@@ -207,24 +207,20 @@ class _HandoverTile extends StatelessWidget {
     final direction = Directionality.of(context);
     return MmListTile(
       leading: Icon(methodIcon(handover.method)),
-      title: appText(
-        l10n.handoverFromTo(
-          inSentence(from, direction),
-          inSentence(to, direction),
-        ),
-        direction,
+      title: l10n.handoverFromTo(
+        inSentence(from, direction),
+        inSentence(to, direction),
       ),
-      subtitle: appText(
-        detailLine([
-          money.format(handover.amount),
-          dateInLine(context, handover.handedOverOn),
-          l10n.paymentMethod(handover.method),
-          if (handover.reference case final reference?)
-            inSentence(reference, direction),
-        ]),
-        direction,
-      ),
+      subtitle: detailLine([
+        money.format(handover.amount),
+        dateInLine(context, handover.handedOverOn),
+        l10n.paymentMethod(handover.method),
+        if (handover.reference case final reference?)
+          inSentence(reference, direction),
+      ]),
       subtitleMaxLines: 4,
+      // The app's sentences, the members' names isolated inside.
+      userData: false,
       trailing: BelowText(
         child: handover.voided
             ? MmStatusBadge(
@@ -320,7 +316,9 @@ class _HandoverActionsState extends ConsumerState<HandoverActions>
         MmButton(
           label: l10n.voidHandoverAction,
           icon: MmIcons.close,
-          variant: MmButtonVariant.tertiary,
+          // It asks first (or opens the flow that does): the filled red
+          // button is at the point of no return.
+          variant: MmButtonVariant.destructiveOutlined,
           onPressed: busy
               ? null
               : () {

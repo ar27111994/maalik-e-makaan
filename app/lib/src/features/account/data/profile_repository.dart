@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:mm_core/mm_core.dart';
@@ -56,10 +57,7 @@ final class SupabaseProfileRepository implements ProfileRepository {
     final row = await _client
         .from('profiles')
         .update({
-          'full_name': sanitizeSingleLine(
-            fullName,
-            maxLength: Profile.maxNameLength,
-          ),
+          'full_name': singleLineWithin(fullName, Profile.maxNameLength),
           'phone': phone?.e164,
         })
         .eq('id', userId)

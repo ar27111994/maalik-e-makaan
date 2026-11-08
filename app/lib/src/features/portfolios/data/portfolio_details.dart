@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:mm_core/mm_core.dart';
 
@@ -79,19 +80,16 @@ final class PortfolioDetails {
   /// The columns a client may update, with these values, as the database
   /// stores them.
   Map<String, Object?> toUpdate() => {
-    'name': sanitizeSingleLine(name, maxLength: 80),
+    'name': singleLineWithin(name, 80),
     'default_due_day': defaultDueDay,
     'default_grace_days': defaultGraceDays,
     'default_increment_percent': percentFromBasisPoints(
       defaultIncrementBasisPoints,
     ),
-    'landlord_name': sanitizeOptional(landlordName, maxLength: maxNameLength),
+    'landlord_name': optionalText(landlordName, maxNameLength),
     'landlord_phone': landlordPhone?.e164,
     'raast_id': raastId?.e164,
-    'bank_account_title': sanitizeOptional(
-      bankAccountTitle,
-      maxLength: maxNameLength,
-    ),
+    'bank_account_title': optionalText(bankAccountTitle, maxNameLength),
     'bank_iban': bankIban?.value,
   };
 

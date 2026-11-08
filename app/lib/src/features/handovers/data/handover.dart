@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:maalik_e_makaan/src/features/ledger/data/ledger.dart';
@@ -118,11 +119,8 @@ final class HandoverDraft {
     'amount': amount.toJson(),
     'handed_over_on': handedOverOn.toJson(),
     'method': method.db,
-    'reference': sanitizeOptional(
-      reference,
-      maxLength: Payment.maxReferenceLength,
-    ),
-    'notes': sanitizeOptional(notes, maxLength: Payment.maxNotesLength),
+    'reference': optionalText(reference, Payment.maxReferenceLength),
+    'notes': optionalText(notes, Payment.maxNotesLength),
   };
 
   @override

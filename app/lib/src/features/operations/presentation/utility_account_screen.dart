@@ -9,7 +9,6 @@ import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
-import 'package:maalik_e_makaan/src/core/prose_row.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/features/operations/application/utilities.dart';
 import 'package:maalik_e_makaan/src/features/operations/data/utility.dart';
@@ -151,7 +150,7 @@ class _Details extends StatelessWidget {
                   userData: false,
                 ),
               if (account.notes case final notes?)
-                ProseRow(label: l10n.notesLabel, text: notes),
+                MmDetailRow.prose(label: l10n.notesLabel, value: notes),
             ],
           ),
         ),
@@ -305,7 +304,7 @@ class ReadingTile extends StatelessWidget {
         ]),
         direction,
       ),
-      subtitleMaxLines: 12,
+      subtitleMaxLines: null,
       trailing: badge == null ? null : BelowText(child: badge),
       onTap: () => context.go(Routes.meterReading(reading.id)),
     );
@@ -392,7 +391,9 @@ class _AccountActionsState extends ConsumerState<_AccountActions>
           MmButton(
             label: l10n.deleteAction,
             icon: MmIcons.delete,
-            variant: MmButtonVariant.tertiary,
+            // It asks first (or opens the flow that does): the filled red
+            // button is at the point of no return.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: busy ? null : _delete,
           ),
         ],

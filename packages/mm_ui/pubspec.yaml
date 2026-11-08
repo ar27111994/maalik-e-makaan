@@ -24,6 +24,12 @@ dev_dependencies:
   very_good_analysis: ^11.0.0
 
 flutter:
+  # The fonts' and icons' licences, shown on the app's licence page
+  # (MmLicenses.register).
+  assets:
+    - assets/fonts/OFL-AtkinsonHyperlegibleNext.txt
+    - assets/fonts/OFL-NotoNastaliqUrdu.txt
+    - assets/fonts/LICENSE-lucide.txt
   fonts:
     - family: AtkinsonHyperlegibleNext
       fonts:

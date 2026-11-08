@@ -19,17 +19,32 @@ import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
+/// How the two series of an [MmBarChart] stand in each group.
+enum MmBarArrangement {
+  /// The outlined series' bar is the wide one and the solid series' bar
+  /// stands inside it: one measure against the one it is measured by
+  /// ("Collected" inside "Due"). It reads at any width, even a year of
+  /// months on a phone.
+  nested,
+
+  /// The two bars stand side by side, as wide as each other, the first
+  /// series at the start edge (on the right in Urdu): two independent
+  /// measures, neither a part of the other ("Money in" beside "Money
+  /// out"). They still differ by fill as well as colour, and by place.
+  sideBySide,
+}
+
 /// How the bars of an [MmBarSeries] are drawn. The two fills differ by
 /// more than colour, so a chart's two series stay apart for colour-blind
 /// readers and in greyscale.
 enum MmBarFill {
-  /// Solid cobalt: the main series ("Collected"). Beside an outlined
+  /// Solid cobalt: the main series ("Collected"). Nested with an outlined
   /// series, its bars stand inside the outlined ones.
   solid,
 
   /// A pale cobalt fill inside a 2 dp cobalt outline: the series the main
-  /// one is measured against ("Due"). Beside a solid series, its bars are
-  /// the wide ones, with the solid bars standing inside them.
+  /// one is measured against ("Due"). Nested with a solid series, its bars
+  /// are the wide ones, with the solid bars standing inside them.
   outlined,
 }
 
@@ -190,9 +205,12 @@ final class MmAxisScale {
 /// Groups run from the start edge, so time reads in the language's
 /// direction: in Urdu the first group is on the right. Negative amounts go
 /// below the zero line. The first series is solid cobalt and the second is
-/// outlined ([MmBarFill]); the outlined bars are the wide ones and the
-/// solid bars stand inside them, so the series differ by position and
-/// width as well as fill, even with a year of months on a phone. On a
+/// outlined ([MmBarFill]); by default ([MmBarArrangement.nested]) the
+/// outlined bars are the wide ones and the solid bars stand inside them, so
+/// the series differ by position and width as well as fill, even with a
+/// year of months on a phone. Two independent measures (money in and money
+/// out) stand side by side instead ([MmBarArrangement.sideBySide]), the
+/// first series at the start edge of each group. On a
 /// narrow screen or with large text the axes keep their labels apart by
 /// labelling fewer steps and, for periods, fewer groups; named groups
 /// ([groupKind] [MmBarGroupKind.names]: units, properties) keep every label,
@@ -249,6 +267,7 @@ class MmBarChart extends StatefulWidget {
     this.title,
     this.groupLabel,
     this.groupKind = MmBarGroupKind.periods,
+    this.arrangement = MmBarArrangement.nested,
     this.focusNode,
     this.autofocus = false,
     super.key,
@@ -278,6 +297,11 @@ class MmBarChart extends StatefulWidget {
   /// Whether the groups are periods (months), whose labels may be thinned
   /// out, or named things (units), each of which keeps its label.
   final MmBarGroupKind groupKind;
+
+  /// How two series stand in each group: one inside the other (one measure
+  /// against another) or side by side (two independent measures). A chart
+  /// of one series has one bar per group either way.
+  final MmBarArrangement arrangement;
 
   /// The chart's focus node, to move keyboard focus to it. When null the
   /// chart makes its own.
@@ -572,11 +596,15 @@ class _MmBarChartState extends State<MmBarChart> {
     final fills = MmBarChart.fillsOf(widget.series);
     final rupees = _rupees;
     final tickStyle = _tickStyle(context);
+    final sideBySide = widget.arrangement == MmBarArrangement.sideBySide;
     return MmBarLayout.compute(
       width: width,
       plotHeight: MmBarChart.plotHeight,
       seriesCount: widget.series.length,
-      outer: fills.length == 2 ? fills.indexOf(MmBarFill.outlined) : null,
+      sideBySide: sideBySide,
+      outer: fills.length == 2 && !sideBySide
+          ? fills.indexOf(MmBarFill.outlined)
+          : null,
       values: rupees,
       groupLabels: [for (final group in widget.groups) group.label],
       tickLabel: _scaleOf(context, rupees).label,

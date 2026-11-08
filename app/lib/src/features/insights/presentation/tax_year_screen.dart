@@ -117,7 +117,7 @@ class _Statement extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     if (statement.properties.isEmpty) {
       return MmEmptyState(
-        icon: MmIcons.receipt,
+        icon: MmIcons.receiptText,
         title: l10n.taxYearEmpty,
         message: l10n.taxYearSummary,
       );

@@ -27,6 +27,7 @@ MmBarLayout _layout({
   double labelWidth = 6,
   TextDirection textDirection = TextDirection.ltr,
   bool wrapLabels = false,
+  bool sideBySide = false,
 }) => MmBarLayout.compute(
   width: width,
   plotHeight: 100,
@@ -38,6 +39,7 @@ MmBarLayout _layout({
   measureTick: _measure(lineHeight: tickHeight),
   measureLabel: _measure(charWidth: labelWidth),
   wrapLabels: wrapLabels,
+  sideBySide: sideBySide,
   measureWidestWord: (text) =>
       text.split(' ').map((word) => word.length * labelWidth).reduce(math.max),
   textDirection: textDirection,
@@ -238,6 +240,88 @@ void main() {
       expect(band, lessThan(MmBarLayout.minBarWidth + MmSpace.sHalf));
       expect(layout.bars.first[1].width, closeTo(band - MmSpace.sHalf, 1e-9));
       expect(layout.bars.first[0].width, 1);
+    });
+
+    test('side by side, puts the series next to each other, the first at '
+        'the start edge, each as wide as the other', () {
+      for (final direction in TextDirection.values) {
+        final layout = _layout(
+          textDirection: direction,
+          outer: null,
+          sideBySide: true,
+          values: const [
+            [100, 200],
+            [300, 250],
+          ],
+        );
+        expect(layout.outer, isNull);
+        for (final (index, bars) in layout.bars.indexed) {
+          final [first, second] = bars;
+          expect(first.width, MmBarLayout.maxBarWidth);
+          expect(second.width, first.width);
+          // A gap of the surface between them, centred on the band.
+          final band = layout.bands[index];
+          final (start, end) = direction == TextDirection.ltr
+              ? (first, second)
+              : (second, first);
+          expect(end.left - start.right, closeTo(MmSpace.sHalf, 1e-9));
+          expect((start.left + end.right) / 2, closeTo(band.center.dx, 1e-9));
+          // The first series reads first: on the right in Urdu.
+          if (direction == TextDirection.ltr) {
+            expect(first.right, lessThan(second.left));
+          } else {
+            expect(first.left, greaterThan(second.right));
+          }
+        }
+      }
+    });
+
+    test('side by side, keeps each bar wide enough for an outline and its '
+        'fill in a year of months', () {
+      final layout = _layout(
+        width: 230,
+        outer: null,
+        sideBySide: true,
+        values: [
+          for (var month = 0; month < 12; month++) [month * 10.0, 120],
+        ],
+      );
+      final band = layout.bands.first;
+      final [first, second] = layout.bars.first;
+      expect(first.width, greaterThanOrEqualTo(MmBarLayout.minSideBySideBar));
+      expect(second.width, first.width);
+      // Still inside the band, with air between groups.
+      expect(first.left, greaterThan(band.left));
+      expect(second.right, lessThan(band.right));
+    });
+
+    test('side by side, squeezes the bars into a band narrower than both, '
+        'leaving a sliver of air', () {
+      final layout = _layout(
+        width: 130,
+        outer: null,
+        sideBySide: true,
+        values: [
+          for (var month = 0; month < 12; month++) [1, 1],
+        ],
+      );
+      final band = layout.bands.first.width;
+      final [first, second] = layout.bars.first;
+      expect(
+        first.width + second.width + MmSpace.sHalf,
+        closeTo(band - MmSpace.sHalf, 1e-9),
+      );
+    });
+
+    test('side by side, a single series is one bar centred in its band', () {
+      final layout = _layout(outer: null, sideBySide: true);
+      for (final (index, bars) in layout.bars.indexed) {
+        expect(bars.single.width, MmBarLayout.maxBarWidth);
+        expect(
+          bars.single.center.dx,
+          closeTo(layout.bands[index].center.dx, 1e-9),
+        );
+      }
     });
 
     test('needs the outer series of two', () {

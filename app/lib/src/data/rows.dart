@@ -17,6 +17,18 @@ extension type const JsonRow(Map<String, Object?> _fields) {
   /// The string [field], which may be null.
   String? optionalString(String field) => _optional<String>(field);
 
+  /// The phone number [field] when the app can dial it as stored, else
+  /// null: for a contact shown beside a row in a summary (who owes what),
+  /// where one number the app does not read (stored before the database
+  /// checked numbers as the app does) must cost that row its number, not
+  /// fail the whole list. Records read for editing keep strict readers.
+  PhoneNumber? dialablePhone(String field) {
+    final stored = optionalString(field);
+    if (stored == null) return null;
+    final phone = PhoneNumber.tryParse(stored);
+    return phone?.e164 == stored ? phone : null;
+  }
+
   /// The whole number [field].
   int integer(String field) => _typed<int>(field);
 

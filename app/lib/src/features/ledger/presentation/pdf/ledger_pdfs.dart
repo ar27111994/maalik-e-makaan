@@ -530,21 +530,26 @@ Future<List<pw.Widget>> documentTable(
         child: pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            for (final (column, cell) in cells.indexed)
+            // The cells of a row stand on one baseline, whichever face
+            // draws them.
+            for (final (column, cell) in PdfTextWriter.onBaseline([
+              for (final (column, cell) in cells.indexed)
+                await writer.cell(
+                  cell,
+                  size: DocumentSize.caption,
+                  color: head ? DocumentColors.muted : DocumentColors.ink,
+                  maxWidth: width * flex[column] / total - MmSpace.s1,
+                  end: end(column),
+                  fill: true,
+                ),
+            ]).indexed)
               pw.Expanded(
                 flex: flex[column],
                 child: pw.Padding(
                   padding: const pw.EdgeInsets.symmetric(
                     horizontal: MmSpace.sHalf,
                   ),
-                  child: await writer.text(
-                    cell,
-                    size: DocumentSize.caption,
-                    color: head ? DocumentColors.muted : DocumentColors.ink,
-                    maxWidth: width * flex[column] / total - MmSpace.s1,
-                    end: end(column),
-                    fill: true,
-                  ),
+                  child: cell,
                 ),
               ),
           ],
@@ -577,33 +582,30 @@ Future<pw.Widget> documentRow(
   String label,
   String value, {
   required double width,
-}) async => pw.Padding(
-  padding: const pw.EdgeInsets.symmetric(vertical: MmSpace.sHalf),
-  child: pw.Row(
-    crossAxisAlignment: pw.CrossAxisAlignment.start,
-    children: [
-      pw.Expanded(
-        flex: 2,
-        child: await writer.text(
-          label,
-          size: DocumentSize.small,
-          color: DocumentColors.muted,
-          maxWidth: width * 2 / 5,
-          fill: true,
-        ),
-      ),
-      pw.Expanded(
-        flex: 3,
-        child: await writer.text(
-          value,
-          maxWidth: width * 3 / 5,
-          end: true,
-          fill: true,
-        ),
-      ),
-    ],
-  ),
-);
+}) async {
+  // The label and the value stand on one baseline, whichever face draws
+  // them.
+  final [labelCell, valueCell] = PdfTextWriter.onBaseline([
+    await writer.cell(
+      label,
+      size: DocumentSize.small,
+      color: DocumentColors.muted,
+      maxWidth: width * 2 / 5,
+      fill: true,
+    ),
+    await writer.cell(value, maxWidth: width * 3 / 5, end: true, fill: true),
+  ]);
+  return pw.Padding(
+    padding: const pw.EdgeInsets.symmetric(vertical: MmSpace.sHalf),
+    child: pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Expanded(flex: 2, child: labelCell),
+        pw.Expanded(flex: 3, child: valueCell),
+      ],
+    ),
+  );
+}
 
 /// The name a document file is saved under: Latin letters, figures and
 /// dashes only, so every phone and computer keeps it, with [extension].

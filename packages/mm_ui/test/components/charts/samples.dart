@@ -176,3 +176,35 @@ MmBarChart yearChart(Say say) => MmBarChart(
       ),
   ],
 );
+
+/// Money in and money out of Gulberg Heights each month of [months]: two
+/// independent measures, side by side.
+MmBarChart cashFlowChart(Say say) => MmBarChart(
+  title: say('Money in and out', 'آمد و خرچ'),
+  semanticSummary: say(
+    'Money in and money out, June to November. August spent more than it '
+        'took in: Rs 1,55,000 out for a new water pump.',
+    'جون سے نومبر تک آمد و خرچ۔ اگست میں آمد سے زیادہ خرچ ہوا: نئے پانی کے '
+        'پمپ پر 1,55,000 روپے۔',
+  ),
+  groupLabel: say('Month', 'مہینہ'),
+  arrangement: MmBarArrangement.sideBySide,
+  series: [
+    MmBarSeries(label: say('Money in', 'آمد')),
+    MmBarSeries(label: say('Money out', 'خرچ')),
+  ],
+  groups: [
+    for (final (index, month) in months(say).indexed)
+      MmBarGroup(label: month, values: [collected[index], moneyOut[index]]),
+  ],
+);
+
+/// Money out each month of [months]: August paid for a new water pump.
+const List<Money> moneyOut = [
+  Money.fromRupees(25000),
+  Money.fromRupees(33000),
+  Money.fromRupees(155000),
+  Money.zero,
+  Money.fromRupees(27000),
+  Money.fromRupees(18000),
+];

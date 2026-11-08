@@ -137,7 +137,7 @@ class PropertyTile extends StatelessWidget {
         propertyPlace(property),
       ),
       subtitleMaxLines: 4,
-      trailing: const Icon(MmIcons.chevronEnd),
+      chevron: true,
       onTap: () => context.go(Routes.property(property.id)),
     );
   }

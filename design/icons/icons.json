@@ -15,6 +15,7 @@
     { "name": "police", "lucide": "shield-check" },
     { "name": "ledger", "lucide": "wallet" },
     { "name": "receipt", "lucide": "receipt" },
+    { "name": "receiptText", "lucide": "receipt-text" },
     { "name": "cash", "lucide": "banknote" },
     { "name": "bank", "lucide": "landmark" },
     { "name": "card", "lucide": "credit-card" },

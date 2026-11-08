@@ -85,6 +85,39 @@ Future<void> expectFitsNarrowLargeText(
   }
 }
 
+/// Pumps [child] as the app shows the Urdu UI at 200% text: the Urdu
+/// variant (Nastaliq, with figures in the Latin face) with the text scaled
+/// twice, on a phone [width] wide, in a scrolling page.
+Future<void> pumpUrduAt200(
+  WidgetTester tester,
+  Widget child, {
+  double width = 320,
+  double height = 1400,
+}) async {
+  tester.view
+    ..physicalSize = Size(width, height)
+    ..devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(
+    themedApp(
+      Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(2)),
+          child: Scaffold(
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(MmSpace.s4),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+      variant: MmVariant.urdu,
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 /// The `Text` that says [english], or [urdu] in the Urdu variant.
 Finder textIn(String english, String urdu) => find.byWidgetPredicate(
   (widget) => widget is Text && (widget.data == english || widget.data == urdu),
@@ -150,3 +183,16 @@ List<T> paintersIn<T extends CustomPainter>(
 /// a [T].
 T painterIn<T extends CustomPainter>(WidgetTester tester, Finder widget) =>
     paintersIn<T>(tester, widget).first;
+
+/// The number of lines [part] of [paragraph]'s text is drawn across: 1
+/// when it is whole on one line. [part] must be set in one face (figures,
+/// or Urdu words): boxes of different faces differ in height.
+int linesOf(RenderParagraph paragraph, String part) {
+  final text = paragraph.text.toPlainText(includeSemanticsLabels: false);
+  final start = text.indexOf(part);
+  expect(start, isNot(-1), reason: '"$part" is not in "$text"');
+  final boxes = paragraph.getBoxesForSelection(
+    TextSelection(baseOffset: start, extentOffset: start + part.length),
+  );
+  return {for (final box in boxes) box.bottom.round()}.length;
+}

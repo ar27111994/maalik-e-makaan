@@ -55,6 +55,36 @@ void main() {
     expect(app.documents.calls.first.$2, [gulberg.id, _ali.owner, null]);
   });
 
+  test('loading more signs only the new photos', () async {
+    final front = Uri.parse('https://files.example/front.jpg?token=1');
+    final back = Uri.parse('https://files.example/back.jpg?token=1');
+    final app = TestApp()..documents.pageLimit = 1;
+    app.documents.thumbnails = {cnicFrontScan.id: front, cnicBackScan.id: back};
+    final container = containerFor(app);
+    listen(container, documentThumbnailsProvider(_ali));
+    await pumpEventQueue();
+    expect(await container.read(documentThumbnailsProvider(_ali).future), {
+      cnicFrontScan.id: front,
+    });
+    await container.read(documentsProvider(_ali).notifier).loadMore();
+    await pumpEventQueue();
+    // The first row keeps its link; only the new photo is signed.
+    expect(await container.read(documentThumbnailsProvider(_ali).future), {
+      cnicFrontScan.id: front,
+      cnicBackScan.id: back,
+    });
+    expect(
+      [
+        for (final call in app.documents.calls)
+          if (call.$1 == 'thumbnailLinks') call.$2,
+      ],
+      [
+        [cnicFrontScan.id],
+        [cnicBackScan.id],
+      ],
+    );
+  });
+
   test("the cache keeps a record's documents apart", () async {
     final app = TestApp();
     final container = containerFor(app);

@@ -155,6 +155,8 @@ class _TeamBody extends ConsumerWidget {
   }) => showMmSheet<void>(
     context,
     title: breakableEmail(memberName(AppLocalizations.of(context), member)),
+    // A name or address as the member typed it, in its own script's face.
+    userTitle: true,
     builder: (context) => MemberSheet(
       portfolio: portfolio,
       member: member,
@@ -168,6 +170,7 @@ class _TeamBody extends ConsumerWidget {
       showMmSheet<void>(
         context,
         title: breakableEmail(invitation.email),
+        userTitle: true,
         builder: (context) =>
             InvitationSheet(portfolio: portfolio, invitation: invitation),
       );
@@ -186,14 +189,21 @@ class _MemberTile extends StatelessWidget {
     final name = memberName(l10n, member);
     final role = roleLabel(l10n, member.role);
     final email = member.email;
+    final direction = Directionality.of(context);
     return MmListTile(
       leading: MmAvatar(name: name),
-      title: breakableEmail(you ? l10n.memberYou(name) : name),
+      title: you
+          ? l10n.memberYou(inSentence(breakableEmail(name), direction))
+          : breakableEmail(name),
       subtitle: email == null || email == name
           ? role
-          : l10n.memberRoleAndEmail(role, breakableEmail(email)),
-      subtitleMaxLines: 4,
-      trailing: onTap == null ? null : const Icon(MmIcons.chevronEnd),
+          : l10n.memberRoleAndEmail(
+              role,
+              inSentence(breakableEmail(email), direction),
+            ),
+      // A long address wraps as far as it needs, never cut short.
+      subtitleMaxLines: null,
+      chevron: onTap != null,
       onTap: onTap,
     );
   }
@@ -228,7 +238,8 @@ class _InvitationTile extends StatelessWidget {
               icon: MmIcons.clock,
               label: l10n.invitationExpiredBadge,
             )
-          : const Icon(MmIcons.chevronEnd),
+          : null,
+      chevron: !expired,
       onTap: onTap,
     );
   }
@@ -248,7 +259,7 @@ class _Leave extends ConsumerStatefulWidget {
 class _LeaveState extends ConsumerState<_Leave> with CommandState {
   Future<void> _leave() async {
     final l10n = AppLocalizations.of(context);
-    final name = widget.portfolio.name;
+    final name = inSentence(widget.portfolio.name, Directionality.of(context));
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.leaveTitle(name),
@@ -332,7 +343,10 @@ class _MemberSheetState extends ConsumerState<MemberSheet> with CommandState {
 
   Future<void> _changeRole() async {
     final l10n = AppLocalizations.of(context);
-    final name = memberName(l10n, widget.member);
+    final name = inSentence(
+      memberName(l10n, widget.member),
+      Directionality.of(context),
+    );
     final role = _role;
     final done = await runCommand(
       () => _team.changeRole(widget.member.userId, role),
@@ -350,7 +364,10 @@ class _MemberSheetState extends ConsumerState<MemberSheet> with CommandState {
 
   Future<void> _remove() async {
     final l10n = AppLocalizations.of(context);
-    final name = memberName(l10n, widget.member);
+    final name = inSentence(
+      memberName(l10n, widget.member),
+      Directionality.of(context),
+    );
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.removeMemberTitle(name),
@@ -407,7 +424,8 @@ class _MemberSheetState extends ConsumerState<MemberSheet> with CommandState {
           MmButton(
             label: l10n.removeMemberAction,
             icon: MmIcons.delete,
-            variant: MmButtonVariant.destructive,
+            // It asks first: the dialog's button is the filled one.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: busy ? null : _remove,
           ),
         ],
@@ -435,10 +453,15 @@ class _InvitationSheetState extends ConsumerState<InvitationSheet>
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.revokeInvitationTitle(
-        breakableEmail(widget.invitation.email),
+        inSentence(
+          breakableEmail(widget.invitation.email),
+          Directionality.of(context),
+        ),
       ),
       message: l10n.revokeInvitationBody,
       confirmLabel: l10n.revokeInvitationAction,
+      // "Cancel" beside cancelling the invitation would be ambiguous.
+      cancelLabel: l10n.keepInvitationAction,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -502,7 +525,8 @@ class _InvitationSheetState extends ConsumerState<InvitationSheet>
         MmButton(
           label: l10n.revokeInvitationAction,
           icon: MmIcons.close,
-          variant: MmButtonVariant.destructive,
+          // It asks first: the dialog's button is the filled one.
+          variant: MmButtonVariant.destructiveOutlined,
           busy: busy,
           onPressed: _revoke,
         ),

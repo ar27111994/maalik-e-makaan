@@ -127,12 +127,28 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
   /// other letter, and null when [text] has no letter (a CNIC, a phone
   /// number, an amount). Digits and punctuation take the direction of the
   /// text around them, so they do not decide it.
+  ///
+  /// Text kept apart in an isolate (U+2066, U+2067 or U+2068 to its
+  /// U+2069, as [isolated] and [leftToRight] make) is skipped, as the
+  /// Unicode bidirectional algorithm skips it: an Urdu sentence that starts
+  /// with an isolated English name still runs right to left.
   static TextDirection? firstStrongDirection(String text) {
-    final letter = _letter.firstMatch(text);
-    if (letter == null) return null;
-    return _rightToLeftLetter.hasMatch(letter[0]!)
-        ? TextDirection.rtl
-        : TextDirection.ltr;
+    var depth = 0;
+    for (final rune in text.runes) {
+      if (rune >= 0x2066 && rune <= 0x2068) {
+        depth++;
+      } else if (rune == 0x2069) {
+        if (depth > 0) depth--;
+      } else if (depth == 0) {
+        final char = String.fromCharCode(rune);
+        if (_letter.hasMatch(char)) {
+          return _rightToLeftLetter.hasMatch(char)
+              ? TextDirection.rtl
+              : TextDirection.ltr;
+        }
+      }
+    }
+    return null;
   }
 
   /// [text] as it should sit in a paragraph running in [direction]: kept
@@ -144,14 +160,24 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
   /// a sentence typed in English ends with its full stop on the wrong side
   /// in the Urdu UI, and the groups of a number such as "0412 3345 6789"
   /// come out reversed in the Urdu UI. Text without letters runs left to
-  /// right. Show the result, but give screen readers [text] itself.
+  /// right. Text whose only letters sit in isolates of their own (a
+  /// sentence the UI built around the landlord's words, each isolated:
+  /// "Shop 3، Saddar Plaza") has nothing outside them to take a direction
+  /// from, so it runs with the paragraph, unchanged. Show the result, but
+  /// give screen readers [text] itself.
   static String isolated(String text, TextDirection direction) {
-    final own = firstStrongDirection(text) ?? TextDirection.ltr;
-    if (text.isEmpty || own == direction) return text;
+    if (text.isEmpty) return text;
+    final own = firstStrongDirection(text);
+    if (own == null && _hasLetter(text)) return text;
+    if ((own ?? TextDirection.ltr) == direction) return text;
     return own == TextDirection.rtl
         ? '$_rightToLeftIsolate$text$_popIsolate'
         : '$_leftToRightIsolate$text$_popIsolate';
   }
+
+  /// Whether [text] has a letter anywhere, isolated or not.
+  static bool _hasLetter(String text) =>
+      text.runes.any((rune) => _letter.hasMatch(String.fromCharCode(rune)));
 
   /// [text], an identifier (a CNIC, a phone, account or consumer number),
   /// kept left to right and on one line wherever it sits. Inside an Urdu
@@ -167,6 +193,24 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
   /// ```
   static String leftToRight(String text) =>
       '$_leftToRightIsolate${text.replaceAll(' ', _noBreakSpace)}$_popIsolate';
+
+  /// [text] with every narrow no-break space (U+202F) made a no-break
+  /// space (U+00A0).
+  ///
+  /// `intl` puts a narrow no-break space between a time and its AM or PM
+  /// ("10:42\u202FAM"), and neither of the app's faces has a glyph for it,
+  /// so it would be drawn by whatever face the platform falls back to, or
+  /// as an empty box. The no-break space keeps the time and its AM or PM
+  /// together just the same. Every mm_ui component that shows text does
+  /// this itself; use it for text the app shows in its own `Text` widgets:
+  ///
+  /// ```dart
+  /// Text(MmSemantics.drawableSpaces(DateFormat.jm().format(paidAt)))
+  /// ```
+  static String drawableSpaces(String text) =>
+      text.replaceAll(_narrowNoBreakSpace, _noBreakSpace);
+
+  static const _narrowNoBreakSpace = '\u202F';
 
   static const _noBreakSpace = '\u00A0';
 

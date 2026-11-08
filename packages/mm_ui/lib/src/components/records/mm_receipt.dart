@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mm_core/mm_core.dart';
+import 'package:mm_ui/src/foundation/mm_fit_words.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
@@ -239,11 +240,24 @@ class MmReceipt extends StatelessWidget {
 }
 
 /// The brass seal at the top end of a receipt, carrying its number.
+///
+/// A number too wide for the seal (200% text on a narrow receipt) wraps
+/// after one of its dashes rather than inside its figures; wherever it
+/// fits, it stays on one line.
 class _Seal extends StatelessWidget {
   const new({required this.numberLabel, required this.receiptNumber});
 
   final String numberLabel;
   final String receiptNumber;
+
+  /// [number] centred in [style], wrapped after a dash only when it must.
+  static Widget _number(String number, TextStyle style) {
+    Widget line(String text) =>
+        MmUserText(text, textAlign: TextAlign.center, style: style);
+    final loose = MmFitWords.loosened(number);
+    if (loose == number) return line(number);
+    return MmFitWords(tight: line(number), loose: line(loose));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -269,10 +283,9 @@ class _Seal extends StatelessWidget {
               textAlign: TextAlign.center,
               style: text.bodySmall!.copyWith(color: on),
             ),
-            MmUserText(
+            _number(
               receiptNumber,
-              textAlign: TextAlign.center,
-              style: MmSemantics.withTabularFigures(
+              MmSemantics.withTabularFigures(
                 text.labelLarge!.copyWith(color: on),
               ),
             ),

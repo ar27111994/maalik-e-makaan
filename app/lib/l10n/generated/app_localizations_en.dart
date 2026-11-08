@@ -160,6 +160,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAccountAction => 'Delete account';
 
   @override
+  String get settingsAbout => 'About';
+
+  @override
+  String get licencesAction => 'Open-source licences';
+
+  @override
   String get failureNetwork =>
       'No connection. Check your internet and try again.';
 
@@ -2423,9 +2429,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get documentFileLabel => 'File';
-
-  @override
-  String get documentSheetTitle => 'Document';
 
   @override
   String get documentPreviewLabel => 'Preview of the photo';
@@ -4722,11 +4725,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seeTenantsAction => 'See tenants';
 
   @override
-  String over60Split(String amount) {
-    return 'Of the $amount over 60 days late:';
-  }
-
-  @override
   String get dashboardNoPropertiesTitle => 'No properties yet';
 
   @override
@@ -5043,9 +5041,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get age31to60 => '31 to 60 days late';
 
   @override
-  String get ageOver60 => 'Over 60 days late';
-
-  @override
   String get age61to90 => '61 to 90 days late';
 
   @override
@@ -5057,9 +5052,10 @@ class AppLocalizationsEn extends AppLocalizations {
     String notDue,
     String early,
     String middle,
+    String older,
     String late,
   ) {
-    return '$total rupees owed: $notDue not yet due, $early up to 30 days late, $middle 31 to 60 days late, $late over 60 days late.';
+    return '$total rupees owed: $notDue not yet due, $early up to 30 days late, $middle 31 to 60 days late, $older 61 to 90 days late, $late over 90 days late.';
   }
 
   @override
@@ -5567,4 +5563,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get daysOverdueLabel => 'Days overdue';
+
+  @override
+  String timeOfDay(String time, String period) {
+    String _temp0 = intl.Intl.selectLogic(period, {
+      'morning': 'in the morning',
+      'noon': 'in the afternoon',
+      'afternoon': 'in the late afternoon',
+      'evening': 'in the evening',
+      'other': 'at night',
+    });
+    return '$time $_temp0';
+  }
+
+  @override
+  String get keepRepairAction => 'Keep the repair';
+
+  @override
+  String get keepInvitationAction => 'Keep the invitation';
+
+  @override
+  String get deletePortfolioSection => 'Delete this portfolio';
+
+  @override
+  String get deletePortfolioHelp =>
+      'Everything in it goes for good, for everyone in it: properties, tenants, tenancies, payments and receipts, expenses and documents. Keep copies of any receipts and statements you need first.';
+
+  @override
+  String get deletePortfolioAction => 'Delete portfolio';
+
+  @override
+  String deletePortfolioTitle(String name) {
+    return 'Delete $name and everything in it?';
+  }
+
+  @override
+  String get deletePortfolioBody =>
+      'Every member loses it at once, and it cannot be recovered, not even by us.';
+
+  @override
+  String portfolioDeleted(String name) {
+    return '$name deleted.';
+  }
+
+  @override
+  String get chooseTenantTitle => 'Choose the tenant';
+
+  @override
+  String get chooseTenantAction => 'Choose the tenant';
+
+  @override
+  String get changeTenantAction => 'Choose another tenant';
+
+  @override
+  String get noTenantChosen => 'Not chosen yet';
+
+  @override
+  String get chooseUnitTitle => 'Choose the unit';
+
+  @override
+  String get chooseUnitAction => 'Choose the unit';
+
+  @override
+  String get changeUnitAction => 'Choose another unit';
+
+  @override
+  String get otherPropertyAction => 'Other properties';
+
+  @override
+  String get validationChooseUnit => 'Choose the unit.';
 }

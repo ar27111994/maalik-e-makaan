@@ -77,6 +77,14 @@ abstract interface class DocumentRepository {
   /// its name.
   Future<DocumentLinks> links(Document document);
 
+  /// Links to show [documents]' photos small in a list, by document id:
+  /// one request signs them all (`createSignedUrls`), each for
+  /// [linkLifetime], and only for the photos a list shows ([showsThumbnail]);
+  /// a file the server cannot sign (gone, or not visible to the member) is
+  /// left out, and its row keeps its icon. Nothing is asked for when no
+  /// document has a photo to show.
+  Future<Map<String, Uri>> thumbnailLinks(List<Document> documents);
+
   /// Renames [document] and changes its kind.
   Future<Document> updateDocument(
     Document document, {
@@ -88,6 +96,20 @@ abstract interface class DocumentRepository {
   /// already deleted succeeds.
   Future<void> deleteDocument(String documentId);
 }
+
+/// The largest photo a list shows small: the app stores the photos it can
+/// read as JPEGs of about 300 KB, so this leaves out only files it stored
+/// as they were picked (a large PNG from a scanner), which a list would
+/// otherwise download whole for a 40 dp square.
+const int maxThumbnailBytes = 512 * 1024;
+
+/// Whether a list shows [document]'s photo small, in place of its icon: a
+/// photo every platform can draw (not HEIC, not a PDF), small enough to
+/// download for a list ([maxThumbnailBytes]).
+bool showsThumbnail(Document document) =>
+    document.fileType.isImage &&
+    document.fileType != DocumentFileType.heic &&
+    document.sizeBytes <= maxThumbnailBytes;
 
 /// [DocumentRepository] over `documents` and the `documents` bucket.
 final class SupabaseDocumentRepository implements DocumentRepository {
@@ -196,6 +218,26 @@ final class SupabaseDocumentRepository implements DocumentRepository {
         '$signed${separator}download=${Uri.encodeQueryComponent(name)}';
     return (open: Uri.parse(signed), download: Uri.parse(download));
   });
+
+  @override
+  Future<Map<String, Uri>> thumbnailLinks(List<Document> documents) =>
+      _guard(() async {
+        final shown = {
+          for (final document in documents.where(showsThumbnail))
+            document.storagePath: document.id,
+        };
+        if (shown.isEmpty) return const {};
+        final signed = await _files.createSignedUrlsResult(
+          shown.keys.toList(),
+          DocumentRepository.linkLifetime.inSeconds,
+        );
+        return {
+          for (final result in signed)
+            if (result case SignedUrlSuccess(:final path, :final signedUrl)
+                when shown.containsKey(path))
+              shown[path]!: Uri.parse(signedUrl),
+        };
+      });
 
   @override
   Future<Document> updateDocument(

@@ -21,6 +21,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   _reportErrors();
+  // The fonts' and icons' licences, for the licence page in Settings.
+  MmLicenses.register();
   // Paths without a `#` on the web, so e-mail links to /auth/callback open
   // that route (the host serves index.html for every path). The fragment is
   // kept: an invitation link carries its token there (/invite#token=…),

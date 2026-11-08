@@ -34,6 +34,23 @@ abstract final class MmButtonStyles {
     iconColor: whileEnabled(scheme.onError),
   );
 
+  /// [labelled], outlined and labelled in [scheme]'s error colour (the
+  /// overdue role): the button that starts removing a record and opens its
+  /// confirmation. Focused, it keeps the theme's focus ring on its edge;
+  /// disabled, the theme's muted label inside a rule border.
+  static ButtonStyle destructiveOutlined(ColorScheme scheme) =>
+      labelled.copyWith(
+        foregroundColor: whileEnabled(scheme.error),
+        iconColor: whileEnabled(scheme.error),
+        side: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.disabled) ||
+                  states.contains(WidgetState.focused)
+              ? null
+              : BorderSide(color: scheme.error),
+        ),
+      );
+
   /// [color] while the button is enabled, and nothing while it is disabled,
   /// so the theme's (or the variant's) disabled colour shows.
   static WidgetStateProperty<Color?> whileEnabled(Color color) =>

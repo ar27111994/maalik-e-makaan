@@ -210,6 +210,8 @@ void main() {
         find.text('Cancel the invitation to kamran@\u200bexample.com?'),
         findsOneWidget,
       );
+      // Its way out names itself: "Cancel" beside it is ambiguous.
+      expect(find.text('Keep the invitation'), findsOneWidget);
       await _confirm(tester, 'Cancel invitation');
       expect(find.text('Invitation cancelled.'), findsOneWidget);
       expect(app.team.calls.firstWhere((c) => c.$1 == 'revokeInvitation').$2, [
@@ -619,10 +621,62 @@ void main() {
       expect(routeShown(Routes.more), findsOneWidget);
     });
 
+    testWidgets('an owner deletes it once its name is typed', (tester) async {
+      final app = await pumpScreen(
+        tester,
+        PortfolioDetailsScreen.new,
+        size: const Size(360, 2400),
+      );
+      expect(find.text('Delete this portfolio'), findsOneWidget);
+      final button = find.widgetWithText(MmButton, 'Delete portfolio');
+      // It asks first: outlined, the dialog's button is the filled one.
+      expect(
+        tester.widget<MmButton>(button).variant,
+        MmButtonVariant.destructiveOutlined,
+      );
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('and everything in it?'), findsOneWidget);
+      final dialog = find.byWidgetPredicate((widget) => widget is Dialog);
+      final typed = find.descendant(
+        of: dialog,
+        matching: find.byType(TextField),
+      );
+      // A server refusal is shown beside the button, not above the form.
+      app.portfolios.deleteFailure = const TemporarilyUnavailable();
+      await tester.enterText(typed, 'Gulberg Houses');
+      await tester.pump();
+      await _confirm(tester, 'Delete portfolio');
+      expect(app.portfolios.memberships, hasLength(2));
+      final banner = find.byType(MmBanner);
+      expect(banner, findsOneWidget);
+      expect(
+        tester.getTopLeft(banner).dy,
+        greaterThan(tester.getTopLeft(find.text('Delete this portfolio')).dy),
+      );
+
+      app.portfolios.deleteFailure = null;
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      await tester.enterText(typed, 'Gulberg Houses');
+      await tester.pump();
+      await _confirm(tester, 'Delete portfolio');
+      expect(app.portfolios.calls.where((c) => c.$1 == 'delete').last.$2, [
+        gulberg.id,
+        'Gulberg Houses',
+      ]);
+      expect(app.portfolios.memberships, [plaza]);
+      expect(routeShown(Routes.home), findsOneWidget);
+      expect(find.textContaining('deleted.'), findsOneWidget);
+    });
+
     testWidgets('others see them but cannot change them', (tester) async {
       await pumpScreen(tester, PortfolioDetailsScreen.new, app: _inPlaza());
       expect(find.text('Saddar Plaza'), findsOneWidget);
       expect(find.text('Save'), findsNothing);
+      expect(find.text('Delete portfolio'), findsNothing);
       expect(
         tester.widget<MmTextField>(field('Portfolio name')).enabled,
         isFalse,

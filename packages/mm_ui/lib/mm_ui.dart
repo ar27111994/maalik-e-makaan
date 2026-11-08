@@ -14,6 +14,8 @@ export 'src/components/layout/layout.dart';
 export 'src/components/records/records.dart';
 export 'src/foundation/mm_clean_text_formatter.dart';
 export 'src/foundation/mm_formats.dart';
+export 'src/foundation/mm_icon_size.dart';
+export 'src/foundation/mm_licenses.dart';
 export 'src/foundation/mm_window.dart';
 export 'src/icons/mm_icons.g.dart';
 export 'src/l10n/mm_localizations.dart';

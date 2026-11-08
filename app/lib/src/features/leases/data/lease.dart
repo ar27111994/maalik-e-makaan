@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:maalik_e_makaan/src/features/properties/data/property.dart';
 import 'package:mm_core/mm_core.dart';
@@ -180,11 +181,10 @@ final class LeaseTerms {
   /// [editable] leaves out what only starting a tenancy sets (its start,
   /// rent, billing start and proration).
   Map<String, Object?> toWrite({bool editable = false}) {
-    String? line(String? value, int max) =>
-        sanitizeOptional(value, maxLength: max);
+    String? line(String? value, int max) => optionalText(value, max);
     String? text(String? value, int max) {
       if (value == null) return null;
-      final clean = sanitizeMultiline(value, maxLength: max);
+      final clean = linesWithin(value, max);
       return clean.isEmpty ? null : clean;
     }
 
@@ -472,8 +472,8 @@ final class Occupant {
   final PhoneNumber? phone;
 
   Map<String, Object?> toWrite() => {
-    'full_name': sanitizeSingleLine(fullName, maxLength: maxNameLength),
-    'relation': sanitizeOptional(relation, maxLength: maxRelationLength),
+    'full_name': singleLineWithin(fullName, maxNameLength),
+    'relation': optionalText(relation, maxRelationLength),
     'cnic': cnic?.digits,
     'phone': phone?.e164,
   };

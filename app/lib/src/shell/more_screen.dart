@@ -55,7 +55,7 @@ class MoreScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   _Entry(
-                    icon: MmIcons.cash,
+                    icon: MmIcons.receiptText,
                     title: l10n.expensesTitle,
                     subtitle: l10n.expensesSummary,
                     route: Routes.expenses,
@@ -167,8 +167,10 @@ class _Entry extends StatelessWidget {
     title: title,
     subtitle: subtitle,
     // Never cut short, even at 200% text.
-    subtitleMaxLines: 4,
-    trailing: const Icon(MmIcons.chevronEnd),
+    subtitleMaxLines: null,
+    // The app's own words, in the UI's direction.
+    userData: false,
+    chevron: true,
     onTap: () => context.go(route),
   );
 }

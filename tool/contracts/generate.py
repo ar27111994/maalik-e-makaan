@@ -15,10 +15,13 @@ Outputs (all committed):
     which is written by hand: it is the text-safety contract itself)
   supabase/tests/database/13_ledger_contract.test.sql (allocation and billed-rent vectors,
     exercised through the real record_payment and billing on fresh leases)
+  contracts/identity_vectors.json and supabase/tests/database/20_identity_contract.test.sql
+    (stored phone numbers, CNICs, IBANs and Raast IDs: what mm_core reads back from a row
+    is exactly what the database CHECKs accept)
 
 Usage:
-  tool/contracts/generate.py           # (re)write both files
-  tool/contracts/generate.py --check   # exit 1 if either file is stale (CI)
+  tool/contracts/generate.py           # (re)write every file
+  tool/contracts/generate.py --check   # exit 1 if any file is stale (CI)
 """
 
 from __future__ import annotations
@@ -541,8 +544,257 @@ def render_ledger_sql(vectors: dict) -> str:
     return "\n".join(header + body + footer)
 
 
+# ---------------------------------------------------------------------------
+# Identity values: phone numbers, CNICs, IBANs, Raast IDs
+# ---------------------------------------------------------------------------
+#
+# The app writes these columns from mm_core's canonical forms and reads them
+# back strictly (PhoneNumber.fromE164, Cnic.parse, Iban.parse in each
+# fromRow), so a stored value the CHECK accepts but mm_core refuses breaks
+# every screen that lists the row. The vectors below are the stored values;
+# "valid" is whether mm_core reads the value back unchanged, decided here by
+# an independent restatement of mm_core's rules, and the database CHECKs
+# (app.is_valid_phone, app.is_valid_cnic, portfolios_bank_iban_check,
+# portfolios_raast_id_check) must agree on every one.
+
+ASCII_DIGITS = frozenset("0123456789")
+UPPER = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+
+def ascii_digits(text: str) -> bool:
+    # str.isdigit() is true for Urdu and full-width digits too; the stored
+    # forms are ASCII only.
+    return bool(text) and set(text) <= ASCII_DIGITS
+
+
+def urdu_digits(digits: str) -> str:
+    """[digits] in Extended Arabic-Indic (Urdu keyboard) digits, U+06F0-U+06F9."""
+    return "".join(chr(0x06F0 + int(d)) for d in digits)
+
+
+def full_width_digits(digits: str) -> str:
+    """[digits] in full-width digits, U+FF10-U+FF19."""
+    return "".join(chr(0xFF10 + int(d)) for d in digits)
+
+
+def phone_kind(value: str) -> str | None:
+    """'mobile', 'landline', 'international' or None for a stored phone number.
+
+    E.164 with a leading '+', ASCII digits only. +92 numbers follow
+    Pakistan's plan: a mobile is 3 and nine more digits; any other national
+    number (fixed line, UAN 111, toll-free 800) has 8 to 11 digits and does
+    not start with 0. Other countries: 8 to 15 digits, not starting with 0.
+    """
+    if not value.startswith("+") or not ascii_digits(value[1:]):
+        return None
+    digits = value[1:]
+    if digits.startswith("92"):
+        national = digits[2:]
+        if not national or national[0] == "0":
+            return None
+        if national[0] == "3":
+            return "mobile" if len(national) == 10 else None
+        return "landline" if 8 <= len(national) <= 11 else None
+    if digits[0] == "0" or not 8 <= len(digits) <= 15:
+        return None
+    return "international"
+
+
+def cnic_valid(value: str) -> bool:
+    """13 ASCII digits, not starting with 0, not one digit repeated."""
+    return len(value) == 13 and ascii_digits(value) and value[0] != "0" and len(set(value)) > 1
+
+
+def iban_checksum_ok(value: str) -> bool:
+    """ISO 13616 MOD-97-10 on an upper-case, compact IBAN."""
+    rearranged = value[4:] + value[:4]
+    if not set(rearranged) <= ASCII_DIGITS | UPPER:
+        return False
+    return int("".join(str(int(ch, 36)) for ch in rearranged)) % 97 == 1
+
+
+def iban_valid(value: str) -> bool:
+    """A Pakistani IBAN as stored: PK, 2 check digits, 4-letter bank, 16 letters/digits."""
+    return (
+        len(value) == 24
+        and value[:2] == "PK"
+        and ascii_digits(value[2:4])
+        and set(value[4:8]) <= UPPER
+        and set(value[8:]) <= ASCII_DIGITS | UPPER
+        and iban_checksum_ok(value)
+    )
+
+
+def make_iban(country: str, bank: str, account: str) -> str:
+    """An IBAN with correct check digits (bank + account as the BBAN)."""
+    bban = bank + account
+    remainder = int("".join(str(int(ch, 36)) for ch in bban + country + "00")) % 97
+    return f"{country}{98 - remainder:02d}{bban}"
+
+
+PHONE_CASES = [
+    ("+923001234567", "mobile"),
+    ("+923451234567", "mobile, prefix 345"),
+    ("+923551234567", "mobile, SCO prefix 355"),
+    ("+923991234567", "mobile, unallocated prefix (accepted, the app warns)"),
+    ("+924235550123", "Lahore fixed line, 10-digit national number"),
+    ("+92515551234", "Islamabad fixed line, 9-digit national number"),
+    ("+9251555123", "fixed line, 8-digit national number (shortest)"),
+    ("+9258212345678", "AJK fixed line, 11-digit national number (longest)"),
+    ("+92111123456", "UAN 111"),
+    ("+92800123456", "toll-free 800"),
+    ("+971501234567", "UAE mobile"),
+    ("+14155550123", "United States"),
+    ("+12345678", "international, 8 digits (shortest)"),
+    ("+123456789012345", "international, 15 digits (longest)"),
+    ("+9112345678", "India, starts with 9 but not 92"),
+    ("+92300123456", "mobile one digit short (accepted by the old CHECK)"),
+    ("+9230012345678", "mobile one digit long (accepted by the old CHECK)"),
+    ("+92300123456789", "mobile, 15 digits in all (accepted by the old CHECK)"),
+    ("+920300123456", "+92 followed by the trunk 0 (accepted by the old CHECK)"),
+    ("+921234567", "fixed line, 7-digit national number (accepted by the old CHECK)"),
+    ("+92123456789012", "fixed line, 12-digit national number (accepted by the old CHECK)"),
+    ("+92", "country code only"),
+    ("+1234567", "international, 7 digits"),
+    ("+1234567890123456", "international, 16 digits"),
+    ("+0123456789", "starts with 0"),
+    ("923001234567", "no plus"),
+    ("03001234567", "national form"),
+    ("+92 300 1234567", "spaces"),
+    ("+92-300-1234567", "dashes"),
+    (" +923001234567", "leading space"),
+    ("+923001234567 ", "trailing space"),
+    ("+923001234567\n", "trailing line feed"),
+    ("++923001234567", "two plus signs"),
+    ("+92300123456a", "a letter"),
+    ("+" + urdu_digits("923001234567"), "Urdu digits"),
+    ("+" + full_width_digits("923001234567"), "full-width digits"),
+    ("", "empty"),
+]
+
+CNIC_CASES = [
+    ("3520212345671", "Punjab"),
+    ("4210198765432", "Sindh"),
+    ("1000000000000", "one digit differs"),
+    ("9520212345671", "unknown region 9 (accepted, the app warns)"),
+    ("1111111111111", "one digit repeated (accepted by the old CHECK)"),
+    ("9999999999999", "nines repeated (accepted by the old CHECK)"),
+    ("0000000000000", "zeros"),
+    ("0352021234567", "starts with 0"),
+    ("352021234567", "12 digits"),
+    ("35202123456712", "14 digits"),
+    ("35202-1234567-1", "with dashes (the app stores digits only)"),
+    (urdu_digits("3520212345671"), "Urdu digits"),
+    (" 3520212345671", "leading space"),
+    ("3520212345671\n", "trailing line feed"),
+    ("", "empty"),
+]
+
+
+def iban_cases() -> list[tuple[str, str]]:
+    meezan = make_iban("PK", "MEZN", "0001234567890123")
+    letters = make_iban("PK", "HABB", "00AB12CD34EF56GH")
+    return [
+        ("PK36SCBL0000001123456702", "Standard Chartered example"),
+        (meezan, "Meezan Bank"),
+        (letters, "letters in the account part"),
+        (make_iban("PK", "ZZZZ", "0000000000000001"), "unknown bank code (accepted)"),
+        ("PK37SCBL0000001123456702", "wrong check digits"),
+        ("PK36SCBL0000001123456720", "two digits swapped"),
+        ("pk36scbl0000001123456702", "lower case"),
+        ("PK36 SCBL 0000 0011 2345 6702", "spaces"),
+        ("PK36SCBL000000112345670", "23 characters"),
+        ("PK36SCBL00000011234567020", "25 characters"),
+        (make_iban("PK", "SCB1", "0000001123456702"), "digit in the bank code, check digits right"),
+        (make_iban("GB", "WEST", "12345698765432"), "United Kingdom (foreign IBANs are refused)"),
+        ("PK36SCBL0000001123456702\n", "trailing line feed"),
+        ("", "empty"),
+    ]
+
+
+def build_identity() -> dict:
+    phones = []
+    for value, name in PHONE_CASES:
+        kind = phone_kind(value)
+        phones.append(
+            {"value": value, "name": name, "valid": kind is not None, "mobile": kind == "mobile"}
+        )
+    return {
+        "$comment": (
+            "Generated by tool/contracts/generate.py — do not edit by hand. Stored values; "
+            '"valid" is whether mm_core reads the value back unchanged (PhoneNumber.fromE164, '
+            "Cnic.parse, Iban.parse), which the database CHECKs must match. A Raast ID is a "
+            'valid phone number that is "mobile".'
+        ),
+        "phone": phones,
+        "cnic": [{"value": v, "name": n, "valid": cnic_valid(v)} for v, n in CNIC_CASES],
+        "iban": [{"value": v, "name": n, "valid": iban_valid(v)} for v, n in iban_cases()],
+    }
+
+
+def render_identity_sql(vectors: dict) -> str:
+    """pgTAP suite: the functions and the real CHECKs against the identity vectors."""
+
+    def shown(value: str) -> str:
+        return json.dumps(value, ensure_ascii=False)
+
+    def write(table: str, column: str, row: str, value: str, valid: bool, name: str) -> str:
+        statement = (
+            f"format('update public.{table} set {column} = %L where id = %L', "
+            f"{sql_literal(value)}, :'{row}')"
+        )
+        what = sql_literal(
+            f"{table}.{column} {'accepts' if valid else 'refuses'} {shown(value)} ({name})"
+        )
+        if valid:
+            return f"select lives_ok({statement}, {what});"
+        return f"select throws_ok({statement}, '23514', null, {what});"
+
+    lines = []
+    for v in vectors["phone"]:
+        lines.append(
+            f"select is(app.is_valid_phone({sql_literal(v['value'])}), {str(v['valid']).lower()}, "
+            f"{sql_literal('phone ' + shown(v['value']) + ': ' + v['name'])});"
+        )
+        lines.append(write("tenants", "phone", "tenant", v["value"], v["valid"], v["name"]))
+        lines.append(
+            write(
+                "portfolios",
+                "raast_id",
+                "pid",
+                v["value"],
+                v["valid"] and v["mobile"],
+                v["name"],
+            )
+        )
+    for v in vectors["cnic"]:
+        lines.append(
+            f"select is(app.is_valid_cnic({sql_literal(v['value'])}), {str(v['valid']).lower()}, "
+            f"{sql_literal('CNIC ' + shown(v['value']) + ': ' + v['name'])});"
+        )
+        lines.append(write("tenants", "cnic", "tenant", v["value"], v["valid"], v["name"]))
+    for v in vectors["iban"]:
+        lines.append(write("portfolios", "bank_iban", "pid", v["value"], v["valid"], v["name"]))
+    header = [
+        "-- GENERATED by tool/contracts/generate.py from contracts/identity_vectors.json.",
+        "-- Do not edit by hand. mm_core's Dart tests assert the same vectors, so every",
+        "-- value a CHECK lets in is one the app can read back (and the other way round).",
+        "begin;",
+        r"\ir _helpers.psql",
+        f"select plan({len(lines)});",
+        "",
+        "select tests.create_user('identity-contract@example.com') as owner \\gset",
+        "select tests.create_portfolio(:'owner') as pid \\gset",
+        "select (tests.create_rental(:'pid') ->> 'tenant_id') as tenant \\gset",
+        "",
+    ]
+    footer = ["", "select * from finish();", "rollback;", ""]
+    return "\n".join(header + lines + footer)
+
+
 def outputs() -> dict[Path, str]:
     vectors = build()
+    identity = build_identity()
     database_tests = ROOT / "supabase" / "tests" / "database"
     return {
         ROOT
@@ -553,6 +805,11 @@ def outputs() -> dict[Path, str]:
         database_tests
         / "12_clean_text_contract.test.sql": render_clean_text_sql(clean_text_contract()),
         database_tests / "13_ledger_contract.test.sql": render_ledger_sql(vectors),
+        ROOT
+        / "contracts"
+        / "identity_vectors.json": json.dumps(identity, indent=2, ensure_ascii=False)
+        + "\n",
+        database_tests / "20_identity_contract.test.sql": render_identity_sql(identity),
     }
 
 

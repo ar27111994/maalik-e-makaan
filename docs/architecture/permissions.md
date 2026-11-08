@@ -42,6 +42,14 @@ A person can belong to many portfolios, with one role in each.
 5. **Storage policies** scope files to `<portfolio_id>/…` folders.
 6. **Edge Functions** handle what needs the service key: deleting an account and
    sending invitation e-mails. Each one verifies the caller's token first.
+7. **CHECK constraints** hold every stored value to the form the app reads
+   back, whoever writes it. Text must be clean (`app.is_clean_text`) and
+   within its limit in code points (`char_length`). Phone numbers, CNICs,
+   IBANs and Raast IDs must be exactly what mm_core's `PhoneNumber.fromE164`,
+   `Cnic.parse` and `Iban.parse` accept (`app.is_valid_phone`,
+   `app.is_valid_cnic`, `app.is_valid_iban`). Dart and SQL are tested against
+   the same vectors in `contracts/identity_vectors.json`. Any other value is
+   refused with SQLSTATE 23514.
 
 ## The matrix
 
@@ -162,6 +170,21 @@ deletion. Deleting the row queues the file; the `storage-cleanup` function
 deletes it through the Storage API. No delete removes a file a document refers
 to, whether it comes from a member, the Storage API's own superuser step, the
 service role or SQL: a trigger on `storage.objects` keeps it.
+
+A file is uploaded before its document row is written (see "Uploading a
+document" in `docs/architecture/app.md`), so a file can be left without a row
+when an upload is given up or its row is refused. Owners and managers delete
+such a file themselves. Accountants can upload but not delete files, so a file
+an accountant leaves behind stays in storage, and keeps counting against the
+project's storage, until the daily sweep (`private.sweep_orphaned_files`,
+from `private.run_daily_jobs`) queues every file of the bucket that is more
+than a day old and has no document row. The `storage-cleanup` function then
+deletes it. Until it is queued, the file can still be recorded: a document
+row written for it within that day is accepted. Once it is queued, a row for
+that path is refused (`document_file_pending_deletion`), and the app uploads
+the file again under a new name. If the sweep cannot take its lock because
+document inserts keep it busy, a later run of the daily job (every ten
+minutes) tries again, so a stranded file waits a day and a little longer.
 
 ### Reports, search, notifications and audit
 

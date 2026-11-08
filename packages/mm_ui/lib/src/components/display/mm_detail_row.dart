@@ -3,6 +3,7 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/display/mm_amount.dart';
 import 'package:mm_ui/src/components/display/mm_no_controls.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/foundation/mm_wrap.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
@@ -32,6 +33,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// it. A control in [trailing] would be merged into the row, and debug
 /// builds report one.
 ///
+/// A passage of several lines (a description, notes, what was done) goes
+/// in [MmDetailRow.prose]: its label above it, and its words under it from
+/// the start edge across the whole width, which a paragraph set against the
+/// end edge would leave ragged.
+///
 /// Use rows inside an `MmCard` or a receipt to show a record's details.
 /// Don't use it for a row that opens something (use `MmListTile`) or for a
 /// value the landlord edits (use a field).
@@ -60,7 +66,32 @@ class MmDetailRow extends StatelessWidget {
     this.action,
     super.key,
   }) : amount = null,
-       creditLabel = null;
+       creditLabel = null,
+       _prose = false;
+
+  /// Creates a row showing a passage of the landlord's words, [value] (a
+  /// description, notes, what was done), under its [label].
+  ///
+  /// The label sits above in the muted label style, and the passage under
+  /// it in the value style, across the whole width, wrapping as long as it
+  /// needs to. As the landlord's data (unless [userData] is false) it is set
+  /// in its own script's face and runs in its own direction, from the start
+  /// of that direction, so an English note in the Urdu UI keeps its full
+  /// stop at its end and starts every line at the left edge. It is one
+  /// node for screen readers, "Notes, Paid before the deadline", as every
+  /// detail row is.
+  const new prose({
+    required this.label,
+    required String this.value,
+    this.userData = true,
+    this.semanticValue,
+    super.key,
+  }) : amount = null,
+       creditLabel = null,
+       emphasized = false,
+       trailing = null,
+       action = null,
+       _prose = true;
 
   /// Creates a row showing [amount] for [label], set and read as an
   /// `MmAmount` is: a negative amount shows a minus sign, or the absolute
@@ -75,7 +106,8 @@ class MmDetailRow extends StatelessWidget {
     super.key,
   }) : value = null,
        userData = false,
-       semanticValue = null;
+       semanticValue = null,
+       _prose = false;
 
   /// What the value is ("Monthly rent"), from the app's localisations.
   final String label;
@@ -116,8 +148,12 @@ class MmDetailRow extends StatelessWidget {
   /// readers and its own place in the keyboard's tab order.
   final Widget? action;
 
+  /// Whether the row was made with [MmDetailRow.prose].
+  final bool _prose;
+
   @override
   Widget build(BuildContext context) {
+    if (_prose) return _buildProse(context);
     final colors = context.mm.colors;
     final text = Theme.of(context).textTheme;
     final labelStyle = emphasized
@@ -142,7 +178,13 @@ class MmDetailRow extends StatelessWidget {
       // too, where the other values end.
       shown = userData
           ? MmUserText(value, style: valueStyle, textAlign: TextAlign.end)
-          : Text(value, style: valueStyle, textAlign: TextAlign.end);
+          : Text(
+              // Neither face draws the narrow no-break space intl puts
+              // before AM.
+              MmSemantics.drawableSpaces(value),
+              style: valueStyle,
+              textAlign: TextAlign.end,
+            );
       spoken = semanticValue ?? value;
     }
     final Widget valueText = ExcludeSemantics(child: shown);
@@ -192,5 +234,56 @@ class MmDetailRow extends StatelessWidget {
     // Beside the row while both fit; otherwise under it, at the end edge,
     // so the label and value keep the whole width.
     return MmReflow(start: row, end: action, stackedAtEnd: true);
+  }
+
+  /// A [MmDetailRow.prose] row: the label, and the passage under it.
+  Widget _buildProse(BuildContext context) {
+    final colors = context.mm.colors;
+    final text = Theme.of(context).textTheme;
+    final value = this.value!;
+    final valueStyle = text.bodyLarge!.copyWith(color: colors.ink);
+    return MergeSemantics(
+      child: Semantics(
+        label: MmLocalizations.of(context)
+            .joined([label, semanticValue ?? value]),
+        child: ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsetsDirectional.symmetric(
+              vertical: MmSpace.s2,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: MmSpace.s1,
+              children: [
+                Text(
+                  label,
+                  style: text.bodyMedium!.copyWith(color: colors.inkMuted),
+                ),
+                if (userData)
+                  // In its own direction, from the start of it: an Urdu
+                  // passage in the English UI starts every line at the
+                  // right edge, not where its last word ends.
+                  Directionality(
+                    textDirection:
+                        MmSemantics.firstStrongDirection(value) ??
+                        Directionality.of(context),
+                    child: MmUserText(
+                      value,
+                      style: valueStyle,
+                      textAlign: TextAlign.start,
+                    ),
+                  )
+                else
+                  MmScriptText(
+                    MmSemantics.drawableSpaces(value),
+                    style: valueStyle,
+                    textAlign: TextAlign.start,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

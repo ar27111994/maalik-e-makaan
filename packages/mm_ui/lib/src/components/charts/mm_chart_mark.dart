@@ -11,6 +11,10 @@ enum MmHatch {
 
   /// Lines falling from the top-left corner to the bottom-right (135°).
   falling,
+
+  /// Both: lines rising and falling, crossing in a lattice, which leaves
+  /// less of the fill showing than lines one way.
+  crossed,
 }
 
 /// How a chart mark (a bar, a segment, a legend swatch) is drawn: a [fill],
@@ -94,12 +98,23 @@ final class MmChartMark {
       ..save()
       ..clipRRect(shape);
     final rise = rect.height;
+    final rising = hatch != MmHatch.falling;
+    final falling = hatch != MmHatch.rising;
     for (var x = rect.left - rise; x < rect.right; x += hatchStep) {
-      final (from, to) = switch (hatch) {
-        MmHatch.rising => (Offset(x, rect.bottom), Offset(x + rise, rect.top)),
-        MmHatch.falling => (Offset(x, rect.top), Offset(x + rise, rect.bottom)),
-      };
-      canvas.drawLine(from, to, paint);
+      if (rising) {
+        canvas.drawLine(
+          Offset(x, rect.bottom),
+          Offset(x + rise, rect.top),
+          paint,
+        );
+      }
+      if (falling) {
+        canvas.drawLine(
+          Offset(x, rect.top),
+          Offset(x + rise, rect.bottom),
+          paint,
+        );
+      }
     }
     canvas.restore();
   }

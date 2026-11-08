@@ -80,6 +80,27 @@ final class PortfoliosController
     return created;
   }
 
+  /// Deletes the portfolio [portfolioId] (see [PortfolioRepository.delete];
+  /// [confirmation] is its name as typed) and lists the user's others; the
+  /// current portfolio becomes their first, as when they leave one. Throws
+  /// [AppFailure], and then nothing changed.
+  Future<void> delete(
+    String portfolioId, {
+    required String confirmation,
+  }) async {
+    final repository = ref.read(portfolioRepositoryProvider);
+    await repository.delete(portfolioId, confirmation: confirmation);
+    List<PortfolioMembership> list;
+    try {
+      list = await repository.listMine(userId);
+    } on AppFailure {
+      // It is gone: list the others known, and let the next refresh bring
+      // the server's list.
+      list = [...?state.value?.value.where((other) => other.id != portfolioId)];
+    }
+    if (ref.mounted) await _show(list);
+  }
+
   /// Reads the list again, after the user joined, left or renamed a
   /// portfolio, and returns it. Throws [AppFailure] when it cannot be read;
   /// the list on screen then stays as it was.

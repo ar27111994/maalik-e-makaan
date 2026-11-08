@@ -250,8 +250,8 @@ void main() {
         ),
         variant: MmVariant.urdu,
       );
-      expect(latinRunsIn(tester, caption), ['12']);
-      expect(urduRunsIn(tester, caption), [' ماہ کی ادائیگیوں کی بنیاد پر']);
+      expect(latinRunsIn(tester, caption), ['12 ']);
+      expect(urduRunsIn(tester, caption), ['ماہ کی ادائیگیوں کی بنیاد پر']);
     });
 
     testWidgets('at 200% on a 320 dp phone, fits long words in English and '

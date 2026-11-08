@@ -333,6 +333,9 @@ abstract final class MmSize {
   /// The list's column beside its details on wide windows: about a phone's width, so a list reads as it does on a phone.
   static const double listPane = 360;
 
+  /// The height of a photo's preview in a form or sheet (a CNIC or a document before it is uploaded): enough to read a card's layout, small enough to keep the form's fields in view.
+  static const double preview = 160;
+
   /// Focus ring stroke: on the edge of outlined and text controls and fields; outside filled controls, beyond the focus gap.
   static const double focusRing = 2;
 

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show StringCharacters;
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:mm_core/mm_core.dart';
@@ -302,10 +303,7 @@ final class Document {
 /// characters as a reader counts them can still be too long: whole
 /// characters are then dropped from its end until it fits.
 String documentName(String name) {
-  var characters = sanitizeSingleLine(
-    name,
-    maxLength: Document.maxNameLength,
-  ).characters;
+  var characters = singleLineWithin(name, Document.maxNameLength).characters;
   while (_tooLong(characters.string)) {
     characters = characters.skipLast(1);
   }

@@ -289,7 +289,9 @@ enum InvitationRefusal with DbEnum {
   /// The link is not a real invitation (mistyped or cut short).
   invalid('invalid'),
 
-  /// An owner withdrew it, or its inviter is no longer an owner.
+  /// An owner withdrew it, or its inviter is no longer an owner; or you
+  /// accepted it and are no longer a member (removed, or you left since),
+  /// so it no longer gives you access.
   revoked('revoked'),
 
   /// Someone else accepted it already.

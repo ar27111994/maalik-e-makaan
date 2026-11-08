@@ -224,7 +224,9 @@ void main() {
     ))!;
     // A kaf starting a line reaches past the start of the line.
     final drawn = (await tester.runAsync(() => writer.text('کون سے')))!;
-    final png = ((drawn as pw.Image).image as pw.MemoryImage).bytes;
+    final png =
+        (((drawn as pw.Transform).child! as pw.Image).image as pw.MemoryImage)
+            .bytes;
     final image = img.decodePng(png)!;
     bool blank(int x) =>
         [for (var y = 0; y < image.height; y++) image.getPixel(x, y).a]
@@ -232,5 +234,46 @@ void main() {
     // Nothing touches either side: no stroke was cut off.
     expect(blank(0), isTrue);
     expect(blank(image.width - 1), isTrue);
+  });
+
+  testWidgets('cells of a row stand on one baseline, at the column edge', (
+    tester,
+  ) async {
+    final rtl = (await tester.runAsync(
+      () => PdfTextWriter.load(direction: TextDirection.rtl),
+    ))!;
+    final ltr = (await tester.runAsync(
+      () => PdfTextWriter.load(direction: TextDirection.ltr),
+    ))!;
+    final label = (await tester.runAsync(
+      () => rtl.cell('ادا کنندہ', size: 9),
+    ))!;
+    final name = (await tester.runAsync(() => rtl.cell('Ali Raza')))!;
+    final english = (await tester.runAsync(() => ltr.cell('Ali Raza')))!;
+    // A name in English is as large beside Nastaliq as the Urdu UI sets
+    // it: its baseline (the face's ascent) is further down.
+    expect(rtl.latinScale, PdfTextWriter.urduLatinScale);
+    expect(ltr.latinScale, 1);
+    expect(
+      name.baseline / english.baseline,
+      closeTo(PdfTextWriter.urduLatinScale, 1e-9),
+    );
+    // The drawn label's letters hang below the room drawn above them.
+    expect(label.baseline, greaterThan(name.baseline));
+    // Side by side, each is moved down to the lowest baseline.
+    final cells = PdfTextWriter.onBaseline([label, name]);
+    double top(pw.Widget cell) =>
+        ((cell as pw.Padding).padding as pw.EdgeInsets).top;
+    expect(top(cells[0]), 0);
+    expect(top(cells[1]), closeTo(label.baseline - name.baseline, 1e-9));
+    // The drawn label's letters, not the room drawn beside them, meet the
+    // start edge (on the right in Urdu): the image is moved out by it.
+    final moved = label.widget as pw.Transform;
+    expect(moved.transform.getTranslation().x, greaterThan(0));
+    final start = (await tester.runAsync(() => ltr.cell('اردو')))!;
+    expect(
+      (start.widget as pw.Transform).transform.getTranslation().x,
+      lessThan(0),
+    );
   });
 }

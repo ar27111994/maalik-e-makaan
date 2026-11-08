@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -277,7 +278,7 @@ class _ActionsState extends ConsumerState<_Actions> with CommandState {
 
   Future<void> _archive({required bool archived}) async {
     final l10n = AppLocalizations.of(context);
-    final name = widget.property.name;
+    final name = inSentence(widget.property.name, Directionality.of(context));
     if (archived) {
       final confirmed = await showMmConfirmDialog(
         context,
@@ -302,14 +303,14 @@ class _ActionsState extends ConsumerState<_Actions> with CommandState {
 
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context);
-    final name = widget.property.name;
+    final name = inSentence(widget.property.name, Directionality.of(context));
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.deletePropertyTitle(name),
       message: l10n.deletePropertyBody,
       confirmLabel: l10n.deleteAction,
       destructive: true,
-      typedConfirmation: name,
+      typedConfirmation: widget.property.name,
       typedConfirmationLabel: l10n.typeToConfirm(name),
     );
     if (!confirmed || !mounted) return;
@@ -346,7 +347,9 @@ class _ActionsState extends ConsumerState<_Actions> with CommandState {
           MmButton(
             label: l10n.deleteAction,
             icon: MmIcons.delete,
-            variant: MmButtonVariant.tertiary,
+            // It asks first (or opens the flow that does): the filled red
+            // button is at the point of no return.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: busy ? null : _delete,
           ),
         ],

@@ -376,6 +376,19 @@ PostgreSQL 16.15 and 17.11 such a trigger still deadlocked with an acceptance in
 interleaving (`replay_findings.sh` keeps that check). It would also run inside GoTrue's transaction, where any
 error it raised would fail the Auth deletion.
 
+## Phone and CNIC checks (`20261108200216`, `20261108200227`)
+
+Before pushing `20261108200216_identity_checks.sql`, run the count query in its header on the
+hosted project (SQL editor, read-only). Every row must say 0. If one does not, the migration would
+stop with SQLSTATE 23514 and change nothing: have the owners correct those values in the app, or
+set them to NULL with their agreement, and run the query again.
+
+The migration locks the five tables against writes (reads go on) from its own count until it
+commits, so a write cannot slip in between (`tool/db/upgrade/20261108200216.race.sql` checks
+this locally). If `20261108200227_identity_checks_validate.sql` fails anyway, the first file is
+already applied and its CHECKs are enforced on new writes but still `NOT VALID`: run the same
+count query, have the values fixed, and push again. Only the validate file is left to apply.
+
 ## After every migration
 
 1. Apply it to the hosted project and keep the migration file's version equal to the version the

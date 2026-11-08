@@ -256,7 +256,10 @@ the high-contrast modes.
 - **User data keeps its own script's face.** Latin-script data in the Urdu UI (a name typed in
   English, a CNIC) is set in Atkinson, not Nastaliq's serif Latin; Urdu letters in the English
   UI (a tenant's name typed in Urdu, the rupee word after an amount) fall back to Nastaliq,
-  never to a platform face or empty boxes.
+  never to a platform face or empty boxes. The spaces between Urdu words and a Latin name
+  are the Latin face's: Nastaliq's space is about half as wide and beside Latin letters reads
+  as none. Neither face draws the narrow no-break space `intl` puts before AM and PM; it is
+  shown as a no-break space.
 - Roles: `amount` (one large figure per screen), `headline` (screen titles), `title` (section
   and card titles), `titleSmall`, `body` (default), `bodySmall`, `label` (buttons, chips),
   `caption` (dates and metadata; 12 px is the floor).
@@ -288,16 +291,38 @@ receipt's edge is straight with a perforation, not rounded.
 ## Components
 
 - **Button:** one filled cobalt button per view for the main action; outlined for the
-  alternative; text buttons for low-emphasis actions. 48 dp tall; labels are verbs ("Record
-  payment"), never "OK".
+  alternative; text buttons for low-emphasis actions, and a text link whose label lines up
+  with the words above it (its padding reaching into the margin) for the next step at the
+  foot of a card. 48 dp tall; labels are verbs ("Record payment"), never "OK".
+- **Destructive actions:** red is filled only at the point of no return. The button that
+  starts removing or ending a record (in a sheet or on a screen: "Remove member", "Delete
+  document", "End tenancy", "Void payment", and the "Delete" at the foot of a record's screen)
+  is outlined and labelled in `overdue`, wherever it sits, so the same act always looks the same
+  and a sheet keeps at most one filled button; it opens a confirmation (or a sheet asking why)
+  whose confirm button, a verb that repeats the action, is the filled red one. Clearing a
+  message from the inbox (a notification) removes no record and asks nothing: it stays a plain
+  tertiary button. A flow built only for one destructive act (deleting the account) ends
+  on a filled red button too. When "Cancel" would be ambiguous next to the action ("Cancel the
+  repair"), the dialog's way out names itself ("Keep the repair").
 - **Field:** labelled above, helper or error text below in words (not colour alone), 56 dp tall,
   currency fields show "Rs" and format as you type. A currency field keeps its amount against
   its currency word: "Rs" first at the start edge in English, "روپے" last at the end edge in
   Urdu, where Urdu amounts sit in lists and receipts; other fields start at the start edge.
+  Words typed in the other language run in their own direction, decided by their first
+  letter (an Urdu reminder typed in the English UI runs right to left), under a label in the
+  UI's direction. A one-line field keeps them at the start edge of the form; a field of
+  several lines starts every line at the start of the text's own direction, as `dir="auto"`
+  does (the right edge for that Urdu reminder), so a paragraph never has a ragged start. A
+  passage shown back (a note in a detail card) does the same.
 - **Card:** a surface with 16 dp padding that groups one thing; cards never nest. A card or
   tile that only shows information is bounded by a `rule` hairline (or by tone alone); one you
   can tap is a control, so it is bounded by the `outline` colour, at 3:1 or better.
-- **Status chip:** container colour, an icon and a word ("Paid", "Overdue 12 days").
+- **Status chip:** container colour, an icon and a word ("Paid", "Overdue 12 days"). A chip
+  or a receipt's seal that holds an amount or a number keeps it whole wherever it fits; at
+  200% text, where an amount and its currency word together are wider than the chip ("1,25,000
+  روپے"), they may wrap between the figures and the word, and a receipt number after one of
+  its dashes. The figures themselves never break. This is the one exception to the money-text
+  rule below.
 - **Count badge:** ink with paper figures, never a status colour: a count says how many things
   wait; the label beside it says what they are.
 - **Money text:** tabular figures, rupee prefix, lakh/crore or Western grouping per setting;
@@ -331,6 +356,8 @@ receipt's edge is straight with a perforation, not rounded.
 - Don't add shadows to cards, coloured side stripes, cards inside cards, or big rounded icon
   tiles above headings.
 - Don't write tiny tracked all-caps labels above sections.
-- Don't show money in proportional figures, or let a rupee amount wrap mid-number.
+- Don't show money in proportional figures, or let a rupee amount wrap mid-number (a chip may
+  wrap an amount between its figures and its currency word, never inside the figures).
+- Don't fill a red button that only opens a confirmation: outline it.
 - Don't shrink or tighten Urdu to match English line heights.
 - Don't signal paid, overdue or errors by colour alone.

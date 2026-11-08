@@ -202,7 +202,7 @@ class SearchResultTile extends StatelessWidget {
         direction,
       ),
       subtitleMaxLines: 4,
-      trailing: route == null ? null : const Icon(MmIcons.chevronEnd),
+      chevron: route != null,
       onTap: route == null ? null : () => context.go(route),
     );
   }

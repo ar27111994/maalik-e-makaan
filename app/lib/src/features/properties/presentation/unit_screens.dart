@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -171,7 +173,7 @@ class _UnitActionsState extends ConsumerState<_UnitActions> with CommandState {
 
   Future<void> _archive({required bool archived}) async {
     final l10n = AppLocalizations.of(context);
-    final name = widget.unit.label;
+    final name = inSentence(widget.unit.label, Directionality.of(context));
     if (archived) {
       final confirmed = await showMmConfirmDialog(
         context,
@@ -194,7 +196,7 @@ class _UnitActionsState extends ConsumerState<_UnitActions> with CommandState {
 
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context);
-    final name = widget.unit.label;
+    final name = inSentence(widget.unit.label, Directionality.of(context));
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.deleteUnitTitle(name),
@@ -238,7 +240,9 @@ class _UnitActionsState extends ConsumerState<_UnitActions> with CommandState {
           MmButton(
             label: l10n.deleteAction,
             icon: MmIcons.delete,
-            variant: MmButtonVariant.tertiary,
+            // It asks first (or opens the flow that does): the filled red
+            // button is at the point of no return.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: busy ? null : _delete,
           ),
         ],
@@ -370,8 +374,12 @@ class _UnitFormState extends ConsumerState<_UnitForm> with CommandState {
       showMmSnackbar(
         context,
         message: _old == null
-            ? l10n.unitAdded(saved.label)
-            : l10n.unitSaved(saved.label),
+            ? l10n.unitAdded(
+                inSentence(saved.label, Directionality.of(context)),
+              )
+            : l10n.unitSaved(
+                inSentence(saved.label, Directionality.of(context)),
+              ),
         tone: MmBannerTone.success,
       ),
     );
@@ -408,6 +416,7 @@ class _UnitFormState extends ConsumerState<_UnitForm> with CommandState {
               helper: l10n.unitLabelHelper,
               errorText: labelError,
               maxLength: Unit.maxLabelLength,
+              inputFormatters: codePointLimit(Unit.maxLabelLength),
               textCapitalization: TextCapitalization.sentences,
               validator: (value) =>
                   Validators.name(l10n, value, maxLength: Unit.maxLabelLength),
@@ -446,6 +455,7 @@ class _UnitFormState extends ConsumerState<_UnitForm> with CommandState {
               controller: _floor,
               optional: true,
               maxLength: Unit.maxFloorLength,
+              inputFormatters: codePointLimit(Unit.maxFloorLength),
               validator: (value) => Validators.name(
                 l10n,
                 value,
@@ -500,6 +510,7 @@ class _UnitFormState extends ConsumerState<_UnitForm> with CommandState {
               minLines: 3,
               maxLines: 8,
               maxLength: Property.maxNotesLength,
+              inputFormatters: codePointLimit(Property.maxNotesLength),
               keyboardType: TextInputType.multiline,
               onChanged: _changed,
             ),

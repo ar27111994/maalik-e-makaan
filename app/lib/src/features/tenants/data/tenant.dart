@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:mm_core/mm_core.dart';
@@ -183,14 +184,11 @@ final class Tenant {
 
   /// The editable columns, as the database stores them.
   Map<String, Object?> toWrite() {
-    String? line(String? value, int max) =>
-        sanitizeOptional(value, maxLength: max);
-    final note = notes == null
-        ? ''
-        : sanitizeMultiline(notes!, maxLength: maxNotesLength);
+    String? line(String? value, int max) => optionalText(value, max);
+    final note = notes == null ? '' : linesWithin(notes!, maxNotesLength);
     return {
       'kind': kind.db,
-      'full_name': sanitizeSingleLine(fullName, maxLength: maxNameLength),
+      'full_name': singleLineWithin(fullName, maxNameLength),
       'guardian_name': line(guardianName, maxNameLength),
       'guardian_relation': guardianRelation?.db,
       'cnic': cnic?.digits,

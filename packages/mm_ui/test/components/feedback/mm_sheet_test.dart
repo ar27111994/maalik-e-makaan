@@ -418,4 +418,45 @@ void main() {
       );
     });
   });
+
+  group("showMmSheet with the landlord's data as its title", () {
+    testWidgets('sets a name typed in English in the Latin face, in its own '
+        'direction, in the Urdu UI', (tester) async {
+      final handle = tester.ensureSemantics();
+      final context = await _page(tester, variant: MmVariant.urdu);
+      unawaited(
+        showMmSheet<void>(
+          context,
+          title: 'kamran@example.com',
+          userTitle: true,
+          builder: (context) => const Text('کردار: مالک'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      const shown = '\u2066kamran@example.com\u2069';
+      expect(find.text(shown), findsOneWidget);
+      expect(styleOf(tester, shown).fontFamily, contains(MmFontFamily.latin));
+      // Read as written, as the sheet's heading.
+      expect(
+        tester.getSemantics(find.text(shown)),
+        isSemantics(label: 'kamran@example.com', isHeader: true),
+      );
+      handle.dispose();
+    });
+
+    testWidgets("a title from the app's localisations keeps Nastaliq", (
+      tester,
+    ) async {
+      final context = await _page(tester, variant: MmVariant.urdu);
+      unawaited(
+        showMmSheet<void>(
+          context,
+          title: 'PDF رسید',
+          builder: (context) => const SizedBox(height: 40),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('PDF رسید'), findsOneWidget);
+    });
+  });
 }

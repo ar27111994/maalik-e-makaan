@@ -32,6 +32,8 @@ void main() {
         MmButtonVariant.secondary: OutlinedButton,
         MmButtonVariant.tertiary: TextButton,
         MmButtonVariant.destructive: FilledButton,
+        MmButtonVariant.destructiveOutlined: OutlinedButton,
+        MmButtonVariant.link: TextButton,
       };
       for (final MapEntry(key: variant, value: type) in expected.entries) {
         await pumpThemed(
@@ -590,7 +592,10 @@ void main() {
             expect(ring.width, MmSize.focusRing);
             expect(ring.gap, MmSize.focusGap);
           // The others draw the ring on their edge.
-          case MmButtonVariant.secondary || MmButtonVariant.tertiary:
+          case MmButtonVariant.secondary ||
+              MmButtonVariant.destructiveOutlined ||
+              MmButtonVariant.tertiary ||
+              MmButtonVariant.link:
             final side = (focused as OutlinedBorder).side;
             expect(side.color, colors.focus, reason: kind.name);
             expect(side.width, MmSize.focusRing, reason: kind.name);
@@ -649,6 +654,195 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       await expectAccessible(tester);
+    });
+  });
+
+  group('MmButton link', () {
+    const label = "Open Ali Raza's tenancy";
+
+    /// A column of words with the link under them, as at the foot of a
+    /// card.
+    Widget column({VoidCallback? onPressed, bool expand = false}) => Padding(
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: MmSpace.s6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Rent is 12 days late'),
+          MmButton(
+            label: label,
+            variant: MmButtonVariant.link,
+            expand: expand,
+            onPressed: onPressed ?? tapped,
+          ),
+        ],
+      ),
+    );
+
+    for (final variant in [MmVariant.light, MmVariant.urdu]) {
+      testWidgets('lines its label up with the words above it, its padding '
+          'reaching out past the edge (${variant.name})', (tester) async {
+        await pumpThemed(tester, column(), variant: variant);
+        final words = tester.getRect(find.text('Rent is 12 days late'));
+        final shown = tester.getRect(find.text(label));
+        final button = tester.getRect(find.byType(TextButton));
+        if (variant == MmVariant.urdu) {
+          expect(shown.right, moreOrLessEquals(words.right));
+          expect(button.right, moreOrLessEquals(words.right + MmSpace.s4));
+        } else {
+          expect(shown.left, moreOrLessEquals(words.left));
+          expect(button.left, moreOrLessEquals(words.left - MmSpace.s4));
+        }
+        // It is a text button, at least a touch target tall.
+        expect(button.height, greaterThanOrEqualTo(MmSize.minTarget));
+        await expectAccessible(tester);
+      });
+    }
+
+    testWidgets('takes taps on the padding that reaches out, where the '
+        'padding around it reaches', (tester) async {
+      var taps = 0;
+      await pumpThemed(
+        tester,
+        Padding(
+          padding: const EdgeInsetsDirectional.only(start: MmSpace.s6),
+          child: MmButton(
+            label: label,
+            variant: MmButtonVariant.link,
+            onPressed: () => taps++,
+          ),
+        ),
+      );
+      final button = tester.getRect(find.byType(TextButton));
+      await tester.tapAt(button.centerLeft + const Offset(4, 0));
+      expect(taps, 1);
+      await tester.tapAt(tester.getCenter(find.text(label)));
+      expect(taps, 2);
+    });
+
+    testWidgets('is read as a button named by its label', (tester) async {
+      await pumpThemed(tester, column());
+      expect(
+        tester.getSemantics(find.byType(TextButton)),
+        matchesSemantics(
+          label: label,
+          isButton: true,
+          hasTapAction: true,
+          hasFocusAction: true,
+          isFocusable: true,
+          hasEnabledState: true,
+          isEnabled: true,
+        ),
+      );
+    });
+
+    testWidgets('reports its size without the padding that reaches out', (
+      tester,
+    ) async {
+      await pumpThemed(tester, column());
+      final link = tester.renderObject<RenderBox>(find.byType(MmButton));
+      final button = tester.renderObject<RenderBox>(find.byType(TextButton));
+      expect(link.size.width, button.size.width - MmSpace.s4);
+      expect(
+        link.getMaxIntrinsicWidth(double.infinity),
+        button.getMaxIntrinsicWidth(double.infinity) - MmSpace.s4,
+      );
+      expect(
+        link.getMinIntrinsicWidth(double.infinity),
+        button.getMinIntrinsicWidth(double.infinity) - MmSpace.s4,
+      );
+      expect(
+        link.getMinIntrinsicHeight(200),
+        button.getMinIntrinsicHeight(216),
+      );
+      expect(
+        link.getMaxIntrinsicHeight(200),
+        button.getMaxIntrinsicHeight(216),
+      );
+      expect(
+        link.getDryLayout(const BoxConstraints(maxWidth: 200)),
+        Size(
+          button.getDryLayout(const BoxConstraints(maxWidth: 216)).width -
+              MmSpace.s4,
+          button.getDryLayout(const BoxConstraints(maxWidth: 216)).height,
+        ),
+      );
+    });
+
+    testWidgets('wraps a long label within the column', (tester) async {
+      await pumpThemed(
+        tester,
+        const SizedBox(
+          width: 160,
+          child: MmButton(
+            label: 'See every tenant who owes rent this month',
+            variant: MmButtonVariant.link,
+            onPressed: tapped,
+          ),
+        ),
+        variant: MmVariant.largeText,
+      );
+      expect(tester.takeException(), isNull);
+      final shown = tester.getRect(
+        find.text('See every tenant who owes rent this month'),
+      );
+      expect(shown.width, lessThanOrEqualTo(160));
+      // Its lines start at the start edge, as the words above it do.
+      expect(
+        paragraphOf(tester, 'See every tenant').textAlign,
+        TextAlign.start,
+      );
+    });
+  });
+
+  group('MmButton destructiveOutlined', () {
+    const remove = 'Remove member';
+
+    testEveryVariant('is outlined and labelled in the overdue colour', (
+      tester,
+      variant,
+    ) async {
+      final colors = colorsOf(variant);
+      await pumpThemed(
+        tester,
+        const MmButton(
+          label: remove,
+          icon: MmIcons.delete,
+          variant: MmButtonVariant.destructiveOutlined,
+          onPressed: tapped,
+        ),
+        variant: variant,
+      );
+      expect(styleOf(tester, remove).color, colors.overdue);
+      expect(
+        IconTheme.of(tester.element(find.byIcon(MmIcons.delete))).color,
+        colors.overdue,
+      );
+      final shape =
+          materialOf(tester, find.byType(MmButton)).shape! as OutlinedBorder;
+      expect(shape.side.color, colors.overdue);
+      // No fill: it is not the point of no return.
+      expect(
+        materialOf(tester, find.byType(MmButton)).color,
+        Colors.transparent,
+      );
+      await expectAccessible(tester);
+    });
+
+    testWidgets('disabled, it is muted inside a rule border, as every '
+        'disabled outlined button is', (tester) async {
+      await pumpThemed(
+        tester,
+        const MmButton(
+          label: remove,
+          variant: MmButtonVariant.destructiveOutlined,
+          onPressed: null,
+        ),
+      );
+      final colors = colorsOf(MmVariant.light);
+      expect(styleOf(tester, remove).color, colors.inkMuted);
+      final shape =
+          materialOf(tester, find.byType(MmButton)).shape! as OutlinedBorder;
+      expect(shape.side.color, colors.rule);
     });
   });
 }

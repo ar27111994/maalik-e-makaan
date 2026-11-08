@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/foundation/mm_fit_words.dart';
 
 import '../../support/testing.dart';
 
@@ -209,6 +211,119 @@ void main() {
           reason: 'at $scale',
         );
       }
+    });
+  });
+
+  group('MmStatusBadge with an amount', () {
+    // The paragraph the badge shows: the label as it is, or the one with
+    // more places to break.
+    RenderParagraph shown(WidgetTester tester) =>
+        tester.renderObject<RenderMmFitWords>(find.byType(MmFitWords)).shown
+            as RenderParagraph;
+
+    const amount = '1,25,000\u00A0روپے';
+    const label = '$amount واجب';
+
+    Widget badge(double width) => Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: width),
+        child: const MmStatusBadge(status: MmStatus.overdue, label: label),
+      ),
+    );
+
+    testWidgets('at 200% Urdu, too narrow for an amount and its currency '
+        'word, wraps between them, never inside the figures or the word', (
+      tester,
+    ) async {
+      tester.view
+        ..physicalSize = const Size(320, 740)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        themedApp(
+          Scaffold(body: Center(child: badge(200))),
+          variant: MmVariant.largeText,
+          locale: const Locale('ur'),
+        ),
+      );
+      final paragraph = shown(tester);
+      // Kept together, "1,25,000 روپے" is wider than the badge, which cut
+      // the currency word in two.
+      expect(linesOf(paragraph, '1,25,000'), 1);
+      expect(linesOf(paragraph, 'روپے'), 1);
+      expect(paragraph.size.width, lessThanOrEqualTo(200 - 2 * MmSpace.s2));
+      // Read as the label says it.
+      expect(
+        tester.getSemantics(find.byType(MmStatusBadge)),
+        matchesSemantics(label: label),
+      );
+    });
+
+    testWidgets('at 200% Urdu with its icon, in a list row and at every '
+        'width an amount fits, no laid-out line breaks inside a word', (
+      tester,
+    ) async {
+      // The app's money badges: an icon, then an amount and words.
+      const labels = [
+        '115,000\u00A0روپے تاخیر شدہ، سب سے پرانا 33 دن',
+        'واجب 150,000\u00A0روپے',
+        'کریڈٹ 15,000\u00A0روپے',
+      ];
+      for (final label in labels) {
+        await pumpUrduAt200(
+          tester,
+          MmListTile(
+            title: 'علی رضا',
+            subtitle: 'دکان 3، صدر پلازہ',
+            trailing: MmStatusBadge(status: MmStatus.overdue, label: label),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        // Every laid-out paragraph, the version the badge does not show
+        // included: neither may hold a word cut in two.
+        expectWholeWords(tester);
+        // From the narrowest badge that fits "150,000" alone to a wide one.
+        for (var width = 160.0; width <= 288; width += 4) {
+          await pumpUrduAt200(
+            tester,
+            Align(
+              alignment: AlignmentDirectional.topStart,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: width),
+                child: MmStatusBadge(status: MmStatus.overdue, label: label),
+              ),
+            ),
+          );
+          final broken = brokenWords(tester);
+          expect(broken, isEmpty, reason: '$label at $width: $broken');
+        }
+      }
+    });
+
+    testWidgets('keeps the amount with its currency word wherever they fit '
+        'together', (tester) async {
+      await pumpThemed(tester, badge(300), variant: MmVariant.urdu);
+      final paragraph = shown(tester);
+      expect(paragraph.text.toPlainText(), contains(amount));
+      expect(linesOf(paragraph, '1,25,000'), 1);
+    });
+
+    testWidgets('reports the narrowest width it can wrap to, and its full '
+        'width', (tester) async {
+      await pumpThemed(tester, badge(300), variant: MmVariant.urdu);
+      final render = tester.renderObject<RenderBox>(find.byType(MmStatusBadge));
+      final narrowest = render.getMinIntrinsicWidth(double.infinity);
+      final natural = render.getMaxIntrinsicWidth(double.infinity);
+      expect(narrowest, lessThan(natural));
+      expect(
+        render.getMinIntrinsicHeight(narrowest),
+        greaterThan(render.getMinIntrinsicHeight(natural)),
+      );
+      expect(
+        render.getDryLayout(BoxConstraints(maxWidth: natural)).width,
+        moreOrLessEquals(natural),
+      );
     });
   });
 }

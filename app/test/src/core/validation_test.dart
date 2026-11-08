@@ -55,7 +55,7 @@ void main() {
     expect(Validators.repeatedPassword(l10n, 'a', 'a'), isNull);
   });
 
-  test('names count characters as people see them, once tidied', () {
+  test('names count code points as the database does, once tidied', () {
     expect(Validators.name(l10n, '  ', maxLength: 5), l10n.validationRequired);
     expect(Validators.name(l10n, '', maxLength: 5, required: false), isNull);
     expect(Validators.name(l10n, ' a   b ', maxLength: 3), isNull);
@@ -63,7 +63,14 @@ void main() {
       Validators.name(l10n, 'abcdef', maxLength: 5),
       l10n.validationTooLong(5),
     );
-    // Four Urdu letters, however they are encoded, are four characters.
     expect(Validators.name(l10n, 'مکان', maxLength: 4), isNull);
+    // زَید: three letters and a fatha, four code points, as char_length
+    // counts them; counting letters would pass what the database refuses.
+    const zaid = '\u0632\u064E\u06CC\u062F';
+    expect(Validators.name(l10n, zaid, maxLength: 4), isNull);
+    expect(
+      Validators.name(l10n, zaid, maxLength: 3),
+      l10n.validationTooLong(3),
+    );
   });
 }

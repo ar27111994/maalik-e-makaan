@@ -58,22 +58,12 @@ class InsightCard extends StatelessWidget {
           ),
           if (action != null) ...[
             const SizedBox(height: MmSpace.s2),
-            // A text button's label sits a padding in from its edge: drawn
-            // that far towards the start, the label lines up with the
-            // card's words, and the button's ink and focus ring still fit
-            // inside the card's padding.
-            Transform.translate(
-              offset: Offset(
-                Directionality.of(context) == TextDirection.rtl
-                    ? MmSpace.s4
-                    : -MmSpace.s4,
-                0,
-              ),
-              child: MmButton(
-                label: action.label,
-                variant: MmButtonVariant.tertiary,
-                onPressed: () => context.go(action.route),
-              ),
+            // Lined up with the card's words, its ink reaching into the
+            // card's padding.
+            MmButton(
+              label: action.label,
+              variant: MmButtonVariant.link,
+              onPressed: () => context.go(action.route),
             ),
           ],
         ],

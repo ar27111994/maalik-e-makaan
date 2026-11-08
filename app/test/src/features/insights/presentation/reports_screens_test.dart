@@ -47,11 +47,17 @@ void main() {
       await pumpScreen(tester, _reports, size: _tall);
       expect(find.text('Cash flow, last 12 months'), findsOneWidget);
       expect(find.byType(MmBarChart), findsNWidgets(2));
-      // What went out is drawn inside what came in.
+      // Two independent measures, side by side: money in first, solid,
+      // money out beside it, outlined (the chart's default fills).
       final flow = tester.widget<MmBarChart>(find.byType(MmBarChart).first);
+      expect(flow.arrangement, MmBarArrangement.sideBySide);
       expect(flow.series.map((s) => (s.label, s.fill)), [
-        ('Money in', MmBarFill.outlined),
-        ('Money out', MmBarFill.solid),
+        ('Money in', null),
+        ('Money out', null),
+      ]);
+      expect(MmBarChart.fillsOf(flow.series), [
+        MmBarFill.solid,
+        MmBarFill.outlined,
       ]);
       expect(find.text('Gross yield'), findsOneWidget);
       expect(find.text('3.4% a year'), findsOneWidget);

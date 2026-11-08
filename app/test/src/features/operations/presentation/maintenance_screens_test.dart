@@ -229,7 +229,9 @@ void main() {
       // Cancelling closes the job, so it asks first.
       await _tap(tester, 'Cancel the repair');
       expect(find.text('Close this repair as cancelled?'), findsOneWidget);
-      await tester.tap(find.text('Cancel'));
+      // Its way out names itself: "Cancel" beside cancelling is ambiguous.
+      expect(find.text('Cancel'), findsNothing);
+      await tester.tap(find.text('Keep the repair'));
       await tester.pumpAndSettle();
       expect(_lastMove(app).status, MaintenanceStatus.inProgress);
       await _tap(tester, 'Cancel the repair');

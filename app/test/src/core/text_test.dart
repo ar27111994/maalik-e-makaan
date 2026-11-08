@@ -78,16 +78,62 @@ void main() {
       expect(appText('Ali Raza', TextDirection.ltr), 'Ali Raza');
       expect(appText('کرایہ', TextDirection.rtl), 'کرایہ');
       expect(appText('2026', TextDirection.rtl), '2026');
+      // Only the landlord's words, each isolated: nothing of the sentence
+      // decides its direction, so it already runs with the paragraph
+      // (MmSemantics.isolated leaves it so) and needs no isolate of its own.
+      final place =
+          '${inSentence('Shop 3', TextDirection.rtl)}، '
+          '${inSentence('Saddar Plaza', TextDirection.rtl)}';
+      expect(appText(place, TextDirection.rtl), place);
+    });
+
+    testWidgets('a sentence of isolated names reads right to left in an Urdu '
+        'tile', (tester) async {
+      final place = appText(
+        '${inSentence('Shop 3', TextDirection.rtl)}، '
+        '${inSentence('Saddar Plaza', TextDirection.rtl)}',
+        TextDirection.rtl,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: MmVariant.urdu.theme,
+          locale: const Locale('ur'),
+          localizationsDelegates: appLocalizationsDelegates,
+          supportedLocales: const [Locale('en'), Locale('ur')],
+          home: Scaffold(body: MmListTile(title: place)),
+        ),
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.textContaining('Saddar', findRichText: true).first,
+      );
+      final text = paragraph.text.toPlainText();
+      double leftOf(String part) {
+        final start = text.indexOf(part);
+        return paragraph
+            .getBoxesForSelection(
+              TextSelection(
+                baseOffset: start,
+                extentOffset: start + part.length,
+              ),
+            )
+            .first
+            .left;
+      }
+
+      expect(leftOf('Shop 3'), greaterThan(leftOf('Saddar Plaza')));
     });
 
     testWidgets(
       'an Urdu subtitle starting with a Latin name reads right to left',
       (tester) async {
-        final sentence = appText(
-          '${inSentence('Ali Raza', TextDirection.rtl)}، '
-          '${inSentence('Ground floor', TextDirection.rtl)}: کرایہ واجب',
-          TextDirection.rtl,
-        );
+        final typed =
+            '${inSentence('Ali Raza', TextDirection.rtl)}، '
+            '${inSentence('Ground floor', TextDirection.rtl)}: کرایہ واجب';
+        final sentence = appText(typed, TextDirection.rtl);
+        // Its names isolated, its first letter outside them is Urdu
+        // (MmSemantics.firstStrongDirection skips isolates): appText has
+        // nothing to add, and the tile still reads it right to left.
+        expect(sentence, typed);
         await tester.pumpWidget(
           MaterialApp(
             theme: MmVariant.urdu.theme,
@@ -120,37 +166,6 @@ void main() {
         // Urdu words, at the left end.
         expect(leftOf('Ali Raza'), greaterThan(leftOf('Ground floor')));
         expect(leftOf('Ground floor'), greaterThan(leftOf('کرایہ')));
-        // Without it, the tile lays the whole sentence out left to right.
-        final bare = sentence.substring(1, sentence.length - 1);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: MmVariant.urdu.theme,
-            locale: const Locale('ur'),
-            localizationsDelegates: appLocalizationsDelegates,
-            supportedLocales: const [Locale('en'), Locale('ur')],
-            home: Scaffold(
-              body: MmListTile(title: 'x', subtitle: bare),
-            ),
-          ),
-        );
-        final wrong = tester.renderObject<RenderParagraph>(
-          find.textContaining('Ground floor', findRichText: true).first,
-        );
-        final wrongText = wrong.text.toPlainText();
-        double wrongLeftOf(String part) {
-          final start = wrongText.indexOf(part);
-          return wrong
-              .getBoxesForSelection(
-                TextSelection(
-                  baseOffset: start,
-                  extentOffset: start + part.length,
-                ),
-              )
-              .first
-              .left;
-        }
-
-        expect(wrongLeftOf('Ali Raza'), lessThan(wrongLeftOf('Ground floor')));
       },
     );
   });
@@ -234,5 +249,44 @@ void main() {
             .dy,
       ),
     );
+  });
+
+  group('code-point limits', () {
+    test('tidy the text, then keep it within the code points', () {
+      // زَید: four code points, three letters.
+      const zaid = '\u0632\u064E\u06CC\u062F';
+      expect(singleLineWithin('  $zaid   $zaid ', 9), '$zaid $zaid');
+      // Cut between whole characters, never after a space.
+      expect(singleLineWithin('$zaid $zaid', 6), zaid);
+      // No blank lines left at the end of a cut.
+      expect(linesWithin('a\n\n\n\nb  ', 3), 'a');
+      expect(linesWithin('a\nb', 3), 'a\nb');
+      expect(optionalText('   ', 5), isNull);
+      expect(optionalText(null, 5), isNull);
+      expect(optionalText(' $zaid ', 4), zaid);
+      expect(optionalLines(' \n ', 5), isNull);
+      expect(optionalLines(null, 5), isNull);
+      expect(optionalLines('x\ny', 3), 'x\ny');
+    });
+  });
+
+  test('Urdu names the part of the day, never two times alike', () {
+    expect(
+      [for (var hour = 0; hour < 24; hour++) dayPeriodOf(hour)],
+      [
+        ...List.filled(4, 'night'),
+        ...List.filled(8, 'morning'),
+        ...List.filled(4, 'noon'),
+        ...List.filled(2, 'afternoon'),
+        ...List.filled(2, 'evening'),
+        ...List.filled(4, 'night'),
+      ],
+    );
+    // On a 12-hour clock with its part of the day, every hour of the day
+    // reads differently: "10:42 صبح" is never 22:42.
+    final readings = {
+      for (var hour = 0; hour < 24; hour++) (hour % 12, dayPeriodOf(hour)),
+    };
+    expect(readings, hasLength(24));
   });
 }

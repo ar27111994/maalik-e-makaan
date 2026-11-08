@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/foundation/mm_fit_words.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
 
 import '../../support/testing.dart';
@@ -507,9 +508,9 @@ void main() {
         ),
         variant: MmVariant.urdu,
       );
-      expect(latinRunsIn(tester, value), ['12', 'III']);
-      expect(latinRunsIn(tester, '500\u00A0روپے'), ['500']);
-      expect(latinRunsIn(tester, 'رسید 12 ماہ'), ['12']);
+      expect(latinRunsIn(tester, value), [' 12', ' III']);
+      expect(latinRunsIn(tester, '500\u00A0روپے'), ['500\u00A0']);
+      expect(latinRunsIn(tester, 'رسید 12 ماہ'), [' 12 ']);
       expect(styleOf(tester, value).fontFeatures, [
         const FontFeature.tabularFigures(),
       ]);
@@ -584,6 +585,79 @@ void main() {
       expect(
         styleOf(tester, 'R-2026-0142').fontFamily,
         contains(MmFontFamily.latin),
+      );
+    });
+  });
+
+  group('MmReceipt seal', () {
+    testWidgets('at 200% Urdu on a 320 dp phone, no laid-out line breaks '
+        'inside its number', (tester) async {
+      await pumpUrduAt200(
+        tester,
+        const MmReceipt(
+          issuer: 'علی رضا',
+          numberLabel: 'رسید نمبر',
+          receiptNumber: 'MM-2026-00041',
+          amountLabel: 'وصول شدہ رقم',
+          amount: Money.fromRupees(45000),
+          rows: [],
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      // Every laid-out paragraph, the version the seal does not show
+      // included.
+      expectWholeWords(tester, within: find.byType(MmReceipt));
+    });
+
+    testWidgets('at 200% Urdu on a narrow receipt, wraps its number after a '
+        'dash rather than inside its figures', (tester) async {
+      const number = 'MM-2026-00038';
+      tester.view
+        ..physicalSize = const Size(320, 1400)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        themedApp(
+          const Scaffold(
+            body: SingleChildScrollView(
+              child: Center(
+                child: SizedBox(
+                  width: 200,
+                  child: MmReceipt(
+                    issuer: 'علی رضا',
+                    numberLabel: 'رسید نمبر',
+                    receiptNumber: number,
+                    amountLabel: 'وصول شدہ رقم',
+                    amount: Money.fromRupees(45000),
+                    rows: [],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          variant: MmVariant.largeText,
+          locale: const Locale('ur'),
+        ),
+      );
+      // The number the seal shows: kept whole, or wrapped after a dash.
+      RenderParagraph? paragraph;
+      void visit(RenderObject child) {
+        if (child is RenderParagraph) {
+          paragraph ??= child;
+        } else {
+          child.visitChildren(visit);
+        }
+      }
+
+      visit(
+        tester.renderObject<RenderMmFitWords>(find.byType(MmFitWords)).shown,
+      );
+      expect(linesOf(paragraph!, '2026'), 1);
+      expect(linesOf(paragraph!, '00038'), 1);
+      // Still read as one number.
+      expect(
+        tester.getSemantics(find.byType(MmFitWords)),
+        matchesSemantics(label: 'رسید نمبر $number'),
       );
     });
   });

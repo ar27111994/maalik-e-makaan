@@ -109,6 +109,43 @@ void main() {
     });
   });
 
+  group('delete', () {
+    test('calls delete_portfolio with the id and the typed name', () async {
+      supabase.respond = (_) async => jsonResponse(null);
+      await repository.delete(gulberg.id, confirmation: 'gulberg houses ');
+      final request = supabase.request;
+      expect(request.method, 'POST');
+      expect(request.url.path, '/rest/v1/rpc/delete_portfolio');
+      expect(bodyOf(request), {
+        'p_portfolio_id': gulberg.id,
+        'p_confirmation': 'gulberg houses ',
+      });
+    });
+
+    test('maps the refusals', () async {
+      final cases = {
+        postgrestError('42501', status: 403): isA<Forbidden>(),
+        postgrestError(
+          '22023',
+          message: 'confirmation_mismatch',
+        ): isA<RejectedFailure>().having(
+          (f) => f.reason,
+          'reason',
+          'confirmation_mismatch',
+        ),
+        // A deadlock the server's three tries did not get past.
+        postgrestError('40P01'): isA<TemporarilyUnavailable>(),
+      };
+      for (final MapEntry(key: response, value: matcher) in cases.entries) {
+        supabase.respond = (_) async => response;
+        await expectLater(
+          repository.delete(gulberg.id, confirmation: 'Gulberg Houses'),
+          throwsA(matcher),
+        );
+      }
+    });
+  });
+
   group('create', () {
     test('calls create_portfolio with the name and the attempt id', () async {
       supabase.respond = (_) async => jsonResponse({

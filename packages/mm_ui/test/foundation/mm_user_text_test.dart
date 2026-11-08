@@ -68,7 +68,7 @@ void main() {
         }
         return true;
       });
-      expect(latin, ['12', 'Gulberg III']);
+      expect(latin, [' 12', ' Gulberg III']);
     });
 
     testWidgets('leaves text in the UI direction unchanged', (tester) async {

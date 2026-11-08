@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 
 import '../support/testing.dart';
 
@@ -26,12 +27,48 @@ void main() {
       expect(MmSemantics.firstStrongDirection('Ünal'), TextDirection.ltr);
     });
 
+    test('skips text kept apart in an isolate, as the bidi algorithm '
+        'does', () {
+      // An Urdu sentence that starts with an English name the app isolated.
+      expect(
+        MmSemantics.firstStrongDirection('\u2066Ali Raza\u2069 کا کرایہ'),
+        TextDirection.rtl,
+      );
+      expect(
+        MmSemantics.firstStrongDirection('\u2067علی\u2069 paid rent'),
+        TextDirection.ltr,
+      );
+      // First-strong isolates and nested isolates are skipped too.
+      expect(
+        MmSemantics.firstStrongDirection(
+          '\u2068Ali \u2067علی\u2069 Raza\u2069 کرایہ',
+        ),
+        TextDirection.rtl,
+      );
+      // An isolate left open runs to the end of the text.
+      expect(MmSemantics.firstStrongDirection('\u2066Ali Raza'), isNull);
+      // A stray pop outside any isolate changes nothing.
+      expect(MmSemantics.firstStrongDirection('\u2069علی'), TextDirection.rtl);
+    });
+
     test('is null for text without letters', () {
       expect(MmSemantics.firstStrongDirection('35202-1234567-1'), isNull);
       expect(MmSemantics.firstStrongDirection('0412 3345 6789'), isNull);
       // Arabic-Indic digits are not letters either.
       expect(MmSemantics.firstStrongDirection('۰۳۰۰'), isNull);
       expect(MmSemantics.firstStrongDirection(''), isNull);
+    });
+  });
+
+  group('MmSemantics.drawableSpaces', () {
+    test('turns the narrow no-break space neither face draws into a '
+        'no-break space', () {
+      expect(MmSemantics.drawableSpaces('10:42\u202FAM'), '10:42\u00A0AM');
+      expect(
+        MmSemantics.drawableSpaces('9\u202FAM \u2013 5\u202FPM'),
+        '9\u00A0AM \u2013 5\u00A0PM',
+      );
+      expect(MmSemantics.drawableSpaces('Ali Raza'), 'Ali Raza');
     });
   });
 
@@ -57,6 +94,42 @@ void main() {
         MmSemantics.isolated('0412 3345 6789', TextDirection.rtl),
         '${_lri}0412 3345 6789$_pdi',
       );
+    });
+
+    test('keeps the paragraph direction for text whose only letters are '
+        'isolated', () {
+      // A sentence the UI built around the landlord's words, each isolated:
+      // nothing outside the isolates decides its direction, so it runs with
+      // the paragraph, in the UI's order.
+      const urduUi = '${_lri}Shop 3$_pdi، ${_lri}Saddar Plaza$_pdi';
+      expect(MmSemantics.isolated(urduUi, TextDirection.rtl), urduUi);
+      const englishUi = '$_rliدکان 3$_pdi, $_rliصدر پلازہ$_pdi';
+      expect(MmSemantics.isolated(englishUi, TextDirection.ltr), englishUi);
+      // Text with no letter at all still runs left to right.
+      expect(
+        MmSemantics.isolated('${_lri}0412$_pdi 3345', TextDirection.rtl),
+        '$_lri${_lri}0412$_pdi 3345$_pdi',
+      );
+    });
+
+    testWidgets('MmUserText sets a sentence of isolated parts in the UI '
+        'order', (tester) async {
+      const text = '${_lri}Shop 3$_pdi، ${_lri}Saddar Plaza$_pdi';
+      await pumpThemed(
+        tester,
+        const SizedBox(width: 300, child: MmUserText(text, style: TextStyle())),
+        variant: MmVariant.urdu,
+      );
+      final paragraph = paragraphOf(tester, 'Shop');
+      final plain = paragraph.text.toPlainText();
+      double xOf(String part) => paragraph
+          .getOffsetForCaret(
+            TextPosition(offset: plain.indexOf(part)),
+            Rect.zero,
+          )
+          .dx;
+      // Right to left: the first part sits to the right of the second.
+      expect(xOf('Shop'), greaterThan(xOf('Saddar')));
     });
 
     test('leftToRight always keeps an identifier left to right, on one '

@@ -12,6 +12,10 @@ import 'package:mm_ui_gallery/src/specimen.dart';
 const _collected = [285000, 310000, 298000, 320000, 270000, 45000];
 const _due = [320000, 320000, 320000, 320000, 320000, 320000];
 
+/// Money spent on the building, June to November 2026, in rupees: August
+/// paid for a new water pump.
+const _spent = [42000, 38000, 185000, 51000, 47000, 12000];
+
 /// Bar charts, proportion bars, sparklines and data tables.
 class ChartsPage extends StatelessWidget {
   const new({super.key});
@@ -96,6 +100,37 @@ class ChartsPage extends StatelessWidget {
                   ),
                 ),
               ),
+              StateLabel(
+                label: context.tr(
+                  'Two independent measures, side by side',
+                  'دو الگ پیمانے، ساتھ ساتھ',
+                ),
+                child: MmBarChart(
+                  title: context.tr('Money in and out', 'آمد و خرچ'),
+                  groupLabel: context.tr('Month', 'مہینہ'),
+                  arrangement: MmBarArrangement.sideBySide,
+                  series: [
+                    MmBarSeries(label: context.tr('Money in', 'آمد')),
+                    MmBarSeries(label: context.tr('Money out', 'خرچ')),
+                  ],
+                  groups: [
+                    for (final (index, month) in months.indexed)
+                      MmBarGroup(
+                        label: monthName(context, month),
+                        values: [
+                          Money.fromRupees(_collected[index]),
+                          Money.fromRupees(_spent[index]),
+                        ],
+                      ),
+                  ],
+                  semanticSummary: context.tr(
+                    'Money in and money out each month from June to November '
+                        '2026. August spent 185000 rupees on a new water pump.',
+                    'جون سے نومبر 2026 تک ہر ماہ آمد و خرچ۔ اگست میں نئے پانی '
+                        'کے پمپ پر 185000 روپے خرچ ہوئے۔',
+                  ),
+                ),
+              ),
             ],
           ),
           Specimen(
@@ -153,16 +188,22 @@ class ChartsPage extends StatelessWidget {
                       tone: MmSegmentTone.overdue,
                     ),
                     MmProportionSegment(
-                      label: context.tr('Over 60 days', '60 دن سے زیادہ'),
-                      value: const Money.fromRupees(45000),
+                      label: context.tr('61 to 90 days', '61 سے 90 دن'),
+                      value: const Money.fromRupees(30000),
+                      tone: MmSegmentTone.overdueOlder,
+                    ),
+                    MmProportionSegment(
+                      label: context.tr('Over 90 days', '90 دن سے زیادہ'),
+                      value: const Money.fromRupees(15000),
                       tone: MmSegmentTone.overdueSevere,
                     ),
                   ],
                   semanticSummary: context.tr(
                     'Overdue rent by age: 60000 rupees up to 30 days, 125000 '
-                        'from 31 to 60 days, 45000 over 60 days.',
+                        'from 31 to 60 days, 30000 from 61 to 90 days, 15000 '
+                        'over 90 days.',
                     'تاخیر کی مدت کے لحاظ سے: 30 دن تک 60000 روپے، 31 سے 60 '
-                        'دن 125000، 60 دن سے زیادہ 45000۔',
+                        'دن 125000، 61 سے 90 دن 30000، 90 دن سے زیادہ 15000۔',
                   ),
                 ),
               ),

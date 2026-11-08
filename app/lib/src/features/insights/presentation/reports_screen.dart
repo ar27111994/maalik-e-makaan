@@ -100,21 +100,12 @@ class _Cashflow extends ConsumerWidget {
                   spokenFigure(context, moneyIn),
                   spokenFigure(context, moneyOut),
                 ),
-                // What went out is drawn inside what came in: the part of
-                // each month's money that went back out (a solid bar
-                // above its outline is a month that spent more than it
-                // took). mm_ui has no side-by-side series for two
-                // independent measures (a gap reported to the design
-                // system).
+                // Two independent measures, side by side: money in at the
+                // start edge, solid, and money out beside it, outlined.
+                arrangement: MmBarArrangement.sideBySide,
                 series: [
-                  MmBarSeries(
-                    label: l10n.moneyInSeries,
-                    fill: MmBarFill.outlined,
-                  ),
-                  MmBarSeries(
-                    label: l10n.moneyOutSeries,
-                    fill: MmBarFill.solid,
-                  ),
+                  MmBarSeries(label: l10n.moneyInSeries),
+                  MmBarSeries(label: l10n.moneyOutSeries),
                 ],
                 groups: [
                   for (final month in months)
@@ -423,27 +414,30 @@ class _Statements extends StatelessWidget {
         ListCard(
           children: [
             MmListTile(
-              leading: const Icon(MmIcons.receipt),
+              leading: const Icon(MmIcons.receiptText),
               title: l10n.taxYearTitle,
               subtitle: l10n.taxYearSummary,
-              subtitleMaxLines: 4,
-              trailing: const Icon(MmIcons.chevronEnd),
+              subtitleMaxLines: null,
+              userData: false,
+              chevron: true,
               onTap: () => context.go(Routes.taxYear),
             ),
             MmListTile(
               leading: const Icon(MmIcons.document),
               title: l10n.ownerStatementTitle,
               subtitle: l10n.ownerStatementSummary,
-              subtitleMaxLines: 4,
-              trailing: const Icon(MmIcons.chevronEnd),
+              subtitleMaxLines: null,
+              userData: false,
+              chevron: true,
               onTap: () => showOwnerStatement(context, portfolio),
             ),
             MmListTile(
               leading: const Icon(MmIcons.spreadsheet),
               title: l10n.exportTitle,
               subtitle: l10n.exportSummary,
-              subtitleMaxLines: 4,
-              trailing: const Icon(MmIcons.chevronEnd),
+              subtitleMaxLines: null,
+              userData: false,
+              chevron: true,
               onTap: () => showExport(context, portfolio),
             ),
           ],

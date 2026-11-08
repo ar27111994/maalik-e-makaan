@@ -86,4 +86,5 @@ privately, as [`SECURITY.md`](SECURITY.md) explains.
 
 ## Licence
 
-[MIT](LICENSE) © 2026 Ahmed Rehan
+[MIT](LICENSE) © 2026 Ahmed Rehan. The third-party packages and fonts the project uses, and
+what their licences ask, are listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

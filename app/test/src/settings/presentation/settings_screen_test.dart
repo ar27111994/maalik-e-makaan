@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
@@ -201,6 +204,20 @@ void main() {
     });
   });
 
+  testWidgets('shows the open-source licences, the fonts and icons among '
+      'them', (tester) async {
+    addTearDown(MmLicenses.debugReset);
+    MmLicenses.register(bundle: _LicenceFiles());
+    await pumpScreen(tester, SettingsScreen.new, size: _tall);
+    await _tap(tester, find.widgetWithText(MmButton, 'Open-source licences'));
+    expect(find.byType(LicensePage), findsOneWidget);
+    expect(find.text('Maalik-e-Makaan'), findsWidgets);
+    for (final name in MmLicenses.files.keys) {
+      await tester.scrollUntilVisible(find.text(name), 200);
+      expect(find.text(name), findsOneWidget);
+    }
+  });
+
   testEveryVariant('fits at 320 dp and meets the guidelines', (
     tester,
     variant,
@@ -214,4 +231,15 @@ void main() {
     expect(tester.takeException(), isNull);
     await expectAccessible(tester);
   });
+}
+
+/// The licence files, as mm_ui's package on disk holds them.
+class _LicenceFiles extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) async {
+    final file = File(
+      '../packages/mm_ui/${key.replaceFirst('packages/mm_ui/', '')}',
+    );
+    return ByteData.sublistView(file.readAsBytesSync());
+  }
 }

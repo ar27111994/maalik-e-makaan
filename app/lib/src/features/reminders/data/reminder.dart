@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
-import 'package:mm_core/mm_core.dart';
 
 /// Which reminder a message is (REM-01), as `reminder_logs.template`
 /// stores it.
@@ -124,6 +123,6 @@ final class ReminderLog {
 /// characters, cut to [ReminderLog.maxPreviewLength] code points (the
 /// database's `char_length`), in whole characters.
 String reminderPreview(String message) => fitCodePoints(
-  sanitizeMultiline(message, maxLength: ReminderLog.maxPreviewLength),
+  linesWithin(message, ReminderLog.maxPreviewLength),
   ReminderLog.maxPreviewLength,
 ).trimRight();

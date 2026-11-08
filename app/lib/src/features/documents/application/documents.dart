@@ -219,6 +219,58 @@ final FutureProviderFamily<DocumentLinksAt, Document> documentLinksProvider =
       return (links: links, madeAt: madeAt);
     });
 
+/// Links to the photos of the documents [DocumentList] lists, by document
+/// id, to show them small in its rows.
+///
+/// A photo is signed once (in one request for all the rows that need a
+/// link), and its link is kept while the list is open: loading more rows
+/// signs only the new photos, so the rows already shown keep their links
+/// and their images. Every [linksRenewedAfter], the links that have grown
+/// that old are signed again, so a row first scrolled into view long after
+/// the list opened still finds a working link; a photo already drawn is
+/// not fetched again for that (its image is kept by document, not by link).
+/// Reopening the list signs them afresh. When they cannot be signed
+/// (offline), the rows keep their icons.
+final FutureProviderFamily<Map<String, Uri>, DocumentList>
+documentThumbnailsProvider = FutureProvider.autoDispose
+    .family<Map<String, Uri>, DocumentList>((ref, list) async {
+      final signed = ref.watch(_thumbnailLinksProvider(list));
+      final repository = ref.watch(documentRepositoryProvider);
+      final documents =
+          ref.watch(documentsProvider(list)).value?.value.items ?? const [];
+      final renew = Timer(linksRenewedAfter, ref.invalidateSelf);
+      ref.onDispose(renew.cancel);
+      final now = clock.now();
+      bool fresh(String id) => switch (signed[id]) {
+        final link? => now.difference(link.madeAt) < linksRenewedAfter,
+        null => false,
+      };
+      final due = [
+        for (final document in documents)
+          if (showsThumbnail(document) && !fresh(document.id)) document,
+      ];
+      if (due.isNotEmpty) {
+        // Counted from before the request, as [documentLinksProvider] does.
+        final madeAt = clock.now();
+        final links = await repository.thumbnailLinks(due);
+        for (final MapEntry(key: id, value: link) in links.entries) {
+          signed[id] = (link: link, madeAt: madeAt);
+        }
+      }
+      return {
+        for (final document in documents)
+          if (signed[document.id] case final link?) document.id: link.link,
+      };
+    });
+
+/// The photo links [documentThumbnailsProvider] has signed for a list, kept
+/// from one of its runs to the next while the list is open.
+final ProviderFamily<Map<String, ({Uri link, DateTime madeAt})>, DocumentList>
+_thumbnailLinksProvider = Provider.autoDispose
+    .family<Map<String, ({Uri link, DateTime madeAt})>, DocumentList>(
+      (ref, list) => {},
+    );
+
 /// Links to a file and when they were made.
 typedef DocumentLinksAt = ({DocumentLinks links, DateTime madeAt});
 

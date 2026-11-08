@@ -243,6 +243,54 @@ class _DisplayPageState extends State<DisplayPage> {
                 ),
               ),
               StateLabel(
+                label: context.tr(
+                  'Rows that open something, with a chevron',
+                  'کچھ کھولنے والی قطاریں، تیر کے ساتھ',
+                ),
+                child: MmCard(
+                  padding: EdgeInsets.zero,
+                  child: Column(
+                    children: [
+                      MmListTile(
+                        title: context.tr(
+                          'Police registration for Ayesha Khan, House 12',
+                          'عائشہ خان، مکان 12 کی پولیس رجسٹریشن',
+                        ),
+                        subtitle: context.tr('Due 14 Nov', '14 نومبر تک'),
+                        leading: const Icon(MmIcons.police),
+                        chevron: true,
+                        onTap: () => showPressed(
+                          context,
+                          context.tr('Police registration', 'پولیس رجسٹریشن'),
+                        ),
+                      ),
+                      const Divider(
+                        height: MmSize.hairline,
+                        thickness: MmSize.hairline,
+                      ),
+                      MmListTile(
+                        title: context.tr('PDF receipts', 'PDF رسیدیں'),
+                        subtitle: context.tr(
+                          'Every receipt of 2026, sent on WhatsApp to the '
+                              'tenant who paid it',
+                          '2026 کی ہر رسید، ادا کرنے والے کرایہ دار کو '
+                              'WhatsApp پر بھیجی گئی',
+                        ),
+                        subtitleMaxLines: null,
+                        // Words from the app, not the landlord's data.
+                        userData: false,
+                        leading: const Icon(MmIcons.receiptText),
+                        chevron: true,
+                        onTap: () => showPressed(
+                          context,
+                          context.tr('PDF receipts', 'PDF رسیدیں'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              StateLabel(
                 label: context.tr('A tappable card', 'دبانے والا کارڈ'),
                 child: MmCard(
                   semanticLabel: context.tr(
@@ -393,6 +441,28 @@ class _DisplayPageState extends State<DisplayPage> {
                       emphasized: true,
                     ),
                   ],
+                ),
+              ),
+              StateLabel(
+                label: context.tr(
+                  "A passage of the landlord's words",
+                  'مالک کے اپنے الفاظ کا اقتباس',
+                ),
+                child: MmCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      MmDetailRow.prose(
+                        label: context.tr('Notes', 'نوٹ'),
+                        value: context.tr(
+                          'Paid in cash before the deadline. Asked for the '
+                              'receipt on WhatsApp.',
+                          'مقررہ تاریخ سے پہلے نقد ادا کیا۔ رسید WhatsApp پر '
+                              'مانگی۔',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

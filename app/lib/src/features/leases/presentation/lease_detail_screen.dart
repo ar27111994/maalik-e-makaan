@@ -5,12 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
-import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
+import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
 import 'package:maalik_e_makaan/src/features/leases/application/leases.dart';
@@ -139,14 +140,17 @@ class _Summary extends StatelessWidget {
               leading: const Icon(MmIcons.person),
               title: lease.tenantName,
               subtitle: l10n.tenantLabel,
-              trailing: const Icon(MmIcons.chevronEnd),
+              chevron: true,
               onTap: () => context.go(Routes.tenant(lease.tenantId)),
             ),
             MmListTile(
               leading: const Icon(MmIcons.unit),
               title: lease.unitLabel,
-              subtitle: l10n.listDetail(l10n.unitLabel, lease.propertyName),
-              trailing: const Icon(MmIcons.chevronEnd),
+              subtitle: l10n.listDetail(
+                l10n.unitLabel,
+                inSentence(lease.propertyName, Directionality.of(context)),
+              ),
+              chevron: true,
               onTap: () =>
                   context.go(Routes.unit(lease.propertyId, lease.unitId)),
             ),
@@ -444,7 +448,7 @@ class _Occupants extends StatelessWidget {
                     if (occupant.phone case final phone?)
                       phoneLabel(phone, Directionality.of(context)),
                   ]),
-                  trailing: editable ? const Icon(MmIcons.chevronEnd) : null,
+                  chevron: editable,
                   onTap: editable ? () => _open(context, occupant) : null,
                 ),
             ],
@@ -587,6 +591,7 @@ class _ChangeRentSheetState extends ConsumerState<ChangeRentSheet>
           controller: _note,
           optional: true,
           maxLength: RentChange.maxNoteLength,
+          inputFormatters: codePointLimit(RentChange.maxNoteLength),
         ),
         const SizedBox(height: MmSpace.s4),
         MmButton(label: l10n.changeRentAction, busy: busy, onPressed: _save),
@@ -644,7 +649,12 @@ class _OccupantSheetState extends ConsumerState<OccupantSheet>
     unawaited(
       showMmSnackbar(
         context,
-        message: l10n.occupantSaved(sanitizeSingleLine(occupant.fullName)),
+        message: l10n.occupantSaved(
+          inSentence(
+            sanitizeSingleLine(occupant.fullName),
+            Directionality.of(context),
+          ),
+        ),
         tone: MmBannerTone.success,
       ),
     );
@@ -655,7 +665,9 @@ class _OccupantSheetState extends ConsumerState<OccupantSheet>
     final l10n = AppLocalizations.of(context);
     final confirmed = await showMmConfirmDialog(
       context,
-      title: l10n.removeOccupantTitle(occupant.fullName),
+      title: l10n.removeOccupantTitle(
+        inSentence(occupant.fullName, Directionality.of(context)),
+      ),
       message: l10n.removeOccupantBody,
       confirmLabel: l10n.removeAction,
       destructive: true,
@@ -682,6 +694,7 @@ class _OccupantSheetState extends ConsumerState<OccupantSheet>
             controller: _name,
             required: true,
             maxLength: Occupant.maxNameLength,
+            inputFormatters: codePointLimit(Occupant.maxNameLength),
             validator: (value) =>
                 Validators.name(l10n, value, maxLength: Occupant.maxNameLength),
           ),
@@ -691,6 +704,7 @@ class _OccupantSheetState extends ConsumerState<OccupantSheet>
             controller: _relation,
             optional: true,
             maxLength: Occupant.maxRelationLength,
+            inputFormatters: codePointLimit(Occupant.maxRelationLength),
           ),
           const SizedBox(height: MmSpace.s4),
           MmCnicField(
@@ -719,7 +733,8 @@ class _OccupantSheetState extends ConsumerState<OccupantSheet>
             MmButton(
               label: l10n.removeAction,
               icon: MmIcons.delete,
-              variant: MmButtonVariant.destructive,
+              // It asks first: the dialog's button is the filled one.
+              variant: MmButtonVariant.destructiveOutlined,
               onPressed: busy ? null : () => _remove(occupant),
             ),
           ],
@@ -797,6 +812,8 @@ class _EndLeaseSheetState extends ConsumerState<EndLeaseSheet>
           },
         ),
         const SizedBox(height: MmSpace.s4),
+        // The sheet is built only for ending the tenancy, and this is its
+        // point of no return: the one filled red button (DESIGN.md).
         MmButton(
           label: l10n.endTenancyAction,
           variant: MmButtonVariant.destructive,
@@ -858,7 +875,9 @@ class _LeaseActionsState extends ConsumerState<_LeaseActions>
           MmButton(
             label: l10n.endTenancyAction,
             icon: MmIcons.signOut,
-            variant: MmButtonVariant.secondary,
+            // It starts ending the tenancy: the sheet it opens ends on the
+            // filled red button.
+            variant: MmButtonVariant.destructiveOutlined,
             onPressed: busy
                 ? null
                 : () => showMmSheet<void>(
@@ -872,7 +891,9 @@ class _LeaseActionsState extends ConsumerState<_LeaseActions>
           MmButton(
             label: l10n.deleteAction,
             icon: MmIcons.delete,
-            variant: MmButtonVariant.tertiary,
+            // It asks first (or opens the flow that does): the filled red
+            // button is at the point of no return.
+            variant: MmButtonVariant.destructiveOutlined,
             busy: busy,
             onPressed: _delete,
           ),

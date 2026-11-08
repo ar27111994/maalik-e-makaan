@@ -26,10 +26,12 @@ void main() {
     size: const Size(360, 1000),
     sizes: {MmVariant.largeText: const Size(360, 2400)},
     act: (tester) async {
-      final end = find.widgetWithText(MmButton, 'End tenancy');
-      final button = end.evaluate().isEmpty
-          ? find.byType(OutlinedButton).last
-          : end;
+      // "End tenancy" in either language: the button with its icon (the
+      // "Delete" under it is outlined red too).
+      final button = find.ancestor(
+        of: find.byIcon(MmIcons.signOut),
+        matching: find.byType(MmButton),
+      );
       await tester.ensureVisible(button);
       await tester.tap(button);
       await tester.pumpAndSettle();

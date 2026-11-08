@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -110,6 +115,10 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
   );
   AutovalidateMode _validation = AutovalidateMode.disabled;
 
+  /// Whether the last command was deleting the portfolio, whose refusal is
+  /// shown beside its button rather than above the form.
+  bool _deleting = false;
+
   @override
   void dispose() {
     for (final controller in [
@@ -152,6 +161,7 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
       bankAccountTitle: _accountTitle.text,
       bankIban: iban.isEmpty ? null : Iban.tryParse(iban),
     );
+    setState(() => _deleting = false);
     final done = await runCommand(
       () => ref
           .read(portfolioDetailsProvider(widget.details.id).notifier)
@@ -163,6 +173,44 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
       message: l10n.portfolioDetailsSaved,
       tone: MmBannerTone.success,
     );
+  }
+
+  /// Deletes the portfolio once its owner has typed its name, then goes
+  /// home, to the portfolio that is current now.
+  Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context);
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
+    final stored = widget.details.name;
+    final name = inSentence(stored, Directionality.of(context));
+    final confirmed = await showMmConfirmDialog(
+      context,
+      title: l10n.deletePortfolioTitle(name),
+      message: l10n.deletePortfolioBody,
+      confirmLabel: l10n.deletePortfolioAction,
+      destructive: true,
+      typedConfirmation: stored,
+      typedConfirmationLabel: l10n.typeToConfirm(name),
+    );
+    if (!confirmed || !mounted) return;
+    // Once the portfolio is gone, the screen shows the one current then,
+    // and this form closes: what follows uses the navigator's context.
+    final navigator = Navigator.of(context).context;
+    setState(() => _deleting = true);
+    final done = await runCommand(
+      () => ref
+          .read(portfoliosProvider(userId).notifier)
+          .delete(widget.details.id, confirmation: stored),
+    );
+    if (!done || !navigator.mounted) return;
+    unawaited(
+      showMmSnackbar(
+        navigator,
+        message: l10n.portfolioDeleted(name),
+        tone: MmBannerTone.success,
+      ),
+    );
+    GoRouter.of(navigator).go(Routes.home);
   }
 
   @override
@@ -186,13 +234,16 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             widget.notice,
-            if (failure != null) FailureBanner(failure: failure),
+            if (failure != null && !_deleting) FailureBanner(failure: failure),
             MmTextField(
               label: l10n.portfolioNameLabel,
               controller: _name,
               required: true,
               enabled: editable,
               maxLength: PortfolioMembership.maxNameLength,
+              inputFormatters: codePointLimit(
+                PortfolioMembership.maxNameLength,
+              ),
               textCapitalization: TextCapitalization.words,
               validator: (value) => Validators.name(
                 l10n,
@@ -259,6 +310,9 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
                   optional: true,
                   enabled: editable,
                   maxLength: PortfolioDetails.maxNameLength,
+                  inputFormatters: codePointLimit(
+                    PortfolioDetails.maxNameLength,
+                  ),
                   textCapitalization: TextCapitalization.words,
                   validator: (value) => Validators.name(
                     l10n,
@@ -303,6 +357,9 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
                   optional: true,
                   enabled: editable,
                   maxLength: PortfolioDetails.maxNameLength,
+                  inputFormatters: codePointLimit(
+                    PortfolioDetails.maxNameLength,
+                  ),
                   textCapitalization: TextCapitalization.words,
                   validator: (value) => Validators.name(
                     l10n,
@@ -330,6 +387,25 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
                 ),
               ],
             ),
+            if (editable) ...[
+              const SizedBox(height: MmSpace.s8),
+              MmSectionHeader(title: l10n.deletePortfolioSection),
+              const SizedBox(height: MmSpace.s2),
+              Text(
+                l10n.deletePortfolioHelp,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: MmSpace.s4),
+              if (failure != null && _deleting) FailureBanner(failure: failure),
+              MmButton(
+                label: l10n.deletePortfolioAction,
+                icon: MmIcons.delete,
+                // It asks for the name first: the dialog's button is the
+                // filled one.
+                variant: MmButtonVariant.destructiveOutlined,
+                onPressed: busy ? null : _delete,
+              ),
+            ],
           ],
         ),
       ),

@@ -298,7 +298,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => TenantDetailScreen(
                       tenantId: state.pathParameters['tenantId']!,
                       extras: (tenant) => _sections([
-                        TenancyList(tenantId: tenant.id),
+                        TenancyList(
+                          tenantId: tenant.id,
+                          canStart: !tenant.archived,
+                        ),
                         PaymentScoreSection(tenantId: tenant.id),
                         DocumentsSection(
                           owner: (entity: DocumentEntity.tenant, id: tenant.id),

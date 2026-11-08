@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
@@ -643,6 +644,273 @@ void main() {
         contains('A tappable MmListTile holds a control.'),
       );
     });
+  });
+
+  group('MmListTile chevron', () {
+    for (final variant in [
+      MmVariant.light,
+      MmVariant.largeText,
+      MmVariant.urdu,
+    ]) {
+      testWidgets('keeps a plain chevron beside the title, at the end edge '
+          '(${variant.name})', (tester) async {
+        await pumpThemed(
+          tester,
+          const MmListTile(
+            leading: Icon(MmIcons.property),
+            title: _long,
+            subtitle: _unit,
+            chevron: true,
+            onTap: _noop,
+          ),
+          variant: variant,
+          size: const Size(320, 740),
+        );
+        final tile = tester.getRect(find.byType(MmListTile));
+        final title = tester.getRect(find.textContaining(_long));
+        final chevron = tester.getRect(find.byIcon(MmIcons.chevronEnd));
+        // Beside the text, never on a line of its own under it.
+        expect(chevron.top, lessThan(title.bottom), reason: variant.name);
+        final rtl = variant == MmVariant.urdu;
+        if (rtl) {
+          expect(chevron.right, lessThanOrEqualTo(title.left));
+          expect(chevron.left, tile.left + MmSpace.s4);
+        } else {
+          expect(chevron.left, greaterThanOrEqualTo(title.right));
+          expect(chevron.right, tile.right - MmSpace.s4);
+        }
+        // Muted, grown with the text like the leading icon.
+        final icon = tester.widget<Icon>(find.byIcon(MmIcons.chevronEnd));
+        final theme = IconTheme.of(
+          tester.element(find.byIcon(MmIcons.chevronEnd)),
+        );
+        expect(icon.icon!.matchTextDirection, isTrue);
+        expect(theme.color, colorsOf(variant).inkMuted);
+        expect(
+          chevron.width,
+          MmSize.iconLg * (variant.textScale > 1.5 ? 1.5 : variant.textScale),
+        );
+      });
+    }
+
+    testWidgets('lines the chevron up with the first line of a tall row, and '
+        'centres it on a short one', (tester) async {
+      await pumpThemed(
+        tester,
+        const MmListTile(
+          title: '$_long, near Liberty Market, Punjab',
+          subtitle: _unit,
+          trailing: _amount,
+          chevron: true,
+          onTap: _noop,
+        ),
+        variant: MmVariant.largeText,
+        size: const Size(320, 740),
+      );
+      final style = MmVariant.largeText.theme.textTheme.bodyLarge!;
+      final firstLine = style.fontSize! * 2 * style.height!;
+      var title = tester.getRect(find.textContaining(_long));
+      var chevron = tester.getRect(find.byIcon(MmIcons.chevronEnd));
+      expect(
+        chevron.center.dy,
+        moreOrLessEquals(title.top + firstLine / 2, epsilon: 0.01),
+      );
+      // The amount still moves under the text; the chevron does not.
+      expect(
+        tester.getRect(find.byType(MmAmount)).top,
+        greaterThan(title.bottom),
+      );
+
+      await pumpThemed(
+        tester,
+        const MmListTile(
+          title: _name,
+          subtitle: _unit,
+          chevron: true,
+          onTap: _noop,
+        ),
+      );
+      title = tester.getRect(find.text(_name));
+      final subtitle = tester.getRect(find.text(_unit));
+      chevron = tester.getRect(find.byIcon(MmIcons.chevronEnd));
+      expect(
+        chevron.center.dy,
+        moreOrLessEquals((title.top + subtitle.bottom) / 2, epsilon: 0.01),
+      );
+    });
+
+    testWidgets('the chevron is not read: the row is the button', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmListTile(title: _name, chevron: true, onTap: _noop),
+      );
+      expect(
+        tester.getSemantics(find.byType(MmListTile)),
+        matchesSemantics(
+          label: _name,
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasFocusAction: true,
+        ),
+      );
+    });
+
+    testWidgets('reports intrinsic sizes and a baseline with its chevron', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const Center(
+          child: IntrinsicWidth(
+            child: MmListTile(title: _name, chevron: true, onTap: _noop),
+          ),
+        ),
+      );
+      final title = tester.getRect(find.text(_name));
+      final chevron = tester.getRect(find.byIcon(MmIcons.chevronEnd));
+      expect(chevron.left, greaterThanOrEqualTo(title.right));
+      final tile = tester.renderObject<RenderBox>(find.byType(MmListTile));
+      expect(
+        tile.getMinIntrinsicWidth(double.infinity),
+        lessThanOrEqualTo(tile.getMaxIntrinsicWidth(double.infinity)),
+      );
+      expect(
+        tile.getDryBaseline(
+          const BoxConstraints(maxWidth: 300),
+          TextBaseline.alphabetic,
+        ),
+        isNotNull,
+      );
+    });
+
+    test('a chevron promises the row opens something', () {
+      expect(
+        () => MmListTile(title: _name, chevron: true),
+        throwsAssertionError,
+      );
+    });
+  });
+
+  group('MmListTile trailing beside a subtitle', () {
+    const email = 'kamran.ahmed.raza@example.com';
+    const badge = MmStatusBadge(status: MmStatus.paid, label: 'Joined');
+
+    testWidgets('moves the trailing widget under the text when a word of '
+        'the subtitle cannot sit beside it', (tester) async {
+      await pumpThemed(
+        tester,
+        const MmListTile(title: 'Kamran', subtitle: email, trailing: badge),
+        size: const Size(320, 740),
+      );
+      final subtitle = paragraphOf(tester, email);
+      // The address is not cut inside a word: it has its one line.
+      expect(subtitle.size.height, subtitle.preferredLineHeight);
+      expect(
+        tester.getRect(find.byType(MmStatusBadge)).top,
+        greaterThanOrEqualTo(tester.getRect(find.text(email)).bottom),
+      );
+    });
+
+    testWidgets('keeps it beside a one-line subtitle, which ends with an '
+        'ellipsis instead', (tester) async {
+      Widget tile(int lines) => MmListTile(
+        title: 'Kamran',
+        subtitle: email,
+        trailing: badge,
+        subtitleMaxLines: lines,
+      );
+      await pumpThemed(tester, tile(1), size: const Size(320, 740));
+      expect(
+        tester.getRect(find.byType(MmStatusBadge)).top,
+        lessThan(tester.getRect(find.text('Kamran')).bottom),
+      );
+      expect(paragraphOf(tester, email).didExceedMaxLines, isTrue);
+      // Allowed more lines, the address keeps its word whole again.
+      await pumpThemed(tester, tile(2), size: const Size(320, 740));
+      expect(
+        tester.getRect(find.byType(MmStatusBadge)).top,
+        greaterThanOrEqualTo(tester.getRect(find.text(email)).bottom),
+      );
+    });
+  });
+
+  group('MmListTile text', () {
+    testWidgets('keeps the subtitle whole when its lines are not limited', (
+      tester,
+    ) async {
+      const subtitle =
+          'WASA Lahore, consumer 0412 3345 6789, paid by the tenant with the '
+          'rent every month since March, and checked against the meter';
+      await pumpThemed(
+        tester,
+        const MmListTile(
+          title: _name,
+          subtitle: subtitle,
+          subtitleMaxLines: null,
+        ),
+      );
+      final paragraph = paragraphOf(tester, subtitle);
+      expect(paragraph.maxLines, isNull);
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(
+        tester.getSize(find.text(subtitle)).height,
+        greaterThan(2 * paragraph.preferredLineHeight),
+      );
+    });
+
+    testWidgets("sets words from the app's localisations as they are", (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        const MmListTile(
+          title: 'PDF رسیدیں',
+          subtitle: 'WhatsApp پر بھیجی گئیں',
+          userData: false,
+        ),
+        variant: MmVariant.urdu,
+      );
+      // Not isolated left to right by their first letter.
+      expect(find.text('PDF رسیدیں'), findsOneWidget);
+      expect(find.text('WhatsApp پر بھیجی گئیں'), findsOneWidget);
+      // As user data they would be.
+      await pumpThemed(
+        tester,
+        const MmListTile(title: 'PDF رسیدیں'),
+        variant: MmVariant.urdu,
+      );
+      expect(find.text('\u2066PDF رسیدیں\u2069'), findsOneWidget);
+    });
+
+    for (final (variant, gap) in [
+      (MmVariant.light, 0.0),
+      (MmVariant.urdu, MmSpace.s1),
+    ]) {
+      testWidgets('keeps ${gap == 0 ? 'no' : 'a ${gap.toInt()} dp'} gap '
+          'between the title and the subtitle (${variant.name})', (
+        tester,
+      ) async {
+        await pumpThemed(
+          tester,
+          MmListTile(
+            title: variant == MmVariant.urdu ? 'گلبرگ ہائٹس' : 'Gulberg',
+            subtitle: variant == MmVariant.urdu ? '6 یونٹ، 2 خالی' : '6 units',
+          ),
+          variant: variant,
+        );
+        final paragraphs = tester
+            .renderObjectList<RenderParagraph>(find.byType(RichText))
+            .toList();
+        final title = paragraphs.first;
+        final subtitle = paragraphs.last;
+        final titleBottom =
+            title.localToGlobal(Offset.zero).dy + title.size.height;
+        expect(subtitle.localToGlobal(Offset.zero).dy - titleBottom, gap);
+      });
+    }
   });
 }
 

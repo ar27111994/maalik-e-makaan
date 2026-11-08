@@ -466,5 +466,13 @@ void main() {
       );
       expect(MmIcons.all.length, greaterThan(50));
     });
+
+    test('has a receipt without a currency sign', () {
+      // Lucide's receipt glyph carries a dollar sign; this one has lines
+      // of text, for a rupee app.
+      expect(MmIcons.all['receiptText'], MmIcons.receiptText);
+      expect(MmIcons.receiptText.codePoint, isNot(MmIcons.receipt.codePoint));
+      expect(MmIcons.receiptText.matchTextDirection, isFalse);
+    });
   });
 }

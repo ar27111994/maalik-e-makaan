@@ -16,7 +16,9 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// comes from `MmLocalizations`) and a filled confirm button labelled
 /// [confirmLabel], a verb that repeats the action ("Remove tenant", never
 /// "OK"). Cancel, a tap outside the dialog, the back button and Escape all
-/// complete with false.
+/// complete with false. When "Cancel" would be ambiguous because the action
+/// itself cancels something ("Cancel the repair"), give [cancelLabel] the
+/// words for keeping things as they are ("Keep the repair").
 ///
 /// A [destructive] action (removing a tenant, deleting a payment) fills the
 /// confirm button in the overdue colour and puts the keyboard focus on
@@ -54,6 +56,7 @@ Future<bool> showMmConfirmDialog(
   bool destructive = false,
   String? typedConfirmation,
   String? typedConfirmationLabel,
+  String? cancelLabel,
 }) async {
   assert(
     typedConfirmation == null || typedConfirmationLabel != null,
@@ -81,6 +84,7 @@ Future<bool> showMmConfirmDialog(
       destructive: destructive,
       typedConfirmation: typedConfirmation,
       typedConfirmationLabel: typedConfirmationLabel,
+      cancelLabel: cancelLabel,
     ),
   );
   return confirmed ?? false;
@@ -99,6 +103,7 @@ class MmConfirmDialog extends StatefulWidget {
     required this.destructive,
     required this.typedConfirmation,
     required this.typedConfirmationLabel,
+    this.cancelLabel,
     super.key,
   });
 
@@ -119,6 +124,9 @@ class MmConfirmDialog extends StatefulWidget {
 
   /// The label of the field [typedConfirmation] is typed into.
   final String? typedConfirmationLabel;
+
+  /// The cancel button's label in place of "Cancel", or null for it.
+  final String? cancelLabel;
 
   @override
   State<MmConfirmDialog> createState() => _MmConfirmDialogState();
@@ -221,7 +229,11 @@ class _MmConfirmDialogState extends State<MmConfirmDialog> {
         TextButton(
           onPressed: _cancel,
           autofocus: widget.destructive,
-          child: Text(strings.cancel),
+          // Latin words in an Urdu label keep the Latin face.
+          child: MmScriptText(
+            widget.cancelLabel ?? strings.cancel,
+            style: const TextStyle(),
+          ),
         ),
         MmFilledAction(
           label: widget.confirmLabel,

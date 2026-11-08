@@ -29,21 +29,6 @@ enum ExpenseCategory with DbEnum {
   static ExpenseCategory parse(String name) => parseDbEnum(values, name);
 }
 
-/// [value] tidied as one line and kept within [max] code points, the way
-/// the database counts a column's length; null when nothing is left.
-String? optionalText(String? value, int max) {
-  final tidy = sanitizeOptional(value);
-  return tidy == null ? null : fitCodePoints(tidy, max);
-}
-
-/// [value] tidied as lines of text and kept within [max] code points; null
-/// when nothing is left.
-String? optionalLines(String? value, int max) {
-  if (value == null) return null;
-  final tidy = sanitizeMultiline(value);
-  return tidy.isEmpty ? null : fitCodePoints(tidy, max);
-}
-
 /// Money spent on the portfolio, a property or a unit (EXP-01): repairs,
 /// property tax, salaries… It may be linked to a maintenance job, and its
 /// receipt is a document attached to it.

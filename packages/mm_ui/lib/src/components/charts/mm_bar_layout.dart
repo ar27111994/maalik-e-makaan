@@ -65,6 +65,13 @@ typedef MmBarLabel = ({int index, String text, Rect rect});
 /// a year of months on a phone would leave each bar too narrow to show an
 /// outline.
 ///
+/// Two independent measures (money in and money out), where neither is a
+/// part of the other, go side by side instead (`sideBySide`): two bars of
+/// one width with a [MmChartMetrics.gap] between them, centred on the band,
+/// the first series at the start edge (on the right in Urdu). Each stays
+/// at least [minSideBySideBar] wide while the band has room, so an
+/// outlined bar keeps its outline and some of its pale fill.
+///
 /// Internal to the charts family.
 final class MmBarLayout {
   const new _({
@@ -99,11 +106,14 @@ final class MmBarLayout {
     required TextDirection textDirection,
     int? outer,
     bool wrapLabels = false,
+    bool sideBySide = false,
     double Function(String text)? measureWidestWord,
   }) {
     assert(
-      seriesCount == 1 || (outer != null && outer >= 0 && outer < seriesCount),
-      'A layout of two series needs the series drawn as the wide bar.',
+      seriesCount == 1 ||
+          sideBySide ||
+          (outer != null && outer >= 0 && outer < seriesCount),
+      'A nested layout of two series needs the series drawn as the wide bar.',
     );
     assert(
       !wrapLabels || measureWidestWord != null,
@@ -179,18 +189,38 @@ final class MmBarLayout {
     final barWidth = (band * bandFill).clamp(least, maxBarWidth);
     final innerWidth = math.max<double>(1, barWidth - 2 * innerInset);
     final zero = yOf(0);
+    final paired = sideBySide && seriesCount == 2;
+    // Side by side: two bars of one width and the gap between them fill
+    // most of the band, as one bar would.
+    const gap = MmChartMetrics.gap;
+    final pairWidth = (band * bandFill).clamp(
+      math.max(2 + gap, math.min(2 * minSideBySideBar + gap, band - gap)),
+      2 * maxBarWidth + gap,
+    );
+    final pairBar = (pairWidth - gap) / 2;
     final bars = [
       for (final (index, group) in values.indexed)
         [
           for (final (series, rupees) in group.indexed)
-            _bar(
-              bands[index],
-              width: seriesCount == 1 || series == outer
-                  ? barWidth
-                  : innerWidth,
-              from: zero,
-              to: yOf(rupees),
-            ),
+            if (paired)
+              _barAt(
+                // The first series reads first: at the start edge.
+                (series == 0) != rtl
+                    ? bands[index].center.dx - gap / 2 - pairBar
+                    : bands[index].center.dx + gap / 2,
+                width: pairBar,
+                from: zero,
+                to: yOf(rupees),
+              )
+            else
+              _bar(
+                bands[index],
+                width: seriesCount == 1 || series == outer
+                    ? barWidth
+                    : innerWidth,
+                from: zero,
+                to: yOf(rupees),
+              ),
         ],
     ];
 
@@ -248,7 +278,7 @@ final class MmBarLayout {
       bands: bands,
       bars: bars,
       labels: labels,
-      outer: seriesCount == 1 ? null : outer,
+      outer: seriesCount == 1 || paired ? null : outer,
       textDirection: textDirection,
       labelsEveryGroup: labelsEveryGroup,
     );
@@ -273,6 +303,10 @@ final class MmBarLayout {
   /// of the outer one: the outer bar's outline and a gap of its pale fill,
   /// so the two never touch.
   static const double innerInset = MmSize.stroke + MmChartMetrics.gap;
+
+  /// The narrowest a bar of a side-by-side pair gets while its band has
+  /// room: an outline on each side and a gap of pale fill between them.
+  static const double minSideBySideBar = 2 * MmSize.stroke + MmChartMetrics.gap;
 
   /// The size of the whole chart: plot, axis labels and gutter.
   final Size size;
@@ -302,9 +336,9 @@ final class MmBarLayout {
   /// its band.
   final bool labelsEveryGroup;
 
-  /// In a two-series chart, the series whose bars are the wide ones, which
-  /// are painted first so the other series' bars stand on them; null with
-  /// one series.
+  /// In a nested two-series chart, the series whose bars are the wide ones,
+  /// which are painted first so the other series' bars stand on them; null
+  /// with one series or side by side.
   final int? outer;
 
   /// The direction the groups run in.
@@ -326,15 +360,17 @@ final class MmBarLayout {
     required double width,
     required double from,
     required double to,
-  }) {
-    final left = band.center.dx - width / 2;
-    return Rect.fromLTRB(
-      left,
-      math.min(from, to),
-      left + width,
-      math.max(from, to),
-    );
-  }
+  }) => _barAt(band.center.dx - width / 2, width: width, from: from, to: to);
+
+  /// A bar [width] wide from [left], from the zero line at [from] to its
+  /// value at [to].
+  static Rect _barAt(
+    double left, {
+    required double width,
+    required double from,
+    required double to,
+  }) =>
+      Rect.fromLTRB(left, math.min(from, to), left + width, math.max(from, to));
 
   static Rect _labelRect(Rect band, Size size, Rect plot, double top) {
     final last = math.max(plot.left, plot.right - size.width);

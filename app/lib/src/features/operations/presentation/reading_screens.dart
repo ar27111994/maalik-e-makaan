@@ -8,7 +8,6 @@ import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
-import 'package:maalik_e_makaan/src/core/prose_row.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
@@ -363,7 +362,7 @@ class _ReadingDetails extends StatelessWidget {
                 ),
               ],
               if (reading.notes case final notes?)
-                ProseRow(label: l10n.notesLabel, text: notes),
+                MmDetailRow.prose(label: l10n.notesLabel, value: notes),
             ],
           ),
         ),
@@ -383,7 +382,7 @@ class _ReadingDetails extends StatelessWidget {
                 connection.unitLabel,
               ),
               subtitleMaxLines: 4,
-              trailing: const Icon(MmIcons.chevronEnd),
+              chevron: true,
               onTap: () => context.go(Routes.utility(connection.id)),
             ),
             if (lease != null)
@@ -391,7 +390,7 @@ class _ReadingDetails extends StatelessWidget {
                 leading: const Icon(MmIcons.lease),
                 title: l10n.openTenancyAction,
                 subtitle: reading.tenantName,
-                trailing: const Icon(MmIcons.chevronEnd),
+                chevron: true,
                 onTap: () => context.go(Routes.lease(lease)),
               ),
           ],
@@ -450,7 +449,9 @@ class _DeleteReadingState extends ConsumerState<_DeleteReading>
         MmButton(
           label: l10n.deleteAction,
           icon: MmIcons.delete,
-          variant: MmButtonVariant.tertiary,
+          // It asks first (or opens the flow that does): the filled red
+          // button is at the point of no return.
+          variant: MmButtonVariant.destructiveOutlined,
           busy: busy,
           onPressed: _delete,
         ),

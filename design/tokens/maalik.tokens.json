@@ -1249,6 +1249,13 @@
       },
       "$description": "The list's column beside its details on wide windows: about a phone's width, so a list reads as it does on a phone."
     },
+    "preview": {
+      "$value": {
+        "value": 160,
+        "unit": "px"
+      },
+      "$description": "The height of a photo's preview in a form or sheet (a CNIC or a document before it is uploaded): enough to read a card's layout, small enough to keep the form's fields in view."
+    },
     "focusRing": {
       "$value": {
         "value": 2,

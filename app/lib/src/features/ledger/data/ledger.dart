@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
@@ -440,15 +441,12 @@ final class PaymentDraft {
     'p_paid_on': paidOn.toJson(),
     'p_method': method.db,
     'p_idempotency_key': idempotencyKey,
-    'p_reference': sanitizeOptional(
-      reference,
-      maxLength: Payment.maxReferenceLength,
-    ),
+    'p_reference': optionalText(reference, Payment.maxReferenceLength),
     'p_notes': _multiline(notes, Payment.maxNotesLength),
     'p_tax_withheld': taxWithheld.toJson(),
-    'p_tax_certificate_no': sanitizeOptional(
+    'p_tax_certificate_no': optionalText(
       taxCertificateNo,
-      maxLength: Payment.maxCertificateLength,
+      Payment.maxCertificateLength,
     ),
     'p_charge_ids': chargeIds,
   };
@@ -463,7 +461,7 @@ final class PaymentDraft {
 
 String? _multiline(String? value, int max) {
   if (value == null) return null;
-  final clean = sanitizeMultiline(value, maxLength: max);
+  final clean = linesWithin(value, max);
   return clean.isEmpty ? null : clean;
 }
 
@@ -846,14 +844,15 @@ final class Receivable {
 
   factory fromRow(Object? json) {
     final row = JsonRow.of(json, 'receivable');
-    final phone = row.optionalString('tenant_phone');
     return Receivable(
       leaseId: row.string('lease_id'),
       active:
           row.choice('lease_status', LeaseStatus.parse) == LeaseStatus.active,
       tenantId: row.string('tenant_id'),
       tenantName: row.string('tenant_name'),
-      tenantPhone: phone == null ? null : PhoneNumber.fromE164(phone),
+      // One number the app cannot dial costs its row the number, not the
+      // whole list (JsonRow.dialablePhone).
+      tenantPhone: row.dialablePhone('tenant_phone'),
       unitId: row.string('unit_id'),
       unitLabel: row.string('unit_label'),
       propertyId: row.string('property_id'),
@@ -1037,10 +1036,7 @@ final class ChargeDraft {
     'amount': amount.toJson(),
     'due_date': dueDate.toJson(),
     'period_month': periodMonth?.first.toJson(),
-    'description': sanitizeOptional(
-      description,
-      maxLength: Charge.maxDescriptionLength,
-    ),
+    'description': optionalText(description, Charge.maxDescriptionLength),
   };
 
   @override

@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -207,8 +209,12 @@ class _TenantFormState extends ConsumerState<_TenantForm> with CommandState {
       showMmSnackbar(
         context,
         message: _old == null
-            ? l10n.tenantAdded(saved.fullName)
-            : l10n.tenantSaved(saved.fullName),
+            ? l10n.tenantAdded(
+                inSentence(saved.fullName, Directionality.of(context)),
+              )
+            : l10n.tenantSaved(
+                inSentence(saved.fullName, Directionality.of(context)),
+              ),
         tone: MmBannerTone.success,
       ),
     );
@@ -229,6 +235,7 @@ class _TenantFormState extends ConsumerState<_TenantForm> with CommandState {
     controller: controller,
     optional: true,
     maxLength: maxLength,
+    inputFormatters: codePointLimit(maxLength),
     textCapitalization: capitalization,
     validator: (value) => _optionalName(l10n, value, maxLength),
     onChanged: _changed,
@@ -302,6 +309,7 @@ class _TenantFormState extends ConsumerState<_TenantForm> with CommandState {
                   controller: _name,
                   required: true,
                   maxLength: Tenant.maxNameLength,
+                  inputFormatters: codePointLimit(Tenant.maxNameLength),
                   textCapitalization: TextCapitalization.words,
                   validator: (value) => Validators.name(
                     l10n,
@@ -396,6 +404,7 @@ class _TenantFormState extends ConsumerState<_TenantForm> with CommandState {
                   controller: _email,
                   optional: true,
                   maxLength: 254,
+                  inputFormatters: codePointLimit(254),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) => (value ?? '').trim().isEmpty
                       ? null
@@ -522,6 +531,7 @@ class _TenantFormState extends ConsumerState<_TenantForm> with CommandState {
                   minLines: 3,
                   maxLines: 8,
                   maxLength: Tenant.maxNotesLength,
+                  inputFormatters: codePointLimit(Tenant.maxNotesLength),
                   keyboardType: TextInputType.multiline,
                   onChanged: _changed,
                 ),

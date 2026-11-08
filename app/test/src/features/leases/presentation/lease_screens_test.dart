@@ -5,6 +5,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
 import 'package:maalik_e_makaan/src/features/leases/presentation/lease_detail_screen.dart';
 import 'package:maalik_e_makaan/src/features/leases/presentation/lease_form_screen.dart';
+import 'package:maalik_e_makaan/src/features/leases/presentation/tenancy_choosers.dart';
 import 'package:maalik_e_makaan/src/features/leases/presentation/tenancy_list.dart';
 import 'package:maalik_e_makaan/src/features/properties/data/property.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
@@ -47,6 +48,35 @@ Future<void> _select<T>(
   await tester.pumpAndSettle();
 }
 
+/// Opens the tenant search of a new tenancy, searches for [query] and
+/// picks [name].
+Future<void> _chooseTenant(
+  WidgetTester tester,
+  String query,
+  String name,
+) async {
+  final button = find.widgetWithText(MmButton, 'Choose the tenant');
+  await tester.ensureVisible(button);
+  await tester.tap(button);
+  await tester.pumpAndSettle();
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(MmSearchField),
+      matching: find.byType(TextField),
+    ),
+    query,
+  );
+  await tester.pump(TenantChooser.searchDelay);
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.descendant(
+      of: find.byType(MmListTile),
+      matching: find.text(name, findRichText: true),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 Future<void> _money(WidgetTester tester, String label, String text) async {
   final field = find.descendant(
     of: find.byWidgetPredicate(
@@ -80,7 +110,13 @@ void main() {
       expect(find.text('Choose the tenant.'), findsWidgets);
       expect(find.text('Enter the rent, an amount above 0.'), findsOneWidget);
       expect(app.leases.calls.where((c) => c.$1 == 'createLease'), isEmpty);
-      await _select<String>(tester, 'Tenant', 'Ali Raza');
+      await _chooseTenant(tester, 'ali', 'Ali Raza');
+      expect(find.text('Choose another tenant'), findsOneWidget);
+      // The search ran on the server, not over the first page.
+      expect(
+        app.tenants.calls.where((c) => c.$1 == 'tenants').map((c) => c.$2[2]),
+        contains('ali'),
+      );
       await _money(tester, 'Monthly rent', '65000');
       await _money(tester, 'Security deposit', '130000');
       await _select<Object>(tester, 'Term', '12 months');
@@ -108,6 +144,74 @@ void main() {
       expect(terms.rentDueDay, 5);
       expect(terms.incrementBasisPoints, 1000);
       expect(find.text('Tenancy started for Ali Raza.'), findsOneWidget);
+    });
+
+    testWidgets('from a tenant, the unit is chosen, property then unit', (
+      tester,
+    ) async {
+      final app = await pumpScreen(
+        tester,
+        () => LeaseFormScreen(tenantId: aliRaza.id),
+        size: const Size(360, 4200),
+      );
+      expect(find.text('Ali Raza'), findsOneWidget);
+      await _money(tester, 'Monthly rent', '65000');
+      await _tap(tester, 'Start tenancy');
+      expect(find.text('Choose the unit.'), findsWidgets);
+      expect(app.leases.calls.where((c) => c.$1 == 'createLease'), isEmpty);
+      final button = find.widgetWithText(MmButton, 'Choose the unit');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(gulbergHouse.name).last);
+      await tester.pumpAndSettle();
+      // Back to the properties, and in again.
+      await tester.tap(find.text('Other properties'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(gulbergHouse.name).last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MmListTile),
+          matching: find.text('First floor'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Choose another unit'), findsOneWidget);
+      await _tap(tester, 'Start tenancy');
+      final call = app.leases.calls.lastWhere((c) => c.$1 == 'createLease');
+      expect(call.$2[2], firstFloor.id);
+      expect(call.$2[3], aliRaza.id);
+    });
+
+    testWidgets('cancelling from a tenant goes back to the tenant', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        () => LeaseFormScreen(tenantId: aliRaza.id),
+        size: const Size(360, 4200),
+      );
+      await _tap(tester, 'Cancel');
+      expect(routeShown(Routes.tenant(aliRaza.id)), findsOneWidget);
+    });
+
+    testWidgets('a search that finds no one says so', (tester) async {
+      await pumpScreen(tester, _newLease, size: const Size(360, 4200));
+      final button = find.widgetWithText(MmButton, 'Choose the tenant');
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(MmSearchField),
+          matching: find.byType(TextField),
+        ),
+        'zzz',
+      );
+      await tester.pump(TenantChooser.searchDelay);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('No tenant matches'), findsOneWidget);
     });
 
     testWidgets('a periodic tenancy with a daily fee, and an overlap', (
@@ -459,6 +563,20 @@ void main() {
       await _tap(tester, 'Start tenancy');
       expect(
         find.textContaining('route:/leases/new?unit=${annexe.id}'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a tenant in use offers to start one with them', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        () => TenancyList(tenantId: aliRaza.id, canStart: true),
+      );
+      await _tap(tester, 'Start tenancy');
+      expect(
+        find.textContaining('route:/leases/new?tenant=${aliRaza.id}'),
         findsOneWidget,
       );
     });

@@ -87,8 +87,10 @@ void main() {
       // The badge names what is overdue and the oldest due's age, not all
       // that is owed (November's bill is not due yet).
       expect(shown('${_rows(115000)} overdue, oldest 33 days'), findsOneWidget);
-      expect(shown('Owes Rs'), findsOneWidget);
-      expect(shown('Credit Rs'), findsOneWidget);
+      // The amount kept with its currency word: the badge's words as they
+      // are, which fit (the badge holds a looser copy it does not show).
+      expect(shown('Owes Rs\u00A0'), findsOneWidget);
+      expect(shown('Credit Rs\u00A0'), findsOneWidget);
       expect(find.text('Settled or in credit'), findsOneWidget);
       // Owners bring the dues up to date once.
       expect(app.ledger.syncs, 1);

@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -57,7 +59,9 @@ class _CreatePortfolioScreenState extends ConsumerState<CreatePortfolioScreen>
     unawaited(
       showMmSnackbar(
         context,
-        message: l10n.portfolioCreated(created.name),
+        message: l10n.portfolioCreated(
+          inSentence(created.name, Directionality.of(context)),
+        ),
         tone: MmBannerTone.success,
       ),
     );
@@ -115,6 +119,9 @@ class _CreatePortfolioScreenState extends ConsumerState<CreatePortfolioScreen>
               helper: l10n.portfolioNameHelper,
               errorText: nameError,
               maxLength: PortfolioMembership.maxNameLength,
+              inputFormatters: codePointLimit(
+                PortfolioMembership.maxNameLength,
+              ),
               textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.done,
               validator: (value) => Validators.name(

@@ -66,4 +66,40 @@ void main() {
     ),
     sizes: {MmVariant.largeText: const Size(360, 1000)},
   );
+
+  // A card's short details and the landlord's notes under them: the notes
+  // run across the whole width; an English note in the Urdu UI keeps its
+  // own order and starts every line at the left edge.
+  goldenEveryVariant(
+    'mm_detail_row_prose',
+    () => GoldenPage(
+      (context, say) => MmCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MmDetailRow(
+              label: say('Category', 'زمرہ'),
+              value: say('Plumbing', 'پلمبنگ'),
+              userData: false,
+            ),
+            MmDetailRow.prose(
+              label: say('What was done', 'کیا کیا گیا'),
+              value: say(
+                'Replaced the kitchen tap and the washer under the sink. '
+                    'The tenant paid for the parts.',
+                'باورچی خانے کا نل اور سنک کے نیچے کا واشر بدلا گیا۔ پرزوں کی '
+                    'قیمت کرایہ دار نے ادا کی۔',
+              ),
+            ),
+            MmDetailRow.prose(
+              label: say('Notes', 'نوٹ'),
+              value: 'Plumber: Arshad, 0300 1234567. Call before 5 pm.',
+            ),
+          ],
+        ),
+      ),
+    ),
+    sizes: const {MmVariant.largeText: Size(360, 1000)},
+  );
 }

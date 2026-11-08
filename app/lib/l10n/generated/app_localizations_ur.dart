@@ -159,6 +159,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get deleteAccountAction => 'اکاؤنٹ حذف کریں';
 
   @override
+  String get settingsAbout => 'ایپ کے بارے میں';
+
+  @override
+  String get licencesAction => 'اوپن سورس لائسنس';
+
+  @override
   String get failureNetwork =>
       'کنکشن نہیں ہے۔ اپنا انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔';
 
@@ -2425,9 +2431,6 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get documentFileLabel => 'فائل';
-
-  @override
-  String get documentSheetTitle => 'دستاویز';
 
   @override
   String get documentPreviewLabel => 'تصویر کا پیش منظر';
@@ -4727,11 +4730,6 @@ class AppLocalizationsUr extends AppLocalizations {
   String get seeTenantsAction => 'کرایہ دار دیکھیں';
 
   @override
-  String over60Split(String amount) {
-    return '60 دن سے زیادہ تاخیر والے $amount میں سے:';
-  }
-
-  @override
   String get dashboardNoPropertiesTitle => 'ابھی کوئی جائیداد نہیں';
 
   @override
@@ -5040,9 +5038,6 @@ class AppLocalizationsUr extends AppLocalizations {
   String get age31to60 => '31 سے 60 دن تاخیر';
 
   @override
-  String get ageOver60 => '60 دن سے زیادہ تاخیر';
-
-  @override
   String get age61to90 => '61 سے 90 دن تاخیر';
 
   @override
@@ -5054,9 +5049,10 @@ class AppLocalizationsUr extends AppLocalizations {
     String notDue,
     String early,
     String middle,
+    String older,
     String late,
   ) {
-    return '$total روپے واجب الادا: $notDue ابھی واجب نہیں، $early 30 دن تک تاخیر، $middle 31 سے 60 دن تاخیر، $late 60 دن سے زیادہ تاخیر۔';
+    return '$total روپے واجب الادا: $notDue ابھی واجب نہیں، $early 30 دن تک تاخیر، $middle 31 سے 60 دن تاخیر، $older 61 سے 90 دن تاخیر، $late 90 دن سے زیادہ تاخیر۔';
   }
 
   @override
@@ -5563,4 +5559,73 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get daysOverdueLabel => 'تاخیر کے دن';
+
+  @override
+  String timeOfDay(String time, String period) {
+    String _temp0 = intl.Intl.selectLogic(period, {
+      'morning': 'صبح',
+      'noon': 'دوپہر',
+      'afternoon': 'سہ پہر',
+      'evening': 'شام',
+      'other': 'رات',
+    });
+    return '$time $_temp0';
+  }
+
+  @override
+  String get keepRepairAction => 'کام جاری رکھیں';
+
+  @override
+  String get keepInvitationAction => 'دعوت نامہ رہنے دیں';
+
+  @override
+  String get deletePortfolioSection => 'یہ پورٹ فولیو حذف کریں';
+
+  @override
+  String get deletePortfolioHelp =>
+      'اس میں موجود ہر چیز سب کے لیے ہمیشہ کے لیے حذف ہو جائے گی: جائیدادیں، کرایہ دار، کرایہ داریاں، ادائیگیاں اور رسیدیں، اخراجات اور دستاویزات۔ پہلے جن رسیدوں اور گوشواروں کی ضرورت ہے ان کی نقول رکھ لیں۔';
+
+  @override
+  String get deletePortfolioAction => 'پورٹ فولیو حذف کریں';
+
+  @override
+  String deletePortfolioTitle(String name) {
+    return '$name اور اس میں موجود سب کچھ حذف کریں؟';
+  }
+
+  @override
+  String get deletePortfolioBody =>
+      'تمام اراکین کی رسائی فوراً ختم ہو جائے گی، اور یہ واپس نہیں آ سکتا، ہماری طرف سے بھی نہیں۔';
+
+  @override
+  String portfolioDeleted(String name) {
+    return '$name حذف ہو گیا۔';
+  }
+
+  @override
+  String get chooseTenantTitle => 'کرایہ دار منتخب کریں';
+
+  @override
+  String get chooseTenantAction => 'کرایہ دار منتخب کریں';
+
+  @override
+  String get changeTenantAction => 'کوئی اور کرایہ دار منتخب کریں';
+
+  @override
+  String get noTenantChosen => 'ابھی منتخب نہیں کیا';
+
+  @override
+  String get chooseUnitTitle => 'یونٹ منتخب کریں';
+
+  @override
+  String get chooseUnitAction => 'یونٹ منتخب کریں';
+
+  @override
+  String get changeUnitAction => 'کوئی اور یونٹ منتخب کریں';
+
+  @override
+  String get otherPropertyAction => 'دوسری جائیدادیں';
+
+  @override
+  String get validationChooseUnit => 'یونٹ منتخب کریں۔';
 }

@@ -50,7 +50,7 @@ void main() {
         variant: MmVariant.urdu,
       );
       final words = _words(tester);
-      expect(words.map((span) => span.text), ['12', ' دن سے واجب']);
+      expect(words.map((span) => span.text), ['12 ', 'دن سے واجب']);
       expect(words.first.style!.fontFamily, _latin);
       expect(words.last.style, isNull);
       expect(_paragraph(tester).text.style!.fontFamily, isNot(_latin));

@@ -120,6 +120,36 @@ class _ActionsPageState extends State<ActionsPage> {
                   onPressed: () => showPressed(context, record),
                 ),
               ),
+              StateLabel(
+                label: context.tr(
+                  'A link, lined up with the words above it',
+                  'لنک، اوپر کے الفاظ کی سیدھ میں',
+                ),
+                child: MmCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr(
+                          "Ayesha Khan's rent is 12 days late.",
+                          'عائشہ خان کا کرایہ 12 دن سے واجب ہے۔',
+                        ),
+                      ),
+                      MmButton(
+                        label: context.tr(
+                          "Open Ayesha Khan's tenancy",
+                          'عائشہ خان کی کرایہ داری کھولیں',
+                        ),
+                        variant: MmButtonVariant.link,
+                        onPressed: () => showPressed(
+                          context,
+                          context.tr('Open tenancy', 'کرایہ داری کھولیں'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
           Specimen(

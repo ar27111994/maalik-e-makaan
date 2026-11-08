@@ -125,7 +125,59 @@ Widget proportionBarGolden() => GoldenPage(
   ),
 );
 
+/// What tenants owe by age in four overdue buckets and a part not yet due:
+/// the lines, the lattice and the solid red grow heavier with age.
+Widget proportionBarAgingGolden() => GoldenPage(
+  (context, say) => lakhGrouping(
+    chartCard(
+      context,
+      heading: say('Owed by age', 'واجبات، مدت کے لحاظ سے'),
+      MmProportionBar(
+        semanticSummary: say(
+          '20% not yet due, 30% 1 to 30 days late, 20% 31 to 60 days, '
+              '15% 61 to 90 days, 15% over 90 days',
+          '20% ابھی واجب نہیں، 30% ایک سے 30 دن، 20% 31 سے 60 دن، '
+              '15% 61 سے 90 دن، 15% 90 دن سے زیادہ',
+        ),
+        segments: [
+          MmProportionSegment(
+            label: say('Not yet due', 'ابھی واجب نہیں'),
+            value: const Money.fromRupees(40000),
+            tone: MmSegmentTone.neutral,
+          ),
+          MmProportionSegment(
+            label: say('1–30 days', '1 تا 30 دن'),
+            value: const Money.fromRupees(60000),
+            tone: MmSegmentTone.dueSoon,
+          ),
+          MmProportionSegment(
+            label: say('31–60 days', '31 تا 60 دن'),
+            value: const Money.fromRupees(40000),
+            tone: MmSegmentTone.overdue,
+          ),
+          MmProportionSegment(
+            label: say('61–90 days', '61 تا 90 دن'),
+            value: const Money.fromRupees(30000),
+            tone: MmSegmentTone.overdueOlder,
+          ),
+          MmProportionSegment(
+            label: say('Over 90 days', '90 دن سے زیادہ'),
+            value: const Money.fromRupees(30000),
+            tone: MmSegmentTone.overdueSevere,
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+
 void main() {
+  goldenEveryVariant(
+    'mm_proportion_bar_aging',
+    proportionBarAgingGolden,
+    sizes: const {MmVariant.largeText: Size(360, 1000)},
+  );
+
   goldenEveryVariant(
     'mm_proportion_bar',
     proportionBarGolden,

@@ -59,6 +59,9 @@ class MmToneChip extends StatelessWidget {
           // Wrapped words keep the chip as wide as its longest line, without
           // empty fill after it.
           textWidthBasis: TextWidthBasis.longestLine,
+          // An amount too wide for a narrow badge wraps between its
+          // figures and its currency word, never inside the figures.
+          fitWords: true,
         ),
       ),
     );

@@ -98,4 +98,59 @@ void main() {
     focused: textIn('Ali Raza', 'علی رضا'),
     sizes: {MmVariant.largeText: const Size(360, 1200)},
   );
+
+  // Rows that open something: a chevron stays beside the title however it
+  // wraps; a member's role and email run as long as they need; words from
+  // the app's localisations keep the UI's direction.
+  goldenEveryVariant(
+    'mm_list_tile_chevron',
+    () => GoldenPage(
+      (context, say) => MmCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MmListTile(
+              leading: const Icon(MmIcons.calendar),
+              title: say(
+                'Police registration for Ali Raza, Flat 3, Gulberg Heights',
+                'علی رضا، فلیٹ 3، گلبرگ ہائٹس کی پولیس رجسٹریشن',
+              ),
+              subtitle: say('Due 14 Nov', '14 نومبر تک'),
+              trailing: MmStatusBadge(
+                status: MmStatus.dueSoon,
+                label: say('In 6 days', '6 دن میں'),
+              ),
+              chevron: true,
+              onTap: tapped,
+            ),
+            const Divider(),
+            MmListTile(
+              leading: const MmAvatar(name: 'Kamran Ahmed'),
+              title: 'Kamran Ahmed',
+              // The app gives an email address a place to break after its
+              // "@".
+              subtitle: say(
+                'Manager · kamran.ahmed@\u200Bexample.com',
+                'منیجر · kamran.ahmed@\u200Bexample.com',
+              ),
+              subtitleMaxLines: null,
+              chevron: true,
+              onTap: tapped,
+            ),
+            const Divider(),
+            MmListTile(
+              leading: const Icon(MmIcons.receiptText),
+              title: say('PDF receipts', 'PDF رسیدیں'),
+              subtitle: say('Sent on WhatsApp', 'WhatsApp پر بھیجی گئیں'),
+              userData: false,
+              chevron: true,
+              onTap: tapped,
+            ),
+          ],
+        ),
+      ),
+    ),
+    sizes: const {MmVariant.largeText: Size(360, 1100)},
+  );
 }

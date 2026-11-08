@@ -318,12 +318,11 @@ final class Arrear with _RowValue {
 
   factory fromRow(Object? json) {
     final row = JsonRow.of(json, 'arrear');
-    final phone = row.optionalString('tenant_phone');
     return Arrear(
       leaseId: row.string('lease_id'),
       tenantId: row.string('tenant_id'),
       tenantName: row.string('tenant_name'),
-      tenantPhone: phone == null ? null : _canonicalPhone(phone),
+      tenantPhone: row.dialablePhone('tenant_phone'),
       unitLabel: row.string('unit_label'),
       propertyName: row.string('property_name'),
       monthlyRent: row.money('monthly_rent'),
@@ -334,15 +333,6 @@ final class Arrear with _RowValue {
       lastPaidOn: row.optionalDate('last_paid_on'),
       lastRemindedAt: row.optionalTimestamp('last_reminded_at'),
     );
-  }
-
-  /// [stored] when it is a number the app can dial as it is, else null.
-  /// The database accepts any `+` and 8 to 15 digits, some of which the app
-  /// does not take as a number (a Pakistani mobile number a digit short):
-  /// one such tenant leaves out their number, not the whole dashboard.
-  static PhoneNumber? _canonicalPhone(String stored) {
-    final phone = PhoneNumber.tryParse(stored);
-    return phone?.e164 == stored ? phone : null;
   }
 
   final String leaseId;

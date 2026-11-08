@@ -57,6 +57,28 @@ void main() {
     expect(find.text('Reminder sent and noted in the ledger.'), findsOneWidget);
   });
 
+  testWidgets('an Urdu message runs right to left in the English UI', (
+    tester,
+  ) async {
+    await pumpScreen(tester, _ledger, size: _size);
+    await _open(tester);
+    await tester.tap(find.byType(Radio<ReminderLanguage>).at(1));
+    await tester.pumpAndSettle();
+    expect(_message(tester), startsWith('السلام علیکم'));
+    final field = find.descendant(
+      of: find.byWidgetPredicate(
+        (w) => w is MmTextField && w.label == 'Message to send',
+      ),
+      matching: find.byType(EditableText),
+    );
+    // MmTextField follows the direction of what is typed, whatever the
+    // UI's: the Urdu message keeps its order and its full stop's place.
+    expect(tester.widget<EditableText>(field).textDirection, TextDirection.rtl);
+    await tester.tap(find.byType(Radio<ReminderLanguage>).first);
+    await tester.pumpAndSettle();
+    expect(tester.widget<EditableText>(field).textDirection, TextDirection.ltr);
+  });
+
   testWidgets('the template and language rewrite an unchanged message', (
     tester,
   ) async {

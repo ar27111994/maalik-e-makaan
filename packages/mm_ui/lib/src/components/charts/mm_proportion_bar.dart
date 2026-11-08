@@ -19,12 +19,13 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///
 /// The treatments are: hollow ([neutral]); solid ([paid], [overdueSevere],
 /// [primary]); hatched with falling lines ([dueSoon], [credit]); hatched
-/// with rising lines ([overdue]). The status colours are about equally
-/// light, so tones that share a treatment differ by hue alone: one bar never
-/// mixes them (debug builds check it). The bars the app draws keep to
-/// that: rent by status (paid, due soon, overdue, not yet due), overdue
-/// rent by age (due soon, overdue, severe) and money held for tenants
-/// (primary, credit).
+/// with rising lines ([overdue]); cross-hatched ([overdueOlder]). The
+/// status colours are about equally light, so tones that share a treatment
+/// differ by hue alone: one bar never mixes them (debug builds check it).
+/// The bars the app draws keep to that: rent by status (paid, due soon,
+/// overdue, not yet due), overdue rent by age (due soon, overdue, severe,
+/// or in four buckets due soon, overdue, older, severe: ever less paper
+/// showing through the red) and money held for tenants (primary, credit).
 enum MmSegmentTone {
   /// An outline in the control-border colour around an empty segment: what
   /// is not yet anything ("Not yet due", "Vacant").
@@ -52,7 +53,14 @@ enum MmSegmentTone {
   credit,
 
   /// Solid cobalt: a part with no status ("Let", "Collected by bank").
-  primary;
+  primary,
+
+  /// The overdue colour cross-hatched: an overdue bucket older than
+  /// [overdue] and younger than [overdueSevere], in an aging breakdown of
+  /// four buckets ("61 to 90 days", between "31 to 60 days" and "Over 90
+  /// days"). Its lattice shows less paper than [overdue]'s lines and more
+  /// than [overdueSevere]'s solid red.
+  overdueOlder;
 
   /// What the tone looks like without its colour: tones of one treatment
   /// differ by hue alone.
@@ -61,11 +69,12 @@ enum MmSegmentTone {
     paid || overdueSevere || primary => _Treatment.solid,
     dueSoon || credit => _Treatment.falling,
     overdue => _Treatment.rising,
+    overdueOlder => _Treatment.crossed,
   };
 }
 
 /// How a [MmSegmentTone] is drawn, apart from its colour.
-enum _Treatment { hollow, solid, falling, rising }
+enum _Treatment { hollow, solid, falling, rising, crossed }
 
 /// The mark of [tone] in [colors].
 MmChartMark _markOf(MmSegmentTone tone, MmColorTokens colors) => switch (tone) {
@@ -91,6 +100,11 @@ MmChartMark _markOf(MmSegmentTone tone, MmColorTokens colors) => switch (tone) {
     hatchColor: colors.surface,
   ),
   MmSegmentTone.primary => MmChartMark(fill: colors.primary),
+  MmSegmentTone.overdueOlder => MmChartMark(
+    fill: colors.overdue,
+    hatch: MmHatch.crossed,
+    hatchColor: colors.surface,
+  ),
 };
 
 /// One part of an [MmProportionBar]: what it is ([label]), how much

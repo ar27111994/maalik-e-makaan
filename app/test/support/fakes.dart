@@ -303,6 +303,27 @@ final class FakePortfolioRepository implements PortfolioRepository {
     }
     return saved;
   }
+
+  /// Fails deleting with this when set.
+  AppFailure? deleteFailure;
+
+  @override
+  Future<void> delete(
+    String portfolioId, {
+    required String confirmation,
+  }) async {
+    calls.add(('delete', [portfolioId, confirmation]));
+    await gate.pass();
+    final failure = deleteFailure;
+    if (failure != null) throw failure;
+    final stored = details_[portfolioId]?.name;
+    if (stored == null ||
+        stored.trim().toLowerCase() != confirmation.trim().toLowerCase()) {
+      throw const RejectedFailure('confirmation_mismatch');
+    }
+    memberships.removeWhere((m) => m.id == portfolioId);
+    details_.remove(portfolioId);
+  }
 }
 
 final gulbergDetails = PortfolioDetails(
@@ -1431,6 +1452,17 @@ final class FakeDocumentRepository implements DocumentRepository {
   Future<void> discardFile(String storagePath) async {
     await _call('discardFile', [storagePath]);
     stored.remove(storagePath);
+  }
+
+  /// The thumbnail links [thumbnailLinks] answers with, by document id.
+  Map<String, Uri> thumbnails = {};
+
+  @override
+  Future<Map<String, Uri>> thumbnailLinks(List<Document> documents) async {
+    await _call('thumbnailLinks', [for (final d in documents) d.id]);
+    return {
+      for (final document in documents) document.id: ?thumbnails[document.id],
+    };
   }
 
   @override

@@ -5,28 +5,36 @@ import 'package:flutter/rendering.dart';
 import 'package:mm_ui/src/components/display/mm_surface.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_user_text.dart';
+import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// One row of a list: a tenant, a property, a payment.
 ///
 /// A [title] (wrapped, never truncated), an optional [subtitle] in muted ink
-/// that ends with an ellipsis after [subtitleMaxLines] lines, an optional
-/// [leading] widget (an `MmAvatar` or an icon) and an optional [trailing]
-/// widget (an `MmAmount` or an `MmStatusBadge`). The title and subtitle are
-/// the landlord's data: in the Urdu UI a name typed in English is set in the
-/// Latin face, and in the English UI a name typed in Urdu in Nastaliq; each
-/// keeps its own direction, so an Urdu address in the English UI keeps its
-/// word order when it wraps.
+/// that ends with an ellipsis after [subtitleMaxLines] lines (or runs as
+/// long as it needs when that is null), an optional [leading] widget (an
+/// `MmAvatar` or an icon), an optional [trailing] widget (an `MmAmount` or
+/// an `MmStatusBadge`) and, for a row that opens another screen, an
+/// optional [chevron]. The title and subtitle are the landlord's data
+/// unless [userData] is false: in the Urdu UI a name typed in English is
+/// set in the Latin face, and in the English UI a name typed in Urdu in
+/// Nastaliq; each keeps its own direction, so an Urdu address in the
+/// English UI keeps its word order when it wraps. In the Urdu UI the
+/// subtitle keeps 4 dp from the title, so Nastaliq's dots and tall letters
+/// on the two lines stay apart.
 ///
 /// When the trailing widget and the title do not fit side by side (a narrow
 /// screen or large text), the trailing widget moves under the text, still at
 /// the end edge where a list keeps its amounts, instead of squeezing the
-/// title. The leading widget is centred on a row of one or two lines, and
-/// lines up with the title's first line on a taller one. The row is at least
-/// 56 dp tall and is one node for screen readers, reading the title,
-/// subtitle and trailing widget together.
+/// title. The [chevron] never moves: it stays at the end edge beside the
+/// text. The leading widget and the chevron are centred on a row of one or
+/// two lines, and line up with the title's first line on a taller one. The
+/// row is at least 56 dp tall and is one node for screen readers, reading
+/// the title, subtitle and trailing widget together (the chevron is not
+/// read: the row is already announced as a button).
 ///
 /// With [onTap] the row is a button: it shows ink when pressed, a focus ring
 /// while it has keyboard focus and activates with Enter or Space. [selected]
@@ -61,8 +69,17 @@ class MmListTile extends StatelessWidget {
     this.onTap,
     this.selected = false,
     this.subtitleMaxLines = 2,
+    this.chevron = false,
+    this.userData = true,
     super.key,
-  });
+  }) : assert(
+         !chevron || onTap != null,
+         'A chevron says the row opens something: give it an onTap.',
+       ),
+       assert(
+         subtitleMaxLines == null || subtitleMaxLines > 0,
+         'subtitleMaxLines must be > 0, or null for no limit.',
+       );
 
   /// The main line ("Ali Raza"). It wraps and is never truncated.
   final String title;
@@ -86,8 +103,20 @@ class MmListTile extends StatelessWidget {
   /// Whether this row is the one shown in the detail pane.
   final bool selected;
 
-  /// The most lines the subtitle takes before it ends with an ellipsis.
-  final int subtitleMaxLines;
+  /// The most lines the subtitle takes before it ends with an ellipsis, or
+  /// null for as many as it needs (a member's role and email address).
+  final int? subtitleMaxLines;
+
+  /// Whether the row shows a chevron at its end edge: it opens another
+  /// screen or a sheet about the row. Unlike [trailing], the chevron stays
+  /// beside the text however long the title is. Needs [onTap].
+  final bool chevron;
+
+  /// Whether [title] and [subtitle] are the landlord's data (a name, an
+  /// address), set in their own script's face and kept in their own
+  /// direction. Pass false for words from the app's localisations ("PDF
+  /// رسیدیں"), which run in the UI's direction whatever their first letter.
+  final bool userData;
 
   @override
   Widget build(BuildContext context) {
@@ -108,15 +137,41 @@ class MmListTile extends StatelessWidget {
     final trailing = this.trailing;
     final titleSize = titleStyle.fontSize!;
 
+    final maxLines = subtitleMaxLines;
+    final overflow = maxLines == null ? null : TextOverflow.ellipsis;
     final body = MmReflow(
-      start: MmUserText(title, style: titleStyle),
+      start: userData
+          ? MmUserText(title, style: titleStyle)
+          : MmScriptText(title, style: titleStyle),
       below: subtitle == null
           ? null
-          : MmUserText(
-              subtitle,
-              style: subtitleStyle,
-              maxLines: subtitleMaxLines,
-              overflow: TextOverflow.ellipsis,
+          : Padding(
+              // Nastaliq's dots and tall letters reach past its lines: in
+              // Urdu the two lines keep apart.
+              padding: EdgeInsetsDirectional.only(
+                top: context.mm.script == MmScript.urdu ? MmSpace.s1 : 0,
+              ),
+              child: _OneLineShrinks(
+                // A subtitle of one line ends with an ellipsis at any width,
+                // so it never keeps the trailing widget off the title's
+                // line; one of more lines wraps between its words, and a
+                // word too long to sit beside the trailing widget sends
+                // that widget under the text.
+                shrinks: maxLines == 1,
+                child: userData
+                    ? MmUserText(
+                        subtitle,
+                        style: subtitleStyle,
+                        maxLines: maxLines,
+                        overflow: overflow,
+                      )
+                    : MmScriptText(
+                        subtitle,
+                        style: subtitleStyle,
+                        maxLines: maxLines,
+                        overflow: overflow,
+                      ),
+              ),
             ),
       end: trailing == null
           ? null
@@ -151,6 +206,15 @@ class MmListTile extends StatelessWidget {
                         child: leading,
                       ),
                 body: body,
+                chevron: chevron
+                    ? IconTheme.merge(
+                        data: IconThemeData(color: muted, size: iconSize),
+                        // The row is the button: its chevron is not read.
+                        child: const ExcludeSemantics(
+                          child: Icon(MmIcons.chevronEnd),
+                        ),
+                      )
+                    : null,
                 firstLine:
                     MediaQuery.textScalerOf(context).scale(titleSize) *
                     (titleStyle.height ?? 1),
@@ -163,26 +227,63 @@ class MmListTile extends StatelessWidget {
   }
 }
 
-/// The places [_TileLayout] lays its children out in.
-enum _TileSlot { leading, body }
+/// Reports no narrowest width for its child when [shrinks]: a line that
+/// ends with an ellipsis can be cut at any width.
+class _OneLineShrinks extends SingleChildRenderObjectWidget {
+  const new({required this.shrinks, required super.child});
 
-/// A list row's leading widget and its text, side by side.
+  final bool shrinks;
+
+  @override
+  _RenderOneLineShrinks createRenderObject(BuildContext context) =>
+      _RenderOneLineShrinks(shrinks: shrinks);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderOneLineShrinks renderObject,
+  ) => renderObject.shrinks = shrinks;
+}
+
+class _RenderOneLineShrinks extends RenderProxyBox {
+  new({required this._shrinks});
+
+  bool get shrinks => _shrinks;
+  bool _shrinks;
+  set shrinks(bool value) {
+    if (value == _shrinks) return;
+    _shrinks = value;
+    markNeedsLayout();
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      shrinks ? 0 : super.computeMinIntrinsicWidth(height);
+}
+
+/// The places [_TileLayout] lays its children out in.
+enum _TileSlot { leading, body, chevron }
+
+/// A list row's leading widget, its text and its chevron, side by side.
 ///
-/// The leading widget is centred on text of up to two lines; beside taller
-/// text (a long title at large text sizes) it lines up with the first line
-/// of the title, so it stays beside the name rather than drifting to the
-/// middle of a paragraph.
+/// The leading widget and the chevron are centred on text of up to two
+/// lines; beside taller text (a long title at large text sizes) they line
+/// up with the first line of the title, so they stay beside the name rather
+/// than drifting to the middle of a paragraph.
 class _TileLayout
     extends SlottedMultiChildRenderObjectWidget<_TileSlot, RenderBox> {
   const new({
     required this.leading,
     required this.body,
+    required this.chevron,
     required this.firstLine,
   });
 
   final Widget? leading;
 
   final Widget body;
+
+  final Widget? chevron;
 
   /// The height of the title's first line.
   final double firstLine;
@@ -194,6 +295,7 @@ class _TileLayout
   Widget? childForSlot(_TileSlot slot) => switch (slot) {
     _TileSlot.leading => leading,
     _TileSlot.body => body,
+    _TileSlot.chevron => chevron,
   };
 
   @override
@@ -219,6 +321,7 @@ typedef _TileArrangement = ({
   Size size,
   Offset leading,
   Offset body,
+  Offset chevron,
   BoxConstraints bodyConstraints,
 });
 
@@ -228,6 +331,10 @@ class _RenderTileLayout extends RenderBox
 
   /// The space between the leading widget and the text.
   static const double _spacing = MmSpace.s4;
+
+  /// The space between the text and the chevron, whose glyph has room of
+  /// its own at its sides.
+  static const double _chevronSpacing = MmSpace.s2;
 
   double get firstLine => _firstLine;
   double _firstLine;
@@ -247,6 +354,7 @@ class _RenderTileLayout extends RenderBox
 
   RenderBox? get _leading => childForSlot(_TileSlot.leading);
   RenderBox get _body => childForSlot(_TileSlot.body)!;
+  RenderBox? get _chevron => childForSlot(_TileSlot.chevron);
 
   /// The children in reading order, which is also the order they are
   /// painted, hit-tested and read out in.
@@ -257,34 +365,44 @@ class _RenderTileLayout extends RenderBox
 
   double get _indent => _leading == null ? 0 : _spacing;
 
+  double get _chevronGap => _chevron == null ? 0 : _chevronSpacing;
+
   _TileArrangement _arrange(BoxConstraints constraints, {required bool dry}) {
     final layoutChild = dry
         ? ChildLayoutHelper.dryLayoutChild
         : ChildLayoutHelper.layoutChild;
     final leading = _leading;
+    final chevron = _chevron;
+    final loose = BoxConstraints.loose(constraints.biggest);
     final leadingSize = leading == null
         ? Size.zero
-        : layoutChild(leading, BoxConstraints.loose(constraints.biggest));
+        : layoutChild(leading, loose);
+    final chevronSize = chevron == null
+        ? Size.zero
+        : layoutChild(chevron, loose);
     final indent = leadingSize.width + _indent;
+    final outdent = chevronSize.width + _chevronGap;
     final bodyConstraints = BoxConstraints(
-      maxWidth: math.max(0, constraints.maxWidth - indent),
+      maxWidth: math.max(0, constraints.maxWidth - indent - outdent),
     );
     final bodySize = layoutChild(_body, bodyConstraints);
 
     final tall = bodySize.height > 2 * firstLine;
-    final leadingCentre = tall ? firstLine / 2 : bodySize.height / 2;
-    final leadingTop = leadingCentre - leadingSize.height / 2;
-    // A leading widget taller than the text's middle allows pushes the
-    // text down instead of sticking out above it.
-    final double bodyTop = math.max(0, -leadingTop);
-    final contentHeight = math.max(
+    final centre = tall ? firstLine / 2 : bodySize.height / 2;
+    final leadingTop = centre - leadingSize.height / 2;
+    final chevronTop = centre - chevronSize.height / 2;
+    // A leading widget or chevron taller than the text's middle allows
+    // pushes the text down instead of sticking out above it.
+    final double bodyTop = math.max(0, -math.min(leadingTop, chevronTop));
+    final contentHeight = [
       bodyTop + bodySize.height,
       bodyTop + leadingTop + leadingSize.height,
-    );
+      bodyTop + chevronTop + chevronSize.height,
+    ].reduce(math.max);
     final width = constraints.constrainWidth(
       constraints.hasBoundedWidth
           ? constraints.maxWidth
-          : indent + bodySize.width,
+          : indent + bodySize.width + outdent,
     );
     final height = constraints.constrainHeight(contentHeight);
     // Content shorter than the row's least height sits in its middle.
@@ -300,6 +418,10 @@ class _RenderTileLayout extends RenderBox
         rtl ? width - indent - bodySize.width : indent,
         top + bodyTop,
       ),
+      chevron: Offset(
+        rtl ? 0 : width - chevronSize.width,
+        top + bodyTop + chevronTop,
+      ),
       bodyConstraints: bodyConstraints,
     );
   }
@@ -311,6 +433,10 @@ class _RenderTileLayout extends RenderBox
     final leading = _leading;
     if (leading != null) {
       (leading.parentData! as BoxParentData).offset = arrangement.leading;
+    }
+    final chevron = _chevron;
+    if (chevron != null) {
+      (chevron.parentData! as BoxParentData).offset = arrangement.chevron;
     }
     (_body.parentData! as BoxParentData).offset = arrangement.body;
   }
@@ -343,7 +469,10 @@ class _RenderTileLayout extends RenderBox
 
   double _width(double Function(RenderBox child) widthOf) {
     final leading = _leading;
-    return (leading == null ? 0 : widthOf(leading) + _indent) + widthOf(_body);
+    final chevron = _chevron;
+    return (leading == null ? 0 : widthOf(leading) + _indent) +
+        widthOf(_body) +
+        (chevron == null ? 0 : widthOf(chevron) + _chevronGap);
   }
 
   @override

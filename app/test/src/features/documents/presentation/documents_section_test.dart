@@ -105,6 +105,81 @@ void main() {
       expect(find.text('Add document'), findsOneWidget);
     });
 
+    testWidgets('a photo shows small; one that cannot be drawn its icon', (
+      tester,
+    ) async {
+      final app = TestApp();
+      app.documents.thumbnails = {
+        cnicFrontScan.id: Uri.parse('https://files.example/front.jpg?token=t'),
+      };
+      await pumpScreen(tester, _tenant, app: app);
+      // One request for the page's links.
+      expect(
+        app.documents.calls.where((c) => c.$1 == 'thumbnailLinks'),
+        isNotEmpty,
+      );
+      final image = find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is ResizeImage &&
+            ((widget.image as ResizeImage).imageProvider as ThumbnailImage)
+                    .link ==
+                Uri.parse('https://files.example/front.jpg?token=t'),
+      );
+      expect(image, findsOneWidget);
+      expect(tester.getSize(image), const Size.square(MmSize.avatar));
+      // The test's network answers 400: the row keeps its icon.
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: image, matching: find.byIcon(MmIcons.image)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('photo links are signed again before they expire, and a '
+        'photo is kept by its document, not its link', (tester) async {
+      final app = TestApp();
+      app.documents.thumbnails = {
+        cnicFrontScan.id: Uri.parse('https://files.example/front.jpg?token=1'),
+      };
+      await pumpScreen(tester, _tenant, app: app);
+      int signings() =>
+          _called(app).where((call) => call == 'thumbnailLinks').length;
+      ThumbnailImage shown() =>
+          (tester
+                          .widget<Image>(
+                            find.byWidgetPredicate(
+                              (widget) =>
+                                  widget is Image &&
+                                  widget.image is ResizeImage &&
+                                  (widget.image as ResizeImage).imageProvider
+                                      is ThumbnailImage,
+                            ),
+                          )
+                          .image
+                      as ResizeImage)
+                  .imageProvider
+              as ThumbnailImage;
+      expect(signings(), 1);
+      final first = shown();
+      // Before the five minutes a link works for are up, it is signed
+      // again, so a row built later still finds a working one.
+      app.documents.thumbnails = {
+        cnicFrontScan.id: Uri.parse('https://files.example/front.jpg?token=2'),
+      };
+      await tester.pump(linksRenewedAfter);
+      await tester.pump();
+      expect(signings(), 2);
+      final renewed = shown();
+      expect(renewed.link.queryParameters['token'], '2');
+      // The same image to the cache and to the row: not fetched again.
+      expect(renewed, first);
+      expect(renewed.hashCode, first.hashCode);
+      // A link not yet that old is not signed again.
+      await tester.pump(const Duration(minutes: 1));
+      expect(signings(), 2);
+    });
+
     testWidgets('a name that is its kind is not repeated', (tester) async {
       final app = TestApp();
       app.documents.documentsOf(cnicFrontScan.owner)
@@ -195,9 +270,9 @@ void main() {
     ) async {
       final app = await pumpScreen(tester, _tenant);
       await _tap(tester, 'CNIC front');
-      // The sheet's title is the UI's; the name, the landlord's text, is
-      // its first row.
-      expect(find.text('Document'), findsOneWidget);
+      // The sheet's title is the name, the landlord's text, set in its own
+      // script's face (MmSheet's userTitle).
+      expect(find.text('Document'), findsNothing);
       expect(find.text('CNIC front'), findsNWidgets(2));
       expect(find.text('CNIC, front'), findsOneWidget);
       expect(find.text('JPEG photo, 240\u00a0KB'), findsOneWidget);
@@ -570,26 +645,25 @@ void main() {
       expect(app.opened, hasLength(1));
     });
 
-    testWidgets('a name longer than the database takes is caught', (
+    testWidgets('a name longer than the database takes is cut as typed', (
       tester,
     ) async {
       // 150 Urdu letters with a zabar: 150 characters to the field's
-      // counter, 300 to the database.
+      // counter, 300 code points to the database, which takes 200.
       final marked = '\u0628\u064E' * 150;
-      final app = await pumpScreen(tester, _tenant);
+      final fits = '\u0628\u064E' * 100;
+      await pumpScreen(tester, _tenant);
       await _tap(tester, 'Add document');
       await _tap(tester, 'Choose a file');
       await _type(tester, 'Name', marked);
-      await _tap(tester, 'Upload');
-      expect(shown('This name is too long. Shorten it.'), findsOneWidget);
-      expect(_called(app), isNot(contains('uploadFile')));
+      expect(tester.widget<TextField>(_field('Name')).controller!.text, fits);
       await _close(tester);
       await _tap(tester, 'CNIC front');
       await _tap(tester, 'Rename or change kind');
       await _type(tester, 'Name', marked);
-      await _tap(tester, 'Save');
-      expect(shown('This name is too long. Shorten it.'), findsOneWidget);
-      expect(_called(app), isNot(contains('updateDocument')));
+      expect(tester.widget<TextField>(_field('Name')).controller!.text, fits);
+      expect(documentNameTooLong(marked), isTrue);
+      expect(documentNameTooLong(fits), isFalse);
     });
 
     testWidgets('a long picked name is cut to fit before it is shown', (

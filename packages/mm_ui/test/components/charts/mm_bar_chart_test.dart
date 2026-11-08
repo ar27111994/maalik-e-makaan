@@ -1598,4 +1598,72 @@ void main() {
       await expectAccessible(tester);
     });
   });
+
+  group('MmBarChart side by side', () {
+    for (final variant in [MmVariant.light, MmVariant.urdu]) {
+      testWidgets('sets two independent measures side by side, the first '
+          'at the start edge (${variant.name})', (tester) async {
+        await pumpThemed(
+          tester,
+          GoldenPage((context, say) => cashFlowChart(say)),
+          variant: variant,
+          size: const Size(360, 900),
+        );
+        final layout = _layout(tester);
+        expect(layout.outer, isNull);
+        final rtl = variant == MmVariant.urdu;
+        for (final (index, [moneyIn, moneyOut]) in layout.bars.indexed) {
+          expect(moneyIn.width, moreOrLessEquals(moneyOut.width));
+          if (rtl) {
+            expect(moneyIn.left, greaterThan(moneyOut.right));
+          } else {
+            expect(moneyIn.right, lessThan(moneyOut.left));
+          }
+          expect(
+            (moneyIn.center.dx + moneyOut.center.dx) / 2,
+            closeTo(layout.bands[index].center.dx, 1e-9),
+          );
+        }
+        // The two differ by fill as well as place: solid, then outlined.
+        final marks = _painter(tester).marks;
+        expect(marks.first.stroke, isNull);
+        expect(marks.last.stroke, isNotNull);
+      });
+    }
+
+    testWidgets('a chart of one series ignores the arrangement', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        MmBarChart(
+          semanticSummary: 'Net income',
+          arrangement: MmBarArrangement.sideBySide,
+          series: const [MmBarSeries(label: 'Net income')],
+          groups: [
+            for (final (index, month) in _months.indexed)
+              MmBarGroup(label: month, values: [netIncome[index]]),
+          ],
+        ),
+      );
+      final layout = _layout(tester);
+      for (final (index, bars) in layout.bars.indexed) {
+        expect(
+          bars.single.center.dx,
+          closeTo(layout.bands[index].center.dx, 1e-9),
+        );
+      }
+    });
+
+    test('nests the series by default', () {
+      expect(
+        const MmBarChart(
+          semanticSummary: '',
+          series: [],
+          groups: [],
+        ).arrangement,
+        MmBarArrangement.nested,
+      );
+    });
+  });
 }

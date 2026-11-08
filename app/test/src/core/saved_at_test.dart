@@ -32,7 +32,7 @@ void main() {
   testWidgets('today shows the Pakistan time alone', (tester) async {
     expect(
       await _label(tester, DateTime.utc(2026, 11, 7, 5, 42), now: now),
-      '10:42\u202fAM',
+      '10:42\u00a0AM',
     );
   });
 
@@ -40,21 +40,41 @@ void main() {
     // 21:00 UTC on the 5th is 02:00 on the 6th in Pakistan.
     expect(
       await _label(tester, DateTime.utc(2026, 11, 5, 21), now: now),
-      'Nov 6, 2:00\u202fAM',
+      'Nov 6, 2:00\u00a0AM',
     );
   });
 
-  testWidgets('in Urdu', (tester) async {
+  testWidgets('in English, AM keeps a space both faces draw', (tester) async {
+    final label = await _label(
+      tester,
+      DateTime.utc(2026, 11, 7, 5, 42),
+      now: now,
+    );
+    // intl's narrow no-break space has no glyph in either face.
+    expect(label, isNot(contains('\u202f')));
+  });
+
+  testWidgets('in Urdu, the part of the day is named, not AM', (tester) async {
     final label = await _label(
       tester,
       DateTime.utc(2026, 11, 7, 5, 42),
       now: now,
       locale: const Locale('ur'),
     );
-    // Urdu's own pattern would say "10:42 a"; the time reads as in
-    // English, kept left to right inside an Urdu sentence.
-    expect(label, contains('10:42'));
-    expect(label, contains('AM'));
-    expect(label, startsWith('\u2066'));
+    expect(label, '10:42\u00a0صبح');
+  });
+
+  testWidgets('in Urdu, another day joins the date with an Urdu comma', (
+    tester,
+  ) async {
+    // 21:00 UTC on the 5th is 02:00 on the 6th in Pakistan: night.
+    final label = await _label(
+      tester,
+      DateTime.utc(2026, 11, 5, 21),
+      now: now,
+      locale: const Locale('ur'),
+    );
+    expect(label, endsWith('، 2:00\u00a0رات'));
+    expect(label, isNot(contains('AM')));
   });
 }

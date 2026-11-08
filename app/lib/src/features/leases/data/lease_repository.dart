@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
 import 'package:mm_core/mm_core.dart';
@@ -180,7 +181,7 @@ final class SupabaseLeaseRepository implements LeaseRepository {
         'p_effective_month': from.first.toJson(),
         'p_monthly_rent': rent.toJson(),
         'p_reason': reason.db,
-        'p_note': sanitizeOptional(note, maxLength: RentChange.maxNoteLength),
+        'p_note': optionalText(note, RentChange.maxNoteLength),
       },
     );
   });

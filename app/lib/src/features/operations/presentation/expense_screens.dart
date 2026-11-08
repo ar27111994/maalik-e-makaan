@@ -9,7 +9,6 @@ import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
-import 'package:maalik_e_makaan/src/core/prose_row.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/features/ledger/presentation/ledger_labels.dart';
 import 'package:maalik_e_makaan/src/features/operations/application/expenses.dart';
@@ -36,7 +35,7 @@ class ExpensesScreen extends ConsumerWidget {
           : ExpensesList(
               list: (portfolioId: portfolio.id, requestId: null),
               empty: MmEmptyState(
-                icon: MmIcons.cash,
+                icon: MmIcons.receiptText,
                 title: l10n.expensesEmptyTitle,
                 message: l10n.expensesEmptyBody,
               ),
@@ -108,7 +107,7 @@ class ExpenseTile extends StatelessWidget {
     final direction = Directionality.of(context);
     final property = expense.propertyName;
     return MmListTile(
-      leading: const Icon(MmIcons.cash),
+      leading: const Icon(MmIcons.receiptText),
       title: l10n.expenseCategory(expense.category),
       subtitle: appText(
         detailLine([
@@ -121,7 +120,7 @@ class ExpenseTile extends StatelessWidget {
         ]),
         direction,
       ),
-      subtitleMaxLines: 12,
+      subtitleMaxLines: null,
       trailing: BelowText(child: MmAmount(amount: expense.amount)),
       onTap: () => context.go(Routes.expense(expense.id)),
     );
@@ -229,7 +228,7 @@ class _Details extends StatelessWidget {
                   value: reference,
                 ),
               if (expense.notes case final notes?)
-                ProseRow(label: l10n.notesLabel, text: notes),
+                MmDetailRow.prose(label: l10n.notesLabel, value: notes),
             ],
           ),
         ),
@@ -242,7 +241,7 @@ class _Details extends StatelessWidget {
                 title: l10n.paidForJobLabel,
                 subtitle: expense.maintenanceTitle,
                 subtitleMaxLines: 4,
-                trailing: const Icon(MmIcons.chevronEnd),
+                chevron: true,
                 onTap: () => context.go(Routes.maintenanceRequest(request)),
               ),
             ],
@@ -302,7 +301,9 @@ class _DeleteExpenseState extends ConsumerState<_DeleteExpense>
         MmButton(
           label: l10n.deleteAction,
           icon: MmIcons.delete,
-          variant: MmButtonVariant.tertiary,
+          // It asks first (or opens the flow that does): the filled red
+          // button is at the point of no return.
+          variant: MmButtonVariant.destructiveOutlined,
           busy: busy,
           onPressed: _delete,
         ),

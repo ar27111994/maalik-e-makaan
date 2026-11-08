@@ -192,6 +192,14 @@
   "@deleteAccountAction": {
     "description": "Opens account deletion."
   },
+  "settingsAbout": "About",
+  "@settingsAbout": {
+    "description": "Settings section: about the app, with its open-source licences."
+  },
+  "licencesAction": "Open-source licences",
+  "@licencesAction": {
+    "description": "Button that opens the licences of the open-source software, fonts and icons the app uses."
+  },
   "failureNetwork": "No connection. Check your internet and try again.",
   "@failureNetwork": {
     "description": "The request could not reach the server."
@@ -3253,10 +3261,6 @@
   "documentFileLabel": "File",
   "@documentFileLabel": {
     "description": "Label of a document's file type and size."
-  },
-  "documentSheetTitle": "Document",
-  "@documentSheetTitle": {
-    "description": "Title of the sheet of one document (its name is shown inside)."
   },
   "documentPreviewLabel": "Preview of the photo",
   "@documentPreviewLabel": {
@@ -6546,15 +6550,6 @@
   "@seeTenantsAction": {
     "description": "Action of an insight card about several tenancies: the tenants, whose tenancies they open."
   },
-  "over60Split": "Of the {amount} over 60 days late:",
-  "@over60Split": {
-    "description": "Heading of the split of the oldest overdue rent.",
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
   "dashboardNoPropertiesTitle": "No properties yet",
   "@dashboardNoPropertiesTitle": {
     "description": "Dashboard of a portfolio without properties."
@@ -6912,10 +6907,6 @@
   "@age31to60": {
     "description": "Part of the amount owed overdue by 31 to 60 days."
   },
-  "ageOver60": "Over 60 days late",
-  "@ageOver60": {
-    "description": "Part of the amount owed overdue by more than 60 days."
-  },
   "age61to90": "61 to 90 days late",
   "@age61to90": {
     "description": "Part of the amount owed overdue by 61 to 90 days."
@@ -6924,7 +6915,7 @@
   "@ageOver90": {
     "description": "Part of the amount owed overdue by more than 90 days."
   },
-  "ageingSummary": "{total} rupees owed: {notDue} not yet due, {early} up to 30 days late, {middle} 31 to 60 days late, {late} over 60 days late.",
+  "ageingSummary": "{total} rupees owed: {notDue} not yet due, {early} up to 30 days late, {middle} 31 to 60 days late, {older} 61 to 90 days late, {late} over 90 days late.",
   "@ageingSummary": {
     "description": "What screen readers hear for the bar of what is owed by age.",
     "placeholders": {
@@ -6938,6 +6929,9 @@
         "type": "String"
       },
       "middle": {
+        "type": "String"
+      },
+      "older": {
         "type": "String"
       },
       "late": {
@@ -7677,5 +7671,98 @@
   "daysOverdueLabel": "Days overdue",
   "@daysOverdueLabel": {
     "description": "Column of how many days the oldest overdue due is late."
+  },
+  "timeOfDay": "{time}\u00a0{period, select, morning{in the morning} noon{in the afternoon} afternoon{in the late afternoon} evening{in the evening} other{at night}}",
+  "@timeOfDay": {
+    "description": "A time of day on the 12-hour clock named by its part of the day, as Urdu writes times (CLDR's flexible day periods for Urdu, pattern h:mm B): '10:42 صبح'. Only the Urdu UI shows it; English uses AM and PM. morning is 4:00-11:59, noon 12:00-15:59, afternoon 16:00-17:59, evening 18:00-19:59, other (night) 20:00-3:59.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "10:42"
+      },
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "keepRepairAction": "Keep the repair",
+  "@keepRepairAction": {
+    "description": "The way out of the dialog that asks to cancel a repair, in place of 'Cancel' beside 'Close as cancelled' (which would be ambiguous): the repair stays as it is."
+  },
+  "keepInvitationAction": "Keep the invitation",
+  "@keepInvitationAction": {
+    "description": "The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous, in Urdu too: both are منسوخ کریں): the invitation stays."
+  },
+  "deletePortfolioSection": "Delete this portfolio",
+  "@deletePortfolioSection": {
+    "description": "Heading of the part of the portfolio settings where an owner deletes the portfolio."
+  },
+  "deletePortfolioHelp": "Everything in it goes for good, for everyone in it: properties, tenants, tenancies, payments and receipts, expenses and documents. Keep copies of any receipts and statements you need first.",
+  "@deletePortfolioHelp": {
+    "description": "What deleting a portfolio does, under its heading."
+  },
+  "deletePortfolioAction": "Delete portfolio",
+  "@deletePortfolioAction": {
+    "description": "Button that starts deleting the portfolio (it asks for the name first), and the dialog's confirm button."
+  },
+  "deletePortfolioTitle": "Delete {name} and everything in it?",
+  "@deletePortfolioTitle": {
+    "description": "Title of the dialog that confirms deleting a portfolio.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Raza Properties"
+      }
+    }
+  },
+  "deletePortfolioBody": "Every member loses it at once, and it cannot be recovered, not even by us.",
+  "@deletePortfolioBody": {
+    "description": "Body of the dialog that confirms deleting a portfolio."
+  },
+  "portfolioDeleted": "{name} deleted.",
+  "@portfolioDeleted": {
+    "description": "Confirmation after a portfolio was deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Raza Properties"
+      }
+    }
+  },
+  "chooseTenantTitle": "Choose the tenant",
+  "@chooseTenantTitle": {
+    "description": "Title of the sheet that searches the tenants to start a tenancy with."
+  },
+  "chooseTenantAction": "Choose the tenant",
+  "@chooseTenantAction": {
+    "description": "Button of the new tenancy form that opens the tenant search, while none is chosen."
+  },
+  "changeTenantAction": "Choose another tenant",
+  "@changeTenantAction": {
+    "description": "Button of the new tenancy form that opens the tenant search, once one is chosen."
+  },
+  "noTenantChosen": "Not chosen yet",
+  "@noTenantChosen": {
+    "description": "Shown for the tenant or the unit of a new tenancy before one is chosen."
+  },
+  "chooseUnitTitle": "Choose the unit",
+  "@chooseUnitTitle": {
+    "description": "Title of the sheet that lists the properties, then their units, to start a tenancy in."
+  },
+  "chooseUnitAction": "Choose the unit",
+  "@chooseUnitAction": {
+    "description": "Button of the new tenancy form that opens the unit list, while none is chosen."
+  },
+  "changeUnitAction": "Choose another unit",
+  "@changeUnitAction": {
+    "description": "Button of the new tenancy form that opens the unit list, once one is chosen."
+  },
+  "otherPropertyAction": "Other properties",
+  "@otherPropertyAction": {
+    "description": "In the unit sheet, goes back from one property's units to the list of properties."
+  },
+  "validationChooseUnit": "Choose the unit.",
+  "@validationChooseUnit": {
+    "description": "Error when a new tenancy is started without a unit."
   }
 }

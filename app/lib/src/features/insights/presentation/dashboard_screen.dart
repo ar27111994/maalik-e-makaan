@@ -320,7 +320,6 @@ class _Owed extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final owed = dashboard.outstanding;
-    final over60 = owed.days61to90 + owed.over90;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -340,13 +339,16 @@ class _Owed extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // The four buckets INS-01 asks for, after what is not yet
+                // due, each in its own overdue tone.
                 MmProportionBar(
                   semanticSummary: l10n.ageingSummary(
                     spokenFigure(context, owed.total),
                     spokenFigure(context, owed.notDue),
                     spokenFigure(context, owed.days1to30),
                     spokenFigure(context, owed.days31to60),
-                    spokenFigure(context, over60),
+                    spokenFigure(context, owed.days61to90),
+                    spokenFigure(context, owed.over90),
                   ),
                   segments: [
                     MmProportionSegment(
@@ -365,27 +367,17 @@ class _Owed extends StatelessWidget {
                       tone: MmSegmentTone.overdue,
                     ),
                     MmProportionSegment(
-                      label: l10n.ageOver60,
-                      value: over60,
+                      label: l10n.age61to90,
+                      value: owed.days61to90,
+                      tone: MmSegmentTone.overdueOlder,
+                    ),
+                    MmProportionSegment(
+                      label: l10n.ageOver90,
+                      value: owed.over90,
                       tone: MmSegmentTone.overdueSevere,
                     ),
                   ],
                 ),
-                // The bar has three overdue tones (mm_ui has no fourth):
-                // its oldest part is split here, under a heading that says
-                // so, into the last two buckets INS-01 asks for.
-                if (over60.isPositive) ...[
-                  const SizedBox(height: MmSpace.s3),
-                  const Divider(height: MmSize.hairline),
-                  const SizedBox(height: MmSpace.s3),
-                  _Split(
-                    heading: l10n.over60Split(moneyText(context, over60)),
-                    parts: [
-                      (l10n.age61to90, owed.days61to90),
-                      (l10n.ageOver90, owed.over90),
-                    ],
-                  ),
-                ],
               ],
             ),
           ),
@@ -400,45 +392,6 @@ class _Owed extends StatelessWidget {
             ],
           ],
         ],
-      ],
-    );
-  }
-}
-
-/// A part of the amount owed split by age: a heading saying which part,
-/// then each share, indented under it and set in the size of the bar's
-/// legend, so they read as a breakdown and not as more debts.
-class _Split extends StatelessWidget {
-  const new({required this.heading, required this.parts});
-
-  final String heading;
-  final List<(String, Money)> parts;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final colors = context.mm.colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(heading, style: text.bodyMedium!.copyWith(color: colors.inkMuted)),
-        for (final (label, amount) in parts)
-          Padding(
-            padding: const EdgeInsetsDirectional.only(
-              start: MmSpace.s4,
-              top: MmSpace.s2,
-            ),
-            child: MergeSemantics(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: MmSpace.s2,
-                children: [
-                  Expanded(child: Text(label, style: text.bodyMedium)),
-                  MmAmount(amount: amount, size: MmAmountSize.small),
-                ],
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -486,7 +439,7 @@ class ArrearCard extends StatelessWidget {
               child: MmStatusBadge(
                 status: MmStatus.overdue,
                 label: l10n.overdueOldest(
-                  wrappableAmount(money.format(arrear.overdue)),
+                  money.format(arrear.overdue),
                   arrear.daysOverdue,
                 ),
               ),
@@ -604,7 +557,6 @@ class UpcomingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.mm.colors;
-    final direction = Directionality.of(context);
     return MmListTile(
       leading: Icon(
         item.icon,
@@ -614,13 +566,12 @@ class UpcomingTile extends StatelessWidget {
           UpcomingTone.later => null,
         },
       ),
-      title: appText(item.title, direction),
-      subtitle: appText(
-        detailLine([dateInLine(context, item.date), item.detail]),
-        direction,
-      ),
+      title: item.title,
+      subtitle: detailLine([dateInLine(context, item.date), item.detail]),
       subtitleMaxLines: 6,
-      trailing: const Icon(MmIcons.chevronEnd),
+      // The app's sentences, the landlord's names isolated inside.
+      userData: false,
+      chevron: true,
       onTap: () => context.go(item.route),
     );
   }
@@ -724,12 +675,9 @@ class _Vacant extends StatelessWidget {
             for (final unit in units)
               MmListTile(
                 leading: const Icon(MmIcons.unit),
-                title: appText(
-                  l10n.unitAtProperty(
-                    inSentence(unit.unitLabel, direction),
-                    inSentence(unit.propertyName, direction),
-                  ),
-                  direction,
+                title: l10n.unitAtProperty(
+                  inSentence(unit.unitLabel, direction),
+                  inSentence(unit.propertyName, direction),
                 ),
                 subtitle: detailLine([
                   l10n.vacantFor(unit.vacantDays),
@@ -737,7 +685,8 @@ class _Vacant extends StatelessWidget {
                     l10n.askingRentValue(moneyText(context, rent)),
                 ]),
                 subtitleMaxLines: 4,
-                trailing: const Icon(MmIcons.chevronEnd),
+                userData: false,
+                chevron: true,
                 onTap: () =>
                     context.go(Routes.unit(unit.propertyId, unit.unitId)),
               ),

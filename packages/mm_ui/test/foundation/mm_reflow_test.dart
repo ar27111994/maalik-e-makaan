@@ -413,4 +413,51 @@ void main() {
       expect(line.height, 40);
     });
   });
+
+  group('MmReflow with a line below', () {
+    const email = 'kamran.ahmed.raza@example.com';
+
+    Widget tile({required double width}) => SizedBox(
+      width: width,
+      child: const MmReflow(
+        start: Text('Ali'),
+        below: Text(email),
+        end: SizedBox(key: Key('badge'), width: 120, height: 20),
+        stackedAtEnd: true,
+      ),
+    );
+
+    testWidgets('moves the end widget under the text when the line below '
+        'cannot break narrow enough to sit beside it', (tester) async {
+      await pumpThemed(tester, tile(width: 300));
+      final below = paragraphOf(tester, email);
+      final narrowest = below.getMinIntrinsicWidth(double.infinity);
+      // The title and the badge fit side by side; the address does not.
+      expect(_width(tester, 'Ali') + MmReflow.spacing + 120, lessThan(300));
+      expect(narrowest + MmReflow.spacing + 120, greaterThan(300));
+      final badge = tester.getRect(find.byKey(const Key('badge')));
+      expect(
+        badge.top,
+        greaterThanOrEqualTo(tester.getRect(find.text(email)).bottom),
+      );
+      // The address keeps its one line: it is never cut inside a word.
+      expect(below.size.height, below.preferredLineHeight);
+    });
+
+    testWidgets('keeps the end widget beside the text when the line below '
+        'can wrap narrow enough', (tester) async {
+      await pumpThemed(tester, tile(width: 400), size: const Size(480, 740));
+      final badge = tester.getRect(find.byKey(const Key('badge')));
+      expect(badge.top, lessThan(tester.getRect(find.text('Ali')).bottom));
+    });
+
+    testWidgets('reports the same height dry as laid out', (tester) async {
+      await pumpThemed(tester, tile(width: 300));
+      final render = _render(tester);
+      expect(
+        render.getDryLayout(const BoxConstraints(maxWidth: 300)),
+        render.size,
+      );
+    });
+  });
 }

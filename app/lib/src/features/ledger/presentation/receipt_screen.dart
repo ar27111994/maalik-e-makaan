@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
-import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/presentation/documents_section.dart';
@@ -72,7 +71,7 @@ class ReceiptScreen extends ConsumerWidget {
               MmReceipt(
                 issuer: issuer,
                 numberLabel: l10n.receiptNumberLabel,
-                receiptNumber: breakableNumber(payment.receiptNumber),
+                receiptNumber: payment.receiptNumber,
                 amountLabel: l10n.amountReceivedLabel,
                 amount: payment.amount,
                 voidedLabel: voidedAt == null
@@ -221,7 +220,9 @@ class ReceiptScreen extends ConsumerWidget {
                 MmButton(
                   label: l10n.voidPaymentAction,
                   icon: MmIcons.close,
-                  variant: MmButtonVariant.tertiary,
+                  // It asks first (or opens the flow that does): the filled red
+                  // button is at the point of no return.
+                  variant: MmButtonVariant.destructiveOutlined,
                   onPressed: () {
                     final controller = ref.read(provider.notifier);
                     unawaited(

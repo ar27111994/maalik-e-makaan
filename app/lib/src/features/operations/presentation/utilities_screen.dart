@@ -219,8 +219,8 @@ class UtilityAccountTile extends StatelessWidget {
         ]),
         direction,
       ),
-      subtitleMaxLines: 12,
-      trailing: const Icon(MmIcons.chevronEnd),
+      subtitleMaxLines: null,
+      chevron: true,
       onTap: () => context.go(Routes.utility(account.id)),
     );
   }
@@ -251,7 +251,10 @@ class BillTile extends StatelessWidget {
     return MmListTile(
       leading: Icon(utilityIcon(connection.type)),
       title: named
-          ? l10n.billOfMonth(connectionNameOf(context, connection), month)
+          ? l10n.billOfMonth(
+              inSentence(connectionNameOf(context, connection), direction),
+              month,
+            )
           : month,
       subtitle: appText(
         detailLine([
@@ -264,7 +267,7 @@ class BillTile extends StatelessWidget {
         ]),
         direction,
       ),
-      subtitleMaxLines: 12,
+      subtitleMaxLines: null,
       trailing: BelowText(
         child: Wrap(
           alignment: WrapAlignment.end,

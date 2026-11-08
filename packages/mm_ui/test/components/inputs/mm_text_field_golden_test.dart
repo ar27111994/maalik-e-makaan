@@ -46,4 +46,33 @@ void main() {
     ),
     sizes: const {MmVariant.largeText: Size(360, 768)},
   );
+
+  // Words typed in the other language run in their own direction, under
+  // labels in the UI's direction: a message of several lines from the start
+  // of its own direction, a one-line name at the start edge of the form.
+  goldenEveryVariant(
+    'mm_text_field_direction',
+    () => GoldenPage(
+      (context, tr) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: MmSpace.s4,
+        children: [
+          MmTextField(
+            label: tr('Reminder', 'یاد دہانی'),
+            initialValue: tr(
+              'اکتوبر کا کرایہ 45,000 روپے واجب ہے۔',
+              'October rent of Rs 45,000 is due.',
+            ),
+            minLines: 2,
+            maxLines: 4,
+          ),
+          MmTextField(
+            label: tr('Tenant name', 'کرایہ دار کا نام'),
+            initialValue: tr('علی رضا', 'Ali Raza'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

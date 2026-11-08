@@ -27,6 +27,11 @@ Widget barChartGolden() => GoldenPage(
   ),
 );
 
+/// Money in and money out side by side, showing the latest month.
+Widget barChartCashFlowGolden() => GoldenPage(
+  (context, say) => lakhGrouping(chartCard(context, cashFlowChart(say))),
+);
+
 /// The rent chart swapped for its table.
 Widget barChartTableGolden() => GoldenPage(
   (context, say) => lakhGrouping(chartCard(context, rentChart(say))),
@@ -91,6 +96,12 @@ void main() {
   });
 
   goldenEveryVariant('mm_bar_chart_units', barChartUnitsGolden);
+
+  goldenEveryVariant(
+    'mm_bar_chart_cash_flow',
+    barChartCashFlowGolden,
+    sizes: const {MmVariant.largeText: Size(360, 900)},
+  );
 
   goldenEveryVariant(
     'mm_bar_chart_year',

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
@@ -710,6 +710,120 @@ void main() {
         tester.widget<EditableText>(find.byType(EditableText)).style.fontFamily,
         contains(MmFontFamily.latin),
       );
+    });
+  });
+
+  group('MmTextField direction', () {
+    RenderEditable editable(WidgetTester tester) =>
+        tester.allRenderObjects.whereType<RenderEditable>().single;
+
+    testWidgets('Urdu typed in the English UI runs right to left, at the '
+        'start edge, under a label that stays left to right', (tester) async {
+      await pumpThemed(tester, const MmTextField(label: 'Reminder'));
+      // Empty, the field runs in the UI's direction.
+      expect(editable(tester).textDirection, TextDirection.ltr);
+      await tester.enterText(find.byType(TextField), 'کرایہ واجب ہے۔');
+      await tester.pump();
+      expect(editable(tester).textDirection, TextDirection.rtl);
+      expect(editable(tester).textAlign, TextAlign.left);
+      expect(paragraphOf(tester, 'Reminder').textDirection, TextDirection.ltr);
+      // An English sentence that mentions an Urdu name runs left to right.
+      await tester.enterText(find.byType(TextField), 'Rent from علی.');
+      await tester.pump();
+      expect(editable(tester).textDirection, TextDirection.ltr);
+      // Text without letters takes the UI's direction.
+      await tester.enterText(find.byType(TextField), '12');
+      await tester.pump();
+      expect(editable(tester).textDirection, TextDirection.ltr);
+    });
+
+    testWidgets('a message of several lines in the other language starts '
+        'every line at the start of its own direction', (tester) async {
+      // An Urdu reminder in the English UI, as the reminder sheet takes it.
+      const message =
+          'اکتوبر کا کرایہ 45,000 روپے واجب ہے۔ براہِ کرم جمعہ تک ادا کر دیں، '
+          'ورنہ تاخیر کی فیس لگے گی۔';
+      await pumpThemed(
+        tester,
+        const SizedBox(
+          width: 240,
+          child: MmTextField(
+            label: 'Message',
+            initialValue: message,
+            minLines: 6,
+            maxLines: 14,
+          ),
+        ),
+      );
+      final render = editable(tester);
+      expect(render.textDirection, TextDirection.rtl);
+      expect(render.textAlign, TextAlign.start);
+      // Each line ends (on the right, where Urdu starts) at the same edge.
+      final rights = <double>[];
+      for (var offset = 0; offset < message.length; offset++) {
+        final boxes = render.getBoxesForSelection(
+          TextSelection(baseOffset: offset, extentOffset: offset + 1),
+        );
+        if (boxes.isEmpty) continue;
+        final line = render.getLineAtOffset(TextPosition(offset: offset));
+        if (line.start == offset) {
+          final ends = render.getBoxesForSelection(
+            TextSelection(baseOffset: line.start, extentOffset: line.end),
+          );
+          rights.add(
+            ends.map((box) => box.right).reduce((a, b) => a > b ? a : b),
+          );
+        }
+      }
+      expect(rights.length, greaterThan(1), reason: 'it wraps');
+      for (final right in rights) {
+        expect(right, moreOrLessEquals(rights.first, epsilon: 6));
+      }
+      // One line of it in a one-line field keeps to the form's start edge.
+      await pumpThemed(
+        tester,
+        const MmTextField(label: 'Tenant name', initialValue: 'علی رضا'),
+      );
+      expect(editable(tester).textAlign, TextAlign.left);
+    });
+
+    testWidgets('English typed in the Urdu UI runs left to right, under a '
+        'label that stays right to left', (tester) async {
+      final controller = TextEditingController();
+      addTearDown(controller.dispose);
+      await pumpThemed(
+        tester,
+        MmTextField(label: 'یاد دہانی', controller: controller, maxLines: 3),
+        variant: MmVariant.urdu,
+      );
+      expect(editable(tester).textDirection, TextDirection.rtl);
+      // Set from outside, through the controller.
+      controller.text = 'Rent is due.';
+      await tester.pump();
+      expect(editable(tester).textDirection, TextDirection.ltr);
+      // A field of several lines: from the start of the text's own
+      // direction, the left edge.
+      expect(editable(tester).textAlign, TextAlign.start);
+      expect(paragraphOf(tester, 'یاد دہانی').textDirection, TextDirection.rtl);
+      // Starting with an Urdu word turns it back, though the script is
+      // still mixed.
+      controller.text = 'کرایہ Rent';
+      await tester.pump();
+      expect(editable(tester).textDirection, TextDirection.rtl);
+      expect(editable(tester).textAlign, TextAlign.start);
+    });
+
+    testWidgets('a left-to-right field stays left to right whatever is '
+        'typed', (tester) async {
+      await pumpThemed(
+        tester,
+        const MmTextField(label: 'ای میل', leftToRight: true),
+        variant: MmVariant.urdu,
+      );
+      await tester.enterText(find.byType(TextField), 'علی');
+      await tester.pump();
+      expect(editable(tester).textDirection, TextDirection.ltr);
+      expect(editable(tester).textAlign, TextAlign.right);
     });
   });
 

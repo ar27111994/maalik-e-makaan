@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/handovers/data/handover.dart';
 import 'package:maalik_e_makaan/src/features/ledger/data/ledger.dart';
-import 'package:mm_core/mm_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Cash handovers and positions. Every method throws [AppFailure].
@@ -125,10 +125,7 @@ final class SupabaseHandoverRepository implements HandoverRepository {
           'void_cash_handover',
           params: {
             'p_handover_id': handoverId,
-            'p_reason': sanitizeSingleLine(
-              reason,
-              maxLength: Charge.maxReasonLength,
-            ),
+            'p_reason': singleLineWithin(reason, Charge.maxReasonLength),
           },
         );
         return CashHandover.fromRow(row);

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
@@ -35,21 +36,43 @@ String momentLabel(BuildContext context, DateTime at) {
       '${urdu ? '، ' : ', '}${timeLabel(context, local)}';
 }
 
-/// The time of day of [local], a time already in Pakistan: "10:42 AM".
+/// The time of day of [local], a time already in Pakistan: "10:42 AM" in
+/// English, "10:42 صبح" in Urdu.
 ///
-/// Urdu's own pattern marks the half of the day with a bare "a" or "p"
-/// ("10:42 a"), which reads as a stray letter, so the Urdu UI shows the
-/// time as English does, kept left to right inside its sentence.
+/// Urdu's own pattern in `intl` marks the half of the day with a bare "a"
+/// or "p" ("10:42 a"), which reads as a stray letter, and the Latin "AM" is
+/// foreign in an Urdu sentence. Urdu names the part of the day instead, as
+/// CLDR's flexible day periods for Urdu do (its `Bhm` pattern, "h:mm B"):
+/// صبح from 4:00, دوپہر from 12:00, سہ پہر from 16:00, شام from 18:00 and
+/// رات from 20:00 to 3:59 ([dayPeriodOf]). No part is longer than twelve
+/// hours, so no two times of a day read the same: "10:42 صبح" is 10:42 and
+/// "10:42 رات" is 22:42.
+///
+/// English puts a narrow no-break space before "AM", which neither of the
+/// app's faces draws: it is shown as a no-break space.
 String timeLabel(BuildContext context, DateTime local) {
   final locale = Localizations.localeOf(context);
   if (locale.languageCode != 'ur') {
-    return DateFormat.jm(locale.toLanguageTag()).format(local);
+    return MmSemantics.drawableSpaces(
+      DateFormat.jm(locale.toLanguageTag()).format(local),
+    );
   }
-  // English puts a narrow no-break space before "AM", which neither app
-  // face draws; a plain one becomes a no-break space here.
-  final time = DateFormat.jm('en').format(local).replaceAll('\u202F', ' ');
-  return MmSemantics.leftToRight(time);
+  final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+  final minute = local.minute.toString().padLeft(2, '0');
+  return AppLocalizations.of(context)
+      .timeOfDay('$hour:$minute', dayPeriodOf(local.hour));
 }
+
+/// The part of the day ([AppLocalizations.timeOfDay]'s `period`) the hour
+/// [hour] (0 to 23) of the 24-hour clock falls in, after CLDR's day periods
+/// for Urdu.
+String dayPeriodOf(int hour) => switch (hour) {
+  >= 4 && < 12 => 'morning',
+  >= 12 && < 16 => 'noon',
+  >= 16 && < 18 => 'afternoon',
+  >= 18 && < 20 => 'evening',
+  _ => 'night',
+};
 
 /// The month of [period] in the app's language: "November 2026".
 String monthLabel(BuildContext context, MonthPeriod period) =>

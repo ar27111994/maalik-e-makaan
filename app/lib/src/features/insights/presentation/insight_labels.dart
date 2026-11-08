@@ -26,7 +26,8 @@ String tenthsText(int tenths) =>
 /// [amount] in the app's money format, for a sentence or a detail line:
 /// its currency word and figures are joined by a no-break space, so they
 /// never part at a line end (the whole amount wraps as one word). Only a
-/// badge too narrow for a whole amount uses [wrappableAmount].
+/// list row's title too narrow for a whole amount uses [wrappableAmount]
+/// (mm_ui's badges loosen their own breaks).
 String moneyText(BuildContext context, Money amount) =>
     MmFormats.moneyOf(context).format(amount);
 

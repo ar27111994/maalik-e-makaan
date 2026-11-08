@@ -68,13 +68,32 @@ void main() {
       tester.getTopLeft(find.text('Owing most')).dy,
       lessThan(tester.getTopLeft(find.text('What needs attention')).dy),
     );
-    // The oldest part of the bar, split under a heading that says so.
+    // The bar holds the four overdue buckets INS-01 asks for, each in
+    // its own tone, after what is not yet due.
+    final bar = tester.widget<MmProportionBar>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is MmProportionBar &&
+            widget.segments.any(
+              (segment) => segment.label == '61 to 90 days late',
+            ),
+      ),
+    );
     expect(
-      find.text('Of the Rs\u00A045,000 over 60 days late:'),
-      findsOneWidget,
+      [for (final segment in bar.segments) segment.tone],
+      [
+        MmSegmentTone.neutral,
+        MmSegmentTone.dueSoon,
+        MmSegmentTone.overdue,
+        MmSegmentTone.overdueOlder,
+        MmSegmentTone.overdueSevere,
+      ],
     );
     expect(find.text('61 to 90 days late'), findsOneWidget);
     expect(find.text('Over 90 days late'), findsOneWidget);
+    expect(bar.semanticSummary, contains('61 to 90 days late'));
+    expect(bar.semanticSummary, endsWith('over 90 days late.'));
+    expect(find.textContaining('over 60 days late'), findsNothing);
     expect(find.text('Vacant units'), findsOneWidget);
     expect(find.text('Annexe room, Gulberg House'), findsOneWidget);
     // An amount in a sentence never parts from its currency word.

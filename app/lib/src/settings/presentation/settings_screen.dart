@@ -44,6 +44,8 @@ class SettingsScreen extends ConsumerWidget {
           const _Numbers(),
           const SizedBox(height: MmSpace.s8),
           const _Account(),
+          const SizedBox(height: MmSpace.s8),
+          const _About(),
         ],
       ),
     );
@@ -250,8 +252,34 @@ class _Account extends ConsumerWidget {
         MmButton(
           label: l10n.deleteAccountAction,
           icon: MmIcons.delete,
-          variant: MmButtonVariant.tertiary,
+          // It asks first (or opens the flow that does): the filled red
+          // button is at the point of no return.
+          variant: MmButtonVariant.destructiveOutlined,
           onPressed: () => context.go(Routes.deleteAccount),
+        ),
+      ],
+    );
+  }
+}
+
+/// The licences of the software, fonts and icons the app is built with
+/// (the fonts' and icons' are registered by `MmLicenses.register`).
+class _About extends StatelessWidget {
+  const new();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MmSectionHeader(title: l10n.settingsAbout),
+        const SizedBox(height: MmSpace.s4),
+        MmButton(
+          label: l10n.licencesAction,
+          variant: MmButtonVariant.secondary,
+          onPressed: () =>
+              showLicensePage(context: context, applicationName: l10n.appName),
         ),
       ],
     );

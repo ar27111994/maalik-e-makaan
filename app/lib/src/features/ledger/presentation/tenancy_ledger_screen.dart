@@ -183,7 +183,13 @@ class _Balance extends ConsumerWidget {
                 ),
               MmDetailRow(
                 label: l10n.tenancyTitle,
-                value: l10n.unitAtProperty(lease.unitLabel, lease.propertyName),
+                value: appText(
+                  l10n.unitAtProperty(
+                    inSentence(lease.unitLabel, Directionality.of(context)),
+                    inSentence(lease.propertyName, Directionality.of(context)),
+                  ),
+                  Directionality.of(context),
+                ),
               ),
               if (paidOn != null)
                 MmDetailRow(
@@ -228,7 +234,7 @@ class _Balance extends ConsumerWidget {
               leading: const Icon(MmIcons.lease),
               title: l10n.openTenancyAction,
               subtitle: lease.tenantName,
-              trailing: const Icon(MmIcons.chevronEnd),
+              chevron: true,
               onTap: () => context.go(Routes.lease(lease.id)),
             ),
           ],

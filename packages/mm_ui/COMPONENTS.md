@@ -61,13 +61,28 @@ first: it is the source of the visual rules this file turns into code convention
   - `MmBalanced` (a paragraph as narrow as it can be without another line, so a centred
     paragraph never ends on a lone word: empty and error states use it);
   - `MmIconLabel` (an icon and words in one paragraph, the icon growing at most 150%, the
-    words split by script as `MmScriptText` splits them) and `MmLineIcon` (an icon centred on
-    the first line of the text beside it, growing at most 150%);
+    words split by script as `MmScriptText` splits them; with `fitWords`, an amount too wide
+    for its line wraps between its figures and its currency word) and `MmLineIcon` (an icon
+    centred on the first line of the text beside it, growing at most 150%);
+  - `MmIconSize` (public: `MmIconSize.withText(context, size)`, an icon beside words grown
+    with the text up to `MmIconSize.maxScale`, 150%; `MmIconLabel.scaledSize` is the same);
+  - `MmFitWords` (shows words as they are wherever their longest word fits, and with more
+    places to break, `MmFitWords.loosened`, where it does not: status badges, tone chips and
+    the receipt's seal use it, so an amount or a receipt number at 200% text breaks between
+    its figures and its currency word or after a dash, never inside the figures; the version
+    it does not show is laid out unwrapped, so nothing that reads the laid-out lines finds a
+    cut word the screen never shows. Give these components an amount or a number as it is;
+    `MmListTile` does not loosen its title or subtitle, so a list row loosens an amount
+    there itself);
   - `MmScriptText` (text whose Latin letters and figures inside Urdu are set in the Latin face,
     on the Urdu style's lines) and `MmUserText` (text the landlord wrote: `MmScriptText`, also
     kept in its own direction with `MmSemantics.isolated`): use `MmUserText` for names,
     addresses, property names, identifiers and the options a landlord created, and
-    `MmScriptText` for the app's own sentences with figures in them;
+    `MmScriptText` for the app's own sentences with figures in them. A Latin run takes the
+    spaces on either side of it, so the space between an Urdu word and a Latin name is the
+    Latin face's (Nastaliq's is half as wide). Both show the narrow no-break space `intl`
+    puts before AM and PM as a no-break space (`MmSemantics.drawableSpaces`, public, for the
+    app's own `Text`): neither face draws it;
   - `MmTextMetrics` (how much room a label takes as a `Text` sets it: its size, its widest
     word, its line count and how far Nastaliq rises and falls past its lines);
   - `MmTone` and `MmToneChip` (the colour families of statuses and the chip that shows one
@@ -99,8 +114,9 @@ first: it is the source of the visual rules this file turns into code convention
   empty or error state), `avatar` (a list row's avatar and its skeleton), `listRow` (the
   shortest list row), `stroke` (spinners inside controls, chart lines, outlined bars),
   `frame` (the nameplate border, receipt seal and void stamp), `focusRing` and `focusGap`,
-  `tabIndicator`, `sheetMax` and `stateMax` (widest a sheet and a state block grow) and
-  `listPane` (the list column beside its details); `MmDuration.pulse` is one fade of a
+  `tabIndicator`, `sheetMax` and `stateMax` (widest a sheet and a state block grow),
+  `listPane` (the list column beside its details) and `preview` (the height of a photo's
+  preview in a form or sheet); `MmDuration.pulse` is one fade of a
   skeleton's pulse. If a component needs a size the page grid or more than one component
   shares, or one the design language fixes, add a token (`design/tokens/maalik.tokens.json`,
   `make tokens`), not a constant. Two kinds of value stay named, documented constants in the
@@ -153,8 +169,10 @@ first: it is the source of the visual rules this file turns into code convention
   icon (and, in Urdu, hangs into it): `MmAdaptiveScaffold` places a destination's count past
   the icon's top end corner itself, clear of the glyph in both directions.
 - **Icons.** `MmIcons` only. Icons that point mirror in Urdu, trend arrows included
-  (`trendUp`, `trendDown`, `trendFlat`), since time runs from the start edge. Icons beside
-  text grow with it, at most 150% (`MmIconLabel.scaledSize`), and so do the controls that
+  (`trendUp`, `trendDown`, `trendFlat`), since time runs from the start edge. Lucide's
+  `receipt` glyph carries a dollar sign: for a receipt, a statement or a cheque in a rupee
+  app use `receiptText`, which has lines of text instead. Icons beside
+  text grow with it, at most 150% (`MmIconSize.withText`), and so do the controls that
   stand for a choice: checkboxes, radio buttons, switches and a chip's check. The icon font
   keeps each glyph where Lucide draws it, centred in its square (`make icons` sets each
   glyph's side bearing, and `make icons-check` fails on a glyph off its place).
@@ -169,7 +187,7 @@ first: it is the source of the visual rules this file turns into code convention
   overlays (`screen.dart`), golden compositions (`golden_page.dart`: `GoldenPage`, `Say`) and
   small helpers (`helpers.dart`: `colorsOf`, `tapped`, `useKeyboardHighlights`,
   `withoutAnimations`, `pumpLargeNarrow`, `expectFitsNarrowLargeText`, `textIn`, `paragraphOf`,
-  `styleOf`, `hasFocus`, `focusedAt`, `labelsIn`, `readingOrder`, `painterIn`), keyboard focus
+  `styleOf`, `linesOf`, `hasFocus`, `focusedAt`, `labelsIn`, `readingOrder`, `painterIn`), keyboard focus
   (`focus.dart`: `focusOn`, `focusedGoldenEveryVariant`) and the whole-word check (`words.dart`:
   `brokenWords`, `expectWholeWords`). A family's own test files keep only what is particular
   to it.
@@ -252,5 +270,48 @@ Notes on composing them:
 - **Bar charts of things, not periods,** pass `groupKind: MmBarGroupKind.names`: every bar
   keeps its name, wrapped between words, and the chart shows its table where a name cannot
   fit (large text on a phone). Months may lose every other label; units may not.
+- **Two series: nested or side by side.** A measure against the one it is measured by
+  (collected against due) keeps the default `MmBarArrangement.nested`: the solid bar inside
+  the wide outlined one, readable even for a year on a phone. Two independent measures (money
+  in and money out) pass `arrangement: MmBarArrangement.sideBySide`: two bars of one width, the
+  first series at the start edge (on the right in Urdu), still solid and outlined so they
+  differ without colour.
+- **Overdue by age in four buckets** uses `MmSegmentTone.dueSoon`, `overdue`,
+  `overdueOlder` (cross-hatched) and `overdueSevere` (solid): ever less paper through the red.
+- **Rows that open something** pass `chevron: true` (and `onTap`) to `MmListTile`, never an
+  `Icon` in `trailing`: the chevron stays beside the title however the title wraps, while a
+  trailing amount or badge moves under the text. The chevron keeps its column (its glyph and
+  an 8 dp gap) for the whole height of the row, so the title and subtitle wrap a little sooner
+  than in a row without one; give long words their own places to break (an e-mail after its
+  "@", a date between its month and year). Like Material's list rows, the chevron is centred
+  on a row of one or two lines and sits beside the first line of a taller one, so in a card of
+  mixed rows the chevrons are not all at one height: that is the rule, not a fault. Words from
+  the app's localisations in a row pass `userData: false`, so a label that starts with a Latin
+  word ("PDF رسیدیں") still runs in the UI's direction. `subtitleMaxLines: null` lets a
+  subtitle (a member's role and email) run as long as it needs.
+- **A passage of the landlord's words** (a description, notes, what was done) goes in
+  `MmDetailRow.prose`: the label above, the words under it across the card, in their own
+  script's face and direction, every line from the start of that direction (an English note
+  in the Urdu UI starts each line at the left edge). The other rows keep their values on the
+  end edge.
+- **Sheet titles that are the landlord's data** (a member's name or email, a document's name)
+  pass `userTitle: true` to `showMmSheet`, so a name typed in English is in the Latin face in
+  the Urdu UI.
+- **Destructive buttons.** The button that starts removing, voiding or ending a record is
+  `MmButtonVariant.destructiveOutlined` wherever it sits, the "Delete" at the foot of a
+  record's screen included; the filled `MmButtonVariant.destructive` is for the point of no
+  return (a confirm dialog's button, a reason sheet's last button, the last step of deleting
+  the account). Clearing a notification removes no record and stays `tertiary`.
+  `showMmConfirmDialog(cancelLabel: …)` names the way out when "Cancel" would be ambiguous
+  ("Keep the repair" beside "Cancel the repair").
+- **A link at the foot of a card** is `MmButtonVariant.link`: its label lines up with the
+  card's words and its padding, ink and focus ring reach 16 dp into the card's padding. Give
+  it at least 16 dp of unclipped space on its start side (an `MmCard`'s padding is exactly
+  that); in a clipping container, or one with less padding, its focus ring would be cut.
+- **Text fields follow their text's direction.** `MmTextField` runs its text in the direction
+  of its first letter (Urdu typed in the English UI right to left), with the label in the UI's
+  direction; `leftToRight` fields stay left to right. A one-line field keeps the text at the
+  start edge of the form; a field of several lines (`maxLines` other than 1) starts each line
+  at the start of the text's own direction, as `dir="auto"` does.
 
 The gallery app in `example/` shows every component in every variant.

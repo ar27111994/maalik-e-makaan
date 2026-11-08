@@ -113,7 +113,40 @@ void main() {
       );
     });
 
-    for (final hatch in MmHatch.values) {
+    testWidgets('paints crossed hatching both ways, clipped to the mark', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        _swatch(
+          const MmChartMark(
+            fill: _ink,
+            hatch: MmHatch.crossed,
+            hatchColor: _paper,
+          ),
+        ),
+      );
+      expect(
+        find.byType(MmChartSwatch),
+        paints
+          ..rrect(color: _ink)
+          ..clipRRect()
+          ..line(
+            p1: const Offset(-12, 12),
+            p2: Offset.zero,
+            color: _paper,
+            strokeWidth: MmChartMark.hatchWidth,
+          )
+          ..line(
+            p1: const Offset(-12, 0),
+            p2: const Offset(0, 12),
+            color: _paper,
+            strokeWidth: MmChartMark.hatchWidth,
+          ),
+      );
+    });
+
+    for (final hatch in [MmHatch.rising, MmHatch.falling]) {
       testWidgets('paints ${hatch.name} hatching clipped to the mark', (
         tester,
       ) async {

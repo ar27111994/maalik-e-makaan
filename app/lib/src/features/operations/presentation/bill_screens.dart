@@ -9,7 +9,6 @@ import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
-import 'package:maalik_e_makaan/src/core/prose_row.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
@@ -486,7 +485,7 @@ class _BillDetails extends StatelessWidget {
                 ),
               ),
               if (bill.notes case final notes?)
-                ProseRow(label: l10n.notesLabel, text: notes),
+                MmDetailRow.prose(label: l10n.notesLabel, value: notes),
             ],
           ),
         ),
@@ -497,7 +496,7 @@ class _BillDetails extends StatelessWidget {
               leading: Icon(utilityIcon(connection.type)),
               title: connectionNameOf(context, connection),
               subtitle: l10n.connectionDetailsAction,
-              trailing: const Icon(MmIcons.chevronEnd),
+              chevron: true,
               onTap: () => context.go(Routes.utility(connection.id)),
             ),
             if (bill.liveCharge case final live?)
@@ -506,7 +505,7 @@ class _BillDetails extends StatelessWidget {
                 title: l10n.chargedToTenant,
                 subtitle: l10n.chargedToTenantHelp,
                 subtitleMaxLines: 4,
-                trailing: const Icon(MmIcons.chevronEnd),
+                chevron: true,
                 onTap: () => context.go(Routes.ledger(live.leaseId)),
               ),
           ],
@@ -667,7 +666,9 @@ class _DeleteBillState extends ConsumerState<_DeleteBill> with CommandState {
         MmButton(
           label: l10n.deleteAction,
           icon: MmIcons.delete,
-          variant: MmButtonVariant.tertiary,
+          // It asks first (or opens the flow that does): the filled red
+          // button is at the point of no return.
+          variant: MmButtonVariant.destructiveOutlined,
           busy: busy,
           onPressed: _delete,
         ),

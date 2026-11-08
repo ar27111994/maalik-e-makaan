@@ -100,6 +100,13 @@ abstract final class MmIcons {
     fontPackage: 'mm_ui',
   );
 
+  /// Lucide `receipt-text`.
+  static const IconData receiptText = IconData(
+    0xe5ac,
+    fontFamily: 'MmIcons',
+    fontPackage: 'mm_ui',
+  );
+
   /// Lucide `banknote`.
   static const IconData cash = IconData(
     0xe052,
@@ -657,6 +664,7 @@ abstract final class MmIcons {
     'police': police,
     'ledger': ledger,
     'receipt': receipt,
+    'receiptText': receiptText,
     'cash': cash,
     'bank': bank,
     'card': card,

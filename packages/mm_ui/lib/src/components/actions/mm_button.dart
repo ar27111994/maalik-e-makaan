@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:mm_ui/src/components/actions/mm_action_icon.dart';
 import 'package:mm_ui/src/foundation/mm_button_styles.dart';
 import 'package:mm_ui/src/foundation/mm_script_text.dart';
@@ -17,16 +20,38 @@ enum MmButtonVariant {
   tertiary,
 
   /// An action that removes or destroys a record, filled in the overdue
-  /// colour ("Remove tenant"). Ask for confirmation before acting on it.
+  /// colour ("Remove tenant"): the point of no return, such as the confirm
+  /// button of `showMmConfirmDialog`. Ask for confirmation before acting
+  /// on it.
   destructive,
+
+  /// A text action that lines up with the words around it ("Open Ali
+  /// Raza's tenancy" at the foot of a card): a [tertiary] button whose
+  /// label starts at the start edge, where the text above it starts, while
+  /// its padding, ink and focus ring reach out past that edge into the
+  /// margin (keep [MmSpace.s4] clear there). The part that reaches out
+  /// takes taps where the widgets around the button reach that far (a
+  /// padding around it does; a column between them, narrower than the
+  /// padding, does not), and the label always does.
+  link,
+
+  /// An action that starts removing or ending a record, outlined and
+  /// labelled in the overdue colour ("Remove member" in a member's sheet):
+  /// it opens the confirmation whose button is the filled [destructive]
+  /// one, so a sheet or screen keeps at most one filled button and a red
+  /// fill always means the point of no return.
+  destructiveOutlined,
 }
 
 /// A labelled button: the way a landlord does something on a screen.
 ///
 /// Use [MmButtonVariant.primary] for the one main action of a view,
 /// [MmButtonVariant.secondary] for its alternative,
-/// [MmButtonVariant.tertiary] for low-emphasis actions and
-/// [MmButtonVariant.destructive] for an action that removes a record. The
+/// [MmButtonVariant.tertiary] for low-emphasis actions,
+/// [MmButtonVariant.link] for a low-emphasis action lined up with the words
+/// above it, [MmButtonVariant.destructiveOutlined] for the button that
+/// starts removing a record (it asks for confirmation) and
+/// [MmButtonVariant.destructive] for the one that removes it. The
 /// label is a verb the app supplies from its own localisations ("Record
 /// payment", never "OK"). Long labels wrap and the button grows taller; it
 /// never truncates them.
@@ -93,22 +118,36 @@ class MmButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final callback = busy && onPressed != null ? _ignorePress : onPressed;
     final style = _style(Theme.of(context).colorScheme);
-    final content = _ButtonContent(label: label, icon: icon, busy: busy);
-    final Widget button = switch (variant) {
+    final content = _ButtonContent(
+      label: label,
+      icon: icon,
+      busy: busy,
+      // A link's wrapped lines start where the words above it start.
+      textAlign: variant == MmButtonVariant.link
+          ? TextAlign.start
+          : TextAlign.center,
+    );
+    final button = switch (variant) {
       MmButtonVariant.primary || MmButtonVariant.destructive => FilledButton(
         onPressed: callback,
         style: style,
         child: content,
       ),
-      MmButtonVariant.secondary => OutlinedButton(
-        onPressed: callback,
-        style: style,
-        child: content,
-      ),
+      MmButtonVariant.secondary || MmButtonVariant.destructiveOutlined =>
+        OutlinedButton(onPressed: callback, style: style, child: content),
       MmButtonVariant.tertiary => TextButton(
         onPressed: callback,
         style: style,
         child: content,
+      ),
+      // The label at the button's start, its padding hanging out past the
+      // start edge, so the label lines up with the words above it.
+      MmButtonVariant.link => _HangStart(
+        child: TextButton(
+          onPressed: callback,
+          style: style.copyWith(alignment: AlignmentDirectional.centerStart),
+          child: content,
+        ),
       ),
     };
     if (!expand) return button;
@@ -120,9 +159,13 @@ class MmButton extends StatelessWidget {
   /// colours, and a press that does nothing visible while busy. The theme
   /// draws the focus ring, outside the button when it is filled.
   ButtonStyle _style(ColorScheme scheme) {
-    final base = variant == MmButtonVariant.destructive
-        ? MmButtonStyles.destructive(scheme)
-        : MmButtonStyles.labelled;
+    final base = switch (variant) {
+      MmButtonVariant.destructive => MmButtonStyles.destructive(scheme),
+      MmButtonVariant.destructiveOutlined => MmButtonStyles.destructiveOutlined(
+        scheme,
+      ),
+      _ => MmButtonStyles.labelled,
+    };
     if (!busy) return base;
     return base.copyWith(
       overlayColor: const WidgetStatePropertyAll(Colors.transparent),
@@ -135,11 +178,17 @@ class MmButton extends StatelessWidget {
 
 /// The inside of an [MmButton]: its icon and label, or the busy indicator.
 class _ButtonContent extends StatelessWidget {
-  const new({required this.label, required this.icon, required this.busy});
+  const new({
+    required this.label,
+    required this.icon,
+    required this.busy,
+    required this.textAlign,
+  });
 
   final String label;
   final IconData? icon;
   final bool busy;
+  final TextAlign textAlign;
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +198,7 @@ class _ButtonContent extends StatelessWidget {
     final text = MmScriptText(
       label,
       style: const TextStyle(),
-      textAlign: TextAlign.center,
+      textAlign: textAlign,
       textWidthBasis: TextWidthBasis.longestLine,
     );
     final icon = this.icon;
@@ -218,5 +267,101 @@ class _BusyIndicator extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Lays [child] out [overhang] wider than it is given and hangs that much
+/// of it past the start edge, so content inside a padding of [overhang]
+/// (a text button's) lines up with the start edge. The part that hangs out
+/// takes taps too.
+class _HangStart extends SingleChildRenderObjectWidget {
+  const new({required super.child});
+
+  /// The horizontal padding of a labelled button ([MmButtonStyles]).
+  static const double overhang = MmSpace.s4;
+
+  @override
+  _RenderHangStart createRenderObject(BuildContext context) =>
+      _RenderHangStart(Directionality.of(context));
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderHangStart renderObject,
+  ) => renderObject.textDirection = Directionality.of(context);
+}
+
+class _RenderHangStart extends RenderShiftedBox {
+  new(this._textDirection) : super(null);
+
+  static const double overhang = _HangStart.overhang;
+
+  TextDirection get textDirection => _textDirection;
+  TextDirection _textDirection;
+  set textDirection(TextDirection value) {
+    if (value == _textDirection) return;
+    _textDirection = value;
+    markNeedsLayout();
+  }
+
+  /// [constraints] widened by the overhang, for the child.
+  BoxConstraints _wider(BoxConstraints constraints) => BoxConstraints(
+    minWidth: constraints.minWidth + overhang,
+    maxWidth: constraints.maxWidth + overhang,
+    minHeight: constraints.minHeight,
+    maxHeight: constraints.maxHeight,
+  );
+
+  /// The box for a child of [childSize]: the overhang narrower.
+  Size _sizeFor(BoxConstraints constraints, Size childSize) =>
+      constraints.constrain(
+        Size(math.max(0, childSize.width - overhang), childSize.height),
+      );
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      math.max(0, child!.getMinIntrinsicWidth(height) - overhang);
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      math.max(0, child!.getMaxIntrinsicWidth(height) - overhang);
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      child!.getMinIntrinsicHeight(width + overhang);
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      child!.getMaxIntrinsicHeight(width + overhang);
+
+  @override
+  Size computeDryLayout(covariant BoxConstraints constraints) =>
+      _sizeFor(constraints, child!.getDryLayout(_wider(constraints)));
+
+  @override
+  void performLayout() {
+    final child = this.child!
+      ..layout(_wider(constraints), parentUsesSize: true);
+    size = _sizeFor(constraints, child.size);
+    // The child's end edge stays on this box's end edge.
+    (child.parentData! as BoxParentData).offset = Offset(
+      textDirection == TextDirection.rtl ? 0 : size.width - child.size.width,
+      0,
+    );
+  }
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    final rtl = textDirection == TextDirection.rtl;
+    final reach = Rect.fromLTRB(
+      rtl ? 0 : -overhang,
+      0,
+      size.width + (rtl ? overhang : 0),
+      size.height,
+    );
+    if (!reach.contains(position)) return false;
+    if (!hitTestChildren(result, position: position)) return false;
+    result.add(BoxHitTestEntry(this, position));
+    return true;
   }
 }

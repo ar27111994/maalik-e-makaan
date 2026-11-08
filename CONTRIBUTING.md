@@ -48,6 +48,10 @@ CI runs the same targets, so a green `make` means a green pull request.
   with keyboard only.
 - **Privacy**: never put real people's names, CNICs, phone numbers or documents
   in code, tests, fixtures, logs or screenshots.
+- **Dependencies**: when you add, remove or upgrade a direct dependency, or
+  bundle a font or icon set, update `THIRD_PARTY_NOTICES.md` with its version
+  and licence. Copyleft code (GPL, LGPL, AGPL, MPL) needs the
+  owner's agreement before it ships to users.
 
 ## Reporting problems
 

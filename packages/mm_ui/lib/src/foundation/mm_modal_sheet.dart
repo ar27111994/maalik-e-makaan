@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/foundation/mm_line_icon.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
@@ -51,13 +52,20 @@ Future<T?> showMmModalSheet<T>(
 /// grows with the text, as every icon beside words in mm_ui does, up to
 /// [MmIconLabel.maxIconScale] times; it stays at least a touch target.
 ///
+/// A [userTitle] (a member's name, a document's name) is set as the
+/// landlord's data: in its own script's face and its own direction.
+///
 /// Internal to mm_ui: the sheets of every family start with it.
 class MmSheetHeader extends StatelessWidget {
   /// Shows [title] with a close button.
-  const new({required this.title, super.key});
+  const new({required this.title, this.userTitle = false, super.key});
 
   /// What the sheet is for ("Property", "Record payment").
   final String title;
+
+  /// Whether [title] is the landlord's data rather than words from the
+  /// app's localisations.
+  final bool userTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +99,9 @@ class MmSheetHeader extends StatelessWidget {
               child: Semantics(
                 container: true,
                 header: true,
-                child: Text(title, style: style),
+                child: userTitle
+                    ? MmUserText(title, style: style)
+                    : Text(title, style: style),
               ),
             ),
           ),

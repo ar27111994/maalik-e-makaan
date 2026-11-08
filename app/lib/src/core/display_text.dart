@@ -32,17 +32,21 @@ String inSentence(String text, TextDirection direction) =>
 
 /// [amount], a formatted rupee amount ("Rs 1,25,000", "1,25,000 روپے"),
 /// free to wrap between its figures and its currency word where a line is
-/// too narrow for both. The money format keeps them together with a
-/// no-break space, but at 200% text an Urdu amount and its "روپے" can be
-/// wider than a list row or a badge, which would then break inside the
-/// word or the figures; the figures themselves never break.
+/// too narrow for both: for the title of a list row (an `MmListTile`).
+/// The money format keeps them together with a no-break space, but at 200%
+/// text an Urdu amount and its "روپے" can be wider than a list row, which
+/// would then break inside the word or the figures; the figures themselves
+/// never break. mm_ui's badges and receipt seal loosen their own breaks
+/// only where they must (`MmStatusBadge`, `MmReceipt`): give them the
+/// amount as it is.
 String wrappableAmount(String amount) => amount.replaceAll('\u00A0', ' ');
 
 /// [number], a receipt number ("MM-2026-00041"), with a place to break
-/// after each dash. A dash before figures is no place to break (it could
-/// be a minus sign), so the whole number is one word: at large text sizes
-/// it would otherwise be cut mid-figure ("MM-2026-0003" / "8"); with it,
-/// it wraps as "MM-2026-" / "00038".
+/// after each dash, for a list row's subtitle. A dash before figures is no
+/// place to break (it could be a minus sign), so the whole number is one
+/// word: at large text sizes it would otherwise be cut mid-figure
+/// ("MM-2026-0003" / "8"); with it, it wraps as "MM-2026-" / "00038".
+/// `MmReceipt` does this itself for its seal.
 String breakableNumber(String number) => number.replaceAll('-', '-\u200B');
 
 /// [text], a sentence or line the app builds (from its own words and the
@@ -59,6 +63,11 @@ String breakableNumber(String number) => number.replaceAll('-', '-\u200B');
 /// with [inSentence].
 ///
 /// For display only: the database refuses bidi isolates.
+///
+/// A sentence whose only letters are the landlord's, each isolated with
+/// [inSentence] ("Shop 3، Saddar Plaza" in Urdu), or with no letter at all
+/// (a date, an amount), runs with the paragraph already: it is left as it
+/// is.
 String appText(String text, TextDirection direction) {
   final own = MmSemantics.firstStrongDirection(text);
   if (own == null || own == direction) return text;
