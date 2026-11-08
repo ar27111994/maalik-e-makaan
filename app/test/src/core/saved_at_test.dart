@@ -51,6 +51,10 @@ void main() {
       now: now,
       locale: const Locale('ur'),
     );
+    // Urdu's own pattern would say "10:42 a"; the time reads as in
+    // English, kept left to right inside an Urdu sentence.
     expect(label, contains('10:42'));
+    expect(label, contains('AM'));
+    expect(label, startsWith('\u2066'));
   });
 }

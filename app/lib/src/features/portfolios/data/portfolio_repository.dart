@@ -3,6 +3,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_details.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -22,6 +23,15 @@ abstract interface class PortfolioRepository {
     required String name,
     required String id,
   });
+
+  /// The settings of [portfolioId]: name, tenancy defaults and payment
+  /// details.
+  Future<PortfolioDetails> details(String portfolioId);
+
+  /// Saves [details] (owners only; the database refuses others with
+  /// [Forbidden]) and returns them as stored. An invalid value is
+  /// `constraint_violation`.
+  Future<PortfolioDetails> updateDetails(PortfolioDetails details);
 }
 
 /// [PortfolioRepository] over `portfolio_members` and `create_portfolio`.
@@ -74,6 +84,28 @@ final class SupabasePortfolioRepository implements PortfolioRepository {
       role: MemberRole.owner,
     );
   });
+
+  @override
+  Future<PortfolioDetails> details(String portfolioId) => _guard(() async {
+    final row = await _client
+        .from('portfolios')
+        .select(PortfolioDetails.columns)
+        .eq('id', portfolioId)
+        .single();
+    return PortfolioDetails.fromRow(row);
+  });
+
+  @override
+  Future<PortfolioDetails> updateDetails(PortfolioDetails details) =>
+      _guard(() async {
+        final row = await _client
+            .from('portfolios')
+            .update(details.toUpdate())
+            .eq('id', details.id)
+            .select(PortfolioDetails.columns)
+            .single();
+        return PortfolioDetails.fromRow(row);
+      });
 }
 
 /// [memberships] by name, ignoring case, then by id so the order is stable.

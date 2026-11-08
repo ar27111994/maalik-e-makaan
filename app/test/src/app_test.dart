@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
+import 'package:maalik_e_makaan/src/features/team/data/team.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
 
@@ -117,8 +120,8 @@ void main() {
   testWidgets('sections switch from the navigation bar', (tester) async {
     await _pumpApp(tester);
     for (final (label, title) in [
-      ('Properties', 'Properties is being built'),
-      ('Tenants', 'Tenants is being built'),
+      ('Properties', 'Gulberg House'),
+      ('Tenants', 'Ali Raza'),
       ('Money', 'Money is being built'),
       ('Dashboard', 'Dashboard is being built'),
     ]) {
@@ -294,4 +297,114 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('This cannot be undone'), findsOneWidget);
   });
+
+  testWidgets('an invitation link keeps its token through signing in', (
+    tester,
+  ) async {
+    final app = TestApp(auth: const SignedOut(), portfolios: const [])
+      ..team.acceptOutcome = InvitationAccepted(
+        portfolioId: plaza.id,
+        role: MemberRole.manager,
+      );
+    await _pumpApp(tester, app: app, location: '/invite#token=abc.def');
+    // The token is kept on the device, never in the address.
+    expect(app.settings.values[AppSettings.pendingInvitationKey], 'abc.def');
+    final router = GoRouter.of(tester.element(find.byType(Scaffold).first));
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/sign-in?from=%2Finvite',
+    );
+    // Signing in answers the invitation before asking for a portfolio.
+    app.portfolios.memberships.add(plaza);
+    await tester.enterText(find.byType(TextField).first, testEmail);
+    await tester.enterText(find.byType(TextField).last, 'Secret123456');
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.pumpAndSettle();
+    expect(app.team.calls.single.$2, ['abc.def']);
+    expect(find.text('Welcome to Saddar Plaza'), findsOneWidget);
+    expect(
+      app.settings.values,
+      isNot(contains(AppSettings.pendingInvitationKey)),
+    );
+    await tester.tap(find.text('Open the portfolio'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dashboard is being built'), findsOneWidget);
+  });
+
+  testWidgets('a signed-in user opening an invitation answers it', (
+    tester,
+  ) async {
+    final app = await _pumpApp(tester, location: '/invite#token=abc.def');
+    expect(app.team.calls.single.$2, ['abc.def']);
+    expect(find.text('Welcome to Gulberg Houses'), findsOneWidget);
+  });
+
+  testWidgets('More leads to the team and the portfolio details', (
+    tester,
+  ) async {
+    await _pumpApp(tester, location: '/more');
+    await tester.tap(find.text('Team'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ayesha Khan (you)'), findsOneWidget);
+    await tester.tap(find.text('Invite someone'));
+    await tester.pumpAndSettle();
+    expect(find.text('Send invitation'), findsOneWidget);
+  });
+
+  testWidgets('the portfolio details open from their link', (tester) async {
+    await _pumpApp(tester, location: '/more/portfolio');
+    expect(find.text('Payment details'), findsOneWidget);
+  });
+
+  testWidgets('a property leads to its unit and to starting a tenancy', (
+    tester,
+  ) async {
+    await _pumpApp(tester, location: '/properties');
+    await tester.tap(find.text('Gulberg House'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Annexe room'), 200);
+    await tester.tap(find.text('Annexe room'));
+    await tester.pumpAndSettle();
+    expect(find.text('No tenancies yet.'), findsOneWidget);
+    await tester.ensureVisible(find.text('Start tenancy'));
+    await tester.tap(find.text('Start tenancy'));
+    await tester.pumpAndSettle();
+    expect(find.text('New tenancy'), findsOneWidget);
+  });
+
+  testWidgets('a tenant lists their tenancies, which open', (tester) async {
+    await _pumpApp(tester, location: '/tenants/${aliRaza.id}');
+    await tester.scrollUntilVisible(
+      find.text('Ground floor, Gulberg House'),
+      200,
+    );
+    await tester.tap(find.text('Ground floor, Gulberg House'));
+    await tester.pumpAndSettle();
+    expect(find.text('Police registration'), findsOneWidget);
+  });
+
+  testWidgets('/leases on its own shows the tenants', (tester) async {
+    await _pumpApp(tester, location: '/leases');
+    expect(find.text('Add tenant'), findsOneWidget);
+  });
+
+  for (final (location, title) in [
+    ('/properties/new', 'New property'),
+    ('/properties/${gulbergHouse.id}/edit', 'Edit property'),
+    ('/properties/${gulbergHouse.id}/units/new', 'New unit'),
+    (
+      '/properties/${gulbergHouse.id}/units/${groundFloor.id}/edit',
+      'Edit unit',
+    ),
+    ('/tenants/new', 'New tenant'),
+    ('/tenants/${aliRaza.id}/edit', 'Edit tenant'),
+    ('/leases/new?unit=${annexe.id}', 'New tenancy'),
+    ('/leases/${aliLease.id}/edit', 'Edit tenancy terms'),
+    ('/more/team/invite', 'Invite someone'),
+  ]) {
+    testWidgets('$location opens', (tester) async {
+      await _pumpApp(tester, location: location);
+      expect(find.text(title), findsWidgets);
+    });
+  }
 }

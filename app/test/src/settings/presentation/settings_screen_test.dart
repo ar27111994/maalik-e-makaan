@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
-import 'package:maalik_e_makaan/src/features/account/presentation/profile_form.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:maalik_e_makaan/src/settings/presentation/settings_screen.dart';
@@ -15,7 +15,11 @@ import '../../../support/harness.dart';
 const _tall = Size(390, 2400);
 
 Finder _field(String label) => find.descendant(
-  of: find.byWidgetPredicate((w) => w is MmTextField && w.label == label),
+  of: find.byWidgetPredicate(
+    (w) =>
+        (w is MmTextField && w.label == label) ||
+        (w is MmPhoneField && w.label == label),
+  ),
   matching: find.byType(TextField),
 );
 
@@ -33,7 +37,7 @@ void main() {
     testWidgets('show the profile and save edits', (tester) async {
       final app = await pumpScreen(tester, SettingsScreen.new, size: _tall);
       expect(_valueOf(tester, 'Your name'), 'Ayesha Khan');
-      expect(_valueOf(tester, 'Phone'), '03001234567');
+      expect(_valueOf(tester, 'Phone'), '0300 1234567');
       final save = find.widgetWithText(MmButton, 'Save details');
       expect(tester.widget<MmButton>(save).onPressed, isNull);
 
@@ -49,6 +53,7 @@ void main() {
 
     testWidgets('a phone number is checked and saved in E.164', (tester) async {
       final app = await pumpScreen(tester, SettingsScreen.new, size: _tall);
+      // A typo is not "no phone": it is reported and nothing is saved.
       await tester.enterText(_field('Phone'), '0300 123');
       await tester.pump();
       await _tap(tester, find.widgetWithText(MmButton, 'Save details'));
@@ -57,10 +62,8 @@ void main() {
         app.profiles.calls.map((c) => c.$1),
         isNot(contains('updateDetails')),
       );
-      // Spaces are not taken: one run of digits reads the same in Urdu.
       await tester.enterText(_field('Phone'), '+44 20 7946 0958');
       await tester.pump();
-      expect(_valueOf(tester, 'Phone'), '+442079460958');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       expect(
@@ -164,7 +167,7 @@ void main() {
       expect(app.settings.values[AppSettings.themeKey], 'dark');
       await _tap(tester, find.text('High contrast'));
       expect(app.settings.values[AppSettings.highContrastKey], isTrue);
-      await _tap(tester, find.text('Lakh and crore (Rs 12,50,000)'));
+      await _tap(tester, find.text('Lakh and crore (Rs\u00a012,50,000)'));
       expect(app.settings.values[AppSettings.groupingKey], 'southAsian');
     });
 
@@ -186,7 +189,7 @@ void main() {
   group('account', () {
     testWidgets('shows who is signed in and signs out', (tester) async {
       final app = await pumpScreen(tester, SettingsScreen.new, size: _tall);
-      expect(find.text(testEmail), findsOneWidget);
+      expect(find.text(breakableEmail(testEmail)), findsOneWidget);
       await _tap(tester, find.widgetWithText(MmButton, 'Sign out'));
       expect(app.auth.calls.last.$2, [SignOutCause.userRequest]);
     });
@@ -210,16 +213,5 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     await expectAccessible(tester);
-  });
-
-  test('phones show as one run of digits', () {
-    expect(phoneText(null), '');
-    expect(phoneText(PhoneNumber.fromE164('+923001234567')), '03001234567');
-    expect(phoneText(PhoneNumber.fromE164('+924235761234')), '04235761234');
-    expect(phoneText(PhoneNumber.fromE164('+442079460958')), '00442079460958');
-    for (final e164 in ['+923001234567', '+442079460958']) {
-      final phone = PhoneNumber.fromE164(e164);
-      expect(PhoneNumber.tryParse(phoneText(phone)), phone);
-    }
   });
 }

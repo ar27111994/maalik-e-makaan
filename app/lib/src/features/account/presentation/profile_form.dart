@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
@@ -7,14 +6,6 @@ import 'package:maalik_e_makaan/src/core/validation.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
-
-/// [phone] as the profile form shows it: digits only, `03001234567` in
-/// Pakistan and `00` with the country code abroad.
-String phoneText(PhoneNumber? phone) => switch (phone) {
-  null => '',
-  PhoneNumber(isPakistani: true) => '0${phone.e164.substring(3)}',
-  _ => '00${phone.digits}',
-};
 
 /// Saves the name and phone; throws `AppFailure`.
 typedef SaveDetails = Future<void> Function({
@@ -38,9 +29,7 @@ class ProfileForm extends StatefulWidget {
 class _ProfileFormState extends State<ProfileForm> with CommandState {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.profile.fullName);
-  late final _phone = TextEditingController(
-    text: phoneText(widget.profile.phone),
-  );
+  late PhoneNumber? _phone = widget.profile.phone;
   var _edited = false;
   AutovalidateMode _validation = AutovalidateMode.disabled;
 
@@ -49,18 +38,17 @@ class _ProfileFormState extends State<ProfileForm> with CommandState {
     super.didUpdateWidget(oldWidget);
     if (!_edited && widget.profile != oldWidget.profile) {
       _name.text = widget.profile.fullName;
-      _phone.text = phoneText(widget.profile.phone);
+      _phone = widget.profile.phone;
     }
   }
 
   @override
   void dispose() {
     _name.dispose();
-    _phone.dispose();
     super.dispose();
   }
 
-  void _changed(String _) {
+  void _changed([Object? _]) {
     setState(() {
       _edited = true;
       failure = null;
@@ -73,12 +61,8 @@ class _ProfileFormState extends State<ProfileForm> with CommandState {
       return;
     }
     final l10n = AppLocalizations.of(context);
-    final phone = _phone.text.trim();
     final saved = await runCommand(
-      () => widget.onSave(
-        fullName: _name.text,
-        phone: phone.isEmpty ? null : PhoneNumber.tryParse(phone),
-      ),
+      () => widget.onSave(fullName: _name.text, phone: _phone),
     );
     if (!saved || !mounted) return;
     setState(() => _edited = false);
@@ -118,31 +102,19 @@ class _ProfileFormState extends State<ProfileForm> with CommandState {
                 ),
                 onChanged: _changed,
               ),
-              // A plain field rather than MmPhoneField, whose validator
-              // cannot tell an empty field from a number that is not one:
-              // here the phone is optional, so a typo must not save as "no
-              // phone". Digits only (no spaces, "00" for abroad): one run of
-              // digits reads left to right even in the Urdu field, where
-              // "0300 1234567" would show as "1234567 0300".
-              MmTextField(
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp('[0-9+۰-۹٠-٩]')),
-                ],
+              // Optional, so a typo must not save as "no phone": the field
+              // reports it with invalidText and the form does not save.
+              MmPhoneField(
                 label: l10n.phoneLabel,
-                controller: _phone,
+                value: _phone,
                 optional: true,
                 helper: l10n.phoneHelper,
-                keyboardType: TextInputType.phone,
+                invalidText: l10n.validationPhone,
                 textInputAction: TextInputAction.done,
-                autofillHints: const [AutofillHints.telephoneNumber],
-                validator: (value) {
-                  final text = (value ?? '').trim();
-                  if (text.isEmpty) return null;
-                  return PhoneNumber.tryParse(text) == null
-                      ? l10n.validationPhone
-                      : null;
+                onChanged: (phone) {
+                  _phone = phone;
+                  _changed();
                 },
-                onChanged: _changed,
                 onSubmitted: (_) => _save(),
               ),
             ],

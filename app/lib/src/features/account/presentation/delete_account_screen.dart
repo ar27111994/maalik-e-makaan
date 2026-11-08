@@ -5,6 +5,7 @@ import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
@@ -193,8 +194,10 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
                     onChanged: _clearFailure,
                   ),
                   MmTextField(
-                    label: l10n.typeEmailToConfirm(widget.email),
-                    hint: widget.email,
+                    label: l10n.typeEmailToConfirm(
+                      breakableEmail(widget.email),
+                    ),
+                    hint: breakableEmail(widget.email),
                     controller: _typed,
                     required: true,
                     keyboardType: TextInputType.emailAddress,

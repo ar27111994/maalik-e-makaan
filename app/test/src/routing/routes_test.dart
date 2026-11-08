@@ -12,11 +12,13 @@ String? _go(
   AuthStatus auth, {
   bool languageChosen = true,
   PortfolioGate portfolios = PortfolioGate.some,
+  bool invitationPending = false,
 }) => redirectFor(
   location: Uri.parse(location),
   languageChosen: languageChosen,
   auth: auth,
   portfolios: portfolios,
+  invitationPending: invitationPending,
 );
 
 void main() {
@@ -103,6 +105,51 @@ void main() {
     for (final gate in [PortfolioGate.unknown, PortfolioGate.some]) {
       expect(_go('/', _signedIn, portfolios: gate), isNull);
       expect(_go('/portfolios/new', _signedIn, portfolios: gate), isNull);
+    }
+  });
+
+  test('an invitation is answered first, once signed in', () {
+    // Signed out, the invitation waits for signing in.
+    expect(
+      _go('/invite', _signedOut, invitationPending: true),
+      '/sign-in?from=%2Finvite',
+    );
+    expect(
+      _go('/invite', _signedOut, languageChosen: false),
+      '/welcome?from=%2Finvite',
+    );
+    // Signed in, every screen leads to it, even without a portfolio.
+    for (final gate in PortfolioGate.values) {
+      expect(
+        _go('/', _signedIn, portfolios: gate, invitationPending: true),
+        '/invite',
+      );
+      expect(
+        _go('/invite', _signedIn, portfolios: gate, invitationPending: true),
+        isNull,
+      );
+    }
+    expect(
+      _go('/sign-in?from=/invite', _signedIn, invitationPending: true),
+      '/invite',
+    );
+    // Settings stay open.
+    expect(_go('/more/settings', _signedIn, invitationPending: true), isNull);
+    // Once it is answered, the invitation screen stays to say how it went.
+    expect(_go('/invite', _signedIn), isNull);
+    expect(_go('/invite', _signedIn, portfolios: PortfolioGate.none), isNull);
+    expect(_go('/', _signedIn), isNull);
+  });
+
+  test('team and portfolio screens live under More', () {
+    for (final path in [
+      Routes.team,
+      Routes.inviteMember,
+      Routes.portfolioDetails,
+    ]) {
+      expect(path, startsWith('${Routes.more}/'));
+      expect(_go(path, _signedIn), isNull);
+      expect(_go(path, _signedOut), startsWith('/sign-in?from='));
     }
   });
 }

@@ -8,6 +8,19 @@ enum MemberRole {
   accountant,
   viewer;
 
+  /// May add, edit and archive properties, units, tenants and tenancies,
+  /// change rent and end tenancies (docs/architecture/permissions.md).
+  bool get runsProperties => this == owner || this == manager;
+
+  /// May delete properties, units, tenants and tenancies added by mistake.
+  bool get deletesRecords => this == owner;
+
+  /// May upload documents and rename them.
+  bool get recordsDocuments => this != viewer;
+
+  /// May delete documents.
+  bool get deletesDocuments => this == owner || this == manager;
+
   /// The role named [name]; throws [FormatException] for any other.
   static MemberRole parse(String name) =>
       values.asNameMap()[name] ??

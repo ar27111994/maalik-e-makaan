@@ -359,13 +359,13 @@ abstract class AppLocalizations {
   /// Digit grouping option in threes, with an example.
   ///
   /// In en, this message translates to:
-  /// **'Western (Rs 1,250,000)'**
+  /// **'Western (Rs 1,250,000)'**
   String get groupingWestern;
 
   /// Digit grouping option in lakh and crore, with an example.
   ///
   /// In en, this message translates to:
-  /// **'Lakh and crore (Rs 12,50,000)'**
+  /// **'Lakh and crore (Rs 12,50,000)'**
   String get groupingSouthAsian;
 
   /// Settings section: the user's account.
@@ -1219,6 +1219,2646 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How amounts are grouped'**
   String get groupingLabel;
+
+  /// Button that saves a form.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get saveAction;
+
+  /// Button that closes a finished task.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get doneAction;
+
+  /// Button that sets something aside for later.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNowAction;
+
+  /// Button that leaves a task screen for the app's first section.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the app'**
+  String get goToAppAction;
+
+  /// A whole number is outside its allowed range.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number from {min} to {max}.'**
+  String validationNumberRange(int min, int max);
+
+  /// A percentage is not valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a percentage from 0 to 100, with at most 2 decimals.'**
+  String get validationPercent;
+
+  /// A Raast ID is not a Pakistani mobile number.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a Pakistani mobile number, like 03001234567.'**
+  String get validationRaast;
+
+  /// The IBAN is not a valid Pakistani IBAN.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a Pakistani IBAN, like PK36 SCBL 0000 0011 2345 6702.'**
+  String get validationIban;
+
+  /// An outside app (WhatsApp, a website) could not be opened.
+  ///
+  /// In en, this message translates to:
+  /// **'The link could not be opened.'**
+  String get linkNotOpened;
+
+  /// What an owner can do, under the role's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything, including the team and the payment details.'**
+  String get roleOwnerHelp;
+
+  /// What a manager (caretaker) can do.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs properties, tenants and tenancies, and records money.'**
+  String get roleManagerHelp;
+
+  /// What an accountant can do.
+  ///
+  /// In en, this message translates to:
+  /// **'Records payments and expenses, and sees everything else.'**
+  String get roleAccountantHelp;
+
+  /// What a viewer can do.
+  ///
+  /// In en, this message translates to:
+  /// **'Sees everything and changes nothing.'**
+  String get roleViewerHelp;
+
+  /// Title of the team screen and its entry in More.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get teamTitle;
+
+  /// Under the Team entry in More.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can see and run this portfolio'**
+  String get teamSummary;
+
+  /// Title of the portfolio settings screen and its entry in More.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio details'**
+  String get portfolioDetailsTitle;
+
+  /// Under the Portfolio details entry in More.
+  ///
+  /// In en, this message translates to:
+  /// **'Name, tenancy defaults and payment details'**
+  String get portfolioDetailsSummary;
+
+  /// Heading of the list of a portfolio's members.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get teamMembersSection;
+
+  /// Heading of the pending invitations.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitations waiting for an answer'**
+  String get teamInvitationsSection;
+
+  /// Under the heading of the pending invitations.
+  ///
+  /// In en, this message translates to:
+  /// **'Each link works once, for 7 days, and only for the address it was sent to.'**
+  String get teamInvitationsHelp;
+
+  /// The signed-in user's own row in the team.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (you)'**
+  String memberYou(String name);
+
+  /// A member who gave neither a name nor an address.
+  ///
+  /// In en, this message translates to:
+  /// **'A member without a name'**
+  String get memberNoName;
+
+  /// A member's role and e-mail under their name.
+  ///
+  /// In en, this message translates to:
+  /// **'{role} · {email}'**
+  String memberRoleAndEmail(String role, String email);
+
+  /// The team failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'The team could not be loaded'**
+  String get teamLoadFailedTitle;
+
+  /// Screen-reader label of the team's loading skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the team'**
+  String get loadingTeam;
+
+  /// Button that opens the invitation form.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite someone'**
+  String get inviteAction;
+
+  /// A pending invitation's role and expiry.
+  ///
+  /// In en, this message translates to:
+  /// **'{role} · Until {date}'**
+  String invitationExpires(String role, String date);
+
+  /// An invitation that expired before it was accepted.
+  ///
+  /// In en, this message translates to:
+  /// **'{role} · Expired on {date}'**
+  String invitationExpired(String role, String date);
+
+  /// Badge on an expired invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get invitationExpiredBadge;
+
+  /// Sends a new invitation to the same address.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite again'**
+  String get inviteAgainAction;
+
+  /// Withdraws a pending invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel invitation'**
+  String get revokeInvitationAction;
+
+  /// Confirmation before withdrawing an invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel the invitation to {email}?'**
+  String revokeInvitationTitle(String email);
+
+  /// What withdrawing an invitation does.
+  ///
+  /// In en, this message translates to:
+  /// **'The link stops working. You can invite them again later.'**
+  String get revokeInvitationBody;
+
+  /// After withdrawing an invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation cancelled.'**
+  String get invitationCancelled;
+
+  /// Label of the role choice of a member.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get memberRoleLabel;
+
+  /// Saves a member's new role.
+  ///
+  /// In en, this message translates to:
+  /// **'Change role'**
+  String get changeRoleAction;
+
+  /// After changing a member's role.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now {role}.'**
+  String roleChanged(String name, String role);
+
+  /// Shown instead of the role choice for the only owner.
+  ///
+  /// In en, this message translates to:
+  /// **'A portfolio always keeps an owner. Make someone else an owner before changing this role.'**
+  String get onlyOwnerNote;
+
+  /// Removes a member.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from portfolio'**
+  String get removeMemberAction;
+
+  /// Confirmation before removing a member.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String removeMemberTitle(String name);
+
+  /// What removing a member does.
+  ///
+  /// In en, this message translates to:
+  /// **'They lose access to this portfolio at once. Everything they recorded stays.'**
+  String get removeMemberBody;
+
+  /// After removing a member.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} was removed.'**
+  String memberRemoved(String name);
+
+  /// Button with which a member leaves the portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave portfolio'**
+  String get leaveAction;
+
+  /// Confirmation before leaving a portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave {portfolio}?'**
+  String leaveTitle(String portfolio);
+
+  /// What leaving a portfolio does.
+  ///
+  /// In en, this message translates to:
+  /// **'You lose access at once. Only an owner can invite you back.'**
+  String get leaveBody;
+
+  /// Why the only owner cannot leave.
+  ///
+  /// In en, this message translates to:
+  /// **'You are the only owner. Make someone else an owner before you leave.'**
+  String get leaveLastOwner;
+
+  /// After leaving a portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'You left {portfolio}.'**
+  String leftPortfolio(String portfolio);
+
+  /// Title of the invitation form.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite someone'**
+  String get inviteTitle;
+
+  /// Explains invitations above the form.
+  ///
+  /// In en, this message translates to:
+  /// **'They get an e-mail with a link that works once, for 7 days, and only for this address. You can also share the link yourself.'**
+  String get inviteBody;
+
+  /// Label of the invitee's e-mail field.
+  ///
+  /// In en, this message translates to:
+  /// **'Their e-mail'**
+  String get inviteEmailLabel;
+
+  /// Label of the invitee's role choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Their role'**
+  String get inviteRoleLabel;
+
+  /// Button that creates and e-mails an invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Send invitation'**
+  String get sendInvitationAction;
+
+  /// Heading after an invitation was created.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation ready'**
+  String get invitationReadyTitle;
+
+  /// The invitation e-mail was sent.
+  ///
+  /// In en, this message translates to:
+  /// **'We e-mailed the invitation to {email}.'**
+  String deliverySent(String email);
+
+  /// The server sends no e-mail.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail is not set up, so nothing was sent. Share the link with {email} yourself.'**
+  String deliveryNotConfigured(String email);
+
+  /// The invitation e-mail was held back by a limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many e-mails went to this address or from you in the last hour, so none was sent. Share the link with {email} yourself.'**
+  String deliveryRateLimited(String email);
+
+  /// Sending the invitation e-mail failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The e-mail to {email} could not be sent. Share the link yourself.'**
+  String deliveryFailed(String email);
+
+  /// The server reported an e-mail state this app does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'If {email} did not get an e-mail, share the link yourself.'**
+  String deliveryUnknown(String email);
+
+  /// How long and for whom an invitation link works.
+  ///
+  /// In en, this message translates to:
+  /// **'The link works once, until {date}, and only for {email}.'**
+  String invitationValidUntil(String date, String email);
+
+  /// Label of the invitation link.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation link'**
+  String get invitationLinkLabel;
+
+  /// Copies a link.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get copyLinkAction;
+
+  /// After copying a link.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied.'**
+  String get linkCopied;
+
+  /// Opens WhatsApp with a message to send.
+  ///
+  /// In en, this message translates to:
+  /// **'Share on WhatsApp'**
+  String get shareWhatsAppAction;
+
+  /// The WhatsApp message that carries an invitation link.
+  ///
+  /// In en, this message translates to:
+  /// **'You are invited to {portfolio} on Maalik-e-Makaan. Open this link to join: {url}'**
+  String invitationShareMessage(String portfolio, String url);
+
+  /// Heading of a portfolio's tenancy defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'New tenancies start with'**
+  String get tenancyDefaultsSection;
+
+  /// Under the heading of the tenancy defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change them for each tenancy.'**
+  String get tenancyDefaultsHelp;
+
+  /// Label of the day of the month rent is due.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent due on day'**
+  String get dueDayLabel;
+
+  /// Under the due-day field.
+  ///
+  /// In en, this message translates to:
+  /// **'From 1 to 28, so every month has it.'**
+  String get dueDayHelper;
+
+  /// Label of the grace period in days.
+  ///
+  /// In en, this message translates to:
+  /// **'Grace days'**
+  String get graceDaysLabel;
+
+  /// Under the grace-days field.
+  ///
+  /// In en, this message translates to:
+  /// **'Days after the due day before rent counts as late.'**
+  String get graceDaysHelper;
+
+  /// Label of the yearly rent increase in percent.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly increase (%)'**
+  String get incrementLabel;
+
+  /// Heading of a portfolio's payment details.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment details'**
+  String get paymentDetailsSection;
+
+  /// Under the payment details heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants see them on receipts and reminders.'**
+  String get paymentDetailsHelp;
+
+  /// Label of the landlord name printed on receipts.
+  ///
+  /// In en, this message translates to:
+  /// **'Name on receipts'**
+  String get landlordNameLabel;
+
+  /// Label of the landlord phone printed on receipts.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone on receipts'**
+  String get landlordPhoneLabel;
+
+  /// Label of the Raast ID field.
+  ///
+  /// In en, this message translates to:
+  /// **'Raast ID'**
+  String get raastIdLabel;
+
+  /// Under the Raast ID field.
+  ///
+  /// In en, this message translates to:
+  /// **'The mobile number registered for Raast, like 03001234567.'**
+  String get raastIdHelper;
+
+  /// Label of the bank account title.
+  ///
+  /// In en, this message translates to:
+  /// **'Bank account title'**
+  String get bankAccountTitleLabel;
+
+  /// Label of the IBAN field.
+  ///
+  /// In en, this message translates to:
+  /// **'IBAN'**
+  String get ibanLabel;
+
+  /// Under the IBAN field.
+  ///
+  /// In en, this message translates to:
+  /// **'24 characters, starting with PK.'**
+  String get ibanHelper;
+
+  /// After saving a portfolio's details.
+  ///
+  /// In en, this message translates to:
+  /// **'Portfolio details saved.'**
+  String get portfolioDetailsSaved;
+
+  /// The portfolio details failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'The portfolio details could not be loaded'**
+  String get portfolioDetailsLoadFailedTitle;
+
+  /// Screen-reader label of the portfolio details' loading skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the portfolio details'**
+  String get loadingPortfolioDetails;
+
+  /// Title of the screen that accepts an invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation'**
+  String get acceptInvitationTitle;
+
+  /// Shown while an invitation is accepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening your invitation…'**
+  String get acceptingInvitation;
+
+  /// After accepting an invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to {portfolio}'**
+  String invitationAcceptedTitle(String portfolio);
+
+  /// The role the user joined a portfolio with.
+  ///
+  /// In en, this message translates to:
+  /// **'You joined as {role}.'**
+  String invitationAcceptedBody(String role);
+
+  /// Opens the portfolio just joined.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the portfolio'**
+  String get openPortfolioAction;
+
+  /// Heading when an invitation is refused.
+  ///
+  /// In en, this message translates to:
+  /// **'This invitation cannot be used'**
+  String get invitationFailedTitle;
+
+  /// The invitation link is not valid.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a working invitation link. Ask for a new invitation.'**
+  String get invitationInvalidBody;
+
+  /// The invitation was revoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This invitation was cancelled. Ask an owner of the portfolio for a new one.'**
+  String get invitationRevokedBody;
+
+  /// Someone else used the invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'This invitation was accepted already, by another account. Ask for a new one.'**
+  String get invitationAlreadyUsedBody;
+
+  /// The invitation expired.
+  ///
+  /// In en, this message translates to:
+  /// **'This invitation has expired: invitations work for 7 days. Ask for a new one.'**
+  String get invitationExpiredBody;
+
+  /// The account's e-mail is not confirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your e-mail address first, then open the invitation link again.'**
+  String get invitationEmailNotVerifiedBody;
+
+  /// The signed-in account is not the invited address.
+  ///
+  /// In en, this message translates to:
+  /// **'This invitation was sent to another e-mail address. Sign out, then sign in or create an account with the address it was sent to.'**
+  String get invitationEmailMismatchBody;
+
+  /// The server refused the invitation for a reason this app does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'This invitation cannot be accepted. Ask for a new one.'**
+  String get invitationUnknownBody;
+
+  /// The invitation screen was opened without an invitation.
+  ///
+  /// In en, this message translates to:
+  /// **'No invitation is waiting on this device. Open the link in the invitation e-mail.'**
+  String get noInvitationBody;
+
+  /// Heading when accepting an invitation failed for a reason that may pass (offline).
+  ///
+  /// In en, this message translates to:
+  /// **'The invitation could not be opened'**
+  String get invitationNotAcceptedTitle;
+
+  /// Tooltip of the button that lowers a number of days.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer days'**
+  String get fewerDaysAction;
+
+  /// Tooltip of the button that raises a number of days.
+  ///
+  /// In en, this message translates to:
+  /// **'More days'**
+  String get moreDaysAction;
+
+  /// A number of days.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No days} =1{1 day} other{{count} days}}'**
+  String dayCount(int count);
+
+  /// Label of when a pending invitation expires.
+  ///
+  /// In en, this message translates to:
+  /// **'Works until'**
+  String get invitationWorksUntil;
+
+  /// After accepting an invitation, when the portfolio's name is not known yet.
+  ///
+  /// In en, this message translates to:
+  /// **'You joined the portfolio'**
+  String get invitationAcceptedNoName;
+
+  /// A property type.
+  ///
+  /// In en, this message translates to:
+  /// **'House'**
+  String get propertyTypeHouse;
+
+  /// A property type.
+  ///
+  /// In en, this message translates to:
+  /// **'Apartment building'**
+  String get propertyTypeApartmentBuilding;
+
+  /// A property type: one apartment.
+  ///
+  /// In en, this message translates to:
+  /// **'Flat'**
+  String get propertyTypeApartment;
+
+  /// A property type: a commercial plaza.
+  ///
+  /// In en, this message translates to:
+  /// **'Plaza'**
+  String get propertyTypePlaza;
+
+  /// A property type.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop'**
+  String get propertyTypeShop;
+
+  /// A property type.
+  ///
+  /// In en, this message translates to:
+  /// **'Office'**
+  String get propertyTypeOffice;
+
+  /// A property type.
+  ///
+  /// In en, this message translates to:
+  /// **'Hostel'**
+  String get propertyTypeHostel;
+
+  /// A property type.
+  ///
+  /// In en, this message translates to:
+  /// **'Farmhouse'**
+  String get propertyTypeFarmhouse;
+
+  /// A property type.
+  ///
+  /// In en, this message translates to:
+  /// **'Warehouse'**
+  String get propertyTypeWarehouse;
+
+  /// A property type: land.
+  ///
+  /// In en, this message translates to:
+  /// **'Plot'**
+  String get propertyTypePlot;
+
+  /// A property or unit type that is none of the others.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get propertyTypeOther;
+
+  /// A province.
+  ///
+  /// In en, this message translates to:
+  /// **'Punjab'**
+  String get provincePunjab;
+
+  /// A province.
+  ///
+  /// In en, this message translates to:
+  /// **'Sindh'**
+  String get provinceSindh;
+
+  /// A province.
+  ///
+  /// In en, this message translates to:
+  /// **'Khyber Pakhtunkhwa'**
+  String get provinceKhyberPakhtunkhwa;
+
+  /// A province.
+  ///
+  /// In en, this message translates to:
+  /// **'Balochistan'**
+  String get provinceBalochistan;
+
+  /// The Islamabad Capital Territory.
+  ///
+  /// In en, this message translates to:
+  /// **'Islamabad'**
+  String get provinceIslamabad;
+
+  /// A region.
+  ///
+  /// In en, this message translates to:
+  /// **'Gilgit-Baltistan'**
+  String get provinceGilgitBaltistan;
+
+  /// A region.
+  ///
+  /// In en, this message translates to:
+  /// **'Azad Kashmir'**
+  String get provinceAzadKashmir;
+
+  /// The police-registration law of a province whose clock starts at possession.
+  ///
+  /// In en, this message translates to:
+  /// **'{province}: register each tenancy with the police within {days} of the tenant moving in.'**
+  String policeHintPossession(String province, String days);
+
+  /// The police-registration law of a province whose clock starts at the agreement.
+  ///
+  /// In en, this message translates to:
+  /// **'{province}: register each tenancy with the police within {days} of signing the agreement.'**
+  String policeHintAgreement(String province, String days);
+
+  /// Where no statute fixes a police-registration deadline.
+  ///
+  /// In en, this message translates to:
+  /// **'{province}: no law the app knows of sets a deadline. The app reminds you to register each tenancy with the police a day after the tenant moves in.'**
+  String policeHintReminder(String province);
+
+  /// A unit of land area.
+  ///
+  /// In en, this message translates to:
+  /// **'Marla'**
+  String get areaUnitMarla;
+
+  /// A unit of land area.
+  ///
+  /// In en, this message translates to:
+  /// **'Kanal'**
+  String get areaUnitKanal;
+
+  /// A unit of area.
+  ///
+  /// In en, this message translates to:
+  /// **'Square feet'**
+  String get areaUnitSquareFeet;
+
+  /// A unit of area.
+  ///
+  /// In en, this message translates to:
+  /// **'Square yards'**
+  String get areaUnitSquareYards;
+
+  /// A unit of area.
+  ///
+  /// In en, this message translates to:
+  /// **'Square metres'**
+  String get areaUnitSquareMetres;
+
+  /// A unit of land area.
+  ///
+  /// In en, this message translates to:
+  /// **'Acres'**
+  String get areaUnitAcre;
+
+  /// A size and its unit, like 5 Marla.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} {unit}'**
+  String areaValue(String size, String unit);
+
+  /// A covered area in square feet.
+  ///
+  /// In en, this message translates to:
+  /// **'{area} sq ft'**
+  String coveredAreaValue(String area);
+
+  /// A unit type.
+  ///
+  /// In en, this message translates to:
+  /// **'Entire property'**
+  String get unitTypeEntireProperty;
+
+  /// A unit type: one portion (floor) of a house.
+  ///
+  /// In en, this message translates to:
+  /// **'Portion'**
+  String get unitTypePortion;
+
+  /// A unit type.
+  ///
+  /// In en, this message translates to:
+  /// **'Flat'**
+  String get unitTypeApartment;
+
+  /// A unit type.
+  ///
+  /// In en, this message translates to:
+  /// **'Room'**
+  String get unitTypeRoom;
+
+  /// A unit type: a bed in a shared room or hostel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed'**
+  String get unitTypeBed;
+
+  /// A unit type.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop'**
+  String get unitTypeShop;
+
+  /// A unit type.
+  ///
+  /// In en, this message translates to:
+  /// **'Office'**
+  String get unitTypeOffice;
+
+  /// A unit type: a whole floor.
+  ///
+  /// In en, this message translates to:
+  /// **'Floor'**
+  String get unitTypeFloor;
+
+  /// A unit type.
+  ///
+  /// In en, this message translates to:
+  /// **'Warehouse'**
+  String get unitTypeWarehouse;
+
+  /// Badge of a unit with a tenancy now.
+  ///
+  /// In en, this message translates to:
+  /// **'Let'**
+  String get occupancyOccupied;
+
+  /// Badge of a unit whose tenancy starts later.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenancy starts soon'**
+  String get occupancyUpcoming;
+
+  /// Badge of a unit without a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Vacant'**
+  String get occupancyVacant;
+
+  /// A vacant unit and since when.
+  ///
+  /// In en, this message translates to:
+  /// **'Vacant since {date}'**
+  String occupancyVacantSince(String date);
+
+  /// Badge of a unit not offered for rent.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get occupancyUnavailable;
+
+  /// Badge of something archived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get occupancyArchived;
+
+  /// Badge when the occupancy is not known.
+  ///
+  /// In en, this message translates to:
+  /// **'Status unknown'**
+  String get occupancyUnknown;
+
+  /// Button that opens the new-property form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add property'**
+  String get addPropertyAction;
+
+  /// Empty list of properties.
+  ///
+  /// In en, this message translates to:
+  /// **'No properties yet'**
+  String get propertiesEmptyTitle;
+
+  /// Explains what to add to an empty property list.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a house, a plaza or a plot, then the portions, flats or shops you rent out in it.'**
+  String get propertiesEmptyBody;
+
+  /// Empty list of archived properties.
+  ///
+  /// In en, this message translates to:
+  /// **'No archived properties.'**
+  String get archivedPropertiesEmpty;
+
+  /// Explains the archived list.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties you archive keep their history and wait here.'**
+  String get archivedPropertiesEmptyBody;
+
+  /// Filter showing what is in use.
+  ///
+  /// In en, this message translates to:
+  /// **'In use'**
+  String get filterInUse;
+
+  /// Filter showing what is archived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get filterArchived;
+
+  /// Reads the next page of a list.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get loadMoreAction;
+
+  /// The property list failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'The properties could not be loaded'**
+  String get propertiesLoadFailedTitle;
+
+  /// Screen-reader label of the property list's skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the properties'**
+  String get loadingProperties;
+
+  /// Two details of a list row side by side.
+  ///
+  /// In en, this message translates to:
+  /// **'{first} · {second}'**
+  String listDetail(String first, String second);
+
+  /// Title of the new-property form.
+  ///
+  /// In en, this message translates to:
+  /// **'New property'**
+  String get newPropertyTitle;
+
+  /// Title of the property form when editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit property'**
+  String get editPropertyTitle;
+
+  /// Form section with the property's name and type.
+  ///
+  /// In en, this message translates to:
+  /// **'The property'**
+  String get propertySectionBasics;
+
+  /// Form section with the address.
+  ///
+  /// In en, this message translates to:
+  /// **'Where it is'**
+  String get propertySectionLocation;
+
+  /// Form section with the plot and covered area.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get propertySectionSize;
+
+  /// Form section with the purchase price and value.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get propertySectionValue;
+
+  /// Label of a property's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get propertyNameLabel;
+
+  /// Under a property's name field.
+  ///
+  /// In en, this message translates to:
+  /// **'As you call it, like Gulberg house or Saddar shops.'**
+  String get propertyNameHelper;
+
+  /// Label of a type choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get typeLabel;
+
+  /// Label of an address field.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get addressLabel;
+
+  /// Label of a property's locality.
+  ///
+  /// In en, this message translates to:
+  /// **'Area or society'**
+  String get localityLabel;
+
+  /// Label of a property's city.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get cityLabel;
+
+  /// Label of a property's province.
+  ///
+  /// In en, this message translates to:
+  /// **'Province'**
+  String get provinceLabel;
+
+  /// Under the province field.
+  ///
+  /// In en, this message translates to:
+  /// **'It decides the rules that apply, such as police registration.'**
+  String get provinceHelper;
+
+  /// Label of a plot's size.
+  ///
+  /// In en, this message translates to:
+  /// **'Plot size'**
+  String get plotSizeLabel;
+
+  /// Label of a plot size's unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Measured in'**
+  String get plotUnitLabel;
+
+  /// Label of the covered area.
+  ///
+  /// In en, this message translates to:
+  /// **'Covered area (sq ft)'**
+  String get coveredAreaLabel;
+
+  /// Label of the year a property was built.
+  ///
+  /// In en, this message translates to:
+  /// **'Year built'**
+  String get yearBuiltLabel;
+
+  /// Label of what a property cost.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase price'**
+  String get purchasePriceLabel;
+
+  /// Label of when a property was bought.
+  ///
+  /// In en, this message translates to:
+  /// **'Bought on'**
+  String get purchasedOnLabel;
+
+  /// Label of a property's estimated value.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated value'**
+  String get estimatedValueLabel;
+
+  /// Label of when the value was estimated.
+  ///
+  /// In en, this message translates to:
+  /// **'Value estimated on'**
+  String get valueEstimatedOnLabel;
+
+  /// Label of a property tax reference.
+  ///
+  /// In en, this message translates to:
+  /// **'Property tax reference'**
+  String get propertyTaxRefLabel;
+
+  /// Label of a notes field.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesLabel;
+
+  /// A size is not a positive number.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number above 0, with at most 2 decimals.'**
+  String get validationPositiveNumber;
+
+  /// A plot size has no unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what the plot size is measured in.'**
+  String get validationPlotUnit;
+
+  /// A money field holds text that is not an amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount, like 25,000.'**
+  String get validationAmount;
+
+  /// After adding a property.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} added.'**
+  String propertyAdded(String name);
+
+  /// After saving a property.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} saved.'**
+  String propertySaved(String name);
+
+  /// Heading of a record's details.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get propertyDetailsSection;
+
+  /// Heading of a property's units.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get unitsSection;
+
+  /// Under the heading of a property's units.
+  ///
+  /// In en, this message translates to:
+  /// **'The portions, flats, rooms or shops you rent out.'**
+  String get unitsSectionHelp;
+
+  /// Button that opens the new-unit form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add unit'**
+  String get addUnitAction;
+
+  /// Empty list of units.
+  ///
+  /// In en, this message translates to:
+  /// **'No units yet. Add each part you rent out, even when it is the whole property.'**
+  String get unitsEmpty;
+
+  /// Opens a record's form.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get editAction;
+
+  /// Archives a record.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get archiveAction;
+
+  /// Takes a record out of the archive.
+  ///
+  /// In en, this message translates to:
+  /// **'Put back in use'**
+  String get restoreAction;
+
+  /// Deletes a record.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAction;
+
+  /// Banner on an archived record.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived on {date}. It keeps its history; put it back in use to change it.'**
+  String archivedBanner(String date);
+
+  /// Confirmation before archiving a property.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive {name}?'**
+  String archivePropertyTitle(String name);
+
+  /// What archiving a property does.
+  ///
+  /// In en, this message translates to:
+  /// **'It leaves your lists but keeps its units, tenancies and money. You can put it back in use later.'**
+  String get archivePropertyBody;
+
+  /// After archiving a property.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} archived.'**
+  String propertyArchived(String name);
+
+  /// After restoring a property.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is back in use.'**
+  String propertyRestored(String name);
+
+  /// Confirmation before deleting a property.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}?'**
+  String deletePropertyTitle(String name);
+
+  /// What deleting a property does.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for a property added by mistake: it goes for good, with its units. A property with tenancies or expenses cannot be deleted; archive it instead.'**
+  String get deletePropertyBody;
+
+  /// Label of a typed confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Type {name} to confirm'**
+  String typeToConfirm(String name);
+
+  /// After deleting a property.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted.'**
+  String propertyDeleted(String name);
+
+  /// A property failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'This property could not be loaded'**
+  String get propertyLoadFailedTitle;
+
+  /// Screen-reader label of a property's skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the property'**
+  String get loadingProperty;
+
+  /// A property's units failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'The units could not be loaded'**
+  String get unitsLoadFailedTitle;
+
+  /// A property name is taken.
+  ///
+  /// In en, this message translates to:
+  /// **'Another property in use has this name. Choose another.'**
+  String get reasonDuplicatePropertyName;
+
+  /// A unit name is taken.
+  ///
+  /// In en, this message translates to:
+  /// **'Another unit of this property has this name. Choose another.'**
+  String get reasonDuplicateUnitLabel;
+
+  /// A delete refused because something refers to the record.
+  ///
+  /// In en, this message translates to:
+  /// **'A tenancy or an expense still refers to this, so it cannot be deleted. Archive it instead.'**
+  String get reasonStillInUse;
+
+  /// Title of the new-unit form.
+  ///
+  /// In en, this message translates to:
+  /// **'New unit'**
+  String get newUnitTitle;
+
+  /// Title of the unit form when editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit unit'**
+  String get editUnitTitle;
+
+  /// Label of a unit's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name or number'**
+  String get unitLabelLabel;
+
+  /// Under a unit's name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Like Ground floor, Flat 2 or Shop 5.'**
+  String get unitLabelHelper;
+
+  /// Label of the floor a unit is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Floor'**
+  String get floorLabel;
+
+  /// Label of the number of bedrooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedrooms'**
+  String get bedroomsLabel;
+
+  /// Label of the number of bathrooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Bathrooms'**
+  String get bathroomsLabel;
+
+  /// Tooltip of the button that lowers a count.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer'**
+  String get fewerAction;
+
+  /// Tooltip of the button that raises a count.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get moreAction;
+
+  /// Whether a unit comes with furniture.
+  ///
+  /// In en, this message translates to:
+  /// **'Furnished'**
+  String get furnishedLabel;
+
+  /// A unit without furniture.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfurnished'**
+  String get unfurnishedValue;
+
+  /// Label of the monthly rent asked for a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking rent'**
+  String get askingRentLabel;
+
+  /// Under the asking-rent field.
+  ///
+  /// In en, this message translates to:
+  /// **'What you ask for it each month.'**
+  String get askingRentHelper;
+
+  /// A unit's asking rent in a list.
+  ///
+  /// In en, this message translates to:
+  /// **'Asking {rent}'**
+  String askingRentValue(String rent);
+
+  /// Whether a unit is offered for rent.
+  ///
+  /// In en, this message translates to:
+  /// **'Available to rent'**
+  String get availableLabel;
+
+  /// Under the available switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off while it is being renovated or you live in it.'**
+  String get availableHelp;
+
+  /// Label of the property a unit belongs to.
+  ///
+  /// In en, this message translates to:
+  /// **'Property'**
+  String get unitPropertyLabel;
+
+  /// Label of a unit's occupancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Occupancy'**
+  String get occupancyLabel;
+
+  /// After adding a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} added.'**
+  String unitAdded(String name);
+
+  /// After saving a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} saved.'**
+  String unitSaved(String name);
+
+  /// Confirmation before archiving a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive {name}?'**
+  String archiveUnitTitle(String name);
+
+  /// What archiving a unit does.
+  ///
+  /// In en, this message translates to:
+  /// **'It leaves your lists but keeps its tenancies and money. A unit that is let now can still be archived; end its tenancy first if it has ended.'**
+  String get archiveUnitBody;
+
+  /// After archiving a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} archived.'**
+  String unitArchived(String name);
+
+  /// After restoring a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is back in use.'**
+  String unitRestored(String name);
+
+  /// Confirmation before deleting a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}?'**
+  String deleteUnitTitle(String name);
+
+  /// What deleting a unit does.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for a unit added by mistake: it goes for good. A unit with tenancies or expenses cannot be deleted; archive it instead.'**
+  String get deleteUnitBody;
+
+  /// After deleting a unit.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted.'**
+  String unitDeleted(String name);
+
+  /// A unit failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'This unit could not be loaded'**
+  String get unitLoadFailedTitle;
+
+  /// Screen-reader label of a unit's skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the unit'**
+  String get loadingUnit;
+
+  /// A number of rooms in a stepper.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{None} =1{1} other{{count}}}'**
+  String roomCount(int count);
+
+  /// A tenant who is a person.
+  ///
+  /// In en, this message translates to:
+  /// **'Person'**
+  String get tenantKindIndividual;
+
+  /// A tenant that is a company.
+  ///
+  /// In en, this message translates to:
+  /// **'Company'**
+  String get tenantKindCompany;
+
+  /// A tenant that is a government office.
+  ///
+  /// In en, this message translates to:
+  /// **'Government office'**
+  String get tenantKindGovernment;
+
+  /// S/O: whose son a tenant is.
+  ///
+  /// In en, this message translates to:
+  /// **'Son of'**
+  String get guardianSonOf;
+
+  /// D/O: whose daughter a tenant is.
+  ///
+  /// In en, this message translates to:
+  /// **'Daughter of'**
+  String get guardianDaughterOf;
+
+  /// W/O: whose wife a tenant is.
+  ///
+  /// In en, this message translates to:
+  /// **'Wife of'**
+  String get guardianWifeOf;
+
+  /// A tenant's guardian, like Son of Ahmed Khan.
+  ///
+  /// In en, this message translates to:
+  /// **'{relation} {name}'**
+  String guardianLine(String relation, String name);
+
+  /// Opens the new-tenant form.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tenant'**
+  String get addTenantAction;
+
+  /// Hint of the tenant search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name, phone or CNIC'**
+  String get searchTenantsHint;
+
+  /// Empty tenant list.
+  ///
+  /// In en, this message translates to:
+  /// **'No tenants yet'**
+  String get tenantsEmptyTitle;
+
+  /// Explains the empty tenant list.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the people or businesses who rent from you, then start their tenancy from a unit.'**
+  String get tenantsEmptyBody;
+
+  /// Empty archived tenant list.
+  ///
+  /// In en, this message translates to:
+  /// **'No archived tenants.'**
+  String get archivedTenantsEmpty;
+
+  /// Explains the archived tenant list.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenants you archive keep their history and wait here.'**
+  String get archivedTenantsEmptyBody;
+
+  /// A search found nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No tenant matches {search}.'**
+  String noTenantMatches(String search);
+
+  /// The tenant list failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'The tenants could not be loaded'**
+  String get tenantsLoadFailedTitle;
+
+  /// Screen-reader label of the tenant list skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the tenants'**
+  String get loadingTenants;
+
+  /// A tenant failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'This tenant could not be loaded'**
+  String get tenantLoadFailedTitle;
+
+  /// Screen-reader label of a tenant's skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the tenant'**
+  String get loadingTenant;
+
+  /// Title of the new-tenant form.
+  ///
+  /// In en, this message translates to:
+  /// **'New tenant'**
+  String get newTenantTitle;
+
+  /// Title of the tenant form when editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit tenant'**
+  String get editTenantTitle;
+
+  /// Form section with a tenant's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Who they are'**
+  String get tenantSectionWho;
+
+  /// Form section with the CNIC and NTN.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity'**
+  String get tenantSectionIdentity;
+
+  /// Form section with phones and e-mail.
+  ///
+  /// In en, this message translates to:
+  /// **'How to reach them'**
+  String get tenantSectionContact;
+
+  /// Form section with occupation and addresses.
+  ///
+  /// In en, this message translates to:
+  /// **'Work and addresses'**
+  String get tenantSectionWork;
+
+  /// Form section with the emergency contact.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency contact'**
+  String get tenantSectionEmergency;
+
+  /// Form section with two references.
+  ///
+  /// In en, this message translates to:
+  /// **'References'**
+  String get tenantSectionReferences;
+
+  /// Form section with household size and tax.
+  ///
+  /// In en, this message translates to:
+  /// **'Household and tax'**
+  String get tenantSectionHousehold;
+
+  /// Form section recording consent to keep data.
+  ///
+  /// In en, this message translates to:
+  /// **'Consent'**
+  String get tenantSectionConsent;
+
+  /// Label of whether the tenant is a person or an organisation.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenant is a'**
+  String get tenantKindLabel;
+
+  /// Label of a tenant's full name.
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get fullNameTenantLabel;
+
+  /// Label of a tenant's guardian relation.
+  ///
+  /// In en, this message translates to:
+  /// **'S/O, D/O or W/O'**
+  String get guardianRelationLabel;
+
+  /// Label of a tenant's guardian name.
+  ///
+  /// In en, this message translates to:
+  /// **'Father\'s or husband\'s name'**
+  String get guardianNameLabel;
+
+  /// Label of a CNIC.
+  ///
+  /// In en, this message translates to:
+  /// **'CNIC'**
+  String get cnicLabel;
+
+  /// Under the CNIC field.
+  ///
+  /// In en, this message translates to:
+  /// **'13 digits, as on the card.'**
+  String get cnicHelper;
+
+  /// The CNIC is not valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 13 digits of a CNIC, like 35202-1234567-1.'**
+  String get validationCnic;
+
+  /// Label of a CNIC's expiry date.
+  ///
+  /// In en, this message translates to:
+  /// **'CNIC expires on'**
+  String get cnicExpiryLabel;
+
+  /// Badge on an expired CNIC.
+  ///
+  /// In en, this message translates to:
+  /// **'CNIC expired'**
+  String get cnicExpired;
+
+  /// Label of a tax number.
+  ///
+  /// In en, this message translates to:
+  /// **'NTN'**
+  String get ntnLabel;
+
+  /// The NTN is not valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the NTN as issued, 6 to 15 letters, digits or dashes.'**
+  String get validationNtn;
+
+  /// Label of an alternate phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Other phone'**
+  String get altPhoneLabel;
+
+  /// Label of a tenant's occupation.
+  ///
+  /// In en, this message translates to:
+  /// **'Occupation'**
+  String get occupationLabel;
+
+  /// Label of a tenant's employer.
+  ///
+  /// In en, this message translates to:
+  /// **'Employer'**
+  String get employerLabel;
+
+  /// Label of a tenant's permanent address.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent address'**
+  String get permanentAddressLabel;
+
+  /// Label of a tenant's previous address.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous address'**
+  String get previousAddressLabel;
+
+  /// Label of a contact's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get contactNameLabel;
+
+  /// Label of how a contact is related.
+  ///
+  /// In en, this message translates to:
+  /// **'Relation'**
+  String get contactRelationLabel;
+
+  /// Heading of one reference.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference {number}'**
+  String referenceLabel(int number);
+
+  /// Label of a household's size.
+  ///
+  /// In en, this message translates to:
+  /// **'People living there'**
+  String get householdSizeLabel;
+
+  /// Whether a tenant deducts s.155 tax.
+  ///
+  /// In en, this message translates to:
+  /// **'Deducts withholding tax'**
+  String get withholdingTaxLabel;
+
+  /// Explains withholding tax.
+  ///
+  /// In en, this message translates to:
+  /// **'Companies and government offices deduct tax under section 155 from the rent they pay.'**
+  String get withholdingTaxHelp;
+
+  /// Checkbox recording the tenant's consent.
+  ///
+  /// In en, this message translates to:
+  /// **'I told the tenant what details are kept and why'**
+  String get consentLabel;
+
+  /// Label of the consent note.
+  ///
+  /// In en, this message translates to:
+  /// **'What they agreed to'**
+  String get consentNoteLabel;
+
+  /// When consent was recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Consent recorded on {date}'**
+  String consentRecorded(String date);
+
+  /// A tenant without recorded consent.
+  ///
+  /// In en, this message translates to:
+  /// **'Consent not recorded'**
+  String get consentMissing;
+
+  /// After adding a tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} added.'**
+  String tenantAdded(String name);
+
+  /// After saving a tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} saved.'**
+  String tenantSaved(String name);
+
+  /// Heading when another tenant has the same CNIC or phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this the same tenant?'**
+  String get duplicateTenantTitle;
+
+  /// Warning about a possible duplicate tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} already has this CNIC or phone number. Save anyway?'**
+  String duplicateTenantBody(String names);
+
+  /// Saves despite a warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Save anyway'**
+  String get saveAnywayAction;
+
+  /// A CNIC belongs to another tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Another tenant in use has this CNIC.'**
+  String get reasonDuplicateCnic;
+
+  /// Heading of a tenant's details.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get tenantDetailsSection;
+
+  /// Heading of a tenant's tenancies.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenancies'**
+  String get tenantTenanciesSection;
+
+  /// Confirmation before archiving a tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive {name}?'**
+  String archiveTenantTitle(String name);
+
+  /// What archiving a tenant does.
+  ///
+  /// In en, this message translates to:
+  /// **'They leave your lists but keep their tenancies, payments and receipts. You can put them back in use later.'**
+  String get archiveTenantBody;
+
+  /// After archiving a tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} archived.'**
+  String tenantArchived(String name);
+
+  /// After restoring a tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is back in use.'**
+  String tenantRestored(String name);
+
+  /// Confirmation before deleting a tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}?'**
+  String deleteTenantTitle(String name);
+
+  /// What deleting a tenant does.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for a tenant added by mistake: their details go for good. A tenant with a tenancy cannot be deleted; archive them instead.'**
+  String get deleteTenantBody;
+
+  /// After deleting a tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} deleted.'**
+  String tenantDeleted(String name);
+
+  /// Label of an optional e-mail.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail'**
+  String get emailOptionalLabel;
+
+  /// Label of a reference's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference {number}: name'**
+  String referenceNameLabel(int number);
+
+  /// Label of a reference's phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference {number}: phone'**
+  String referencePhoneLabel(int number);
+
+  /// Title of a tenancy's screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenancy'**
+  String get tenancyTitle;
+
+  /// Title of the form that starts a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'New tenancy'**
+  String get newTenancyTitle;
+
+  /// Title of the form that edits a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit tenancy terms'**
+  String get editTenancyTitle;
+
+  /// Opens the form that starts a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Start tenancy'**
+  String get startTenancyAction;
+
+  /// Badge of a running tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get leaseActive;
+
+  /// Badge of an ended tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended'**
+  String get leaseEnded;
+
+  /// Badge of a tenancy that starts later.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts {date}'**
+  String leaseUpcoming(String date);
+
+  /// A unit and its property.
+  ///
+  /// In en, this message translates to:
+  /// **'{unit}, {property}'**
+  String unitAtProperty(String unit, String property);
+
+  /// Label of a tenancy's tenant.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenant'**
+  String get tenantLabel;
+
+  /// Label of a tenancy's unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get unitLabel;
+
+  /// No tenant chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the tenant.'**
+  String get validationChooseTenant;
+
+  /// Starting a tenancy without tenants.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the tenant first: there is no tenant in use to choose.'**
+  String get noTenantsToChoose;
+
+  /// Form section with the tenant and unit.
+  ///
+  /// In en, this message translates to:
+  /// **'Who and where'**
+  String get leaseSectionWho;
+
+  /// Form section with the dates.
+  ///
+  /// In en, this message translates to:
+  /// **'Term'**
+  String get leaseSectionTerm;
+
+  /// Form section with rent and deposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent and deposit'**
+  String get leaseSectionRent;
+
+  /// Form section with the late-fee policy.
+  ///
+  /// In en, this message translates to:
+  /// **'Late fees'**
+  String get leaseSectionLateFee;
+
+  /// Form section with the agreement.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreement'**
+  String get leaseSectionAgreement;
+
+  /// Form and screen section on police registration.
+  ///
+  /// In en, this message translates to:
+  /// **'Police registration'**
+  String get leaseSectionPolice;
+
+  /// Form section with other terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Other terms'**
+  String get leaseSectionOther;
+
+  /// Label of a tenancy's start (possession).
+  ///
+  /// In en, this message translates to:
+  /// **'Moves in on'**
+  String get moveInLabel;
+
+  /// Label of a tenancy's term.
+  ///
+  /// In en, this message translates to:
+  /// **'Term'**
+  String get termLabel;
+
+  /// A tenancy term.
+  ///
+  /// In en, this message translates to:
+  /// **'11 months'**
+  String get term11;
+
+  /// A tenancy term.
+  ///
+  /// In en, this message translates to:
+  /// **'12 months'**
+  String get term12;
+
+  /// A tenancy term ending on a chosen date.
+  ///
+  /// In en, this message translates to:
+  /// **'Until a date'**
+  String get termCustom;
+
+  /// A tenancy without an end date.
+  ///
+  /// In en, this message translates to:
+  /// **'Month to month'**
+  String get termPeriodic;
+
+  /// Label of a tenancy's agreed end.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends on'**
+  String get endsOnLabel;
+
+  /// A date is before the tenancy's start.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a date on or after the move-in date.'**
+  String get validationEndAfterStart;
+
+  /// Label of the monthly rent.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly rent'**
+  String get monthlyRentLabel;
+
+  /// The rent is missing or zero.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the rent, an amount above 0.'**
+  String get validationRent;
+
+  /// Label of the security deposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Security deposit'**
+  String get depositLabel;
+
+  /// Label of the increment interval.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase every (months)'**
+  String get incrementEveryLabel;
+
+  /// Label of the late-fee policy.
+  ///
+  /// In en, this message translates to:
+  /// **'Late fee'**
+  String get lateFeeLabel;
+
+  /// No late fee.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get lateFeeNone;
+
+  /// A flat late fee.
+  ///
+  /// In en, this message translates to:
+  /// **'A fixed amount'**
+  String get lateFeeFlat;
+
+  /// A percentage late fee.
+  ///
+  /// In en, this message translates to:
+  /// **'A percent of the late rent'**
+  String get lateFeePercent;
+
+  /// A daily late fee.
+  ///
+  /// In en, this message translates to:
+  /// **'An amount per day late'**
+  String get lateFeeDaily;
+
+  /// Label of a late fee amount.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee'**
+  String get lateFeeAmountLabel;
+
+  /// Label of a late fee percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee (%)'**
+  String get lateFeePercentLabel;
+
+  /// Label of a daily late fee's cap.
+  ///
+  /// In en, this message translates to:
+  /// **'At most'**
+  String get lateFeeCapLabel;
+
+  /// Under the late fee choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Charged once the grace days have passed.'**
+  String get lateFeeHelp;
+
+  /// Label of the notice period.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice period (days)'**
+  String get noticeDaysLabel;
+
+  /// Whether the first month is prorated.
+  ///
+  /// In en, this message translates to:
+  /// **'Charge only the days of the first month'**
+  String get prorateLabel;
+
+  /// Under the proration switch.
+  ///
+  /// In en, this message translates to:
+  /// **'When the tenant moves in after the 1st.'**
+  String get prorateHelp;
+
+  /// Label of the billing start date.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill from'**
+  String get billingStartsLabel;
+
+  /// Explains the billing start.
+  ///
+  /// In en, this message translates to:
+  /// **'For a tenancy that began before you used the app: the first day the app should bill.'**
+  String get billingStartsHelp;
+
+  /// Label of the agreement's signing date.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreement signed on'**
+  String get agreementSignedLabel;
+
+  /// Label of the e-stamp paper number.
+  ///
+  /// In en, this message translates to:
+  /// **'E-stamp number'**
+  String get eStampNumberLabel;
+
+  /// Label of the e-stamp duty paid.
+  ///
+  /// In en, this message translates to:
+  /// **'E-stamp amount'**
+  String get eStampAmountLabel;
+
+  /// Label of what the unit may be used for.
+  ///
+  /// In en, this message translates to:
+  /// **'Permitted use'**
+  String get permittedUseLabel;
+
+  /// Whether subletting is allowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Subletting allowed'**
+  String get sublettingLabel;
+
+  /// Label of the Rent Registrar status.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent Registrar (Punjab)'**
+  String get registrarStatusLabel;
+
+  /// Rent Registrar status.
+  ///
+  /// In en, this message translates to:
+  /// **'Not applicable'**
+  String get registrarNotApplicable;
+
+  /// Rent Registrar status.
+  ///
+  /// In en, this message translates to:
+  /// **'Not presented'**
+  String get registrarNotPresented;
+
+  /// Rent Registrar status.
+  ///
+  /// In en, this message translates to:
+  /// **'Presented'**
+  String get registrarPresented;
+
+  /// Rent Registrar or police status.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered'**
+  String get registrarRegistered;
+
+  /// Label of the Rent Registrar office.
+  ///
+  /// In en, this message translates to:
+  /// **'Registrar office'**
+  String get registrarOfficeLabel;
+
+  /// Label of a registration number.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration number'**
+  String get registrationNumberLabel;
+
+  /// Label of a registration date.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered on'**
+  String get registeredOnLabel;
+
+  /// Label of the police registration status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get policeStatusLabel;
+
+  /// Police registration status.
+  ///
+  /// In en, this message translates to:
+  /// **'Not required'**
+  String get policeNotRequired;
+
+  /// Police registration status.
+  ///
+  /// In en, this message translates to:
+  /// **'Not registered yet'**
+  String get policePending;
+
+  /// Police registration status.
+  ///
+  /// In en, this message translates to:
+  /// **'Submitted'**
+  String get policeSubmitted;
+
+  /// Label of the police registration channel.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered through'**
+  String get policeChannelLabel;
+
+  /// A registration channel.
+  ///
+  /// In en, this message translates to:
+  /// **'Online portal'**
+  String get channelOnlinePortal;
+
+  /// A registration channel: a police service centre.
+  ///
+  /// In en, this message translates to:
+  /// **'Khidmat Markaz'**
+  String get channelKhidmatMarkaz;
+
+  /// A registration channel.
+  ///
+  /// In en, this message translates to:
+  /// **'Police station'**
+  String get channelPoliceStation;
+
+  /// Label of the police station.
+  ///
+  /// In en, this message translates to:
+  /// **'Police station'**
+  String get policeStationLabel;
+
+  /// Label of the police reference number.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference number'**
+  String get policeReferenceLabel;
+
+  /// Label of the police registration fee.
+  ///
+  /// In en, this message translates to:
+  /// **'Fee paid'**
+  String get policeFeeLabel;
+
+  /// A statutory police-registration deadline.
+  ///
+  /// In en, this message translates to:
+  /// **'The law\'s deadline: {date}'**
+  String policeLegalDeadline(String date);
+
+  /// The app's police-registration reminder date.
+  ///
+  /// In en, this message translates to:
+  /// **'The app\'s reminder: {date}'**
+  String policeReminderDate(String date);
+
+  /// Explains a non-statutory reminder.
+  ///
+  /// In en, this message translates to:
+  /// **'No law the app knows of sets a deadline here: this is only a reminder.'**
+  String get policeReminderNote;
+
+  /// Police registration is late.
+  ///
+  /// In en, this message translates to:
+  /// **'Past the deadline: register it now.'**
+  String get policeLate;
+
+  /// Opens the police registration portal.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the registration website'**
+  String get openPortalAction;
+
+  /// Label of who pays the utilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Utilities'**
+  String get utilitiesNoteLabel;
+
+  /// After starting a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenancy started for {tenant}.'**
+  String tenancyStarted(String tenant);
+
+  /// After saving a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenancy terms saved.'**
+  String get tenancySaved;
+
+  /// Tenancies of a unit overlap.
+  ///
+  /// In en, this message translates to:
+  /// **'The unit is let for some of these dates. End the other tenancy first, or choose other dates.'**
+  String get reasonLeaseOverlap;
+
+  /// Heading of a tenancy's terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms'**
+  String get tenancyTermsSection;
+
+  /// When rent is due.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day} of each month'**
+  String dueDayValue(int day);
+
+  /// A percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String percentValue(String percent);
+
+  /// A rent increase and how often.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% every {months, plural, =1{month} other{{months} months}}'**
+  String everyMonths(String percent, int months);
+
+  /// A tenancy without an end.
+  ///
+  /// In en, this message translates to:
+  /// **'Month to month'**
+  String get periodicValue;
+
+  /// Heading of a tenancy's occupants.
+  ///
+  /// In en, this message translates to:
+  /// **'People living there'**
+  String get occupantsSection;
+
+  /// Under the occupants heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Adults living with the tenant, needed for police registration.'**
+  String get occupantsHelp;
+
+  /// Adds an occupant.
+  ///
+  /// In en, this message translates to:
+  /// **'Add person'**
+  String get addOccupantAction;
+
+  /// Title of the occupant sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Person living there'**
+  String get occupantTitle;
+
+  /// After saving an occupant.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} saved.'**
+  String occupantSaved(String name);
+
+  /// Removes something.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removeAction;
+
+  /// Confirmation before removing an occupant.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String removeOccupantTitle(String name);
+
+  /// What removing an occupant does.
+  ///
+  /// In en, this message translates to:
+  /// **'They are taken off this tenancy.'**
+  String get removeOccupantBody;
+
+  /// No occupants.
+  ///
+  /// In en, this message translates to:
+  /// **'No one added yet.'**
+  String get noOccupants;
+
+  /// Heading of the rent changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent history'**
+  String get rentHistorySection;
+
+  /// When a rent applies from.
+  ///
+  /// In en, this message translates to:
+  /// **'From {month}'**
+  String rentFrom(String month);
+
+  /// Why the rent is what it is.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting rent'**
+  String get rentReasonInitial;
+
+  /// Why the rent changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly increase'**
+  String get rentReasonAnnualIncrement;
+
+  /// Why the rent changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreed change'**
+  String get rentReasonRenegotiation;
+
+  /// Why the rent changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Correction'**
+  String get rentReasonCorrection;
+
+  /// Opens the rent change sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Change rent'**
+  String get changeRentAction;
+
+  /// Label of the month a new rent applies from.
+  ///
+  /// In en, this message translates to:
+  /// **'From the month of'**
+  String get changeRentFromLabel;
+
+  /// Label of the new rent.
+  ///
+  /// In en, this message translates to:
+  /// **'New monthly rent'**
+  String get newRentLabel;
+
+  /// Label of a reason choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Why'**
+  String get changeReasonLabel;
+
+  /// Label of a note.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get rentNoteLabel;
+
+  /// The suggested new rent.
+  ///
+  /// In en, this message translates to:
+  /// **'At the agreed {percent}%, rounded to Rs 100: {rent}'**
+  String suggestedIncrement(String percent, String rent);
+
+  /// Fills in the suggested rent.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this'**
+  String get useSuggestionAction;
+
+  /// What changing the rent does.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpaid rent of that month and later is re-priced; months already paid keep their amount.'**
+  String get changeRentHelp;
+
+  /// After changing the rent.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent changed to {rent} from {month}.'**
+  String rentChanged(String rent, String month);
+
+  /// Opens the end-tenancy sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'End tenancy'**
+  String get endTenancyAction;
+
+  /// Label of the move-out date.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved out on'**
+  String get movedOutLabel;
+
+  /// Why a tenancy ended.
+  ///
+  /// In en, this message translates to:
+  /// **'The term ended'**
+  String get endTermCompleted;
+
+  /// Why a tenancy ended.
+  ///
+  /// In en, this message translates to:
+  /// **'The tenant moved out'**
+  String get endTenantMovedOut;
+
+  /// Why a tenancy ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Eviction'**
+  String get endEviction;
+
+  /// Why a tenancy ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Both agreed'**
+  String get endMutualAgreement;
+
+  /// What ending a tenancy does to its money.
+  ///
+  /// In en, this message translates to:
+  /// **'Rent is billed through the month of moving out. The rent of every later month, and its automatic late fees, is voided, paid or not. Money that paid them is released and applied to the tenancy\'s other dues; what is left stays as the tenant\'s credit, to refund. The unit becomes vacant.'**
+  String get endTenancyExplain;
+
+  /// After ending a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenancy ended.'**
+  String get tenancyEnded;
+
+  /// Label of when a tenancy ended.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended on'**
+  String get endedOnLabel;
+
+  /// Confirmation before deleting a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this tenancy?'**
+  String get deleteTenancyTitle;
+
+  /// What deleting a tenancy does.
+  ///
+  /// In en, this message translates to:
+  /// **'Only for a tenancy entered by mistake: it goes with the dues it generated, as long as nothing was paid, waived or voided. Otherwise end the tenancy instead.'**
+  String get deleteTenancyBody;
+
+  /// After deleting a tenancy.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenancy deleted.'**
+  String get tenancyDeleted;
+
+  /// A tenancy failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'This tenancy could not be loaded'**
+  String get tenancyLoadFailedTitle;
+
+  /// Screen-reader label of a tenancy's skeleton.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading the tenancy'**
+  String get loadingTenancy;
+
+  /// No tenancies.
+  ///
+  /// In en, this message translates to:
+  /// **'No tenancies yet.'**
+  String get tenanciesEmpty;
+
+  /// Tenancies failed to load.
+  ///
+  /// In en, this message translates to:
+  /// **'The tenancies could not be loaded'**
+  String get tenanciesLoadFailedTitle;
+
+  /// A number of months.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month} other{{count} months}}'**
+  String monthCount(int count);
+
+  /// Tooltip of the button that lowers months.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer months'**
+  String get fewerMonthsAction;
+
+  /// Tooltip of the button that raises months.
+  ///
+  /// In en, this message translates to:
+  /// **'More months'**
+  String get moreMonthsAction;
 }
 
 class _AppLocalizationsDelegate

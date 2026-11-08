@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
@@ -236,7 +237,7 @@ class _Account extends ConsumerWidget {
         MmSectionHeader(title: l10n.settingsAccount),
         if (email != null) ...[
           const SizedBox(height: MmSpace.s2),
-          MmDetailRow(label: l10n.signedInAs, value: email),
+          MmDetailRow(label: l10n.signedInAs, value: breakableEmail(email)),
         ],
         const SizedBox(height: MmSpace.s4),
         MmButton(

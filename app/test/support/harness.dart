@@ -6,13 +6,19 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/core/dates.dart';
+import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/leases/data/lease_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
+import 'package:maalik_e_makaan/src/features/properties/data/property_repository.dart';
+import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
+import 'package:maalik_e_makaan/src/features/tenants/data/tenant_repository.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_core/mm_core.dart';
@@ -79,9 +85,19 @@ final class TestApp {
   final FakeProfileRepository profiles;
   final FakePortfolioRepository portfolios;
   final FakeAccountRepository account;
+  final FakeTeamRepository team = FakeTeamRepository();
+  final FakePropertyRepository properties = FakePropertyRepository();
+  final FakeTenantRepository tenants = FakeTenantRepository();
+  final FakeLeaseRepository leases = FakeLeaseRepository();
   final MemorySettingsStore settings;
   final MemoryStore store = MemoryStore();
   late final SwrCache cache = SwrCache(store);
+
+  /// The links the app asked to open in another app.
+  final opened = <Uri>[];
+
+  /// Whether opening a link works.
+  bool canOpenLinks = true;
 
   List<Override> get overrides => [
     settingsStoreProvider.overrideWithValue(settings),
@@ -90,6 +106,16 @@ final class TestApp {
     profileRepositoryProvider.overrideWithValue(profiles),
     portfolioRepositoryProvider.overrideWithValue(portfolios),
     accountRepositoryProvider.overrideWithValue(account),
+    teamRepositoryProvider.overrideWithValue(team),
+    propertyRepositoryProvider.overrideWithValue(properties),
+    tenantRepositoryProvider.overrideWithValue(tenants),
+    leaseRepositoryProvider.overrideWithValue(leases),
+    // The day every test's dates and deadlines are measured from.
+    todayProvider.overrideWithValue(CalendarDate(2026, 11, 7)),
+    linkOpenerProvider.overrideWithValue((link) async {
+      opened.add(link);
+      return canOpenLinks;
+    }),
   ];
 }
 
@@ -112,16 +138,35 @@ GoRouter testRouter(Widget Function() screen, {Object? extra}) => GoRouter(
       Routes.checkEmail,
       Routes.updatePassword,
       Routes.createPortfolio,
+      Routes.invite,
       Routes.home,
       Routes.more,
+      Routes.team,
+      Routes.inviteMember,
+      Routes.portfolioDetails,
       Routes.settings,
       Routes.deleteAccount,
+      Routes.properties,
+      Routes.newProperty,
+      '/properties/:propertyId',
+      '/properties/:propertyId/edit',
+      '/properties/:propertyId/units/new',
+      '/properties/:propertyId/units/:unitId',
+      '/properties/:propertyId/units/:unitId/edit',
+      Routes.tenants,
+      '/tenants/new',
+      '/tenants/:tenantId',
+      '/tenants/:tenantId/edit',
+      '/leases/new',
+      '/leases/:leaseId',
+      '/leases/:leaseId/edit',
     ])
       GoRoute(
         path: path,
         builder: (context, state) => Scaffold(
           body: Text(
-            'route:$path${state.extra == null ? '' : ' ${state.extra}'}',
+            'route:${state.uri}'
+            '${state.extra == null ? '' : ' ${state.extra}'}',
           ),
         ),
       ),

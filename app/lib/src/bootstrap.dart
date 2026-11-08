@@ -22,8 +22,10 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   _reportErrors();
   // Paths without a `#` on the web, so e-mail links to /auth/callback open
-  // that route (the host serves index.html for every path).
-  usePathUrlStrategy();
+  // that route (the host serves index.html for every path). The fragment is
+  // kept: an invitation link carries its token there (/invite#token=…),
+  // which browsers never send to a server.
+  setUrlStrategy(PathUrlStrategy(BrowserPlatformLocation(), true));
 
   final AppConfig config;
   try {

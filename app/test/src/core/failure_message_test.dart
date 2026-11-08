@@ -63,6 +63,11 @@ void main() {
       'signup_disabled',
       'mfa_required',
       'does_not_match_account',
+      'duplicate_property_name',
+      'duplicate_unit_label',
+      'still_in_use',
+      'duplicate_cnic',
+      'lease_overlap',
       'something_new',
     ])
       RejectedFailure(reason),

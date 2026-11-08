@@ -68,4 +68,37 @@ abstract final class Validators {
         ? l10n.validationTooLong(maxLength)
         : null;
   }
+
+  /// A percentage from 0 to 100 with at most two decimals ([parsePercent]).
+  static String? percent(AppLocalizations l10n, String? value) {
+    if ((value ?? '').trim().isEmpty) return l10n.validationRequired;
+    return parsePercent(value!) == null ? l10n.validationPercent : null;
+  }
+
+  /// A whole number from [min] to [max]; empty is fine unless [required].
+  static String? wholeNumber(
+    AppLocalizations l10n,
+    String? value, {
+    required int min,
+    required int max,
+    bool required = false,
+  }) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) return required ? l10n.validationRequired : null;
+    final number = int.tryParse(normalizeDigits(text));
+    return number == null || number < min || number > max
+        ? l10n.validationNumberRange(min, max)
+        : null;
+  }
+}
+
+/// [text] as a percentage in basis points (10 % = 1000, 2.5 % = 250), with
+/// Urdu digits read too; null when it is not 0 to 100 with at most two
+/// decimals.
+int? parsePercent(String text) {
+  try {
+    return basisPointsFromPercent(normalizeDigits(text).trim());
+  } on FormatException {
+    return null;
+  }
 }

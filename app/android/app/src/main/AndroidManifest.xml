@@ -36,6 +36,12 @@
                     android:scheme="https"
                     android:host="maalik-e-makaan.vercel.app"
                     android:pathPrefix="/auth/callback" />
+                <!-- Invitation e-mails (invite-member) link to /invite#token=…;
+                     the token rides in the fragment. -->
+                <data
+                    android:scheme="https"
+                    android:host="maalik-e-makaan.vercel.app"
+                    android:path="/invite" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

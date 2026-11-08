@@ -73,6 +73,23 @@ final class PortfoliosController
         created,
       ]);
     }
+    await _show(list);
+    await ref
+        .read(selectedPortfolioProvider(userId).notifier)
+        .select(created.id);
+    return created;
+  }
+
+  /// Reads the list again, after the user joined, left or renamed a
+  /// portfolio, and returns it. Throws [AppFailure] when it cannot be read;
+  /// the list on screen then stays as it was.
+  Future<List<PortfolioMembership>> reload() async {
+    final list = await ref.read(portfolioRepositoryProvider).listMine(userId);
+    if (ref.mounted) await _show(list);
+    return list;
+  }
+
+  Future<void> _show(List<PortfolioMembership> list) async {
     final savedAt = await ref
         .read(swrCacheProvider)
         .write(userId, query, _encode(list));
@@ -81,10 +98,6 @@ final class PortfoliosController
         Snapshot(list, savedAt: savedAt, source: SnapshotSource.network),
       );
     }
-    await ref
-        .read(selectedPortfolioProvider(userId).notifier)
-        .select(created.id);
-    return created;
   }
 }
 

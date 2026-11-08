@@ -10,6 +10,7 @@ import 'package:maalik_e_makaan/src/auth/presentation/sign_in_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/sign_up_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/update_password_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/welcome_screen.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
@@ -372,7 +373,7 @@ void main() {
           purpose: EmailPurpose.confirmation,
         ),
       );
-      expect(find.textContaining(testEmail), findsOneWidget);
+      expect(find.textContaining(breakableEmail(testEmail)), findsOneWidget);
       final resend = find.widgetWithText(MmButton, 'Send the e-mail again');
       expect(tester.widget<MmButton>(resend).onPressed, isNull);
       expect(find.text('You can send it again in 60 seconds.'), findsOneWidget);

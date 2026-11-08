@@ -47,18 +47,61 @@ class MoreScreen extends ConsumerWidget {
           ],
           MmCard(
             padding: EdgeInsetsDirectional.zero,
-            child: MmListTile(
-              leading: const Icon(MmIcons.settings),
-              title: l10n.settingsTitle,
-              subtitle: l10n.settingsSummary,
-              // Never cut short, even at 200% text.
-              subtitleMaxLines: 4,
-              trailing: const Icon(MmIcons.chevronEnd),
-              onTap: () => context.go(Routes.settings),
+            child: Column(
+              children: [
+                if (current != null) ...[
+                  _Entry(
+                    icon: MmIcons.tenants,
+                    title: l10n.teamTitle,
+                    subtitle: l10n.teamSummary,
+                    route: Routes.team,
+                  ),
+                  const Divider(height: MmSize.hairline),
+                  _Entry(
+                    icon: MmIcons.property,
+                    title: l10n.portfolioDetailsTitle,
+                    subtitle: l10n.portfolioDetailsSummary,
+                    route: Routes.portfolioDetails,
+                  ),
+                  const Divider(height: MmSize.hairline),
+                ],
+                _Entry(
+                  icon: MmIcons.settings,
+                  title: l10n.settingsTitle,
+                  subtitle: l10n.settingsSummary,
+                  route: Routes.settings,
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+/// One way onward from More.
+class _Entry extends StatelessWidget {
+  const new({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.route,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String route;
+
+  @override
+  Widget build(BuildContext context) => MmListTile(
+    leading: Icon(icon),
+    title: title,
+    subtitle: subtitle,
+    // Never cut short, even at 200% text.
+    subtitleMaxLines: 4,
+    trailing: const Icon(MmIcons.chevronEnd),
+    onTap: () => context.go(route),
+  );
 }

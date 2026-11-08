@@ -24,6 +24,7 @@ final class PreferencesSettingsStore implements SettingsStore {
     AppSettings.highContrastKey,
     AppSettings.groupingKey,
     AppSettings.currentPortfolioKey,
+    AppSettings.pendingInvitationKey,
   };
 
   final SharedPreferencesWithCache _preferences;
@@ -80,6 +81,11 @@ final class AppSettings {
   /// The portfolio last chosen on this device, as the user's id, a slash
   /// and the portfolio's id; the portfolios feature reads and writes it.
   static const currentPortfolioKey = 'mm.portfolio.current';
+
+  /// An invitation link opened on this device and not yet answered (its
+  /// token), kept while the invited person signs in or creates an account;
+  /// the team feature reads and writes it.
+  static const pendingInvitationKey = 'mm.invitation.pending';
 
   /// The chosen language; null until it is picked on first launch.
   final Locale? locale;

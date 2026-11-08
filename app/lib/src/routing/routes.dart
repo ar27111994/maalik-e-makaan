@@ -13,11 +13,37 @@ abstract final class Routes {
 
   static const createPortfolio = '/portfolios/new';
 
+  /// Where invitation e-mails lead (`invite-member`'s link), with the token
+  /// in the fragment: `/invite#token=…`.
+  static const invite = '/invite';
+
   static const home = '/';
   static const properties = '/properties';
+  static const newProperty = '/properties/new';
+  static String property(String id) => '/properties/$id';
+  static String editProperty(String id) => '/properties/$id/edit';
+  static String newUnit(String propertyId) =>
+      '/properties/$propertyId/units/new';
+  static String unit(String propertyId, String unitId) =>
+      '/properties/$propertyId/units/$unitId';
+  static String editUnit(String propertyId, String unitId) =>
+      '/properties/$propertyId/units/$unitId/edit';
   static const tenants = '/tenants';
+  static const newTenant = '/tenants/new';
+  static String tenant(String id) => '/tenants/$id';
+  static String editTenant(String id) => '/tenants/$id/edit';
+  static const leases = '/leases';
+  static String newLease({String? unitId, String? tenantId}) => Uri(
+    path: '/leases/new',
+    queryParameters: {'unit': ?unitId, 'tenant': ?tenantId},
+  ).toString();
+  static String lease(String id) => '/leases/$id';
+  static String editLease(String id) => '/leases/$id/edit';
   static const money = '/money';
   static const more = '/more';
+  static const team = '/more/team';
+  static const inviteMember = '/more/team/invite';
+  static const portfolioDetails = '/more/portfolio';
   static const settings = '/more/settings';
   static const deleteAccount = '/more/settings/delete-account';
 
@@ -48,13 +74,16 @@ abstract final class Routes {
 ///    they were going when their session ended by itself (not when they
 ///    signed out or deleted the account);
 /// 4. signed-in users skip the sign-in screens;
-/// 5. a signed-in user without a portfolio creates one first (Settings stay
+/// 5. a signed-in user who opened an invitation answers it first (it may
+///    give them their first portfolio);
+/// 6. a signed-in user without a portfolio creates one first (Settings stay
 ///    open, to change the language or sign out).
 String? redirectFor({
   required Uri location,
   required bool languageChosen,
   required AuthStatus auth,
   PortfolioGate portfolios = PortfolioGate.unknown,
+  bool invitationPending = false,
 }) {
   final path = location.path;
   if (!languageChosen) {
@@ -75,9 +104,9 @@ String? redirectFor({
       if (path == Routes.updatePassword) return Routes.home;
       final settings =
           path == Routes.settings || path.startsWith('${Routes.settings}/');
-      if (portfolios == PortfolioGate.none &&
-          path != Routes.createPortfolio &&
-          !settings) {
+      if (path == Routes.invite || settings) return null;
+      if (invitationPending) return Routes.invite;
+      if (portfolios == PortfolioGate.none && path != Routes.createPortfolio) {
         return Routes.createPortfolio;
       }
       return null;

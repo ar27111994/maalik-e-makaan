@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/presentation/delete_account_screen.dart';
@@ -24,7 +25,10 @@ Finder get _deleteButton => find.widgetWithText(MmButton, 'Delete my account');
 
 Future<void> _fill(WidgetTester tester, {String email = testEmail}) async {
   await tester.enterText(_field('Password'), 'Secret1234');
-  await tester.enterText(_field('Type $testEmail to confirm'), email);
+  await tester.enterText(
+    _field('Type ${breakableEmail(testEmail)} to confirm'),
+    email,
+  );
   await tester.pump();
 }
 

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
+import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
@@ -113,7 +114,7 @@ class _CheckEmailScreenState extends ConsumerState<CheckEmailScreen>
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: Text(
-                email.address,
+                breakableEmail(email.address),
                 textDirection: TextDirection.ltr,
                 style: context.mm.styleFor(email.address, text.titleMedium!),
               ),

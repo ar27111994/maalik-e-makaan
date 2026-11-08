@@ -2,11 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/config/app_config.dart';
+import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/leases/data/lease_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
+import 'package:maalik_e_makaan/src/features/properties/data/property_repository.dart';
+import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
+import 'package:maalik_e_makaan/src/features/tenants/data/tenant_repository.dart';
 
 import '../../support/fakes.dart';
 import '../../support/supabase.dart';
@@ -42,6 +47,27 @@ void main() {
     expect(
       container.read(accountRepositoryProvider),
       isA<SupabaseAccountRepository>(),
+    );
+    expect(
+      container.read(teamRepositoryProvider),
+      isA<SupabaseTeamRepository>(),
+    );
+    expect(
+      container.read(propertyRepositoryProvider),
+      isA<SupabasePropertyRepository>(),
+    );
+    expect(
+      container.read(tenantRepositoryProvider),
+      isA<SupabaseTenantRepository>(),
+    );
+    expect(
+      container.read(leaseRepositoryProvider),
+      isA<SupabaseLeaseRepository>(),
+    );
+    expect(container.read(linkOpenerProvider), isNotNull);
+    expect(
+      whatsAppLink('hi', phoneDigits: '923001234567').toString(),
+      'https://wa.me/923001234567?text=hi',
     );
   });
 }

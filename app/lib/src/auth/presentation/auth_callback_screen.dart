@@ -66,12 +66,12 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen>
                 ],
               ),
             )
-          : MmEmptyState(
-              icon: MmIcons.error,
+          : MmErrorState(
               title: l10n.linkFailedTitle,
               message: failureMessage(l10n, failure),
               actionLabel: l10n.backToSignInAction,
-              onAction: () => context.go(Routes.signIn),
+              actionIcon: MmIcons.back,
+              onRetry: () => context.go(Routes.signIn),
             ),
     );
   }

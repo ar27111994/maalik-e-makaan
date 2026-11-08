@@ -172,11 +172,11 @@
   "@settingsNumbers": {
     "description": "Settings section: how amounts are grouped."
   },
-  "groupingWestern": "Western (Rs 1,250,000)",
+  "groupingWestern": "Western (Rs\u00a01,250,000)",
   "@groupingWestern": {
     "description": "Digit grouping option in threes, with an example."
   },
-  "groupingSouthAsian": "Lakh and crore (Rs 12,50,000)",
+  "groupingSouthAsian": "Lakh and crore (Rs\u00a012,50,000)",
   "@groupingSouthAsian": {
     "description": "Digit grouping option in lakh and crore, with an example."
   },
@@ -821,5 +821,2183 @@
   "groupingLabel": "How amounts are grouped",
   "@groupingLabel": {
     "description": "Label of the digit grouping choice."
+  },
+  "saveAction": "Save",
+  "@saveAction": {
+    "description": "Button that saves a form."
+  },
+  "doneAction": "Done",
+  "@doneAction": {
+    "description": "Button that closes a finished task."
+  },
+  "notNowAction": "Not now",
+  "@notNowAction": {
+    "description": "Button that sets something aside for later."
+  },
+  "goToAppAction": "Go to the app",
+  "@goToAppAction": {
+    "description": "Button that leaves a task screen for the app's first section."
+  },
+  "validationNumberRange": "Enter a number from {min} to {max}.",
+  "@validationNumberRange": {
+    "description": "A whole number is outside its allowed range.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "validationPercent": "Enter a percentage from 0 to 100, with at most 2 decimals.",
+  "@validationPercent": {
+    "description": "A percentage is not valid."
+  },
+  "validationRaast": "Enter a Pakistani mobile number, like 03001234567.",
+  "@validationRaast": {
+    "description": "A Raast ID is not a Pakistani mobile number."
+  },
+  "validationIban": "Enter a Pakistani IBAN, like PK36 SCBL 0000 0011 2345 6702.",
+  "@validationIban": {
+    "description": "The IBAN is not a valid Pakistani IBAN."
+  },
+  "linkNotOpened": "The link could not be opened.",
+  "@linkNotOpened": {
+    "description": "An outside app (WhatsApp, a website) could not be opened."
+  },
+  "roleOwnerHelp": "Everything, including the team and the payment details.",
+  "@roleOwnerHelp": {
+    "description": "What an owner can do, under the role's name."
+  },
+  "roleManagerHelp": "Runs properties, tenants and tenancies, and records money.",
+  "@roleManagerHelp": {
+    "description": "What a manager (caretaker) can do."
+  },
+  "roleAccountantHelp": "Records payments and expenses, and sees everything else.",
+  "@roleAccountantHelp": {
+    "description": "What an accountant can do."
+  },
+  "roleViewerHelp": "Sees everything and changes nothing.",
+  "@roleViewerHelp": {
+    "description": "What a viewer can do."
+  },
+  "teamTitle": "Team",
+  "@teamTitle": {
+    "description": "Title of the team screen and its entry in More."
+  },
+  "teamSummary": "Who can see and run this portfolio",
+  "@teamSummary": {
+    "description": "Under the Team entry in More."
+  },
+  "portfolioDetailsTitle": "Portfolio details",
+  "@portfolioDetailsTitle": {
+    "description": "Title of the portfolio settings screen and its entry in More."
+  },
+  "portfolioDetailsSummary": "Name, tenancy defaults and payment details",
+  "@portfolioDetailsSummary": {
+    "description": "Under the Portfolio details entry in More."
+  },
+  "teamMembersSection": "People",
+  "@teamMembersSection": {
+    "description": "Heading of the list of a portfolio's members."
+  },
+  "teamInvitationsSection": "Invitations waiting for an answer",
+  "@teamInvitationsSection": {
+    "description": "Heading of the pending invitations."
+  },
+  "teamInvitationsHelp": "Each link works once, for 7 days, and only for the address it was sent to.",
+  "@teamInvitationsHelp": {
+    "description": "Under the heading of the pending invitations."
+  },
+  "memberYou": "{name} (you)",
+  "@memberYou": {
+    "description": "The signed-in user's own row in the team.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "memberNoName": "A member without a name",
+  "@memberNoName": {
+    "description": "A member who gave neither a name nor an address."
+  },
+  "memberRoleAndEmail": "{role}\u00a0· {email}",
+  "@memberRoleAndEmail": {
+    "description": "A member's role and e-mail under their name.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "teamLoadFailedTitle": "The team could not be loaded",
+  "@teamLoadFailedTitle": {
+    "description": "The team failed to load."
+  },
+  "loadingTeam": "Loading the team",
+  "@loadingTeam": {
+    "description": "Screen-reader label of the team's loading skeleton."
+  },
+  "inviteAction": "Invite someone",
+  "@inviteAction": {
+    "description": "Button that opens the invitation form."
+  },
+  "invitationExpires": "{role}\u00a0· Until {date}",
+  "@invitationExpires": {
+    "description": "A pending invitation's role and expiry.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invitationExpired": "{role}\u00a0· Expired on {date}",
+  "@invitationExpired": {
+    "description": "An invitation that expired before it was accepted.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invitationExpiredBadge": "Expired",
+  "@invitationExpiredBadge": {
+    "description": "Badge on an expired invitation."
+  },
+  "inviteAgainAction": "Invite again",
+  "@inviteAgainAction": {
+    "description": "Sends a new invitation to the same address."
+  },
+  "revokeInvitationAction": "Cancel invitation",
+  "@revokeInvitationAction": {
+    "description": "Withdraws a pending invitation."
+  },
+  "revokeInvitationTitle": "Cancel the invitation to {email}?",
+  "@revokeInvitationTitle": {
+    "description": "Confirmation before withdrawing an invitation.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "revokeInvitationBody": "The link stops working. You can invite them again later.",
+  "@revokeInvitationBody": {
+    "description": "What withdrawing an invitation does."
+  },
+  "invitationCancelled": "Invitation cancelled.",
+  "@invitationCancelled": {
+    "description": "After withdrawing an invitation."
+  },
+  "memberRoleLabel": "Role",
+  "@memberRoleLabel": {
+    "description": "Label of the role choice of a member."
+  },
+  "changeRoleAction": "Change role",
+  "@changeRoleAction": {
+    "description": "Saves a member's new role."
+  },
+  "roleChanged": "{name} is now {role}.",
+  "@roleChanged": {
+    "description": "After changing a member's role.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "onlyOwnerNote": "A portfolio always keeps an owner. Make someone else an owner before changing this role.",
+  "@onlyOwnerNote": {
+    "description": "Shown instead of the role choice for the only owner."
+  },
+  "removeMemberAction": "Remove from portfolio",
+  "@removeMemberAction": {
+    "description": "Removes a member."
+  },
+  "removeMemberTitle": "Remove {name}?",
+  "@removeMemberTitle": {
+    "description": "Confirmation before removing a member.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeMemberBody": "They lose access to this portfolio at once. Everything they recorded stays.",
+  "@removeMemberBody": {
+    "description": "What removing a member does."
+  },
+  "memberRemoved": "{name} was removed.",
+  "@memberRemoved": {
+    "description": "After removing a member.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveAction": "Leave portfolio",
+  "@leaveAction": {
+    "description": "Button with which a member leaves the portfolio."
+  },
+  "leaveTitle": "Leave {portfolio}?",
+  "@leaveTitle": {
+    "description": "Confirmation before leaving a portfolio.",
+    "placeholders": {
+      "portfolio": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveBody": "You lose access at once. Only an owner can invite you back.",
+  "@leaveBody": {
+    "description": "What leaving a portfolio does."
+  },
+  "leaveLastOwner": "You are the only owner. Make someone else an owner before you leave.",
+  "@leaveLastOwner": {
+    "description": "Why the only owner cannot leave."
+  },
+  "leftPortfolio": "You left {portfolio}.",
+  "@leftPortfolio": {
+    "description": "After leaving a portfolio.",
+    "placeholders": {
+      "portfolio": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteTitle": "Invite someone",
+  "@inviteTitle": {
+    "description": "Title of the invitation form."
+  },
+  "inviteBody": "They get an e-mail with a link that works once, for 7 days, and only for this address. You can also share the link yourself.",
+  "@inviteBody": {
+    "description": "Explains invitations above the form."
+  },
+  "inviteEmailLabel": "Their e-mail",
+  "@inviteEmailLabel": {
+    "description": "Label of the invitee's e-mail field."
+  },
+  "inviteRoleLabel": "Their role",
+  "@inviteRoleLabel": {
+    "description": "Label of the invitee's role choice."
+  },
+  "sendInvitationAction": "Send invitation",
+  "@sendInvitationAction": {
+    "description": "Button that creates and e-mails an invitation."
+  },
+  "invitationReadyTitle": "Invitation ready",
+  "@invitationReadyTitle": {
+    "description": "Heading after an invitation was created."
+  },
+  "deliverySent": "We e-mailed the invitation to {email}.",
+  "@deliverySent": {
+    "description": "The invitation e-mail was sent.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryNotConfigured": "E-mail is not set up, so nothing was sent. Share the link with {email} yourself.",
+  "@deliveryNotConfigured": {
+    "description": "The server sends no e-mail.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryRateLimited": "Too many e-mails went to this address or from you in the last hour, so none was sent. Share the link with {email} yourself.",
+  "@deliveryRateLimited": {
+    "description": "The invitation e-mail was held back by a limit.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryFailed": "The e-mail to {email} could not be sent. Share the link yourself.",
+  "@deliveryFailed": {
+    "description": "Sending the invitation e-mail failed.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "deliveryUnknown": "If {email} did not get an e-mail, share the link yourself.",
+  "@deliveryUnknown": {
+    "description": "The server reported an e-mail state this app does not know.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "invitationValidUntil": "The link works once, until {date}, and only for {email}.",
+  "@invitationValidUntil": {
+    "description": "How long and for whom an invitation link works.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "invitationLinkLabel": "Invitation link",
+  "@invitationLinkLabel": {
+    "description": "Label of the invitation link."
+  },
+  "copyLinkAction": "Copy link",
+  "@copyLinkAction": {
+    "description": "Copies a link."
+  },
+  "linkCopied": "Link copied.",
+  "@linkCopied": {
+    "description": "After copying a link."
+  },
+  "shareWhatsAppAction": "Share on WhatsApp",
+  "@shareWhatsAppAction": {
+    "description": "Opens WhatsApp with a message to send."
+  },
+  "invitationShareMessage": "You are invited to {portfolio} on Maalik-e-Makaan. Open this link to join: {url}",
+  "@invitationShareMessage": {
+    "description": "The WhatsApp message that carries an invitation link.",
+    "placeholders": {
+      "portfolio": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "tenancyDefaultsSection": "New tenancies start with",
+  "@tenancyDefaultsSection": {
+    "description": "Heading of a portfolio's tenancy defaults."
+  },
+  "tenancyDefaultsHelp": "You can change them for each tenancy.",
+  "@tenancyDefaultsHelp": {
+    "description": "Under the heading of the tenancy defaults."
+  },
+  "dueDayLabel": "Rent due on day",
+  "@dueDayLabel": {
+    "description": "Label of the day of the month rent is due."
+  },
+  "dueDayHelper": "From 1 to 28, so every month has it.",
+  "@dueDayHelper": {
+    "description": "Under the due-day field."
+  },
+  "graceDaysLabel": "Grace days",
+  "@graceDaysLabel": {
+    "description": "Label of the grace period in days."
+  },
+  "graceDaysHelper": "Days after the due day before rent counts as late.",
+  "@graceDaysHelper": {
+    "description": "Under the grace-days field."
+  },
+  "incrementLabel": "Yearly increase (%)",
+  "@incrementLabel": {
+    "description": "Label of the yearly rent increase in percent."
+  },
+  "paymentDetailsSection": "Payment details",
+  "@paymentDetailsSection": {
+    "description": "Heading of a portfolio's payment details."
+  },
+  "paymentDetailsHelp": "Tenants see them on receipts and reminders.",
+  "@paymentDetailsHelp": {
+    "description": "Under the payment details heading."
+  },
+  "landlordNameLabel": "Name on receipts",
+  "@landlordNameLabel": {
+    "description": "Label of the landlord name printed on receipts."
+  },
+  "landlordPhoneLabel": "Phone on receipts",
+  "@landlordPhoneLabel": {
+    "description": "Label of the landlord phone printed on receipts."
+  },
+  "raastIdLabel": "Raast ID",
+  "@raastIdLabel": {
+    "description": "Label of the Raast ID field."
+  },
+  "raastIdHelper": "The mobile number registered for Raast, like 03001234567.",
+  "@raastIdHelper": {
+    "description": "Under the Raast ID field."
+  },
+  "bankAccountTitleLabel": "Bank account title",
+  "@bankAccountTitleLabel": {
+    "description": "Label of the bank account title."
+  },
+  "ibanLabel": "IBAN",
+  "@ibanLabel": {
+    "description": "Label of the IBAN field."
+  },
+  "ibanHelper": "24 characters, starting with PK.",
+  "@ibanHelper": {
+    "description": "Under the IBAN field."
+  },
+  "portfolioDetailsSaved": "Portfolio details saved.",
+  "@portfolioDetailsSaved": {
+    "description": "After saving a portfolio's details."
+  },
+  "portfolioDetailsLoadFailedTitle": "The portfolio details could not be loaded",
+  "@portfolioDetailsLoadFailedTitle": {
+    "description": "The portfolio details failed to load."
+  },
+  "loadingPortfolioDetails": "Loading the portfolio details",
+  "@loadingPortfolioDetails": {
+    "description": "Screen-reader label of the portfolio details' loading skeleton."
+  },
+  "acceptInvitationTitle": "Invitation",
+  "@acceptInvitationTitle": {
+    "description": "Title of the screen that accepts an invitation."
+  },
+  "acceptingInvitation": "Opening your invitation…",
+  "@acceptingInvitation": {
+    "description": "Shown while an invitation is accepted."
+  },
+  "invitationAcceptedTitle": "Welcome to {portfolio}",
+  "@invitationAcceptedTitle": {
+    "description": "After accepting an invitation.",
+    "placeholders": {
+      "portfolio": {
+        "type": "String"
+      }
+    }
+  },
+  "invitationAcceptedBody": "You joined as {role}.",
+  "@invitationAcceptedBody": {
+    "description": "The role the user joined a portfolio with.",
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "openPortfolioAction": "Open the portfolio",
+  "@openPortfolioAction": {
+    "description": "Opens the portfolio just joined."
+  },
+  "invitationFailedTitle": "This invitation cannot be used",
+  "@invitationFailedTitle": {
+    "description": "Heading when an invitation is refused."
+  },
+  "invitationInvalidBody": "This is not a working invitation link. Ask for a new invitation.",
+  "@invitationInvalidBody": {
+    "description": "The invitation link is not valid."
+  },
+  "invitationRevokedBody": "This invitation was cancelled. Ask an owner of the portfolio for a new one.",
+  "@invitationRevokedBody": {
+    "description": "The invitation was revoked."
+  },
+  "invitationAlreadyUsedBody": "This invitation was accepted already, by another account. Ask for a new one.",
+  "@invitationAlreadyUsedBody": {
+    "description": "Someone else used the invitation."
+  },
+  "invitationExpiredBody": "This invitation has expired: invitations work for 7 days. Ask for a new one.",
+  "@invitationExpiredBody": {
+    "description": "The invitation expired."
+  },
+  "invitationEmailNotVerifiedBody": "Confirm your e-mail address first, then open the invitation link again.",
+  "@invitationEmailNotVerifiedBody": {
+    "description": "The account's e-mail is not confirmed."
+  },
+  "invitationEmailMismatchBody": "This invitation was sent to another e-mail address. Sign out, then sign in or create an account with the address it was sent to.",
+  "@invitationEmailMismatchBody": {
+    "description": "The signed-in account is not the invited address."
+  },
+  "invitationUnknownBody": "This invitation cannot be accepted. Ask for a new one.",
+  "@invitationUnknownBody": {
+    "description": "The server refused the invitation for a reason this app does not know."
+  },
+  "noInvitationBody": "No invitation is waiting on this device. Open the link in the invitation e-mail.",
+  "@noInvitationBody": {
+    "description": "The invitation screen was opened without an invitation."
+  },
+  "invitationNotAcceptedTitle": "The invitation could not be opened",
+  "@invitationNotAcceptedTitle": {
+    "description": "Heading when accepting an invitation failed for a reason that may pass (offline)."
+  },
+  "fewerDaysAction": "Fewer days",
+  "@fewerDaysAction": {
+    "description": "Tooltip of the button that lowers a number of days."
+  },
+  "moreDaysAction": "More days",
+  "@moreDaysAction": {
+    "description": "Tooltip of the button that raises a number of days."
+  },
+  "dayCount": "{count, plural, =0{No days} =1{1 day} other{{count} days}}",
+  "@dayCount": {
+    "description": "A number of days.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "invitationWorksUntil": "Works until",
+  "@invitationWorksUntil": {
+    "description": "Label of when a pending invitation expires."
+  },
+  "invitationAcceptedNoName": "You joined the portfolio",
+  "@invitationAcceptedNoName": {
+    "description": "After accepting an invitation, when the portfolio's name is not known yet."
+  },
+  "propertyTypeHouse": "House",
+  "@propertyTypeHouse": {
+    "description": "A property type."
+  },
+  "propertyTypeApartmentBuilding": "Apartment building",
+  "@propertyTypeApartmentBuilding": {
+    "description": "A property type."
+  },
+  "propertyTypeApartment": "Flat",
+  "@propertyTypeApartment": {
+    "description": "A property type: one apartment."
+  },
+  "propertyTypePlaza": "Plaza",
+  "@propertyTypePlaza": {
+    "description": "A property type: a commercial plaza."
+  },
+  "propertyTypeShop": "Shop",
+  "@propertyTypeShop": {
+    "description": "A property type."
+  },
+  "propertyTypeOffice": "Office",
+  "@propertyTypeOffice": {
+    "description": "A property type."
+  },
+  "propertyTypeHostel": "Hostel",
+  "@propertyTypeHostel": {
+    "description": "A property type."
+  },
+  "propertyTypeFarmhouse": "Farmhouse",
+  "@propertyTypeFarmhouse": {
+    "description": "A property type."
+  },
+  "propertyTypeWarehouse": "Warehouse",
+  "@propertyTypeWarehouse": {
+    "description": "A property type."
+  },
+  "propertyTypePlot": "Plot",
+  "@propertyTypePlot": {
+    "description": "A property type: land."
+  },
+  "propertyTypeOther": "Other",
+  "@propertyTypeOther": {
+    "description": "A property or unit type that is none of the others."
+  },
+  "provincePunjab": "Punjab",
+  "@provincePunjab": {
+    "description": "A province."
+  },
+  "provinceSindh": "Sindh",
+  "@provinceSindh": {
+    "description": "A province."
+  },
+  "provinceKhyberPakhtunkhwa": "Khyber Pakhtunkhwa",
+  "@provinceKhyberPakhtunkhwa": {
+    "description": "A province."
+  },
+  "provinceBalochistan": "Balochistan",
+  "@provinceBalochistan": {
+    "description": "A province."
+  },
+  "provinceIslamabad": "Islamabad",
+  "@provinceIslamabad": {
+    "description": "The Islamabad Capital Territory."
+  },
+  "provinceGilgitBaltistan": "Gilgit-Baltistan",
+  "@provinceGilgitBaltistan": {
+    "description": "A region."
+  },
+  "provinceAzadKashmir": "Azad Kashmir",
+  "@provinceAzadKashmir": {
+    "description": "A region."
+  },
+  "policeHintPossession": "{province}: register each tenancy with the police within {days} of the tenant moving in.",
+  "@policeHintPossession": {
+    "description": "The police-registration law of a province whose clock starts at possession.",
+    "placeholders": {
+      "province": {
+        "type": "String"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "policeHintAgreement": "{province}: register each tenancy with the police within {days} of signing the agreement.",
+  "@policeHintAgreement": {
+    "description": "The police-registration law of a province whose clock starts at the agreement.",
+    "placeholders": {
+      "province": {
+        "type": "String"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "policeHintReminder": "{province}: no law the app knows of sets a deadline. The app reminds you to register each tenancy with the police a day after the tenant moves in.",
+  "@policeHintReminder": {
+    "description": "Where no statute fixes a police-registration deadline.",
+    "placeholders": {
+      "province": {
+        "type": "String"
+      }
+    }
+  },
+  "areaUnitMarla": "Marla",
+  "@areaUnitMarla": {
+    "description": "A unit of land area."
+  },
+  "areaUnitKanal": "Kanal",
+  "@areaUnitKanal": {
+    "description": "A unit of land area."
+  },
+  "areaUnitSquareFeet": "Square feet",
+  "@areaUnitSquareFeet": {
+    "description": "A unit of area."
+  },
+  "areaUnitSquareYards": "Square yards",
+  "@areaUnitSquareYards": {
+    "description": "A unit of area."
+  },
+  "areaUnitSquareMetres": "Square metres",
+  "@areaUnitSquareMetres": {
+    "description": "A unit of area."
+  },
+  "areaUnitAcre": "Acres",
+  "@areaUnitAcre": {
+    "description": "A unit of land area."
+  },
+  "areaValue": "{size} {unit}",
+  "@areaValue": {
+    "description": "A size and its unit, like 5 Marla.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "coveredAreaValue": "{area} sq ft",
+  "@coveredAreaValue": {
+    "description": "A covered area in square feet.",
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "unitTypeEntireProperty": "Entire property",
+  "@unitTypeEntireProperty": {
+    "description": "A unit type."
+  },
+  "unitTypePortion": "Portion",
+  "@unitTypePortion": {
+    "description": "A unit type: one portion (floor) of a house."
+  },
+  "unitTypeApartment": "Flat",
+  "@unitTypeApartment": {
+    "description": "A unit type."
+  },
+  "unitTypeRoom": "Room",
+  "@unitTypeRoom": {
+    "description": "A unit type."
+  },
+  "unitTypeBed": "Bed",
+  "@unitTypeBed": {
+    "description": "A unit type: a bed in a shared room or hostel."
+  },
+  "unitTypeShop": "Shop",
+  "@unitTypeShop": {
+    "description": "A unit type."
+  },
+  "unitTypeOffice": "Office",
+  "@unitTypeOffice": {
+    "description": "A unit type."
+  },
+  "unitTypeFloor": "Floor",
+  "@unitTypeFloor": {
+    "description": "A unit type: a whole floor."
+  },
+  "unitTypeWarehouse": "Warehouse",
+  "@unitTypeWarehouse": {
+    "description": "A unit type."
+  },
+  "occupancyOccupied": "Let",
+  "@occupancyOccupied": {
+    "description": "Badge of a unit with a tenancy now."
+  },
+  "occupancyUpcoming": "Tenancy starts soon",
+  "@occupancyUpcoming": {
+    "description": "Badge of a unit whose tenancy starts later."
+  },
+  "occupancyVacant": "Vacant",
+  "@occupancyVacant": {
+    "description": "Badge of a unit without a tenancy."
+  },
+  "occupancyVacantSince": "Vacant since {date}",
+  "@occupancyVacantSince": {
+    "description": "A vacant unit and since when.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "occupancyUnavailable": "Not available",
+  "@occupancyUnavailable": {
+    "description": "Badge of a unit not offered for rent."
+  },
+  "occupancyArchived": "Archived",
+  "@occupancyArchived": {
+    "description": "Badge of something archived."
+  },
+  "occupancyUnknown": "Status unknown",
+  "@occupancyUnknown": {
+    "description": "Badge when the occupancy is not known."
+  },
+  "addPropertyAction": "Add property",
+  "@addPropertyAction": {
+    "description": "Button that opens the new-property form."
+  },
+  "propertiesEmptyTitle": "No properties yet",
+  "@propertiesEmptyTitle": {
+    "description": "Empty list of properties."
+  },
+  "propertiesEmptyBody": "Add a house, a plaza or a plot, then the portions, flats or shops you rent out in it.",
+  "@propertiesEmptyBody": {
+    "description": "Explains what to add to an empty property list."
+  },
+  "archivedPropertiesEmpty": "No archived properties.",
+  "@archivedPropertiesEmpty": {
+    "description": "Empty list of archived properties."
+  },
+  "archivedPropertiesEmptyBody": "Properties you archive keep their history and wait here.",
+  "@archivedPropertiesEmptyBody": {
+    "description": "Explains the archived list."
+  },
+  "filterInUse": "In use",
+  "@filterInUse": {
+    "description": "Filter showing what is in use."
+  },
+  "filterArchived": "Archived",
+  "@filterArchived": {
+    "description": "Filter showing what is archived."
+  },
+  "loadMoreAction": "Show more",
+  "@loadMoreAction": {
+    "description": "Reads the next page of a list."
+  },
+  "propertiesLoadFailedTitle": "The properties could not be loaded",
+  "@propertiesLoadFailedTitle": {
+    "description": "The property list failed to load."
+  },
+  "loadingProperties": "Loading the properties",
+  "@loadingProperties": {
+    "description": "Screen-reader label of the property list's skeleton."
+  },
+  "listDetail": "{first}\u00a0· {second}",
+  "@listDetail": {
+    "description": "Two details of a list row side by side.",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "newPropertyTitle": "New property",
+  "@newPropertyTitle": {
+    "description": "Title of the new-property form."
+  },
+  "editPropertyTitle": "Edit property",
+  "@editPropertyTitle": {
+    "description": "Title of the property form when editing."
+  },
+  "propertySectionBasics": "The property",
+  "@propertySectionBasics": {
+    "description": "Form section with the property's name and type."
+  },
+  "propertySectionLocation": "Where it is",
+  "@propertySectionLocation": {
+    "description": "Form section with the address."
+  },
+  "propertySectionSize": "Size",
+  "@propertySectionSize": {
+    "description": "Form section with the plot and covered area."
+  },
+  "propertySectionValue": "Value",
+  "@propertySectionValue": {
+    "description": "Form section with the purchase price and value."
+  },
+  "propertyNameLabel": "Name",
+  "@propertyNameLabel": {
+    "description": "Label of a property's name."
+  },
+  "propertyNameHelper": "As you call it, like Gulberg house or Saddar shops.",
+  "@propertyNameHelper": {
+    "description": "Under a property's name field."
+  },
+  "typeLabel": "Type",
+  "@typeLabel": {
+    "description": "Label of a type choice."
+  },
+  "addressLabel": "Address",
+  "@addressLabel": {
+    "description": "Label of an address field."
+  },
+  "localityLabel": "Area or society",
+  "@localityLabel": {
+    "description": "Label of a property's locality."
+  },
+  "cityLabel": "City",
+  "@cityLabel": {
+    "description": "Label of a property's city."
+  },
+  "provinceLabel": "Province",
+  "@provinceLabel": {
+    "description": "Label of a property's province."
+  },
+  "provinceHelper": "It decides the rules that apply, such as police registration.",
+  "@provinceHelper": {
+    "description": "Under the province field."
+  },
+  "plotSizeLabel": "Plot size",
+  "@plotSizeLabel": {
+    "description": "Label of a plot's size."
+  },
+  "plotUnitLabel": "Measured in",
+  "@plotUnitLabel": {
+    "description": "Label of a plot size's unit."
+  },
+  "coveredAreaLabel": "Covered area (sq ft)",
+  "@coveredAreaLabel": {
+    "description": "Label of the covered area."
+  },
+  "yearBuiltLabel": "Year built",
+  "@yearBuiltLabel": {
+    "description": "Label of the year a property was built."
+  },
+  "purchasePriceLabel": "Purchase price",
+  "@purchasePriceLabel": {
+    "description": "Label of what a property cost."
+  },
+  "purchasedOnLabel": "Bought on",
+  "@purchasedOnLabel": {
+    "description": "Label of when a property was bought."
+  },
+  "estimatedValueLabel": "Estimated value",
+  "@estimatedValueLabel": {
+    "description": "Label of a property's estimated value."
+  },
+  "valueEstimatedOnLabel": "Value estimated on",
+  "@valueEstimatedOnLabel": {
+    "description": "Label of when the value was estimated."
+  },
+  "propertyTaxRefLabel": "Property tax reference",
+  "@propertyTaxRefLabel": {
+    "description": "Label of a property tax reference."
+  },
+  "notesLabel": "Notes",
+  "@notesLabel": {
+    "description": "Label of a notes field."
+  },
+  "validationPositiveNumber": "Enter a number above 0, with at most 2 decimals.",
+  "@validationPositiveNumber": {
+    "description": "A size is not a positive number."
+  },
+  "validationPlotUnit": "Choose what the plot size is measured in.",
+  "@validationPlotUnit": {
+    "description": "A plot size has no unit."
+  },
+  "validationAmount": "Enter an amount, like 25,000.",
+  "@validationAmount": {
+    "description": "A money field holds text that is not an amount."
+  },
+  "propertyAdded": "{name} added.",
+  "@propertyAdded": {
+    "description": "After adding a property.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "propertySaved": "{name} saved.",
+  "@propertySaved": {
+    "description": "After saving a property.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "propertyDetailsSection": "Details",
+  "@propertyDetailsSection": {
+    "description": "Heading of a record's details."
+  },
+  "unitsSection": "Units",
+  "@unitsSection": {
+    "description": "Heading of a property's units."
+  },
+  "unitsSectionHelp": "The portions, flats, rooms or shops you rent out.",
+  "@unitsSectionHelp": {
+    "description": "Under the heading of a property's units."
+  },
+  "addUnitAction": "Add unit",
+  "@addUnitAction": {
+    "description": "Button that opens the new-unit form."
+  },
+  "unitsEmpty": "No units yet. Add each part you rent out, even when it is the whole property.",
+  "@unitsEmpty": {
+    "description": "Empty list of units."
+  },
+  "editAction": "Edit",
+  "@editAction": {
+    "description": "Opens a record's form."
+  },
+  "archiveAction": "Archive",
+  "@archiveAction": {
+    "description": "Archives a record."
+  },
+  "restoreAction": "Put back in use",
+  "@restoreAction": {
+    "description": "Takes a record out of the archive."
+  },
+  "deleteAction": "Delete",
+  "@deleteAction": {
+    "description": "Deletes a record."
+  },
+  "archivedBanner": "Archived on {date}. It keeps its history; put it back in use to change it.",
+  "@archivedBanner": {
+    "description": "Banner on an archived record.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePropertyTitle": "Archive {name}?",
+  "@archivePropertyTitle": {
+    "description": "Confirmation before archiving a property.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "archivePropertyBody": "It leaves your lists but keeps its units, tenancies and money. You can put it back in use later.",
+  "@archivePropertyBody": {
+    "description": "What archiving a property does."
+  },
+  "propertyArchived": "{name} archived.",
+  "@propertyArchived": {
+    "description": "After archiving a property.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "propertyRestored": "{name} is back in use.",
+  "@propertyRestored": {
+    "description": "After restoring a property.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deletePropertyTitle": "Delete {name}?",
+  "@deletePropertyTitle": {
+    "description": "Confirmation before deleting a property.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deletePropertyBody": "Only for a property added by mistake: it goes for good, with its units. A property with tenancies or expenses cannot be deleted; archive it instead.",
+  "@deletePropertyBody": {
+    "description": "What deleting a property does."
+  },
+  "typeToConfirm": "Type {name} to confirm",
+  "@typeToConfirm": {
+    "description": "Label of a typed confirmation.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "propertyDeleted": "{name} deleted.",
+  "@propertyDeleted": {
+    "description": "After deleting a property.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "propertyLoadFailedTitle": "This property could not be loaded",
+  "@propertyLoadFailedTitle": {
+    "description": "A property failed to load."
+  },
+  "loadingProperty": "Loading the property",
+  "@loadingProperty": {
+    "description": "Screen-reader label of a property's skeleton."
+  },
+  "unitsLoadFailedTitle": "The units could not be loaded",
+  "@unitsLoadFailedTitle": {
+    "description": "A property's units failed to load."
+  },
+  "reasonDuplicatePropertyName": "Another property in use has this name. Choose another.",
+  "@reasonDuplicatePropertyName": {
+    "description": "A property name is taken."
+  },
+  "reasonDuplicateUnitLabel": "Another unit of this property has this name. Choose another.",
+  "@reasonDuplicateUnitLabel": {
+    "description": "A unit name is taken."
+  },
+  "reasonStillInUse": "A tenancy or an expense still refers to this, so it cannot be deleted. Archive it instead.",
+  "@reasonStillInUse": {
+    "description": "A delete refused because something refers to the record."
+  },
+  "newUnitTitle": "New unit",
+  "@newUnitTitle": {
+    "description": "Title of the new-unit form."
+  },
+  "editUnitTitle": "Edit unit",
+  "@editUnitTitle": {
+    "description": "Title of the unit form when editing."
+  },
+  "unitLabelLabel": "Name or number",
+  "@unitLabelLabel": {
+    "description": "Label of a unit's name."
+  },
+  "unitLabelHelper": "Like Ground floor, Flat 2 or Shop 5.",
+  "@unitLabelHelper": {
+    "description": "Under a unit's name field."
+  },
+  "floorLabel": "Floor",
+  "@floorLabel": {
+    "description": "Label of the floor a unit is on."
+  },
+  "bedroomsLabel": "Bedrooms",
+  "@bedroomsLabel": {
+    "description": "Label of the number of bedrooms."
+  },
+  "bathroomsLabel": "Bathrooms",
+  "@bathroomsLabel": {
+    "description": "Label of the number of bathrooms."
+  },
+  "fewerAction": "Fewer",
+  "@fewerAction": {
+    "description": "Tooltip of the button that lowers a count."
+  },
+  "moreAction": "More",
+  "@moreAction": {
+    "description": "Tooltip of the button that raises a count."
+  },
+  "furnishedLabel": "Furnished",
+  "@furnishedLabel": {
+    "description": "Whether a unit comes with furniture."
+  },
+  "unfurnishedValue": "Unfurnished",
+  "@unfurnishedValue": {
+    "description": "A unit without furniture."
+  },
+  "askingRentLabel": "Asking rent",
+  "@askingRentLabel": {
+    "description": "Label of the monthly rent asked for a unit."
+  },
+  "askingRentHelper": "What you ask for it each month.",
+  "@askingRentHelper": {
+    "description": "Under the asking-rent field."
+  },
+  "askingRentValue": "Asking {rent}",
+  "@askingRentValue": {
+    "description": "A unit's asking rent in a list.",
+    "placeholders": {
+      "rent": {
+        "type": "String"
+      }
+    }
+  },
+  "availableLabel": "Available to rent",
+  "@availableLabel": {
+    "description": "Whether a unit is offered for rent."
+  },
+  "availableHelp": "Turn off while it is being renovated or you live in it.",
+  "@availableHelp": {
+    "description": "Under the available switch."
+  },
+  "unitPropertyLabel": "Property",
+  "@unitPropertyLabel": {
+    "description": "Label of the property a unit belongs to."
+  },
+  "occupancyLabel": "Occupancy",
+  "@occupancyLabel": {
+    "description": "Label of a unit's occupancy."
+  },
+  "unitAdded": "{name} added.",
+  "@unitAdded": {
+    "description": "After adding a unit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unitSaved": "{name} saved.",
+  "@unitSaved": {
+    "description": "After saving a unit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveUnitTitle": "Archive {name}?",
+  "@archiveUnitTitle": {
+    "description": "Confirmation before archiving a unit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveUnitBody": "It leaves your lists but keeps its tenancies and money. A unit that is let now can still be archived; end its tenancy first if it has ended.",
+  "@archiveUnitBody": {
+    "description": "What archiving a unit does."
+  },
+  "unitArchived": "{name} archived.",
+  "@unitArchived": {
+    "description": "After archiving a unit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unitRestored": "{name} is back in use.",
+  "@unitRestored": {
+    "description": "After restoring a unit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteUnitTitle": "Delete {name}?",
+  "@deleteUnitTitle": {
+    "description": "Confirmation before deleting a unit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteUnitBody": "Only for a unit added by mistake: it goes for good. A unit with tenancies or expenses cannot be deleted; archive it instead.",
+  "@deleteUnitBody": {
+    "description": "What deleting a unit does."
+  },
+  "unitDeleted": "{name} deleted.",
+  "@unitDeleted": {
+    "description": "After deleting a unit.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "unitLoadFailedTitle": "This unit could not be loaded",
+  "@unitLoadFailedTitle": {
+    "description": "A unit failed to load."
+  },
+  "loadingUnit": "Loading the unit",
+  "@loadingUnit": {
+    "description": "Screen-reader label of a unit's skeleton."
+  },
+  "roomCount": "{count, plural, =0{None} =1{1} other{{count}}}",
+  "@roomCount": {
+    "description": "A number of rooms in a stepper.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tenantKindIndividual": "Person",
+  "@tenantKindIndividual": {
+    "description": "A tenant who is a person."
+  },
+  "tenantKindCompany": "Company",
+  "@tenantKindCompany": {
+    "description": "A tenant that is a company."
+  },
+  "tenantKindGovernment": "Government office",
+  "@tenantKindGovernment": {
+    "description": "A tenant that is a government office."
+  },
+  "guardianSonOf": "Son of",
+  "@guardianSonOf": {
+    "description": "S/O: whose son a tenant is."
+  },
+  "guardianDaughterOf": "Daughter of",
+  "@guardianDaughterOf": {
+    "description": "D/O: whose daughter a tenant is."
+  },
+  "guardianWifeOf": "Wife of",
+  "@guardianWifeOf": {
+    "description": "W/O: whose wife a tenant is."
+  },
+  "guardianLine": "{relation} {name}",
+  "@guardianLine": {
+    "description": "A tenant's guardian, like Son of Ahmed Khan.",
+    "placeholders": {
+      "relation": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "addTenantAction": "Add tenant",
+  "@addTenantAction": {
+    "description": "Opens the new-tenant form."
+  },
+  "searchTenantsHint": "Search by name, phone or CNIC",
+  "@searchTenantsHint": {
+    "description": "Hint of the tenant search."
+  },
+  "tenantsEmptyTitle": "No tenants yet",
+  "@tenantsEmptyTitle": {
+    "description": "Empty tenant list."
+  },
+  "tenantsEmptyBody": "Add the people or businesses who rent from you, then start their tenancy from a unit.",
+  "@tenantsEmptyBody": {
+    "description": "Explains the empty tenant list."
+  },
+  "archivedTenantsEmpty": "No archived tenants.",
+  "@archivedTenantsEmpty": {
+    "description": "Empty archived tenant list."
+  },
+  "archivedTenantsEmptyBody": "Tenants you archive keep their history and wait here.",
+  "@archivedTenantsEmptyBody": {
+    "description": "Explains the archived tenant list."
+  },
+  "noTenantMatches": "No tenant matches {search}.",
+  "@noTenantMatches": {
+    "description": "A search found nothing.",
+    "placeholders": {
+      "search": {
+        "type": "String"
+      }
+    }
+  },
+  "tenantsLoadFailedTitle": "The tenants could not be loaded",
+  "@tenantsLoadFailedTitle": {
+    "description": "The tenant list failed to load."
+  },
+  "loadingTenants": "Loading the tenants",
+  "@loadingTenants": {
+    "description": "Screen-reader label of the tenant list skeleton."
+  },
+  "tenantLoadFailedTitle": "This tenant could not be loaded",
+  "@tenantLoadFailedTitle": {
+    "description": "A tenant failed to load."
+  },
+  "loadingTenant": "Loading the tenant",
+  "@loadingTenant": {
+    "description": "Screen-reader label of a tenant's skeleton."
+  },
+  "newTenantTitle": "New tenant",
+  "@newTenantTitle": {
+    "description": "Title of the new-tenant form."
+  },
+  "editTenantTitle": "Edit tenant",
+  "@editTenantTitle": {
+    "description": "Title of the tenant form when editing."
+  },
+  "tenantSectionWho": "Who they are",
+  "@tenantSectionWho": {
+    "description": "Form section with a tenant's name."
+  },
+  "tenantSectionIdentity": "Identity",
+  "@tenantSectionIdentity": {
+    "description": "Form section with the CNIC and NTN."
+  },
+  "tenantSectionContact": "How to reach them",
+  "@tenantSectionContact": {
+    "description": "Form section with phones and e-mail."
+  },
+  "tenantSectionWork": "Work and addresses",
+  "@tenantSectionWork": {
+    "description": "Form section with occupation and addresses."
+  },
+  "tenantSectionEmergency": "Emergency contact",
+  "@tenantSectionEmergency": {
+    "description": "Form section with the emergency contact."
+  },
+  "tenantSectionReferences": "References",
+  "@tenantSectionReferences": {
+    "description": "Form section with two references."
+  },
+  "tenantSectionHousehold": "Household and tax",
+  "@tenantSectionHousehold": {
+    "description": "Form section with household size and tax."
+  },
+  "tenantSectionConsent": "Consent",
+  "@tenantSectionConsent": {
+    "description": "Form section recording consent to keep data."
+  },
+  "tenantKindLabel": "Tenant is a",
+  "@tenantKindLabel": {
+    "description": "Label of whether the tenant is a person or an organisation."
+  },
+  "fullNameTenantLabel": "Full name",
+  "@fullNameTenantLabel": {
+    "description": "Label of a tenant's full name."
+  },
+  "guardianRelationLabel": "S/O, D/O or W/O",
+  "@guardianRelationLabel": {
+    "description": "Label of a tenant's guardian relation."
+  },
+  "guardianNameLabel": "Father's or husband's name",
+  "@guardianNameLabel": {
+    "description": "Label of a tenant's guardian name."
+  },
+  "cnicLabel": "CNIC",
+  "@cnicLabel": {
+    "description": "Label of a CNIC."
+  },
+  "cnicHelper": "13 digits, as on the card.",
+  "@cnicHelper": {
+    "description": "Under the CNIC field."
+  },
+  "validationCnic": "Enter the 13 digits of a CNIC, like 35202-1234567-1.",
+  "@validationCnic": {
+    "description": "The CNIC is not valid."
+  },
+  "cnicExpiryLabel": "CNIC expires on",
+  "@cnicExpiryLabel": {
+    "description": "Label of a CNIC's expiry date."
+  },
+  "cnicExpired": "CNIC expired",
+  "@cnicExpired": {
+    "description": "Badge on an expired CNIC."
+  },
+  "ntnLabel": "NTN",
+  "@ntnLabel": {
+    "description": "Label of a tax number."
+  },
+  "validationNtn": "Enter the NTN as issued, 6 to 15 letters, digits or dashes.",
+  "@validationNtn": {
+    "description": "The NTN is not valid."
+  },
+  "altPhoneLabel": "Other phone",
+  "@altPhoneLabel": {
+    "description": "Label of an alternate phone."
+  },
+  "occupationLabel": "Occupation",
+  "@occupationLabel": {
+    "description": "Label of a tenant's occupation."
+  },
+  "employerLabel": "Employer",
+  "@employerLabel": {
+    "description": "Label of a tenant's employer."
+  },
+  "permanentAddressLabel": "Permanent address",
+  "@permanentAddressLabel": {
+    "description": "Label of a tenant's permanent address."
+  },
+  "previousAddressLabel": "Previous address",
+  "@previousAddressLabel": {
+    "description": "Label of a tenant's previous address."
+  },
+  "contactNameLabel": "Name",
+  "@contactNameLabel": {
+    "description": "Label of a contact's name."
+  },
+  "contactRelationLabel": "Relation",
+  "@contactRelationLabel": {
+    "description": "Label of how a contact is related."
+  },
+  "referenceLabel": "Reference {number}",
+  "@referenceLabel": {
+    "description": "Heading of one reference.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "householdSizeLabel": "People living there",
+  "@householdSizeLabel": {
+    "description": "Label of a household's size."
+  },
+  "withholdingTaxLabel": "Deducts withholding tax",
+  "@withholdingTaxLabel": {
+    "description": "Whether a tenant deducts s.155 tax."
+  },
+  "withholdingTaxHelp": "Companies and government offices deduct tax under section 155 from the rent they pay.",
+  "@withholdingTaxHelp": {
+    "description": "Explains withholding tax."
+  },
+  "consentLabel": "I told the tenant what details are kept and why",
+  "@consentLabel": {
+    "description": "Checkbox recording the tenant's consent."
+  },
+  "consentNoteLabel": "What they agreed to",
+  "@consentNoteLabel": {
+    "description": "Label of the consent note."
+  },
+  "consentRecorded": "Consent recorded on {date}",
+  "@consentRecorded": {
+    "description": "When consent was recorded.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "consentMissing": "Consent not recorded",
+  "@consentMissing": {
+    "description": "A tenant without recorded consent."
+  },
+  "tenantAdded": "{name} added.",
+  "@tenantAdded": {
+    "description": "After adding a tenant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tenantSaved": "{name} saved.",
+  "@tenantSaved": {
+    "description": "After saving a tenant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "duplicateTenantTitle": "Is this the same tenant?",
+  "@duplicateTenantTitle": {
+    "description": "Heading when another tenant has the same CNIC or phone."
+  },
+  "duplicateTenantBody": "{names} already has this CNIC or phone number. Save anyway?",
+  "@duplicateTenantBody": {
+    "description": "Warning about a possible duplicate tenant.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "saveAnywayAction": "Save anyway",
+  "@saveAnywayAction": {
+    "description": "Saves despite a warning."
+  },
+  "reasonDuplicateCnic": "Another tenant in use has this CNIC.",
+  "@reasonDuplicateCnic": {
+    "description": "A CNIC belongs to another tenant."
+  },
+  "tenantDetailsSection": "Details",
+  "@tenantDetailsSection": {
+    "description": "Heading of a tenant's details."
+  },
+  "tenantTenanciesSection": "Tenancies",
+  "@tenantTenanciesSection": {
+    "description": "Heading of a tenant's tenancies."
+  },
+  "archiveTenantTitle": "Archive {name}?",
+  "@archiveTenantTitle": {
+    "description": "Confirmation before archiving a tenant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveTenantBody": "They leave your lists but keep their tenancies, payments and receipts. You can put them back in use later.",
+  "@archiveTenantBody": {
+    "description": "What archiving a tenant does."
+  },
+  "tenantArchived": "{name} archived.",
+  "@tenantArchived": {
+    "description": "After archiving a tenant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tenantRestored": "{name} is back in use.",
+  "@tenantRestored": {
+    "description": "After restoring a tenant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteTenantTitle": "Delete {name}?",
+  "@deleteTenantTitle": {
+    "description": "Confirmation before deleting a tenant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteTenantBody": "Only for a tenant added by mistake: their details go for good. A tenant with a tenancy cannot be deleted; archive them instead.",
+  "@deleteTenantBody": {
+    "description": "What deleting a tenant does."
+  },
+  "tenantDeleted": "{name} deleted.",
+  "@tenantDeleted": {
+    "description": "After deleting a tenant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "emailOptionalLabel": "E-mail",
+  "@emailOptionalLabel": {
+    "description": "Label of an optional e-mail."
+  },
+  "referenceNameLabel": "Reference {number}: name",
+  "@referenceNameLabel": {
+    "description": "Label of a reference's name.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "referencePhoneLabel": "Reference {number}: phone",
+  "@referencePhoneLabel": {
+    "description": "Label of a reference's phone.",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "tenancyTitle": "Tenancy",
+  "@tenancyTitle": {
+    "description": "Title of a tenancy's screen."
+  },
+  "newTenancyTitle": "New tenancy",
+  "@newTenancyTitle": {
+    "description": "Title of the form that starts a tenancy."
+  },
+  "editTenancyTitle": "Edit tenancy terms",
+  "@editTenancyTitle": {
+    "description": "Title of the form that edits a tenancy."
+  },
+  "startTenancyAction": "Start tenancy",
+  "@startTenancyAction": {
+    "description": "Opens the form that starts a tenancy."
+  },
+  "leaseActive": "Active",
+  "@leaseActive": {
+    "description": "Badge of a running tenancy."
+  },
+  "leaseEnded": "Ended",
+  "@leaseEnded": {
+    "description": "Badge of an ended tenancy."
+  },
+  "leaseUpcoming": "Starts {date}",
+  "@leaseUpcoming": {
+    "description": "Badge of a tenancy that starts later.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "unitAtProperty": "{unit}, {property}",
+  "@unitAtProperty": {
+    "description": "A unit and its property.",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "property": {
+        "type": "String"
+      }
+    }
+  },
+  "tenantLabel": "Tenant",
+  "@tenantLabel": {
+    "description": "Label of a tenancy's tenant."
+  },
+  "unitLabel": "Unit",
+  "@unitLabel": {
+    "description": "Label of a tenancy's unit."
+  },
+  "validationChooseTenant": "Choose the tenant.",
+  "@validationChooseTenant": {
+    "description": "No tenant chosen."
+  },
+  "noTenantsToChoose": "Add the tenant first: there is no tenant in use to choose.",
+  "@noTenantsToChoose": {
+    "description": "Starting a tenancy without tenants."
+  },
+  "leaseSectionWho": "Who and where",
+  "@leaseSectionWho": {
+    "description": "Form section with the tenant and unit."
+  },
+  "leaseSectionTerm": "Term",
+  "@leaseSectionTerm": {
+    "description": "Form section with the dates."
+  },
+  "leaseSectionRent": "Rent and deposit",
+  "@leaseSectionRent": {
+    "description": "Form section with rent and deposit."
+  },
+  "leaseSectionLateFee": "Late fees",
+  "@leaseSectionLateFee": {
+    "description": "Form section with the late-fee policy."
+  },
+  "leaseSectionAgreement": "Agreement",
+  "@leaseSectionAgreement": {
+    "description": "Form section with the agreement."
+  },
+  "leaseSectionPolice": "Police registration",
+  "@leaseSectionPolice": {
+    "description": "Form and screen section on police registration."
+  },
+  "leaseSectionOther": "Other terms",
+  "@leaseSectionOther": {
+    "description": "Form section with other terms."
+  },
+  "moveInLabel": "Moves in on",
+  "@moveInLabel": {
+    "description": "Label of a tenancy's start (possession)."
+  },
+  "termLabel": "Term",
+  "@termLabel": {
+    "description": "Label of a tenancy's term."
+  },
+  "term11": "11 months",
+  "@term11": {
+    "description": "A tenancy term."
+  },
+  "term12": "12 months",
+  "@term12": {
+    "description": "A tenancy term."
+  },
+  "termCustom": "Until a date",
+  "@termCustom": {
+    "description": "A tenancy term ending on a chosen date."
+  },
+  "termPeriodic": "Month to month",
+  "@termPeriodic": {
+    "description": "A tenancy without an end date."
+  },
+  "endsOnLabel": "Ends on",
+  "@endsOnLabel": {
+    "description": "Label of a tenancy's agreed end."
+  },
+  "validationEndAfterStart": "Choose a date on or after the move-in date.",
+  "@validationEndAfterStart": {
+    "description": "A date is before the tenancy's start."
+  },
+  "monthlyRentLabel": "Monthly rent",
+  "@monthlyRentLabel": {
+    "description": "Label of the monthly rent."
+  },
+  "validationRent": "Enter the rent, an amount above 0.",
+  "@validationRent": {
+    "description": "The rent is missing or zero."
+  },
+  "depositLabel": "Security deposit",
+  "@depositLabel": {
+    "description": "Label of the security deposit."
+  },
+  "incrementEveryLabel": "Increase every (months)",
+  "@incrementEveryLabel": {
+    "description": "Label of the increment interval."
+  },
+  "lateFeeLabel": "Late fee",
+  "@lateFeeLabel": {
+    "description": "Label of the late-fee policy."
+  },
+  "lateFeeNone": "None",
+  "@lateFeeNone": {
+    "description": "No late fee."
+  },
+  "lateFeeFlat": "A fixed amount",
+  "@lateFeeFlat": {
+    "description": "A flat late fee."
+  },
+  "lateFeePercent": "A percent of the late rent",
+  "@lateFeePercent": {
+    "description": "A percentage late fee."
+  },
+  "lateFeeDaily": "An amount per day late",
+  "@lateFeeDaily": {
+    "description": "A daily late fee."
+  },
+  "lateFeeAmountLabel": "Fee",
+  "@lateFeeAmountLabel": {
+    "description": "Label of a late fee amount."
+  },
+  "lateFeePercentLabel": "Fee (%)",
+  "@lateFeePercentLabel": {
+    "description": "Label of a late fee percentage."
+  },
+  "lateFeeCapLabel": "At most",
+  "@lateFeeCapLabel": {
+    "description": "Label of a daily late fee's cap."
+  },
+  "lateFeeHelp": "Charged once the grace days have passed.",
+  "@lateFeeHelp": {
+    "description": "Under the late fee choice."
+  },
+  "noticeDaysLabel": "Notice period (days)",
+  "@noticeDaysLabel": {
+    "description": "Label of the notice period."
+  },
+  "prorateLabel": "Charge only the days of the first month",
+  "@prorateLabel": {
+    "description": "Whether the first month is prorated."
+  },
+  "prorateHelp": "When the tenant moves in after the 1st.",
+  "@prorateHelp": {
+    "description": "Under the proration switch."
+  },
+  "billingStartsLabel": "Bill from",
+  "@billingStartsLabel": {
+    "description": "Label of the billing start date."
+  },
+  "billingStartsHelp": "For a tenancy that began before you used the app: the first day the app should bill.",
+  "@billingStartsHelp": {
+    "description": "Explains the billing start."
+  },
+  "agreementSignedLabel": "Agreement signed on",
+  "@agreementSignedLabel": {
+    "description": "Label of the agreement's signing date."
+  },
+  "eStampNumberLabel": "E-stamp number",
+  "@eStampNumberLabel": {
+    "description": "Label of the e-stamp paper number."
+  },
+  "eStampAmountLabel": "E-stamp amount",
+  "@eStampAmountLabel": {
+    "description": "Label of the e-stamp duty paid."
+  },
+  "permittedUseLabel": "Permitted use",
+  "@permittedUseLabel": {
+    "description": "Label of what the unit may be used for."
+  },
+  "sublettingLabel": "Subletting allowed",
+  "@sublettingLabel": {
+    "description": "Whether subletting is allowed."
+  },
+  "registrarStatusLabel": "Rent Registrar (Punjab)",
+  "@registrarStatusLabel": {
+    "description": "Label of the Rent Registrar status."
+  },
+  "registrarNotApplicable": "Not applicable",
+  "@registrarNotApplicable": {
+    "description": "Rent Registrar status."
+  },
+  "registrarNotPresented": "Not presented",
+  "@registrarNotPresented": {
+    "description": "Rent Registrar status."
+  },
+  "registrarPresented": "Presented",
+  "@registrarPresented": {
+    "description": "Rent Registrar status."
+  },
+  "registrarRegistered": "Registered",
+  "@registrarRegistered": {
+    "description": "Rent Registrar or police status."
+  },
+  "registrarOfficeLabel": "Registrar office",
+  "@registrarOfficeLabel": {
+    "description": "Label of the Rent Registrar office."
+  },
+  "registrationNumberLabel": "Registration number",
+  "@registrationNumberLabel": {
+    "description": "Label of a registration number."
+  },
+  "registeredOnLabel": "Registered on",
+  "@registeredOnLabel": {
+    "description": "Label of a registration date."
+  },
+  "policeStatusLabel": "Status",
+  "@policeStatusLabel": {
+    "description": "Label of the police registration status."
+  },
+  "policeNotRequired": "Not required",
+  "@policeNotRequired": {
+    "description": "Police registration status."
+  },
+  "policePending": "Not registered yet",
+  "@policePending": {
+    "description": "Police registration status."
+  },
+  "policeSubmitted": "Submitted",
+  "@policeSubmitted": {
+    "description": "Police registration status."
+  },
+  "policeChannelLabel": "Registered through",
+  "@policeChannelLabel": {
+    "description": "Label of the police registration channel."
+  },
+  "channelOnlinePortal": "Online portal",
+  "@channelOnlinePortal": {
+    "description": "A registration channel."
+  },
+  "channelKhidmatMarkaz": "Khidmat Markaz",
+  "@channelKhidmatMarkaz": {
+    "description": "A registration channel: a police service centre."
+  },
+  "channelPoliceStation": "Police station",
+  "@channelPoliceStation": {
+    "description": "A registration channel."
+  },
+  "policeStationLabel": "Police station",
+  "@policeStationLabel": {
+    "description": "Label of the police station."
+  },
+  "policeReferenceLabel": "Reference number",
+  "@policeReferenceLabel": {
+    "description": "Label of the police reference number."
+  },
+  "policeFeeLabel": "Fee paid",
+  "@policeFeeLabel": {
+    "description": "Label of the police registration fee."
+  },
+  "policeLegalDeadline": "The law's deadline: {date}",
+  "@policeLegalDeadline": {
+    "description": "A statutory police-registration deadline.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "policeReminderDate": "The app's reminder: {date}",
+  "@policeReminderDate": {
+    "description": "The app's police-registration reminder date.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "policeReminderNote": "No law the app knows of sets a deadline here: this is only a reminder.",
+  "@policeReminderNote": {
+    "description": "Explains a non-statutory reminder."
+  },
+  "policeLate": "Past the deadline: register it now.",
+  "@policeLate": {
+    "description": "Police registration is late."
+  },
+  "openPortalAction": "Open the registration website",
+  "@openPortalAction": {
+    "description": "Opens the police registration portal."
+  },
+  "utilitiesNoteLabel": "Utilities",
+  "@utilitiesNoteLabel": {
+    "description": "Label of who pays the utilities."
+  },
+  "tenancyStarted": "Tenancy started for {tenant}.",
+  "@tenancyStarted": {
+    "description": "After starting a tenancy.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "tenancySaved": "Tenancy terms saved.",
+  "@tenancySaved": {
+    "description": "After saving a tenancy."
+  },
+  "reasonLeaseOverlap": "The unit is let for some of these dates. End the other tenancy first, or choose other dates.",
+  "@reasonLeaseOverlap": {
+    "description": "Tenancies of a unit overlap."
+  },
+  "tenancyTermsSection": "Terms",
+  "@tenancyTermsSection": {
+    "description": "Heading of a tenancy's terms."
+  },
+  "dueDayValue": "Day {day} of each month",
+  "@dueDayValue": {
+    "description": "When rent is due.",
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "percentValue": "{percent}%",
+  "@percentValue": {
+    "description": "A percentage.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "everyMonths": "{percent}% every {months, plural, =1{month} other{{months} months}}",
+  "@everyMonths": {
+    "description": "A rent increase and how often.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      },
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "periodicValue": "Month to month",
+  "@periodicValue": {
+    "description": "A tenancy without an end."
+  },
+  "occupantsSection": "People living there",
+  "@occupantsSection": {
+    "description": "Heading of a tenancy's occupants."
+  },
+  "occupantsHelp": "Adults living with the tenant, needed for police registration.",
+  "@occupantsHelp": {
+    "description": "Under the occupants heading."
+  },
+  "addOccupantAction": "Add person",
+  "@addOccupantAction": {
+    "description": "Adds an occupant."
+  },
+  "occupantTitle": "Person living there",
+  "@occupantTitle": {
+    "description": "Title of the occupant sheet."
+  },
+  "occupantSaved": "{name} saved.",
+  "@occupantSaved": {
+    "description": "After saving an occupant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeAction": "Remove",
+  "@removeAction": {
+    "description": "Removes something."
+  },
+  "removeOccupantTitle": "Remove {name}?",
+  "@removeOccupantTitle": {
+    "description": "Confirmation before removing an occupant.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "removeOccupantBody": "They are taken off this tenancy.",
+  "@removeOccupantBody": {
+    "description": "What removing an occupant does."
+  },
+  "noOccupants": "No one added yet.",
+  "@noOccupants": {
+    "description": "No occupants."
+  },
+  "rentHistorySection": "Rent history",
+  "@rentHistorySection": {
+    "description": "Heading of the rent changes."
+  },
+  "rentFrom": "From {month}",
+  "@rentFrom": {
+    "description": "When a rent applies from.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "rentReasonInitial": "Starting rent",
+  "@rentReasonInitial": {
+    "description": "Why the rent is what it is."
+  },
+  "rentReasonAnnualIncrement": "Yearly increase",
+  "@rentReasonAnnualIncrement": {
+    "description": "Why the rent changed."
+  },
+  "rentReasonRenegotiation": "Agreed change",
+  "@rentReasonRenegotiation": {
+    "description": "Why the rent changed."
+  },
+  "rentReasonCorrection": "Correction",
+  "@rentReasonCorrection": {
+    "description": "Why the rent changed."
+  },
+  "changeRentAction": "Change rent",
+  "@changeRentAction": {
+    "description": "Opens the rent change sheet."
+  },
+  "changeRentFromLabel": "From the month of",
+  "@changeRentFromLabel": {
+    "description": "Label of the month a new rent applies from."
+  },
+  "newRentLabel": "New monthly rent",
+  "@newRentLabel": {
+    "description": "Label of the new rent."
+  },
+  "changeReasonLabel": "Why",
+  "@changeReasonLabel": {
+    "description": "Label of a reason choice."
+  },
+  "rentNoteLabel": "Note",
+  "@rentNoteLabel": {
+    "description": "Label of a note."
+  },
+  "suggestedIncrement": "At the agreed {percent}%, rounded to Rs\u00a0100: {rent}",
+  "@suggestedIncrement": {
+    "description": "The suggested new rent.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      },
+      "rent": {
+        "type": "String"
+      }
+    }
+  },
+  "useSuggestionAction": "Use this",
+  "@useSuggestionAction": {
+    "description": "Fills in the suggested rent."
+  },
+  "changeRentHelp": "Unpaid rent of that month and later is re-priced; months already paid keep their amount.",
+  "@changeRentHelp": {
+    "description": "What changing the rent does."
+  },
+  "rentChanged": "Rent changed to {rent} from {month}.",
+  "@rentChanged": {
+    "description": "After changing the rent.",
+    "placeholders": {
+      "rent": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "endTenancyAction": "End tenancy",
+  "@endTenancyAction": {
+    "description": "Opens the end-tenancy sheet."
+  },
+  "movedOutLabel": "Moved out on",
+  "@movedOutLabel": {
+    "description": "Label of the move-out date."
+  },
+  "endTermCompleted": "The term ended",
+  "@endTermCompleted": {
+    "description": "Why a tenancy ended."
+  },
+  "endTenantMovedOut": "The tenant moved out",
+  "@endTenantMovedOut": {
+    "description": "Why a tenancy ended."
+  },
+  "endEviction": "Eviction",
+  "@endEviction": {
+    "description": "Why a tenancy ended."
+  },
+  "endMutualAgreement": "Both agreed",
+  "@endMutualAgreement": {
+    "description": "Why a tenancy ended."
+  },
+  "endTenancyExplain": "Rent is billed through the month of moving out. The rent of every later month, and its automatic late fees, is voided, paid or not. Money that paid them is released and applied to the tenancy's other dues; what is left stays as the tenant's credit, to refund. The unit becomes vacant.",
+  "@endTenancyExplain": {
+    "description": "What ending a tenancy does to its money."
+  },
+  "tenancyEnded": "Tenancy ended.",
+  "@tenancyEnded": {
+    "description": "After ending a tenancy."
+  },
+  "endedOnLabel": "Ended on",
+  "@endedOnLabel": {
+    "description": "Label of when a tenancy ended."
+  },
+  "deleteTenancyTitle": "Delete this tenancy?",
+  "@deleteTenancyTitle": {
+    "description": "Confirmation before deleting a tenancy."
+  },
+  "deleteTenancyBody": "Only for a tenancy entered by mistake: it goes with the dues it generated, as long as nothing was paid, waived or voided. Otherwise end the tenancy instead.",
+  "@deleteTenancyBody": {
+    "description": "What deleting a tenancy does."
+  },
+  "tenancyDeleted": "Tenancy deleted.",
+  "@tenancyDeleted": {
+    "description": "After deleting a tenancy."
+  },
+  "tenancyLoadFailedTitle": "This tenancy could not be loaded",
+  "@tenancyLoadFailedTitle": {
+    "description": "A tenancy failed to load."
+  },
+  "loadingTenancy": "Loading the tenancy",
+  "@loadingTenancy": {
+    "description": "Screen-reader label of a tenancy's skeleton."
+  },
+  "tenanciesEmpty": "No tenancies yet.",
+  "@tenanciesEmpty": {
+    "description": "No tenancies."
+  },
+  "tenanciesLoadFailedTitle": "The tenancies could not be loaded",
+  "@tenanciesLoadFailedTitle": {
+    "description": "Tenancies failed to load."
+  },
+  "monthCount": "{count, plural, =1{1 month} other{{count} months}}",
+  "@monthCount": {
+    "description": "A number of months.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fewerMonthsAction": "Fewer months",
+  "@fewerMonthsAction": {
+    "description": "Tooltip of the button that lowers months."
+  },
+  "moreMonthsAction": "More months",
+  "@moreMonthsAction": {
+    "description": "Tooltip of the button that raises months."
   }
 }

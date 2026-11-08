@@ -66,5 +66,10 @@ String _reason(AppLocalizations l10n, String reason) => switch (reason) {
   'signup_disabled' => l10n.reasonSignupDisabled,
   'mfa_required' => l10n.reasonMfaRequired,
   'does_not_match_account' => l10n.reasonDoesNotMatchAccount,
+  'duplicate_property_name' => l10n.reasonDuplicatePropertyName,
+  'duplicate_unit_label' => l10n.reasonDuplicateUnitLabel,
+  'still_in_use' => l10n.reasonStillInUse,
+  'duplicate_cnic' => l10n.reasonDuplicateCnic,
+  'lease_overlap' => l10n.reasonLeaseOverlap,
   _ => l10n.failureRejected,
 };
