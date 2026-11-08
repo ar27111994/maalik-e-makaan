@@ -342,8 +342,20 @@ Never delete a user in Auth alone:
   Auth deletion then has nothing left to wait for (`formal/tla/Invitations/replay_findings.sh`
   checks both orders).
 
+After pushing `20261108082804_invitation_findings.sql`, which revokes once the pending invitations
+direct Auth deletions left behind, this must answer 0 (`tool/db/upgrade_test.sh` checks the same on a
+local upgrade):
+
+```sql
+select count(*) from public.portfolio_invitations i
+where i.accepted_at is null and i.revoked_at is null
+  and (i.invited_by is null or not exists (
+    select 1 from public.portfolio_members m
+    where m.portfolio_id = i.portfolio_id and m.user_id = i.invited_by and m.role = 'owner'));
+```
+
 If a user was deleted in Auth alone, their pending invitations are revoked anyway (since
-`20261107230000_invitation_findings.sql`), but their sole-owned portfolios are left without
+`20261108082804_invitation_findings.sql`), but their sole-owned portfolios are left without
 members. Find and delete them in the SQL editor (the deletion queues their files for
 storage-cleanup):
 
@@ -360,8 +372,8 @@ commit;
 Why no trigger on `auth.users` does step 1 for you: a `BEFORE DELETE` trigger runs only after
 PostgreSQL has locked the `auth.users` row, so it would lock the account and the portfolios after
 that row, while every insert that names the user locks that row last (its foreign-key check). On
-PostgreSQL 16.15 such a trigger still deadlocked with an acceptance in the same interleaving
-(`replay_findings.sh` keeps that check). It would also run inside GoTrue's transaction, where any
+PostgreSQL 16.15 and 17.11 such a trigger still deadlocked with an acceptance in the same
+interleaving (`replay_findings.sh` keeps that check). It would also run inside GoTrue's transaction, where any
 error it raised would fail the Auth deletion.
 
 ## After every migration

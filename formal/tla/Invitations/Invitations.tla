@@ -5,8 +5,9 @@
 (* GROUND TRUTH: the LAST definition of each object across                 *)
 (* supabase/migrations/*.sql in filename order.  "M5" below means          *)
 (* supabase/migrations/20261105072426_membership_deletion_storage.sql,     *)
-(* "M1" means 20261103192722_identity_portfolios.sql and "M4" means        *)
-(* 20261103194402_notifications_audit.sql.                                *)
+(* "M6" means 20261108082804_invitation_findings.sql (the fixes of F1, F2  *)
+(* and F4), "M1" means 20261103192722_identity_portfolios.sql and "M4"     *)
+(* means 20261103194402_notifications_audit.sql.                          *)
 (*                                                                         *)
 (*  M1  public.portfolio_members   PRIMARY KEY (portfolio_id, user_id),    *)
 (*                                 portfolio_id FK ON DELETE CASCADE       *)
@@ -19,13 +20,13 @@
 (*              WHERE accepted_at IS NULL AND revoked_at IS NULL           *)
 (*  M5  private.require_active_account          (AAcct)                    *)
 (*  M5  private.lock_portfolio_for_change       (CLockP, RLockP, MChange)  *)
-(*  M5  private.after_owner_membership_ends +                              *)
+(*  M6  private.after_owner_membership_ends +                              *)
 (*      trigger portfolio_members_after_owner_ends (MChange, XLockP,       *)
 (*                                                  MTRevoke)              *)
 (*  M5  public.update_member_role, public.remove_member  (M* actions)      *)
-(*  M5  public.create_invitation                         (C* actions)      *)
+(*  M6  public.create_invitation                         (C* actions)      *)
 (*  M5  public.revoke_invitation                         (R* actions)      *)
-(*  M5  public.accept_invitation                         (A* actions)      *)
+(*  M6  public.accept_invitation                         (A* actions)      *)
 (*  M5  public.delete_portfolio, private.lock_portfolios_for_deletion,     *)
 (*      private.delete_locked_portfolios, private.require_portfolio_name   *)
 (*                                                       (D* actions)      *)
@@ -82,7 +83,7 @@
 (*    KS (FOR KEY SHARE; also what an FK check of an INSERT takes), NKU    *)
 (*    (FOR NO KEY UPDATE) and U (FOR UPDATE / DELETE).  KS conflicts only  *)
 (*    with U; NKU with NKU and U; U with everything.  "E" is the advisory  *)
-(*    lock of the proposed fix (mode X, conflicts with X).                 *)
+(*    lock of create_invitation (M6; mode X, conflicts with X).           *)
 (*  - A blocked statement waits for the blocking transaction to end and    *)
 (*    then re-evaluates its WHERE clause on the newest committed version   *)
 (*    (EvalPlanQual): the step is disabled while Blockers(p) # {} and      *)
@@ -142,24 +143,34 @@
 (*  - Terminating stutters only once nothing is left to run, so TLC's      *)
 (*    deadlock check stays ON and would report a process stuck forever.    *)
 (*                                                                         *)
-(* FIX SWITCHES (FALSE = the code as it is today):                         *)
-(*  FIX_CREATE_SERIALISE: in create_invitation, right after                *)
-(*      lock_portfolio_for_change, take a transaction advisory lock on     *)
-(*      (portfolio, e-mail):                                               *)
-(*        perform pg_advisory_xact_lock(hashtextextended(                  *)
-(*          'invitation:' || p_portfolio_id::text || ':' || v_email, 0));  *)
+(* THE FIXES OF M6 (the code; each has a mutant that restores the code   *)
+(* before M6):                                                             *)
+(*  F1: in create_invitation, after lock_portfolio_for_change and the      *)
+(*      input checks, a transaction advisory lock on (portfolio, e-mail):  *)
+(*        perform pg_advisory_xact_lock(<first 64 bits of the SHA-256 of   *)
+(*          'invitation:' || p_portfolio_id::text || ':' || v_email>);     *)
 (*      so re-invites of one e-mail are serialised and the second one      *)
 (*      replaces the first instead of failing with 23505 (CLockE).         *)
-(*  FIX_RESPONSE_ROLE: the "already accepted by me" branch of              *)
-(*      accept_invitation returns the member's current role:               *)
-(*        'role', coalesce((select m.role from public.portfolio_members m  *)
-(*           where m.portfolio_id = v_invitation.portfolio_id              *)
-(*             and m.user_id = v_uid), v_invitation.role)                  *)
-(*  FIX_NULL_INVITER: private.after_owner_membership_ends also revokes      *)
-(*      pending invitations whose inviter is already NULL:                 *)
+(*      Mutant no_create_serialise.                                        *)
+(*  F2: the "already accepted by me" branch of accept_invitation returns   *)
+(*      the member's current role, and 'revoked' to a caller who is no     *)
+(*      longer a member (removed or left since accepting):                 *)
+(*        select m.role into v_existing_role from portfolio_members m      *)
+(*          where m.portfolio_id = v_invitation.portfolio_id               *)
+(*            and m.user_id = v_uid;                                       *)
+(*        if v_existing_role is null then return 'revoked'; end if;        *)
+(*        return 'accepted', v_existing_role                               *)
+(*      Mutants stale_response_role (the code before M6) and               *)
+(*      removed_response_role (the invitation's role as a fallback).       *)
+(*  F4: private.after_owner_membership_ends also revokes pending           *)
+(*      invitations whose inviter is already NULL:                         *)
 (*        ... and (i.invited_by = old.user_id or i.invited_by is null) ... *)
 (*      (accept_invitation refuses such invitations anyway), so a direct   *)
 (*      deletion of an inviter's auth user leaves none pending (GTrig).    *)
+(*      Mutant no_null_inviter_revoke.                                     *)
+(*  F3 (a direct deletion in Auth can deadlock with an accept) is not      *)
+(*      changed in code: docs/operations.md requires deleting accounts     *)
+(*      through delete-account (process GA after ADO).                     *)
 (* MUTANT: removes one mechanism of the current code (see Mutants).        *)
 (***************************************************************************)
 EXTENDS Naturals, FiniteSets
@@ -173,16 +184,13 @@ CONSTANTS
     MaxEnvAborts,         \* bound on environmental aborts per behaviour
     SoleOwner,            \* TRUE: o1 is the only owner at start (o2 is a manager)
     PCreatedBy,           \* portfolios.created_by of P: "o1" or "o2"
-    FIX_CREATE_SERIALISE, \* see header
-    FIX_RESPONSE_ROLE,    \* see header
-    FIX_NULL_INVITER,     \* see header
     MUTANT                \* "none" or one removed mechanism (see Mutants)
 
 AllProcs == {"C1", "C2", "R1", "R2", "D1", "D2", "AU1", "AU2", "AU3", "AX", "AY",
-             "MD", "MP", "MR", "ML", "ADU", "ADO", "GO", "GA"}
+             "MD", "MP", "MR", "ML", "MU", "ADU", "ADO", "GO", "GA"}
 
 Mutants == {"none",
-  \* --- public.accept_invitation (M5) ---
+  \* --- public.accept_invitation (M5, M6) ---
   "no_for_update",            \* plain SELECT instead of SELECT ... FOR UPDATE
   "no_used_check",            \* no accepted_at IS NOT NULL check
   "no_expiry_check",          \* no expires_at <= now() check
@@ -195,21 +203,35 @@ Mutants == {"none",
   "no_accept_portfolio_lock", \* no "perform 1 from portfolios ... for key share" (the code before M5)
   "no_inviter_check",         \* no "invited_by is null or not exists (owner membership)" check
   "no_account_freeze",        \* no "perform private.require_active_account(v_uid)"
+  "stale_response_role",      \* the retry branch reports the invitation's role (the code before M6, F2)
+  "removed_response_role",    \* the retry branch falls back to the invitation's role for a former member (F2)
   \* --- schema / triggers ---
   "no_pending_index",         \* no portfolio_invitations_pending_email_key
   "no_notify_trigger",        \* no portfolio_invitations_after_accept (M4)
   "no_owner_trigger",         \* no portfolio_members_after_owner_ends (M5)
+  "no_null_inviter_revoke",   \* the trigger matches only invited_by = old.user_id (before M6, F4)
   "no_portfolio_guard",       \* no explicit portfolio key in create/revoke/accept AND no FKs to portfolios
   \* --- create/revoke/membership RPCs ---
   "no_create_portfolio_lock", \* create_invitation without the key share of lock_portfolio_for_change
+  "no_create_serialise",      \* create_invitation without the advisory lock (before M6, F1)
   "no_recheck",               \* lock_portfolio_for_change does not authorise again after the lock
   "member_change_key_share",  \* membership changes take key share instead of FOR UPDATE
   \* --- two mechanisms at once (each alone is backed up by the other) ---
   "no_inviter_protection",    \* no_owner_trigger + no_inviter_check
-  "no_trigger_no_record"}     \* no_owner_trigger + the accept-time revocation is not recorded
+  "no_trigger_no_record",     \* no_owner_trigger + the accept-time revocation is not recorded
+  "no_pending_index_no_serialise",   \* no_pending_index + no_create_serialise
+  "no_inviter_check_no_null_revoke"} \* no_inviter_check + no_null_inviter_revoke
 
 \* Mutants that remove the trigger portfolio_members_after_owner_ends.
 TriggerOff == {"no_owner_trigger", "no_inviter_protection", "no_trigger_no_record"}
+\* Mutants that remove portfolio_invitations_pending_email_key.
+PendingIndexOff == {"no_pending_index", "no_pending_index_no_serialise"}
+\* Mutants that remove create_invitation's advisory lock (F1).
+SerialiseOff == {"no_create_serialise", "no_pending_index_no_serialise"}
+\* Mutants that remove accept_invitation's inviter check.
+InviterCheckOff == {"no_inviter_check", "no_inviter_protection", "no_inviter_check_no_null_revoke"}
+\* Mutants whose membership trigger matches only invited_by = old.user_id (F4).
+NullRevokeOff == {"no_null_inviter_revoke", "no_inviter_check_no_null_revoke"}
 
 ASSUME /\ Procs \subseteq AllProcs
        /\ InitInv \in {0, 1}
@@ -222,9 +244,6 @@ ASSUME /\ Procs \subseteq AllProcs
        /\ PCreatedBy \in {"o1", "o2"}
        /\ "GA" \in Procs => "ADO" \in Procs
        /\ ~({"GO", "GA"} \subseteq Procs)
-       /\ FIX_CREATE_SERIALISE \in BOOLEAN
-       /\ FIX_RESPONSE_ROLE \in BOOLEAN
-       /\ FIX_NULL_INVITER \in BOOLEAN
        /\ MUTANT \in Mutants
 
 -----------------------------------------------------------------------------
@@ -247,7 +266,7 @@ Verified(w) == w # "y"
 Kind(p) == CASE p \in {"C1", "C2"}             -> "create"
              [] p \in {"R1", "R2"}             -> "revoke"
              [] p \in {"D1", "D2"}             -> "delete"
-             [] p \in {"MD", "MP", "MR", "ML"} -> "member"
+             [] p \in {"MD", "MP", "MR", "ML", "MU"} -> "member"
              [] p \in {"ADU", "ADO"}           -> "account"
              [] p \in {"GO", "GA"}             -> "gotrue"
              [] OTHER                          -> "accept"
@@ -255,13 +274,13 @@ Kind(p) == CASE p \in {"C1", "C2"}             -> "create"
 \* auth.uid() of the caller (for ADU/ADO: the account being deleted; the
 \* caller is the service role)
 Actor(p) == CASE p \in {"C1", "R1", "D2", "ML", "ADO", "GO", "GA"} -> "o1"
-              [] p \in {"C2", "R2", "D1", "MD", "MP", "MR"} -> "o2"
+              [] p \in {"C2", "R2", "D1", "MD", "MP", "MR", "MU"} -> "o2"
               [] p \in {"AU1", "AU2", "AU3", "ADU"}          -> "u"
               [] p = "AX"                                    -> "x"
               [] p = "AY"                                    -> "y"
 
 \* The user whose membership a membership change or account deletion targets.
-Target(p) == IF p = "ADU" THEN "u" ELSE "o1"
+Target(p) == IF p \in {"ADU", "MU"} THEN "u" ELSE "o1"
 
 \* The role a membership change sets (NoRole = the row is deleted).
 NewRole(p) == CASE p = "MD" -> "viewer" [] p = "MP" -> "owner" [] OTHER -> NoRole
@@ -289,7 +308,7 @@ Unexpected == {"unique_violation", "fk_violation", "check_violation", "deadlock"
 MinOf(S) == CHOOSE m \in S : \A k \in S : m <= k
 
 \* Lockable rows other than invitations and memberships: the portfolio row,
-\* the advisory lock of FIX_CREATE_SERIALISE, each user's profiles row, and
+\* the advisory lock of create_invitation (M6), each user's profiles row, and
 \* "A" = o1's auth.users row (only GO/GA delete it; the FK checks that
 \* reference it take key share, which is recorded only when GO or GA runs:
 \* with no conflicting holder a key-share lock on it is unobservable).
@@ -394,8 +413,8 @@ NoKeyMutants == {"no_accept_portfolio_lock", "no_portfolio_guard"}
 \* The rows private.after_owner_membership_ends revokes for a membership of
 \* user w that ended: "where i.portfolio_id = old.portfolio_id and
 \* i.invited_by = old.user_id and accepted_at is null and revoked_at is null"
-\* (with FIX_NULL_INVITER also "or i.invited_by is null").
-TrigRow(v, w) == Pending(v) /\ (v.by = w \/ (FIX_NULL_INVITER /\ v.by = NoUser))
+\* (M6 adds "or i.invited_by is null"; not in mutant no_null_inviter_revoke).
+TrigRow(v, w) == Pending(v) /\ (v.by = w \/ (MUTANT \notin NullRevokeOff /\ v.by = NoUser))
 
 \* An FK check referencing o1's auth.users row waits for GoTrue's deletion.
 AuthBlock(p, c) == IF GoModelled /\ c THEN LBlockers(p, "A", "KS") ELSE {}
@@ -413,7 +432,7 @@ Blockers(p) ==
     CASE lbl = "c_lockp"   -> IF MUTANT = "no_create_portfolio_lock" THEN {} ELSE PK("KS")
       [] lbl = "c_locke"   -> LBlockers(p, "E", "X")
       [] lbl = "c_revoke"  -> InvBlocker(p, MinOf(tx[p].cand))
-      [] lbl = "c_insert"  -> IF MUTANT = "no_pending_index" \/ UniqConflict(p)
+      [] lbl = "c_insert"  -> IF MUTANT \in PendingIndexOff \/ UniqConflict(p)
                             THEN {} ELSE UniqWaitOn(p)
       [] lbl = "c_fk"      -> PK("KS") \cup AuthBlock(p, CFkNeedsA(p))
       [] lbl = "r_lockp"   -> PK("KS")
@@ -510,7 +529,10 @@ Fail(p, err) == Abort(p, err) /\ UNCHANGED envAborts
 \*   notify:   committed firings of portfolio_invitations_after_accept on j;
 \*   voided:   some commit ended the inviter's ownership of P while j existed
 \*             and was not accepted;
-\*   revResp:  some committed accept_invitation of j returned 'revoked';
+\*   revResp:  some committed accept_invitation of j returned 'revoked' while
+\*             j was not accepted (a retry of j by the invitee who accepted
+\*             it and is no longer a member is answered 'revoked' too, F2;
+\*             that answer concerns the membership, not j);
 \* and, as flags:
 \*   badGrant:    an acceptance committed while the invitation's role was
 \*                not grantable by the inviter's role at that commit;
@@ -552,7 +574,8 @@ Commit(p, res, rr) ==
           notify  |-> IF ja = j /\ ~inv[j].acc /\ MUTANT # "no_notify_trigger"
                       THEN hist[j].notify + 1 ELSE hist[j].notify,
           voided  |-> hist[j].voided \/ (invAfter[j].ex /\ ~invAfter[j].acc /\ Lost(byOf(j))),
-          revResp |-> hist[j].revResp \/ (Kind(p) = "accept" /\ res = "revoked" /\ tx[p].tok = j)]]
+          revResp |-> hist[j].revResp \/
+                      (Kind(p) = "accept" /\ res = "revoked" /\ tx[p].tok = j /\ ~invAfter[j].acc)]]
     /\ flags'    = [
           badGrant    |-> flags.badGrant \/
                           (ja # 0 /\ invDirty[ja].role \notin Grantable(RoleAfter(hist[ja].by))),
@@ -565,7 +588,7 @@ Commit(p, res, rr) ==
           respBad     |-> flags.respBad \/ (res = "accepted" /\ rr # memAfter[Actor(p)])]
 
 -----------------------------------------------------------------------------
-(* public.create_invitation(p_portfolio_id, p_email, p_role)  [M5]         *)
+(* public.create_invitation(p_portfolio_id, p_email, p_role)  [M6]         *)
 (* called by supabase/functions/invite-member/handler.ts inviteMember      *)
 
 \* Transaction start (now()); first statement of lock_portfolio_for_change:
@@ -590,9 +613,11 @@ CLockP(p) ==
        IN IF MUTANT # "no_recheck" /\ ~IsOwner(p, Actor(p))
             THEN Fail(p, "forbidden")
             ELSE LockTx(p, IF keyed THEN Hold(p, "P", "KS") ELSE locks,
-                        Go(p, IF FIX_CREATE_SERIALISE THEN "c_locke" ELSE "c_member"))
+                        Go(p, IF MUTANT \notin SerialiseOff THEN "c_locke" ELSE "c_member"))
 
-\* FIX only: pg_advisory_xact_lock on (portfolio, e-mail).
+\* perform pg_advisory_xact_lock(<first 64 bits of sha256('invitation:' || P
+\*   || ':' || v_email)>)  (M6, F1; after the rate limit and the input checks, which
+\* are abstracted).  Skipped in mutant no_create_serialise.
 CLockE(p) ==
     /\ tx[p].pc = "c_locke" /\ Blockers(p) = {}
     /\ LockTx(p, Hold(p, "E", "X"), Go(p, "c_member"))
@@ -629,7 +654,7 @@ CRevoke(p) ==
 \* Heap insert + check of portfolio_invitations_pending_email_key.
 CInsert(p) ==
     /\ tx[p].pc = "c_insert" /\ Blockers(p) = {}
-    /\ IF MUTANT # "no_pending_index" /\ UniqConflict(p)
+    /\ IF MUTANT \notin PendingIndexOff /\ UniqConflict(p)
          THEN Fail(p, "unique_violation")
          ELSE /\ invLock'  = [invLock EXCEPT ![nextInv] = p]
               /\ invDirty' = [invDirty EXCEPT ![nextInv] =
@@ -745,6 +770,7 @@ DCommit(p) == tx[p].pc = "d_commit" /\ Commit(p, "ok", NoRole)
 (*   MD: update_member_role(P, o1, 'viewer') by o2                         *)
 (*   MP: update_member_role(P, o1, 'owner')  by o2                         *)
 (*   MR: remove_member(P, o1) by o2;  ML: remove_member(P, o1) by o1       *)
+(*   MU: remove_member(P, u) by o2 (the invitee, after accepting: F2)       *)
 
 \* lock_portfolio_for_change's first require_portfolio_role: ['owner'], or
 \* any role (null) when removing oneself.
@@ -921,8 +947,10 @@ GInv(p) ==
 
 \* The queued portfolio_members_after_owner_ends fires now: if P exists, its
 \* UPDATE (fresh snapshot) revokes the pending invitations whose invited_by
-\* is still o1 -- after the SET NULL above, only rows that committed in the
-\* meantime -- then row by row (MTRevoke, then g_commit).
+\* is o1 or NULL (M6, F4) -- after the SET NULL above, o1's own rows are NULL
+\* now; in mutant no_null_inviter_revoke only rows still naming o1 (those
+\* that committed in the meantime) -- then row by row (MTRevoke, then
+\* g_commit).
 GTrig(p) ==
     /\ tx[p].pc = "g_trig"
     /\ LET c   == {j \in Inv : TrigRow(InvSeen(p, j), "o1")}
@@ -932,7 +960,7 @@ GTrig(p) ==
 GCommit(p) == tx[p].pc = "g_commit" /\ Commit(p, "ok", NoRole)
 
 -----------------------------------------------------------------------------
-(* public.accept_invitation(p_token)  [M5]                                 *)
+(* public.accept_invitation(p_token)  [M6]                                 *)
 
 \* Transaction start (now()); the token is one handed out by a committed
 \* create.  auth.uid() check, private.enforce_rate_limit and the token
@@ -971,7 +999,9 @@ ALockP(p) ==
 \*   where i.id = v_selector for update;
 \* then the status checks in the code's order (each RETURNs, so the
 \* transaction commits): invalid, revoked, accepted (idempotent for the
-\* same user) / already_used, expired, the inviter check, then the
+\* same user, reporting the member's current role, or 'revoked' when the
+\* caller is no longer a member: M6, F2) / already_used, expired, the
+\* inviter check, then the
 \* auth.users read: email_not_verified, email_mismatch.
 \* The inviter check: if v_invitation.invited_by is null or not exists
 \*   (owner membership of invited_by in P) then
@@ -985,16 +1015,20 @@ ALock(p) ==
     /\ LET j == tx[p].tok
            v == InvSeen(p, j)
            w == Actor(p)
-           idemRole  == IF FIX_RESPONSE_ROLE /\ MemSeen(p, w) # NoRole
+           idemRole  == IF MUTANT # "stale_response_role" /\ MemSeen(p, w) # NoRole
                         THEN MemSeen(p, w) ELSE v.role
-           inviterOk == \/ MUTANT \in {"no_inviter_check", "no_inviter_protection"}
+           \* the retry of a former member (F2): 'revoked' since M6
+           exMember  == MemSeen(p, w) = NoRole
+                        /\ MUTANT \notin {"stale_response_role", "removed_response_role"}
+           inviterOk == \/ MUTANT \in InviterCheckOff
                         \/ v.by # NoUser /\ IsOwner(p, v.by)
        IN IF ~v.ex THEN Commit(p, "invalid", NoRole)
           ELSE IF v.rev /\ MUTANT \notin {"no_revoked_check", "no_revoked_protection"}
                THEN Commit(p, "revoked", NoRole)
           ELSE IF v.acc /\ MUTANT # "no_used_check"
-               THEN IF v.accBy = w THEN Commit(p, "accepted", idemRole)
-                    ELSE Commit(p, "already_used", NoRole)
+               THEN IF v.accBy # w THEN Commit(p, "already_used", NoRole)
+                    ELSE IF exMember THEN Commit(p, "revoked", NoRole)
+                    ELSE Commit(p, "accepted", idemRole)
           ELSE IF v.exp <= tx[p].time /\ MUTANT # "no_expiry_check"
                THEN Commit(p, "expired", NoRole)
           ELSE IF ~inviterOk

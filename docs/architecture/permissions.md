@@ -66,9 +66,19 @@ Rules:
 - A portfolio always keeps at least one owner. The last owner cannot leave,
   be removed or be demoted (`last_owner`).
 - An invitation carries its inviter's authority. If the inviter stops being an
-  owner before it is accepted, accepting fails and the invitation is revoked.
+  owner before it is accepted (demoted, removed, left, or their account
+  deleted, also directly in Auth), the invitation is revoked; accepting it
+  answers `revoked`.
 - An invitation expires after 7 days, works once, and only for the e-mail it
   was sent to, once that e-mail is verified.
+- A portfolio has at most one pending invitation per e-mail. Inviting an
+  e-mail again replaces its pending invitation (the old link answers
+  `revoked`), also when two owners do it at the same moment: the second
+  waits for the first and then replaces it.
+- Opening an accepted invitation again (a retry) answers `accepted` with the
+  role the member holds now, which may differ from the invitation's role if
+  they joined another way or their role was changed since. If they are no
+  longer a member (removed, or left), it answers `revoked`.
 
 ### Properties, units, tenants and tenancies
 
@@ -172,7 +182,9 @@ service role or SQL: a trigger on `storage.objects` keeps it.
 
 Deleting an account removes every portfolio where you are the only owner and
 your memberships elsewhere. From the moment deletion starts, the account can no
-longer write (`account_deleted`).
+longer write (`account_deleted`). Operators delete accounts the same way
+(`admin_delete_account_data` before the user is deleted in Auth); see
+"Deleting a user account" in `docs/operations.md`.
 
 ## Concurrency
 

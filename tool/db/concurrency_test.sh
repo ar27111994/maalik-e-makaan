@@ -83,7 +83,15 @@
 #      record_payment or void_payment works the same lease (8 rounds) → no
 #      deadlock and no error; the direct UPDATE is refused; no credit is
 #      left next to an open due.
-#  30. Invariants: paid_amount = Σ allocations, allocated_amount =
+#  30. Invitations (20261108082804_invitation_findings.sql; formal/tla/
+#      Invitations): F1, two owners re-invite one e-mail at the same moment
+#      (both orders, 3 rounds) and in a burst of 8 → every call succeeds, no
+#      23505, one invitation stays pending; F3/F4, an inviter's auth user
+#      deleted directly in Auth while an acceptance arrives, and in the
+#      delete-account order (admin_delete_account_data, then the Auth
+#      delete) while an acceptance holds its locks or arrives → no deadlock,
+#      the acceptance lands or answers revoked, nothing stays pending.
+#  31. Invariants: paid_amount = Σ allocations, allocated_amount =
 #      Σ allocations, nothing overpaid, cash conserved; no portfolio is left
 #      without an owner or without members; no document outlives its entity,
 #      references a missing file, or references a file queued for deletion.
@@ -1771,7 +1779,144 @@ done
   || fail_case "credit was left next to an open due"
 end_scenario "charge edits under the lease lock"
 
-# 30. Invariants --------------------------------------------------------------------------
+# 30. Invitations: concurrent re-invites and inviters deleted in Auth ---------------------
+# F1: create_invitation serialises creates of one (portfolio, e-mail) with an
+# advisory lock, so a re-invite waits for a concurrent one and replaces its
+# invitation instead of failing with 23505 on
+# portfolio_invitations_pending_email_key. F3/F4: a direct Auth deletion
+# (GoTrue's DELETE, here held open like its transaction) revokes the
+# inviter's pending invitations; an acceptance arriving meanwhile waits for
+# the invitation row and answers revoked. The interleaving where the
+# acceptance already holds the invitation when the direct deletion starts
+# still deadlocks (F3, formal/tla/Invitations/replay_findings.sh): the rule
+# in docs/operations.md is to delete accounts through delete-account, whose
+# order is checked here with the acceptance holding its locks.
+echo "▸ Invitations: concurrent re-invites of one e-mail; inviters deleted in Auth during acceptances"
+FAILURES=()
+iv_owner1="$(new_user "iv-owner1@example.com")"
+iv_owner2="$(new_user "iv-owner2@example.com")"
+IV_ESTATE="$(new_portfolio "$iv_owner1" "Invites")"
+add_member "$IV_ESTATE" "$iv_owner2" owner
+# $1 tag, $2 e-mail: the two owners re-invite $2, the first holding its
+# transaction open for a moment after its create (the window of F1).
+iv_reinvite() {
+  local first="$iv_owner1" second="$iv_owner2" before pending
+  [[ "$1" == *b ]] && first="$iv_owner2" second="$iv_owner1"
+  before="$(deadlocks)"
+  as_user "$first" "select public.create_invitation('${IV_ESTATE}', '$2', 'manager') ->> 'role'; select pg_sleep(0.8);" \
+    | psql_db >"$WORK/iv_$1_first.out" 2>"$WORK/iv_$1_first.err" &
+  sleep 0.3
+  as_user "$second" "select public.create_invitation('${IV_ESTATE}', '$2', 'viewer') ->> 'role';" \
+    | psql_db >"$WORK/iv_$1_second.out" 2>"$WORK/iv_$1_second.err" &
+  wait
+  check_deadlocks "re-invite $1" "$before"
+  check_errors "re-invite $1" "never-allowed" "$WORK/iv_$1_first.err" "$WORK/iv_$1_second.err"
+  [[ "$(cat "$WORK/iv_$1_second.out")" == viewer ]] || fail_case "re-invite $1: the second create did not succeed"
+  pending="$(psql_db -c "select string_agg(role::text, ',') from public.portfolio_invitations
+                         where portfolio_id = '${IV_ESTATE}' and email = '$2'
+                           and accepted_at is null and revoked_at is null")"
+  [[ "$pending" == viewer ]] || fail_case "re-invite $1: pending afterwards: '${pending}' (expected the later one only)"
+}
+reset_limits
+for round in 1 2 3; do
+  iv_reinvite "${round}a" "iv-guest-${round}a@example.com"
+  iv_reinvite "${round}b" "iv-guest-${round}b@example.com"
+done
+# A burst: 8 creates of one e-mail by both owners at once.
+reset_limits
+before="$(deadlocks)"
+for i in $(seq 1 8); do
+  owner="$iv_owner1"
+  ((i % 2 == 0)) && owner="$iv_owner2"
+  as_user "$owner" "select public.create_invitation('${IV_ESTATE}', 'iv-burst@example.com', 'viewer') ->> 'role';" \
+    | psql_db >"$WORK/iv_burst_$i.out" 2>"$WORK/iv_burst_$i.err" &
+done
+wait
+check_deadlocks "re-invite burst" "$before"
+check_errors "re-invite burst" "never-allowed" "$WORK"/iv_burst_*.err
+[[ "$(cat "$WORK"/iv_burst_*.out | grep -c '^viewer$')" == 8 ]] || fail_case "re-invite burst: not every create succeeded"
+[[ "$(psql_db -c "select count(*) filter (where accepted_at is null and revoked_at is null) || '/' || count(*)
+                  from public.portfolio_invitations
+                  where portfolio_id = '${IV_ESTATE}' and email = 'iv-burst@example.com'")" == "1/8" ]] \
+  || fail_case "re-invite burst: expected 8 invitations with exactly one pending"
+# $1 tag, $2 order: "direct" (GoTrue's DELETE alone, held open 0.8 s; the
+# acceptance arrives during it), "account_arriving" (admin_delete_account_data
+# held open, then the DELETE; the acceptance arrives during it),
+# "account_holding" (the acceptance holds its locks, as accept_invitation
+# takes them, when admin_delete_account_data and the DELETE start).
+iv_inviter_deleted() {
+  local inviter cohost guest estate token id other before status pending
+  reset_limits
+  inviter="$(new_user "iv-inviter-$1@example.com")"
+  cohost="$(new_user "iv-cohost-$1@example.com")"
+  guest="$(new_user "iv-joiner-$1@example.com")"
+  estate="$(new_portfolio "$cohost" "Inviter $1")"
+  add_member "$estate" "$inviter" owner
+  token="$(as_user "$inviter" "select public.create_invitation('${estate}', 'iv-joiner-$1@example.com', 'manager') ->> 'token';" | psql_db)"
+  id="${token%%.*}"
+  # A second invitation of the inviter that nobody accepts (F4: it must not
+  # stay pending either).
+  other="$(as_user "$inviter" "select public.create_invitation('${estate}', 'iv-bystander-$1@example.com', 'viewer') ->> 'invitation_id';" | psql_db)"
+  before="$(deadlocks)"
+  case "$2" in
+    direct)
+      psql_db -c "begin" -c "delete from auth.users where id = '${inviter}'" -c "select pg_sleep(0.8)" -c "commit" \
+        >/dev/null 2>"$WORK/iv_$1_delete.err" &
+      sleep 0.3
+      as_user "$guest" "select public.accept_invitation('${token}') ->> 'status';" \
+        | psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+      ;;
+    account_arriving)
+      {
+        as_service "select public.admin_delete_account_data('${inviter}') is not null; select pg_sleep(0.8);" | psql_db
+        psql_db -c "delete from auth.users where id = '${inviter}'"
+      } >/dev/null 2>"$WORK/iv_$1_delete.err" &
+      sleep 0.3
+      as_user "$guest" "select public.accept_invitation('${token}') ->> 'status';" \
+        | psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+      ;;
+    account_holding)
+      psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" <<SQL &
+set app.today_override = '2026-11-03';
+begin;
+select from public.profiles where id = '${guest}' for key share;
+select from public.portfolios where id = '${estate}' for key share;
+select from public.portfolio_invitations where id = '${id}' for update;
+set local "request.jwt.claims" to '{"sub":"${guest}","role":"authenticated"}';
+set local role authenticated;
+select pg_sleep(0.8);
+select public.accept_invitation('${token}') ->> 'status';
+commit;
+SQL
+      sleep 0.3
+      {
+        as_service "select public.admin_delete_account_data('${inviter}') is not null;" | psql_db
+        psql_db -c "delete from auth.users where id = '${inviter}'"
+      } >/dev/null 2>"$WORK/iv_$1_delete.err" &
+      ;;
+  esac
+  wait
+  check_deadlocks "inviter deleted, $1" "$before"
+  check_errors "inviter deleted, $1" "never-allowed" "$WORK/iv_$1_delete.err" "$WORK/iv_$1_accept.err"
+  status="$(grep -E '^[a-z_]+$' "$WORK/iv_$1_accept.out" | tail -1)"
+  case "$2:$status" in
+    direct:revoked | account_arriving:revoked | account_holding:accepted) ;;
+    *) fail_case "inviter deleted, $1: the acceptance answered '${status}'" ;;
+  esac
+  pending="$(psql_db -c "select count(*) from public.portfolio_invitations
+                         where id in ('${id}', '${other}') and accepted_at is null and revoked_at is null")"
+  [[ "$pending" == 0 ]] || fail_case "inviter deleted, $1: ${pending} invitation(s) left pending"
+  [[ "$(psql_db -c "select count(*) from auth.users where id = '${inviter}'")" == 0 ]] \
+    || fail_case "inviter deleted, $1: the auth user was not deleted"
+}
+for round in 1 2; do
+  iv_inviter_deleted "direct${round}" direct
+  iv_inviter_deleted "arriving${round}" account_arriving
+  iv_inviter_deleted "holding${round}" account_holding
+done
+end_scenario "invitations"
+
+# 31. Invariants --------------------------------------------------------------------------
 echo "▸ Checking invariants"
 RESULT="$(
   psql_db <<SQL

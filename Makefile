@@ -110,8 +110,9 @@ test-integration: ## Flutter integration tests on the Linux desktop target (need
 	cd app && xvfb-run -a $(FLUTTER) test integration_test -d linux
 
 .PHONY: test-db
-test-db: ## Migrations + pgTAP suite on a local Postgres (see tool/db/test.sh)
+test-db: ## Migrations + pgTAP suite, and the migrations' data changes, on a local Postgres (see tool/db/test.sh, tool/db/upgrade_test.sh)
 	tool/db/test.sh
+	tool/db/upgrade_test.sh
 
 .PHONY: test-db-concurrency
 test-db-concurrency: ## Parallel payments, retries and billing races keep the ledger invariants
