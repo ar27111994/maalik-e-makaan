@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/actions/mm_action_icon.dart';
 import 'package:mm_ui/src/foundation/mm_button_styles.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -144,8 +145,10 @@ class _ButtonContent extends StatelessWidget {
   Widget build(BuildContext context) {
     // As wide as its longest line, so a wrapped label stays beside its icon
     // instead of centring its lines across the whole button.
-    final text = Text(
+    // Latin words keep the Latin face in the Urdu UI.
+    final text = MmScriptText(
       label,
+      style: const TextStyle(),
       textAlign: TextAlign.center,
       textWidthBasis: TextWidthBasis.longestLine,
     );

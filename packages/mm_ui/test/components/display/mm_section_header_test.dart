@@ -132,6 +132,44 @@ void main() {
       expect(tester.getRect(find.text('کرایہ دار')).right, header.right);
     });
 
+    group("lines every action's words up with the end edge", () {
+      for (final variant in const [MmVariant.light, MmVariant.urdu]) {
+        for (final enabled in const [true, false]) {
+          for (final label in const ['See all', 'Edit', 'ترمیم', 'سب دیکھیں']) {
+            testWidgets('${variant.name}, "$label", '
+                '${enabled ? 'enabled' : 'disabled'}', (tester) async {
+              await pumpThemed(
+                tester,
+                MmSectionHeader(
+                  title: 'Gulberg Heights',
+                  actionLabel: label,
+                  onAction: enabled ? () {} : null,
+                ),
+                variant: variant,
+              );
+              final header = tester.getRect(find.byType(MmSectionHeader));
+              final words = tester.getRect(find.text(label));
+              final button = tester.getRect(find.byType(TextButton));
+              if (variant == MmVariant.urdu) {
+                expect(words.left, header.left);
+                // A 48 dp target stays inside the column.
+                expect(
+                  button.right - header.left,
+                  greaterThanOrEqualTo(MmSize.minTarget),
+                );
+              } else {
+                expect(words.right, header.right);
+                expect(
+                  header.right - button.left,
+                  greaterThanOrEqualTo(MmSize.minTarget),
+                );
+              }
+            });
+          }
+        }
+      }
+    });
+
     testWidgets('keeps 48 dp of a short action inside the column', (
       tester,
     ) async {
@@ -141,9 +179,12 @@ void main() {
       );
       final header = tester.getRect(find.byType(MmSectionHeader));
       final button = tester.getRect(find.byType(TextButton));
-      expect(button.width, lessThan(MmSize.minTarget + MmSpace.s4));
+      // The button grows inward to a 48 dp target inside the column, its
+      // padding still hanging past the edge and its words on the edge.
+      expect(button.width, MmSize.minTarget + MmSpace.s4);
       expect(header.right - button.left, MmSize.minTarget);
-      expect(button.right, greaterThan(header.right));
+      expect(button.right, header.right + MmSpace.s4);
+      expect(tester.getRect(find.text('Edit')).right, header.right);
     });
 
     testWidgets('takes taps on the part of the action past the edge', (
@@ -171,7 +212,7 @@ void main() {
     });
 
     testWidgets('wraps a long title in whole words and moves the action '
-        'under it at 200%, its words on the start edge', (tester) async {
+        'under it at 200%, its words still on the end edge', (tester) async {
       await expectFitsNarrowLargeText(
         tester,
         MmSectionHeader(
@@ -186,10 +227,11 @@ void main() {
           final words = tester.getRect(find.text(_action));
           expect(title.height, greaterThan(2 * 40));
           expect(words.top, greaterThanOrEqualTo(subtitle.bottom));
+          final header = tester.getRect(find.byType(MmSectionHeader));
           if (locale.languageCode == 'ur') {
-            expect(words.right, title.right);
+            expect(words.left, header.left);
           } else {
-            expect(words.left, title.left);
+            expect(words.right, header.right);
           }
         },
       );

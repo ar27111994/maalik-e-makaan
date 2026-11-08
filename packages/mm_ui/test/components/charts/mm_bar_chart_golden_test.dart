@@ -32,6 +32,12 @@ Widget barChartTableGolden() => GoldenPage(
   (context, say) => lakhGrouping(chartCard(context, rentChart(say))),
 );
 
+/// Net income by unit: named groups, every one labelled. At 200% text the
+/// names no longer fit under their bars and the chart is its table.
+Widget barChartUnitsGolden() => GoldenPage(
+  (context, say) => lakhGrouping(chartCard(context, unitsChart(say))),
+);
+
 /// A year of months on the narrowest phone.
 Widget barChartYearGolden() => GoldenPage(
   width: 288,
@@ -83,6 +89,8 @@ void main() {
     await expectAccessible(tester);
     await expectGolden('mm_bar_chart_table', variant);
   });
+
+  goldenEveryVariant('mm_bar_chart_units', barChartUnitsGolden);
 
   goldenEveryVariant(
     'mm_bar_chart_year',

@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
 import 'package:mm_ui/src/foundation/mm_date_locale.dart';
+import 'package:mm_ui/src/foundation/mm_urdu_material_localizations.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -106,6 +109,19 @@ class MmDateField extends StatefulWidget {
   /// outgrows its fixed height.
   static const pickerTextScale = 1.05;
 
+  /// How wide a column of days is in the date picker on a window [width]
+  /// wide: Material's dialog stands 16 dp in from each side, is at most
+  /// 328 dp wide, and pads its grid of seven columns 12 dp on each side.
+  static double _dayColumnWidth(double width) =>
+      (math.min(width - 2 * _pickerInset, _pickerMaxWidth) -
+          2 * _pickerGridPadding) /
+      DateTime.daysPerWeek;
+
+  /// Material's geometry of the date picker dialog, no tokens.
+  static const double _pickerInset = 16;
+  static const double _pickerMaxWidth = 328;
+  static const double _pickerGridPadding = 12;
+
   /// [date] as the [DateTime] Material's date pickers work in: local
   /// midnight at the start of that day. Built from the date's fields, so
   /// no time-zone conversion can move it to a neighbouring day.
@@ -139,7 +155,10 @@ class _MmDateFieldState extends State<MmDateField> {
     super.dispose();
   }
 
-  Future<void> _choose() async {
+  /// Opens the picker from [dates], a context inside the field's
+  /// [MmDateLocale], so the picker takes its date conventions (and, in
+  /// Urdu, its day names) from there.
+  Future<void> _choose(BuildContext dates) async {
     final first = widget.firstDate;
     final last = widget.lastDate;
     final today = CalendarDate.todayInPakistan();
@@ -149,7 +168,7 @@ class _MmDateFieldState extends State<MmDateField> {
     );
     final strings = MmLocalizations.of(context);
     final picked = await showDatePicker(
-      context: context,
+      context: dates,
       locale: MmDateLocale.forLocale(Localizations.localeOf(context)),
       initialDate: MmDateField.toDateTime(initial),
       firstDate: MmDateField.toDateTime(first),
@@ -162,7 +181,7 @@ class _MmDateFieldState extends State<MmDateField> {
       switchToCalendarEntryModeIcon: const Icon(MmIcons.calendar),
       builder: (context, picker) => MediaQuery.withClampedTextScaling(
         maxScaleFactor: MmDateField.pickerTextScale,
-        child: picker!,
+        child: _withDayNames(context, picker!),
       ),
     );
     if (!mounted) return;
@@ -170,6 +189,46 @@ class _MmDateFieldState extends State<MmDateField> {
     if (picked == null) return;
     final date = MmDateField.toCalendarDate(picked);
     if (date != widget.value) widget.onChanged(date);
+  }
+
+  /// [picker], with its Urdu day names over the columns in the Urdu UI's
+  /// smallest text (the theme sets the English initials in the figures'
+  /// style).
+  ///
+  /// Seven columns share the picker's width: 43 dp each on a 360 dp phone,
+  /// but 38 dp on a 320 dp one, where "جمعرات" at 14 px is 44 dp and would
+  /// break inside the word. There the row's text is set only as much
+  /// smaller as the longest name needs to fit its column whole.
+  static Widget _withDayNames(BuildContext context, Widget picker) {
+    if (context.mm.script != MmScript.urdu) return picker;
+    final theme = DatePickerTheme.of(context);
+    final small = Theme.of(context).textTheme.labelSmall!
+        .copyWith(color: theme.weekdayStyle?.color);
+    final scaler = MediaQuery.textScalerOf(context)
+        .clamp(maxScaleFactor: MmDateField.pickerTextScale);
+    final column = MmDateField._dayColumnWidth(
+      MediaQuery.sizeOf(context).width,
+    );
+    final widest = MmUrduMaterialLocalizations.dayNames
+        .map((name) {
+          final painter = TextPainter(
+            text: TextSpan(text: name, style: small),
+            textDirection: TextDirection.rtl,
+            textScaler: scaler,
+          )..layout();
+          final width = painter.width;
+          painter.dispose();
+          return width;
+        })
+        .reduce(math.max);
+    // A pixel to spare, so rounding never pushes the name onto two lines.
+    final fit = math.min(1, (column - 1) / widest);
+    return DatePickerTheme(
+      data: theme.copyWith(
+        weekdayStyle: small.copyWith(fontSize: small.fontSize! * fit),
+      ),
+      child: picker,
+    );
   }
 
   void _clear() {
@@ -218,7 +277,7 @@ class _MmDateFieldState extends State<MmDateField> {
         optional: widget.optional,
         latinFigures: true,
         focusNode: _focusNode,
-        onTap: enabled ? _choose : null,
+        onTap: enabled ? () => _choose(context) : null,
         actions: [
           if (widget.optional && value != null && enabled)
             IconButton(
@@ -231,7 +290,7 @@ class _MmDateFieldState extends State<MmDateField> {
             tooltip: strings.chooseDate,
             style: buttonStyle,
             focusNode: _calendarFocusNode,
-            onPressed: enabled ? _choose : null,
+            onPressed: enabled ? () => _choose(context) : null,
             icon: const Icon(MmIcons.calendar),
           ),
         ],

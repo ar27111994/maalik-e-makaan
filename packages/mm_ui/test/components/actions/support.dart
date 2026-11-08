@@ -25,3 +25,17 @@ Color iconColorOf(WidgetTester tester, IconData icon) => tester
 /// The colour the paragraph showing [text] is painted in.
 Color textColorOf(WidgetTester tester, String text) =>
     styleOf(tester, text).color!;
+
+/// Where the letters of [paragraph] are painted, in its own coordinates:
+/// the boxes of every character but spaces, so a space a line ends on (in
+/// a right-to-left paragraph, past the line's left end) does not count.
+Rect inkOfWords(RenderParagraph paragraph) {
+  final text = paragraph.text.toPlainText();
+  return [
+    for (var i = 0; i < text.length; i++)
+      if (text[i].trim().isNotEmpty)
+        ...paragraph.getBoxesForSelection(
+          TextSelection(baseOffset: i, extentOffset: i + 1),
+        ),
+  ].map((box) => box.toRect()).reduce((a, b) => a.expandToInclude(b));
+}

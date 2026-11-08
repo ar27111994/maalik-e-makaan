@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/foundation/mm_reflow.dart';
 
 import '../../support/testing.dart';
 import 'support.dart';
@@ -354,7 +355,58 @@ void main() {
         find.text('House 12, Street 4, Gulberg III, Lahore'),
       );
       expect(value.top, greaterThan(label.bottom));
-      expect(value.left, label.left);
+      // Under its label the value keeps to the end edge, where values
+      // beside their labels end.
+      final row = tester.getRect(
+        find.ancestor(
+          of: find.text('Property'),
+          matching: find.byType(MmReflow),
+        ),
+      );
+      expect(value.right, row.right);
+    });
+
+    testWidgets("at 200% the rows' values end on one edge", (tester) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        _receipt(
+          rows: const [
+            MmReceiptRow(label: 'Tenant', value: 'Ali Raza'),
+            MmReceiptRow(label: 'Period', value: 'October 2026'),
+            MmReceiptRow(label: 'Late fee', value: 'Rs\u00A0500'),
+          ],
+        ),
+        height: 1400,
+        then: (locale) {
+          final row = tester.getRect(
+            find
+                .ancestor(
+                  of: find.text('Tenant'),
+                  matching: find.byType(MmReflow),
+                )
+                .first,
+          );
+          final values = [
+            for (final value in ['Ali Raza', 'October 2026', 'Rs\u00A0500'])
+              tester.getRect(find.textContaining(value)),
+          ];
+          final labels = [
+            for (final label in ['Tenant', 'Period', 'Late fee'])
+              tester.getRect(find.text(label)),
+          ];
+          expect([
+            for (final (index, value) in values.indexed)
+              value.top >= labels[index].bottom,
+          ], containsAll([true, false]));
+          for (final value in values) {
+            if (locale.languageCode == 'ur') {
+              expect(value.left, moreOrLessEquals(row.left));
+            } else {
+              expect(value.right, moreOrLessEquals(row.right));
+            }
+          }
+        },
+      );
     });
 
     testWidgets('without rows or a footer, shows just the amount', (

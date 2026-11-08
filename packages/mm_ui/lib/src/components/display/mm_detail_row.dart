@@ -4,6 +4,7 @@ import 'package:mm_ui/src/components/display/mm_amount.dart';
 import 'package:mm_ui/src/components/display/mm_no_controls.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
 import 'package:mm_ui/src/foundation/mm_user_text.dart';
+import 'package:mm_ui/src/foundation/mm_wrap.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -17,9 +18,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// the Latin face with tabular figures in both languages, never breaking
 /// inside the number, read to screen readers as "45000 rupees". When the
 /// label and value do not fit on one line (a narrow screen, large text, a
-/// long address) the value moves under the label, aligned to the start, and
-/// wraps; a [trailing] widget that does not fit beside the value goes under
-/// it. Set [emphasized] for a total.
+/// long address) the value moves under the label and keeps to the end edge,
+/// so the values of a card's rows end on one edge whichever rows had to
+/// move; a value too long for one line wraps across the row. A [trailing]
+/// widget that does not fit beside the value goes under it. Set
+/// [emphasized] for a total.
 ///
 /// The row is one node for screen readers, "Monthly rent, 45000 rupees",
 /// with its [trailing] status ("Paid") read after it. A control for the
@@ -135,9 +138,11 @@ class MmDetailRow extends StatelessWidget {
           color: colors.ink,
         ),
       );
+      // A value that wraps under its label ends its lines on the end edge
+      // too, where the other values end.
       shown = userData
-          ? MmUserText(value, style: valueStyle)
-          : Text(value, style: valueStyle);
+          ? MmUserText(value, style: valueStyle, textAlign: TextAlign.end)
+          : Text(value, style: valueStyle, textAlign: TextAlign.end);
       spoken = semanticValue ?? value;
     }
     final Widget valueText = ExcludeSemantics(child: shown);
@@ -148,14 +153,18 @@ class MmDetailRow extends StatelessWidget {
           padding: const EdgeInsetsDirectional.symmetric(vertical: MmSpace.s2),
           child: MmReflow(
             alignment: MmReflowAlignment.baseline,
+            // Under the label the value keeps to the end edge, where the
+            // values beside their labels end.
+            stackedAtEnd: true,
             start: ExcludeSemantics(child: Text(label, style: labelStyle)),
             // The trailing widget wraps under the value rather than
             // squeezing it: a value never breaks to make room for it.
             end: trailing == null
                 ? valueText
-                : Wrap(
+                : MmWrap(
                     spacing: MmSpace.s2,
                     runSpacing: MmSpace.s1,
+                    alignment: WrapAlignment.end,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       valueText,

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
 import 'package:mm_ui/src/components/choices/mm_option.dart';
+import 'package:mm_ui/src/components/choices/mm_tile_bleed.dart';
 import 'package:mm_ui/src/foundation/mm_field_label.dart';
 import 'package:mm_ui/src/foundation/mm_focus_within.dart';
-import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_line_icon.dart';
 import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -12,9 +13,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// payment was received, which day rent falls due, who pays the
 /// electricity bill.
 ///
-/// Each option is a row with its radio button at the start, its label and
-/// an optional description, and its icon at the end; the whole row is the
-/// target. The chosen option's button is filled, not only coloured. From
+/// Each option is a row with its radio button at the start, as a checkbox
+/// row has its box, then its icon (when it has one) and label, and an
+/// optional description under the label; the whole row is the target, and
+/// it lines up with the fields around it, its highlight reaching into the
+/// page's gutter. The chosen option's button is filled, not only coloured. From
 /// the keyboard, Tab enters the group at the chosen option, the arrow keys
 /// move the choice, and Space chooses the focused option.
 ///
@@ -90,6 +93,13 @@ class MmRadioGroup<T> extends StatelessWidget {
     final colors = mm.colors;
     final text = Theme.of(context).textTheme;
     final enabled = onChanged != null;
+    final titleStyle = text.bodyLarge!.copyWith(
+      color: enabled ? colors.ink : colors.inkMuted,
+    );
+    final note = text.bodyMedium!.copyWith(color: colors.inkMuted);
+    // The radio buttons grow with the text as the option icons beside them
+    // do, so a radio is never smaller than its option's icon.
+    final scale = MmTileBleed.scaleOf(context);
     return MmChoiceFrame(
       label: label,
       helper: helper,
@@ -115,41 +125,69 @@ class MmRadioGroup<T> extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               for (final option in options)
-                MmFocusWithin(
-                  radius: MmRadius.none,
-                  child: RadioListTile<T>(
-                    value: option.value,
-                    enabled: enabled,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: MmUserText(
-                      option.label,
-                      style: text.bodyLarge!.copyWith(
-                        color: enabled ? colors.ink : colors.inkMuted,
+                // The row reaches into the gutter, so its radio lines up
+                // with the fields and headings around it (see MmTileBleed).
+                MmTileBleed(
+                  child: MmFocusWithin(
+                    radius: MmRadius.none,
+                    child: RadioListTile<T>(
+                      radioScaleFactor: scale,
+                      contentPadding: EdgeInsetsDirectional.only(
+                        start: MmTileBleed.leadingPadding(scale),
+                        end: MmSpace.s4,
                       ),
+                      value: option.value,
+                      enabled: enabled,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: option.icon == null
+                          ? MmUserText(option.label, style: titleStyle)
+                          : _withIcon(option, option.icon!, titleStyle, note),
+                      subtitle:
+                          option.icon != null || option.description == null
+                          ? null
+                          : MmUserText(option.description!, style: note),
                     ),
-                    subtitle: option.description == null
-                        ? null
-                        : MmUserText(
-                            option.description!,
-                            style: text.bodyMedium!.copyWith(
-                              color: colors.inkMuted,
-                            ),
-                          ),
-                    secondary: option.icon == null
-                        ? null
-                        : Icon(
-                            option.icon,
-                            size: MmIconLabel.scaledSize(
-                              context,
-                              MmSize.iconLg,
-                            ),
-                            color: colors.inkMuted,
-                          ),
                   ),
                 ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// The label of [option] in [style] after its [icon], with its
+  /// description in [note] under the label: the icon belongs to the words,
+  /// so it sits beside them, not across a wide row at the far edge, and the
+  /// description lines up with the label it explains, not with the icon.
+  Widget _withIcon(
+    MmOption<T> option,
+    IconData icon,
+    TextStyle style,
+    TextStyle note,
+  ) {
+    final description = option.description;
+    return Builder(
+      builder: (context) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: MmSpace.s3,
+        children: [
+          MmLineIcon(
+            icon: icon,
+            color: context.mm.colors.inkMuted,
+            style: style,
+          ),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                MmUserText(option.label, style: style),
+                if (description != null) MmUserText(description, style: note),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

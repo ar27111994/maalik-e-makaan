@@ -70,6 +70,42 @@ const netIncome = [
   Money.fromRupees(60000),
 ];
 
+/// Net income by unit, a chart of named groups: every bar keeps its name,
+/// wrapped, or the chart shows its table when a name cannot fit.
+MmBarChart unitsChart(Say say) => MmBarChart(
+  title: say(
+    'Net income by unit, October',
+    'یونٹ کے لحاظ سے خالص آمدن، اکتوبر',
+  ),
+  semanticSummary: say(
+    'Net income in October: House 12 earned most, 104000 rupees; Shop 7 '
+        'lost 12000 rupees to repairs.',
+    'اکتوبر میں خالص آمدن: مکان 12 سب سے زیادہ، 104000 روپے؛ دکان 7 میں '
+        'مرمت پر 12000 روپے کا نقصان۔',
+  ),
+  groupLabel: say('Unit', 'یونٹ'),
+  groupKind: MmBarGroupKind.names,
+  series: [MmBarSeries(label: say('Net income', 'خالص آمدن'))],
+  groups: [
+    MmBarGroup(
+      label: say('Flat 3', 'فلیٹ 3'),
+      values: const [Money.fromRupees(38000)],
+    ),
+    MmBarGroup(
+      label: say('Flat 5B', 'فلیٹ 5 بی'),
+      values: const [Money.fromRupees(31500)],
+    ),
+    MmBarGroup(
+      label: say('Shop 7', 'دکان 7'),
+      values: const [Money.fromRupees(-12000)],
+    ),
+    MmBarGroup(
+      label: say('House 12', 'مکان 12'),
+      values: const [Money.fromRupees(104000)],
+    ),
+  ],
+);
+
 /// The rent chart of the samples: collected against due, by month.
 MmBarChart rentChart(Say say, {bool autofocus = false}) => MmBarChart(
   title: say('Rent, last 6 months', 'کرایہ، پچھلے 6 ماہ'),

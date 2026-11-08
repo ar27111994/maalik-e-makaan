@@ -102,6 +102,20 @@ void main() {
       );
     });
 
+    testEveryVariant('the check grows with the label as icons do, up to '
+        '150%', (tester, variant) async {
+      await pumpThemed(
+        tester,
+        _chips(selected: {_Status.paid}),
+        variant: variant,
+      );
+      final scale = variant.textScale > 1.5 ? 1.5 : variant.textScale;
+      expect(
+        tester.getSize(find.byIcon(MmIcons.check)),
+        Size.square(MmSize.iconMd * scale),
+      );
+    });
+
     testWidgets('several chips toggle independently', (tester) async {
       final log = <Set<_Status>>[];
       await pumpThemed(tester, _chips(selected: {_Status.overdue}, log: log));

@@ -362,7 +362,8 @@ class _TenantScreen extends StatelessWidget {
               children: [
                 MmDetailRow(
                   label: context.tr('Phone', 'فون'),
-                  value: ayesha.phone,
+                  // The national format MmPhoneField writes: "0300 5550192".
+                  value: ayesha.parsedPhone.national,
                 ),
                 MmDetailRow(
                   label: context.tr('CNIC', 'شناختی کارڈ'),

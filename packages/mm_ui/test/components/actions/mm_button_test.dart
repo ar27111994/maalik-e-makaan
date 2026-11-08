@@ -526,13 +526,7 @@ void main() {
         // As wide as its longest line, so the words start (or, in Urdu,
         // end) the row's gap away from the icon: not the half of the spare
         // width that centring the lines across the whole button would add.
-        final ink = text
-            .getBoxesForSelection(
-              const TextSelection(baseOffset: 0, extentOffset: label.length),
-            )
-            .map((box) => box.toRect())
-            .reduce((a, b) => a.expandToInclude(b))
-            .shift(tester.getTopLeft(find.text(label)));
+        final ink = inkOfWords(text).shift(tester.getTopLeft(find.text(label)));
         final icon = tester.getRect(find.byIcon(MmIcons.reminder));
         final gap = variant == MmVariant.urdu
             ? icon.left - ink.right

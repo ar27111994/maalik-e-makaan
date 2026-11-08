@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/foundation/mm_user_text.dart';
 
 import '../../support/testing.dart';
 
@@ -181,6 +182,62 @@ void main() {
       );
     });
 
+    testWidgets("at 200% a card's amounts end on one edge, moved or not", (
+      tester,
+    ) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        const Column(
+          children: [
+            MmDetailRow.amount(label: 'Rent', amount: Money.fromRupees(45000)),
+            MmDetailRow.amount(
+              label: 'Security deposit held',
+              amount: Money.fromRupees(125000),
+            ),
+            MmDetailRow.amount(
+              label: 'Electricity',
+              amount: Money.fromRupees(3200),
+            ),
+            MmDetailRow(label: 'Due on', value: '5 Nov'),
+          ],
+        ),
+        then: (locale) {
+          final rows = find.byType(MmDetailRow);
+          final rowRect = tester.getRect(rows.first);
+          final values = [
+            for (final amount in tester.widgetList<MmAmount>(
+              find.byType(MmAmount),
+            ))
+              tester.getRect(find.byWidget(amount)),
+            tester.getRect(find.byType(MmUserText)),
+          ];
+          final labels = [
+            for (final label in [
+              'Rent',
+              'Security deposit held',
+              'Electricity',
+              'Due on',
+            ])
+              tester.getRect(find.text(label)),
+          ];
+          // Some values sit beside their labels and some had to move under
+          // them, and every one ends on the row's end edge.
+          final moved = [
+            for (final (index, value) in values.indexed)
+              value.top >= labels[index].bottom,
+          ];
+          expect(moved, containsAll([true, false]));
+          for (final value in values) {
+            if (locale.languageCode == 'ur') {
+              expect(value.left, moreOrLessEquals(rowRect.left));
+            } else {
+              expect(value.right, moreOrLessEquals(rowRect.right));
+            }
+          }
+        },
+      );
+    });
+
     testWidgets('moves a value that does not fit under its label', (
       tester,
     ) async {
@@ -191,7 +248,9 @@ void main() {
       final label = tester.getRect(find.text('Property'));
       final value = tester.getRect(find.text(_address));
       expect(value.top, label.bottom + MmSpace.s1);
-      expect(value.left, label.left);
+      // Under its label a value keeps to the end edge, where the values
+      // beside their labels end.
+      expect(value.right, tester.getRect(find.byType(MmDetailRow)).right);
     });
 
     testWidgets('at 200% on a 320 dp phone, wraps in whole words without '

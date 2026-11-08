@@ -229,6 +229,64 @@ void main() {
       expect(filled.center.dx, 600);
     });
 
+    for (final urdu in [false, true]) {
+      testWidgets('on a wide window the title starts on the content '
+          "column's edge (${urdu ? 'Urdu' : 'English'})", (tester) async {
+        final title = urdu ? 'واجبات' : 'Dues';
+        final long = urdu ? _longUrduTitle * 3 : _longTitle * 3;
+        void expectOnColumnEdge(String text) {
+          final body = tester.getRect(find.byKey(_bodyKey));
+          final shown = tester.getRect(find.text(text));
+          if (urdu) {
+            expect(shown.right, moreOrLessEquals(body.right), reason: text);
+          } else {
+            expect(shown.left, moreOrLessEquals(body.left), reason: text);
+          }
+        }
+
+        final variant = urdu ? MmVariant.urdu : MmVariant.light;
+        const window = Size(1200, 800);
+        // Alone in the toolbar, beside an action, after a back button, and
+        // moved under the toolbar for its length.
+        for (final page in [
+          MmPage(title: title, body: _body()),
+          MmPage(title: title, actions: const [_edit], body: _body()),
+          MmPage(
+            title: title,
+            leading: const BackButton(),
+            actions: const [_edit],
+            body: _body(),
+          ),
+          MmPage(
+            title: long,
+            leading: const BackButton(),
+            actions: const [_edit],
+            body: _body(),
+          ),
+        ]) {
+          await pumpScreen(tester, page, size: window, variant: variant);
+          await tester.pumpAndSettle();
+          expectOnColumnEdge(page.title);
+        }
+        // A long title under the toolbar wraps within the column.
+        final body = tester.getRect(find.byKey(_bodyKey));
+        final shown = tester.getRect(find.text(long));
+        expect(shown.width, lessThanOrEqualTo(body.width));
+        // On a phone the column is the page less its padding, as before.
+        await pumpScreen(
+          tester,
+          MmPage(title: title, leading: const BackButton(), body: _body()),
+          variant: variant,
+        );
+        final phoneTitle = tester.getRect(find.text(title));
+        if (urdu) {
+          expect(phoneTitle.right, 360 - kToolbarHeight - MmSpace.s4);
+        } else {
+          expect(phoneTitle.left, kToolbarHeight + MmSpace.s4);
+        }
+      });
+    }
+
     testWidgets('pads from the start edge in Urdu too', (tester) async {
       await pumpScreen(
         tester,
@@ -673,6 +731,147 @@ void main() {
       expect(hasFocus(tester, find.byIcon(MmIcons.edit)), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       expect(edits, 1);
+    });
+
+    group('keeps the last content clear of the floating action button', () {
+      const endKey = ValueKey<String>('end');
+      const fabKey = ValueKey<String>('fab');
+
+      /// A page of [length] rows ending in a row keyed [endKey], scrolled to
+      /// its end.
+      Future<void> pumpScrolledToEnd(
+        WidgetTester tester, {
+        required Size size,
+        MmVariant variant = MmVariant.light,
+        double safeBottom = 0,
+        bool scrollable = true,
+        Widget? bottomBar,
+        String label = 'Add tenant',
+      }) async {
+        tester.view
+          ..physicalSize = size
+          ..devicePixelRatio = 1
+          ..padding = FakeViewPadding(bottom: safeBottom)
+          ..viewPadding = FakeViewPadding(bottom: safeBottom);
+        addTearDown(tester.view.reset);
+        final rows = [
+          for (var row = 0; row < 30; row++)
+            SizedBox(
+              key: row == 29 ? endKey : null,
+              height: MmSize.listRow,
+              child: Text('Tenant ${row + 1}'),
+            ),
+        ];
+        await tester.pumpWidget(
+          themedApp(
+            MmPage(
+              title: 'Tenants',
+              scrollable: scrollable,
+              body: scrollable
+                  ? Column(children: rows)
+                  : ListView(children: rows),
+              bottomBar: bottomBar,
+              floatingActionButton: MmFab(
+                key: fabKey,
+                label: label,
+                icon: MmIcons.invite,
+                onPressed: tapped,
+              ),
+            ),
+            variant: variant,
+          ),
+        );
+        await tester.pumpAndSettle();
+        final position = tester
+            .state<ScrollableState>(find.byType(Scrollable).last)
+            .position;
+        position.jumpTo(position.maxScrollExtent);
+        await tester.pumpAndSettle();
+      }
+
+      void expectClear(WidgetTester tester) {
+        final end = tester.getRect(find.byKey(endKey));
+        final fab = tester.getRect(find.byKey(fabKey));
+        // The page's own 16 dp end gap, above the button.
+        expect(end.bottom, closeTo(fab.top - MmSpace.s4, 0.01));
+      }
+
+      for (final (name, size) in const [
+        ('compact', Size(360, 740)),
+        ('expanded', Size(1280, 800)),
+      ]) {
+        testWidgets('in the $name size class', (tester) async {
+          await pumpScrolledToEnd(tester, size: size);
+          expectClear(tester);
+        });
+
+        testWidgets('above the gesture bar in the $name size class', (
+          tester,
+        ) async {
+          await pumpScrolledToEnd(tester, size: size, safeBottom: 34);
+          expectClear(tester);
+          // The button itself stands 16 dp clear of the safe area.
+          expect(
+            tester.getRect(find.byKey(fabKey)).bottom,
+            size.height - 34 - kFloatingActionButtonMargin,
+          );
+        });
+
+        testWidgets('above a bottom bar in the $name size class', (
+          tester,
+        ) async {
+          await pumpScrolledToEnd(
+            tester,
+            size: size,
+            safeBottom: 34,
+            bottomBar: const SizedBox(key: _barKey, height: 80),
+          );
+          expectClear(tester);
+        });
+
+        testWidgets('in a body that scrolls by itself in the $name size '
+            'class', (tester) async {
+          await pumpScrolledToEnd(
+            tester,
+            size: size,
+            safeBottom: 34,
+            scrollable: false,
+          );
+          expectClear(tester);
+        });
+      }
+
+      testWidgets('as the button grows with a wrapped label at 200% text', (
+        tester,
+      ) async {
+        await pumpScrolledToEnd(
+          tester,
+          size: const Size(320, 640),
+          variant: MmVariant.largeText,
+          label: 'Record a payment for this tenant',
+        );
+        expect(
+          tester.getSize(find.byKey(fabKey)).height,
+          greaterThan(MmSize.fab),
+        );
+        expectClear(tester);
+      });
+
+      testWidgets('and adds nothing without a button', (tester) async {
+        tester.view
+          ..physicalSize = const Size(360, 740)
+          ..devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          themedApp(MmPage(title: 'Tenants', body: _body(height: 2000))),
+        );
+        final position = tester
+            .state<ScrollableState>(find.byType(Scrollable).last)
+            .position;
+        position.jumpTo(position.maxScrollExtent);
+        await tester.pumpAndSettle();
+        expect(tester.getRect(find.byKey(_bodyKey)).bottom, 740 - MmSpace.s4);
+      });
     });
   });
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_window.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -112,7 +114,7 @@ class MmFilterChips<T> extends StatelessWidget {
     final chips = [
       for (final option in options)
         _chip(
-          context.mm,
+          context,
           option,
           enabled: onChanged != null,
           selected: selected.contains(option.value),
@@ -154,27 +156,39 @@ class MmFilterChips<T> extends StatelessWidget {
   static void _inert(bool selected) {}
 
   Widget _chip(
-    MmSemantics mm,
+    BuildContext context,
     MmFilterOption<T> option, {
     required bool enabled,
     required bool selected,
     required String? count,
     required ValueChanged<bool> onSelected,
   }) {
+    final mm = context.mm;
     final colors = mm.colors;
     // Chip labels stay on one line, so the count never wraps away. The
     // count is set like an amount, in the Latin face in both languages;
-    // a label typed in Latin script (a city, a property) is too.
+    // a label typed in Latin script (a city, a property) is too, and so
+    // are the Latin words and figures of an Urdu label ("فلیٹ 2B"), as
+    // MmScriptText sets them.
     final suffix = count == null ? null : ' · $count';
     final label = count == null ? option.label : '${option.label} $count';
+    final mixed = MmScriptText.spansOf(
+      context,
+      option.label,
+      const TextStyle(),
+    );
+    // The check grows with the label as icons do, up to 150%.
+    final check = MmIconLabel.scaledSize(context, MmSize.iconMd);
     final chip = FilterChip(
       label: Text.rich(
         TextSpan(
           children: [
-            TextSpan(
-              text: option.label,
-              style: mm.styleFor(option.label, const TextStyle()),
-            ),
+            ...?mixed?.spans,
+            if (mixed == null)
+              TextSpan(
+                text: option.label,
+                style: mm.styleFor(option.label, const TextStyle()),
+              ),
             if (suffix != null)
               TextSpan(
                 text: suffix,
@@ -182,13 +196,22 @@ class MmFilterChips<T> extends StatelessWidget {
               ),
           ],
         ),
+        strutStyle: mixed?.strut,
         semanticsLabel: label,
       ),
       selected: selected,
       showCheckmark: false,
       avatar: selected
-          ? Icon(MmIcons.check, color: enabled ? null : colors.inkMuted)
+          ? Icon(
+              MmIcons.check,
+              size: check,
+              color: enabled ? null : colors.inkMuted,
+            )
           : null,
+      avatarBoxConstraints: BoxConstraints.tightFor(
+        width: check,
+        height: check,
+      ),
       backgroundColor: enabled ? null : colors.surfaceSunken,
       selectedColor: enabled ? null : colors.surfaceSunken,
       side: enabled ? null : BorderSide(color: colors.rule),

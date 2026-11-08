@@ -100,6 +100,45 @@ Rect _targetOf(WidgetTester tester, String label) => tester.getRect(
       .first,
 );
 
+/// Where the glyph of [icon] is inked inside its square at [size]: the
+/// bounding box of its painted pixels.
+Future<Rect> _glyphInk(WidgetTester tester, IconData icon, double size) async {
+  const key = Key('glyph');
+  await tester.pumpWidget(
+    themed(
+      Center(
+        child: RepaintBoundary(
+          key: key,
+          child: Icon(icon, size: size),
+        ),
+      ),
+    ),
+  );
+  final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(key));
+  final image = (await tester.runAsync(boundary.toImage))!;
+  final bytes = (await tester.runAsync(image.toByteData))!;
+  var left = image.width;
+  var top = image.height;
+  var right = 0;
+  var bottom = 0;
+  for (var y = 0; y < image.height; y++) {
+    for (var x = 0; x < image.width; x++) {
+      if (bytes.getUint8((y * image.width + x) * 4 + 3) == 0) continue;
+      left = x < left ? x : left;
+      top = y < top ? y : top;
+      right = x + 1 > right ? x + 1 : right;
+      bottom = y + 1 > bottom ? y + 1 : bottom;
+    }
+  }
+  image.dispose();
+  return Rect.fromLTRB(
+    left.toDouble(),
+    top.toDouble(),
+    right.toDouble(),
+    bottom.toDouble(),
+  );
+}
+
 /// The icon of a destination, with what is painted over it.
 Finder _iconPaint(IconData icon) => find
     .ancestor(of: find.byIcon(icon), matching: find.byType(CustomPaint))
@@ -388,6 +427,62 @@ void main() {
         isSemantics(value: '1200'),
       );
     });
+
+    for (final locale in const [Locale('en'), Locale('ur')]) {
+      for (final (window, size) in const [
+        ('bar', _phone),
+        ('rail', _landscapeTablet),
+      ]) {
+        testWidgets(
+          'the badge never covers its icon (${locale.languageCode}, $window)',
+          (tester) async {
+            // Narrow and wide glyphs: the dots of "More" and a bell.
+            for (final glyph in [MmIcons.more, MmIcons.notifications]) {
+              final ink = await _glyphInk(tester, glyph, 24);
+              await _pumpIn(
+                tester,
+                MmAdaptiveScaffold(
+                  destinations: [
+                    const MmDestination(icon: MmIcons.home, label: 'Home'),
+                    MmDestination(icon: glyph, label: 'More', badgeCount: 3),
+                  ],
+                  selectedIndex: 0,
+                  onDestinationSelected: (_) {},
+                  body: const SizedBox.shrink(),
+                ),
+                locale: locale,
+                textScale: 1,
+                size: size,
+              );
+              final icon = tester.getRect(find.byIcon(glyph));
+              expect(icon.size, const Size.square(24));
+              final glyphRect = ink.shift(icon.topLeft);
+              final badge = tester.getRect(
+                find.descendant(
+                  of: find.byType(Badge),
+                  matching: find.byType(Container),
+                ),
+              );
+              expect(
+                badge.intersect(glyphRect).isEmpty,
+                isTrue,
+                reason: 'badge $badge over glyph $glyphRect',
+              );
+              // Past the icon's top end corner: to its right in English,
+              // to its left in Urdu, its middle above the icon's middle.
+              if (locale.languageCode == 'ur') {
+                expect(badge.right, lessThanOrEqualTo(glyphRect.left));
+                expect(badge.right, greaterThan(icon.left));
+              } else {
+                expect(badge.left, greaterThanOrEqualTo(glyphRect.right));
+                expect(badge.left, lessThan(icon.right));
+              }
+              expect(badge.center.dy, lessThan(icon.center.dy));
+            }
+          },
+        );
+      }
+    }
 
     testEveryVariant('the badge count is Latin and grows at most 130%', (
       tester,
@@ -856,6 +951,44 @@ void main() {
       expect(tester.takeException(), isAssertionError);
       await pumpScreen(tester, _scaffold(selected: 4));
       expect(tester.takeException(), isAssertionError);
+    });
+
+    group("holds at most five destinations in a phone's bar", () {
+      const six = [
+        ..._destinations,
+        MmDestination(icon: MmIcons.ledger, label: 'Money'),
+        MmDestination(icon: MmIcons.settings, label: 'Settings'),
+      ];
+
+      testWidgets('and says so in debug builds for a sixth', (tester) async {
+        await pumpScreen(tester, _scaffold(destinations: six));
+        final error = tester.takeException();
+        expect(error, isAssertionError);
+        expect(
+          '$error',
+          allOf(
+            contains('6 destinations'),
+            contains('at most 5'),
+            contains('"More"'),
+          ),
+        );
+      });
+
+      testWidgets('takes five', (tester) async {
+        await pumpScreen(tester, _scaffold(destinations: six.sublist(0, 5)));
+        expect(tester.takeException(), isNull);
+        expect(find.byType(NavigationDestination), findsNWidgets(5));
+      });
+
+      for (final size in const [_tablet, _desktop]) {
+        testWidgets('but any number in the rail (${size.width} dp)', (
+          tester,
+        ) async {
+          await pumpScreen(tester, _scaffold(destinations: six), size: size);
+          expect(tester.takeException(), isNull);
+          expect(find.text('Settings'), findsOneWidget);
+        });
+      }
     });
   });
 

@@ -209,7 +209,10 @@ class MmBanner extends StatelessWidget {
                       alignment: AlignmentDirectional.centerEnd,
                       child: TextButton(
                         onPressed: onAction,
-                        child: Text(actionLabel),
+                        child: MmScriptText(
+                          actionLabel,
+                          style: const TextStyle(),
+                        ),
                       ),
                     ),
                   ),

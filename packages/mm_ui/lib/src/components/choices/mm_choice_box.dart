@@ -20,6 +20,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// has an error. [actions] (a clear button, a picker button) sit inside the
 /// box after it, as buttons of their own, styled by [buttonStyle].
 ///
+/// A mouse over any part of the box, its buttons included, tints the whole
+/// box with the theme's hover colour, and pressing the tappable part tints
+/// it whole with the highlight colour, as a text field fills: the tint
+/// never stops at the buttons with a seam inside the rounded box.
+///
 /// Internal to the choices family: the public fields build it.
 class MmChoiceBox extends StatefulWidget {
   /// Creates the box of the field named [label].
@@ -117,9 +122,29 @@ class MmChoiceBox extends StatefulWidget {
 class _MmChoiceBoxState extends State<MmChoiceBox>
     with MmFocusHighlight<MmChoiceBox> {
   bool _focused = false;
+  bool _hovered = false;
+  bool _pressed = false;
 
   void _handleFocusChange(bool focused) {
     if (focused != _focused) setState(() => _focused = focused);
+  }
+
+  void _handleHover(bool hovered) {
+    if (hovered != _hovered) setState(() => _hovered = hovered);
+  }
+
+  void _handlePressed(bool pressed) {
+    if (pressed != _pressed) setState(() => _pressed = pressed);
+  }
+
+  /// The box's fill: the paper, tinted whole while pressed or hovered.
+  Color _fill(BuildContext context, {required bool enabled}) {
+    final paper = context.mm.colors.surface;
+    if (!enabled) return paper;
+    final theme = Theme.of(context);
+    if (_pressed) return Color.alphaBlend(theme.highlightColor, paper);
+    if (_hovered) return Color.alphaBlend(theme.hoverColor, paper);
+    return paper;
   }
 
   BorderSide _side(MmColorTokens colors, {required bool enabled}) {
@@ -187,8 +212,8 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
         ),
       ),
     );
-    return Material(
-      color: colors.surface,
+    final box = Material(
+      color: _fill(context, enabled: enabled),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: const BorderRadius.all(Radius.circular(MmRadius.sm)),
@@ -215,9 +240,11 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
                 canRequestFocus: enabled,
                 onTap: widget.onTap,
                 onFocusChange: _handleFocusChange,
-                // The ring shows keyboard focus. A tint would cover only
-                // the tappable part and stop short of the box's buttons.
-                focusColor: Colors.transparent,
+                onHighlightChanged: _handlePressed,
+                // The ring shows keyboard focus, and the box's fill shows
+                // hover and press: a tint of the InkWell's own would cover
+                // only the tappable part and stop short of the buttons.
+                overlayColor: const WidgetStatePropertyAll(Colors.transparent),
                 child: ExcludeSemantics(child: content),
               ),
             ),
@@ -226,6 +253,12 @@ class _MmChoiceBoxState extends State<MmChoiceBox>
           if (widget.actions.isNotEmpty) const SizedBox(width: MmSpace.s1),
         ],
       ),
+    );
+    if (!enabled) return box;
+    return MouseRegion(
+      onEnter: (_) => _handleHover(true),
+      onExit: (_) => _handleHover(false),
+      child: box,
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mm_ui/src/components/actions/mm_action_icon.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -340,8 +341,11 @@ class _SegmentLabel<T> extends StatelessWidget {
     final scope = _SegmentScope.of<T>(context);
     final icon = scope.selected == segment.value ? MmIcons.check : segment.icon;
     // As wide as its longest line, so a wrapped label stays by its icon.
-    Widget label = Text(
+    // Latin words and figures ("English", "100%") keep the Latin face in
+    // the Urdu UI.
+    Widget label = MmScriptText(
       segment.label,
+      style: const TextStyle(),
       textAlign: TextAlign.center,
       textWidthBasis: TextWidthBasis.longestLine,
     );

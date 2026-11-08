@@ -510,16 +510,23 @@ void main() {
       );
     });
 
-    for (final variant in const [MmVariant.light, MmVariant.urdu]) {
+    for (final variant in const [
+      MmVariant.light,
+      MmVariant.urdu,
+      MmVariant.largeText,
+    ]) {
       testWidgets('lines the figures of every row up on their last digit '
           '(${variant.name})', (tester) async {
+        // At 200% text some amounts fit beside their labels and some move
+        // under them; the figures still line up.
+        final large = variant == MmVariant.largeText;
         await pumpThemed(
           tester,
           lakhGrouping(
             _bar(
               segments: const [
                 MmProportionSegment(
-                  label: 'Deposits',
+                  label: 'Security deposits held',
                   value: Money.fromRupees(150000),
                   tone: MmSegmentTone.primary,
                 ),
@@ -529,7 +536,7 @@ void main() {
                   tone: MmSegmentTone.credit,
                 ),
                 MmProportionSegment(
-                  label: 'Late fee',
+                  label: 'Fee',
                   value: Money.fromRupees(500),
                   tone: MmSegmentTone.neutral,
                 ),
@@ -564,6 +571,17 @@ void main() {
         ];
         expect(shares[1], closeTo(shares[0], 0.5));
         expect(shares[2], closeTo(shares[0], 0.5));
+        if (large) {
+          final moved = [
+            for (final (label, amount) in [
+              ('Security deposits held', amounts[0]),
+              ('Fee', amounts[2]),
+            ])
+              tester.getRect(find.textContaining(amount)).top >=
+                  tester.getRect(find.text(label)).bottom,
+          ];
+          expect(moved, [true, false]);
+        }
       });
     }
 
@@ -725,8 +743,11 @@ void main() {
       );
       final label = tester.getRect(find.text('Security deposits held'));
       final amount = tester.getRect(find.text('Rs\u00A0150,000'));
+      final share = tester.getRect(find.text('100%'));
       expect(amount.top, greaterThanOrEqualTo(label.bottom));
-      expect(amount.left, label.left);
+      // The amount and its share keep to the end edge, on one line.
+      expect(share.right, tester.getRect(find.byType(MmProportionBar)).right);
+      expect(share.top, closeTo(amount.top, 4));
     });
 
     testWidgets('sets Urdu amounts in the Latin face in the Urdu UI', (
@@ -767,5 +788,195 @@ void main() {
         MmChartSwatch.maxScale * 12,
       );
     });
+
+    group(
+      'fits its legend in every width, text scale, script and grouping',
+      () {
+        /// Pumps the deposits bar the gallery shows, [barWidth] wide, at
+        /// [scale] text in [locale], grouped by [grouping], and fails on any
+        /// overflow.
+        Future<void> pumpDeposits(
+          WidgetTester tester, {
+          required double barWidth,
+          required double scale,
+          required Locale locale,
+          required DigitGrouping grouping,
+        }) async {
+          tester.view
+            ..physicalSize = Size(barWidth + 2 * MmSpace.s4, 800)
+            ..devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final urdu = locale.languageCode == 'ur';
+          await tester.pumpWidget(
+            themedApp(
+              Builder(
+                builder: (context) => MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: TextScaler.linear(scale)),
+                  child: MmFormats(
+                    money: MmFormats.defaultFor(locale)
+                        .copyWith(grouping: grouping),
+                    child: Scaffold(
+                      body: SingleChildScrollView(
+                        padding: const EdgeInsets.all(MmSpace.s4),
+                        child: MmProportionBar(
+                          semanticSummary: _summary,
+                          segments: [
+                            MmProportionSegment(
+                              label: urdu ? 'زر ضمانت' : 'Security deposit',
+                              value: const Money.fromRupees(125000),
+                              tone: MmSegmentTone.primary,
+                            ),
+                            MmProportionSegment(
+                              label: urdu ? 'پیشگی کرایہ' : 'Advance rent',
+                              value: const Money.fromRupees(15000),
+                              tone: MmSegmentTone.credit,
+                            ),
+                            MmProportionSegment(
+                              label: urdu ? 'ابھی واجب نہیں' : 'Not yet due',
+                              value: const Money.fromRupees(38000),
+                              tone: MmSegmentTone.neutral,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              locale: locale,
+            ),
+          );
+          await tester.pump();
+        }
+
+        testWidgets('in Urdu with lakh grouping at 200% on a 320 dp window', (
+          tester,
+        ) async {
+          await pumpDeposits(
+            tester,
+            barWidth: 288,
+            scale: 2,
+            locale: const Locale('ur'),
+            grouping: DigitGrouping.southAsian,
+          );
+          expect(tester.takeException(), isNull);
+          // Every figure is whole on the screen: nothing is clipped or
+          // pushed past the bar's edges.
+          final bar = tester.getRect(find.byType(MmProportionBar));
+          for (final amount in ['1,25,000', '15,000', '38,000', '70%']) {
+            final rect = tester.getRect(find.textContaining(amount).first);
+            expect(rect.left, greaterThanOrEqualTo(bar.left), reason: amount);
+            expect(rect.right, lessThanOrEqualTo(bar.right), reason: amount);
+          }
+          // Too narrow for both side by side, each share moves under its
+          // amount, ending on the same right edge, where figures end.
+          for (final (amount, share) in const [
+            ('1,25,000', '70%'),
+            ('15,000', '9%'),
+            ('38,000', '21%'),
+          ]) {
+            final figures = tester.getRect(find.textContaining(amount));
+            final percent = tester.getRect(find.text(share));
+            expect(percent.top, greaterThanOrEqualTo(figures.bottom));
+            expect(percent.right, closeTo(figures.right, 0.5), reason: share);
+          }
+        });
+
+        testWidgets('shows a crore at 200% on the narrowest phone smaller, '
+            'never cut off or broken', (tester) async {
+          for (final locale in const [Locale('en'), Locale('ur')]) {
+            tester.view
+              ..physicalSize = const Size(240, 600)
+              ..devicePixelRatio = 1;
+            addTearDown(tester.view.reset);
+            await tester.pumpWidget(
+              themedApp(
+                lakhGrouping(
+                  const Scaffold(
+                    body: SingleChildScrollView(
+                      padding: EdgeInsets.all(MmSpace.s4),
+                      child: MmProportionBar(
+                        semanticSummary: _summary,
+                        segments: [
+                          MmProportionSegment(
+                            label: 'Rent roll',
+                            value: Money.fromRupees(125000000),
+                            tone: MmSegmentTone.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                variant: MmVariant.largeText,
+                locale: locale,
+              ),
+            );
+            await tester.pump();
+            expect(tester.takeException(), isNull);
+            final bar = tester.getRect(find.byType(MmProportionBar));
+            final amount = find.textContaining('12,50,00,000');
+            final rect = tester.getRect(amount);
+            expect(rect.left, greaterThanOrEqualTo(bar.left));
+            expect(rect.right, lessThanOrEqualTo(bar.right));
+            // Shown whole on one line (it never wraps), at the size the room
+            // allows.
+            expect(rect.width, lessThan(tester.getSize(amount).width));
+            expect(brokenWords(tester), isEmpty);
+          }
+        });
+
+        testWidgets('across 208 to 400 dp, 100% to 200% text, both scripts '
+            'and both groupings', (tester) async {
+          final failures = <String>[];
+          for (var barWidth = 208.0; barWidth <= 400; barWidth += 4) {
+            for (final scale in const [1.0, 1.25, 1.5, 1.75, 2.0]) {
+              for (final locale in const [Locale('en'), Locale('ur')]) {
+                for (final grouping in DigitGrouping.values) {
+                  await pumpDeposits(
+                    tester,
+                    barWidth: barWidth,
+                    scale: scale,
+                    locale: locale,
+                    grouping: grouping,
+                  );
+                  final error = tester.takeException();
+                  final bar = tester.getRect(find.byType(MmProportionBar));
+                  final outside = [
+                    for (final element
+                        in find
+                            .descendant(
+                              of: find.byType(MmProportionBar),
+                              matching: find.byType(RichText),
+                            )
+                            .evaluate())
+                      if (!_within(
+                        tester.getRect(find.byWidget(element.widget)),
+                        bar,
+                      ))
+                        (element.widget as RichText).text.toPlainText(),
+                  ];
+                  if (error != null || outside.isNotEmpty) {
+                    failures.add(
+                      '${barWidth.toStringAsFixed(0)} dp, ${scale}x, '
+                      '${locale.languageCode}, ${grouping.name}: '
+                      '${error ?? 'outside the bar: $outside'}',
+                    );
+                  }
+                }
+              }
+            }
+          }
+          expect(failures, isEmpty);
+        });
+      },
+    );
   });
 }
+
+/// Whether [rect] lies within [bounds], to a hundredth of a pixel.
+bool _within(Rect rect, Rect bounds) =>
+    rect.left >= bounds.left - 0.01 &&
+    rect.right <= bounds.right + 0.01 &&
+    rect.top >= bounds.top - 0.01;

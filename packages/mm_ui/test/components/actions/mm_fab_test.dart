@@ -357,13 +357,7 @@ void main() {
         );
         final text = paragraphOf(tester, label);
         expect(text.size.height, greaterThan(2 * 19), reason: variant.name);
-        final ink = text
-            .getBoxesForSelection(
-              const TextSelection(baseOffset: 0, extentOffset: label.length),
-            )
-            .map((box) => box.toRect())
-            .reduce((a, b) => a.expandToInclude(b))
-            .shift(tester.getTopLeft(find.text(label)));
+        final ink = inkOfWords(text).shift(tester.getTopLeft(find.text(label)));
         final icon = tester.getRect(find.byIcon(MmIcons.payment));
         final gap = variant == MmVariant.urdu
             ? icon.left - ink.right

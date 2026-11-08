@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/components/choices/mm_tile_bleed.dart';
 
 import '../../support/testing.dart';
 import 'focus.dart';
+import 'page_edge.dart';
 
 enum _Method { cash, bank, card }
 
@@ -271,7 +273,31 @@ void main() {
       );
     });
 
-    testWidgets('right to left: radios at the right, icons at the left', (
+    testWidgets('an option without an icon has its description under it', (
+      tester,
+    ) async {
+      await pumpThemed(
+        tester,
+        MmRadioGroup<_Method>(
+          label: 'Received by',
+          options: const [
+            MmOption(
+              value: _Method.card,
+              label: 'Card',
+              description: 'Visa ending 4417',
+            ),
+          ],
+          value: null,
+          onChanged: (_) {},
+        ),
+      );
+      final label = tester.getRect(find.text('Card'));
+      final note = tester.getRect(find.text('Visa ending 4417'));
+      expect(note.top, greaterThanOrEqualTo(label.bottom));
+      expect(note.left, label.left);
+    });
+
+    testWidgets('right to left: radios at the right, icons beside labels', (
       tester,
     ) async {
       await pumpThemed(
@@ -287,14 +313,10 @@ void main() {
         variant: MmVariant.urdu,
       );
       final text = tester.getRect(find.text('نقد'));
-      expect(
-        tester.getRect(find.byType(Radio<_Method>)).left,
-        greaterThan(text.right),
-      );
-      expect(
-        tester.getRect(find.byIcon(MmIcons.cash)).right,
-        lessThan(text.left),
-      );
+      final radio = tester.getRect(find.byType(Radio<_Method>));
+      final icon = tester.getRect(find.byIcon(MmIcons.cash));
+      expect(radio.left, greaterThan(icon.right));
+      expect(icon.left, greaterThan(text.right));
       expect(
         tester.getTopRight(find.text('وصولی کا طریقہ')).dx,
         greaterThan(text.right),
@@ -333,6 +355,77 @@ void main() {
           },
         ),
       );
+    });
+
+    group('lines its radios up with the page content, each icon by its '
+        'label', () {
+      for (final (variant, width) in const [
+        (MmVariant.light, 360.0),
+        (MmVariant.urdu, 360.0),
+        (MmVariant.light, 1280.0),
+        (MmVariant.urdu, 1280.0),
+        (MmVariant.largeText, 360.0),
+      ]) {
+        testWidgets('${variant.name}, ${width.toInt()} dp', (tester) async {
+          final urdu = variant == MmVariant.urdu;
+          final content = await pumpOnPage(
+            tester,
+            MmRadioGroup<_Method>(
+              label: urdu ? 'وصولی کا طریقہ' : 'Received by',
+              options: [
+                MmOption(
+                  value: _Method.cash,
+                  label: urdu ? 'نقد' : 'Cash',
+                  description: urdu
+                      ? 'دروازے پر گنا گیا'
+                      : 'Counted at the door',
+                  icon: MmIcons.cash,
+                ),
+              ],
+              value: _Method.cash,
+              onChanged: (_) {},
+            ),
+            width: width,
+            variant: variant,
+          );
+          final control = find.byType(Radio<_Method>);
+          final radio = tester.getRect(control);
+          final icon = tester.getRect(find.byIcon(MmIcons.cash));
+          final label = tester.getRect(find.text(urdu ? 'نقد' : 'Cash'));
+          final note = tester.getRect(
+            find.text(urdu ? 'دروازے پر گنا گیا' : 'Counted at the door'),
+          );
+          // The description sits under the label it explains.
+          expect(note.top, greaterThanOrEqualTo(label.bottom));
+          // The visible ring, not just its target, starts on the content
+          // edge, where the heading and the field start.
+          await expectInkOnEdge(
+            tester,
+            radio,
+            content,
+            variant: variant,
+            atStart: true,
+          );
+          // The ring grows with the text as the option's icon does, so it
+          // keeps its size beside the icon: never smaller at 200%.
+          final ring = await inkIn(tester, radio);
+          expect(
+            ring.width / icon.width,
+            closeTo(MmTileBleed.glyph / MmSize.iconLg, 0.06),
+            reason: 'ring $ring, icon $icon',
+          );
+          if (urdu) {
+            expect(icon.right, lessThan(radio.left));
+            expect(icon.left - label.right, MmSpace.s3);
+            expect(note.right, label.right);
+          } else {
+            expect(icon.left, greaterThan(radio.right));
+            expect(label.left - icon.right, MmSpace.s3);
+            expect(note.left, label.left);
+          }
+          expectTileInGutter(tester, control, content);
+        });
+      }
     });
   });
 }

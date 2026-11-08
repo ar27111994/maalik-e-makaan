@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/layout/mm_focus_ring.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/foundation/mm_window.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
@@ -99,6 +100,14 @@ final class MmDestination {
 /// `MmPage`s. Don't use it for a single screen's sections (use `MmTabs`) or
 /// for fewer than two destinations.
 ///
+/// A phone's bar holds two to [maxBarDestinations] (five) destinations, as
+/// Material's navigation bar does. Five share a 320 dp phone 64 dp each,
+/// as wide as the selection indicator behind an icon; six would get 53 dp,
+/// too narrow for the indicator, let alone a label. An app with more places
+/// gives the bar its four most used and a fifth, "More", whose screen lists
+/// the rest (the gallery app does this); the rail of a wider window can
+/// list them all. Debug builds check the limit on phones.
+///
 /// ```dart
 /// MmAdaptiveScaffold(
 ///   destinations: const [
@@ -122,7 +131,8 @@ class MmAdaptiveScaffold extends StatefulWidget {
     super.key,
   });
 
-  /// The app's main destinations, in order. At least two.
+  /// The app's main destinations, in order. At least two, and on a phone
+  /// at most [maxBarDestinations].
   final List<MmDestination> destinations;
 
   /// The index in [destinations] of the destination [body] shows.
@@ -140,6 +150,10 @@ class MmAdaptiveScaffold extends StatefulWidget {
   /// bottom end of the window. Prefer `MmPage.floatingActionButton` on a
   /// screen that shows snack bars (see the class comment).
   final Widget? floatingActionButton;
+
+  /// The most destinations a phone's bottom bar holds: Material's
+  /// navigation bar takes three to five.
+  static const int maxBarDestinations = 5;
 
   @override
   State<MmAdaptiveScaffold> createState() => _MmAdaptiveScaffoldState();
@@ -187,6 +201,14 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
     // a tinted pill that looks like a second selection.
     final theme = Theme.of(context).copyWith(focusColor: Colors.transparent);
     if (size == MmWindowSize.compact) {
+      assert(
+        widget.destinations.length <= MmAdaptiveScaffold.maxBarDestinations,
+        'MmAdaptiveScaffold has ${widget.destinations.length} destinations, '
+        "but a phone's bottom bar holds at most "
+        '${MmAdaptiveScaffold.maxBarDestinations}: their labels would not '
+        'fit. On phones, pass the four most used and a "More" destination '
+        'whose screen lists the rest.',
+      );
       return Scaffold(
         body: body,
         // A hairline rule parts the bar from the page, as it parts the rail.
@@ -252,7 +274,10 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
                         selected: true,
                         indicator: _railIndicator,
                       ),
-                      label: Text(destination.label),
+                      label: MmScriptText(
+                        destination.label,
+                        style: const TextStyle(),
+                      ),
                       // Material's extended destinations are 44 dp tall:
                       // this makes them 48 dp targets at least, and parts
                       // the lines of labels that grow past the icon.
@@ -306,7 +331,7 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
       final word = MmTextMetrics.of(
         context,
         destination.label,
-        style,
+        context.mm.styleFor(destination.label, style ?? const TextStyle()),
         textScaler: TextScaler.noScaling,
       ).minIntrinsicWidth;
       // A pixel to spare: glyph widths do not scale exactly linearly.
@@ -333,23 +358,39 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
     );
   }
 
-  /// The bar's destinations.
-  List<Widget> _barDestinations() => [
-    for (final destination in widget.destinations)
-      NavigationDestination(
-        icon: _DestinationIcon(
-          destination,
-          selected: false,
-          indicator: _barIndicator,
+  /// The bar's destinations. A label in Latin script ("WhatsApp") keeps
+  /// the Latin face in the Urdu UI: a destination's label is a plain
+  /// string, so its style says so.
+  List<Widget> _barDestinations() {
+    final barTheme = NavigationBarTheme.of(context);
+    final base = Theme.of(context).textTheme.labelMedium;
+    return [
+      for (final destination in widget.destinations)
+        NavigationBarTheme(
+          data: barTheme.copyWith(
+            labelTextStyle: WidgetStateProperty.resolveWith(
+              (states) => context.mm.styleFor(
+                destination.label,
+                barTheme.labelTextStyle?.resolve(states) ?? base!,
+              ),
+            ),
+          ),
+          child: NavigationDestination(
+            icon: _DestinationIcon(
+              destination,
+              selected: false,
+              indicator: _barIndicator,
+            ),
+            selectedIcon: _DestinationIcon(
+              destination,
+              selected: true,
+              indicator: _barIndicator,
+            ),
+            label: destination.label,
+          ),
         ),
-        selectedIcon: _DestinationIcon(
-          destination,
-          selected: true,
-          indicator: _barIndicator,
-        ),
-        label: destination.label,
-      ),
-  ];
+    ];
+  }
 
   /// The bar [width] wide with its labels shown, in [style] at [scaler].
   Widget _labelledBar(
@@ -366,7 +407,7 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
       final metrics = MmTextMetrics.of(
         context,
         destination.label,
-        style,
+        context.mm.styleFor(destination.label, style ?? const TextStyle()),
         textScaler: scaler,
         maxWidth: width / widget.destinations.length,
       );
@@ -449,7 +490,18 @@ class _DestinationIconState extends State<_DestinationIcon>
         child: ExcludeSemantics(
           child: MediaQuery.withClampedTextScaling(
             maxScaleFactor: _maxBadgeTextScale,
-            child: Badge.count(count: count, child: icon),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                icon,
+                Positioned.fill(
+                  child: CustomSingleChildLayout(
+                    delegate: _EndCornerBadge(Directionality.of(context)),
+                    child: Badge.count(count: count),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -465,4 +517,44 @@ class _DestinationIconState extends State<_DestinationIcon>
       child: icon,
     );
   }
+}
+
+/// Places a destination's count badge past the top end corner of its icon,
+/// in either direction.
+///
+/// Material's `Badge` overlaps its child: its start edge stands 12 dp into a
+/// 24 dp icon, over the glyph of a narrow icon (the dots of "More"), and in
+/// right-to-left text it hangs from the icon's left edge into the icon
+/// rather than past it. Here the badge's start edge sits on the end edge of
+/// the icon's glyph, which Lucide draws [MmSpace.sHalf] in from the icon's
+/// square, so the count never covers any part of the icon. Its middle is
+/// a sixth of the way down the icon (4 dp on a 24 dp icon), where Material
+/// puts it.
+class _EndCornerBadge extends SingleChildLayoutDelegate {
+  const new(this.textDirection);
+
+  final TextDirection textDirection;
+
+  /// How far the badge's start edge stands inside the icon's square: the
+  /// air Lucide leaves around its glyphs.
+  static const double _overlap = MmSpace.sHalf;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final start = size.width - _overlap;
+    return Offset(
+      textDirection == TextDirection.rtl
+          ? size.width - start - childSize.width
+          : start,
+      size.height / 6 - childSize.height / 2,
+    );
+  }
+
+  @override
+  bool shouldRelayout(_EndCornerBadge oldDelegate) =>
+      oldDelegate.textDirection != textDirection;
 }

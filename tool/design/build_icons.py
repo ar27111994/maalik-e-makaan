@@ -132,8 +132,51 @@ def subset_font(source: Path, codepoints: list[int], target: Path) -> None:
     subsetter = subset.Subsetter(options=options)
     subsetter.populate(unicodes=codepoints)
     subsetter.subset(font)
+    place_glyphs(font)
     target.parent.mkdir(parents=True, exist_ok=True)
     font.save(target)
+
+
+def place_glyphs(font) -> None:
+    """Sets each glyph's left side bearing to where its outline starts.
+
+    Lucide's font gives every glyph a left side bearing of 0 and a bounding
+    box starting at 0, wherever its outline really starts, and the subsetter
+    recalculates the box from the outline but keeps the bearing. TrueType
+    rasterisers (FreeType, so Flutter on Android, Linux and the web) take the
+    glyph's origin to be the box's start minus the bearing, so every icon was
+    drawn against the left of its square: the three dots of `more` 10 dp left
+    of centre at 24 dp. With the bearing equal to the outline's start, each
+    glyph sits where Lucide drew it, centred in its square.
+    """
+    glyf = font["glyf"]
+    hmtx = font["hmtx"]
+    for name in font.getGlyphOrder():
+        glyph = glyf[name]
+        if glyph.numberOfContours == 0:
+            continue
+        glyph.recalcBounds(glyf)
+        advance, _ = hmtx[name]
+        hmtx[name] = (advance, glyph.xMin)
+
+
+def misplaced_glyphs(path: Path) -> list[str]:
+    """The glyphs of the font at [path] whose left side bearing is not where
+    their outline starts, so a rasteriser would draw them off their place."""
+    from fontTools.ttLib import TTFont
+
+    font = TTFont(path, recalcTimestamp=False)
+    glyf = font["glyf"]
+    hmtx = font["hmtx"]
+    misplaced = []
+    for name in font.getGlyphOrder():
+        glyph = glyf[name]
+        if glyph.numberOfContours == 0:
+            continue
+        glyph.recalcBounds(glyf)
+        if hmtx[name][1] != glyph.xMin:
+            misplaced.append(name)
+    return misplaced
 
 
 def font_codepoints(path: Path) -> set[int]:
@@ -167,6 +210,10 @@ def main(argv: list[str]) -> int:
         if not FONT_OUT.exists() or font_codepoints(FONT_OUT) != wanted:
             problems.append(
                 f"{FONT_OUT.relative_to(ROOT)} does not hold exactly the icon set's glyphs"
+            )
+        elif misplaced_glyphs(FONT_OUT):
+            problems.append(
+                f"{FONT_OUT.relative_to(ROOT)} has glyphs off their place (side bearings)"
             )
         if not LICENSE_OUT.exists() or LICENSE_OUT.read_text(encoding="utf-8") != license_text:
             problems.append(f"{LICENSE_OUT.relative_to(ROOT)} is missing or stale")

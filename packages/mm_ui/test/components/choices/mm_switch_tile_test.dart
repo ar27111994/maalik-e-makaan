@@ -5,6 +5,7 @@ import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/testing.dart';
 import 'focus.dart';
+import 'page_edge.dart';
 
 Widget _tile({
   bool value = false,
@@ -40,7 +41,7 @@ void main() {
         _tile(value: true, description: 'Three days before rent is due'),
       );
       expect(
-        tester.getSemantics(find.byType(SwitchListTile)),
+        tester.getSemantics(find.byType(ListTile)),
         matchesSemantics(
           label: 'Send rent reminders\nThree days before rent is due',
           hasToggledState: true,
@@ -139,7 +140,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(log, isEmpty);
       expect(
-        tester.getSemantics(find.byType(SwitchListTile)),
+        tester.getSemantics(find.byType(ListTile)),
         matchesSemantics(
           label: 'Send rent reminders',
           hasToggledState: true,
@@ -211,6 +212,55 @@ void main() {
           },
         ),
       );
+    });
+
+    group('lines its switch up with the page content', () {
+      for (final (variant, width) in const [
+        (MmVariant.light, 360.0),
+        (MmVariant.urdu, 360.0),
+        (MmVariant.light, 1280.0),
+        (MmVariant.largeText, 360.0),
+      ]) {
+        testWidgets('${variant.name}, ${width.toInt()} dp', (tester) async {
+          final content = await pumpOnPage(
+            tester,
+            MmSwitchTile(
+              label: 'Send rent reminders',
+              value: true,
+              onChanged: (_) {},
+            ),
+            width: width,
+            variant: variant,
+          );
+          final control = find.byType(Switch);
+          final label = tester.getRect(find.text('Send rent reminders'));
+          final box = tester.getRect(control);
+          if (variant == MmVariant.urdu) {
+            expect(label.right, content.right);
+          } else {
+            expect(label.left, content.left);
+          }
+          // The visible track, not just the switch's box, ends on the
+          // content edge, where the heading and the field end.
+          await expectInkOnEdge(
+            tester,
+            box,
+            content,
+            variant: variant,
+            atStart: false,
+          );
+          // The switch grows with the text as icons do: about half again
+          // at 200% (a little less where the row's trailing slot is
+          // shorter), never more.
+          final track = await inkIn(tester, box);
+          if (variant == MmVariant.largeText) {
+            expect(track.width, inInclusiveRange(52 * 1.35, 52 * 1.5 + 1));
+          } else {
+            expect(track.width, closeTo(52, 1));
+          }
+          expectTileInGutter(tester, control, content);
+        });
+      }
     });
   });
 }

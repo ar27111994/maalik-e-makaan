@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_wrap.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -102,7 +103,7 @@ class _MmCnicTextState extends State<MmCnicText> {
       widget.style ?? Theme.of(context).textTheme.bodyLarge!,
     );
     final last = groups.length - 1;
-    return Wrap(
+    return MmWrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: MmSpace.s1,
       children: [

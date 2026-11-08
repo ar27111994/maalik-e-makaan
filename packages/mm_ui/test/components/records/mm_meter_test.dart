@@ -208,7 +208,44 @@ void main() {
       final label = tester.getRect(find.text(_label));
       final value = tester.getRect(find.textContaining('this month'));
       expect(value.top, greaterThan(label.bottom));
-      expect(value.left, label.left);
+      // Under its label the value keeps to the end edge, where values
+      // beside their labels end.
+      expect(value.right, tester.getRect(find.byType(MmMeter)).right);
+    });
+
+    testWidgets('at 200% a column of meters ends its values on one edge', (
+      tester,
+    ) async {
+      await expectFitsNarrowLargeText(
+        tester,
+        const Column(
+          children: [
+            MmMeter(value: 0.8, label: 'Units', valueLabel: '8 of 10'),
+            MmMeter(value: 0.72, label: _label, valueLabel: _value),
+          ],
+        ),
+        then: (locale) {
+          final meter = tester.getRect(find.byType(MmMeter).first);
+          final short = tester.getRect(find.text('8 of 10'));
+          final long = tester.getRect(find.text(_value));
+          // One value fits beside its label, the other moves under it.
+          expect(
+            short.top,
+            lessThan(tester.getRect(find.text('Units')).bottom),
+          );
+          expect(
+            long.top,
+            greaterThanOrEqualTo(tester.getRect(find.text(_label)).bottom),
+          );
+          for (final value in [short, long]) {
+            if (locale.languageCode == 'ur') {
+              expect(value.left, moreOrLessEquals(meter.left));
+            } else {
+              expect(value.right, moreOrLessEquals(meter.right));
+            }
+          }
+        },
+      );
     });
 
     testWidgets('at 200% on a 320 dp phone, wraps without overflowing', (

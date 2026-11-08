@@ -75,6 +75,30 @@ class FontTest(unittest.TestCase):
             self.assertEqual(bi.font_codepoints(target), set(wanted))
             self.assertLess(target.stat().st_size, 10_000)
 
+    def test_subset_glyphs_keep_their_place(self) -> None:
+        # Lucide's own font gives every glyph a side bearing of 0, wherever
+        # its outline starts; the subset sets it to the outline's start, so
+        # the narrow vertical ellipsis stays centred in its square.
+        from fontTools.ttLib import TTFont
+
+        codepoints = bi.lucide_codepoints()
+        wanted = [codepoints["ellipsis-vertical"]]
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "sub.ttf"
+            bi.subset_font(bi.LUCIDE / "font" / "lucide.ttf", wanted, target)
+            self.assertEqual(bi.misplaced_glyphs(target), [])
+            font = TTFont(target)
+            name = font.getBestCmap()[wanted[0]]
+            advance, bearing = font["hmtx"][name]
+            glyph = font["glyf"][name]
+            self.assertEqual(advance, 1000)
+            self.assertGreater(bearing, 400)
+            self.assertAlmostEqual(bearing + glyph.xMax, advance, delta=2)
+            # A font whose bearings were left as Lucide ships them is caught.
+            font["hmtx"][name] = (advance, 0)
+            font.save(target)
+            self.assertEqual(bi.misplaced_glyphs(target), [name])
+
     def test_the_committed_outputs_are_fresh(self) -> None:
         self.assertEqual(bi.main(["--check"]), 0)
 
@@ -96,6 +120,19 @@ class FontTest(unittest.TestCase):
                 shutil.copy(bi.LUCIDE / "font" / "lucide.ttf", outputs["FONT_OUT"])
                 with contextlib.redirect_stderr(io.StringIO()):
                     self.assertEqual(bi.main(["--check"]), 1)
+                # So is a font with the right glyphs but their bearings at 0.
+                self.assertEqual(bi.main([]), 0)
+                from fontTools.ttLib import TTFont
+
+                font = TTFont(outputs["FONT_OUT"])
+                for name in font.getGlyphOrder():
+                    advance, _ = font["hmtx"][name]
+                    font["hmtx"][name] = (advance, 0)
+                font.save(outputs["FONT_OUT"])
+                err = io.StringIO()
+                with contextlib.redirect_stderr(err):
+                    self.assertEqual(bi.main(["--check"]), 1)
+                self.assertIn("off their place", err.getvalue())
 
 
 class MainTest(unittest.TestCase):

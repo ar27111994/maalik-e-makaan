@@ -51,7 +51,7 @@ const tenants = [
     status: MmStatus.paid,
     statusLabel: (en: 'Paid', ur: 'ادا شدہ'),
     cnic: '35202-4817263-5',
-    phone: '0321-5550147',
+    phone: '0321 5550147',
     score: 92,
   ),
   SampleTenant(
@@ -65,7 +65,7 @@ const tenants = [
     status: MmStatus.overdue,
     statusLabel: (en: 'Overdue 12 days', ur: '12 دن سے واجب الادا'),
     cnic: '35201-6620418-4',
-    phone: '0300-5550192',
+    phone: '0300 5550192',
     score: 41,
   ),
   SampleTenant(
@@ -76,7 +76,7 @@ const tenants = [
     status: MmStatus.dueSoon,
     statusLabel: (en: 'Due in 3 days', ur: '3 دن میں واجب'),
     cnic: '42201-3398021-7',
-    phone: '0333-5550318',
+    phone: '0333 5550318',
     score: 68,
   ),
   SampleTenant(
@@ -90,7 +90,7 @@ const tenants = [
     status: MmStatus.credit,
     statusLabel: (en: 'Advance Rs 15,000', ur: 'پیشگی 15,000 روپے'),
     cnic: '42101-7754210-2',
-    phone: '0345-5550466',
+    phone: '0345 5550466',
     score: 88,
   ),
   SampleTenant(
@@ -104,7 +104,7 @@ const tenants = [
     status: MmStatus.neutral,
     statusLabel: (en: 'Moving out', ur: 'مکان خالی کر رہے ہیں'),
     cnic: '35202-9902137-1',
-    phone: '0302-5550583',
+    phone: '0302 5550583',
     score: 75,
   ),
 ];

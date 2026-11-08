@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/actions/mm_action_icon.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -88,8 +89,9 @@ class MmFab extends StatelessWidget {
                   // As wide as its longest line, so a wrapped label stays
                   // beside the icon.
                   Flexible(
-                    child: Text(
+                    child: MmScriptText(
                       label,
+                      style: const TextStyle(),
                       textAlign: TextAlign.center,
                       textWidthBasis: TextWidthBasis.longestLine,
                     ),

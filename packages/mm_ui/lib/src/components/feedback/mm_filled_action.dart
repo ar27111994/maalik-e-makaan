@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_button_styles.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
+import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// The one filled action of a feedback component: the empty state's next
 /// step, the error state's retry, a confirm dialog's confirm button.
@@ -35,10 +38,21 @@ class MmFilledAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = destructive
-        ? MmButtonStyles.destructive(Theme.of(context).colorScheme)
-        : MmButtonStyles.labelled;
-    final text = Text(label, textAlign: TextAlign.center);
+    // The icon grows with the label as MmButton's does, up to 150%.
+    final style =
+        (destructive
+                ? MmButtonStyles.destructive(Theme.of(context).colorScheme)
+                : MmButtonStyles.labelled)
+            .copyWith(
+              iconSize: WidgetStatePropertyAll(
+                MmIconLabel.scaledSize(context, MmSize.iconMd),
+              ),
+            );
+    final text = MmScriptText(
+      label,
+      style: const TextStyle(),
+      textAlign: TextAlign.center,
+    );
     final icon = this.icon;
     if (icon == null) {
       return FilledButton(onPressed: onPressed, style: style, child: text);

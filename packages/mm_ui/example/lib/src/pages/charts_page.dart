@@ -77,6 +77,7 @@ class ChartsPage extends StatelessWidget {
                     'یونٹ کے لحاظ سے خالص آمدن، اکتوبر',
                   ),
                   groupLabel: context.tr('Unit', 'یونٹ'),
+                  groupKind: MmBarGroupKind.names,
                   series: [
                     MmBarSeries(label: context.tr('Net income', 'خالص آمدن')),
                   ],

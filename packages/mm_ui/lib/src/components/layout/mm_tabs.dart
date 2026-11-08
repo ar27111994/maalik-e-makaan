@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/layout/mm_focus_ring.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -139,7 +140,13 @@ class _TabLabelState extends State<_TabLabel> with MmFocusHighlight<_TabLabel> {
           : null,
       // As a tab sets its own text: on one line, faded rather than wrapped
       // if the bar were ever too narrow.
-      child: Text(widget.text, softWrap: false, overflow: TextOverflow.fade),
+      // Latin words keep the Latin face in the Urdu UI.
+      child: MmScriptText(
+        widget.text,
+        style: const TextStyle(),
+        softWrap: false,
+        overflow: TextOverflow.fade,
+      ),
     );
   }
 

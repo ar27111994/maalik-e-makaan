@@ -1,7 +1,8 @@
 @Tags(['golden'])
 library;
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
@@ -70,4 +71,31 @@ void main() {
     // Four fields with labels, helpers and errors at 200% text.
     size: const Size(360, 880),
   );
+
+  // A mouse over the calendar button: the whole box takes the hover tint,
+  // with no seam at the button, as a text field does.
+  testEveryVariant('mm_date_field_hover golden', (tester, variant) async {
+    await pumpThemed(
+      tester,
+      GoldenPage(
+        (context, tr) => MmDateField(
+          label: tr('Lease start', 'لیز کا آغاز'),
+          value: CalendarDate(2026, 7, 1),
+          firstDate: _first,
+          lastDate: _last,
+          onChanged: _changed,
+        ),
+      ),
+      variant: variant,
+    );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(
+      location: tester.getCenter(
+        find.widgetWithIcon(IconButton, MmIcons.calendar),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await expectGolden('mm_date_field_hover', variant);
+  }, variants: const [MmVariant.light, MmVariant.dark, MmVariant.urdu]);
 }

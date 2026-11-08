@@ -211,6 +211,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(MmActionBar), findsWidgets);
+    // The phone number in the national format MmPhoneField writes.
+    expect(find.textContaining('0300 5550192'), findsOneWidget);
+    expect(find.textContaining('0300-5550192'), findsNothing);
     expect(tester.takeException(), isNull);
     await expectAccessible(tester);
 

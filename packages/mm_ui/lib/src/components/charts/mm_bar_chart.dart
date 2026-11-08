@@ -71,6 +71,23 @@ final class MmBarSeries {
       'MmBarSeries("$label"${fill == null ? '' : ', ${fill!.name}'})';
 }
 
+/// What the groups of an [MmBarChart] are, which decides how their labels
+/// give way when they do not all fit under the bars.
+enum MmBarGroupKind {
+  /// Periods in order (months, years): when the labels do not fit, only
+  /// every second, third, … group is labelled, as the reader counts the
+  /// rest along the axis.
+  periods,
+
+  /// Things with names (units, properties, tenants): every group is
+  /// labelled, each label wrapping between its words within its group's
+  /// width, since a bar without its name cannot be told from the others.
+  /// When even a single word does not fit (large text on a narrow phone),
+  /// the chart shows its table instead, with every name in full, and offers
+  /// no chart view there.
+  names,
+}
+
 /// One group of bars in an [MmBarChart]: a period or a thing ([label]) and
 /// its amount in each series ([values]).
 @immutable
@@ -177,7 +194,9 @@ final class MmAxisScale {
 /// solid bars stand inside them, so the series differ by position and
 /// width as well as fill, even with a year of months on a phone. On a
 /// narrow screen or with large text the axes keep their labels apart by
-/// labelling fewer steps and fewer groups.
+/// labelling fewer steps and, for periods, fewer groups; named groups
+/// ([groupKind] [MmBarGroupKind.names]: units, properties) keep every label,
+/// wrapped between words, or show the table when a word cannot fit.
 ///
 /// The readout above the plot names each series beside its mark and shows
 /// one group's exact amounts in the full money format: the latest group's,
@@ -229,6 +248,7 @@ class MmBarChart extends StatefulWidget {
     required this.semanticSummary,
     this.title,
     this.groupLabel,
+    this.groupKind = MmBarGroupKind.periods,
     this.focusNode,
     this.autofocus = false,
     super.key,
@@ -254,6 +274,10 @@ class MmBarChart extends StatefulWidget {
   /// ("Month"), from the app's localisations. When null that header is
   /// left blank.
   final String? groupLabel;
+
+  /// Whether the groups are periods (months), whose labels may be thinned
+  /// out, or named things (units), each of which keeps its label.
+  final MmBarGroupKind groupKind;
 
   /// The chart's focus node, to move keyboard focus to it. When null the
   /// chart makes its own.
@@ -392,13 +416,22 @@ class _MmBarChartState extends State<MmBarChart> {
     );
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Named groups that cannot all be labelled are shown as a table.
+        final tableOnly =
+            widget.groupKind == MmBarGroupKind.names &&
+            !_layoutFor(
+              context,
+              constraints.hasBoundedWidth
+                  ? constraints.maxWidth
+                  : MmBarChart.unboundedWidth,
+            ).labelsEveryGroup;
         final chart = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _header(context),
+            _header(context, toggles: !tableOnly),
             const SizedBox(height: MmSpace.s3),
-            if (_showsTable) _table(context) else _chart(context),
+            if (_showsTable || tableOnly) _table(context) else _chart(context),
           ],
         );
         return constraints.hasBoundedWidth
@@ -409,9 +442,10 @@ class _MmBarChartState extends State<MmBarChart> {
   }
 
   /// The title with the table toggle beside it, or under it when they do
-  /// not fit. The toggle's padding hangs past the edge it sits on, so its
-  /// icon and words line up with the chart's edge and the title.
-  Widget _header(BuildContext context) {
+  /// not fit; without the toggle when the chart [toggles] no view. The
+  /// toggle's padding hangs past the edge it sits on, so its icon and words
+  /// line up with the chart's edge and the title.
+  Widget _header(BuildContext context, {required bool toggles}) {
     final l10n = MmLocalizations.of(context);
     final title = widget.title;
     final toggle = TextButton.icon(
@@ -439,7 +473,7 @@ class _MmBarChartState extends State<MmBarChart> {
                 ),
               ),
             ),
-      end: toggle,
+      end: toggles ? toggle : null,
     );
   }
 
@@ -473,47 +507,106 @@ class _MmBarChartState extends State<MmBarChart> {
     );
   }
 
-  Widget _chart(BuildContext context) {
+  /// Each group's amounts in rupees, one per series.
+  List<List<double>> get _rupees => [
+    for (final group in widget.groups)
+      [for (final value in group.values) value.paisa / Money.paisaPerRupee],
+  ];
+
+  /// The y-axis's unit for [rupees].
+  static MmAxisScale _scaleOf(
+    BuildContext context,
+    List<List<double>> rupees,
+  ) => MmAxisScale.of(
+    MmFormats.moneyOf(context),
+    rupees.expand((group) => group).fold(0, (top, v) => math.max(top, v.abs())),
+  );
+
+  /// The style of the y-axis's tick labels.
+  static TextStyle _tickStyle(BuildContext context) {
     final mm = context.mm;
-    final colors = mm.colors;
-    final direction = Directionality.of(context);
-    final scaler = MediaQuery.textScalerOf(context);
-    final fills = MmBarChart.fillsOf(widget.series);
-    final marks = [for (final fill in fills) _markOf(fill, colors)];
-    final rupees = [
-      for (final group in widget.groups)
-        [for (final value in group.values) value.paisa / Money.paisaPerRupee],
-    ];
-    final scale = MmAxisScale.of(
-      MmFormats.moneyOf(context),
-      rupees
-          .expand((group) => group)
-          .fold(0, (top, v) => math.max(top, v.abs())),
-    );
-    final caption = scale.caption;
-    final tickStyle = mm.figures(
+    return mm.figures(
       mm.script == MmScript.urdu
           ? MmTypeScale.latinBodySmall
           : MmTypeScale.latinCaption,
-      colors.inkMuted,
+      mm.colors.inkMuted,
     );
-    final labelBase = Theme.of(context).textTheme.bodySmall!
-        .copyWith(color: colors.inkMuted);
-    TextStyle labelStyle(String label) => mm.styleFor(label, labelBase);
-    Size measure(
-      String text,
-      TextStyle style, {
-      double maxWidth = double.infinity,
-    }) {
-      final painter = TextPainter(
-        text: TextSpan(text: text, style: style),
-        textDirection: mmDirectionOf(text),
-        textScaler: scaler,
-      )..layout(maxWidth: maxWidth);
-      final size = painter.size;
-      painter.dispose();
-      return size;
-    }
+  }
+
+  /// The style of a group label or of the axis caption, [text].
+  static TextStyle _labelStyle(BuildContext context, String text) =>
+      context.mm.styleFor(
+        text,
+        Theme.of(context).textTheme.bodySmall!
+            .copyWith(color: context.mm.colors.inkMuted),
+      );
+
+  /// Lays [text] out in [style] as it will be drawn, wrapping at
+  /// [maxWidth].
+  static TextPainter _painterOf(
+    BuildContext context,
+    String text,
+    TextStyle style, {
+    double maxWidth = double.infinity,
+  }) => TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: mmDirectionOf(text),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout(maxWidth: maxWidth);
+
+  /// The size of [text] in [style], wrapping at [maxWidth].
+  static Size _measure(
+    BuildContext context,
+    String text,
+    TextStyle style, {
+    double maxWidth = double.infinity,
+  }) {
+    final painter = _painterOf(context, text, style, maxWidth: maxWidth);
+    final size = painter.size;
+    painter.dispose();
+    return size;
+  }
+
+  /// The chart's geometry at [width].
+  MmBarLayout _layoutFor(BuildContext context, double width) {
+    final fills = MmBarChart.fillsOf(widget.series);
+    final rupees = _rupees;
+    final tickStyle = _tickStyle(context);
+    return MmBarLayout.compute(
+      width: width,
+      plotHeight: MmBarChart.plotHeight,
+      seriesCount: widget.series.length,
+      outer: fills.length == 2 ? fills.indexOf(MmBarFill.outlined) : null,
+      values: rupees,
+      groupLabels: [for (final group in widget.groups) group.label],
+      tickLabel: _scaleOf(context, rupees).label,
+      measureTick: (text, {maxWidth = double.infinity}) =>
+          _measure(context, text, tickStyle, maxWidth: maxWidth),
+      measureLabel: (text, {maxWidth = double.infinity}) => _measure(
+        context,
+        text,
+        _labelStyle(context, text),
+        maxWidth: maxWidth,
+      ),
+      wrapLabels: widget.groupKind == MmBarGroupKind.names,
+      measureWidestWord: (text) {
+        final painter = _painterOf(context, text, _labelStyle(context, text));
+        final widest = painter.minIntrinsicWidth;
+        painter.dispose();
+        return widest;
+      },
+      textDirection: Directionality.of(context),
+    );
+  }
+
+  Widget _chart(BuildContext context) {
+    final mm = context.mm;
+    final colors = mm.colors;
+    final fills = MmBarChart.fillsOf(widget.series);
+    final marks = [for (final fill in fills) _markOf(fill, colors)];
+    final caption = _scaleOf(context, _rupees).caption;
+    final tickStyle = _tickStyle(context);
+    TextStyle labelStyle(String label) => _labelStyle(context, label);
 
     final shown = _shown;
     final active = _active;
@@ -541,20 +634,7 @@ class _MmBarChartState extends State<MmBarChart> {
     );
     final plot = LayoutBuilder(
       builder: (context, constraints) {
-        final layout = MmBarLayout.compute(
-          width: constraints.maxWidth,
-          plotHeight: MmBarChart.plotHeight,
-          seriesCount: widget.series.length,
-          outer: fills.length == 2 ? fills.indexOf(MmBarFill.outlined) : null,
-          values: rupees,
-          groupLabels: [for (final group in widget.groups) group.label],
-          tickLabel: scale.label,
-          measureTick: (text, {maxWidth = double.infinity}) =>
-              measure(text, tickStyle, maxWidth: maxWidth),
-          measureLabel: (text, {maxWidth = double.infinity}) =>
-              measure(text, labelStyle(text), maxWidth: maxWidth),
-          textDirection: direction,
-        );
+        final layout = _layoutFor(context, constraints.maxWidth);
         return MouseRegion(
           onHover: (event) => _handleHover(layout.groupAt(event.localPosition)),
           onExit: (_) => _handleExit(),

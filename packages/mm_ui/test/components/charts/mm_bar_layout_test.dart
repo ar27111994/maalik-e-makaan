@@ -26,6 +26,7 @@ MmBarLayout _layout({
   double tickHeight = 16,
   double labelWidth = 6,
   TextDirection textDirection = TextDirection.ltr,
+  bool wrapLabels = false,
 }) => MmBarLayout.compute(
   width: width,
   plotHeight: 100,
@@ -36,6 +37,9 @@ MmBarLayout _layout({
   tickLabel: (rupees) => '$rupees',
   measureTick: _measure(lineHeight: tickHeight),
   measureLabel: _measure(charWidth: labelWidth),
+  wrapLabels: wrapLabels,
+  measureWidestWord: (text) =>
+      text.split(' ').map((word) => word.length * labelWidth).reduce(math.max),
   textDirection: textDirection,
 );
 
@@ -334,6 +338,63 @@ void main() {
           greaterThanOrEqualTo(MmSpace.s2),
         );
       }
+    });
+
+    test('says whether it labels every group', () {
+      expect(_layout().labelsEveryGroup, isTrue);
+      expect(
+        _layout(
+          values: [
+            for (var i = 0; i < 6; i++) [100.0],
+          ],
+          labels: [for (var i = 0; i < 6; i++) 'Month $i'],
+        ).labelsEveryGroup,
+        isFalse,
+      );
+    });
+
+    test('labels every named group, wrapping each within its band', () {
+      // Six names that would be thinned out as periods: wrapped between
+      // their words, each fits its own band.
+      final names = [for (var i = 1; i <= 6; i++) 'Flat ${i}B'];
+      final layout = _layout(
+        values: [
+          for (var i = 0; i < 6; i++) [100.0],
+        ],
+        labels: names,
+        wrapLabels: true,
+      );
+      expect(
+        [for (final label in layout.labels) label.index],
+        [for (var i = 0; i < 6; i++) i],
+      );
+      expect(layout.labelsEveryGroup, isTrue);
+      for (final label in layout.labels) {
+        final band = layout.bands[label.index];
+        expect(label.rect.width, lessThanOrEqualTo(band.width - MmSpace.s2));
+        expect(label.rect.center.dx, closeTo(band.center.dx, 1e-9));
+        // "Flat" and "1B" on two lines.
+        expect(label.rect.height, 32);
+      }
+      for (var i = 1; i < layout.labels.length; i++) {
+        expect(
+          layout.labels[i].rect.left - layout.labels[i - 1].rect.right,
+          greaterThanOrEqualTo(MmSpace.s2 - 1e-9),
+        );
+      }
+      expect(layout.size.height, layout.plot.bottom + MmSpace.s2 + 32);
+    });
+
+    test('says when a named group has a word too wide for its band', () {
+      final layout = _layout(
+        values: [
+          for (var i = 0; i < 6; i++) [100.0],
+        ],
+        labels: [for (var i = 0; i < 6; i++) 'Apartment $i'],
+        wrapLabels: true,
+      );
+      expect(layout.labels, hasLength(6));
+      expect(layout.labelsEveryGroup, isFalse);
     });
 
     test('keeps a label as wide as the plot inside it', () {

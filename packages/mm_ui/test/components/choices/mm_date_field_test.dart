@@ -7,6 +7,7 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_urdu_material_localizations.dart';
 
 import '../../support/testing.dart';
 import 'focus.dart';
@@ -273,6 +274,31 @@ void main() {
       );
       expect(find.text('منسوخ کریں'), findsOneWidget);
       expect(find.text('تاریخ منتخب کریں'), findsOneWidget);
+      // The columns of days are headed by Urdu day names, Sunday first,
+      // never by the English initials Flutter gives Urdu.
+      final words = [
+        for (final text in tester.widgetList<Text>(
+          find.descendant(of: _picker, matching: find.byType(Text)),
+        ))
+          ?text.data,
+      ];
+      for (final day in MmUrduMaterialLocalizations.dayNames) {
+        expect(words, contains(day));
+      }
+      expect(
+        words.where((word) => RegExp(r'^[A-Za-z]$').hasMatch(word)),
+        isEmpty,
+      );
+      // Each fits its column whole: "جمعرات" never breaks in two, and on a
+      // 360 dp phone the names keep the Urdu UI's smallest text, 14 px.
+      expectWholeWords(tester, within: _picker);
+      expect(
+        tester.widget<Text>(find.text('جمعرات')).style?.fontSize ??
+            DefaultTextStyle.of(tester.element(find.text('جمعرات')))
+                .style
+                .fontSize,
+        14,
+      );
     });
 
     testWidgets('Urdu dates set their figures in the Latin face', (
@@ -361,6 +387,8 @@ void main() {
         );
         expect(scaler.scale(10), 10 * MmDateField.pickerTextScale);
         expectTextWhole(tester, _picker);
+        // No day name breaks inside a word to fit its column.
+        expectWholeWords(tester, within: _picker);
         // The typing mode fits too.
         await tester.tap(find.byIcon(MmIcons.edit));
         await tester.pumpAndSettle();
@@ -707,7 +735,12 @@ void main() {
       expect(button.top - box.top, greaterThanOrEqualTo(MmSpace.s1));
       expect(box.bottom - button.bottom, greaterThanOrEqualTo(MmSpace.s1));
       // No tint on the field's tappable part: the ring shows focus.
-      expect(tester.widget<InkWell>(_box).focusColor, Colors.transparent);
+      expect(
+        tester.widget<InkWell>(_box).overlayColor?.resolve({
+          WidgetState.focused,
+        }),
+        Colors.transparent,
+      );
     });
 
     testEveryVariant('its icons are muted ink, readable when disabled', (
@@ -748,28 +781,72 @@ void main() {
       }
     });
 
-    testWidgets('a mouse over the field lights it, not when disabled', (
-      tester,
-    ) async {
+    testWidgets('a mouse over any part of the field tints it whole, not '
+        'when disabled', (tester) async {
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       addTearDown(mouse.removePointer);
       await mouse.addPointer(location: Offset.zero);
+      Color fill() => tester
+          .widget<Material>(
+            find
+                .descendant(
+                  of: find.byType(MmChoiceBox),
+                  matching: find.byType(Material),
+                )
+                .first,
+          )
+          .color!;
       for (final enabled in [true, false]) {
         await pumpThemed(tester, _field(enabled: enabled));
-        final hover = Theme.of(tester.element(_box)).hoverColor;
-        final ink = Material.of(tester.element(_box));
-        await mouse.moveTo(tester.getCenter(_box));
-        await tester.pumpAndSettle();
-        expect(
-          ink,
-          enabled
-              ? (paints..rect(color: hover))
-              : isNot(paints..rect(color: hover)),
-          reason: 'enabled: $enabled',
-        );
+        final theme = Theme.of(tester.element(_box));
+        final paper = MmColorModes.light.surface;
+        final hovered = Color.alphaBlend(theme.hoverColor, paper);
+        expect(fill(), paper);
+        // Over the text and over the calendar button alike: one tint over
+        // the whole box, no seam at the button.
+        for (final spot in [
+          tester.getCenter(_box),
+          tester.getCenter(find.widgetWithIcon(IconButton, MmIcons.calendar)),
+        ]) {
+          await mouse.moveTo(spot);
+          await tester.pumpAndSettle();
+          expect(
+            fill(),
+            enabled ? hovered : paper,
+            reason: 'enabled: $enabled',
+          );
+          // The tappable part draws no tint of its own over the fill.
+          expect(
+            Material.of(tester.element(_box)),
+            isNot(paints..rect(color: theme.hoverColor)),
+          );
+        }
         await mouse.moveTo(Offset.zero);
         await tester.pumpAndSettle();
+        expect(fill(), paper);
       }
+    });
+
+    testWidgets('pressing the field tints it whole while held', (tester) async {
+      await pumpThemed(tester, _field());
+      final theme = Theme.of(tester.element(_box));
+      final paper = MmColorModes.light.surface;
+      Color fill() => tester
+          .widget<Material>(
+            find
+                .descendant(
+                  of: find.byType(MmChoiceBox),
+                  matching: find.byType(Material),
+                )
+                .first,
+          )
+          .color!;
+      final press = await tester.startGesture(tester.getCenter(_box));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(fill(), Color.alphaBlend(theme.highlightColor, paper));
+      await press.cancel();
+      await tester.pumpAndSettle();
+      expect(fill(), paper);
     });
 
     testWidgets('an optional field clears; focus stays in the field', (

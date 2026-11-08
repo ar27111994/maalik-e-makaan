@@ -359,6 +359,36 @@ void main() {
       expect(details.height, greaterThan(100));
     });
 
+    testEveryVariant('its icons grow with the text as button icons do, up '
+        'to 150%', (tester, variant) async {
+      await pumpThemed(tester, _full(), variant: variant);
+      final expected =
+          MmSize.iconMd * (variant.textScale > 1.5 ? 1.5 : variant.textScale);
+      final retry = find.descendant(
+        of: find.byType(FilledButton),
+        matching: find.byType(Icon),
+      );
+      expect(tester.getSize(retry), Size.square(expected));
+      expect(
+        tester.getSize(find.byIcon(MmIcons.expand)),
+        Size.square(expected),
+      );
+      // The same as an MmButton's icon at this text size.
+      await pumpThemed(
+        tester,
+        const MmButton(
+          label: 'Retry',
+          icon: MmIcons.refresh,
+          onPressed: tapped,
+        ),
+        variant: variant,
+      );
+      expect(
+        tester.getSize(find.byIcon(MmIcons.refresh)),
+        Size.square(expected),
+      );
+    });
+
     testWidgets('mirrors for Urdu', (tester) async {
       await pumpThemed(tester, _full(), variant: MmVariant.urdu);
       // The disclosure chevron follows the label, at its end (left).
@@ -426,6 +456,43 @@ void main() {
         ),
       );
       expect(find.byType(FilledButton), findsNothing);
+    });
+
+    testWidgets('in Urdu on a desktop window the message never ends on a '
+        'lone word', (tester) async {
+      // The gallery's message: unbalanced, the state's width cap left
+      // "کریں۔" alone on its last line at 1280 dp.
+      const message =
+          'آپ کا کھاتہ لوڈ نہیں ہو سکا۔ انٹرنیٹ کنکشن جانچ کر دوبارہ '
+          'کوشش کریں۔';
+      await pumpThemed(
+        tester,
+        const MmErrorState(
+          title: 'کھاتہ دستیاب نہیں',
+          message: message,
+          onRetry: tapped,
+        ),
+        variant: MmVariant.urdu,
+        size: const Size(1280, 800),
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text(message),
+      );
+      final lines = <double, int>{};
+      for (final word in RegExp(r'\S+').allMatches(message)) {
+        final top = paragraph
+            .getBoxesForSelection(
+              TextSelection(baseOffset: word.start, extentOffset: word.end),
+            )
+            .first
+            .top
+            .roundToDouble();
+        lines[top] = (lines[top] ?? 0) + 1;
+      }
+      final perLine = [
+        for (final top in lines.keys.toList()..sort()) lines[top]!,
+      ];
+      expect(perLine.last, greaterThan(1), reason: '$perLine');
     });
   });
 }

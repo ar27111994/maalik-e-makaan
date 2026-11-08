@@ -64,7 +64,7 @@ Future<void> _pumpPulsing(
 
 void main() {
   group('MmSkeleton', () {
-    testEveryVariant('a box is a sunken shape of the given size', (
+    testEveryVariant('a box is a shape in the rule tone, of the given size', (
       tester,
       variant,
     ) async {
@@ -75,18 +75,50 @@ void main() {
       );
       final colors = colorsOf(variant);
       final [bone] = _bones(tester);
-      expect(bone.color, colors.surfaceSunken);
+      expect(bone.color, colors.rule);
       final shape = bone.shape as RoundedRectangleBorder;
       expect(
         shape.borderRadius,
         const BorderRadius.all(Radius.circular(MmRadius.sm)),
       );
-      // A hairline rule in the high-contrast modes only.
-      expect(
-        shape.side,
-        variant.highContrast ? BorderSide(color: colors.rule) : BorderSide.none,
-      );
+      // The tone alone parts it from the page, in every mode.
+      expect(shape.side, BorderSide.none);
       expect(tester.getSize(find.byType(MmSkeleton)), const Size(180, 40));
+    });
+
+    testEveryVariant('stands apart from the page and from a surface, even '
+        'at the faintest of its pulse', (tester, variant) async {
+      await pumpThemed(
+        tester,
+        _motion(const MmSkeleton.box(width: 180, height: 40), still: true),
+        variant: variant,
+      );
+      final colors = colorsOf(variant);
+      final [bone] = _bones(tester);
+      final fill = bone.color!;
+      for (final (name, behind) in [
+        ('page', colors.bg),
+        ('surface', colors.surface),
+      ]) {
+        // At full opacity: 3:1 in the high-contrast modes (the contrast a
+        // non-text shape needs there), 1.25:1 otherwise, the step from the
+        // page to a hairline rule.
+        expect(
+          mmContrastRatio(fill, behind),
+          greaterThanOrEqualTo(variant.highContrast ? 3 : 1.25),
+          reason: '$name, full',
+        );
+        // Faded to the faintest of the pulse, still a shape.
+        final faint = Color.alphaBlend(
+          fill.withValues(alpha: MmSkeletonPulse.faintest),
+          behind,
+        );
+        expect(
+          mmContrastRatio(faint, behind),
+          greaterThanOrEqualTo(1.1),
+          reason: '$name, faintest',
+        );
+      }
     });
 
     testWidgets('a box without a width fills its parent', (tester) async {

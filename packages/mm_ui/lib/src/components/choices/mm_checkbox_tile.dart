@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/components/choices/mm_tile_bleed.dart';
 import 'package:mm_ui/src/foundation/mm_focus_within.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -12,6 +14,10 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// row over a partly selected list) and cycles unchecked, checked, mixed.
 /// Assistive technology hears one element: the label and description, and
 /// whether it is checked, unchecked or mixed.
+///
+/// The row's highlight and focus ring reach 16 dp into the page's gutter,
+/// so its box starts on the content edge with the fields and headings
+/// around it. The box grows with the text as icons do, up to 150%.
 ///
 /// Use it for choices that are saved together, or for selecting rows. For
 /// a setting that applies at once, use an `MmSwitchTile`; for one of
@@ -60,31 +66,35 @@ class MmCheckboxTile extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final description = this.description;
     final enabled = onChanged != null;
-    return MmFocusWithin(
-      radius: MmRadius.none,
-      child: CheckboxListTile(
-        value: value,
-        tristate: tristate,
-        onChanged: onChanged,
-        controlAffinity: ListTileControlAffinity.leading,
-        title: Text(
-          label,
-          style: mm.styleFor(
+    // The row reaches into the gutter, so its control lines up with the
+    // fields and headings around it (see MmTileBleed).
+    final scale = MmTileBleed.scaleOf(context);
+    return MmTileBleed(
+      child: MmFocusWithin(
+        radius: MmRadius.none,
+        child: CheckboxListTile(
+          checkboxScaleFactor: scale,
+          contentPadding: EdgeInsetsDirectional.only(
+            start: MmTileBleed.leadingPadding(scale),
+            end: MmSpace.s4,
+          ),
+          value: value,
+          tristate: tristate,
+          onChanged: onChanged,
+          controlAffinity: ListTileControlAffinity.leading,
+          title: MmScriptText(
             label,
-            text.bodyLarge!.copyWith(
+            style: text.bodyLarge!.copyWith(
               color: enabled ? colors.ink : colors.inkMuted,
             ),
           ),
-        ),
-        subtitle: description == null
-            ? null
-            : Text(
-                description,
-                style: mm.styleFor(
+          subtitle: description == null
+              ? null
+              : MmScriptText(
                   description,
-                  text.bodyMedium!.copyWith(color: colors.inkMuted),
+                  style: text.bodyMedium!.copyWith(color: colors.inkMuted),
                 ),
-              ),
+        ),
       ),
     );
   }

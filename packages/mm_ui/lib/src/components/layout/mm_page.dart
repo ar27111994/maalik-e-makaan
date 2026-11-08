@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:mm_ui/src/foundation/mm_text_metrics.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -30,7 +31,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 ///
 /// [bottomBar] (usually an `MmActionBar`) sits below
 /// the content, never covering it; it pads itself for the device's safe
-/// area and the on-screen keyboard.
+/// area and the on-screen keyboard. A [floatingActionButton] floats over
+/// the content, so the page leaves room for it at the end: scrolled to the
+/// end, the last content stops 16 dp above the button, however tall the
+/// button grows with its label (a body that scrolls by itself gets that
+/// room as bottom padding, which a `ListView` keeps clear by itself).
 ///
 /// Use it for every screen inside the app's frame (`MmAdaptiveScaffold`)
 /// and for screens pushed on top of it. Don't use it inside a sheet or a
@@ -90,8 +95,9 @@ class MmPage extends StatefulWidget {
   /// screen's main action. It pads itself for the safe area.
   final Widget? bottomBar;
 
-  /// The screen's main action as a floating button, when it has no
-  /// [bottomBar].
+  /// The screen's main action as a floating button (usually an `MmFab`),
+  /// when it has no [bottomBar]. It floats at the end edge above the
+  /// content's end, and the page leaves room for it there.
   final Widget? floatingActionButton;
 
   /// Called when the content is pulled down to refresh; the indicator spins
@@ -119,6 +125,22 @@ class _MmPageState extends State<MmPage> {
   /// button), so it goes under them instead.
   _TitleLayout? _tooWide;
 
+  /// The height of [MmPage.floatingActionButton] as last laid out; until
+  /// then, the standard button's.
+  double _fabHeight = MmSize.fab;
+
+  /// How much of the content's end [MmPage.floatingActionButton] covers,
+  /// with the page's gap above it: the button, the scaffold's margin under
+  /// it and [MmSpace.s4]. Zero without a button.
+  double get _fabRoom => widget.floatingActionButton == null
+      ? 0
+      : _fabHeight + kFloatingActionButtonMargin + MmSpace.s4;
+
+  /// Keeps [_fabRoom] in step with the button's laid-out [height].
+  void _fabLaidOut(double height) {
+    if (mounted && height != _fabHeight) setState(() => _fabHeight = height);
+  }
+
   @override
   Widget build(BuildContext context) {
     final outer = ActionIconTheme.of(context);
@@ -141,7 +163,10 @@ class _MmPageState extends State<MmPage> {
                 widget.scrollable ? _scrolling(context) : _filling(context),
           ),
           bottomNavigationBar: widget.bottomBar,
-          floatingActionButton: widget.floatingActionButton,
+          floatingActionButton: switch (widget.floatingActionButton) {
+            final fab? => _MeasuredHeight(onHeight: _fabLaidOut, child: fab),
+            null => null,
+          },
         ),
       ),
     );
@@ -154,6 +179,11 @@ class _MmPageState extends State<MmPage> {
   /// in the toolbar when it fits there on one line, else under the toolbar
   /// on full-width lines; with nothing else in the toolbar, it wraps in the
   /// toolbar itself. Either way the bar is measured to hold it.
+  ///
+  /// The title starts where the content column does: 16 dp in on a phone,
+  /// and on a window wide enough to cap the column at `MmSize.contentMax`,
+  /// at the centred column's start edge, so the title and the content share
+  /// an edge however wide the window.
   PreferredSizeWidget _appBar(BuildContext context, double pageWidth) {
     final title = widget.title;
     final appBarTheme = AppBarTheme.of(context);
@@ -164,17 +194,25 @@ class _MmPageState extends State<MmPage> {
     final scaler = MediaQuery.textScalerOf(context);
     final safeArea = MediaQuery.paddingOf(context);
     final width = pageWidth - safeArea.horizontal;
-    final spacing =
-        appBarTheme.titleSpacing ?? NavigationToolbar.kMiddleSpacing;
     final leads =
         widget.leading != null ||
         (ModalRoute.of(context)?.impliesAppBarDismissal ?? false);
+    final leadingWidth = leads ? appBarTheme.leadingWidth ?? kToolbarHeight : 0;
+    // Where the content column starts, from the toolbar's start edge: the
+    // page's padding, and half of what the column's cap leaves over.
+    final columnStart =
+        MmSpace.s4 +
+        math.max(0, (width - 2 * MmSpace.s4 - MmSize.contentMax) / 2);
+    final spacing = math.max(
+      appBarTheme.titleSpacing ?? NavigationToolbar.kMiddleSpacing,
+      columnStart - leadingWidth,
+    );
     final actions = widget.actions;
     // Each action is taken for an icon button, a 48 dp target; a wider one
     // is found out when the title is laid out beside it (see
     // _ToolbarTitle).
     final besideTitle =
-        (leads ? appBarTheme.leadingWidth ?? kToolbarHeight : 0) +
+        leadingWidth +
         (actions.isEmpty ? 0 : actions.length * MmSize.minTarget + MmSpace.s1);
     final double toolbarRoom = math.max(0, width - besideTitle - 2 * spacing);
     final layout = (title: title, width: width, textScale: scaler.scale(1));
@@ -198,6 +236,7 @@ class _MmPageState extends State<MmPage> {
     }) => AppBar(
       leading: widget.leading,
       title: title,
+      titleSpacing: spacing,
       actions: actions,
       toolbarHeight: toolbarHeight,
       bottom: bottom,
@@ -224,7 +263,7 @@ class _MmPageState extends State<MmPage> {
       title,
       style,
       textScaler: scaler,
-      maxWidth: math.max(0, width - 2 * spacing),
+      maxWidth: math.max(0, width - 2 * columnStart),
     );
     if (!leads && actions.isEmpty) {
       return appBar(
@@ -243,9 +282,10 @@ class _MmPageState extends State<MmPage> {
           header: true,
           namesRoute: true,
           child: Padding(
+            // Under the toolbar the title spans the content column.
             padding: EdgeInsetsDirectional.only(
-              start: spacing,
-              end: spacing,
+              start: columnStart,
+              end: columnStart,
               bottom: MmSpace.s3,
             ),
             child: Align(
@@ -272,8 +312,10 @@ class _MmPageState extends State<MmPage> {
     final onRefresh = widget.onRefresh;
     // The scaffold has taken the app bar's and the bottom bar's share of
     // the safe area; the sides and, without a bottom bar, the gesture bar
-    // are left for the page.
+    // are left for the page. The floating button stands on that bottom
+    // edge, so its room comes on top of it.
     final safeArea = MediaQuery.paddingOf(context);
+    final end = safeArea.bottom + math.max(MmSpace.s4, _fabRoom);
     final scrollView = SingleChildScrollView(
       // A short page must still be pullable to refresh.
       physics: onRefresh == null ? null : const AlwaysScrollableScrollPhysics(),
@@ -283,7 +325,7 @@ class _MmPageState extends State<MmPage> {
         safeArea.left + MmSpace.s4,
         MmSpace.s4,
         safeArea.right + MmSpace.s4,
-        safeArea.bottom + MmSpace.s4,
+        end,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -312,9 +354,12 @@ class _MmPageState extends State<MmPage> {
   }
 
   /// [MmPage.body] in the readable column, filling the height of a scaffold's
-  /// body ([context]). The bottom safe area stays with [MmPage.body].
+  /// body ([context]). The bottom safe area stays with [MmPage.body], with
+  /// the floating button's room added to it.
   Widget _filling(BuildContext context) {
     final safeArea = MediaQuery.paddingOf(context);
+    final inside = MediaQuery.of(context)
+        .removePadding(removeLeft: true, removeRight: true);
     return Padding(
       // Safe-area insets are physical (the device's own left and right).
       // design-lint: allow-next-line physical safe-area insets
@@ -328,10 +373,12 @@ class _MmPageState extends State<MmPage> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: MmSize.contentMax),
           child: SizedBox.expand(
-            child: MediaQuery.removePadding(
-              context: context,
-              removeLeft: true,
-              removeRight: true,
+            child: MediaQuery(
+              data: inside.copyWith(
+                padding: inside.padding.copyWith(
+                  bottom: inside.padding.bottom + _fabRoom,
+                ),
+              ),
               child: widget.body,
             ),
           ),
@@ -374,4 +421,40 @@ class _AmbientTextScale extends StatelessWidget {
     data: MediaQuery.of(context).copyWith(textScaler: scaler),
     child: child,
   );
+}
+
+/// Reports its child's height to [onHeight] after each layout that changes
+/// it, from the end of that frame.
+class _MeasuredHeight extends SingleChildRenderObjectWidget {
+  const new({required this.onHeight, required super.child});
+
+  final ValueChanged<double> onHeight;
+
+  @override
+  _RenderMeasuredHeight createRenderObject(BuildContext context) =>
+      _RenderMeasuredHeight(onHeight);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderMeasuredHeight renderObject,
+  ) => renderObject.onHeight = onHeight;
+}
+
+class _RenderMeasuredHeight extends RenderProxyBox {
+  new(this.onHeight);
+
+  ValueChanged<double> onHeight;
+
+  /// The height last reported.
+  double? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final height = size.height;
+    if (height == _reported) return;
+    _reported = height;
+    WidgetsBinding.instance.addPostFrameCallback((_) => onHeight(height));
+  }
 }

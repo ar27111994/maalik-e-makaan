@@ -121,12 +121,17 @@ class MmMeter extends StatelessWidget {
         children: [
           MmReflow(
             alignment: MmReflowAlignment.baseline,
+            // A value that moves under its label keeps to the end edge, so
+            // a column of meters keeps its values on one edge.
+            stackedAtEnd: true,
             start: MmScriptText(
               label,
               style: text.labelLarge!.copyWith(color: colors.ink),
             ),
             end: MmScriptText(
               valueLabel,
+              // A value that wraps ends its lines on the end edge too.
+              textAlign: TextAlign.end,
               style: MmSemantics.withTabularFigures(
                 text.bodyMedium!.copyWith(color: colors.inkMuted),
               ),

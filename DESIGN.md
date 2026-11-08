@@ -270,7 +270,8 @@ details sit side by side; reading columns stop at 720 dp. Mirror everything for 
 end, never left and right): icons that point, progress and swipe directions flip; amounts stay
 in Western order. Trends and charts run along time from the start edge, so trend arrows mirror
 too. A minus sign stays on the left of the figures in Urdu as in English. Lists of money align
-amounts to the end edge.
+amounts to the end edge, and a value that moves under its label at large text keeps to that
+edge, so a card's figures share one edge.
 
 ## Elevation & Depth
 
@@ -290,7 +291,9 @@ receipt's edge is straight with a perforation, not rounded.
   alternative; text buttons for low-emphasis actions. 48 dp tall; labels are verbs ("Record
   payment"), never "OK".
 - **Field:** labelled above, helper or error text below in words (not colour alone), 56 dp tall,
-  currency fields show "Rs" and format as you type.
+  currency fields show "Rs" and format as you type. A currency field keeps its amount against
+  its currency word: "Rs" first at the start edge in English, "روپے" last at the end edge in
+  Urdu, where Urdu amounts sit in lists and receipts; other fields start at the start edge.
 - **Card:** a surface with 16 dp padding that groups one thing; cards never nest. A card or
   tile that only shows information is bounded by a `rule` hairline (or by tone alone); one you
   can tap is a control, so it is bounded by the `outline` colour, at 3:1 or better.

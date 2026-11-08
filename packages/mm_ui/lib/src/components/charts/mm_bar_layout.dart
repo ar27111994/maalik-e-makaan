@@ -53,7 +53,10 @@ typedef MmBarLabel = ({int index, String text, Rect rect});
 /// Axis labels never overlap: when the tick labels are too tall for every
 /// tick (large text) the axis takes fewer, wider steps, and when the group
 /// labels are too wide for every group only every second, third, … group
-/// is labelled, starting with the first.
+/// is labelled, starting with the first. Groups that are named rather than
+/// counted (`wrapLabels`) are all labelled instead, each label wrapping
+/// between words within its group's band; [labelsEveryGroup] says whether
+/// every label fits so.
 ///
 /// A group's bars share its band's centre. With two series, the [outer]
 /// series' bar (the outlined one) is the wide bar and the other series'
@@ -74,13 +77,16 @@ final class MmBarLayout {
     required this.labels,
     required this.outer,
     required this.textDirection,
+    required this.labelsEveryGroup,
   });
 
   /// Lays out [values] (one list of rupee amounts per group, one amount per
   /// series) in [width], with a plot [plotHeight] tall. With two series,
   /// [outer] is the one drawn as the wide bar. [tickLabel] names a tick,
   /// [measureTick] and [measureLabel] measure tick and group labels as they
-  /// will be drawn.
+  /// will be drawn. With [wrapLabels], every group is labelled, its label
+  /// wrapping within its band, and [measureWidestWord] gives the width of
+  /// a label's widest word, which must fit the band.
   factory compute({
     required double width,
     required double plotHeight,
@@ -92,10 +98,16 @@ final class MmBarLayout {
     required MmTextMeasure measureLabel,
     required TextDirection textDirection,
     int? outer,
+    bool wrapLabels = false,
+    double Function(String text)? measureWidestWord,
   }) {
     assert(
       seriesCount == 1 || (outer != null && outer >= 0 && outer < seriesCount),
       'A layout of two series needs the series drawn as the wide bar.',
+    );
+    assert(
+      !wrapLabels || measureWidestWord != null,
+      'Wrapped labels need their widest words measured.',
     );
     final rtl = textDirection == TextDirection.rtl;
     final all = [for (final group in values) ...group];
@@ -183,13 +195,32 @@ final class MmBarLayout {
     ];
 
     // The group labels: every k-th group, for the smallest k whose labels
-    // keep clear of each other.
+    // keep clear of each other; or, wrapped, every group's, each within its
+    // band less a gap.
     final labelTop = plot.bottom + MmSpace.s2;
+    final labelWidth = wrapLabels
+        ? math.max(0, band - MmSpace.s2).toDouble()
+        : plotWidth;
     final labelSizes = [
-      for (final label in groupLabels) measureLabel(label, maxWidth: plotWidth),
+      for (final label in groupLabels)
+        measureLabel(label, maxWidth: labelWidth),
     ];
     var labels = const <MmBarLabel>[];
-    for (var every = 1; every <= count; every++) {
+    var labelsEveryGroup = true;
+    if (wrapLabels) {
+      labels = [
+        for (var i = 0; i < count; i++)
+          (
+            index: i,
+            text: groupLabels[i],
+            rect: _labelRect(bands[i], labelSizes[i], plot, labelTop),
+          ),
+      ];
+      labelsEveryGroup = groupLabels.every(
+        (label) => measureWidestWord!(label) <= labelWidth,
+      );
+    }
+    for (var every = 1; !wrapLabels && every <= count; every++) {
       labels = [
         for (var i = 0; i < count; i += every)
           (
@@ -199,6 +230,7 @@ final class MmBarLayout {
           ),
       ];
       if (_clear(labels)) break;
+      labelsEveryGroup = false;
     }
     final labelHeight = labels.fold<double>(
       0,
@@ -218,6 +250,7 @@ final class MmBarLayout {
       labels: labels,
       outer: seriesCount == 1 ? null : outer,
       textDirection: textDirection,
+      labelsEveryGroup: labelsEveryGroup,
     );
   }
 
@@ -263,6 +296,11 @@ final class MmBarLayout {
 
   /// The group labels shown, in group order.
   final List<MmBarLabel> labels;
+
+  /// Whether every group's label is shown whole: no group went unlabelled
+  /// to keep the labels clear, and no wrapped label has a word wider than
+  /// its band.
+  final bool labelsEveryGroup;
 
   /// In a two-series chart, the series whose bars are the wide ones, which
   /// are painted first so the other series' bars stand on them; null with

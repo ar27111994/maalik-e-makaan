@@ -285,6 +285,9 @@ class _ActionState extends State<_Action> {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(onPressed: _press, child: Text(widget.label));
+    return TextButton(
+      onPressed: _press,
+      child: MmScriptText(widget.label, style: const TextStyle()),
+    );
   }
 }

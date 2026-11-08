@@ -8,6 +8,7 @@ import 'package:mm_ui/src/components/charts/mm_chart_style.dart';
 import 'package:mm_ui/src/components/charts/mm_chart_swatch.dart';
 import 'package:mm_ui/src/foundation/mm_formats.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_wrap.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -133,7 +134,13 @@ final class MmProportionSegment {
 /// parts and their legend keys stay apart without colour. In the legend the
 /// amounts and shares sit in columns as wide as the widest of them, lined
 /// up on their last digit (on the right in both languages, where a figure
-/// ends), so the figures of every row line up. A part of zero
+/// ends), so the figures of every row line up. An amount and its share
+/// move together under their label when they do not fit beside it (large
+/// text on a narrow phone), keeping to the end edge, so the columns hold
+/// whichever rows moved; when a line of their own is too narrow for both,
+/// each share goes under its amount, and an amount too wide even for a
+/// line of its own is shown smaller, never cut off or broken. A part of
+/// zero
 /// draws nothing in the bar but keeps its legend row; a part too small to
 /// see is drawn [minPartWidth] wide, so nothing that exists looks like
 /// nothing. When the whole is
@@ -470,10 +477,23 @@ class _LegendRow extends StatelessWidget {
           Expanded(
             child: MmReflow(
               alignment: MmReflowAlignment.baseline,
+              // The amount and its share sit side by side, beside the label
+              // or under it, at the end edge either way, so every row's
+              // amounts and shares end in the same two columns whichever
+              // rows had to move. Only when a line of its own is too narrow
+              // for both (large text on the narrowest phones) does the
+              // share go under its amount, in every row alike, since the
+              // columns are as wide in every row.
+              stackedAtEnd: true,
               start: Text(segment.label, style: labelStyle),
-              end: Row(
-                mainAxisSize: MainAxisSize.min,
+              end: MmWrap(
                 spacing: MmSpace.s2,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                // Figures end on the right in both languages, also when
+                // the share goes under its amount.
+                alignment: Directionality.of(context) == TextDirection.rtl
+                    ? WrapAlignment.start
+                    : WrapAlignment.end,
                 children: [
                   Semantics(
                     label: MmFormats.spokenMoney(
@@ -482,15 +502,22 @@ class _LegendRow extends StatelessWidget {
                       format: format,
                     ),
                     excludeSemantics: true,
-                    child: SizedBox(
-                      width: amountWidth,
-                      child: Text(
-                        format.format(segment.value),
-                        style: amountStyle,
-                        softWrap: false,
-                        // Figures end on the right in both languages: in
-                        // Urdu the currency word follows on their left.
-                        textAlign: TextAlign.right,
+                    // An amount never breaks: in the rare row too narrow
+                    // for it even on a line of its own (a crore at 200%
+                    // text on the narrowest phone) it is shown smaller,
+                    // never cut off.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: SizedBox(
+                        width: amountWidth,
+                        child: Text(
+                          format.format(segment.value),
+                          style: amountStyle,
+                          softWrap: false,
+                          // Figures end on the right in both languages: in
+                          // Urdu the currency word follows on their left.
+                          textAlign: TextAlign.right,
+                        ),
                       ),
                     ),
                   ),

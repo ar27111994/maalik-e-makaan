@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/components/choices/mm_tile_bleed.dart';
 import 'package:mm_ui/src/foundation/mm_focus_within.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -13,6 +15,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// switch and its words turn muted ink, still readable. Assistive
 /// technology hears one element: the label and description, and whether
 /// it is on.
+///
+/// The row's highlight and focus ring reach 16 dp into the page's gutter,
+/// so its words start, and its switch's track ends, on the content edge with
+/// the fields and headings around it. The switch grows with the text as
+/// icons do, up to 150%.
 ///
 /// Use it for settings that apply immediately. For a choice that is saved
 /// with a form, or agreeing to something, use an `MmCheckboxTile`.
@@ -48,36 +55,67 @@ class MmSwitchTile extends StatelessWidget {
   /// is disabled.
   final ValueChanged<bool>? onChanged;
 
+  /// A Material 3 switch laid out with no padding and a shrink-wrapped
+  /// target, at 100% text: its 52 by 32 dp track centred in a 40 dp tall
+  /// box. Material's geometry, no token.
+  static const Size _switchSize = Size(52, 40);
+
   @override
   Widget build(BuildContext context) {
     final mm = context.mm;
     final colors = mm.colors;
     final text = Theme.of(context).textTheme;
     final description = this.description;
+    final onChanged = this.onChanged;
     final enabled = onChanged != null;
-    return MmFocusWithin(
-      radius: MmRadius.none,
-      child: SwitchListTile(
-        value: value,
-        onChanged: onChanged,
-        title: Text(
-          label,
-          style: mm.styleFor(
-            label,
-            text.bodyLarge!.copyWith(
-              color: enabled ? colors.ink : colors.inkMuted,
-            ),
+    // The row reaches into the gutter, so its control lines up with the
+    // fields and headings around it (see MmTileBleed). It is a
+    // SwitchListTile's row, built here so the switch can grow with the text:
+    // its track ends on the content edge, drawn with no padding of its own,
+    // and grows as icons do, up to 150%.
+    final scale = MmTileBleed.scaleOf(context);
+    final control = ExcludeFocus(
+      child: SizedBox(
+        width: _switchSize.width * scale,
+        height: _switchSize.height * scale,
+        // At the end edge even when the row's trailing slot is shorter
+        // than the grown switch and it grows a little less.
+        child: FittedBox(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Switch(
+            value: value,
+            onChanged: onChanged,
+            padding: EdgeInsets.zero,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),
-        subtitle: description == null
-            ? null
-            : Text(
-                description,
-                style: mm.styleFor(
-                  description,
-                  text.bodyMedium!.copyWith(color: colors.inkMuted),
-                ),
+      ),
+    );
+    return MmTileBleed(
+      child: MmFocusWithin(
+        radius: MmRadius.none,
+        child: MergeSemantics(
+          child: ListTile(
+            // A switch row, as SwitchListTile builds it: the switch says
+            // what the row is, so the row is not also announced a button.
+            internalAddSemanticForOnTap: false,
+            enabled: enabled,
+            onTap: onChanged == null ? null : () => onChanged(!value),
+            title: MmScriptText(
+              label,
+              style: text.bodyLarge!.copyWith(
+                color: enabled ? colors.ink : colors.inkMuted,
               ),
+            ),
+            subtitle: description == null
+                ? null
+                : MmScriptText(
+                    description,
+                    style: text.bodyMedium!.copyWith(color: colors.inkMuted),
+                  ),
+            trailing: control,
+          ),
+        ),
       ),
     );
   }

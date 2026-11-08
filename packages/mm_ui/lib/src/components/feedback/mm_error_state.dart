@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/feedback/mm_filled_action.dart';
 import 'package:mm_ui/src/components/feedback/mm_state_layout.dart';
 import 'package:mm_ui/src/foundation/mm_focus_highlight.dart';
+import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_motion.dart';
@@ -146,14 +148,21 @@ class _DetailsState extends State<_Details> {
       children: [
         TextButton.icon(
           onPressed: _toggle,
-          style: const ButtonStyle(
-            iconSize: WidgetStatePropertyAll(MmSize.iconMd),
+          // The chevron grows with the label as icons do, up to 150%.
+          style: ButtonStyle(
+            iconSize: WidgetStatePropertyAll(
+              MmIconLabel.scaledSize(context, MmSize.iconMd),
+            ),
           ),
           icon: Icon(_open ? MmIcons.collapse : MmIcons.expand),
           iconAlignment: IconAlignment.end,
           label: Semantics(
             expanded: _open,
-            child: Text(widget.label, textAlign: TextAlign.center),
+            child: MmScriptText(
+              widget.label,
+              style: const TextStyle(),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
         if (duration == Duration.zero)

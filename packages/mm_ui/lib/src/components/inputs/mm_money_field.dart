@@ -15,7 +15,10 @@ import 'package:mm_ui/src/theme/mm_semantics.dart';
 /// caret beside the digit being edited. It takes Urdu digits and pasted
 /// text such as "Rs 1,25,000" or "1.5 lakh", and shows the currency the
 /// way the money format writes it: "Rs" before the amount in English,
-/// "روپے" after it in Urdu, with the amount against it. Figures are
+/// "روپے" after it in Urdu, with the amount against it: so the amount
+/// starts at the start edge in English and ends at the end edge (the left)
+/// in Urdu, where Urdu amounts sit in lists, rows and receipts, while text,
+/// CNIC, phone and date fields start at the start edge. Figures are
 /// tabular in the Latin amount face, on one line that is never cut short:
 /// at large text sizes a long amount is set only as much smaller as it
 /// needs to fit. A screen reader hears the plain number and the currency

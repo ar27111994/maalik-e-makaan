@@ -346,12 +346,17 @@ class _Row extends StatelessWidget {
       padding: const EdgeInsetsDirectional.symmetric(vertical: MmSpace.s1),
       child: MmReflow(
         alignment: MmReflowAlignment.baseline,
+        // A value that moves under its label keeps to the end edge, so the
+        // receipt's values end on one edge.
+        stackedAtEnd: true,
         start: Text(
           row.label,
           style: text.bodyMedium!.copyWith(color: colors.inkMuted),
         ),
         end: MmUserText(
           row.value,
+          // A value that wraps ends its lines on the end edge too.
+          textAlign: TextAlign.end,
           style: MmSemantics.withTabularFigures(
             text.bodyLarge!.copyWith(color: colors.ink),
           ),

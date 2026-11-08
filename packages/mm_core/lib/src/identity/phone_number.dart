@@ -116,8 +116,19 @@ final class PhoneNumber {
   /// The number without the leading `+`, as used by `wa.me` links.
   String get digits => e164.substring(1);
 
-  /// Local format: `0300 1234567` for mobiles, `042123456789` for landlines;
+  /// Local format: `0300 1234567` for mobiles, `04235550123` for landlines;
   /// international numbers keep the E.164 form.
+  ///
+  /// A landline is not split into its area code and subscriber number,
+  /// because the split cannot be read off the digits. Pakistan's area codes
+  /// run from two digits (42 Lahore, 21 Karachi) to four (5821 Muzaffarabad
+  /// in the PTA plan the ITU published in 2021), and subscriber numbers from
+  /// six digits in small towns to eight in the big cities, so `05821234567`
+  /// reads as 058 + 21234567 or as 05821 + 234567 depending on a table of
+  /// area codes that the PTA keeps and revises (sources disagree even on
+  /// the AJK codes). Splitting without that table would group some numbers
+  /// wrongly, and a wrong grouping is worse than none: a landlord reads the
+  /// number back to a caller in its groups.
   String get national {
     switch (type) {
       case PhoneNumberType.mobile:

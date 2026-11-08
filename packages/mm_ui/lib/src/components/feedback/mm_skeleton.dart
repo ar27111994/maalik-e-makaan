@@ -6,12 +6,14 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// A placeholder shape that stands in for content while it loads: a box
 /// for a figure or an image, lines for text, a circle for an avatar.
 ///
-/// Skeletons are inset wells (`surfaceSunken`, outlined with a hairline
-/// rule in the high-contrast modes) that pulse slowly; the pulse stops when
-/// the platform asks for reduced motion. They are hidden from assistive
-/// technology: whatever holds them says that content is loading once (as
-/// `MmSkeletonList` does). Place them on a surface (a card or a sheet),
-/// where the sunken tone shows.
+/// Skeletons are shapes in the tone of a hairline rule (`rule`, decoration
+/// that carries no meaning) that pulse slowly; the pulse stops when the
+/// platform asks for reduced motion. That tone stands apart from the page
+/// and from a card or sheet in every mode: by 1.3:1 to 1.5:1 in the light
+/// and dark modes, still 1.1:1 at the faintest of the pulse, and by more
+/// than 3:1 in the high-contrast modes, as a shape there needs. They are
+/// hidden from assistive technology: whatever holds them says that content
+/// is loading once (as `MmSkeletonList` does).
 ///
 /// Use skeletons, not spinners, for lists and cards whose shape is known.
 /// For a whole list of rows, use `MmSkeletonList`.
@@ -135,16 +137,9 @@ class _Bone extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mm = context.mm;
-    // A hairline rule in the high-contrast modes, where the sunken tone
-    // alone barely differs from the surface.
-    final side = mm.highContrast
-        ? BorderSide(color: mm.colors.rule)
-        : BorderSide.none;
     final ShapeBorder shape = round
-        ? CircleBorder(side: side)
+        ? const CircleBorder()
         : RoundedRectangleBorder(
-            side: side,
             borderRadius: BorderRadius.all(Radius.circular(radius)),
           );
     return FadeTransition(
@@ -154,7 +149,7 @@ class _Bone extends StatelessWidget {
         height: height,
         child: DecoratedBox(
           decoration: ShapeDecoration(
-            color: mm.colors.surfaceSunken,
+            color: context.mm.colors.rule,
             shape: shape,
           ),
         ),

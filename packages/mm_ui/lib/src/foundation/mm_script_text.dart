@@ -31,6 +31,8 @@ class MmScriptText extends StatelessWidget {
     this.textAlign,
     this.maxLines,
     this.overflow,
+    this.softWrap,
+    this.textWidthBasis,
     this.semanticsLabel,
     super.key,
   });
@@ -47,8 +49,17 @@ class MmScriptText extends StatelessWidget {
   /// The most lines the text takes, or null for as many as it needs.
   final int? maxLines;
 
-  /// How text cut off at [maxLines] ends.
+  /// How text cut off at [maxLines] (or, without [softWrap], at the edge)
+  /// ends.
   final TextOverflow? overflow;
+
+  /// Whether the text wraps at word breaks; null for the ambient
+  /// `DefaultTextStyle`'s choice.
+  final bool? softWrap;
+
+  /// How the paragraph's width is measured: as wide as its longest line
+  /// keeps a wrapped label beside its icon.
+  final TextWidthBasis? textWidthBasis;
 
   /// What screen readers say instead of [text], or null for [text].
   final String? semanticsLabel;
@@ -147,6 +158,8 @@ class MmScriptText extends StatelessWidget {
         textAlign: textAlign,
         maxLines: maxLines,
         overflow: overflow,
+        softWrap: softWrap,
+        textWidthBasis: textWidthBasis,
         semanticsLabel: semanticsLabel,
       );
     }
@@ -156,6 +169,8 @@ class MmScriptText extends StatelessWidget {
       textAlign: textAlign,
       maxLines: maxLines,
       overflow: overflow,
+      softWrap: softWrap,
+      textWidthBasis: textWidthBasis,
       semanticsLabel: semanticsLabel,
       strutStyle: mixed.strut,
     );

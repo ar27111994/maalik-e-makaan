@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mm_ui/mm_ui.dart';
+import 'package:mm_ui/src/components/choices/mm_tile_bleed.dart';
 
 import '../../support/testing.dart';
 import 'focus.dart';
+import 'page_edge.dart';
 
 Widget _tile({
   bool? value = false,
@@ -208,6 +210,48 @@ void main() {
           },
         ),
       );
+    });
+
+    group('lines its box up with the page content', () {
+      for (final (variant, width) in const [
+        (MmVariant.light, 360.0),
+        (MmVariant.urdu, 360.0),
+        (MmVariant.light, 1280.0),
+        (MmVariant.largeText, 360.0),
+      ]) {
+        testWidgets('${variant.name}, ${width.toInt()} dp', (tester) async {
+          final content = await pumpOnPage(
+            tester,
+            MmCheckboxTile(
+              label: 'Rent includes electricity',
+              value: false,
+              onChanged: (_) {},
+            ),
+            width: width,
+            variant: variant,
+          );
+          final control = find.byType(Checkbox);
+          // The visible box, not just its target, starts on the content
+          // edge, where the heading and the field start.
+          final box = tester.getRect(control);
+          await expectInkOnEdge(
+            tester,
+            box,
+            content,
+            variant: variant,
+            atStart: true,
+          );
+          expectTileInGutter(tester, control, content);
+          // The box grows with the text as icons do, up to 150%.
+          final ink = await inkIn(tester, box);
+          final scale = variant == MmVariant.largeText ? 1.5 : 1.0;
+          expect(
+            ink.width,
+            closeTo(MmTileBleed.glyph * scale, 2),
+            reason: 'ink $ink',
+          );
+        });
+      }
     });
   });
 }

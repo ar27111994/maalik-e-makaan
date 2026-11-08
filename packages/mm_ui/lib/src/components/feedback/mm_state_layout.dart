@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mm_ui/src/foundation/mm_balanced.dart';
 import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -9,7 +10,9 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// optional extra content below it.
 ///
 /// There is no tile behind the icon (DESIGN.md: no big rounded icon tiles
-/// above headings). Text wraps at any size and is never truncated; figures
+/// above headings). Text wraps at any size and is never truncated, its
+/// lines balanced so a centred title or message never ends on a lone word
+/// (`MmBalanced`); figures
 /// and Latin words in Urdu text are set in the Latin face. Given a
 /// bounded height (the body of a screen), the block is centred in it and
 /// scrolls when large text makes it taller than the space; otherwise it is
@@ -73,10 +76,12 @@ class MmStateLayout extends StatelessWidget {
                 Semantics(
                   container: true,
                   header: true,
-                  child: MmScriptText(
-                    title,
-                    style: text.titleLarge!,
-                    textAlign: TextAlign.center,
+                  child: MmBalanced(
+                    child: MmScriptText(
+                      title,
+                      style: text.titleLarge!,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
                 const SizedBox(height: MmSpace.s2),
@@ -84,10 +89,12 @@ class MmStateLayout extends StatelessWidget {
               Semantics(
                 container: true,
                 liveRegion: liveMessage,
-                child: MmScriptText(
-                  message,
-                  style: text.bodyLarge!.copyWith(color: colors.inkMuted),
-                  textAlign: TextAlign.center,
+                child: MmBalanced(
+                  child: MmScriptText(
+                    message,
+                    style: text.bodyLarge!.copyWith(color: colors.inkMuted),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
               if (action != null) ...[

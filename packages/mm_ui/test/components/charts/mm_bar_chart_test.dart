@@ -1199,6 +1199,132 @@ void main() {
       });
     });
 
+    group('named groups', () {
+      const names = ['Flat 3', 'Flat 5B', 'Shop 7', 'House 12'];
+
+      /// The units chart, [width] wide, at [variant]'s text size.
+      Future<void> pumpUnits(
+        WidgetTester tester, {
+        required double width,
+        MmVariant variant = MmVariant.light,
+      }) => pumpThemed(
+        tester,
+        GoldenPage(
+          width: width,
+          (context, say) => SizedBox(width: width, child: unitsChart(say)),
+        ),
+        variant: variant,
+        size: Size(width + 2 * MmSpace.s4, 1000),
+      );
+
+      for (final variant in const [MmVariant.light, MmVariant.largeText]) {
+        testWidgets('label every bar when the names fit (${variant.name})', (
+          tester,
+        ) async {
+          await pumpUnits(tester, width: 600, variant: variant);
+          expect(_layout(tester).labelsEveryGroup, isTrue);
+          final plot = tester.getRect(_plot);
+          for (final (index, name) in names.indexed) {
+            // The last of the name's texts: the readout above may show it.
+            final label = tester.getRect(find.text(name).last);
+            expect(label.top, greaterThan(plot.top), reason: name);
+            // Under its own bar.
+            expect(
+              label.center.dx,
+              closeTo(_groupCentre(tester, index).dx, 1),
+              reason: name,
+            );
+          }
+        });
+      }
+
+      testWidgets('wrap a name between its words to keep every bar named', (
+        tester,
+      ) async {
+        // As periods, some of the four would lose their labels here.
+        await pumpThemed(
+          tester,
+          const SizedBox(
+            width: 400,
+            child: MmBarChart(
+              semanticSummary: 'Net income by unit.',
+              groupKind: MmBarGroupKind.names,
+              series: [MmBarSeries(label: 'Net income')],
+              groups: [
+                MmBarGroup(label: 'Flat 3', values: [Money.fromRupees(38000)]),
+                MmBarGroup(label: 'Flat 5B', values: [Money.fromRupees(31500)]),
+                MmBarGroup(label: 'Shop 7', values: [Money.fromRupees(-12000)]),
+                MmBarGroup(
+                  label: 'House 12',
+                  values: [Money.fromRupees(104000)],
+                ),
+              ],
+            ),
+          ),
+          variant: MmVariant.largeText,
+          size: const Size(432, 900),
+        );
+        final layout = _layout(tester);
+        expect(layout.labels, hasLength(4));
+        expect(layout.labelsEveryGroup, isTrue);
+        // At least one name took two lines, and none breaks inside a word.
+        final lineHeight = tester.getSize(find.text('Flat 3').last).height;
+        expect([
+          for (final name in names) tester.getSize(find.text(name).last).height,
+        ], contains(greaterThan(lineHeight * 1.5)));
+        expect(brokenWords(tester), isEmpty);
+      });
+
+      for (final locale in const ['en', 'ur']) {
+        testWidgets('show the table, with no chart toggle, when a name '
+            'cannot fit ($locale, 200% on a 320 dp phone)', (tester) async {
+          tester.view
+            ..physicalSize = const Size(320, 900)
+            ..devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            themedApp(
+              Scaffold(
+                body: Padding(
+                  padding: const EdgeInsets.all(MmSpace.s4),
+                  child: GoldenPage(
+                    width: 288,
+                    (context, say) => unitsChart(say),
+                  ),
+                ),
+              ),
+              variant: MmVariant.largeText,
+              locale: Locale(locale),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(_plot, findsNothing);
+          expect(find.byType(MmDataTable), findsOneWidget);
+          expect(find.byType(TextButton), findsNothing);
+          final urdu = locale == 'ur';
+          for (final name
+              in urdu ? ['فلیٹ 3', 'فلیٹ 5 بی', 'دکان 7', 'مکان 12'] : names) {
+            expect(find.textContaining(name), findsOneWidget, reason: name);
+          }
+        });
+      }
+
+      testWidgets('periods still label fewer groups when they do not fit', (
+        tester,
+      ) async {
+        await pumpThemed(
+          tester,
+          _rent(width: 288),
+          variant: MmVariant.largeText,
+          size: const Size(320, 900),
+        );
+        expect(_layout(tester).labels.length, lessThan(6));
+        expect(_layout(tester).labelsEveryGroup, isFalse);
+        expect(find.byType(TextButton), findsOneWidget);
+      });
+    });
+
     group('table view', () {
       testWidgets('swaps the chart for a table of the same amounts', (
         tester,

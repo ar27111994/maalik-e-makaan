@@ -52,7 +52,14 @@ first: it is the source of the visual rules this file turns into code convention
     (public);
   - `MmFocusHighlight` (draw focus only for the keyboard) and `MmFocusWithin` (ring a row);
   - `MmReflow` (a label or title and its value side by side, the value moving under it when they
-    do not fit; a below line; centre, baseline or top alignment; stacked at either edge);
+    do not fit; a below line; centre, baseline or top alignment; stacked at either edge). A
+    label and its value (detail rows, receipt rows, meters, a chart legend, list tiles) stack
+    the value at the end edge (`stackedAtEnd`), so a card's figures end on one edge whichever
+    rows had to move;
+  - `MmWrap` (a `Wrap` whose widest intrinsic width counts its spacing, which Flutter's leaves
+    out): use it for a wrap that `MmReflow` or another intrinsic layout measures;
+  - `MmBalanced` (a paragraph as narrow as it can be without another line, so a centred
+    paragraph never ends on a lone word: empty and error states use it);
   - `MmIconLabel` (an icon and words in one paragraph, the icon growing at most 150%, the
     words split by script as `MmScriptText` splits them) and `MmLineIcon` (an icon centred on
     the first line of the text beside it, growing at most 150%);
@@ -67,7 +74,9 @@ first: it is the source of the visual rules this file turns into code convention
     with an icon and a word);
   - `showMmModalSheet` and `MmSheetHeader` (how every sheet opens, and its title row with a
     close button centred on the title's first line);
-  - `MmDateLocale` (day-first dates for English, Sunday-first weeks);
+  - `MmDateLocale` (day-first dates for English, Sunday-first weeks, and Urdu day names over the
+    date picker's columns through `MmUrduMaterialLocalizations`; open a picker from a context
+    inside it, as `MmDateField` does);
   - `MmFieldLabel` (a field's label with "Required" or "Optional") and `MmFieldError` (its error
     line);
   - `MmButtonStyles` (what labelled buttons add to the theme: room for wrapped labels, the icon
@@ -104,6 +113,10 @@ first: it is the source of the visual rules this file turns into code convention
   `context.mm.amount` or `context.mm.amountLarge` (Latin face, tabular figures, in both
   languages). User data that may be in Latin script (a name typed in English, a CNIC, a phone
   number) goes through `context.mm.styleFor(text, style)` so the Urdu UI sets it in Atkinson.
+  The labels of controls (buttons, the floating action button, segments, tabs, chips,
+  switch, checkbox and radio rows, navigation destinations, banner, snack bar and section
+  actions) go through `MmScriptText` too, so an app word in Latin script in an Urdu label
+  ("English", "100%", "PDF") keeps the Latin face rather than Nastaliq's own Latin glyphs.
   The other way round needs nothing: every style in the Latin face (the English text theme,
   Urdu amounts, `context.mm.amount`) falls back to Nastaliq for Arabic-script letters. A style
   built from `MmTypeScale` directly gets the same fallback from
@@ -136,9 +149,15 @@ first: it is the source of the visual rules this file turns into code convention
   room for Nastaliq, an icon-sized check), `Badge` (Latin caption with tabular figures in both
   languages) and `TabBar` (cobalt label and underline over a hairline rule). A theme cannot
   size tabs or limit a badge's text scale: `MmTabs` makes tabs 48 dp targets, and a badge
-  should clamp its text scaling as `MmAdaptiveScaffold` does.
+  should clamp its text scaling as `MmAdaptiveScaffold` does. Material's `Badge` overlaps its
+  icon (and, in Urdu, hangs into it): `MmAdaptiveScaffold` places a destination's count past
+  the icon's top end corner itself, clear of the glyph in both directions.
 - **Icons.** `MmIcons` only. Icons that point mirror in Urdu, trend arrows included
-  (`trendUp`, `trendDown`, `trendFlat`), since time runs from the start edge.
+  (`trendUp`, `trendDown`, `trendFlat`), since time runs from the start edge. Icons beside
+  text grow with it, at most 150% (`MmIconLabel.scaledSize`), and so do the controls that
+  stand for a choice: checkboxes, radio buttons, switches and a chip's check. The icon font
+  keeps each glyph where Lucide draws it, centred in its square (`make icons` sets each
+  glyph's side bearing, and `make icons-check` fails on a glyph off its place).
 - **Analysis.** `very_good_analysis` with `--fatal-infos`: no ignores, no `// ignore:`
   comments.
 
@@ -184,8 +203,9 @@ first: it is the source of the visual rules this file turns into code convention
   under a modal barrier. Large text (3:1) is 24 dp, or 18.67 dp bold, at the size the style
   sets. Text a `CustomPainter` draws is not a paragraph: test its colours against the theme
   roles directly.
-- Fonts are real (`test/flutter_test_config.dart` loads Atkinson, Nastaliq and MmIcons), so
-  goldens show the true rendering. Look at every golden you record.
+- Fonts are real (`test/flutter_test_config.dart` loads Atkinson, Nastaliq, MmIcons and
+  Material's icon font, which stock widgets such as the date picker draw their arrows with),
+  so goldens show the true rendering. Look at every golden you record.
 - Run `flutter test --no-pub <paths>` (several packages share the workspace lockfile) and
   `dart analyze --fatal-infos <paths>`.
 - Coverage: every line of `lib/src/components` and `lib/src/foundation` is exercised. Shared
@@ -208,6 +228,12 @@ Notes on composing them:
 
 - **Form sections** (`MmFormSection`) title their group of fields in `titleLarge`, one step
   under a screen's headline, so a long form reads as headed parts.
+- **Choice rows line up with fields.** `MmSwitchTile`, `MmCheckboxTile` and the rows of
+  `MmRadioGroup` reach 16 dp into the page's gutter on both sides (their ink and focus ring
+  do; taps stay inside the column). The visible box, ring or track, not just the touch
+  target, sits on the content edge with the fields and headings around them: a checkbox's
+  box and a radio's ring start there, a switch's track ends there. A radio option's icon
+  sits beside its label, and the radio grows with the text as that icon does.
 - **Snack bars need a `Scaffold`.** `MmAdaptiveScaffold` gives its body a `ScaffoldMessenger`
   of its own, so a snack bar shown from a screen appears on that screen's `Scaffold`, above
   its bottom bar. A screen inside it must therefore be (or hold) a `Scaffold`; an `MmPage` is
@@ -217,5 +243,14 @@ Notes on composing them:
 - **Value fields** (`MmMoneyField`, `MmCnicField`, `MmPhoneField`) report the value, or null
   for an empty field and for a typo alike; give an optional field `invalidText` or read
   `onEntryChanged` (`MmValueEntry.isInvalid`) so a mistake is not saved as "none".
+- **A rupee field keeps its amount against its currency word.** The money format writes
+  "Rs" before the figures in English and "روپے" after them in Urdu, and the field's currency
+  sits at its edge as that word's place says: so its amount starts at the start edge in
+  English and ends at the end edge (the left) in Urdu, where Urdu amounts sit in lists, rows
+  and receipts. Text, CNIC, phone and date fields start at the start edge in both languages.
+  This is by design; do not realign one field to match the others.
+- **Bar charts of things, not periods,** pass `groupKind: MmBarGroupKind.names`: every bar
+  keeps its name, wrapped between words, and the chart shows its table where a name cannot
+  fit (large text on a phone). Months may lose every other label; units may not.
 
 The gallery app in `example/` shows every component in every variant.

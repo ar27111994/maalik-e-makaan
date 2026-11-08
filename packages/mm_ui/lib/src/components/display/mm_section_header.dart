@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_reflow.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/foundation/mm_user_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -10,10 +11,11 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// The title is set in the title style, in sentence case, never in tracked
 /// capitals, and screen readers announce it as a heading so people can jump
 /// between sections. It wraps at large text sizes; when the action does not
-/// fit beside the title it moves under the text, at the start edge. The
-/// action's words line up with the edge of the content (the end edge beside
-/// the title, the start edge under it): its button's padding hangs into the
-/// page's margin, as far as keeps a 48 dp target inside the column.
+/// fit beside the title it moves under the text, still at the end edge.
+/// The action's words end on the edge of the content, whatever their
+/// length and whether the action is enabled: its button's padding hangs
+/// into the page's margin, and a short action's button grows inward so a
+/// 48 dp target stays inside the column.
 ///
 /// Don't use it for the screen's own title (the app bar has it) or for a
 /// label above a form field (fields carry their labels).
@@ -69,6 +71,9 @@ class MmSectionHeader extends StatelessWidget {
     final actionLabel = this.actionLabel;
     return MmReflow(
       endOverhang: _actionPadding,
+      // Under the title too, the action keeps to the end edge, where its
+      // words end whatever their length.
+      stackedAtEnd: true,
       start: Semantics(
         container: true,
         header: true,
@@ -76,7 +81,7 @@ class MmSectionHeader extends StatelessWidget {
       ),
       below: subtitle == null
           ? null
-          : Text(
+          : MmScriptText(
               subtitle,
               style: text.bodyMedium!.copyWith(color: mm.colors.inkMuted),
             ),
@@ -88,8 +93,15 @@ class MmSectionHeader extends StatelessWidget {
                 padding: WidgetStatePropertyAll(
                   EdgeInsetsDirectional.symmetric(horizontal: _actionPadding),
                 ),
+                // A short action ("Edit") still keeps a 48 dp target inside
+                // the column with its padding hanging past the edge: the
+                // button grows inward and its words keep to its end.
+                minimumSize: WidgetStatePropertyAll(
+                  Size(MmSize.minTarget + _actionPadding, MmSize.minTarget),
+                ),
+                alignment: AlignmentDirectional.centerEnd,
               ),
-              child: Text(actionLabel),
+              child: MmScriptText(actionLabel, style: const TextStyle()),
             ),
     );
   }

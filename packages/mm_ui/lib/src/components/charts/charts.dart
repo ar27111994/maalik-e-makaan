@@ -2,7 +2,8 @@
 /// data table.
 library;
 
-export 'mm_bar_chart.dart' show MmBarChart, MmBarFill, MmBarGroup, MmBarSeries;
+export 'mm_bar_chart.dart'
+    show MmBarChart, MmBarFill, MmBarGroup, MmBarGroupKind, MmBarSeries;
 export 'mm_data_table.dart' show MmDataColumn, MmDataTable;
 export 'mm_proportion_bar.dart'
     show MmProportionBar, MmProportionSegment, MmSegmentTone;
