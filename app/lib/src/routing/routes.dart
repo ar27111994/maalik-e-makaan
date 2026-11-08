@@ -18,6 +18,9 @@ abstract final class Routes {
   static const invite = '/invite';
 
   static const home = '/';
+  static const search = '/search';
+  static const reports = '/reports';
+  static const taxYear = '/reports/tax-year';
   static const properties = '/properties';
   static const newProperty = '/properties/new';
   static String property(String id) => '/properties/$id';
@@ -40,8 +43,39 @@ abstract final class Routes {
   static String lease(String id) => '/leases/$id';
   static String editLease(String id) => '/leases/$id/edit';
   static const money = '/money';
+  static String ledger(String leaseId) => '/money/leases/$leaseId';
+  static String recordPayment(String leaseId) => '/money/leases/$leaseId/pay';
+  static String receipt(String leaseId, String paymentId) =>
+      '/money/leases/$leaseId/receipts/$paymentId';
+  static const cash = '/money/cash';
   static const more = '/more';
+  static const expenses = '/more/expenses';
+
+  /// A new expense, for the maintenance job [requestId] when given.
+  static String newExpense({String? requestId}) => Uri(
+    path: '/more/expenses/new',
+    queryParameters: {'request': ?requestId},
+  ).toString();
+  static String expense(String id) => '/more/expenses/$id';
+  static String editExpense(String id) => '/more/expenses/$id/edit';
+  static const utilities = '/more/utilities';
+  static const newUtility = '/more/utilities/new';
+  static String utility(String id) => '/more/utilities/$id';
+  static String editUtility(String id) => '/more/utilities/$id/edit';
+  static String utilityBill(String billId) => '/more/utilities/bills/$billId';
+  static String meterReading(String readingId) =>
+      '/more/utilities/readings/$readingId';
+  static const maintenance = '/more/maintenance';
+
+  /// A new maintenance request, at [propertyId] (and [unitId]) when given.
+  static String newMaintenance({String? propertyId, String? unitId}) => Uri(
+    path: '/more/maintenance/new',
+    queryParameters: {'property': ?propertyId, 'unit': ?unitId},
+  ).toString();
+  static String maintenanceRequest(String id) => '/more/maintenance/$id';
+  static String editMaintenance(String id) => '/more/maintenance/$id/edit';
   static const team = '/more/team';
+  static const notifications = '/more/notifications';
   static const inviteMember = '/more/team/invite';
   static const portfolioDetails = '/more/portfolio';
   static const settings = '/more/settings';

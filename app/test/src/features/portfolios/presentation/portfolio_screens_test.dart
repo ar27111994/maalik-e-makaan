@@ -136,9 +136,28 @@ void main() {
       expect(find.text('Gulberg Houses'), findsOneWidget);
       expect(find.text('Your role: Owner'), findsOneWidget);
       expect(find.byType(MmNameplate), findsOneWidget);
+      await tester.ensureVisible(find.text('Settings'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Settings'));
       await tester.pumpAndSettle();
       expect(routeShown(Routes.settings), findsOneWidget);
+    });
+
+    testWidgets('leads to operations, the reports and search', (tester) async {
+      for (final (title, route) in [
+        ('Expenses', Routes.expenses),
+        ('Utilities', Routes.utilities),
+        ('Maintenance', Routes.maintenance),
+        ('Reports and statements', Routes.reports),
+        ('Search', Routes.search),
+      ]) {
+        await pumpScreen(tester, MoreScreen.new);
+        await tester.ensureVisible(find.text(title));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(title));
+        await tester.pumpAndSettle();
+        expect(routeShown(route), findsOneWidget, reason: title);
+      }
     });
 
     testWidgets('switches portfolios', (tester) async {

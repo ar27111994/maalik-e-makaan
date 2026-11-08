@@ -20,6 +20,7 @@ sealed class AppFailure implements Exception {
     // The request never reached the function (no connection, DNS, TLS).
     FunctionsFetchException() => const NetworkFailure(),
     FunctionException() => _fromFunction(error),
+    StorageException() => _fromStorage(error),
     // package:http wraps socket errors in ClientException on every platform.
     TimeoutException() || ClientException() => const NetworkFailure(),
     // A model refused the server's answer (a missing or mistyped field):
@@ -109,6 +110,29 @@ sealed class AppFailure implements Exception {
       ),
       (503, _) => const TemporarilyUnavailable(),
       _ => ServerFailure('function:${error.status}'),
+    };
+  }
+
+  /// Storage answers `{"statusCode", "error", "message"}`; the status in
+  /// the body is the one that counts (older versions answer 400 with a
+  /// body that says 403 or 409).
+  static AppFailure _fromStorage(StorageException error) {
+    final message = error.message.toLowerCase();
+    if (error.error == 'InvalidJWT' || message.contains('jwt')) {
+      return const SessionExpired();
+    }
+    if (message.contains('row-level security')) return const Forbidden();
+    return switch (error.statusCode) {
+      '401' => const SessionExpired(),
+      '403' => const Forbidden(),
+      '404' => const NotFoundFailure(),
+      '409' => const ConflictFailure(),
+      // The bucket's file_size_limit and allowed_mime_types.
+      '413' => const RejectedFailure('file_too_large'),
+      '415' => const RejectedFailure('file_type_not_allowed'),
+      '429' => const RateLimited(null),
+      '503' || '504' => const TemporarilyUnavailable(),
+      final code => ServerFailure('storage:${code ?? 'unknown'}'),
     };
   }
 

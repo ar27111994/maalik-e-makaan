@@ -20,9 +20,12 @@ import 'package:mm_ui/mm_ui.dart';
 /// of its province, its units with their occupancy, and (for the roles
 /// that may) editing, archiving and deleting it.
 class PropertyDetailScreen extends ConsumerWidget {
-  const new({required this.propertyId, super.key});
+  const new({required this.propertyId, this.extras, super.key});
 
   final String propertyId;
+
+  /// Content from later features (the property's documents).
+  final Widget Function(Property property)? extras;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,6 +37,7 @@ class PropertyDetailScreen extends ConsumerWidget {
         property != null &&
         !property.archived &&
         (role?.runsProperties ?? false);
+    final extras = this.extras;
     return MmPage(
       title: property?.name ?? l10n.navProperties,
       actions: [
@@ -72,6 +76,10 @@ class PropertyDetailScreen extends ConsumerWidget {
             _Details(property: property),
             const SizedBox(height: MmSpace.s8),
             _Units(property: property, role: role),
+            if (extras != null) ...[
+              const SizedBox(height: MmSpace.s8),
+              extras(property),
+            ],
             if (role != null && role.runsProperties) ...[
               const SizedBox(height: MmSpace.s8),
               _Actions(property: property, role: role),

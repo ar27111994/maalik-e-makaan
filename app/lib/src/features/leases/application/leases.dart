@@ -6,6 +6,7 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease_repository.dart';
+import 'package:maalik_e_makaan/src/features/ledger/application/ledger.dart';
 import 'package:maalik_e_makaan/src/features/properties/application/properties.dart';
 import 'package:mm_core/mm_core.dart';
 
@@ -122,7 +123,18 @@ final class LeaseController extends SwrNotifier<LeaseDetail> {
 
   Future<void> _changed() async {
     ref.invalidate(leasesProvider);
+    _moneyChanged();
     await reload();
+  }
+
+  /// The tenancy's money is read again: changing its terms re-bills the
+  /// deposit and moves rent dues, a rent change re-bills future months,
+  /// ending it voids later dues and keeps their money as credit, and
+  /// deleting it takes it off the who-owes-what list.
+  void _moneyChanged() {
+    ref
+      ..invalidate(tenancyLedgerProvider(leaseId))
+      ..invalidate(receivablesProvider);
   }
 
   /// Saves the editable terms.
@@ -156,6 +168,7 @@ final class LeaseController extends SwrNotifier<LeaseDetail> {
     final lease = state.value?.value.lease;
     await _repository.endLease(leaseId, movedOutOn: movedOutOn, reason: reason);
     if (lease != null) _occupancyChanged(ref, lease);
+    _moneyChanged();
     await reload();
   }
 
@@ -164,6 +177,7 @@ final class LeaseController extends SwrNotifier<LeaseDetail> {
     final lease = state.value?.value.lease;
     await _repository.deleteLease(leaseId);
     if (lease != null) _occupancyChanged(ref, lease);
+    _moneyChanged();
   }
 
   Future<void> addOccupant(String portfolioId, Occupant occupant) async {

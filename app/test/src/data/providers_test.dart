@@ -7,6 +7,8 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
 import 'package:maalik_e_makaan/src/features/properties/data/property_repository.dart';
@@ -64,6 +66,12 @@ void main() {
       container.read(leaseRepositoryProvider),
       isA<SupabaseLeaseRepository>(),
     );
+    expect(
+      container.read(documentRepositoryProvider),
+      isA<SupabaseDocumentRepository>(),
+    );
+    expect(container.read(documentPickerProvider), isA<PluginDocumentPicker>());
+    expect(container.read(filePreparerProvider), prepareFile);
     expect(container.read(linkOpenerProvider), isNotNull);
     expect(
       whatsAppLink('hi', phoneDigits: '923001234567').toString(),

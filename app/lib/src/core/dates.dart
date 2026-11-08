@@ -17,6 +17,15 @@ String _dateLocale(BuildContext context) {
 String dateLabel(BuildContext context, CalendarDate date) =>
     DateFormat.yMMMd(_dateLocale(context)).format(date.toDateTimeUtc());
 
+/// [date] as [dateLabel] writes it, with its day kept beside its month
+/// (a no-break space between them): for a date inside a detail line or a
+/// sentence, where a line could otherwise break between the day and the
+/// month and leave the day beside an amount ("Rs 5,000 · 11" /
+/// "Oct 2026"). The year may still go to the next line, so a date never
+/// has to break inside a number at large text sizes.
+String dateInLine(BuildContext context, CalendarDate date) =>
+    dateLabel(context, date).replaceFirst(' ', '\u00A0');
+
 /// The moment [at] in Pakistan time and the app's language:
 /// "14 Nov 2026, 10:42 AM".
 String momentLabel(BuildContext context, DateTime at) {
@@ -45,6 +54,10 @@ String timeLabel(BuildContext context, DateTime local) {
 /// The month of [period] in the app's language: "November 2026".
 String monthLabel(BuildContext context, MonthPeriod period) =>
     DateFormat.yMMMM(_dateLocale(context)).format(period.first.toDateTimeUtc());
+
+/// The month of [period] in a word, as an axis names it: "Nov".
+String shortMonthLabel(BuildContext context, MonthPeriod period) =>
+    DateFormat.MMM(_dateLocale(context)).format(period.first.toDateTimeUtc());
 
 /// The Pakistan calendar date of the moment [at].
 CalendarDate pakistanDate(DateTime at) =>

@@ -13,10 +13,24 @@ import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
+import 'package:maalik_e_makaan/src/features/handovers/data/handover_repository.dart';
+import 'package:maalik_e_makaan/src/features/insights/data/insights_repository.dart';
+import 'package:maalik_e_makaan/src/features/insights/presentation/statement_sheets.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease_repository.dart';
+import 'package:maalik_e_makaan/src/features/ledger/data/ledger_repository.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/pdf/document_share.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/pdf/ledger_pdfs.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/receipt_screen.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/tenancy_ledger_screen.dart';
+import 'package:maalik_e_makaan/src/features/notifications/data/notification_repository.dart';
+import 'package:maalik_e_makaan/src/features/operations/data/operations_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
 import 'package:maalik_e_makaan/src/features/properties/data/property_repository.dart';
+import 'package:maalik_e_makaan/src/features/reminders/application/reminders.dart';
+import 'package:maalik_e_makaan/src/features/reminders/data/reminder_repository.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
 import 'package:maalik_e_makaan/src/features/tenants/data/tenant_repository.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
@@ -26,9 +40,16 @@ import 'package:mm_ui/mm_ui.dart';
 
 import 'contrast.dart';
 import 'fakes.dart';
+import 'insights_fakes.dart';
+import 'money_fakes.dart';
+import 'operations_fakes.dart';
 
 export 'contrast.dart';
 export 'fakes.dart';
+export 'insights_fakes.dart';
+export 'money_fakes.dart';
+export 'operations_fakes.dart';
+export 'words.dart';
 
 /// The ways every screen is checked (as in mm_ui's harness): each theme
 /// mode, Urdu (right to left, Nastaliq), and English at 200% text size.
@@ -89,6 +110,25 @@ final class TestApp {
   final FakePropertyRepository properties = FakePropertyRepository();
   final FakeTenantRepository tenants = FakeTenantRepository();
   final FakeLeaseRepository leases = FakeLeaseRepository();
+  final FakeDocumentRepository documents = FakeDocumentRepository();
+  final FakeDocumentPicker picker = FakeDocumentPicker();
+  final FakeLedgerRepository ledger = FakeLedgerRepository();
+  final FakeHandoverRepository handovers = FakeHandoverRepository();
+  final FakeReminderRepository reminders = FakeReminderRepository();
+  final FakeNotificationRepository notifications = FakeNotificationRepository();
+  final FakeSharer sharer = FakeSharer();
+  final FakeOperationsRepository operations = FakeOperationsRepository();
+  final FakeInsightsRepository insights = FakeInsightsRepository();
+
+  /// The documents the app made, as (kind, language) pairs.
+  final made = <(String, DocumentLanguage)>[];
+
+  /// What the report makers throw instead of making a document.
+  Error? makeError;
+
+  /// Now, for the reminders' etiquette: Saturday 7 November 2026, 10 AM in
+  /// Pakistan.
+  DateTime now = DateTime.utc(2026, 11, 7, 5);
   final MemorySettingsStore settings;
   final MemoryStore store = MemoryStore();
   late final SwrCache cache = SwrCache(store);
@@ -110,6 +150,34 @@ final class TestApp {
     propertyRepositoryProvider.overrideWithValue(properties),
     tenantRepositoryProvider.overrideWithValue(tenants),
     leaseRepositoryProvider.overrideWithValue(leases),
+    documentRepositoryProvider.overrideWithValue(documents),
+    documentPickerProvider.overrideWithValue(picker),
+    filePreparerProvider.overrideWithValue(picker.prepare),
+    ledgerRepositoryProvider.overrideWithValue(ledger),
+    handoverRepositoryProvider.overrideWithValue(handovers),
+    reminderRepositoryProvider.overrideWithValue(reminders),
+    notificationRepositoryProvider.overrideWithValue(notifications),
+    operationsRepositoryProvider.overrideWithValue(operations),
+    documentSharerProvider.overrideWithValue(sharer.share),
+    insightsRepositoryProvider.overrideWithValue(insights),
+    ownerStatementMakerProvider.overrideWithValue((statement, setup) async {
+      if (makeError case final error?) throw error;
+      made.add(('owner statement', setup.language));
+      return fakePdf;
+    }),
+    taxYearMakerProvider.overrideWithValue((statement, setup) async {
+      made.add(('tax year', setup.language));
+      return fakePdf;
+    }),
+    receiptMakerProvider.overrideWithValue((detail, setup) async {
+      made.add(('receipt', setup.language));
+      return fakePdf;
+    }),
+    statementMakerProvider.overrideWithValue((statement, setup) async {
+      made.add(('statement', setup.language));
+      return fakePdf;
+    }),
+    nowProvider.overrideWithValue(() => now),
     // The day every test's dates and deadlines are measured from.
     todayProvider.overrideWithValue(CalendarDate(2026, 11, 7)),
     linkOpenerProvider.overrideWithValue((link) async {
@@ -140,6 +208,9 @@ GoRouter testRouter(Widget Function() screen, {Object? extra}) => GoRouter(
       Routes.createPortfolio,
       Routes.invite,
       Routes.home,
+      Routes.search,
+      Routes.reports,
+      Routes.taxYear,
       Routes.more,
       Routes.team,
       Routes.inviteMember,
@@ -160,6 +231,26 @@ GoRouter testRouter(Widget Function() screen, {Object? extra}) => GoRouter(
       '/leases/new',
       '/leases/:leaseId',
       '/leases/:leaseId/edit',
+      Routes.money,
+      Routes.cash,
+      '/money/leases/:leaseId',
+      '/money/leases/:leaseId/pay',
+      '/money/leases/:leaseId/receipts/:paymentId',
+      Routes.notifications,
+      Routes.expenses,
+      '/more/expenses/new',
+      '/more/expenses/:expenseId',
+      '/more/expenses/:expenseId/edit',
+      Routes.utilities,
+      Routes.newUtility,
+      '/more/utilities/bills/:billId',
+      '/more/utilities/readings/:readingId',
+      '/more/utilities/:accountId',
+      '/more/utilities/:accountId/edit',
+      Routes.maintenance,
+      '/more/maintenance/new',
+      '/more/maintenance/:requestId',
+      '/more/maintenance/:requestId/edit',
     ])
       GoRoute(
         path: path,
@@ -176,6 +267,7 @@ GoRouter testRouter(Widget Function() screen, {Object? extra}) => GoRouter(
 /// Pumps [screen] as the app's page for [variant] on a window of [size]
 /// (one device pixel per logical pixel) with [app]'s fakes, and lets it
 /// settle unless [settle] is false (a busy or loading screen animates).
+/// [textScale] replaces the variant's text size (Urdu at 200%).
 Future<TestApp> pumpScreen(
   WidgetTester tester,
   Widget Function() screen, {
@@ -184,6 +276,7 @@ Future<TestApp> pumpScreen(
   Size size = const Size(360, 740),
   Object? extra,
   bool settle = true,
+  double? textScale,
 }) async {
   final testApp = app ?? TestApp();
   tester.view
@@ -204,8 +297,9 @@ Future<TestApp> pumpScreen(
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: appLocalizationsDelegates,
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(variant.textScale)),
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale ?? variant.textScale),
+          ),
           child: MmFormats(
             money: MoneyFormat(
               language: variant.locale.languageCode == 'ur'

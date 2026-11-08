@@ -106,7 +106,15 @@ void main() {
     sizes: _large(1300),
   );
 
-  screenGoldenEveryVariant('more', MoreScreen.new, sizes: _large(900));
+  screenGoldenEveryVariant(
+    'more',
+    MoreScreen.new,
+    size: const Size(360, 1190),
+    sizes: {
+      MmVariant.largeText: const Size(360, 2510),
+      MmVariant.urdu: const Size(360, 1590),
+    },
+  );
 
   screenGoldenEveryVariant(
     'portfolio_switcher',

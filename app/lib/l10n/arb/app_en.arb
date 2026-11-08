@@ -2999,5 +2999,4683 @@
   "moreMonthsAction": "More months",
   "@moreMonthsAction": {
     "description": "Tooltip of the button that raises months."
+  },
+  "documentsSection": "Documents",
+  "@documentsSection": {
+    "description": "Heading of a record's documents."
+  },
+  "documentsSectionHelp": "Photos and PDFs, seen only by this portfolio's team.",
+  "@documentsSectionHelp": {
+    "description": "Under the documents heading: what is kept and who sees it."
+  },
+  "addDocumentAction": "Add document",
+  "@addDocumentAction": {
+    "description": "Button and sheet title for adding a document."
+  },
+  "documentsEmpty": "No documents yet.",
+  "@documentsEmpty": {
+    "description": "A record without documents."
+  },
+  "documentsEmptyTenant": "No documents yet. Add photos of the CNIC, front and back.",
+  "@documentsEmptyTenant": {
+    "description": "A tenant without documents, when the member may add them: what to add."
+  },
+  "documentsEmptyLease": "No documents yet. Add the signed agreement and the police registration.",
+  "@documentsEmptyLease": {
+    "description": "A tenancy without documents, when the member may add them: what to add."
+  },
+  "documentsEmptyUnit": "No documents yet. Add photos of the unit and its meters.",
+  "@documentsEmptyUnit": {
+    "description": "A unit without documents, when the member may add them: what to add."
+  },
+  "documentsEmptyProperty": "No documents yet. Add the property papers and photos.",
+  "@documentsEmptyProperty": {
+    "description": "A property without documents, when the member may add them: what to add."
+  },
+  "loadingDocuments": "Loading documents",
+  "@loadingDocuments": {
+    "description": "Spoken while documents load."
+  },
+  "documentsLoadFailedTitle": "Documents could not be loaded",
+  "@documentsLoadFailedTitle": {
+    "description": "Heading when the documents fail to load."
+  },
+  "documentKindCnicFront": "CNIC, front",
+  "@documentKindCnicFront": {
+    "description": "Kind of document: the front of a CNIC."
+  },
+  "documentKindCnicBack": "CNIC, back",
+  "@documentKindCnicBack": {
+    "description": "Kind of document: the back of a CNIC."
+  },
+  "documentKindPhoto": "Photo",
+  "@documentKindPhoto": {
+    "description": "Kind of document: a photo."
+  },
+  "documentKindTenancyAgreement": "Tenancy agreement",
+  "@documentKindTenancyAgreement": {
+    "description": "Kind of document: the signed tenancy agreement."
+  },
+  "documentKindPoliceRegistration": "Police registration",
+  "@documentKindPoliceRegistration": {
+    "description": "Kind of document: the police tenant-registration form or slip."
+  },
+  "documentKindRentRegistration": "Rent registration",
+  "@documentKindRentRegistration": {
+    "description": "Kind of document: a tenancy registered with a government office."
+  },
+  "documentKindUtilityBill": "Utility bill",
+  "@documentKindUtilityBill": {
+    "description": "Kind of document: an electricity, gas or water bill."
+  },
+  "documentKindReceipt": "Receipt",
+  "@documentKindReceipt": {
+    "description": "Kind of document: a receipt."
+  },
+  "documentKindInvoice": "Invoice",
+  "@documentKindInvoice": {
+    "description": "Kind of document: a vendor's invoice."
+  },
+  "documentKindMeterPhoto": "Meter photo",
+  "@documentKindMeterPhoto": {
+    "description": "Kind of document: a photo of a meter reading."
+  },
+  "documentKindPropertyPaper": "Property papers",
+  "@documentKindPropertyPaper": {
+    "description": "Kind of document: ownership papers of a property."
+  },
+  "documentKindOther": "Other",
+  "@documentKindOther": {
+    "description": "Kind of document: anything else."
+  },
+  "fileTypeJpeg": "JPEG photo",
+  "@fileTypeJpeg": {
+    "description": "A file's type."
+  },
+  "fileTypePng": "PNG image",
+  "@fileTypePng": {
+    "description": "A file's type."
+  },
+  "fileTypeWebp": "WebP image",
+  "@fileTypeWebp": {
+    "description": "A file's type."
+  },
+  "fileTypeHeic": "HEIC photo",
+  "@fileTypeHeic": {
+    "description": "A file's type."
+  },
+  "fileTypePdf": "PDF",
+  "@fileTypePdf": {
+    "description": "A file's type."
+  },
+  "fileFormatJpeg": "JPEG",
+  "@fileFormatJpeg": {
+    "description": "A file's format, short, in a list row."
+  },
+  "fileFormatPng": "PNG",
+  "@fileFormatPng": {
+    "description": "A file's format, short, in a list row."
+  },
+  "fileFormatWebp": "WebP",
+  "@fileFormatWebp": {
+    "description": "A file's format, short, in a list row."
+  },
+  "fileFormatHeic": "HEIC",
+  "@fileFormatHeic": {
+    "description": "A file's format, short, in a list row."
+  },
+  "fileFormatPdf": "PDF",
+  "@fileFormatPdf": {
+    "description": "A file's format, short, in a list row."
+  },
+  "fileSizeKb": "{size}\u00a0KB",
+  "@fileSizeKb": {
+    "description": "A file's size in kilobytes.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "fileSizeMb": "{size}\u00a0MB",
+  "@fileSizeMb": {
+    "description": "A file's size in megabytes.",
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "takePhotoAction": "Take a photo",
+  "@takePhotoAction": {
+    "description": "Button that opens the camera."
+  },
+  "chooseFileAction": "Choose a file",
+  "@chooseFileAction": {
+    "description": "Button that opens the device's files."
+  },
+  "chooseAnotherFileAction": "Choose another file",
+  "@chooseAnotherFileAction": {
+    "description": "Button that replaces the chosen file."
+  },
+  "addDocumentHelp": "Add a photo, or a PDF of up to 10 MB. Photos are made smaller first.",
+  "@addDocumentHelp": {
+    "description": "What can be added."
+  },
+  "preparingFile": "Getting the file ready",
+  "@preparingFile": {
+    "description": "Spoken while a picked file is checked and made smaller."
+  },
+  "documentKindLabel": "Kind",
+  "@documentKindLabel": {
+    "description": "Label of a document's kind."
+  },
+  "documentNameLabel": "Name",
+  "@documentNameLabel": {
+    "description": "Label of a document's name."
+  },
+  "documentNameHelp": "Left empty, it is named after its kind.",
+  "@documentNameHelp": {
+    "description": "Helper under a document's name."
+  },
+  "uploadAction": "Upload",
+  "@uploadAction": {
+    "description": "Button that uploads a document."
+  },
+  "documentCompressed": "Made smaller from {from} to {to}.",
+  "@documentCompressed": {
+    "description": "A photo was compressed before upload.",
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "documentAdded": "{name} added.",
+  "@documentAdded": {
+    "description": "After uploading a document.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "documentSaved": "{name} saved.",
+  "@documentSaved": {
+    "description": "After renaming a document.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "documentDeleted": "{name} deleted.",
+  "@documentDeleted": {
+    "description": "After deleting a document.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "openDocumentAction": "Open",
+  "@openDocumentAction": {
+    "description": "Button that opens a document's file."
+  },
+  "downloadDocumentAction": "Download",
+  "@downloadDocumentAction": {
+    "description": "Button that downloads a document's file."
+  },
+  "editDocumentAction": "Rename or change kind",
+  "@editDocumentAction": {
+    "description": "Button that edits a document."
+  },
+  "deleteDocumentTitle": "Delete {name}?",
+  "@deleteDocumentTitle": {
+    "description": "Confirming deleting a document.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteDocumentBody": "The document and its file are deleted for everyone in this portfolio. This cannot be undone.",
+  "@deleteDocumentBody": {
+    "description": "What deleting a document does."
+  },
+  "documentAddedOnLabel": "Added on",
+  "@documentAddedOnLabel": {
+    "description": "Label of the date a document was added."
+  },
+  "documentFileLabel": "File",
+  "@documentFileLabel": {
+    "description": "Label of a document's file type and size."
+  },
+  "documentSheetTitle": "Document",
+  "@documentSheetTitle": {
+    "description": "Title of the sheet of one document (its name is shown inside)."
+  },
+  "documentPreviewLabel": "Preview of the photo",
+  "@documentPreviewLabel": {
+    "description": "Spoken for the picture of a photo about to be uploaded."
+  },
+  "documentNameTooLong": "This name is too long. Shorten it.",
+  "@documentNameTooLong": {
+    "description": "A document name longer than the database takes (it counts letters and their marks separately)."
+  },
+  "reasonFileTooLarge": "This file is larger than 10 MB. Choose a smaller one, or take a photo of it.",
+  "@reasonFileTooLarge": {
+    "description": "A file too large for the bucket."
+  },
+  "reasonFileTypeNotAllowed": "Only photos (JPEG, PNG, WebP or HEIC) and PDFs can be added.",
+  "@reasonFileTypeNotAllowed": {
+    "description": "A file of a type the bucket refuses."
+  },
+  "reasonFileUnreadable": "This file could not be read. Choose another file, or take a photo of the paper.",
+  "@reasonFileUnreadable": {
+    "description": "A photo whose file is damaged, so it could not be checked."
+  },
+  "reasonPickerAccessDenied": "Maalik-e-Makaan may not use the camera or your files. Allow it in your phone's settings.",
+  "@reasonPickerAccessDenied": {
+    "description": "The camera or files were refused to the app."
+  },
+  "chargeKindRent": "Rent",
+  "@chargeKindRent": {
+    "description": "A charge for rent."
+  },
+  "chargeKindDeposit": "Security deposit",
+  "@chargeKindDeposit": {
+    "description": "A charge for the security deposit."
+  },
+  "chargeKindElectricity": "Electricity",
+  "@chargeKindElectricity": {
+    "description": "A charge for electricity."
+  },
+  "chargeKindGas": "Gas",
+  "@chargeKindGas": {
+    "description": "A charge for gas."
+  },
+  "chargeKindWater": "Water",
+  "@chargeKindWater": {
+    "description": "A charge for water."
+  },
+  "chargeKindInternet": "Internet",
+  "@chargeKindInternet": {
+    "description": "A charge for internet."
+  },
+  "chargeKindMaintenance": "Maintenance",
+  "@chargeKindMaintenance": {
+    "description": "A charge for maintenance."
+  },
+  "chargeKindSociety": "Society charges",
+  "@chargeKindSociety": {
+    "description": "A charge for a housing society's fees."
+  },
+  "chargeKindLateFee": "Late fee",
+  "@chargeKindLateFee": {
+    "description": "A late fee."
+  },
+  "chargeKindDamages": "Damages",
+  "@chargeKindDamages": {
+    "description": "A charge for damage to the property."
+  },
+  "chargeKindOther": "Other",
+  "@chargeKindOther": {
+    "description": "A charge of another kind."
+  },
+  "methodCash": "Cash",
+  "@methodCash": {
+    "description": "Paid in cash."
+  },
+  "methodBankTransfer": "Bank transfer",
+  "@methodBankTransfer": {
+    "description": "Paid by bank transfer."
+  },
+  "methodRaast": "Raast",
+  "@methodRaast": {
+    "description": "Paid through Raast, the State Bank's instant payments."
+  },
+  "methodJazzCash": "JazzCash",
+  "@methodJazzCash": {
+    "description": "Paid through JazzCash."
+  },
+  "methodEasypaisa": "Easypaisa",
+  "@methodEasypaisa": {
+    "description": "Paid through Easypaisa."
+  },
+  "methodCheque": "Cheque",
+  "@methodCheque": {
+    "description": "Paid by cheque."
+  },
+  "methodCard": "Card",
+  "@methodCard": {
+    "description": "Paid by card."
+  },
+  "methodDeposit": "From the deposit",
+  "@methodDeposit": {
+    "description": "Settled from the security deposit."
+  },
+  "methodOther": "Other",
+  "@methodOther": {
+    "description": "Paid another way."
+  },
+  "methodLabel": "Paid by",
+  "@methodLabel": {
+    "description": "Label of the payment method field."
+  },
+  "chargeForMonth": "{kind}, {month}",
+  "@chargeForMonth": {
+    "description": "A due and its month: \"Rent, November 2026\".",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "overdueDays": "{days, plural, =1{Overdue 1 day} other{Overdue {days} days}}",
+  "@overdueDays": {
+    "description": "A due past its date, with how long.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dueToday": "Due today",
+  "@dueToday": {
+    "description": "A due whose date is today."
+  },
+  "dueInDays": "{days, plural, =1{Due tomorrow} other{Due in {days} days}}",
+  "@dueInDays": {
+    "description": "A due falling due soon.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dueOn": "Due {date}",
+  "@dueOn": {
+    "description": "A due falling due later.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "chargePaid": "Paid",
+  "@chargePaid": {
+    "description": "A due paid in full."
+  },
+  "chargeWaived": "Waived",
+  "@chargeWaived": {
+    "description": "A due forgiven."
+  },
+  "chargeVoided": "Voided",
+  "@chargeVoided": {
+    "description": "A due, payment or handover cancelled with a reason."
+  },
+  "loadingReceivables": "Loading who owes what",
+  "@loadingReceivables": {
+    "description": "Read while the list loads."
+  },
+  "receivablesLoadFailedTitle": "The money owed could not be loaded",
+  "@receivablesLoadFailedTitle": {
+    "description": "Heading when the list fails to load."
+  },
+  "receivablesEmptyTitle": "No money is owed yet",
+  "@receivablesEmptyTitle": {
+    "description": "Empty Money screen."
+  },
+  "receivablesEmptyBody": "Rent is billed for each tenancy you start. What tenants owe and pay shows here.",
+  "@receivablesEmptyBody": {
+    "description": "Empty Money screen."
+  },
+  "totalOwedLabel": "Owed",
+  "@totalOwedLabel": {
+    "description": "Stat: what all tenants owe."
+  },
+  "totalOverdueLabel": "Overdue",
+  "@totalOverdueLabel": {
+    "description": "Stat: what is owed past its date."
+  },
+  "totalCreditLabel": "Credit held",
+  "@totalCreditLabel": {
+    "description": "Stat: advances tenants have paid."
+  },
+  "whoOwesSection": "Who owes what",
+  "@whoOwesSection": {
+    "description": "Heading of the receivables list."
+  },
+  "whoOwesHelp": "The longest overdue first.",
+  "@whoOwesHelp": {
+    "description": "Help under the receivables heading."
+  },
+  "nobodyOwes": "Nobody owes anything now.",
+  "@nobodyOwes": {
+    "description": "When no tenancy owes."
+  },
+  "settledSection": "Settled or in credit",
+  "@settledSection": {
+    "description": "Heading of tenancies that owe nothing."
+  },
+  "lastPaidOn": "Last paid {date}",
+  "@lastPaidOn": {
+    "description": "When a tenant last paid.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "owesAmount": "Owes {amount}",
+  "@owesAmount": {
+    "description": "Badge: owes an amount not yet late.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "overdueOldest": "{amount} overdue, oldest {days, plural, =1{1 day} other{{days} days}}",
+  "@overdueOldest": {
+    "description": "Badge: what is overdue, and how long the oldest overdue due has been late.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "creditAmount": "Credit {amount}",
+  "@creditAmount": {
+    "description": "Badge: holds credit.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "allPaid": "All paid",
+  "@allPaid": {
+    "description": "Badge: owes nothing."
+  },
+  "cashBookTitle": "Cash in hand",
+  "@cashBookTitle": {
+    "description": "Title of the cash book."
+  },
+  "ledgerTitle": "Ledger",
+  "@ledgerTitle": {
+    "description": "Title of a tenancy's ledger while it loads."
+  },
+  "loadingLedger": "Loading the ledger",
+  "@loadingLedger": {
+    "description": "Read while a ledger loads."
+  },
+  "ledgerLoadFailedTitle": "This ledger could not be loaded",
+  "@ledgerLoadFailedTitle": {
+    "description": "Heading when a ledger fails to load."
+  },
+  "statementAction": "Tenant statement",
+  "@statementAction": {
+    "description": "Action: make the statement PDF."
+  },
+  "owedNowLabel": "Owed now",
+  "@owedNowLabel": {
+    "description": "Label of what a tenancy owes."
+  },
+  "owedNowValue": "Owed now: {amount}",
+  "@owedNowValue": {
+    "description": "What a tenancy owes, in a list row.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "overdueLabel": "Overdue",
+  "@overdueLabel": {
+    "description": "Label of what is owed past its date."
+  },
+  "creditLabel": "Credit",
+  "@creditLabel": {
+    "description": "Label of money paid in advance."
+  },
+  "creditWord": "credit",
+  "@creditWord": {
+    "description": "Said after a credit amount."
+  },
+  "lastPaidLabel": "Last paid",
+  "@lastPaidLabel": {
+    "description": "Label of the last payment date."
+  },
+  "lastRemindedLabel": "Last reminded",
+  "@lastRemindedLabel": {
+    "description": "Label of when the tenant was last reminded."
+  },
+  "creditExplainActive": "The tenant has paid ahead. The credit settles the next dues by itself.",
+  "@creditExplainActive": {
+    "description": "Explains credit on a running tenancy."
+  },
+  "creditExplainEnded": "The tenancy has ended with money left over. Refund it to the tenant, or void the payment it came from.",
+  "@creditExplainEnded": {
+    "description": "Explains credit on an ended tenancy."
+  },
+  "creditHeldEnded": "The tenancy has ended and the tenant has {amount} in credit.",
+  "@creditHeldEnded": {
+    "description": "Credit on an ended tenancy, said to members who cannot correct money.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "openCreditPaymentAction": "Open the payment",
+  "@openCreditPaymentAction": {
+    "description": "Opens the receipt of the payment the credit came from."
+  },
+  "recordPaymentAction": "Record payment",
+  "@recordPaymentAction": {
+    "description": "Action: record money received."
+  },
+  "remindAction": "Remind on WhatsApp",
+  "@remindAction": {
+    "description": "Action: open the reminder composer."
+  },
+  "openTenancyAction": "Tenancy details",
+  "@openTenancyAction": {
+    "description": "Row leading to the tenancy screen."
+  },
+  "openDuesSection": "Owed",
+  "@openDuesSection": {
+    "description": "Heading of the open dues."
+  },
+  "openDuesHelp": "Every due not yet paid, the oldest first.",
+  "@openDuesHelp": {
+    "description": "Help under the open dues heading."
+  },
+  "addChargeAction": "Add charge",
+  "@addChargeAction": {
+    "description": "Action: add a charge by hand."
+  },
+  "noOpenDues": "Nothing is owed.",
+  "@noOpenDues": {
+    "description": "When no due is open."
+  },
+  "leftOfAmount": "{left} left of {amount}",
+  "@leftOfAmount": {
+    "description": "A due partly paid.",
+    "placeholders": {
+      "left": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentsSection": "Payments",
+  "@paymentsSection": {
+    "description": "Heading of payments."
+  },
+  "noPaymentsYet": "No payments yet.",
+  "@noPaymentsYet": {
+    "description": "When there are no payments."
+  },
+  "receiptNumbered": "Receipt {number}",
+  "@receiptNumbered": {
+    "description": "A payment's receipt number in a row.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "withTax": "{amount} tax withheld",
+  "@withTax": {
+    "description": "Tax withheld with a payment.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "allDuesSection": "All dues",
+  "@allDuesSection": {
+    "description": "Heading of every due."
+  },
+  "allDuesHelp": "Paid, waived and voided too, the newest first.",
+  "@allDuesHelp": {
+    "description": "Help under the all dues heading."
+  },
+  "noDuesYet": "No dues yet.",
+  "@noDuesYet": {
+    "description": "When a tenancy has no dues."
+  },
+  "moneySection": "Money",
+  "@moneySection": {
+    "description": "Heading of a tenancy's money on its screen."
+  },
+  "openLedgerAction": "Open the ledger",
+  "@openLedgerAction": {
+    "description": "Action: open a tenancy's ledger."
+  },
+  "amountLabel": "Amount",
+  "@amountLabel": {
+    "description": "Label of an amount."
+  },
+  "paidLabel": "Paid",
+  "@paidLabel": {
+    "description": "Label of the amount paid."
+  },
+  "stillOwedLabel": "Still owed",
+  "@stillOwedLabel": {
+    "description": "Label of what is left of a due."
+  },
+  "dueDateLabel": "Due date",
+  "@dueDateLabel": {
+    "description": "Label of a due's date."
+  },
+  "chargeNoteLabel": "Note",
+  "@chargeNoteLabel": {
+    "description": "Label of a due's note."
+  },
+  "waiveReasonLabel": "Why it was waived",
+  "@waiveReasonLabel": {
+    "description": "Label of the waive reason."
+  },
+  "voidReasonLabel": "Why it was voided",
+  "@voidReasonLabel": {
+    "description": "Label of the void reason."
+  },
+  "editChargeAction": "Edit charge",
+  "@editChargeAction": {
+    "description": "Action: edit a due."
+  },
+  "waiveChargeAction": "Waive",
+  "@waiveChargeAction": {
+    "description": "Action: forgive a due."
+  },
+  "voidChargeAction": "Void charge",
+  "@voidChargeAction": {
+    "description": "Action: cancel a due."
+  },
+  "voidChargeHasPayments": "Money was received for this due, so it cannot be voided. Void that payment first, or waive what is left.",
+  "@voidChargeHasPayments": {
+    "description": "Why a paid due cannot be voided."
+  },
+  "chargeSaved": "Charge saved.",
+  "@chargeSaved": {
+    "description": "After editing a due."
+  },
+  "chargeAmountFixed": "Rent, late fees and the deposit keep the amount the tenancy's terms set. Change the rent, or void this due and add a new one.",
+  "@chargeAmountFixed": {
+    "description": "Why a generated due's amount cannot change."
+  },
+  "amountAtLeast": "At least {amount}, already paid or waived.",
+  "@amountAtLeast": {
+    "description": "A due's amount floor.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "amountAtMost": "At most {amount}.",
+  "@amountAtMost": {
+    "description": "An amount ceiling.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "chargeKindLabel": "What for",
+  "@chargeKindLabel": {
+    "description": "Label of the kind of a new charge."
+  },
+  "chargeMonthLabel": "For the month of",
+  "@chargeMonthLabel": {
+    "description": "Label of a charge's month."
+  },
+  "chargeMonthHelp": "The month a bill is for, if it has one.",
+  "@chargeMonthHelp": {
+    "description": "Help of a charge's month."
+  },
+  "noMonthOption": "No month",
+  "@noMonthOption": {
+    "description": "Choice: no month."
+  },
+  "chargeAdded": "{kind} added.",
+  "@chargeAdded": {
+    "description": "After adding a charge.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "waiveExplain": "Waiving forgives what is still owed (or the part you type). The due stays in the ledger, marked waived, with your reason.",
+  "@waiveExplain": {
+    "description": "Explains waiving."
+  },
+  "voidChargeExplain": "Voiding cancels a due entered by mistake, with its unpaid late fee. It stays in the ledger, marked voided, with your reason.",
+  "@voidChargeExplain": {
+    "description": "Explains voiding a due."
+  },
+  "waiveAmountLabel": "Amount to waive",
+  "@waiveAmountLabel": {
+    "description": "Label of the amount to waive."
+  },
+  "waiveAmountHelp": "Leave empty to waive all {amount}.",
+  "@waiveAmountHelp": {
+    "description": "Help of the amount to waive.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reasonLabel": "Reason",
+  "@reasonLabel": {
+    "description": "Label of a reason field."
+  },
+  "chargeWaivedDone": "Due waived.",
+  "@chargeWaivedDone": {
+    "description": "After waiving."
+  },
+  "chargeVoidedDone": "Due voided.",
+  "@chargeVoidedDone": {
+    "description": "After voiding a due."
+  },
+  "depositSection": "Security deposit",
+  "@depositSection": {
+    "description": "Heading of the deposit."
+  },
+  "depositAgreedLabel": "Agreed",
+  "@depositAgreedLabel": {
+    "description": "Deposit agreed."
+  },
+  "depositReceivedLabel": "Received",
+  "@depositReceivedLabel": {
+    "description": "Deposit received."
+  },
+  "depositAppliedLabel": "Used for dues",
+  "@depositAppliedLabel": {
+    "description": "Deposit used to settle dues."
+  },
+  "depositRefundedLabel": "Refunded",
+  "@depositRefundedLabel": {
+    "description": "Deposit paid back."
+  },
+  "depositHeldLabel": "Deposit held",
+  "@depositHeldLabel": {
+    "description": "Deposit still held."
+  },
+  "depositSettleAfterEnd": "The tenancy has ended and you still hold the deposit. Use it for what is owed, then refund the rest.",
+  "@depositSettleAfterEnd": {
+    "description": "Nudge to settle the deposit at move-out."
+  },
+  "depositTenancyActive": "This tenancy is still running. The deposit is usually used for dues or refunded when the tenant moves out.",
+  "@depositTenancyActive": {
+    "description": "Warning before using or refunding the deposit of a running tenancy."
+  },
+  "applyDepositAction": "Use for dues",
+  "@applyDepositAction": {
+    "description": "Action: settle dues from the deposit."
+  },
+  "refundDepositAction": "Refund deposit",
+  "@refundDepositAction": {
+    "description": "Action: pay the deposit back."
+  },
+  "refundOf": "Refund of {amount}",
+  "@refundOf": {
+    "description": "A deposit refund in a list.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "voidedBecause": "Voided: {reason}",
+  "@voidedBecause": {
+    "description": "Why something was voided.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "voidRefundAction": "Void refund",
+  "@voidRefundAction": {
+    "description": "Action: void a refund."
+  },
+  "voidRefundExplain": "Voiding a refund recorded by mistake counts that money as held again. It stays in the ledger, marked voided.",
+  "@voidRefundExplain": {
+    "description": "Explains voiding a refund."
+  },
+  "refundVoided": "Refund voided.",
+  "@refundVoided": {
+    "description": "After voiding a refund."
+  },
+  "applyDepositExplain": "The deposit settles what is owed, the oldest first, and the tenant gets a receipt for it.",
+  "@applyDepositExplain": {
+    "description": "Explains using the deposit."
+  },
+  "applyDepositHelp": "Held {held}; owed {owed}.",
+  "@applyDepositHelp": {
+    "description": "Help of the amount to use.",
+    "placeholders": {
+      "held": {
+        "type": "String"
+      },
+      "owed": {
+        "type": "String"
+      }
+    }
+  },
+  "appliedOnLabel": "Used on",
+  "@appliedOnLabel": {
+    "description": "Label of the date the deposit was used."
+  },
+  "depositApplied": "{amount} of the deposit settled dues.",
+  "@depositApplied": {
+    "description": "After using the deposit.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "depositHeldHelp": "You hold {amount}.",
+  "@depositHeldHelp": {
+    "description": "Help of the refund amount.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "refundedOnLabel": "Refunded on",
+  "@refundedOnLabel": {
+    "description": "Label of the refund date."
+  },
+  "depositRefunded": "{amount} of the deposit refunded.",
+  "@depositRefunded": {
+    "description": "After a refund.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "recordPaymentTitle": "Record payment",
+  "@recordPaymentTitle": {
+    "description": "Title of the payment form."
+  },
+  "paymentSectionMoney": "What was received",
+  "@paymentSectionMoney": {
+    "description": "Form section: the money."
+  },
+  "paymentSectionTax": "Tax withheld",
+  "@paymentSectionTax": {
+    "description": "Form section: s.155 tax."
+  },
+  "paymentSectionSettle": "What it pays for",
+  "@paymentSectionSettle": {
+    "description": "Form section: which dues."
+  },
+  "amountReceivedLabel": "Amount received",
+  "@amountReceivedLabel": {
+    "description": "Label of the amount received."
+  },
+  "useOwedAction": "Use {amount} owed",
+  "@useOwedAction": {
+    "description": "Action: fill in what is owed.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "receivedOnLabel": "Received on",
+  "@receivedOnLabel": {
+    "description": "Label of the payment date."
+  },
+  "paymentReferenceLabel": "Reference",
+  "@paymentReferenceLabel": {
+    "description": "Label of a payment's reference."
+  },
+  "paymentReferenceHelp": "A transaction ID or cheque number, if there is one.",
+  "@paymentReferenceHelp": {
+    "description": "Help of the reference."
+  },
+  "taxWithheldSwitch": "The tenant withheld income tax",
+  "@taxWithheldSwitch": {
+    "description": "Switch: tax was withheld."
+  },
+  "taxWithheldHelp": "Companies and government offices deduct tax under section 155 and give a certificate. The cash and the tax together settle the rent.",
+  "@taxWithheldHelp": {
+    "description": "Explains s.155 withholding."
+  },
+  "taxWithheldLabel": "Tax withheld (s.155)",
+  "@taxWithheldLabel": {
+    "description": "Label of the tax withheld."
+  },
+  "taxCertificateLabel": "Certificate or CPR number",
+  "@taxCertificateLabel": {
+    "description": "Label of the tax certificate number."
+  },
+  "taxSettlesGross": "{cash} received and {tax} withheld settle {total} of dues.",
+  "@taxSettlesGross": {
+    "description": "How cash and tax add up.",
+    "placeholders": {
+      "cash": {
+        "type": "String"
+      },
+      "tax": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "noOpenDuesCredit": "Nothing is owed now: this payment is kept as credit for the next dues.",
+  "@noOpenDuesCredit": {
+    "description": "Paying with nothing owed."
+  },
+  "settleLabel": "Settle",
+  "@settleLabel": {
+    "description": "Label of how to allocate."
+  },
+  "settleOldestFirst": "The oldest dues first",
+  "@settleOldestFirst": {
+    "description": "Choice: oldest first."
+  },
+  "settleChosen": "The dues I choose",
+  "@settleChosen": {
+    "description": "Choice: chosen dues."
+  },
+  "chooseDuesError": "Choose at least one due.",
+  "@chooseDuesError": {
+    "description": "No due chosen."
+  },
+  "willSettleHeading": "This payment settles",
+  "@willSettleHeading": {
+    "description": "Heading of the allocation preview."
+  },
+  "settledInFull": "{charge}, in full",
+  "@settledInFull": {
+    "description": "A due settled in full.",
+    "placeholders": {
+      "charge": {
+        "type": "String"
+      }
+    }
+  },
+  "settledInPart": "{charge}, in part",
+  "@settledInPart": {
+    "description": "A due settled in part.",
+    "placeholders": {
+      "charge": {
+        "type": "String"
+      }
+    }
+  },
+  "creditKeptLabel": "Kept as credit",
+  "@creditKeptLabel": {
+    "description": "What no due takes."
+  },
+  "allCreditExplain": "All {amount} is kept as credit for the next dues.",
+  "@allCreditExplain": {
+    "description": "Payment all credit.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "lateFeeCancelledNote": "The late fee of {amount} will be cancelled: this pays its rent in full within the grace period.",
+  "@lateFeeCancelledNote": {
+    "description": "Record payment preview: an automatic late fee the payment cancels.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentRecorded": "Payment recorded. Receipt {number}.",
+  "@paymentRecorded": {
+    "description": "After recording a payment.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptTitle": "Receipt",
+  "@receiptTitle": {
+    "description": "Title of the receipt screen."
+  },
+  "loadingReceipt": "Loading the receipt",
+  "@loadingReceipt": {
+    "description": "Read while a receipt loads."
+  },
+  "receiptLoadFailedTitle": "This receipt could not be loaded",
+  "@receiptLoadFailedTitle": {
+    "description": "Heading when a receipt fails to load."
+  },
+  "receiptNumberLabel": "Receipt no.",
+  "@receiptNumberLabel": {
+    "description": "Label of a receipt number."
+  },
+  "receiptVoidedOn": "VOID: cancelled on {date}. {reason}",
+  "@receiptVoidedOn": {
+    "description": "Banner of a voided receipt.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "receivedFromLabel": "Received from",
+  "@receivedFromLabel": {
+    "description": "Who paid."
+  },
+  "receiptForLabel": "For",
+  "@receiptForLabel": {
+    "description": "What the payment is for."
+  },
+  "paidByLabel": "Paid by",
+  "@paidByLabel": {
+    "description": "How it was paid."
+  },
+  "receiptFooter": "Thank you. Keep this receipt for your records.",
+  "@receiptFooter": {
+    "description": "Footer of a receipt."
+  },
+  "shareReceiptAction": "Share receipt",
+  "@shareReceiptAction": {
+    "description": "Action: share the receipt PDF."
+  },
+  "shareVoidedReceiptAction": "Share voided receipt",
+  "@shareVoidedReceiptAction": {
+    "description": "Sharing a receipt whose payment was voided."
+  },
+  "sendThanksAction": "Thank on WhatsApp",
+  "@sendThanksAction": {
+    "description": "Action: send a payment-received message."
+  },
+  "voidPaymentAction": "Void payment",
+  "@voidPaymentAction": {
+    "description": "Action: void a payment."
+  },
+  "voidPaymentExplain": "Voiding a payment recorded by mistake makes the dues it paid owed again. The receipt keeps its number, marked void, with your reason.",
+  "@voidPaymentExplain": {
+    "description": "Explains voiding a payment."
+  },
+  "paymentVoided": "Payment voided.",
+  "@paymentVoided": {
+    "description": "After voiding a payment."
+  },
+  "documentLanguageLabel": "Language of the document",
+  "@documentLanguageLabel": {
+    "description": "Label of the PDF language choice."
+  },
+  "shareDocumentAction": "Share PDF",
+  "@shareDocumentAction": {
+    "description": "Action: make and share the PDF."
+  },
+  "receiptDocumentTitle": "Rent receipt",
+  "@receiptDocumentTitle": {
+    "description": "Heading of a receipt PDF."
+  },
+  "receiptVoid": "VOID",
+  "@receiptVoid": {
+    "description": "Void stamp of a receipt PDF."
+  },
+  "receiptVoidBecause": "VOID: {reason}",
+  "@receiptVoidBecause": {
+    "description": "Void stamp with its reason.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "totalSettledLabel": "Total, with tax",
+  "@totalSettledLabel": {
+    "description": "Cash plus tax withheld."
+  },
+  "receiptSettledHeading": "Dues settled",
+  "@receiptSettledHeading": {
+    "description": "Heading of the dues a receipt settled."
+  },
+  "documentMadeOn": "Made with Maalik-e-Makaan on {date}.",
+  "@documentMadeOn": {
+    "description": "Footer of a PDF.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptFileTitle": "Receipt {number}",
+  "@receiptFileTitle": {
+    "description": "Title of a receipt PDF.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "statementDocumentTitle": "Tenant statement",
+  "@statementDocumentTitle": {
+    "description": "Heading of a statement PDF."
+  },
+  "statementPeriodLabel": "Period",
+  "@statementPeriodLabel": {
+    "description": "The period a statement covers."
+  },
+  "dateRange": "{from} to {to}",
+  "@dateRange": {
+    "description": "A range of dates.",
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "statementSummaryHeading": "Summary",
+  "@statementSummaryHeading": {
+    "description": "Heading of a statement's totals."
+  },
+  "totalBilledLabel": "Billed",
+  "@totalBilledLabel": {
+    "description": "Total billed."
+  },
+  "totalPaidLabel": "Paid",
+  "@totalPaidLabel": {
+    "description": "Total paid."
+  },
+  "totalWaivedLabel": "Waived",
+  "@totalWaivedLabel": {
+    "description": "Total waived."
+  },
+  "balanceOwedLabel": "Owed now",
+  "@balanceOwedLabel": {
+    "description": "What is owed now."
+  },
+  "statementDuesHeading": "Dues",
+  "@statementDuesHeading": {
+    "description": "Heading of a statement's dues."
+  },
+  "chargeForLabel": "What for",
+  "@chargeForLabel": {
+    "description": "Column: what a due is for."
+  },
+  "chargeStateLabel": "Status",
+  "@chargeStateLabel": {
+    "description": "Column: where a due stands."
+  },
+  "statementPaymentsHeading": "Payments",
+  "@statementPaymentsHeading": {
+    "description": "Heading of a statement's payments."
+  },
+  "voidedReceipt": "{number} (void)",
+  "@voidedReceipt": {
+    "description": "A voided receipt number.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "statementFooter": "{count, plural, =0{No payments received.} =1{1 payment received.} other{{count} payments received.}} Every receipt number can be checked against the tenant's copy.",
+  "@statementFooter": {
+    "description": "Footer of a statement.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statementFileTitle": "Statement, {tenant}",
+  "@statementFileTitle": {
+    "description": "Title of a statement PDF.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderTitle": "Remind on WhatsApp",
+  "@reminderTitle": {
+    "description": "Title of the composer."
+  },
+  "reminderTemplateLabel": "Message",
+  "@reminderTemplateLabel": {
+    "description": "Label of the template choice."
+  },
+  "templateUpcoming": "Rent due soon",
+  "@templateUpcoming": {
+    "description": "Template: upcoming."
+  },
+  "templateDueToday": "Rent due today",
+  "@templateDueToday": {
+    "description": "Template: due today."
+  },
+  "templateOverdue": "Rent overdue",
+  "@templateOverdue": {
+    "description": "Template: overdue."
+  },
+  "templatePaymentReceived": "Payment received",
+  "@templatePaymentReceived": {
+    "description": "Template: thanks."
+  },
+  "templateUtilityBill": "Utility bill",
+  "@templateUtilityBill": {
+    "description": "Template: utility bill."
+  },
+  "reminderLanguageLabel": "Tenant's language",
+  "@reminderLanguageLabel": {
+    "description": "Label of the message language."
+  },
+  "languageRomanUrdu": "Roman Urdu",
+  "@languageRomanUrdu": {
+    "description": "Urdu written in Latin letters (its own name)."
+  },
+  "reminderMessageLabel": "Message to send",
+  "@reminderMessageLabel": {
+    "description": "Label of the message text."
+  },
+  "reminderNoPhone": "This tenant has no phone number: WhatsApp opens for you to choose the chat.",
+  "@reminderNoPhone": {
+    "description": "No phone to send to."
+  },
+  "reminderTo": "To {name} on {phone}.",
+  "@reminderTo": {
+    "description": "Who the reminder goes to.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "sendOnWhatsAppAction": "Send on WhatsApp",
+  "@sendOnWhatsAppAction": {
+    "description": "Action: open WhatsApp."
+  },
+  "sendAnywayAction": "Send anyway",
+  "@sendAnywayAction": {
+    "description": "Action: send despite the etiquette advice."
+  },
+  "copyMessageAction": "Copy message",
+  "@copyMessageAction": {
+    "description": "Action: copy the message."
+  },
+  "messageCopied": "Message copied.",
+  "@messageCopied": {
+    "description": "After copying."
+  },
+  "reminderLogged": "Reminder sent and noted in the ledger.",
+  "@reminderLogged": {
+    "description": "After sending a reminder."
+  },
+  "noteReminderAction": "Note it in the reminders sent",
+  "@noteReminderAction": {
+    "description": "After WhatsApp opened but the reminder could not be noted: tries noting it again."
+  },
+  "etiquetteLateNight": "It is late at night in Pakistan. A reminder may be better after {time}.",
+  "@etiquetteLateNight": {
+    "description": "Etiquette: late night.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "etiquetteFridayPrayer": "It is time for Jumu'ah prayers. A reminder may be better after {time}.",
+  "@etiquetteFridayPrayer": {
+    "description": "Etiquette: Friday prayers.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "etiquetteRecent": "A reminder already went to this tenant on {moment}. Too many reminders can strain a good tenancy.",
+  "@etiquetteRecent": {
+    "description": "Etiquette: reminded recently.",
+    "placeholders": {
+      "moment": {
+        "type": "String"
+      }
+    }
+  },
+  "remindersSection": "Reminders sent",
+  "@remindersSection": {
+    "description": "Heading of the reminder log."
+  },
+  "loadingReminders": "Loading the reminders",
+  "@loadingReminders": {
+    "description": "Read while reminders load."
+  },
+  "remindersLoadFailedTitle": "The reminders could not be loaded",
+  "@remindersLoadFailedTitle": {
+    "description": "Heading when reminders fail to load."
+  },
+  "noRemindersYet": "No reminders sent yet.",
+  "@noRemindersYet": {
+    "description": "When no reminder was sent."
+  },
+  "reminderUnit": "{unit}, {property}",
+  "@reminderUnit": {
+    "description": "A unit in a reminder.",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "property": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderUpcoming": "Assalam-o-Alaikum {tenant}. A reminder that {amount} for {unit} is due on {date}.",
+  "@reminderUpcoming": {
+    "description": "Reminder: rent due soon.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderDueToday": "Assalam-o-Alaikum {tenant}. {amount} for {unit} is due today.",
+  "@reminderDueToday": {
+    "description": "Reminder: due today.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderOverdue": "Assalam-o-Alaikum {tenant}. {amount} is overdue for {unit}; the oldest of it was due on {date}. Please pay it at your earliest convenience.",
+  "@reminderOverdue": {
+    "description": "Reminder: overdue.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderReceived": "Assalam-o-Alaikum {tenant}. We received {amount} on {date}. Receipt number: {receipt}. Thank you.",
+  "@reminderReceived": {
+    "description": "Message: payment received.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "receipt": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderUtility": "Assalam-o-Alaikum {tenant}. The {utility} bill of {amount} for {unit} is due on {date}. Please pay it before the due date.",
+  "@reminderUtility": {
+    "description": "Reminder: utility bill.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "utility": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderElectricity": "electricity",
+  "@reminderElectricity": {
+    "description": "Utility word in a reminder."
+  },
+  "reminderGas": "gas",
+  "@reminderGas": {
+    "description": "Utility word in a reminder."
+  },
+  "reminderWater": "water",
+  "@reminderWater": {
+    "description": "Utility word in a reminder."
+  },
+  "reminderInternet": "internet",
+  "@reminderInternet": {
+    "description": "Utility word in a reminder."
+  },
+  "reminderUtilityGeneric": "utility",
+  "@reminderUtilityGeneric": {
+    "description": "Utility word in a reminder."
+  },
+  "reminderPayRaast": "You can pay by Raast to {raast}.",
+  "@reminderPayRaast": {
+    "description": "Payment details: Raast.",
+    "placeholders": {
+      "raast": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderPayBank": "Bank transfer: {title}, IBAN {iban}.",
+  "@reminderPayBank": {
+    "description": "Payment details: bank.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "iban": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderThanks": "Regards, {landlord}",
+  "@reminderThanks": {
+    "description": "Signature of a reminder.",
+    "placeholders": {
+      "landlord": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanUnit": "{unit}, {property}",
+  "@reminderRomanUnit": {
+    "description": "A unit in a Roman Urdu reminder (the same in every UI language).",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "property": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanUpcoming": "Assalam-o-Alaikum {tenant}. Yaad dihani hai ke {unit} ke {amount} {date} ko wajib-ul-ada hain.",
+  "@reminderRomanUpcoming": {
+    "description": "Roman Urdu reminder: rent due soon (the same in every UI language).",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanDueToday": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj wajib-ul-ada hain.",
+  "@reminderRomanDueToday": {
+    "description": "Roman Urdu reminder: due today.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanOverdue": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam {date} ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.",
+  "@reminderRomanOverdue": {
+    "description": "Roman Urdu reminder: overdue.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanReceived": "Assalam-o-Alaikum {tenant}. {date} ko {amount} mosool ho gaye. Raseed number: {receipt}. Shukriya.",
+  "@reminderRomanReceived": {
+    "description": "Roman Urdu message: payment received.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "receipt": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanUtility": "Assalam-o-Alaikum {tenant}. {unit} ka {utility} ka bill {amount} {date} tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.",
+  "@reminderRomanUtility": {
+    "description": "Roman Urdu reminder: utility bill.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "utility": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanElectricity": "bijli",
+  "@reminderRomanElectricity": {
+    "description": "Roman Urdu utility word."
+  },
+  "reminderRomanGas": "gas",
+  "@reminderRomanGas": {
+    "description": "Roman Urdu utility word."
+  },
+  "reminderRomanWater": "paani",
+  "@reminderRomanWater": {
+    "description": "Roman Urdu utility word."
+  },
+  "reminderRomanInternet": "internet",
+  "@reminderRomanInternet": {
+    "description": "Roman Urdu utility word."
+  },
+  "reminderRomanUtilityGeneric": "utility",
+  "@reminderRomanUtilityGeneric": {
+    "description": "Roman Urdu utility word."
+  },
+  "reminderRomanPayRaast": "Aap Raast ke zariye {raast} par adaigi kar sakte hain.",
+  "@reminderRomanPayRaast": {
+    "description": "Roman Urdu payment details: Raast.",
+    "placeholders": {
+      "raast": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanPayBank": "Bank transfer: {title}, IBAN {iban}.",
+  "@reminderRomanPayBank": {
+    "description": "Roman Urdu payment details: bank.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "iban": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderRomanThanks": "Wassalam, {landlord}",
+  "@reminderRomanThanks": {
+    "description": "Roman Urdu signature.",
+    "placeholders": {
+      "landlord": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingCashBook": "Loading the cash in hand",
+  "@loadingCashBook": {
+    "description": "Read while the cash book loads."
+  },
+  "cashBookLoadFailedTitle": "The cash in hand could not be loaded",
+  "@cashBookLoadFailedTitle": {
+    "description": "Heading when the cash book fails."
+  },
+  "cashInHandSection": "Who holds cash",
+  "@cashInHandSection": {
+    "description": "Heading of cash positions."
+  },
+  "cashInHandHelp": "Cash collected, less what was handed on or spent in cash.",
+  "@cashInHandHelp": {
+    "description": "Help of cash positions."
+  },
+  "noCashYet": "No cash has been collected yet.",
+  "@noCashYet": {
+    "description": "When nobody collected cash."
+  },
+  "cashCollectedLabel": "Collected",
+  "@cashCollectedLabel": {
+    "description": "Cash in hand: what a member collected."
+  },
+  "cashHandedOverLabel": "Handed on",
+  "@cashHandedOverLabel": {
+    "description": "Cash in hand: what a member handed on."
+  },
+  "cashSpentLabel": "Spent",
+  "@cashSpentLabel": {
+    "description": "Cash in hand: what a member spent."
+  },
+  "cashInHandLabel": "In hand",
+  "@cashInHandLabel": {
+    "description": "Cash in hand: what a member holds now."
+  },
+  "handoversSection": "Handovers",
+  "@handoversSection": {
+    "description": "Heading of handovers."
+  },
+  "noHandoversYet": "No cash has been handed over yet.",
+  "@noHandoversYet": {
+    "description": "When there are no handovers."
+  },
+  "formerMember": "A former member",
+  "@formerMember": {
+    "description": "A member whose account is gone."
+  },
+  "handoverFromTo": "{from} to {to}",
+  "@handoverFromTo": {
+    "description": "Who handed cash to whom.",
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "handoverConfirmed": "Confirmed",
+  "@handoverConfirmed": {
+    "description": "Badge: the owner confirmed it."
+  },
+  "handoverAwaiting": "To confirm",
+  "@handoverAwaiting": {
+    "description": "Badge: not yet confirmed."
+  },
+  "handoverTitle": "Cash handover",
+  "@handoverTitle": {
+    "description": "Title of a handover sheet."
+  },
+  "handedOverOnLabel": "Handed over on",
+  "@handedOverOnLabel": {
+    "description": "Label of the handover date."
+  },
+  "confirmHandoverAction": "Confirm I received it",
+  "@confirmHandoverAction": {
+    "description": "Action: confirm a handover."
+  },
+  "handoverConfirmedDone": "Handover confirmed.",
+  "@handoverConfirmedDone": {
+    "description": "After confirming."
+  },
+  "voidHandoverAction": "Void handover",
+  "@voidHandoverAction": {
+    "description": "Action: void a handover."
+  },
+  "voidHandoverExplain": "Voiding a handover recorded by mistake counts that cash as still with the giver. It stays in the list, marked voided.",
+  "@voidHandoverExplain": {
+    "description": "Explains voiding a handover."
+  },
+  "handoverVoided": "Handover voided.",
+  "@handoverVoided": {
+    "description": "After voiding a handover."
+  },
+  "recordHandoverAction": "Record handover",
+  "@recordHandoverAction": {
+    "description": "Action: record a handover."
+  },
+  "handoverFromLabel": "Handed over by",
+  "@handoverFromLabel": {
+    "description": "Who gave the cash."
+  },
+  "handoverToLabel": "Handed to",
+  "@handoverToLabel": {
+    "description": "Who received the cash."
+  },
+  "handoverChooseReceiver": "Choose who received the cash.",
+  "@handoverChooseReceiver": {
+    "description": "No receiver chosen."
+  },
+  "handoverRecorded": "Handover recorded.",
+  "@handoverRecorded": {
+    "description": "After recording a handover."
+  },
+  "notificationsTitle": "Notifications",
+  "@notificationsTitle": {
+    "description": "Title of the notification centre."
+  },
+  "notificationsSummary": "Rent due, tenancies ending, police registration",
+  "@notificationsSummary": {
+    "description": "Under Notifications on More."
+  },
+  "unreadCount": "{count, plural, =1{1 unread} other{{count} unread}}",
+  "@unreadCount": {
+    "description": "How many notifications are unread.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "loadingNotifications": "Loading the notifications",
+  "@loadingNotifications": {
+    "description": "Read while notifications load."
+  },
+  "notificationsLoadFailedTitle": "The notifications could not be loaded",
+  "@notificationsLoadFailedTitle": {
+    "description": "Heading when notifications fail."
+  },
+  "notificationsEmptyTitle": "No notifications",
+  "@notificationsEmptyTitle": {
+    "description": "Empty notification centre."
+  },
+  "notificationsEmptyBody": "Each morning the app checks for rent due, tenancies ending, rent increases, police registration and CNICs expiring, and tells you here.",
+  "@notificationsEmptyBody": {
+    "description": "Empty notification centre."
+  },
+  "markAllReadAction": "Mark all as read",
+  "@markAllReadAction": {
+    "description": "Action: mark all read."
+  },
+  "unreadLabel": "New",
+  "@unreadLabel": {
+    "description": "Badge of an unread notification."
+  },
+  "openNotificationAction": "Open",
+  "@openNotificationAction": {
+    "description": "Action: open what a notification is about."
+  },
+  "notificationDeleted": "Notification deleted.",
+  "@notificationDeleted": {
+    "description": "After deleting a notification."
+  },
+  "notificationRentDueSoon": "Rent due soon",
+  "@notificationRentDueSoon": {
+    "description": "Notification title."
+  },
+  "notificationRentDueSoonBody": "{tenancy}: {amount} due on {date}.",
+  "@notificationRentDueSoonBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "tenancy": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationRentOverdue": "Rent overdue",
+  "@notificationRentOverdue": {
+    "description": "Notification title."
+  },
+  "notificationRentOverdueBody": "{tenancy}: {amount} was due on {date}.",
+  "@notificationRentOverdueBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "tenancy": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationLeaseExpiring": "Agreement ending",
+  "@notificationLeaseExpiring": {
+    "description": "Notification title."
+  },
+  "notificationLeaseExpiringBody": "{tenancy}: the agreement ends on {date}.",
+  "@notificationLeaseExpiringBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "tenancy": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationIncrementDue": "Rent increase due",
+  "@notificationIncrementDue": {
+    "description": "Notification title."
+  },
+  "notificationIncrementDueBody": "{tenancy}: the yearly increase on rent of {rent} is due from {date}.",
+  "@notificationIncrementDueBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "tenancy": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "rent": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationPolicePending": "Police registration pending",
+  "@notificationPolicePending": {
+    "description": "Notification title."
+  },
+  "notificationPolicePendingBody": "{tenancy}: register the tenancy with the police by {date}.",
+  "@notificationPolicePendingBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "tenancy": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationPoliceOverdue": "Police registration overdue",
+  "@notificationPoliceOverdue": {
+    "description": "Notification title."
+  },
+  "notificationPoliceOverdueBody": "{tenancy}: the deadline to register with the police was {date}.",
+  "@notificationPoliceOverdueBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "tenancy": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationPoliceReminderBody": "{tenancy}: the app's reminder to register with the police is {date}. No law the app knows of sets a deadline here.",
+  "@notificationPoliceReminderBody": {
+    "description": "Notification text, non-statutory.",
+    "placeholders": {
+      "tenancy": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationCnicExpiring": "CNIC expiring",
+  "@notificationCnicExpiring": {
+    "description": "Notification title."
+  },
+  "notificationCnicExpiringBody": "{tenant}'s CNIC expires on {date}.",
+  "@notificationCnicExpiringBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationUtilityDue": "Utility bill due",
+  "@notificationUtilityDue": {
+    "description": "Notification title."
+  },
+  "notificationUtilityDueBody": "{property}: a bill of {amount} is due on {date}.",
+  "@notificationUtilityDueBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "property": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationInvitationAccepted": "Invitation accepted",
+  "@notificationInvitationAccepted": {
+    "description": "Notification title."
+  },
+  "notificationInvitationAcceptedBody": "{email} joined as {role}.",
+  "@notificationInvitationAcceptedBody": {
+    "description": "Notification text.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationUnknown": "Notification",
+  "@notificationUnknown": {
+    "description": "A notification this version cannot show."
+  },
+  "notificationUnknownBody": "Update the app to read this notification.",
+  "@notificationUnknownBody": {
+    "description": "A notification this version cannot show."
+  },
+  "reasonIdempotencyKeyRequired": "This payment could not be sent safely. Close the form and open it again.",
+  "@reasonIdempotencyKeyRequired": {
+    "description": "Refusal: a payment without its key."
+  },
+  "reasonRefundUnconfirmed": "The connection dropped, so the refund may have been recorded. Close this and check the deposit before trying again.",
+  "@reasonRefundUnconfirmed": {
+    "description": "A refund whose answer was lost."
+  },
+  "checkDepositAction": "Close and check the deposit",
+  "@checkDepositAction": {
+    "description": "After a refund whose answer was lost: closes the sheet."
+  },
+  "operationsSection": "Operations",
+  "@operationsSection": {
+    "description": "Heading on More above expenses, utilities and maintenance."
+  },
+  "expensesSummary": "What you spend on your properties",
+  "@expensesSummary": {
+    "description": "What the expenses screen holds."
+  },
+  "utilitiesSummary": "Connections, bills and meter readings",
+  "@utilitiesSummary": {
+    "description": "What the utilities screen holds."
+  },
+  "maintenanceSummary": "Repairs and where each stands",
+  "@maintenanceSummary": {
+    "description": "What the maintenance screen holds."
+  },
+  "propertyLabel": "Property",
+  "@propertyLabel": {
+    "description": "Label of the property something belongs to."
+  },
+  "wholePortfolioOption": "The whole portfolio",
+  "@wholePortfolioOption": {
+    "description": "Choice: an expense of no single property."
+  },
+  "wholePropertyOption": "The whole property",
+  "@wholePropertyOption": {
+    "description": "Choice: no single unit, the whole property."
+  },
+  "loadingPlaces": "Loading…",
+  "@loadingPlaces": {
+    "description": "A choice whose options are still loading."
+  },
+  "noTenancyOption": "No tenancy",
+  "@noTenancyOption": {
+    "description": "Choice: not linked to a tenancy."
+  },
+  "noTenanciesHere": "No tenancy was ever started on this connection's property or unit.",
+  "@noTenanciesHere": {
+    "description": "Billing a utility: no tenancy to bill."
+  },
+  "descriptionLabel": "Description",
+  "@descriptionLabel": {
+    "description": "Label of a free-text description."
+  },
+  "statusLabel": "Status",
+  "@statusLabel": {
+    "description": "Label of where something stands."
+  },
+  "yes": "Yes",
+  "@yes": {
+    "description": "Yes, as a value."
+  },
+  "no": "No",
+  "@no": {
+    "description": "No, as a value."
+  },
+  "filterToDo": "To do",
+  "@filterToDo": {
+    "description": "Filter: repairs still to be done."
+  },
+  "filterClosed": "Closed",
+  "@filterClosed": {
+    "description": "Filter: repairs resolved or cancelled."
+  },
+  "callAction": "Call",
+  "@callAction": {
+    "description": "Calls a phone number."
+  },
+  "callFailed": "The phone could not be opened on this device.",
+  "@callFailed": {
+    "description": "Calling failed."
+  },
+  "paidOnLabel": "Paid on",
+  "@paidOnLabel": {
+    "description": "Label of the day a bill was paid."
+  },
+  "expenseCategoryRepairs": "Repairs and maintenance",
+  "@expenseCategoryRepairs": {
+    "description": "Expense category."
+  },
+  "expenseCategoryPropertyTax": "Property tax",
+  "@expenseCategoryPropertyTax": {
+    "description": "Expense category."
+  },
+  "expenseCategoryUtilities": "Utilities",
+  "@expenseCategoryUtilities": {
+    "description": "Expense category."
+  },
+  "expenseCategorySociety": "Society charges",
+  "@expenseCategorySociety": {
+    "description": "Expense category."
+  },
+  "expenseCategoryInsurance": "Insurance",
+  "@expenseCategoryInsurance": {
+    "description": "Expense category."
+  },
+  "expenseCategoryLegal": "Legal and professional fees",
+  "@expenseCategoryLegal": {
+    "description": "Expense category."
+  },
+  "expenseCategoryAgent": "Agent's commission",
+  "@expenseCategoryAgent": {
+    "description": "Expense category."
+  },
+  "expenseCategorySalaries": "Staff salaries",
+  "@expenseCategorySalaries": {
+    "description": "Expense category."
+  },
+  "expenseCategoryCleaning": "Cleaning and security",
+  "@expenseCategoryCleaning": {
+    "description": "Expense category."
+  },
+  "expenseCategoryRenovation": "Renovation",
+  "@expenseCategoryRenovation": {
+    "description": "Expense category."
+  },
+  "expenseCategoryBank": "Bank charges",
+  "@expenseCategoryBank": {
+    "description": "Expense category."
+  },
+  "expenseCategoryLoanInterest": "Loan interest",
+  "@expenseCategoryLoanInterest": {
+    "description": "Expense category."
+  },
+  "expensesTitle": "Expenses",
+  "@expensesTitle": {
+    "description": "Title of the expenses screen."
+  },
+  "expenseTitle": "Expense",
+  "@expenseTitle": {
+    "description": "Title of one expense."
+  },
+  "newExpenseTitle": "New expense",
+  "@newExpenseTitle": {
+    "description": "Title of the form adding an expense."
+  },
+  "editExpenseTitle": "Edit expense",
+  "@editExpenseTitle": {
+    "description": "Title of the form editing an expense."
+  },
+  "addExpenseAction": "Add expense",
+  "@addExpenseAction": {
+    "description": "Adds an expense."
+  },
+  "loadingExpenses": "Loading the expenses",
+  "@loadingExpenses": {
+    "description": "Screen reader: expenses loading."
+  },
+  "loadingExpense": "Loading the expense",
+  "@loadingExpense": {
+    "description": "Screen reader: an expense loading."
+  },
+  "expensesLoadFailedTitle": "The expenses could not be loaded",
+  "@expensesLoadFailedTitle": {
+    "description": "Expenses failed to load."
+  },
+  "expenseLoadFailedTitle": "The expense could not be loaded",
+  "@expenseLoadFailedTitle": {
+    "description": "An expense failed to load."
+  },
+  "expensesEmptyTitle": "No expenses yet",
+  "@expensesEmptyTitle": {
+    "description": "No expenses recorded."
+  },
+  "expensesEmptyBody": "Record what you spend on repairs, tax, salaries and the rest, with a photo of each receipt. It shows what each property really earns.",
+  "@expensesEmptyBody": {
+    "description": "Explains expenses when there are none."
+  },
+  "expenseSectionWhat": "What was spent",
+  "@expenseSectionWhat": {
+    "description": "Form section: category, amount, date."
+  },
+  "expenseSectionWhere": "Where",
+  "@expenseSectionWhere": {
+    "description": "Form section: property, unit, job."
+  },
+  "expenseSectionPaid": "How it was paid",
+  "@expenseSectionPaid": {
+    "description": "Form section: payee, method, reference."
+  },
+  "expenseCategoryLabel": "Category",
+  "@expenseCategoryLabel": {
+    "description": "Label of an expense's category."
+  },
+  "spentOnLabel": "Spent on",
+  "@spentOnLabel": {
+    "description": "Label of the day money was spent."
+  },
+  "expensePropertyHelp": "Choose “The whole portfolio” for costs such as an accountant's fee.",
+  "@expensePropertyHelp": {
+    "description": "Helper of an expense's property."
+  },
+  "maintenanceJobLabel": "Maintenance job",
+  "@maintenanceJobLabel": {
+    "description": "Label of the repair an expense pays for."
+  },
+  "maintenanceJobHelp": "The repair this paid for, if any.",
+  "@maintenanceJobHelp": {
+    "description": "Helper of an expense's maintenance job."
+  },
+  "noJobOption": "No job",
+  "@noJobOption": {
+    "description": "Choice: an expense not for a repair."
+  },
+  "payeeLabel": "Paid to",
+  "@payeeLabel": {
+    "description": "Label of who was paid."
+  },
+  "payeeHelp": "A plumber, the excise office, a shop…",
+  "@payeeHelp": {
+    "description": "Helper of who was paid."
+  },
+  "expenseCashHelp": "Cash you spend comes out of your cash in hand.",
+  "@expenseCashHelp": {
+    "description": "Helper of cash as an expense's method."
+  },
+  "expenseForJob": "For the job: {title}",
+  "@expenseForJob": {
+    "description": "A new expense pays for a repair.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "paidForJobLabel": "Paid for the job",
+  "@paidForJobLabel": {
+    "description": "Link from an expense to its repair."
+  },
+  "expenseAdded": "Expense added.",
+  "@expenseAdded": {
+    "description": "An expense was added."
+  },
+  "expenseSaved": "Expense saved.",
+  "@expenseSaved": {
+    "description": "An expense was saved."
+  },
+  "expenseDeleted": "Expense deleted.",
+  "@expenseDeleted": {
+    "description": "An expense was deleted."
+  },
+  "deleteExpenseTitle": "Delete this expense?",
+  "@deleteExpenseTitle": {
+    "description": "Confirming deleting an expense."
+  },
+  "deleteExpenseBody": "It goes for good, with its receipts. Only for an expense recorded by mistake.",
+  "@deleteExpenseBody": {
+    "description": "What deleting an expense does."
+  },
+  "providerLesco": "LESCO (Lahore)",
+  "@providerLesco": {
+    "description": "Electricity company."
+  },
+  "providerIesco": "IESCO (Islamabad)",
+  "@providerIesco": {
+    "description": "Electricity company."
+  },
+  "providerGepco": "GEPCO (Gujranwala)",
+  "@providerGepco": {
+    "description": "Electricity company."
+  },
+  "providerFesco": "FESCO (Faisalabad)",
+  "@providerFesco": {
+    "description": "Electricity company."
+  },
+  "providerMepco": "MEPCO (Multan)",
+  "@providerMepco": {
+    "description": "Electricity company."
+  },
+  "providerPesco": "PESCO (Peshawar)",
+  "@providerPesco": {
+    "description": "Electricity company."
+  },
+  "providerHesco": "HESCO (Hyderabad)",
+  "@providerHesco": {
+    "description": "Electricity company."
+  },
+  "providerSepco": "SEPCO (Sukkur)",
+  "@providerSepco": {
+    "description": "Electricity company."
+  },
+  "providerQesco": "QESCO (Quetta)",
+  "@providerQesco": {
+    "description": "Electricity company."
+  },
+  "providerTesco": "TESCO (Tribal districts)",
+  "@providerTesco": {
+    "description": "Electricity company."
+  },
+  "providerHazeco": "HAZECO (Hazara)",
+  "@providerHazeco": {
+    "description": "Electricity company."
+  },
+  "providerKElectric": "K-Electric (Karachi)",
+  "@providerKElectric": {
+    "description": "Electricity company."
+  },
+  "providerSngpl": "SNGPL (Sui Northern)",
+  "@providerSngpl": {
+    "description": "Gas company."
+  },
+  "providerSsgc": "SSGC (Sui Southern)",
+  "@providerSsgc": {
+    "description": "Gas company."
+  },
+  "providerWasa": "WASA",
+  "@providerWasa": {
+    "description": "Water authority."
+  },
+  "providerKwsc": "Karachi Water (KW&SC)",
+  "@providerKwsc": {
+    "description": "Water authority."
+  },
+  "providerCda": "CDA (Islamabad)",
+  "@providerCda": {
+    "description": "Water authority."
+  },
+  "providerPtcl": "PTCL",
+  "@providerPtcl": {
+    "description": "Internet company."
+  },
+  "responsibilityTenant": "The tenant",
+  "@responsibilityTenant": {
+    "description": "Who pays a connection's bills."
+  },
+  "responsibilityLandlord": "You",
+  "@responsibilityLandlord": {
+    "description": "Who pays a connection's bills: the landlord."
+  },
+  "responsibilityShared": "Shared",
+  "@responsibilityShared": {
+    "description": "Who pays a connection's bills."
+  },
+  "billPaidByTenant": "The tenant",
+  "@billPaidByTenant": {
+    "description": "Who paid a bill."
+  },
+  "billPaidByLandlord": "You",
+  "@billPaidByLandlord": {
+    "description": "Who paid a bill: the landlord."
+  },
+  "readingMoveIn": "Move-in",
+  "@readingMoveIn": {
+    "description": "Why a meter was read."
+  },
+  "readingMoveOut": "Move-out",
+  "@readingMoveOut": {
+    "description": "Why a meter was read."
+  },
+  "readingMonthly": "Monthly",
+  "@readingMonthly": {
+    "description": "Why a meter was read."
+  },
+  "utilitiesTitle": "Utilities",
+  "@utilitiesTitle": {
+    "description": "Title of the utilities screen."
+  },
+  "loadingUtilities": "Loading the utilities",
+  "@loadingUtilities": {
+    "description": "Screen reader: utilities loading."
+  },
+  "utilitiesLoadFailedTitle": "The utilities could not be loaded",
+  "@utilitiesLoadFailedTitle": {
+    "description": "Utilities failed to load."
+  },
+  "unpaidBillsSection": "Bills to pay",
+  "@unpaidBillsSection": {
+    "description": "Heading of the unpaid bills."
+  },
+  "unpaidBillsHelp": "Unpaid bills, the earliest due first.",
+  "@unpaidBillsHelp": {
+    "description": "Explains the unpaid bills."
+  },
+  "noUnpaidBills": "No unpaid bills.",
+  "@noUnpaidBills": {
+    "description": "No bills to pay."
+  },
+  "landlordNameOverdue": "{count, plural, =1{1 overdue bill is on a connection in your name. Arrears stay with the premises and the connection, so they can fall on you.} other{{count} overdue bills are on connections in your name. Arrears stay with the premises and the connection, so they can fall on you.}}",
+  "@landlordNameOverdue": {
+    "description": "Warning: overdue bills on connections in the landlord's name.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "connectionsSection": "Connections",
+  "@connectionsSection": {
+    "description": "Heading of the utility connections."
+  },
+  "connectionsHelp": "Electricity, gas, water and internet, per property or unit.",
+  "@connectionsHelp": {
+    "description": "Explains the connections."
+  },
+  "connectionsEmptyTitle": "No connections yet",
+  "@connectionsEmptyTitle": {
+    "description": "No connections added."
+  },
+  "connectionsEmptyBody": "Add each meter with its reference number and whose name it is in. Unpaid bills follow the premises, so keep an eye on them here.",
+  "@connectionsEmptyBody": {
+    "description": "Explains connections when there are none."
+  },
+  "archivedConnectionsEmpty": "No archived connections.",
+  "@archivedConnectionsEmpty": {
+    "description": "No archived connections."
+  },
+  "archivedConnectionsEmptyBody": "Connections you archive keep their bills and readings and wait here.",
+  "@archivedConnectionsEmptyBody": {
+    "description": "Explains archived connections."
+  },
+  "addConnectionAction": "Add connection",
+  "@addConnectionAction": {
+    "description": "Adds a utility connection."
+  },
+  "connectionName": "{kind}, {supplier}",
+  "@connectionName": {
+    "description": "A connection: what it supplies and who supplies it.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "supplier": {
+        "type": "String"
+      }
+    }
+  },
+  "inYourName": "In your name",
+  "@inYourName": {
+    "description": "A connection in the landlord's name."
+  },
+  "billOfMonth": "{connection}: {month}",
+  "@billOfMonth": {
+    "description": "A bill of a connection, and its month.",
+    "placeholders": {
+      "connection": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "unitsUsed": "{units} units",
+  "@unitsUsed": {
+    "description": "Units of electricity or gas used.",
+    "placeholders": {
+      "units": {
+        "type": "String"
+      }
+    }
+  },
+  "chargedToTenant": "On the tenant's ledger",
+  "@chargedToTenant": {
+    "description": "A bill billed to the tenant."
+  },
+  "loadingUtility": "Loading the connection",
+  "@loadingUtility": {
+    "description": "Screen reader: a connection loading."
+  },
+  "utilityLoadFailedTitle": "The connection could not be loaded",
+  "@utilityLoadFailedTitle": {
+    "description": "A connection failed to load."
+  },
+  "inYourNameWarning": "This connection is in your name. Unpaid bills stay with it and can fall on you: check every month that the bill is paid.",
+  "@inYourNameWarning": {
+    "description": "Warning on a connection in the landlord's name."
+  },
+  "referenceNumberLabel": "Reference number",
+  "@referenceNumberLabel": {
+    "description": "Label of a bill's reference or account number."
+  },
+  "customerIdLabel": "Customer ID",
+  "@customerIdLabel": {
+    "description": "Label of a connection's customer ID."
+  },
+  "meterNumberLabel": "Meter number",
+  "@meterNumberLabel": {
+    "description": "Label of a meter's number."
+  },
+  "nameOnBillLabel": "Name on the bill",
+  "@nameOnBillLabel": {
+    "description": "Label of the name printed on the bill."
+  },
+  "inMyNameLabel": "In my name",
+  "@inMyNameLabel": {
+    "description": "Label: the connection is in the landlord's name."
+  },
+  "inMyNameHelp": "Arrears follow the premises: unpaid bills on a connection in your name can fall on you.",
+  "@inMyNameHelp": {
+    "description": "Explains a connection in the landlord's name."
+  },
+  "whoPaysLabel": "Who pays the bills",
+  "@whoPaysLabel": {
+    "description": "Label of who pays a connection's bills."
+  },
+  "subMeterLabel": "Sub-meter",
+  "@subMeterLabel": {
+    "description": "Label: a sub-meter."
+  },
+  "subMeterHelp": "A meter of your own that measures one portion's share of a main connection.",
+  "@subMeterHelp": {
+    "description": "Explains a sub-meter."
+  },
+  "protectedLabel": "Protected tariff",
+  "@protectedLabel": {
+    "description": "Label: on the protected domestic tariff."
+  },
+  "protectedHelp": "The subsidised domestic tariff for homes that use {limit} units a month or fewer. One month over {limit} loses it for six months; the app warns you as a month nears it.",
+  "@protectedHelp": {
+    "description": "Explains the protected tariff.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "billsSection": "Bills",
+  "@billsSection": {
+    "description": "Heading of a connection's bills."
+  },
+  "billsEmpty": "No bills yet. Add each month's bill with its due date and units.",
+  "@billsEmpty": {
+    "description": "A connection has no bills."
+  },
+  "addBillAction": "Add bill",
+  "@addBillAction": {
+    "description": "Adds a bill."
+  },
+  "readingsSection": "Meter readings",
+  "@readingsSection": {
+    "description": "Heading of a connection's readings."
+  },
+  "readingsHelp": "Read the meter at move-in and move-out, and each month if you like.",
+  "@readingsHelp": {
+    "description": "Explains meter readings."
+  },
+  "readingsEmpty": "No readings yet.",
+  "@readingsEmpty": {
+    "description": "A connection has no readings."
+  },
+  "addReadingAction": "Add reading",
+  "@addReadingAction": {
+    "description": "Adds a meter reading."
+  },
+  "readingValue": "Reading {value}",
+  "@readingValue": {
+    "description": "A meter's figure.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "usedSince": "{days, plural, =1{{units} units in 1 day} other{{units} units in {days} days}}",
+  "@usedSince": {
+    "description": "Units used between two readings.",
+    "placeholders": {
+      "units": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "archiveConnectionTitle": "Archive this connection?",
+  "@archiveConnectionTitle": {
+    "description": "Confirming archiving a connection."
+  },
+  "archiveConnectionBody": "It leaves your lists but keeps its bills and readings. You can put it back in use later.",
+  "@archiveConnectionBody": {
+    "description": "What archiving a connection does."
+  },
+  "connectionArchived": "Connection archived.",
+  "@connectionArchived": {
+    "description": "A connection was archived."
+  },
+  "connectionRestored": "The connection is back in use.",
+  "@connectionRestored": {
+    "description": "A connection was put back in use."
+  },
+  "deleteConnectionTitle": "Delete this connection?",
+  "@deleteConnectionTitle": {
+    "description": "Confirming deleting a connection."
+  },
+  "deleteConnectionBody": "It goes for good, with its bills and readings. Dues already on a tenant's ledger stay there. Only for a connection added by mistake; otherwise archive it.",
+  "@deleteConnectionBody": {
+    "description": "What deleting a connection does."
+  },
+  "connectionDeleted": "Connection deleted.",
+  "@connectionDeleted": {
+    "description": "A connection was deleted."
+  },
+  "newConnectionTitle": "New connection",
+  "@newConnectionTitle": {
+    "description": "Title of the form adding a connection."
+  },
+  "editConnectionTitle": "Edit connection",
+  "@editConnectionTitle": {
+    "description": "Title of the form editing a connection."
+  },
+  "connectionSectionWhere": "Where",
+  "@connectionSectionWhere": {
+    "description": "Form section: property and unit."
+  },
+  "connectionSectionSupplier": "What and who supplies it",
+  "@connectionSectionSupplier": {
+    "description": "Form section: type and supplier."
+  },
+  "connectionSectionNumbers": "Account numbers",
+  "@connectionSectionNumbers": {
+    "description": "Form section: reference, customer, meter numbers."
+  },
+  "connectionSectionWho": "Whose name, who pays",
+  "@connectionSectionWho": {
+    "description": "Form section: name, responsibility."
+  },
+  "utilityTypeLabel": "Type",
+  "@utilityTypeLabel": {
+    "description": "Label of what a connection supplies."
+  },
+  "providerLabel": "Supplier",
+  "@providerLabel": {
+    "description": "Label of who supplies a connection."
+  },
+  "providerNameLabel": "Supplier's name",
+  "@providerNameLabel": {
+    "description": "Label of another supplier's name."
+  },
+  "referenceNumberHelp": "As printed on the bill.",
+  "@referenceNumberHelp": {
+    "description": "Helper of a reference number."
+  },
+  "referenceDigitsHint": "This supplier's bills usually carry a {digits}-digit number. Check it against a bill.",
+  "@referenceDigitsHint": {
+    "description": "A reference number of an unusual length (a hint, not an error).",
+    "placeholders": {
+      "digits": {
+        "type": "int"
+      }
+    }
+  },
+  "referenceNumberInvalid": "Use 4 to 24 letters, digits or dashes.",
+  "@referenceNumberInvalid": {
+    "description": "A reference number in the wrong form."
+  },
+  "customerIdInvalid": "Use up to 30 letters, digits or dashes.",
+  "@customerIdInvalid": {
+    "description": "A customer ID in the wrong form."
+  },
+  "meterNumberInvalid": "Use up to 30 letters, digits, dashes or slashes.",
+  "@meterNumberInvalid": {
+    "description": "A meter number in the wrong form."
+  },
+  "connectionAdded": "Connection added.",
+  "@connectionAdded": {
+    "description": "A connection was added."
+  },
+  "connectionSaved": "Connection saved.",
+  "@connectionSaved": {
+    "description": "A connection was saved."
+  },
+  "billTitle": "Bill",
+  "@billTitle": {
+    "description": "Title of a bill while it loads."
+  },
+  "loadingBill": "Loading the bill",
+  "@loadingBill": {
+    "description": "Screen reader: a bill loading."
+  },
+  "billLoadFailedTitle": "The bill could not be loaded",
+  "@billLoadFailedTitle": {
+    "description": "A bill failed to load."
+  },
+  "billPaid": "Paid",
+  "@billPaid": {
+    "description": "A paid bill."
+  },
+  "billUnpaid": "Unpaid",
+  "@billUnpaid": {
+    "description": "An unpaid bill without a due date."
+  },
+  "billMonthLabel": "Bill for",
+  "@billMonthLabel": {
+    "description": "Label of a bill's month."
+  },
+  "unitsConsumedLabel": "Units used",
+  "@unitsConsumedLabel": {
+    "description": "Label of a bill's units."
+  },
+  "protectedUnitsHelp": "On the protected tariff: keep a month at {limit} units or fewer.",
+  "@protectedUnitsHelp": {
+    "description": "Helper of units on a protected connection.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "validationUnits": "Enter a number of units, like 185 or 185.5.",
+  "@validationUnits": {
+    "description": "A number of units in the wrong form."
+  },
+  "alreadyPaidLabel": "Already paid",
+  "@alreadyPaidLabel": {
+    "description": "Label: a new bill is already paid."
+  },
+  "billPaidByLabel": "Paid by",
+  "@billPaidByLabel": {
+    "description": "Label of who paid a bill."
+  },
+  "billAdded": "Bill added.",
+  "@billAdded": {
+    "description": "A bill was added."
+  },
+  "billSaved": "Bill saved.",
+  "@billSaved": {
+    "description": "A bill was saved."
+  },
+  "billDeleted": "Bill deleted.",
+  "@billDeleted": {
+    "description": "A bill was deleted."
+  },
+  "billMarkedPaid": "Bill marked paid.",
+  "@billMarkedPaid": {
+    "description": "A bill was marked paid."
+  },
+  "billMarkedUnpaid": "Bill marked unpaid.",
+  "@billMarkedUnpaid": {
+    "description": "A bill was marked unpaid."
+  },
+  "billCharged": "The bill is on the tenant's ledger.",
+  "@billCharged": {
+    "description": "A bill was billed to the tenant."
+  },
+  "markPaidAction": "Mark paid",
+  "@markPaidAction": {
+    "description": "Marks a bill paid."
+  },
+  "markUnpaidAction": "Mark unpaid",
+  "@markUnpaidAction": {
+    "description": "Marks a bill unpaid."
+  },
+  "editBillAction": "Edit bill",
+  "@editBillAction": {
+    "description": "Edits a bill."
+  },
+  "chargeTenantAction": "Charge to tenant",
+  "@chargeTenantAction": {
+    "description": "Bills a utility bill to the tenant."
+  },
+  "chargeTenantExplain": "The bill of {amount} becomes a due on the tenant's ledger, due on {date}. Credit the tenant holds is applied to it.",
+  "@chargeTenantExplain": {
+    "description": "What billing a utility to the tenant does.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "chargedToTenantHelp": "Its payment is recorded on the tenancy's ledger.",
+  "@chargedToTenantHelp": {
+    "description": "Where a billed bill's payment goes."
+  },
+  "billChargeVoided": "The charge this bill became on the tenant's ledger was voided. You can charge it again.",
+  "@billChargeVoided": {
+    "description": "A billed bill's charge was voided."
+  },
+  "connectionDetailsAction": "Connection details",
+  "@connectionDetailsAction": {
+    "description": "Leads to a bill's connection."
+  },
+  "inYourNameUnpaid": "This unpaid bill is on a connection in your name: if it stays unpaid, the arrears can fall on you.",
+  "@inYourNameUnpaid": {
+    "description": "Warning on an unpaid bill in the landlord's name."
+  },
+  "deleteBillTitle": "Delete this bill?",
+  "@deleteBillTitle": {
+    "description": "Confirming deleting a bill."
+  },
+  "deleteBillBody": "It goes for good, with its photos. Only for a bill added by mistake.",
+  "@deleteBillBody": {
+    "description": "What deleting a bill does."
+  },
+  "deleteChargedBillBody": "It goes for good, with its photos. The due it became on the tenant's ledger stays there: void it in the ledger if it is wrong too.",
+  "@deleteChargedBillBody": {
+    "description": "What deleting a billed bill does."
+  },
+  "protectedOver": "Over {limit} units a month",
+  "@protectedOver": {
+    "description": "Badge: a month over the protected limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "protectedNear": "Near {limit} units a month",
+  "@protectedNear": {
+    "description": "Badge: a month near the protected limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "protectedOverExplain": "This month went over {limit} units: the protected tariff is lost for the next six months, and bills will cost more.",
+  "@protectedOverExplain": {
+    "description": "A month over the protected limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "protectedNearExplain": "This month is close to {limit} units. One month over {limit} loses the protected tariff for six months.",
+  "@protectedNearExplain": {
+    "description": "A month near the protected limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "readingTitle": "Meter reading",
+  "@readingTitle": {
+    "description": "Title of a meter reading."
+  },
+  "loadingReading": "Loading the reading",
+  "@loadingReading": {
+    "description": "Screen reader: a reading loading."
+  },
+  "readingLoadFailedTitle": "The reading could not be loaded",
+  "@readingLoadFailedTitle": {
+    "description": "A reading failed to load."
+  },
+  "readingLabel": "Reading",
+  "@readingLabel": {
+    "description": "Label of a meter's figure."
+  },
+  "readOnLabel": "Read on",
+  "@readOnLabel": {
+    "description": "Label of the day a meter was read."
+  },
+  "readingContextLabel": "When read",
+  "@readingContextLabel": {
+    "description": "Label of why a meter was read."
+  },
+  "readingTenancyHelp": "The tenancy moving in or out, if any.",
+  "@readingTenancyHelp": {
+    "description": "Helper of a reading's tenancy."
+  },
+  "lastReadingWas": "The last reading was {value} on {date}.",
+  "@lastReadingWas": {
+    "description": "Helper: the previous reading.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "readingLower": "This is lower than the last reading. If the meter was replaced, note it below.",
+  "@readingLower": {
+    "description": "A reading lower than the one before."
+  },
+  "previousReadingLabel": "Reading before",
+  "@previousReadingLabel": {
+    "description": "Label of the reading before this one."
+  },
+  "readingOn": "{value} on {date}",
+  "@readingOn": {
+    "description": "A reading and its day.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "unitsUsedLabel": "Used since",
+  "@unitsUsedLabel": {
+    "description": "Label of units used since the reading before."
+  },
+  "monthlyPaceLabel": "At this pace",
+  "@monthlyPaceLabel": {
+    "description": "Label of units a month at the pace since the reading before."
+  },
+  "unitsAMonth": "{units} units a month",
+  "@unitsAMonth": {
+    "description": "Units a month.",
+    "placeholders": {
+      "units": {
+        "type": "String"
+      }
+    }
+  },
+  "readingAdded": "Reading added.",
+  "@readingAdded": {
+    "description": "A reading was added."
+  },
+  "readingSaved": "Reading saved.",
+  "@readingSaved": {
+    "description": "A reading was saved."
+  },
+  "readingDeleted": "Reading deleted.",
+  "@readingDeleted": {
+    "description": "A reading was deleted."
+  },
+  "editReadingAction": "Edit reading",
+  "@editReadingAction": {
+    "description": "Edits a reading."
+  },
+  "deleteReadingTitle": "Delete this reading?",
+  "@deleteReadingTitle": {
+    "description": "Confirming deleting a reading."
+  },
+  "deleteReadingBody": "It goes for good, with its photos. Only for a reading added by mistake.",
+  "@deleteReadingBody": {
+    "description": "What deleting a reading does."
+  },
+  "maintenancePlumbing": "Plumbing",
+  "@maintenancePlumbing": {
+    "description": "Repair category."
+  },
+  "maintenanceElectrical": "Electrical",
+  "@maintenanceElectrical": {
+    "description": "Repair category."
+  },
+  "maintenanceCarpentry": "Carpentry",
+  "@maintenanceCarpentry": {
+    "description": "Repair category."
+  },
+  "maintenancePainting": "Painting",
+  "@maintenancePainting": {
+    "description": "Repair category."
+  },
+  "maintenanceSeepage": "Seepage",
+  "@maintenanceSeepage": {
+    "description": "Repair category."
+  },
+  "maintenanceAppliance": "Appliance",
+  "@maintenanceAppliance": {
+    "description": "Repair category."
+  },
+  "maintenancePestControl": "Pest control",
+  "@maintenancePestControl": {
+    "description": "Repair category."
+  },
+  "maintenanceCleaning": "Cleaning",
+  "@maintenanceCleaning": {
+    "description": "Repair category."
+  },
+  "maintenanceStructural": "Structural",
+  "@maintenanceStructural": {
+    "description": "Repair category."
+  },
+  "maintenanceWaterSupply": "Water supply",
+  "@maintenanceWaterSupply": {
+    "description": "Repair category."
+  },
+  "priorityLow": "Low",
+  "@priorityLow": {
+    "description": "Repair priority."
+  },
+  "priorityMedium": "Medium",
+  "@priorityMedium": {
+    "description": "Repair priority."
+  },
+  "priorityHigh": "High",
+  "@priorityHigh": {
+    "description": "Repair priority."
+  },
+  "priorityUrgent": "Urgent",
+  "@priorityUrgent": {
+    "description": "Repair priority."
+  },
+  "priorityNamed": "{priority} priority",
+  "@priorityNamed": {
+    "description": "A repair's priority in a line.",
+    "placeholders": {
+      "priority": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceOpen": "Open",
+  "@maintenanceOpen": {
+    "description": "Repair status."
+  },
+  "maintenanceInProgress": "In progress",
+  "@maintenanceInProgress": {
+    "description": "Repair status."
+  },
+  "maintenanceOnHold": "On hold",
+  "@maintenanceOnHold": {
+    "description": "Repair status."
+  },
+  "maintenanceResolved": "Resolved",
+  "@maintenanceResolved": {
+    "description": "Repair status."
+  },
+  "maintenanceCancelled": "Cancelled",
+  "@maintenanceCancelled": {
+    "description": "Repair status."
+  },
+  "maintenanceTitle": "Maintenance",
+  "@maintenanceTitle": {
+    "description": "Title of the maintenance screen."
+  },
+  "loadingMaintenance": "Loading the repairs",
+  "@loadingMaintenance": {
+    "description": "Screen reader: repairs loading."
+  },
+  "loadingMaintenanceRequest": "Loading the repair",
+  "@loadingMaintenanceRequest": {
+    "description": "Screen reader: a repair loading."
+  },
+  "maintenanceLoadFailedTitle": "The repairs could not be loaded",
+  "@maintenanceLoadFailedTitle": {
+    "description": "Repairs failed to load."
+  },
+  "maintenanceRequestLoadFailedTitle": "The repair could not be loaded",
+  "@maintenanceRequestLoadFailedTitle": {
+    "description": "A repair failed to load."
+  },
+  "maintenanceEmptyTitle": "Nothing to repair",
+  "@maintenanceEmptyTitle": {
+    "description": "No repairs to do."
+  },
+  "maintenanceEmptyBody": "Record each repair as it is reported, and follow it until it is done, with what it cost.",
+  "@maintenanceEmptyBody": {
+    "description": "Explains repairs when there are none."
+  },
+  "maintenanceClosedEmptyTitle": "No closed repairs yet",
+  "@maintenanceClosedEmptyTitle": {
+    "description": "No closed repairs."
+  },
+  "maintenanceClosedEmptyBody": "Repairs you resolve or cancel are kept here.",
+  "@maintenanceClosedEmptyBody": {
+    "description": "Explains closed repairs."
+  },
+  "addRequestAction": "Add repair",
+  "@addRequestAction": {
+    "description": "Adds a maintenance request."
+  },
+  "reportedOn": "Reported {date}",
+  "@reportedOn": {
+    "description": "When a repair was reported, in a line.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "maintenanceCategoryLabel": "Kind of work",
+  "@maintenanceCategoryLabel": {
+    "description": "Label of a repair's category."
+  },
+  "priorityLabel": "Priority",
+  "@priorityLabel": {
+    "description": "Label of a repair's priority."
+  },
+  "reportedOnLabel": "Reported on",
+  "@reportedOnLabel": {
+    "description": "Label of the day a repair was reported."
+  },
+  "reportedByLabel": "Reported by",
+  "@reportedByLabel": {
+    "description": "Label of who reported a repair."
+  },
+  "assignedToLabel": "Done by",
+  "@assignedToLabel": {
+    "description": "Label of the vendor or worker doing a repair."
+  },
+  "assignedToHelp": "The plumber, electrician or company doing it.",
+  "@assignedToHelp": {
+    "description": "Helper of who does a repair."
+  },
+  "vendorPhoneLabel": "Their phone",
+  "@vendorPhoneLabel": {
+    "description": "Label of the vendor's phone."
+  },
+  "estimateLabel": "Estimate",
+  "@estimateLabel": {
+    "description": "Label of a repair's estimated cost."
+  },
+  "resolvedOnLabel": "Resolved on",
+  "@resolvedOnLabel": {
+    "description": "Label of the day a repair was resolved."
+  },
+  "resolutionLabel": "What was done",
+  "@resolutionLabel": {
+    "description": "Label of how a repair was resolved."
+  },
+  "resolutionHelp": "For the record: what was fixed, and any guarantee.",
+  "@resolutionHelp": {
+    "description": "Helper of how a repair was resolved."
+  },
+  "startWorkAction": "Start work",
+  "@startWorkAction": {
+    "description": "Moves a repair to in progress."
+  },
+  "resumeWorkAction": "Resume work",
+  "@resumeWorkAction": {
+    "description": "Moves a repair on hold to in progress."
+  },
+  "putOnHoldAction": "Put on hold",
+  "@putOnHoldAction": {
+    "description": "Puts a repair on hold."
+  },
+  "markResolvedAction": "Mark resolved",
+  "@markResolvedAction": {
+    "description": "Resolves a repair."
+  },
+  "cancelRequestAction": "Cancel the repair",
+  "@cancelRequestAction": {
+    "description": "Cancels a repair."
+  },
+  "reopenAction": "Reopen",
+  "@reopenAction": {
+    "description": "Reopens a closed repair."
+  },
+  "requestMoved": "Now: {status}.",
+  "@requestMoved": {
+    "description": "A repair moved to a status.",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "requestResolved": "Repair resolved.",
+  "@requestResolved": {
+    "description": "A repair was resolved."
+  },
+  "jobExpensesSection": "Spent on it",
+  "@jobExpensesSection": {
+    "description": "Heading of a repair's expenses."
+  },
+  "jobExpensesEmpty": "Nothing spent on it yet.",
+  "@jobExpensesEmpty": {
+    "description": "A repair has no expenses."
+  },
+  "spentSoFar": "{amount} so far",
+  "@spentSoFar": {
+    "description": "Spent on a repair.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "spentOfEstimate": "{spent} of the {estimate} estimate",
+  "@spentOfEstimate": {
+    "description": "Spent on a repair against its estimate.",
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      },
+      "estimate": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteRequestTitle": "Delete {title}?",
+  "@deleteRequestTitle": {
+    "description": "Confirming deleting a repair.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteRequestBody": "It goes for good, with its photos. Only for a repair added by mistake; cancel it instead to keep it on record.",
+  "@deleteRequestBody": {
+    "description": "What deleting a repair does."
+  },
+  "requestDeleted": "Repair deleted.",
+  "@requestDeleted": {
+    "description": "A repair was deleted."
+  },
+  "newRequestTitle": "New repair",
+  "@newRequestTitle": {
+    "description": "Title of the form adding a repair."
+  },
+  "editRequestTitle": "Edit repair",
+  "@editRequestTitle": {
+    "description": "Title of the form editing a repair."
+  },
+  "requestSectionWhat": "What needs doing",
+  "@requestSectionWhat": {
+    "description": "Form section: title, category, priority."
+  },
+  "requestSectionWhere": "Where",
+  "@requestSectionWhere": {
+    "description": "Form section: property, unit, tenancy."
+  },
+  "requestSectionWho": "Who and when",
+  "@requestSectionWho": {
+    "description": "Form section: reporter, vendor, estimate."
+  },
+  "requestSectionStatus": "Where it stands",
+  "@requestSectionStatus": {
+    "description": "Form section: status."
+  },
+  "requestTitleLabel": "What is wrong",
+  "@requestTitleLabel": {
+    "description": "Label of a repair's title."
+  },
+  "requestTitleHelp": "In a few words: \"Kitchen tap leaking\".",
+  "@requestTitleHelp": {
+    "description": "Helper of a repair's title."
+  },
+  "requestTenancyHelp": "The tenancy it was reported in, if any.",
+  "@requestTenancyHelp": {
+    "description": "Helper of a repair's tenancy."
+  },
+  "requestAdded": "Repair added.",
+  "@requestAdded": {
+    "description": "A repair was added."
+  },
+  "requestSaved": "Repair saved.",
+  "@requestSaved": {
+    "description": "A repair was saved."
+  },
+  "reasonDuplicateUtilityReference": "Another connection of this type in use already has this reference number.",
+  "@reasonDuplicateUtilityReference": {
+    "description": "Refusal: a reference number already used."
+  },
+  "reasonDuplicateBillMonth": "This connection already has a bill for that month. Open it to change it.",
+  "@reasonDuplicateBillMonth": {
+    "description": "Refusal: a second bill for the same month."
+  },
+  "reasonRequestHasExpenses": "Expenses are recorded against this repair, so it cannot be deleted. Cancel it instead, or delete those expenses first.",
+  "@reasonRequestHasExpenses": {
+    "description": "Refusal: deleting a repair with expenses."
+  },
+  "connectionReference": "Ref.\u00a0{number}",
+  "@connectionReference": {
+    "description": "A connection's reference number, in a line.",
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "whereLabel": "Where",
+  "@whereLabel": {
+    "description": "Label of where something is: a property, or a unit of it."
+  },
+  "pacedNearExplain": "At this pace a month comes close to {limit} units. One month over {limit} loses the protected tariff for six months.",
+  "@pacedNearExplain": {
+    "description": "A reading's pace near the protected limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "pacedOverExplain": "At this pace a month goes over {limit} units, which loses the protected tariff for six months. Check the bill when it comes.",
+  "@pacedOverExplain": {
+    "description": "A reading's pace over the protected limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "paidWithLabel": "Paid with",
+  "@paidWithLabel": {
+    "description": "Label of how an expense was paid (cash, bank transfer…), beside who it was paid to."
+  },
+  "billAmountLocked": "This bill is a due on the tenant's ledger, so its amount can't change here. To correct it, void that due in the ledger, then charge the bill again.",
+  "@billAmountLocked": {
+    "description": "Editing a bill already charged to the tenant: why its amount is fixed and how to correct it."
+  },
+  "paceAMonth": "about {units} units a month",
+  "@paceAMonth": {
+    "description": "A reading's pace of use, in a list line.",
+    "placeholders": {
+      "units": {
+        "type": "String"
+      }
+    }
+  },
+  "readingHigher": "This is higher than the later reading of {value} on {date}. Check the figure and the day.",
+  "@readingHigher": {
+    "description": "Warning: a reading is higher than one taken on a later day.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "markUnpaidTitle": "Mark this bill unpaid?",
+  "@markUnpaidTitle": {
+    "description": "Title of the dialog confirming that a paid bill is marked unpaid."
+  },
+  "markUnpaidBody": "The paid date, {date}, and who paid it will be cleared.",
+  "@markUnpaidBody": {
+    "description": "What marking a bill unpaid clears.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "cancelRequestTitle": "Close this repair as cancelled?",
+  "@cancelRequestTitle": {
+    "description": "Title of the dialog confirming that a repair is cancelled."
+  },
+  "cancelRequestBody": "It moves to Closed, with its details and expenses kept. You can reopen it later.",
+  "@cancelRequestBody": {
+    "description": "What cancelling a repair does."
+  },
+  "closeAsCancelledAction": "Close as cancelled",
+  "@closeAsCancelledAction": {
+    "description": "Confirms cancelling a repair (the dialog's other button is Cancel)."
+  },
+  "chargeDuePassed": "That date has passed, so the due will show as overdue at once.",
+  "@chargeDuePassed": {
+    "description": "Charging a bill whose due date has passed."
+  },
+  "savedEarlierUnchanged": "This was already saved, as first entered. Your later changes were not saved: edit it to make them.",
+  "@savedEarlierUnchanged": {
+    "description": "A retried add found the record already saved by the first try, which the connection lost; fields changed since then were not saved."
+  },
+  "requestHasExpensesClosed": "Expenses are recorded against this repair, so it cannot be deleted. If it was entered by mistake, delete those expenses first.",
+  "@requestHasExpensesClosed": {
+    "description": "Why a closed repair with expenses cannot be deleted."
+  },
+  "loadingDashboard": "Loading the dashboard",
+  "@loadingDashboard": {
+    "description": "What screen readers hear while the dashboard loads."
+  },
+  "dashboardLoadFailedTitle": "The dashboard could not be loaded",
+  "@dashboardLoadFailedTitle": {
+    "description": "Heading when the dashboard could not be read."
+  },
+  "searchAction": "Search",
+  "@searchAction": {
+    "description": "Button that opens the search across properties, units and tenants."
+  },
+  "reportsTitle": "Reports",
+  "@reportsTitle": {
+    "description": "Title of the reports screen, and the button that opens it."
+  },
+  "reportsEntryTitle": "Reports and statements",
+  "@reportsEntryTitle": {
+    "description": "More: the entry leading to the reports."
+  },
+  "reportsEntrySummary": "Cash flow, payment scores, tax-year and owner statements, exports",
+  "@reportsEntrySummary": {
+    "description": "More: what the reports hold."
+  },
+  "thisMonthSection": "This month, {month}",
+  "@thisMonthSection": {
+    "description": "Heading of the month's figures on the dashboard.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "collectedThisMonthLabel": "Collected this month",
+  "@collectedThisMonthLabel": {
+    "description": "Label of the dashboard's figure of dues paid this month."
+  },
+  "collectedOfDue": "of {due} due, {rate} collected",
+  "@collectedOfDue": {
+    "description": "Under the amount collected this month: what fell due and the share collected.",
+    "placeholders": {
+      "due": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "nothingDueThisMonth": "Nothing has fallen due this month yet.",
+  "@nothingDueThisMonth": {
+    "description": "Under the amount collected when nothing fell due this month yet."
+  },
+  "owedInAll": "{amount} owed in all",
+  "@owedInAll": {
+    "description": "Under the overdue figure: all that is owed, due or not.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "unitsLetLabel": "Units let",
+  "@unitsLetLabel": {
+    "description": "Label of the figure of units with a tenant."
+  },
+  "unitsLetValue": "{occupied} of {units}",
+  "@unitsLetValue": {
+    "description": "How many units are let, of the units that can be let.",
+    "placeholders": {
+      "occupied": {
+        "type": "String"
+      },
+      "units": {
+        "type": "String"
+      }
+    }
+  },
+  "occupancyCaption": "{rate} let, {vacant, plural, =0{none vacant} other{{vacant} vacant}}",
+  "@occupancyCaption": {
+    "description": "Under the units let: the occupancy rate and how many units are vacant.",
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      },
+      "vacant": {
+        "type": "int"
+      }
+    }
+  },
+  "noUnitsToLet": "No units to let yet",
+  "@noUnitsToLet": {
+    "description": "The units-let figure when the portfolio has no unit that can be let."
+  },
+  "stillToCollect": "Still to collect",
+  "@stillToCollect": {
+    "description": "The part of this month's dues not paid yet, in the month's bar."
+  },
+  "monthBarSummary": "Of {expected} rupees due this month, {paid} are paid.",
+  "@monthBarSummary": {
+    "description": "What screen readers hear for the bar of this month's dues.",
+    "placeholders": {
+      "expected": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      }
+    }
+  },
+  "insightsSection": "What needs attention",
+  "@insightsSection": {
+    "description": "Heading of the insight cards on the dashboard."
+  },
+  "noInsights": "Nothing needs your attention today.",
+  "@noInsights": {
+    "description": "Shown when there is no insight card."
+  },
+  "insightAlert": "Act now",
+  "@insightAlert": {
+    "description": "Badge of an insight card that needs action now."
+  },
+  "insightWarning": "Worth a look",
+  "@insightWarning": {
+    "description": "Badge of an insight card worth a look: not urgent, not only for information."
+  },
+  "insightInfo": "Good to know",
+  "@insightInfo": {
+    "description": "Badge of an insight card worth knowing."
+  },
+  "insightGood": "Good news",
+  "@insightGood": {
+    "description": "Badge of an insight card with good news."
+  },
+  "insightsShowAll": "{count, plural, other{Show all {count}}}",
+  "@insightsShowAll": {
+    "description": "Button under the first insight cards: shows every card.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightsShowFewer": "Show fewer",
+  "@insightsShowFewer": {
+    "description": "Button under every insight card: shows only the first ones again."
+  },
+  "openNamedTenancyAction": "Open {tenant}'s tenancy",
+  "@openNamedTenancyAction": {
+    "description": "Action of an insight card about one tenancy.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "seeTenantsAction": "See tenants",
+  "@seeTenantsAction": {
+    "description": "Action of an insight card about several tenancies: the tenants, whose tenancies they open."
+  },
+  "over60Split": "Of the {amount} over 60 days late:",
+  "@over60Split": {
+    "description": "Heading of the split of the oldest overdue rent.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardNoPropertiesTitle": "No properties yet",
+  "@dashboardNoPropertiesTitle": {
+    "description": "Dashboard of a portfolio without properties."
+  },
+  "dashboardNoPropertiesBody": "Add your first property to start collecting rent.",
+  "@dashboardNoPropertiesBody": {
+    "description": "Dashboard of a portfolio without properties, for those who may add one."
+  },
+  "dashboardNoPropertiesViewer": "Once a property is added, its rent shows here.",
+  "@dashboardNoPropertiesViewer": {
+    "description": "Dashboard of a portfolio without properties, for those who may not add one."
+  },
+  "dashboardNoUnitsTitle": "No units yet",
+  "@dashboardNoUnitsTitle": {
+    "description": "Dashboard of a portfolio with properties but no units."
+  },
+  "dashboardNoUnitsBody": "Add a unit to a property to let it and collect its rent.",
+  "@dashboardNoUnitsBody": {
+    "description": "Dashboard of a portfolio with properties but no units, for those who may add one."
+  },
+  "dashboardNoUnitsViewer": "Once a unit is added, its rent shows here.",
+  "@dashboardNoUnitsViewer": {
+    "description": "Dashboard of a portfolio with properties but no units, for those who may not add one."
+  },
+  "seePropertiesAction": "See properties",
+  "@seePropertiesAction": {
+    "description": "Action leading to the properties."
+  },
+  "insightCollectionTitle": "{rate} of this month's dues collected",
+  "@insightCollectionTitle": {
+    "description": "Insight: the share of this month's dues paid.",
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCollectionBody": "{amount} of them is still to collect.",
+  "@insightCollectionBody": {
+    "description": "Insight: what of this month's dues is not paid.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCollectionDone": "Every due of this month is paid.",
+  "@insightCollectionDone": {
+    "description": "Insight: all of this month's dues are paid."
+  },
+  "insightLongArrearsTitle": "{amount} owed for over 90 days",
+  "@insightLongArrearsTitle": {
+    "description": "Insight: rent owed for more than 90 days.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "insightLongArrearsBody": "Money this old is the hardest to recover. Talk to these tenants, or settle it from their deposit when they leave.",
+  "@insightLongArrearsBody": {
+    "description": "Insight: what to do about rent owed for more than 90 days."
+  },
+  "seeWhoOwesAction": "See who owes",
+  "@seeWhoOwesAction": {
+    "description": "Opens the who-owes-what list."
+  },
+  "insightIncrementTitle": "Rent increases to make",
+  "@insightIncrementTitle": {
+    "description": "Insight: rent increases due or missed."
+  },
+  "insightIncrementMissed": "{count, plural, =1{1 increase was not made when due} other{{count} increases were not made when due}}: {amount} a month not charged.",
+  "@insightIncrementMissed": {
+    "description": "Insight: rent increases whose date passed without the rent changing, and what they would add.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "insightIncrementUpcoming": "{count, plural, =1{1 increase is due within 30 days.} other{{count} increases are due within 30 days.}}",
+  "@insightIncrementUpcoming": {
+    "description": "Insight: rent increases due soon.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightExpiringTitle": "{count, plural, =1{1 tenancy ends within 90 days} other{{count} tenancies end within 90 days}}",
+  "@insightExpiringTitle": {
+    "description": "Insight: tenancies ending soon.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightExpiringBody": "{tenant}'s ends first, {days, plural, =0{today} =1{in 1 day} other{in {days} days}}. Renew it or plan the move-out.",
+  "@insightExpiringBody": {
+    "description": "Insight: the tenancy ending first.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "insightPoliceTitle": "{count, plural, =1{1 tenancy is not registered with the police} other{{count} tenancies are not registered with the police}}",
+  "@insightPoliceTitle": {
+    "description": "Insight: tenancies not registered with the police.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightPoliceLate": "{count, plural, =1{1 is past the law's deadline: register it now.} other{{count} are past the law's deadline: register them now.}}",
+  "@insightPoliceLate": {
+    "description": "Insight: registrations past a law's deadline.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightPoliceBody": "Register each by its deadline. Where no law sets one, the app reminds you.",
+  "@insightPoliceBody": {
+    "description": "Insight: what police registration asks."
+  },
+  "insightPoliceSubmittedTitle": "{count, plural, =1{1 police registration is waiting for confirmation} other{{count} police registrations are waiting for confirmation}}",
+  "@insightPoliceSubmittedTitle": {
+    "description": "Insight: tenancies whose police registration was submitted and is not yet confirmed.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightPoliceSubmittedLine": "{count, plural, =1{1 more is submitted and waiting for confirmation.} other{{count} more are submitted and waiting for confirmation.}}",
+  "@insightPoliceSubmittedLine": {
+    "description": "Insight: besides those not registered, how many are submitted and not confirmed.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightPoliceSubmittedBody": "You have done what the law asks. Update the tenancy once the police confirm it.",
+  "@insightPoliceSubmittedBody": {
+    "description": "Insight: what to do about a submitted registration."
+  },
+  "insightVacancyTitle": "{count, plural, =1{1 unit is vacant} other{{count} units are vacant}}",
+  "@insightVacancyTitle": {
+    "description": "Insight: vacant units.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightVacancyBody": "Empty, {count, plural, =1{it costs} other{they cost}} you {amount} a month at the asking rent. {count, plural, =1{It has} other{The longest has}} been empty {days, plural, =0{since today} =1{for 1 day} other{for {days} days}}.",
+  "@insightVacancyBody": {
+    "description": "Insight: what vacant units lose, and the longest vacancy.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "insightDepositTitle": "Deposits cover only {cover} of overdue rent",
+  "@insightDepositTitle": {
+    "description": "Insight: deposits held are less than overdue rent.",
+    "placeholders": {
+      "cover": {
+        "type": "String"
+      }
+    }
+  },
+  "insightDepositBody": "{overdue} is overdue and {held} of deposits is held. Collect before arrears grow beyond what deposits can settle.",
+  "@insightDepositBody": {
+    "description": "Insight: overdue rent against deposits held.",
+    "placeholders": {
+      "overdue": {
+        "type": "String"
+      },
+      "held": {
+        "type": "String"
+      }
+    }
+  },
+  "insightUtilityTitle": "Utility bills need attention",
+  "@insightUtilityTitle": {
+    "description": "Insight: unpaid bills and meters near the protected-tariff limit."
+  },
+  "insightUtilityLandlord": "{count, plural, =1{1 unpaid bill is in your name} other{{count} unpaid bills are in your name}}, {amount} in all: you are liable for them.",
+  "@insightUtilityLandlord": {
+    "description": "Insight: unpaid bills on connections in the landlord's name.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "insightUtilityOverdue": "{count, plural, =1{1 bill is past its due date.} other{{count} bills are past their due date.}}",
+  "@insightUtilityOverdue": {
+    "description": "Insight: unpaid bills past their due date.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightUtilityOverTariff": "{count, plural, =1{1 protected-tariff meter went over 200 units on its latest bill.} other{{count} protected-tariff meters went over 200 units on their latest bill.}}",
+  "@insightUtilityOverTariff": {
+    "description": "Insight: protected-tariff meters over 200 units.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightUtilityNearTariff": "{count, plural, =1{1 protected-tariff meter is near 200 units.} other{{count} protected-tariff meters are near 200 units.}}",
+  "@insightUtilityNearTariff": {
+    "description": "Insight: protected-tariff meters near 200 units.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seeUtilitiesAction": "See utilities",
+  "@seeUtilitiesAction": {
+    "description": "Opens the utilities."
+  },
+  "insightExpenseTitle": "Expenses are up this month",
+  "@insightExpenseTitle": {
+    "description": "Insight: expenses well above the recent average."
+  },
+  "insightExpenseBody": "{amount} so far, against {average} a month on average over the three months before.",
+  "@insightExpenseBody": {
+    "description": "Insight: this month's expenses against the average.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "average": {
+        "type": "String"
+      }
+    }
+  },
+  "seeExpensesAction": "See expenses",
+  "@seeExpensesAction": {
+    "description": "Opens the expenses."
+  },
+  "insightUnderpricedTitle": "{count, plural, =1{1 unit is let below its asking rent} other{{count} units are let below their asking rent}}",
+  "@insightUnderpricedTitle": {
+    "description": "Insight: units let for clearly less than the asking rent.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightUnderpricedBody": "Together {amount} a month below what you ask, the most at {unit}. Consider it at the next increase or renewal.",
+  "@insightUnderpricedBody": {
+    "description": "Insight: how far rents fall short of asking rents.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCashTitle": "{amount} in cash with caretakers",
+  "@insightCashTitle": {
+    "description": "Insight: cash held by members who are not owners.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCashHolder": "{name} holds {amount}.",
+  "@insightCashHolder": {
+    "description": "Insight: the member holding the most cash.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCashShareTitle": "Most of this month's money came in cash",
+  "@insightCashShareTitle": {
+    "description": "Insight: a large share of this month's money was cash."
+  },
+  "insightCashShare": "{share} of this month's money came in cash.",
+  "@insightCashShare": {
+    "description": "Insight: the share of this month's money received in cash.",
+    "placeholders": {
+      "share": {
+        "type": "String"
+      }
+    }
+  },
+  "insightCashAdvice": "Bank transfers and regular handovers keep less cash in hand.",
+  "@insightCashAdvice": {
+    "description": "Insight: how to carry less cash."
+  },
+  "seeCashAction": "See cash in hand",
+  "@seeCashAction": {
+    "description": "Opens the cash in hand."
+  },
+  "owedSection": "Owed to you",
+  "@owedSection": {
+    "description": "Heading of what tenants owe, by age, on the dashboard."
+  },
+  "owedSectionHelp": "{amount} in all, by how long it has been owed",
+  "@owedSectionHelp": {
+    "description": "Under the heading of what is owed.",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "ageNotDue": "Not yet due",
+  "@ageNotDue": {
+    "description": "Part of the amount owed not due yet."
+  },
+  "age1to30": "1 to 30 days late",
+  "@age1to30": {
+    "description": "Part of the amount owed overdue by 1 to 30 days."
+  },
+  "age31to60": "31 to 60 days late",
+  "@age31to60": {
+    "description": "Part of the amount owed overdue by 31 to 60 days."
+  },
+  "ageOver60": "Over 60 days late",
+  "@ageOver60": {
+    "description": "Part of the amount owed overdue by more than 60 days."
+  },
+  "age61to90": "61 to 90 days late",
+  "@age61to90": {
+    "description": "Part of the amount owed overdue by 61 to 90 days."
+  },
+  "ageOver90": "Over 90 days late",
+  "@ageOver90": {
+    "description": "Part of the amount owed overdue by more than 90 days."
+  },
+  "ageingSummary": "{total} rupees owed: {notDue} not yet due, {early} up to 30 days late, {middle} 31 to 60 days late, {late} over 60 days late.",
+  "@ageingSummary": {
+    "description": "What screen readers hear for the bar of what is owed by age.",
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "notDue": {
+        "type": "String"
+      },
+      "early": {
+        "type": "String"
+      },
+      "middle": {
+        "type": "String"
+      },
+      "late": {
+        "type": "String"
+      }
+    }
+  },
+  "owingMostSection": "Owing most",
+  "@owingMostSection": {
+    "description": "Heading of the tenancies with the most overdue."
+  },
+  "seeAllAction": "See all",
+  "@seeAllAction": {
+    "description": "Opens the whole list."
+  },
+  "remindShortAction": "Remind",
+  "@remindShortAction": {
+    "description": "Button that opens the WhatsApp reminder for a tenancy."
+  },
+  "lastRemindedOn": "Reminded {moment}",
+  "@lastRemindedOn": {
+    "description": "When the tenant was last reminded.",
+    "placeholders": {
+      "moment": {
+        "type": "String"
+      }
+    }
+  },
+  "upcomingSection": "Due and coming up",
+  "@upcomingSection": {
+    "description": "Dashboard section: what is due or was missed, and what falls due soon."
+  },
+  "upcomingEmpty": "Nothing falls due in the coming weeks.",
+  "@upcomingEmpty": {
+    "description": "Shown when the timeline is empty."
+  },
+  "timelineLeaseEnds": "{tenant}'s tenancy ends",
+  "@timelineLeaseEnds": {
+    "description": "Timeline: a tenancy ends.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineIncrementDue": "Rent increase for {tenant}",
+  "@timelineIncrementDue": {
+    "description": "Timeline: a rent increase falls due.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineIncrementMissed": "Rent increase not made for {tenant}",
+  "@timelineIncrementMissed": {
+    "description": "Timeline: a rent increase whose date passed.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineIncrementDetail": "{unit}: {from} to {to}",
+  "@timelineIncrementDetail": {
+    "description": "Timeline: the rent before and after an increase.",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "timelinePolice": "Register {tenant} with the police",
+  "@timelinePolice": {
+    "description": "Timeline: a police registration deadline.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "timelinePoliceLegal": "{unit}: deadline set by law",
+  "@timelinePoliceLegal": {
+    "description": "Timeline: the deadline is the law's.",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "timelinePoliceLegalPassed": "{unit}: the deadline set by law has passed",
+  "@timelinePoliceLegalPassed": {
+    "description": "Dashboard: a police registration still not made after the deadline a law sets.",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "timelinePoliceReminder": "{unit}: the app's reminder, no law sets a deadline",
+  "@timelinePoliceReminder": {
+    "description": "Timeline: the date is only the app's reminder.",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "timelinePoliceSubmitted": "{unit}: submitted, not yet confirmed",
+  "@timelinePoliceSubmitted": {
+    "description": "Timeline: a registration submitted and not confirmed.",
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineCnicExpires": "{tenant}'s CNIC expires",
+  "@timelineCnicExpires": {
+    "description": "Timeline: a tenant's CNIC expires.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineCnicExpired": "{tenant}'s CNIC has expired",
+  "@timelineCnicExpired": {
+    "description": "Timeline: a tenant's CNIC expired.",
+    "placeholders": {
+      "tenant": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineCnicHelp": "Ask for a copy of the renewed card.",
+  "@timelineCnicHelp": {
+    "description": "Timeline: what to do about an expiring CNIC."
+  },
+  "vacantSection": "Vacant units",
+  "@vacantSection": {
+    "description": "Heading of the vacant units on the dashboard."
+  },
+  "vacantFor": "{days, plural, =0{Vacant since today} =1{Vacant 1 day} other{Vacant {days} days}}",
+  "@vacantFor": {
+    "description": "How long a unit has stood vacant.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "heldAndSpentSection": "Deposits, tax and expenses",
+  "@heldAndSpentSection": {
+    "description": "Heading of the deposits held, tax withheld and expenses on the dashboard."
+  },
+  "depositsHeldLabel": "Deposits held",
+  "@depositsHeldLabel": {
+    "description": "Deposits held for active tenancies."
+  },
+  "depositsAgreedLabel": "Deposits agreed",
+  "@depositsAgreedLabel": {
+    "description": "Deposits agreed in active tenancies."
+  },
+  "taxWithheldThisMonthLabel": "Tax withheld this month",
+  "@taxWithheldThisMonthLabel": {
+    "description": "Income tax tenants withheld from this month's payments."
+  },
+  "expensesThisMonthLabel": "Expenses this month",
+  "@expensesThisMonthLabel": {
+    "description": "This month's expenses."
+  },
+  "expensesAverageLabel": "Monthly average of the 3 months before",
+  "@expensesAverageLabel": {
+    "description": "The average monthly expenses of the three months before this one."
+  },
+  "loadingCashflow": "Loading the cash flow",
+  "@loadingCashflow": {
+    "description": "What screen readers hear while the cash flow loads."
+  },
+  "cashflowLoadFailedTitle": "The cash flow could not be loaded",
+  "@cashflowLoadFailedTitle": {
+    "description": "Heading when the cash flow could not be read."
+  },
+  "cashflowSection": "Cash flow, last 12 months",
+  "@cashflowSection": {
+    "description": "Heading of the cash-flow chart."
+  },
+  "moneyInSeries": "Money in",
+  "@moneyInSeries": {
+    "description": "Chart series: money received."
+  },
+  "moneyOutSeries": "Money out",
+  "@moneyOutSeries": {
+    "description": "Chart series: expenses and deposits refunded."
+  },
+  "monthColumn": "Month",
+  "@monthColumn": {
+    "description": "Header of the chart table's month column."
+  },
+  "cashflowSummary": "Money in and out each month from {first} to {last}: {moneyIn} rupees in and {moneyOut} rupees out in all.",
+  "@cashflowSummary": {
+    "description": "What screen readers hear for the cash-flow chart.",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      },
+      "moneyIn": {
+        "type": "String"
+      },
+      "moneyOut": {
+        "type": "String"
+      }
+    }
+  },
+  "cashflowEmpty": "No money came in or went out in the last 12 months.",
+  "@cashflowEmpty": {
+    "description": "Shown when the cash flow is empty."
+  },
+  "totalInLabel": "Money in",
+  "@totalInLabel": {
+    "description": "Total money received over the report."
+  },
+  "totalOutLabel": "Money out",
+  "@totalOutLabel": {
+    "description": "Total expenses and refunds over the report."
+  },
+  "netLabel": "Net",
+  "@netLabel": {
+    "description": "Money in less money out."
+  },
+  "loadingPerformance": "Loading the properties' figures",
+  "@loadingPerformance": {
+    "description": "What screen readers hear while property performance loads."
+  },
+  "performanceLoadFailedTitle": "The properties' figures could not be loaded",
+  "@performanceLoadFailedTitle": {
+    "description": "Heading when property performance could not be read."
+  },
+  "performanceSection": "Properties, last 12 months",
+  "@performanceSection": {
+    "description": "Heading of each property's income and expenses."
+  },
+  "performanceEmpty": "Add a property to see its income and expenses here.",
+  "@performanceEmpty": {
+    "description": "Shown when there is no property."
+  },
+  "rentIncomeLabel": "Rent received",
+  "@rentIncomeLabel": {
+    "description": "Rent and late fees received for a property."
+  },
+  "otherIncomeLabel": "Other income",
+  "@otherIncomeLabel": {
+    "description": "Other dues received for a property."
+  },
+  "propertyExpensesLabel": "Expenses",
+  "@propertyExpensesLabel": {
+    "description": "Expenses of a property."
+  },
+  "noiLabel": "Net operating income",
+  "@noiLabel": {
+    "description": "Income less expenses of a property."
+  },
+  "grossYieldLabel": "Gross yield",
+  "@grossYieldLabel": {
+    "description": "Rent a year over the estimated value."
+  },
+  "netYieldLabel": "Net yield",
+  "@netYieldLabel": {
+    "description": "Net operating income a year over the estimated value."
+  },
+  "yieldValue": "{percent} a year",
+  "@yieldValue": {
+    "description": "A yield.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "noYieldHelp": "Add the property's estimated value to see its yield.",
+  "@noYieldHelp": {
+    "description": "Why a property has no yield."
+  },
+  "noiChartTitle": "Net operating income by property",
+  "@noiChartTitle": {
+    "description": "Title of the chart of each property's net operating income."
+  },
+  "noiChartSummary": "Net operating income over the last 12 months: {best} earned most, {amount} rupees.",
+  "@noiChartSummary": {
+    "description": "What screen readers hear for the chart of net operating income.",
+    "placeholders": {
+      "best": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "scoresSection": "Payment scores",
+  "@scoresSection": {
+    "description": "Heading of tenants' payment scores."
+  },
+  "scoresHelp": "From each tenant's rent of the last 12 months.",
+  "@scoresHelp": {
+    "description": "Under the heading of payment scores."
+  },
+  "loadingScores": "Loading the payment scores",
+  "@loadingScores": {
+    "description": "What screen readers hear while scores load."
+  },
+  "scoresLoadFailedTitle": "The payment scores could not be loaded",
+  "@scoresLoadFailedTitle": {
+    "description": "Heading when payment scores could not be read."
+  },
+  "scoresEmpty": "Scores appear once rent has fallen due.",
+  "@scoresEmpty": {
+    "description": "Shown when no tenant has a score yet."
+  },
+  "scoreBandGood": "Pays on time",
+  "@scoreBandGood": {
+    "description": "Payment score band 75 to 100."
+  },
+  "scoreBandFair": "Sometimes late",
+  "@scoreBandFair": {
+    "description": "Payment score band 50 to 74."
+  },
+  "scoreBandPoor": "Often late",
+  "@scoreBandPoor": {
+    "description": "Payment score band below 50."
+  },
+  "scoreSpoken": "Payment score {score} out of 100, {band}",
+  "@scoreSpoken": {
+    "description": "What screen readers hear for a payment score.",
+    "placeholders": {
+      "score": {
+        "type": "String"
+      },
+      "band": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreValue": "{score}/100",
+  "@scoreValue": {
+    "description": "A payment score in a list.",
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreOnTime": "On time {onTime} of {count}",
+  "@scoreOnTime": {
+    "description": "How many rent dues were paid on time.",
+    "placeholders": {
+      "onTime": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreDaysLate": "{days, plural, =1{About 1 day late on average} other{About {days} days late on average}}",
+  "@scoreDaysLate": {
+    "description": "Average days late, rounded to whole days (1 or more).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreNeverLate": "Never late",
+  "@scoreNeverLate": {
+    "description": "Payment score: every due counted was paid on time."
+  },
+  "scoreUnderADayLate": "Less than a day late on average",
+  "@scoreUnderADayLate": {
+    "description": "Payment score: late on average by less than a day."
+  },
+  "scoreArrears": "Owes {months} months' rent",
+  "@scoreArrears": {
+    "description": "Overdue rent in months of rent.",
+    "placeholders": {
+      "months": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreNoArrears": "Nothing overdue",
+  "@scoreNoArrears": {
+    "description": "No overdue rent."
+  },
+  "scoreSectionTitle": "Payment score",
+  "@scoreSectionTitle": {
+    "description": "Heading of a tenant's payment score."
+  },
+  "scoreNotYet": "Not enough rent history for a score yet.",
+  "@scoreNotYet": {
+    "description": "A tenant without a payment score."
+  },
+  "scoreFormulaHelp": "Out of 100: 50 for paying on time, 30 for paying only a few days late, 20 for owing little.",
+  "@scoreFormulaHelp": {
+    "description": "How the payment score is made."
+  },
+  "statementsSection": "Statements and exports",
+  "@statementsSection": {
+    "description": "Heading of the documents and exports on the reports screen."
+  },
+  "taxYearTitle": "Tax-year statement",
+  "@taxYearTitle": {
+    "description": "Title of the tax-year statement."
+  },
+  "taxYearSummary": "Rental income per property, July to June, for your tax adviser",
+  "@taxYearSummary": {
+    "description": "What the tax-year statement is."
+  },
+  "ownerStatementTitle": "Owner statement",
+  "@ownerStatementTitle": {
+    "description": "Title of the monthly owner statement."
+  },
+  "ownerStatementSummary": "A month's money and what is owed, as a PDF for an owner abroad",
+  "@ownerStatementSummary": {
+    "description": "What the owner statement is."
+  },
+  "exportTitle": "Export to a spreadsheet",
+  "@exportTitle": {
+    "description": "Title of the CSV export."
+  },
+  "exportSummary": "The ledger, payments or expenses as a CSV file",
+  "@exportSummary": {
+    "description": "What the CSV export is."
+  },
+  "taxYearLabel": "Tax year",
+  "@taxYearLabel": {
+    "description": "Field choosing the tax year."
+  },
+  "taxYearOption": "Tax year {endYear}: July {startYear} to June {endYear}",
+  "@taxYearOption": {
+    "description": "A tax year in a list.",
+    "placeholders": {
+      "endYear": {
+        "type": "String"
+      },
+      "startYear": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingTaxYear": "Loading the tax year",
+  "@loadingTaxYear": {
+    "description": "What screen readers hear while the tax year loads."
+  },
+  "taxYearLoadFailedTitle": "The tax year could not be loaded",
+  "@taxYearLoadFailedTitle": {
+    "description": "Heading when the tax-year statement could not be read."
+  },
+  "notTaxAdviceTitle": "Not tax advice",
+  "@notTaxAdviceTitle": {
+    "description": "Heading of the warning on tax statements."
+  },
+  "notTaxAdviceBody": "These figures come from your records, to help your tax adviser. They are not a tax calculation: the app never works out the tax you owe.",
+  "@notTaxAdviceBody": {
+    "description": "Warning on tax statements: informational only."
+  },
+  "grossRentLabel": "Rent received, gross",
+  "@grossRentLabel": {
+    "description": "Rent and late fees settled in the tax year, cash plus tax withheld."
+  },
+  "repairsAllowanceLabel": "Repairs allowance, one fifth",
+  "@repairsAllowanceLabel": {
+    "description": "One fifth of gross rent (s.15A)."
+  },
+  "netAfterAllowanceLabel": "Rent after the repairs allowance",
+  "@netAfterAllowanceLabel": {
+    "description": "Gross rent less the repairs allowance."
+  },
+  "expensesRecordedLabel": "Expenses recorded",
+  "@expensesRecordedLabel": {
+    "description": "Expenses recorded for a property in the tax year."
+  },
+  "allPropertiesLabel": "All properties",
+  "@allPropertiesLabel": {
+    "description": "Totals over every property."
+  },
+  "taxYearEmpty": "No rent or expenses were recorded in this tax year.",
+  "@taxYearEmpty": {
+    "description": "Shown when the tax year has nothing."
+  },
+  "deductibleNote": "Which expenses can be deducted is for your tax adviser to decide.",
+  "@deductibleNote": {
+    "description": "Note under expenses on tax statements."
+  },
+  "shareCsvAction": "Share CSV",
+  "@shareCsvAction": {
+    "description": "Shares a CSV file."
+  },
+  "taxYearFileTitle": "Tax-year statement {endYear}",
+  "@taxYearFileTitle": {
+    "description": "Title of the tax-year statement file.",
+    "placeholders": {
+      "endYear": {
+        "type": "String"
+      }
+    }
+  },
+  "taxYearDocumentTitle": "Rental income, tax year {endYear}",
+  "@taxYearDocumentTitle": {
+    "description": "Heading of the tax-year statement PDF.",
+    "placeholders": {
+      "endYear": {
+        "type": "String"
+      }
+    }
+  },
+  "ownerStatementMonthLabel": "Month",
+  "@ownerStatementMonthLabel": {
+    "description": "Field choosing the month of the owner statement."
+  },
+  "ownerStatementFileTitle": "Owner statement, {month}",
+  "@ownerStatementFileTitle": {
+    "description": "Title of the owner statement file and document.",
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "moneyReceivedHeading": "Money received",
+  "@moneyReceivedHeading": {
+    "description": "Owner statement: what was received."
+  },
+  "rentAndFeesLabel": "Rent and late fees",
+  "@rentAndFeesLabel": {
+    "description": "Owner statement: rent and late fees received."
+  },
+  "depositsReceivedLabel": "Security deposits",
+  "@depositsReceivedLabel": {
+    "description": "Owner statement: deposits received."
+  },
+  "otherDuesLabel": "Other dues",
+  "@otherDuesLabel": {
+    "description": "Owner statement: other dues received."
+  },
+  "unallocatedLabel": "Kept as credit",
+  "@unallocatedLabel": {
+    "description": "Owner statement: money received that paid no due yet."
+  },
+  "moneyPaidOutHeading": "Money paid out",
+  "@moneyPaidOutHeading": {
+    "description": "Owner statement: what was paid out."
+  },
+  "depositRefundsLabel": "Deposits refunded",
+  "@depositRefundsLabel": {
+    "description": "Owner statement: deposits refunded."
+  },
+  "netCashLabel": "Net for the month",
+  "@netCashLabel": {
+    "description": "Owner statement: received less paid out."
+  },
+  "owedOnHeading": "Owed by tenants on {date}",
+  "@owedOnHeading": {
+    "description": "Owner statement: what is owed, as of the day it is made.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "cashHeldOnHeading": "Cash held on {date}",
+  "@cashHeldOnHeading": {
+    "description": "Owner statement: cash members hold, as of the day it is made.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "ownerStatementFooter": "Made from the portfolio's records. For information: not an audited account.",
+  "@ownerStatementFooter": {
+    "description": "Footer of the owner statement."
+  },
+  "exportWhatLabel": "What to export",
+  "@exportWhatLabel": {
+    "description": "Choice of what to export."
+  },
+  "exportLedger": "Ledger: every rent and charge",
+  "@exportLedger": {
+    "description": "Export choice: every due."
+  },
+  "exportPayments": "Payments",
+  "@exportPayments": {
+    "description": "Export choice: payments."
+  },
+  "exportExpenses": "Expenses",
+  "@exportExpenses": {
+    "description": "Export choice: expenses."
+  },
+  "exportPeriodLabel": "Period",
+  "@exportPeriodLabel": {
+    "description": "Choice of the period to export."
+  },
+  "periodThisMonth": "This month",
+  "@periodThisMonth": {
+    "description": "Period: this month."
+  },
+  "periodLastMonth": "Last month",
+  "@periodLastMonth": {
+    "description": "Period: last month."
+  },
+  "exportAction": "Export CSV",
+  "@exportAction": {
+    "description": "Makes and shares the CSV file."
+  },
+  "exportEmpty": "Nothing was recorded in that period.",
+  "@exportEmpty": {
+    "description": "Shown when an export has no rows."
+  },
+  "exportFileTitle": "{what}, {period}",
+  "@exportFileTitle": {
+    "description": "Title of an exported file.",
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "inRupees": "{label} (Rs)",
+  "@inRupees": {
+    "description": "A column header of amounts in rupees.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "csvMonth": "Month",
+  "@csvMonth": {
+    "description": "CSV column: the month a due is for."
+  },
+  "csvDescription": "Note",
+  "@csvDescription": {
+    "description": "CSV column: the note on a due."
+  },
+  "csvWaived": "Waived",
+  "@csvWaived": {
+    "description": "CSV column: the amount waived."
+  },
+  "csvOwed": "Owed",
+  "@csvOwed": {
+    "description": "CSV column: the amount still owed."
+  },
+  "csvVoided": "Voided",
+  "@csvVoided": {
+    "description": "CSV column: whether it was voided."
+  },
+  "csvYes": "Yes",
+  "@csvYes": {
+    "description": "CSV cell: yes."
+  },
+  "csvRepair": "Repair",
+  "@csvRepair": {
+    "description": "CSV column: the repair an expense paid for."
+  },
+  "searchTitle": "Search",
+  "@searchTitle": {
+    "description": "Title of the search screen."
+  },
+  "searchHint": "Name, phone or CNIC",
+  "@searchHint": {
+    "description": "Hint of the search field."
+  },
+  "searchIntro": "Find a property, unit or tenant by name, locality, phone or CNIC.",
+  "@searchIntro": {
+    "description": "Shown before anything is typed."
+  },
+  "searchTooShort": "Type at least 2 letters or digits.",
+  "@searchTooShort": {
+    "description": "Shown when the search is too short."
+  },
+  "searchResultCount": "{count, plural, =1{1 result} other{{count} results}}",
+  "@searchResultCount": {
+    "description": "Search: how many results were found, said to screen readers.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchNoMatches": "Nothing matches {query}.",
+  "@searchNoMatches": {
+    "description": "Shown when nothing matches.",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "searchNoMatchesBody": "Check the spelling, or search by phone or CNIC.",
+  "@searchNoMatchesBody": {
+    "description": "Help when nothing matches."
+  },
+  "searchFailedTitle": "The search did not finish",
+  "@searchFailedTitle": {
+    "description": "Heading when a search failed."
+  },
+  "searching": "Searching",
+  "@searching": {
+    "description": "What screen readers hear while searching."
+  },
+  "searchResultLine": "{kind}: {detail}",
+  "@searchResultLine": {
+    "description": "A search result: what it is and a detail.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "daysOverdueLabel": "Days overdue",
+  "@daysOverdueLabel": {
+    "description": "Column of how many days the oldest overdue due is late."
   }
 }

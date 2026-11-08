@@ -8,11 +8,13 @@ enum MemberRole {
   accountant,
   viewer;
 
-  /// May add, edit and archive properties, units, tenants and tenancies,
-  /// change rent and end tenancies (docs/architecture/permissions.md).
+  /// May add, edit and archive properties, units, tenants, tenancies and
+  /// utility connections, change rent and end tenancies, and add, edit and
+  /// delete maintenance requests (docs/architecture/permissions.md).
   bool get runsProperties => this == owner || this == manager;
 
-  /// May delete properties, units, tenants and tenancies added by mistake.
+  /// May delete properties, units, tenants, tenancies and utility
+  /// connections added by mistake.
   bool get deletesRecords => this == owner;
 
   /// May upload documents and rename them.
@@ -20,6 +22,24 @@ enum MemberRole {
 
   /// May delete documents.
   bool get deletesDocuments => this == owner || this == manager;
+
+  /// May record payments, add and edit charges, log reminders and record
+  /// cash handovers (docs/architecture/permissions.md, Money).
+  bool get recordsMoney => this != viewer;
+
+  /// May void payments, void or waive charges, and apply or refund the
+  /// security deposit.
+  bool get correctsMoney => this == owner || this == manager;
+
+  /// May void a deposit refund, and confirm or void cash handovers.
+  bool get approvesMoney => this == owner;
+
+  /// May add and edit expenses, utility bills and meter readings, and bill
+  /// a utility to a tenant (docs/architecture/permissions.md, Operations).
+  bool get recordsOperations => this != viewer;
+
+  /// May delete expenses, utility bills and meter readings.
+  bool get deletesOperations => this == owner || this == manager;
 
   /// The role named [name]; throws [FormatException] for any other.
   static MemberRole parse(String name) =>

@@ -2241,4 +2241,3326 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get moreMonthsAction => 'زیادہ مہینے';
+
+  @override
+  String get documentsSection => 'دستاویزات';
+
+  @override
+  String get documentsSectionHelp =>
+      'تصاویر اور پی ڈی ایف، جنہیں صرف اس پورٹ فولیو کی ٹیم دیکھ سکتی ہے۔';
+
+  @override
+  String get addDocumentAction => 'دستاویز شامل کریں';
+
+  @override
+  String get documentsEmpty => 'ابھی کوئی دستاویز نہیں۔';
+
+  @override
+  String get documentsEmptyTenant =>
+      'ابھی کوئی دستاویز نہیں۔ شناختی کارڈ کے سامنے اور پچھلے رخ کی تصاویر شامل کریں۔';
+
+  @override
+  String get documentsEmptyLease =>
+      'ابھی کوئی دستاویز نہیں۔ دستخط شدہ معاہدہ اور پولیس میں اندراج شامل کریں۔';
+
+  @override
+  String get documentsEmptyUnit =>
+      'ابھی کوئی دستاویز نہیں۔ یونٹ اور اس کے میٹروں کی تصاویر شامل کریں۔';
+
+  @override
+  String get documentsEmptyProperty =>
+      'ابھی کوئی دستاویز نہیں۔ جائیداد کے کاغذات اور تصاویر شامل کریں۔';
+
+  @override
+  String get loadingDocuments => 'دستاویزات لوڈ ہو رہی ہیں';
+
+  @override
+  String get documentsLoadFailedTitle => 'دستاویزات لوڈ نہیں ہو سکیں';
+
+  @override
+  String get documentKindCnicFront => 'شناختی کارڈ، سامنے کا رخ';
+
+  @override
+  String get documentKindCnicBack => 'شناختی کارڈ، پچھلا رخ';
+
+  @override
+  String get documentKindPhoto => 'تصویر';
+
+  @override
+  String get documentKindTenancyAgreement => 'کرایہ داری کا معاہدہ';
+
+  @override
+  String get documentKindPoliceRegistration => 'پولیس میں اندراج';
+
+  @override
+  String get documentKindRentRegistration => 'کرایہ داری کا سرکاری اندراج';
+
+  @override
+  String get documentKindUtilityBill => 'یوٹیلیٹی بل';
+
+  @override
+  String get documentKindReceipt => 'رسید';
+
+  @override
+  String get documentKindInvoice => 'انوائس';
+
+  @override
+  String get documentKindMeterPhoto => 'میٹر کی تصویر';
+
+  @override
+  String get documentKindPropertyPaper => 'جائیداد کے کاغذات';
+
+  @override
+  String get documentKindOther => 'دیگر';
+
+  @override
+  String get fileTypeJpeg => 'تصویر (JPEG)';
+
+  @override
+  String get fileTypePng => 'تصویر (PNG)';
+
+  @override
+  String get fileTypeWebp => 'تصویر (WebP)';
+
+  @override
+  String get fileTypeHeic => 'تصویر (HEIC)';
+
+  @override
+  String get fileTypePdf => 'پی ڈی ایف';
+
+  @override
+  String get fileFormatJpeg => 'JPEG';
+
+  @override
+  String get fileFormatPng => 'PNG';
+
+  @override
+  String get fileFormatWebp => 'WebP';
+
+  @override
+  String get fileFormatHeic => 'HEIC';
+
+  @override
+  String get fileFormatPdf => 'پی ڈی ایف';
+
+  @override
+  String fileSizeKb(String size) {
+    return '$size KB';
+  }
+
+  @override
+  String fileSizeMb(String size) {
+    return '$size MB';
+  }
+
+  @override
+  String get takePhotoAction => 'تصویر کھینچیں';
+
+  @override
+  String get chooseFileAction => 'فائل منتخب کریں';
+
+  @override
+  String get chooseAnotherFileAction => 'کوئی اور فائل منتخب کریں';
+
+  @override
+  String get addDocumentHelp =>
+      'تصویر، یا ‎10 MB‎ تک کی پی ڈی ایف شامل کریں۔ تصاویر پہلے چھوٹی کر دی جاتی ہیں۔';
+
+  @override
+  String get preparingFile => 'فائل تیار کی جا رہی ہے';
+
+  @override
+  String get documentKindLabel => 'قسم';
+
+  @override
+  String get documentNameLabel => 'نام';
+
+  @override
+  String get documentNameHelp =>
+      'خالی چھوڑنے پر اس کا نام اس کی قسم پر رکھا جائے گا۔';
+
+  @override
+  String get uploadAction => 'اپ لوڈ کریں';
+
+  @override
+  String documentCompressed(String from, String to) {
+    return '$from سے چھوٹی کر کے $to کر دی گئی۔';
+  }
+
+  @override
+  String documentAdded(String name) {
+    return '$name شامل ہو گئی۔';
+  }
+
+  @override
+  String documentSaved(String name) {
+    return '$name محفوظ ہو گئی۔';
+  }
+
+  @override
+  String documentDeleted(String name) {
+    return '$name حذف ہو گئی۔';
+  }
+
+  @override
+  String get openDocumentAction => 'کھولیں';
+
+  @override
+  String get downloadDocumentAction => 'ڈاؤن لوڈ کریں';
+
+  @override
+  String get editDocumentAction => 'نام یا قسم بدلیں';
+
+  @override
+  String deleteDocumentTitle(String name) {
+    return '$name حذف کریں؟';
+  }
+
+  @override
+  String get deleteDocumentBody =>
+      'یہ دستاویز اور اس کی فائل اس پورٹ فولیو میں سب کے لیے حذف ہو جائیں گی۔ یہ عمل واپس نہیں ہو سکتا۔';
+
+  @override
+  String get documentAddedOnLabel => 'شامل کرنے کی تاریخ';
+
+  @override
+  String get documentFileLabel => 'فائل';
+
+  @override
+  String get documentSheetTitle => 'دستاویز';
+
+  @override
+  String get documentPreviewLabel => 'تصویر کا پیش منظر';
+
+  @override
+  String get documentNameTooLong => 'یہ نام بہت لمبا ہے۔ اسے مختصر کریں۔';
+
+  @override
+  String get reasonFileTooLarge =>
+      'یہ فائل ‎10 MB‎ سے بڑی ہے۔ چھوٹی فائل منتخب کریں، یا اس کی تصویر کھینچ لیں۔';
+
+  @override
+  String get reasonFileTypeNotAllowed =>
+      'صرف تصاویر (JPEG، PNG، WebP یا HEIC) اور پی ڈی ایف شامل کی جا سکتی ہیں۔';
+
+  @override
+  String get reasonFileUnreadable =>
+      'یہ فائل پڑھی نہیں جا سکی۔ کوئی اور فائل منتخب کریں، یا کاغذ کی تصویر کھینچ لیں۔';
+
+  @override
+  String get reasonPickerAccessDenied =>
+      'اس ایپ کو کیمرہ یا آپ کی فائلیں استعمال کرنے کی اجازت نہیں۔ فون کی سیٹنگز میں اجازت دیں۔';
+
+  @override
+  String get chargeKindRent => 'کرایہ';
+
+  @override
+  String get chargeKindDeposit => 'زرِ ضمانت';
+
+  @override
+  String get chargeKindElectricity => 'بجلی';
+
+  @override
+  String get chargeKindGas => 'گیس';
+
+  @override
+  String get chargeKindWater => 'پانی';
+
+  @override
+  String get chargeKindInternet => 'انٹرنیٹ';
+
+  @override
+  String get chargeKindMaintenance => 'مرمت و دیکھ بھال';
+
+  @override
+  String get chargeKindSociety => 'سوسائٹی چارجز';
+
+  @override
+  String get chargeKindLateFee => 'تاخیر جرمانہ';
+
+  @override
+  String get chargeKindDamages => 'نقصانات';
+
+  @override
+  String get chargeKindOther => 'دیگر';
+
+  @override
+  String get methodCash => 'نقد';
+
+  @override
+  String get methodBankTransfer => 'بینک ٹرانسفر';
+
+  @override
+  String get methodRaast => 'راست';
+
+  @override
+  String get methodJazzCash => 'جاز کیش';
+
+  @override
+  String get methodEasypaisa => 'ایزی پیسہ';
+
+  @override
+  String get methodCheque => 'چیک';
+
+  @override
+  String get methodCard => 'کارڈ';
+
+  @override
+  String get methodDeposit => 'زرِ ضمانت سے';
+
+  @override
+  String get methodOther => 'دیگر';
+
+  @override
+  String get methodLabel => 'ادائیگی کا طریقہ';
+
+  @override
+  String chargeForMonth(String kind, String month) {
+    return '$kind، $month';
+  }
+
+  @override
+  String overdueDays(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days دن کی تاخیر',
+      one: '1 دن کی تاخیر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dueToday => 'آج واجب';
+
+  @override
+  String dueInDays(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days دن میں واجب',
+      one: 'کل واجب',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dueOn(String date) {
+    return '$date کو واجب';
+  }
+
+  @override
+  String get chargePaid => 'ادا شدہ';
+
+  @override
+  String get chargeWaived => 'معاف';
+
+  @override
+  String get chargeVoided => 'منسوخ';
+
+  @override
+  String get loadingReceivables => 'کس پر کتنا واجب ہے، لوڈ ہو رہا ہے';
+
+  @override
+  String get receivablesLoadFailedTitle => 'واجب الادا رقوم لوڈ نہیں ہو سکیں';
+
+  @override
+  String get receivablesEmptyTitle => 'ابھی کوئی رقم واجب الادا نہیں';
+
+  @override
+  String get receivablesEmptyBody =>
+      'آپ کی شروع کی گئی ہر کرایہ داری کا کرایہ خود بخود لگتا ہے۔ کرایہ داروں کے واجبات اور ادائیگیاں یہاں نظر آئیں گی۔';
+
+  @override
+  String get totalOwedLabel => 'واجب الادا';
+
+  @override
+  String get totalOverdueLabel => 'تاخیر شدہ';
+
+  @override
+  String get totalCreditLabel => 'کریڈٹ';
+
+  @override
+  String get whoOwesSection => 'کس پر کتنا واجب ہے';
+
+  @override
+  String get whoOwesHelp => 'سب سے زیادہ تاخیر والے پہلے۔';
+
+  @override
+  String get nobodyOwes => 'اس وقت کسی پر کچھ واجب نہیں۔';
+
+  @override
+  String get settledSection => 'بے باق یا کریڈٹ میں';
+
+  @override
+  String lastPaidOn(String date) {
+    return 'آخری ادائیگی $date';
+  }
+
+  @override
+  String owesAmount(String amount) {
+    return 'واجب $amount';
+  }
+
+  @override
+  String overdueOldest(String amount, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days دن',
+      one: '1 دن',
+    );
+    return '$amount تاخیر شدہ، سب سے پرانا $_temp0';
+  }
+
+  @override
+  String creditAmount(String amount) {
+    return 'کریڈٹ $amount';
+  }
+
+  @override
+  String get allPaid => 'سب ادا';
+
+  @override
+  String get cashBookTitle => 'ہاتھ میں نقدی';
+
+  @override
+  String get ledgerTitle => 'حساب';
+
+  @override
+  String get loadingLedger => 'حساب لوڈ ہو رہا ہے';
+
+  @override
+  String get ledgerLoadFailedTitle => 'یہ حساب لوڈ نہیں ہو سکا';
+
+  @override
+  String get statementAction => 'کرایہ دار کا گوشوارہ';
+
+  @override
+  String get owedNowLabel => 'اب واجب الادا';
+
+  @override
+  String owedNowValue(String amount) {
+    return 'اب واجب الادا: $amount';
+  }
+
+  @override
+  String get overdueLabel => 'تاخیر شدہ';
+
+  @override
+  String get creditLabel => 'کریڈٹ';
+
+  @override
+  String get creditWord => 'کریڈٹ';
+
+  @override
+  String get lastPaidLabel => 'آخری ادائیگی';
+
+  @override
+  String get lastRemindedLabel => 'آخری یاد دہانی';
+
+  @override
+  String get creditExplainActive =>
+      'کرایہ دار نے پیشگی ادائیگی کی ہے۔ یہ کریڈٹ اگلے واجبات میں خود بخود لگ جائے گا۔';
+
+  @override
+  String get creditExplainEnded =>
+      'کرایہ داری ختم ہو چکی ہے اور رقم بچی ہوئی ہے۔ یہ کرایہ دار کو واپس کریں، یا جس ادائیگی سے آئی ہے اسے منسوخ کریں۔';
+
+  @override
+  String creditHeldEnded(String amount) {
+    return 'کرایہ داری ختم ہو چکی ہے اور کرایہ دار کا $amount کریڈٹ باقی ہے۔';
+  }
+
+  @override
+  String get openCreditPaymentAction => 'ادائیگی کھولیں';
+
+  @override
+  String get recordPaymentAction => 'ادائیگی درج کریں';
+
+  @override
+  String get remindAction => 'واٹس ایپ پر یاد دہانی';
+
+  @override
+  String get openTenancyAction => 'کرایہ داری کی تفصیلات';
+
+  @override
+  String get openDuesSection => 'واجب الادا';
+
+  @override
+  String get openDuesHelp => 'ہر غیر ادا شدہ واجب، سب سے پرانا پہلے۔';
+
+  @override
+  String get addChargeAction => 'واجب شامل کریں';
+
+  @override
+  String get noOpenDues => 'کچھ واجب نہیں۔';
+
+  @override
+  String leftOfAmount(String left, String amount) {
+    return '$amount میں سے $left باقی';
+  }
+
+  @override
+  String get paymentsSection => 'ادائیگیاں';
+
+  @override
+  String get noPaymentsYet => 'ابھی کوئی ادائیگی نہیں۔';
+
+  @override
+  String receiptNumbered(String number) {
+    return 'رسید $number';
+  }
+
+  @override
+  String withTax(String amount) {
+    return '$amount ٹیکس منہا';
+  }
+
+  @override
+  String get allDuesSection => 'تمام واجبات';
+
+  @override
+  String get allDuesHelp => 'ادا شدہ، معاف اور منسوخ بھی، تازہ ترین پہلے۔';
+
+  @override
+  String get noDuesYet => 'ابھی کوئی واجب نہیں۔';
+
+  @override
+  String get moneySection => 'حساب';
+
+  @override
+  String get openLedgerAction => 'حساب کھولیں';
+
+  @override
+  String get amountLabel => 'رقم';
+
+  @override
+  String get paidLabel => 'ادا شدہ';
+
+  @override
+  String get stillOwedLabel => 'ابھی واجب';
+
+  @override
+  String get dueDateLabel => 'واجب الادا تاریخ';
+
+  @override
+  String get chargeNoteLabel => 'نوٹ';
+
+  @override
+  String get waiveReasonLabel => 'معاف کرنے کی وجہ';
+
+  @override
+  String get voidReasonLabel => 'منسوخ کرنے کی وجہ';
+
+  @override
+  String get editChargeAction => 'واجب میں ترمیم';
+
+  @override
+  String get waiveChargeAction => 'معاف کریں';
+
+  @override
+  String get voidChargeAction => 'واجب منسوخ کریں';
+
+  @override
+  String get voidChargeHasPayments =>
+      'اس واجب کی ادائیگی وصول ہو چکی ہے، اس لیے اسے منسوخ نہیں کیا جا سکتا۔ پہلے وہ ادائیگی منسوخ کریں، یا باقی رقم معاف کریں۔';
+
+  @override
+  String get chargeSaved => 'واجب محفوظ ہو گیا۔';
+
+  @override
+  String get chargeAmountFixed =>
+      'کرایہ، تاخیر جرمانہ اور زرِ ضمانت کی رقم کرایہ داری کی شرائط سے طے ہوتی ہے۔ کرایہ تبدیل کریں، یا یہ واجب منسوخ کر کے نیا شامل کریں۔';
+
+  @override
+  String amountAtLeast(String amount) {
+    return 'کم از کم $amount، جو پہلے ہی ادا یا معاف ہو چکا۔';
+  }
+
+  @override
+  String amountAtMost(String amount) {
+    return 'زیادہ سے زیادہ $amount۔';
+  }
+
+  @override
+  String get chargeKindLabel => 'کس مد میں';
+
+  @override
+  String get chargeMonthLabel => 'برائے مہینہ';
+
+  @override
+  String get chargeMonthHelp => 'جس مہینے کا بل ہے، اگر ہو۔';
+
+  @override
+  String get noMonthOption => 'کوئی مہینہ نہیں';
+
+  @override
+  String chargeAdded(String kind) {
+    return '$kind شامل ہو گیا۔';
+  }
+
+  @override
+  String get waiveExplain =>
+      'معاف کرنے سے باقی واجب رقم (یا جتنی آپ لکھیں) معاف ہو جاتی ہے۔ یہ واجب آپ کی بتائی گئی وجہ کے ساتھ، معاف شدہ کے طور پر حساب میں رہے گا۔';
+
+  @override
+  String get voidChargeExplain =>
+      'منسوخ کرنے سے غلطی سے درج کیا گیا واجب، اپنے غیر ادا شدہ تاخیر جرمانے سمیت، ختم ہو جاتا ہے۔ یہ آپ کی بتائی گئی وجہ کے ساتھ، منسوخ شدہ کے طور پر حساب میں رہے گا۔';
+
+  @override
+  String get waiveAmountLabel => 'معاف کی جانے والی رقم';
+
+  @override
+  String waiveAmountHelp(String amount) {
+    return 'پوری $amount معاف کرنے کے لیے خالی چھوڑ دیں۔';
+  }
+
+  @override
+  String get reasonLabel => 'وجہ';
+
+  @override
+  String get chargeWaivedDone => 'واجب معاف ہو گیا۔';
+
+  @override
+  String get chargeVoidedDone => 'واجب منسوخ ہو گیا۔';
+
+  @override
+  String get depositSection => 'زرِ ضمانت';
+
+  @override
+  String get depositAgreedLabel => 'طے شدہ';
+
+  @override
+  String get depositReceivedLabel => 'وصول شدہ';
+
+  @override
+  String get depositAppliedLabel => 'واجبات میں استعمال';
+
+  @override
+  String get depositRefundedLabel => 'واپس کیا گیا';
+
+  @override
+  String get depositHeldLabel => 'جمع زرِ ضمانت';
+
+  @override
+  String get depositSettleAfterEnd =>
+      'کرایہ داری ختم ہو چکی ہے اور زرِ ضمانت ابھی آپ کے پاس ہے۔ اسے واجبات میں استعمال کریں، پھر باقی رقم واپس کریں۔';
+
+  @override
+  String get depositTenancyActive =>
+      'یہ کرایہ داری ابھی جاری ہے۔ زرِ ضمانت عموماً کرایہ دار کے جانے پر واجبات میں استعمال یا واپس کیا جاتا ہے۔';
+
+  @override
+  String get applyDepositAction => 'واجبات میں استعمال کریں';
+
+  @override
+  String get refundDepositAction => 'زرِ ضمانت واپس کریں';
+
+  @override
+  String refundOf(String amount) {
+    return '$amount کی واپسی';
+  }
+
+  @override
+  String voidedBecause(String reason) {
+    return 'منسوخ: $reason';
+  }
+
+  @override
+  String get voidRefundAction => 'واپسی منسوخ کریں';
+
+  @override
+  String get voidRefundExplain =>
+      'غلطی سے درج کی گئی واپسی منسوخ کرنے سے وہ رقم دوبارہ آپ کے پاس جمع شمار ہو گی۔ یہ منسوخ شدہ کے طور پر حساب میں رہے گی۔';
+
+  @override
+  String get refundVoided => 'واپسی منسوخ ہو گئی۔';
+
+  @override
+  String get applyDepositExplain =>
+      'زرِ ضمانت سے واجبات ادا ہوں گے، سب سے پرانا پہلے، اور کرایہ دار کو اس کی رسید ملے گی۔';
+
+  @override
+  String applyDepositHelp(String held, String owed) {
+    return 'جمع $held؛ واجب $owed۔';
+  }
+
+  @override
+  String get appliedOnLabel => 'استعمال کی تاریخ';
+
+  @override
+  String depositApplied(String amount) {
+    return 'زرِ ضمانت میں سے $amount واجبات میں لگ گئے۔';
+  }
+
+  @override
+  String depositHeldHelp(String amount) {
+    return 'آپ کے پاس $amount جمع ہیں۔';
+  }
+
+  @override
+  String get refundedOnLabel => 'واپسی کی تاریخ';
+
+  @override
+  String depositRefunded(String amount) {
+    return 'زرِ ضمانت میں سے $amount واپس کر دیے گئے۔';
+  }
+
+  @override
+  String get recordPaymentTitle => 'ادائیگی درج کریں';
+
+  @override
+  String get paymentSectionMoney => 'کیا وصول ہوا';
+
+  @override
+  String get paymentSectionTax => 'منہا شدہ ٹیکس';
+
+  @override
+  String get paymentSectionSettle => 'یہ کس کی ادائیگی ہے';
+
+  @override
+  String get amountReceivedLabel => 'وصول شدہ رقم';
+
+  @override
+  String useOwedAction(String amount) {
+    return 'واجب $amount لکھیں';
+  }
+
+  @override
+  String get receivedOnLabel => 'وصولی کی تاریخ';
+
+  @override
+  String get paymentReferenceLabel => 'حوالہ نمبر';
+
+  @override
+  String get paymentReferenceHelp => 'ٹرانزیکشن آئی ڈی یا چیک نمبر، اگر ہو۔';
+
+  @override
+  String get taxWithheldSwitch => 'کرایہ دار نے انکم ٹیکس منہا کیا';
+
+  @override
+  String get taxWithheldHelp =>
+      'کمپنیاں اور سرکاری ادارے سیکشن 155 کے تحت ٹیکس کاٹ کر سرٹیفکیٹ دیتے ہیں۔ نقد رقم اور ٹیکس مل کر کرایہ ادا کرتے ہیں۔';
+
+  @override
+  String get taxWithheldLabel => 'منہا شدہ ٹیکس (سیکشن 155)';
+
+  @override
+  String get taxCertificateLabel => 'سرٹیفکیٹ یا سی پی آر نمبر';
+
+  @override
+  String taxSettlesGross(String cash, String tax, String total) {
+    return '$cash وصول اور $tax منہا شدہ ٹیکس مل کر $total کے واجبات ادا کرتے ہیں۔';
+  }
+
+  @override
+  String get noOpenDuesCredit =>
+      'اس وقت کچھ واجب نہیں: یہ ادائیگی اگلے واجبات کے لیے کریڈٹ کے طور پر محفوظ رہے گی۔';
+
+  @override
+  String get settleLabel => 'ادائیگی کی ترتیب';
+
+  @override
+  String get settleOldestFirst => 'سب سے پرانے واجبات پہلے';
+
+  @override
+  String get settleChosen => 'میرے منتخب کردہ واجبات';
+
+  @override
+  String get chooseDuesError => 'کم از کم ایک واجب منتخب کریں۔';
+
+  @override
+  String get willSettleHeading => 'یہ ادائیگی ادا کرے گی';
+
+  @override
+  String settledInFull(String charge) {
+    return '$charge، پورا';
+  }
+
+  @override
+  String settledInPart(String charge) {
+    return '$charge، جزوی';
+  }
+
+  @override
+  String get creditKeptLabel => 'کریڈٹ کے طور پر محفوظ';
+
+  @override
+  String allCreditExplain(String amount) {
+    return 'پوری $amount اگلے واجبات کے لیے کریڈٹ کے طور پر محفوظ رہے گی۔';
+  }
+
+  @override
+  String lateFeeCancelledNote(String amount) {
+    return '$amount کا تاخیر جرمانہ منسوخ ہو جائے گا: یہ ادائیگی اس کا کرایہ رعایتی دنوں کے اندر پورا ادا کرتی ہے۔';
+  }
+
+  @override
+  String paymentRecorded(String number) {
+    return 'ادائیگی درج ہو گئی۔ رسید $number۔';
+  }
+
+  @override
+  String get receiptTitle => 'رسید';
+
+  @override
+  String get loadingReceipt => 'رسید لوڈ ہو رہی ہے';
+
+  @override
+  String get receiptLoadFailedTitle => 'یہ رسید لوڈ نہیں ہو سکی';
+
+  @override
+  String get receiptNumberLabel => 'رسید نمبر';
+
+  @override
+  String receiptVoidedOn(String date, String reason) {
+    return 'منسوخ شدہ رسید: $date۔ $reason';
+  }
+
+  @override
+  String get receivedFromLabel => 'ادا کنندہ';
+
+  @override
+  String get receiptForLabel => 'برائے';
+
+  @override
+  String get paidByLabel => 'ادائیگی کا طریقہ';
+
+  @override
+  String get receiptFooter =>
+      'شکریہ۔ یہ رسید اپنے ریکارڈ کے لیے سنبھال کر رکھیں۔';
+
+  @override
+  String get shareReceiptAction => 'رسید بھیجیں';
+
+  @override
+  String get shareVoidedReceiptAction => 'منسوخ شدہ رسید بھیجیں';
+
+  @override
+  String get sendThanksAction => 'واٹس ایپ پر شکریہ';
+
+  @override
+  String get voidPaymentAction => 'ادائیگی منسوخ کریں';
+
+  @override
+  String get voidPaymentExplain =>
+      'غلطی سے درج کی گئی ادائیگی منسوخ کرنے سے اس کے ادا کردہ واجبات دوبارہ واجب ہو جائیں گے۔ رسید اپنے نمبر کے ساتھ، آپ کی بتائی گئی وجہ سمیت، منسوخ شدہ رہے گی۔';
+
+  @override
+  String get paymentVoided => 'ادائیگی منسوخ ہو گئی۔';
+
+  @override
+  String get documentLanguageLabel => 'دستاویز کی زبان';
+
+  @override
+  String get shareDocumentAction => 'پی ڈی ایف بھیجیں';
+
+  @override
+  String get receiptDocumentTitle => 'کرائے کی رسید';
+
+  @override
+  String get receiptVoid => 'منسوخ';
+
+  @override
+  String receiptVoidBecause(String reason) {
+    return 'منسوخ: $reason';
+  }
+
+  @override
+  String get totalSettledLabel => 'کل، ٹیکس سمیت';
+
+  @override
+  String get receiptSettledHeading => 'ادا شدہ واجبات';
+
+  @override
+  String documentMadeOn(String date) {
+    return 'مالکِ مکان سے $date کو بنائی گئی۔';
+  }
+
+  @override
+  String receiptFileTitle(String number) {
+    return 'رسید $number';
+  }
+
+  @override
+  String get statementDocumentTitle => 'کرایہ دار کا گوشوارہ';
+
+  @override
+  String get statementPeriodLabel => 'مدت';
+
+  @override
+  String dateRange(String from, String to) {
+    return '$from سے $to تک';
+  }
+
+  @override
+  String get statementSummaryHeading => 'خلاصہ';
+
+  @override
+  String get totalBilledLabel => 'کل واجبات';
+
+  @override
+  String get totalPaidLabel => 'ادا شدہ';
+
+  @override
+  String get totalWaivedLabel => 'معاف شدہ';
+
+  @override
+  String get balanceOwedLabel => 'اب واجب الادا';
+
+  @override
+  String get statementDuesHeading => 'واجبات';
+
+  @override
+  String get chargeForLabel => 'کس مد میں';
+
+  @override
+  String get chargeStateLabel => 'حیثیت';
+
+  @override
+  String get statementPaymentsHeading => 'ادائیگیاں';
+
+  @override
+  String voidedReceipt(String number) {
+    return '$number (منسوخ)';
+  }
+
+  @override
+  String statementFooter(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ادائیگیاں وصول ہوئیں۔',
+      one: '1 ادائیگی وصول ہوئی۔',
+      zero: 'کوئی ادائیگی وصول نہیں ہوئی۔',
+    );
+    return '$_temp0 ہر رسید نمبر کرایہ دار کی کاپی سے ملایا جا سکتا ہے۔';
+  }
+
+  @override
+  String statementFileTitle(String tenant) {
+    return 'گوشوارہ، $tenant';
+  }
+
+  @override
+  String get reminderTitle => 'واٹس ایپ پر یاد دہانی';
+
+  @override
+  String get reminderTemplateLabel => 'پیغام';
+
+  @override
+  String get templateUpcoming => 'کرایہ جلد واجب';
+
+  @override
+  String get templateDueToday => 'کرایہ آج واجب';
+
+  @override
+  String get templateOverdue => 'کرایہ تاخیر شدہ';
+
+  @override
+  String get templatePaymentReceived => 'ادائیگی موصول';
+
+  @override
+  String get templateUtilityBill => 'یوٹیلیٹی بل';
+
+  @override
+  String get reminderLanguageLabel => 'کرایہ دار کی زبان';
+
+  @override
+  String get languageRomanUrdu => 'Roman Urdu';
+
+  @override
+  String get reminderMessageLabel => 'بھیجا جانے والا پیغام';
+
+  @override
+  String get reminderNoPhone =>
+      'اس کرایہ دار کا فون نمبر درج نہیں: واٹس ایپ کھلے گا تاکہ آپ چیٹ منتخب کریں۔';
+
+  @override
+  String reminderTo(String name, String phone) {
+    return 'بنام $name، نمبر $phone۔';
+  }
+
+  @override
+  String get sendOnWhatsAppAction => 'واٹس ایپ پر بھیجیں';
+
+  @override
+  String get sendAnywayAction => 'پھر بھی بھیجیں';
+
+  @override
+  String get copyMessageAction => 'پیغام کاپی کریں';
+
+  @override
+  String get messageCopied => 'پیغام کاپی ہو گیا۔';
+
+  @override
+  String get reminderLogged => 'یاد دہانی بھیج دی گئی اور حساب میں درج ہو گئی۔';
+
+  @override
+  String get noteReminderAction => 'بھیجی گئی یاد دہانیوں میں درج کریں';
+
+  @override
+  String etiquetteLateNight(String time) {
+    return 'پاکستان میں رات کافی ہو چکی ہے۔ بہتر ہو گا کہ یاد دہانی $time کے بعد بھیجیں۔';
+  }
+
+  @override
+  String etiquetteFridayPrayer(String time) {
+    return 'یہ نمازِ جمعہ کا وقت ہے۔ بہتر ہو گا کہ یاد دہانی $time کے بعد بھیجیں۔';
+  }
+
+  @override
+  String etiquetteRecent(String moment) {
+    return 'اس کرایہ دار کو $moment کو پہلے ہی یاد دہانی بھیجی جا چکی ہے۔ بار بار یاد دہانی اچھے تعلق کو متاثر کر سکتی ہے۔';
+  }
+
+  @override
+  String get remindersSection => 'بھیجی گئی یاد دہانیاں';
+
+  @override
+  String get loadingReminders => 'یاد دہانیاں لوڈ ہو رہی ہیں';
+
+  @override
+  String get remindersLoadFailedTitle => 'یاد دہانیاں لوڈ نہیں ہو سکیں';
+
+  @override
+  String get noRemindersYet => 'ابھی کوئی یاد دہانی نہیں بھیجی گئی۔';
+
+  @override
+  String reminderUnit(String unit, String property) {
+    return '$unit، $property';
+  }
+
+  @override
+  String reminderUpcoming(
+    String tenant,
+    String amount,
+    String unit,
+    String date,
+  ) {
+    return 'السلام علیکم $tenant۔ یاد دہانی ہے کہ $unit کے $amount مورخہ $date کو واجب الادا ہیں۔';
+  }
+
+  @override
+  String reminderDueToday(String tenant, String amount, String unit) {
+    return 'السلام علیکم $tenant۔ $unit کے $amount آج واجب الادا ہیں۔';
+  }
+
+  @override
+  String reminderOverdue(
+    String tenant,
+    String amount,
+    String unit,
+    String date,
+  ) {
+    return 'السلام علیکم $tenant۔ $unit کے $amount واجب الادا ہیں اور ابھی تک موصول نہیں ہوئے؛ ان میں سب سے پرانی رقم مورخہ $date کو واجب الادا تھی۔ براہِ کرم جلد از جلد ادا کر دیں۔';
+  }
+
+  @override
+  String reminderReceived(
+    String tenant,
+    String amount,
+    String date,
+    String receipt,
+  ) {
+    return 'السلام علیکم $tenant۔ $date کو $amount موصول ہو گئے۔ رسید نمبر: $receipt۔ شکریہ۔';
+  }
+
+  @override
+  String reminderUtility(
+    String tenant,
+    String utility,
+    String amount,
+    String unit,
+    String date,
+  ) {
+    return 'السلام علیکم $tenant۔ $unit کا $utility کا بل $amount مورخہ $date تک ادا کرنا ہے۔ براہِ کرم آخری تاریخ سے پہلے ادا کر دیں۔';
+  }
+
+  @override
+  String get reminderElectricity => 'بجلی';
+
+  @override
+  String get reminderGas => 'گیس';
+
+  @override
+  String get reminderWater => 'پانی';
+
+  @override
+  String get reminderInternet => 'انٹرنیٹ';
+
+  @override
+  String get reminderUtilityGeneric => 'یوٹیلیٹی';
+
+  @override
+  String reminderPayRaast(String raast) {
+    return 'آپ راست کے ذریعے $raast پر ادائیگی کر سکتے ہیں۔';
+  }
+
+  @override
+  String reminderPayBank(String title, String iban) {
+    return 'بینک ٹرانسفر: $title، آئی بی اے این:\n$iban';
+  }
+
+  @override
+  String reminderThanks(String landlord) {
+    return 'والسلام، $landlord';
+  }
+
+  @override
+  String reminderRomanUnit(String unit, String property) {
+    return '$unit, $property';
+  }
+
+  @override
+  String reminderRomanUpcoming(
+    String tenant,
+    String amount,
+    String unit,
+    String date,
+  ) {
+    return 'Assalam-o-Alaikum $tenant. Yaad dihani hai ke $unit ke $amount $date ko wajib-ul-ada hain.';
+  }
+
+  @override
+  String reminderRomanDueToday(String tenant, String amount, String unit) {
+    return 'Assalam-o-Alaikum $tenant. $unit ke $amount aaj wajib-ul-ada hain.';
+  }
+
+  @override
+  String reminderRomanOverdue(
+    String tenant,
+    String amount,
+    String unit,
+    String date,
+  ) {
+    return 'Assalam-o-Alaikum $tenant. $unit ke $amount wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam $date ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.';
+  }
+
+  @override
+  String reminderRomanReceived(
+    String tenant,
+    String amount,
+    String date,
+    String receipt,
+  ) {
+    return 'Assalam-o-Alaikum $tenant. $date ko $amount mosool ho gaye. Raseed number: $receipt. Shukriya.';
+  }
+
+  @override
+  String reminderRomanUtility(
+    String tenant,
+    String utility,
+    String amount,
+    String unit,
+    String date,
+  ) {
+    return 'Assalam-o-Alaikum $tenant. $unit ka $utility ka bill $amount $date tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.';
+  }
+
+  @override
+  String get reminderRomanElectricity => 'bijli';
+
+  @override
+  String get reminderRomanGas => 'gas';
+
+  @override
+  String get reminderRomanWater => 'paani';
+
+  @override
+  String get reminderRomanInternet => 'internet';
+
+  @override
+  String get reminderRomanUtilityGeneric => 'utility';
+
+  @override
+  String reminderRomanPayRaast(String raast) {
+    return 'Aap Raast ke zariye $raast par adaigi kar sakte hain.';
+  }
+
+  @override
+  String reminderRomanPayBank(String title, String iban) {
+    return 'Bank transfer: $title, IBAN $iban.';
+  }
+
+  @override
+  String reminderRomanThanks(String landlord) {
+    return 'Wassalam, $landlord';
+  }
+
+  @override
+  String get loadingCashBook => 'ہاتھ میں نقدی لوڈ ہو رہی ہے';
+
+  @override
+  String get cashBookLoadFailedTitle => 'ہاتھ میں نقدی لوڈ نہیں ہو سکی';
+
+  @override
+  String get cashInHandSection => 'نقدی کس کے پاس ہے';
+
+  @override
+  String get cashInHandHelp =>
+      'وصول کی گئی نقدی، آگے دی گئی یا نقد خرچ کی گئی رقم نکال کر۔';
+
+  @override
+  String get noCashYet => 'ابھی کوئی نقدی وصول نہیں ہوئی۔';
+
+  @override
+  String get cashCollectedLabel => 'وصول';
+
+  @override
+  String get cashHandedOverLabel => 'آگے دی';
+
+  @override
+  String get cashSpentLabel => 'خرچ';
+
+  @override
+  String get cashInHandLabel => 'پاس موجود';
+
+  @override
+  String get handoversSection => 'نقدی کی حوالگی';
+
+  @override
+  String get noHandoversYet => 'ابھی کوئی نقدی حوالے نہیں کی گئی۔';
+
+  @override
+  String get formerMember => 'سابق رکن';
+
+  @override
+  String handoverFromTo(String from, String to) {
+    return 'از $from بنام $to';
+  }
+
+  @override
+  String get handoverConfirmed => 'تصدیق شدہ';
+
+  @override
+  String get handoverAwaiting => 'تصدیق باقی';
+
+  @override
+  String get handoverTitle => 'نقدی کی حوالگی';
+
+  @override
+  String get handedOverOnLabel => 'حوالگی کی تاریخ';
+
+  @override
+  String get confirmHandoverAction => 'تصدیق کریں کہ وصول ہوئی';
+
+  @override
+  String get handoverConfirmedDone => 'حوالگی کی تصدیق ہو گئی۔';
+
+  @override
+  String get voidHandoverAction => 'حوالگی منسوخ کریں';
+
+  @override
+  String get voidHandoverExplain =>
+      'غلطی سے درج کی گئی حوالگی منسوخ کرنے سے وہ نقدی دینے والے کے پاس ہی شمار ہو گی۔ یہ منسوخ شدہ کے طور پر فہرست میں رہے گی۔';
+
+  @override
+  String get handoverVoided => 'حوالگی منسوخ ہو گئی۔';
+
+  @override
+  String get recordHandoverAction => 'حوالگی درج کریں';
+
+  @override
+  String get handoverFromLabel => 'دینے والا';
+
+  @override
+  String get handoverToLabel => 'وصول کرنے والا';
+
+  @override
+  String get handoverChooseReceiver => 'منتخب کریں کہ نقدی کس نے وصول کی۔';
+
+  @override
+  String get handoverRecorded => 'حوالگی درج ہو گئی۔';
+
+  @override
+  String get notificationsTitle => 'اطلاعات';
+
+  @override
+  String get notificationsSummary =>
+      'واجب کرایہ، ختم ہوتی کرایہ داریاں، پولیس اندراج';
+
+  @override
+  String unreadCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count نئی',
+      one: '1 نئی',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get loadingNotifications => 'اطلاعات لوڈ ہو رہی ہیں';
+
+  @override
+  String get notificationsLoadFailedTitle => 'اطلاعات لوڈ نہیں ہو سکیں';
+
+  @override
+  String get notificationsEmptyTitle => 'کوئی اطلاع نہیں';
+
+  @override
+  String get notificationsEmptyBody =>
+      'ایپ ہر صبح واجب کرایہ، ختم ہوتی کرایہ داریاں، کرائے میں اضافہ، پولیس اندراج اور ختم ہوتے شناختی کارڈ دیکھتی ہے، اور آپ کو یہاں بتاتی ہے۔';
+
+  @override
+  String get markAllReadAction => 'سب کو پڑھا ہوا کریں';
+
+  @override
+  String get unreadLabel => 'نئی';
+
+  @override
+  String get openNotificationAction => 'کھولیں';
+
+  @override
+  String get notificationDeleted => 'اطلاع حذف ہو گئی۔';
+
+  @override
+  String get notificationRentDueSoon => 'کرایہ جلد واجب';
+
+  @override
+  String notificationRentDueSoonBody(
+    String tenancy,
+    String amount,
+    String date,
+  ) {
+    return '$tenancy: $amount مورخہ $date کو واجب۔';
+  }
+
+  @override
+  String get notificationRentOverdue => 'کرایہ تاخیر شدہ';
+
+  @override
+  String notificationRentOverdueBody(
+    String tenancy,
+    String amount,
+    String date,
+  ) {
+    return '$tenancy: $amount مورخہ $date کو واجب تھا۔';
+  }
+
+  @override
+  String get notificationLeaseExpiring => 'معاہدہ ختم ہو رہا ہے';
+
+  @override
+  String notificationLeaseExpiringBody(String tenancy, String date) {
+    return '$tenancy: معاہدہ $date کو ختم ہو گا۔';
+  }
+
+  @override
+  String get notificationIncrementDue => 'کرائے میں اضافہ واجب';
+
+  @override
+  String notificationIncrementDueBody(
+    String tenancy,
+    String date,
+    String rent,
+  ) {
+    return '$tenancy: $rent کرائے پر سالانہ اضافہ $date سے واجب ہے۔';
+  }
+
+  @override
+  String get notificationPolicePending => 'پولیس اندراج باقی';
+
+  @override
+  String notificationPolicePendingBody(String tenancy, String date) {
+    return '$tenancy: کرایہ داری $date تک پولیس میں درج کروائیں۔';
+  }
+
+  @override
+  String get notificationPoliceOverdue => 'پولیس اندراج میں تاخیر';
+
+  @override
+  String notificationPoliceOverdueBody(String tenancy, String date) {
+    return '$tenancy: پولیس اندراج کی آخری تاریخ $date تھی۔';
+  }
+
+  @override
+  String notificationPoliceReminderBody(String tenancy, String date) {
+    return '$tenancy: پولیس اندراج کے لیے ایپ کی یاد دہانی $date ہے۔ ایپ کے علم میں یہاں کوئی قانون آخری تاریخ مقرر نہیں کرتا۔';
+  }
+
+  @override
+  String get notificationCnicExpiring => 'شناختی کارڈ کی میعاد ختم';
+
+  @override
+  String notificationCnicExpiringBody(String tenant, String date) {
+    return '$tenant کے شناختی کارڈ کی میعاد $date کو ختم ہو رہی ہے۔';
+  }
+
+  @override
+  String get notificationUtilityDue => 'یوٹیلیٹی بل واجب';
+
+  @override
+  String notificationUtilityDueBody(
+    String property,
+    String amount,
+    String date,
+  ) {
+    return '$property: $amount کا بل $date کو واجب ہے۔';
+  }
+
+  @override
+  String get notificationInvitationAccepted => 'دعوت قبول ہو گئی';
+
+  @override
+  String notificationInvitationAcceptedBody(String email, String role) {
+    return '$email بطور $role شامل ہو گئے۔';
+  }
+
+  @override
+  String get notificationUnknown => 'اطلاع';
+
+  @override
+  String get notificationUnknownBody =>
+      'یہ اطلاع پڑھنے کے لیے ایپ اپ ڈیٹ کریں۔';
+
+  @override
+  String get reasonIdempotencyKeyRequired =>
+      'یہ ادائیگی محفوظ طریقے سے نہیں بھیجی جا سکی۔ فارم بند کر کے دوبارہ کھولیں۔';
+
+  @override
+  String get reasonRefundUnconfirmed =>
+      'کنکشن ٹوٹ گیا، اس لیے ممکن ہے واپسی درج ہو چکی ہو۔ دوبارہ کوشش سے پہلے اسے بند کر کے زرِ ضمانت دیکھ لیں۔';
+
+  @override
+  String get checkDepositAction => 'بند کر کے زرِ ضمانت دیکھیں';
+
+  @override
+  String get operationsSection => 'انتظامات';
+
+  @override
+  String get expensesSummary => 'آپ کی جائیدادوں پر ہونے والے اخراجات';
+
+  @override
+  String get utilitiesSummary => 'کنکشن، بل اور میٹر ریڈنگ';
+
+  @override
+  String get maintenanceSummary => 'مرمت کے کام اور ہر ایک کی صورتِ حال';
+
+  @override
+  String get propertyLabel => 'جائیداد';
+
+  @override
+  String get wholePortfolioOption => 'پورا پورٹ فولیو';
+
+  @override
+  String get wholePropertyOption => 'پوری جائیداد';
+
+  @override
+  String get loadingPlaces => 'لوڈ ہو رہا ہے…';
+
+  @override
+  String get noTenancyOption => 'کوئی کرایہ داری نہیں';
+
+  @override
+  String get noTenanciesHere =>
+      'اس کنکشن کی جائیداد یا یونٹ پر کبھی کوئی کرایہ داری شروع نہیں ہوئی۔';
+
+  @override
+  String get descriptionLabel => 'تفصیل';
+
+  @override
+  String get statusLabel => 'صورتِ حال';
+
+  @override
+  String get yes => 'ہاں';
+
+  @override
+  String get no => 'نہیں';
+
+  @override
+  String get filterToDo => 'باقی کام';
+
+  @override
+  String get filterClosed => 'بند';
+
+  @override
+  String get callAction => 'کال کریں';
+
+  @override
+  String get callFailed => 'اس ڈیوائس پر فون نہیں کھل سکا۔';
+
+  @override
+  String get paidOnLabel => 'ادائیگی کی تاریخ';
+
+  @override
+  String get expenseCategoryRepairs => 'مرمت و دیکھ بھال';
+
+  @override
+  String get expenseCategoryPropertyTax => 'پراپرٹی ٹیکس';
+
+  @override
+  String get expenseCategoryUtilities => 'یوٹیلیٹیز';
+
+  @override
+  String get expenseCategorySociety => 'سوسائٹی چارجز';
+
+  @override
+  String get expenseCategoryInsurance => 'انشورنس';
+
+  @override
+  String get expenseCategoryLegal => 'قانونی و پیشہ ورانہ فیس';
+
+  @override
+  String get expenseCategoryAgent => 'ایجنٹ کا کمیشن';
+
+  @override
+  String get expenseCategorySalaries => 'عملے کی تنخواہیں';
+
+  @override
+  String get expenseCategoryCleaning => 'صفائی اور سکیورٹی';
+
+  @override
+  String get expenseCategoryRenovation => 'تزئین و آرائش';
+
+  @override
+  String get expenseCategoryBank => 'بینک چارجز';
+
+  @override
+  String get expenseCategoryLoanInterest => 'قرض کا سود';
+
+  @override
+  String get expensesTitle => 'اخراجات';
+
+  @override
+  String get expenseTitle => 'خرچ';
+
+  @override
+  String get newExpenseTitle => 'نیا خرچ';
+
+  @override
+  String get editExpenseTitle => 'خرچ میں ترمیم';
+
+  @override
+  String get addExpenseAction => 'خرچ شامل کریں';
+
+  @override
+  String get loadingExpenses => 'اخراجات لوڈ ہو رہے ہیں';
+
+  @override
+  String get loadingExpense => 'خرچ لوڈ ہو رہا ہے';
+
+  @override
+  String get expensesLoadFailedTitle => 'اخراجات لوڈ نہیں ہو سکے';
+
+  @override
+  String get expenseLoadFailedTitle => 'خرچ لوڈ نہیں ہو سکا';
+
+  @override
+  String get expensesEmptyTitle => 'ابھی کوئی خرچ نہیں';
+
+  @override
+  String get expensesEmptyBody =>
+      'مرمت، ٹیکس، تنخواہوں اور باقی کاموں پر ہونے والا خرچ درج کریں، ہر رسید کی تصویر کے ساتھ۔ اس سے پتا چلتا ہے کہ ہر جائیداد اصل میں کتنا کماتی ہے۔';
+
+  @override
+  String get expenseSectionWhat => 'کیا خرچ ہوا';
+
+  @override
+  String get expenseSectionWhere => 'کہاں';
+
+  @override
+  String get expenseSectionPaid => 'ادائیگی کیسے ہوئی';
+
+  @override
+  String get expenseCategoryLabel => 'زمرہ';
+
+  @override
+  String get spentOnLabel => 'خرچ کی تاریخ';
+
+  @override
+  String get expensePropertyHelp =>
+      'اکاؤنٹنٹ کی فیس جیسے خرچ کے لیے “پورا پورٹ فولیو” چنیں۔';
+
+  @override
+  String get maintenanceJobLabel => 'مرمت کا کام';
+
+  @override
+  String get maintenanceJobHelp => 'اگر یہ کسی مرمت کے لیے تھا تو وہ کام۔';
+
+  @override
+  String get noJobOption => 'کوئی کام نہیں';
+
+  @override
+  String get payeeLabel => 'کس کو ادا کیا';
+
+  @override
+  String get payeeHelp => 'پلمبر، ایکسائز آفس، کوئی دکان…';
+
+  @override
+  String get expenseCashHelp =>
+      'نقد خرچ آپ کے ہاتھ میں موجود نقدی سے کم ہو جاتا ہے۔';
+
+  @override
+  String expenseForJob(String title) {
+    return 'اس کام کے لیے: $title';
+  }
+
+  @override
+  String get paidForJobLabel => 'اس کام کے لیے ادائیگی';
+
+  @override
+  String get expenseAdded => 'خرچ شامل ہو گیا۔';
+
+  @override
+  String get expenseSaved => 'خرچ محفوظ ہو گیا۔';
+
+  @override
+  String get expenseDeleted => 'خرچ حذف ہو گیا۔';
+
+  @override
+  String get deleteExpenseTitle => 'یہ خرچ حذف کریں؟';
+
+  @override
+  String get deleteExpenseBody =>
+      'یہ اپنی رسیدوں سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ صرف غلطی سے درج کیے گئے خرچ کے لیے۔';
+
+  @override
+  String get providerLesco => 'لیسکو (لاہور)';
+
+  @override
+  String get providerIesco => 'آئیسکو (اسلام آباد)';
+
+  @override
+  String get providerGepco => 'گیپکو (گوجرانوالہ)';
+
+  @override
+  String get providerFesco => 'فیسکو (فیصل آباد)';
+
+  @override
+  String get providerMepco => 'میپکو (ملتان)';
+
+  @override
+  String get providerPesco => 'پیسکو (پشاور)';
+
+  @override
+  String get providerHesco => 'حیسکو (حیدرآباد)';
+
+  @override
+  String get providerSepco => 'سیپکو (سکھر)';
+
+  @override
+  String get providerQesco => 'کیسکو (کوئٹہ)';
+
+  @override
+  String get providerTesco => 'ٹیسکو (قبائلی اضلاع)';
+
+  @override
+  String get providerHazeco => 'ہزیکو (ہزارہ)';
+
+  @override
+  String get providerKElectric => 'کے الیکٹرک (کراچی)';
+
+  @override
+  String get providerSngpl => 'ایس این جی پی ایل (سوئی ناردرن)';
+
+  @override
+  String get providerSsgc => 'ایس ایس جی سی (سوئی سدرن)';
+
+  @override
+  String get providerWasa => 'واسا';
+
+  @override
+  String get providerKwsc => 'کراچی واٹر (KW&SC)';
+
+  @override
+  String get providerCda => 'سی ڈی اے (اسلام آباد)';
+
+  @override
+  String get providerPtcl => 'پی ٹی سی ایل';
+
+  @override
+  String get responsibilityTenant => 'کرایہ دار';
+
+  @override
+  String get responsibilityLandlord => 'آپ';
+
+  @override
+  String get responsibilityShared => 'مشترکہ';
+
+  @override
+  String get billPaidByTenant => 'کرایہ دار';
+
+  @override
+  String get billPaidByLandlord => 'آپ';
+
+  @override
+  String get readingMoveIn => 'کرایہ دار کے آنے پر';
+
+  @override
+  String get readingMoveOut => 'کرایہ دار کے جانے پر';
+
+  @override
+  String get readingMonthly => 'ماہانہ';
+
+  @override
+  String get utilitiesTitle => 'یوٹیلیٹیز';
+
+  @override
+  String get loadingUtilities => 'یوٹیلیٹیز لوڈ ہو رہی ہیں';
+
+  @override
+  String get utilitiesLoadFailedTitle => 'یوٹیلیٹیز لوڈ نہیں ہو سکیں';
+
+  @override
+  String get unpaidBillsSection => 'واجب الادا بل';
+
+  @override
+  String get unpaidBillsHelp =>
+      'غیر ادا شدہ بل، جس کی آخری تاریخ پہلے ہے وہ پہلے۔';
+
+  @override
+  String get noUnpaidBills => 'کوئی غیر ادا شدہ بل نہیں۔';
+
+  @override
+  String landlordNameOverdue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'آپ کے نام کے کنکشنوں کے $count بل تاخیر میں ہیں۔ بقایا جات جگہ اور کنکشن کے ساتھ رہتے ہیں، اس لیے یہ آپ پر آ سکتے ہیں۔',
+      one: 'آپ کے نام کے ایک کنکشن کا بل تاخیر میں ہے۔ بقایا جات جگہ اور کنکشن کے ساتھ رہتے ہیں، اس لیے یہ آپ پر آ سکتے ہیں۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get connectionsSection => 'کنکشن';
+
+  @override
+  String get connectionsHelp =>
+      'بجلی، گیس، پانی اور انٹرنیٹ، ہر جائیداد یا یونٹ کے لیے۔';
+
+  @override
+  String get connectionsEmptyTitle => 'ابھی کوئی کنکشن نہیں';
+
+  @override
+  String get connectionsEmptyBody =>
+      'ہر میٹر اس کے ریفرنس نمبر اور اس بات کے ساتھ شامل کریں کہ یہ کس کے نام پر ہے۔ غیر ادا شدہ بل جگہ کے ساتھ رہتے ہیں، اس لیے ان پر یہاں نظر رکھیں۔';
+
+  @override
+  String get archivedConnectionsEmpty => 'کوئی آرکائیو شدہ کنکشن نہیں۔';
+
+  @override
+  String get archivedConnectionsEmptyBody =>
+      'آپ کے آرکائیو کیے گئے کنکشن اپنے بلوں اور ریڈنگز سمیت یہاں رہتے ہیں۔';
+
+  @override
+  String get addConnectionAction => 'کنکشن شامل کریں';
+
+  @override
+  String connectionName(String kind, String supplier) {
+    return '$kind، $supplier';
+  }
+
+  @override
+  String get inYourName => 'آپ کے نام پر';
+
+  @override
+  String billOfMonth(String connection, String month) {
+    return '$connection: $month';
+  }
+
+  @override
+  String unitsUsed(String units) {
+    return '$units یونٹ';
+  }
+
+  @override
+  String get chargedToTenant => 'کرایہ دار کے کھاتے میں';
+
+  @override
+  String get loadingUtility => 'کنکشن لوڈ ہو رہا ہے';
+
+  @override
+  String get utilityLoadFailedTitle => 'کنکشن لوڈ نہیں ہو سکا';
+
+  @override
+  String get inYourNameWarning =>
+      'یہ کنکشن آپ کے نام پر ہے۔ غیر ادا شدہ بل اسی کے ساتھ رہتے ہیں اور آپ پر آ سکتے ہیں: ہر مہینے دیکھیں کہ بل ادا ہو گیا ہے۔';
+
+  @override
+  String get referenceNumberLabel => 'ریفرنس نمبر';
+
+  @override
+  String get customerIdLabel => 'کسٹمر آئی ڈی';
+
+  @override
+  String get meterNumberLabel => 'میٹر نمبر';
+
+  @override
+  String get nameOnBillLabel => 'بل پر نام';
+
+  @override
+  String get inMyNameLabel => 'میرے نام پر';
+
+  @override
+  String get inMyNameHelp =>
+      'بقایا جات جگہ کے ساتھ رہتے ہیں: آپ کے نام کے کنکشن کے غیر ادا شدہ بل آپ پر آ سکتے ہیں۔';
+
+  @override
+  String get whoPaysLabel => 'بل کون ادا کرتا ہے';
+
+  @override
+  String get subMeterLabel => 'سب میٹر';
+
+  @override
+  String get subMeterHelp =>
+      'آپ کا اپنا میٹر جو مرکزی کنکشن میں سے کسی ایک پورشن کا حصہ ناپتا ہے۔';
+
+  @override
+  String get protectedLabel => 'محفوظ ٹیرف';
+
+  @override
+  String protectedHelp(int limit) {
+    return '$limit یونٹ ماہانہ یا اس سے کم استعمال والے گھروں کا رعایتی ٹیرف۔ کسی ایک مہینے $limit سے زیادہ پر یہ چھ مہینے کے لیے ختم ہو جاتا ہے؛ ایپ حد کے قریب پہنچنے پر آپ کو خبردار کرتی ہے۔';
+  }
+
+  @override
+  String get billsSection => 'بل';
+
+  @override
+  String get billsEmpty =>
+      'ابھی کوئی بل نہیں۔ ہر مہینے کا بل اس کی آخری تاریخ اور یونٹس کے ساتھ شامل کریں۔';
+
+  @override
+  String get addBillAction => 'بل شامل کریں';
+
+  @override
+  String get readingsSection => 'میٹر ریڈنگ';
+
+  @override
+  String get readingsHelp =>
+      'کرایہ دار کے آنے اور جانے کے وقت میٹر پڑھیں، اور چاہیں تو ہر مہینے بھی۔';
+
+  @override
+  String get readingsEmpty => 'ابھی کوئی ریڈنگ نہیں۔';
+
+  @override
+  String get addReadingAction => 'ریڈنگ شامل کریں';
+
+  @override
+  String readingValue(String value) {
+    return 'ریڈنگ $value';
+  }
+
+  @override
+  String usedSince(String units, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days دن میں $units یونٹ',
+      one: '1 دن میں $units یونٹ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get archiveConnectionTitle => 'یہ کنکشن آرکائیو کریں؟';
+
+  @override
+  String get archiveConnectionBody =>
+      'یہ آپ کی فہرستوں سے ہٹ جائے گا لیکن اس کے بل اور ریڈنگز محفوظ رہیں گی۔ آپ اسے بعد میں دوبارہ استعمال میں لا سکتے ہیں۔';
+
+  @override
+  String get connectionArchived => 'کنکشن آرکائیو ہو گیا۔';
+
+  @override
+  String get connectionRestored => 'کنکشن دوبارہ استعمال میں ہے۔';
+
+  @override
+  String get deleteConnectionTitle => 'یہ کنکشن حذف کریں؟';
+
+  @override
+  String get deleteConnectionBody =>
+      'یہ اپنے بلوں اور ریڈنگز سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ کرایہ دار کے کھاتے میں پہلے سے درج واجبات وہیں رہیں گے۔ صرف غلطی سے شامل کیے گئے کنکشن کے لیے؛ ورنہ اسے آرکائیو کریں۔';
+
+  @override
+  String get connectionDeleted => 'کنکشن حذف ہو گیا۔';
+
+  @override
+  String get newConnectionTitle => 'نیا کنکشن';
+
+  @override
+  String get editConnectionTitle => 'کنکشن میں ترمیم';
+
+  @override
+  String get connectionSectionWhere => 'کہاں';
+
+  @override
+  String get connectionSectionSupplier => 'کیا اور کون فراہم کرتا ہے';
+
+  @override
+  String get connectionSectionNumbers => 'کنکشن کے نمبر';
+
+  @override
+  String get connectionSectionWho => 'کس کے نام پر، کون ادا کرتا ہے';
+
+  @override
+  String get utilityTypeLabel => 'قسم';
+
+  @override
+  String get providerLabel => 'فراہم کنندہ';
+
+  @override
+  String get providerNameLabel => 'فراہم کنندہ کا نام';
+
+  @override
+  String get referenceNumberHelp => 'جیسا بل پر لکھا ہے۔';
+
+  @override
+  String referenceDigitsHint(int digits) {
+    return 'اس فراہم کنندہ کے بلوں پر عموماً $digits ہندسوں کا نمبر ہوتا ہے۔ اسے بل سے ملا لیں۔';
+  }
+
+  @override
+  String get referenceNumberInvalid =>
+      '4 سے 24 تک حروف، ہندسے یا ڈیش استعمال کریں۔';
+
+  @override
+  String get customerIdInvalid =>
+      'زیادہ سے زیادہ 30 حروف، ہندسے یا ڈیش استعمال کریں۔';
+
+  @override
+  String get meterNumberInvalid =>
+      'زیادہ سے زیادہ 30 حروف، ہندسے، ڈیش یا سلیش استعمال کریں۔';
+
+  @override
+  String get connectionAdded => 'کنکشن شامل ہو گیا۔';
+
+  @override
+  String get connectionSaved => 'کنکشن محفوظ ہو گیا۔';
+
+  @override
+  String get billTitle => 'بل';
+
+  @override
+  String get loadingBill => 'بل لوڈ ہو رہا ہے';
+
+  @override
+  String get billLoadFailedTitle => 'بل لوڈ نہیں ہو سکا';
+
+  @override
+  String get billPaid => 'ادا شدہ';
+
+  @override
+  String get billUnpaid => 'غیر ادا شدہ';
+
+  @override
+  String get billMonthLabel => 'بل برائے';
+
+  @override
+  String get unitsConsumedLabel => 'استعمال شدہ یونٹ';
+
+  @override
+  String protectedUnitsHelp(int limit) {
+    return 'محفوظ ٹیرف پر: ہر مہینہ $limit یونٹ یا اس سے کم رکھیں۔';
+  }
+
+  @override
+  String get validationUnits => 'یونٹس کی تعداد درج کریں، جیسے 185 یا 185.5۔';
+
+  @override
+  String get alreadyPaidLabel => 'ادا ہو چکا ہے';
+
+  @override
+  String get billPaidByLabel => 'کس نے ادا کیا';
+
+  @override
+  String get billAdded => 'بل شامل ہو گیا۔';
+
+  @override
+  String get billSaved => 'بل محفوظ ہو گیا۔';
+
+  @override
+  String get billDeleted => 'بل حذف ہو گیا۔';
+
+  @override
+  String get billMarkedPaid => 'بل ادا شدہ درج ہو گیا۔';
+
+  @override
+  String get billMarkedUnpaid => 'بل غیر ادا شدہ درج ہو گیا۔';
+
+  @override
+  String get billCharged => 'بل کرایہ دار کے کھاتے میں درج ہو گیا۔';
+
+  @override
+  String get markPaidAction => 'ادا شدہ درج کریں';
+
+  @override
+  String get markUnpaidAction => 'غیر ادا شدہ درج کریں';
+
+  @override
+  String get editBillAction => 'بل میں ترمیم';
+
+  @override
+  String get chargeTenantAction => 'کرایہ دار کے ذمے ڈالیں';
+
+  @override
+  String chargeTenantExplain(String amount, String date) {
+    return '$amount کا بل کرایہ دار کے کھاتے میں واجب بن جائے گا، جس کی آخری تاریخ $date ہو گی۔ کرایہ دار کا پیشگی جمع کریڈٹ اس میں لگ جائے گا۔';
+  }
+
+  @override
+  String get chargedToTenantHelp =>
+      'اس کی ادائیگی کرایہ داری کے کھاتے میں درج ہوتی ہے۔';
+
+  @override
+  String get billChargeVoided =>
+      'اس بل کا کرایہ دار کے کھاتے میں درج واجب منسوخ کر دیا گیا تھا۔ آپ اسے دوبارہ ڈال سکتے ہیں۔';
+
+  @override
+  String get connectionDetailsAction => 'کنکشن کی تفصیل';
+
+  @override
+  String get inYourNameUnpaid =>
+      'یہ غیر ادا شدہ بل آپ کے نام کے کنکشن کا ہے: اگر یہ ادا نہ ہوا تو بقایا جات آپ پر آ سکتے ہیں۔';
+
+  @override
+  String get deleteBillTitle => 'یہ بل حذف کریں؟';
+
+  @override
+  String get deleteBillBody =>
+      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ صرف غلطی سے شامل کیے گئے بل کے لیے۔';
+
+  @override
+  String get deleteChargedBillBody =>
+      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ کرایہ دار کے کھاتے میں اس کا واجب وہیں رہے گا: اگر وہ بھی غلط ہے تو کھاتے میں منسوخ کریں۔';
+
+  @override
+  String protectedOver(int limit) {
+    return 'ماہانہ $limit یونٹ سے زیادہ';
+  }
+
+  @override
+  String protectedNear(int limit) {
+    return 'ماہانہ $limit یونٹ کے قریب';
+  }
+
+  @override
+  String protectedOverExplain(int limit) {
+    return 'اس مہینے $limit یونٹ سے زیادہ استعمال ہوئے: اگلے چھ مہینے کے لیے محفوظ ٹیرف ختم ہو جاتا ہے، اور بل مہنگے ہوں گے۔';
+  }
+
+  @override
+  String protectedNearExplain(int limit) {
+    return 'اس مہینے کا استعمال $limit یونٹ کے قریب ہے۔ کسی ایک مہینے $limit سے زیادہ پر محفوظ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔';
+  }
+
+  @override
+  String get readingTitle => 'میٹر ریڈنگ';
+
+  @override
+  String get loadingReading => 'ریڈنگ لوڈ ہو رہی ہے';
+
+  @override
+  String get readingLoadFailedTitle => 'ریڈنگ لوڈ نہیں ہو سکی';
+
+  @override
+  String get readingLabel => 'ریڈنگ';
+
+  @override
+  String get readOnLabel => 'ریڈنگ کی تاریخ';
+
+  @override
+  String get readingContextLabel => 'کس موقع پر';
+
+  @override
+  String get readingTenancyHelp =>
+      'اگر کوئی ہو تو آنے یا جانے والی کرایہ داری۔';
+
+  @override
+  String lastReadingWas(String value, String date) {
+    return 'پچھلی ریڈنگ $date کو $value تھی۔';
+  }
+
+  @override
+  String get readingLower =>
+      'یہ پچھلی ریڈنگ سے کم ہے۔ اگر میٹر تبدیل ہوا ہے تو نیچے نوٹ میں لکھ دیں۔';
+
+  @override
+  String get previousReadingLabel => 'پچھلی ریڈنگ';
+
+  @override
+  String readingOn(String value, String date) {
+    return '$date کو $value';
+  }
+
+  @override
+  String get unitsUsedLabel => 'تب سے استعمال';
+
+  @override
+  String get monthlyPaceLabel => 'اس رفتار سے';
+
+  @override
+  String unitsAMonth(String units) {
+    return '$units یونٹ ماہانہ';
+  }
+
+  @override
+  String get readingAdded => 'ریڈنگ شامل ہو گئی۔';
+
+  @override
+  String get readingSaved => 'ریڈنگ محفوظ ہو گئی۔';
+
+  @override
+  String get readingDeleted => 'ریڈنگ حذف ہو گئی۔';
+
+  @override
+  String get editReadingAction => 'ریڈنگ میں ترمیم';
+
+  @override
+  String get deleteReadingTitle => 'یہ ریڈنگ حذف کریں؟';
+
+  @override
+  String get deleteReadingBody =>
+      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گی۔ صرف غلطی سے شامل کی گئی ریڈنگ کے لیے۔';
+
+  @override
+  String get maintenancePlumbing => 'پلمبنگ';
+
+  @override
+  String get maintenanceElectrical => 'بجلی کا کام';
+
+  @override
+  String get maintenanceCarpentry => 'لکڑی کا کام';
+
+  @override
+  String get maintenancePainting => 'رنگ و روغن';
+
+  @override
+  String get maintenanceSeepage => 'سیلن';
+
+  @override
+  String get maintenanceAppliance => 'برقی آلات';
+
+  @override
+  String get maintenancePestControl => 'کیڑے مار اسپرے';
+
+  @override
+  String get maintenanceCleaning => 'صفائی';
+
+  @override
+  String get maintenanceStructural => 'تعمیراتی';
+
+  @override
+  String get maintenanceWaterSupply => 'پانی کی فراہمی';
+
+  @override
+  String get priorityLow => 'کم';
+
+  @override
+  String get priorityMedium => 'درمیانی';
+
+  @override
+  String get priorityHigh => 'زیادہ';
+
+  @override
+  String get priorityUrgent => 'فوری';
+
+  @override
+  String priorityNamed(String priority) {
+    return 'ترجیح: $priority';
+  }
+
+  @override
+  String get maintenanceOpen => 'زیرِ التوا';
+
+  @override
+  String get maintenanceInProgress => 'کام جاری';
+
+  @override
+  String get maintenanceOnHold => 'روک دیا گیا';
+
+  @override
+  String get maintenanceResolved => 'مکمل';
+
+  @override
+  String get maintenanceCancelled => 'منسوخ';
+
+  @override
+  String get maintenanceTitle => 'مرمت و دیکھ بھال';
+
+  @override
+  String get loadingMaintenance => 'مرمت کے کام لوڈ ہو رہے ہیں';
+
+  @override
+  String get loadingMaintenanceRequest => 'مرمت کا کام لوڈ ہو رہا ہے';
+
+  @override
+  String get maintenanceLoadFailedTitle => 'مرمت کے کام لوڈ نہیں ہو سکے';
+
+  @override
+  String get maintenanceRequestLoadFailedTitle => 'مرمت کا کام لوڈ نہیں ہو سکا';
+
+  @override
+  String get maintenanceEmptyTitle => 'مرمت کا کوئی کام نہیں';
+
+  @override
+  String get maintenanceEmptyBody =>
+      'ہر مرمت کا کام اطلاع ملتے ہی درج کریں، اور مکمل ہونے تک اس پر نظر رکھیں، اس کے خرچ سمیت۔';
+
+  @override
+  String get maintenanceClosedEmptyTitle => 'ابھی کوئی بند کام نہیں';
+
+  @override
+  String get maintenanceClosedEmptyBody =>
+      'جو کام آپ مکمل یا منسوخ کریں وہ یہاں محفوظ رہتے ہیں۔';
+
+  @override
+  String get addRequestAction => 'مرمت کا کام شامل کریں';
+
+  @override
+  String reportedOn(String date) {
+    return 'اطلاع $date';
+  }
+
+  @override
+  String get maintenanceCategoryLabel => 'کام کی قسم';
+
+  @override
+  String get priorityLabel => 'ترجیح';
+
+  @override
+  String get reportedOnLabel => 'اطلاع کی تاریخ';
+
+  @override
+  String get reportedByLabel => 'اطلاع دینے والا';
+
+  @override
+  String get assignedToLabel => 'کام کرنے والا';
+
+  @override
+  String get assignedToHelp => 'پلمبر، الیکٹریشن یا کمپنی جو یہ کام کر رہی ہے۔';
+
+  @override
+  String get vendorPhoneLabel => 'ان کا فون';
+
+  @override
+  String get estimateLabel => 'تخمینہ';
+
+  @override
+  String get resolvedOnLabel => 'مکمل ہونے کی تاریخ';
+
+  @override
+  String get resolutionLabel => 'کیا کام کیا گیا';
+
+  @override
+  String get resolutionHelp =>
+      'ریکارڈ کے لیے: کیا ٹھیک کیا گیا، اور اگر کوئی گارنٹی ہو۔';
+
+  @override
+  String get startWorkAction => 'کام شروع کریں';
+
+  @override
+  String get resumeWorkAction => 'کام دوبارہ شروع کریں';
+
+  @override
+  String get putOnHoldAction => 'روک دیں';
+
+  @override
+  String get markResolvedAction => 'مکمل درج کریں';
+
+  @override
+  String get cancelRequestAction => 'کام منسوخ کریں';
+
+  @override
+  String get reopenAction => 'دوبارہ کھولیں';
+
+  @override
+  String requestMoved(String status) {
+    return 'اب: $status۔';
+  }
+
+  @override
+  String get requestResolved => 'مرمت کا کام مکمل ہو گیا۔';
+
+  @override
+  String get jobExpensesSection => 'اس پر خرچ';
+
+  @override
+  String get jobExpensesEmpty => 'ابھی اس پر کچھ خرچ نہیں ہوا۔';
+
+  @override
+  String spentSoFar(String amount) {
+    return 'اب تک $amount';
+  }
+
+  @override
+  String spentOfEstimate(String spent, String estimate) {
+    return '$estimate کے تخمینے میں سے $spent';
+  }
+
+  @override
+  String deleteRequestTitle(String title) {
+    return '$title حذف کریں؟';
+  }
+
+  @override
+  String get deleteRequestBody =>
+      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ صرف غلطی سے شامل کیے گئے کام کے لیے؛ ریکارڈ رکھنے کے لیے اسے منسوخ کریں۔';
+
+  @override
+  String get requestDeleted => 'مرمت کا کام حذف ہو گیا۔';
+
+  @override
+  String get newRequestTitle => 'مرمت کا نیا کام';
+
+  @override
+  String get editRequestTitle => 'مرمت کے کام میں ترمیم';
+
+  @override
+  String get requestSectionWhat => 'کیا کام کرنا ہے';
+
+  @override
+  String get requestSectionWhere => 'کہاں';
+
+  @override
+  String get requestSectionWho => 'کون اور کب';
+
+  @override
+  String get requestSectionStatus => 'صورتِ حال';
+
+  @override
+  String get requestTitleLabel => 'کیا خرابی ہے';
+
+  @override
+  String get requestTitleHelp => 'چند الفاظ میں: \"کچن کا نل ٹپک رہا ہے\"۔';
+
+  @override
+  String get requestTenancyHelp =>
+      'اگر کوئی ہو تو وہ کرایہ داری جس میں اس کی اطلاع ملی۔';
+
+  @override
+  String get requestAdded => 'مرمت کا کام شامل ہو گیا۔';
+
+  @override
+  String get requestSaved => 'مرمت کا کام محفوظ ہو گیا۔';
+
+  @override
+  String get reasonDuplicateUtilityReference =>
+      'اس قسم کے زیرِ استعمال کسی اور کنکشن کا یہی ریفرنس نمبر پہلے سے موجود ہے۔';
+
+  @override
+  String get reasonDuplicateBillMonth =>
+      'اس کنکشن کا اس مہینے کا بل پہلے سے موجود ہے۔ اسے بدلنے کے لیے وہی بل کھولیں۔';
+
+  @override
+  String get reasonRequestHasExpenses =>
+      'اس مرمت کے کام پر اخراجات درج ہیں، اس لیے یہ حذف نہیں ہو سکتا۔ اس کے بجائے اسے منسوخ کریں، یا پہلے وہ اخراجات حذف کریں۔';
+
+  @override
+  String connectionReference(String number) {
+    return 'ریفرنس $number';
+  }
+
+  @override
+  String get whereLabel => 'کہاں';
+
+  @override
+  String pacedNearExplain(int limit) {
+    return 'اس رفتار سے ایک مہینے کا استعمال $limit یونٹ کے قریب پہنچ جاتا ہے۔ کسی ایک مہینے $limit سے زیادہ پر محفوظ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔';
+  }
+
+  @override
+  String pacedOverExplain(int limit) {
+    return 'اس رفتار سے ایک مہینے کا استعمال $limit یونٹ سے بڑھ جاتا ہے، جس سے محفوظ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔ بل آنے پر اسے دیکھ لیں۔';
+  }
+
+  @override
+  String get paidWithLabel => 'ادائیگی کا طریقہ';
+
+  @override
+  String get billAmountLocked =>
+      'یہ بل کرایہ دار کے کھاتے میں واجب کے طور پر درج ہے، اس لیے اس کی رقم یہاں نہیں بدل سکتی۔ درست کرنے کے لیے کھاتے میں وہ واجب منسوخ کریں، پھر بل دوبارہ کرایہ دار پر ڈالیں۔';
+
+  @override
+  String paceAMonth(String units) {
+    return 'تقریباً $units یونٹ ماہانہ';
+  }
+
+  @override
+  String readingHigher(String value, String date) {
+    return 'یہ $date کی بعد والی ریڈنگ $value سے زیادہ ہے۔ عدد اور تاریخ دوبارہ دیکھ لیں۔';
+  }
+
+  @override
+  String get markUnpaidTitle => 'یہ بل غیر ادا شدہ درج کریں؟';
+
+  @override
+  String markUnpaidBody(String date) {
+    return 'ادائیگی کی تاریخ ($date) اور ادا کرنے والے کا اندراج مٹ جائے گا۔';
+  }
+
+  @override
+  String get cancelRequestTitle => 'یہ کام منسوخ کر کے بند کریں؟';
+
+  @override
+  String get cancelRequestBody =>
+      'یہ اپنی تفصیلات اور اخراجات سمیت بند کاموں میں چلا جائے گا۔ آپ اسے بعد میں دوبارہ کھول سکتے ہیں۔';
+
+  @override
+  String get closeAsCancelledAction => 'کام بند کریں';
+
+  @override
+  String get chargeDuePassed =>
+      'یہ تاریخ گزر چکی ہے، اس لیے یہ واجب فوراً تاخیر میں دکھائی دے گا۔';
+
+  @override
+  String get savedEarlierUnchanged =>
+      'یہ پہلے ہی محفوظ ہو چکا تھا، جیسا پہلے درج کیا گیا۔ بعد کی تبدیلیاں محفوظ نہیں ہوئیں: انہیں کرنے کے لیے اس میں ترمیم کریں۔';
+
+  @override
+  String get requestHasExpensesClosed =>
+      'اس مرمت کے کام پر اخراجات درج ہیں، اس لیے یہ حذف نہیں ہو سکتا۔ اگر یہ غلطی سے درج ہوا تھا تو پہلے وہ اخراجات حذف کریں۔';
+
+  @override
+  String get loadingDashboard => 'ڈیش بورڈ لوڈ ہو رہا ہے';
+
+  @override
+  String get dashboardLoadFailedTitle => 'ڈیش بورڈ لوڈ نہیں ہو سکا';
+
+  @override
+  String get searchAction => 'تلاش';
+
+  @override
+  String get reportsTitle => 'رپورٹس';
+
+  @override
+  String get reportsEntryTitle => 'رپورٹس اور گوشوارے';
+
+  @override
+  String get reportsEntrySummary =>
+      'نقدی کا بہاؤ، ادائیگی کے اسکور، ٹیکس سال اور مالک کے گوشوارے، ایکسپورٹ';
+
+  @override
+  String thisMonthSection(String month) {
+    return 'اس مہینے، $month';
+  }
+
+  @override
+  String get collectedThisMonthLabel => 'اس مہینے وصول';
+
+  @override
+  String collectedOfDue(String due, String rate) {
+    return '$due واجب میں سے، $rate وصول';
+  }
+
+  @override
+  String get nothingDueThisMonth => 'اس مہینے ابھی کچھ واجب نہیں ہوا۔';
+
+  @override
+  String owedInAll(String amount) {
+    return 'کل $amount واجب الادا';
+  }
+
+  @override
+  String get unitsLetLabel => 'کرائے پر دیے گئے یونٹس';
+
+  @override
+  String unitsLetValue(String occupied, String units) {
+    return '$units میں سے $occupied';
+  }
+
+  @override
+  String occupancyCaption(String rate, int vacant) {
+    String _temp0 = intl.Intl.pluralLogic(
+      vacant,
+      locale: localeName,
+      other: '$vacant خالی',
+      zero: 'کوئی خالی نہیں',
+    );
+    return '$rate کرائے پر، $_temp0';
+  }
+
+  @override
+  String get noUnitsToLet => 'ابھی کرائے کے لیے کوئی یونٹ نہیں';
+
+  @override
+  String get stillToCollect => 'ابھی وصول ہونا ہے';
+
+  @override
+  String monthBarSummary(String expected, String paid) {
+    return 'اس مہینے واجب $expected روپے میں سے $paid ادا ہو چکے ہیں۔';
+  }
+
+  @override
+  String get insightsSection => 'توجہ طلب امور';
+
+  @override
+  String get noInsights => 'آج کسی بات پر توجہ کی ضرورت نہیں۔';
+
+  @override
+  String get insightAlert => 'فوری توجہ';
+
+  @override
+  String get insightWarning => 'توجہ دیں';
+
+  @override
+  String get insightInfo => 'جاننے کے لائق';
+
+  @override
+  String get insightGood => 'اچھی خبر';
+
+  @override
+  String insightsShowAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تمام $count دکھائیں',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get insightsShowFewer => 'کم دکھائیں';
+
+  @override
+  String openNamedTenancyAction(String tenant) {
+    return '$tenant کی کرایہ داری کھولیں';
+  }
+
+  @override
+  String get seeTenantsAction => 'کرایہ دار دیکھیں';
+
+  @override
+  String over60Split(String amount) {
+    return '60 دن سے زیادہ تاخیر والے $amount میں سے:';
+  }
+
+  @override
+  String get dashboardNoPropertiesTitle => 'ابھی کوئی جائیداد نہیں';
+
+  @override
+  String get dashboardNoPropertiesBody =>
+      'کرایہ وصول کرنا شروع کرنے کے لیے اپنی پہلی جائیداد شامل کریں۔';
+
+  @override
+  String get dashboardNoPropertiesViewer =>
+      'جائیداد شامل ہونے کے بعد اس کا کرایہ یہاں نظر آئے گا۔';
+
+  @override
+  String get dashboardNoUnitsTitle => 'ابھی کوئی یونٹ نہیں';
+
+  @override
+  String get dashboardNoUnitsBody =>
+      'کرایہ پر دینے اور کرایہ وصول کرنے کے لیے کسی جائیداد میں یونٹ شامل کریں۔';
+
+  @override
+  String get dashboardNoUnitsViewer =>
+      'یونٹ شامل ہونے کے بعد اس کا کرایہ یہاں نظر آئے گا۔';
+
+  @override
+  String get seePropertiesAction => 'جائیدادیں دیکھیں';
+
+  @override
+  String insightCollectionTitle(String rate) {
+    return 'اس مہینے کے واجبات کا $rate وصول';
+  }
+
+  @override
+  String insightCollectionBody(String amount) {
+    return 'ان میں سے $amount ابھی وصول ہونا ہے۔';
+  }
+
+  @override
+  String get insightCollectionDone => 'اس مہینے کے تمام واجبات ادا ہو چکے ہیں۔';
+
+  @override
+  String insightLongArrearsTitle(String amount) {
+    return '$amount 90 دن سے زیادہ پرانے واجبات';
+  }
+
+  @override
+  String get insightLongArrearsBody =>
+      'اتنی پرانی رقم وصول کرنا سب سے مشکل ہوتا ہے۔ ان کرایہ داروں سے بات کریں، یا رخصتی پر ان کے زرِ ضمانت سے ادا کریں۔';
+
+  @override
+  String get seeWhoOwesAction => 'دیکھیں کس پر واجب ہے';
+
+  @override
+  String get insightIncrementTitle => 'کرائے میں اضافہ کرنا ہے';
+
+  @override
+  String insightIncrementMissed(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count اضافے وقت پر نہیں کیے گئے',
+      one: '1 اضافہ وقت پر نہیں کیا گیا',
+    );
+    return '$_temp0: ماہانہ $amount وصول نہیں ہو رہے۔';
+  }
+
+  @override
+  String insightIncrementUpcoming(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count اضافے 30 دن کے اندر واجب ہیں۔',
+      one: '1 اضافہ 30 دن کے اندر واجب ہے۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightExpiringTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کرایہ داریاں 90 دن کے اندر ختم ہو رہی ہیں',
+      one: '1 کرایہ داری 90 دن کے اندر ختم ہو رہی ہے',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightExpiringBody(String tenant, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days دن میں',
+      one: '1 دن میں',
+      zero: 'آج',
+    );
+    return '$tenant کی سب سے پہلے ختم ہو رہی ہے، $_temp0۔ تجدید کریں یا رخصتی کی تیاری کریں۔';
+  }
+
+  @override
+  String insightPoliceTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کرایہ داریاں پولیس میں درج نہیں',
+      one: '1 کرایہ داری پولیس میں درج نہیں',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightPoliceLate(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کی قانونی آخری تاریخ گزر چکی ہے: ابھی درج کروائیں۔',
+      one: '1 کی قانونی آخری تاریخ گزر چکی ہے: ابھی درج کروائیں۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get insightPoliceBody =>
+      'ہر ایک اپنی آخری تاریخ تک درج کروائیں۔ جہاں کوئی قانون آخری تاریخ مقرر نہیں کرتا، وہاں ایپ یاد دہانی کرواتی ہے۔';
+
+  @override
+  String insightPoliceSubmittedTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'پولیس میں $count اندراج تصدیق کے منتظر ہیں',
+      one: 'پولیس میں 1 اندراج تصدیق کا منتظر ہے',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightPoliceSubmittedLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'مزید $count جمع کرا دیے گئے ہیں، تصدیق باقی ہے۔',
+      one: 'مزید 1 جمع کرا دیا گیا ہے، تصدیق باقی ہے۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get insightPoliceSubmittedBody =>
+      'قانون کا تقاضا آپ پورا کر چکے ہیں۔ پولیس کی تصدیق کے بعد کرایہ داری میں درج کریں۔';
+
+  @override
+  String insightVacancyTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یونٹس خالی ہیں',
+      one: '1 یونٹ خالی ہے',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightVacancyBody(int count, String amount, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'سب سے پرانا',
+      one: 'یہ',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days دن سے',
+      one: '1 دن سے',
+      zero: 'آج سے',
+    );
+    return 'طلب کردہ کرائے پر آپ کو ماہانہ $amount کا نقصان ہو رہا ہے۔ $_temp0 $_temp1 خالی ہے۔';
+  }
+
+  @override
+  String insightDepositTitle(String cover) {
+    return 'زرِ ضمانت تاخیر شدہ کرائے کا صرف $cover پورا کرتا ہے';
+  }
+
+  @override
+  String insightDepositBody(String overdue, String held) {
+    return '$overdue تاخیر شدہ ہے اور $held زرِ ضمانت جمع ہے۔ واجبات زرِ ضمانت سے زیادہ ہونے سے پہلے وصولی کریں۔';
+  }
+
+  @override
+  String get insightUtilityTitle => 'یوٹیلیٹی بلوں پر توجہ کی ضرورت';
+
+  @override
+  String insightUtilityLandlord(int count, String amount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'آپ کے نام پر $count بل ادا نہیں ہوئے',
+      one: 'آپ کے نام پر 1 بل ادا نہیں ہوا',
+    );
+    return '$_temp0، کل $amount: ان کی ذمہ داری آپ پر ہے۔';
+  }
+
+  @override
+  String insightUtilityOverdue(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count بلوں کی آخری تاریخ گزر چکی ہے۔',
+      one: '1 بل کی آخری تاریخ گزر چکی ہے۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightUtilityOverTariff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'محفوظ ٹیرف کے $count میٹر تازہ بل پر 200 یونٹ سے بڑھ گئے۔',
+      one: 'محفوظ ٹیرف کا 1 میٹر تازہ بل پر 200 یونٹ سے بڑھ گیا۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightUtilityNearTariff(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'محفوظ ٹیرف کے $count میٹر 200 یونٹ کے قریب ہیں۔',
+      one: 'محفوظ ٹیرف کا 1 میٹر 200 یونٹ کے قریب ہے۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get seeUtilitiesAction => 'یوٹیلیٹیز دیکھیں';
+
+  @override
+  String get insightExpenseTitle => 'اس مہینے اخراجات زیادہ ہیں';
+
+  @override
+  String insightExpenseBody(String amount, String average) {
+    return 'اب تک $amount، جبکہ اس سے پہلے کے تین مہینوں کی ماہانہ اوسط $average تھی۔';
+  }
+
+  @override
+  String get seeExpensesAction => 'اخراجات دیکھیں';
+
+  @override
+  String insightUnderpricedTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count یونٹس طلب کردہ کرائے سے کم پر دیے ہوئے ہیں',
+      one: '1 یونٹ طلب کردہ کرائے سے کم پر دیا ہوا ہے',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String insightUnderpricedBody(String amount, String unit) {
+    return 'مجموعی طور پر آپ کے طلب کردہ کرائے سے ماہانہ $amount کم، سب سے زیادہ $unit پر۔ اگلے اضافے یا تجدید پر اس پر غور کریں۔';
+  }
+
+  @override
+  String insightCashTitle(String amount) {
+    return 'نگرانوں کے پاس $amount نقد';
+  }
+
+  @override
+  String insightCashHolder(String name, String amount) {
+    return '$name کے پاس $amount ہیں۔';
+  }
+
+  @override
+  String get insightCashShareTitle => 'اس مہینے کی زیادہ تر رقم نقد آئی';
+
+  @override
+  String insightCashShare(String share) {
+    return 'اس مہینے کی رقم کا $share نقد آیا۔';
+  }
+
+  @override
+  String get insightCashAdvice =>
+      'بینک ٹرانسفر اور باقاعدہ حوالگی سے ہاتھ میں کم نقدی رہتی ہے۔';
+
+  @override
+  String get seeCashAction => 'ہاتھ میں نقدی دیکھیں';
+
+  @override
+  String get owedSection => 'آپ کے واجبات';
+
+  @override
+  String owedSectionHelp(String amount) {
+    return 'کل $amount، تاخیر کی مدت کے لحاظ سے';
+  }
+
+  @override
+  String get ageNotDue => 'ابھی واجب نہیں';
+
+  @override
+  String get age1to30 => '1 سے 30 دن تاخیر';
+
+  @override
+  String get age31to60 => '31 سے 60 دن تاخیر';
+
+  @override
+  String get ageOver60 => '60 دن سے زیادہ تاخیر';
+
+  @override
+  String get age61to90 => '61 سے 90 دن تاخیر';
+
+  @override
+  String get ageOver90 => '90 دن سے زیادہ تاخیر';
+
+  @override
+  String ageingSummary(
+    String total,
+    String notDue,
+    String early,
+    String middle,
+    String late,
+  ) {
+    return '$total روپے واجب الادا: $notDue ابھی واجب نہیں، $early 30 دن تک تاخیر، $middle 31 سے 60 دن تاخیر، $late 60 دن سے زیادہ تاخیر۔';
+  }
+
+  @override
+  String get owingMostSection => 'سب سے زیادہ واجبات';
+
+  @override
+  String get seeAllAction => 'سب دیکھیں';
+
+  @override
+  String get remindShortAction => 'یاد دہانی';
+
+  @override
+  String lastRemindedOn(String moment) {
+    return 'یاد دہانی $moment';
+  }
+
+  @override
+  String get upcomingSection => 'واجب اور آنے والے کام';
+
+  @override
+  String get upcomingEmpty => 'آنے والے ہفتوں میں کچھ واجب نہیں۔';
+
+  @override
+  String timelineLeaseEnds(String tenant) {
+    return '$tenant کی کرایہ داری ختم';
+  }
+
+  @override
+  String timelineIncrementDue(String tenant) {
+    return '$tenant کے کرائے میں اضافہ';
+  }
+
+  @override
+  String timelineIncrementMissed(String tenant) {
+    return '$tenant کے کرائے میں اضافہ نہیں ہوا';
+  }
+
+  @override
+  String timelineIncrementDetail(String unit, String from, String to) {
+    return '$unit: $from سے $to';
+  }
+
+  @override
+  String timelinePolice(String tenant) {
+    return '$tenant کی کرایہ داری پولیس میں درج کروائیں';
+  }
+
+  @override
+  String timelinePoliceLegal(String unit) {
+    return '$unit: قانون کی مقرر کردہ آخری تاریخ';
+  }
+
+  @override
+  String timelinePoliceLegalPassed(String unit) {
+    return '$unit: قانون کی مقرر کردہ آخری تاریخ گزر چکی';
+  }
+
+  @override
+  String timelinePoliceReminder(String unit) {
+    return '$unit: ایپ کی یاد دہانی، کوئی قانونی آخری تاریخ نہیں';
+  }
+
+  @override
+  String timelinePoliceSubmitted(String unit) {
+    return '$unit: جمع کرا دیا، تصدیق باقی';
+  }
+
+  @override
+  String timelineCnicExpires(String tenant) {
+    return '$tenant کے شناختی کارڈ کی میعاد ختم ہو رہی ہے';
+  }
+
+  @override
+  String timelineCnicExpired(String tenant) {
+    return '$tenant کے شناختی کارڈ کی میعاد ختم ہو چکی ہے';
+  }
+
+  @override
+  String get timelineCnicHelp => 'نئے کارڈ کی نقل طلب کریں۔';
+
+  @override
+  String get vacantSection => 'خالی یونٹس';
+
+  @override
+  String vacantFor(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days دن سے خالی',
+      one: '1 دن سے خالی',
+      zero: 'آج سے خالی',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get heldAndSpentSection => 'زرِ ضمانت، ٹیکس اور اخراجات';
+
+  @override
+  String get depositsHeldLabel => 'جمع شدہ زرِ ضمانت';
+
+  @override
+  String get depositsAgreedLabel => 'طے شدہ زرِ ضمانت';
+
+  @override
+  String get taxWithheldThisMonthLabel => 'اس مہینے منہا شدہ ٹیکس';
+
+  @override
+  String get expensesThisMonthLabel => 'اس مہینے کے اخراجات';
+
+  @override
+  String get expensesAverageLabel => 'پچھلے 3 مہینوں کی ماہانہ اوسط';
+
+  @override
+  String get loadingCashflow => 'نقدی کی آمد و رفت لوڈ ہو رہی ہے';
+
+  @override
+  String get cashflowLoadFailedTitle => 'نقدی کی آمد و رفت لوڈ نہیں ہو سکی';
+
+  @override
+  String get cashflowSection => 'نقدی کی آمد و رفت، پچھلے 12 مہینے';
+
+  @override
+  String get moneyInSeries => 'آمد';
+
+  @override
+  String get moneyOutSeries => 'خرچ';
+
+  @override
+  String get monthColumn => 'مہینہ';
+
+  @override
+  String cashflowSummary(
+    String first,
+    String last,
+    String moneyIn,
+    String moneyOut,
+  ) {
+    return '$first سے $last تک ہر مہینے کی آمد اور خرچ: کل $moneyIn روپے آمد اور $moneyOut روپے خرچ۔';
+  }
+
+  @override
+  String get cashflowEmpty => 'پچھلے 12 مہینوں میں نہ کوئی رقم آئی نہ گئی۔';
+
+  @override
+  String get totalInLabel => 'کل آمد';
+
+  @override
+  String get totalOutLabel => 'کل خرچ';
+
+  @override
+  String get netLabel => 'خالص';
+
+  @override
+  String get loadingPerformance => 'جائیدادوں کے اعداد و شمار لوڈ ہو رہے ہیں';
+
+  @override
+  String get performanceLoadFailedTitle =>
+      'جائیدادوں کے اعداد و شمار لوڈ نہیں ہو سکے';
+
+  @override
+  String get performanceSection => 'جائیدادیں، پچھلے 12 مہینے';
+
+  @override
+  String get performanceEmpty =>
+      'یہاں آمدن اور اخراجات دیکھنے کے لیے جائیداد شامل کریں۔';
+
+  @override
+  String get rentIncomeLabel => 'وصول شدہ کرایہ';
+
+  @override
+  String get otherIncomeLabel => 'دیگر آمدن';
+
+  @override
+  String get propertyExpensesLabel => 'اخراجات';
+
+  @override
+  String get noiLabel => 'خالص آپریٹنگ آمدن';
+
+  @override
+  String get grossYieldLabel => 'مجموعی شرحِ منافع';
+
+  @override
+  String get netYieldLabel => 'خالص شرحِ منافع';
+
+  @override
+  String yieldValue(String percent) {
+    return '$percent سالانہ';
+  }
+
+  @override
+  String get noYieldHelp =>
+      'شرحِ منافع دیکھنے کے لیے جائیداد کی تخمینی مالیت درج کریں۔';
+
+  @override
+  String get noiChartTitle => 'جائیداد کے لحاظ سے خالص آپریٹنگ آمدن';
+
+  @override
+  String noiChartSummary(String best, String amount) {
+    return 'پچھلے 12 مہینوں کی خالص آپریٹنگ آمدن: سب سے زیادہ $best، $amount روپے۔';
+  }
+
+  @override
+  String get scoresSection => 'ادائیگی کے اسکور';
+
+  @override
+  String get scoresHelp => 'ہر کرایہ دار کے پچھلے 12 مہینوں کے کرائے سے۔';
+
+  @override
+  String get loadingScores => 'ادائیگی کے اسکور لوڈ ہو رہے ہیں';
+
+  @override
+  String get scoresLoadFailedTitle => 'ادائیگی کے اسکور لوڈ نہیں ہو سکے';
+
+  @override
+  String get scoresEmpty => 'کرایہ واجب ہونے کے بعد اسکور نظر آئیں گے۔';
+
+  @override
+  String get scoreBandGood => 'وقت پر ادائیگی';
+
+  @override
+  String get scoreBandFair => 'کبھی کبھار تاخیر';
+
+  @override
+  String get scoreBandPoor => 'اکثر تاخیر';
+
+  @override
+  String scoreSpoken(String score, String band) {
+    return 'ادائیگی کا اسکور 100 میں سے $score، $band';
+  }
+
+  @override
+  String scoreValue(String score) {
+    return '$score/100';
+  }
+
+  @override
+  String scoreOnTime(String onTime, String count) {
+    return '$count میں سے $onTime بار وقت پر';
+  }
+
+  @override
+  String scoreDaysLate(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'اوسطاً تقریباً $days دن تاخیر',
+      one: 'اوسطاً تقریباً 1 دن تاخیر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scoreNeverLate => 'کبھی تاخیر نہیں';
+
+  @override
+  String get scoreUnderADayLate => 'اوسطاً ایک دن سے کم تاخیر';
+
+  @override
+  String scoreArrears(String months) {
+    return '$months مہینوں کا کرایہ واجب';
+  }
+
+  @override
+  String get scoreNoArrears => 'کوئی تاخیر شدہ واجب نہیں';
+
+  @override
+  String get scoreSectionTitle => 'ادائیگی کا اسکور';
+
+  @override
+  String get scoreNotYet => 'اسکور کے لیے ابھی کرائے کی کافی تاریخ نہیں۔';
+
+  @override
+  String get scoreFormulaHelp =>
+      '100 میں سے: 50 وقت پر ادائیگی کے، 30 کم دن تاخیر کے، 20 کم واجبات کے۔';
+
+  @override
+  String get statementsSection => 'گوشوارے اور ایکسپورٹ';
+
+  @override
+  String get taxYearTitle => 'ٹیکس سال کا گوشوارہ';
+
+  @override
+  String get taxYearSummary =>
+      'ہر جائیداد کی کرائے کی آمدن، جولائی تا جون، آپ کے ٹیکس مشیر کے لیے';
+
+  @override
+  String get ownerStatementTitle => 'مالک کا گوشوارہ';
+
+  @override
+  String get ownerStatementSummary =>
+      'ایک مہینے کی رقم اور واجبات، بیرونِ ملک مالک کے لیے پی ڈی ایف';
+
+  @override
+  String get exportTitle => 'اسپریڈ شیٹ میں ایکسپورٹ';
+
+  @override
+  String get exportSummary =>
+      'کھاتہ، ادائیگیاں یا اخراجات سی ایس وی فائل کے طور پر';
+
+  @override
+  String get taxYearLabel => 'ٹیکس سال';
+
+  @override
+  String taxYearOption(String endYear, String startYear) {
+    return 'ٹیکس سال $endYear: جولائی $startYear تا جون $endYear';
+  }
+
+  @override
+  String get loadingTaxYear => 'ٹیکس سال لوڈ ہو رہا ہے';
+
+  @override
+  String get taxYearLoadFailedTitle => 'ٹیکس سال لوڈ نہیں ہو سکا';
+
+  @override
+  String get notTaxAdviceTitle => 'ٹیکس کا مشورہ نہیں';
+
+  @override
+  String get notTaxAdviceBody =>
+      'یہ اعداد و شمار آپ کے ریکارڈ سے ہیں، آپ کے ٹیکس مشیر کی مدد کے لیے۔ یہ ٹیکس کا حساب نہیں: ایپ کبھی آپ کے ذمے ٹیکس کا حساب نہیں لگاتی۔';
+
+  @override
+  String get grossRentLabel => 'وصول شدہ کرایہ، مجموعی';
+
+  @override
+  String get repairsAllowanceLabel => 'مرمت کی چھوٹ، پانچواں حصہ';
+
+  @override
+  String get netAfterAllowanceLabel => 'مرمت کی چھوٹ کے بعد کرایہ';
+
+  @override
+  String get expensesRecordedLabel => 'درج شدہ اخراجات';
+
+  @override
+  String get allPropertiesLabel => 'تمام جائیدادیں';
+
+  @override
+  String get taxYearEmpty => 'اس ٹیکس سال میں کوئی کرایہ یا خرچ درج نہیں ہوا۔';
+
+  @override
+  String get deductibleNote =>
+      'کون سے اخراجات منہا ہو سکتے ہیں، یہ آپ کا ٹیکس مشیر طے کرے گا۔';
+
+  @override
+  String get shareCsvAction => 'سی ایس وی بھیجیں';
+
+  @override
+  String taxYearFileTitle(String endYear) {
+    return 'ٹیکس سال کا گوشوارہ $endYear';
+  }
+
+  @override
+  String taxYearDocumentTitle(String endYear) {
+    return 'کرائے کی آمدن، ٹیکس سال $endYear';
+  }
+
+  @override
+  String get ownerStatementMonthLabel => 'مہینہ';
+
+  @override
+  String ownerStatementFileTitle(String month) {
+    return 'مالک کا گوشوارہ، $month';
+  }
+
+  @override
+  String get moneyReceivedHeading => 'وصول شدہ رقم';
+
+  @override
+  String get rentAndFeesLabel => 'کرایہ اور تاخیر کی فیس';
+
+  @override
+  String get depositsReceivedLabel => 'زرِ ضمانت';
+
+  @override
+  String get otherDuesLabel => 'دیگر واجبات';
+
+  @override
+  String get unallocatedLabel => 'کریڈٹ کے طور پر رکھا';
+
+  @override
+  String get moneyPaidOutHeading => 'ادا شدہ رقم';
+
+  @override
+  String get depositRefundsLabel => 'واپس کیا گیا زرِ ضمانت';
+
+  @override
+  String get netCashLabel => 'مہینے کی خالص رقم';
+
+  @override
+  String owedOnHeading(String date) {
+    return '$date تک کرایہ داروں کے ذمے';
+  }
+
+  @override
+  String cashHeldOnHeading(String date) {
+    return '$date تک ہاتھ میں نقدی';
+  }
+
+  @override
+  String get ownerStatementFooter =>
+      'پورٹ فولیو کے ریکارڈ سے بنایا گیا۔ صرف معلومات کے لیے: آڈٹ شدہ حساب نہیں۔';
+
+  @override
+  String get exportWhatLabel => 'کیا ایکسپورٹ کریں';
+
+  @override
+  String get exportLedger => 'کھاتہ: تمام واجبات';
+
+  @override
+  String get exportPayments => 'ادائیگیاں';
+
+  @override
+  String get exportExpenses => 'اخراجات';
+
+  @override
+  String get exportPeriodLabel => 'مدت';
+
+  @override
+  String get periodThisMonth => 'یہ مہینہ';
+
+  @override
+  String get periodLastMonth => 'پچھلا مہینہ';
+
+  @override
+  String get exportAction => 'سی ایس وی ایکسپورٹ کریں';
+
+  @override
+  String get exportEmpty => 'اس مدت میں کچھ درج نہیں ہوا۔';
+
+  @override
+  String exportFileTitle(String what, String period) {
+    return '$what، $period';
+  }
+
+  @override
+  String inRupees(String label) {
+    return '$label (روپے)';
+  }
+
+  @override
+  String get csvMonth => 'مہینہ';
+
+  @override
+  String get csvDescription => 'نوٹ';
+
+  @override
+  String get csvWaived => 'معاف';
+
+  @override
+  String get csvOwed => 'واجب الادا';
+
+  @override
+  String get csvVoided => 'منسوخ';
+
+  @override
+  String get csvYes => 'ہاں';
+
+  @override
+  String get csvRepair => 'مرمت';
+
+  @override
+  String get searchTitle => 'تلاش';
+
+  @override
+  String get searchHint => 'نام، فون یا شناختی کارڈ';
+
+  @override
+  String get searchIntro =>
+      'نام، علاقے، فون یا شناختی کارڈ سے جائیداد، یونٹ یا کرایہ دار تلاش کریں۔';
+
+  @override
+  String get searchTooShort => 'کم از کم 2 حروف یا ہندسے لکھیں۔';
+
+  @override
+  String searchResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count نتائج',
+      one: '1 نتیجہ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String searchNoMatches(String query) {
+    return '$query سے کچھ نہیں ملا۔';
+  }
+
+  @override
+  String get searchNoMatchesBody =>
+      'ہجے دیکھ لیں، یا فون یا شناختی کارڈ سے تلاش کریں۔';
+
+  @override
+  String get searchFailedTitle => 'تلاش مکمل نہیں ہو سکی';
+
+  @override
+  String get searching => 'تلاش جاری ہے';
+
+  @override
+  String searchResultLine(String kind, String detail) {
+    return '$kind: $detail';
+  }
+
+  @override
+  String get daysOverdueLabel => 'تاخیر کے دن';
 }

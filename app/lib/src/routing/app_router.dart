@@ -12,9 +12,32 @@ import 'package:maalik_e_makaan/src/auth/presentation/sign_up_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/update_password_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/welcome_screen.dart';
 import 'package:maalik_e_makaan/src/features/account/presentation/delete_account_screen.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
+import 'package:maalik_e_makaan/src/features/documents/presentation/documents_section.dart';
+import 'package:maalik_e_makaan/src/features/handovers/presentation/cash_book_screen.dart';
+import 'package:maalik_e_makaan/src/features/insights/presentation/dashboard_screen.dart';
+import 'package:maalik_e_makaan/src/features/insights/presentation/payment_score_section.dart';
+import 'package:maalik_e_makaan/src/features/insights/presentation/reports_screen.dart';
+import 'package:maalik_e_makaan/src/features/insights/presentation/search_screen.dart';
+import 'package:maalik_e_makaan/src/features/insights/presentation/tax_year_screen.dart';
 import 'package:maalik_e_makaan/src/features/leases/presentation/lease_detail_screen.dart';
 import 'package:maalik_e_makaan/src/features/leases/presentation/lease_form_screen.dart';
 import 'package:maalik_e_makaan/src/features/leases/presentation/tenancy_list.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/lease_money_section.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/money_screen.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/receipt_screen.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/record_payment_screen.dart';
+import 'package:maalik_e_makaan/src/features/ledger/presentation/tenancy_ledger_screen.dart';
+import 'package:maalik_e_makaan/src/features/notifications/presentation/notifications_screen.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/bill_screens.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/expense_form_screen.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/expense_screens.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/maintenance_form_screen.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/maintenance_screens.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/reading_screens.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/utilities_screen.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/utility_account_screen.dart';
+import 'package:maalik_e_makaan/src/features/operations/presentation/utility_form_screen.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/presentation/create_portfolio_screen.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/presentation/portfolio_details_screen.dart';
@@ -34,7 +57,7 @@ import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:maalik_e_makaan/src/settings/presentation/settings_screen.dart';
 import 'package:maalik_e_makaan/src/shell/app_shell.dart';
 import 'package:maalik_e_makaan/src/shell/more_screen.dart';
-import 'package:maalik_e_makaan/src/shell/pending_screen.dart';
+import 'package:mm_ui/mm_ui.dart';
 
 /// The app's router: redirects follow the language choice, the session and
 /// whether the user has a portfolio (see [redirectFor]), and are evaluated
@@ -127,7 +150,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [
-          _branch(Routes.home, PendingScreen.dashboard),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.home,
+                builder: (context, state) => const DashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'search',
+                    builder: (context, state) => const SearchScreen(),
+                  ),
+                  GoRoute(
+                    path: 'reports',
+                    builder: (context, state) => const ReportsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: _child(Routes.taxYear, Routes.reports),
+                        builder: (context, state) => const TaxYearScreen(),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -142,6 +188,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: ':propertyId',
                     builder: (context, state) => PropertyDetailScreen(
                       propertyId: state.pathParameters['propertyId']!,
+                      extras: (property) => DocumentsSection(
+                        owner: (
+                          entity: DocumentEntity.property,
+                          id: property.id,
+                        ),
+                        canAdd: !property.archived,
+                      ),
                     ),
                     routes: [
                       GoRoute(
@@ -161,12 +214,21 @@ final routerProvider = Provider<GoRouter>((ref) {
                         builder: (context, state) => UnitDetailScreen(
                           propertyId: state.pathParameters['propertyId']!,
                           unitId: state.pathParameters['unitId']!,
-                          extras: (summary) => TenancyList(
-                            unitId: summary.unit.id,
-                            canStart:
-                                !summary.unit.archived &&
-                                summary.occupancy?.leaseId == null,
-                          ),
+                          extras: (summary) => _sections([
+                            TenancyList(
+                              unitId: summary.unit.id,
+                              canStart:
+                                  !summary.unit.archived &&
+                                  summary.occupancy?.leaseId == null,
+                            ),
+                            DocumentsSection(
+                              owner: (
+                                entity: DocumentEntity.unit,
+                                id: summary.unit.id,
+                              ),
+                              canAdd: !summary.unit.archived,
+                            ),
+                          ]),
                         ),
                         routes: [
                           GoRoute(
@@ -202,6 +264,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: ':leaseId',
                     builder: (context, state) => LeaseDetailScreen(
                       leaseId: state.pathParameters['leaseId']!,
+                      extras: (detail) => _sections([
+                        LeaseMoneySection(leaseId: detail.lease.id),
+                        DocumentsSection(
+                          owner: (
+                            entity: DocumentEntity.lease,
+                            id: detail.lease.id,
+                          ),
+                        ),
+                      ]),
                     ),
                     routes: [
                       GoRoute(
@@ -226,7 +297,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: ':tenantId',
                     builder: (context, state) => TenantDetailScreen(
                       tenantId: state.pathParameters['tenantId']!,
-                      extras: (tenant) => TenancyList(tenantId: tenant.id),
+                      extras: (tenant) => _sections([
+                        TenancyList(tenantId: tenant.id),
+                        PaymentScoreSection(tenantId: tenant.id),
+                        DocumentsSection(
+                          owner: (entity: DocumentEntity.tenant, id: tenant.id),
+                          canAdd: !tenant.archived,
+                        ),
+                      ]),
                     ),
                     routes: [
                       GoRoute(
@@ -241,7 +319,41 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          _branch(Routes.money, PendingScreen.money),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.money,
+                builder: (context, state) => const MoneyScreen(),
+                routes: [
+                  GoRoute(
+                    path: _child(Routes.cash, Routes.money),
+                    builder: (context, state) => const CashBookScreen(),
+                  ),
+                  GoRoute(
+                    path: 'leases/:leaseId',
+                    builder: (context, state) => TenancyLedgerScreen(
+                      leaseId: state.pathParameters['leaseId']!,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'pay',
+                        builder: (context, state) => RecordPaymentScreen(
+                          leaseId: state.pathParameters['leaseId']!,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'receipts/:paymentId',
+                        builder: (context, state) => ReceiptScreen(
+                          leaseId: state.pathParameters['leaseId']!,
+                          paymentId: state.pathParameters['paymentId']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -262,6 +374,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                       ),
                     ],
                   ),
+                  GoRoute(
+                    path: _child(Routes.notifications, Routes.more),
+                    builder: (context, state) => const NotificationsScreen(),
+                  ),
+                  ..._operations,
                   GoRoute(
                     path: _child(Routes.portfolioDetails, Routes.more),
                     builder: (context, state) => const PortfolioDetailsScreen(),
@@ -292,12 +409,117 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-StatefulShellBranch _branch(String path, WidgetBuilder builder) =>
-    StatefulShellBranch(
-      routes: [
-        GoRoute(path: path, builder: (context, state) => builder(context)),
-      ],
-    );
+/// Expenses, utilities and maintenance, under More.
+final List<RouteBase> _operations = [
+  GoRoute(
+    path: _child(Routes.expenses, Routes.more),
+    builder: (context, state) => const ExpensesScreen(),
+    routes: [
+      GoRoute(
+        path: 'new',
+        builder: (context, state) =>
+            ExpenseFormScreen(requestId: state.uri.queryParameters['request']),
+      ),
+      GoRoute(
+        path: ':expenseId',
+        builder: (context, state) => ExpenseDetailScreen(
+          expenseId: state.pathParameters['expenseId']!,
+          extras: (expense) => DocumentsSection(
+            owner: (entity: DocumentEntity.expense, id: expense.id),
+          ),
+        ),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) =>
+                ExpenseFormScreen(expenseId: state.pathParameters['expenseId']),
+          ),
+        ],
+      ),
+    ],
+  ),
+  GoRoute(
+    path: _child(Routes.utilities, Routes.more),
+    builder: (context, state) => const UtilitiesScreen(),
+    routes: [
+      GoRoute(
+        path: 'new',
+        builder: (context, state) => const UtilityFormScreen(),
+      ),
+      GoRoute(
+        path: 'bills/:billId',
+        builder: (context, state) => BillScreen(
+          billId: state.pathParameters['billId']!,
+          extras: (bill) => DocumentsSection(
+            owner: (entity: DocumentEntity.utilityBill, id: bill.id),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: 'readings/:readingId',
+        builder: (context, state) => ReadingScreen(
+          readingId: state.pathParameters['readingId']!,
+          extras: (detail) => DocumentsSection(
+            owner: (entity: DocumentEntity.meterReading, id: detail.reading.id),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: ':accountId',
+        builder: (context, state) =>
+            UtilityAccountScreen(accountId: state.pathParameters['accountId']!),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) =>
+                UtilityFormScreen(accountId: state.pathParameters['accountId']),
+          ),
+        ],
+      ),
+    ],
+  ),
+  GoRoute(
+    path: _child(Routes.maintenance, Routes.more),
+    builder: (context, state) => const MaintenanceScreen(),
+    routes: [
+      GoRoute(
+        path: 'new',
+        builder: (context, state) => MaintenanceFormScreen(
+          propertyId: state.uri.queryParameters['property'],
+          unitId: state.uri.queryParameters['unit'],
+        ),
+      ),
+      GoRoute(
+        path: ':requestId',
+        builder: (context, state) => MaintenanceDetailScreen(
+          requestId: state.pathParameters['requestId']!,
+          extras: (request) => DocumentsSection(
+            owner: (entity: DocumentEntity.maintenanceRequest, id: request.id),
+          ),
+        ),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) => MaintenanceFormScreen(
+              requestId: state.pathParameters['requestId'],
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+];
+
+/// Sections of a detail screen from later features, one under another.
+Widget _sections(List<Widget> sections) => Column(
+  crossAxisAlignment: CrossAxisAlignment.stretch,
+  children: [
+    for (final (index, section) in sections.indexed) ...[
+      if (index > 0) const SizedBox(height: MmSpace.s8),
+      section,
+    ],
+  ],
+);
 
 /// The segment of [path] below [parent], for a nested route.
 String _child(String path, String parent) => path.substring(parent.length + 1);

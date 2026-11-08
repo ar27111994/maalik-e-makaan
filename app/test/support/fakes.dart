@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:image/image.dart' as img;
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
@@ -7,6 +10,9 @@ import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
@@ -1292,5 +1298,276 @@ final class FakeLeaseRepository implements LeaseRepository {
     for (final list in occupantsOf.values) {
       list.removeWhere((o) => o.id == occupantId);
     }
+  }
+}
+
+/// The front and back of Ali Raza's CNIC, and the agreement of his
+/// tenancy.
+final cnicFrontScan = Document(
+  id: '0192d0c4-6666-7000-8000-000000000001',
+  owner: (entity: DocumentEntity.tenant, id: aliRaza.id),
+  kind: DocumentKind.cnicFront,
+  storagePath:
+      '${gulberg.id}/tenant/${aliRaza.id}/0192d0c4-6666-7000-8000-000000000001.jpg',
+  fileName: 'CNIC front',
+  fileType: DocumentFileType.jpeg,
+  sizeBytes: 245760,
+  createdAt: '2026-11-01T06:30:00+00:00',
+);
+final cnicBackScan = Document(
+  id: '0192d0c4-6666-7000-8000-000000000002',
+  owner: (entity: DocumentEntity.tenant, id: aliRaza.id),
+  kind: DocumentKind.cnicBack,
+  storagePath:
+      '${gulberg.id}/tenant/${aliRaza.id}/0192d0c4-6666-7000-8000-000000000002.jpg',
+  fileName: 'CNIC back',
+  fileType: DocumentFileType.jpeg,
+  sizeBytes: 231424,
+  createdAt: '2026-10-31T06:30:00+00:00',
+);
+final agreementScan = Document(
+  id: '0192d0c4-6666-7000-8000-000000000003',
+  owner: (entity: DocumentEntity.lease, id: aliLease.id),
+  kind: DocumentKind.tenancyAgreement,
+  storagePath:
+      '${gulberg.id}/lease/${aliLease.id}/0192d0c4-6666-7000-8000-000000000003.pdf',
+  fileName: 'Signed agreement, January 2026',
+  fileType: DocumentFileType.pdf,
+  sizeBytes: 1288490,
+  createdAt: '2026-01-12T09:00:00+00:00',
+);
+
+/// A [DocumentRepository] over in-memory documents and files.
+final class FakeDocumentRepository implements DocumentRepository {
+  new() {
+    for (final document in [cnicFrontScan, cnicBackScan, agreementScan]) {
+      documentsOf(document.owner).add(document);
+      stored.add(document.storagePath);
+    }
+  }
+
+  final Map<DocumentOwner, List<Document>> byOwner = {};
+  final calls = <Call>[];
+  final gate = Gate();
+  AppFailure? readFailure;
+  int pageLimit = pageSize;
+
+  /// Refusals the next uploads and inserts meet, in turn.
+  final uploadFailures = <AppFailure>[];
+  final recordFailures = <AppFailure>[];
+
+  /// Fails making links when set.
+  AppFailure? linkFailure;
+
+  /// The paths of the stored files.
+  final stored = <String>{};
+
+  List<Document> documentsOf(DocumentOwner owner) => byOwner[owner] ??= [];
+
+  Iterable<Document> get _all => byOwner.values.expand((list) => list);
+
+  Future<void> _call(
+    String name,
+    List<Object?> arguments, {
+    bool read = false,
+  }) async {
+    calls.add((name, arguments));
+    await gate.pass();
+    final failure = readFailure;
+    if (read && failure != null) throw failure;
+  }
+
+  @override
+  Future<Paged<Document>> documents(
+    String portfolioId,
+    DocumentOwner owner, {
+    PageCursor? after,
+  }) async {
+    await _call('documents', [portfolioId, owner, after], read: true);
+    final all = [...documentsOf(owner)]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    var start = 0;
+    if (after != null) start = all.indexWhere((d) => d.cursor == after) + 1;
+    final items = all.skip(start).take(pageLimit).toList();
+    return Paged(
+      items,
+      next: start + items.length < all.length ? items.last.cursor : null,
+    );
+  }
+
+  @override
+  Future<void> uploadFile(DocumentUpload upload) async {
+    await _call('uploadFile', [upload.storagePath]);
+    if (uploadFailures.isNotEmpty) throw uploadFailures.removeAt(0);
+    stored.add(upload.storagePath);
+  }
+
+  @override
+  Future<Document> recordDocument(
+    DocumentUpload upload, {
+    required String name,
+    required DocumentKind kind,
+  }) async {
+    await _call('recordDocument', [upload.storagePath, name, kind]);
+    if (recordFailures.isNotEmpty) throw recordFailures.removeAt(0);
+    if (!stored.contains(upload.storagePath)) {
+      throw const RejectedFailure('document_file_missing');
+    }
+    final document = Document(
+      id: upload.id,
+      owner: upload.owner,
+      kind: kind,
+      storagePath: upload.storagePath,
+      fileName: documentName(name),
+      fileType: upload.file.type,
+      sizeBytes: upload.file.size,
+      createdAt: '2026-11-07T10:00:00+00:00',
+    );
+    documentsOf(upload.owner).add(document);
+    return document;
+  }
+
+  @override
+  Future<void> discardFile(String storagePath) async {
+    await _call('discardFile', [storagePath]);
+    stored.remove(storagePath);
+  }
+
+  @override
+  Future<DocumentLinks> links(Document document) async {
+    await _call('links', [document.id]);
+    final failure = linkFailure;
+    if (failure != null) throw failure;
+    final open = Uri.parse(
+      'https://files.example/${document.storagePath}?token=t',
+    );
+    return (
+      open: open,
+      download: open.replace(
+        queryParameters: {'token': 't', 'download': document.fileName},
+      ),
+    );
+  }
+
+  @override
+  Future<Document> updateDocument(
+    Document document, {
+    required String name,
+    required DocumentKind kind,
+  }) async {
+    await _call('updateDocument', [document.id, name, kind]);
+    final saved = document.copyWith(fileName: documentName(name), kind: kind);
+    final list = documentsOf(document.owner);
+    list[list.indexWhere((d) => d.id == document.id)] = saved;
+    return saved;
+  }
+
+  @override
+  Future<void> deleteDocument(String documentId) async {
+    await _call('deleteDocument', [documentId]);
+    final document = _all.firstWhere((d) => d.id == documentId);
+    documentsOf(document.owner).remove(document);
+  }
+}
+
+/// A photo of a CNIC's front as the real preparation leaves a camera
+/// photo: a JPEG of 286 KB, made smaller from 2.4 MB. Its picture is a
+/// drawing of the card (a green card, its header, the holder's photo and
+/// lines of text), so a preview shows something; the bytes after the end
+/// of the image bring it to its size.
+final Uint8List preparedPhoto = () {
+  final card = img.Image(width: 480, height: 300)
+    ..clear(img.ColorRgb8(214, 232, 216));
+  img.fillRect(
+    card,
+    x1: 0,
+    y1: 0,
+    x2: 479,
+    y2: 54,
+    color: img.ColorRgb8(31, 110, 67),
+  );
+  img.fillRect(
+    card,
+    x1: 336,
+    y1: 84,
+    x2: 448,
+    y2: 228,
+    color: img.ColorRgb8(150, 160, 170),
+  );
+  for (var line = 0; line < 5; line++) {
+    img.fillRect(
+      card,
+      x1: 32,
+      y1: 90 + line * 32,
+      x2: line.isEven ? 296 : 220,
+      y2: 104 + line * 32,
+      color: img.ColorRgb8(70, 80, 90),
+    );
+  }
+  final jpeg = img.encodeJpg(card, quality: 90);
+  return Uint8List(preparedPhotoSize)..setAll(0, jpeg);
+}();
+
+/// The sizes of [preparedPhoto], and of the photo before it was prepared.
+const int preparedPhotoSize = 286 * 1024;
+const int takenPhotoSize = 2516582; // 2.4 MB
+
+/// A picker whose camera and file chooser answer what the test sets, and
+/// a preparation that only reads the file's type (the real one is tested
+/// on its own): a JPEG becomes [preparedPhoto], made smaller from
+/// [takenPhotoSize].
+final class FakeDocumentPicker implements DocumentPicker {
+  /// What the camera and the file chooser answer (null: cancelled).
+  ChosenFile? photo = ChosenFile(
+    name: 'image_picker_1234.jpg',
+    bytes: Uint8List.fromList([0xFF, 0xD8, 0xFF, ...List.filled(997, 0)]),
+  );
+  ChosenFile? file = ChosenFile(
+    name: 'Agreement scan.pdf',
+    bytes: Uint8List.fromList([
+      ...latin1.encode('%PDF-1.7'),
+      ...List.filled(2040, 0),
+    ]),
+  );
+
+  /// What a picked JPEG is prepared into.
+  Uint8List preparedJpeg = preparedPhoto;
+
+  /// Thrown by the next pick when set.
+  AppFailure? failure;
+  final calls = <String>[];
+  final gate = Gate();
+
+  Future<ChosenFile?> _pick(String name, ChosenFile? answer) async {
+    calls.add(name);
+    await gate.pass();
+    final failure = this.failure;
+    if (failure != null) throw failure;
+    return answer;
+  }
+
+  @override
+  Future<ChosenFile?> takePhoto() => _pick('takePhoto', photo);
+
+  @override
+  Future<ChosenFile?> chooseFile() => _pick('chooseFile', file);
+
+  Future<PreparedFile> prepare(ChosenFile file) async {
+    final type = DocumentFileType.sniff(file.bytes);
+    if (type == null) throw const RejectedFailure('file_type_not_allowed');
+    final name = file.name.substring(0, file.name.lastIndexOf('.'));
+    return type == DocumentFileType.jpeg
+        ? PreparedFile(
+            name: name,
+            bytes: preparedJpeg,
+            type: type,
+            originalSize: takenPhotoSize,
+          )
+        : PreparedFile(
+            name: name,
+            bytes: file.bytes,
+            type: type,
+            originalSize: file.bytes.length,
+          );
   }
 }

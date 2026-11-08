@@ -77,7 +77,8 @@ final class Paged<T> {
   int get hashCode => Object.hash(Object.hashAll(items), next);
 }
 
-/// Keyset paging over `created_at, id`.
+/// Keyset paging over `created_at, id`, oldest first ([after]) or newest
+/// first ([before]).
 extension KeysetPaging<T> on PostgrestFilterBuilder<T> {
   /// Only the rows after [cursor] (all rows when it is null).
   PostgrestFilterBuilder<T> after(PageCursor? cursor) {
@@ -87,5 +88,14 @@ extension KeysetPaging<T> on PostgrestFilterBuilder<T> {
     final at = '"${cursor.createdAt}"';
     final id = '"${cursor.id}"';
     return or('created_at.gt.$at,and(created_at.eq.$at,id.gt.$id)');
+  }
+
+  /// Only the rows before [cursor], for a list read newest first (all rows
+  /// when it is null).
+  PostgrestFilterBuilder<T> before(PageCursor? cursor) {
+    if (cursor == null) return this;
+    final at = '"${cursor.createdAt}"';
+    final id = '"${cursor.id}"';
+    return or('created_at.lt.$at,and(created_at.eq.$at,id.lt.$id)');
   }
 }

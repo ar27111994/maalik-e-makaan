@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
+import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
 
@@ -86,7 +88,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'Secret1234');
     await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
     // The device's language is saved to the profile.
     expect(
       app.profiles.calls,
@@ -117,13 +119,83 @@ void main() {
     },
   );
 
+  testWidgets('expenses, utilities and maintenance open under More, with '
+      'their documents', (tester) async {
+    for (final (location, title) in [
+      (Routes.expenses, 'Expenses'),
+      (Routes.newExpense(requestId: seepageJob.id), 'New expense'),
+      (Routes.expense(taxExpense.id), 'Excise and Taxation, Lahore'),
+      (Routes.editExpense(taxExpense.id), 'Edit expense'),
+      (Routes.utilities, 'Bills to pay'),
+      (Routes.newUtility, 'New connection'),
+      (
+        Routes.utilityBill(novemberBill.id),
+        'Electricity, LESCO (Lahore): November 2026',
+      ),
+      (Routes.meterReading(novemberReading.id), 'Meter reading'),
+      (Routes.utility(lescoMeter.id), 'Electricity, LESCO (Lahore)'),
+      (Routes.editUtility(lescoMeter.id), 'Edit connection'),
+      (Routes.maintenance, 'Maintenance'),
+      (
+        Routes.newMaintenance(
+          propertyId: gulbergHouse.id,
+          unitId: groundFloor.id,
+        ),
+        'New repair',
+      ),
+      (Routes.maintenanceRequest(seepageJob.id), 'Seepage in the bedroom wall'),
+      (Routes.editMaintenance(seepageJob.id), 'Edit repair'),
+    ]) {
+      // A new app for each address: the router reads it when it starts.
+      await tester.pumpWidget(const SizedBox.shrink());
+      final app = await _pumpApp(
+        tester,
+        location: location,
+        size: const Size(390, 4000),
+      );
+      expect(find.text(title), findsWidgets, reason: location);
+      final documents = [
+        for (final call in app.documents.calls)
+          if (call.$1 == 'documents') call,
+      ];
+      final hasDocuments =
+          location.contains('/expenses/0') ||
+          location.contains('/bills/') ||
+          location.contains('/readings/') ||
+          location.contains('/maintenance/0');
+      expect(
+        documents.isNotEmpty,
+        hasDocuments && !location.endsWith('/edit'),
+        reason: location,
+      );
+    }
+  });
+
+  testWidgets('search, the reports, the tax year and a payment score open '
+      'from the dashboard', (tester) async {
+    for (final (location, title) in [
+      (
+        Routes.search,
+        'Find a property, unit or tenant by name, locality, '
+            'phone or CNIC.',
+      ),
+      (Routes.reports, 'Payment scores'),
+      (Routes.taxYear, 'Not tax advice'),
+      (Routes.tenant(aliRaza.id), 'Payment score'),
+    ]) {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await _pumpApp(tester, location: location, size: const Size(390, 4000));
+      expect(find.text(title), findsWidgets, reason: location);
+    }
+  });
+
   testWidgets('sections switch from the navigation bar', (tester) async {
     await _pumpApp(tester);
     for (final (label, title) in [
       ('Properties', 'Gulberg House'),
       ('Tenants', 'Ali Raza'),
-      ('Money', 'Money is being built'),
-      ('Dashboard', 'Dashboard is being built'),
+      ('Money', 'Who owes what'),
+      ('Dashboard', 'What needs attention'),
     ]) {
       await tester.tap(_inNavigation(label));
       await tester.pumpAndSettle();
@@ -132,12 +204,59 @@ void main() {
     // Tapping the open section again returns to its first screen.
     await tester.tap(_inNavigation('More'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Settings'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('Your details'), findsOneWidget);
     await tester.tap(_inNavigation('More'));
     await tester.pumpAndSettle();
     expect(find.text('Switch portfolio'), findsOneWidget);
+  });
+
+  testWidgets('the unread badge on More keeps up with the inbox', (
+    tester,
+  ) async {
+    final app = await _pumpApp(tester);
+    int reads() =>
+        app.notifications.calls.where((c) => c.$1 == 'unreadCount').length;
+    final first = reads();
+    expect(first, greaterThan(0));
+    // While it shows, it is read again from time to time.
+    await tester.pump(unreadRefreshInterval);
+    await tester.pumpAndSettle();
+    expect(reads(), first + 1);
+    // A failed read is tried again soon, not kept as unknown.
+    app.notifications.readFailure = const NetworkFailure();
+    await tester.pump(unreadRefreshInterval);
+    await tester.pumpAndSettle();
+    app.notifications.readFailure = null;
+    final failed = reads();
+    await tester.pump(unreadRetryDelay);
+    await tester.pumpAndSettle();
+    expect(reads(), failed + 1);
+    // Coming back to the app reads it again.
+    tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    final away = reads();
+    tester.binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(reads(), away + 1);
+    // The inbox read from the server brings the badge along.
+    await tester.tap(_inNavigation('More'));
+    await tester.pumpAndSettle();
+    final before = reads();
+    await tester.ensureVisible(find.text('Notifications').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Notifications').last);
+    await tester.pumpAndSettle();
+    expect(reads(), greaterThan(before));
   });
 
   testWidgets('wide windows use an extended navigation rail', (tester) async {
@@ -166,7 +285,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Create portfolio'));
     await tester.pumpAndSettle();
     expect(app.portfolios.memberships.single.name, 'Khan family');
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
     expect(find.text('Khan family is ready.'), findsOneWidget);
   });
 
@@ -180,7 +299,7 @@ void main() {
     app.portfolios.listFailure = null;
     await tester.tap(find.text('Try again'));
     await tester.pumpAndSettle();
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
   });
 
   testWidgets('the shell shows progress while portfolios load', (tester) async {
@@ -204,7 +323,7 @@ void main() {
     expect(find.bySemanticsLabel('Loading your portfolios'), findsOneWidget);
     app.portfolios.gate.open();
     await tester.pumpAndSettle();
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
   });
 
   testWidgets('a session that ends elsewhere returns to sign-in, then back', (
@@ -220,7 +339,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'Secret1234');
     await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
-    expect(find.text('Money is being built'), findsOneWidget);
+    expect(find.text('Who owes what'), findsOneWidget);
   });
 
   testWidgets('signing out from Settings forgets where the user was', (
@@ -237,7 +356,7 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'Secret1234');
     await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
   });
 
   testWidgets('an e-mail link signs in and opens the app', (tester) async {
@@ -251,7 +370,7 @@ void main() {
       (app.auth.calls.first.$2.single! as Uri).queryParameters['code'],
       'abc123',
     );
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
   });
 
   testWidgets('a reset link leads only to choosing a new password', (
@@ -268,7 +387,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(app.auth.calls.last.$1, 'updatePassword');
     expect(app.auth.calls.last.$2, ['NewSecret12']);
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
     expect(find.text('Your new password is saved.'), findsOneWidget);
   });
 
@@ -328,7 +447,7 @@ void main() {
     );
     await tester.tap(find.text('Open the portfolio'));
     await tester.pumpAndSettle();
-    expect(find.text('Dashboard is being built'), findsOneWidget);
+    expect(find.text('What needs attention'), findsOneWidget);
   });
 
   testWidgets('a signed-in user opening an invitation answers it', (
@@ -343,6 +462,8 @@ void main() {
     tester,
   ) async {
     await _pumpApp(tester, location: '/more');
+    await tester.ensureVisible(find.text('Team'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Team'));
     await tester.pumpAndSettle();
     expect(find.text('Ayesha Khan (you)'), findsOneWidget);
@@ -383,6 +504,26 @@ void main() {
     expect(find.text('Police registration'), findsOneWidget);
   });
 
+  for (final (location, document) in [
+    ('/tenants/${aliRaza.id}', 'CNIC front'),
+    ('/leases/${aliLease.id}', 'Signed agreement, January 2026'),
+    (
+      '/properties/${gulbergHouse.id}',
+      'No documents yet. Add the property papers and photos.',
+    ),
+    (
+      '/properties/${gulbergHouse.id}/units/${groundFloor.id}',
+      'No documents yet. Add photos of the unit and its meters.',
+    ),
+  ]) {
+    testWidgets('$location shows its documents', (tester) async {
+      await _pumpApp(tester, location: location);
+      await tester.scrollUntilVisible(find.text(document), 300);
+      expect(find.text('Documents'), findsOneWidget);
+      expect(find.text('Add document'), findsOneWidget);
+    });
+  }
+
   testWidgets('/leases on its own shows the tenants', (tester) async {
     await _pumpApp(tester, location: '/leases');
     expect(find.text('Add tenant'), findsOneWidget);
@@ -401,6 +542,12 @@ void main() {
     ('/leases/new?unit=${annexe.id}', 'New tenancy'),
     ('/leases/${aliLease.id}/edit', 'Edit tenancy terms'),
     ('/more/team/invite', 'Invite someone'),
+    ('/money/cash', 'Cash in hand'),
+    ('/money/leases/${aliLease.id}', 'Ali Raza'),
+    ('/money/leases/${aliLease.id}/pay', 'Record payment'),
+    ('/money/leases/${aliLease.id}/receipts/pay-oct', 'Receipt'),
+    ('/more/notifications', 'Notifications'),
+    ('/leases/${aliLease.id}', 'Open the ledger'),
   ]) {
     testWidgets('$location opens', (tester) async {
       await _pumpApp(tester, location: location);

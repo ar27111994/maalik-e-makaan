@@ -6,6 +6,11 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ur</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Maalik E Makaan</string>
 	<key>CFBundleExecutable</key>
@@ -24,6 +29,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take photos of CNICs, agreements and receipts to keep with your tenants and properties.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos of CNICs, agreements and receipts to keep with your tenants and properties.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

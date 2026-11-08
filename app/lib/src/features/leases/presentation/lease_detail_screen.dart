@@ -25,12 +25,16 @@ import 'package:mm_ui/mm_ui.dart';
 
 /// One tenancy: who rents what, its terms and agreement, its police
 /// registration and deadline (the law's, or the app's reminder where no
-/// law sets one), the people living there, the rent history, and for the
+/// law sets one), the people living there, the rent history, content from
+/// later features ([LeaseDetailScreen.extras]: its documents), and for the
 /// roles that may, changing the rent, ending the tenancy and deleting it.
 class LeaseDetailScreen extends ConsumerWidget {
-  const new({required this.leaseId, super.key});
+  const new({required this.leaseId, this.extras, super.key});
 
   final String leaseId;
+
+  /// Content from later features (the tenancy's documents).
+  final Widget Function(LeaseDetail detail)? extras;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,6 +44,7 @@ class LeaseDetailScreen extends ConsumerWidget {
     final role = ref.watch(currentPortfolioProvider).value?.role;
     final runs = role?.runsProperties ?? false;
     final active = detail?.lease.active ?? false;
+    final extras = this.extras;
     return MmPage(
       title: detail?.lease.tenantName ?? l10n.tenancyTitle,
       actions: [
@@ -68,6 +73,10 @@ class LeaseDetailScreen extends ConsumerWidget {
             _RentHistory(detail: detail, editable: runs && active),
             const SizedBox(height: MmSpace.s6),
             _Occupants(detail: detail, editable: runs && active),
+            if (extras != null) ...[
+              const SizedBox(height: MmSpace.s8),
+              extras(detail),
+            ],
             if (role != null && runs) ...[
               const SizedBox(height: MmSpace.s8),
               _LeaseActions(lease: detail.lease, role: role),
