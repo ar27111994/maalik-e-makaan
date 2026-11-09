@@ -1,0 +1,286 @@
+# Encrypted backup of the hosted database, weekly and by hand, and on request
+# a rehearsal of restoring it (docs/operations.md, Backups and Restoring).
+#
+# The free plan keeps no backups the owner can download, so this is the
+# project's only copy. The job dumps the data (the schema comes back from the
+# migration chain), downloads the files in the documents bucket, encrypts the
+# lot with age to the repository owner's SSH keys on GitHub (and to any age
+# recipients in the BACKUP_AGE_RECIPIENTS variable), and keeps the ciphertext
+# as a workflow artefact for 90 days. Nothing leaves the runner unencrypted,
+# and the logs name tables and count rows but never print a row.
+#
+# With "rehearse", before encrypting, it creates a temporary project in the
+# same organisation and region, applies the chain, loads the dump, proves the
+# schema and every table's rows equal the original, and deletes the project.
+name: Backup
+
+on:
+  schedule:
+    # Mondays 02:41 Pakistan time.
+    - cron: "41 21 * * 0"
+  workflow_dispatch:
+    inputs:
+      rehearse:
+        description: Also restore it into a temporary project, check it, then delete that project
+        type: boolean
+        default: false
+  # Temporary: the first backup and rehearsal, before this file reaches main
+  # (a manual run needs the workflow on the default branch). Removed next.
+  push:
+    branches: [claude/exciting-cray-2wue0f]
+    paths: [.github/workflows/backup.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+  OWNER: ${{ github.repository_owner }}
+  AGE_RECIPIENTS: ${{ vars.BACKUP_AGE_RECIPIENTS }}
+  REHEARSE: ${{ inputs.rehearse == true || github.event_name == 'push' }}
+  # Kept equal to deploy.yml.
+  SUPABASE_CLI_VERSION: 2.122.1
+
+jobs:
+  backup:
+    name: Back up the hosted database
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Backups are configured
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD PROJECT_REF; do
+            [[ -n "${!name}" ]] || { echo "::error::$name is not set (docs/operations.md, Backups)"; exit 1; }
+          done
+          umask 077
+          mkdir -p "$RUNNER_TEMP/backup/data" "$RUNNER_TEMP/out"
+          echo "WORK=$RUNNER_TEMP/backup" >> "$GITHUB_ENV"
+          echo "STAMP=$(date -u +%Y%m%dT%H%M%SZ)" >> "$GITHUB_ENV"
+
+      - name: Recipients (the owner's SSH keys on GitHub, and BACKUP_AGE_RECIPIENTS)
+        # Public keys only. age accepts ssh-ed25519 and ssh-rsa keys; other key
+        # types on the account are left out.
+        run: |
+          recipients="$RUNNER_TEMP/recipients.txt"
+          : > "$recipients"
+          printf '%s\n' "$AGE_RECIPIENTS" | tr -d '\r' | grep -E '^age1[0-9a-z]{58}$' >> "$recipients" || true
+          curl -fsS --retry 3 "https://github.com/$OWNER.keys" \
+            | grep -E '^(ssh-ed25519|ssh-rsa) ' >> "$recipients" || true
+          count="$(grep -c . "$recipients" || true)"
+          if [[ "$count" -eq 0 ]]; then
+            echo "::error::No recipient: add an SSH key (ed25519 or RSA) to the GitHub account $OWNER, or an age public key to the BACKUP_AGE_RECIPIENTS variable (docs/operations.md, Backups)"
+            exit 1
+          fi
+          {
+            echo "### Encrypted to $count key(s)"
+            while read -r key; do
+              case "$key" in
+                age1*) echo "- age ${key:0:16}…" ;;
+                *) echo "- $(ssh-keygen -l -f <(printf '%s\n' "$key"))" ;;
+              esac
+            done < "$recipients"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "RECIPIENT_COUNT=$count" >> "$GITHUB_ENV"
+
+      - name: Install age
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+          age --version
+
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Link the hosted project
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "$PROJECT_REF"
+          [[ -s supabase/.temp/pooler-url ]] || { echo "::error::supabase link saved no pooler URL"; exit 1; }
+          cp supabase/.temp/pooler-url "$RUNNER_TEMP/source-url"
+
+      - name: Dump the data
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase db dump --linked -f "$WORK/data/data.sql" --use-copy --data-only \
+            -x storage.buckets -x storage.buckets_vectors -x storage.vector_indexes
+          python3 tool/db/dump_digest.py summary "$WORK/data/data.sql" > "$WORK/data/tables.tsv"
+          {
+            echo "### Dump"
+            echo "$(wc -l < "$WORK/data/tables.tsv") tables, $(awk -F'\t' '{s += $2} END {print s + 0}' "$WORK/data/tables.tsv") rows, $(du -h "$WORK/data/data.sql" | cut -f1)"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Schema fingerprint and migration history
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          psql -X -At -v ON_ERROR_STOP=1 -d "$(cat "$RUNNER_TEMP/source-url")" \
+            -f tool/db/schema_fingerprint.sql > "$WORK/data/schema_fingerprint.json"
+          psql -X -At -v ON_ERROR_STOP=1 -d "$(cat "$RUNNER_TEMP/source-url")" \
+            -c 'select version from supabase_migrations.schema_migrations order by version' \
+            > "$WORK/data/migrations.txt"
+          {
+            echo "commit $GITHUB_SHA"
+            echo "project $PROJECT_REF"
+            echo "taken $STAMP"
+            echo "supabase CLI $SUPABASE_CLI_VERSION"
+          } > "$WORK/data/README.txt"
+          # The chain in this checkout must be the one the project has applied, or a
+          # restore from it would not rebuild the same schema.
+          find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' \
+            | sed -n 's/^\([0-9]\{14\}\)_.*\.sql$/\1/p' | sort > "$RUNNER_TEMP/chain.txt"
+          if ! diff -u "$RUNNER_TEMP/chain.txt" "$WORK/data/migrations.txt"; then
+            echo "::warning::The hosted migration history differs from this commit's chain; restore from the commit that matches it (docs/operations.md, Restoring)"
+            echo "CHAIN_MATCHES=false" >> "$GITHUB_ENV"
+          else
+            echo "CHAIN_MATCHES=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Download the files in the documents bucket
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          expected="$(psql -X -At -v ON_ERROR_STOP=1 -d "$(cat "$RUNNER_TEMP/source-url")" \
+            -c "select count(*) from storage.objects where bucket_id = 'documents'")"
+          mkdir -p "$WORK/documents"
+          if [[ "$expected" -gt 0 ]]; then
+            supabase storage cp -r ss:///documents "$WORK/documents" --linked --experimental --jobs 4
+          fi
+          got="$(find "$WORK/documents" -type f | wc -l)"
+          echo "Files: $got of $expected" | tee -a "$GITHUB_STEP_SUMMARY"
+          [[ "$got" -eq "$expected" ]] || { echo "::error::downloaded $got files, the bucket lists $expected"; exit 1; }
+
+      - name: Create a temporary project
+        if: env.REHEARSE == 'true'
+        run: |
+          projects="$(supabase projects list -o json)"
+          org="$(jq -r --arg ref "$PROJECT_REF" '.[] | select((.ref // .id) == $ref) | .organization_id' <<<"$projects")"
+          region="$(jq -r --arg ref "$PROJECT_REF" '.[] | select((.ref // .id) == $ref) | .region' <<<"$projects")"
+          [[ -n "$org" && -n "$region" ]] || { echo "::error::could not find $PROJECT_REF's organisation"; exit 1; }
+          name="mm-restore-rehearsal-$GITHUB_RUN_ID"
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          printf '%s' "$password" > "$RUNNER_TEMP/scratch-password"
+          supabase projects create "$name" --org-id "$org" --db-password "$password" --region "$region"
+          ref="$(supabase projects list -o json \
+            | jq -r --arg name "$name" '[.[] | select(.name == $name)] | if length == 1 then .[0] | (.ref // .id) else empty end')"
+          [[ "$ref" =~ ^[a-z]{20}$ && "$ref" != "$PROJECT_REF" ]] || { echo "::error::cannot identify the project $name"; exit 1; }
+          echo "SCRATCH_REF=$ref" >> "$GITHUB_ENV"
+          echo "SCRATCH_NAME=$name" >> "$GITHUB_ENV"
+          echo "Created $name ($ref) in $region"
+          for _ in $(seq 1 90); do
+            status="$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              "https://api.supabase.com/v1/projects/$ref" | jq -r .status)" || status=unknown
+            [[ "$status" == ACTIVE_HEALTHY ]] && break
+            sleep 10
+          done
+          [[ "$status" == ACTIVE_HEALTHY ]] || { echo "::error::$ref is $status after 15 minutes"; exit 1; }
+
+      - name: Rebuild the schema from the chain
+        if: env.REHEARSE == 'true'
+        run: |
+          export SUPABASE_DB_PASSWORD; SUPABASE_DB_PASSWORD="$(cat "$RUNNER_TEMP/scratch-password")"
+          for attempt in 1 2 3 4 5 6; do
+            supabase link --project-ref "$SCRATCH_REF" && break
+            [[ "$attempt" -lt 6 ]] || exit 1
+            sleep 30
+          done
+          [[ "$(cat supabase/.temp/project-ref)" == "$SCRATCH_REF" ]] || { echo "::error::not linked to the temporary project"; exit 1; }
+          cp supabase/.temp/pooler-url "$RUNNER_TEMP/scratch-url"
+          supabase db push --linked
+          # Stop the chain's pg_cron jobs, so nothing writes to the tables while
+          # the data is loaded and compared.
+          PGPASSWORD="$SUPABASE_DB_PASSWORD" psql -X -At -v ON_ERROR_STOP=1 -d "$(cat "$RUNNER_TEMP/scratch-url")" \
+            -c 'select count(cron.unschedule(jobid)) from cron.job'
+
+      - name: Load the data, triggers off, in one transaction
+        if: env.REHEARSE == 'true'
+        run: |
+          PGPASSWORD="$(cat "$RUNNER_TEMP/scratch-password")" psql -X --single-transaction \
+            --variable ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' \
+            --file "$WORK/data/data.sql" --dbname "$(cat "$RUNNER_TEMP/scratch-url")" > /dev/null
+
+      - name: Check the restore
+        if: env.REHEARSE == 'true'
+        run: |
+          export SUPABASE_DB_PASSWORD; SUPABASE_DB_PASSWORD="$(cat "$RUNNER_TEMP/scratch-password")"
+          PGPASSWORD="$SUPABASE_DB_PASSWORD" psql -X -At -v ON_ERROR_STOP=1 -d "$(cat "$RUNNER_TEMP/scratch-url")" \
+            -f tool/db/schema_fingerprint.sql > "$RUNNER_TEMP/scratch-fingerprint.json"
+          supabase db dump --linked -f "$RUNNER_TEMP/scratch-data.sql" --use-copy --data-only \
+            -x storage.buckets -x storage.buckets_vectors -x storage.vector_indexes
+          status=0
+          if [[ "$CHAIN_MATCHES" == true ]]; then
+            python3 tool/db/fingerprint_diff.py "$WORK/data/schema_fingerprint.json" \
+              "$RUNNER_TEMP/scratch-fingerprint.json" | tee "$RUNNER_TEMP/schema-check.txt" || status=1
+          else
+            echo "schema not compared: the hosted history differs from this commit's chain" \
+              | tee "$RUNNER_TEMP/schema-check.txt"
+            status=1
+          fi
+          python3 tool/db/dump_digest.py compare "$WORK/data/data.sql" "$RUNNER_TEMP/scratch-data.sql" \
+            | tee "$RUNNER_TEMP/data-check.txt" || status=1
+          {
+            echo "### Restore rehearsal into $SCRATCH_NAME"
+            echo '```'
+            cat "$RUNNER_TEMP/schema-check.txt" "$RUNNER_TEMP/data-check.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Delete the temporary project
+        if: always() && env.SCRATCH_REF != ''
+        run: |
+          # Only ever the project this run created: same name, never the live one.
+          [[ "$SCRATCH_REF" != "$PROJECT_REF" ]] || { echo "::error::refusing to delete $PROJECT_REF"; exit 1; }
+          name="$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SCRATCH_REF" | jq -r .name)"
+          [[ "$name" == "$SCRATCH_NAME" ]] || { echo "::error::$SCRATCH_REF is named '$name', not $SCRATCH_NAME; delete it by hand"; exit 1; }
+          supabase projects delete "$SCRATCH_REF" --yes
+          left="$(supabase projects list -o json | jq -r --arg ref "$SCRATCH_REF" \
+            '[.[] | select((.ref // .id) == $ref and .status != "REMOVED" and .status != "GOING_DOWN")] | length')"
+          [[ "$left" -eq 0 ]] || { echo "::error::$SCRATCH_NAME ($SCRATCH_REF) is still listed; delete it in the dashboard"; exit 1; }
+          echo "Deleted $SCRATCH_NAME ($SCRATCH_REF)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Encrypt
+        run: |
+          out="$RUNNER_TEMP/out/maalik-e-makaan-$STAMP.tar.age"
+          tar -C "$WORK" -cf - . | age -R "$RUNNER_TEMP/recipients.txt" -o "$out"
+          # The header holds one stanza per recipient; check none was dropped.
+          stanzas="$(head -c 65536 "$out" | sed -n '1,/^---/p' | grep -c '^-> ' || true)"
+          [[ "$stanzas" -eq "$RECIPIENT_COUNT" ]] || { echo "::error::$stanzas recipient stanzas, expected $RECIPIENT_COUNT"; exit 1; }
+          {
+            echo "### Artefact"
+            echo "$(basename "$out"), $(du -h "$out" | cut -f1), sha256 $(sha256sum "$out" | cut -d' ' -f1)"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the plaintext
+        if: always()
+        run: |
+          find "$RUNNER_TEMP/backup" "$RUNNER_TEMP"/scratch-* -type f -exec shred -u {} + 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/backup" supabase/.temp
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: database-backup-${{ env.STAMP }}
+          path: ${{ runner.temp }}/out/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
