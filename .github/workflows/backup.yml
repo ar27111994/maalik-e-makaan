@@ -1,17 +1,17 @@
-# Encrypted backup of the hosted database, weekly and by hand, and on request
-# a rehearsal of restoring it (docs/operations.md, Backups and Restoring).
+# Encrypted backup of the hosted database, weekly and by hand, each one
+# restored and checked before it is kept (docs/operations.md, Backups).
 #
 # The free plan keeps no backups the owner can download, so this is the
 # project's only copy. The job dumps the data (the schema comes back from the
-# migration chain), downloads the files in the documents bucket, encrypts the
-# lot with age to the repository owner's SSH keys on GitHub (and to any age
-# recipients in the BACKUP_AGE_RECIPIENTS variable), and keeps the ciphertext
-# as a workflow artefact for 90 days. Nothing leaves the runner unencrypted,
-# and the logs name tables and count rows but never print a row.
-#
-# With "rehearse", before encrypting, it creates a temporary project in the
-# same organisation and region, applies the chain, loads the dump, proves the
-# schema and every table's rows equal the original, and deletes the project.
+# migration chain), downloads the files in the documents bucket, and proves
+# the dump restores: it starts a local Supabase stack from this commit's chain,
+# loads the dump with triggers off in one transaction (the runbook's step),
+# and checks that the schema fingerprint equals the hosted one and that a fresh
+# dump of the stack holds exactly the same rows, table by table. Only then does
+# it encrypt the lot with age to the repository owner's SSH keys on GitHub and
+# to the age recipients in the BACKUP_AGE_RECIPIENTS variable, and keep the
+# ciphertext as a workflow artefact for 90 days. Nothing leaves the runner
+# unencrypted, and the logs name tables and count rows but never print a row.
 name: Backup
 
 on:
@@ -19,11 +19,6 @@ on:
     # Mondays 02:41 Pakistan time.
     - cron: "41 21 * * 0"
   workflow_dispatch:
-    inputs:
-      rehearse:
-        description: Also restore it into a temporary project, check it, then delete that project
-        type: boolean
-        default: false
   # Temporary: the first backup and rehearsal, before this file reaches main
   # (a manual run needs the workflow on the default branch). Removed next.
   push:
@@ -45,7 +40,6 @@ env:
   PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
   OWNER: ${{ github.repository_owner }}
   AGE_RECIPIENTS: ${{ vars.BACKUP_AGE_RECIPIENTS }}
-  REHEARSE: ${{ inputs.rehearse == true || github.event_name == 'push' }}
   # Temporary, with the push trigger: a throwaway key for the first rehearsal.
   REHEARSAL_RECIPIENT: ${{ github.event_name == 'push' && 'age1u6k7xwfyxd4904cv74h47xx5mpnxnyugrrmfduhj7a6gzxgqtegqpk4j75' || '' }}
   # Kept equal to deploy.yml.
@@ -58,6 +52,8 @@ jobs:
     timeout-minutes: 60
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      # The local stack's database (supabase/config.toml, [db] port).
+      LOCAL_DB: postgresql://postgres:postgres@127.0.0.1:54322/postgres
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -171,96 +167,50 @@ jobs:
           echo "Files: $got of $expected" | tee -a "$GITHUB_STEP_SUMMARY"
           [[ "$got" -eq "$expected" ]] || { echo "::error::downloaded $got files, the bucket lists $expected"; exit 1; }
 
-      - name: Create a temporary project
-        if: env.REHEARSE == 'true'
+      - name: Start a local stack from this commit's chain
         run: |
-          projects="$(supabase projects list -o json)"
-          org="$(jq -r --arg ref "$PROJECT_REF" '.[] | select((.ref // .id) == $ref) | .organization_id' <<<"$projects")"
-          region="$(jq -r --arg ref "$PROJECT_REF" '.[] | select((.ref // .id) == $ref) | .region' <<<"$projects")"
-          [[ -n "$org" && -n "$region" ]] || { echo "::error::could not find $PROJECT_REF's organisation"; exit 1; }
-          name="mm-restore-rehearsal-$GITHUB_RUN_ID"
-          password="$(openssl rand -hex 24)"
-          echo "::add-mask::$password"
-          printf '%s' "$password" > "$RUNNER_TEMP/scratch-password"
-          supabase projects create "$name" --org-id "$org" --db-password "$password" --region "$region"
-          ref="$(supabase projects list -o json \
-            | jq -r --arg name "$name" '[.[] | select(.name == $name)] | if length == 1 then .[0] | (.ref // .id) else empty end')"
-          [[ "$ref" =~ ^[a-z]{20}$ && "$ref" != "$PROJECT_REF" ]] || { echo "::error::cannot identify the project $name"; exit 1; }
-          echo "SCRATCH_REF=$ref" >> "$GITHUB_ENV"
-          echo "SCRATCH_NAME=$name" >> "$GITHUB_ENV"
-          echo "Created $name ($ref) in $region"
-          for _ in $(seq 1 90); do
-            status="$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-              "https://api.supabase.com/v1/projects/$ref" | jq -r .status)" || status=unknown
-            [[ "$status" == ACTIVE_HEALTHY ]] && break
-            sleep 10
-          done
-          [[ "$status" == ACTIVE_HEALTHY ]] || { echo "::error::$ref is $status after 15 minutes"; exit 1; }
+          supabase start -x studio,imgproxy,logflare,vector,supavisor,postgres-meta,edge-runtime,mailpit
+          # start applies the chain and the demo seed; rebuild it without the seed.
+          supabase db reset --local --no-seed
+          # Stop the chain's pg_cron jobs, so nothing writes while the data is
+          # loaded and compared.
+          psql -X -At -v ON_ERROR_STOP=1 -d "$LOCAL_DB" -c 'select count(cron.unschedule(jobid)) from cron.job'
 
-      - name: Rebuild the schema from the chain
-        if: env.REHEARSE == 'true'
+      - name: Restore the dump into it, triggers off, in one transaction
         run: |
-          export SUPABASE_DB_PASSWORD; SUPABASE_DB_PASSWORD="$(cat "$RUNNER_TEMP/scratch-password")"
-          for attempt in 1 2 3 4 5 6; do
-            supabase link --project-ref "$SCRATCH_REF" && break
-            [[ "$attempt" -lt 6 ]] || exit 1
-            sleep 30
-          done
-          [[ "$(cat supabase/.temp/project-ref)" == "$SCRATCH_REF" ]] || { echo "::error::not linked to the temporary project"; exit 1; }
-          cp supabase/.temp/pooler-url "$RUNNER_TEMP/scratch-url"
-          supabase db push --linked
-          # Stop the chain's pg_cron jobs, so nothing writes to the tables while
-          # the data is loaded and compared.
-          PGPASSWORD="$SUPABASE_DB_PASSWORD" psql -X -At -v ON_ERROR_STOP=1 -d "$(cat "$RUNNER_TEMP/scratch-url")" \
-            -c 'select count(cron.unschedule(jobid)) from cron.job'
-
-      - name: Load the data, triggers off, in one transaction
-        if: env.REHEARSE == 'true'
-        run: |
-          PGPASSWORD="$(cat "$RUNNER_TEMP/scratch-password")" psql -X --single-transaction \
-            --variable ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' \
-            --file "$WORK/data/data.sql" --dbname "$(cat "$RUNNER_TEMP/scratch-url")" > /dev/null
+          psql -X --single-transaction --variable ON_ERROR_STOP=1 \
+            --command 'SET session_replication_role = replica' \
+            --file "$WORK/data/data.sql" --dbname "$LOCAL_DB" > /dev/null
 
       - name: Check the restore
-        if: env.REHEARSE == 'true'
         run: |
-          export SUPABASE_DB_PASSWORD; SUPABASE_DB_PASSWORD="$(cat "$RUNNER_TEMP/scratch-password")"
-          PGPASSWORD="$SUPABASE_DB_PASSWORD" psql -X -At -v ON_ERROR_STOP=1 -d "$(cat "$RUNNER_TEMP/scratch-url")" \
-            -f tool/db/schema_fingerprint.sql > "$RUNNER_TEMP/scratch-fingerprint.json"
-          supabase db dump --linked -f "$RUNNER_TEMP/scratch-data.sql" --use-copy --data-only \
+          psql -X -At -v ON_ERROR_STOP=1 -d "$LOCAL_DB" -f tool/db/schema_fingerprint.sql \
+            > "$RUNNER_TEMP/restored-fingerprint.json"
+          supabase db dump --local -f "$WORK/restored-data.sql" --use-copy --data-only \
             -x storage.buckets -x storage.buckets_vectors -x storage.vector_indexes
           status=0
           if [[ "$CHAIN_MATCHES" == true ]]; then
             python3 tool/db/fingerprint_diff.py "$WORK/data/schema_fingerprint.json" \
-              "$RUNNER_TEMP/scratch-fingerprint.json" | tee "$RUNNER_TEMP/schema-check.txt" || status=1
+              "$RUNNER_TEMP/restored-fingerprint.json" > "$RUNNER_TEMP/schema-check.txt" || status=1
           else
             echo "schema not compared: the hosted history differs from this commit's chain" \
-              | tee "$RUNNER_TEMP/schema-check.txt"
+              > "$RUNNER_TEMP/schema-check.txt"
             status=1
           fi
-          python3 tool/db/dump_digest.py compare "$WORK/data/data.sql" "$RUNNER_TEMP/scratch-data.sql" \
-            | tee "$RUNNER_TEMP/data-check.txt" || status=1
+          python3 tool/db/dump_digest.py compare "$WORK/data/data.sql" "$WORK/restored-data.sql" \
+            > "$RUNNER_TEMP/data-check.txt" || status=1
+          rm -f "$WORK/restored-data.sql"
           {
-            echo "### Restore rehearsal into $SCRATCH_NAME"
+            echo "### Restore check"
             echo '```'
             cat "$RUNNER_TEMP/schema-check.txt" "$RUNNER_TEMP/data-check.txt"
             echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
           exit "$status"
 
-      - name: Delete the temporary project
-        if: always() && env.SCRATCH_REF != ''
-        run: |
-          # Only ever the project this run created: same name, never the live one.
-          [[ "$SCRATCH_REF" != "$PROJECT_REF" ]] || { echo "::error::refusing to delete $PROJECT_REF"; exit 1; }
-          name="$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            "https://api.supabase.com/v1/projects/$SCRATCH_REF" | jq -r .name)"
-          [[ "$name" == "$SCRATCH_NAME" ]] || { echo "::error::$SCRATCH_REF is named '$name', not $SCRATCH_NAME; delete it by hand"; exit 1; }
-          supabase projects delete "$SCRATCH_REF" --yes
-          left="$(supabase projects list -o json | jq -r --arg ref "$SCRATCH_REF" \
-            '[.[] | select((.ref // .id) == $ref and .status != "REMOVED" and .status != "GOING_DOWN")] | length')"
-          [[ "$left" -eq 0 ]] || { echo "::error::$SCRATCH_NAME ($SCRATCH_REF) is still listed; delete it in the dashboard"; exit 1; }
-          echo "Deleted $SCRATCH_NAME ($SCRATCH_REF)" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Stop the local stack
+        if: always()
+        run: supabase stop --no-backup || true
 
       - name: Encrypt
         run: |
@@ -277,7 +227,7 @@ jobs:
       - name: Remove the plaintext
         if: always()
         run: |
-          find "$RUNNER_TEMP/backup" "$RUNNER_TEMP"/scratch-* -type f -exec shred -u {} + 2>/dev/null || true
+          find "$RUNNER_TEMP/backup" -type f -exec shred -u {} + 2>/dev/null || true
           rm -rf "$RUNNER_TEMP/backup" supabase/.temp
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
