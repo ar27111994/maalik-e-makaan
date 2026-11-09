@@ -402,10 +402,21 @@ jobs:
             ${{ runner.temp }}/uat-screenshots/
           if-no-files-found: ignore
           retention-days: 14
-      - name: Function and auth logs
+      # The page as Playwright last saw it (its accessibility snapshot), so a
+      # failure can be read from the log; the data is the journeys' own.
+      - name: Page at the failure
         if: failure()
         run: |
-          for name in supabase_edge_runtime supabase_auth; do
+          shopt -s nullglob
+          for file in app/uat/build/test-results/*/error-context.md; do
+            echo "::group::$file"
+            cat "$file"
+            echo "::endgroup::"
+          done
+      - name: Function, auth, storage and REST logs
+        if: failure()
+        run: |
+          for name in supabase_edge_runtime supabase_auth supabase_storage supabase_rest; do
             id="$(docker ps -aq --filter "name=$name" | head -n 1)"
             if [[ -n "$id" ]]; then
               echo "::group::$name"
