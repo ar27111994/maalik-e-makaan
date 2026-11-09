@@ -242,6 +242,26 @@ void main() {
       },
     );
 
+    test('on iOS the links come back through the app scheme', () async {
+      final native = SupabaseAuthRepository(
+        auth: auth,
+        cache: cache,
+        config: _config,
+        nativeLinks: true,
+      );
+      const callback =
+          'io.github.ar27111994.maalikemakaan://app.example.pk/auth/callback';
+      when(
+        () => auth.resetPasswordForEmail(
+          any(),
+          redirectTo: any(named: 'redirectTo'),
+        ),
+      ).thenAnswer((_) async {});
+      await native.sendPasswordReset('a@b.pk');
+      verify(() => auth.resetPasswordForEmail('a@b.pk', redirectTo: callback))
+          .called(1);
+    });
+
     test('updatePassword sends the new password', () async {
       when(() => auth.updateUser(any()))
           .thenAnswer((_) async => UserResponse.fromJson(_user().toJson()));

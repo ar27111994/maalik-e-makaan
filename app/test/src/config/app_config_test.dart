@@ -36,6 +36,20 @@ void main() {
     );
   });
 
+  test('iOS e-mail links come back under the app scheme, same path', () {
+    final config = AppConfig.parse(
+      _values({'APP_URL': 'https://example.pk/app'}),
+    );
+    expect(
+      config.authCallbackUrlFor(nativeScheme: true).toString(),
+      'io.github.ar27111994.maalikemakaan://example.pk/app/auth/callback',
+    );
+    expect(
+      config.authCallbackUrlFor(nativeScheme: false),
+      config.authCallbackUrl,
+    );
+  });
+
   test('trims values, drops trailing slashes and keeps an app path', () {
     final config = AppConfig.parse(
       _values({

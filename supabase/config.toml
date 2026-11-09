@@ -62,7 +62,8 @@ site_url = "http://127.0.0.1:8080"
 additional_redirect_urls = [
   "http://127.0.0.1:8080/**",
   "http://localhost:8080/**",
-  "io.github.ar27111994.maalikemakaan://auth-callback",
+  # The iOS app's e-mail links (AppConfig.nativeLinkScheme).
+  "io.github.ar27111994.maalikemakaan://127.0.0.1:8080/auth/callback",
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true

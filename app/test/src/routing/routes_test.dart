@@ -68,6 +68,14 @@ void main() {
     expect(_go('/auth/callback?from=/money', _signedIn), '/money');
   });
 
+  test('an iOS e-mail link (the app scheme) routes like the web one', () {
+    const link =
+        'io.github.ar27111994.maalikemakaan://app.example.pk/auth/callback';
+    expect(_go('$link?code=abc', _signedOut), isNull);
+    expect(_go('$link?code=abc', _signedIn), isNull);
+    expect(_go(link, _signedIn), '/');
+  });
+
   test('a password reset leads only to choosing a new password', () {
     expect(_go('/', _recovering), '/update-password');
     expect(_go('/sign-in', _recovering), '/update-password');

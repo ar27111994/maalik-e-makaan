@@ -122,11 +122,20 @@ abstract interface class AuthRepository {
 
 /// [AuthRepository] over Supabase Auth.
 final class SupabaseAuthRepository implements AuthRepository {
-  new({required this._auth, required this._cache, required this._config});
+  /// [nativeLinks]: e-mail links come back through the app's own URL scheme
+  /// (iOS), not the web address.
+  new({
+    required this._auth,
+    required this._cache,
+    required AppConfig config,
+    bool nativeLinks = false,
+  }) : _callbackUrl = config
+           .authCallbackUrlFor(nativeScheme: nativeLinks)
+           .toString();
 
   final sb.GoTrueClient _auth;
   final SwrCache _cache;
-  final AppConfig _config;
+  final String _callbackUrl;
   bool _recovering = false;
   SignOutCause? _signOutCause;
 
@@ -196,7 +205,7 @@ final class SupabaseAuthRepository implements AuthRepository {
     final response = await _auth.signUp(
       email: email.trim(),
       password: password,
-      emailRedirectTo: _config.authCallbackUrl.toString(),
+      emailRedirectTo: _callbackUrl,
       data: {'full_name': fullName.trim(), 'locale': languageCode},
     );
     return response.session == null
@@ -209,16 +218,13 @@ final class SupabaseAuthRepository implements AuthRepository {
     () => _auth.resend(
       type: sb.OtpType.signup,
       email: email.trim(),
-      emailRedirectTo: _config.authCallbackUrl.toString(),
+      emailRedirectTo: _callbackUrl,
     ),
   );
 
   @override
   Future<void> sendPasswordReset(String email) => _guard(
-    () => _auth.resetPasswordForEmail(
-      email.trim(),
-      redirectTo: _config.authCallbackUrl.toString(),
-    ),
+    () => _auth.resetPasswordForEmail(email.trim(), redirectTo: _callbackUrl),
   );
 
   @override
@@ -283,5 +289,6 @@ final authRepositoryProvider = Provider<AuthRepository>(
     auth: ref.watch(supabaseClientProvider).auth,
     cache: ref.watch(swrCacheProvider),
     config: ref.watch(appConfigProvider),
+    nativeLinks: !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS,
   ),
 );

@@ -84,9 +84,24 @@ final class AppConfig {
 
   final AppEnvironment environment;
 
-  /// The URL auth e-mails redirect to.
+  /// The URL scheme the iOS app registers (`CFBundleURLTypes` in
+  /// `ios/Runner/Info.plist`); the hosted project's redirect URLs list
+  /// [authCallbackUrlFor] with it (docs/operations.md, E-mail).
+  static const nativeLinkScheme = 'io.github.ar27111994.maalikemakaan';
+
+  /// The URL auth e-mails redirect to: the web app's callback, which the
+  /// Android app also opens (App Links).
   Uri get authCallbackUrl =>
       appUrl.replace(path: '${appUrl.path}/auth/callback');
+
+  /// [authCallbackUrl], or with [nativeScheme] the same address under
+  /// [nativeLinkScheme]. The iOS app has no associated domain, so a link to
+  /// the web would open the browser, which lacks the sign-in verifier the app
+  /// stored; the scheme brings the link back to the app, and the router sees
+  /// the same `/auth/callback` path.
+  Uri authCallbackUrlFor({required bool nativeScheme}) => nativeScheme
+      ? authCallbackUrl.replace(scheme: nativeLinkScheme)
+      : authCallbackUrl;
 
   static Uri _webUrl(String name, String raw, {required bool local}) {
     if (raw.isEmpty) throw ConfigException(name, 'is required');

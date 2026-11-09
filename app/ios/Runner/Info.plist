@@ -29,6 +29,24 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- Supabase e-mail links (confirmation, password reset) come back to the
+	     app under this scheme (AppConfig.nativeLinkScheme), and the router
+	     opens their /auth/callback path. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>io.github.ar27111994.maalikemakaan.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.github.ar27111994.maalikemakaan</string>
+			</array>
+		</dict>
+	</array>
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Take photos of CNICs, agreements and receipts to keep with your tenants and properties.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
