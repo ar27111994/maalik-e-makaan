@@ -171,7 +171,7 @@ Development only:
 | stylelint-use-logical     | 2.1.3   | CC0-1.0    |
 | typescript                | 6.0.3   | Apache-2.0 |
 | typescript-eslint         | 8.72.1  | MIT        |
-| vitest                    | 5.0.5   | MIT        |
+| vitest                    | 5.1.0   | MIT        |
 | yaml                      | 2.9.1   | ISC        |
 
 ## Repository tooling
