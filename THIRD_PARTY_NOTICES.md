@@ -190,9 +190,9 @@ Browser UAT (`app/uat/package.json`, development only; `docs/uat.md`):
 
 | Package          | Version | Licence    |
 | ---------------- | ------- | ---------- |
-| @playwright/test | 1.63.0  | Apache-2.0 |
+| @playwright/test | 1.64.1  | Apache-2.0 |
 
-It installs `playwright` and `playwright-core` 1.63.0 (Apache-2.0) and, at run time, a Chromium
+It installs `playwright` and `playwright-core` 1.64.1 (Apache-2.0) and, at run time, a Chromium
 build for testing; none of it is distributed.
 
 Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
@@ -200,15 +200,15 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 
 | Package              | Version   | Licence                                                          |
 | -------------------- | --------- | ---------------------------------------------------------------- |
-| fonttools            | 4.67.0    | MIT                                                              |
+| fonttools            | 4.68.0    | MIT                                                              |
 | black                | 26.10.1   | MIT                                                              |
-| ruff                 | 0.17.2    | MIT                                                              |
+| ruff                 | 0.17.3    | MIT                                                              |
 | shellcheck-py        | 0.11.0.1  | MIT wrapper; the ShellCheck 0.11.0 binary it installs is GPL-3.0 |
 | shfmt-py             | 4.2.0     | MIT AND BSD-3-Clause (shfmt 3.14.1)                              |
-| squawk-cli           | 2.70.0    | Apache-2.0 OR MIT                                                |
+| squawk-cli           | 2.71.0    | Apache-2.0 OR MIT                                                |
 | editorconfig-checker | 3.11.1    | MIT                                                              |
 | actionlint-py        | 1.7.12.25 | MIT                                                              |
-| z3-solver            | 5.3.1.0   | MIT                                                              |
+| z3-solver            | 5.3.3.0   | MIT                                                              |
 
 Locked transitive Python packages: click 8.5.0 (BSD-3-Clause), mypy-extensions
 1.2.0 (MIT), packaging 26.3 (Apache-2.0 OR BSD-2-Clause), pathspec 1.1.1
