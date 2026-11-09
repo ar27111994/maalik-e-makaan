@@ -142,7 +142,8 @@ class _NothingToLet extends StatelessWidget {
   }
 }
 
-/// This month: collected against due, overdue against owed, units let.
+/// This month: dues paid against due, money received, overdue against owed,
+/// units let.
 class _Month extends StatelessWidget {
   const new({required this.dashboard});
 
@@ -177,6 +178,14 @@ class _Month extends StatelessWidget {
                         percentText(l10n, rate),
                       ),
               ),
+            ),
+            // The money that came in, whichever month's dues it paid: a
+            // payment of September's arrears in November counts here, not
+            // in the figure above (docs/uat.md, D2).
+            MmStatTile(
+              label: l10n.receivedThisMonthLabel,
+              value: MmAmount(amount: month.cashReceived),
+              caption: Text(l10n.receivedThisMonthCaption),
             ),
             MmStatTile(
               label: l10n.totalOverdueLabel,

@@ -7922,10 +7922,10 @@ abstract class AppLocalizations {
   /// **'This month, {month}'**
   String thisMonthSection(String month);
 
-  /// Label of the dashboard's figure of dues paid this month.
+  /// Label of the dashboard's figure of what is paid of the dues that fell due this month (not the money received this month, which receivedThisMonthLabel shows).
   ///
   /// In en, this message translates to:
-  /// **'Collected this month'**
+  /// **'This month\'s dues paid'**
   String get collectedThisMonthLabel;
 
   /// Under the amount collected this month: what fell due and the share collected.
@@ -7933,6 +7933,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'of {due} due, {rate} collected'**
   String collectedOfDue(String due, String rate);
+
+  /// Label of the dashboard's figure of all the money received in payments this month, whichever month's dues it paid.
+  ///
+  /// In en, this message translates to:
+  /// **'Received this month'**
+  String get receivedThisMonthLabel;
+
+  /// Under the money received this month: it counts payments of older dues and advances too.
+  ///
+  /// In en, this message translates to:
+  /// **'Every payment recorded this month, for any month\'s dues'**
+  String get receivedThisMonthCaption;
 
   /// Under the amount collected when nothing fell due this month yet.
   ///

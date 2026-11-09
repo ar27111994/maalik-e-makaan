@@ -1,7 +1,7 @@
 ---
 title: "Privacy"
 description: "How this website and the Maalik-e-Makaan app treat your data: no cookies or trackers on the site, and in the app, your records seen only by the people you invite."
-lastUpdated: 2026-11-07
+lastUpdated: 2026-11-08
 ---
 
 ## In short
@@ -34,6 +34,7 @@ Version 1.0 has not been released. This section describes how it is being built;
 - CNIC numbers are masked on screen by default.
 - Identity documents and photos are held in private storage, and are opened only through links that expire after a short time.
 - Invitations to join a portfolio are sent by email through [Resend](https://resend.com/legal/privacy-policy).
+- In a web browser, the app carries its own fonts. When a text needs a character they lack, such as an emoji or a letter of another script, the browser downloads a font for it from [Google Fonts](https://policies.google.com/privacy) (fonts.gstatic.com). Google then receives your IP address and which font was asked for, but not your text. The app on Android and iPhone does not do this.
 - WhatsApp reminders open in WhatsApp on your own phone and are sent by you, from your number. The app does not send them for you, and does not read your WhatsApp.
 
 The app has no advertising, no analytics and no trackers.

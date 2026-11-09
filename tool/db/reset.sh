@@ -27,8 +27,11 @@ echo "▸ Applying migrations"
 shopt -s nullglob
 for migration in "$ROOT"/supabase/migrations/*.sql; do
   echo "  · $(basename "$migration")"
-  # Each migration runs in its own transaction, like `supabase db push`.
-  psql_q -d "$DB_NAME" --single-transaction -f "$migration" >/dev/null
+  # Each migration runs in one transaction, as the Supabase CLI applies it.
+  # The CLI's transaction is implicit, not a block, so statements that need
+  # a block (LOCK TABLE) fail there although they pass here:
+  # tool/db/lint_migrations.sh rejects them outside begin; ... commit;.
+  psql_q -d "$DB_NAME" "$(migration_tx_flag "$migration")" -f "$migration" >/dev/null
 done
 
 if [[ "$SEED" == "1" && -f "$ROOT/supabase/seed.sql" ]]; then

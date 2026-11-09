@@ -4640,12 +4640,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get collectedThisMonthLabel => 'Collected this month';
+  String get collectedThisMonthLabel => 'This month\'s dues paid';
 
   @override
   String collectedOfDue(String due, String rate) {
     return 'of $due due, $rate collected';
   }
+
+  @override
+  String get receivedThisMonthLabel => 'Received this month';
+
+  @override
+  String get receivedThisMonthCaption =>
+      'Every payment recorded this month, for any month\'s dues';
 
   @override
   String get nothingDueThisMonth => 'Nothing has fallen due this month yet.';

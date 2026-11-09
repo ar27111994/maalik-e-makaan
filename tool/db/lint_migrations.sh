@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# Lints the migrations added after squawk's baseline (.squawk.toml) for
-# operations that lock or rewrite live tables. The baseline was reviewed and
-# applied before squawk was adopted, and applied migrations are never edited.
+# Lints the migrations: every one for statements the Supabase CLI cannot
+# apply outside an explicit transaction (check_migration_transactions.py),
+# then those added after squawk's baseline (.squawk.toml) for operations that
+# lock or rewrite live tables. The baseline was reviewed and applied before
+# squawk was adopted, and applied migrations are never edited.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
+
+python3 tool/db/check_migration_transactions.py supabase/migrations/*.sql
 
 mapfile -t BASELINE < <(grep -oE 'supabase/migrations/[^"]+\.sql' .squawk.toml)
 NEW=()

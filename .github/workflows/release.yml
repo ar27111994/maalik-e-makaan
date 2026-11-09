@@ -1,7 +1,8 @@
 # Releases. release-please keeps a release pull request open from the
 # conventional commits on main; merging it tags vX.Y.Z, writes CHANGELOG.md and
 # publishes a GitHub release. This workflow then builds the signed Android app
-# and the web app for that tag, attests their provenance and attaches them.
+# and the web app for that tag, attests their provenance and attaches them, and
+# deploys the tag to production (deploy.yml).
 name: Release
 
 on:
@@ -132,3 +133,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  deploy:
+    name: Deploy the release
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ needs.release-please.outputs.tag }}
+    secrets:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

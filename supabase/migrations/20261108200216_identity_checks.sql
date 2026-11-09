@@ -110,6 +110,18 @@
 -- come with a migration that validates the CHECKs again (as this one does).
 -- ============================================================================
 
+-- An explicit transaction (added 2026-11-08, after the hosted project had
+-- applied this file; the schema it builds is unchanged). The Supabase CLI
+-- (supabase start, db reset, db push) sends a file's statements as one
+-- implicit transaction, which is atomic but not a transaction block, and
+-- LOCK TABLE below needs a block: without it the CLI stopped here with
+-- "LOCK TABLE can only be used in transaction blocks (SQLSTATE 25P01)"
+-- (docs/uat.md, D1). tool/db/check_migration_transactions.py rejects such a
+-- statement outside begin; ... commit;.
+-- The CLI's transaction is not a block (above), so this one does not nest.
+-- squawk-ignore transaction-nesting
+begin;
+
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
@@ -264,3 +276,7 @@ alter table public.maintenance_requests
   drop constraint maintenance_requests_vendor_phone_check,
   add constraint maintenance_requests_vendor_phone_check
     check (app.is_valid_phone(vendor_phone)) not valid;
+
+-- Closes the begin; above.
+-- squawk-ignore transaction-nesting
+commit;

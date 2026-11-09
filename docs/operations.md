@@ -76,6 +76,48 @@ claims (1 minute doubling to 6 hours); `last_error` says why. An item handed bac
 run's time budget ran out) is due again at once and does not count as a failure. Claims take turns
 between portfolios, so one portfolio's backlog never holds up another's deletions.
 
+## Monitoring and alerts
+
+Nothing in the project raises an alert by itself: the free tier has no alerting, and the app has
+no telemetry (privacy). Two checks cover it, one outside and one inside.
+
+1. **An external uptime monitor** (any free HTTP monitor, such as UptimeRobot or Better Stack) on
+   `GET https://<project-ref>.supabase.co/functions/v1/health?deep=1` with the header
+   `x-health-token: <HEALTH_CHECK_TOKEN>`, every 5 minutes, alerting by e-mail when it does not
+   answer 200. A 503 names the failing check (database, storage or auth). Set the secret first
+   (Edge Function secrets, below); without it `?deep=1` answers as the shallow check. Add a
+   second monitor on `https://maalik-e-makaan.vercel.app/` (200) for the web app.
+2. **A daily look at the jobs** (SQL editor, as `postgres`; a saved query). Each row it returns is
+   something to act on:
+
+   ```sql
+   -- Leases the daily job failed on, the day's work not done, and stuck file deletions.
+   select 'lease' as what, lease_id::text as id, last_error as detail
+   from private.lease_maintenance where failures > 0
+   union all
+   select 'daily jobs', null, 'no run recorded for today'
+   where not exists (select 1 from private.job_runs where run_on = app.today_pkt())
+   union all
+   select 'storage cleanup', id::text, last_error
+   from private.storage_cleanup_queue where last_error is not null and attempts >= 3
+   union all
+   select 'pg_cron', jobname, return_message
+   from cron.job_run_details join cron.job using (jobid)
+   where status = 'failed' and start_time > now() - interval '1 day';
+   ```
+
+   - `lease`: the error says why (usually data the job refuses, such as an overflowing late fee);
+     fix the lease or its charges, and the next run retries it.
+   - `daily jobs`: after 01:00 Pakistan time, check that the project is not paused (free projects
+     pause after a week without activity) and that `mm-daily-jobs` is scheduled
+     (`select * from cron.job;`).
+   - `storage cleanup`: see Storage cleanup; usually the Vault token and the function secret
+     differ.
+   - `pg_cron`: the failing job's message.
+
+Also check the Supabase dashboard's usage page once a week: the free tier's database size and
+egress limits.
+
 ## Edge Function secrets
 
 | Secret                   | Needed by       | Notes                                                                    |
@@ -211,8 +253,10 @@ To move the site to a custom domain later:
 
 ## Deployment (GitHub Actions)
 
-The Deploy workflow (`.github/workflows/deploy.yml`) runs when a release is published, or by hand
-(Actions, Deploy, Run workflow; only once the workflow is on the default branch). Its `supabase`
+The Deploy workflow (`.github/workflows/deploy.yml`) runs when the Release workflow has released a
+tag (Release calls it for that tag), or by hand (Actions, Deploy, Run workflow, for the branch or
+tag chosen there; only once the workflow is on the default branch). Publishing a release by hand
+does not start it. See [Releasing](#releasing). Its `supabase`
 job pushes migrations and Edge Functions to Supabase and calls the `health` function. Its `web`
 job then:
 
@@ -256,7 +300,7 @@ workflows read these repository settings:
 | `ANDROID_KEYSTORE_PASSWORD` | secret   | The keystore's password                                                   |
 | `ANDROID_KEY_ALIAS`         | secret   | The key's name in the keystore (`upload`)                                 |
 | `ANDROID_KEY_PASSWORD`      | secret   | The key's password                                                        |
-| `RELEASE_PLEASE_TOKEN`      | secret   | Optional: a token whose release pull requests trigger CI                  |
+| `RELEASE_PLEASE_TOKEN`      | secret   | Recommended: a token whose release pull requests trigger CI (Releasing)   |
 | `VERCEL_TOKEN`              | secret   | A Vercel token for the `ar27111994s-projects` team                        |
 | `SUPABASE_PROJECT_REF`      | variable | `aaifamxzzjspohwksxyr`                                                    |
 | `SUPABASE_URL`              | variable | `https://aaifamxzzjspohwksxyr.supabase.co`                                |
@@ -311,6 +355,104 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
 ```
 
 A debug build is signed with the debug key, which is not listed, so it stays unverified.
+
+## Releasing
+
+1. CI must be green on `main` (the "CI passed" check). Pull requests are squash-merged with a
+   Conventional Commit title.
+2. The Release workflow keeps a release pull request open on `main` (release-please). It bumps
+   `.release-please-manifest.json`, `app/pubspec.yaml` and `website/package.json`, and writes
+   `CHANGELOG.md`. `release-please-config.json` says `"release-as": "1.0.0"` for the first
+   release; **remove that line in the first commit after v1.0.0**, or every later release would
+   again be 1.0.0.
+3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
+   builds the signed Android app and the web app and attaches them (`artefacts`), and calls the
+   Deploy workflow for the tag (`deploy`), which waits for a reviewer when the `production`
+   environment requires one.
+4. Watch the Deploy run: each job ends with its smoke test, and the `supabase` job with a call to
+   `health`. Then run the daily query of Monitoring and alerts.
+
+`RELEASE_PLEASE_TOKEN` (a fine-grained token with contents and pull requests: write on this
+repository) is recommended: a release pull request opened with the default `GITHUB_TOKEN` starts
+no CI run, so its checks stay pending until someone pushes to it. Deploy does not depend on it,
+because Release calls Deploy directly.
+
+## Rollback and restore
+
+Migrations are forward only: a mistake is fixed by a new migration, never by editing or reverting
+an applied one (CONTRIBUTING.md). What can be rolled back, and how:
+
+| What                   | Roll back by                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The web app            | Vercel dashboard, project `maalik-e-makaan`, Deployments: the previous production deployment, Promote to Production (or `vercel rollback <deployment-url> --scope ar27111994s-projects`). Takes effect at once; the database must still suit the older app (migrations add, they do not remove). |
+| The website            | The same, project `maalik-e-makaan-site`.                                                                                                                                                                                                                                                        |
+| Edge Functions         | Run Deploy by hand on the previous tag (Actions, Deploy, Run workflow, choose the tag): its `supabase` job redeploys that tag's functions. Its `db push` finds nothing new to apply.                                                                                                             |
+| A migration            | A new migration that undoes it (forward fix), through the usual process (After every migration). If it destroyed data, restore that data from a backup (below) into a scratch project and copy the rows back.                                                                                    |
+| Data lost or corrupted | Restore from a backup (below).                                                                                                                                                                                                                                                                   |
+
+### Backups
+
+The free plan has no backups the owner can download or restore: Supabase backs up Pro, Team and
+Enterprise projects daily, and recommends that free projects export their data with
+`supabase db dump` and keep the copies off-site
+([Database Backups](https://supabase.com/docs/guides/platform/backups)). Database backups never
+include the files in Storage (the `documents` bucket), only their rows.
+
+Until the project moves to a paid plan, the owner takes a dump at least weekly, and before every
+release that carries a migration, on a trusted computer with the Supabase CLI and Docker (the
+connection string is under Connect in the dashboard, Session pooler; the password is the
+database password). Only the data is needed: the schema comes back from the migration chain
+(Restoring, below).
+
+```bash
+supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only \
+  -x storage.buckets -x storage.buckets_vectors -x storage.vector_indexes
+```
+
+The file holds tenants' CNICs, phone numbers and the whole ledger: encrypt it before it leaves
+that computer (for example `age -p` or `gpg -c`), keep it where only the owner can read it, and
+delete copies older than the retention the privacy policy promises. Identity documents and photos
+are in Storage, not in the dump; copy the bucket separately if they must survive the loss of the
+project (Supabase's
+[storage migration script](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore#migrating-storage-objects)).
+
+### Restoring
+
+Restore into a **new** project, never over the live one, then point the app at it. Rebuild the
+schema from the migration chain and load only the data. Do not restore a `supabase db dump`
+schema file (Supabase's generic recipe): the 2026-11-08 rehearsal showed that it loses the
+policies on `storage.objects`, the triggers on `auth.users` and `storage.objects` and the
+pg_cron jobs (the dump leaves out the `auth`, `storage` and `cron` schemas), and that every
+function comes back executable by `anon` and `service_role`, which the chain revokes (decision
+D-15).
+
+1. Create a project in the same region (ap-south-1) and link it:
+   `supabase link --project-ref <new-ref>`.
+2. Apply the chain at the tag that was live when the dump was taken:
+   `git checkout vX.Y.Z && supabase db push --linked`. This creates the schema, the grants, the
+   storage bucket and policies, the Auth trigger and the pg_cron jobs.
+3. Load the data, triggers off, in one transaction:
+
+   ```bash
+   psql --single-transaction --variable ON_ERROR_STOP=1 \
+     --command 'SET session_replication_role = replica' --file data.sql \
+     --dbname "$NEW_DB_URL"
+   ```
+
+4. Check it: the schema fingerprint equals the chain's (After every migration, step 3:
+   `tool/db/fingerprint_diff.py` says "schemas match"), and the row counts of `auth.users`,
+   `public.portfolios`, `public.leases`, `public.charges` and `public.payments`, and
+   `sum(outstanding)` of the open charges, equal the old project's when it is still reachable.
+5. Set up what neither the chain nor the dump carries: the Edge Function secrets and the Vault
+   secrets (Storage cleanup), Auth's Site URL, redirect URLs and SMTP, then deploy the functions
+   (Deploy by hand, with the repository variables and secrets pointed at the new project).
+6. Point the app at it: the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` variables, then run
+   Deploy so the web app is rebuilt. Users must sign in again (the new project signs tokens with
+   new keys).
+
+The procedure was rehearsed on 2026-11-08 against the local stack (Supabase CLI 2.122.1,
+Postgres 17.11): see `docs/release-readiness.md`, Rollback and restore. Rehearse it once on a
+scratch hosted project before launch.
 
 ## Deleting a user account
 
@@ -378,6 +520,17 @@ error it raised would fail the Auth deletion.
 
 ## Phone and CNIC checks (`20261108200216`, `20261108200227`)
 
+Both files were applied to the hosted project on 2026-11-08 (commit e853378 records it). The steps
+below stay for any other project the chain is applied to.
+
+`20261108200216_identity_checks.sql` was later wrapped in `begin; … commit;` (docs/uat.md, D1):
+the Supabase CLI sends a file as one implicit transaction, which is not a transaction block, so
+its `LOCK TABLE` stopped `supabase start`, `db reset` and any `db push` to a new project with
+SQLSTATE 25P01. The schema it builds is unchanged (the schema fingerprints with and without the
+wrap are identical), and the hosted project, which records the version, does not apply it again:
+the CLI compares versions, not contents. `tool/db/check_migration_transactions.py` (`make lint`)
+now rejects such a statement outside an explicit transaction.
+
 Before pushing `20261108200216_identity_checks.sql`, run the count query in its header on the
 hosted project (SQL editor, read-only). Every row must say 0. If one does not, the migration would
 stop with SQLSTATE 23514 and change nothing: have the owners correct those values in the app, or
@@ -391,8 +544,19 @@ count query, have the values fixed, and push again. Only the validate file is le
 
 ## After every migration
 
-1. Apply it to the hosted project and keep the migration file's version equal to the version the
-   platform records (`supabase migration list`).
+Migrations reach the hosted project in one of two ways, and agents use neither on their own:
+
+- By the owner, through the Supabase MCP `apply_migration` (decision D-14 in
+  `.planning/PROJECT.md`), which records the migration under its name with a version the
+  platform assigns. The local file is then renamed to that version, so the chain and the hosted
+  history agree.
+- By the Deploy workflow's `supabase` job, which runs `supabase db push --linked --dry-run` and
+  then `supabase db push --linked` (see Deployment above).
+
+Then:
+
+1. Check that every local file's version equals the version the platform records
+   (`supabase migration list`).
 2. Regenerate the functions' database types, so RPC names, arguments and results stay checked:
 
    ```bash

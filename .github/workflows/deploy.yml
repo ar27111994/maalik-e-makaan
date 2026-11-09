@@ -1,13 +1,30 @@
 # Production deployment: the Supabase backend (migrations, then Edge Functions),
 # then the Flutter web app on Vercel, and, independently of both, the website
-# (website/) on Vercel, each followed by a smoke test. Runs when a release is
-# published, or by hand. The "production" environment should require a
-# reviewer (repository settings).
+# (website/) on Vercel, each followed by a smoke test. The Release workflow
+# calls it for the tag it has just released; it also runs by hand (Actions,
+# Deploy, Run workflow), for the branch or tag chosen there. The "production"
+# environment should require a reviewer (repository settings).
+#
+# It is called rather than started by the "release published" event: a
+# release that release-please creates with the default GITHUB_TOKEN starts no
+# other workflow, so the first release would not have deployed without a
+# personal token (docs/operations.md, Releasing).
 name: Deploy
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      ref:
+        description: The tag to deploy
+        type: string
+        required: true
+    secrets:
+      SUPABASE_ACCESS_TOKEN:
+        required: false
+      SUPABASE_DB_PASSWORD:
+        required: false
+      VERCEL_TOKEN:
+        required: false
   workflow_dispatch:
 
 permissions:
@@ -41,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
       - name: Deployment is configured
         run: |
@@ -84,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
       - name: Deployment is configured
         # The token reaches only this step and the deploy, not the build's packages.
@@ -157,7 +174,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
       - name: Deployment is configured
         # The token reaches only this step and the deploy, not the build's packages.

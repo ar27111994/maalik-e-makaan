@@ -64,10 +64,55 @@ void main() {
     final pdf = (await tester.runAsync(
       () => receiptPdf(detail, setup(DocumentLanguage.urdu)),
     ))!;
-    // Its tall Nastaliq lines do not fit one A5 page: the rest flows on to
-    // a second page instead of being cut off (the footer was lost).
+    // Voided, with tax withheld, a certificate and a note, its tall
+    // Nastaliq lines do not fit one A5 page: the rest flows on to a second
+    // page instead of being cut off (the footer was lost).
     expect(_pages(pdf), 2);
     expect(_images(pdf), greaterThan(10));
+  });
+
+  testWidgets('a usual receipt is one A5 page in Urdu too', (tester) async {
+    // UAT D8: a cash payment with a reference that settled the deposit and
+    // part of a rent took two pages in Urdu, the second holding only the
+    // footer line. Three dues settled (rent, its late fee and the deposit)
+    // fit as well.
+    final plain = await FakeLedgerRepository().payment('pay-oct');
+    final settled = [
+      SettledCharge(
+        chargeId: 'deposit',
+        amount: const Money.fromRupees(100000),
+        kind: ChargeKind.securityDeposit,
+        dueDate: CalendarDate(2026, 9, 1),
+      ),
+      SettledCharge(
+        chargeId: 'rent',
+        amount: const Money.fromRupees(20000),
+        kind: ChargeKind.rent,
+        periodMonth: MonthPeriod(2026, 9),
+        dueDate: CalendarDate(2026, 9, 5),
+      ),
+      SettledCharge(
+        chargeId: 'fee',
+        amount: const Money.fromRupees(1000),
+        kind: ChargeKind.lateFee,
+        periodMonth: MonthPeriod(2026, 9),
+        dueDate: CalendarDate(2026, 11, 9),
+      ),
+    ];
+    expect(plain.payment.reference, isNotNull);
+    for (final count in [2, 3]) {
+      final usual = PaymentDetail(
+        payment: plain.payment,
+        lease: plain.lease,
+        settled: settled.take(count).toList(),
+      );
+      for (final language in DocumentLanguage.values) {
+        final pdf = (await tester.runAsync(
+          () => receiptPdf(usual, setup(language)),
+        ))!;
+        expect(_pages(pdf), 1, reason: '${language.name}, $count dues');
+      }
+    }
   });
 
   testWidgets('a receipt settling many dues flows across pages', (

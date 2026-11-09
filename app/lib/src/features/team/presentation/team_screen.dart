@@ -20,6 +20,7 @@ import 'package:maalik_e_makaan/src/features/team/presentation/invite_member_scr
 import 'package:maalik_e_makaan/src/features/team/presentation/roles.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/shell/refresh_notice.dart';
+import 'package:maalik_e_makaan/src/shell/refresh_when_shown.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 /// The people of the current portfolio (TEAM-02 to TEAM-04): every member
@@ -40,33 +41,39 @@ class TeamScreen extends ConsumerWidget {
     void retry() => ref.invalidate(teamProvider(portfolio));
     final team = state.value?.value;
     final owner = portfolio.role == MemberRole.owner;
-    return MmPage(
-      title: l10n.teamTitle,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          RefreshNotice(state: state, onRetry: retry),
-          if (team != null)
-            _TeamBody(portfolio: portfolio, team: team)
-          else if (state.error case final error?)
-            MmErrorState(
-              title: l10n.teamLoadFailedTitle,
-              message: failureMessage(l10n, AppFailure.from(error)),
-              onRetry: retry,
-            )
-          else
-            const _Loading(),
-        ],
+    // Kept alive in the More tab: what others did meanwhile (an invitation
+    // accepted, a member who left) shows when the screen comes back.
+    return RefreshWhenShown(
+      onShown: () =>
+          unawaited(ref.read(teamProvider(portfolio).notifier).reload()),
+      child: MmPage(
+        title: l10n.teamTitle,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            RefreshNotice(state: state, onRetry: retry),
+            if (team != null)
+              _TeamBody(portfolio: portfolio, team: team)
+            else if (state.error case final error?)
+              MmErrorState(
+                title: l10n.teamLoadFailedTitle,
+                message: failureMessage(l10n, AppFailure.from(error)),
+                onRetry: retry,
+              )
+            else
+              const _Loading(),
+          ],
+        ),
+        bottomBar: owner
+            ? MmActionBar(
+                primary: MmButton(
+                  label: l10n.inviteAction,
+                  icon: MmIcons.invite,
+                  onPressed: () => context.go(Routes.inviteMember),
+                ),
+              )
+            : null,
       ),
-      bottomBar: owner
-          ? MmActionBar(
-              primary: MmButton(
-                label: l10n.inviteAction,
-                icon: MmIcons.invite,
-                onPressed: () => context.go(Routes.inviteMember),
-              ),
-            )
-          : null,
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
@@ -87,6 +88,16 @@ class MmStepperField extends StatefulWidget {
   /// app's number format.
   final String Function(int value)? format;
 
+  /// Whether the value is also said in the accessible name ("Grace days,
+  /// 5 days"). True on the web: Flutter's web engine renders the adjustable
+  /// value as `<input type="range">`, leaves the value out of its name and
+  /// means to set `aria-valuetext`, but sets neither it nor `aria-valuenow`
+  /// until the value first changes (Flutter 3.47), so a screen reader heard
+  /// only "Grace days, slider" (docs/uat.md, D7). Elsewhere TalkBack and
+  /// VoiceOver read the name and the value apart.
+  @visibleForTesting
+  static bool nameCarriesValue = kIsWeb;
+
   @override
   State<MmStepperField> createState() => _MmStepperFieldState();
 }
@@ -170,7 +181,9 @@ class _MmStepperFieldState extends State<MmStepperField> {
                 child: Semantics(
                   container: true,
                   enabled: enabled,
-                  label: widget.label,
+                  label: MmStepperField.nameCarriesValue
+                      ? '${widget.label}, $shown'
+                      : widget.label,
                   value: shown,
                   increasedValue: canIncrease ? format(_higher) : null,
                   decreasedValue: canDecrease ? format(_lower) : null,

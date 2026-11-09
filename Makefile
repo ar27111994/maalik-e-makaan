@@ -156,15 +156,20 @@ test-functions-e2e: ## Edge Functions against a running local stack (supabase st
 	    --override-name auth.secret_key=SUPABASE_SECRET_KEY)" && set +a && \
 	  cd supabase/functions && $(DENO) task test:e2e
 
+.PHONY: test-uat
+test-uat: ## UAT: the web app in Chromium against a local Supabase stack, every journey (docs/uat.md)
+	tool/uat/run.sh
+
 .PHONY: test-web
 test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page subset (CI's website job)
 	cd website && npm run check && npm test && npm run build && npm run test:e2e \
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, tokens, web packaging, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web packaging, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
+	python3 -m unittest discover -s tool/db -p 'test_*.py'
 	python3 -m unittest discover -s tool/design -p 'test_*.py'
 	python3 -m unittest discover -s tool/web -p 'test_*.py'
 	python3 -m unittest discover -s tool/formal -p 'test_*.py'

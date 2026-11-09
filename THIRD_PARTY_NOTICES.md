@@ -114,11 +114,11 @@ What the licences ask:
   the copyright notice and the licence, and the fonts are not sold on their
   own. Neither licence names a Reserved Font Name, so a renamed subset is
   allowed. The two font files carry their copyright and a pointer to the OFL
-  in their name tables; the full texts must still ship with the app (see
-  [Gaps](#gaps)).
+  in their name tables; the full texts ship with the app and appear on its
+  licence page (see [Gaps](#gaps)).
 - **ISC and MIT** (icons): keep the copyright and permission notice with every
   copy. The generated `MmIcons.ttf` has an empty copyright field, so the
-  notice must ship as text (see [Gaps](#gaps)).
+  notice ships as text on the app's licence page (see [Gaps](#gaps)).
 
 ## Edge Functions (`supabase/functions`)
 
@@ -186,6 +186,15 @@ Root `package.json` (development only):
 | markdownlint-cli2               | 0.24.0  | MIT     |
 | prettier                        | 3.9.10  | MIT     |
 
+Browser UAT (`app/uat/package.json`, development only; `docs/uat.md`):
+
+| Package          | Version | Licence    |
+| ---------------- | ------- | ---------- |
+| @playwright/test | 1.63.0  | Apache-2.0 |
+
+It installs `playwright` and `playwright-core` 1.63.0 (Apache-2.0) and, at run time, a Chromium
+build for testing; none of it is distributed.
+
 Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 `tool/formal/requirements.txt`; development only):
 
@@ -246,18 +255,17 @@ applies.
 
 ## Gaps
 
-Found while compiling this page; each needs a change outside `docs/`:
+Found while compiling this page. Closed since (checked on 2026-11-08):
 
-- `packages/mm_ui/LICENSE` is still Flutter's placeholder ("TODO: Add your
-  license here."), and Flutter copies it into every build's `NOTICES` under
-  `mm_ui`. It should hold the project's MIT licence. `packages/mm_core` has no
-  licence file.
-- The app has no screen that shows licences (`showLicensePage` or an "About"
-  entry in Settings). Flutter's `NOTICES` asset covers the pub packages, but
-  not the fonts: `assets/NOTICES` of the web build contains neither OFL text nor
-  the Lucide notice. Register `OFL-AtkinsonHyperlegibleNext.txt`,
-  `OFL-NotoNastaliqUrdu.txt` and `LICENSE-lucide.txt` with
-  `LicenseRegistry.addLicense` and show them from Settings.
-- `MmIcons.ttf` has empty copyright and licence fields; the icon build
-  (`tool/design/build_icons.py`) could write the Lucide copyright into its name
-  table.
+- `packages/mm_ui/LICENSE` and `packages/mm_core/LICENSE` hold the project's MIT
+  licence.
+- `MmLicenses.register()` (`packages/mm_ui/lib/src/foundation/mm_licenses.dart`,
+  called from `app/lib/src/bootstrap.dart`) adds `OFL-AtkinsonHyperlegibleNext.txt`,
+  `OFL-NotoNastaliqUrdu.txt` and `LICENSE-lucide.txt` to `LicenseRegistry`, and
+  Settings, About opens `showLicensePage`.
+
+Still open:
+
+- `MmIcons.ttf` has no copyright, licence or licence-URL entries in its name
+  table; the icon build (`tool/design/build_icons.py`) could write the Lucide
+  copyright there. The notice ships as text through the licence page meanwhile.

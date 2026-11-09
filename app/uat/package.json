@@ -1,0 +1,15 @@
+{
+  "name": "maalik-e-makaan-uat",
+  "private": true,
+  "description": "End-to-end user acceptance tests: the Flutter web app in a real browser against a local Supabase stack (docs/uat.md).",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

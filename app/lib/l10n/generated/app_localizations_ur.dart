@@ -4645,12 +4645,19 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get collectedThisMonthLabel => 'اس مہینے وصول';
+  String get collectedThisMonthLabel => 'اس مہینے کے واجبات کی ادائیگی';
 
   @override
   String collectedOfDue(String due, String rate) {
     return '$due واجب میں سے، $rate وصول';
   }
+
+  @override
+  String get receivedThisMonthLabel => 'اس مہینے موصول رقم';
+
+  @override
+  String get receivedThisMonthCaption =>
+      'اس مہینے درج ہر ادائیگی، کسی بھی مہینے کے واجبات کی';
 
   @override
   String get nothingDueThisMonth => 'اس مہینے ابھی کچھ واجب نہیں ہوا۔';

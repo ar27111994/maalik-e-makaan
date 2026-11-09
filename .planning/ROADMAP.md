@@ -7,8 +7,8 @@ commit. Phases run in order, except where a dependency allows overlap.
 
 Monorepo layout and tooling (Dart pub workspace, lint, format, commit conventions), the GSD
 planning artifacts, and the pure-Dart domain package `mm_core`: money, dates and tax year,
-identity validators, sanitisation, rent maths, allocation, scoring and insights. 100% unit
-coverage.
+identity validators, sanitisation, rent maths and allocation. 100% unit coverage. (Payment
+scores and insight rules were built in the app's insights feature in Phase 9 instead.)
 Requirements: NFR-05 (sanitisation), NFR-07 (partial), foundations for LEDGER-03/04/07, INS-03/04.
 Dependencies: none.
 

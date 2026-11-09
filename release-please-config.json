@@ -20,11 +20,17 @@
   "packages": {
     ".": {
       "package-name": "maalik-e-makaan",
+      "release-as": "1.0.0",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         {
           "type": "yaml",
           "path": "app/pubspec.yaml",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "website/package.json",
           "jsonpath": "$.version"
         }
       ]

@@ -96,6 +96,46 @@ void main() {
       expect(routeShown(Routes.inviteMember), findsOneWidget);
     });
 
+    testWidgets('coming back to the screen shows what others did meanwhile', (
+      tester,
+    ) async {
+      // UAT D4: the screen stays alive in the More tab while another tab is
+      // shown (its TickerMode off); an invitation accepted meanwhile on the
+      // invitee's phone must not still be listed as waiting.
+      final shownNow = ValueNotifier(true);
+      addTearDown(shownNow.dispose);
+      final app = await pumpScreen(
+        tester,
+        () => ValueListenableBuilder(
+          valueListenable: shownNow,
+          builder: (_, shown, _) =>
+              TickerMode(enabled: shown, child: const TeamScreen()),
+        ),
+        size: const Size(360, 1400),
+      );
+      expect(find.text('Accountant · Until 14 Nov 2099'), findsOneWidget);
+      shownNow.value = false;
+      await tester.pumpAndSettle();
+      app.team.pending[gulberg.id] = [expiredInvitation];
+      app.team.people[gulberg.id] = [
+        ...app.team.people[gulberg.id]!,
+        TeamMember(
+          userId: 'kamran',
+          role: MemberRole.accountant,
+          fullName: 'Kamran Ali',
+          email: pendingInvitation.email,
+          joinedAt: DateTime.utc(2026, 11, 8),
+        ),
+      ];
+      // Nothing is fetched while it is out of sight.
+      await tester.pumpAndSettle();
+      expect(find.text('Accountant · Until 14 Nov 2099'), findsOneWidget);
+      shownNow.value = true;
+      await tester.pumpAndSettle();
+      expect(find.text('Accountant · Until 14 Nov 2099'), findsNothing);
+      expect(find.text('Kamran Ali'), findsOneWidget);
+    });
+
     testWidgets('an owner changes a role', (tester) async {
       final app = await pumpScreen(tester, TeamScreen.new);
       await _tap(tester, 'Bilal Ahmed');
@@ -340,8 +380,21 @@ void main() {
         find.textContaining('The link works once, until 14 Nov 2099'),
         findsOneWidget,
       );
+      // Screen readers hear the link itself, labelled (UAT D3).
+      final linkNode = tester.getSemantics(
+        find.ancestor(
+          of: find.byType(SelectableText),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is Semantics && widget.properties.value != null,
+          ),
+        ),
+      );
+      expect(linkNode.label, 'Invitation link');
+      expect(linkNode.value, contains('/invite#token='));
+      expect(linkNode.textDirection, TextDirection.ltr);
       await _tap(tester, 'Copy link');
       expect(copied.single, contains('/invite#token='));
+      expect(linkNode.value, copied.single);
       expect(find.text('Link copied.'), findsOneWidget);
       await _tap(tester, 'Share on WhatsApp');
       final whatsApp = app.opened.single;

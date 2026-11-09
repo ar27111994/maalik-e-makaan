@@ -163,6 +163,29 @@ void main() {
       );
     });
 
+    testWidgets('on the web the name carries the value too', (tester) async {
+      // Flutter's web engine leaves the value of an adjustable element out
+      // of its name and does not set aria-valuetext until the value changes
+      // (docs/uat.md, D7).
+      expect(MmStepperField.nameCarriesValue, isFalse);
+      MmStepperField.nameCarriesValue = true;
+      addTearDown(() => MmStepperField.nameCarriesValue = false);
+      await pumpThemed(tester, _stepper());
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Rooms, 3')),
+        matchesSemantics(
+          label: 'Rooms, 3',
+          value: '3',
+          increasedValue: '4',
+          decreasedValue: '2',
+          hasEnabledState: true,
+          isEnabled: true,
+          hasIncreaseAction: true,
+          hasDecreaseAction: true,
+        ),
+      );
+    });
+
     testWidgets('formats the value in words', (tester) async {
       await pumpThemed(tester, const _Controlled(initial: 3, max: 12));
       expect(find.text('3 months'), findsOneWidget);

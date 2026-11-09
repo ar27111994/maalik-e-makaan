@@ -64,7 +64,9 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   - Mobile retries on flaky networks therefore never double-count.
 - D-08: **Server-side aggregation, client-side interpretation.**
   - Dashboards come from one RPC.
-  - Scoring and insight rules live in `mm_core` as pure functions over the aggregates.
+  - Scoring and insight rules are pure functions over the aggregates, in the app's insights
+    feature (`app/lib/src/features/insights/application/`), built on `mm_core`'s money and
+    dates.
   - Client previews (proration, increments, late fees, allocation) mirror SQL and are checked
     against shared contract vectors.
 - D-09: **Never infer gender from a CNIC.** Mask CNICs by default. Validation warns rather than
@@ -87,7 +89,7 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   prove that the hosted schema equals the local chain, object by object.
 - D-15: **Write RPCs are SECURITY DEFINER by design; read RPCs are SECURITY INVOKER.** Payments,
   memberships and invitations are written only through RPCs that bypass row-level security, so
-  each must authorise its caller first. The 20 reviewed RPCs are pinned by a pgTAP allowlist, which
+  each must authorise its caller first. The 21 reviewed RPCs are pinned by a pgTAP allowlist, which
   covers Supabase lint 0029 under its option 3.
 
 ## Constraints

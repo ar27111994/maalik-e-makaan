@@ -7,7 +7,7 @@
 # migrated up to (not including) the migration whose name starts with
 # <version>; the .before.sql file seeds the rows the migration must change
 # (and checks that they are in the state it fixes); the remaining migrations
-# are applied, each in its own transaction like `supabase db push`; then
+# are applied, each in one transaction as the Supabase CLI applies it; then
 # <version>.after.sql runs and raises if a row is not as expected.
 #
 # A migration that refuses to run on some rows may also have
@@ -52,7 +52,7 @@ migrate_before() {
   for migration in "$ROOT"/supabase/migrations/*.sql; do
     name="$(basename "$migration")"
     [[ "$name" < "$1" ]] || break
-    psql_q -d "$DB_NAME" --single-transaction -f "$migration" >/dev/null
+    psql_q -d "$DB_NAME" "$(migration_tx_flag "$migration")" -f "$migration" >/dev/null
   done
 }
 
@@ -68,7 +68,7 @@ check_refusal() {
   migrate_before "$target"
   psql_q -d "$DB_NAME" --single-transaction -f "$refused" >/dev/null
   dump_before="$(dump)"
-  if output="$(psql_q -d "$DB_NAME" --single-transaction \
+  if output="$(psql_q -d "$DB_NAME" "$(migration_tx_flag "$ROOT/supabase/migrations/${target}")" \
     -f "$ROOT/supabase/migrations/${target}" 2>&1)"; then
     echo "${target} applied over the rows of $(basename "$refused")" >&2
     exit 1
@@ -125,7 +125,8 @@ check_race() {
   } >&3
   wait_for "select count(*) from pg_stat_activity
             where application_name = 'mm_race_writer' and state = 'idle in transaction'"
-  PGAPPNAME=mm_race_migration psql_q -d "$DB_NAME" --single-transaction \
+  PGAPPNAME=mm_race_migration psql_q -d "$DB_NAME" \
+    "$(migration_tx_flag "$ROOT/supabase/migrations/${target}")" \
     -f "$ROOT/supabase/migrations/${target}" >"$dir/migration.log" 2>&1 &
   migration_pid=$!
   wait_for "select count(*) from pg_stat_activity
@@ -177,7 +178,7 @@ for before in "${checks[@]}"; do
       psql_q -d "$DB_NAME" --single-transaction -f "$before" >/dev/null
       seeded=1
     fi
-    psql_q -d "$DB_NAME" --single-transaction -f "$migration" >/dev/null
+    psql_q -d "$DB_NAME" "$(migration_tx_flag "$migration")" -f "$migration" >/dev/null
   done
   psql_q -d "$DB_NAME" --single-transaction -f "$after"
   echo "  · ok"

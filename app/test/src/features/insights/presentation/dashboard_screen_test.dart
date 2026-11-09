@@ -129,6 +129,50 @@ void main() {
     expect(shown('Flat 2B: submitted, not yet confirmed'), findsOneWidget);
   });
 
+  testWidgets('money received this month is shown apart from dues paid', (
+    tester,
+  ) async {
+    // UAT D2: Rs 120,000 of back-dated arrears came in today, and none of
+    // this month's Rs 52,000 is paid yet. The dashboard said "Collected this
+    // month Rs 0".
+    final json = dashboardJson();
+    (json['month']! as Map<String, Object?>)
+      ..['expected'] = 52000
+      ..['paid'] = 0
+      ..['collection_rate'] = 0
+      ..['cash_received'] = 120000
+      ..['tax_withheld'] = 0
+      ..['by_method'] = {'cash': 120000};
+    final app = TestApp()..insights.dashboardAnswer = json;
+    await pumpScreen(tester, _dashboard, app: app, size: _tall);
+    Finder tile(String label) =>
+        find.ancestor(of: find.text(label), matching: find.byType(MmStatTile));
+    expect(find.text('Collected this month'), findsNothing);
+    final paid = tile("This month's dues paid");
+    expect(find.descendant(of: paid, matching: shown('Rs 0')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: paid,
+        matching: find.text('of Rs 52,000 due, 0% collected'),
+      ),
+      findsOneWidget,
+    );
+    final received = tile('Received this month');
+    expect(
+      find.descendant(of: received, matching: shown('Rs 120,000')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: received,
+        matching: find.text(
+          "Every payment recorded this month, for any month's dues",
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a registration submitted after its date is no alarm', (
     tester,
   ) async {

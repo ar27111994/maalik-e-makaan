@@ -80,9 +80,8 @@ App screens (from the 2026-11-08 reviews):
   letting the subtitle run under the chevron would give the width back.
 - `MmButtonVariant.link` needs 16 dp of unclipped space on its start side for
   its focus ring (`COMPONENTS.md`); a clipping container would cut it.
-- `THIRD_PARTY_NOTICES.md` still lists the licence gaps that are now closed
-  (`packages/mm_ui/LICENSE`, `packages/mm_core/LICENSE`, the licence page);
-  `MmIcons.ttf` still has empty copyright fields.
+- `MmIcons.ttf` still has empty copyright fields (`THIRD_PARTY_NOTICES.md`,
+  Gaps, now lists only this one as open).
 
 Design system components (from the 2026-11-07 review):
 

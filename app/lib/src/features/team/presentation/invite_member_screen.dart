@@ -220,13 +220,25 @@ class InvitationReady extends ConsumerWidget {
           MmSectionHeader(title: l10n.invitationLinkLabel),
           const SizedBox(height: MmSpace.s2),
           MmCard(
-            child: Directionality(
+            // A SelectableText reaches assistive technology as an empty,
+            // unlabelled field on the web (docs/uat.md, D3): screen readers
+            // hear the link from this node instead, and select or copy it
+            // with Copy link below.
+            child: Semantics(
+              container: true,
+              label: l10n.invitationLinkLabel,
+              value: link.url.toString(),
               textDirection: TextDirection.ltr,
-              child: SelectableText(
-                link.url.toString(),
-                style: context.mm.styleFor(
-                  link.url.toString(),
-                  Theme.of(context).textTheme.bodyMedium!,
+              child: ExcludeSemantics(
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: SelectableText(
+                    link.url.toString(),
+                    style: context.mm.styleFor(
+                      link.url.toString(),
+                      Theme.of(context).textTheme.bodyMedium!,
+                    ),
+                  ),
                 ),
               ),
             ),

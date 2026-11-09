@@ -15,12 +15,13 @@ All of this sits on a secure, multi-user Supabase backend.
 
 Status legend: ☐ pending · ◐ in progress · ☑ done (verified by tests or UAT).
 
-Status on 2026-11-08, at commit 02050c1. A requirement is ticked when the app (`app/lib/src`),
-the database or the site implements it and automated tests cover it: the app's 87 test files
-(1,652 tests, 98.7% line coverage at 02050c1), the 18 committed pgTAP suites (707 planned tests),
-the Edge Function tests and the website's unit and end-to-end suites. Nothing has had browser UAT
-or a release-readiness audit yet (Phase 12), so "done" means done in code and tests, not
-released. Items marked ◐ say what remains.
+Status on 2026-11-08, after the release-readiness fixes on top of commit e853378. A requirement
+is ticked when the app (`app/lib/src`), the database or the site implements it and automated
+tests cover it: the app's unit, widget and golden tests, the 21 committed pgTAP suites, the Edge
+Function tests and the website's unit and end-to-end suites. The browser UAT (`docs/uat.md`: 14
+journeys on the release web build against a local Supabase stack) passes, and the
+release-readiness audit's verdict and owner actions are in `docs/release-readiness.md`. "Done"
+means done in code and tests, not released. Items marked ◐ say what remains.
 
 ## Must-Have (v1.0)
 
@@ -248,9 +249,10 @@ released. Items marked ◐ say what remains.
 
 - ◐ NFR-03: Full English and Urdu localisation with RTL, and locale-aware dates, numbers and
   currency.
-  - Remains: a native Urdu review of the app's and the site's strings; the Latin "AM/PM" in
-    Urdu times (`core/dates.dart`); an Urdu reminder typed while the app is in English shows
-    left to right; Urdu text fields lay English out right to left (an `MmTextField` gap).
+  - Remains: a native Urdu review of the app's and the site's strings. (Closed in e853378:
+    Urdu times use صبح, دوپہر, سہ پہر, شام and رات instead of the Latin "AM/PM"
+    (`core/dates.dart`), and text fields follow the direction of what is typed
+    (`MmSemantics.firstStrongDirection` in `mm_text_input.dart`).)
 - ◐ NFR-04: Performance:
   - cold start under 3 s on mid-range Android;
   - smooth 60 fps lists;
@@ -271,8 +273,13 @@ released. Items marked ◐ say what remains.
   sync, and structured error mapping.
 - ◐ NFR-07: Testing: unit, widget, golden, integration/e2e, pgTAP (RLS matrix, RPCs, concurrency,
   stress), edge-function and website e2e/a11y/Lighthouse suites, with coverage gates.
-  - Remains: the app has no integration or end-to-end tests against a running Supabase stack;
-    its REST requests (including foreign-key embed names) are checked against the SQL only.
+  - Done: browser end-to-end tests of the app against a running Supabase stack (`app/uat/`,
+    `make test-uat`, CI job `uat`): 14 journeys from sign-up to account deletion, in English
+    and Urdu, each checked against the database.
+  - Remains: the journeys do not reach the operations screens (expenses, utilities,
+    maintenance), reports or search, whose REST requests (including foreign-key embed names
+    such as `utility_bills_charge_id_fkey`) are still checked against the SQL only; there are no
+    Flutter integration tests on Android or iOS.
 - ◐ NFR-08: CI/CD:
   - quality, security and coverage gates;
   - Dependabot;

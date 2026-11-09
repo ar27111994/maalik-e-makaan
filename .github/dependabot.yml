@@ -55,6 +55,23 @@ updates:
     cooldown:
       default-days: 7
 
+  # The browser UAT (app/uat/, docs/uat.md): Playwright only.
+  - package-ecosystem: npm
+    directory: /app/uat
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      uat:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+
   - package-ecosystem: pub
     directories: ["/", "/app", "/packages/mm_core", "/packages/mm_ui"]
     schedule:

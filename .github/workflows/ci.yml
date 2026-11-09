@@ -337,9 +337,84 @@ jobs:
         run: supabase test db
       - name: Edge Functions end to end
         run: make test-functions-e2e
+      # A stack that failed to start leaves no container: say so instead of
+      # failing this step and hiding the error above.
       - name: Function logs
         if: failure()
-        run: docker logs "$(docker ps -q --filter name=supabase_edge_runtime)" 2>&1 | tail -200
+        run: |
+          id="$(docker ps -aq --filter name=supabase_edge_runtime | head -n 1)"
+          if [[ -n "$id" ]]; then
+            docker logs "$id" 2>&1 | tail -200
+          else
+            echo "No edge-runtime container: the stack did not start (see 'Start the stack')."
+          fi
+      - name: Stop the stack
+        if: always()
+        run: supabase stop --no-backup
+
+  uat:
+    name: UAT (web app on the Supabase stack)
+    runs-on: ubuntu-24.04
+    # About 12 minutes: stack 3, Flutter web build 4, Playwright browser 1,
+    # the journeys 2.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: app/uat/package-lock.json
+      - name: Function secrets for the local stack (with a storage-cleanup token)
+        run: |
+          cp supabase/functions/.env.example supabase/functions/.env
+          echo "STORAGE_CLEANUP_TOKEN=$(openssl rand -hex 24)" >> supabase/functions/.env
+      - name: Start the stack
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,realtime,postgres-meta
+      - run: flutter pub get
+      - name: Playwright and its Chromium (the build the lockfile pins)
+        working-directory: app/uat
+        run: |
+          npm ci --no-audit --no-fund
+          npx --no-install playwright install --with-deps chromium
+      - name: The journeys (make test-uat)
+        env:
+          UAT_SCREENSHOTS: ${{ runner.temp }}/uat-screenshots
+        run: make test-uat
+      - name: Upload the Playwright report and screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: uat-report
+          path: |
+            app/uat/build/report/
+            app/uat/build/test-results/
+            ${{ runner.temp }}/uat-screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Function and auth logs
+        if: failure()
+        run: |
+          for name in supabase_edge_runtime supabase_auth; do
+            id="$(docker ps -aq --filter "name=$name" | head -n 1)"
+            if [[ -n "$id" ]]; then
+              echo "::group::$name"
+              docker logs "$id" 2>&1 | tail -100
+              echo "::endgroup::"
+            else
+              echo "No $name container: the stack did not start (see 'Start the stack')."
+            fi
+          done
       - name: Stop the stack
         if: always()
         run: supabase stop --no-backup
@@ -392,6 +467,7 @@ jobs:
         functions,
         database,
         supabase-stack,
+        uat,
         formal,
       ]
     runs-on: ubuntu-24.04

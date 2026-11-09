@@ -102,6 +102,13 @@ abstract final class DocumentColors {
 /// is the documents' too).
 const double documentMargin = MmSpace.s8;
 
+/// A receipt's margin above and below, in points. With it, and the receipt's
+/// tighter gaps and one-paragraph footer, an A5 page holds an Urdu receipt
+/// that settles three dues and has a reference; before, the tall Nastaliq
+/// lines pushed the footer of one settling two on to a second page
+/// (docs/uat.md, D8).
+const double receiptMarginVertical = MmSpace.s5;
+
 /// The type sizes of documents, in points.
 abstract final class DocumentSize {
   static const double caption = 8;
@@ -148,7 +155,7 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
     ),
     pw.SizedBox(height: MmSpace.sHalf),
     await writer.text(l10n.receiptDocumentTitle, color: DocumentColors.muted),
-    pw.SizedBox(height: MmSpace.s3),
+    pw.SizedBox(height: MmSpace.s2),
     pw.Container(
       padding: const pw.EdgeInsets.symmetric(
         horizontal: MmSpace.s3,
@@ -170,7 +177,7 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
       ),
     ),
     if (payment.voided) ...[
-      pw.SizedBox(height: MmSpace.s3),
+      pw.SizedBox(height: MmSpace.s2),
       pw.Container(
         width: width,
         padding: const pw.EdgeInsets.all(MmSpace.s2),
@@ -184,7 +191,7 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
         ),
       ),
     ],
-    pw.SizedBox(height: MmSpace.s3),
+    pw.SizedBox(height: MmSpace.s2),
     await writer.text(
       l10n.amountReceivedLabel,
       size: DocumentSize.small,
@@ -194,7 +201,7 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
       words.money.format(payment.amount),
       size: DocumentSize.amount,
     ),
-    pw.SizedBox(height: MmSpace.s3),
+    pw.SizedBox(height: MmSpace.s2),
     pw.Divider(color: DocumentColors.rule, thickness: 0.5),
     await row(l10n.receivedFromLabel, lease.tenantName),
     await row(
@@ -223,16 +230,11 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
       pw.SizedBox(height: MmSpace.s2),
       await row(l10n.notesLabel, notes),
     ],
-    pw.SizedBox(height: MmSpace.s4),
+    pw.SizedBox(height: MmSpace.s2),
     pw.Divider(color: DocumentColors.rule, thickness: 0.5),
+    // One paragraph, not two lines: a Nastaliq line is tall (D8).
     await writer.text(
-      l10n.receiptFooter,
-      size: DocumentSize.caption,
-      color: DocumentColors.muted,
-      maxWidth: width,
-    ),
-    await writer.text(
-      l10n.documentMadeOn(words.date(setup.today)),
+      '${l10n.receiptFooter} ${l10n.documentMadeOn(words.date(setup.today))}',
       size: DocumentSize.caption,
       color: DocumentColors.muted,
       maxWidth: width,
@@ -250,7 +252,10 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
         // dues), so nothing is cut off.
         pw.MultiPage(
           pageFormat: format,
-          margin: const pw.EdgeInsets.all(documentMargin),
+          margin: const pw.EdgeInsets.symmetric(
+            horizontal: documentMargin,
+            vertical: receiptMarginVertical,
+          ),
           textDirection: pdfTextDirection(writer),
           footer: documentPageNumbers,
           build: (_) => children,
