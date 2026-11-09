@@ -4,7 +4,7 @@
          until a release build: tool/android/check_manifest.py guards it. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="maalik_e_makaan"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

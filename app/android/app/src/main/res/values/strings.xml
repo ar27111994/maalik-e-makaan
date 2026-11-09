@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The name under the launcher icon and in Settings; appName in app_en.arb. -->
+    <string name="app_name">Maalik-e-Makaan</string>
+</resources>
