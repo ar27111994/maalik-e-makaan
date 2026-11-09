@@ -493,6 +493,19 @@ void main() {
       expect(app.auth.calls.single.$2, [link]);
     });
 
+    testWidgets('moves on by itself once the link is complete', (tester) async {
+      // Opened signed in (the harness's default), the router leaves the
+      // callback to finish.
+      final app = TestApp();
+      await pumpScreen(
+        tester,
+        () => AuthCallbackScreen(link: Uri.parse('/auth/callback?code=abc')),
+        app: app,
+      );
+      expect(app.auth.calls.single.$1, 'completeEmailLink');
+      expect(routeShown(Routes.home), findsOneWidget);
+    });
+
     for (final (reason, message) in [
       ('link_expired', 'This link has expired or was already used.'),
       ('link_other_device', 'Open the link on the phone or browser'),

@@ -34,14 +34,19 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen>
     // The code works once: exchange it once, after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(
-        runCommand(
-          () => ref
-              .read(authStatusProvider.notifier)
-              .completeEmailLink(widget.link),
-        ),
-      );
+      unawaited(_complete());
     });
+  }
+
+  Future<void> _complete() async {
+    final done = await runCommand(
+      () =>
+          ref.read(authStatusProvider.notifier).completeEmailLink(widget.link),
+    );
+    // Signed out before, the router moves on when the session arrives; signed
+    // in already, it lets this screen finish, so leave it here. A password
+    // reset is sent on to choosing the new password either way.
+    if (done && mounted) context.go(Routes.home);
   }
 
   @override

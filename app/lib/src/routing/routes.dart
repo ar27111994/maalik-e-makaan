@@ -132,6 +132,12 @@ String? redirectFor({
       if (Routes.public.contains(path)) return null;
       return cause == null ? _withFrom(Routes.signIn, location) : Routes.signIn;
     case SignedIn():
+      // An e-mail link still completes when it is opened signed in (a
+      // password reset asked for before signing in again): the callback
+      // screen exchanges its code, then moves on by itself.
+      if (path == Routes.authCallback && _carriesEmailLink(location)) {
+        return null;
+      }
       if (Routes.signedOutOnly.contains(path) || path == Routes.authCallback) {
         return _from(location) ?? Routes.home;
       }
@@ -145,6 +151,16 @@ String? redirectFor({
       }
       return null;
   }
+}
+
+/// Whether [location] is a Supabase e-mail link: it carries a code to
+/// exchange or the refusal of one, in the query or the fragment.
+bool _carriesEmailLink(Uri location) {
+  final parameters = {
+    ...Uri.splitQueryString(location.fragment),
+    ...location.queryParameters,
+  };
+  return const ['code', 'error', 'error_code'].any(parameters.containsKey);
 }
 
 /// [target] remembering [location] in `from`, unless it is the home page.

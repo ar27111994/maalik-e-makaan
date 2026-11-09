@@ -58,6 +58,16 @@ void main() {
     expect(_go('/update-password', _signedIn), '/');
   });
 
+  test('an e-mail link opened signed in still completes', () {
+    // A password reset asked for before signing in again.
+    expect(_go('/auth/callback?code=abc', _signedIn), isNull);
+    expect(_go('/auth/callback#error_code=otp_expired', _signedIn), isNull);
+    expect(_go('/auth/callback?error=access_denied', _signedIn), isNull);
+    // Without a link to complete, the callback is skipped as before.
+    expect(_go('/auth/callback', _signedIn), '/');
+    expect(_go('/auth/callback?from=/money', _signedIn), '/money');
+  });
+
   test('a password reset leads only to choosing a new password', () {
     expect(_go('/', _recovering), '/update-password');
     expect(_go('/sign-in', _recovering), '/update-password');
