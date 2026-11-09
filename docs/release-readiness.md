@@ -390,6 +390,12 @@ approval.
 
 ## Follow-ups (not blocking)
 
+- iOS cannot finish an e-mail link (Greptile on PR 1): `Info.plist` has no Associated Domains
+  and no URL scheme, so a confirmation or reset link opens the web app, which lacks the PKCE
+  verifier the iOS app stored. v1 ships Android and the web; before an iOS release, add the
+  Associated Domains entitlement and an `apple-app-site-association` file (needs the Apple
+  Team ID), or a custom scheme in `CFBundleURLTypes` with `authCallbackUrl` using it on iOS.
+
 - TEAM-05: no screen reads the audit trail.
 - NFR-07: the UAT does not reach the operations screens, reports or search.
 - NFR-04: cold start and frame rates are not measured on a mid-range Android phone.
