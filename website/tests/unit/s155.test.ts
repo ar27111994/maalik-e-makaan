@@ -2,6 +2,7 @@
 // .planning/research/website-facts.md §3.6 (computed independently by
 // s155_vectors.py), every band edge from both sides, the prescribed-person
 // threshold, and properties that hold for any rent.
+import fc from "fast-check";
 import { describe, expect, test } from "vitest";
 import { Money } from "../../src/lib/money/index.ts";
 import {
@@ -11,11 +12,12 @@ import {
   PRESCRIBED_INDIVIDUAL_THRESHOLD,
   S155_TAX_YEAR,
   bandIndexFor,
+  individualBands,
   s155Withholding,
   tenantMustWithhold,
   type Payee,
 } from "../../src/lib/tax/s155.ts";
-import { mulberry32 } from "./random.ts";
+import { RUNS, paisaIn, rupeesIn } from "./arbitraries.ts";
 
 const rs = (value: number) => Money.fromRupees(value);
 const paisa = (value: bigint) => Money.fromPaisa(value);
@@ -211,63 +213,136 @@ describe("who must withhold (prescribed persons)", () => {
   });
 });
 
-describe("properties over random rents", () => {
-  const random = mulberry32(155);
-  // Every band edge, plus 500 random whole-rupee rents up to Rs 1 crore.
-  const rents = [
-    ...[0, 1, 299_999, 300_000, 300_001, 599_999, 600_000, 600_001].map(rs),
-    ...[1_999_999, 2_000_000, 2_000_001].map(rs),
-    ...Array.from({ length: 500 }, () => rs(random.int(10_000_000))),
-  ];
+describe("properties over any rent", () => {
+  const EDGES = [0, 1, 299_999, 300_000, 300_001, 599_999, 600_000, 600_001];
+  const TOP_EDGES = [1_999_999, 2_000_000, 2_000_001, 1_499_999, 1_500_000, 1_500_001];
+  /** Whole-rupee rents up to Rs 1 crore a year, with every band edge and its neighbours. */
+  const wholeRupeeRent = fc.oneof(
+    fc.constantFrom(...EDGES, ...TOP_EDGES).map(rs),
+    rupeesIn(0, 10_000_000),
+  );
+  /** Any rent to the paisa, up to Rs 120 crore: Rs 10 crore a month, the calculator's maximum. */
+  const anyRent = fc.oneof(wholeRupeeRent, paisaIn(0n, 120_000_000_000n));
+  const columns = fc.constantFrom<readonly [Payee, boolean]>(
+    ["individual", true],
+    ["individual", false],
+    ["company", true],
+    ["company", false],
+  );
+  const withholding = (gross: Money, payee: Payee, onActiveTaxpayersList: boolean) =>
+    s155Withholding({ grossAnnualRent: gross, payee, onActiveTaxpayersList });
 
   test("not on the ATL is exactly double on the ATL, for individuals and companies", () => {
-    for (const gross of rents) {
-      for (const payee of ["individual", "company"] as const) {
-        const on = s155Withholding({ grossAnnualRent: gross, payee, onActiveTaxpayersList: true });
-        const off = s155Withholding({
-          grossAnnualRent: gross,
-          payee,
-          onActiveTaxpayersList: false,
-        });
-        expect(off.annual.paisa).toBe(on.annual.paisa * 2n);
+    fc.assert(
+      fc.property(
+        wholeRupeeRent,
+        fc.constantFrom<Payee>("individual", "company"),
+        (gross, payee) => {
+          const on = withholding(gross, payee, true);
+          const off = withholding(gross, payee, false);
+          expect(off.annual.paisa).toBe(on.annual.paisa * 2n);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("withholding never falls as rent rises, and never exceeds the top marginal rate", () => {
+    fc.assert(
+      fc.property(anyRent, anyRent, columns, (a, b, [payee, onAtl]) => {
+        const [low, high] = a.lte(b) ? [a, b] : [b, a];
+        const lower = withholding(low, payee, onAtl);
+        const higher = withholding(high, payee, onAtl);
+        expect(lower.annual.gte(Money.ZERO)).toBe(true);
+        expect(lower.annual.lte(higher.annual)).toBe(true);
+        // The top marginal rate: 25% (individual, ATL), 50% (not), 15% or 30% (company).
+        const top =
+          payee === "company"
+            ? onAtl
+              ? COMPANY_RATE_BASIS_POINTS.onAtl
+              : COMPANY_RATE_BASIS_POINTS.notOnAtl
+            : (individualBands(onAtl).at(-1)?.rateBasisPoints ?? 0);
+        expect(higher.annual.lte(high.percentage(top))).toBe(true);
+        // The effective rate is the rounded annual figure over the rent, rounded half up
+        // to the basis point. Below Rs 100 a year the half paisa of the annual figure's own
+        // rounding is a basis point or more (Rs 0.02 at 30% is 0.6 paisa, withheld as 1
+        // paisa: 50%), so the cap on the rate holds from Rs 100.
+        const effective = BigInt(higher.effectiveRateBasisPoints);
+        const error = effective * high.paisa - higher.annual.paisa * 10_000n;
+        expect((error < 0n ? -error : error) * 2n <= high.paisa).toBe(true);
+        if (high.gte(rs(100))) expect(higher.effectiveRateBasisPoints).toBeLessThanOrEqual(top);
+      }),
+      RUNS,
+    );
+  });
+
+  test("withholding never falls from one band edge, or its neighbour, to the next", () => {
+    // Two random rents seldom sit either side of an edge, so walk every edge in order too.
+    const sorted = [...EDGES, ...TOP_EDGES].toSorted((a, b) => a - b).map(rs);
+    for (const [payee, onAtl] of [
+      ["individual", true],
+      ["individual", false],
+      ["company", true],
+      ["company", false],
+    ] as const) {
+      let previous = Money.ZERO;
+      for (const gross of sorted) {
+        const { annual } = withholding(gross, payee, onAtl);
+        expect(annual.gte(previous), `${payee} ${String(onAtl)} ${gross.toString()}`).toBe(true);
+        previous = annual;
       }
     }
   });
 
-  test("withholding never falls as rent rises, and never exceeds the top marginal rate", () => {
-    const sorted = [...rents].sort((a, b) => a.compareTo(b));
-    let previous = Money.ZERO;
-    for (const gross of sorted) {
-      const result = s155Withholding({
-        grossAnnualRent: gross,
-        payee: "individual",
-        onActiveTaxpayersList: true,
-      });
-      expect(result.annual.gte(previous)).toBe(true);
-      expect(result.annual.lte(gross.percentage(2500))).toBe(true);
-      previous = result.annual;
-    }
-  });
-
   test("whole-rupee rents give an exact number of paisa: no rounding is needed", () => {
-    for (const gross of rents) {
-      for (const [payee, onAtl] of [
-        ["individual", true],
-        ["individual", false],
-        ["company", true],
-        ["company", false],
-      ] as const) {
-        const result = s155Withholding({
-          grossAnnualRent: gross,
-          payee,
-          onActiveTaxpayersList: onAtl,
-        });
+    fc.assert(
+      fc.property(wholeRupeeRent, columns, (gross, [payee, onAtl]) => {
+        const result = withholding(gross, payee, onAtl);
         const exact =
           result.band.fixed.paisa * 10_000n +
           result.excess.paisa * BigInt(result.band.rateBasisPoints);
         expect(exact % 10_000n).toBe(0n);
         expect(result.annual.paisa).toBe(exact / 10_000n);
-      }
-    }
+      }),
+      RUNS,
+    );
+  });
+
+  test("the rent falls in its band: above the lower edge, not above the upper", () => {
+    fc.assert(
+      fc.property(anyRent, fc.boolean(), (gross, onAtl) => {
+        const result = withholding(gross, "individual", onAtl);
+        const { band } = result;
+        expect(band).toBe(individualBands(onAtl)[result.bandIndex]);
+        expect(gross.gt(band.over) || result.bandIndex === 0).toBe(true);
+        expect(band.upTo === null || gross.lte(band.upTo)).toBe(true);
+        expect(result.excess.equals(gross.minus(band.over))).toBe(true);
+        expect(result.nonAtlIndividual).toBe(!onAtl);
+      }),
+      RUNS,
+    );
+  });
+
+  test("the monthly figure times 12 is within 6 paisa of the year's", () => {
+    fc.assert(
+      fc.property(anyRent, columns, (gross, [payee, onAtl]) => {
+        const result = withholding(gross, payee, onAtl);
+        const difference = result.monthlyEvenSpread.paisa * 12n - result.annual.paisa;
+        expect(difference >= -6n && difference <= 6n).toBe(true);
+      }),
+      RUNS,
+    );
+  });
+
+  test("an individual tenant withholds exactly from Rs 1.5 million, an organisation always", () => {
+    fc.assert(
+      fc.property(anyRent, (gross) => {
+        expect(tenantMustWithhold("organisation", gross)).toBe(true);
+        expect(tenantMustWithhold("individual", gross)).toBe(
+          gross.gte(PRESCRIBED_INDIVIDUAL_THRESHOLD),
+        );
+      }),
+      RUNS,
+    );
   });
 });

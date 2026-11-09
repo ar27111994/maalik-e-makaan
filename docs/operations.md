@@ -467,9 +467,9 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    Conventional Commit title.
 2. The Release workflow keeps a release pull request open on `main` (release-please). It bumps
    `.release-please-manifest.json`, `app/pubspec.yaml` and `website/package.json`, and writes
-   `CHANGELOG.md`. `release-please-config.json` says `"release-as": "1.0.0"` for the first
-   release; **remove that line in the first commit after v1.0.0**, or every later release would
-   again be 1.0.0.
+   `CHANGELOG.md`. It picks the next version from the commits since the last tag: a `fix` gives a
+   patch release, a `feat` a minor one, and a breaking change (`!` or `BREAKING CHANGE:`) a major
+   one. (v1.0.0 was pinned with `"release-as"`, removed straight after it was tagged.)
 3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
    builds the signed Android app and the web app and attaches them (`artefacts`), builds and
    attaches the unsigned iOS app (`ios`), and calls the Deploy workflow for the tag (`deploy`),

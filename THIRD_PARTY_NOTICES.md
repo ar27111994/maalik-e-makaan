@@ -46,7 +46,7 @@ others); Flutter writes their notices into every build's `NOTICES` asset.
 | Package            | Version | Licence                                                                            |
 | ------------------ | ------- | ---------------------------------------------------------------------------------- |
 | clock              | 1.1.3   | Apache-2.0                                                                         |
-| file_picker        | 13.3.0  | MIT                                                                                |
+| file_picker        | 13.3.2  | MIT                                                                                |
 | flutter_riverpod   | 3.4.3   | MIT                                                                                |
 | go_router          | 18.1.3  | BSD-3-Clause                                                                       |
 | http               | 1.6.0   | BSD-3-Clause                                                                       |
@@ -141,7 +141,7 @@ Their locked transitive packages are MIT (`@supabase/auth-js`,
 
 | Package          | Version | Licence      |
 | ---------------- | ------- | ------------ |
-| astro            | 7.4.4   | MIT          |
+| astro            | 7.4.5   | MIT          |
 | @astrojs/mdx     | 8.1.2   | MIT          |
 | @astrojs/sitemap | 3.7.4   | MIT          |
 | subset-font      | 2.9.0   | BSD-3-Clause |
@@ -159,6 +159,7 @@ Development only:
 | eslint                    | 10.14.0 | MIT        |
 | eslint-plugin-astro       | 3.2.1   | MIT        |
 | eslint-plugin-jsx-a11y    | 6.10.2  | MIT        |
+| fast-check                | 4.10.2  | MIT        |
 | globals                   | 17.14.0 | MIT        |
 | parse5                    | 8.1.0   | MIT        |
 | postcss-html              | 2.0.0   | MIT        |
@@ -231,7 +232,7 @@ in the app, the website's output or the functions.
 
 ### dbus 0.8.0 (MPL-2.0)
 
-`file_picker` 13.3.0 uses `file_picker_linux` 2.0.2 (MIT) on Linux, which
+`file_picker` 13.3.2 uses `file_picker_linux` 2.0.2 (MIT) on Linux, which
 talks to the desktop's file chooser portal through `dbus` 0.8.0
 (<https://github.com/canonical/dbus.dart>). Only a Linux desktop build runs
 it; Android, iOS and web builds never call it. The package is used unmodified.

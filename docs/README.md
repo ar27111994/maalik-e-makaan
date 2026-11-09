@@ -51,6 +51,6 @@ indexes this documentation for AI readers.
 
 `CHANGELOG.md` at the repository root is written by release-please from the Conventional Commit
 messages (`release-please-config.json`, `changelog-path: CHANGELOG.md`) when it opens a release pull
-request; do not write it by hand. No release has been cut yet (`.release-please-manifest.json` is at
-`0.0.0`, and `"release-as": "1.0.0"` makes the first one v1.0.0), so the file does not exist. `packages/mm_core/CHANGELOG.md` and
+request; do not write it by hand. The first release was v1.0.0 on 2026-11-09; release-please now picks
+each next version from the commits since the last tag. `packages/mm_core/CHANGELOG.md` and
 `packages/mm_ui/CHANGELOG.md` point to it.

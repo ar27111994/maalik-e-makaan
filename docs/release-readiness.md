@@ -355,7 +355,8 @@ In order. Record each in `.planning/STATE.md` when it is done.
    with `admin_rate_limit_hit` (STATE, Blockers).
 8. **Cut v1.0.0.** Merge the release pull request (`chore(release): release 1.0.0`), approve the
    Deploy it calls, check the release carries the AAB, the APKs, the web zip and `SHA256SUMS`,
-   then commit the removal of `"release-as": "1.0.0"` from `release-please-config.json`.
+   then commit the removal of `"release-as": "1.0.0"` from `release-please-config.json`. Done on
+   2026-11-09: v1.0.0 was tagged and the pin removed in the next pull request.
 9. **Google Play**, when the D-U-N-S number arrives: upload the AAB, add the Play app-signing
    key's SHA-256 to `app/web/.well-known/assetlinks.json` beside the upload key's, redeploy, check
    with the Digital Asset Links API, and link the listing from the website.

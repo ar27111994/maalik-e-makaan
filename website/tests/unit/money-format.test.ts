@@ -1,4 +1,5 @@
 // Ports of packages/mm_core/test/money/money_format_test.dart, money_parse_test.dart and digits_test.dart.
+import fc from "fast-check";
 import { describe, expect, test } from "vitest";
 import {
   Money,
@@ -7,8 +8,10 @@ import {
   normalizeDigits,
   parseMoneyInput,
   toUrduDigits,
+  type DigitGrouping,
   type MoneyFormatOptions,
 } from "../../src/lib/money/index.ts";
+import { RUNS, storedAmount } from "./arbitraries.ts";
 
 const rs = (rupees: number) => Money.fromRupees(rupees);
 
@@ -184,6 +187,85 @@ test("parse and format round-trip for a spread of amounts", () => {
       expect(parseMoneyInput(text)?.equals(amount), text).toBe(true);
     }
   }
+});
+
+describe("properties of formatting and parsing", () => {
+  const options: fc.Arbitrary<MoneyFormatOptions> = fc.record({
+    grouping: fc.constantFrom("western", "southAsian"),
+    notation: fc.constantFrom("standard", "compact"),
+    currency: fc.constantFrom("symbol", "code", "none"),
+    paisa: fc.constantFrom("auto", "always", "never"),
+    language: fc.constantFrom("english", "urdu"),
+    nativeDigits: fc.boolean(),
+  });
+  const CRORE = Money.fromRupees(10_000_000);
+
+  const isCompact = (amount: Money, format: MoneyFormatOptions) =>
+    format.notation === "compact" && amount.abs().gte(rs(100_000));
+  // The rounded figures can pass the top of numeric(14,2), which parseMoneyInput refuses:
+  // from Rs 99,999.995 crore a compact figure reads "100,000 crore" (Rs 10^12), and without
+  // paisa Rs 999,999,999,999.50 reads "Rs 1,000,000,000,000".
+  const passesTheTop = (amount: Money, format: MoneyFormatOptions) =>
+    isCompact(amount, format)
+      ? amount.abs().gte(rs(999_999_950_000))
+      : format.paisa === "never" && !amount.roundToRupee().isWithinStorageRange;
+
+  test("property: every stored amount reads back from every way it is written", () => {
+    fc.assert(
+      fc.property(storedAmount, options, (amount, format) => {
+        const text = formatMoney(amount, format);
+        const parsed = parseMoneyInput(text, { allowNegative: true });
+        if (passesTheTop(amount, format)) {
+          expect(parsed, text).toBeNull();
+          return;
+        }
+        expect(parsed, text).not.toBeNull();
+        if (parsed === null) return;
+        expect(parsed.isNegative && !amount.isNegative, text).toBe(false);
+        if (isCompact(amount, format)) {
+          // Two decimals of a lakh (Rs 1,000) or of a crore (Rs 1,00,000), rounded half up.
+          const hundredth = parsed.abs().gte(CRORE) ? rs(100_000) : rs(1_000);
+          expect(parsed.minus(amount).abs().paisa * 2n <= hundredth.paisa, text).toBe(true);
+        } else if (format.paisa === "never") {
+          expect(parsed.equals(amount.roundToRupee()), text).toBe(true);
+        } else {
+          expect(parsed.equals(amount), text).toBe(true);
+        }
+      }),
+      RUNS,
+    );
+  });
+
+  test("property: a negative amount is refused unless negatives are allowed", () => {
+    fc.assert(
+      fc.property(storedAmount, options, (amount, format) => {
+        fc.pre(!passesTheTop(amount, format));
+        const text = formatMoney(amount, format);
+        expect(parseMoneyInput(text) === null, text).toBe(amount.isNegative);
+      }),
+      RUNS,
+    );
+  });
+
+  test("property: grouping only adds commas, and Urdu digits convert back", () => {
+    fc.assert(
+      fc.property(
+        fc.stringMatching(/^[1-9]\d{0,17}$/),
+        fc.constantFrom<DigitGrouping>("western", "southAsian"),
+        (digits, grouping) => {
+          const grouped = groupDigits(digits, grouping);
+          expect(grouped.replaceAll(",", "")).toBe(digits);
+          expect(grouped.split(",").at(-1)?.length).toBe(Math.min(3, digits.length));
+          const groupSize = grouping === "western" ? 3 : 2;
+          for (const group of grouped.split(",").slice(1, -1)) {
+            expect(group).toHaveLength(groupSize);
+          }
+          expect(normalizeDigits(toUrduDigits(grouped))).toBe(grouped);
+        },
+      ),
+      RUNS,
+    );
+  });
 });
 
 describe("digits", () => {
