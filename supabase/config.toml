@@ -1,7 +1,7 @@
 # Supabase CLI configuration for local development and CI (`supabase start`,
 # `supabase db reset`, `supabase test db`). Based on the Supabase CLI v3
 # template. Hosted-project settings (auth URLs, SMTP, auth rate limits) are
-# managed in the dashboard; see docs/runbooks/supabase.md.
+# managed in the dashboard; see docs/operations.md.
 project_id = "maalik-e-makaan"
 
 [api]
@@ -90,6 +90,20 @@ secure_password_change = true
 max_frequency = "1m0s"
 otp_length = 6
 otp_expiry = 3600
+
+# The e-mails, in English then Urdu. The hosted project's subjects and bodies
+# are set in the dashboard from these same files (docs/operations.md, E-mail).
+[auth.email.template.confirmation]
+subject = "Confirm your email address · اپنا ای میل پتہ تصدیق کریں"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password · اپنا پاس ورڈ دوبارہ ترتیب دیں"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirm the change of email address · ای میل پتے کی تبدیلی کی تصدیق کریں"
+content_path = "./supabase/templates/email_change.html"
 
 [auth.sms]
 enable_signup = false

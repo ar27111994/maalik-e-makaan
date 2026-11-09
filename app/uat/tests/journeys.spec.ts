@@ -105,7 +105,9 @@ test.describe.serial("Landlord journeys", () => {
     await see(page, "Check your e-mail");
     await shot(page, "en-01-check-email");
     const mail = await latestMailTo(owner.email);
-    expect(mail.subject).toBe("Confirm your email address");
+    expect(mail.subject).toBe("Confirm your email address · اپنا ای میل پتہ تصدیق کریں");
+    expect(mail.html).toContain("Welcome to Maalik-e-Makaan.");
+    expect(mail.html).toContain("مالکِ مکان میں خوش آمدید۔");
     await open(page, verifyLink(mail));
     await expect(page).toHaveURL(/\/portfolios\/new/);
     await fill(page, "Portfolio name", "UAT Rentals");
