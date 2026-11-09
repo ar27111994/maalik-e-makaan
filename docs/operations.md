@@ -471,9 +471,9 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    release; **remove that line in the first commit after v1.0.0**, or every later release would
    again be 1.0.0.
 3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
-   builds the signed Android app and the web app and attaches them (`artefacts`), and calls the
-   Deploy workflow for the tag (`deploy`), which waits for a reviewer when the `production`
-   environment requires one.
+   builds the signed Android app and the web app and attaches them (`artefacts`), builds and
+   attaches the unsigned iOS app (`ios`), and calls the Deploy workflow for the tag (`deploy`),
+   which waits for a reviewer when the `production` environment requires one.
 4. Watch the Deploy run: each job ends with its smoke test, and the `supabase` job with a call to
    `health`. Then run the daily query of Monitoring and alerts.
 
@@ -493,6 +493,13 @@ tokens, Generate new token. Resource owner the account, Only select repositories
 is added; nothing else). An expiry of 366 days with a reminder two weeks before, or none. Save it
 as the repository secret `RELEASE_PLEASE_TOKEN`. An expired token is not empty, so the fallback to
 `GITHUB_TOKEN` does not apply: Release fails with "Bad credentials" until the secret is replaced.
+
+Android version codes come from the Release run's number N. Each split APK gets 1000 times its
+ABI number plus N (Flutter's scheme: 1001 + N up to 4000 + N); the app bundle for Google Play gets
+10000 + N. A later bundle is therefore always above any APK already released, so Google Play can
+update a phone that installed an APK, if Play signs with the same key. With Play App Signing's
+own key the signatures differ and such a phone must uninstall first whatever the codes. Keep the
+offset: lowering it later would put a Play build below an APK already in someone's hands.
 
 release-please titles its pull request `chore(release): release X.Y.Z`
 (`pull-request-title-pattern` in `release-please-config.json`), which the title check and
