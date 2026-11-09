@@ -2,4 +2,4 @@
 # hashed tool/formal/requirements.txt with Python 3.13:
 #   pip-compile --generate-hashes --allow-unsafe tool/formal/requirements.in
 # tool/formal/install.sh installs it into .cache/formal/venv with --require-hashes.
-z3-solver==5.3.1.0
+z3-solver==5.3.3.0
