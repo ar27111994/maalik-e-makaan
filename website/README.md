@@ -32,7 +32,7 @@ npm run preview        # serve dist/ the way Vercel does (headers, redirects, 40
 `make test-web` at the repository root runs `npm run check`, `npm test`, `npm run build`,
 `npm run test:e2e` and `npm run lighthouse:ci`, the same sequence as CI's `website` job.
 
-Playwright is pinned to 1.63.0 and uses its own Chromium build: preinstalled in the development
+Playwright is pinned to 1.64.1 and uses its own Chromium build: preinstalled in the development
 environment (`PLAYWRIGHT_BROWSERS_PATH`), installed in CI by
 `npx playwright install --with-deps chromium`. Set `PW_CHROMIUM_PATH` to run the e2e suite on
 another Chromium binary. Lighthouse CI uses the same Chromium (`chromium.executablePath()` from
@@ -236,6 +236,6 @@ at least seven days before it was locked; install new versions with
 | `minimatch@>=10.0.0 <11.0.1` → 11.0.3, `@eslint/config-array` → `minimatch` 11.0.3             | GHSA-g3hv-75wg-m249 in ESLint's minimatch                                                     |
 | `lighthouse` → 13.6.0                                                                          | Lighthouse CI 0.15.1 pins 12.6.1, whose puppeteer chain carries advisories                    |
 | `tmp` → 0.2.7, `uuid` → 11.1.1, `basic-ftp` → 6.2.3, `@sentry/bundler-plugins` → `glob` 14.0.3 | advisories in Lighthouse CI's dependencies                                                    |
-| `playwright-core` → 1.63.0                                                                     | keeps `@axe-core/playwright` on the same Playwright as the tests and the preinstalled browser |
+| `playwright-core` → 1.64.1                                                                     | keeps `@axe-core/playwright` on the same Playwright as the tests and the preinstalled browser |
 
 `npm audit` reports no vulnerabilities with these overrides.

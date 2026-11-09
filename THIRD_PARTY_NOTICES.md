@@ -154,13 +154,13 @@ Development only:
 | @axe-core/playwright      | 4.14.0  | MPL-2.0    |
 | @eslint/js                | 10.0.1  | MIT        |
 | @lhci/cli                 | 0.15.1  | Apache-2.0 |
-| @playwright/test          | 1.63.0  | Apache-2.0 |
+| @playwright/test          | 1.64.1  | Apache-2.0 |
 | @types/node               | 22.20.5 | MIT        |
-| eslint                    | 10.13.0 | MIT        |
+| eslint                    | 10.14.0 | MIT        |
 | eslint-plugin-astro       | 3.2.1   | MIT        |
 | eslint-plugin-jsx-a11y    | 6.10.2  | MIT        |
-| globals                   | 17.13.0 | MIT        |
-| parse5                    | 8.0.1   | MIT        |
+| globals                   | 17.14.0 | MIT        |
+| parse5                    | 8.1.0   | MIT        |
 | postcss-html              | 2.0.0   | MIT        |
 | prettier                  | 3.9.10  | MIT        |
 | prettier-plugin-astro     | 1.1.2   | MIT        |
