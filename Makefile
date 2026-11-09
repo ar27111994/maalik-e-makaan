@@ -166,13 +166,14 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web packaging, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web and iOS packaging, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
 	python3 -m unittest discover -s tool/design -p 'test_*.py'
 	python3 -m unittest discover -s tool/web -p 'test_*.py'
 	python3 -m unittest discover -s tool/formal -p 'test_*.py'
+	python3 -m unittest discover -s tool/ios -p 'test_*.py'
 
 .PHONY: tokens
 tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)
