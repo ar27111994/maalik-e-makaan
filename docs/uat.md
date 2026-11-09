@@ -41,9 +41,11 @@ UAT_SCREENSHOTS=docs/uat make test-uat   # write the report's screenshots
 tool/uat/run.sh -g "J5 "            # extra arguments go to Playwright
 ```
 
-It needs the Supabase CLI and Docker, Flutter, Node 22 and `psql`. The app must be served on port
-8080 (`UAT_PORT`), which Auth's redirect URLs and the functions' `APP_URL` in
-`supabase/config.toml` expect. The harness adds a `STORAGE_CLEANUP_TOKEN` to
+It needs the Supabase CLI and Docker, Flutter, Node 22 and `psql`, and the Chromium build that the
+locked Playwright pins: run `npm ci` and then `npx --no-install playwright install chromium` in
+`app/uat` after each Playwright update (CI's `uat` job does both), or set `UAT_CHROME` to another
+Chromium. The app must be served on port 8080 (`UAT_PORT`), which Auth's redirect URLs and the
+functions' `APP_URL` in `supabase/config.toml` expect. The harness adds a `STORAGE_CLEANUP_TOKEN` to
 `supabase/functions/.env` before the stack starts, because journey 10 calls the
 `storage-cleanup` function the way pg_cron does. The Playwright report is written to
 `app/uat/build/report/`.

@@ -11,6 +11,7 @@ import {
   fill,
   loose,
   open,
+  openTab,
   pickerDate,
   reload,
   see,
@@ -138,7 +139,7 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J3 add a tenant", async () => {
-    await activate(page.getByRole("tab", { name: "Tenants" }));
+    await openTab(page, "Tenants");
     await see(page, "No tenants yet");
     await tap(page, "Add tenant");
     await fill(page, "Full name", "Tenant Uat");
@@ -272,7 +273,7 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J7 invite a second user as viewer", async ({ browser }) => {
-    await activate(page.getByRole("tab", { name: "More" }));
+    await openTab(page, "More");
     await tap(page, /^Team /);
     await tap(page, "Invite someone");
     await fill(page, "Their e-mail", viewer.email);
@@ -330,7 +331,7 @@ test.describe.serial("Landlord journeys", () => {
 
   test("J8 role limits: a viewer cannot record payments", async () => {
     await tap(viewerPage, "پورٹ فولیو کھولیں");
-    await activate(viewerPage.getByRole("tab", { name: "حساب" }));
+    await openTab(viewerPage, "حساب");
     // The viewer sees the same figures as the owner, in Urdu.
     await see(viewerPage, loose(`واجب الادا ${130000 + 1000 * lateFees} روپے`));
     await tap(viewerPage, /^Tenant Uat/);
@@ -380,7 +381,7 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J9 dashboard figures match the ledger", async () => {
-    await activate(page.getByRole("tab", { name: "Dashboard" }));
+    await openTab(page, "Dashboard");
     await see(page, loose(`This month, ${months[2]}`));
     // The ledger, from the database: what is owed, what is overdue, and the
     // ageing buckets the dashboard draws.
@@ -426,7 +427,10 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J10 upload a document to private storage, then delete it", async () => {
-    await activate(page.getByRole("tab", { name: "Tenants" }));
+    await openTab(page, "Tenants");
+    // The list itself, not the dashboard J9 left behind: both name the tenant,
+    // and the dashboard's entry opens the statement under Money instead.
+    await see(page, "Add tenant");
     await tap(page, /^Tenant Uat/);
     await see(page, "No documents yet. Add photos of the CNIC, front and back.");
     await tap(page, "Add document");
@@ -519,7 +523,7 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J12 the owner switches to Urdu: dashboard and an Urdu receipt", async () => {
-    await activate(page.getByRole("tab", { name: "More" }));
+    await openTab(page, "More");
     // The More tab comes back where it was left: the Team screen of J7,
     // refreshed: the accepted invitation is no longer waiting and the viewer
     // is a member (defect D4: it stayed stale until opened again).
@@ -540,7 +544,7 @@ test.describe.serial("Landlord journeys", () => {
     expect(await page.evaluate(() => document.documentElement.lang)).toBe("ur");
     await shot(page, "ur-04-settings");
 
-    await activate(page.getByRole("tab", { name: "ڈیش بورڈ" }));
+    await openTab(page, "ڈیش بورڈ");
     await see(
       page,
       loose(`کل ${(130000 + 1000 * lateFees).toLocaleString("en-US")} روپے واجب الادا`),
@@ -548,7 +552,7 @@ test.describe.serial("Landlord journeys", () => {
     await shot(page, "ur-05-dashboard");
 
     // The Money tab is still on the tenancy's ledger, now in Urdu.
-    await activate(page.getByRole("tab", { name: "حساب" }));
+    await openTab(page, "حساب");
     await see(page, loose(`اب واجب الادا، ${130000 + 1000 * lateFees} روپے`));
     await shot(page, "ur-06-ledger");
     await tap(page, new RegExp(`^120,000 روپے رسید ${receipt1}`));
@@ -595,7 +599,7 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J14 account deletion: the viewer, then the owner", async () => {
-    await activate(viewerPage.getByRole("tab", { name: "مزید" }));
+    await openTab(viewerPage, "مزید");
     await tap(viewerPage, /^ترتیبات /);
     await tap(viewerPage, "اکاؤنٹ حذف کریں");
     // Not the only owner of anything: no portfolio goes with the account.
@@ -624,7 +628,7 @@ test.describe.serial("Landlord journeys", () => {
 
     // The owner, the only owner of UAT Rentals: the portfolio goes too.
     // (The More tab is still on Settings, where J12 left it.)
-    await activate(page.getByRole("tab", { name: "مزید" }));
+    await openTab(page, "مزید");
     await tap(page, "اکاؤنٹ حذف کریں");
     await see(
       page,

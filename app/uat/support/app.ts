@@ -44,6 +44,18 @@ export async function activate(target: Locator): Promise<void> {
   await target.evaluate((element: HTMLElement) => element.click());
 }
 
+/**
+ * Opens the navigation tab [name] and waits until it is the selected one.
+ * The page that was showing stays in the semantics tree until the switch
+ * lands, so a tap straight after the click can hit a control of the old page
+ * with the same name (the dashboard also lists tenants by name).
+ */
+export async function openTab(page: Page, name: string): Promise<void> {
+  const tab = page.getByRole("tab", { name });
+  await activate(tab);
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
 /** Taps the button labelled [name]. */
 export async function tap(page: Page | Locator, name: string | RegExp): Promise<void> {
   await activate(button(page, name));

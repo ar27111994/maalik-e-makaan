@@ -402,6 +402,28 @@ other platforms. The address must be among Auth's redirect URLs (E-mail, above).
 iPhone once an iOS build exists: sign up and reset a password from the app; iOS asks to open the
 link in Maalik-e-Makaan.
 
+### iOS builds
+
+There is no Apple Developer Program membership yet, so nothing signs the iOS app. CI's
+`ios-build` job builds it for iPhone without signing on every push and pull request, which keeps it
+compiling, and keeps the result for 14 days as the `ios-unsigned-ipa` artefact. Each release
+attaches `maalik-e-makaan-vX.Y.Z-ios-unsigned.ipa`, built with production's configuration, with
+its checksum in `SHA256SUMS-ios` and a provenance attestation.
+
+An unsigned `.ipa` installs on no iPhone as it is. To try it on your own phone:
+
+- With a free Apple Account and no Mac: a third-party signing tool such as Sideloadly (Windows or
+  macOS) signs the `.ipa` with that account and installs it over USB. The install lasts 7 days, and
+  the phone must allow developer apps (Settings, General, VPN & Device Management) and, from iOS 16,
+  Developer Mode.
+- With a Mac: open `app/ios/Runner.xcworkspace` in Xcode, choose your Apple Account as the team
+  under Signing & Capabilities, and run on the phone. The same 7-day limit applies.
+- TestFlight and the App Store need the paid Apple Developer Program, a signing certificate and a
+  provisioning profile in the release workflow.
+
+An Apple Account needs a phone number that can receive Apple's verification code; it does not need
+an iPhone.
+
 ### Android App Links
 
 `app/web/.well-known/assetlinks.json` lets Android open `https://maalik-e-makaan.vercel.app/auth/callback`
