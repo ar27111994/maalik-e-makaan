@@ -106,7 +106,7 @@ portfolio.
 
 | Expected                                                             | Actual                                          |
 | -------------------------------------------------------------------- | ----------------------------------------------- |
-| "Check your e-mail" screen; an e-mail reaches Mailpit                | As expected: "Confirm your email address · …"   |
+| "Check your e-mail" screen; an e-mail reaches Mailpit                | As expected: "Confirm your e-mail address · …"  |
 | The link signs the user in and asks for a first portfolio            | Lands on `/portfolios/new`, signed in           |
 | The portfolio is created and the dashboard says there is no property | "UAT Rentals is ready." and "No properties yet" |
 
