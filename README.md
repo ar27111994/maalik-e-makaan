@@ -3,6 +3,7 @@
 [![CI](https://github.com/ar27111994/maalik-e-makaan/actions/workflows/ci.yml/badge.svg)](https://github.com/ar27111994/maalik-e-makaan/actions/workflows/ci.yml)
 [![Security](https://github.com/ar27111994/maalik-e-makaan/actions/workflows/security.yml/badge.svg)](https://github.com/ar27111994/maalik-e-makaan/actions/workflows/security.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/ar27111994/maalik-e-makaan/badge)](https://scorecard.dev/viewer/?uri=github.com/ar27111994/maalik-e-makaan)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16503/badge)](https://www.bestpractices.dev/projects/16503)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 Tenant and property management for **Pakistani landlords**, in English and Urdu. It replaces
@@ -19,14 +20,15 @@ that global tools ignore:
 
 ## Status
 
-In active development towards v1.0, and not yet released. Phases 1–9 of the
-[roadmap](.planning/ROADMAP.md) are built and tested: the domain library, the database, the Edge
-Functions, the design system and the app (sign-in, portfolios and team, properties, tenants and
-tenancies, documents, money, operations, dashboard, reports and search). The website and CI/CD
-are in place; the first production deploy, a native Urdu review and a legal review are still to
-come. Phase 12 (documentation, UAT and release readiness) is under way: the browser UAT passes
-([`docs/uat.md`](docs/uat.md)), and [`docs/release-readiness.md`](docs/release-readiness.md) has
-the verdict and what the owner must still do.
+**v1.0.0 was released on 9 November 2026** ([release notes](CHANGELOG.md), downloads on the
+[releases page](https://github.com/ar27111994/maalik-e-makaan/releases)): Android APKs and app
+bundle, the web app at <https://maalik-e-makaan.vercel.app> and an unsigned iOS build. The
+domain library, the database, the Edge Functions, the design system, the app, the website and
+CI/CD are built, tested and deployed, and the browser UAT passes ([`docs/uat.md`](docs/uat.md)).
+Still to come before inviting real users: a native-speaker review of the Urdu and a legal review
+of the privacy and terms pages. Google Play waits on a D-U-N-S number, and the App Store on an
+Apple Developer Program membership. [`docs/release-readiness.md`](docs/release-readiness.md) has
+what the owner must still do.
 [`.planning/STATE.md`](.planning/STATE.md) has the current position and blockers, and
 [`.planning/REQUIREMENTS.md`](.planning/REQUIREMENTS.md) says what remains of each requirement.
 
