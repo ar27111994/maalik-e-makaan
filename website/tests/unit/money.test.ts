@@ -1,12 +1,15 @@
 // Ports of packages/mm_core/test/money/{money,divide_rounded,basis_points}_test.dart.
+import fc from "fast-check";
 import { describe, expect, test } from "vitest";
 import {
   Money,
+  RENT_ROUNDING,
   basisPointsFromPercent,
   divideRounded,
   percentFromBasisPoints,
+  type RoundingMode,
 } from "../../src/lib/money/index.ts";
-import { mulberry32 } from "./random.ts";
+import { RUNS, nonNegativeAmount, paisaIn, storedAmount } from "./arbitraries.ts";
 
 const m = (paisa: number) => Money.fromPaisa(paisa);
 
@@ -184,17 +187,176 @@ describe("rounding modes", () => {
     expect(Money.MAX_VALUE.multiply(9999, 10000).paisa).toBe(99_989_999_999_999n);
   });
 
-  test("property: halfUp is always floor or floor + 1 of the exact quotient (seeded)", () => {
-    const random = mulberry32(42);
-    for (let i = 0; i < 2000; i++) {
-      const paisa = BigInt(random.int(1 << 30) - (1 << 29));
-      const numerator = BigInt(random.int(20000));
-      const denominator = BigInt(1 + random.int(10000));
-      const exact = paisa * numerator;
-      const floor = (exact < 0n ? exact - (denominator - 1n) : exact) / denominator;
-      const result = Money.fromPaisa(paisa).multiply(numerator, denominator).paisa;
-      expect(result - floor >= 0n && result - floor <= 1n).toBe(true);
-    }
+  test("property: halfUp is the floor or floor + 1 of the exact quotient, and the nearest", () => {
+    fc.assert(
+      fc.property(
+        storedAmount,
+        fc.bigInt({ min: 0n, max: 20_000n }),
+        fc.bigInt({ min: 1n, max: 10_000n }),
+        (amount, numerator, denominator) => {
+          const exact = amount.paisa * numerator;
+          const floor = (exact < 0n ? exact - (denominator - 1n) : exact) / denominator;
+          const result = amount.multiply(numerator, denominator).paisa;
+          expect(result - floor >= 0n && result - floor <= 1n).toBe(true);
+          const error = exact - result * denominator;
+          expect((error < 0n ? -error : error) * 2n <= denominator).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
+});
+
+/** The floor-based reference for every rounding mode, independent of rounding.ts. */
+function referenceRounding(numerator: bigint, denominator: bigint, mode: RoundingMode): bigint {
+  const [n, d] = denominator < 0n ? [-numerator, -denominator] : [numerator, denominator];
+  const floor = n >= 0n ? n / d : -((-n + d - 1n) / d);
+  const remainder = n - floor * d; // 0 <= remainder < d
+  if (remainder === 0n) return floor;
+  const ceiling = floor + 1n;
+  const towardZero = n >= 0n ? floor : ceiling;
+  const awayFromZero = n >= 0n ? ceiling : floor;
+  const nearer = remainder * 2n < d ? floor : remainder * 2n > d ? ceiling : null;
+  switch (mode) {
+    case "floor":
+      return floor;
+    case "ceiling":
+      return ceiling;
+    case "down":
+      return towardZero;
+    case "up":
+      return awayFromZero;
+    case "halfUp":
+      return nearer ?? awayFromZero;
+    case "halfEven":
+      return nearer ?? (floor % 2n === 0n ? floor : ceiling);
+  }
+}
+
+const ROUNDING_MODES: readonly RoundingMode[] = [
+  "halfUp",
+  "halfEven",
+  "down",
+  "up",
+  "floor",
+  "ceiling",
+];
+
+describe("properties of rounding and scaling", () => {
+  test("property: divideRounded agrees with a floor-based reference in every mode", () => {
+    fc.assert(
+      fc.property(
+        fc.bigInt({ min: -(10n ** 20n), max: 10n ** 20n }),
+        fc.bigInt({ min: -1_000_000n, max: 1_000_000n }).filter((d) => d !== 0n),
+        fc.constantFrom(...ROUNDING_MODES),
+        (numerator, denominator, mode) => {
+          expect(divideRounded(numerator, denominator, mode)).toBe(
+            referenceRounding(numerator, denominator, mode),
+          );
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: ties are what tell halfUp and halfEven apart", () => {
+    fc.assert(
+      fc.property(
+        fc.bigInt({ min: -(10n ** 15n), max: 10n ** 15n }),
+        fc.bigInt({ min: 1n, max: 1_000_000n }),
+        (numerator, denominator) => {
+          const halfUp = divideRounded(numerator, denominator, "halfUp");
+          const halfEven = divideRounded(numerator, denominator, "halfEven");
+          const isTie =
+            (numerator % denominator) * 2n === denominator ||
+            (numerator % denominator) * 2n === -denominator;
+          if (!isTie) expect(halfEven).toBe(halfUp);
+          else expect(halfEven % 2n).toBe(0n);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: multiplyToStep lands on a multiple of the step, within half a step", () => {
+    fc.assert(
+      fc.property(
+        storedAmount,
+        fc.bigInt({ min: 0n, max: 20_000n }),
+        fc.bigInt({ min: 1n, max: 10_000n }),
+        fc.constantFrom(...Object.values(RENT_ROUNDING)),
+        (amount, numerator, denominator, stepRupees) => {
+          const stepPaisa = BigInt(stepRupees) * 100n;
+          const result = amount.multiplyToStep(numerator, denominator, { stepRupees });
+          expect(result.paisa % stepPaisa).toBe(0n);
+          const error = result.paisa * denominator - amount.paisa * numerator;
+          expect((error < 0n ? -error : error) * 2n <= stepPaisa * denominator).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: on amounts of zero or more, a larger ratio never gives less", () => {
+    fc.assert(
+      fc.property(
+        nonNegativeAmount,
+        fc.integer({ min: 0, max: 20_000 }),
+        fc.integer({ min: 0, max: 20_000 }),
+        fc.constantFrom(...Object.values(RENT_ROUNDING)),
+        (amount, a, b, stepRupees) => {
+          const [low, high] = a <= b ? [a, b] : [b, a];
+          expect(amount.percentage(low).lte(amount.percentage(high))).toBe(true);
+          expect(
+            amount
+              .multiplyToStep(low, 10_000, { stepRupees })
+              .lte(amount.multiplyToStep(high, 10_000, { stepRupees })),
+          ).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: 0% is nothing, 100% is the whole amount, and rounding to a step is idempotent", () => {
+    fc.assert(
+      fc.property(
+        storedAmount,
+        fc.constantFrom(...Object.values(RENT_ROUNDING)),
+        fc.constantFrom(...ROUNDING_MODES),
+        (amount, step, mode) => {
+          expect(amount.percentage(0).isZero).toBe(true);
+          expect(amount.percentage(10_000).equals(amount)).toBe(true);
+          const rounded = amount.roundToStep(step, mode);
+          expect(rounded.roundToStep(step, mode).equals(rounded)).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: the exact decimal string and JSON round-trip every stored amount", () => {
+    fc.assert(
+      fc.property(storedAmount, (amount) => {
+        const text = amount.toDecimalString();
+        expect(text).toMatch(/^-?\d+\.\d{2}$/);
+        expect(Money.parseDecimal(text).equals(amount)).toBe(true);
+        const json = JSON.parse(JSON.stringify({ amount })) as { amount: unknown };
+        expect(Money.fromJson(json.amount).equals(amount)).toBe(true);
+      }),
+      RUNS,
+    );
+  });
+
+  test("property: an amount outside numeric(14,2) does not parse", () => {
+    const beyond = Money.MAX_VALUE.paisa + 1n;
+    fc.assert(
+      fc.property(paisaIn(beyond, beyond * 1000n), fc.boolean(), (amount, negative) => {
+        const text = (negative ? amount.negate() : amount).toDecimalString();
+        expect(Money.tryParseDecimal(text)).toBeNull();
+      }),
+      RUNS,
+    );
   });
 });
 
@@ -220,19 +382,47 @@ describe("allocate and splitEvenly", () => {
     expect(() => Money.ZERO.splitEvenly(0)).toThrow(RangeError);
   });
 
-  test("property: parts always sum to the whole (seeded)", () => {
-    const random = mulberry32(20261103);
-    for (let i = 0; i < 2000; i++) {
-      const total = m(random.int(2 ** 31) - 2 ** 30);
-      const ratios: number[] = Array.from({ length: 1 + random.int(8) }, () => random.int(50));
-      if (!ratios.some((ratio) => ratio !== 0)) ratios[0] = 1;
-      const parts = total.allocate(ratios);
-      expect(Money.sum(parts).equals(total)).toBe(true);
-      ratios.forEach((ratio, index) => {
-        if (ratio === 0) expect(parts[index]?.isZero).toBe(true);
-      });
-    }
+  test("property: parts sum to the whole, zero ratios get nothing, each part within a paisa", () => {
+    fc.assert(
+      fc.property(
+        storedAmount,
+        fc
+          .array(fc.integer({ min: 0, max: 50 }), { minLength: 1, maxLength: 8 })
+          .filter((ratios) => ratios.some((ratio) => ratio !== 0)),
+        (total, ratios) => {
+          const parts = total.allocate(ratios);
+          expect(parts).toHaveLength(ratios.length);
+          expect(Money.sum(parts).equals(total)).toBe(true);
+          const weight = BigInt(ratios.reduce((sum, ratio) => sum + ratio, 0));
+          ratios.forEach((ratio, index) => {
+            const part = parts[index] ?? Money.ZERO;
+            if (ratio === 0) expect(part.isZero).toBe(true);
+            // |part − total × ratio ÷ weight| < 1 paisa, and the part has the total's sign.
+            const error = part.paisa * weight - total.paisa * BigInt(ratio);
+            expect((error < 0n ? -error : error) < weight).toBe(true);
+            expect(part.isNegative && !total.isNegative).toBe(false);
+          });
+        },
+      ),
+      RUNS,
+    );
     expect(paisaOf(Money.fromRupees(1000).splitEvenly(3))).toEqual([33334n, 33333n, 33333n]);
+  });
+
+  test("property: splitEvenly gives parts a paisa apart at most, the larger ones first", () => {
+    fc.assert(
+      fc.property(storedAmount, fc.integer({ min: 1, max: 60 }), (total, count) => {
+        const parts = total.splitEvenly(count);
+        expect(parts).toHaveLength(count);
+        expect(Money.sum(parts).equals(total)).toBe(true);
+        const magnitudes = parts.map((part) => part.abs().paisa);
+        expect(magnitudes).toEqual(magnitudes.toSorted((a, b) => (a > b ? -1 : a < b ? 1 : 0)));
+        const [largest = 0n] = magnitudes;
+        const smallest = magnitudes.at(-1) ?? 0n;
+        expect(largest - smallest <= 1n).toBe(true);
+      }),
+      RUNS,
+    );
   });
 });
 
@@ -254,5 +444,16 @@ describe("basis points", () => {
     expect(percentFromBasisPoints(1234)).toBe("12.34");
     expect(percentFromBasisPoints(5)).toBe("0.05");
     expect(() => percentFromBasisPoints(-1)).toThrow(RangeError);
+  });
+
+  test("property: every percentage from 0 to 100 round-trips through basis points", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 10_000 }), (basisPoints) => {
+        const percent = percentFromBasisPoints(basisPoints);
+        expect(basisPointsFromPercent(percent)).toBe(basisPoints);
+        expect(basisPointsFromPercent(` ${percent} `)).toBe(basisPoints);
+      }),
+      RUNS,
+    );
   });
 });

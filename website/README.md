@@ -22,7 +22,7 @@ npm run preview        # serve dist/ the way Vercel does (headers, redirects, 40
 | `npm run check`         | `astro check`, `tsc --noEmit`, ESLint, Stylelint and `prettier --check`; all must be clean         |
 | `npm run lint`          | ESLint and Stylelint only                                                                          |
 | `npm run format`        | Prettier, writing changes                                                                          |
-| `npm test`              | Vitest unit tests, including every vector in `contracts/rent_math_vectors.json`                    |
+| `npm test`              | Vitest unit and property tests, including every vector in `contracts/rent_math_vectors.json`       |
 | `npm run test:links`    | checks every link, image and `#fragment` in `dist/` (no network)                                   |
 | `npm run test:e2e`      | the link check, then Playwright against `dist/` (build first)                                      |
 | `npm run lighthouse`    | Lighthouse CI on every page of `dist/`, mobile profile; each category must score 95 or more        |
@@ -168,6 +168,15 @@ withholding only (never final tax, D-10) and flags the uncertain non-ATL individ
 `bigint`; every rounding is explicit and happens once. `tests/unit/rent-math-contract.test.ts`
 checks every vector in `contracts/rent_math_vectors.json`, the same file the Dart and SQL suites
 check, so a calculator on this site always agrees with the app and the database.
+
+Property tests written with [fast-check](https://fast-check.dev/) check the rules for any input
+in range, not only the examples: amounts stay whole paisa, rounding lands within half a step,
+allocations keep every paisa, withholding never falls as rent rises, a longer tenancy or a higher
+increase never gives less, and what a calculator writes it reads back. They live in
+`tests/unit/money.test.ts`, `money-format.test.ts`, `rent-math.test.ts`, `s155.test.ts` and
+`tools-properties.test.ts`, with the shared arbitraries in `tests/unit/arbitraries.ts`. Each run
+uses a new seed and 500 cases a property; a failure prints the seed and the shrunk counterexample,
+and `FC_NUM_RUNS=100000 npm test` searches longer.
 
 As in the app's `MoneyFormat`, "Rs", "روپے", "lakh" and "کروڑ" are joined to the figures by a
 no-break space (U+00A0), so an amount never breaks across lines. The copy in `src/content/` does the

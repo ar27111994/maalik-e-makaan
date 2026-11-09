@@ -1,4 +1,5 @@
 // Ports of packages/mm_core/test/rent/*, test/ledger/allocation_test.dart and test/time/*.
+import fc from "fast-check";
 import { describe, expect, test } from "vitest";
 import {
   CalendarDate,
@@ -23,7 +24,7 @@ import {
   proratedRent,
   type LateFeePolicy,
 } from "../../src/lib/money/index.ts";
-import { mulberry32 } from "./random.ts";
+import { RUNS, calendarDate, nonNegativeAmount, paisaIn, storedAmount } from "./arbitraries.ts";
 
 const d = (iso: string) => CalendarDate.parse(iso);
 const rent = Money.fromRupees(45000);
@@ -68,16 +69,38 @@ describe("CalendarDate", () => {
     expect(d("2026-03-15").addMonths(-3).toIso()).toBe("2025-12-15");
   });
 
-  test("property: addDays and differenceInDays agree (seeded)", () => {
-    const random = mulberry32(7);
-    for (let i = 0; i < 2000; i++) {
-      // Years 30–9929 keep start ± 10,000 days inside the supported 1–9999.
-      const start = new CalendarDate(30 + random.int(9900), 1 + random.int(12), 1 + random.int(28));
-      const days = random.int(20000) - 10000;
-      const end = start.addDays(days);
-      expect(end.differenceInDays(start)).toBe(days);
-      expect(end.addDays(-days).equals(start)).toBe(true);
-    }
+  test("property: addDays and differenceInDays agree, and the weekday moves with them", () => {
+    fc.assert(
+      fc.property(
+        // Years 30–9929 keep start ± 10,000 days inside the supported 1–9999.
+        calendarDate(30, 9929),
+        fc.integer({ min: -10_000, max: 10_000 }),
+        (start, days) => {
+          const end = start.addDays(days);
+          expect(end.differenceInDays(start)).toBe(days);
+          expect(end.addDays(-days).equals(start)).toBe(true);
+          expect(end.compareTo(start)).toBe(Math.sign(days));
+          expect(end.weekday).toBe(((((start.weekday - 1 + days) % 7) + 7) % 7) + 1);
+          expect(CalendarDate.parse(end.toIso()).equals(end)).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: addMonths moves by whole months and clamps only the day", () => {
+    fc.assert(
+      fc.property(
+        calendarDate(200, 9800),
+        fc.integer({ min: -1200, max: 1200 }),
+        (start, months) => {
+          const end = start.addMonths(months);
+          expect(MonthPeriod.of(end).monthsSince(MonthPeriod.of(start))).toBe(months);
+          expect(end.day).toBe(Math.min(start.day, end.lengthOfMonth));
+        },
+      ),
+      RUNS,
+    );
   });
 });
 
@@ -196,6 +219,87 @@ describe("proration (actual days in the month)", () => {
     expect(billed(nov, false)).toBe(rent);
     expect(billed(nov.addMonths(1))).toBe(rent);
   });
+
+  /** A month from 1990 to 2100 and two days in it, the earlier first. */
+  const monthAndTwoDays = fc
+    .tuple(fc.integer({ min: 1990, max: 2100 }), fc.integer({ min: 1, max: 12 }))
+    .chain(([year, month]) => {
+      const day = fc.integer({ min: 1, max: daysInMonth(year, month) });
+      return fc.tuple(fc.constant(new MonthPeriod(year, month)), day, day);
+    })
+    .map(([period, a, b]) => ({ period, early: Math.min(a, b), late: Math.max(a, b) }));
+
+  test("property: never negative, never above the rent; a part month is whole rupees", () => {
+    fc.assert(
+      fc.property(nonNegativeAmount, monthAndTwoDays, (monthlyRent, { period, early, late }) => {
+        const occupancy = new DateRange(period.dayClamped(early), period.dayClamped(late));
+        const days = late - early + 1;
+        const result = proratedRent({ monthlyRent, period, occupancy });
+        expect(result.isNegative).toBe(false);
+        expect(result.lte(monthlyRent)).toBe(true);
+        if (days === period.lengthInDays) {
+          expect(result).toBe(monthlyRent);
+        } else {
+          // Whole rupees, unless capped at a rent that has paisa.
+          expect(result.paisa % 100n === 0n || result.equals(monthlyRent)).toBe(true);
+          // Within half a rupee of rent × days ÷ days in the month.
+          const length = BigInt(period.lengthInDays);
+          const error = result.paisa * length - monthlyRent.paisa * BigInt(days);
+          expect((error < 0n ? -error : error) <= 50n * length).toBe(true);
+        }
+      }),
+      RUNS,
+    );
+  });
+
+  test("property: an earlier move-in or a later move-out never lowers the month's rent", () => {
+    fc.assert(
+      fc.property(nonNegativeAmount, monthAndTwoDays, (monthlyRent, { period, early, late }) => {
+        const prorated = (start: number, end: number | null) =>
+          proratedRent({
+            monthlyRent,
+            period,
+            occupancy: new DateRange(
+              period.dayClamped(start),
+              end === null ? null : period.dayClamped(end),
+            ),
+          });
+        expect(prorated(early, null).gte(prorated(late, null))).toBe(true);
+        expect(prorated(1, late).gte(prorated(1, early))).toBe(true);
+        expect(occupiedDays(period, new DateRange(period.dayClamped(early)))).toBe(
+          period.lengthInDays - early + 1,
+        );
+      }),
+      RUNS,
+    );
+  });
+
+  test("property: billed rent is nothing before billing starts and the full rent after", () => {
+    fc.assert(
+      fc.property(
+        nonNegativeAmount,
+        calendarDate(1990, 2100),
+        fc.integer({ min: -24, max: 24 }),
+        fc.boolean(),
+        (monthlyRent, billingStartsOn, offset, prorateFirstMonth) => {
+          const first = MonthPeriod.of(billingStartsOn);
+          const period = first.addMonths(offset);
+          const billed = billedRent({ monthlyRent, period, billingStartsOn, prorateFirstMonth });
+          if (offset < 0) expect(billed.isZero).toBe(true);
+          else if (offset > 0 || !prorateFirstMonth) expect(billed).toBe(monthlyRent);
+          else {
+            const prorated = proratedRent({
+              monthlyRent,
+              period,
+              occupancy: new DateRange(billingStartsOn),
+            });
+            expect(billed.equals(prorated)).toBe(true);
+          }
+        },
+      ),
+      RUNS,
+    );
+  });
 });
 
 describe("increments", () => {
@@ -220,6 +324,66 @@ describe("increments", () => {
     expect(incrementedRent(base, { basisPoints: 0 }).equals(base)).toBe(true);
     expect(() => incrementedRent(base, { basisPoints: -1 })).toThrow(RangeError);
     expect(Object.values(RENT_ROUNDING)).toEqual([1, 10, 50, 100, 500, 1000]);
+  });
+
+  const roundings = Object.keys(RENT_ROUNDING) as (keyof typeof RENT_ROUNDING)[];
+
+  test("property: a multiple of the step, within half a step of the exact new rent", () => {
+    fc.assert(
+      fc.property(
+        nonNegativeAmount,
+        fc.integer({ min: 0, max: 10_000 }),
+        fc.constantFrom(...roundings),
+        (current, basisPoints, rounding) => {
+          const stepPaisa = BigInt(RENT_ROUNDING[rounding]) * 100n;
+          const next = incrementedRent(current, { basisPoints, rounding });
+          expect(next.paisa % stepPaisa).toBe(0n);
+          expect(next.isNegative).toBe(false);
+          // |next − current × (1 + bp ÷ 10,000)| ≤ half a step, in paisa × 10,000.
+          const error = next.paisa * 10_000n - current.paisa * BigInt(10_000 + basisPoints);
+          expect((error < 0n ? -error : error) * 2n <= stepPaisa * 10_000n).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: a higher percentage or a higher rent never gives a lower new rent", () => {
+    fc.assert(
+      fc.property(
+        nonNegativeAmount,
+        nonNegativeAmount,
+        fc.integer({ min: 0, max: 10_000 }),
+        fc.integer({ min: 0, max: 10_000 }),
+        fc.constantFrom(...roundings),
+        (a, b, p, q, rounding) => {
+          const [low, high] = a.lte(b) ? [a, b] : [b, a];
+          const [less, more] = p <= q ? [p, q] : [q, p];
+          const next = (current: Money, basisPoints: number) =>
+            incrementedRent(current, { basisPoints, rounding });
+          expect(next(low, less).lte(next(low, more))).toBe(true);
+          expect(next(low, less).lte(next(high, less))).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: the rent never falls when the increase is at least half the step", () => {
+    fc.assert(
+      fc.property(
+        nonNegativeAmount,
+        fc.integer({ min: 0, max: 10_000 }),
+        fc.constantFrom(...roundings),
+        (current, basisPoints, rounding) => {
+          const stepPaisa = BigInt(RENT_ROUNDING[rounding]) * 100n;
+          // current × bp ÷ 10,000 ≥ step ÷ 2, in whole numbers.
+          fc.pre(current.paisa * BigInt(basisPoints) * 2n >= stepPaisa * 10_000n);
+          expect(incrementedRent(current, { basisPoints, rounding }).gte(current)).toBe(true);
+        },
+      ),
+      RUNS,
+    );
   });
 });
 
@@ -251,6 +415,57 @@ describe("anniversaries and billable periods", () => {
       ),
     ).toEqual(["2026-09", "2026-10"]);
     expect(billablePeriods({ start: d("2027-01-01"), until: d("2026-11-03") })).toEqual([]);
+  });
+
+  test("property: the next anniversary is the first whole cycle on or after the date", () => {
+    fc.assert(
+      fc.property(
+        calendarDate(1990, 2100),
+        fc.integer({ min: -1000, max: 20_000 }),
+        fc.integer({ min: 1, max: 24 }),
+        (leaseStart, offset, intervalMonths) => {
+          const asOf = leaseStart.addDays(offset);
+          const next = nextAnniversary(leaseStart, asOf, intervalMonths);
+          expect(next.isOnOrAfter(asOf)).toBe(true);
+          expect(next.isAfter(leaseStart)).toBe(true);
+          const months = MonthPeriod.of(next).monthsSince(MonthPeriod.of(leaseStart));
+          expect(months % intervalMonths).toBe(0);
+          const cycles = months / intervalMonths;
+          expect(cycles).toBeGreaterThanOrEqual(1);
+          expect(next.equals(leaseStart.addMonths(months))).toBe(true);
+          if (cycles > 1) {
+            expect(leaseStart.addMonths(months - intervalMonths).isBefore(asOf)).toBe(true);
+          }
+        },
+      ),
+      RUNS,
+    );
+  });
+
+  test("property: billable periods are consecutive months from the start to the last day", () => {
+    fc.assert(
+      fc.property(
+        calendarDate(1990, 2100),
+        fc.integer({ min: -400, max: 2000 }),
+        fc.option(fc.integer({ min: -400, max: 2000 })),
+        (start, untilOffset, endOffset) => {
+          const until = start.addDays(untilOffset);
+          const end = endOffset === null ? null : start.addDays(endOffset);
+          const periods = billablePeriods({ start, until, end });
+          const last = end === null ? until : CalendarDate.min(until, end);
+          if (last.isBefore(start)) {
+            expect(periods).toEqual([]);
+            return;
+          }
+          expect(periods[0]?.equals(MonthPeriod.of(start))).toBe(true);
+          expect(periods.at(-1)?.equals(MonthPeriod.of(last))).toBe(true);
+          periods.slice(1).forEach((period, index) => {
+            expect(period.monthsSince(periods[index] ?? period)).toBe(1);
+          });
+        },
+      ),
+      RUNS,
+    );
   });
 });
 
@@ -314,6 +529,46 @@ describe("late fees", () => {
     );
     expect(MAX_LATE_FEE.isWithinStorageRange).toBe(true);
   });
+
+  /** Any policy the leases table can hold (late_fee_cap > 0, so a cap is positive). */
+  const policy: fc.Arbitrary<LateFeePolicy> = fc.oneof(
+    fc.constant({ type: "none" } as const),
+    nonNegativeAmount.map((amount) => ({ type: "flat", amount }) as const),
+    fc
+      .integer({ min: 0, max: 10_000 })
+      .map((basisPoints) => ({ type: "percent", basisPoints }) as const),
+    fc
+      .tuple(nonNegativeAmount, fc.option(paisaIn(1n, Money.MAX_VALUE.paisa)))
+      .map(([perDay, cap]) => ({ type: "daily", perDay, cap }) as const),
+  );
+
+  test("property: from zero to the cap, nothing within grace, and never less for more days late", () => {
+    fc.assert(
+      fc.property(
+        policy,
+        storedAmount,
+        fc.integer({ min: -60, max: 100_000 }),
+        fc.integer({ min: 0, max: 100_000 }),
+        fc.integer({ min: 0, max: 60 }),
+        (feePolicy, overdueAmount, daysLate, moreDays, graceDays) => {
+          const feeFor = (days: number) =>
+            lateFeeFor(feePolicy, { overdueAmount, daysLate: days, graceDays });
+          const fee = feeFor(daysLate);
+          expect(fee.isNegative).toBe(false);
+          expect(fee.lte(MAX_LATE_FEE)).toBe(true);
+          if (daysLate <= graceDays || !overdueAmount.isPositive) expect(fee.isZero).toBe(true);
+          if (feePolicy.type === "daily" && feePolicy.cap !== null) {
+            expect(fee.lte(feePolicy.cap)).toBe(true);
+          }
+          // Whole rupees, unless capped at a cap with paisa.
+          const cap = feePolicy.type === "daily" ? feePolicy.cap : null;
+          expect(fee.paisa % 100n === 0n || (cap !== null && fee.equals(cap))).toBe(true);
+          expect(feeFor(daysLate + moreDays).gte(fee)).toBe(true);
+        },
+      ),
+      RUNS,
+    );
+  });
 });
 
 describe("payment allocation", () => {
@@ -370,26 +625,79 @@ describe("payment allocation", () => {
     );
   });
 
-  test("property: conservation and order hold for random ledgers (seeded)", () => {
-    const random = mulberry32(99);
-    for (let i = 0; i < 500; i++) {
-      const charges = Array.from({ length: 1 + random.int(6) }, (_, n) => ({
-        id: `c${n}`,
-        dueDate: new CalendarDate(2026, 1 + random.int(12), 1 + random.int(28)),
-        outstanding: Money.fromPaisa(1 + random.int(10_000_000)),
-      }));
-      const payment = Money.fromPaisa(random.int(40_000_000));
-      const plan = planFifoAllocation(payment, charges);
-      expect(
-        Money.sum(plan.allocations.map((a) => a.amount))
-          .plus(plan.unallocated)
-          .equals(payment),
-      ).toBe(true);
-      const dues = plan.allocations.map(
-        (a) => charges.find((c) => c.id === a.chargeId)?.dueDate.toIso() ?? "",
-      );
-      expect(dues).toEqual(dues.toSorted());
-      expect(plan.allocations.every((a) => a.amount.isPositive)).toBe(true);
-    }
+  /** One to six open charges in 2026 with distinct ids and positive balances. */
+  const openCharges = fc.array(
+    fc.record({
+      dueDate: calendarDate(2026, 2026),
+      outstanding: paisaIn(1n, 10_000_000n),
+      isSecurityDeposit: fc.boolean(),
+    }),
+    { minLength: 1, maxLength: 6 },
+  );
+
+  test("property: conservation and order hold for any ledger", () => {
+    fc.assert(
+      fc.property(openCharges, paisaIn(0n, 40_000_000n), (drafts, payment) => {
+        const charges = drafts.map(({ dueDate, outstanding }, n) => ({
+          id: `c${n}`,
+          dueDate,
+          outstanding,
+        }));
+        const plan = planFifoAllocation(payment, charges);
+        expect(
+          Money.sum(plan.allocations.map((a) => a.amount))
+            .plus(plan.unallocated)
+            .equals(payment),
+        ).toBe(true);
+        const byId = new Map(charges.map((c) => [c.id, c]));
+        const dues = plan.allocations.map((a) => byId.get(a.chargeId)?.dueDate.toIso() ?? "");
+        expect(dues).toEqual(dues.toSorted());
+        expect(plan.allocations.every((a) => a.amount.isPositive)).toBe(true);
+        // No charge is paid twice or beyond its balance; only the last slice can be partial.
+        expect(new Set(plan.allocations.map((a) => a.chargeId)).size).toBe(plan.allocations.length);
+        plan.allocations.forEach((a, index) => {
+          const outstanding = byId.get(a.chargeId)?.outstanding ?? Money.ZERO;
+          expect(a.amount.lte(outstanding)).toBe(true);
+          if (index < plan.allocations.length - 1) expect(a.amount.equals(outstanding)).toBe(true);
+        });
+        // Credit is left over only when every charge is paid in full.
+        expect(plan.unallocated.isNegative).toBe(false);
+        if (plan.unallocated.isPositive) expect(plan.allocations).toHaveLength(charges.length);
+      }),
+      RUNS,
+    );
+  });
+
+  test("property: chosen charges come first, and a deposit adjustment never pays the deposit", () => {
+    fc.assert(
+      fc.property(
+        openCharges,
+        paisaIn(0n, 40_000_000n),
+        fc.array(fc.nat({ max: 5 }), { maxLength: 4 }),
+        fc.boolean(),
+        (drafts, payment, picks, depositAdjustment) => {
+          const charges = drafts.map((draft, n) => ({ id: `c${n}`, ...draft }));
+          const chosenChargeIds = picks
+            .filter((pick) => pick < charges.length)
+            .map((pick) => `c${pick}`);
+          const plan = planFifoAllocation(payment, charges, { chosenChargeIds, depositAdjustment });
+          const paid = plan.allocations.map((a) => a.chargeId);
+          const chosen = [...new Set(chosenChargeIds)].filter(
+            (id) => !(depositAdjustment && charges.find((c) => c.id === id)?.isSecurityDeposit),
+          );
+          expect(paid.slice(0, chosen.length)).toEqual(chosen.slice(0, paid.length));
+          if (depositAdjustment) {
+            const deposits = new Set(charges.filter((c) => c.isSecurityDeposit).map((c) => c.id));
+            expect(paid.some((id) => deposits.has(id))).toBe(false);
+          }
+          expect(
+            Money.sum(plan.allocations.map((a) => a.amount))
+              .plus(plan.unallocated)
+              .equals(payment),
+          ).toBe(true);
+        },
+      ),
+      RUNS,
+    );
   });
 });
