@@ -19,6 +19,10 @@ on:
     # Mondays 02:41 Pakistan time.
     - cron: "41 21 * * 0"
   workflow_dispatch:
+  # Temporary: one run of the revised workflow from this branch. Removed next.
+  push:
+    branches: [claude/exciting-cray-2wue0f]
+    paths: [.github/workflows/backup.yml]
 
 permissions:
   contents: read
@@ -33,7 +37,8 @@ defaults:
 
 env:
   PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
-  AGE_RECIPIENTS: ${{ vars.BACKUP_AGE_RECIPIENTS }}
+  # Temporary, with the push trigger: a throwaway key. Removed next.
+  AGE_RECIPIENTS: ${{ github.event_name == 'push' && 'age1vez9u53fxngnwtxcufhf3tvfw2rufes47w224nftqrq26k3zgy3q8rzy9t' || vars.BACKUP_AGE_RECIPIENTS }}
   # Kept equal to deploy.yml.
   SUPABASE_CLI_VERSION: 2.122.1
 
