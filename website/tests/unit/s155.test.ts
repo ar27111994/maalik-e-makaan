@@ -276,6 +276,24 @@ describe("properties over any rent", () => {
     );
   });
 
+  test("withholding never falls from one band edge, or its neighbour, to the next", () => {
+    // Two random rents seldom sit either side of an edge, so walk every edge in order too.
+    const sorted = [...EDGES, ...TOP_EDGES].toSorted((a, b) => a - b).map(rs);
+    for (const [payee, onAtl] of [
+      ["individual", true],
+      ["individual", false],
+      ["company", true],
+      ["company", false],
+    ] as const) {
+      let previous = Money.ZERO;
+      for (const gross of sorted) {
+        const { annual } = withholding(gross, payee, onAtl);
+        expect(annual.gte(previous), `${payee} ${String(onAtl)} ${gross.toString()}`).toBe(true);
+        previous = annual;
+      }
+    }
+  });
+
   test("whole-rupee rents give an exact number of paisa: no rounding is needed", () => {
     fc.assert(
       fc.property(wholeRupeeRent, columns, (gross, [payee, onAtl]) => {

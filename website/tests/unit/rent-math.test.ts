@@ -220,11 +220,15 @@ describe("proration (actual days in the month)", () => {
     expect(billed(nov.addMonths(1))).toBe(rent);
   });
 
-  /** A month from 1990 to 2100 and two days in it, the earlier first. */
+  /**
+   * A month from 1990 to 2100 and two days in it, the earlier first. The 1st and the last day
+   * are drawn often, so a full month and a month from or to its edge come up in every run.
+   */
   const monthAndTwoDays = fc
     .tuple(fc.integer({ min: 1990, max: 2100 }), fc.integer({ min: 1, max: 12 }))
     .chain(([year, month]) => {
-      const day = fc.integer({ min: 1, max: daysInMonth(year, month) });
+      const last = daysInMonth(year, month);
+      const day = fc.oneof(fc.constantFrom(1, last), fc.integer({ min: 1, max: last }));
       return fc.tuple(fc.constant(new MonthPeriod(year, month)), day, day);
     })
     .map(([period, a, b]) => ({ period, early: Math.min(a, b), late: Math.max(a, b) }));

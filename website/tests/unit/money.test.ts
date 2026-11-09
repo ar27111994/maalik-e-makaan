@@ -260,11 +260,27 @@ describe("properties of rounding and scaling", () => {
   });
 
   test("property: ties are what tell halfUp and halfEven apart", () => {
+    // Random pairs are seldom ties, so half the cases are built as q × d ± d ÷ 2 (d even).
+    const tie = fc
+      .tuple(
+        fc.bigInt({ min: -(10n ** 9n), max: 10n ** 9n }),
+        fc.bigInt({ min: 1n, max: 500_000n }),
+        fc.boolean(),
+      )
+      .map(([quotient, half, below]): [bigint, bigint] => [
+        quotient * 2n * half + (below ? -half : half),
+        2n * half,
+      ]);
     fc.assert(
       fc.property(
-        fc.bigInt({ min: -(10n ** 15n), max: 10n ** 15n }),
-        fc.bigInt({ min: 1n, max: 1_000_000n }),
-        (numerator, denominator) => {
+        fc.oneof(
+          fc.tuple(
+            fc.bigInt({ min: -(10n ** 15n), max: 10n ** 15n }),
+            fc.bigInt({ min: 1n, max: 1_000_000n }),
+          ),
+          tie,
+        ),
+        ([numerator, denominator]) => {
           const halfUp = divideRounded(numerator, denominator, "halfUp");
           const halfEven = divideRounded(numerator, denominator, "halfEven");
           const isTie =
