@@ -1,0 +1,6 @@
+# CodeQL configuration (security.yml, CodeQL job).
+name: maalik-e-makaan
+paths-ignore:
+  # A Flutter template: `{{flutter_js}}` and `{{flutter_build_config}}` are
+  # placeholders the Flutter build replaces, not JavaScript expressions.
+  - packages/mm_ui/example/web/flutter_bootstrap.js

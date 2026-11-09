@@ -1,0 +1,93 @@
+# dependency-review-action configuration (security.yml, Dependency review).
+fail-on-severity: moderate
+# Copyleft licences would oblige the closed app binaries.
+deny-licenses:
+  - AGPL-3.0-only
+  - AGPL-3.0-or-later
+  - GPL-2.0-only
+  - GPL-2.0-or-later
+  - GPL-3.0-only
+  - GPL-3.0-or-later
+# GitHub's dependency graph gives these pub packages lowercase licence IDs
+# ("mit", "bsd-3-clause"), which the action cannot parse as SPDX, and it
+# fails on an unparsable licence even when nothing is denied. Their licence
+# files were read on 2026-11-09: BSD-3-Clause, MIT, Apache-2.0 and MPL-2.0
+# (dbus), none copyleft (THIRD_PARTY_NOTICES.md). A pub package added later
+# fails the same way until its licence is checked and it is listed here.
+allow-dependencies-licenses:
+  - pkg:pub/_fe_analyzer_shared
+  - pkg:pub/analyzer
+  - pkg:pub/android_file_picker
+  - pkg:pub/archive
+  - pkg:pub/cli_util
+  - pkg:pub/clock
+  - pkg:pub/code_assets
+  - pkg:pub/coverage
+  - pkg:pub/cross_file
+  - pkg:pub/crypto
+  - pkg:pub/cupertino_ui
+  - pkg:pub/dbus
+  - pkg:pub/file_picker
+  - pkg:pub/file_picker_darwin
+  - pkg:pub/file_picker_linux
+  - pkg:pub/file_picker_platform_interface
+  - pkg:pub/file_picker_web
+  - pkg:pub/file_selector_linux
+  - pkg:pub/file_selector_macos
+  - pkg:pub/file_selector_windows
+  - pkg:pub/flutter_riverpod
+  - pkg:pub/functions_client
+  - pkg:pub/glob
+  - pkg:pub/go_router
+  - pkg:pub/gotrue
+  - pkg:pub/hooks
+  - pkg:pub/image
+  - pkg:pub/image_picker_ios
+  - pkg:pub/image_picker_platform_interface
+  - pkg:pub/io
+  - pkg:pub/jni
+  - pkg:pub/jni_flutter
+  - pkg:pub/listen
+  - pkg:pub/material_color_utilities
+  - pkg:pub/material_ui
+  - pkg:pub/mime
+  - pkg:pub/objective_c
+  - pkg:pub/passkeys_platform_interface
+  - pkg:pub/pdf
+  - pkg:pub/petitparser
+  - pkg:pub/platform
+  - pkg:pub/pool
+  - pkg:pub/posix
+  - pkg:pub/postgrest
+  - pkg:pub/pub_semver
+  - pkg:pub/qr
+  - pkg:pub/realtime_client
+  - pkg:pub/record_use
+  - pkg:pub/riverpod
+  - pkg:pub/shared_preferences
+  - pkg:pub/shared_preferences_android
+  - pkg:pub/shared_preferences_foundation
+  - pkg:pub/shelf
+  - pkg:pub/shelf_static
+  - pkg:pub/source_maps
+  - pkg:pub/stack_trace
+  - pkg:pub/storage_client
+  - pkg:pub/supabase
+  - pkg:pub/supabase_common
+  - pkg:pub/supabase_flutter
+  - pkg:pub/test
+  - pkg:pub/test_api
+  - pkg:pub/test_core
+  - pkg:pub/url_launcher_android
+  - pkg:pub/url_launcher_ios
+  - pkg:pub/url_launcher_linux
+  - pkg:pub/url_launcher_macos
+  - pkg:pub/vector_math
+  - pkg:pub/very_good_analysis
+  - pkg:pub/vm_service
+  - pkg:pub/web
+  - pkg:pub/win32
+  - pkg:pub/windows_file_picker
+  - pkg:pub/xml
+  - pkg:pub/yaml
+  - pkg:pub/yet_another_json_isolate

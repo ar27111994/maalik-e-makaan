@@ -47,6 +47,7 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: none
           queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
       - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           category: /language:${{ matrix.language }}
@@ -98,9 +99,8 @@ jobs:
           persist-credentials: false
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
-          fail-on-severity: moderate
-          # Copyleft licences would oblige the closed app binaries.
-          deny-licenses: AGPL-3.0-only, AGPL-3.0-or-later, GPL-2.0-only, GPL-2.0-or-later, GPL-3.0-only, GPL-3.0-or-later
+          # Severity, denied licences and the pub packages exempt from the licence check.
+          config-file: ./.github/dependency-review-config.yml
 
   workflows:
     name: Workflow security (zizmor)
