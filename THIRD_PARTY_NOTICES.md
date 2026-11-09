@@ -159,6 +159,7 @@ Development only:
 | eslint                    | 10.14.0 | MIT        |
 | eslint-plugin-astro       | 3.2.1   | MIT        |
 | eslint-plugin-jsx-a11y    | 6.10.2  | MIT        |
+| fast-check                | 4.10.2  | MIT        |
 | globals                   | 17.14.0 | MIT        |
 | parse5                    | 8.1.0   | MIT        |
 | postcss-html              | 2.0.0   | MIT        |
