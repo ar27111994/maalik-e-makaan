@@ -103,3 +103,10 @@ Edit the source and run the generator; the `-check` targets fail CI on a stale o
 Adding, removing or upgrading a direct dependency, or bundling a font or icon set, updates
 `THIRD_PARTY_NOTICES.md` with its version and licence. Copyleft code (GPL, LGPL, AGPL, MPL)
 needs the owner's agreement before it ships. Every GitHub Action is pinned to a commit SHA.
+
+Dependabot pull requests (`.github/dependabot.yml`) change only the manifest and lockfile, so a
+bump is not done until the same branch updates `THIRD_PARTY_NOTICES.md` and any README or
+comment naming the old version, and rebuilds generated files that depend on it (`make icons`
+after lucide-static). A lockfile is written with the npm in `packageManager`, which is the npm
+that the Node in `.nvmrc` bundles. When a bump moves a pinned override with it (the website's
+`playwright-core` follows `@playwright/test`), the override changes in the same commit.
