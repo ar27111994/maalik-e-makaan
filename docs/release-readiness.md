@@ -374,8 +374,11 @@ approval.
 - Run 42592961582 (Backup, from this branch with a temporary trigger) dumped it, rebuilt the
   schema from the chain on a local stack, restored the dump with triggers off, and checked:
   "schemas match (1185 objects)" against the hosted fingerprint, and "data match: 64 tables, 11
-  rows" against a fresh dump. Its artefact was encrypted to a throwaway key, deleted afterwards,
-  so it cannot be opened; the first real backup is owner action 4.
+  rows" against a fresh dump. After an independent review, the revised workflow (errors kept off
+  the log, unchecked backups kept, unapplied migrations left out of the check) ran again as run
+  42598388632 with the same result and "Restore checked: true". Both artefacts were encrypted to
+  throwaway keys, shredded afterwards, so neither can be opened; the first real backup is owner
+  action 4.
 - The rehearsal is local, not a hosted scratch project: the repository's `SUPABASE_ACCESS_TOKEN`
   is scoped and refused to create a project ("Forbidden"), which is the safer setting. The one
   hosted-only question, whether `postgres` may set `session_replication_role = replica` for the
