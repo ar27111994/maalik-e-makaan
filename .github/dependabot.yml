@@ -6,7 +6,9 @@
 #
 # Every package.json names its npm in `packageManager` (the npm that Node in
 # .nvmrc bundles, which CI runs). Without it Dependabot writes lockfiles with
-# its own newer npm, and `npm ci` on the npm in CI rejects them.
+# its own newer npm, and `npm ci` on the npm in CI rejects them. The cost: npm
+# 10 has no --min-release-age (npm 11.10 and later), so `cooldown` holds back
+# only the package being bumped, not transitive packages that npm re-resolves.
 version: 2
 
 updates:
