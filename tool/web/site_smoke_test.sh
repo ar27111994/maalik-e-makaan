@@ -34,6 +34,17 @@ header() {
   grep -i "^$1:" "$work/headers" | tail -n 1 | cut -d: -f2- | tr -d '\r' | sed 's/^ *//'
 }
 
+# Just after `vercel deploy --prod`, the production address can still answer
+# from before it moved to the new deployment (on 2026-11-09 the first site
+# deploy answered 404 a second later and 200 soon after). Wait up to two
+# minutes for the home page before checking anything.
+for attempt in $(seq 1 24); do
+  status="$(fetch /)"
+  [[ "$status" == 200 ]] && break
+  echo "/ answered $status; waiting for the deployment ($attempt of 24)"
+  sleep 5
+done
+
 # check_headers PATH: the headers every response carries (website/vercel.json).
 check_headers() {
   local csp
