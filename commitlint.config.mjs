@@ -3,6 +3,9 @@
 // these messages, so they are enforced locally (lefthook) and in CI.
 export default {
   extends: ['@commitlint/config-conventional'],
+  // release-please's own commit (release-please-config.json sets its title). Its
+  // body is the generated changelog, whose links run past 100 characters.
+  ignores: [(message) => /^chore\(release\): release \d+\.\d+\.\d+/.test(message)],
   rules: {
     'scope-enum': [
       2,
