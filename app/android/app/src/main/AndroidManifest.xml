@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Every Supabase call needs the network. The debug and profile manifests
+         also declare this for Flutter's tooling, which hides its absence here
+         until a release build: tool/android/check_manifest.py guards it. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="maalik_e_makaan"
         android:name="${applicationName}"
