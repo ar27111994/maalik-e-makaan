@@ -180,8 +180,10 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    `no-reply@mail.<domain>`, name "Maalik-e-Makaan", host `smtp.resend.com`, port 465, user
    `resend`, password the first key, minimum interval 60 seconds. (Resend's Supabase integration,
    Settings, Integrations, fills in the same.)
-4. **Rate limit** (Authentication, Rate Limits, "Email sent"): custom SMTP starts at 30 an hour;
-   keep it below Resend's daily 100.
+4. **Rate limit** (Authentication, Rate Limits, "Email sent"): custom SMTP starts at 30 an hour,
+   which is fine. The real ceiling is Resend's 100 a day for Auth and invitations together: past
+   it, confirmations and resets stop until the next day. Watch Resend's dashboard, and move to its
+   paid plan before sign-ups come near it.
 5. **URLs** (Authentication, URL Configuration): Site URL `https://maalik-e-makaan.vercel.app`,
    redirect URL `https://maalik-e-makaan.vercel.app/auth/callback` (the app sends this exact path).
 6. **Templates** (Authentication, Emails, Templates). Each e-mail is in English, then Urdu. For
@@ -431,7 +433,8 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
 4. Watch the Deploy run: each job ends with its smoke test, and the `supabase` job with a call to
    `health`. Then run the daily query of Monitoring and alerts.
 
-`RELEASE_PLEASE_TOKEN` (repository secret) is recommended once `main` requires "CI passed". A
+`RELEASE_PLEASE_TOKEN` (repository secret) is needed once `main` requires "CI passed" with no
+bypass. A
 release pull request that release-please opens or updates with the default `GITHUB_TOKEN` starts
 no workflow by itself: GitHub either holds its runs until someone clicks "Approve workflows to
 run" or starts none, so the required check waits on every update. With the token, CI, Security
@@ -490,10 +493,20 @@ Enterprise projects daily, and recommends that free projects export their data w
    `database-backup-<UTC time>` of the run, for 90 days (the privacy policy says 90 days). The
    plaintext is shredded on the runner; the logs name tables and count rows, never print one.
 
-**The backup key.** The workflow encrypts to every age public key in the repository variable
-`BACKUP_AGE_RECIPIENTS` (one per line) and to every ed25519 or RSA SSH key on the owner's GitHub
-account (`https://github.com/<owner>.keys`); it fails, before dumping anything, when there is
-none. The owner makes the key once, on a trusted computer:
+GitHub turns off the scheduled runs of a public repository after 60 days without a commit,
+and e-mails the owner when it does. If that happens, turn Backup back on (Actions, Backup, Enable
+workflow); a run by hand works either way.
+
+When the hosted history and the commit's chain differ, the run still keeps the encrypted backup
+but fails at the end, saying it was not proven to restore. Migrations merged but not yet applied
+(normal just before a release) are left out of the check, which then passes; a migration applied
+but missing from `main` leaves nothing to compare against, so fix that drift first.
+
+**The backup key.** The workflow encrypts only to the public keys in the repository variable
+`BACKUP_AGE_RECIPIENTS`, one per line (age keys `age1...`, or ed25519 and RSA SSH public keys),
+and fails, before dumping anything, when there is none. Nothing else can open a backup, so a key
+added to the GitHub account later does not become a backup key. The owner makes the key once,
+on a trusted computer:
 
 ```bash
 age-keygen -o maalik-e-makaan-backup.key   # prints "Public key: age1..."
@@ -502,7 +515,9 @@ age-keygen -o maalik-e-makaan-backup.key   # prints "Public key: age1..."
 (Windows: `winget install FiloSottile.age`; macOS: `brew install age`; Linux: the `age`
 package.) Put the `age1...` line in the variable (Settings, Secrets and variables, Actions,
 Variables). Keep the `.key` file in a password manager and one offline copy: without it no
-backup can be opened, and anyone with it can open all of them.
+backup can be opened, and anyone with it can open all of them. To change keys, add the new public
+key, wait for one backup, then remove the old one; backups already taken stay readable only with
+the key they were made for.
 
 **Opening a backup.** Download the artefact from the run (Actions, Backup, the run, Artifacts),
 unzip it, then:
@@ -515,14 +530,14 @@ tar -xf backup.tar   # data/data.sql, data/schema_fingerprint.json, data/migrati
 `data/data.sql` holds tenants' CNICs, phone numbers and the whole ledger: open it only on a
 trusted computer, and delete the plaintext when done.
 
-**Every backup is restored before it is kept.** The same run starts a local Supabase stack from
+**Every backup is restored and checked.** The same run starts a local Supabase stack from
 the commit's migration chain (`supabase start`, then `supabase db reset --local --no-seed`),
-stops its pg_cron jobs, loads `data.sql` by step 3 of Restoring (triggers off, one transaction),
-and fails unless `tool/db/fingerprint_diff.py` says "schemas match" against the hosted project
-and `tool/db/dump_digest.py compare` finds every table's rows equal in a fresh dump of the stack.
-A run that warns that the hosted history differs from the commit's chain (a migration applied but
-not merged, or merged but not applied) fails this check: fix the drift first. The hosted project
-lets `postgres` set `session_replication_role = replica` (checked on 2026-11-09), so step 3 of
+stops its pg_cron jobs, empties the tables the dump fills, loads `data.sql` by step 3 of
+Restoring (triggers off, one transaction), and checks that `tool/db/fingerprint_diff.py` says
+"schemas match" against the hosted project and that `tool/db/dump_digest.py compare` finds every
+table's rows equal in a fresh dump of the stack. The backup is kept either way; a failed check
+fails the run at its end. A failed load names the table and the SQLSTATE only: PostgreSQL's own
+message quotes the row, so it is kept off the public log. The hosted project lets `postgres` set `session_replication_role = replica` (checked on 2026-11-09), so step 3 of
 Restoring works there too. The rehearsal does not use a hosted scratch project: the repository's
 `SUPABASE_ACCESS_TOKEN` is scoped and may not create projects, and should stay that way.
 
@@ -549,14 +564,23 @@ D-15).
      --dbname "$NEW_DB_URL"
    ```
 
+   If it stops on a duplicate key in a table the scheduled jobs write (`private.job_runs`), a job
+   ran between steps 2 and 3: the transaction rolled back, so truncate that table and load again.
+
 4. Check it: the schema fingerprint equals the chain's (After every migration, step 3:
    `tool/db/fingerprint_diff.py` says "schemas match"), and the row counts of `auth.users`,
    `public.portfolios`, `public.leases`, `public.charges` and `public.payments`, and
    `sum(outstanding)` of the open charges, equal the old project's when it is still reachable.
-5. Set up what neither the chain nor the dump carries: the Edge Function secrets and the Vault
+5. Put the files back, from the backup's `documents/` folder:
+   `supabase storage cp -r documents ss:///documents --experimental --linked`. Not rehearsed
+   yet (the bucket was empty on 2026-11-09): the rows of `storage.objects` are already loaded
+   by step 3, so if the upload refuses objects that exist, delete that bucket's rows from
+   `storage.objects` and upload again (the uploader is then recorded as the service role). Rehearse
+   this once the bucket holds files.
+6. Set up what neither the chain nor the dump carries: the Edge Function secrets and the Vault
    secrets (Storage cleanup), Auth's Site URL, redirect URLs and SMTP, then deploy the functions
    (Deploy by hand, with the repository variables and secrets pointed at the new project).
-6. Point the app at it: the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` variables, then run
+7. Point the app at it: the `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` variables, then run
    Deploy so the web app is rebuilt. Users must sign in again (the new project signs tokens with
    new keys).
 

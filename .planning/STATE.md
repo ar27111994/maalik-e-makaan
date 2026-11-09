@@ -131,9 +131,8 @@ The ordered checklist of everything the owner must do before launch is in
   listing from the website.
 - The owner, a native Urdu speaker, reviews the app's and the website's Urdu (including the date
   picker's day names, one glossary for the app and the site, and the e-mail templates).
-- The backup key: an `age1...` public key in the repository variable `BACKUP_AGE_RECIPIENTS` (or an
-  ed25519 or RSA SSH key on the owner's GitHub account). Until then the Backup workflow refuses
-  to run.
+- The backup key: an `age1...` public key in the repository variable `BACKUP_AGE_RECIPIENTS`.
+  Until then the Backup workflow refuses to run.
 - A lawyer to review the privacy policy and the terms (website and app) before launch.
 - The official legal texts (`.gov.pk`) behind the guides could not be reached from here; the
   guides word every unconfirmed point as unconfirmed until someone checks them.

@@ -314,8 +314,8 @@ Resend's free plan. Done by the agent the same day: the migration applied (finge
 
 In order. Record each in `.planning/STATE.md` when it is done.
 
-1. **Make the backup key** (`docs/operations.md`, Backups). The account has no SSH key age can
-   use, so backups have nowhere to go yet.
+1. **Make the backup key** (`docs/operations.md`, Backups). Backups are encrypted only to the
+   keys in `BACKUP_AGE_RECIPIENTS`, which is empty, so the Backup workflow refuses to run.
    1. `winget install FiloSottile.age`, then `age-keygen -o maalik-e-makaan-backup.key`.
    2. Keep the `.key` file in a password manager and one offline copy.
    3. Add the printed `age1...` line as the repository variable `BACKUP_AGE_RECIPIENTS`.
@@ -326,8 +326,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
       block force pushes and deletion, no bypass. Allow squash merges only (Settings, General).
 3. **`RELEASE_PLEASE_TOKEN`** (`docs/operations.md`, Releasing): a fine-grained token on this
    repository only, Contents and Pull requests "Read and write", saved as a repository secret.
-   Without it, approve the release pull request's runs by hand each time ("Approve workflows to
-   run"), and turn on "Allow GitHub Actions to create and approve pull requests".
+   With `main` requiring "CI passed" and no bypass, treat it as required: without it the release
+   pull request's checks run only if GitHub offers "Approve workflows to run" on it (a feature
+   still rolling out), and otherwise never, so it could not be merged.
 4. **Run Backup once** (Actions, Backup, Run workflow, `main`), then download the artefact and
    open it with your key (`docs/operations.md`, Backups, Opening a backup). This checks the key end
    to end; the agent's network could not download artefacts.
