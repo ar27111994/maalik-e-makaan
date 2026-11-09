@@ -46,6 +46,10 @@ def parse(text: str) -> dict[str, TableData]:
     for number, line in enumerate(text.split("\n"), start=1):
         if current is None:
             match = COPY_START.match(line)
+            if line.startswith("COPY ") and not match:
+                # A section this parser cannot read would be skipped, and the
+                # comparison would pass without checking its rows.
+                raise ValueError(f"line {number}: unrecognised COPY line")
             if match:
                 name = match.group("table")
                 if name in tables:

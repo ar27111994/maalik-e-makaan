@@ -56,6 +56,10 @@ class ParseTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "terminating"):
             parse('COPY "public"."t" ("a") FROM stdin;\n1\n')
 
+    def test_unrecognised_copy_line_is_an_error(self):
+        with self.assertRaisesRegex(ValueError, "unrecognised COPY line"):
+            parse('COPY "public"."t" ("a") FROM \'/tmp/x\';\n1\n\\.\n')
+
     def test_duplicate_section_is_an_error(self):
         section = 'COPY "public"."t" ("a") FROM stdin;\n1\n\\.\n'
         with self.assertRaisesRegex(ValueError, "second COPY section"):

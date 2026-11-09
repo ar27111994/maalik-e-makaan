@@ -1,16 +1,16 @@
-# Encrypted backup of the hosted database, weekly and by hand, each one
-# restored and checked before it is kept (docs/operations.md, Backups).
+# Encrypted backup of the hosted database, weekly and by hand
+# (docs/operations.md, Backups).
 #
 # The free plan keeps no backups the owner can download, so this is the
 # project's only copy. The job dumps the data (the schema comes back from the
-# migration chain), downloads the files in the documents bucket, and proves
-# the dump restores: it starts a local Supabase stack from this commit's chain,
-# loads the dump with triggers off in one transaction (the runbook's step),
-# and checks that the schema fingerprint equals the hosted one and that a fresh
-# dump of the stack holds exactly the same rows, table by table. Only then does
-# it encrypt the lot with age to the repository owner's SSH keys on GitHub and
-# to the age recipients in the BACKUP_AGE_RECIPIENTS variable, and keep the
-# ciphertext as a workflow artefact for 90 days. Nothing leaves the runner
+# migration chain) and downloads the files in the documents bucket. Then it
+# checks the dump restores: it starts a local Supabase stack from the applied
+# chain, loads the dump with triggers off in one transaction (the runbook's
+# step), and compares the schema fingerprint with the hosted one and a fresh
+# dump of the stack with the original, table by table. It encrypts the lot
+# with age to the public keys in the BACKUP_AGE_RECIPIENTS variable and keeps
+# the ciphertext as a workflow artefact for 90 days, whether or not the check
+# passed (a failed check then fails the run). Nothing leaves the runner
 # unencrypted, and the logs name tables and count rows but never print a row.
 name: Backup
 
@@ -33,7 +33,6 @@ defaults:
 
 env:
   PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
-  OWNER: ${{ github.repository_owner }}
   AGE_RECIPIENTS: ${{ vars.BACKUP_AGE_RECIPIENTS }}
   # Kept equal to deploy.yml.
   SUPABASE_CLI_VERSION: 2.122.1
@@ -64,18 +63,17 @@ jobs:
           echo "WORK=$RUNNER_TEMP/backup" >> "$GITHUB_ENV"
           echo "STAMP=$(date -u +%Y%m%dT%H%M%SZ)" >> "$GITHUB_ENV"
 
-      - name: Recipients (the owner's SSH keys on GitHub, and BACKUP_AGE_RECIPIENTS)
-        # Public keys only. age accepts ssh-ed25519 and ssh-rsa keys; other key
-        # types on the account are left out.
+      - name: Recipients (BACKUP_AGE_RECIPIENTS)
+        # Public keys only, one per line: age keys (age1...) or ed25519 and RSA SSH
+        # keys. Only the keys listed here can open a backup; nothing is fetched.
         run: |
           recipients="$RUNNER_TEMP/recipients.txt"
-          : > "$recipients"
-          printf '%s\n' "$AGE_RECIPIENTS" | tr -d '\r' | grep -E '^age1[0-9a-z]{58}$' >> "$recipients" || true
-          curl -fsS --retry 3 "https://github.com/$OWNER.keys" \
-            | grep -E '^(ssh-ed25519|ssh-rsa) ' >> "$recipients" || true
+          printf '%s\n' "$AGE_RECIPIENTS" | tr -d '\r' \
+            | grep -E '^(age1[0-9a-z]{58}|ssh-ed25519 [A-Za-z0-9+/=]+|ssh-rsa [A-Za-z0-9+/=]+)( .*)?$' \
+            | cut -d' ' -f1-2 > "$recipients" || true
           count="$(grep -c . "$recipients" || true)"
           if [[ "$count" -eq 0 ]]; then
-            echo "::error::No recipient: add an SSH key (ed25519 or RSA) to the GitHub account $OWNER, or an age public key to the BACKUP_AGE_RECIPIENTS variable (docs/operations.md, Backups)"
+            echo "::error::No recipient: put your backup key's public half (age1...) in the repository variable BACKUP_AGE_RECIPIENTS (docs/operations.md, Backups)"
             exit 1
           fi
           {
@@ -108,6 +106,7 @@ jobs:
           cp supabase/.temp/pooler-url "$RUNNER_TEMP/source-url"
 
       - name: Dump the data
+        id: dump
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
@@ -134,16 +133,26 @@ jobs:
             echo "taken $STAMP"
             echo "supabase CLI $SUPABASE_CLI_VERSION"
           } > "$WORK/data/README.txt"
-          # The chain in this checkout must be the one the project has applied, or a
-          # restore from it would not rebuild the same schema.
+          # The restore check rebuilds the schema from this commit's chain, so it needs
+          # the migrations the project has applied. Ones merged but not yet applied
+          # (normal just before a release) are set aside for the check; ones applied but
+          # not in this commit leave nothing to compare against.
           find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' \
             | sed -n 's/^\([0-9]\{14\}\)_.*\.sql$/\1/p' | sort > "$RUNNER_TEMP/chain.txt"
-          if ! diff -u "$RUNNER_TEMP/chain.txt" "$WORK/data/migrations.txt"; then
-            echo "::warning::The hosted migration history differs from this commit's chain; restore from the commit that matches it (docs/operations.md, Restoring)"
+          unknown="$(comm -13 "$RUNNER_TEMP/chain.txt" "$WORK/data/migrations.txt" | paste -sd' ' -)"
+          pending="$(comm -23 "$RUNNER_TEMP/chain.txt" "$WORK/data/migrations.txt" | paste -sd' ' -)"
+          if [[ -n "$unknown" ]]; then
+            echo "::warning::The project has applied migrations this commit does not have: $unknown; the backup is kept but cannot be checked (docs/operations.md, Backups)"
             echo "CHAIN_MATCHES=false" >> "$GITHUB_ENV"
           else
             echo "CHAIN_MATCHES=true" >> "$GITHUB_ENV"
+            if [[ -n "$pending" ]]; then
+              echo "Not applied yet, left out of the restore check: $pending" | tee -a "$GITHUB_STEP_SUMMARY"
+              mkdir -p "$RUNNER_TEMP/pending"
+              for version in $pending; do mv supabase/migrations/"$version"_*.sql "$RUNNER_TEMP/pending/"; done # split on spaces
+            fi
           fi
+          echo "pending migrations: ${pending:-none}" >> "$WORK/data/README.txt"
 
       - name: Download the files in the documents bucket
         env:
@@ -159,7 +168,12 @@ jobs:
           echo "Files: $got of $expected" | tee -a "$GITHUB_STEP_SUMMARY"
           [[ "$got" -eq "$expected" ]] || { echo "::error::downloaded $got files, the bucket lists $expected"; exit 1; }
 
-      - name: Start a local stack from this commit's chain
+      # The restore check: its failure is reported at the end, after the backup
+      # is kept, because an unchecked backup is better than none.
+      - name: Start a local stack from the applied chain
+        id: stack
+        if: env.CHAIN_MATCHES == 'true'
+        continue-on-error: true
         run: |
           supabase start -x studio,imgproxy,logflare,vector,supavisor,postgres-meta,edge-runtime,mailpit
           # start applies the chain and the demo seed; rebuild it without the seed.
@@ -169,29 +183,41 @@ jobs:
           psql -X -At -v ON_ERROR_STOP=1 -d "$LOCAL_DB" -c 'select count(cron.unschedule(jobid)) from cron.job'
 
       - name: Restore the dump into it, triggers off, in one transaction
+        id: restore
+        if: steps.stack.outcome == 'success'
+        continue-on-error: true
         run: |
-          psql -X --single-transaction --variable ON_ERROR_STOP=1 \
+          # Empty every table the dump fills first (a job may have written a row
+          # before it was unscheduled). Errors are kept off the log: PostgreSQL
+          # quotes the failing row, and these rows hold tenants' details.
+          truncate="$(awk -F'\t' '$2 > 0 {print $1}' "$WORK/data/tables.tsv" | paste -sd, -)"
+          if ! psql -X -q --single-transaction -v ON_ERROR_STOP=1 -v VERBOSITY=sqlstate -v SHOW_CONTEXT=never \
             --command 'SET session_replication_role = replica' \
-            --file "$WORK/data/data.sql" --dbname "$LOCAL_DB" > /dev/null
+            ${truncate:+--command "TRUNCATE TABLE $truncate CASCADE"} \
+            --file "$WORK/data/data.sql" --dbname "$LOCAL_DB" > /dev/null 2> "$RUNNER_TEMP/restore-errors.txt"; then
+            # Name the table and the SQLSTATE, never the row.
+            line="$(grep -o -m1 'data\.sql:[0-9]*' "$RUNNER_TEMP/restore-errors.txt" | cut -d: -f2)"
+            code="$(grep -o -m1 'ERROR: *[0-9A-Z]\{5\}' "$RUNNER_TEMP/restore-errors.txt" | grep -o '[0-9A-Z]\{5\}$')"
+            table="$(awk -v n="${line:-0}" 'NR <= n && /^COPY / {t = $2} END {print t}' "$WORK/data/data.sql")"
+            echo "::error::the restore stopped in ${table:-an unknown table} (SQLSTATE ${code:-unknown}, data.sql line ${line:-?})"
+            exit 1
+          fi
 
       - name: Check the restore
+        id: check
+        if: steps.restore.outcome == 'success'
+        continue-on-error: true
         run: |
           psql -X -At -v ON_ERROR_STOP=1 -d "$LOCAL_DB" -f tool/db/schema_fingerprint.sql \
             > "$RUNNER_TEMP/restored-fingerprint.json"
           supabase db dump --local -f "$WORK/restored-data.sql" --use-copy --data-only \
             -x storage.buckets -x storage.buckets_vectors -x storage.vector_indexes
           status=0
-          if [[ "$CHAIN_MATCHES" == true ]]; then
-            python3 tool/db/fingerprint_diff.py "$WORK/data/schema_fingerprint.json" \
-              "$RUNNER_TEMP/restored-fingerprint.json" > "$RUNNER_TEMP/schema-check.txt" || status=1
-          else
-            echo "schema not compared: the hosted history differs from this commit's chain" \
-              > "$RUNNER_TEMP/schema-check.txt"
-            status=1
-          fi
+          python3 tool/db/fingerprint_diff.py "$WORK/data/schema_fingerprint.json" \
+            "$RUNNER_TEMP/restored-fingerprint.json" > "$RUNNER_TEMP/schema-check.txt" || status=1
           python3 tool/db/dump_digest.py compare "$WORK/data/data.sql" "$WORK/restored-data.sql" \
             > "$RUNNER_TEMP/data-check.txt" || status=1
-          rm -f "$WORK/restored-data.sql"
+          shred -u "$WORK/restored-data.sql"
           {
             echo "### Restore check"
             echo '```'
@@ -201,19 +227,25 @@ jobs:
           exit "$status"
 
       - name: Stop the local stack
-        if: always()
+        if: always() && steps.stack.outcome != 'skipped'
         run: supabase stop --no-backup || true
 
       - name: Encrypt
+        id: encrypt
+        if: always() && steps.dump.outcome == 'success'
+        env:
+          CHECKED: ${{ steps.check.outcome == 'success' }}
         run: |
+          echo "restore checked: $CHECKED" >> "$WORK/data/README.txt"
           out="$RUNNER_TEMP/out/maalik-e-makaan-$STAMP.tar.age"
           tar -C "$WORK" -cf - . | age -R "$RUNNER_TEMP/recipients.txt" -o "$out"
           # The header holds one stanza per recipient; check none was dropped.
-          stanzas="$(head -c 65536 "$out" | sed -n '1,/^---/p' | grep -c '^-> ' || true)"
+          stanzas="$(head -c 65536 "$out" | sed -n '1,/^---/p' | grep -c '^-> \(X25519\|ssh-ed25519\|ssh-rsa\) ' || true)"
           [[ "$stanzas" -eq "$RECIPIENT_COUNT" ]] || { echo "::error::$stanzas recipient stanzas, expected $RECIPIENT_COUNT"; exit 1; }
           {
             echo "### Artefact"
             echo "$(basename "$out"), $(du -h "$out" | cut -f1), sha256 $(sha256sum "$out" | cut -d' ' -f1)"
+            echo "Restore checked: $CHECKED"
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Remove the plaintext
@@ -223,9 +255,20 @@ jobs:
           rm -rf "$RUNNER_TEMP/backup" supabase/.temp
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.encrypt.outcome == 'success'
         with:
           name: database-backup-${{ env.STAMP }}
           path: ${{ runner.temp }}/out/
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+
+      - name: The restore check passed
+        if: always() && steps.encrypt.outcome == 'success'
+        env:
+          CHECKED: ${{ steps.check.outcome == 'success' }}
+        run: |
+          [[ "$CHECKED" == true ]] || {
+            echo "::error::The backup was kept, but it was not proven to restore (see the steps above and docs/operations.md, Backups)"
+            exit 1
+          }
