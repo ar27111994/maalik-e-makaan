@@ -339,7 +339,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
    and open tracking (both were on: they rewrite the sign-in links through Resend and add a
    tracking pixel, which the privacy page rules out); check that `MAIL_FROM` uses that domain;
    turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
-   check the "Email sent" rate limit; paste the three bilingual templates from
+   check the "Email sent" rate limit; add the iOS app's redirect URL
+   `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` (Authentication,
+   URL Configuration); paste the three bilingual templates from
    `supabase/templates/` with their subjects from `supabase/config.toml`. Then sign up in each
    language, reset a password and send an invitation to someone outside the team.
 6. **Monitoring** (`docs/operations.md`, Monitoring and alerts): `HEALTH_CHECK_TOKEN` as an Edge
@@ -390,12 +392,10 @@ approval.
 
 ## Follow-ups (not blocking)
 
-- iOS cannot finish an e-mail link (Greptile on PR 1): `Info.plist` has no Associated Domains
-  and no URL scheme, so a confirmation or reset link opens the web app, which lacks the PKCE
-  verifier the iOS app stored. v1 ships Android and the web; before an iOS release, add the
-  Associated Domains entitlement and an `apple-app-site-association` file (needs the Apple
-  Team ID), or a custom scheme in `CFBundleURLTypes` with `authCallbackUrl` using it on iOS.
-
+- iOS e-mail links (Greptile on PR 1) come back through the app's own URL scheme since
+  2026-11-09 (`docs/operations.md`, iOS e-mail links). Still to do: add
+  `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` to Auth's
+  redirect URLs, and check it on an iPhone once an iOS build exists (none is built here).
 - TEAM-05: no screen reads the audit trail.
 - NFR-07: the UAT does not reach the operations screens, reports or search.
 - NFR-04: cold start and frame rates are not measured on a mid-range Android phone.

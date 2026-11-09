@@ -191,7 +191,10 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    it, confirmations and resets stop until the next day. Watch Resend's dashboard, and move to its
    paid plan before sign-ups come near it.
 5. **URLs** (Authentication, URL Configuration): Site URL `https://maalik-e-makaan.vercel.app`,
-   redirect URL `https://maalik-e-makaan.vercel.app/auth/callback` (the app sends this exact path).
+   redirect URLs `https://maalik-e-makaan.vercel.app/auth/callback` (the web and Android apps) and
+   `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` (the iOS app,
+   which comes back through its own URL scheme). The app sends these exact addresses; one missing
+   from the list sends the link to the Site URL instead, where the iOS sign-in cannot finish.
 6. **Templates** (Authentication, Emails, Templates). Each e-mail is in English, then Urdu. For
    "Confirm signup", "Reset password" and "Change email address", paste the subject from
    `supabase/config.toml` (`[auth.email.template.*]`) and the body from
@@ -385,6 +388,16 @@ keytool -genkey -v -keystore upload-keystore.jks -storetype JKS -keyalg RSA -key
 
 Keep it and its passwords out of the repository and backed up. With Google Play App Signing it is
 the upload key, which Google can reset if lost.
+
+### iOS e-mail links
+
+iOS has no associated domain, so the iOS app asks Auth to send its e-mail links to
+`io.github.ar27111994.maalikemakaan://<app host>/auth/callback` (`AppConfig.authCallbackUrlFor`),
+a scheme it registers in `ios/Runner/Info.plist` (`CFBundleURLTypes`). Safari hands the link back
+to the app, which holds the sign-in verifier, and the router opens `/auth/callback` as on the
+other platforms. The address must be among Auth's redirect URLs (E-mail, above). Check it on an
+iPhone once an iOS build exists: sign up and reset a password from the app; iOS asks to open the
+link in Maalik-e-Makaan.
 
 ### Android App Links
 
