@@ -172,8 +172,11 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
 1. **A domain.** Resend sends to other people only from a domain whose DNS you control; a
    `vercel.app` address cannot be one. Use a subdomain (`mail.<domain>`), add the records Resend
    lists (MX and SPF TXT on `send.mail.<domain>`, DKIM TXT on `resend._domainkey.mail.<domain>`)
-   and a DMARC record (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". Turn off
-   open and click tracking for the domain, so confirmation links are not rewritten.
+   and a DMARC record (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". The
+   project's domain is `news.ar27111994.dev` (verified 2026-11-09). In the domain's
+   Configuration, turn **off** click tracking and open tracking: click tracking rewrites the
+   sign-in links through Resend's servers, and open tracking adds a tracking pixel; the privacy
+   page says the app has no trackers.
 2. **Two API keys**, both "Sending access" and limited to that domain: one for Supabase's SMTP,
    one for the `invite-member` function, so either can be revoked alone.
 3. **Supabase SMTP** (Authentication, Emails, SMTP Settings, Enable custom SMTP): sender

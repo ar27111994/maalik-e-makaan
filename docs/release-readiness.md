@@ -333,9 +333,11 @@ In order. Record each in `.planning/STATE.md` when it is done.
    open it with your key (`docs/operations.md`, Backups, Opening a backup). This checks the key end
    to end; the agent's network could not download artefacts.
 5. **E-mail** (`docs/operations.md`, E-mail). Already set on 2026-11-05: `RESEND_API_KEY` and
-   `MAIL_FROM` for invitations, and Auth's Site URL and redirect. Still to do: make sure
-   `MAIL_FROM`'s domain is verified in Resend (a `resend.dev` sender reaches only your own
-   address); turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
+   `MAIL_FROM` for invitations, and Auth's Site URL and redirect. The Resend domain
+   `news.ar27111994.dev` was verified on 2026-11-09 (us-east-1). Still to do: turn off its click
+   and open tracking (both were on: they rewrite the sign-in links through Resend and add a
+   tracking pixel, which the privacy page rules out); check that `MAIL_FROM` uses that domain;
+   turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
    check the "Email sent" rate limit; paste the three bilingual templates from
    `supabase/templates/` with their subjects from `supabase/config.toml`. Then sign up in each
    language, reset a password and send an invitation to someone outside the team.

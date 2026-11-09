@@ -137,7 +137,8 @@ The ordered checklist of everything the owner must do before launch is in
 - The official legal texts (`.gov.pk`) behind the guides could not be reached from here; the
   guides word every unconfirmed point as unconfirmed until someone checks them.
 - Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
-  choice, 2026-11-09), with the bilingual templates in `supabase/templates/`.
+  choice, 2026-11-09), with the bilingual templates in `supabase/templates/`. The sending domain
+  `news.ar27111994.dev` is verified (2026-11-09); its click and open tracking must be off.
 - Answered by the owner on 2026-11-09: the operator named on the privacy page (Ahmed Rehan) is
   right; the repository secrets, variables and environments are set (`RELEASE_PLEASE_TOKEN`
   still to add); Resend's free plan for e-mail. Done by the agent the same day: migration
