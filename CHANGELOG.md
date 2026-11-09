@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.0.0...v1.0.1) (2026-11-09)
+
+
+### Bug fixes
+
+* **app:** let the Android release build reach the network ([e796423](https://github.com/ar27111994/maalik-e-makaan/commit/e796423e6bb32d1f4f5b69267832314634e14c57))
+* **app:** name the installed app Maalik-e-Makaan ([e796423](https://github.com/ar27111994/maalik-e-makaan/commit/e796423e6bb32d1f4f5b69267832314634e14c57))
+* **app:** show "could not open" when no Android app takes a link ([e796423](https://github.com/ar27111994/maalik-e-makaan/commit/e796423e6bb32d1f4f5b69267832314634e14c57))
+* **app:** stop reporting an Auth server error as "No connection" ([e796423](https://github.com/ar27111994/maalik-e-makaan/commit/e796423e6bb32d1f4f5b69267832314634e14c57))
+* **app:** treat TLS failures on a phone as a connection problem ([e796423](https://github.com/ar27111994/maalik-e-makaan/commit/e796423e6bb32d1f4f5b69267832314634e14c57))
+
 ## 1.0.0 (2026-11-09)
 
 
