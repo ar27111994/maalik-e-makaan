@@ -19,11 +19,6 @@ on:
     # Mondays 02:41 Pakistan time.
     - cron: "41 21 * * 0"
   workflow_dispatch:
-  # Temporary: the first backup and rehearsal, before this file reaches main
-  # (a manual run needs the workflow on the default branch). Removed next.
-  push:
-    branches: [claude/exciting-cray-2wue0f]
-    paths: [.github/workflows/backup.yml]
 
 permissions:
   contents: read
@@ -40,8 +35,6 @@ env:
   PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
   OWNER: ${{ github.repository_owner }}
   AGE_RECIPIENTS: ${{ vars.BACKUP_AGE_RECIPIENTS }}
-  # Temporary, with the push trigger: a throwaway key for the first rehearsal.
-  REHEARSAL_RECIPIENT: ${{ github.event_name == 'push' && 'age1u6k7xwfyxd4904cv74h47xx5mpnxnyugrrmfduhj7a6gzxgqtegqpk4j75' || '' }}
   # Kept equal to deploy.yml.
   SUPABASE_CLI_VERSION: 2.122.1
 
@@ -77,8 +70,7 @@ jobs:
         run: |
           recipients="$RUNNER_TEMP/recipients.txt"
           : > "$recipients"
-          printf '%s\n' "$AGE_RECIPIENTS" "$REHEARSAL_RECIPIENT" | tr -d '\r' \
-            | grep -E '^age1[0-9a-z]{58}$' >> "$recipients" || true
+          printf '%s\n' "$AGE_RECIPIENTS" | tr -d '\r' | grep -E '^age1[0-9a-z]{58}$' >> "$recipients" || true
           curl -fsS --retry 3 "https://github.com/$OWNER.keys" \
             | grep -E '^(ssh-ed25519|ssh-rsa) ' >> "$recipients" || true
           count="$(grep -c . "$recipients" || true)"
