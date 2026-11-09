@@ -9,8 +9,8 @@ action 1).
 ## Verdict
 
 **Engineering: ready for a release candidate** (pushed; CI green on `a7f5c1a`).
-**Launch: not ready.** What is left is the owner's: merging to `main`,
-secrets, backups, monitoring and the reviews listed in [Owner actions](#owner-actions).
+**Launch: not ready.** What is left is the owner's: the backup key, merging to `main`, e-mail,
+monitoring, the first Deploy and the reviews listed in [Owner actions](#owner-actions).
 
 - The blocker is fixed. The Supabase CLI now applies the whole chain from the repository's own
   `supabase/` directory: `supabase db reset` applied all 23 migrations and the seed, and the
@@ -306,79 +306,79 @@ Not run here: iOS, Android on a phone, the Deploy workflow.
 
 ## Owner actions
 
+Updated 2026-11-09 after the owner's answers: the repository secrets, variables and the
+`release` and `production` environments exist (seen in the owner's screenshots), the operator's
+name on the privacy page is right, the owner is a native Urdu speaker, and e-mail goes through
+Resend's free plan. Done by the agent the same day: the migration applied (fingerprints equal,
+1,185 objects), CI green, and the Backup workflow (the first backup taken and restored, below).
+
 In order. Record each in `.planning/STATE.md` when it is done.
 
-1. **Apply the new migration** (with the coordinator), before or with the merge. Done on
-   2026-11-09: version 20261109081109, fingerprints equal (1,185 objects, `fa5a29f9…`), no
-   automatic late fee left with the English note.
-   1. Run the after-every-migration process in `docs/operations.md` for
-      `20261109081109_uat_display_fixes.sql`.
-   2. Rename the local file to the version the platform records.
-   3. Check that the fingerprint diff says "schemas match".
+1. **Make the backup key** (`docs/operations.md`, Backups). The account has no SSH key age can
+   use, so backups have nowhere to go yet.
+   1. `winget install FiloSottile.age`, then `age-keygen -o maalik-e-makaan-backup.key`.
+   2. Keep the `.key` file in a password manager and one offline copy.
+   3. Add the printed `age1...` line as the repository variable `BACKUP_AGE_RECIPIENTS`.
 2. **Merge to `main` and protect it.**
-   1. Push the branch and open a pull request to `main` with a Conventional Commit title.
-   2. Wait for every CI job, `supabase-stack` and `uat` included, and "CI passed" to be green.
-   3. Squash-merge.
-   4. Settings, Rules (or Branches): protect `main`. Require a pull request, require the status
-      check "CI passed", block force pushes and deletion.
-3. **Check the repository secrets and environments** (Settings, Secrets and variables, Actions,
-   and Environments). The agent could not read them (403).
-   1. Repository secrets:
-      - `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` and `VERCEL_TOKEN` exist;
-      - add `RELEASE_PLEASE_TOKEN`: a fine-grained token on this repository with contents and
-        pull requests read and write.
-   2. Variables: `SUPABASE_PROJECT_REF`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `APP_URL`.
-   3. Environment `release` holds `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-      `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`.
-   4. Environment `production` requires a reviewer (you).
-4. **Set up monitoring** (`docs/operations.md`, Monitoring and alerts).
-   1. Generate a token: `openssl rand -base64 48`.
-   2. Set it: `supabase secrets set HEALTH_CHECK_TOKEN='<token>' --project-ref aaifamxzzjspohwksxyr`.
-   3. In an uptime monitor, add
-      `https://aaifamxzzjspohwksxyr.supabase.co/functions/v1/health?deep=1` with the header
-      `x-health-token`, every 5 minutes, alerting by e-mail. Add a second monitor on
-      `https://maalik-e-makaan.vercel.app/`.
-   4. Save the daily SQL check in the dashboard's SQL editor.
-5. **Back up, and rehearse a restore** (`docs/operations.md`, Backups and Restoring).
-   1. Take the first encrypted data dump of the hosted project.
-   2. Set a weekly reminder.
-   3. Restore that dump once into a scratch project, by the runbook (chain first, then data), and
-      check that it says "schemas match" and that the counts are equal.
-   4. Delete the scratch project.
-6. **Configure custom SMTP for Supabase Auth.** Dashboard, Authentication, SMTP Settings: a
-   provider and sender address. The default sender is rate-limited (REQUIREMENTS, Open
-   Questions). Then send yourself a sign-up confirmation and a password reset.
-7. **Run Deploy once by hand on `main`.** Actions, Deploy, Run workflow, branch `main`.
-   1. Approve the `production` environment.
-   2. Check that the `supabase` job's `db push` reports nothing to apply (action 1 applied
-      `20261109081109`) and that `health` answers.
-   3. Check the `web` and `site` smoke tests.
-   4. Open the app and sign in.
+   1. Open a pull request from `claude/exciting-cray-2wue0f` to `main` with a Conventional Commit
+      title, wait for "CI passed", and squash-merge.
+   2. Settings, Rules: protect `main`. Require a pull request and the status check "CI passed",
+      block force pushes and deletion, no bypass. Allow squash merges only (Settings, General).
+3. **`RELEASE_PLEASE_TOKEN`** (`docs/operations.md`, Releasing): a fine-grained token on this
+   repository only, Contents and Pull requests "Read and write", saved as a repository secret.
+   Without it, approve the release pull request's runs by hand each time ("Approve workflows to
+   run"), and turn on "Allow GitHub Actions to create and approve pull requests".
+4. **Run Backup once** (Actions, Backup, Run workflow, `main`), then download the artefact and
+   open it with your key (`docs/operations.md`, Backups, Opening a backup). This checks the key end
+   to end; the agent's network could not download artefacts.
+5. **E-mail** (`docs/operations.md`, E-mail). Already set on 2026-11-05: `RESEND_API_KEY` and
+   `MAIL_FROM` for invitations, and Auth's Site URL and redirect. Still to do: make sure
+   `MAIL_FROM`'s domain is verified in Resend (a `resend.dev` sender reaches only your own
+   address); turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
+   check the "Email sent" rate limit; paste the three bilingual templates from
+   `supabase/templates/` with their subjects from `supabase/config.toml`. Then sign up in each
+   language, reset a password and send an invitation to someone outside the team.
+6. **Monitoring** (`docs/operations.md`, Monitoring and alerts): `HEALTH_CHECK_TOKEN` as an Edge
+   Function secret (not a GitHub secret), checked with curl, and an uptime monitor whose free
+   plan sends a custom header (Better Stack, or StatusCake), plus one on the web app. Save the
+   daily SQL check in the dashboard's SQL editor.
+7. **Run Deploy once by hand on `main`** (Actions, Deploy, Run workflow), approve `production`
+   (check that the environment requires you as reviewer), and check the smoke tests, that
+   `db push` finds nothing to apply, and that you can sign in. This also redeploys the functions
+   with `admin_rate_limit_hit` (STATE, Blockers).
+8. **Cut v1.0.0.** Merge the release pull request (`chore(release): release 1.0.0`), approve the
+   Deploy it calls, check the release carries the AAB, the APKs, the web zip and `SHA256SUMS`,
+   then commit the removal of `"release-as": "1.0.0"` from `release-please-config.json`.
+9. **Google Play**, when the D-U-N-S number arrives: upload the AAB, add the Play app-signing
+   key's SHA-256 to `app/web/.well-known/assetlinks.json` beside the upload key's, redeploy, check
+   with the Digital Asset Links API, and link the listing from the website.
+10. **Urdu review** by the owner: `app/lib/l10n/arb/app_ur.arb`, the website's Urdu pages, the
+    three e-mail templates, and the privacy page's new paragraphs (account e-mails through Resend,
+    weekly encrypted backups kept 90 days).
+11. **Legal**: a lawyer's review of the privacy policy and terms; a contact e-mail address for the
+    privacy page (it says there is none yet); a check of the official `.gov.pk` texts behind the
+    guides.
+12. **After the first deploy**, re-run the gates (CI on `main`, the Deploy smoke tests, the first
+    scheduled Backup run, the daily check) and update this file's verdict.
 
-   This is also what redeploys the functions with `admin_rate_limit_hit` (STATE, Blockers).
+Optional hardening: move the `ANDROID_*` secrets into the `release` environment and limit that
+environment to tags `v*`; only the Release workflow reads them. Keep the Supabase and Vercel
+secrets at repository level: the weekly Backup reads them without an environment, so it needs no
+approval.
 
-8. **Cut v1.0.0.**
-   1. Merge the release pull request that release-please opened (it should say 1.0.0).
-   2. Approve the Deploy that the Release run calls.
-   3. Check that the release carries the AAB, the APKs, the web zip and `SHA256SUMS`.
-   4. Then commit the removal of `"release-as": "1.0.0"` from `release-please-config.json`.
-9. **Google Play.**
-   1. Finish the organisation account (D-U-N-S).
-   2. Upload the AAB.
-   3. Add the Play app-signing key's SHA-256 to `app/web/.well-known/assetlinks.json` (keep the
-      upload key's), and redeploy.
-   4. Check with Google's Digital Asset Links API (operations.md, Android App Links).
-   5. Link the listing from the website.
-10. **Native Urdu review** of the app's strings (`app/lib/l10n/arb/app_ur.arb`) and the website's
-    Urdu pages, with one glossary. Include the strings added in this stage: "اس مہینے کے
-    واجبات کی ادائیگی", "اس مہینے موصول رقم" and its caption, and the privacy page's new
-    Google Fonts paragraph.
-11. **Legal.**
-    1. Have a lawyer review the privacy policy and the terms (website and app).
-    2. Add a contact address to the privacy page (it says there is none yet).
-    3. Check the official `.gov.pk` texts behind the guides, which the agent could not reach.
-12. **After the first deploy**, re-run this audit's gates: CI on `main`, the Deploy smoke tests,
-    and the daily check of Monitoring and alerts. Then update this file's verdict.
+### The first backup and restore (2026-11-09)
+
+- The live database had no users and no records; the dump held 11 operational rows in 64 tables,
+  and the `documents` bucket was empty.
+- Run 42592961582 (Backup, from this branch with a temporary trigger) dumped it, rebuilt the
+  schema from the chain on a local stack, restored the dump with triggers off, and checked:
+  "schemas match (1185 objects)" against the hosted fingerprint, and "data match: 64 tables, 11
+  rows" against a fresh dump. Its artefact was encrypted to a throwaway key, deleted afterwards,
+  so it cannot be opened; the first real backup is owner action 4.
+- The rehearsal is local, not a hosted scratch project: the repository's `SUPABASE_ACCESS_TOKEN`
+  is scoped and refused to create a project ("Forbidden"), which is the safer setting. The one
+  hosted-only question, whether `postgres` may set `session_replication_role = replica` for the
+  load, was checked on the hosted project in a rolled-back transaction: it may.
 
 ## Follow-ups (not blocking)
 

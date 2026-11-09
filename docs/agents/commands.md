@@ -92,5 +92,7 @@ them.
 
 Other workflows: `security.yml` (CodeQL, gitleaks, OSV-Scanner, dependency review, zizmor,
 outdated function dependencies), `scorecard.yml`, `pr-title.yml` (the squash title), `release.yml`
-(release-please and the release artefacts) and `deploy.yml` (Supabase, web app and website; see
-[`docs/operations.md`](../operations.md#deployment-github-actions)).
+(release-please and the release artefacts), `deploy.yml` (Supabase, web app and website; see
+[`docs/operations.md`](../operations.md#deployment-github-actions)) and `backup.yml` (the weekly
+encrypted backup, restored and checked on a local stack before it is kept; see
+[`docs/operations.md`](../operations.md#backups)).

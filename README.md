@@ -138,7 +138,8 @@ target, so a green `make` means a green pull request:
 Commit messages and pull-request titles follow Conventional Commits with the scopes in
 [`commitlint.config.mjs`](commitlint.config.mjs); release-please writes the changelog and the
 version from them ([`release.yml`](.github/workflows/release.yml)). [`deploy.yml`](.github/workflows/deploy.yml)
-pushes migrations and Edge Functions to Supabase and the app and website to Vercel.
+pushes migrations and Edge Functions to Supabase and the app and website to Vercel, and
+[`backup.yml`](.github/workflows/backup.yml) takes the weekly encrypted backup.
 
 ## Formal verification
 

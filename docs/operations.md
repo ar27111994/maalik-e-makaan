@@ -81,12 +81,36 @@ between portfolios, so one portfolio's backlog never holds up another's deletion
 Nothing in the project raises an alert by itself: the free tier has no alerting, and the app has
 no telemetry (privacy). Two checks cover it, one outside and one inside.
 
-1. **An external uptime monitor** (any free HTTP monitor, such as UptimeRobot or Better Stack) on
+1. **An external uptime monitor** on
    `GET https://<project-ref>.supabase.co/functions/v1/health?deep=1` with the header
-   `x-health-token: <HEALTH_CHECK_TOKEN>`, every 5 minutes, alerting by e-mail when it does not
-   answer 200. A 503 names the failing check (database, storage or auth). Set the secret first
-   (Edge Function secrets, below); without it `?deep=1` answers as the shallow check. Add a
-   second monitor on `https://maalik-e-makaan.vercel.app/` (200) for the web app.
+   `x-health-token: <HEALTH_CHECK_TOKEN>`, expecting 200, every 5 minutes or less, alerting by
+   e-mail. A 503 names the failing check (database, storage or auth). The token goes only in that
+   header: the function reads no query parameter, and a monitor that cannot send a custom header
+   on its free plan (UptimeRobot, HetrixTools) cannot do this check. Without the secret, `?deep=1`
+   answers 403 `deep_check_disabled`; with a wrong or missing header, 401. Add a second monitor on
+   `https://maalik-e-makaan.vercel.app/` (200) for the web app.
+
+   Setting it up. Better Stack Uptime is the suggestion (2026-11-09): its monitors have a request
+   headers field (Advanced settings, Request parameters). Whether the free plan keeps that field
+   could not be confirmed from its pricing page, so check it in the form; if it is locked, use
+   StatusCake's free plan (Custom Headers) instead.
+   1. Make a token of at least 32 characters, `openssl rand -hex 32`, and keep it in a password
+      manager.
+   2. Set it as an Edge Function secret: dashboard, Edge Functions, Secrets, `HEALTH_CHECK_TOKEN`
+      (or `supabase secrets set HEALTH_CHECK_TOKEN=<token> --project-ref <project-ref>`). No
+      redeploy is needed.
+   3. Check it: `curl -i <url>?deep=1` answers 401, and
+      `curl -i -H "x-health-token: <token>" <url>?deep=1` answers 200 with every check `ok`.
+   4. In the monitor service, create an HTTP monitor on the deep URL, method GET, expected status
+      200, the request header `x-health-token` with the token, e-mail alerts to the owner. Then a
+      second monitor on the web app. Do not publish a status page that lists the deep check, and
+      never put the token in a URL, a monitor name or a description.
+   5. Rotating the token: pause the monitor, set the new secret, update the header, resume.
+
+   The checks cost about 9,000 function calls a month at a 5-minute interval (the free plan
+   includes 500,000), and the database reads they make count as activity, which keeps the free
+   project from pausing.
+
 2. **A daily look at the jobs** (SQL editor, as `postgres`; a saved query). Each row it returns is
    something to act on:
 
@@ -135,6 +159,41 @@ A malformed optional secret breaks only the feature that uses it (the function a
 `server_misconfigured` naming the variable); a malformed `ALLOWED_ORIGINS` breaks every function,
 because CORS needs it on every request. `supabase/functions/.env.example` lists the same secrets
 for local development.
+
+## E-mail
+
+Supabase Auth's own sender is for testing only: it sends only to the project's team members, a
+few an hour, so real users cannot sign up until custom SMTP is set. The project uses
+[Resend](https://resend.com) for both kinds of e-mail: Auth's (confirm sign-up, reset password,
+change e-mail address) through SMTP, and invitations through the HTTP API (`invite-member`).
+Resend's free plan (3,000 e-mails a month, 100 a day, one domain, in November 2026) is enough at
+launch; Auth and invitations share the daily 100. Check the plan's terms allow production use.
+
+1. **A domain.** Resend sends to other people only from a domain whose DNS you control; a
+   `vercel.app` address cannot be one. Use a subdomain (`mail.<domain>`), add the records Resend
+   lists (MX and SPF TXT on `send.mail.<domain>`, DKIM TXT on `resend._domainkey.mail.<domain>`)
+   and a DMARC record (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". Turn off
+   open and click tracking for the domain, so confirmation links are not rewritten.
+2. **Two API keys**, both "Sending access" and limited to that domain: one for Supabase's SMTP,
+   one for the `invite-member` function, so either can be revoked alone.
+3. **Supabase SMTP** (Authentication, Emails, SMTP Settings, Enable custom SMTP): sender
+   `no-reply@mail.<domain>`, name "Maalik-e-Makaan", host `smtp.resend.com`, port 465, user
+   `resend`, password the first key, minimum interval 60 seconds. (Resend's Supabase integration,
+   Settings, Integrations, fills in the same.)
+4. **Rate limit** (Authentication, Rate Limits, "Email sent"): custom SMTP starts at 30 an hour;
+   keep it below Resend's daily 100.
+5. **URLs** (Authentication, URL Configuration): Site URL `https://maalik-e-makaan.vercel.app`,
+   redirect URL `https://maalik-e-makaan.vercel.app/auth/callback` (the app sends this exact path).
+6. **Templates** (Authentication, Emails, Templates). Each e-mail is in English, then Urdu. For
+   "Confirm signup", "Reset password" and "Change email address", paste the subject from
+   `supabase/config.toml` (`[auth.email.template.*]`) and the body from
+   `supabase/templates/<name>.html`; the local stack uses the same files, and the UAT checks the
+   sign-up e-mail. The app uses no magic link, invite or reauthentication e-mail.
+7. **Invitations**: the Edge Function secrets `RESEND_API_KEY` (the second key) and
+   `MAIL_FROM="Maalik-e-Makaan <no-reply@mail.<domain>>"` (Edge Function secrets, above).
+8. **Check**: sign up in each language, reset a password, change an address, and invite someone
+   outside the team. Each link should open `/auth/callback`, and "Show original" in Gmail should
+   say SPF, DKIM and DMARC "PASS".
 
 ## Hosting (Vercel)
 
@@ -372,10 +431,25 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
 4. Watch the Deploy run: each job ends with its smoke test, and the `supabase` job with a call to
    `health`. Then run the daily query of Monitoring and alerts.
 
-`RELEASE_PLEASE_TOKEN` (a fine-grained token with contents and pull requests: write on this
-repository) is recommended: a release pull request opened with the default `GITHUB_TOKEN` starts
-no CI run, so its checks stay pending until someone pushes to it. Deploy does not depend on it,
-because Release calls Deploy directly.
+`RELEASE_PLEASE_TOKEN` (repository secret) is recommended once `main` requires "CI passed". A
+release pull request that release-please opens or updates with the default `GITHUB_TOKEN` starts
+no workflow by itself: GitHub either holds its runs until someone clicks "Approve workflows to
+run" or starts none, so the required check waits on every update. With the token, CI, Security
+and the title check run on it as on any pull request; nothing else starts (no workflow listens to
+tags or releases), and Deploy still runs once, called by Release. Without the token, the
+repository setting "Allow GitHub Actions to create and approve pull requests" (Settings, Actions,
+General) must be on, or release-please cannot open its pull request.
+
+Making the token: GitHub, Settings, Developer settings, Personal access tokens, Fine-grained
+tokens, Generate new token. Resource owner the account, Only select repositories
+(`maalik-e-makaan`), Repository permissions Contents and Pull requests "Read and write" (Metadata
+is added; nothing else). An expiry of 366 days with a reminder two weeks before, or none. Save it
+as the repository secret `RELEASE_PLEASE_TOKEN`. An expired token is not empty, so the fallback to
+`GITHUB_TOKEN` does not apply: Release fails with "Bad credentials" until the secret is replaced.
+
+release-please titles its pull request `chore(release): release X.Y.Z`
+(`pull-request-title-pattern` in `release-please-config.json`), which the title check and
+commitlint accept; commitlint skips that commit's generated changelog body.
 
 ## Rollback and restore
 
@@ -395,26 +469,62 @@ an applied one (CONTRIBUTING.md). What can be rolled back, and how:
 The free plan has no backups the owner can download or restore: Supabase backs up Pro, Team and
 Enterprise projects daily, and recommends that free projects export their data with
 `supabase db dump` and keep the copies off-site
-([Database Backups](https://supabase.com/docs/guides/platform/backups)). Database backups never
-include the files in Storage (the `documents` bucket), only their rows.
+([Database Backups](https://supabase.com/docs/guides/platform/backups)). The **Backup** workflow
+(`.github/workflows/backup.yml`) does that every Monday at 02:41 Pakistan time, and by hand
+(Actions, Backup, Run workflow) before every release that carries a migration:
 
-Until the project moves to a paid plan, the owner takes a dump at least weekly, and before every
-release that carries a migration, on a trusted computer with the Supabase CLI and Docker (the
-connection string is under Connect in the dashboard, Session pooler; the password is the
-database password). Only the data is needed: the schema comes back from the migration chain
-(Restoring, below).
+1. It links the project with `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`, and dumps the
+   data only (the schema comes back from the migration chain, Restoring below):
+
+   ```bash
+   supabase db dump --linked -f data.sql --use-copy --data-only \
+     -x storage.buckets -x storage.buckets_vectors -x storage.vector_indexes
+   ```
+
+2. It records the schema fingerprint, the applied migration versions and the commit, and warns
+   when the project's history differs from the commit's chain.
+3. It downloads every file in the `documents` bucket (`supabase storage cp -r ss:///documents`),
+   and fails unless it got as many files as `storage.objects` lists.
+4. It encrypts all of it with [age](https://age-encryption.org) to the backup key (below), checks
+   that the file names every recipient, and keeps only the ciphertext, as the artefact
+   `database-backup-<UTC time>` of the run, for 90 days (the privacy policy says 90 days). The
+   plaintext is shredded on the runner; the logs name tables and count rows, never print one.
+
+**The backup key.** The workflow encrypts to every age public key in the repository variable
+`BACKUP_AGE_RECIPIENTS` (one per line) and to every ed25519 or RSA SSH key on the owner's GitHub
+account (`https://github.com/<owner>.keys`); it fails, before dumping anything, when there is
+none. The owner makes the key once, on a trusted computer:
 
 ```bash
-supabase db dump --db-url "$DB_URL" -f data.sql --use-copy --data-only \
-  -x storage.buckets -x storage.buckets_vectors -x storage.vector_indexes
+age-keygen -o maalik-e-makaan-backup.key   # prints "Public key: age1..."
 ```
 
-The file holds tenants' CNICs, phone numbers and the whole ledger: encrypt it before it leaves
-that computer (for example `age -p` or `gpg -c`), keep it where only the owner can read it, and
-delete copies older than the retention the privacy policy promises. Identity documents and photos
-are in Storage, not in the dump; copy the bucket separately if they must survive the loss of the
-project (Supabase's
-[storage migration script](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore#migrating-storage-objects)).
+(Windows: `winget install FiloSottile.age`; macOS: `brew install age`; Linux: the `age`
+package.) Put the `age1...` line in the variable (Settings, Secrets and variables, Actions,
+Variables). Keep the `.key` file in a password manager and one offline copy: without it no
+backup can be opened, and anyone with it can open all of them.
+
+**Opening a backup.** Download the artefact from the run (Actions, Backup, the run, Artifacts),
+unzip it, then:
+
+```bash
+age -d -i maalik-e-makaan-backup.key -o backup.tar maalik-e-makaan-<time>.tar.age
+tar -xf backup.tar   # data/data.sql, data/schema_fingerprint.json, data/migrations.txt, documents/
+```
+
+`data/data.sql` holds tenants' CNICs, phone numbers and the whole ledger: open it only on a
+trusted computer, and delete the plaintext when done.
+
+**Every backup is restored before it is kept.** The same run starts a local Supabase stack from
+the commit's migration chain (`supabase start`, then `supabase db reset --local --no-seed`),
+stops its pg_cron jobs, loads `data.sql` by step 3 of Restoring (triggers off, one transaction),
+and fails unless `tool/db/fingerprint_diff.py` says "schemas match" against the hosted project
+and `tool/db/dump_digest.py compare` finds every table's rows equal in a fresh dump of the stack.
+A run that warns that the hosted history differs from the commit's chain (a migration applied but
+not merged, or merged but not applied) fails this check: fix the drift first. The hosted project
+lets `postgres` set `session_replication_role = replica` (checked on 2026-11-09), so step 3 of
+Restoring works there too. The rehearsal does not use a hosted scratch project: the repository's
+`SUPABASE_ACCESS_TOKEN` is scoped and may not create projects, and should stay that way.
 
 ### Restoring
 
@@ -451,8 +561,8 @@ D-15).
    new keys).
 
 The procedure was rehearsed on 2026-11-08 against the local stack (Supabase CLI 2.122.1,
-Postgres 17.11): see `docs/release-readiness.md`, Rollback and restore. Rehearse it once on a
-scratch hosted project before launch.
+Postgres 17.11): see `docs/release-readiness.md`, Rollback and restore. Since 2026-11-09 the
+Backup workflow repeats steps 2 to 4 on every backup, against a local stack (Backups, above).
 
 ## Deleting a user account
 

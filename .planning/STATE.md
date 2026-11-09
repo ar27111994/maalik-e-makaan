@@ -129,12 +129,21 @@ The ordered checklist of everything the owner must do before launch is in
 - Google Play: the organisation account waits for its D-U-N-S number. Once the app is on Play,
   add the Play app-signing key's SHA-256 to `app/web/.well-known/assetlinks.json`, and link the
   listing from the website.
-- A native Urdu speaker to review the app's and the website's Urdu, including the date picker's
-  day names and one glossary shared by the app and the site.
+- The owner, a native Urdu speaker, reviews the app's and the website's Urdu (including the date
+  picker's day names, one glossary for the app and the site, and the e-mail templates).
+- The backup key: an `age1...` public key in the repository variable `BACKUP_AGE_RECIPIENTS` (or an
+  ed25519 or RSA SSH key on the owner's GitHub account). Until then the Backup workflow refuses
+  to run.
 - A lawyer to review the privacy policy and the terms (website and app) before launch.
 - The official legal texts (`.gov.pk`) behind the guides could not be reached from here; the
   guides word every unconfirmed point as unconfirmed until someone checks them.
-- Custom SMTP for Supabase Auth e-mails before launch (`REQUIREMENTS.md`, Open Questions).
+- Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
+  choice, 2026-11-09), with the bilingual templates in `supabase/templates/`.
+- Answered by the owner on 2026-11-09: the operator named on the privacy page (Ahmed Rehan) is
+  right; the repository secrets, variables and environments are set (`RELEASE_PLEASE_TOKEN`
+  still to add); Resend's free plan for e-mail. Done by the agent the same day: migration
+  20261109081109 applied, the Backup workflow, the first backup restored and checked
+  (`docs/release-readiness.md`, The first backup and restore).
 - Done by the owner on 2026-11-07: the Vault secret `mm_storage_cleanup_token` (checked: a
   cleanup call with it answers 200), the GitHub secret `VERCEL_TOKEN` and the upload key's
   SHA-256 fingerprint for Android App Links.
