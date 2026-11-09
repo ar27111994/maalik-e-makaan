@@ -32,9 +32,15 @@ export function button(page: Page | Locator, name: string | RegExp): Locator {
  * (Scrolling the semantics DOM with the mouse or scrollIntoView moves the
  * DOM without moving Flutter's view, and a real pointer click then lands on
  * whatever is painted there.)
+ *
+ * It waits for the control to be enabled first: Flutter marks a disabled
+ * one aria-disabled, and drops a click on it without a trace (the Download
+ * button stays disabled until its signed links are made, so a click that
+ * came too early lost the download).
  */
 export async function activate(target: Locator): Promise<void> {
   await expect(target).toBeAttached();
+  await expect(target).toBeEnabled();
   await target.evaluate((element: HTMLElement) => element.click());
 }
 
