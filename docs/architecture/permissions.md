@@ -3,7 +3,9 @@
 Who can do what in a portfolio. Every rule below is enforced by the database,
 not by the app; the app hides what a role cannot do, but a hand-made request
 gets the same answer. The matrix was read from the hosted project's policies,
-grants and function bodies on 2026-11-05 and is checked by the pgTAP suites
+grants and function bodies on 2026-11-05, checked again on 2026-11-08 against
+the policies, grants and role checks of a fresh local build of all 22
+migrations, and is checked by the pgTAP suites
 (`supabase/tests/database/03_rls_matrix.test.sql` and the per-area suites).
 
 ## Roles
@@ -35,7 +37,8 @@ A person can belong to many portfolios, with one role in each.
 3. **Functions** perform every money and membership change. They run as the
    table owner (`SECURITY DEFINER`), check the caller's role themselves, and take
    locks in the global order (account, portfolio, lease, other rows). Their
-   names are on a pgTAP allowlist.
+   names (21 today) are on a pgTAP allowlist in
+   `supabase/tests/database/01_schema_security.test.sql`.
 4. **Triggers** keep invariants a policy cannot express: voided rows are
    frozen, a document's file must exist, a file a document refers to cannot be
    deleted (whoever deletes it), and a deleted account cannot write.
@@ -57,17 +60,17 @@ O = owner, M = manager, A = accountant, V = viewer. "Members" means all four.
 
 ### Portfolio and team
 
-| Action                                                   | Who                          | Through                                       |
-| -------------------------------------------------------- | ---------------------------- | --------------------------------------------- |
-| See the portfolio, its members and their names           | Members                      | RLS                                           |
-| Create a portfolio (you become its owner)                | Any signed-in account        | `create_portfolio`, with a per-account limit  |
-| Rename it, set defaults, receipt prefix, payment details | O                            | RLS and column grants                         |
-| Delete it, typing its name to confirm                    | O                            | `delete_portfolio`                            |
-| Invite someone, list and revoke pending invitations      | O                            | `invite-member` function, `revoke_invitation` |
-| Accept an invitation                                     | The invited, verified e-mail | `accept_invitation`                           |
-| Change a member's role, remove a member                  | O                            | `update_member_role`, `remove_member`         |
-| Leave a portfolio                                        | Members                      | `remove_member` on yourself                   |
-| Sync billing for the whole portfolio                     | O, M, A                      | `sync_portfolio_billing`                      |
+| Action                                                   | Who                          | Through                                                             |
+| -------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------- |
+| See the portfolio, its members and their names           | Members                      | RLS                                                                 |
+| Create a portfolio (you become its owner)                | Any signed-in account        | `create_portfolio`, with a per-account limit                        |
+| Rename it, set defaults, receipt prefix, payment details | O                            | RLS and column grants                                               |
+| Delete it, typing its name to confirm                    | O                            | `delete_portfolio`                                                  |
+| Invite someone, list and revoke pending invitations      | O                            | `invite-member` function (`create_invitation`), `revoke_invitation` |
+| Accept an invitation                                     | The invited, verified e-mail | `accept_invitation`                                                 |
+| Change a member's role, remove a member                  | O                            | `update_member_role`, `remove_member`                               |
+| Leave a portfolio                                        | Members                      | `remove_member` on yourself                                         |
+| Sync billing for the whole portfolio                     | O, M, A                      | `sync_portfolio_billing`                                            |
 
 Rules:
 
@@ -96,7 +99,7 @@ Rules:
 | Add or edit properties, units, tenants, utility accounts | O, M                              |
 | Archive any of them                                      | O, M                              |
 | Delete a property, unit, tenant or utility account       | O                                 |
-| Start or edit a lease, add or edit occupants             | O, M                              |
+| Start or edit a lease; add, edit or remove occupants     | O, M                              |
 | Delete a lease                                           | O                                 |
 | Change the rent, end a lease                             | O, M (`change_rent`, `end_lease`) |
 
@@ -191,7 +194,8 @@ minutes) tries again, so a stranded file waits a day and a little longer.
 | Action                                                                                                | Who                         |
 | ----------------------------------------------------------------------------------------------------- | --------------------------- |
 | Dashboard, receivables, cash flow, property performance, tax-year statement, deposit position, search | Members                     |
-| See your own notifications, mark them read, delete them                                               | Each member, for themselves |
+| Cash positions (who holds collected cash) and the payment facts behind payment scores                 | Members                     |
+| See your own notifications, mark them read (`mark_notifications_read`), delete them                   | Each member, for themselves |
 | Read the audit trail                                                                                  | O, M                        |
 | Change or delete audit entries                                                                        | Nobody                      |
 

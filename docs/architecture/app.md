@@ -9,8 +9,10 @@ caches and fails the same way. Read it before adding a screen.
 app/lib/src/
   bootstrap.dart, app.dart     start-up, MaterialApp, themes, localisation
   config/                      AppConfig from --dart-define (refuses secret keys)
-  core/                        AppFailure and failureMessage (every error, both languages)
-  data/                        Supabase client, offline cache (SwrCache), shared providers
+  core/                        AppFailure and failureMessage (every error, both languages),
+                               dates, validation, text limits, SwrNotifier
+  data/                        Supabase client, offline cache (SwrCache), shared providers,
+                               keyset paging, client-chosen ids, provider retry
   auth/  settings/  routing/  shell/
   features/<feature>/
     data/          models and the repository (the only code that talks to Supabase)
@@ -38,9 +40,10 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
 
 ## Repositories
 
-- One per aggregate (portfolios and team, properties and units, tenants,
-  leases, ledger, operations, documents, reports, notifications), each an
-  abstract interface plus a `Supabase…Repository`.
+- One per aggregate (auth, account and profile, portfolios, team, properties
+  and units, tenants, leases, ledger, cash handovers, reminders, operations,
+  documents, insights and reports, notifications), each an abstract interface
+  plus a `Supabase…Repository`.
 - Reads select only the columns the screen needs, always filter by the current
   portfolio, and page with keysets (`created_at, id`), 50 rows at a time
   (`app/lib/src/data/paging.dart`). A list that must be in another order and
@@ -143,7 +146,11 @@ Photos are encoded again from their pixels as JPEG before upload, which drops
 Exif, GPS and other metadata. A file the device cannot decode (HEIC in most
 browsers) has its metadata segments removed byte by byte
 (`documents/data/image_metadata.dart`). Links to a file are signed for five
-minutes and made again while its sheet is open.
+minutes (`DocumentRepository.linkLifetime`) and made again every three
+minutes while its sheet is open. A document list shows photos as thumbnails:
+one request signs a link for every photo it shows (`thumbnailLinks`), and the
+links are signed again before they expire; a file that cannot be signed keeps
+its row's icon.
 
 ## State
 

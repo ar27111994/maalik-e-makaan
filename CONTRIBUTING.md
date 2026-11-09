@@ -9,7 +9,7 @@ You need Flutter 3.47 (Dart 3.13), Deno 2.9, Node 22, Python 3.12+, and, for the
 database suites, PostgreSQL 16 with pgTAP (or the Supabase CLI and Docker).
 
 ```sh
-make bootstrap   # pub, npm and deno dependencies, the pinned Python tools in .venv, git hooks
+make bootstrap   # pub, npm and deno dependencies, the pinned Python tools in .venv, git hooks (npm's prepare)
 make help        # every target, with a one-line description
 ```
 
@@ -24,8 +24,11 @@ make formal-install verify   # when you change the ledger, locking or money code
 ```
 
 `make lint` runs ruff, shellcheck, actionlint, squawk (on migrations newer than its baseline),
-editorconfig-checker, markdownlint and the Unicode guard. The Dart packages use
+editorconfig-checker, markdownlint, the Unicode guard and the design lint. The Dart packages use
 `very_good_analysis` and the Edge Functions `deno lint`.
+
+When a change moves pixels, re-record the goldens on Linux with `make goldens`, look at every
+changed image, and say in the pull request which ones changed and why.
 
 CI runs the same targets, so a green `make` means a green pull request.
 
@@ -52,6 +55,9 @@ CI runs the same targets, so a green `make` means a green pull request.
   bundle a font or icon set, update `THIRD_PARTY_NOTICES.md` with its version
   and licence. Copyleft code (GPL, LGPL, AGPL, MPL) needs the
   owner's agreement before it ships to users.
+
+Coding agents start at [`AGENTS.md`](AGENTS.md); every command is listed in
+[`docs/agents/commands.md`](docs/agents/commands.md).
 
 ## Reporting problems
 

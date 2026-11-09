@@ -11,15 +11,44 @@ that global tools ignore:
 
 - cash-first rent collection with numbered, bilingual receipts;
 - dues that generate themselves, late fees, deposits and an overdue list;
-- caretakers and relatives who collect on behalf of an overseas owner, with an audit trail;
+- caretakers and relatives who collect on behalf of an overseas owner, with cash handovers and every
+  change recorded in the database's audit log (a screen to read it is still to come);
 - police tenant registration, rent-agreement and utility tracking;
 - July–June tax-year statements, including tax withheld by company tenants;
 - reminders over WhatsApp, in English, Urdu or Roman Urdu.
 
-> **Status:** in active development towards v1.0. The database, Edge Functions, the domain
-> library, the design-system foundations, the app core and CI/CD are in place. The app's
-> screens are being built now. See [`.planning/STATE.md`](.planning/STATE.md) for the current
-> position and [`.planning/ROADMAP.md`](.planning/ROADMAP.md) for the plan.
+## Status
+
+In active development towards v1.0, and not yet released. Phases 1–9 of the
+[roadmap](.planning/ROADMAP.md) are built and tested: the domain library, the database, the Edge
+Functions, the design system and the app (sign-in, portfolios and team, properties, tenants and
+tenancies, documents, money, operations, dashboard, reports and search). The website and CI/CD
+are in place; the first production deploy, a native Urdu review and a legal review are still to
+come. Phase 12 (documentation, UAT and release readiness) is under way: the browser UAT passes
+([`docs/uat.md`](docs/uat.md)), and [`docs/release-readiness.md`](docs/release-readiness.md) has
+the verdict and what the owner must still do.
+[`.planning/STATE.md`](.planning/STATE.md) has the current position and blockers, and
+[`.planning/REQUIREMENTS.md`](.planning/REQUIREMENTS.md) says what remains of each requirement.
+
+## Screenshots
+
+From the design-system gallery's acceptance record
+([`packages/mm_ui/example/screenshots/`](packages/mm_ui/example/screenshots), 181 images: every
+page in English light and Urdu dark, on a phone and a desktop window):
+
+<p>
+  <img src="packages/mm_ui/example/screenshots/records-en-light-phone-01.png" width="260" alt="Gallery records page in English, light: a brass nameplate for Raza Manzil and the top of a rent receipt for Rs 45,000 with receipt number R-2026-0142.">
+  <img src="packages/mm_ui/example/screenshots/records-ur-dark-phone-01.png" width="260" alt="The same records page in Urdu, dark theme, laid out right to left in Nastaliq: the nameplate and the receipt with its brass seal.">
+  <img src="packages/mm_ui/example/screenshots/charts-en-light-phone-01.png" width="260" alt="Gallery charts page: a bar chart of rent collected against rent due over the last six months, with a button to show it as a table.">
+</p>
+
+The app's screens are recorded as golden images in six variants (light, dark, both high-contrast
+themes, Urdu and 200% text) in [`app/test/src/goldens/goldens/`](app/test/src/goldens/goldens),
+for example the [dashboard](app/test/src/goldens/goldens/dashboard_light.png),
+[recording a payment](app/test/src/goldens/goldens/record_payment_light.png),
+[a receipt in Urdu](app/test/src/goldens/goldens/receipt_urdu.png),
+[a tenancy's ledger](app/test/src/goldens/goldens/ledger_dark.png) and the
+[tax-year statement](app/test/src/goldens/goldens/tax_year_light.png).
 
 ## How it is built
 
@@ -30,8 +59,9 @@ that global tools ignore:
 | Design system    | `packages/mm_ui/`     | Tokens, themes (light, dark, high contrast), icons and accessible components. See [`DESIGN.md`](DESIGN.md).                          |
 | Database         | `supabase/migrations` | Postgres 17 on Supabase: row-level security on every table, a ledger with idempotent payments and gapless receipts, scheduled jobs.  |
 | Edge Functions   | `supabase/functions`  | Deno 2: account deletion, invitations, health checks and storage clean-up.                                                           |
+| Website          | `website/`            | Astro static site in English and Urdu: guides, calculators, no tracking. See [`website/README.md`](website/README.md).               |
 | Formal models    | `formal/`             | TLA+ models of the concurrent paths; Lean 4, Bend and Z3 proofs of the money arithmetic. See [`formal/README.md`](formal/README.md). |
-| Shared contracts | `contracts/`          | Test vectors that keep Dart, SQL and TypeScript in agreement (rent maths, text cleaning).                                            |
+| Shared contracts | `contracts/`          | Test vectors that keep Dart, SQL and TypeScript in agreement (rent maths, identity, text cleaning).                                  |
 
 Key decisions are recorded in [`.planning/PROJECT.md`](.planning/PROJECT.md):
 
@@ -40,16 +70,39 @@ Key decisions are recorded in [`.planning/PROJECT.md`](.planning/PROJECT.md):
 - financial rows are voided, never deleted;
 - secret keys never reach a client.
 
+Read more:
+
+- [`docs/architecture/app.md`](docs/architecture/app.md): how the app reads, writes, caches and
+  retries;
+- [`docs/architecture/permissions.md`](docs/architecture/permissions.md): who can do what, how the
+  database enforces it, and the lock order;
+- [`docs/operations.md`](docs/operations.md): scheduled jobs, secrets, health checks, hosting and
+  deployment;
+- [`docs/README.md`](docs/README.md): every document, by topic.
+
 ## Getting started
 
 You need Flutter 3.47 (Dart 3.13), Deno 2.9, Node 22 and Python 3.12 or later. For the database
 suites you also need PostgreSQL 16 with pgTAP, or the Supabase CLI with Docker.
 
 ```sh
-make bootstrap   # dependencies and git hooks
+make bootstrap   # dependencies, the pinned Python tools in .venv, and the git hooks
 make help        # every target, with a description
-make test        # tooling, Dart packages, app, database and Edge Functions
+make test        # tooling, Dart packages, the gallery, app, database and Edge Functions
 ```
+
+Per area:
+
+| Area                      | Commands                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| Domain library            | `make test-core`                                                                      |
+| Design system and gallery | `make test-ui test-gallery`; `cd packages/mm_ui/example && flutter run -d chrome`     |
+| App                       | `make test-app`; run it against a local stack as below                                |
+| Database                  | `make test-db test-db-concurrency` (local PostgreSQL 16 with pgTAP; `tool/db/env.sh`) |
+| Edge Functions            | `make test-functions`; `make test-functions-e2e` with `supabase start`                |
+| Website                   | `cd website && npm ci && npm run dev`; `make test-web`                                |
+| Browser UAT               | `make test-uat` (Supabase CLI, Docker, Flutter, Node; [`docs/uat.md`](docs/uat.md))   |
+| Formal verification       | `make formal-install verify`                                                          |
 
 To run the app against a local Supabase stack:
 
@@ -59,30 +112,56 @@ cp app/config/local.example.json app/config/local.json   # paste the publishable
 cd app && flutter run --dart-define-from-file=config/local.json
 ```
 
-[`docs/operations.md`](docs/operations.md) covers scheduled jobs, secrets, health checks and
-deployment.
+Coding agents start at [`AGENTS.md`](AGENTS.md); [`llms.txt`](llms.txt) indexes the docs for AI
+readers.
 
-## Quality
+## Quality gates and CI
 
-Every change runs through CI ([`ci.yml`](.github/workflows/ci.yml)):
+Every change runs through CI ([`ci.yml`](.github/workflows/ci.yml)), and every check is a `make`
+target, so a green `make` means a green pull request:
 
 - formatting and linting for every language in the repository (Dart, TypeScript, Python, shell,
-  SQL migrations, workflows, Markdown), and the design lint that keeps UI code on its tokens;
-- analysis and tests for each Dart package, with coverage gates (100% for `mm_core`);
+  SQL migrations, workflows, Markdown), the Unicode guard against invisible and bidi-control
+  characters, and the design lint that keeps UI code on its tokens;
+- analysis and tests for each Dart package with coverage gates (100% for `mm_core`, 95% for
+  `mm_ui`, 90% for the app), golden tests in six variants, and the gallery in every theme;
 - Edge Function tests at 100% line, branch and function coverage;
-- the pgTAP suites and the concurrency scenarios on PostgreSQL, and again on the real Supabase
-  stack;
-- the formal models: every TLA+ model's fast set of configurations, the Lean, Bend and Z3 proofs,
-  each with its mutants, using exactly pinned, checksum-verified tools (`make verify`);
+- the pgTAP suites (21 suites, 912 tests) and the concurrency scenarios on PostgreSQL, and again
+  on the real Supabase stack, plus a migration lint that rejects what the Supabase CLI cannot
+  apply;
+- browser UAT: 14 landlord journeys, in English and Urdu, through the release web build against a
+  local Supabase stack, each checked against the database (`make test-uat`,
+  [`docs/uat.md`](docs/uat.md));
+- the website's checks, unit tests, Playwright with axe, and Lighthouse budgets;
 - release builds for the web and Android.
 
-Security checks ([`security.yml`](.github/workflows/security.yml)) run CodeQL, gitleaks over the
-whole history, OSV-Scanner, dependency review and zizmor. Every action is pinned to a commit.
+Commit messages and pull-request titles follow Conventional Commits with the scopes in
+[`commitlint.config.mjs`](commitlint.config.mjs); release-please writes the changelog and the
+version from them ([`release.yml`](.github/workflows/release.yml)). [`deploy.yml`](.github/workflows/deploy.yml)
+pushes migrations and Edge Functions to Supabase and the app and website to Vercel.
 
-## Contributing and security
+## Formal verification
 
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request. Report vulnerabilities
-privately, as [`SECURITY.md`](SECURITY.md) explains.
+Six TLA+ models (invitations, membership, storage cleanup, ledger payments, late fees and the
+rate limiter) check the concurrent database paths; Lean 4, Z3 and Bend prove the money arithmetic
+that Dart and SQL share. The models found real races, each fixed by a migration and kept as a
+failing mutant. `make verify` runs every track's fast set with exactly pinned, checksum-verified
+tools, as CI does. See [`formal/README.md`](formal/README.md).
+
+## Security
+
+Authorisation is enforced by the database: row-level security on every table, column grants,
+role-checked write functions on a reviewed allowlist, and CHECK constraints that hold stored
+text, phone numbers, CNICs and IBANs to the form the app reads back.
+Clients hold only the publishable key. Security checks ([`security.yml`](.github/workflows/security.yml))
+run CodeQL, gitleaks over the whole history, OSV-Scanner, dependency review and zizmor, and every
+action is pinned to a commit. Report vulnerabilities privately, as [`SECURITY.md`](SECURITY.md)
+explains.
+
+## Contributing
+
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request, and use the issue forms
+for bugs and ideas.
 
 ## Licence
 

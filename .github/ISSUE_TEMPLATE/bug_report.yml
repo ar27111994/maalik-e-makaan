@@ -46,7 +46,7 @@ body:
     id: version
     attributes:
       label: App version
-      description: Settings → About, or the release tag.
+      description: The release tag (for example v0.1.0) or the day you installed or opened the app; Settings does not show a version yet.
   - type: textarea
     id: extra
     attributes:
