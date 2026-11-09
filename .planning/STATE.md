@@ -139,6 +139,11 @@ The ordered checklist of everything the owner must do before launch is in
 - Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
   choice, 2026-11-09), with the bilingual templates in `supabase/templates/`. The sending domain
   `news.ar27111994.dev` is verified (2026-11-09); its click and open tracking must be off.
+- Reported done by the owner on 2026-11-09 (not checkable from the agent's network): the backup
+  key, `RELEASE_PLEASE_TOKEN`, Supabase SMTP through Resend with the templates, and the other
+  configuration in `docs/release-readiness.md`, Owner actions. Waiting: the pull request to
+  `main` (then the first Backup and Deploy runs), an uptime monitor (Better Stack refused
+  sign-ups; Checkly or StatusCake next), and the D-U-N-S number.
 - Answered by the owner on 2026-11-09: the operator named on the privacy page (Ahmed Rehan) is
   right; the repository secrets, variables and environments are set (`RELEASE_PLEASE_TOKEN`
   still to add); Resend's free plan for e-mail. Done by the agent the same day: migration

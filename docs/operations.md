@@ -90,10 +90,12 @@ no telemetry (privacy). Two checks cover it, one outside and one inside.
    answers 403 `deep_check_disabled`; with a wrong or missing header, 401. Add a second monitor on
    `https://maalik-e-makaan.vercel.app/` (200) for the web app.
 
-   Setting it up. Better Stack Uptime is the suggestion (2026-11-09): its monitors have a request
-   headers field (Advanced settings, Request parameters). Whether the free plan keeps that field
-   could not be confirmed from its pricing page, so check it in the form; if it is locked, use
-   StatusCake's free plan (Custom Headers) instead.
+   Setting it up. Any monitor whose free plan sends a custom request header will do. Better Stack
+   Uptime was the first suggestion, but it refused new sign-ups on 2026-11-09. Next in line:
+   Checkly's free Hobby plan (an API check has a Headers tab; about 8,700 runs a month at one
+   location every 5 minutes, under the plan's monthly cap), then StatusCake's free plan (the
+   test's Custom Headers field). Check the header field is open on the free plan before relying
+   on it.
    1. Make a token of at least 32 characters, `openssl rand -hex 32`, and keep it in a password
       manager.
    2. Set it as an Edge Function secret: dashboard, Edge Functions, Secrets, `HEALTH_CHECK_TOKEN`
@@ -101,8 +103,9 @@ no telemetry (privacy). Two checks cover it, one outside and one inside.
       redeploy is needed.
    3. Check it: `curl -i <url>?deep=1` answers 401, and
       `curl -i -H "x-health-token: <token>" <url>?deep=1` answers 200 with every check `ok`.
-   4. In the monitor service, create an HTTP monitor on the deep URL, method GET, expected status
-      200, the request header `x-health-token` with the token, e-mail alerts to the owner. Then a
+   4. In the monitor service, create an HTTP (or API) check on the deep URL, method GET, from one
+      location, expected status 200, the request header `x-health-token` with the token, e-mail
+      alerts to the owner. Then a
       second monitor on the web app. Do not publish a status page that lists the deep check, and
       never put the token in a URL, a monitor name or a description.
    5. Rotating the token: pause the monitor, set the new secret, update the header, resume.

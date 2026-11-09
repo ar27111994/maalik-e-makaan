@@ -329,7 +329,8 @@ In order. Record each in `.planning/STATE.md` when it is done.
    With `main` requiring "CI passed" and no bypass, treat it as required: without it the release
    pull request's checks run only if GitHub offers "Approve workflows to run" on it (a feature
    still rolling out), and otherwise never, so it could not be merged.
-4. **Run Backup once** (Actions, Backup, Run workflow, `main`), then download the artefact and
+4. **Run Backup once**, after action 2 (a workflow can be run by hand only from the default
+   branch): Actions, Backup, Run workflow, `main`. Then download the artefact and
    open it with your key (`docs/operations.md`, Backups, Opening a backup). This checks the key end
    to end; the agent's network could not download artefacts.
 5. **E-mail** (`docs/operations.md`, E-mail). Already set on 2026-11-05: `RESEND_API_KEY` and
@@ -343,7 +344,8 @@ In order. Record each in `.planning/STATE.md` when it is done.
    language, reset a password and send an invitation to someone outside the team.
 6. **Monitoring** (`docs/operations.md`, Monitoring and alerts): `HEALTH_CHECK_TOKEN` as an Edge
    Function secret (not a GitHub secret), checked with curl, and an uptime monitor whose free
-   plan sends a custom header (Better Stack, or StatusCake), plus one on the web app. Save the
+   plan sends a custom header (Better Stack refused sign-ups on 2026-11-09: Checkly's Hobby
+   plan, or StatusCake), plus one on the web app. Save the
    daily SQL check in the dashboard's SQL editor.
 7. **Run Deploy once by hand on `main`** (Actions, Deploy, Run workflow), approve `production`
    (check that the environment requires you as reviewer), and check the smoke tests, that
