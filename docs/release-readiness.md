@@ -8,7 +8,7 @@ action 1).
 
 ## Verdict
 
-**Engineering: ready for a release candidate, once these changes are pushed and CI is green.**
+**Engineering: ready for a release candidate** (pushed; CI green on `a7f5c1a`).
 **Launch: not ready.** What is left is the owner's: merging to `main`,
 secrets, backups, monitoring and the reviews listed in [Owner actions](#owner-actions).
 
@@ -20,8 +20,9 @@ secrets, backups, monitoring and the reviews listed in [Owner actions](#owner-ac
 - The other engineering findings are fixed or documented: the rollback and restore runbook (with
   a rehearsal), monitoring, releasing, the stale docs, CI log steps, the release version and the
   privacy disclosure. One finding was partly wrong, and the evidence is below.
-- Not verified here: CI on GitHub (nothing was pushed), the Deploy workflow (it targets
-  production), iOS builds and real phones.
+- CI on GitHub: run 34 on `a7f5c1a` passed every job, `supabase-stack` and `uat` included,
+  and "CI passed"; the Security run passed too.
+- Not verified here: the Deploy workflow (it targets production), iOS builds and real phones.
 
 > **Database change for the coordinator.** One new migration,
 > `supabase/migrations/20261109081109_uat_display_fixes.sql` (D5 and D6), must be applied to the
