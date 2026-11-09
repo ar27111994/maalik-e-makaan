@@ -99,7 +99,7 @@ AGPL.
 | -------------------------- | -------------------- | ------------------------------------------- | -------------------------------------------------------- |
 | Atkinson Hyperlegible Next | 2.001                | SIL Open Font License 1.1                   | 2020-2024 The Atkinson Hyperlegible Next Project Authors |
 | Noto Nastaliq Urdu         | 3.009                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
-| MmIcons (subset of Lucide) | lucide-static 1.60.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
+| MmIcons (subset of Lucide) | lucide-static 1.66.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
 
 The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
 (`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoNastaliqUrdu.txt`,
@@ -182,7 +182,7 @@ Root `package.json` (development only):
 | @commitlint/cli                 | 21.2.4  | MIT     |
 | @commitlint/config-conventional | 21.2.4  | MIT     |
 | lefthook                        | 2.2.2   | MIT     |
-| lucide-static                   | 1.60.0  | ISC     |
+| lucide-static                   | 1.66.0  | ISC     |
 | markdownlint-cli2               | 0.24.0  | MIT     |
 | prettier                        | 3.9.10  | MIT     |
 
