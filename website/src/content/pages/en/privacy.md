@@ -1,7 +1,7 @@
 ---
 title: "Privacy"
 description: "How this website and the Maalik-e-Makaan app treat your data: no cookies or trackers on the site, and in the app, your records seen only by the people you invite."
-lastUpdated: 2026-11-08
+lastUpdated: 2026-11-09
 ---
 
 ## In short
@@ -33,7 +33,7 @@ Version 1.0 has not been released. This section describes how it is being built;
 - Each portfolio's records are kept apart in the database. Only the people you invite to a portfolio can reach them, and each person only as far as their role allows.
 - CNIC numbers are masked on screen by default.
 - Identity documents and photos are held in private storage, and are opened only through links that expire after a short time.
-- Invitations to join a portfolio are sent by email through [Resend](https://resend.com/legal/privacy-policy).
+- The app's emails, such as the link that confirms your address, a password reset and invitations to join a portfolio, are sent through [Resend](https://resend.com/legal/privacy-policy), which receives the recipient's address and the message.
 - In a web browser, the app carries its own fonts. When a text needs a character they lack, such as an emoji or a letter of another script, the browser downloads a font for it from [Google Fonts](https://policies.google.com/privacy) (fonts.gstatic.com). Google then receives your IP address and which font was asked for, but not your text. The app on Android and iPhone does not do this.
 - WhatsApp reminders open in WhatsApp on your own phone and are sent by you, from your number. The app does not send them for you, and does not read your WhatsApp.
 
@@ -46,6 +46,8 @@ When you record a tenant, you hold their personal details. The app asks you to r
 ### How long it is kept
 
 Your records are kept until you delete them, or delete your account. Version 1.0 will not delete identity documents automatically when a tenancy ends; that is planned for a later version. Financial records that are cancelled are kept, marked as cancelled, so that the receipt series stays complete.
+
+Once a week an encrypted copy of the database, with the photos and documents, is made so that the records can be restored after a mistake or an outage. An automated job on [GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)'s servers makes it and encrypts it there, so that only the person who runs the app can open it, and GitHub keeps it for 90 days. Something you delete can stay in these copies until they expire, at most 90 days later.
 
 ### Deleting your account
 
