@@ -24,3 +24,5 @@ app/lib/l10n/*.arb
 .planning/research/**
 CHANGELOG.md
 **/CHANGELOG.md
+# Written by release-please, compact.
+.release-please-manifest.json
