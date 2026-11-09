@@ -3,7 +3,14 @@
 // the language switch, a clean console, script hygiene and font coverage.
 import { expect, test, type Page } from "@playwright/test";
 import { LOCALE_INFO } from "../../src/i18n/locales.ts";
-import { fontManifest, localPath, siteOrigin, sitePages, type SitePage } from "./site.ts";
+import {
+  escapeRegExp,
+  fontManifest,
+  localPath,
+  siteOrigin,
+  sitePages,
+  type SitePage,
+} from "./site.ts";
 
 const pages = sitePages();
 const origin = siteOrigin();
@@ -277,7 +284,7 @@ for (const site of pages) {
       await expect(switchLink).toHaveAttribute("hreflang", other);
       await expect(switchLink).toHaveAttribute("lang", LOCALE_INFO[other].htmlLang);
       await switchLink.click();
-      await expect(page).toHaveURL(new RegExp(`${site.twin.replace(/[.]/g, "\\.")}$`));
+      await expect(page).toHaveURL(new RegExp(`${escapeRegExp(site.twin)}$`));
       await expect(page.locator("html")).toHaveAttribute("lang", LOCALE_INFO[other].htmlLang);
       await expect(page.locator("header [data-language-switch]")).toHaveAttribute(
         "href",

@@ -142,13 +142,32 @@ for (const file of files.filter((path) => path.endsWith(".html"))) {
   }
 }
 
+/** The namespace URIs the sitemap declares, matched by host and path, not by substring. */
+const XML_NAMESPACES: readonly (readonly [host: string, pathPrefix: string])[] = [
+  ["www.sitemaps.org", "/schemas/"],
+  ["www.w3.org", "/1999/xhtml"],
+  ["www.google.com", "/schemas/"],
+];
+
+function isXmlNamespace(href: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return false;
+  }
+  return XML_NAMESPACES.some(
+    ([host, pathPrefix]) => url.hostname === host && url.pathname.startsWith(pathPrefix),
+  );
+}
+
 // Absolute links in the generated text files.
 for (const name of ["sitemap-0.xml", "llms.txt", "llms-full.txt", "robots.txt"]) {
   const file = join(dist, name);
   const text = readFileSync(file, "utf8");
   for (const match of text.matchAll(/https?:\/\/[^\s<>"')\]]+/g)) {
     // XML namespaces are identifiers, not links.
-    if (/sitemaps\.org\/schemas|w3\.org\/1999\/xhtml|google\.com\/schemas/.test(match[0])) continue;
+    if (isXmlNamespace(match[0])) continue;
     // Sentence punctuation after a bare URL is not part of it.
     check(match[0].replace(/[.,;:]+$/, "").replaceAll("&amp;", "&"), file, origin);
   }

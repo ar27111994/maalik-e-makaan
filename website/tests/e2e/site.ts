@@ -80,3 +80,8 @@ export function fontManifest(): { family: string; codePoints: Set<number> }[] {
     codePoints: new Set(codePointsOfRange(font.unicodeRange)),
   }));
 }
+
+/** [text] as a regular expression that matches it literally. */
+export function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

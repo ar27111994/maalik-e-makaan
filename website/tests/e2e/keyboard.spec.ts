@@ -1,7 +1,7 @@
 // Keyboard use: the skip link comes first and works, every control can be
 // reached in order without a trap, and focus is always visible.
 import { expect, test, type Page } from "@playwright/test";
-import { sitePages } from "./site.ts";
+import { escapeRegExp, sitePages } from "./site.ts";
 
 /** A description of the focused element, and whether its focus indicator is visible. */
 async function focused(page: Page) {
@@ -89,7 +89,7 @@ for (const site of sitePages()) {
       await page.goto(site.path);
       await page.locator("header [data-language-switch]").focus();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(new RegExp(`${site.twin.replace(/[.]/g, "\\.")}$`));
+      await expect(page).toHaveURL(new RegExp(`${escapeRegExp(site.twin)}$`));
     });
   });
 }

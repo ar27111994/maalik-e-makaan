@@ -41,12 +41,16 @@ function copyOf(data: unknown, body: string): string[] {
     }
   };
   walk(data);
-  strings.push(
-    body
-      .replace(/<kbd lang="en" dir="ltr">[^<]*<\/kbd>/g, "")
-      .replace(/\]\([^)]*\)/g, "]")
-      .replace(/<[^>]+>/g, ""),
-  );
+  let text = body
+    .replace(/<kbd lang="en" dir="ltr">[^<]*<\/kbd>/g, "")
+    .replace(/\]\([^)]*\)/g, "]");
+  // Strip tags until none is left, so a tag split by another cannot survive.
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]+>/g, "");
+  } while (text !== previous);
+  strings.push(text);
   return strings;
 }
 
