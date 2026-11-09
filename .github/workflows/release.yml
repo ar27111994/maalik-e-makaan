@@ -104,11 +104,15 @@ jobs:
           MM_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           MM_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           BUILD_NUMBER: ${{ github.run_number }}
+        # Version codes: Flutter gives each split APK 1000 x its ABI number (1 to 4) plus the
+        # build number, so the app bundle (for Google Play) adds 10000 to stay above every APK
+        # of the same or an earlier release. Play can then update a phone that sideloaded an
+        # APK, when Play signs with the same key (docs/operations.md, Releasing).
         run: |
-          common=(--release --build-name="$VERSION" --build-number="$BUILD_NUMBER"
+          common=(--release --build-name="$VERSION"
             --dart-define-from-file=config/production.json --obfuscate --split-debug-info=build/symbols)
-          flutter build appbundle "${common[@]}"
-          flutter build apk --split-per-abi "${common[@]}"
+          flutter build appbundle "${common[@]}" --build-number="$((10000 + BUILD_NUMBER))"
+          flutter build apk --split-per-abi "${common[@]}" --build-number="$BUILD_NUMBER"
       - name: Web
         working-directory: app
         run: |
