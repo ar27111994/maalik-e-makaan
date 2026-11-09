@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:http/http.dart' show ClientException;
+import 'package:maalik_e_makaan/src/core/transport_error_stub.dart'
+    if (dart.library.io) 'package:maalik_e_makaan/src/core/transport_error_io.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Why an operation failed, in the terms the UI acts on.
@@ -21,8 +23,11 @@ sealed class AppFailure implements Exception {
     FunctionsFetchException() => const NetworkFailure(),
     FunctionException() => _fromFunction(error),
     StorageException() => _fromStorage(error),
-    // package:http wraps socket errors in ClientException on every platform.
+    // package:http wraps socket errors in ClientException, but on Android
+    // and iOS a failed TLS handshake (a captive portal, a wrong clock)
+    // arrives unwrapped as a dart:io exception.
     TimeoutException() || ClientException() => const NetworkFailure(),
+    _ when isTransportError(error) => const NetworkFailure(),
     // A model refused the server's answer (a missing or mistyped field):
     // the server and this app version disagree.
     FormatException() => const ServerFailure('unexpected_response'),
@@ -52,7 +57,15 @@ sealed class AppFailure implements Exception {
   }
 
   static AppFailure _fromAuth(AuthException error) {
-    if (error is AuthRetryableFetchException) return const NetworkFailure();
+    if (error is AuthRetryableFetchException) {
+      // gotrue throws this both when the request failed (no status) and when
+      // Auth answered 5xx: only the first is a connection problem.
+      return switch (error.statusCode) {
+        null => const NetworkFailure(),
+        '503' || '504' => const TemporarilyUnavailable(),
+        final status => ServerFailure('auth:$status'),
+      };
+    }
     if (error is AuthSessionMissingException) return const SessionExpired();
     // An e-mail link without a code, or with one the client cannot use.
     if (error is AuthPKCEGrantCodeExchangeError) {

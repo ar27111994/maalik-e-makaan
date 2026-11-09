@@ -12,7 +12,7 @@
 		<string>ur</string>
 	</array>
 	<key>CFBundleDisplayName</key>
-	<string>Maalik E Makaan</string>
+	<string>Maalik-e-Makaan</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

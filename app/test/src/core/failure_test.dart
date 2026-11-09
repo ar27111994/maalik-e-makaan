@@ -103,6 +103,30 @@ void main() {
       );
     });
 
+    test('an Auth answer of 5xx is the server, not the connection', () {
+      expect(
+        AppFailure.from(
+          AuthRetryableFetchException(message: 'busy', statusCode: '503'),
+        ),
+        isA<TemporarilyUnavailable>(),
+      );
+      expect(
+        AppFailure.from(
+          AuthRetryableFetchException(message: 'gateway', statusCode: '504'),
+        ),
+        isA<TemporarilyUnavailable>(),
+      );
+      expect(
+        (AppFailure.from(
+          AuthRetryableFetchException(
+            message: 'Error sending confirmation email',
+            statusCode: '500',
+          ),
+        ) as ServerFailure).code,
+        'auth:500',
+      );
+    });
+
     test('maps GoTrue error codes to reasons', () {
       final reasons = {
         'invalid_credentials': 'invalid_credentials',

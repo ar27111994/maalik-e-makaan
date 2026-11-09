@@ -263,6 +263,17 @@ jobs:
         run: >
           flutter build appbundle --release
           --dart-define-from-file=config/production.example.json
+      - name: Check the merged release manifest
+        # The main manifest can pass while a plugin or Gradle setting changes
+        # what ships, so check what the release build actually merged.
+        run: |
+          mapfile -t manifests < <(find app/build/app/intermediates -type f \
+            -path '*merged_manifest*/release/*' -name AndroidManifest.xml)
+          if ((${#manifests[@]} == 0)); then
+            echo "No merged release manifest under app/build/app/intermediates" >&2
+            exit 1
+          fi
+          python3 tool/android/check_manifest.py "${manifests[@]}"
 
   ios-build:
     # Proves the iOS app compiles and keeps an unsigned build to install with

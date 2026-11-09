@@ -72,7 +72,7 @@ void main() {
     );
     expect(container.read(documentPickerProvider), isA<PluginDocumentPicker>());
     expect(container.read(filePreparerProvider), prepareFile);
-    expect(container.read(linkOpenerProvider), isNotNull);
+    expect(container.read(linkOpenerProvider), openExternally);
     expect(
       whatsAppLink('hi', phoneDigits: '923001234567').toString(),
       'https://wa.me/923001234567?text=hi',

@@ -56,7 +56,7 @@ format-check-repo: ## Formatting of Python, shell and docs (no Flutter or Deno n
 	npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
 .PHONY: lint
-lint: ## Lint Python, shell, workflows, migrations, docs and plain text
+lint: ## Lint Python, shell, workflows, migrations, docs, plain text and the Android manifest
 	ruff check $(PYTHON_SOURCES)
 	shellcheck $(SHELL_SOURCES)
 	actionlint
@@ -64,6 +64,7 @@ lint: ## Lint Python, shell, workflows, migrations, docs and plain text
 	ec
 	npx --no-install markdownlint-cli2 "**/*.md"
 	python3 tool/check_unicode.py
+	python3 tool/android/check_manifest.py
 	$(MAKE) --no-print-directory design-lint
 
 .PHONY: design-lint
@@ -166,7 +167,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web and iOS packaging, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web and iOS packaging, Android manifest, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
@@ -174,6 +175,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/web -p 'test_*.py'
 	python3 -m unittest discover -s tool/formal -p 'test_*.py'
 	python3 -m unittest discover -s tool/ios -p 'test_*.py'
+	python3 -m unittest discover -s tool/android -p 'test_*.py'
 
 .PHONY: tokens
 tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)
