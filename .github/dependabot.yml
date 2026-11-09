@@ -3,6 +3,12 @@
 # messages follow commitlint (chore(deps): …, chore(deps-dev): …, ci(deps): …).
 # Deno imports (supabase/functions) are not supported by Dependabot; the
 # weekly Security run lists them instead.
+#
+# Every package.json names its npm in `packageManager` (the npm that Node in
+# .nvmrc bundles, which CI runs). Without it Dependabot writes lockfiles with
+# its own newer npm, and `npm ci` on the npm in CI rejects them. The cost: npm
+# 10 has no --min-release-age (npm 11.10 and later), so `cooldown` holds back
+# only the package being bumped, not transitive packages that npm re-resolves.
 version: 2
 
 updates:
@@ -52,6 +58,15 @@ updates:
     groups:
       website:
         update-types: [minor, patch]
+    # Exceptions to "majors one by one":
+    # - @types/node follows the Node major in .nvmrc, and moves with it by hand.
+    # - TypeScript 7 cannot run `astro check` or typed lint until
+    #   @astrojs/check and typescript-eslint support it; upgrade by hand then.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     cooldown:
       default-days: 7
 
@@ -72,8 +87,12 @@ updates:
     cooldown:
       default-days: 7
 
+  # One pub workspace (pubspec.yaml at the root lists app/ and packages/), one
+  # lockfile. Dependabot reads every member from the root and refuses to run in
+  # a member directory ("Only apply dependency_services to the root of the
+  # workspace").
   - package-ecosystem: pub
-    directories: ["/", "/app", "/packages/mm_core", "/packages/mm_ui"]
+    directory: /
     schedule:
       interval: weekly
       day: monday
@@ -114,5 +133,8 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    groups:
+      python:
+        update-types: [minor, patch]
     cooldown:
       default-days: 7

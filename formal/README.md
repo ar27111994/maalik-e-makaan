@@ -112,7 +112,7 @@ yourself wins over it.
 | TLC 2.19    | `tla2tools.jar` of tlaplus v1.7.4, sha256 `936a2620…0e88`                       | `TLA2TOOLS`    |
 | Lean 4.35.0 | `lean-4.35.0-linux.tar.zst`, sha256 `7289597a…8f6d`                             | `LEAN_HOME`    |
 | Lean 4.34.0 | `lean-4.34.0-linux.tar.zst`, sha256 `caaa9835…646b` (Bend's kernel needs it)    | `LEAN434_HOME` |
-| z3-solver   | 5.3.1.0, hash-pinned in `tool/formal/requirements.txt`, in `.cache/formal/venv` | `Z3_PYTHON`    |
+| z3-solver   | 5.3.3.0, hash-pinned in `tool/formal/requirements.txt`, in `.cache/formal/venv` | `Z3_PYTHON`    |
 | Bend 2.0.39 | `bend-2.0.39-linux-x64.tar.gz`, sha256 `6cf462fd…c7ab`                          | `BEND`         |
 
 It needs Linux x86_64, `curl`, `sha256sum`, `tar` and `zstd`, and Python

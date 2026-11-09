@@ -336,8 +336,10 @@ job then:
 3. packages the build with `tool/web/package_vercel.py` (see Hosting);
 4. runs `vercel deploy --prebuilt --prod` with the CLI pinned to an exact version, for the
    project's team and project ids;
-5. runs `tool/web/smoke_test.sh`. On `/`, `/auth/callback?code=…` and an `/invite/…` path it
-   checks for a 200 with the app's `index.html`, the CSP (it must allow `SUPABASE_URL`), HSTS,
+5. runs `tool/web/smoke_test.sh`. It first waits up to two minutes for `/` to answer 200, since
+   just after `vercel deploy --prod` the production address can still answer from the previous
+   deployment ("waiting for the deployment" in the log). Then, on `/`, `/auth/callback?code=…`
+   and an `/invite/…` path, it checks for a 200 with the app's `index.html`, the CSP (it must allow `SUPABASE_URL`), HSTS,
    `nosniff` and a revalidated `Cache-Control`. It also checks that
    `/.well-known/assetlinks.json` answers 200 as JSON, delegating to the Android package.
 
@@ -349,7 +351,8 @@ runs alongside the other two. It:
    `PUBLIC_APP_URL` set (see Hosting, The website on Vercel); the build fails on a page without
    its twin in the other language or with inline code;
 3. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
-4. runs `tool/web/site_smoke_test.sh`: `/`, `/ur/`, `/robots.txt`, `/sitemap-index.xml` and
+4. runs `tool/web/site_smoke_test.sh`, which first waits the same way for `/` to answer 200.
+   Then `/`, `/ur/`, `/robots.txt`, `/sitemap-index.xml` and
    `/llms.txt` must answer 200 with the right type, the canonical links, `robots.txt` and the
    sitemap must name `SITE_URL`, a missing page must answer 404, and every response must carry
    the Content-Security-Policy, HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`,

@@ -32,9 +32,10 @@ npm run preview        # serve dist/ the way Vercel does (headers, redirects, 40
 `make test-web` at the repository root runs `npm run check`, `npm test`, `npm run build`,
 `npm run test:e2e` and `npm run lighthouse:ci`, the same sequence as CI's `website` job.
 
-Playwright is pinned to 1.63.0 and uses its own Chromium build: preinstalled in the development
-environment (`PLAYWRIGHT_BROWSERS_PATH`), installed in CI by
-`npx playwright install --with-deps chromium`. Set `PW_CHROMIUM_PATH` to run the e2e suite on
+Playwright is pinned to 1.64.1 and uses its own Chromium build (156, build 1248), installed in CI
+by `npx playwright install --with-deps chromium`. The development environment's
+`PLAYWRIGHT_BROWSERS_PATH` holds an older build (1243, from Playwright 1.63.0) until it is
+re-provisioned; run there with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium`. Set `PW_CHROMIUM_PATH` to run the e2e suite on
 another Chromium binary. Lighthouse CI uses the same Chromium (`chromium.executablePath()` from
 Playwright), or `LIGHTHOUSE_CHROME_PATH`, then `PW_CHROMIUM_PATH`, when set; it ignores the generic
 `CHROME_PATH`, which may name a different system Chrome. Astro's anonymous build telemetry is
@@ -230,12 +231,12 @@ Every version in `package.json` is exact, and every package in `package-lock.jso
 at least seven days before it was locked; install new versions with
 `npm install --before=<a date a week ago>`. `overrides` in `package.json`:
 
-| Override                                                                                       | Why                                                                                           |
-| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `eslint-plugin-jsx-a11y` → `eslint: $eslint`                                                   | its 6.10.2 peer range stops at ESLint 9; it runs on ESLint 10 (checked by the lint suite)     |
-| `minimatch@>=10.0.0 <11.0.1` → 11.0.3, `@eslint/config-array` → `minimatch` 11.0.3             | GHSA-g3hv-75wg-m249 in ESLint's minimatch                                                     |
-| `lighthouse` → 13.6.0                                                                          | Lighthouse CI 0.15.1 pins 12.6.1, whose puppeteer chain carries advisories                    |
-| `tmp` → 0.2.7, `uuid` → 11.1.1, `basic-ftp` → 6.2.3, `@sentry/bundler-plugins` → `glob` 14.0.3 | advisories in Lighthouse CI's dependencies                                                    |
-| `playwright-core` → 1.63.0                                                                     | keeps `@axe-core/playwright` on the same Playwright as the tests and the preinstalled browser |
+| Override                                                                                       | Why                                                                                       |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `eslint-plugin-jsx-a11y` → `eslint: $eslint`                                                   | its 6.10.2 peer range stops at ESLint 9; it runs on ESLint 10 (checked by the lint suite) |
+| `minimatch@>=10.0.0 <11.0.1` → 11.0.3, `@eslint/config-array` → `minimatch` 11.0.3             | GHSA-g3hv-75wg-m249 in ESLint's minimatch                                                 |
+| `lighthouse` → 13.6.0                                                                          | Lighthouse CI 0.15.1 pins 12.6.1, whose puppeteer chain carries advisories                |
+| `tmp` → 0.2.7, `uuid` → 11.1.1, `basic-ftp` → 6.2.3, `@sentry/bundler-plugins` → `glob` 14.0.3 | advisories in Lighthouse CI's dependencies                                                |
+| `playwright-core` → 1.64.1                                                                     | keeps `@axe-core/playwright` on the same Playwright as the tests and their browser        |
 
 `npm audit` reports no vulnerabilities with these overrides.

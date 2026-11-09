@@ -6,8 +6,7 @@ const port = 4322;
  * End-to-end tests against the built site (run `npm run build` first), served
  * by scripts/serve.ts with the headers and not-found handling of vercel.json.
  *
- * The browser is Playwright's own Chromium, the build 1.63.0 pins: preinstalled
- * in the development environment (PLAYWRIGHT_BROWSERS_PATH), installed by
+ * The browser is Playwright's own Chromium, the build 1.64.1 pins, installed by
  * `npx playwright install --with-deps chromium` in CI. Set PW_CHROMIUM_PATH to
  * run another Chromium binary instead.
  */
