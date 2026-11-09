@@ -1,0 +1,49 @@
+---
+/** A page of running text in Markdown: the privacy notice and the terms. */
+import type { CollectionEntry } from "astro:content";
+import Markdown from "../components/Markdown.astro";
+import PageHeader from "../components/PageHeader.astro";
+import { formatDate } from "../i18n/dates.ts";
+import type { Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { parseLocalisedId } from "../lib/content/guides.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+  entry: CollectionEntry<"pages">;
+}
+
+const { locale, entry } = Astro.props;
+const { slug } = parseLocalisedId(entry.id, "pages");
+const path = `/${slug}/`;
+const page = entry.data;
+const html = entry.rendered?.html ?? "";
+if (html === "") throw new Error(`Page ${entry.id} has no body`);
+---
+
+<BaseLayout
+  locale={locale}
+  path={path}
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  breadcrumbs={[{ label: page.title, path }]}
+>
+  <article class="container reading">
+    <PageHeader heading={page.title}>
+      <p class="text-page__updated">
+        {`${ui(locale).textPage.lastUpdated}: `}
+        <time datetime={page.lastUpdated}>{formatDate(page.lastUpdated, locale)}</time>
+      </p>
+    </PageHeader>
+    <Markdown html={html} />
+  </article>
+</BaseLayout>
+
+<style>
+  .text-page__updated {
+    color: var(--mm-color-ink-muted);
+  }
+</style>

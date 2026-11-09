@@ -1,0 +1,42 @@
+---
+/** The site's mark: a house on a cobalt tile. Decorative; the site name beside it is the text. */
+import { MARK_HOUSE_PATH, MARK_TILE_RADIUS, MARK_VIEWBOX } from "../lib/brand.ts";
+---
+
+<svg class="brand-mark" viewBox={MARK_VIEWBOX} aria-hidden="true" focusable="false">
+  <rect class="brand-mark__tile" width="32" height="32" rx={MARK_TILE_RADIUS}></rect>
+  <path
+    class="brand-mark__glyph"
+    d={MARK_HOUSE_PATH}
+    fill="none"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  ></path>
+</svg>
+
+<style>
+  .brand-mark {
+    flex: none;
+    inline-size: 2rem;
+    block-size: 2rem;
+  }
+
+  .brand-mark__tile {
+    fill: var(--mm-color-primary);
+  }
+
+  .brand-mark__glyph {
+    stroke: var(--mm-color-on-primary);
+  }
+
+  @media (forced-colors: active) {
+    .brand-mark__tile {
+      fill: transparent;
+    }
+
+    .brand-mark__glyph {
+      stroke: currentcolor;
+    }
+  }
+</style>

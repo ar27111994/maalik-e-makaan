@@ -1,0 +1,26 @@
+# Generated, vendored or owned by other formatters.
+**/node_modules/
+**/build/
+**/dist/
+**/.dart_tool/
+**/coverage/
+**/.astro/
+**/*.g.dart
+**/*.freezed.dart
+pubspec.lock
+# Written by tool/contracts/generate.py; `make contracts-check` keeps it current.
+contracts/rent_math_vectors.json
+contracts/identity_vectors.json
+package-lock.json
+**/package-lock.json
+deno.lock
+**/deno.lock
+supabase/functions/**
+app/ios/**
+app/android/**
+app/linux/**
+app/web/manifest.json
+app/lib/l10n/*.arb
+.planning/research/**
+CHANGELOG.md
+**/CHANGELOG.md

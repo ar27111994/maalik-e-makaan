@@ -1,0 +1,150 @@
+# Supabase CLI configuration for local development and CI (`supabase start`,
+# `supabase db reset`, `supabase test db`). Based on the Supabase CLI v3
+# template. Hosted-project settings (auth URLs, SMTP, auth rate limits) are
+# managed in the dashboard; see docs/operations.md.
+project_id = "maalik-e-makaan"
+
+[api]
+enabled = true
+port = 54321
+# Only `public` is exposed through the Data API. The `app` and `private`
+# schemas hold helpers and internals and must never be added here.
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[api.tls]
+enabled = false
+
+[db]
+port = 54322
+shadow_port = 54320
+health_timeout = "2m"
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[realtime]
+# Not used by the app; disabled to keep the local stack light.
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[local_smtp]
+# Captures auth e-mails locally (confirmation, password reset, invites).
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+# Matches the documents bucket limit set in the migrations.
+file_size_limit = "10MiB"
+
+[storage.s3_protocol]
+enabled = false
+
+[auth]
+enabled = true
+# The Flutter web app in local development (`flutter run -d web-server --web-port 8080`).
+site_url = "http://127.0.0.1:8080"
+additional_redirect_urls = [
+  "http://127.0.0.1:8080/**",
+  "http://localhost:8080/**",
+  # The iOS app's e-mail links (AppConfig.nativeLinkScheme).
+  "io.github.ar27111994.maalikemakaan://127.0.0.1:8080/auth/callback",
+  "io.github.ar27111994.maalikemakaan://localhost:8080/auth/callback",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+minimum_password_length = 10
+password_requirements = "lower_upper_letters_digits"
+
+[auth.rate_limit]
+email_sent = 30
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+token_verifications = 30
+web3 = 30
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = true
+max_frequency = "1m0s"
+otp_length = 6
+otp_expiry = 3600
+
+# The e-mails, in English then Urdu. The hosted project's subjects and bodies
+# are set in the dashboard from these same files (docs/operations.md, E-mail).
+[auth.email.template.confirmation]
+subject = "Confirm your e-mail address · اپنا ای میل پتہ تصدیق کریں"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your password · اپنا پاس ورڈ دوبارہ ترتیب دیں"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.email_change]
+subject = "Confirm the change of e-mail address · ای میل پتے کی تبدیلی کی تصدیق کریں"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+inspector_port = 8083
+deno_version = 2
+
+# The gateway's verify_jwt check only understands the legacy HS256 JWT
+# secret: it rejects requests that carry the new publishable/secret API keys
+# instead of a JWT. Every function therefore authorises its callers itself:
+#   delete-account, invite-member  a signed-in user's access token, verified by
+#                                  @supabase/server against the project's JWKS
+#                                  (audience "authenticated");
+#   health                         public liveness; deep checks need
+#                                  x-health-token (HEALTH_CHECK_TOKEN);
+#   storage-cleanup                x-cleanup-token (STORAGE_CLEANUP_TOKEN), sent
+#                                  by pg_cron through pg_net.
+[functions.delete-account]
+verify_jwt = false
+
+[functions.invite-member]
+verify_jwt = false
+
+[functions.health]
+verify_jwt = false
+
+[functions.storage-cleanup]
+verify_jwt = false
+
+[analytics]
+enabled = false

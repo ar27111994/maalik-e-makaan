@@ -1,0 +1,42 @@
+{
+  "$comment": "The text-safety contract shared by the database (app.is_clean_text CHECKs), the Edge Functions (_shared/text.ts), the app's sanitiser (mm_core sanitize.dart) and the repository guard (tool/check_unicode.py). Each side is tested against this file; edit it deliberately and update every side in the same change.",
+  "forbidden": [
+    { "from": "U+0000", "to": "U+0008", "label": "C0 controls before tab" },
+    { "from": "U+000B", "to": "U+000C", "label": "vertical tab, form feed" },
+    { "from": "U+000E", "to": "U+001F", "label": "remaining C0 controls" },
+    { "from": "U+007F", "to": "U+009F", "label": "delete and C1 controls" },
+    { "from": "U+00AD", "to": "U+00AD", "label": "soft hyphen" },
+    { "from": "U+061C", "to": "U+061C", "label": "Arabic letter mark" },
+    { "from": "U+180E", "to": "U+180E", "label": "Mongolian vowel separator" },
+    { "from": "U+200B", "to": "U+200B", "label": "zero-width space" },
+    { "from": "U+202A", "to": "U+202E", "label": "bidi embeddings and overrides" },
+    { "from": "U+2060", "to": "U+2064", "label": "word joiner and invisible operators" },
+    { "from": "U+2066", "to": "U+2069", "label": "bidi isolates" },
+    { "from": "U+FEFF", "to": "U+FEFF", "label": "byte-order mark" }
+  ],
+  "allowed_samples": [
+    { "code_point": "U+0009", "label": "tab" },
+    { "code_point": "U+000A", "label": "line feed" },
+    { "code_point": "U+000D", "label": "carriage return" },
+    { "code_point": "U+0020", "label": "space" },
+    { "code_point": "U+00A0", "label": "no-break space" },
+    { "code_point": "U+0627", "label": "Arabic letter alef (Urdu)" },
+    { "code_point": "U+06D2", "label": "Arabic letter yeh barree (Urdu)" },
+    { "code_point": "U+0650", "label": "Arabic kasra (Urdu diacritic)" },
+    { "code_point": "U+200C", "label": "zero-width non-joiner (Urdu)" },
+    { "code_point": "U+200D", "label": "zero-width joiner (Urdu, emoji)" },
+    { "code_point": "U+200E", "label": "left-to-right mark" },
+    { "code_point": "U+200F", "label": "right-to-left mark" },
+    { "code_point": "U+2028", "label": "line separator" },
+    { "code_point": "U+20A8", "label": "rupee sign" },
+    { "code_point": "U+1F3E0", "label": "house emoji" }
+  ],
+  "client_also_removes": {
+    "$comment": "Characters the app's sanitiser removes or replaces although the database would accept them; being stricter on input is allowed, never looser.",
+    "removed": [
+      { "from": "U+FFF9", "to": "U+FFFB", "label": "interlinear annotation controls" },
+      { "from": "U+FDD0", "to": "U+FDEF", "label": "non-characters" }
+    ],
+    "to_space": [{ "from": "U+000B", "to": "U+000C", "label": "vertical tab, form feed" }]
+  }
+}

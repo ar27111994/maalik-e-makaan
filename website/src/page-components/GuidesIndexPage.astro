@@ -1,0 +1,50 @@
+---
+import { getCollection } from "astro:content";
+import PageHeader from "../components/PageHeader.astro";
+import { formatDate } from "../i18n/dates.ts";
+import { localisePath, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { guidePath, publishedGuides } from "../lib/content/guides.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = ui(locale);
+const guides = publishedGuides(await getCollection("guides"), locale);
+---
+
+<BaseLayout
+  locale={locale}
+  path="/guides/"
+  title={documentTitle(strings.guides.title, locale)}
+  description={strings.guides.description}
+  pageName={strings.guides.title}
+  pageType="CollectionPage"
+  breadcrumbs={[{ label: strings.guides.heading, path: "/guides/" }]}
+>
+  <div class="container">
+    <PageHeader heading={strings.guides.heading} intro={strings.guides.intro} />
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ul class="index-list" role="list">
+      {guides.map((guide) => (
+        <li class="card index-list__item">
+          <h2 class="index-list__title">
+            <a href={localisePath(guidePath(guide.ref.slug), locale)}>{guide.data.title}</a>
+          </h2>
+          <p>{guide.data.description}</p>
+          <p class="index-list__meta">
+            {`${strings.guide.lastReviewed}: `}
+            <time datetime={guide.data.lastReviewed}>
+              {formatDate(guide.data.lastReviewed, locale)}
+            </time>
+          </p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</BaseLayout>

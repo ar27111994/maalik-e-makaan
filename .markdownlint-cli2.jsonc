@@ -1,0 +1,36 @@
+{
+  // https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+  "config": {
+    "default": true,
+    "MD013": false, // line length: prose wraps at sentence level instead
+    "MD024": { "siblings_only": true },
+    "MD033": {
+      "allowed_elements": [
+        "br",
+        "details",
+        "summary",
+        "img",
+        "picture",
+        "source",
+        "p",
+        "a",
+        "sub",
+        "sup",
+        "kbd",
+      ],
+    },
+    "MD041": false,
+  },
+  "ignores": [
+    "**/node_modules/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/.dart_tool/**",
+    "**/.cache/**", // downloaded tools, e.g. tool/formal/install.sh's Lean sources
+    "**/flutter/ephemeral/**",
+    "**/CHANGELOG.md",
+    ".planning/research/**",
+    "app/ios/**",
+    "app/android/**",
+  ],
+}

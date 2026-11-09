@@ -1,0 +1,5 @@
+/* Why the app asks for the camera: taking photos of documents. */
+"NSCameraUsageDescription" = "Take photos of CNICs, agreements and receipts to keep with your tenants and properties.";
+
+/* Why the app asks for the photo library: choosing photos of documents. */
+"NSPhotoLibraryUsageDescription" = "Choose photos of CNICs, agreements and receipts to keep with your tenants and properties.";

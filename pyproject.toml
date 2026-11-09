@@ -1,0 +1,42 @@
+# Configuration for the repository's Python tooling (tool/, formal/). There is
+# no Python package here; this file only configures black and ruff.
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = '''
+(
+  /node_modules/
+  | /\.dart_tool/
+  | /app/(ios|android|linux|macos|windows)/
+  | /website/
+)
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["app/ios", "app/android", "app/linux", "website", "node_modules"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # import order
+  "B",        # bugbear
+  "UP",       # pyupgrade
+  "SIM",      # simplify
+  "C4",       # comprehensions
+  "N",        # naming
+  "S",        # bandit security checks
+  "PTH",      # pathlib over os.path
+  "RUF",      # ruff-specific
+]
+# Black owns line length.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# unittest-style tests use assert and fixed fixture values.
+"**/test_*.py" = ["S101", "S105", "S106"]
+# Writes pgTAP suites from the committed contract vectors, not from input.
+"tool/contracts/generate.py" = ["S608"]

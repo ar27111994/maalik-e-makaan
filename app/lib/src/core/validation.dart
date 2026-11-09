@@ -1,0 +1,108 @@
+import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:mm_core/mm_core.dart';
+
+/// Checks forms run before sending anything, so people learn what to fix
+/// next to the field. Each returns the message to show, or null when the
+/// value is fine. The server checks again and has the last word.
+abstract final class Validators {
+  /// The shortest password Supabase Auth accepts
+  /// (`supabase/config.toml`: `minimum_password_length`).
+  static const passwordMinLength = 10;
+
+  /// The longest password Supabase Auth hashes (bcrypt reads 72 bytes).
+  static const passwordMaxLength = 72;
+
+  static final _lower = RegExp('[a-z]');
+  static final _upper = RegExp('[A-Z]');
+  static final _digit = RegExp('[0-9]');
+
+  /// Something must be typed.
+  static String? required(AppLocalizations l10n, String? value) =>
+      (value ?? '').trim().isEmpty ? l10n.validationRequired : null;
+
+  /// A plausible e-mail address.
+  static String? email(AppLocalizations l10n, String? value) {
+    if ((value ?? '').trim().isEmpty) return l10n.validationRequired;
+    return EmailAddress.tryParse(value!) == null ? l10n.validationEmail : null;
+  }
+
+  /// A new password that meets Supabase Auth's rules
+  /// (`password_requirements = "lower_upper_letters_digits"`), so the
+  /// server does not refuse it after the form is sent.
+  static String? newPassword(AppLocalizations l10n, String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) return l10n.validationRequired;
+    if (password.length > passwordMaxLength) {
+      return l10n.validationTooLong(passwordMaxLength);
+    }
+    final strong =
+        password.length >= passwordMinLength &&
+        _lower.hasMatch(password) &&
+        _upper.hasMatch(password) &&
+        _digit.hasMatch(password);
+    return strong ? null : l10n.validationPassword;
+  }
+
+  /// The same password typed again.
+  static String? repeatedPassword(
+    AppLocalizations l10n,
+    String? value,
+    String password,
+  ) {
+    if ((value ?? '').isEmpty) return l10n.validationRequired;
+    return value == password ? null : l10n.validationPasswordMismatch;
+  }
+
+  /// A name of at most [maxLength] code points once tidied
+  /// (`sanitizeSingleLine`, as it is saved).
+  ///
+  /// The database limits a column with `char_length`, which counts code
+  /// points, not characters as a reader sees them: an Urdu name with
+  /// diacritics (زَید) has more code points than letters, so counting
+  /// letters would pass a name the database then refuses.
+  static String? name(
+    AppLocalizations l10n,
+    String? value, {
+    required int maxLength,
+    bool required = true,
+  }) {
+    final tidy = sanitizeSingleLine(value ?? '');
+    if (tidy.isEmpty) return required ? l10n.validationRequired : null;
+    return tidy.runes.length > maxLength
+        ? l10n.validationTooLong(maxLength)
+        : null;
+  }
+
+  /// A percentage from 0 to 100 with at most two decimals ([parsePercent]).
+  static String? percent(AppLocalizations l10n, String? value) {
+    if ((value ?? '').trim().isEmpty) return l10n.validationRequired;
+    return parsePercent(value!) == null ? l10n.validationPercent : null;
+  }
+
+  /// A whole number from [min] to [max]; empty is fine unless [required].
+  static String? wholeNumber(
+    AppLocalizations l10n,
+    String? value, {
+    required int min,
+    required int max,
+    bool required = false,
+  }) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) return required ? l10n.validationRequired : null;
+    final number = int.tryParse(normalizeDigits(text));
+    return number == null || number < min || number > max
+        ? l10n.validationNumberRange(min, max)
+        : null;
+  }
+}
+
+/// [text] as a percentage in basis points (10 % = 1000, 2.5 % = 250), with
+/// Urdu digits read too; null when it is not 0 to 100 with at most two
+/// decimals.
+int? parsePercent(String text) {
+  try {
+    return basisPointsFromPercent(normalizeDigits(text).trim());
+  } on FormatException {
+    return null;
+  }
+}

@@ -1,0 +1,55 @@
+---
+import { LOCALE_INFO, otherLocale, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+
+interface Props {
+  locale: Locale;
+  /** The same page in the other language. */
+  href: string;
+}
+
+const { locale, href } = Astro.props;
+const target = otherLocale(locale);
+---
+
+<a
+  class="language-switch"
+  href={href}
+  hreflang={LOCALE_INFO[target].hreflang}
+  lang={LOCALE_INFO[target].htmlLang}
+  data-language-switch
+>
+  <span class:list={[target === "ur" && "ur-label"]}>{LOCALE_INFO[target].endonym}</span>
+  <span class="visually-hidden" lang={LOCALE_INFO[locale].htmlLang}>
+    {ui(locale).switchLanguageHint}
+  </span>
+</a>
+
+<style>
+  .language-switch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--mm-size-min-target);
+    min-inline-size: var(--mm-size-min-target);
+    padding-inline: var(--mm-space-s4);
+    border: var(--mm-size-hairline) solid var(--mm-color-outline);
+    border-radius: var(--mm-radius-sm);
+    background-color: var(--mm-color-surface);
+    color: var(--mm-color-primary);
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration-line: none;
+  }
+
+  .language-switch:hover {
+    background-color: var(--mm-color-primary-container);
+    color: var(--mm-color-on-primary-container);
+  }
+
+  /* Nastaliq sits low and tall; give it room inside the control. */
+  .language-switch .ur-label {
+    font-size: 1.125rem;
+    line-height: 1.8;
+  }
+</style>

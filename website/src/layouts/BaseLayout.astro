@@ -1,0 +1,197 @@
+---
+/**
+ * The frame of every page: <head> (SEO, structured data, fonts, icons), the
+ * skip link, the header with the language switch, optional breadcrumbs, the
+ * main landmark and the footer.
+ */
+import tokens from "../../../design/tokens/maalik.tokens.json";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import JsonLd from "../components/JsonLd.astro";
+import Seo from "../components/Seo.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import latinFont from "../generated/fonts/atkinson-hyperlegible-next-latin.woff2?url";
+import labelFont from "../generated/fonts/noto-nastaliq-urdu-label.woff2?url";
+import urduFont from "../generated/fonts/noto-nastaliq-urdu.woff2?url";
+import {
+  absoluteUrl,
+  LOCALE_INFO,
+  localisePath,
+  otherLocale,
+  type Locale,
+} from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import {
+  breadcrumbListNode,
+  jsonLdGraph,
+  organizationNode,
+  webPageNode,
+  websiteNode,
+  type JsonLdNode,
+  type PageFacts,
+} from "../lib/seo/json-ld.ts";
+import "../styles/global.css";
+
+export interface Crumb {
+  readonly label: string;
+  /** Locale-neutral path, e.g. "/licences/". */
+  readonly path: string;
+}
+
+interface Props {
+  locale: Locale;
+  /** The full document title (see documentTitle in src/lib/seo/meta.ts). */
+  title: string;
+  description: string;
+  /** The locale-neutral path of this page, e.g. "/" or "/licences/". Error pages omit it. */
+  path?: string;
+  /** Where the language switch goes when the page has no `path` (error pages). */
+  switchHref?: string;
+  /** The page's name in structured data; defaults to `title`. */
+  pageName?: string;
+  pageType?: PageFacts["type"];
+  /** Extra properties of the page's WebPage node, e.g. an FAQPage's questions. */
+  pageExtra?: PageFacts["extra"];
+  /** Further structured data, e.g. the SoftwareApplication or an Article. */
+  extraNodes?: readonly JsonLdNode[];
+  /** The trail after the home page, ending with this page. */
+  breadcrumbs?: readonly Crumb[];
+  noindex?: boolean;
+  ogType?: "website" | "article";
+}
+
+const {
+  locale,
+  title,
+  description,
+  path,
+  switchHref,
+  pageName = title,
+  pageType,
+  pageExtra,
+  extraNodes = [],
+  breadcrumbs = [],
+  noindex = false,
+  ogType = "website",
+} = Astro.props;
+
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+if (path === undefined && switchHref === undefined) {
+  throw new Error("A page needs a `path` (or, for an error page, a `switchHref`)");
+}
+const site = Astro.site;
+const info = LOCALE_INFO[locale];
+const strings = ui(locale);
+const languageSwitchHref = switchHref ?? localisePath(path ?? "/", otherLocale(locale));
+
+const trail =
+  breadcrumbs.length > 0
+    ? [{ label: strings.breadcrumbHome, path: "/" }, ...breadcrumbs].map((crumb) => ({
+        label: crumb.label,
+        href: localisePath(crumb.path, locale),
+      }))
+    : [];
+
+let graph = undefined;
+if (!noindex && path !== undefined) {
+  const url = absoluteUrl(site, localisePath(path, locale));
+  const nodes: JsonLdNode[] = [
+    organizationNode(site),
+    websiteNode(site),
+    webPageNode({
+      site,
+      url,
+      name: pageName,
+      description,
+      locale,
+      ...(pageType === undefined ? {} : { type: pageType }),
+      hasBreadcrumb: trail.length > 0,
+      ...(pageExtra === undefined ? {} : { extra: pageExtra }),
+    }),
+    ...extraNodes,
+  ];
+  if (trail.length > 0) {
+    nodes.push(
+      breadcrumbListNode(
+        url,
+        trail.map((crumb) => ({ name: crumb.label, url: absoluteUrl(site, crumb.href) })),
+      ),
+    );
+  }
+  graph = jsonLdGraph(nodes);
+}
+
+const colors = tokens.color;
+const fontPreloads = locale === "en" ? [latinFont, labelFont] : [urduFont, latinFont];
+---
+
+<!doctype html>
+<html lang={info.htmlLang} dir={info.dir}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      content={colors.light.surface.$value.hex}
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content={colors.dark.surface.$value.hex}
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta name="format-detection" content="telephone=no" />
+    <Seo
+      locale={locale}
+      title={title}
+      description={description}
+      path={path}
+      noindex={noindex}
+      ogType={ogType}
+    />
+    {fontPreloads.map((href) => (
+      <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
+    ))}
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {graph !== undefined && <JsonLd graph={graph} />}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      {strings.skipLink}
+    </a>
+    <SiteHeader locale={locale} switchHref={languageSwitchHref} path={path} />
+    <main id="main">
+      {trail.length > 0 && (
+        <div class="container">
+          <Breadcrumbs locale={locale} items={trail} />
+        </div>
+      )}
+      <slot />
+    </main>
+    <SiteFooter locale={locale} />
+  </body>
+</html>
+
+<style>
+  .skip-link {
+    position: absolute;
+    inset-block-start: var(--mm-space-s2);
+    inset-inline-start: var(--mm-space-s2);
+    z-index: 1;
+    padding: var(--mm-space-s3) var(--mm-space-s4);
+    border-radius: var(--mm-radius-sm);
+    background-color: var(--mm-color-primary);
+    color: var(--mm-color-on-primary);
+    font-weight: 600;
+    transform: translateY(-200%);
+  }
+
+  .skip-link:focus-visible,
+  .skip-link:focus {
+    transform: none;
+    outline-offset: calc(var(--mm-size-focus-gap) + var(--mm-size-stroke));
+  }
+</style>

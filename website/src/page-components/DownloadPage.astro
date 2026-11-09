@@ -1,0 +1,111 @@
+---
+import { getEntry } from "astro:content";
+import PageHeader from "../components/PageHeader.astro";
+import StatusChip from "../components/StatusChip.astro";
+import { APP_URL } from "../config/app-url.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { contentHref } from "../lib/content/links.ts";
+import { ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("download", locale);
+if (entry === undefined) throw new Error(`src/content/download/${locale}.yaml is missing`);
+const page = entry.data;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+---
+
+<BaseLayout
+  locale={locale}
+  path="/download/"
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  pageExtra={{ about: { "@id": ids.app(site) } }}
+  breadcrumbs={[{ label: page.heading, path: "/download/" }]}
+>
+  <div class="container">
+    <PageHeader heading={page.heading} intro={page.intro} />
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ul class="platforms" role="list">
+      {page.platforms.map((platform) => (
+        <li class="card platforms__item">
+          <h2 class="platforms__name">{platform.name}</h2>
+          <StatusChip status={platform.available ? "paid" : "planned"} label={platform.status} />
+          <p>{platform.body}</p>
+        </li>
+      ))}
+    </ul>
+    <section class="closing-band" aria-labelledby="web-app-heading">
+      <h2 id="web-app-heading">{page.webApp.heading}</h2>
+      <p>{page.webApp.body}</p>
+      <p class="web-address" dir="ltr" lang="en">
+        {APP_URL}
+      </p>
+      <a class="button button--primary" href={contentHref(page.webApp.cta.href, locale, APP_URL)}>
+        {page.webApp.cta.label}
+      </a>
+    </section>
+    <section class="section requirements" aria-labelledby="requirements-heading">
+      <h2 id="requirements-heading">{page.requirements.heading}</h2>
+      <ul>
+        {page.requirements.items.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .platforms {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+    gap: var(--mm-space-s4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .platforms__item {
+    display: grid;
+    align-content: start;
+    gap: var(--mm-space-s3);
+  }
+
+  .platforms__name {
+    font-size: var(--mm-type-title-size);
+    font-weight: var(--mm-type-title-weight);
+    line-height: var(--mm-type-title-line);
+  }
+
+  :global(html[lang="ur"]) .platforms__name {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .web-address {
+    overflow-wrap: anywhere;
+    font-weight: 600;
+  }
+
+  .requirements {
+    display: grid;
+    gap: var(--mm-space-s4);
+    max-inline-size: var(--reading-max);
+  }
+
+  .requirements ul {
+    display: grid;
+    gap: var(--mm-space-s2);
+    margin: 0;
+    padding-inline-start: var(--mm-space-s6);
+  }
+</style>

@@ -1,0 +1,468 @@
+/*
+ * The site's base styles. Colours, spacing, radii, sizes and motion come from
+ * the design system's tokens (design/tokens/maalik.tokens.css, imported as it
+ * is, never copied); the type scale and @font-face rules are generated from
+ * the same tokens and fonts by integrations/brand-assets.ts. Every colour here
+ * is a --mm-color-* custom property, and every direction is logical (start and
+ * end), so the Urdu pages mirror without extra rules. Stylelint enforces both.
+ */
+@import url("../../../design/tokens/maalik.tokens.css");
+@import url("../generated/fonts.css");
+@import url("../generated/typography.css");
+
+/* Site-wide measures, in the tokens' units. */
+:root {
+  --page-max: 72rem;
+  --reading-max: 45rem; /* 720 px: the design system's reading column. */
+  --gutter: var(--mm-space-s4);
+  --section-gap: var(--mm-space-s12);
+  --focus-ring: var(--mm-size-focus-ring) solid var(--mm-color-focus);
+}
+
+@media (width >= 40rem) {
+  :root {
+    --gutter: var(--mm-space-s6);
+    --section-gap: var(--mm-space-s16);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Mobile Safari still needs the prefix to stop it enlarging text in landscape. */
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background-color: var(--mm-color-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  min-block-size: 100vb;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mm-color-bg);
+  color: var(--mm-color-ink);
+  font-size: var(--mm-type-body-size);
+  font-weight: var(--mm-type-body-weight);
+  line-height: var(--mm-type-body-line);
+  overflow-wrap: break-word;
+}
+
+/* Urdu: Nastaliq needs a size step up and about twice the line height. */
+html[lang="ur"] body {
+  font-size: var(--mm-type-urdu-body-size);
+  line-height: var(--mm-type-urdu-body-line);
+}
+
+/* Each language keeps its own script's face, wherever it appears. */
+[lang="ur"] {
+  font-family: var(--mm-font-urdu);
+}
+
+[lang|="en"] {
+  font-family: var(--mm-font-latin);
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+/* ---- Text ---- */
+
+h1,
+h2,
+h3 {
+  margin-block: 0;
+  color: var(--mm-color-ink);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(2rem, 1.6rem + 1.6vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: var(--mm-type-headline-size);
+  font-weight: var(--mm-type-headline-weight);
+  line-height: var(--mm-type-headline-line);
+}
+
+h3 {
+  font-size: var(--mm-type-title-size);
+  font-weight: var(--mm-type-title-weight);
+  line-height: var(--mm-type-title-line);
+}
+
+p,
+ul,
+ol,
+dl,
+figure {
+  margin-block: 0;
+}
+
+p + p {
+  margin-block-start: var(--mm-space-s3);
+}
+
+/* ---- Long-form text (guides) ---- */
+
+/* A grid item may shrink below its widest table, which scrolls in its own box instead. */
+.prose {
+  min-inline-size: 0;
+}
+
+/* Text the reader types, such as the word sent by SMS. */
+kbd {
+  padding-inline: var(--mm-space-s1);
+  border: var(--mm-size-hairline) solid var(--mm-color-outline);
+  border-radius: var(--mm-radius-xs);
+  background-color: var(--mm-color-surface-sunken);
+  font-family: var(--mm-font-latin);
+  font-weight: 600;
+}
+
+.prose > * + * {
+  margin-block-start: var(--mm-space-s4);
+}
+
+.prose h2 {
+  margin-block-start: var(--mm-space-s10);
+}
+
+.prose h3 {
+  margin-block-start: var(--mm-space-s8);
+}
+
+.prose ul,
+.prose ol {
+  padding-inline-start: var(--mm-space-s6);
+}
+
+.prose li + li {
+  margin-block-start: var(--mm-space-s2);
+}
+
+.prose blockquote {
+  margin-inline: 0;
+  padding-inline-start: var(--mm-space-s4);
+  border-inline-start: var(--mm-size-tab-indicator) solid var(--mm-color-outline);
+  color: var(--mm-color-ink-muted);
+}
+
+/* Tables in long-form text are wrapped in .table-scroll at build time (src/lib/markdown/tables.ts). */
+
+html[lang="ur"] h1 {
+  font-size: clamp(1.875rem, 1.5rem + 1.5vw, 2.5rem);
+  line-height: var(--mm-type-urdu-headline-line);
+}
+
+html[lang="ur"] h2 {
+  font-size: var(--mm-type-urdu-headline-size);
+  font-weight: var(--mm-type-urdu-headline-weight);
+  line-height: var(--mm-type-urdu-headline-line);
+}
+
+html[lang="ur"] h3 {
+  font-size: var(--mm-type-urdu-title-size);
+  font-weight: var(--mm-type-urdu-title-weight);
+  line-height: var(--mm-type-urdu-title-line);
+}
+
+/* ---- Links and focus ---- */
+
+a {
+  color: var(--mm-color-primary);
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-thickness: 0.16em;
+}
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--mm-size-focus-gap);
+}
+
+/* Targets in a page's own anchors land clear of the top edge. */
+:target {
+  scroll-margin-block-start: var(--mm-space-s6);
+}
+
+/* ---- Layout ---- */
+
+.container {
+  inline-size: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-inline: auto;
+}
+
+/*
+ * A reading column inside the page container: each block stops at the reading
+ * measure but starts at the same edge as the header, breadcrumbs and footer,
+ * so text pages and the home page's questions line up with everything else.
+ */
+.reading > * {
+  max-inline-size: var(--reading-max);
+}
+
+.section {
+  padding-block: var(--section-gap);
+}
+
+.section + .section {
+  padding-block-start: 0;
+}
+
+.section-heading {
+  margin-block-end: var(--mm-space-s6);
+}
+
+/* ---- Utilities ---- */
+
+/* Hidden on screen, read by screen readers. */
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Urdu words on English pages use a small subset of the Nastaliq font. */
+.ur-label {
+  font-family: "MM Nastaliq Label", var(--mm-font-urdu);
+  font-weight: 400;
+}
+
+/* Amounts: the Latin face's figures in both languages, in even columns. */
+.amount {
+  font-family: var(--mm-font-latin), var(--mm-font-urdu);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- Buttons ---- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mm-space-s2);
+  min-block-size: var(--mm-size-button-height);
+  padding-block: var(--mm-space-s2);
+  padding-inline: var(--mm-space-s4);
+  border: var(--mm-size-stroke) solid var(--mm-color-primary);
+  border-radius: var(--mm-radius-sm);
+  font-family: inherit; /* a <button> does not inherit the page's face by default */
+  font-size: var(--mm-type-label-size);
+  font-weight: var(--mm-type-label-weight);
+  line-height: var(--mm-type-label-line);
+  letter-spacing: var(--mm-type-label-tracking);
+  text-decoration-line: none;
+  transition: background-color var(--mm-duration-quick) var(--mm-easing-standard);
+}
+
+html[lang="ur"] .button {
+  font-size: var(--mm-type-urdu-label-size);
+  font-weight: var(--mm-type-urdu-label-weight);
+  line-height: var(--mm-type-urdu-label-line);
+  letter-spacing: var(--mm-type-urdu-label-tracking);
+}
+
+.button--primary {
+  background-color: var(--mm-color-primary);
+  color: var(--mm-color-on-primary);
+}
+
+.button--primary:hover {
+  background-color: var(--mm-color-on-primary-container);
+  border-color: var(--mm-color-on-primary-container);
+}
+
+.button--secondary {
+  background-color: var(--mm-color-surface);
+  color: var(--mm-color-primary);
+}
+
+.button--secondary:hover {
+  background-color: var(--mm-color-primary-container);
+}
+
+/* A filled control draws its focus ring outside a gap, so it shows on cobalt too. */
+.button--primary:focus-visible {
+  outline-offset: calc(var(--mm-size-focus-gap) + var(--mm-size-stroke));
+}
+
+/* ---- Cards ---- */
+
+.card {
+  padding: var(--mm-space-s4);
+  border: var(--mm-size-hairline) solid var(--mm-color-rule);
+  border-radius: var(--mm-radius-md);
+  background-color: var(--mm-color-surface);
+}
+
+/* ---- Forced colours (Windows contrast themes) ---- */
+
+@media (forced-colors: active) {
+  .card,
+  .button {
+    border-color: currentcolor;
+  }
+
+  .button--primary:hover {
+    border-color: currentcolor;
+  }
+}
+
+/* ---- The closing band of a page: one next step ---- */
+
+.closing-band {
+  display: grid;
+  justify-items: start;
+  gap: var(--mm-space-s4);
+  margin-block-start: var(--section-gap);
+  padding: var(--mm-space-s8) var(--mm-space-s6);
+  border: var(--mm-size-hairline) solid var(--mm-color-rule);
+  border-radius: var(--mm-radius-md);
+  background-color: var(--mm-color-surface);
+}
+
+/* ---- Tables that may be wider than the screen ---- */
+
+/*
+ * A table in a box that scrolls sideways on its own, so the page never does.
+ * The box is focusable and named (role="region"), so keyboard users can
+ * scroll it too.
+ */
+.table-scroll {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  border-radius: var(--mm-radius-xs);
+}
+
+/*
+ * A shadow on the side where more of a scrolling box is hidden, so it is clear
+ * that it scrolls. Two covers in the box's own background colour scroll with
+ * the content ("local") and hide the shadows ("scroll") once an edge is
+ * reached. The layers are symmetrical, so they need no mirroring in Urdu.
+ */
+.scroll-cue,
+.table-scroll {
+  --scroll-cue-bg: var(--mm-color-bg);
+
+  background:
+    linear-gradient(to right, var(--scroll-cue-bg) 40%, transparent) left center / 2rem 100%
+      no-repeat local,
+    linear-gradient(to left, var(--scroll-cue-bg) 40%, transparent) right center / 2rem 100%
+      no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--mm-color-outline), transparent) left center /
+      0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--mm-color-outline), transparent) right center /
+      0.75rem 100% no-repeat scroll;
+}
+
+.data-table,
+.table-scroll table {
+  min-inline-size: 100%;
+  border-collapse: collapse;
+}
+
+/*
+ * A table of words keeps columns wide enough to read, and scrolls sideways on a
+ * phone, rather than squeezing each cell to a word a line.
+ */
+.prose .table-scroll table {
+  min-inline-size: max(100%, 36rem);
+}
+
+.data-table caption {
+  padding-block-end: var(--mm-space-s2);
+  font-weight: 600;
+  text-align: start;
+}
+
+.data-table th,
+.data-table td,
+.table-scroll th,
+.table-scroll td {
+  padding: var(--mm-space-s2) var(--mm-space-s3);
+  border: var(--mm-size-hairline) solid var(--mm-color-rule);
+  text-align: start;
+  vertical-align: top;
+}
+
+.data-table thead th,
+.table-scroll thead th {
+  background-color: var(--mm-color-surface-sunken);
+}
+
+.data-table td.amount {
+  text-align: end;
+}
+
+@media (forced-colors: active) {
+  .closing-band {
+    border-color: currentcolor;
+  }
+}
+
+/* ---- Index pages: a list of guides or calculators ---- */
+
+.index-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--mm-space-s4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.index-list__item {
+  display: grid;
+  align-content: start;
+  gap: var(--mm-space-s2);
+}
+
+.index-list__title {
+  font-size: var(--mm-type-title-size);
+  font-weight: var(--mm-type-title-weight);
+  line-height: var(--mm-type-title-line);
+}
+
+html[lang="ur"] .index-list__title {
+  font-size: var(--mm-type-urdu-title-size);
+  line-height: var(--mm-type-urdu-title-line);
+}
+
+.index-list__meta {
+  color: var(--mm-color-ink-muted);
+  font-size: var(--mm-type-body-small-size);
+  line-height: var(--mm-type-body-small-line);
+}
+
+html[lang="ur"] .index-list__meta {
+  font-size: var(--mm-type-urdu-body-small-size);
+  line-height: var(--mm-type-urdu-body-small-line);
+}

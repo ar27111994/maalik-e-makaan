@@ -1,0 +1,291 @@
+---
+import { getEntry } from "astro:content";
+import AppStatus from "../components/AppStatus.astro";
+import Receipt from "../components/Receipt.astro";
+import { APP_URL } from "../config/app-url.ts";
+import { SITE } from "../config/site.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { contentHref } from "../lib/content/links.ts";
+import { ids, softwareApplicationNode } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("home", locale);
+if (entry === undefined) throw new Error(`src/content/home/${locale}.yaml is missing`);
+const home = entry.data;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+
+const hrefOf = (href: string) => contentHref(href, locale, APP_URL);
+// Until version 1.0 ships the web app's address shows only a holding page, so
+// the main buttons lead to something the reader can use today.
+const released = SITE.appStatus === "available";
+const primaryCta = released ? home.hero.appCta : home.hero.primaryCta;
+const closingBody = released ? home.closing.appBody : home.closing.body;
+const closingCta = released ? home.closing.appCta : home.closing.cta;
+---
+
+<BaseLayout
+  locale={locale}
+  path="/"
+  title={documentTitle(home.title, locale)}
+  description={home.description}
+  pageName={home.title}
+  pageExtra={{ about: { "@id": ids.app(site) } }}
+  extraNodes={[softwareApplicationNode({ site, appUrl: APP_URL, description: home.description })]}
+>
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="container hero__inner">
+      <div class="hero__text">
+        <h1 id="hero-heading">{home.hero.heading}</h1>
+        <p class="hero__lede">{home.hero.lede}</p>
+        <AppStatus locale={locale} variant="notice" />
+        <div class="hero__actions">
+          <a class="button button--primary" href={hrefOf(primaryCta.href)}>
+            {primaryCta.label}
+          </a>
+          <a class="button button--secondary" href={hrefOf(home.hero.secondaryCta.href)}>
+            {home.hero.secondaryCta.label}
+          </a>
+        </div>
+      </div>
+      <div class="hero__receipt">
+        <Receipt locale={locale} receipt={home.receipt} />
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="section" aria-labelledby="features-heading">
+    <div class="container">
+      <h2 id="features-heading" class="section-heading">
+        {home.features.heading}
+      </h2>
+      {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+      {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+      <ul class="card-grid" role="list">
+        {home.features.items.map((item) => (
+          <li class="card">
+            <h3>{item.title}</h3>
+            <p class="card__body">{item.body}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section id="how-it-works" class="section" aria-labelledby="how-heading">
+    <div class="container">
+      <h2 id="how-heading" class="section-heading">
+        {home.steps.heading}
+      </h2>
+      <ol class="steps">
+        {home.steps.items.map((item) => (
+          <li class="steps__item">
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section id="trust" class="section" aria-labelledby="trust-heading">
+    <div class="container">
+      <h2 id="trust-heading" class="section-heading">
+        {home.trust.heading}
+      </h2>
+      {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+      {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+      <ul class="card-grid card-grid--four" role="list">
+        {home.trust.items.map((item) => (
+          <li class="card">
+            <h3>{item.title}</h3>
+            <p class="card__body">{item.body}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section id="faq" class="section" aria-labelledby="faq-heading">
+    <div class="container reading">
+      <h2 id="faq-heading" class="section-heading">
+        {home.faq.heading}
+      </h2>
+      <div class="faq">
+        {home.faq.items.map((item) => (
+          <div class="faq__item">
+            <h3>{item.question}</h3>
+            <p>{item.answer}</p>
+          </div>
+        ))}
+      </div>
+      <p class="faq__more">
+        <a href={hrefOf(home.faq.more.href)}>{home.faq.more.label}</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="closing-heading">
+    <div class="container">
+      <div class="closing">
+        <h2 id="closing-heading">{home.closing.heading}</h2>
+        <p>{closingBody}</p>
+        <a class="button button--primary" href={hrefOf(closingCta.href)}>
+          {closingCta.label}
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* The next section's own top padding makes the gap below the hero. */
+  .hero {
+    padding-block: var(--mm-space-s10) 0;
+  }
+
+  .hero__inner {
+    display: grid;
+    gap: var(--mm-space-s10);
+    align-items: start;
+  }
+
+  .hero__text {
+    display: grid;
+    gap: var(--mm-space-s5);
+    max-inline-size: var(--reading-max);
+  }
+
+  .hero__lede {
+    color: var(--mm-color-ink-muted);
+    font-size: 1.125rem;
+    line-height: 1.6;
+  }
+
+  :global(html[lang="ur"]) .hero__lede {
+    font-size: 1.25rem;
+    line-height: var(--mm-type-urdu-body-line);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mm-space-s3);
+  }
+
+  .hero__receipt {
+    max-inline-size: 26rem;
+  }
+
+  @media (width >= 52.5rem) {
+    .hero {
+      padding-block-start: var(--mm-space-s16);
+    }
+
+    .hero__inner {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+
+    .hero__receipt {
+      justify-self: end;
+      inline-size: 100%;
+    }
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+    gap: var(--mm-space-s4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Four short cards: two by two on a tablet, one row of four on a wide screen. */
+  @media (width >= 37.5rem) {
+    .card-grid--four {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (width >= 64rem) {
+    .card-grid--four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .card-grid h3 {
+    margin-block-end: var(--mm-space-s2);
+  }
+
+  .card__body {
+    color: var(--mm-color-ink-muted);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    gap: var(--mm-space-s6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .steps__item {
+    counter-increment: step;
+    padding-block-start: var(--mm-space-s3);
+    border-block-start: var(--mm-size-stroke) solid var(--mm-color-primary);
+  }
+
+  /* The step number is drawn by CSS; the list itself tells screen readers the order. */
+  .steps__item::before {
+    content: counter(step) / "";
+    display: block;
+    margin-block-end: var(--mm-space-s1);
+    color: var(--mm-color-primary);
+    font-family: var(--mm-font-latin);
+    font-size: var(--mm-type-headline-size);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .steps__item h3 {
+    margin-block-end: var(--mm-space-s1);
+  }
+
+  .faq {
+    display: grid;
+    gap: var(--mm-space-s6);
+  }
+
+  .faq__item h3 {
+    margin-block-end: var(--mm-space-s2);
+  }
+
+  .faq__more {
+    margin-block-start: var(--mm-space-s6);
+    font-weight: 600;
+  }
+
+  .closing {
+    display: grid;
+    justify-items: start;
+    gap: var(--mm-space-s4);
+    padding: var(--mm-space-s8) var(--mm-space-s6);
+    border: var(--mm-size-hairline) solid var(--mm-color-rule);
+    border-radius: var(--mm-radius-md);
+    background-color: var(--mm-color-primary-container);
+    color: var(--mm-color-on-primary-container);
+  }
+
+  .closing h2 {
+    color: var(--mm-color-on-primary-container);
+  }
+</style>

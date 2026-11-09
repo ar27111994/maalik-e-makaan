@@ -1,0 +1,20 @@
+---
+/** Running text with figures: `math` runs are set left to right in the Latin face. */
+import type { Segment } from "../../tools/types.ts";
+
+interface Props {
+  parts: readonly Segment[];
+}
+
+const { parts } = Astro.props;
+---
+
+{parts.map((part) =>
+  typeof part === "string" ? (
+    part
+  ) : (
+    <bdi class="math" dir="ltr">
+      {part.math}
+    </bdi>
+  ),
+)}

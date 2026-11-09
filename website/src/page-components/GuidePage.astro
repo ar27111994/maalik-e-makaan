@@ -1,0 +1,95 @@
+---
+/**
+ * A guide: informational legal or tax content. It always shows when it was
+ * last reviewed, says plainly that it is not legal or tax advice, and lists
+ * its official sources; the body cites them inline.
+ */
+import type { CollectionEntry } from "astro:content";
+import Markdown from "../components/Markdown.astro";
+import SourcesList from "../components/SourcesList.astro";
+import { formatDate } from "../i18n/dates.ts";
+import { absoluteUrl, localisePath, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { guidePath, parseGuideId } from "../lib/content/guides.ts";
+import { articleNode } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+  entry: CollectionEntry<"guides">;
+}
+
+const { locale, entry } = Astro.props;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+const { slug } = parseGuideId(entry.id);
+const path = guidePath(slug);
+const url = absoluteUrl(site, localisePath(path, locale));
+const guide = entry.data;
+const strings = ui(locale).guide;
+const html = entry.rendered?.html ?? "";
+if (html === "") throw new Error(`Guide ${entry.id} has no body`);
+---
+
+<BaseLayout
+  locale={locale}
+  path={path}
+  title={documentTitle(guide.title, locale)}
+  description={guide.description}
+  pageName={guide.title}
+  ogType="article"
+  breadcrumbs={[
+    { label: ui(locale).guides.heading, path: "/guides/" },
+    { label: guide.title, path },
+  ]}
+  extraNodes={[
+    articleNode({
+      site,
+      url,
+      headline: guide.title,
+      description: guide.description,
+      locale,
+      dateModified: guide.lastReviewed,
+      datePublished: guide.published,
+      citations: guide.sources,
+    }),
+  ]}
+>
+  <article class="container reading section guide">
+    <header class="guide__header">
+      <h1>{guide.title}</h1>
+      <p class="guide__reviewed">
+        {`${strings.lastReviewed}: `}
+        <time datetime={guide.lastReviewed}>{formatDate(guide.lastReviewed, locale)}</time>
+      </p>
+      <p class="guide__notice">{strings.notAdvice}</p>
+    </header>
+    <Markdown html={html} />
+    <SourcesList locale={locale} sources={guide.sources} />
+  </article>
+</BaseLayout>
+
+<style>
+  .guide {
+    display: grid;
+    gap: var(--mm-space-s8);
+    padding-block-start: var(--mm-space-s6);
+  }
+
+  .guide__header {
+    display: grid;
+    gap: var(--mm-space-s3);
+  }
+
+  .guide__reviewed {
+    color: var(--mm-color-ink-muted);
+  }
+
+  .guide__notice {
+    padding: var(--mm-space-s3) var(--mm-space-s4);
+    border: var(--mm-size-hairline) solid var(--mm-color-outline);
+    border-radius: var(--mm-radius-sm);
+    background-color: var(--mm-color-surface);
+  }
+</style>

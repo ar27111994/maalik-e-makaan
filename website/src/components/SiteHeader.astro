@@ -1,0 +1,186 @@
+---
+import { SITE } from "../config/site.ts";
+import { localisePath, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BrandMark from "./BrandMark.astro";
+import LanguageSwitch from "./LanguageSwitch.astro";
+
+interface Props {
+  locale: Locale;
+  /** The same page in the other language, for the language switch. */
+  switchHref: string;
+  /** The locale-neutral path of the current page, to mark its link; error pages omit it. */
+  path?: string | undefined;
+}
+
+const { locale, switchHref, path } = Astro.props;
+const strings = ui(locale);
+const home = localisePath("/", locale);
+const navItems = [
+  { label: strings.nav.features, path: "/features/" },
+  { label: strings.nav.howItWorks, path: "/how-it-works/" },
+  { label: strings.nav.guides, path: "/guides/" },
+  { label: strings.nav.tools, path: "/tools/" },
+  { label: strings.nav.faq, path: "/faq/" },
+].map((item) => ({
+  label: item.label,
+  href: localisePath(item.path, locale),
+  // The page itself, or a page inside the section (a guide under Guides).
+  current:
+    path === item.path
+      ? ("page" as const)
+      : path?.startsWith(item.path) === true
+        ? ("true" as const)
+        : undefined,
+}));
+const primaryName = locale === "en" ? SITE.name : SITE.nameUrdu;
+const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
+---
+
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="brand" href={home}>
+      <BrandMark />
+      <span class="brand__name">{primaryName}</span>
+      <span
+        class:list={["brand__secondary", locale === "en" && "ur-label"]}
+        lang={locale === "en" ? "ur" : "en"}
+      >
+        {secondaryName}
+      </span>
+      <span class="visually-hidden">{strings.homeHint}</span>
+    </a>
+    <nav class="site-nav" aria-label={strings.navLabel}>
+      <ul class="site-nav__list scroll-cue">
+        {navItems.map((item) => (
+          <li>
+            <a class="site-nav__link" href={item.href} aria-current={item.current}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    {/* After the nav, where it is drawn: the Tab order follows what the reader sees. */}
+    <LanguageSwitch locale={locale} href={switchHref} />
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-block-end: var(--mm-size-hairline) solid var(--mm-color-rule);
+    background-color: var(--mm-color-surface);
+  }
+
+  /*
+   * Phones: the brand on its own row, then one row of section links that
+   * scrolls sideways (with a shadow where links are hidden) and the language
+   * switch at its end. Wider screens: brand, links and switch on one row. In
+   * both, the order on screen is the order in the page, so Tab follows it.
+   */
+  .site-header__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand brand"
+      "nav switch";
+    align-items: center;
+    gap: var(--mm-space-s1) var(--mm-space-s2);
+    padding-block: var(--mm-space-s2);
+  }
+
+  .brand {
+    grid-area: brand;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mm-space-s2);
+    justify-self: start;
+    min-block-size: var(--mm-size-min-target);
+    color: var(--mm-color-ink);
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration-line: none;
+  }
+
+  .brand__secondary {
+    display: none;
+    color: var(--mm-color-ink-muted);
+    font-weight: 400;
+  }
+
+  .site-header :global(.language-switch) {
+    grid-area: switch;
+  }
+
+  .site-nav {
+    grid-area: nav;
+    min-inline-size: 0;
+  }
+
+  .site-nav__list {
+    --scroll-cue-bg: var(--mm-color-surface);
+
+    display: flex;
+    gap: var(--mm-space-s1);
+    margin: 0;
+
+    /* Room inside the scrolling box for the links' focus rings, which it would otherwise clip. */
+    padding: var(--mm-space-s1);
+    overflow-x: auto;
+    list-style: none;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .site-nav__list > li {
+    flex: none;
+  }
+
+  .site-nav__link {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--mm-size-min-target);
+    padding-inline: var(--mm-space-s2);
+    border-radius: var(--mm-radius-sm);
+    color: var(--mm-color-ink);
+    text-decoration-line: none;
+  }
+
+  .site-nav__link:hover {
+    color: var(--mm-color-primary);
+    text-decoration-line: underline;
+  }
+
+  /* The current section: cobalt with an underline bar, never colour alone. */
+  .site-nav__link[aria-current] {
+    color: var(--mm-color-primary);
+    font-weight: 600;
+    text-decoration-line: underline;
+    text-decoration-thickness: var(--mm-size-stroke);
+    text-underline-offset: 0.35em;
+  }
+
+  @media (width >= 30rem) {
+    .brand__secondary {
+      display: inline;
+    }
+  }
+
+  @media (width >= 52.5rem) {
+    .site-header__inner {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas: "brand nav switch";
+      gap: var(--mm-space-s2) var(--mm-space-s4);
+      padding-block: var(--mm-space-s3);
+    }
+
+    .site-nav__list {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: var(--mm-space-s1) var(--mm-space-s2);
+      padding: 0;
+      overflow-x: visible;
+      background: none;
+    }
+  }
+</style>

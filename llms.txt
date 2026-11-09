@@ -1,0 +1,55 @@
+# Maalik-e-Makaan
+
+> Tenant and property management for Pakistani landlords, in English and Urdu. A Flutter app (Android, iOS, web) on a Supabase backend (PostgreSQL 17 with row-level security, an exact-money ledger, pg_cron jobs, Deno Edge Functions), a pure-Dart domain library, a design system, a bilingual Astro website, and TLA+, Lean 4, Z3 and Bend models of the concurrent and money code. MIT licence.
+
+Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are voided, never deleted; authorisation lives in Postgres; locks are taken in the order account, portfolio, lease, other rows. Every check is a `make` target that CI also runs. This file indexes the repository's documentation; the website publishes its own llms.txt for its public content.
+
+## Start here
+
+- [README](README.md): what the product does, status, architecture, quick start, quality gates, security, licence
+- [AGENTS.md](AGENTS.md): entry point for coding agents: layout, commands, rules, where each area's context lives
+- [CONTRIBUTING.md](CONTRIBUTING.md): set-up, the checks before a push, conventions for commits, database, money, text, accessibility, privacy, dependencies
+- [Documentation index](docs/README.md): every document by topic
+
+## Agent context
+
+- [Commands](docs/agents/commands.md): every make target by area, its gate, prerequisites and CI job
+- [Conventions](docs/agents/conventions.md): commits and scopes, British English, Unicode guard, money, database, secrets, design lint, goldens, generated files
+- [Workflows](docs/agents/workflows.md): the order of work for a migration, money maths, an app screen, the design system, an Edge Function, the website, docs
+- [App](app/AGENTS.md): Flutter app layout, layering and retry rules, strings, tests
+- [Design system](packages/mm_ui/AGENTS.md): tokens, icons, components, goldens, gallery
+- [Domain library](packages/mm_core/AGENTS.md): money, time, identity, text, rent, ledger
+- [Backend](supabase/AGENTS.md): migrations, pgTAP, Edge Functions, local database
+- [Website](website/AGENTS.md): Astro site rules and commands
+- [Formal verification](formal/AGENTS.md): tracks, rules and commands
+
+## Architecture
+
+- [App architecture](docs/architecture/app.md): layers, models, repositories, stale-while-revalidate cache, commands, retries, document uploads, open questions
+- [Permissions](docs/architecture/permissions.md): roles, the who-can-do-what matrix, how RLS, grants, RPCs, triggers and CHECKs enforce it, concurrency costs, rate limits
+- [Project decisions](.planning/PROJECT.md): vision, users, stack, decisions D-01 to D-15, constraints
+- [Design language](DESIGN.md): tokens, typography, colour, components, right-to-left and Urdu rules
+- [Components](packages/mm_ui/COMPONENTS.md): how mm_ui components are built, and the catalogue
+- [Domain library](packages/mm_core/README.md): the mm_core modules
+- [Website](website/README.md): code layout, content and translations, calculators, security headers, deployment
+
+## Operations
+
+- [Operations runbook](docs/operations.md): scheduled jobs, storage cleanup, health checks, monitoring and alerts, function secrets, Vercel hosting, the Deploy workflow, releasing, rollback, backups and restore, account deletion, applying migrations to the hosted project
+- [Security policy](SECURITY.md): reporting vulnerabilities
+- [Third-party notices](THIRD_PARTY_NOTICES.md): dependencies, fonts and icons with their licences
+
+## Quality
+
+- [UAT](docs/uat.md): browser acceptance tests of 14 landlord journeys against a local Supabase stack (`make test-uat`), results and defects
+- [Release readiness](docs/release-readiness.md): the v1.0 verdict, the checklist with evidence, the owner's actions
+- [Design QA](docs/design-qa.md): automated design gates, the review checklist, verdicts and follow-ups
+- [Formal verification](formal/README.md): the TLA+, Lean 4, Z3 and Bend tracks, findings and timings
+- [Gallery](packages/mm_ui/example/README.md): the design-system gallery and its UAT screenshots
+
+## Optional
+
+- [Project state](.planning/STATE.md): current position, hosted project, blockers, follow-ups
+- [Requirements](.planning/REQUIREMENTS.md): v1.0 requirements and what remains
+- [Roadmap](.planning/ROADMAP.md): the twelve phases of milestone v1.0
+- [Formal track READMEs](formal/tla/LedgerPayments/README.md): one per track under formal/tla, formal/lean, formal/smt and formal/bend

@@ -1,0 +1,185 @@
+import { describe, expect, test } from "vitest";
+import {
+  llmsFullTxt,
+  llmsTxt,
+  type LlmsGuide,
+  type LlmsInput,
+  type LlmsTextPage,
+  type LlmsTool,
+} from "../../src/lib/llms.ts";
+import { download, faq, features, home, howItWorks, licences, licenceTexts } from "./fixtures.ts";
+
+const guide = (locale: "en" | "ur"): LlmsGuide => ({
+  locale,
+  slug: "police-registration",
+  title: locale === "en" ? "Registering a tenant with the police" : "کرایہ دار کی پولیس رجسٹریشن",
+  description: "Who must report a tenant, and by when, in each province.",
+  lastReviewed: "2026-11-05",
+  sources: [
+    {
+      title: "Sindh Information of Temporary Residents Act 2015",
+      publisher: "Provincial Assembly of Sindh",
+      url: "https://www.pas.gov.pk/uploads/acts/Sindh%20Act%20No.XXI%20of%202015.pdf",
+      accessed: "2026-11-05",
+    },
+  ],
+  body: "## In Sindh\n\nWithin 48 hours of handing over possession.",
+});
+
+const tool = (locale: "en" | "ur"): LlmsTool => ({
+  locale,
+  slug: "s155-withholding-calculator",
+  order: 3,
+  title: locale === "en" ? "Section 155 withholding tax calculator" : "دفعہ 155 کا کیلکولیٹر",
+  description: "The tax a tenant deducts from rent under section 155 for tax year 2027.",
+  intro: "Some tenants must deduct income tax from the rent they pay.",
+  disclaimer: "Withholding only. It is not your final tax.",
+  lastReviewed: "2026-11-05",
+  sources: [
+    {
+      title: "Withholding Tax Rate Card, Tax Year 2027",
+      publisher: "Federal Board of Revenue",
+      url: "https://download1.fbr.gov.pk/Docs/202681113864992WithholdingTaxRatesCard2027.pdf",
+      accessed: "2026-11-05",
+    },
+  ],
+  body: '## Check the ATL\n\nSend <kbd lang="en" dir="ltr">ATL</kbd> to 9966. See the [guide](/guides/rental-income-tax/).',
+});
+
+const textPage = (locale: "en" | "ur"): LlmsTextPage => ({
+  locale,
+  slug: "privacy",
+  title: locale === "en" ? "Privacy" : "رازداری",
+  description: "How this website and the app treat your data.",
+  lastUpdated: "2026-11-07",
+  body: "## In short\n\nThis website sets no cookies.",
+});
+
+const input = (
+  guides: LlmsGuide[] = [],
+  tools: LlmsTool[] = [],
+  textPages: LlmsTextPage[] = [],
+): LlmsInput => ({
+  site: new URL("https://example.pk"),
+  appUrl: "https://app.example.pk/",
+  home,
+  licences,
+  features,
+  howItWorks,
+  faq,
+  download,
+  guides,
+  tools,
+  textPages,
+  licenceTexts,
+});
+
+describe("llms.txt", () => {
+  const text = llmsTxt(input());
+  const lines = text.split("\n");
+
+  test("follows llmstxt.org: an H1, then a blockquote summary, then H2 link lists", () => {
+    expect(lines[0]).toBe("# Maalik-e-Makaan (مالکِ مکان)");
+    expect(lines[2]).toBe(`> ${home.en.description}`);
+    const headings = lines.filter((line) => line.startsWith("#"));
+    expect(headings).toEqual(["# Maalik-e-Makaan (مالکِ مکان)", "## Pages", "## Optional"]);
+    // Every list item in a section is "- [name](url): notes".
+    const items = lines.filter((line) => line.startsWith("- ["));
+    expect(items.length).toBeGreaterThanOrEqual(7);
+    for (const item of items) expect(item).toMatch(/^- \[[^\]]+\]\(https:\/\/[^)\s]+\): \S/);
+  });
+
+  test("states the key facts from the site's own answers, including the tax position", () => {
+    for (const item of home.en.faq.items) expect(text).toContain(item.answer);
+    expect(text).toContain("not legal or tax advice");
+    expect(text).toContain("In development");
+  });
+
+  test("lists every page in both languages, with absolute URLs", () => {
+    for (const url of [
+      "https://example.pk/",
+      "https://example.pk/ur/",
+      "https://example.pk/licences/",
+      "https://example.pk/ur/licences/",
+      "https://example.pk/features/",
+      "https://example.pk/ur/how-it-works/",
+      "https://example.pk/faq/",
+      "https://example.pk/ur/download/",
+      "https://example.pk/guides/",
+      "https://example.pk/ur/tools/",
+      "https://example.pk/llms-full.txt",
+    ]) {
+      expect(text).toContain(`](${url})`);
+    }
+  });
+
+  test("lists guides, with their review date, once there are any", () => {
+    const withGuides = llmsTxt(input([guide("en"), guide("ur")]));
+    expect(withGuides).toContain("## Guides");
+    expect(withGuides).toContain(
+      "- [Registering a tenant with the police](https://example.pk/guides/police-registration/)",
+    );
+    expect(withGuides).toContain("(https://example.pk/ur/guides/police-registration/)");
+    expect(withGuides).toContain("Last reviewed 2026-11-05.");
+  });
+
+  test("lists the calculators and the text pages", () => {
+    const text = llmsTxt(input([], [tool("en"), tool("ur")], [textPage("en"), textPage("ur")]));
+    expect(text).toContain("## Calculators");
+    expect(text).toContain(
+      "- [Section 155 withholding tax calculator](https://example.pk/tools/s155-withholding-calculator/)",
+    );
+    expect(text).toContain("(https://example.pk/ur/tools/s155-withholding-calculator/)");
+    expect(text).toContain("- [Privacy](https://example.pk/privacy/)");
+    expect(text).toContain("(https://example.pk/ur/privacy/)");
+  });
+});
+
+describe("llms-full.txt", () => {
+  const text = llmsFullTxt(
+    input([guide("en"), guide("ur")], [tool("en"), tool("ur")], [textPage("en"), textPage("ur")]),
+  );
+
+  test("holds the full copy of every page in both languages", () => {
+    for (const locale of ["en", "ur"] as const) {
+      expect(text).toContain(home[locale].hero.heading);
+      for (const item of home[locale].features.items) expect(text).toContain(item.body);
+      for (const item of home[locale].faq.items) expect(text).toContain(item.answer);
+      expect(text).toContain(licences[locale].code.body);
+      for (const section of features[locale].sections) expect(text).toContain(section.body);
+      for (const step of howItWorks[locale].steps) expect(text).toContain(step.body);
+      for (const group of faq[locale].groups) {
+        for (const item of group.items) expect(text).toContain(item.answer);
+      }
+      for (const platform of download[locale].platforms) expect(text).toContain(platform.body);
+    }
+    expect(text).toContain("Copyright 2022 The Noto Project Authors");
+  });
+
+  test("dates each guide, says it is not advice, and lists its sources", () => {
+    expect(text).toContain(
+      "Last reviewed: 2026-11-05. This guide is general information, not legal or tax advice.",
+    );
+    expect(text).toContain("Within 48 hours of handing over possession.");
+    expect(text).toContain(
+      "- [Sindh Information of Temporary Residents Act 2015](https://www.pas.gov.pk/uploads/acts/Sindh%20Act%20No.XXI%20of%202015.pdf), Provincial Assembly of Sindh (accessed 2026-11-05)",
+    );
+  });
+
+  test("a calculator carries its disclaimer and sources; markup and site paths are resolved", () => {
+    expect(text).toContain("Withholding only. It is not your final tax.");
+    expect(text).toContain("Send ATL to 9966.");
+    expect(text).not.toContain("<kbd");
+    expect(text).toContain("[guide](https://example.pk/guides/rental-income-tax/)");
+    expect(text).toContain(
+      "- [Withholding Tax Rate Card, Tax Year 2027](https://download1.fbr.gov.pk/Docs/202681113864992WithholdingTaxRatesCard2027.pdf), Federal Board of Revenue (accessed 2026-11-05)",
+    );
+    expect(text).toContain("Last updated: 2026-11-07.");
+  });
+
+  test("English comes before Urdu, and the file ends with one newline", () => {
+    expect(text.indexOf(home.en.hero.heading)).toBeLessThan(text.indexOf(home.ur.hero.heading));
+    expect(text.endsWith("\n")).toBe(true);
+    expect(text.endsWith("\n\n")).toBe(false);
+  });
+});

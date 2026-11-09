@@ -1,0 +1,1628 @@
+{
+  "$description": "Maalik-e-Makaan design tokens (DTCG 2025.10). The source of truth for mm_ui (Flutter) and the website. Generated outputs: tool/design/build_tokens.py.",
+  "color": {
+    "$type": "color",
+    "light": {
+      "bg": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9569, 0.9608, 0.9686],
+          "alpha": 1,
+          "hex": "#F4F5F7"
+        },
+        "$description": "Page background: cool paper, never cream."
+      },
+      "surface": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Cards, sheets and list groups."
+      },
+      "surfaceSunken": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9216, 0.9294, 0.9412],
+          "alpha": 1,
+          "hex": "#EBEDF0"
+        },
+        "$description": "Inset wells: search fields, code blocks, the receipt counterfoil."
+      },
+      "ink": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1216, 0.1373, 0.1569],
+          "alpha": 1,
+          "hex": "#1F2328"
+        },
+        "$description": "Primary text and icons: carbon-copy ink."
+      },
+      "inkMuted": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.3412, 0.3765, 0.4157],
+          "alpha": 1,
+          "hex": "#57606A"
+        },
+        "$description": "Secondary text, captions and metadata."
+      },
+      "outline": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.4745, 0.5098, 0.5529],
+          "alpha": 1,
+          "hex": "#79828D"
+        },
+        "$description": "Borders of fields and controls (meets 3:1 against surfaces)."
+      },
+      "rule": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8353, 0.8549, 0.8784],
+          "alpha": 1,
+          "hex": "#D5DAE0"
+        },
+        "$description": "Decorative dividers that separate but carry no meaning."
+      },
+      "primary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1137, 0.2471, 0.5608],
+          "alpha": 1,
+          "hex": "#1D3F8F"
+        },
+        "$description": "Cobalt: the carbon-copy blue of a raseed book. The one dominant action per view, links, selection."
+      },
+      "onPrimary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text and icons on primary."
+      },
+      "primaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8667, 0.902, 0.9725],
+          "alpha": 1,
+          "hex": "#DDE6F8"
+        },
+        "$description": "Tonal fills for selected and secondary emphasis."
+      },
+      "onPrimaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0588, 0.1451, 0.3373],
+          "alpha": 1,
+          "hex": "#0F2556"
+        },
+        "$description": "Text and icons on primary containers."
+      },
+      "brass": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.6275, 0.4784, 0.1725],
+          "alpha": 1,
+          "hex": "#A07A2C"
+        },
+        "$description": "The brass of a house nameplate: marks, icons and borders that honour a record (receipt seal, property nameplate). Non-text only."
+      },
+      "brassText": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.4784, 0.3529, 0.0902],
+          "alpha": 1,
+          "hex": "#7A5A17"
+        },
+        "$description": "Brass-coloured text when brass must carry words."
+      },
+      "brassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9608, 0.9216, 0.8275],
+          "alpha": 1,
+          "hex": "#F5EBD3"
+        },
+        "$description": "Brass tonal fill (nameplate plate, featured receipt header)."
+      },
+      "onBrassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.2902, 0.2118, 0.0314],
+          "alpha": 1,
+          "hex": "#4A3608"
+        },
+        "$description": "Text on brass containers."
+      },
+      "paid": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1098, 0.4196, 0.2784],
+          "alpha": 1,
+          "hex": "#1C6B47"
+        },
+        "$description": "Settled dues and positive amounts."
+      },
+      "paidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8627, 0.9451, 0.898],
+          "alpha": 1,
+          "hex": "#DCF1E5"
+        },
+        "$description": "Background of 'paid' chips."
+      },
+      "onPaidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.051, 0.2314, 0.149],
+          "alpha": 1,
+          "hex": "#0D3B26"
+        },
+        "$description": "Text on 'paid' chips."
+      },
+      "overdue": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.7059, 0.1373, 0.0941],
+          "alpha": 1,
+          "hex": "#B42318"
+        },
+        "$description": "Dues past their grace period; errors."
+      },
+      "overdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9882, 0.8941, 0.8824],
+          "alpha": 1,
+          "hex": "#FCE4E1"
+        },
+        "$description": "Background of 'overdue' chips and error banners."
+      },
+      "onOverdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.4196, 0.0745, 0.0471],
+          "alpha": 1,
+          "hex": "#6B130C"
+        },
+        "$description": "Text on 'overdue' chips and error banners."
+      },
+      "dueSoon": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.5412, 0.3529, 0.0],
+          "alpha": 1,
+          "hex": "#8A5A00"
+        },
+        "$description": "Dues within the reminder window; warnings."
+      },
+      "dueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9843, 0.9333, 0.8275],
+          "alpha": 1,
+          "hex": "#FBEED3"
+        },
+        "$description": "Background of 'due soon' chips and warnings."
+      },
+      "onDueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.302, 0.1961, 0.0],
+          "alpha": 1,
+          "hex": "#4D3200"
+        },
+        "$description": "Text on 'due soon' chips and warnings."
+      },
+      "credit": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0431, 0.4196, 0.4392],
+          "alpha": 1,
+          "hex": "#0B6B70"
+        },
+        "$description": "Tenant credit (advance) and informational highlights."
+      },
+      "creditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8431, 0.9373, 0.9412],
+          "alpha": 1,
+          "hex": "#D7EFF0"
+        },
+        "$description": "Background of 'credit' chips."
+      },
+      "onCreditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0157, 0.2314, 0.2431],
+          "alpha": 1,
+          "hex": "#043B3E"
+        },
+        "$description": "Text on 'credit' chips."
+      },
+      "focus": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1137, 0.2471, 0.5608],
+          "alpha": 1,
+          "hex": "#1D3F8F"
+        },
+        "$description": "Keyboard focus ring."
+      }
+    },
+    "dark": {
+      "bg": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0588, 0.0784, 0.098],
+          "alpha": 1,
+          "hex": "#0F1419"
+        },
+        "$description": "Page background: cool paper, never cream."
+      },
+      "surface": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0863, 0.1098, 0.1412],
+          "alpha": 1,
+          "hex": "#161C24"
+        },
+        "$description": "Cards, sheets and list groups."
+      },
+      "surfaceSunken": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0431, 0.0588, 0.0745],
+          "alpha": 1,
+          "hex": "#0B0F13"
+        },
+        "$description": "Inset wells: search fields, code blocks, the receipt counterfoil."
+      },
+      "ink": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.902, 0.9176, 0.9412],
+          "alpha": 1,
+          "hex": "#E6EAF0"
+        },
+        "$description": "Primary text and icons: carbon-copy ink."
+      },
+      "inkMuted": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.651, 0.6902, 0.7373],
+          "alpha": 1,
+          "hex": "#A6B0BC"
+        },
+        "$description": "Secondary text, captions and metadata."
+      },
+      "outline": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.4902, 0.5294, 0.5804],
+          "alpha": 1,
+          "hex": "#7D8794"
+        },
+        "$description": "Borders of fields and controls (meets 3:1 against surfaces)."
+      },
+      "rule": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1725, 0.2078, 0.2588],
+          "alpha": 1,
+          "hex": "#2C3542"
+        },
+        "$description": "Decorative dividers that separate but carry no meaning."
+      },
+      "primary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.5765, 0.6941, 0.949],
+          "alpha": 1,
+          "hex": "#93B1F2"
+        },
+        "$description": "Cobalt: the carbon-copy blue of a raseed book. The one dominant action per view, links, selection."
+      },
+      "onPrimary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0431, 0.102, 0.2275],
+          "alpha": 1,
+          "hex": "#0B1A3A"
+        },
+        "$description": "Text and icons on primary."
+      },
+      "primaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1255, 0.2275, 0.4588],
+          "alpha": 1,
+          "hex": "#203A75"
+        },
+        "$description": "Tonal fills for selected and secondary emphasis."
+      },
+      "onPrimaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8667, 0.902, 0.9725],
+          "alpha": 1,
+          "hex": "#DDE6F8"
+        },
+        "$description": "Text and icons on primary containers."
+      },
+      "brass": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8235, 0.6824, 0.3686],
+          "alpha": 1,
+          "hex": "#D2AE5E"
+        },
+        "$description": "The brass of a house nameplate: marks, icons and borders that honour a record (receipt seal, property nameplate). Non-text only."
+      },
+      "brassText": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8824, 0.7608, 0.4784],
+          "alpha": 1,
+          "hex": "#E1C27A"
+        },
+        "$description": "Brass-coloured text when brass must carry words."
+      },
+      "brassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.2392, 0.1804, 0.0471],
+          "alpha": 1,
+          "hex": "#3D2E0C"
+        },
+        "$description": "Brass tonal fill (nameplate plate, featured receipt header)."
+      },
+      "onBrassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9608, 0.9216, 0.8275],
+          "alpha": 1,
+          "hex": "#F5EBD3"
+        },
+        "$description": "Text on brass containers."
+      },
+      "paid": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.4471, 0.8235, 0.6314],
+          "alpha": 1,
+          "hex": "#72D2A1"
+        },
+        "$description": "Settled dues and positive amounts."
+      },
+      "paidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0588, 0.2275, 0.149],
+          "alpha": 1,
+          "hex": "#0F3A26"
+        },
+        "$description": "Background of 'paid' chips."
+      },
+      "onPaidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8627, 0.9451, 0.898],
+          "alpha": 1,
+          "hex": "#DCF1E5"
+        },
+        "$description": "Text on 'paid' chips."
+      },
+      "overdue": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 0.6078, 0.5647],
+          "alpha": 1,
+          "hex": "#FF9B90"
+        },
+        "$description": "Dues past their grace period; errors."
+      },
+      "overdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.298, 0.0745, 0.0549],
+          "alpha": 1,
+          "hex": "#4C130E"
+        },
+        "$description": "Background of 'overdue' chips and error banners."
+      },
+      "onOverdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9882, 0.8941, 0.8824],
+          "alpha": 1,
+          "hex": "#FCE4E1"
+        },
+        "$description": "Text on 'overdue' chips and error banners."
+      },
+      "dueSoon": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9137, 0.7255, 0.3529],
+          "alpha": 1,
+          "hex": "#E9B95A"
+        },
+        "$description": "Dues within the reminder window; warnings."
+      },
+      "dueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.2392, 0.1647, 0.0196],
+          "alpha": 1,
+          "hex": "#3D2A05"
+        },
+        "$description": "Background of 'due soon' chips and warnings."
+      },
+      "onDueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9843, 0.9333, 0.8275],
+          "alpha": 1,
+          "hex": "#FBEED3"
+        },
+        "$description": "Text on 'due soon' chips and warnings."
+      },
+      "credit": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.4235, 0.8039, 0.8235],
+          "alpha": 1,
+          "hex": "#6CCDD2"
+        },
+        "$description": "Tenant credit (advance) and informational highlights."
+      },
+      "creditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0314, 0.2275, 0.2392],
+          "alpha": 1,
+          "hex": "#083A3D"
+        },
+        "$description": "Background of 'credit' chips."
+      },
+      "onCreditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8431, 0.9373, 0.9412],
+          "alpha": 1,
+          "hex": "#D7EFF0"
+        },
+        "$description": "Text on 'credit' chips."
+      },
+      "focus": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.5765, 0.6941, 0.949],
+          "alpha": 1,
+          "hex": "#93B1F2"
+        },
+        "$description": "Keyboard focus ring."
+      }
+    },
+    "lightHighContrast": {
+      "bg": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Page background: cool paper, never cream."
+      },
+      "surface": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Cards, sheets and list groups."
+      },
+      "surfaceSunken": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9412, 0.9451, 0.9529],
+          "alpha": 1,
+          "hex": "#F0F1F3"
+        },
+        "$description": "Inset wells: search fields, code blocks, the receipt counterfoil."
+      },
+      "ink": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.0, 0.0],
+          "alpha": 1,
+          "hex": "#000000"
+        },
+        "$description": "Primary text and icons: carbon-copy ink."
+      },
+      "inkMuted": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1686, 0.1882, 0.2118],
+          "alpha": 1,
+          "hex": "#2B3036"
+        },
+        "$description": "Secondary text, captions and metadata."
+      },
+      "outline": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.2275, 0.251, 0.2824],
+          "alpha": 1,
+          "hex": "#3A4048"
+        },
+        "$description": "Borders of fields and controls (meets 3:1 against surfaces)."
+      },
+      "rule": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.5176, 0.5451, 0.5804],
+          "alpha": 1,
+          "hex": "#848B94"
+        },
+        "$description": "Decorative dividers that separate but carry no meaning."
+      },
+      "primary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0392, 0.1412, 0.3882],
+          "alpha": 1,
+          "hex": "#0A2463"
+        },
+        "$description": "Cobalt: the carbon-copy blue of a raseed book. The one dominant action per view, links, selection."
+      },
+      "onPrimary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text and icons on primary."
+      },
+      "primaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.7882, 0.8431, 0.9608],
+          "alpha": 1,
+          "hex": "#C9D7F5"
+        },
+        "$description": "Tonal fills for selected and secondary emphasis."
+      },
+      "onPrimaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.0745, 0.2275],
+          "alpha": 1,
+          "hex": "#00133A"
+        },
+        "$description": "Text and icons on primary containers."
+      },
+      "brass": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.4196, 0.3059, 0.0549],
+          "alpha": 1,
+          "hex": "#6B4E0E"
+        },
+        "$description": "The brass of a house nameplate: marks, icons and borders that honour a record (receipt seal, property nameplate). Non-text only."
+      },
+      "brassText": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.3529, 0.251, 0.0392],
+          "alpha": 1,
+          "hex": "#5A400A"
+        },
+        "$description": "Brass-coloured text when brass must carry words."
+      },
+      "brassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9412, 0.8824, 0.7373],
+          "alpha": 1,
+          "hex": "#F0E1BC"
+        },
+        "$description": "Brass tonal fill (nameplate plate, featured receipt header)."
+      },
+      "onBrassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1686, 0.1176, 0.0078],
+          "alpha": 1,
+          "hex": "#2B1E02"
+        },
+        "$description": "Text on brass containers."
+      },
+      "paid": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0431, 0.2902, 0.1843],
+          "alpha": 1,
+          "hex": "#0B4A2F"
+        },
+        "$description": "Settled dues and positive amounts."
+      },
+      "paidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.7765, 0.9137, 0.8353],
+          "alpha": 1,
+          "hex": "#C6E9D5"
+        },
+        "$description": "Background of 'paid' chips."
+      },
+      "onPaidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.149, 0.102],
+          "alpha": 1,
+          "hex": "#00261A"
+        },
+        "$description": "Text on 'paid' chips."
+      },
+      "overdue": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.5412, 0.0588, 0.0275],
+          "alpha": 1,
+          "hex": "#8A0F07"
+        },
+        "$description": "Dues past their grace period; errors."
+      },
+      "overdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9725, 0.8118, 0.7922],
+          "alpha": 1,
+          "hex": "#F8CFCA"
+        },
+        "$description": "Background of 'overdue' chips and error banners."
+      },
+      "onOverdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.2392, 0.0118, 0.0],
+          "alpha": 1,
+          "hex": "#3D0300"
+        },
+        "$description": "Text on 'overdue' chips and error banners."
+      },
+      "dueSoon": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.3608, 0.2353, 0.0],
+          "alpha": 1,
+          "hex": "#5C3C00"
+        },
+        "$description": "Dues within the reminder window; warnings."
+      },
+      "dueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9608, 0.8745, 0.6902],
+          "alpha": 1,
+          "hex": "#F5DFB0"
+        },
+        "$description": "Background of 'due soon' chips and warnings."
+      },
+      "onDueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1647, 0.102, 0.0],
+          "alpha": 1,
+          "hex": "#2A1A00"
+        },
+        "$description": "Text on 'due soon' chips and warnings."
+      },
+      "credit": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0157, 0.2824, 0.298],
+          "alpha": 1,
+          "hex": "#04484C"
+        },
+        "$description": "Tenant credit (advance) and informational highlights."
+      },
+      "creditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.749, 0.8941, 0.902],
+          "alpha": 1,
+          "hex": "#BFE4E6"
+        },
+        "$description": "Background of 'credit' chips."
+      },
+      "onCreditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.1608, 0.1686],
+          "alpha": 1,
+          "hex": "#00292B"
+        },
+        "$description": "Text on 'credit' chips."
+      },
+      "focus": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.0, 0.0],
+          "alpha": 1,
+          "hex": "#000000"
+        },
+        "$description": "Keyboard focus ring."
+      }
+    },
+    "darkHighContrast": {
+      "bg": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.0, 0.0],
+          "alpha": 1,
+          "hex": "#000000"
+        },
+        "$description": "Page background: cool paper, never cream."
+      },
+      "surface": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.0, 0.0],
+          "alpha": 1,
+          "hex": "#000000"
+        },
+        "$description": "Cards, sheets and list groups."
+      },
+      "surfaceSunken": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0392, 0.0392, 0.0392],
+          "alpha": 1,
+          "hex": "#0A0A0A"
+        },
+        "$description": "Inset wells: search fields, code blocks, the receipt counterfoil."
+      },
+      "ink": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Primary text and icons: carbon-copy ink."
+      },
+      "inkMuted": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.8431, 0.8667, 0.8941],
+          "alpha": 1,
+          "hex": "#D7DDE4"
+        },
+        "$description": "Secondary text, captions and metadata."
+      },
+      "outline": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.7608, 0.7922, 0.8275],
+          "alpha": 1,
+          "hex": "#C2CAD3"
+        },
+        "$description": "Borders of fields and controls (meets 3:1 against surfaces)."
+      },
+      "rule": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.3922, 0.4275, 0.4706],
+          "alpha": 1,
+          "hex": "#646D78"
+        },
+        "$description": "Decorative dividers that separate but carry no meaning."
+      },
+      "primary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.7608, 0.8314, 1.0],
+          "alpha": 1,
+          "hex": "#C2D4FF"
+        },
+        "$description": "Cobalt: the carbon-copy blue of a raseed book. The one dominant action per view, links, selection."
+      },
+      "onPrimary": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.0588, 0.2],
+          "alpha": 1,
+          "hex": "#000F33"
+        },
+        "$description": "Text and icons on primary."
+      },
+      "primaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.1098, 0.2118, 0.4471],
+          "alpha": 1,
+          "hex": "#1C3672"
+        },
+        "$description": "Tonal fills for selected and secondary emphasis."
+      },
+      "onPrimaryContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text and icons on primary containers."
+      },
+      "brass": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9412, 0.8157, 0.5412],
+          "alpha": 1,
+          "hex": "#F0D08A"
+        },
+        "$description": "The brass of a house nameplate: marks, icons and borders that honour a record (receipt seal, property nameplate). Non-text only."
+      },
+      "brassText": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.9608, 0.8627, 0.6353],
+          "alpha": 1,
+          "hex": "#F5DCA2"
+        },
+        "$description": "Brass-coloured text when brass must carry words."
+      },
+      "brassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.2275, 0.1647, 0.0157],
+          "alpha": 1,
+          "hex": "#3A2A04"
+        },
+        "$description": "Brass tonal fill (nameplate plate, featured receipt header)."
+      },
+      "onBrassContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text on brass containers."
+      },
+      "paid": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.651, 0.9373, 0.7843],
+          "alpha": 1,
+          "hex": "#A6EFC8"
+        },
+        "$description": "Settled dues and positive amounts."
+      },
+      "paidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.2392, 0.1412],
+          "alpha": 1,
+          "hex": "#003D24"
+        },
+        "$description": "Background of 'paid' chips."
+      },
+      "onPaidContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text on 'paid' chips."
+      },
+      "overdue": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 0.7608, 0.7333],
+          "alpha": 1,
+          "hex": "#FFC2BB"
+        },
+        "$description": "Dues past their grace period; errors."
+      },
+      "overdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.3529, 0.0549, 0.0275],
+          "alpha": 1,
+          "hex": "#5A0E07"
+        },
+        "$description": "Background of 'overdue' chips and error banners."
+      },
+      "onOverdueContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text on 'overdue' chips and error banners."
+      },
+      "dueSoon": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 0.851, 0.5412],
+          "alpha": 1,
+          "hex": "#FFD98A"
+        },
+        "$description": "Dues within the reminder window; warnings."
+      },
+      "dueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.2706, 0.1843, 0.0],
+          "alpha": 1,
+          "hex": "#452F00"
+        },
+        "$description": "Background of 'due soon' chips and warnings."
+      },
+      "onDueSoonContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text on 'due soon' chips and warnings."
+      },
+      "credit": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.6392, 0.9255, 0.9373],
+          "alpha": 1,
+          "hex": "#A3ECEF"
+        },
+        "$description": "Tenant credit (advance) and informational highlights."
+      },
+      "creditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.0, 0.2275, 0.2392],
+          "alpha": 1,
+          "hex": "#003A3D"
+        },
+        "$description": "Background of 'credit' chips."
+      },
+      "onCreditContainer": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Text on 'credit' chips."
+      },
+      "focus": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [1.0, 1.0, 1.0],
+          "alpha": 1,
+          "hex": "#FFFFFF"
+        },
+        "$description": "Keyboard focus ring."
+      }
+    }
+  },
+  "space": {
+    "$type": "dimension",
+    "$description": "4 dp grid. Gaps, padding and margins use these steps only.",
+    "s0": {
+      "$value": {
+        "value": 0,
+        "unit": "px"
+      }
+    },
+    "sHalf": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      }
+    },
+    "s1": {
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "s2": {
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "s3": {
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "s4": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "s5": {
+      "$value": {
+        "value": 20,
+        "unit": "px"
+      }
+    },
+    "s6": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "s8": {
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "s10": {
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      }
+    },
+    "s12": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      }
+    },
+    "s16": {
+      "$value": {
+        "value": 64,
+        "unit": "px"
+      }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "none": {
+      "$value": {
+        "value": 0,
+        "unit": "px"
+      },
+      "$description": "Tables, full-bleed bars."
+    },
+    "xs": {
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      },
+      "$description": "Badges and status chips."
+    },
+    "sm": {
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      },
+      "$description": "Buttons and fields."
+    },
+    "md": {
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      },
+      "$description": "Cards and list groups."
+    },
+    "lg": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      },
+      "$description": "Bottom sheets (top corners) and dialogs."
+    },
+    "full": {
+      "$value": {
+        "value": 999,
+        "unit": "px"
+      },
+      "$description": "Avatars and pill toggles."
+    }
+  },
+  "size": {
+    "$type": "dimension",
+    "minTarget": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "Smallest touch target (WCAG 2.5.8 needs 24; Android guidance 48)."
+    },
+    "fieldHeight": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "Text fields and dropdowns."
+    },
+    "buttonHeight": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "Buttons."
+    },
+    "fab": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The floating action button: its size, and the minimum height of an extended one."
+    },
+    "iconSm": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "iconMd": {
+      "$value": {
+        "value": 20,
+        "unit": "px"
+      }
+    },
+    "iconLg": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "iconXl": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      },
+      "$description": "Decorative icons that lead an empty or error state."
+    },
+    "avatar": {
+      "$value": {
+        "value": 40,
+        "unit": "px"
+      },
+      "$description": "A person's avatar in a list row, and the circle a loading list row shows in its place."
+    },
+    "appBar": {
+      "$value": {
+        "value": 64,
+        "unit": "px"
+      }
+    },
+    "navRail": {
+      "$value": {
+        "value": 80,
+        "unit": "px"
+      }
+    },
+    "contentMax": {
+      "$value": {
+        "value": 720,
+        "unit": "px"
+      },
+      "$description": "Readable column width on large screens."
+    },
+    "sheetMax": {
+      "$value": {
+        "value": 640,
+        "unit": "px"
+      },
+      "$description": "Widest a bottom sheet grows on large screens."
+    },
+    "stateMax": {
+      "$value": {
+        "value": 400,
+        "unit": "px"
+      },
+      "$description": "Widest an empty, error or loading state grows, so its sentence keeps a readable measure."
+    },
+    "listRow": {
+      "$value": {
+        "value": 56,
+        "unit": "px"
+      },
+      "$description": "The shortest list row: one line of text, or an avatar, with the row's padding."
+    },
+    "listPane": {
+      "$value": {
+        "value": 360,
+        "unit": "px"
+      },
+      "$description": "The list's column beside its details on wide windows: about a phone's width, so a list reads as it does on a phone."
+    },
+    "preview": {
+      "$value": {
+        "value": 160,
+        "unit": "px"
+      },
+      "$description": "The height of a photo's preview in a form or sheet (a CNIC or a document before it is uploaded): enough to read a card's layout, small enough to keep the form's fields in view."
+    },
+    "focusRing": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "Focus ring stroke: on the edge of outlined and text controls and fields; outside filled controls, beyond the focus gap."
+    },
+    "focusGap": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "Gap between a filled control and its focus ring, so the ring stands apart from any fill."
+    },
+    "hairline": {
+      "$value": {
+        "value": 1,
+        "unit": "px"
+      },
+      "$description": "Borders and rules."
+    },
+    "stroke": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "Lines that draw progress or data: spinners inside controls, chart lines and outlined bars."
+    },
+    "frame": {
+      "$value": {
+        "value": 2,
+        "unit": "px"
+      },
+      "$description": "Ornamental frames: the nameplate's brass border, the receipt seal and the void stamp."
+    },
+    "tabIndicator": {
+      "$value": {
+        "value": 3,
+        "unit": "px"
+      },
+      "$description": "The line under the selected tab."
+    }
+  },
+  "breakpoint": {
+    "$type": "dimension",
+    "$description": "Window size classes: compact (bottom bar), medium (navigation rail), expanded (rail with labels and two panes), large.",
+    "medium": {
+      "$value": {
+        "value": 600,
+        "unit": "px"
+      }
+    },
+    "expanded": {
+      "$value": {
+        "value": 840,
+        "unit": "px"
+      }
+    },
+    "large": {
+      "$value": {
+        "value": 1200,
+        "unit": "px"
+      }
+    }
+  },
+  "duration": {
+    "$type": "duration",
+    "$description": "Motion is functional: it shows where something came from. With reduced motion every duration is 0 and changes cross-fade.",
+    "quick": {
+      "$value": {
+        "value": 120,
+        "unit": "ms"
+      },
+      "$description": "Hover, press, small state changes."
+    },
+    "standard": {
+      "$value": {
+        "value": 200,
+        "unit": "ms"
+      },
+      "$description": "Expanding, sheets, page transitions."
+    },
+    "emphasized": {
+      "$value": {
+        "value": 320,
+        "unit": "ms"
+      },
+      "$description": "A payment being recorded (the receipt stamp)."
+    },
+    "pulse": {
+      "$value": {
+        "value": 1000,
+        "unit": "ms"
+      },
+      "$description": "One fade, in or out, of a skeleton's looping pulse; with reduced motion the skeleton holds still."
+    }
+  },
+  "easing": {
+    "$type": "cubicBezier",
+    "standard": {
+      "$value": [0.2, 0, 0, 1]
+    },
+    "decelerate": {
+      "$value": [0, 0, 0, 1]
+    },
+    "accelerate": {
+      "$value": [0.3, 0, 1, 1]
+    }
+  },
+  "font": {
+    "family": {
+      "$type": "fontFamily",
+      "latin": {
+        "$value": ["Atkinson Hyperlegible Next", "Roboto", "sans-serif"],
+        "$description": "Designed for low vision: 0/O, 1/l/I and 5/S stay distinct in amounts, CNICs and phone numbers."
+      },
+      "urdu": {
+        "$value": ["Noto Nastaliq Urdu", "Noto Naskh Arabic", "serif"],
+        "$description": "Nastaliq is how Urdu readers expect Urdu to look; it needs about twice the line height."
+      }
+    }
+  },
+  "typography": {
+    "$type": "typography",
+    "latin": {
+      "amount": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 32,
+            "unit": "px"
+          },
+          "fontWeight": 700,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.25
+        }
+      },
+      "headline": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 24,
+            "unit": "px"
+          },
+          "fontWeight": 700,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.3333
+        }
+      },
+      "title": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 20,
+            "unit": "px"
+          },
+          "fontWeight": 600,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.4
+        }
+      },
+      "titleSmall": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 16,
+            "unit": "px"
+          },
+          "fontWeight": 600,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.5
+        }
+      },
+      "body": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 16,
+            "unit": "px"
+          },
+          "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.5
+        }
+      },
+      "bodySmall": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 14,
+            "unit": "px"
+          },
+          "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.4286
+        }
+      },
+      "label": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 14,
+            "unit": "px"
+          },
+          "fontWeight": 600,
+          "letterSpacing": {
+            "value": 0.1,
+            "unit": "px"
+          },
+          "lineHeight": 1.4286
+        }
+      },
+      "caption": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 12,
+            "unit": "px"
+          },
+          "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0.2,
+            "unit": "px"
+          },
+          "lineHeight": 1.3333
+        }
+      }
+    },
+    "urdu": {
+      "amount": {
+        "$value": {
+          "fontFamily": "{font.family.latin}",
+          "fontSize": {
+            "value": 32,
+            "unit": "px"
+          },
+          "fontWeight": 700,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.25
+        }
+      },
+      "headline": {
+        "$value": {
+          "fontFamily": "{font.family.urdu}",
+          "fontSize": {
+            "value": 26,
+            "unit": "px"
+          },
+          "fontWeight": 700,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 2.0
+        }
+      },
+      "title": {
+        "$value": {
+          "fontFamily": "{font.family.urdu}",
+          "fontSize": {
+            "value": 22,
+            "unit": "px"
+          },
+          "fontWeight": 600,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 2.0
+        }
+      },
+      "titleSmall": {
+        "$value": {
+          "fontFamily": "{font.family.urdu}",
+          "fontSize": {
+            "value": 18,
+            "unit": "px"
+          },
+          "fontWeight": 600,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 2.0
+        }
+      },
+      "body": {
+        "$value": {
+          "fontFamily": "{font.family.urdu}",
+          "fontSize": {
+            "value": 18,
+            "unit": "px"
+          },
+          "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 2.0
+        }
+      },
+      "bodySmall": {
+        "$value": {
+          "fontFamily": "{font.family.urdu}",
+          "fontSize": {
+            "value": 16,
+            "unit": "px"
+          },
+          "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 2.0
+        }
+      },
+      "label": {
+        "$value": {
+          "fontFamily": "{font.family.urdu}",
+          "fontSize": {
+            "value": 16,
+            "unit": "px"
+          },
+          "fontWeight": 600,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.875
+        }
+      },
+      "caption": {
+        "$value": {
+          "fontFamily": "{font.family.urdu}",
+          "fontSize": {
+            "value": 14,
+            "unit": "px"
+          },
+          "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 2.0
+        }
+      }
+    }
+  }
+}

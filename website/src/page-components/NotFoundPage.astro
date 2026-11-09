@@ -1,0 +1,80 @@
+---
+/**
+ * The page-not-found page. Vercel serves /404.html for every missing address,
+ * in either language, so the page also carries a short note in the other
+ * language. It is kept out of search results.
+ */
+import { LOCALE_INFO, localisePath, otherLocale, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = ui(locale).notFound;
+const other = otherLocale(locale);
+/** The two not-found pages as Astro writes them: dist/404.html and dist/ur/404/index.html. */
+const NOT_FOUND_HREF: Record<Locale, string> = { en: "/404.html", ur: "/ur/404/" };
+---
+
+<BaseLayout
+  locale={locale}
+  title={documentTitle(strings.title, locale)}
+  description={strings.description}
+  switchHref={NOT_FOUND_HREF[other]}
+  noindex
+>
+  <div class="container reading section not-found">
+    <h1>{strings.heading}</h1>
+    <p>{strings.body}</p>
+    <p>
+      <a href={localisePath("/", locale)}>{strings.homeLink}</a>
+    </p>
+    <section
+      class="not-found__other card"
+      lang={LOCALE_INFO[other].htmlLang}
+      dir={LOCALE_INFO[other].dir}
+      aria-labelledby="other-language-heading"
+    >
+      <h2 id="other-language-heading">{strings.otherLanguageHeading}</h2>
+      <p>{strings.otherLanguageBody}</p>
+      <p>
+        <a href={localisePath("/", other)}>{strings.otherLanguageLink}</a>
+      </p>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    display: grid;
+    gap: var(--mm-space-s4);
+  }
+
+  .not-found__other {
+    margin-block-start: var(--mm-space-s6);
+  }
+
+  .not-found__other[lang="ur"] {
+    font-size: var(--mm-type-urdu-body-size);
+    line-height: var(--mm-type-urdu-body-line);
+  }
+
+  .not-found__other[lang="ur"] h2 {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .not-found__other[lang|="en"] {
+    font-size: var(--mm-type-body-size);
+    line-height: var(--mm-type-body-line);
+  }
+
+  .not-found__other[lang|="en"] h2 {
+    font-size: var(--mm-type-title-size);
+    line-height: var(--mm-type-title-line);
+  }
+</style>

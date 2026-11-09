@@ -1,0 +1,16 @@
+---
+import { getCollection } from "astro:content";
+import { pairedEntries } from "../../../lib/content/guides.ts";
+import ToolPage from "../../../page-components/ToolPage.astro";
+
+export async function getStaticPaths() {
+  return pairedEntries(await getCollection("tools"), "ur", "tools").map((entry) => ({
+    params: { slug: entry.ref.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+---
+
+<ToolPage locale="ur" entry={entry} />

@@ -1,0 +1,33 @@
+# Normalise line endings in the repository; check out LF everywhere.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.jar binary
+
+# Generated code: collapse in diffs and exclude from language statistics.
+*.g.dart linguist-generated=true -diff
+*.freezed.dart linguist-generated=true -diff
+**/l10n/generated/** linguist-generated=true
+pubspec.lock linguist-generated=true -diff
+package-lock.json linguist-generated=true -diff
+deno.lock linguist-generated=true
+supabase/functions/_shared/database.types.ts linguist-generated=true
+
+# Approved golden images are binary snapshots.
+**/goldens/** binary

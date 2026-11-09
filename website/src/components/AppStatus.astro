@@ -1,0 +1,55 @@
+---
+import { SITE } from "../config/site.ts";
+import type { Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+
+interface Props {
+  locale: Locale;
+  /** "notice" is the boxed version for the home page's hero; "plain" sits in running text. */
+  variant?: "notice" | "plain";
+}
+
+const { locale, variant = "plain" } = Astro.props;
+---
+
+{SITE.appStatus === "in-development" && (
+  <p class:list={["app-status", `app-status--${variant}`]}>
+    {variant === "notice" && (
+      <svg class="app-status__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <circle cx="8" cy="8" r="6.25" fill="none" stroke-width="1.5" />
+        <path d="M8 4.5V8l2.25 1.5" fill="none" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+    )}
+    {ui(locale).appStatus.inDevelopment}
+  </p>
+)}
+
+<style>
+  .app-status--plain {
+    color: var(--mm-color-ink);
+  }
+
+  .app-status--notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--mm-space-s2);
+    padding: var(--mm-space-s2) var(--mm-space-s3);
+    border: var(--mm-size-hairline) solid transparent;
+    border-radius: var(--mm-radius-xs);
+    background-color: var(--mm-color-due-soon-container);
+    color: var(--mm-color-on-due-soon-container);
+    font-weight: 600;
+  }
+
+  .app-status__icon {
+    flex: none;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
+    margin-block-start: 0.125rem;
+    stroke: currentcolor;
+  }
+
+  :global(html[lang="ur"]) .app-status__icon {
+    margin-block-start: 0.5rem;
+  }
+</style>

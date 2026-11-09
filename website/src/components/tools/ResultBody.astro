@@ -1,0 +1,65 @@
+---
+/**
+ * A calculation's figures, working, table and caveats. The browser script
+ * (src/scripts/calculator.ts, renderResultBody) builds exactly the same markup
+ * when the reader recalculates; the e2e suite checks that the two agree.
+ */
+import type { Locale } from "../../i18n/locales.ts";
+import { CHROME, calculatorIds } from "../../tools/chrome.ts";
+import type { ResultView } from "../../tools/types.ts";
+import Segments from "./Segments.astro";
+
+interface Props {
+  id: string;
+  locale: Locale;
+  view: ResultView;
+}
+
+const { id, locale, view } = Astro.props;
+const ids = calculatorIds(id);
+---
+
+<dl class="result__figures">
+  {view.figures.map((item) => (
+    <div class:list={["result__figure", item.primary === true && "result__figure--primary"]}>
+      <dt>{item.label}</dt>
+      <dd class="amount">{item.value}</dd>
+    </div>
+  ))}
+</dl>
+<h3 class="result__steps-heading">{CHROME[locale].stepsHeading}</h3>
+<ol class="result__steps">
+  {view.steps.map((step) => (
+    <li>
+      <Segments parts={step} />
+    </li>
+  ))}
+</ol>
+{view.table !== undefined && (
+  <div class="table-scroll" role="region" aria-labelledby={ids.tableCaption} tabindex="0">
+    <table class="data-table">
+      <caption id={ids.tableCaption}>{view.table.caption}</caption>
+      <thead>
+        <tr>
+          {view.table.head.map((cell) => (
+            <th scope="col">{cell}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {view.table.rows.map((row) => (
+          <tr>
+            {row.map((cell, index) =>
+              index === 0 ? <th scope="row">{cell}</th> : <td class="amount">{cell}</td>,
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+<ul class="result__notes">
+  {view.notes.map((note) => (
+    <li>{note}</li>
+  ))}
+</ul>

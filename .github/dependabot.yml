@@ -1,0 +1,118 @@
+# Weekly dependency updates, grouped so each ecosystem opens at most one pull
+# request for minor and patch releases. Majors arrive one by one. Commit
+# messages follow commitlint (chore(deps): …, chore(deps-dev): …, ci(deps): …).
+# Deno imports (supabase/functions) are not supported by Dependabot; the
+# weekly Security run lists them instead.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      tooling:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+
+  # The website (Astro). Its README lists the overrides in package.json and why.
+  - package-ecosystem: npm
+    directory: /website
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      website:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+
+  # The browser UAT (app/uat/, docs/uat.md): Playwright only.
+  - package-ecosystem: npm
+    directory: /app/uat
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      uat:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: pub
+    directories: ["/", "/app", "/packages/mm_core", "/packages/mm_ui"]
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      dart:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: gradle
+    directory: /app/android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      android:
+        update-types: [minor, patch]
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: pip
+    directory: /tool
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Karachi
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7

@@ -1,0 +1,59 @@
+# Pull requests are squash-merged, so the title becomes the commit message that
+# release-please reads. It must follow the same conventions as every commit.
+name: Pull request title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read # read the title of the pull request
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  conventional-title:
+    name: Conventional title
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          # Keep in step with commitlint.config.mjs.
+          types: |
+            build
+            chore
+            ci
+            docs
+            feat
+            fix
+            perf
+            refactor
+            revert
+            style
+            test
+          scopes: |
+            app
+            core
+            ui
+            db
+            functions
+            web
+            ci
+            deps
+            deps-dev
+            docs
+            formal
+            planning
+            release
+            repo
+            security
+            test
+          requireScope: false
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: >
+            The subject "{subject}" must start with a lower-case letter, like a commit message.
