@@ -72,8 +72,12 @@ updates:
     cooldown:
       default-days: 7
 
+  # One pub workspace (pubspec.yaml at the root lists app/ and packages/), one
+  # lockfile. Dependabot reads every member from the root and refuses to run in
+  # a member directory ("Only apply dependency_services to the root of the
+  # workspace").
   - package-ecosystem: pub
-    directories: ["/", "/app", "/packages/mm_core", "/packages/mm_ui"]
+    directory: /
     schedule:
       interval: weekly
       day: monday
