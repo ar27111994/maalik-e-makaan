@@ -395,7 +395,9 @@ approval.
 - iOS e-mail links (Greptile on PR 1) come back through the app's own URL scheme since
   2026-11-09 (`docs/operations.md`, iOS e-mail links). Still to do: add
   `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` to Auth's
-  redirect URLs, and check it on an iPhone once an iOS build exists (none is built here).
+  redirect URLs, and check it on an iPhone. CI builds the iOS app unsigned from 2026-11-09, and
+  each release attaches the unsigned `.ipa` to sign with an Apple Account (`docs/operations.md`,
+  iOS builds).
 - TEAM-05: no screen reads the audit trail.
 - NFR-07: the UAT does not reach the operations screens, reports or search.
 - NFR-04: cold start and frame rates are not measured on a mid-range Android phone.

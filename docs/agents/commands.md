@@ -84,6 +84,7 @@ them.
 | Flutter web build     | Release web build, `tool/web/package_vercel.py`, `tool/web/smoke_test.sh` against a local server                                                                   |
 | Website (Astro)       | The `make test-web` sequence, with Playwright and Lighthouse reports uploaded                                                                                      |
 | Android release build | `flutter build appbundle --release` with the example configuration                                                                                                 |
+| iOS build (unsigned)  | `flutter build ios --release --no-codesign` on macOS, kept as the `ios-unsigned-ipa` artefact                                                                      |
 | Edge Functions        | `deno fmt --check`, `deno lint`, `deno task check`, `make test-functions`                                                                                          |
 | Database              | `make test-db`, `make test-db-concurrency` on PostgreSQL 16 with pgTAP                                                                                             |
 | Supabase stack        | `supabase start`, `supabase db lint`, `supabase test db`, `make test-functions-e2e`                                                                                |

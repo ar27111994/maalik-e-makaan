@@ -1,8 +1,8 @@
 # Releases. release-please keeps a release pull request open from the
 # conventional commits on main; merging it tags vX.Y.Z, writes CHANGELOG.md and
-# publishes a GitHub release. This workflow then builds the signed Android app
-# and the web app for that tag, attests their provenance and attaches them, and
-# deploys the tag to production (deploy.yml).
+# publishes a GitHub release. This workflow then builds the signed Android app,
+# the web app and an unsigned iOS app for that tag, attests their provenance and
+# attaches them, and deploys the tag to production (deploy.yml).
 name: Release
 
 on:
@@ -129,6 +129,68 @@ jobs:
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/*
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  ios:
+    # Unsigned: there is no Apple Developer Program membership yet. The owner
+    # signs it with their own Apple Account to install it (docs/operations.md,
+    # iOS builds).
+    name: Build and attach the unsigned iOS app
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: macos-26
+    timeout-minutes: 45
+    environment: release
+    permissions:
+      attestations: write # record build provenance
+      contents: write # upload assets to the release
+      id-token: write # sign the provenance attestation
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+      VERSION: ${{ needs.release-please.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: flutter pub get
+      - name: Production configuration
+        # The same public values as the Android and web builds.
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY APP_URL; do
+            [[ -n "${!name}" ]] || { echo "::error::Repository variable $name is not set"; exit 1; }
+          done
+          jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" --arg app "$APP_URL" \
+            '{ENVIRONMENT: "production", SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, APP_URL: $app}' \
+            > app/config/production.json
+      - name: iOS (unsigned)
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: >
+          flutter build ios --release --no-codesign
+          --build-name="$VERSION" --build-number="$BUILD_NUMBER"
+          --dart-define-from-file=config/production.json
+      - name: Package
+        run: |
+          mkdir -p dist
+          tool/ios/package_unsigned_ipa.sh app/build/ios/iphoneos/Runner.app \
+            "dist/maalik-e-makaan-$TAG-ios-unsigned.ipa"
+          (cd dist && shasum -a 256 -- * > SHA256SUMS-ios)
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.ipa
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
