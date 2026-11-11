@@ -9,12 +9,13 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-11)
 
-- After v1.0 (2026-11-11): the roadmap's 25 items are researched and planned, one plan each in
-  `docs/roadmap/`, indexed by `docs/roadmap/README.md` (milestones, sizes, the order of work in
-  waves, the owner's open decisions). The issue bodies in `.github/roadmap.toml` link the plans;
-  the Roadmap workflow creates the issues when this reaches `main`. The owner's three decisions of
-  11 November 2026 are D-16 to D-18 in `PROJECT.md`, and the three items that would reverse an
-  earlier decision are open proposals P-01 to P-03 there.
+- The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
+  items are researched and planned, one plan each in `docs/roadmap/`, indexed by
+  `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
+  decisions). The issue bodies in `.github/roadmap.toml` link the plans; the Roadmap workflow
+  creates the issues when this reaches `main`. The owner's three decisions of 11 November 2026 are
+  D-16 to D-18 in `PROJECT.md`, and the roadmap changes that would reverse an earlier decision are
+  open proposals P-01 and P-02 there.
 - Milestone v1.0 (as of 2026-11-08), at commit e853378 on `claude/exciting-cray-2wue0f`. Phases 1–9 are built and
   tested; `REQUIREMENTS.md` ticks each requirement and says what remains of the six that are not
   finished (TEAM-05, WEB-01, NFR-03, NFR-04, NFR-07, NFR-08).
@@ -50,7 +51,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-18 record the decisions, and P-01…P-03 the open proposals. The ones that
+- PROJECT.md D-01…D-18 record the decisions, and P-01 and P-02 the open proposals. The ones that
   carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
@@ -63,8 +64,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
     portfolio; letterheads on every generated document; privacy-first analytics, with PostHog
     cookieless on the website, PostHog and Intercom opt-in in the app, and Customer.io e-mail.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
-  Raast Request-to-Pay and open banking (against "recorded, not processed"); P-03 withdrawing the
-  website's promise of no analytics, once the lawyer approves the new notice.
+  Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
+  of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.
 - App rules introduced by the feature stages (recorded in `docs/architecture/app.md`):
   - a document's file is uploaded first, then its row, with one uuid for every retry; a file
     queued for deletion is uploaded again under a new uuid;
@@ -143,10 +144,11 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
   website is on a domain associated with it, and both sites are on `vercel.app`. The same domain
   serves Meta's verification and the e-mail sending subdomains.
 - **A lawyer:** a fixed-fee request for quotation this month, with a deadline at least six weeks
-  before the store submissions; the privacy text for D-18 is approved before any analytics SDK.
+  before the store submissions. The plans have the lawyer review the privacy text for D-18 before
+  any analytics SDK ships, as the research recommends.
 - **A native Urdu editor**, after the owner signs off the glossary.
 - **By 2026-12-30:** the 60-day notice to early-access users, if anyone is to be charged before
-  2027-02-28.
+  2027-02-28; billing's web checkout would then come into wave 1 (`docs/roadmap/README.md`).
 
 The rest, in short:
 

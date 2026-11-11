@@ -94,13 +94,13 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 - D-16: **Residence is declared per person and recorded per portfolio.** (Decided by the owner,
   11 November 2026.) Resident and overseas owners are told apart in two places:
   - per person: the country of residence and the time zone, which the person declares and the app
-    never infers (not from a +92 number, the store country, the IP address, the app's language or
-    the payment currency);
-  - per portfolio: whether the owner lives abroad, and which manager is the owner's caretaker.
+    never infers;
+  - per portfolio: whether the owner lives abroad, and who the caretaker is.
 
-  Ledger dates, due dates, police deadlines, the tax year and messages to tenants stay on Pakistan
-  time; an owner's own alerts and digests follow the owner's time zone. Residence is never shown to
-  tenants. The design and its work are in
+  How the app holds and uses this is the research's proposed design, not a decision: the fields,
+  the caretaker as a member with the `manager` role, which times stay on Pakistan time and which
+  follow the owner's own zone, and keeping residence from tenants. Whether a caretaker can be
+  someone who does not use the app is still open. The design and its work are in
   [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16).
 
 - D-17: **Letterheads on every generated document.** (Decided by the owner, 11 November 2026.)
@@ -110,20 +110,21 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   no Word import. The design and its work are in
   [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-2-letterheads-on-every-generated-document-d-17).
 - D-18: **Privacy-first analytics, support and e-mail.** (Decided by the owner, 11 November 2026.)
-  - The website counts visits with PostHog in cookieless, anonymous mode, and the privacy page
-    says so plainly.
+  - The website counts visits with PostHog in cookieless, anonymous mode, and says so plainly. Its
+    privacy page, FAQ and footer, which promise no analytics in English and Urdu, change to match.
   - The app sends nothing to PostHog or Intercom until the person opts in.
   - Customer.io sends transactional e-mail, and lifecycle e-mail only to people who consented.
 
-  The text comes first: the promise of no analytics stands until the rewritten privacy notice is
-  approved (P-03), and no analytics SDK ships before then. The design and its work are in
+  The research recommends an order of work, which is not part of the decision: the new privacy
+  text first, reviewed by the lawyer, then consent records, then the SDKs. The design and its work
+  are in
   [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
 
 ## Open Proposals
 
-Changes that roadmap items would make to an earlier decision or a public promise. Each stays a
-proposal until the owner accepts it; it then becomes a decision entry, recorded in the first pull
-request of the item's plan.
+Changes that roadmap items would make to an earlier decision. Each stays a proposal until the
+owner accepts it; it then becomes a decision entry, recorded in the first pull request of the
+item's plan.
 
 - P-01: **Automatic WhatsApp reminders through the WhatsApp Business Platform**, which would
   revisit D-11 (free `wa.me` links sent from the landlord's own number). The free links would stay
@@ -138,10 +139,6 @@ request of the item's plan.
   read from the landlord's bank account with consent. Plans:
   [`raast-request-to-pay`](../docs/roadmap/raast-request-to-pay.md) and
   [`open-banking`](../docs/roadmap/open-banking.md).
-- P-03: **Withdrawing the promise of no analytics**, which the website's privacy page, FAQ and
-  footer make in English and Urdu, and the READMEs repeat. D-18 sets the direction; this proposal
-  is the public text, which the lawyer approves before any analytics SDK ships. Plan:
-  [`legal-review`](../docs/roadmap/legal-review.md).
 
 ## Constraints
 
