@@ -19,7 +19,9 @@ import type {
 } from "./content/schemas.ts";
 import { guidePath } from "./content/guides.ts";
 import { formatDate } from "../i18n/dates.ts";
-import { APP_STATUS, LATEST_RELEASE } from "./release.ts";
+import { DECK_PATH } from "./deck.ts";
+import { APP_STATUS, LATEST_RELEASE, RELEASES } from "./release.ts";
+import { ROADMAP } from "./roadmap.ts";
 import { copyrightLine, fontLicence, fontLicencePath } from "./licences.ts";
 
 export interface LlmsGuide {
@@ -447,6 +449,95 @@ function downloadSection(input: LlmsInput, locale: Locale): string[] {
   return out;
 }
 
+function companySection(input: LlmsInput, locale: Locale): string[] {
+  const page = input.company[locale];
+  const out = [
+    `## ${line(page.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/company/", locale)}`,
+    "",
+  ];
+  out.push(line(page.heading), "", line(page.intro), "", `### ${line(page.facts.heading)}`, "");
+  out.push(
+    `- ${line(page.facts.legalName)}: ${SITE.company.legalName}`,
+    `- ${line(page.facts.cuin)}: ${SITE.company.cuin}`,
+    `- ${line(page.facts.incorporated)}: ${formatDate(SITE.company.incorporated, locale)}`,
+    `- ${line(page.facts.registry.label)}: ${line(page.facts.registry.value)}`,
+    `- ${line(page.facts.product.label)}: ${line(page.facts.product.value)}`,
+    "",
+    `### ${line(page.founder.heading)}`,
+    "",
+    `${line(page.founder.name)}, ${line(page.founder.role)}.`,
+    "",
+  );
+  for (const paragraph of page.founder.bio) out.push(line(paragraph), "");
+  out.push(
+    `### ${line(page.deck.heading)}`,
+    "",
+    `${line(page.deck.body)} ${absoluteUrl(input.site, DECK_PATH)}`,
+    "",
+    `### ${line(page.contact.heading)}`,
+    "",
+    line(page.contact.body),
+    "",
+    `- ${line(page.contact.email)}: ${SITE.contactEmail}`,
+    `- ${line(page.contact.website)}: ${SITE.company.url}`,
+    `- ${line(page.contact.linkedIn)}: ${SITE.company.linkedInUrl}`,
+    "",
+  );
+  return out;
+}
+
+function roadmapSection(input: LlmsInput, locale: Locale): string[] {
+  const strings = ui(locale).roadmap;
+  const out = [
+    `## ${line(strings.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/roadmap/", locale)}`,
+    "",
+  ];
+  out.push(line(strings.intro), "");
+  for (const milestone of ROADMAP.milestones) {
+    const title = locale === "ur" ? (milestone.titleUr ?? milestone.title) : milestone.title;
+    const description =
+      locale === "ur" ? (milestone.descriptionUr ?? milestone.description) : milestone.description;
+    const due =
+      milestone.due === null
+        ? ""
+        : ` (${strings.due.replace("{date}", formatDate(milestone.due, locale))})`;
+    out.push(`### ${line(title)}${due}`, "");
+    if (description !== "") out.push(line(description), "");
+    for (const issue of milestone.issues) {
+      const name = locale === "ur" ? (issue.titleUr ?? issue.title) : issue.title;
+      const state = issue.state === "closed" ? strings.done : strings.open;
+      out.push(`- ${line(name)} (${state})`);
+    }
+    out.push("");
+  }
+  return out;
+}
+
+function releasesSection(input: LlmsInput, locale: Locale): string[] {
+  const strings = ui(locale).releases;
+  const out = [
+    `## ${line(strings.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/releases/", locale)}`,
+    "",
+  ];
+  out.push(line(strings.intro), "");
+  for (const release of RELEASES) {
+    const version = strings.version.replace("{version}", release.version);
+    const date = strings.released.replace("{date}", formatDate(release.date, locale));
+    out.push(`### ${version} (${date})`, "");
+    for (const section of release.sections) {
+      for (const note of section.notes) out.push(`- ${line(note.text)}`);
+    }
+    out.push("");
+  }
+  return out;
+}
+
 function toolSection(input: LlmsInput, tool: LlmsTool): string[] {
   const strings = ui(tool.locale);
   const out = [
@@ -518,6 +609,9 @@ export function llmsFullTxt(input: LlmsInput): string {
       ...howItWorksSection(input, locale),
       ...faqSection(input, locale),
       ...downloadSection(input, locale),
+      ...companySection(input, locale),
+      ...roadmapSection(input, locale),
+      ...releasesSection(input, locale),
     );
     const guides = input.guides.filter((candidate) => candidate.locale === locale);
     const tools = input.tools.filter((candidate) => candidate.locale === locale);

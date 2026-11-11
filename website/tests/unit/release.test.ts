@@ -107,8 +107,10 @@ describe("the roadmap", () => {
   });
 
   test("progress counts closed issues", () => {
+    const [first] = ROADMAP.milestones;
+    if (first === undefined) throw new Error("the roadmap has no milestones");
     const milestone = {
-      ...ROADMAP.milestones[0]!,
+      ...first,
       issues: [
         { id: null, number: 1, title: "A", titleUr: null, state: "closed" as const, url: null },
         { id: null, number: 2, title: "B", titleUr: null, state: "open" as const, url: null },

@@ -222,6 +222,18 @@ in `llms.txt` and `llms-full.txt`, with Article and BreadcrumbList structured da
 date, the not-advice notice and its sources. Until the first guide exists the build logs that
 the `guides` collection is empty; that warning is expected.
 
+### Pages that update themselves
+
+- **Release:** `src/lib/release.ts` reads `CHANGELOG.md` and `.release-please-manifest.json` at
+  build time for the download page's release block, the release notes page (`/releases/`), the
+  footer and `llms.txt`; from 1.0.0 it switches the site from "in development" to "available".
+- **Roadmap:** `/roadmap/` renders `src/data/roadmap.json`, which `tool/github/fetch_roadmap.py`
+  writes from GitHub's roadmap milestones and issues before a deploy (`make roadmap` rewrites the
+  committed copy from `.github/roadmap.toml`).
+- **Pitch deck:** `npm run deck` renders `deck/` to `public/pitch/` (not committed); the company
+  page (`/company/`) links to it. See [`deck/README.md`](deck/README.md).
+- **Pricing:** `/pricing/` is copy in `src/content/pricing/`; billing is not switched on in the app.
+
 ## Search and AI tools
 
 - Each page has a title, description, canonical URL, `hreflang` alternates, Open Graph and Twitter
