@@ -32,13 +32,50 @@ def xml(text: str) -> ET.Element:
     return ET.fromstring(text)  # noqa: S314 (the generator's own output)
 
 
-def pixels(header: bytes, scanlines: bytes) -> list[bytes]:
-    """The rows of an unfiltered image, without their filter bytes."""
+def pixels(header: bytes, image: bytes) -> list[bytes]:
+    """The rows of an image's pixels."""
     width, _, _, colour_type = struct.unpack(">IIBB", header[:10])
     stride = width * (4 if colour_type == bai.RGBA else 3)
-    rows = [scanlines[index : index + stride + 1] for index in range(0, len(scanlines), stride + 1)]
-    assert all(row[0] == 0 for row in rows)
-    return [row[1:] for row in rows]
+    return [image[index : index + stride] for index in range(0, len(image), stride)]
+
+
+def paeth(left: int, up: int, corner: int) -> int:
+    estimate = left + up - corner
+    nearest = min((abs(estimate - left), 0), (abs(estimate - up), 1), (abs(estimate - corner), 2))
+    return (left, up, corner)[nearest[1]]
+
+
+def filtered(header: bytes, image: bytes, kinds: list[int]) -> bytes:
+    """The scanlines of [image] with its rows filtered as an encoder may (PNG filter types 0 to
+    4: none, Sub, Up, Average, Paeth), the row's type taken from [kinds] in turn."""
+    step = 4 if header[9] == bai.RGBA else 3
+    rows = pixels(header, image)
+    out = bytearray()
+    for number, row in enumerate(rows):
+        above = rows[number - 1] if number else bytes(len(row))
+        kind = kinds[number % len(kinds)]
+        out.append(kind)
+        for index, value in enumerate(row):
+            left = row[index - step] if index >= step else 0
+            corner = above[index - step] if index >= step else 0
+            predicted = (
+                0,
+                left,
+                above[index],
+                (left + above[index]) // 2,
+                paeth(left, above[index], corner),
+            )[kind]
+            out.append((value - predicted) & 0xFF)
+    return bytes(out)
+
+
+def png(header: bytes, scanlines: bytes, level: int = 9) -> bytes:
+    return (
+        bai.PNG_SIGNATURE
+        + bai._chunk(b"IHDR", header)
+        + bai._chunk(b"IDAT", zlib.compress(scanlines, level))
+        + bai._chunk(b"IEND", b"")
+    )
 
 
 class PathTest(unittest.TestCase):
@@ -215,9 +252,10 @@ class RasterTest(unittest.TestCase):
 
     def test_render_blends_the_colours_by_coverage(self) -> None:
         icon = bai.Icon("x.png", 32, "tile", 1, "#102030", "#F0E0D0", alpha=True)
-        header, scanlines = bai.render(mark(HOUSE), icon)
+        header, image = bai.render(mark(HOUSE), icon)
         self.assertEqual(header, struct.pack(">IIBBBBB", 32, 32, 8, bai.RGBA, 0, 0, 0))
-        rows = pixels(header, scanlines)
+        self.assertEqual(len(image), 32 * 32 * 4)
+        rows = pixels(header, image)
         self.assertEqual(rows[0][:4], bytes([0x10, 0x20, 0x30, 0]))  # transparent corner
         self.assertEqual(rows[16][:4], bytes([0x10, 0x20, 0x30, 255]))  # edge of the tile
         self.assertEqual(rows[23][14 * 4 : 15 * 4], bytes([0xF0, 0xE0, 0xD0, 255]))  # the floor
@@ -231,24 +269,52 @@ class PngTest(unittest.TestCase):
         content = bai.render(mark(HOUSE), icon)
         data = bai.png_file(*content)
         self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
-        self.assertEqual(bai.png_content(data), content)
-        # Pixels are compared, not bytes: another compression of the same pixels reads the same.
-        recompressed = data.replace(
-            data[33 : data.index(b"IEND") - 4],
-            bai._chunk(b"IDAT", zlib.compress(content[1], 1)),
-        )
+        self.assertEqual(bai.png_image(data), content)
+        # The image is compared, not the file's bytes: another compression reads the same.
+        header, scanlines = bai.png_parts(data)
+        self.assertEqual(set(scanlines[:: 8 * 3 + 1]), {0})  # every row unfiltered
+        recompressed = png(header, scanlines, level=1)
         self.assertNotEqual(recompressed, data)
-        self.assertEqual(bai.png_content(recompressed), content)
+        self.assertEqual(bai.png_image(recompressed), content)
+
+    def test_every_row_filter_is_undone(self) -> None:
+        for alpha in (False, True):
+            icon = bai.Icon("x.png", 24, "square", 1, "#1D3F8F", "#FFFFFF", alpha=alpha)
+            header, image = bai.render(mark(HOUSE), icon)
+            for kinds in ([0], [1], [2], [3], [4], [4, 3, 2, 1, 0]):
+                with self.subTest(alpha=alpha, kinds=kinds):
+                    scanlines = filtered(header, image, kinds)
+                    stride = len(image) // 24
+                    rows = bytes(b for i, b in enumerate(scanlines) if i % (stride + 1))
+                    self.assertEqual(rows == image, kinds == [0])  # filters change the bytes
+                    self.assertEqual(bai.png_image(png(header, scanlines)), (header, image))
 
     def test_other_files_are_refused(self) -> None:
         header = struct.pack(">IIBBBBB", 1, 1, 8, bai.RGB, 0, 0, 0)
         for data in (
             b"GIF89a",
             bai.PNG_SIGNATURE + bai._chunk(b"IHDR", header) + bai._chunk(b"IEND", b""),
+            bai.PNG_SIGNATURE + bai._chunk(b"IHDR", header[:12]) + bai._chunk(b"IDAT", b""),
             bai.PNG_SIGNATURE + bai._chunk(b"IHDR", header) + bai._chunk(b"IDAT", b"not zlib"),
+            png(header, b"\x00\x01\x02\x03\x04"),  # a row too long
+            png(header, b"\x05\x01\x02\x03"),  # no filter type 5
+            png(struct.pack(">IIBBBBB", 1, 1, 16, bai.RGB, 0, 0, 0), bytes(7)),
+            png(struct.pack(">IIBBBBB", 1, 1, 8, 3, 0, 0, 0), bytes(2)),  # a palette
+            png(struct.pack(">IIBBBBB", 1, 1, 8, bai.RGB, 0, 0, 1), bytes(4)),  # interlaced
         ):
             with self.subTest(data=data[:12]), self.assertRaises(bai.IconError):
-                bai.png_content(data)
+                bai.png_image(data)
+
+    def test_formats_are_described(self) -> None:
+        self.assertEqual(
+            bai.describe(struct.pack(">IIBBBBB", 512, 512, 8, bai.RGBA, 0, 0, 0)),
+            "a 512 x 512, 8-bit RGBA image",
+        )
+        self.assertEqual(
+            bai.describe(struct.pack(">IIBBBBB", 16, 8, 4, 3, 0, 0, 1)),
+            "a 16 x 8, 4-bit palette image (interlaced)",
+        )
+        self.assertIn("colour type 7", bai.describe(struct.pack(">IIBBBBB", 1, 1, 8, 7, 0, 0, 0)))
 
 
 class OutputsTest(unittest.TestCase):
@@ -404,9 +470,7 @@ class WriteAndCheckTest(unittest.TestCase):
 
     def test_write_then_check(self) -> None:
         found = bai.problems(self.root)
-        self.assertIn(
-            f"{bai.WEB}/favicon.png is missing or does not hold the generated pixels", found
-        )
+        self.assertIn(f"{bai.WEB}/favicon.png is missing", found)
         self.assertIn(f"{bai.APP_ICON_SET}/Contents.json is missing or stale", found)
         touched = bai.write(self.root)
         self.assertIn(f"wrote {bai.RES}/mipmap-anydpi-v26/ic_launcher.xml", touched)
@@ -416,8 +480,8 @@ class WriteAndCheckTest(unittest.TestCase):
     def test_check_finds_edits_and_strays_and_write_mends_them(self) -> None:
         bai.write(self.root)
         favicon = self.root / bai.WEB / "favicon.png"
-        header, scanlines = bai.png_content(favicon.read_bytes())
-        favicon.write_bytes(bai.png_file(header, scanlines[:-1] + b"\x01"))
+        header, image = bai.png_image(favicon.read_bytes())
+        favicon.write_bytes(bai.png_file(header, image[:-1] + b"\x01"))
         contents = self.root / bai.APP_ICON_SET / "Contents.json"
         contents.write_text(contents.read_text(encoding="utf-8").replace("dark", "light"))
         stray = self.root / bai.APP_ICON_SET / "Icon-App-20x20@1x.png"
@@ -429,7 +493,7 @@ class WriteAndCheckTest(unittest.TestCase):
             [
                 f"{bai.APP_ICON_SET}/Contents.json is missing or stale",
                 f"{bai.WEB}/manifest.json is missing or stale",
-                f"{bai.WEB}/favicon.png is missing or does not hold the generated pixels",
+                f"{bai.WEB}/favicon.png does not hold the generated pixels",
                 f"{bai.APP_ICON_SET}/Icon-App-20x20@1x.png is not a generated icon",
             ],
         )
@@ -437,20 +501,55 @@ class WriteAndCheckTest(unittest.TestCase):
         self.assertFalse(stray.exists())
         self.assertEqual(bai.problems(self.root), [])
 
-    def test_a_recompressed_icon_is_left_alone(self) -> None:
+    def test_a_losslessly_reencoded_icon_is_left_alone(self) -> None:
         bai.write(self.root)
+        # As an optimiser may write it: other row filters, another compression level.
         favicon = self.root / bai.WEB / "favicon.png"
-        header, scanlines = bai.png_content(favicon.read_bytes())
-        recompressed = (
-            bai.PNG_SIGNATURE
-            + bai._chunk(b"IHDR", header)
-            + bai._chunk(b"IDAT", zlib.compress(scanlines, 1))
-            + bai._chunk(b"IEND", b"")
-        )
-        favicon.write_bytes(recompressed)
+        header, image = bai.png_image(favicon.read_bytes())
+        reencoded = png(header, filtered(header, image, [1, 2, 3, 4]), level=1)
+        favicon.write_bytes(reencoded)
         self.assertEqual(bai.problems(self.root), [])
         self.assertEqual(bai.write(self.root), [])
-        self.assertEqual(favicon.read_bytes(), recompressed)
+        self.assertEqual(favicon.read_bytes(), reencoded)
+
+    def test_an_icon_in_another_format_is_reported_and_rewritten(self) -> None:
+        bai.write(self.root)
+        # The same colours without the alpha channel: Google Play would refuse such an icon.
+        favicon = self.root / bai.WEB / "favicon.png"
+        header, image = bai.png_image(favicon.read_bytes())
+        rgb = struct.pack(">IIBBBBB", 16, 16, 8, bai.RGB, 0, 0, 0)
+        favicon.write_bytes(bai.png_file(rgb, bytes(b for i, b in enumerate(image) if i % 4 != 3)))
+        self.assertEqual(
+            bai.problems(self.root),
+            [
+                f"{bai.WEB}/favicon.png is a 16 x 16, 8-bit RGB image, "
+                "not a 16 x 16, 8-bit RGBA image"
+            ],
+        )
+        favicon.write_bytes(b"GIF89a")
+        self.assertEqual(
+            bai.problems(self.root), [f"{bai.WEB}/favicon.png cannot be read: not a PNG file"]
+        )
+        self.assertEqual(bai.write(self.root), [f"wrote {bai.WEB}/favicon.png"])
+        self.assertEqual(bai.png_image(favicon.read_bytes()), (header, image))
+
+    def test_clutter_in_the_icon_set_is_left_alone(self) -> None:
+        bai.write(self.root)
+        icon_set = self.root / bai.APP_ICON_SET
+        clutter = [".DS_Store", "._AppIcon.png", ".Contents.json.swp", "Thumbs.db", "AppIcon.png~"]
+        for name in clutter:
+            (icon_set / name).write_bytes(b"clutter")
+        self.assertEqual(bai.problems(self.root), [])
+        stray = icon_set / "Icon-App-1024x1024@1x.png"
+        stray.write_bytes(b"old")
+        self.assertEqual(
+            bai.problems(self.root),
+            [f"{bai.APP_ICON_SET}/Icon-App-1024x1024@1x.png is not a generated icon"],
+        )
+        self.assertEqual(
+            bai.write(self.root), [f"removed {bai.APP_ICON_SET}/Icon-App-1024x1024@1x.png"]
+        )
+        self.assertTrue(all((icon_set / name).exists() for name in clutter))
 
     def test_main(self) -> None:
         with mock.patch.object(bai, "ROOT", self.root):

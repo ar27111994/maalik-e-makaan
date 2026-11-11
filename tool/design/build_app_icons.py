@@ -16,8 +16,10 @@ gives the same pixels on every machine. A stroke with round caps and joins is th
 capsules around its segments, so a pixel's coverage comes from its distance to the nearest
 segment (and to the tile's edge), and is sampled where two strokes share a pixel: no SVG renderer
 is needed, and the result matches librsvg's to within ordinary anti-aliasing differences. The
-check compares pixels, not file bytes, because zlib builds may compress the same pixels
-differently.
+check decodes each PNG and compares its format (size, bit depth, colour type) and its pixels, not
+its bytes: another zlib build, other row filters or a lossless optimiser that keeps the format
+give the same image. A file converted to another colour type or bit depth fails, because the
+stores pin them: Google Play wants a 32-bit PNG and iOS an icon without alpha.
 
 Outputs (all committed):
 
@@ -94,6 +96,7 @@ TINTED_GLYPH = "#FFFFFF"
 HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 RGB, RGBA = 2, 6  # PNG colour types
+COLOUR_TYPES = {0: "greyscale", RGB: "RGB", 3: "palette", 4: "greyscale and alpha", RGBA: "RGBA"}
 
 
 class IconError(ValueError):
@@ -404,7 +407,7 @@ class Icon:
 
 
 def render(mark: Mark, icon: Icon) -> tuple[bytes, bytes]:
-    """The PNG header fields (IHDR) and the filtered scanlines of [icon]."""
+    """The PNG header fields (IHDR) and the pixels of [icon], row after row."""
     side = icon.size * icon.share
     scale = side / mark.size
     offset = (icon.size - side) / 2
@@ -422,25 +425,33 @@ def render(mark: Mark, icon: Icon) -> tuple[bytes, bytes]:
         for t, g in zip(tile, ink, strict=True)
     ]
     channels = 4 if icon.alpha else 3
-    rows = []
-    for row in range(icon.size):
-        start, end = row * icon.size, (row + 1) * icon.size
-        coverage = glyph[start:end]
-        pixels = bytearray(icon.size * channels)
-        for channel, table in enumerate(tables):
-            pixels[channel::channels] = coverage.translate(table)
-        if icon.alpha:
-            pixels[3::4] = shape[start:end] if shape is not None else b"\xff" * icon.size
-        rows.append(b"\x00" + bytes(pixels))  # filter type 0 (none)
+    pixels = bytearray(icon.size * icon.size * channels)
+    for channel, table in enumerate(tables):
+        pixels[channel::channels] = glyph.translate(table)
+    if icon.alpha:
+        pixels[3::4] = shape if shape is not None else b"\xff" * (icon.size * icon.size)
     header = struct.pack(">IIBBBBB", icon.size, icon.size, 8, RGBA if icon.alpha else RGB, 0, 0, 0)
-    return header, b"".join(rows)
+    return header, bytes(pixels)
 
 
 def _chunk(kind: bytes, data: bytes) -> bytes:
     return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
 
 
-def png_file(header: bytes, scanlines: bytes) -> bytes:
+def _stride(header: bytes) -> int:
+    """The bytes in a row of an image this tool reads: 8-bit RGB or RGBA, not interlaced."""
+    width, _, depth, colour, _, _, interlace = struct.unpack(">IIBBBBB", header)
+    if depth != 8 or colour not in (RGB, RGBA) or interlace:
+        raise IconError(f"cannot read {describe(header)}")
+    return width * (4 if colour == RGBA else 3)
+
+
+def png_file(header: bytes, pixels: bytes) -> bytes:
+    stride = _stride(header)
+    scanlines = b"".join(
+        b"\x00" + pixels[start : start + stride]  # filter type 0 (none)
+        for start in range(0, len(pixels), stride)
+    )
     return (
         PNG_SIGNATURE
         + _chunk(b"IHDR", header)
@@ -449,8 +460,17 @@ def png_file(header: bytes, scanlines: bytes) -> bytes:
     )
 
 
-def png_content(data: bytes) -> tuple[bytes, bytes]:
-    """The header fields and the decompressed scanlines of a PNG file."""
+def describe(header: bytes) -> str:
+    """An image's format, from its PNG header fields."""
+    width, height, depth, colour, _, _, interlace = struct.unpack(">IIBBBBB", header)
+    kind = COLOUR_TYPES.get(colour, f"colour type {colour}")
+    return f"a {width} x {height}, {depth}-bit {kind} image" + (
+        " (interlaced)" if interlace else ""
+    )
+
+
+def png_parts(data: bytes) -> tuple[bytes, bytes]:
+    """The header fields (IHDR) and the decompressed, still filtered scanlines of a PNG file."""
     if not data.startswith(PNG_SIGNATURE):
         raise IconError("not a PNG file")
     position = len(PNG_SIGNATURE)
@@ -467,12 +487,58 @@ def png_content(data: bytes) -> tuple[bytes, bytes]:
         elif kind == b"IEND":
             break
         position += 12 + length
-    if not header or not compressed:
-        raise IconError("the PNG file has no header or no image data")
+    if len(header) != 13 or not compressed:
+        raise IconError("the PNG file has no valid header or no image data")
     try:
         return header, zlib.decompress(b"".join(compressed))
     except zlib.error as error:
         raise IconError(f"the PNG file's image data is damaged ({error})") from None
+
+
+def _paeth(left: int, up: int, corner: int) -> int:
+    estimate = left + up - corner
+    to_left, to_up, to_corner = abs(estimate - left), abs(estimate - up), abs(estimate - corner)
+    if to_left <= to_up and to_left <= to_corner:
+        return left
+    return up if to_up <= to_corner else corner
+
+
+def unfilter(header: bytes, scanlines: bytes) -> bytes:
+    """The pixels of an image whose rows each start with a PNG filter type (0 to 4)."""
+    stride = _stride(header)
+    _, height = struct.unpack(">II", header[:8])
+    step = 4 if header[9] == RGBA else 3  # bytes per pixel: filters look at the pixel before
+    if len(scanlines) != height * (stride + 1):
+        raise IconError("the PNG file's image data has the wrong length")
+    pixels = bytearray()
+    above = bytes(stride)
+    for start in range(0, len(scanlines), stride + 1):
+        kind = scanlines[start]
+        row = bytearray(scanlines[start + 1 : start + 1 + stride])
+        if kind == 1:  # Sub
+            for index in range(step, stride):
+                row[index] = (row[index] + row[index - step]) & 0xFF
+        elif kind == 2:  # Up
+            row = bytearray((value + up) & 0xFF for value, up in zip(row, above, strict=True))
+        elif kind == 3:  # Average
+            for index in range(stride):
+                left = row[index - step] if index >= step else 0
+                row[index] = (row[index] + (left + above[index]) // 2) & 0xFF
+        elif kind == 4:  # Paeth
+            for index in range(stride):
+                left, corner = (row[index - step], above[index - step]) if index >= step else (0, 0)
+                row[index] = (row[index] + _paeth(left, above[index], corner)) & 0xFF
+        elif kind != 0:
+            raise IconError(f"the PNG file has a row with the unknown filter type {kind}")
+        pixels += row
+        above = row
+    return bytes(pixels)
+
+
+def png_image(data: bytes) -> tuple[bytes, bytes]:
+    """The header fields and the pixels of a PNG file this tool can read."""
+    header, scanlines = png_parts(data)
+    return header, unfilter(header, scanlines)
 
 
 # --- The outputs ----------------------------------------------------------------------------
@@ -655,7 +721,7 @@ def check_geometry(mark: Mark) -> None:
 @dataclass(frozen=True)
 class Outputs:
     texts: dict[str, str]
-    images: dict[str, tuple[bytes, bytes]]  # path: (PNG header, scanlines)
+    images: dict[str, tuple[bytes, bytes]]  # path: (PNG header, pixels)
     owned_folders: tuple[str, ...]  # folders that hold nothing else
 
 
@@ -680,6 +746,13 @@ def build(root: Path) -> Outputs:
     return Outputs(texts, images, owned_folders=(APP_ICON_SET,))
 
 
+def _clutter(path: Path) -> bool:
+    """Whether [path] is a file that an operating system or an editor leaves in a folder it
+    shows or edits (all of them in .gitignore): hidden files such as Finder's .DS_Store and swap
+    files, Windows' Thumbs.db, and backups ending in ~. They are not the folder's content."""
+    return path.name.startswith(".") or path.name == "Thumbs.db" or path.name.endswith("~")
+
+
 def _stale_files(root: Path, outputs: Outputs) -> list[Path]:
     known = {root / path for path in [*outputs.texts, *outputs.images]}
     return sorted(
@@ -687,15 +760,24 @@ def _stale_files(root: Path, outputs: Outputs) -> list[Path]:
         for folder in outputs.owned_folders
         if (root / folder).is_dir()
         for path in (root / folder).iterdir()
-        if path.is_file() and path not in known
+        if path.is_file() and path not in known and not _clutter(path)
     )
 
 
-def _same_image(path: Path, content: tuple[bytes, bytes]) -> bool:
+def _image_problem(root: Path, path: str, header: bytes, pixels: bytes) -> str | None:
+    """What keeps the file at [path] from being the generated image, or None if it is."""
+    file = root / path
+    if not file.is_file():
+        return f"{path} is missing"
     try:
-        return path.is_file() and png_content(path.read_bytes()) == content
-    except IconError:
-        return False
+        found, scanlines = png_parts(file.read_bytes())
+        if found != header:
+            return f"{path} is {describe(found)}, not {describe(header)}"
+        if unfilter(header, scanlines) != pixels:
+            return f"{path} does not hold the generated pixels"
+    except IconError as error:
+        return f"{path} cannot be read: {error}"
+    return None
 
 
 def problems(root: Path) -> list[str]:
@@ -706,9 +788,10 @@ def problems(root: Path) -> list[str]:
         file = root / path
         if not file.is_file() or file.read_text(encoding="utf-8") != text:
             found.append(f"{path} is missing or stale")
-    for path, content in outputs.images.items():
-        if not _same_image(root / path, content):
-            found.append(f"{path} is missing or does not hold the generated pixels")
+    for path, (header, pixels) in outputs.images.items():
+        problem = _image_problem(root, path, header, pixels)
+        if problem:
+            found.append(problem)
     found += [
         f"{path.relative_to(root)} is not a generated icon" for path in _stale_files(root, outputs)
     ]
@@ -716,8 +799,8 @@ def problems(root: Path) -> list[str]:
 
 
 def write(root: Path) -> list[str]:
-    """Writes every output that changed and removes stale files; says what it did, a line
-    per file."""
+    """Writes every output that changed and removes stale files (not an operating system's or
+    an editor's clutter); says what it did, a line per file."""
     outputs = build(root)
     touched = []
     for path, text in outputs.texts.items():
@@ -726,12 +809,12 @@ def write(root: Path) -> list[str]:
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_text(text, encoding="utf-8")
             touched.append(f"wrote {path}")
-    # A PNG that already holds these pixels is left alone, whatever zlib compressed it.
-    for path, content in outputs.images.items():
+    # A PNG that already holds this image is left alone, however it was filtered and compressed.
+    for path, (header, pixels) in outputs.images.items():
         file = root / path
-        if not _same_image(file, content):
+        if _image_problem(root, path, header, pixels):
             file.parent.mkdir(parents=True, exist_ok=True)
-            file.write_bytes(png_file(*content))
+            file.write_bytes(png_file(header, pixels))
             touched.append(f"wrote {path}")
     for stale in _stale_files(root, outputs):
         stale.unlink()
