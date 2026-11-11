@@ -163,9 +163,9 @@ export const faqSchema = z.strictObject({
 });
 
 /**
- * Where a feature stands. Version 1.0 is in development, so nothing is
- * released yet; "later" marks what is planned after 1.0 (the Should-Have list
- * in .planning/REQUIREMENTS.md).
+ * Where a feature stands: "v1" is in the released app (version 1.0 and later);
+ * "later" is planned for a later version (the Should-Have list in
+ * .planning/REQUIREMENTS.md, and the roadmap page).
  */
 export const featureStatus = z.enum(["v1", "later"]);
 

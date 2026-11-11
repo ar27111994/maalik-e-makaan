@@ -1,16 +1,22 @@
 # The how-it-works page (/how-it-works/). Its Urdu twin is ur.yaml; keep both
-# in step. Each step follows the requirements of version 1.0 in
-# .planning/REQUIREMENTS.md. British English.
+# in step. Version 1.0 has been released (CHANGELOG.md), so each step says what
+# the app does today, in the present tense, and claims only what
+# .planning/REQUIREMENTS.md marks done (not the Should-Have list, which is on
+# the roadmap page). The closing button opens the web app ("app"). British
+# English.
 title: "How it works"
-description: "How Maalik-e-Makaan version 1.0 will work, step by step: add properties and tenants, record payments and share receipts, stay on top of dues and paperwork."
+description: "How Maalik-e-Makaan works, step by step: sign up, add properties and tenants, record payments and share receipts, and stay on top of dues and paperwork."
 heading: "How it works"
-intro: "Version 1.0 is still being built. These are the steps a landlord will follow, from the first day to the end of the tax year."
+intro: "Version 1.0 is out, and the app is free while it is in early access. These are the steps a landlord follows, from the first day to the end of the tax year."
 steps:
-  - heading: "Choose your language and sign up"
-    body: "Pick English or Urdu when you first open the app, and sign up with your email address and a password."
+  - heading: "Sign up and create your portfolio"
+    body: "Open the web app in any browser on your phone or computer, or install the Android app. Choose English or Urdu, sign up with your email address and a password, and create your portfolio: it holds your properties, tenants and money records."
     points:
-      - "Your email is verified before the account is used, and a forgotten password can be reset."
-      - "You stay signed in on your phone, and signing out clears the app's saved records from it."
+      - "For Android, the installable files are attached to each release on GitHub, and the app is coming to Google Play."
+      - "On iPhone, the web app works in the browser. Until the App Store listing is ready, testers can also install the unsigned build from GitHub by signing it with their own Apple Account."
+      - "You confirm your email address before you start, and you can reset a forgotten password."
+      - "Keep a relative's house, or a plaza with its own accounts, in a portfolio of its own."
+      - "You stay signed in, and signing out clears the app's saved records from your phone or computer."
   - heading: "Add your properties and units"
     body: "A house, a building of portions or flats, a plaza of shops, or a hostel of rooms and beds: add each property with its province, then the units inside it with their asking rent."
     points:
@@ -19,30 +25,42 @@ steps:
   - heading: "Add each tenant and the tenancy"
     body: "Record the tenant's details and the terms you agreed: the rent, the day it is due, the grace days, the deposit, the yearly increase, any late fee and the notice period."
     points:
-      - "Add the agreement's e-stamp and Rent Registrar details, and the police registration, as you complete them."
-      - "Onboarding a tenant who has been with you for years? Start billing from this month."
+      - "CNIC numbers stay masked on screen until you choose to show them, and photos of the CNIC are kept in private storage."
+      - "Adding a tenant who has been with you for years? Start billing from this month."
       - "Two tenancies on the same unit can never overlap."
+  - heading: "Keep the paperwork in order"
+    body: "Each tenancy keeps its police registration and its rent agreement. The app shows the deadline for registering with the police in your province, and which registrations are still pending."
+    points:
+      - "Links open the police registration websites for Punjab, Sindh and Islamabad."
+      - "Where no law the app knows of sets a deadline, it reminds you a day after the tenant moves in."
+      - "Add the agreement's e-stamp and Punjab Rent Registrar details as you complete them, with photos or PDFs of the papers."
   - heading: "Invite the people who help you"
-    body: "Optional: invite a relative, caretaker or accountant by email with a role of their own, and see everything they record."
+    body: "Optional: invite a relative, caretaker or accountant by email, with a role of their own. The link works once, for seven days, and only for their address; you can also share it on WhatsApp."
     points:
-      - "An overseas owner sees the cash a caretaker holds and every handover."
-  - heading: "Record payments as they arrive"
-    body: "Dues appear each month by themselves. When rent arrives, in cash or by transfer, record it and share the numbered receipt on WhatsApp."
+      - "A manager runs the properties and records money, an accountant records payments and expenses, and a viewer can only look."
+      - "An overseas owner sees the cash a caretaker holds and every handover, and can download a monthly owner statement."
+  - heading: "Record payments and share receipts"
+    body: "Rent falls due each month by itself. When it arrives, in cash, by bank transfer, Raast, JazzCash, Easypaisa or cheque, record it and share the numbered receipt on WhatsApp."
     points:
-      - "The payment settles the oldest dues first; anything extra is kept as credit for next month."
-      - "Tax a tenant withholds is recorded with its certificate number, so the gross rent is settled."
+      - "The app records payments; it does not take them. The money changes hands the way it always has."
+      - "A payment settles the oldest dues first, unless you choose which; anything extra is kept as credit for the next dues."
+      - "Each receipt can be shared in English or Urdu."
+      - "When a company or government office withholds tax, record it with the certificate number: the cash and the tax together settle the rent."
+      - "A mistake is cancelled with a reason, never deleted."
   - heading: "Keep on top of what is due"
-    body: "Each day the app lists what needs you: rent due and overdue, police registrations pending, agreements ending, increases due and unpaid bills."
+    body: "Each day the app lists what needs you: rent due and overdue, police registrations pending, agreements ending, increases due, CNICs expiring and unpaid bills. The dashboard shows who owes what, and since when."
     points:
-      - "Send a polite reminder from your own WhatsApp in one tap."
+      - "Send a polite reminder from your own WhatsApp, in English, Urdu or Roman Urdu."
+      - "Late at night or at Friday prayers, the app suggests waiting a little before you send it."
       - "On the tenancy's anniversary, the app suggests the new rent."
   - heading: "Close the year"
-    body: "After 30 June, download each property's tax-year statement for your tax adviser, and the tenant statements if you need them."
+    body: "After 30 June, download each property's tax-year statement for your tax adviser, as a PDF or a spreadsheet file. Tenant statements and monthly owner statements are there whenever you need them."
     points:
-      - "The statement shows gross rent, tax withheld, the one-fifth repairs allowance and expenses. It is not tax advice."
+      - "The tax-year statement shows gross rent, tax withheld, the one-fifth repairs allowance and other expenses. It is not tax advice, and the app does not work out your final tax."
+      - "A tenant statement lists every due, payment and receipt number, with the balance."
 closing:
-  heading: "Questions before you start?"
-  body: "What the app records, who can see it, and what the law asks of landlords."
+  heading: "Ready to start?"
+  body: "Open the web app on your phone or computer, create your account and add your first property. It is free during early access."
   cta:
-    label: "Read the answers"
-    href: "/faq/"
+    label: "Open the web app"
+    href: "app"

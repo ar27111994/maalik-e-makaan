@@ -1,40 +1,47 @@
 # The questions page (/faq/), the site's one FAQPage. Its Urdu twin is
 # ur.yaml; keep both in step (same groups and questions, in the same order).
-# Facts about the law come from .planning/research/website-facts.md; facts
-# about the app from .planning/REQUIREMENTS.md and STATE.md. British English.
+# Version 1.0 has been released (CHANGELOG.md), so the answers about the app
+# are in the present tense and claim only what .planning/REQUIREMENTS.md marks
+# done. Facts about the law come from .planning/research/website-facts.md.
+# Answers are plain text: name a page ("the pricing page"), do not link it.
+# British English.
 title: "Questions and answers"
-description: "Answers about Maalik-e-Makaan: what it will record, languages, caretakers, privacy, tax withholding, police registration and the calculators."
+description: "Answers about Maalik-e-Makaan: getting the app, what it records, languages, caretakers, privacy, tax withholding, police registration and calculators."
 heading: "Questions and answers"
-intro: "Short answers about the app, the law it helps you keep track of, and this website. Version 1.0 of the app is still being built, so the answers about the app describe what it is being built to do."
+intro: "Short answers about the app, the law it helps you keep track of, and this website. Version 1.0 of the app was released on 9 November 2026, and the answers about the app describe what it does today."
 groups:
   - heading: "The app"
     items:
       - question: "What is Maalik-e-Makaan?"
         answer: "An app for landlords in Pakistan to keep one trustworthy record of their properties, tenants, rent, payments, receipts, utility bills and paperwork, in English or Urdu. It is meant for the owner of a few portions, flats or shops, the overseas owner whose property a relative looks after, and the small hostel or plaza owner."
-      - question: "Can it be used yet?"
-        answer: "Not yet. Version 1.0 is in development and has not been released. The web app's address is reserved, and the Android and iPhone apps will be listed on the download page when they are published."
-      - question: "Will Maalik-e-Makaan collect rent online?"
-        answer: "No. It will record the payments you receive, whether in cash or through a bank or mobile wallet, and issue receipts for them. It will not take or hold payments itself."
-      - question: "Will it work on a slow connection?"
-        answer: "It is being built for mid-range Android phones and patchy mobile data: it shows the last data it loaded straight away while it refreshes, and a payment sent twice because the connection dropped is still recorded only once."
+      - question: "Can I use it now?"
+        answer: "Yes. Version 1.0 was released on 9 November 2026, and anyone can sign up. The web app works in any modern browser on a phone or computer. For Android, installable files are attached to each release on GitHub, and the app is coming to Google Play. On iPhone, until the App Store listing is ready, testers can sign the build on GitHub with their own Apple Account. The download page has the links."
+      - question: "What does it cost?"
+        answer: "Nothing for now: the app is free while it is in early access. The pricing page has the details."
+      - question: "Does Maalik-e-Makaan collect rent online?"
+        answer: "No. It records the payments you receive, whether in cash or through a bank or mobile wallet, and issues receipts for them. It does not take or hold payments itself."
+      - question: "Does it work on a slow connection?"
+        answer: "It is designed for mid-range Android phones and patchy mobile data: it shows the last data it loaded straight away while it refreshes, and a payment sent twice because the connection dropped is still recorded only once."
       - question: "Which languages does it support?"
-        answer: "English and Urdu, chosen when you first open the app; Urdu reads right to left in Nastaliq. WhatsApp reminders can also be written in Roman Urdu."
+        answer: "English and Urdu: you choose one when you first open the app and can change it later in Settings. Urdu reads right to left in Nastaliq. WhatsApp reminders can also be written in Roman Urdu."
       - question: "Is it open source?"
         answer: "Yes. The app, its database and this website are public on GitHub under the MIT licence, so anyone can check how they work."
+      - question: "What is planned next?"
+        answer: "The roadmap page shows what is planned after version 1.0, and the release notes page lists what changed in each version."
   - heading: "Rent, receipts and caretakers"
     items:
       - question: "How are receipt numbers kept?"
         answer: "Each payment gets the next number in an unbroken series for your portfolio for the year. A payment recorded by mistake is cancelled with a reason, never deleted, so the series has no gaps and every receipt can be traced."
       - question: "Can someone else collect rent for me?"
-        answer: "Yes. Invite a relative, caretaker or accountant with a role of their own: owner, manager, accountant or viewer. The owner can see every payment they record, the cash they hold and when they hand it over."
+        answer: "Yes. Invite a relative, caretaker or accountant with a role of their own: owner, manager, accountant or viewer. The owner can see how much cash each of them has collected, handed over and still holds."
       - question: "How are reminders sent?"
-        answer: "The app writes a polite reminder and opens it in WhatsApp on your phone, addressed to the tenant; you press send, from your own number. There is no charge per message, and the app keeps a note of each reminder."
+        answer: "The app writes a polite reminder and opens it in WhatsApp, addressed to the tenant; you press send, from your own number. There is no charge per message, and the app keeps a note of each reminder."
       - question: "Can it work out a part month or a yearly increase?"
         answer: "Yes. The first month can be charged by the days the tenant is in, and the app suggests the yearly increase on each anniversary, rounded to Rs 100. The calculators on this site use the same arithmetic."
   - heading: "Tax"
     items:
-      - question: "Will the app work out my income tax?"
-        answer: "No. It will record tax that tenants withhold under section 155, work out the one-fifth repairs allowance and give you a July–June statement for your tax adviser. It will not estimate your final tax, and the statement is not tax advice."
+      - question: "Does the app work out my income tax?"
+        answer: "No. It records the tax that tenants withhold under section 155, works out the one-fifth repairs allowance and gives you a July–June statement for your tax adviser. It does not estimate your final tax, and the statement is not tax advice."
       - question: "Which tenants have to deduct tax from rent?"
         answer: "Under section 155, the FBR's guidance lists governments, companies, non-profit organisations and charities, foreign diplomatic missions, some businesses such as private schools and hospitals, and individuals or associations of persons who pay Rs 1.5 million or more in rent a year. The rent guide has the details and the sources."
       - question: "Is the tax deducted from my rent my final tax?"
@@ -43,8 +50,8 @@ groups:
     items:
       - question: "Do I have to register my tenant with the police?"
         answer: "In Punjab, Sindh, Khyber Pakhtunkhwa and Balochistan, provincial laws require it, with deadlines from 48 hours to 15 days. Islamabad's police say registration is mandatory, but we found no statute that sets a deadline. The police registration guide sets out each province's law and its sources."
-      - question: "How will the app remind me about police registration?"
-        answer: "It will count from the date each province's law uses: 15 days in Punjab and the end of the second day in Sindh (where the law gives 48 hours, so register sooner) from the tenant moving in, 7 calendar days in Khyber Pakhtunkhwa and 3 days in Balochistan from the signing of the agreement, so record that date. In Islamabad, Gilgit-Baltistan and Azad Kashmir it suggests a deadline one day after the tenant moves in; that is the app's suggestion, not a legal deadline."
+      - question: "How does the app remind me about police registration?"
+        answer: "Its notifications show each registration that is pending or overdue. It counts from the date each province's law uses: 15 days in Punjab and the end of the second day in Sindh (where the law gives 48 hours, so register sooner) from the tenant moving in, 7 calendar days in Khyber Pakhtunkhwa and 3 days in Balochistan from the signing of the agreement, so record that date. In Islamabad, Gilgit-Baltistan and Azad Kashmir it suggests a deadline one day after the tenant moves in; that is the app's suggestion, not a legal deadline."
       - question: "Why are so many agreements for 11 months?"
         answer: "Under the Registration Act 1908, a lease for more than a year, or from year to year, must be registered. That is the usual explanation for 11-month agreements, but no official source we found describes the practice itself."
   - heading: "Privacy"
@@ -60,5 +67,5 @@ groups:
       - question: "How do the calculators work out their figures?"
         answer: "With exact arithmetic to the paisa, rounding once at the end, and each result shows its working step by step. The rent increase and first-month calculators use the same rules as the app; the tax calculator uses the FBR's rate card for tax year 2027."
 closing:
-  body: "Have a question that is not answered here? Ask it on the project's GitHub page."
-  linkLabel: "Ask on GitHub"
+  body: "Have a question that is not answered here, or found a problem in the app? Tell us on the project's GitHub page."
+  linkLabel: "Tell us on GitHub"
