@@ -12,6 +12,7 @@
 // before the site is built, so the deck on the site matches each release.
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
 
@@ -172,8 +173,10 @@ try {
     await document.fonts.ready;
   });
   await mkdir(new URL("./", output), { recursive: true });
+  // A file path, not the URL's percent-encoded pathname: a checkout under
+  // "My Projects" would otherwise get its PDF in a new "My%20Projects" folder.
   await tab.pdf({
-    path: output.pathname,
+    path: fileURLToPath(output),
     width: "1920px",
     height: "1080px",
     printBackground: true,
