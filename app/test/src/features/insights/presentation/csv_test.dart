@@ -147,7 +147,7 @@ void main() {
     expect(text, contains('Ali Raza,Ground floor,Gulberg House,Rent,2026-'));
     expect(
       _text(chargesTable(ur, const [])),
-      startsWith('واجب الادا تاریخ,کرایہ دار'),
+      startsWith('دینے کی تاریخ,کرایہ دار'),
     );
   });
 

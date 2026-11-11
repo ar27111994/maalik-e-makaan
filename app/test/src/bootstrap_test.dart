@@ -39,14 +39,14 @@ void main() {
       ConfigErrorApp(error: ConfigException('APP_URL', 'is required')),
     );
     await tester.pumpAndSettle();
-    final title = find.text('یہ بلڈ ترتیب نہیں دیا گیا');
+    final title = find.text('یہ بلڈ سیٹ اپ نہیں');
     expect(title, findsOneWidget);
     expect(Directionality.of(tester.element(title)), TextDirection.rtl);
     final details = find.text('APP_URL is required.');
     expect(Directionality.of(tester.element(details)), TextDirection.ltr);
     expect(
       tester.getSemantics(title),
-      matchesSemantics(label: 'یہ بلڈ ترتیب نہیں دیا گیا', isHeader: true),
+      matchesSemantics(label: 'یہ بلڈ سیٹ اپ نہیں', isHeader: true),
     );
   });
 }

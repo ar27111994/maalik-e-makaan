@@ -106,7 +106,7 @@ test.describe.serial("Landlord journeys", () => {
     await see(page, "Check your e-mail");
     await shot(page, "en-01-check-email");
     const mail = await latestMailTo(owner.email);
-    expect(mail.subject).toBe("Confirm your e-mail address · اپنا ای میل پتہ تصدیق کریں");
+    expect(mail.subject).toBe("Confirm your e-mail address · اپنی ای میل کی تصدیق کریں");
     expect(mail.html).toContain("Welcome to Maalik-e-Makaan.");
     expect(mail.html).toContain("مالکِ مکان میں خوش آمدید۔");
     await open(page, verifyLink(mail));
@@ -321,7 +321,7 @@ test.describe.serial("Landlord journeys", () => {
     await open(viewerPage, verifyLink(mail));
     // Confirming the address brings them back to the invitation, accepted.
     await see(viewerPage, loose("UAT Rentals میں خوش آمدید"));
-    await see(viewerPage, "آپ بطور ناظر شامل ہو گئے ہیں۔");
+    await see(viewerPage, "آپ شامل ہو گئے ہیں۔ آپ کا رول: صرف دیکھنے والا۔");
     await shot(viewerPage, "ur-02-invitation-accepted");
     const role = sql(
       `select m.role from public.portfolio_members m join auth.users u on u.id = m.user_id where u.email = ${literal(viewer.email)}`,
@@ -333,16 +333,16 @@ test.describe.serial("Landlord journeys", () => {
     await tap(viewerPage, "پورٹ فولیو کھولیں");
     await openTab(viewerPage, "حساب");
     // The viewer sees the same figures as the owner, in Urdu.
-    await see(viewerPage, loose(`واجب الادا ${130000 + 1000 * lateFees} روپے`));
+    await see(viewerPage, loose(`باقی رقم ${130000 + 1000 * lateFees} روپے`));
     await tap(viewerPage, /^Tenant Uat/);
     await see(viewerPage, "ادائیگیاں");
     await shot(viewerPage, "ur-03-viewer-ledger");
     // No way to record a payment, add a charge or touch the deposit.
     for (const action of [
       "ادائیگی درج کریں",
-      "واجب شامل کریں",
-      "واجبات میں استعمال کریں",
-      "زرِ ضمانت واپس کریں",
+      "چارج لگائیں",
+      "باقی رقم سیکیورٹی میں سے کاٹیں",
+      "سیکیورٹی واپس کریں",
     ]) {
       await expect(viewerPage.getByRole("button", { name: action })).toHaveCount(0);
     }
@@ -533,7 +533,7 @@ test.describe.serial("Landlord journeys", () => {
     await tap(page, "Back");
     await tap(page, /^Settings /);
     await tap(page.getByRole("group", { name: "Language" }), "اردو");
-    await see(page, "ترتیبات");
+    await see(page, "سیٹنگز");
     expect(
       sql(
         `select p.locale from public.profiles p join auth.users u on u.id = p.id where u.email = ${literal(owner.email)}`,
@@ -547,13 +547,13 @@ test.describe.serial("Landlord journeys", () => {
     await openTab(page, "ڈیش بورڈ");
     await see(
       page,
-      loose(`کل ${(130000 + 1000 * lateFees).toLocaleString("en-US")} روپے واجب الادا`),
+      loose(`کل باقی رقم ${(130000 + 1000 * lateFees).toLocaleString("en-US")} روپے`),
     );
     await shot(page, "ur-05-dashboard");
 
     // The Money tab is still on the tenancy's ledger, now in Urdu.
     await openTab(page, "حساب");
-    await see(page, loose(`اب واجب الادا، ${130000 + 1000 * lateFees} روپے`));
+    await see(page, loose(`ابھی باقی، ${130000 + 1000 * lateFees} روپے`));
     await shot(page, "ur-06-ledger");
     await tap(page, new RegExp(`^120,000 روپے رسید ${receipt1}`));
     await tap(page, "رسید بھیجیں");
@@ -574,21 +574,21 @@ test.describe.serial("Landlord journeys", () => {
 
   test("J13 settle the deposit after the tenancy ends (Urdu)", async () => {
     await tap(page, "حساب کھولیں");
-    await tap(page, "واجبات میں استعمال کریں");
+    await tap(page, "باقی رقم سیکیورٹی میں سے کاٹیں");
     await see(
       page,
-      loose(`جمع 100,000 روپے؛ واجب ${(130000 + 1000 * lateFees).toLocaleString("en-US")} روپے۔`),
+      loose(`جمع: 100,000 روپے۔ ذمے باقی: ${(130000 + 1000 * lateFees).toLocaleString("en-US")} روپے۔`),
     );
     await fill(page, "رقم", "100000");
     await shot(page, "ur-08-apply-deposit");
     await activate(
-      page.getByRole("button", { name: "واجبات میں استعمال کریں", exact: true }).last(),
+      page.getByRole("button", { name: "باقی رقم سیکیورٹی میں سے کاٹیں", exact: true }).last(),
     );
-    await see(page, "زرِ ضمانت میں سے 100,000 روپے واجبات میں لگ گئے۔");
+    await see(page, "سیکیورٹی میں سے 100,000 روپے باقی رقم میں کٹ گئے۔");
     // Oldest first: the rest of the first rent, the second, then part of
     // this month's; the deposit is used up and a second receipt is issued.
-    await see(page, loose(`اب واجب الادا، ${30000 + 1000 * lateFees} روپے`));
-    await see(page, loose("جمع زرِ ضمانت، 0 روپے"));
+    await see(page, loose(`ابھی باقی، ${30000 + 1000 * lateFees} روپے`));
+    await see(page, loose("اب جمع سیکیورٹی، 0 روپے"));
     await see(page, loose(`100,000 روپے رسید MM-${year}-00002`));
     await shot(page, "ur-09-deposit-applied");
     expect(
@@ -600,18 +600,18 @@ test.describe.serial("Landlord journeys", () => {
 
   test("J14 account deletion: the viewer, then the owner", async () => {
     await openTab(viewerPage, "مزید");
-    await tap(viewerPage, /^ترتیبات /);
-    await tap(viewerPage, "اکاؤنٹ حذف کریں");
+    await tap(viewerPage, /^سیٹنگز /);
+    await tap(viewerPage, "اکاؤنٹ ڈیلیٹ کریں");
     // Not the only owner of anything: no portfolio goes with the account.
     await see(
       viewerPage,
-      loose("آپ کسی پورٹ فولیو کے اکیلے مالک نہیں، اس لیے کوئی پورٹ فولیو حذف نہیں ہو گا۔"),
+      loose("آپ کسی پورٹ فولیو کے اکیلے مالک نہیں، اس لیے کوئی پورٹ فولیو ڈیلیٹ نہیں ہو گا۔"),
     );
     await fill(viewerPage, "پاس ورڈ", password);
     await fill(viewerPage, /^تصدیق کے لیے/, viewer.email);
     await shot(viewerPage, "ur-10-delete-account");
-    await tap(viewerPage, "میرا اکاؤنٹ حذف کریں");
-    await see(viewerPage, loose("آپ کا اکاؤنٹ حذف کر دیا گیا ہے"), 60_000);
+    await tap(viewerPage, "میرا اکاؤنٹ ڈیلیٹ کریں");
+    await see(viewerPage, loose("آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے"), 60_000);
     await expect(viewerPage).toHaveURL(/\/sign-in$/);
     expect(sql(`select count(*) from auth.users where email = ${literal(viewer.email)}`)).toEqual([
       ["0"],
@@ -629,17 +629,17 @@ test.describe.serial("Landlord journeys", () => {
     // The owner, the only owner of UAT Rentals: the portfolio goes too.
     // (The More tab is still on Settings, where J12 left it.)
     await openTab(page, "مزید");
-    await tap(page, "اکاؤنٹ حذف کریں");
+    await tap(page, "اکاؤنٹ ڈیلیٹ کریں");
     await see(
       page,
-      loose("آپ اس پورٹ فولیو کے اکیلے مالک ہیں، اس لیے یہ اپنی ہر چیز سمیت حذف ہو جائے گا"),
+      loose("آپ اس پورٹ فولیو کے اکیلے مالک ہیں، اس لیے یہ اپنی ہر چیز سمیت ڈیلیٹ ہو جائے گا"),
     );
     const portfolioId = portfolio[0][0];
     await fill(page, "پاس ورڈ", password);
     await fill(page, /^تصدیق کے لیے/, owner.email);
     await shot(page, "ur-11-delete-owner");
-    await tap(page, "میرا اکاؤنٹ حذف کریں");
-    await see(page, loose("آپ کا اکاؤنٹ حذف کر دیا گیا ہے"), 60_000);
+    await tap(page, "میرا اکاؤنٹ ڈیلیٹ کریں");
+    await see(page, loose("آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے"), 60_000);
     await expect(page).toHaveURL(/\/sign-in$/);
     // The user, the portfolio and everything in it are gone.
     expect(sql(`select count(*) from auth.users where email = ${literal(owner.email)}`)).toEqual([

@@ -116,11 +116,11 @@ void main() {
     );
     expect(
       _message(ReminderTemplate.overdue, ReminderLanguage.romanUrdu),
-      contains('sab se purani raqam 5 Nov 2026 ko wajib-ul-ada thi'),
+      contains('sab se purani raqam 5 Nov 2026 ko deni thi'),
     );
     expect(
       _message(ReminderTemplate.overdue, ReminderLanguage.urdu),
-      contains('ان میں سب سے پرانی رقم مورخہ'),
+      allOf(contains('ان میں سب سے پرانی رقم'), contains('کو دینی تھی')),
     );
     for (final language in ReminderLanguage.values) {
       for (final template in [

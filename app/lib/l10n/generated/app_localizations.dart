@@ -5672,7 +5672,7 @@ abstract class AppLocalizations {
   /// Roman Urdu reminder: rent due soon (the same in every UI language).
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. Yaad dihani hai ke {unit} ke {amount} {date} ko wajib-ul-ada hain.'**
+  /// **'Assalam-o-Alaikum {tenant}. Yaad dihani: {unit} ke {amount}, {date} ko dene hain.'**
   String reminderRomanUpcoming(
     String tenant,
     String amount,
@@ -5683,13 +5683,13 @@ abstract class AppLocalizations {
   /// Roman Urdu reminder: due today.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj wajib-ul-ada hain.'**
+  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj dene hain.'**
   String reminderRomanDueToday(String tenant, String amount, String unit);
 
   /// Roman Urdu reminder: overdue.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam {date} ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.'**
+  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} late hain. In mein sab se purani raqam {date} ko deni thi. Meherbani kar ke jald ada kar dein.'**
   String reminderRomanOverdue(
     String tenant,
     String amount,
@@ -5700,7 +5700,7 @@ abstract class AppLocalizations {
   /// Roman Urdu message: payment received.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {date} ko {amount} mosool ho gaye. Raseed number: {receipt}. Shukriya.'**
+  /// **'Assalam-o-Alaikum {tenant}. {date} ko {amount} mil gaye. Raseed number: {receipt}. Shukriya.'**
   String reminderRomanReceived(
     String tenant,
     String amount,
@@ -5711,7 +5711,7 @@ abstract class AppLocalizations {
   /// Roman Urdu reminder: utility bill.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {unit} ka {utility} ka bill {amount} {date} tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.'**
+  /// **'Assalam-o-Alaikum {tenant}. {unit} ka {utility} {amount} hai, jo {date} tak ada karna hai. Meherbani kar ke aakhri tareekh se pehle ada kar dein.'**
   String reminderRomanUtility(
     String tenant,
     String utility,
@@ -5723,31 +5723,31 @@ abstract class AppLocalizations {
   /// Roman Urdu utility word.
   ///
   /// In en, this message translates to:
-  /// **'bijli'**
+  /// **'bijli ka bill'**
   String get reminderRomanElectricity;
 
   /// Roman Urdu utility word.
   ///
   /// In en, this message translates to:
-  /// **'gas'**
+  /// **'gas ka bill'**
   String get reminderRomanGas;
 
   /// Roman Urdu utility word.
   ///
   /// In en, this message translates to:
-  /// **'paani'**
+  /// **'paani ka bill'**
   String get reminderRomanWater;
 
   /// Roman Urdu utility word.
   ///
   /// In en, this message translates to:
-  /// **'internet'**
+  /// **'internet ka bill'**
   String get reminderRomanInternet;
 
   /// Roman Urdu utility word.
   ///
   /// In en, this message translates to:
-  /// **'utility'**
+  /// **'bill'**
   String get reminderRomanUtilityGeneric;
 
   /// Roman Urdu payment details: Raast.

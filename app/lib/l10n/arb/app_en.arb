@@ -4571,7 +4571,7 @@
       }
     }
   },
-  "reminderRomanUpcoming": "Assalam-o-Alaikum {tenant}. Yaad dihani hai ke {unit} ke {amount} {date} ko wajib-ul-ada hain.",
+  "reminderRomanUpcoming": "Assalam-o-Alaikum {tenant}. Yaad dihani: {unit} ke {amount}, {date} ko dene hain.",
   "@reminderRomanUpcoming": {
     "description": "Roman Urdu reminder: rent due soon (the same in every UI language).",
     "placeholders": {
@@ -4589,7 +4589,7 @@
       }
     }
   },
-  "reminderRomanDueToday": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj wajib-ul-ada hain.",
+  "reminderRomanDueToday": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj dene hain.",
   "@reminderRomanDueToday": {
     "description": "Roman Urdu reminder: due today.",
     "placeholders": {
@@ -4604,7 +4604,7 @@
       }
     }
   },
-  "reminderRomanOverdue": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam {date} ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.",
+  "reminderRomanOverdue": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} late hain. In mein sab se purani raqam {date} ko deni thi. Meherbani kar ke jald ada kar dein.",
   "@reminderRomanOverdue": {
     "description": "Roman Urdu reminder: overdue.",
     "placeholders": {
@@ -4622,7 +4622,7 @@
       }
     }
   },
-  "reminderRomanReceived": "Assalam-o-Alaikum {tenant}. {date} ko {amount} mosool ho gaye. Raseed number: {receipt}. Shukriya.",
+  "reminderRomanReceived": "Assalam-o-Alaikum {tenant}. {date} ko {amount} mil gaye. Raseed number: {receipt}. Shukriya.",
   "@reminderRomanReceived": {
     "description": "Roman Urdu message: payment received.",
     "placeholders": {
@@ -4640,7 +4640,7 @@
       }
     }
   },
-  "reminderRomanUtility": "Assalam-o-Alaikum {tenant}. {unit} ka {utility} ka bill {amount} {date} tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.",
+  "reminderRomanUtility": "Assalam-o-Alaikum {tenant}. {unit} ka {utility} {amount} hai, jo {date} tak ada karna hai. Meherbani kar ke aakhri tareekh se pehle ada kar dein.",
   "@reminderRomanUtility": {
     "description": "Roman Urdu reminder: utility bill.",
     "placeholders": {
@@ -4661,23 +4661,23 @@
       }
     }
   },
-  "reminderRomanElectricity": "bijli",
+  "reminderRomanElectricity": "bijli ka bill",
   "@reminderRomanElectricity": {
     "description": "Roman Urdu utility word."
   },
-  "reminderRomanGas": "gas",
+  "reminderRomanGas": "gas ka bill",
   "@reminderRomanGas": {
     "description": "Roman Urdu utility word."
   },
-  "reminderRomanWater": "paani",
+  "reminderRomanWater": "paani ka bill",
   "@reminderRomanWater": {
     "description": "Roman Urdu utility word."
   },
-  "reminderRomanInternet": "internet",
+  "reminderRomanInternet": "internet ka bill",
   "@reminderRomanInternet": {
     "description": "Roman Urdu utility word."
   },
-  "reminderRomanUtilityGeneric": "utility",
+  "reminderRomanUtilityGeneric": "bill",
   "@reminderRomanUtilityGeneric": {
     "description": "Roman Urdu utility word."
   },

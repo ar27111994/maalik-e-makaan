@@ -128,7 +128,7 @@ void main() {
       (tester) async {
         final typed =
             '${inSentence('Ali Raza', TextDirection.rtl)}، '
-            '${inSentence('Ground floor', TextDirection.rtl)}: کرایہ واجب';
+            '${inSentence('Ground floor', TextDirection.rtl)}: کرایہ لیٹ';
         final sentence = appText(typed, TextDirection.rtl);
         // Its names isolated, its first letter outside them is Urdu
         // (MmSemantics.firstStrongDirection skips isolates): appText has

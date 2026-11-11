@@ -17,7 +17,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get welcomeBody =>
-      'اپنی جائیدادوں کا کرایہ، کرایہ دار اور رسیدیں، اردو یا انگریزی میں۔ اپنی زبان منتخب کریں؛ آپ اسے بعد میں ترتیبات میں بدل سکتے ہیں۔';
+      'اپنی جائیدادوں کا کرایہ، کرایہ دار اور رسیدیں، اردو یا انگریزی میں۔ اپنی زبان چنیں۔ آپ اسے بعد میں سیٹنگز میں بدل سکتے ہیں۔';
 
   @override
   String get languageEnglish => 'English';
@@ -66,11 +66,11 @@ class AppLocalizationsUr extends AppLocalizations {
   String get fullNameLabel => 'آپ کا نام';
 
   @override
-  String get resetPasswordTitle => 'اپنا پاس ورڈ دوبارہ ترتیب دیں';
+  String get resetPasswordTitle => 'نیا پاس ورڈ بنائیں';
 
   @override
   String get resetPasswordBody =>
-      'اپنے اکاؤنٹ کا ای میل پتہ درج کریں، ہم آپ کو نیا پاس ورڈ منتخب کرنے کا لنک بھیج دیں گے۔';
+      'اپنے اکاؤنٹ کی ای میل لکھیں۔ ہم آپ کو نیا پاس ورڈ بنانے کا لنک بھیج دیں گے۔';
 
   @override
   String get sendResetLinkAction => 'ری سیٹ لنک بھیجیں';
@@ -85,19 +85,19 @@ class AppLocalizationsUr extends AppLocalizations {
   String get backToSignInAction => 'سائن اِن پر واپس جائیں';
 
   @override
-  String get choosePasswordTitle => 'نیا پاس ورڈ منتخب کریں';
+  String get choosePasswordTitle => 'نیا پاس ورڈ چنیں';
 
   @override
   String get savePasswordAction => 'پاس ورڈ محفوظ کریں';
 
   @override
-  String get signingInCallback => 'آپ کو سائن اِن کیا جا رہا ہے…';
+  String get signingInCallback => 'سائن اِن ہو رہا ہے…';
 
   @override
-  String get validationRequired => 'جاری رکھنے کے لیے یہ درج کریں۔';
+  String get validationRequired => 'یہ خانہ بھرنا ضروری ہے۔';
 
   @override
-  String get validationEmail => 'name@example.com جیسا ای میل پتہ درج کریں۔';
+  String get validationEmail => 'name@example.com جیسی ای میل لکھیں۔';
 
   @override
   String get validationPassword =>
@@ -116,22 +116,22 @@ class AppLocalizationsUr extends AppLocalizations {
   String get navMore => 'مزید';
 
   @override
-  String get settingsTitle => 'ترتیبات';
+  String get settingsTitle => 'سیٹنگز';
 
   @override
   String get settingsLanguage => 'زبان';
 
   @override
-  String get settingsAppearance => 'ظاہری شکل';
+  String get settingsAppearance => 'اسکرین کا انداز';
 
   @override
-  String get themeSystem => 'فون کی ترتیب کے مطابق';
+  String get themeSystem => 'فون کی سیٹنگ کے مطابق';
 
   @override
-  String get themeLight => 'روشن';
+  String get themeLight => 'لائٹ';
 
   @override
-  String get themeDark => 'تاریک';
+  String get themeDark => 'ڈارک';
 
   @override
   String get highContrastLabel => 'زیادہ کنٹراسٹ';
@@ -141,10 +141,10 @@ class AppLocalizationsUr extends AppLocalizations {
       'گہرے رنگ اور واضح حاشیے، دھوپ میں پڑھنا آسان۔';
 
   @override
-  String get settingsNumbers => 'اعداد';
+  String get settingsNumbers => 'رقمیں';
 
   @override
-  String get groupingWestern => 'مغربی (1,250,000 روپے)';
+  String get groupingWestern => 'انگریزی انداز (1,250,000 روپے)';
 
   @override
   String get groupingSouthAsian => 'لاکھ اور کروڑ (12,50,000 روپے)';
@@ -156,7 +156,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get signOutAction => 'سائن آؤٹ کریں';
 
   @override
-  String get deleteAccountAction => 'اکاؤنٹ حذف کریں';
+  String get deleteAccountAction => 'اکاؤنٹ ڈیلیٹ کریں';
 
   @override
   String get settingsAbout => 'ایپ کے بارے میں';
@@ -166,11 +166,11 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get failureNetwork =>
-      'کنکشن نہیں ہے۔ اپنا انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔';
+      'رابطہ نہیں ہو سکا۔ اپنا انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔';
 
   @override
   String get failureSessionExpired =>
-      'آپ کا سیشن ختم ہو گیا ہے۔ براہِ کرم دوبارہ سائن اِن کریں۔';
+      'آپ سائن آؤٹ ہو گئے ہیں۔ دوبارہ سائن اِن کریں۔';
 
   @override
   String get failureReauthenticate =>
@@ -180,14 +180,14 @@ class AppLocalizationsUr extends AppLocalizations {
   String get failureForbidden => 'آپ کو یہ کرنے کی اجازت نہیں ہے۔';
 
   @override
-  String get failureNotFound => 'یہ نہیں ملا۔ شاید اسے حذف کر دیا گیا ہے۔';
+  String get failureNotFound => 'یہ نہیں ملا۔ شاید یہ ڈیلیٹ ہو چکا ہے۔';
 
   @override
   String get failureConflict => 'یہ پہلے سے موجود ہے۔';
 
   @override
   String get failureRateLimited =>
-      'بہت زیادہ کوششیں ہو گئیں۔ براہِ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔';
+      'بہت زیادہ کوششیں ہو گئیں۔ تھوڑی دیر بعد دوبارہ کوشش کریں۔';
 
   @override
   String failureRateLimitedFor(int seconds) {
@@ -201,14 +201,14 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get failureBusy => 'سروس اس وقت مصروف ہے۔ براہِ کرم دوبارہ کوشش کریں۔';
+  String get failureBusy => 'سروس اس وقت مصروف ہے۔ دوبارہ کوشش کریں۔';
 
   @override
   String get failureServer =>
-      'ہماری طرف کچھ خرابی ہو گئی۔ براہِ کرم کچھ دیر بعد دوبارہ کوشش کریں۔';
+      'ہماری طرف کچھ خرابی ہو گئی۔ کچھ دیر بعد دوبارہ کوشش کریں۔';
 
   @override
-  String get failureUnexpected => 'کچھ غلط ہو گیا۔ براہِ کرم دوبارہ کوشش کریں۔';
+  String get failureUnexpected => 'کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔';
 
   @override
   String get failureRejected =>
@@ -219,7 +219,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonEmailNotConfirmed =>
-      'پہلے اپنی ای میل کی تصدیق کریں: ہمارا بھیجا ہوا لنک کھولیں۔';
+      'پہلے اپنی ای میل کی تصدیق کریں۔ ہمارا بھیجا ہوا لنک کھولیں۔';
 
   @override
   String get reasonEmailTaken =>
@@ -227,22 +227,21 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonWeakPassword =>
-      'مضبوط پاس ورڈ منتخب کریں: کم از کم 10 حروف، جن میں انگریزی کے بڑے اور چھوٹے حروف اور ایک ہندسہ ہو۔';
+      'اس سے مضبوط پاس ورڈ چنیں۔ کم از کم 10 حروف ہوں، جن میں انگریزی کے بڑے اور چھوٹے حروف اور ایک ہندسہ ہو۔';
 
   @override
   String get reasonSamePassword =>
-      'ایسا پاس ورڈ منتخب کریں جو آپ نے پہلے استعمال نہ کیا ہو۔';
+      'ایسا پاس ورڈ چنیں جو آپ نے پہلے استعمال نہ کیا ہو۔';
 
   @override
   String get reasonLastOwner =>
       'ہر پورٹ فولیو کا کم از کم ایک مالک ہونا ضروری ہے۔ پہلے کسی اور کو مالک بنائیں۔';
 
   @override
-  String get reasonConfirmationMismatch =>
-      'آپ کا لکھا ہوا نام مطابقت نہیں رکھتا۔';
+  String get reasonConfirmationMismatch => 'آپ کا لکھا نام نہیں ملتا۔';
 
   @override
-  String get reasonAccountDeleted => 'یہ اکاؤنٹ حذف کیا جا رہا ہے۔';
+  String get reasonAccountDeleted => 'یہ اکاؤنٹ ڈیلیٹ ہو رہا ہے۔';
 
   @override
   String get reasonPortfolioLimit =>
@@ -258,19 +257,19 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String offlineShowingSaved(String time) {
-    return 'آپ آف لائن ہیں۔ $time پر محفوظ کی گئی معلومات دکھائی جا رہی ہیں۔';
+    return 'آپ آف لائن ہیں۔ یہ وہ معلومات ہیں جو $time پر محفوظ ہوئیں۔';
   }
 
   @override
   String comingSoonTitle(String section) {
-    return '$section تیار کیا جا رہا ہے';
+    return '$section ابھی تیار ہو رہا ہے';
   }
 
   @override
   String get comingSoonBody => 'ایپ کا یہ حصہ اگلی اپ ڈیٹ میں آئے گا۔';
 
   @override
-  String get configErrorTitle => 'یہ بلڈ ترتیب نہیں دیا گیا';
+  String get configErrorTitle => 'یہ بلڈ سیٹ اپ نہیں';
 
   @override
   String get reasonAlreadyMember => 'یہ شخص پہلے سے اس پورٹ فولیو میں شامل ہے۔';
@@ -280,52 +279,52 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonInvalidRole =>
-      'ان میں سے ایک کردار منتخب کریں: مالک، منیجر، اکاؤنٹنٹ یا ناظر۔';
+      'ان میں سے ایک رول چنیں: مالک، منیجر، اکاؤنٹنٹ یا صرف دیکھنے والا۔';
 
   @override
-  String get reasonInvalidEmail => 'درست ای میل ایڈریس درج کریں۔';
+  String get reasonInvalidEmail => 'درست ای میل لکھیں۔';
 
   @override
-  String get reasonAlreadyVoided => 'یہ اندراج پہلے ہی منسوخ ہو چکا ہے۔';
+  String get reasonAlreadyVoided => 'یہ انٹری پہلے ہی کینسل ہو چکی ہے۔';
 
   @override
   String get reasonAmountExceedsOutstanding =>
-      'یہ رقم اس کرایہ داری کے واجبات سے زیادہ ہے۔';
+      'یہ رقم اس کرایہ داری کے ذمے باقی رقم سے زیادہ ہے۔';
 
   @override
   String get reasonChargeHasPayments =>
-      'اس واجب الادا رقم کے خلاف ادائیگی وصول ہو چکی ہے۔ پہلے وہ ادائیگی منسوخ کریں۔';
+      'اس چارج کی ادائیگی مل چکی ہے۔ پہلے وہ ادائیگی کینسل کریں۔';
 
   @override
   String get reasonChargeNotEditable =>
-      'صرف آپ کی شامل کردہ واجب الادا رقم بدلی جا سکتی ہے۔ اسے منسوخ کر کے نئی رقم شامل کریں۔';
+      'صرف آپ کے لگائے ہوئے چارج کی رقم بدل سکتی ہے۔ اسے کینسل کر کے نیا چارج لگائیں۔';
 
   @override
-  String get reasonChargeVoided =>
-      'یہ واجب الادا رقم منسوخ ہو چکی ہے اور اب تبدیل نہیں ہو سکتی۔';
+  String get reasonChargeVoided => 'یہ چارج کینسل ہو چکا ہے، اب بدل نہیں سکتا۔';
 
   @override
   String get reasonDepositAlreadyUsed =>
-      'اس کے بعد زرِ ضمانت استعمال ہو چکا ہے، اس لیے یہ واپس نہیں ہو سکتا۔';
+      'اس کے بعد سیکیورٹی میں سے رقم استعمال ہو چکی ہے، اس لیے یہ واپس نہیں ہو سکتا۔';
 
   @override
   String get reasonDepositBelowReceived =>
-      'زرِ ضمانت پہلے سے وصول شدہ رقم سے کم نہیں ہو سکتا۔';
+      'سیکیورٹی اس رقم سے کم نہیں ہو سکتی جو پہلے مل چکی ہے۔';
 
   @override
-  String get reasonInsufficientDeposit => 'جمع شدہ زرِ ضمانت اس رقم سے کم ہے۔';
+  String get reasonInsufficientDeposit =>
+      'جتنی سیکیورٹی جمع ہے، وہ اس رقم سے کم ہے۔';
 
   @override
   String get reasonDocumentEntityNotFound =>
-      'جس ریکارڈ کے ساتھ یہ دستاویز تھی وہ اب موجود نہیں۔';
+      'جس ریکارڈ کے ساتھ یہ فائل تھی، وہ اب موجود نہیں۔';
 
   @override
   String get reasonDocumentFileMissing =>
-      'فائل مکمل اپ لوڈ نہیں ہوئی۔ براہِ کرم اسے دوبارہ اپ لوڈ کریں۔';
+      'فائل پوری اپ لوڈ نہیں ہوئی۔ اسے دوبارہ اپ لوڈ کریں۔';
 
   @override
   String get reasonDocumentFilePendingDeletion =>
-      'یہ فائل حذف ہو رہی ہے۔ براہِ کرم اسے دوبارہ اپ لوڈ کریں۔';
+      'یہ فائل ڈیلیٹ ہو رہی ہے۔ اسے دوبارہ اپ لوڈ کریں۔';
 
   @override
   String get reasonIdempotencyKeyReused =>
@@ -333,49 +332,48 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonInvalidAmount =>
-      'صفر سے زیادہ رقم درج کریں، اعشاریہ کے بعد زیادہ سے زیادہ دو ہندسے۔';
+      'صفر سے زیادہ رقم لکھیں، پوائنٹ کے بعد زیادہ سے زیادہ دو ہندسے۔';
 
   @override
   String get reasonInvalidChargeSelection =>
-      'اس کرایہ داری کی وہ واجب الادا رقوم منتخب کریں جو ابھی باقی ہیں۔';
+      'اس کرایہ داری کے وہ چارج چنیں جو ابھی باقی ہیں۔';
 
   @override
-  String get reasonInvalidDate => 'درست تاریخ منتخب کریں۔';
+  String get reasonInvalidDate => 'درست تاریخ چنیں۔';
 
   @override
   String get reasonInvalidTaxWithheld =>
-      'منہا شدہ ٹیکس ادائیگی سے زیادہ نہیں ہو سکتا۔';
+      'کٹا ہوا ٹیکس ادائیگی سے زیادہ نہیں ہو سکتا۔';
 
   @override
-  String get reasonInvalidTaxYear => 'درست ٹیکس سال منتخب کریں۔';
+  String get reasonInvalidTaxYear => 'درست ٹیکس سال چنیں۔';
 
   @override
-  String get reasonInvalidMethod => 'ادائیگی کا طریقہ منتخب کریں۔';
+  String get reasonInvalidMethod => 'ادائیگی کا طریقہ چنیں۔';
 
   @override
-  String get reasonInvalidReason => 'کرایہ بدلنے کی وجہ منتخب کریں۔';
+  String get reasonInvalidReason => 'کرایہ بدلنے کی وجہ چنیں۔';
 
   @override
-  String get reasonReasonRequired => 'براہِ کرم وجہ بتائیں۔';
+  String get reasonReasonRequired => 'وجہ بتائیں۔';
 
   @override
   String get reasonLeaseHasRecords =>
-      'اس کرایہ داری میں رقوم درج ہیں، اس لیے اسے حذف نہیں کیا جا سکتا۔ اس کے بجائے کرایہ داری ختم کریں۔';
+      'اس کرایہ داری میں رقمیں درج ہیں، اس لیے اسے ڈیلیٹ نہیں کیا جا سکتا۔ اس کے بجائے کرایہ داری ختم کریں۔';
 
   @override
-  String get reasonLeaseNotActive => 'یہ کرایہ داری فعال نہیں ہے۔';
+  String get reasonLeaseNotActive => 'یہ کرایہ داری جاری نہیں۔';
 
   @override
-  String get reasonLeaseNotOnConnection =>
-      'یہ کرایہ داری اس یوٹیلیٹی کنکشن پر نہیں ہے۔';
+  String get reasonLeaseNotOnConnection => 'یہ کرایہ داری اس کنکشن پر نہیں ہے۔';
 
   @override
   String get reasonTenantArchived =>
-      'یہ کرایہ دار آرکائیو میں ہے۔ پہلے انہیں بحال کریں۔';
+      'یہ کرایہ دار آرکائیو میں ہیں۔ پہلے انہیں آرکائیو سے واپس لائیں۔';
 
   @override
   String get reasonUnitArchived =>
-      'یہ یونٹ آرکائیو میں ہے۔ پہلے اسے بحال کریں۔';
+      'یہ یونٹ آرکائیو میں ہے۔ پہلے اسے آرکائیو سے واپس لائیں۔';
 
   @override
   String get reasonConstraintViolation =>
@@ -399,14 +397,14 @@ class AppLocalizationsUr extends AppLocalizations {
   String get validationPasswordMismatch => 'دونوں پاس ورڈ ایک جیسے نہیں ہیں۔';
 
   @override
-  String get validationPhone => '03001234567 جیسا فون نمبر درج کریں۔';
+  String get validationPhone => '03001234567 جیسا فون نمبر لکھیں۔';
 
   @override
   String get validationTypedEmail =>
-      'اپنا ای میل پتہ بالکل ویسا ہی لکھیں جیسا دکھایا گیا ہے۔';
+      'اپنی ای میل بالکل ویسے ہی لکھیں جیسے دکھائی گئی ہے۔';
 
   @override
-  String get accountDeletedTitle => 'آپ کا اکاؤنٹ حذف کر دیا گیا ہے';
+  String get accountDeletedTitle => 'آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے';
 
   @override
   String get accountDeletedBody =>
@@ -417,11 +415,11 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get checkEmailBodyNoAddress =>
-      'ہم نے آپ کو ایک لنک بھیجا ہے۔ جاری رکھنے کے لیے اسے اسی ڈیوائس پر کھولیں۔ اگر چند منٹ میں نہ ملے تو اپنا اسپیم فولڈر دیکھیں۔';
+      'ہم نے آپ کو ایک لنک بھیجا ہے۔ جاری رکھنے کے لیے اسے اسی فون یا کمپیوٹر پر کھولیں۔ اگر چند منٹ میں نہ ملے تو اپنا اسپیم فولڈر دیکھیں۔';
 
   @override
   String get checkEmailResetHint =>
-      'یہ لنک صرف ایک بار اور ایک گھنٹے تک کام کرتا ہے۔ اگر اس پتے سے کوئی اکاؤنٹ نہیں تو کوئی ای میل نہیں بھیجی جاتی۔';
+      'یہ لنک صرف ایک بار اور ایک گھنٹے تک کام کرتا ہے۔ اگر اس ای میل سے کوئی اکاؤنٹ نہیں تو ہم کوئی ای میل نہیں بھیجتے۔';
 
   @override
   String resendWait(int seconds) {
@@ -442,14 +440,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get choosePasswordBody =>
-      'وہ پاس ورڈ منتخب کریں جس سے آپ اب سے سائن اِن کریں گے۔';
+      'وہ پاس ورڈ چنیں جس سے آپ اب سے سائن اِن کریں گے۔';
 
   @override
   String get linkFailedTitle => 'یہ لنک کام نہیں کر سکا';
 
   @override
   String get reasonLinkExpired =>
-      'اس لنک کی مدت ختم ہو چکی ہے یا یہ پہلے استعمال ہو چکا ہے۔ نیا لنک منگوائیں۔';
+      'یہ لنک ایکسپائر ہو چکا ہے یا پہلے استعمال ہو چکا ہے۔ نیا لنک منگوائیں۔';
 
   @override
   String get reasonLinkInvalid =>
@@ -457,19 +455,18 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonLinkOtherDevice =>
-      'لنک اسی فون یا براؤزر پر کھولیں جہاں سے آپ نے اسے منگوایا تھا۔ اگر آپ اپنی ای میل کی تصدیق کر رہے تھے تو وہ ہو چکی ہے: اپنے پاس ورڈ سے سائن اِن کریں۔';
+      'لنک اسی فون یا براؤزر پر کھولیں جہاں سے آپ نے اسے منگوایا تھا۔ اگر آپ اپنی ای میل کی تصدیق کر رہے تھے تو وہ ہو چکی ہے۔ اپنے پاس ورڈ سے سائن اِن کریں۔';
 
   @override
   String get reasonSignupDisabled =>
-      'اس وقت نئے اکاؤنٹ نہیں بن سکتے۔ براہِ کرم کچھ دیر بعد کوشش کریں۔';
+      'اس وقت نئے اکاؤنٹ نہیں بن سکتے۔ کچھ دیر بعد کوشش کریں۔';
 
   @override
   String get reasonMfaRequired =>
-      'اس اکاؤنٹ میں سائن اِن کا دوسرا مرحلہ ہے جسے یہ ایپ ابھی جانچ نہیں سکتی، اس لیے اسے یہاں سے حذف نہیں کیا جا سکتا۔';
+      'اس اکاؤنٹ میں سائن اِن کے لیے دوسرا کوڈ بھی لگتا ہے (ٹو اسٹیپ)، جسے یہ ایپ ابھی چیک نہیں کر سکتی، اس لیے اسے یہاں سے ڈیلیٹ نہیں کیا جا سکتا۔';
 
   @override
-  String get reasonDoesNotMatchAccount =>
-      'یہ آپ کے اکاؤنٹ کا ای میل پتہ نہیں ہے۔';
+  String get reasonDoesNotMatchAccount => 'یہ آپ کے اکاؤنٹ کی ای میل نہیں ہے۔';
 
   @override
   String get createFirstPortfolioTitle => 'اپنا پورٹ فولیو بنائیں';
@@ -479,11 +476,11 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get createFirstPortfolioBody =>
-      'پورٹ فولیو میں آپ کی جائیدادیں، کرایہ دار اور رقوم کا حساب رہتا ہے۔ اس کا نام خاندان، عمارت یا مالک کے نام پر رکھیں، مثلاً ”خان فیملی کی جائیدادیں“۔';
+      'پورٹ فولیو میں آپ کی جائیدادیں، کرایہ دار اور رقم کا حساب ایک جگہ رہتا ہے۔ اس کا نام خاندان، عمارت یا مالک کے نام پر رکھیں، جیسے ”خان فیملی کی جائیدادیں“۔';
 
   @override
   String get newPortfolioBody =>
-      'جن جائیدادوں کا حساب الگ رکھا جاتا ہے انہیں الگ پورٹ فولیو میں رکھیں: کسی رشتہ دار کا مکان، یا اپنے الگ حساب والا پلازہ۔ آپ اس کے مالک ہوں گے۔';
+      'جن جائیدادوں کا حساب الگ ہے، انہیں الگ پورٹ فولیو میں رکھیں، جیسے کسی رشتہ دار کا مکان، یا اپنے الگ حساب والا پلازہ۔ آپ اس کے مالک ہوں گے۔';
 
   @override
   String get portfolioNameLabel => 'پورٹ فولیو کا نام';
@@ -499,7 +496,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get createPortfolioAction => 'پورٹ فولیو بنائیں';
 
   @override
-  String get cancelAction => 'منسوخ کریں';
+  String get cancelAction => 'رہنے دیں';
 
   @override
   String portfolioCreated(String name) {
@@ -516,7 +513,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get roleAccountant => 'اکاؤنٹنٹ';
 
   @override
-  String get roleViewer => 'ناظر';
+  String get roleViewer => 'صرف دیکھنے والا';
 
   @override
   String get switchPortfolioTitle => 'پورٹ فولیو بدلیں';
@@ -535,11 +532,12 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String yourRole(String role) {
-    return 'آپ کا کردار: $role';
+    return 'آپ کا رول: $role';
   }
 
   @override
-  String get settingsSummary => 'آپ کی تفصیلات، زبان، ظاہری شکل اور اکاؤنٹ';
+  String get settingsSummary =>
+      'آپ کی تفصیلات، زبان، اسکرین کا انداز اور اکاؤنٹ';
 
   @override
   String get loadingPortfolios => 'آپ کے پورٹ فولیوز لوڈ ہو رہے ہیں';
@@ -555,7 +553,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String languageNotSavedToProfile(String reason) {
-    return 'اس ڈیوائس پر زبان بدل گئی، لیکن آپ کے اکاؤنٹ میں محفوظ نہیں ہو سکی۔ $reason';
+    return 'اس فون یا کمپیوٹر پر زبان بدل گئی، لیکن آپ کے اکاؤنٹ میں محفوظ نہیں ہو سکی۔ $reason';
   }
 
   @override
@@ -566,7 +564,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get themeLabel => 'تھیم';
 
   @override
-  String get signedInAs => 'سائن اِن بطور';
+  String get signedInAs => 'آپ اس ای میل سے سائن اِن ہیں';
 
   @override
   String get profileSection => 'آپ کی تفصیلات';
@@ -580,7 +578,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get phoneHelper =>
-      '03001234567 جیسا پاکستانی نمبر، یا بیرونِ ملک کا نمبر جو 00 اور ملکی کوڈ سے شروع ہو۔';
+      '03001234567 جیسا پاکستانی نمبر، یا باہر کے ملک کا نمبر جو 00 اور ملک کے کوڈ سے شروع ہو۔';
 
   @override
   String get saveDetailsAction => 'تفصیلات محفوظ کریں';
@@ -589,11 +587,11 @@ class AppLocalizationsUr extends AppLocalizations {
   String get detailsSaved => 'آپ کی تفصیلات محفوظ ہو گئی ہیں۔';
 
   @override
-  String get textSizeTitle => 'تحریر کا سائز';
+  String get textSizeTitle => 'الفاظ کا سائز';
 
   @override
   String textSizeBody(int percent) {
-    return 'آپ کے فون پر تحریر کا سائز $percent% ہے۔ ایپ اسی کے مطابق چلتی ہے؛ اسے فون کی ڈسپلے ترتیبات میں بدلیں۔';
+    return 'آپ کے فون پر الفاظ کا سائز $percent% ہے۔ ایپ بھی یہی سائز رکھتی ہے۔ اسے فون کی ڈسپلے سیٹنگز میں بدلیں۔';
   }
 
   @override
@@ -603,31 +601,31 @@ class AppLocalizationsUr extends AppLocalizations {
   String get textSizeSampleName => 'عائشہ خان';
 
   @override
-  String get textSizeSampleDetail => 'دکان نمبر 3، کرایہ 5 تاریخ کو واجب';
+  String get textSizeSampleDetail => 'دکان نمبر 3، کرائے کی تاریخ 5';
 
   @override
-  String get deleteAccountTitle => 'اکاؤنٹ حذف کریں';
+  String get deleteAccountTitle => 'اکاؤنٹ ڈیلیٹ کریں';
 
   @override
   String get deletionPreviewFailedTitle =>
-      'ہم یہ نہیں دیکھ سکے کہ کیا حذف ہو گا';
+      'ہم یہ نہیں دیکھ سکے کہ کیا ڈیلیٹ ہو گا';
 
   @override
-  String get loadingDeletionPreview => 'دیکھا جا رہا ہے کہ کیا حذف ہو گا';
+  String get loadingDeletionPreview => 'ہم دیکھ رہے ہیں کہ کیا ڈیلیٹ ہو گا';
 
   @override
   String get deleteAccountWarningTitle => 'یہ واپس نہیں ہو سکتا';
 
   @override
   String get deleteAccountWarningBody =>
-      'حذف شدہ ریکارڈ واپس نہیں آ سکتا، ہماری طرف سے بھی نہیں۔ جاری رکھنے سے پہلے جن رسیدوں اور گوشواروں کی آپ کو ضرورت ہے ان کی نقول رکھ لیں۔';
+      'ڈیلیٹ کیا ہوا ریکارڈ واپس نہیں آ سکتا، ہماری طرف سے بھی نہیں۔ جاری رکھنے سے پہلے جو رسیدیں اور اسٹیٹمنٹ آپ کو چاہییں، ان کی کاپیاں رکھ لیں۔';
 
   @override
-  String get deleteAccountWhatGoes => 'کیا حذف ہو گا';
+  String get deleteAccountWhatGoes => 'کیا ڈیلیٹ ہو گا';
 
   @override
   String get deleteAccountNoPortfolios =>
-      'آپ کسی پورٹ فولیو کے اکیلے مالک نہیں، اس لیے کوئی پورٹ فولیو حذف نہیں ہو گا۔';
+      'آپ کسی پورٹ فولیو کے اکیلے مالک نہیں، اس لیے کوئی پورٹ فولیو ڈیلیٹ نہیں ہو گا۔';
 
   @override
   String deleteAccountPortfolios(int count) {
@@ -635,19 +633,19 @@ class AppLocalizationsUr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'آپ ان $count پورٹ فولیوز کے اکیلے مالک ہیں، اس لیے یہ اپنی ہر چیز سمیت حذف ہو جائیں گے: جائیدادیں، کرایہ دار، ادائیگیاں، رسیدیں اور فائلیں۔',
-      one: 'آپ اس پورٹ فولیو کے اکیلے مالک ہیں، اس لیے یہ اپنی ہر چیز سمیت حذف ہو جائے گا: جائیدادیں، کرایہ دار، ادائیگیاں، رسیدیں اور فائلیں۔',
+          'آپ ان $count پورٹ فولیوز کے اکیلے مالک ہیں، اس لیے یہ اپنی ہر چیز سمیت ڈیلیٹ ہو جائیں گے: جائیدادیں، کرایہ دار، ادائیگیاں، رسیدیں اور فائلیں۔',
+      one: 'آپ اس پورٹ فولیو کے اکیلے مالک ہیں، اس لیے یہ اپنی ہر چیز سمیت ڈیلیٹ ہو جائے گا: جائیدادیں، کرایہ دار، ادائیگیاں، رسیدیں اور فائلیں۔',
     );
     return '$_temp0';
   }
 
   @override
   String get deleteAccountMemberships =>
-      'باقی تمام پورٹ فولیوز سے آپ کو نکال دیا جائے گا؛ وہ اور ان کا ریکارڈ ان کے مالکان کے پاس رہے گا۔';
+      'آپ باقی سب پورٹ فولیوز سے نکل جائیں گے۔ وہ پورٹ فولیو اور ان کا ریکارڈ ان کے مالکوں کے پاس رہے گا۔';
 
   @override
   String get deleteAccountSignIn =>
-      'آپ کا سائن اِن اور پروفائل حذف ہو جائیں گے اور آپ سائن آؤٹ ہو جائیں گے۔';
+      'آپ کا سائن اِن اور پروفائل ڈیلیٹ ہو جائیں گے، اور آپ سائن آؤٹ ہو جائیں گے۔';
 
   @override
   String get deleteAccountConfirmTitle => 'تصدیق کریں کہ یہ آپ ہیں';
@@ -660,7 +658,7 @@ class AppLocalizationsUr extends AppLocalizations {
       other: '$minutes منٹ',
       one: '1 منٹ',
     );
-    return 'اپنا پاس ورڈ درج کریں، کیونکہ حذف کرنے کے لیے پچھلے $_temp0 کے اندر سائن اِن ضروری ہے، اور اپنا ای میل پتہ لکھیں۔';
+    return 'اپنا پاس ورڈ لکھیں، کیونکہ ڈیلیٹ کرنے کے لیے پچھلے $_temp0 کے اندر سائن اِن ضروری ہے۔ پھر اپنی ای میل لکھیں۔';
   }
 
   @override
@@ -669,7 +667,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get deleteAccountConfirmAction => 'میرا اکاؤنٹ حذف کریں';
+  String get deleteAccountConfirmAction => 'میرا اکاؤنٹ ڈیلیٹ کریں';
 
   @override
   String get doomedPortfolioOnlyYou => 'اسے صرف آپ استعمال کرتے ہیں';
@@ -679,21 +677,21 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count اور افراد کی رسائی ختم ہو جائے گی',
-      one: '1 اور شخص کی رسائی ختم ہو جائے گی',
+      other: '$count اور لوگ اسے نہیں دیکھ سکیں گے',
+      one: '1 اور شخص اسے نہیں دیکھ سکے گا',
     );
     return '$_temp0';
   }
 
   @override
-  String get checkEmailSentTo => 'ہم نے اس پتے پر ایک لنک بھیجا ہے:';
+  String get checkEmailSentTo => 'ہم نے اس ای میل پر ایک لنک بھیجا ہے:';
 
   @override
   String get checkEmailInstructions =>
-      'جاری رکھنے کے لیے اسے اسی ڈیوائس پر کھولیں۔ اگر چند منٹ میں نہ ملے تو اپنا اسپیم فولڈر دیکھیں۔';
+      'جاری رکھنے کے لیے اسے اسی فون یا کمپیوٹر پر کھولیں۔ اگر چند منٹ میں نہ ملے تو اپنا اسپیم فولڈر دیکھیں۔';
 
   @override
-  String get groupingLabel => 'رقوم کے ہندسوں کی گروہ بندی';
+  String get groupingLabel => 'رقم لکھنے کا انداز';
 
   @override
   String get saveAction => 'محفوظ کریں';
@@ -709,34 +707,33 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String validationNumberRange(int min, int max) {
-    return '$min سے $max تک کوئی عدد درج کریں۔';
+    return '$min سے $max تک کوئی نمبر لکھیں۔';
   }
 
   @override
   String get validationPercent =>
-      '0 سے 100 تک فیصد درج کریں، اعشاریہ کے بعد زیادہ سے زیادہ دو ہندسے۔';
+      '0 سے 100 تک فیصد لکھیں، پوائنٹ کے بعد زیادہ سے زیادہ دو ہندسے۔';
 
   @override
-  String get validationRaast =>
-      '03001234567 جیسا پاکستانی موبائل نمبر درج کریں۔';
+  String get validationRaast => '03001234567 جیسا پاکستانی موبائل نمبر لکھیں۔';
 
   @override
   String get validationIban =>
-      'PK36 SCBL 0000 0011 2345 6702 جیسا پاکستانی IBAN درج کریں۔';
+      'PK36 SCBL 0000 0011 2345 6702 جیسا پاکستانی IBAN لکھیں۔';
 
   @override
   String get linkNotOpened => 'لنک نہیں کھل سکا۔';
 
   @override
-  String get roleOwnerHelp => 'سب کچھ، بشمول ٹیم اور ادائیگی کی تفصیلات۔';
+  String get roleOwnerHelp => 'سب کچھ، ٹیم اور ادائیگی کی تفصیلات سمیت۔';
 
   @override
   String get roleManagerHelp =>
-      'جائیدادیں، کرایہ دار اور کرایہ داریاں سنبھالتا ہے، اور رقوم درج کرتا ہے۔';
+      'جائیدادیں، کرایہ دار اور کرایہ داریاں سنبھالتا ہے، اور رقمیں درج کرتا ہے۔';
 
   @override
   String get roleAccountantHelp =>
-      'ادائیگیاں اور اخراجات درج کرتا ہے، اور باقی سب کچھ دیکھ سکتا ہے۔';
+      'ادائیگیاں اور خرچے درج کرتا ہے، اور باقی سب کچھ دیکھ سکتا ہے۔';
 
   @override
   String get roleViewerHelp => 'سب کچھ دیکھ سکتا ہے، کچھ بدل نہیں سکتا۔';
@@ -752,17 +749,17 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get portfolioDetailsSummary =>
-      'نام، کرایہ داری کی ابتدائی ترتیبات اور ادائیگی کی تفصیلات';
+      'نام، نئی کرایہ داری میں پہلے سے کیا بھرا جائے، اور ادائیگی کی تفصیلات';
 
   @override
-  String get teamMembersSection => 'افراد';
+  String get teamMembersSection => 'ٹیم کے لوگ';
 
   @override
-  String get teamInvitationsSection => 'جواب کے منتظر دعوت نامے';
+  String get teamInvitationsSection => 'جن دعوتوں کا جواب نہیں آیا';
 
   @override
   String get teamInvitationsHelp =>
-      'ہر لنک صرف ایک بار، 7 دن تک، اور صرف اسی پتے کے لیے کام کرتا ہے جس پر بھیجا گیا۔';
+      'ہر لنک صرف ایک بار، 7 دن تک، اور صرف اسی ای میل کے لیے کام کرتا ہے جس پر بھیجا گیا۔';
 
   @override
   String memberYou(String name) {
@@ -770,7 +767,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get memberNoName => 'بغیر نام کا رکن';
+  String get memberNoName => 'بغیر نام کا ممبر';
 
   @override
   String memberRoleAndEmail(String role, String email) {
@@ -784,7 +781,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get loadingTeam => 'ٹیم لوڈ ہو رہی ہے';
 
   @override
-  String get inviteAction => 'کسی کو مدعو کریں';
+  String get inviteAction => 'کسی کو دعوت بھیجیں';
 
   @override
   String invitationExpires(String role, String date) {
@@ -793,44 +790,44 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String invitationExpired(String role, String date) {
-    return '$role · $date کو ختم ہو گیا';
+    return '$role · $date کو ایکسپائر ہو گئی';
   }
 
   @override
-  String get invitationExpiredBadge => 'ختم ہو گیا';
+  String get invitationExpiredBadge => 'ایکسپائر ہو گئی';
 
   @override
-  String get inviteAgainAction => 'دوبارہ مدعو کریں';
+  String get inviteAgainAction => 'دوبارہ دعوت بھیجیں';
 
   @override
-  String get revokeInvitationAction => 'دعوت نامہ منسوخ کریں';
+  String get revokeInvitationAction => 'دعوت واپس لیں';
 
   @override
   String revokeInvitationTitle(String email) {
-    return '$email کا دعوت نامہ منسوخ کریں؟';
+    return '$email کو بھیجی گئی دعوت واپس لیں؟';
   }
 
   @override
   String get revokeInvitationBody =>
-      'لنک کام کرنا چھوڑ دے گا۔ آپ انہیں بعد میں دوبارہ مدعو کر سکتے ہیں۔';
+      'لنک کام کرنا بند کر دے گا۔ آپ انہیں بعد میں دوبارہ دعوت بھیج سکتے ہیں۔';
 
   @override
-  String get invitationCancelled => 'دعوت نامہ منسوخ ہو گیا۔';
+  String get invitationCancelled => 'آپ نے دعوت واپس لے لی۔';
 
   @override
-  String get memberRoleLabel => 'کردار';
+  String get memberRoleLabel => 'رول';
 
   @override
-  String get changeRoleAction => 'کردار بدلیں';
+  String get changeRoleAction => 'رول بدلیں';
 
   @override
   String roleChanged(String name, String role) {
-    return '$name اب $role ہیں۔';
+    return '$name کا رول اب $role ہے۔';
   }
 
   @override
   String get onlyOwnerNote =>
-      'ہر پورٹ فولیو کا ایک مالک ہونا ضروری ہے۔ یہ کردار بدلنے سے پہلے کسی اور کو مالک بنائیں۔';
+      'ہر پورٹ فولیو کا ایک مالک ہونا ضروری ہے۔ یہ رول بدلنے سے پہلے کسی اور کو مالک بنائیں۔';
 
   @override
   String get removeMemberAction => 'پورٹ فولیو سے نکالیں';
@@ -842,7 +839,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get removeMemberBody =>
-      'ان کی اس پورٹ فولیو تک رسائی فوراً ختم ہو جائے گی۔ ان کا درج کیا ہوا سب کچھ باقی رہے گا۔';
+      'وہ یہ پورٹ فولیو فوراً نہیں دیکھ سکیں گے۔ ان کا درج کیا ہوا سب کچھ ریکارڈ میں رہے گا۔';
 
   @override
   String memberRemoved(String name) {
@@ -859,11 +856,11 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get leaveBody =>
-      'آپ کی رسائی فوراً ختم ہو جائے گی۔ صرف کوئی مالک آپ کو دوبارہ مدعو کر سکتا ہے۔';
+      'آپ یہ پورٹ فولیو فوراً نہیں دیکھ سکیں گے۔ صرف کوئی مالک آپ کو دوبارہ دعوت بھیج سکتا ہے۔';
 
   @override
   String get leaveLastOwner =>
-      'آپ واحد مالک ہیں۔ چھوڑنے سے پہلے کسی اور کو مالک بنائیں۔';
+      'آپ اکیلے مالک ہیں۔ چھوڑنے سے پہلے کسی اور کو مالک بنائیں۔';
 
   @override
   String leftPortfolio(String portfolio) {
@@ -871,42 +868,42 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get inviteTitle => 'کسی کو مدعو کریں';
+  String get inviteTitle => 'کسی کو دعوت بھیجیں';
 
   @override
   String get inviteBody =>
-      'انہیں ایک ای میل ملے گی جس کا لنک صرف ایک بار، 7 دن تک، اور صرف اسی پتے کے لیے کام کرے گا۔ آپ یہ لنک خود بھی بھیج سکتے ہیں۔';
+      'انہیں ایک ای میل ملے گی۔ اس کا لنک صرف ایک بار، 7 دن تک، اور صرف اسی ای میل کے لیے کام کرے گا۔ آپ یہ لنک خود بھی بھیج سکتے ہیں۔';
 
   @override
-  String get inviteEmailLabel => 'ان کا ای میل';
+  String get inviteEmailLabel => 'ان کی ای میل';
 
   @override
-  String get inviteRoleLabel => 'ان کا کردار';
+  String get inviteRoleLabel => 'ان کا رول';
 
   @override
-  String get sendInvitationAction => 'دعوت نامہ بھیجیں';
+  String get sendInvitationAction => 'دعوت بھیجیں';
 
   @override
-  String get invitationReadyTitle => 'دعوت نامہ تیار ہے';
+  String get invitationReadyTitle => 'دعوت تیار ہے';
 
   @override
   String deliverySent(String email) {
-    return 'ہم نے دعوت نامہ $email کو ای میل کر دیا ہے۔';
+    return 'ہم نے دعوت $email کو ای میل کر دی ہے۔';
   }
 
   @override
   String deliveryNotConfigured(String email) {
-    return 'ای میل ترتیب نہیں دی گئی، اس لیے کچھ نہیں بھیجا گیا۔ یہ لنک $email کو خود بھیجیں۔';
+    return 'ای میل سیٹ اپ نہیں، اس لیے ہم نے کچھ نہیں بھیجا۔ یہ لنک $email کو خود بھیجیں۔';
   }
 
   @override
   String deliveryRateLimited(String email) {
-    return 'پچھلے ایک گھنٹے میں اس پتے پر یا آپ کی طرف سے بہت زیادہ ای میلز گئیں، اس لیے یہ نہیں بھیجی گئی۔ یہ لنک $email کو خود بھیجیں۔';
+    return 'پچھلے ایک گھنٹے میں اس ای میل پر یا آپ کی طرف سے بہت زیادہ ای میلز گئیں، اس لیے ہم نے یہ نہیں بھیجی۔ یہ لنک $email کو خود بھیجیں۔';
   }
 
   @override
   String deliveryFailed(String email) {
-    return '$email کو ای میل نہیں بھیجی جا سکی۔ یہ لنک خود بھیجیں۔';
+    return '$email کو ای میل نہیں جا سکی۔ یہ لنک خود بھیجیں۔';
   }
 
   @override
@@ -920,7 +917,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get invitationLinkLabel => 'دعوت نامے کا لنک';
+  String get invitationLinkLabel => 'دعوت کا لنک';
 
   @override
   String get copyLinkAction => 'لنک کاپی کریں';
@@ -933,28 +930,29 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String invitationShareMessage(String portfolio, String url) {
-    return 'آپ کو مالکِ مکان پر $portfolio میں شامل ہونے کی دعوت دی گئی ہے۔ شامل ہونے کے لیے یہ لنک کھولیں: $url';
+    return 'آپ کو مالکِ مکان ایپ پر $portfolio میں شامل ہونے کی دعوت بھیجی گئی ہے۔ شامل ہونے کے لیے یہ لنک کھولیں: $url';
   }
 
   @override
-  String get tenancyDefaultsSection => 'نئی کرایہ داری کی ابتدائی ترتیبات';
+  String get tenancyDefaultsSection =>
+      'نئی کرایہ داری میں پہلے سے بھرا جائے گا';
 
   @override
   String get tenancyDefaultsHelp =>
       'آپ انہیں ہر کرایہ داری کے لیے بدل سکتے ہیں۔';
 
   @override
-  String get dueDayLabel => 'کرایہ مہینے کی اس تاریخ کو واجب';
+  String get dueDayLabel => 'ہر مہینے کرائے کی تاریخ';
 
   @override
   String get dueDayHelper => '1 سے 28 تک، تاکہ ہر مہینے میں یہ تاریخ ہو۔';
 
   @override
-  String get graceDaysLabel => 'رعایتی دن';
+  String get graceDaysLabel => 'کتنے دن بعد لیٹ فیس لگے';
 
   @override
   String get graceDaysHelper =>
-      'واجب تاریخ کے بعد کتنے دن تک کرایہ تاخیر شمار نہیں ہو گا۔';
+      'تاریخ کے بعد اتنے دن تک کرایہ لیٹ نہیں مانا جائے گا۔';
 
   @override
   String get incrementLabel => 'سالانہ اضافہ (%)';
@@ -999,10 +997,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get loadingPortfolioDetails => 'پورٹ فولیو کی تفصیلات لوڈ ہو رہی ہیں';
 
   @override
-  String get acceptInvitationTitle => 'دعوت نامہ';
+  String get acceptInvitationTitle => 'دعوت';
 
   @override
-  String get acceptingInvitation => 'آپ کا دعوت نامہ کھولا جا رہا ہے…';
+  String get acceptingInvitation => 'آپ کی دعوت کھل رہی ہے…';
 
   @override
   String invitationAcceptedTitle(String portfolio) {
@@ -1011,49 +1009,49 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String invitationAcceptedBody(String role) {
-    return 'آپ بطور $role شامل ہو گئے ہیں۔';
+    return 'آپ شامل ہو گئے ہیں۔ آپ کا رول: $role۔';
   }
 
   @override
   String get openPortfolioAction => 'پورٹ فولیو کھولیں';
 
   @override
-  String get invitationFailedTitle => 'یہ دعوت نامہ استعمال نہیں ہو سکتا';
+  String get invitationFailedTitle => 'یہ دعوت استعمال نہیں ہو سکتی';
 
   @override
   String get invitationInvalidBody =>
-      'یہ دعوت نامے کا درست لنک نہیں ہے۔ نیا دعوت نامہ منگوائیں۔';
+      'یہ دعوت کا درست لنک نہیں ہے۔ نئی دعوت منگوائیں۔';
 
   @override
   String get invitationRevokedBody =>
-      'یہ دعوت نامہ منسوخ کر دیا گیا ہے۔ پورٹ فولیو کے کسی مالک سے نیا دعوت نامہ منگوائیں۔';
+      'یہ دعوت واپس لے لی گئی ہے۔ پورٹ فولیو کے کسی مالک سے نئی دعوت منگوائیں۔';
 
   @override
   String get invitationAlreadyUsedBody =>
-      'یہ دعوت نامہ کسی اور اکاؤنٹ سے پہلے ہی قبول ہو چکا ہے۔ نیا دعوت نامہ منگوائیں۔';
+      'یہ دعوت کسی اور اکاؤنٹ سے پہلے ہی قبول ہو چکی ہے۔ نئی دعوت منگوائیں۔';
 
   @override
   String get invitationExpiredBody =>
-      'اس دعوت نامے کی مدت ختم ہو چکی ہے: دعوت نامے 7 دن تک کام کرتے ہیں۔ نیا دعوت نامہ منگوائیں۔';
+      'یہ دعوت ایکسپائر ہو چکی ہے: دعوت 7 دن تک کام کرتی ہے۔ نئی دعوت منگوائیں۔';
 
   @override
   String get invitationEmailNotVerifiedBody =>
-      'پہلے اپنا ای میل پتہ تصدیق کریں، پھر دعوت نامے کا لنک دوبارہ کھولیں۔';
+      'پہلے اپنی ای میل کی تصدیق کریں، پھر دعوت کا لنک دوبارہ کھولیں۔';
 
   @override
   String get invitationEmailMismatchBody =>
-      'یہ دعوت نامہ کسی اور ای میل پتے پر بھیجا گیا تھا۔ سائن آؤٹ کریں، پھر اسی پتے سے سائن اِن کریں یا اکاؤنٹ بنائیں جس پر یہ بھیجا گیا تھا۔';
+      'یہ دعوت کسی اور ای میل پر بھیجی گئی تھی۔ سائن آؤٹ کریں۔ پھر اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں جس پر یہ بھیجی گئی تھی۔';
 
   @override
   String get invitationUnknownBody =>
-      'یہ دعوت نامہ قبول نہیں ہو سکتا۔ نیا دعوت نامہ منگوائیں۔';
+      'یہ دعوت قبول نہیں ہو سکتی۔ نئی دعوت منگوائیں۔';
 
   @override
   String get noInvitationBody =>
-      'اس ڈیوائس پر کوئی دعوت نامہ منتظر نہیں۔ دعوت نامے کی ای میل میں موجود لنک کھولیں۔';
+      'اس فون یا کمپیوٹر پر کوئی دعوت انتظار میں نہیں۔ دعوت کی ای میل میں دیا گیا لنک کھولیں۔';
 
   @override
-  String get invitationNotAcceptedTitle => 'دعوت نامہ نہیں کھل سکا';
+  String get invitationNotAcceptedTitle => 'دعوت نہیں کھل سکی';
 
   @override
   String get fewerDaysAction => 'کم دن';
@@ -1074,7 +1072,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get invitationWorksUntil => 'کب تک کارآمد';
+  String get invitationWorksUntil => 'کب تک چلے گی';
 
   @override
   String get invitationAcceptedNoName => 'آپ پورٹ فولیو میں شامل ہو گئے';
@@ -1135,17 +1133,17 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String policeHintPossession(String province, String days) {
-    return '$province: ہر کرایہ داری کرایہ دار کے رہائش اختیار کرنے کے $days کے اندر پولیس میں درج کروائیں۔';
+    return '$province: کرایہ دار کو جگہ ملنے کے $days کے اندر ہر کرایہ داری کی پولیس رجسٹریشن کروائیں۔';
   }
 
   @override
   String policeHintAgreement(String province, String days) {
-    return '$province: ہر کرایہ داری معاہدے پر دستخط کے $days کے اندر پولیس میں درج کروائیں۔';
+    return '$province: کرایہ نامے پر دستخط کے $days کے اندر ہر کرایہ داری کی پولیس رجسٹریشن کروائیں۔';
   }
 
   @override
   String policeHintReminder(String province) {
-    return '$province: ایپ کے علم میں کوئی قانون آخری تاریخ مقرر نہیں کرتا۔ ایپ کرایہ دار کے رہائش اختیار کرنے کے ایک دن بعد کرایہ داری پولیس میں درج کروانے کی یاد دہانی کرواتی ہے۔';
+    return '$province: ہمیں ایسا کوئی قانون نہیں ملا جو آخری تاریخ دے۔ کرایہ دار کو جگہ ملنے کے ایک دن بعد ایپ آپ کو ہر کرایہ داری کی پولیس رجسٹریشن یاد دلاتی ہے۔ یہ صرف ایپ کی یاد دہانی ہے۔';
   }
 
   @override
@@ -1207,7 +1205,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get occupancyOccupied => 'کرائے پر';
 
   @override
-  String get occupancyUpcoming => 'کرایہ داری جلد شروع';
+  String get occupancyUpcoming => 'کرایہ داری جلد شروع ہو گی';
 
   @override
   String get occupancyVacant => 'خالی';
@@ -1221,10 +1219,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get occupancyUnavailable => 'دستیاب نہیں';
 
   @override
-  String get occupancyArchived => 'آرکائیو شدہ';
+  String get occupancyArchived => 'آرکائیو میں';
 
   @override
-  String get occupancyUnknown => 'صورتِ حال نامعلوم';
+  String get occupancyUnknown => 'معلوم نہیں';
 
   @override
   String get addPropertyAction => 'جائیداد شامل کریں';
@@ -1237,14 +1235,14 @@ class AppLocalizationsUr extends AppLocalizations {
       'کوئی مکان، پلازہ یا پلاٹ شامل کریں، پھر اس کے وہ پورشن، فلیٹ یا دکانیں جو آپ کرائے پر دیتے ہیں۔';
 
   @override
-  String get archivedPropertiesEmpty => 'کوئی آرکائیو شدہ جائیداد نہیں۔';
+  String get archivedPropertiesEmpty => 'آرکائیو میں کوئی جائیداد نہیں۔';
 
   @override
   String get archivedPropertiesEmptyBody =>
-      'آپ کی آرکائیو کی گئی جائیدادیں اپنی تاریخ سمیت یہاں رہتی ہیں۔';
+      'آپ جو جائیدادیں آرکائیو کریں، وہ اپنے پورے ریکارڈ سمیت یہاں رہتی ہیں۔';
 
   @override
-  String get filterInUse => 'زیرِ استعمال';
+  String get filterInUse => 'استعمال میں';
 
   @override
   String get filterArchived => 'آرکائیو';
@@ -1267,7 +1265,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get newPropertyTitle => 'نئی جائیداد';
 
   @override
-  String get editPropertyTitle => 'جائیداد میں ترمیم';
+  String get editPropertyTitle => 'جائیداد کی تفصیل بدلیں';
 
   @override
   String get propertySectionBasics => 'جائیداد';
@@ -1279,14 +1277,14 @@ class AppLocalizationsUr extends AppLocalizations {
   String get propertySectionSize => 'رقبہ';
 
   @override
-  String get propertySectionValue => 'مالیت';
+  String get propertySectionValue => 'قیمت';
 
   @override
   String get propertyNameLabel => 'نام';
 
   @override
   String get propertyNameHelper =>
-      'جیسے آپ اسے پکارتے ہیں، مثلاً گلبرگ والا مکان یا صدر کی دکانیں۔';
+      'جس نام سے آپ اسے بلاتے ہیں، جیسے گلبرگ والا مکان یا صدر کی دکانیں۔';
 
   @override
   String get typeLabel => 'قسم';
@@ -1305,31 +1303,31 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get provinceHelper =>
-      'اسی سے لاگو قواعد طے ہوتے ہیں، مثلاً پولیس میں اندراج۔';
+      'اسی سے پتہ چلتا ہے کون سے قانون اور اصول لاگو ہیں، جیسے پولیس رجسٹریشن۔';
 
   @override
   String get plotSizeLabel => 'پلاٹ کا رقبہ';
 
   @override
-  String get plotUnitLabel => 'پیمائش کی اکائی';
+  String get plotUnitLabel => 'رقبہ کس میں';
 
   @override
-  String get coveredAreaLabel => 'تعمیر شدہ رقبہ (مربع فٹ)';
+  String get coveredAreaLabel => 'کورڈ ایریا، بنا ہوا رقبہ (مربع فٹ)';
 
   @override
-  String get yearBuiltLabel => 'سنِ تعمیر';
+  String get yearBuiltLabel => 'کس سال بنی';
 
   @override
-  String get purchasePriceLabel => 'قیمتِ خرید';
+  String get purchasePriceLabel => 'خریدنے کی قیمت';
 
   @override
-  String get purchasedOnLabel => 'تاریخِ خرید';
+  String get purchasedOnLabel => 'کب خریدی';
 
   @override
-  String get estimatedValueLabel => 'اندازاً مالیت';
+  String get estimatedValueLabel => 'اندازاً قیمت';
 
   @override
-  String get valueEstimatedOnLabel => 'مالیت کا اندازہ کب لگایا';
+  String get valueEstimatedOnLabel => 'قیمت کا اندازہ کب لگایا';
 
   @override
   String get propertyTaxRefLabel => 'پراپرٹی ٹیکس نمبر';
@@ -1339,13 +1337,13 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get validationPositiveNumber =>
-      '0 سے بڑا عدد درج کریں، اعشاریہ کے بعد زیادہ سے زیادہ دو ہندسے۔';
+      '0 سے بڑا نمبر لکھیں، پوائنٹ کے بعد زیادہ سے زیادہ دو ہندسے۔';
 
   @override
-  String get validationPlotUnit => 'پلاٹ کے رقبے کی اکائی منتخب کریں۔';
+  String get validationPlotUnit => 'رقبہ کس میں ہے، یہ چنیں۔';
 
   @override
-  String get validationAmount => '25,000 جیسی رقم درج کریں۔';
+  String get validationAmount => '25,000 جیسی رقم لکھیں۔';
 
   @override
   String propertyAdded(String name) {
@@ -1375,20 +1373,20 @@ class AppLocalizationsUr extends AppLocalizations {
       'ابھی کوئی یونٹ نہیں۔ ہر وہ حصہ شامل کریں جو آپ کرائے پر دیتے ہیں، چاہے وہ پوری جائیداد ہی ہو۔';
 
   @override
-  String get editAction => 'ترمیم کریں';
+  String get editAction => 'ایڈٹ کریں';
 
   @override
   String get archiveAction => 'آرکائیو کریں';
 
   @override
-  String get restoreAction => 'دوبارہ استعمال میں لائیں';
+  String get restoreAction => 'آرکائیو سے واپس لائیں';
 
   @override
-  String get deleteAction => 'حذف کریں';
+  String get deleteAction => 'ڈیلیٹ کریں';
 
   @override
   String archivedBanner(String date) {
-    return '$date کو آرکائیو کیا گیا۔ اس کی تاریخ محفوظ ہے؛ تبدیلی کے لیے اسے دوبارہ استعمال میں لائیں۔';
+    return '$date کو آرکائیو کیا گیا۔ اس کا ریکارڈ محفوظ ہے۔ کچھ بدلنے کے لیے اسے آرکائیو سے واپس لائیں۔';
   }
 
   @override
@@ -1398,7 +1396,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get archivePropertyBody =>
-      'یہ آپ کی فہرستوں سے ہٹ جائے گی لیکن اس کے یونٹ، کرایہ داریاں اور رقوم محفوظ رہیں گی۔ آپ اسے بعد میں دوبارہ استعمال میں لا سکتے ہیں۔';
+      'یہ آپ کی فہرستوں سے ہٹ جائے گی، لیکن اس کے یونٹ، کرایہ داریاں اور رقمیں محفوظ رہیں گی۔ آپ اسے بعد میں آرکائیو سے واپس لا سکتے ہیں۔';
 
   @override
   String propertyArchived(String name) {
@@ -1407,17 +1405,17 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String propertyRestored(String name) {
-    return '$name دوبارہ استعمال میں ہے۔';
+    return '$name آرکائیو سے واپس آ گئی۔';
   }
 
   @override
   String deletePropertyTitle(String name) {
-    return '$name حذف کریں؟';
+    return '$name ڈیلیٹ کریں؟';
   }
 
   @override
   String get deletePropertyBody =>
-      'صرف غلطی سے شامل کی گئی جائیداد کے لیے: یہ اپنے یونٹس سمیت ہمیشہ کے لیے حذف ہو جائے گی۔ جس جائیداد کی کرایہ داریاں یا اخراجات ہوں وہ حذف نہیں ہو سکتی؛ اسے آرکائیو کریں۔';
+      'یہ اپنے یونٹس سمیت ہمیشہ کے لیے ڈیلیٹ ہو جائے گی۔ صرف تب کریں جب یہ جائیداد غلطی سے شامل ہوئی ہو۔ جس جائیداد کی کرایہ داریاں یا خرچے ہوں وہ ڈیلیٹ نہیں ہو سکتی۔ اسے آرکائیو کریں۔';
 
   @override
   String typeToConfirm(String name) {
@@ -1426,7 +1424,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String propertyDeleted(String name) {
-    return '$name حذف ہو گئی۔';
+    return '$name ڈیلیٹ ہو گئی۔';
   }
 
   @override
@@ -1448,19 +1446,19 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonStillInUse =>
-      'کوئی کرایہ داری یا خرچ ابھی اس سے منسلک ہے، اس لیے یہ حذف نہیں ہو سکتا۔ اس کے بجائے اسے آرکائیو کریں۔';
+      'کوئی کرایہ داری یا خرچ ابھی اس سے جڑا ہے، اس لیے یہ ڈیلیٹ نہیں ہو سکتا۔ اس کے بجائے اسے آرکائیو کریں۔';
 
   @override
   String get newUnitTitle => 'نیا یونٹ';
 
   @override
-  String get editUnitTitle => 'یونٹ میں ترمیم';
+  String get editUnitTitle => 'یونٹ کی تفصیل بدلیں';
 
   @override
   String get unitLabelLabel => 'نام یا نمبر';
 
   @override
-  String get unitLabelHelper => 'مثلاً گراؤنڈ فلور، فلیٹ 2 یا دکان 5۔';
+  String get unitLabelHelper => 'جیسے گراؤنڈ فلور، فلیٹ 2 یا دکان 5۔';
 
   @override
   String get floorLabel => 'منزل';
@@ -1484,14 +1482,15 @@ class AppLocalizationsUr extends AppLocalizations {
   String get unfurnishedValue => 'بغیر فرنیچر';
 
   @override
-  String get askingRentLabel => 'طلب کردہ کرایہ';
+  String get askingRentLabel => 'کتنا کرایہ مانگ رہے ہیں';
 
   @override
-  String get askingRentHelper => 'آپ اس کا ماہانہ کتنا کرایہ مانگتے ہیں۔';
+  String get askingRentHelper =>
+      'آپ ہر مہینے اس کا کتنا کرایہ مانگتے ہیں۔ پراپرٹی ڈیلر اسے ڈیمانڈ کہتے ہیں۔';
 
   @override
   String askingRentValue(String rent) {
-    return 'طلب کردہ $rent';
+    return 'ڈیمانڈ: $rent';
   }
 
   @override
@@ -1505,7 +1504,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get unitPropertyLabel => 'جائیداد';
 
   @override
-  String get occupancyLabel => 'رہائش کی صورتِ حال';
+  String get occupancyLabel => 'کرائے کا اسٹیٹس';
 
   @override
   String unitAdded(String name) {
@@ -1524,7 +1523,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get archiveUnitBody =>
-      'یہ آپ کی فہرستوں سے ہٹ جائے گا لیکن اس کی کرایہ داریاں اور رقوم محفوظ رہیں گی۔ اگر کرایہ داری ختم ہو چکی ہے تو پہلے اسے ختم کریں۔';
+      'یہ آپ کی فہرستوں سے ہٹ جائے گا، لیکن اس کی کرایہ داریاں اور رقمیں محفوظ رہیں گی۔ جو یونٹ ابھی کرائے پر ہے، وہ بھی آرکائیو ہو سکتا ہے۔ اگر اس کی کرایہ داری ختم ہو چکی ہے تو پہلے اسے ختم کریں۔';
 
   @override
   String unitArchived(String name) {
@@ -1533,21 +1532,21 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String unitRestored(String name) {
-    return '$name دوبارہ استعمال میں ہے۔';
+    return '$name آرکائیو سے واپس آ گیا۔';
   }
 
   @override
   String deleteUnitTitle(String name) {
-    return '$name حذف کریں؟';
+    return '$name ڈیلیٹ کریں؟';
   }
 
   @override
   String get deleteUnitBody =>
-      'صرف غلطی سے شامل کیے گئے یونٹ کے لیے: یہ ہمیشہ کے لیے حذف ہو جائے گا۔ جس یونٹ کی کرایہ داریاں یا اخراجات ہوں وہ حذف نہیں ہو سکتا؛ اسے آرکائیو کریں۔';
+      'یہ ہمیشہ کے لیے ڈیلیٹ ہو جائے گا۔ صرف تب کریں جب یہ یونٹ غلطی سے شامل ہوا ہو۔ جس یونٹ کی کرایہ داریاں یا خرچے ہوں وہ ڈیلیٹ نہیں ہو سکتا۔ اسے آرکائیو کریں۔';
 
   @override
   String unitDeleted(String name) {
-    return '$name حذف ہو گیا۔';
+    return '$name ڈیلیٹ ہو گیا۔';
   }
 
   @override
@@ -1569,7 +1568,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get tenantKindIndividual => 'فرد';
+  String get tenantKindIndividual => 'شخص';
 
   @override
   String get tenantKindCompany => 'کمپنی';
@@ -1602,14 +1601,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get tenantsEmptyBody =>
-      'وہ افراد یا کاروبار شامل کریں جو آپ سے کرائے پر لیتے ہیں، پھر کسی یونٹ سے ان کی کرایہ داری شروع کریں۔';
+      'وہ لوگ یا کاروبار شامل کریں جو آپ سے کرائے پر لیتے ہیں۔ پھر کسی یونٹ سے ان کی کرایہ داری شروع کریں۔';
 
   @override
-  String get archivedTenantsEmpty => 'کوئی آرکائیو شدہ کرایہ دار نہیں۔';
+  String get archivedTenantsEmpty => 'آرکائیو میں کوئی کرایہ دار نہیں۔';
 
   @override
   String get archivedTenantsEmptyBody =>
-      'آپ کے آرکائیو کیے گئے کرایہ دار اپنی تاریخ سمیت یہاں رہتے ہیں۔';
+      'آپ جو کرایہ دار آرکائیو کریں، وہ اپنے پورے ریکارڈ سمیت یہاں رہتے ہیں۔';
 
   @override
   String noTenantMatches(String search) {
@@ -1632,7 +1631,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get newTenantTitle => 'نیا کرایہ دار';
 
   @override
-  String get editTenantTitle => 'کرایہ دار میں ترمیم';
+  String get editTenantTitle => 'کرایہ دار کی تفصیل بدلیں';
 
   @override
   String get tenantSectionWho => 'یہ کون ہیں';
@@ -1647,7 +1646,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get tenantSectionWork => 'کام اور پتے';
 
   @override
-  String get tenantSectionEmergency => 'ہنگامی رابطہ';
+  String get tenantSectionEmergency => 'ایمرجنسی رابطہ';
 
   @override
   String get tenantSectionReferences => 'حوالے';
@@ -1674,39 +1673,39 @@ class AppLocalizationsUr extends AppLocalizations {
   String get cnicLabel => 'شناختی کارڈ نمبر';
 
   @override
-  String get cnicHelper => 'کارڈ پر درج 13 ہندسے۔';
+  String get cnicHelper => 'کارڈ پر لکھے 13 ہندسے۔';
 
   @override
   String get validationCnic =>
-      'شناختی کارڈ کے 13 ہندسے درج کریں، جیسے 35202-1234567-1۔';
+      'شناختی کارڈ کے 13 ہندسے لکھیں، جیسے 35202-1234567-1۔';
 
   @override
-  String get cnicExpiryLabel => 'شناختی کارڈ کی میعاد';
+  String get cnicExpiryLabel => 'شناختی کارڈ ایکسپائر ہونے کی تاریخ';
 
   @override
-  String get cnicExpired => 'شناختی کارڈ کی میعاد ختم';
+  String get cnicExpired => 'شناختی کارڈ ایکسپائر ہو چکا';
 
   @override
   String get ntnLabel => 'این ٹی این';
 
   @override
   String get validationNtn =>
-      'این ٹی این ویسا ہی درج کریں جیسا جاری ہوا، 6 سے 15 حروف، ہندسے یا ڈیش۔';
+      'این ٹی این ویسا ہی لکھیں جیسا جاری ہوا: 6 سے 15 حروف، ہندسے یا ڈیش۔';
 
   @override
   String get altPhoneLabel => 'دوسرا فون';
 
   @override
-  String get occupationLabel => 'پیشہ';
+  String get occupationLabel => 'کیا کام کرتے ہیں';
 
   @override
-  String get employerLabel => 'آجر';
+  String get employerLabel => 'کہاں کام کرتے ہیں';
 
   @override
   String get permanentAddressLabel => 'مستقل پتہ';
 
   @override
-  String get previousAddressLabel => 'سابقہ پتہ';
+  String get previousAddressLabel => 'پچھلا پتہ';
 
   @override
   String get contactNameLabel => 'نام';
@@ -1720,14 +1719,14 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get householdSizeLabel => 'رہنے والے افراد';
+  String get householdSizeLabel => 'کتنے لوگ رہتے ہیں';
 
   @override
   String get withholdingTaxLabel => 'ود ہولڈنگ ٹیکس کاٹتے ہیں';
 
   @override
   String get withholdingTaxHelp =>
-      'کمپنیاں اور سرکاری ادارے ادا کیے گئے کرائے سے سیکشن 155 کے تحت ٹیکس کاٹتے ہیں۔';
+      'کمپنیاں اور سرکاری ادارے جو کرایہ دیتے ہیں، اس میں سے دفعہ 155 کے تحت ٹیکس کاٹتے ہیں۔';
 
   @override
   String get consentLabel =>
@@ -1738,7 +1737,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String consentRecorded(String date) {
-    return 'رضامندی $date کو درج کی گئی';
+    return 'رضامندی $date کو درج ہوئی';
   }
 
   @override
@@ -1782,7 +1781,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get archiveTenantBody =>
-      'یہ آپ کی فہرستوں سے ہٹ جائیں گے لیکن ان کی کرایہ داریاں، ادائیگیاں اور رسیدیں محفوظ رہیں گی۔ آپ انہیں بعد میں دوبارہ استعمال میں لا سکتے ہیں۔';
+      'یہ آپ کی فہرستوں سے ہٹ جائیں گے، لیکن ان کی کرایہ داریاں، ادائیگیاں اور رسیدیں محفوظ رہیں گی۔ آپ انہیں بعد میں آرکائیو سے واپس لا سکتے ہیں۔';
 
   @override
   String tenantArchived(String name) {
@@ -1791,21 +1790,21 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String tenantRestored(String name) {
-    return '$name دوبارہ استعمال میں ہیں۔';
+    return '$name آرکائیو سے واپس آ گئے۔';
   }
 
   @override
   String deleteTenantTitle(String name) {
-    return '$name کو حذف کریں؟';
+    return '$name کو ڈیلیٹ کریں؟';
   }
 
   @override
   String get deleteTenantBody =>
-      'صرف غلطی سے شامل کیے گئے کرایہ دار کے لیے: ان کی تفصیلات ہمیشہ کے لیے حذف ہو جائیں گی۔ جس کرایہ دار کی کرایہ داری ہو وہ حذف نہیں ہو سکتا؛ انہیں آرکائیو کریں۔';
+      'ان کی تفصیلات ہمیشہ کے لیے ڈیلیٹ ہو جائیں گی۔ صرف تب کریں جب یہ کرایہ دار غلطی سے شامل ہوئے ہوں۔ جس کرایہ دار کی کرایہ داری ہو، اسے ڈیلیٹ نہیں کیا جا سکتا۔ اسے آرکائیو کریں۔';
 
   @override
   String tenantDeleted(String name) {
-    return '$name حذف ہو گئے۔';
+    return '$name ڈیلیٹ ہو گئے۔';
   }
 
   @override
@@ -1828,7 +1827,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get newTenancyTitle => 'نئی کرایہ داری';
 
   @override
-  String get editTenancyTitle => 'کرایہ داری کی شرائط میں ترمیم';
+  String get editTenancyTitle => 'کرایہ داری کی شرائط بدلیں';
 
   @override
   String get startTenancyAction => 'کرایہ داری شروع کریں';
@@ -1856,11 +1855,11 @@ class AppLocalizationsUr extends AppLocalizations {
   String get unitLabel => 'یونٹ';
 
   @override
-  String get validationChooseTenant => 'کرایہ دار منتخب کریں۔';
+  String get validationChooseTenant => 'کرایہ دار چنیں۔';
 
   @override
   String get noTenantsToChoose =>
-      'پہلے کرایہ دار شامل کریں: منتخب کرنے کے لیے کوئی کرایہ دار نہیں۔';
+      'پہلے کرایہ دار شامل کریں۔ ابھی چننے کے لیے کوئی کرایہ دار نہیں۔';
 
   @override
   String get leaseSectionWho => 'کون اور کہاں';
@@ -1869,22 +1868,22 @@ class AppLocalizationsUr extends AppLocalizations {
   String get leaseSectionTerm => 'مدت';
 
   @override
-  String get leaseSectionRent => 'کرایہ اور زرِ ضمانت';
+  String get leaseSectionRent => 'کرایہ اور سیکیورٹی ڈپازٹ';
 
   @override
-  String get leaseSectionLateFee => 'تاخیر جرمانہ';
+  String get leaseSectionLateFee => 'لیٹ فیس';
 
   @override
-  String get leaseSectionAgreement => 'معاہدہ';
+  String get leaseSectionAgreement => 'کرایہ نامہ';
 
   @override
-  String get leaseSectionPolice => 'پولیس میں اندراج';
+  String get leaseSectionPolice => 'پولیس رجسٹریشن';
 
   @override
-  String get leaseSectionOther => 'دیگر شرائط';
+  String get leaseSectionOther => 'دوسری شرائط';
 
   @override
-  String get moveInLabel => 'رہائش کی تاریخ';
+  String get moveInLabel => 'جگہ ملنے کی تاریخ';
 
   @override
   String get termLabel => 'مدت';
@@ -1899,72 +1898,73 @@ class AppLocalizationsUr extends AppLocalizations {
   String get termCustom => 'کسی تاریخ تک';
 
   @override
-  String get termPeriodic => 'ماہ بہ ماہ';
+  String get termPeriodic => 'مدت طے نہیں (مہینہ وار)';
 
   @override
-  String get endsOnLabel => 'اختتام کی تاریخ';
+  String get endsOnLabel => 'ختم ہونے کی تاریخ';
 
   @override
   String get validationEndAfterStart =>
-      'رہائش کی تاریخ یا اس کے بعد کی تاریخ منتخب کریں۔';
+      'جگہ ملنے کی تاریخ یا اس کے بعد کی تاریخ چنیں۔';
 
   @override
   String get monthlyRentLabel => 'ماہانہ کرایہ';
 
   @override
-  String get validationRent => 'کرایہ درج کریں، 0 سے زیادہ رقم۔';
+  String get validationRent => 'کرایہ لکھیں، 0 سے زیادہ رقم۔';
 
   @override
-  String get depositLabel => 'زرِ ضمانت';
+  String get depositLabel => 'سیکیورٹی';
 
   @override
-  String get incrementEveryLabel => 'اضافہ ہر (مہینے)';
+  String get incrementEveryLabel => 'ہر کتنے مہینے بعد اضافہ';
 
   @override
-  String get lateFeeLabel => 'تاخیر جرمانہ';
+  String get lateFeeLabel => 'لیٹ فیس';
 
   @override
   String get lateFeeNone => 'کوئی نہیں';
 
   @override
-  String get lateFeeFlat => 'مقررہ رقم';
+  String get lateFeeFlat => 'فکس رقم';
 
   @override
-  String get lateFeePercent => 'تاخیر شدہ کرائے کا فیصد';
+  String get lateFeePercent => 'لیٹ کرائے کا فیصد';
 
   @override
-  String get lateFeeDaily => 'ہر دن کی تاخیر پر رقم';
+  String get lateFeeDaily => 'ہر لیٹ دن پر رقم';
 
   @override
-  String get lateFeeAmountLabel => 'جرمانہ';
+  String get lateFeeAmountLabel => 'فیس';
 
   @override
-  String get lateFeePercentLabel => 'جرمانہ (%)';
+  String get lateFeePercentLabel => 'فیس (%)';
 
   @override
   String get lateFeeCapLabel => 'زیادہ سے زیادہ';
 
   @override
-  String get lateFeeHelp => 'رعایتی دن گزرنے کے بعد لاگو ہوتا ہے۔';
+  String get lateFeeHelp => 'تاریخ کے بعد اوپر لکھے دن گزرنے پر لگتی ہے۔';
 
   @override
   String get noticeDaysLabel => 'نوٹس کی مدت (دن)';
 
   @override
-  String get prorateLabel => 'پہلے مہینے کے صرف رہائش کے دنوں کا کرایہ';
+  String get prorateLabel => 'پہلے مہینے کا کرایہ دنوں کے حساب سے';
 
   @override
-  String get prorateHelp => 'جب کرایہ دار مہینے کی پہلی تاریخ کے بعد آئے۔';
+  String get prorateHelp =>
+      'جب کرایہ دار کو جگہ مہینے کی پہلی تاریخ کے بعد ملے۔';
 
   @override
-  String get billingStartsLabel => 'بلنگ کی ابتدا';
+  String get billingStartsLabel => 'کرایہ کب سے شروع ہو';
 
   @override
   String get billingStartsHelp =>
-      'ایپ سے پہلے شروع ہونے والی کرایہ داری کے لیے: وہ پہلا دن جس سے ایپ بل بنائے۔';
+      'یہ اس کرایہ داری کے لیے ہے جو ایپ سے پہلے شروع ہوئی تھی۔ وہ پہلا دن چنیں جس سے ایپ کرایہ لگائے۔';
 
   @override
-  String get agreementSignedLabel => 'معاہدے پر دستخط کی تاریخ';
+  String get agreementSignedLabel => 'کرایہ نامے پر دستخط کی تاریخ';
 
   @override
   String get eStampNumberLabel => 'ای اسٹامپ نمبر';
@@ -1973,7 +1973,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get eStampAmountLabel => 'ای اسٹامپ کی رقم';
 
   @override
-  String get permittedUseLabel => 'اجازت شدہ استعمال';
+  String get permittedUseLabel => 'کس استعمال کی اجازت ہے';
 
   @override
   String get sublettingLabel => 'آگے کرائے پر دینے کی اجازت';
@@ -2003,13 +2003,13 @@ class AppLocalizationsUr extends AppLocalizations {
   String get registeredOnLabel => 'رجسٹریشن کی تاریخ';
 
   @override
-  String get policeStatusLabel => 'صورتِ حال';
+  String get policeStatusLabel => 'اسٹیٹس';
 
   @override
   String get policeNotRequired => 'ضروری نہیں';
 
   @override
-  String get policePending => 'ابھی درج نہیں';
+  String get policePending => 'ابھی نہیں ہوئی';
 
   @override
   String get policeSubmitted => 'جمع کرا دیا';
@@ -2033,11 +2033,11 @@ class AppLocalizationsUr extends AppLocalizations {
   String get policeReferenceLabel => 'حوالہ نمبر';
 
   @override
-  String get policeFeeLabel => 'ادا کردہ فیس';
+  String get policeFeeLabel => 'کتنی فیس دی';
 
   @override
   String policeLegalDeadline(String date) {
-    return 'قانونی آخری تاریخ: $date';
+    return 'قانون کی آخری تاریخ: $date';
   }
 
   @override
@@ -2047,16 +2047,16 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get policeReminderNote =>
-      'ایپ کے علم میں یہاں کوئی قانون آخری تاریخ مقرر نہیں کرتا: یہ صرف یاد دہانی ہے۔';
+      'ہمیں ایسا کوئی قانون نہیں ملا جو یہاں آخری تاریخ دے۔ یہ صرف ایپ کی یاد دہانی ہے۔';
 
   @override
-  String get policeLate => 'آخری تاریخ گزر چکی: ابھی درج کروائیں۔';
+  String get policeLate => 'آخری تاریخ گزر چکی۔ ابھی پولیس رجسٹریشن کروائیں۔';
 
   @override
-  String get openPortalAction => 'اندراج کی ویب سائٹ کھولیں';
+  String get openPortalAction => 'رجسٹریشن کی ویب سائٹ کھولیں';
 
   @override
-  String get utilitiesNoteLabel => 'یوٹیلیٹیز';
+  String get utilitiesNoteLabel => 'بل';
 
   @override
   String tenancyStarted(String tenant) {
@@ -2068,7 +2068,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonLeaseOverlap =>
-      'ان تاریخوں میں یونٹ پہلے سے کرائے پر ہے۔ پہلے دوسری کرایہ داری ختم کریں، یا دوسری تاریخیں منتخب کریں۔';
+      'ان تاریخوں میں یونٹ پہلے سے کرائے پر ہے۔ پہلے دوسری کرایہ داری ختم کریں، یا دوسری تاریخیں چنیں۔';
 
   @override
   String get tenancyTermsSection => 'شرائط';
@@ -2095,20 +2095,20 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get periodicValue => 'ماہ بہ ماہ';
+  String get periodicValue => 'مدت طے نہیں (مہینہ وار)';
 
   @override
   String get occupantsSection => 'ساتھ رہنے والے';
 
   @override
   String get occupantsHelp =>
-      'کرایہ دار کے ساتھ رہنے والے بالغ افراد، پولیس میں اندراج کے لیے ضروری۔';
+      'کرایہ دار کے ساتھ رہنے والے بالغ لوگ۔ پولیس رجسٹریشن کے لیے ضروری۔';
 
   @override
-  String get addOccupantAction => 'فرد شامل کریں';
+  String get addOccupantAction => 'شخص شامل کریں';
 
   @override
-  String get occupantTitle => 'ساتھ رہنے والا فرد';
+  String get occupantTitle => 'ساتھ رہنے والا شخص';
 
   @override
   String occupantSaved(String name) {
@@ -2124,13 +2124,13 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get removeOccupantBody => 'انہیں اس کرایہ داری سے ہٹا دیا جائے گا۔';
+  String get removeOccupantBody => 'وہ اس کرایہ داری سے ہٹ جائیں گے۔';
 
   @override
   String get noOccupants => 'ابھی کوئی شامل نہیں۔';
 
   @override
-  String get rentHistorySection => 'کرائے کی تاریخ';
+  String get rentHistorySection => 'کرائے میں تبدیلیاں';
 
   @override
   String rentFrom(String month) {
@@ -2138,19 +2138,19 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get rentReasonInitial => 'ابتدائی کرایہ';
+  String get rentReasonInitial => 'شروع کا کرایہ';
 
   @override
   String get rentReasonAnnualIncrement => 'سالانہ اضافہ';
 
   @override
-  String get rentReasonRenegotiation => 'باہمی رضامندی سے تبدیلی';
+  String get rentReasonRenegotiation => 'دونوں کی مرضی سے نیا کرایہ';
 
   @override
-  String get rentReasonCorrection => 'تصحیح';
+  String get rentReasonCorrection => 'غلطی ٹھیک کی';
 
   @override
-  String get changeRentAction => 'کرایہ تبدیل کریں';
+  String get changeRentAction => 'کرایہ بدلیں';
 
   @override
   String get changeRentFromLabel => 'اس مہینے سے';
@@ -2166,7 +2166,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String suggestedIncrement(String percent, String rent) {
-    return 'طے شدہ $percent% پر، 100 روپے تک گول: $rent';
+    return 'طے ہوئے $percent% کے حساب سے، 100 روپے تک گول: $rent';
   }
 
   @override
@@ -2174,7 +2174,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get changeRentHelp =>
-      'اس مہینے اور بعد کا غیر ادا شدہ کرایہ نئی رقم پر ہو جائے گا؛ ادا شدہ مہینوں کی رقم وہی رہے گی۔';
+      'اس مہینے اور بعد کا جو کرایہ ابھی ادا نہیں ہوا وہ نئی رقم پر ہو جائے گا۔ جن مہینوں کا کرایہ ادا ہو چکا، ان کی رقم وہی رہے گی۔';
 
   @override
   String rentChanged(String rent, String month) {
@@ -2185,7 +2185,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get endTenancyAction => 'کرایہ داری ختم کریں';
 
   @override
-  String get movedOutLabel => 'مکان خالی کرنے کی تاریخ';
+  String get movedOutLabel => 'جگہ خالی کرنے کی تاریخ';
 
   @override
   String get endTermCompleted => 'مدت پوری ہو گئی';
@@ -2194,14 +2194,14 @@ class AppLocalizationsUr extends AppLocalizations {
   String get endTenantMovedOut => 'کرایہ دار چلے گئے';
 
   @override
-  String get endEviction => 'بے دخلی';
+  String get endEviction => 'خالی کروایا';
 
   @override
-  String get endMutualAgreement => 'باہمی رضامندی';
+  String get endMutualAgreement => 'دونوں کی مرضی سے';
 
   @override
   String get endTenancyExplain =>
-      'مکان خالی کرنے کے مہینے تک کا کرایہ لگے گا۔ بعد کے ہر مہینے کا کرایہ اور اس کے خودکار تاخیر جرمانے منسوخ ہو جائیں گے، ادا شدہ ہوں یا نہیں۔ ان کی ادا کی گئی رقم آزاد ہو کر اس کرایہ داری کے دوسرے واجبات میں لگ جائے گی؛ جو بچے وہ کرایہ دار کا کریڈٹ رہے گا، واپسی کے لیے۔ یونٹ خالی ہو جائے گا۔';
+      'جگہ خالی کرنے کے مہینے تک کا کرایہ لگے گا۔ اس کے بعد کے ہر مہینے کا کرایہ، اور اس پر خود لگنے والی لیٹ فیس، کینسل ہو جائیں گے، چاہے ادا ہو چکے ہوں یا نہیں۔ ان کے لیے دی گئی رقم اس کرایہ داری کے دوسرے باقی چارجز میں لگ جائے گی۔ جو رقم بچے وہ کرایہ دار کا کریڈٹ رہے گی، واپس کرنے کے لیے۔ یونٹ خالی ہو جائے گا۔';
 
   @override
   String get tenancyEnded => 'کرایہ داری ختم ہو گئی۔';
@@ -2210,14 +2210,14 @@ class AppLocalizationsUr extends AppLocalizations {
   String get endedOnLabel => 'ختم ہونے کی تاریخ';
 
   @override
-  String get deleteTenancyTitle => 'یہ کرایہ داری حذف کریں؟';
+  String get deleteTenancyTitle => 'یہ کرایہ داری ڈیلیٹ کریں؟';
 
   @override
   String get deleteTenancyBody =>
-      'صرف غلطی سے درج کی گئی کرایہ داری کے لیے: یہ اپنے بنائے گئے واجبات سمیت حذف ہو گی، بشرطیکہ کچھ ادا، معاف یا منسوخ نہ ہوا ہو۔ ورنہ کرایہ داری ختم کریں۔';
+      'یہ کرایہ داری اپنے بنائے ہوئے سب چارجز سمیت ڈیلیٹ ہو جائے گی، اگر ابھی تک کچھ ادا، معاف یا کینسل نہیں ہوا۔ صرف تب کریں جب یہ غلطی سے درج ہوئی ہو۔ ورنہ کرایہ داری ختم کریں۔';
 
   @override
-  String get tenancyDeleted => 'کرایہ داری حذف ہو گئی۔';
+  String get tenancyDeleted => 'کرایہ داری ڈیلیٹ ہو گئی۔';
 
   @override
   String get tenancyLoadFailedTitle => 'یہ کرایہ داری لوڈ نہیں ہو سکی';
@@ -2249,39 +2249,39 @@ class AppLocalizationsUr extends AppLocalizations {
   String get moreMonthsAction => 'زیادہ مہینے';
 
   @override
-  String get documentsSection => 'دستاویزات';
+  String get documentsSection => 'کاغذات اور تصویریں';
 
   @override
   String get documentsSectionHelp =>
-      'تصاویر اور پی ڈی ایف، جنہیں صرف اس پورٹ فولیو کی ٹیم دیکھ سکتی ہے۔';
+      'تصویریں اور پی ڈی ایف، جنہیں صرف اس پورٹ فولیو کی ٹیم دیکھ سکتی ہے۔';
 
   @override
-  String get addDocumentAction => 'دستاویز شامل کریں';
+  String get addDocumentAction => 'کاغذ یا تصویر شامل کریں';
 
   @override
-  String get documentsEmpty => 'ابھی کوئی دستاویز نہیں۔';
+  String get documentsEmpty => 'ابھی کوئی کاغذ یا تصویر نہیں۔';
 
   @override
   String get documentsEmptyTenant =>
-      'ابھی کوئی دستاویز نہیں۔ شناختی کارڈ کے سامنے اور پچھلے رخ کی تصاویر شامل کریں۔';
+      'ابھی کوئی کاغذ یا تصویر نہیں۔ شناختی کارڈ کے سامنے اور پیچھے کی تصویریں شامل کریں۔';
 
   @override
   String get documentsEmptyLease =>
-      'ابھی کوئی دستاویز نہیں۔ دستخط شدہ معاہدہ اور پولیس میں اندراج شامل کریں۔';
+      'ابھی کوئی کاغذ یا تصویر نہیں۔ دستخط والا کرایہ نامہ اور پولیس رجسٹریشن شامل کریں۔';
 
   @override
   String get documentsEmptyUnit =>
-      'ابھی کوئی دستاویز نہیں۔ یونٹ اور اس کے میٹروں کی تصاویر شامل کریں۔';
+      'ابھی کوئی کاغذ یا تصویر نہیں۔ یونٹ اور اس کے میٹروں کی تصویریں شامل کریں۔';
 
   @override
   String get documentsEmptyProperty =>
-      'ابھی کوئی دستاویز نہیں۔ جائیداد کے کاغذات اور تصاویر شامل کریں۔';
+      'ابھی کوئی کاغذ یا تصویر نہیں۔ جائیداد کے کاغذات اور تصویریں شامل کریں۔';
 
   @override
-  String get loadingDocuments => 'دستاویزات لوڈ ہو رہی ہیں';
+  String get loadingDocuments => 'کاغذات لوڈ ہو رہے ہیں';
 
   @override
-  String get documentsLoadFailedTitle => 'دستاویزات لوڈ نہیں ہو سکیں';
+  String get documentsLoadFailedTitle => 'کاغذات لوڈ نہیں ہو سکے';
 
   @override
   String get documentKindCnicFront => 'شناختی کارڈ، سامنے کا رخ';
@@ -2293,16 +2293,16 @@ class AppLocalizationsUr extends AppLocalizations {
   String get documentKindPhoto => 'تصویر';
 
   @override
-  String get documentKindTenancyAgreement => 'کرایہ داری کا معاہدہ';
+  String get documentKindTenancyAgreement => 'کرایہ نامہ';
 
   @override
-  String get documentKindPoliceRegistration => 'پولیس میں اندراج';
+  String get documentKindPoliceRegistration => 'پولیس رجسٹریشن';
 
   @override
-  String get documentKindRentRegistration => 'کرایہ داری کا سرکاری اندراج';
+  String get documentKindRentRegistration => 'رینٹ رجسٹرار کے پاس رجسٹریشن';
 
   @override
-  String get documentKindUtilityBill => 'یوٹیلیٹی بل';
+  String get documentKindUtilityBill => 'بل (بجلی، گیس، پانی، انٹرنیٹ)';
 
   @override
   String get documentKindReceipt => 'رسید';
@@ -2363,17 +2363,17 @@ class AppLocalizationsUr extends AppLocalizations {
   String get takePhotoAction => 'تصویر کھینچیں';
 
   @override
-  String get chooseFileAction => 'فائل منتخب کریں';
+  String get chooseFileAction => 'فائل چنیں';
 
   @override
-  String get chooseAnotherFileAction => 'کوئی اور فائل منتخب کریں';
+  String get chooseAnotherFileAction => 'کوئی اور فائل چنیں';
 
   @override
   String get addDocumentHelp =>
-      'تصویر، یا ‎10 MB‎ تک کی پی ڈی ایف شامل کریں۔ تصاویر پہلے چھوٹی کر دی جاتی ہیں۔';
+      'تصویر، یا ‎10 MB‎ تک کی پی ڈی ایف شامل کریں۔ ایپ تصویروں کو پہلے چھوٹا کر دیتی ہے۔';
 
   @override
-  String get preparingFile => 'فائل تیار کی جا رہی ہے';
+  String get preparingFile => 'فائل تیار ہو رہی ہے';
 
   @override
   String get photoRecovered =>
@@ -2393,8 +2393,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get documentNameLabel => 'نام';
 
   @override
-  String get documentNameHelp =>
-      'خالی چھوڑنے پر اس کا نام اس کی قسم پر رکھا جائے گا۔';
+  String get documentNameHelp => 'خالی چھوڑیں تو اس کی قسم ہی اس کا نام ہو گی۔';
 
   @override
   String get uploadAction => 'اپ لوڈ کریں';
@@ -2416,7 +2415,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String documentDeleted(String name) {
-    return '$name حذف ہو گئی۔';
+    return '$name ڈیلیٹ ہو گئی۔';
   }
 
   @override
@@ -2430,12 +2429,12 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String deleteDocumentTitle(String name) {
-    return '$name حذف کریں؟';
+    return '$name ڈیلیٹ کریں؟';
   }
 
   @override
   String get deleteDocumentBody =>
-      'یہ دستاویز اور اس کی فائل اس پورٹ فولیو میں سب کے لیے حذف ہو جائیں گی۔ یہ عمل واپس نہیں ہو سکتا۔';
+      'یہ فائل اس پورٹ فولیو میں سب کے لیے ڈیلیٹ ہو جائے گی۔ ڈیلیٹ کرنے کے بعد یہ واپس نہیں آئے گی۔';
 
   @override
   String get documentAddedOnLabel => 'شامل کرنے کی تاریخ';
@@ -2444,22 +2443,22 @@ class AppLocalizationsUr extends AppLocalizations {
   String get documentFileLabel => 'فائل';
 
   @override
-  String get documentPreviewLabel => 'تصویر کا پیش منظر';
+  String get documentPreviewLabel => 'تصویر کی جھلک';
 
   @override
-  String get documentNameTooLong => 'یہ نام بہت لمبا ہے۔ اسے مختصر کریں۔';
+  String get documentNameTooLong => 'یہ نام بہت لمبا ہے۔ اسے چھوٹا کریں۔';
 
   @override
   String get reasonFileTooLarge =>
-      'یہ فائل ‎10 MB‎ سے بڑی ہے۔ چھوٹی فائل منتخب کریں، یا اس کی تصویر کھینچ لیں۔';
+      'یہ فائل ‎10 MB‎ سے بڑی ہے۔ چھوٹی فائل چنیں، یا اس کی تصویر کھینچ لیں۔';
 
   @override
   String get reasonFileTypeNotAllowed =>
-      'صرف تصاویر (JPEG، PNG، WebP یا HEIC) اور پی ڈی ایف شامل کی جا سکتی ہیں۔';
+      'صرف تصویریں (JPEG، PNG، WebP یا HEIC) اور پی ڈی ایف شامل ہو سکتی ہیں۔';
 
   @override
   String get reasonFileUnreadable =>
-      'یہ فائل پڑھی نہیں جا سکی۔ کوئی اور فائل منتخب کریں، یا کاغذ کی تصویر کھینچ لیں۔';
+      'ایپ یہ فائل پڑھ نہیں سکی۔ کوئی اور فائل چنیں، یا کاغذ کی تصویر کھینچ لیں۔';
 
   @override
   String get reasonPickerAccessDenied =>
@@ -2467,13 +2466,13 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonCameraNotReady =>
-      'آپ کا فون تصویر کھینچنے کے لیے تیار نہیں ہو سکا۔ دوبارہ کوشش کریں، یا اس کی جگہ کوئی فائل منتخب کریں۔';
+      'آپ کا فون تصویر کھینچنے کے لیے تیار نہیں ہو سکا۔ دوبارہ کوشش کریں، یا اس کی جگہ کوئی فائل چنیں۔';
 
   @override
   String get chargeKindRent => 'کرایہ';
 
   @override
-  String get chargeKindDeposit => 'زرِ ضمانت';
+  String get chargeKindDeposit => 'سیکیورٹی';
 
   @override
   String get chargeKindElectricity => 'بجلی';
@@ -2488,16 +2487,16 @@ class AppLocalizationsUr extends AppLocalizations {
   String get chargeKindInternet => 'انٹرنیٹ';
 
   @override
-  String get chargeKindMaintenance => 'مرمت و دیکھ بھال';
+  String get chargeKindMaintenance => 'مرمت اور دیکھ بھال';
 
   @override
   String get chargeKindSociety => 'سوسائٹی چارجز';
 
   @override
-  String get chargeKindLateFee => 'تاخیر جرمانہ';
+  String get chargeKindLateFee => 'لیٹ فیس';
 
   @override
-  String get chargeKindDamages => 'نقصانات';
+  String get chargeKindDamages => 'نقصان';
 
   @override
   String get chargeKindOther => 'دیگر';
@@ -2524,7 +2523,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get methodCard => 'کارڈ';
 
   @override
-  String get methodDeposit => 'زرِ ضمانت سے';
+  String get methodDeposit => 'سیکیورٹی میں سے';
 
   @override
   String get methodOther => 'دیگر';
@@ -2542,29 +2541,29 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       days,
       locale: localeName,
-      other: '$days دن کی تاخیر',
-      one: '1 دن کی تاخیر',
+      other: '$days دن لیٹ',
+      one: '1 دن لیٹ',
     );
     return '$_temp0';
   }
 
   @override
-  String get dueToday => 'آج واجب';
+  String get dueToday => 'آج تاریخ ہے';
 
   @override
   String dueInDays(int days) {
     String _temp0 = intl.Intl.pluralLogic(
       days,
       locale: localeName,
-      other: '$days دن میں واجب',
-      one: 'کل واجب',
+      other: '$days دن بعد تاریخ',
+      one: 'کل تاریخ ہے',
     );
     return '$_temp0';
   }
 
   @override
   String dueOn(String date) {
-    return '$date کو واجب';
+    return 'تاریخ: $date';
   }
 
   @override
@@ -2574,41 +2573,41 @@ class AppLocalizationsUr extends AppLocalizations {
   String get chargeWaived => 'معاف';
 
   @override
-  String get chargeVoided => 'منسوخ';
+  String get chargeVoided => 'کینسل';
 
   @override
-  String get loadingReceivables => 'کس پر کتنا واجب ہے، لوڈ ہو رہا ہے';
+  String get loadingReceivables => 'کس کے ذمے کتنا باقی ہے، لوڈ ہو رہا ہے';
 
   @override
-  String get receivablesLoadFailedTitle => 'واجب الادا رقوم لوڈ نہیں ہو سکیں';
+  String get receivablesLoadFailedTitle => 'باقی رقم لوڈ نہیں ہو سکی';
 
   @override
-  String get receivablesEmptyTitle => 'ابھی کوئی رقم واجب الادا نہیں';
+  String get receivablesEmptyTitle => 'ابھی کسی کے ذمے کچھ باقی نہیں';
 
   @override
   String get receivablesEmptyBody =>
-      'آپ کی شروع کی گئی ہر کرایہ داری کا کرایہ خود بخود لگتا ہے۔ کرایہ داروں کے واجبات اور ادائیگیاں یہاں نظر آئیں گی۔';
+      'آپ جو بھی کرایہ داری شروع کریں، اس کا کرایہ خود بخود لگتا ہے۔ کرایہ داروں کے ذمے باقی رقم اور ان کی ادائیگیاں یہاں نظر آئیں گی۔';
 
   @override
-  String get totalOwedLabel => 'واجب الادا';
+  String get totalOwedLabel => 'باقی رقم';
 
   @override
-  String get totalOverdueLabel => 'تاخیر شدہ';
+  String get totalOverdueLabel => 'لیٹ رقم';
 
   @override
   String get totalCreditLabel => 'کریڈٹ';
 
   @override
-  String get whoOwesSection => 'کس پر کتنا واجب ہے';
+  String get whoOwesSection => 'کس کے ذمے کتنا باقی ہے';
 
   @override
-  String get whoOwesHelp => 'سب سے زیادہ تاخیر والے پہلے۔';
+  String get whoOwesHelp => 'جو سب سے زیادہ دن لیٹ ہیں، وہ پہلے۔';
 
   @override
-  String get nobodyOwes => 'اس وقت کسی پر کچھ واجب نہیں۔';
+  String get nobodyOwes => 'اس وقت کسی کے ذمے کچھ باقی نہیں۔';
 
   @override
-  String get settledSection => 'بے باق یا کریڈٹ میں';
+  String get settledSection => 'حساب صاف یا کریڈٹ میں';
 
   @override
   String lastPaidOn(String date) {
@@ -2617,7 +2616,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String owesAmount(String amount) {
-    return 'واجب $amount';
+    return 'باقی $amount';
   }
 
   @override
@@ -2628,7 +2627,7 @@ class AppLocalizationsUr extends AppLocalizations {
       other: '$days دن',
       one: '1 دن',
     );
-    return '$amount تاخیر شدہ، سب سے پرانا $_temp0';
+    return '$amount لیٹ، سب سے پرانی رقم $_temp0 سے';
   }
 
   @override
@@ -2652,18 +2651,18 @@ class AppLocalizationsUr extends AppLocalizations {
   String get ledgerLoadFailedTitle => 'یہ حساب لوڈ نہیں ہو سکا';
 
   @override
-  String get statementAction => 'کرایہ دار کا گوشوارہ';
+  String get statementAction => 'کرایہ دار کی اسٹیٹمنٹ';
 
   @override
-  String get owedNowLabel => 'اب واجب الادا';
+  String get owedNowLabel => 'ابھی باقی';
 
   @override
   String owedNowValue(String amount) {
-    return 'اب واجب الادا: $amount';
+    return 'ابھی باقی: $amount';
   }
 
   @override
-  String get overdueLabel => 'تاخیر شدہ';
+  String get overdueLabel => 'لیٹ';
 
   @override
   String get creditLabel => 'کریڈٹ';
@@ -2679,15 +2678,15 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get creditExplainActive =>
-      'کرایہ دار نے پیشگی ادائیگی کی ہے۔ یہ کریڈٹ اگلے واجبات میں خود بخود لگ جائے گا۔';
+      'کرایہ دار نے رقم پہلے دے دی ہے۔ یہ کریڈٹ اگلے چارجز میں خود بخود لگ جائے گا۔';
 
   @override
   String get creditExplainEnded =>
-      'کرایہ داری ختم ہو چکی ہے اور رقم بچی ہوئی ہے۔ یہ کرایہ دار کو واپس کریں، یا جس ادائیگی سے آئی ہے اسے منسوخ کریں۔';
+      'کرایہ داری ختم ہو چکی ہے اور رقم بچی ہوئی ہے۔ یہ کرایہ دار کو واپس کریں، یا جس ادائیگی سے آئی ہے وہ ادائیگی کینسل کریں۔';
 
   @override
   String creditHeldEnded(String amount) {
-    return 'کرایہ داری ختم ہو چکی ہے اور کرایہ دار کا $amount کریڈٹ باقی ہے۔';
+    return 'کرایہ داری ختم ہو چکی ہے اور کرایہ دار کا $amount کریڈٹ آپ کے پاس ہے۔';
   }
 
   @override
@@ -2697,22 +2696,22 @@ class AppLocalizationsUr extends AppLocalizations {
   String get recordPaymentAction => 'ادائیگی درج کریں';
 
   @override
-  String get remindAction => 'واٹس ایپ پر یاد دہانی';
+  String get remindAction => 'واٹس ایپ پر یاد دلائیں';
 
   @override
   String get openTenancyAction => 'کرایہ داری کی تفصیلات';
 
   @override
-  String get openDuesSection => 'واجب الادا';
+  String get openDuesSection => 'باقی';
 
   @override
-  String get openDuesHelp => 'ہر غیر ادا شدہ واجب، سب سے پرانا پہلے۔';
+  String get openDuesHelp => 'ہر چارج جو ابھی ادا نہیں ہوا، سب سے پرانا پہلے۔';
 
   @override
-  String get addChargeAction => 'واجب شامل کریں';
+  String get addChargeAction => 'چارج لگائیں';
 
   @override
-  String get noOpenDues => 'کچھ واجب نہیں۔';
+  String get noOpenDues => 'کچھ باقی نہیں۔';
 
   @override
   String leftOfAmount(String left, String amount) {
@@ -2732,17 +2731,17 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String withTax(String amount) {
-    return '$amount ٹیکس منہا';
+    return '$amount ٹیکس کٹا';
   }
 
   @override
-  String get allDuesSection => 'تمام واجبات';
+  String get allDuesSection => 'سب چارجز';
 
   @override
-  String get allDuesHelp => 'ادا شدہ، معاف اور منسوخ بھی، تازہ ترین پہلے۔';
+  String get allDuesHelp => 'ادا شدہ، معاف اور کینسل بھی، سب سے نئے پہلے۔';
 
   @override
-  String get noDuesYet => 'ابھی کوئی واجب نہیں۔';
+  String get noDuesYet => 'ابھی کوئی چارج نہیں۔';
 
   @override
   String get moneySection => 'حساب';
@@ -2757,10 +2756,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get paidLabel => 'ادا شدہ';
 
   @override
-  String get stillOwedLabel => 'ابھی واجب';
+  String get stillOwedLabel => 'ابھی باقی';
 
   @override
-  String get dueDateLabel => 'واجب الادا تاریخ';
+  String get dueDateLabel => 'دینے کی تاریخ';
 
   @override
   String get chargeNoteLabel => 'نوٹ';
@@ -2769,27 +2768,27 @@ class AppLocalizationsUr extends AppLocalizations {
   String get waiveReasonLabel => 'معاف کرنے کی وجہ';
 
   @override
-  String get voidReasonLabel => 'منسوخ کرنے کی وجہ';
+  String get voidReasonLabel => 'کینسل کرنے کی وجہ';
 
   @override
-  String get editChargeAction => 'واجب میں ترمیم';
+  String get editChargeAction => 'چارج ایڈٹ کریں';
 
   @override
   String get waiveChargeAction => 'معاف کریں';
 
   @override
-  String get voidChargeAction => 'واجب منسوخ کریں';
+  String get voidChargeAction => 'چارج کینسل کریں';
 
   @override
   String get voidChargeHasPayments =>
-      'اس واجب کی ادائیگی وصول ہو چکی ہے، اس لیے اسے منسوخ نہیں کیا جا سکتا۔ پہلے وہ ادائیگی منسوخ کریں، یا باقی رقم معاف کریں۔';
+      'اس چارج کی ادائیگی مل چکی ہے، اس لیے اسے کینسل نہیں کیا جا سکتا۔ پہلے وہ ادائیگی کینسل کریں، یا باقی رقم معاف کریں۔';
 
   @override
-  String get chargeSaved => 'واجب محفوظ ہو گیا۔';
+  String get chargeSaved => 'چارج محفوظ ہو گیا۔';
 
   @override
   String get chargeAmountFixed =>
-      'کرایہ، تاخیر جرمانہ اور زرِ ضمانت کی رقم کرایہ داری کی شرائط سے طے ہوتی ہے۔ کرایہ تبدیل کریں، یا یہ واجب منسوخ کر کے نیا شامل کریں۔';
+      'کرایہ، لیٹ فیس اور سیکیورٹی کی رقم کرایہ داری کی شرائط سے طے ہوتی ہے۔ کرایہ بدلیں، یا یہ چارج کینسل کر کے نیا لگائیں۔';
 
   @override
   String amountAtLeast(String amount) {
@@ -2802,10 +2801,10 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get chargeKindLabel => 'کس مد میں';
+  String get chargeKindLabel => 'کس چیز کا';
 
   @override
-  String get chargeMonthLabel => 'برائے مہینہ';
+  String get chargeMonthLabel => 'کس مہینے کا';
 
   @override
   String get chargeMonthHelp => 'جس مہینے کا بل ہے، اگر ہو۔';
@@ -2815,19 +2814,19 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String chargeAdded(String kind) {
-    return '$kind شامل ہو گیا۔';
+    return '$kind کا چارج لگ گیا۔';
   }
 
   @override
   String get waiveExplain =>
-      'معاف کرنے سے باقی واجب رقم (یا جتنی آپ لکھیں) معاف ہو جاتی ہے۔ یہ واجب آپ کی بتائی گئی وجہ کے ساتھ، معاف شدہ کے طور پر حساب میں رہے گا۔';
+      'معاف کرنے سے باقی رقم (یا جتنی آپ لکھیں) معاف ہو جاتی ہے۔ چارج حساب میں رہے گا، اس پر معاف لکھا ہو گا اور آپ کی بتائی وجہ بھی۔';
 
   @override
   String get voidChargeExplain =>
-      'منسوخ کرنے سے غلطی سے درج کیا گیا واجب، اپنے غیر ادا شدہ تاخیر جرمانے سمیت، ختم ہو جاتا ہے۔ یہ آپ کی بتائی گئی وجہ کے ساتھ، منسوخ شدہ کے طور پر حساب میں رہے گا۔';
+      'کینسل کرنے سے غلطی سے لگا چارج ختم ہو جاتا ہے، اور اس کی لیٹ فیس بھی جو ابھی ادا نہیں ہوئی۔ یہ حساب میں رہے گا، اس پر کینسل لکھا ہو گا اور آپ کی بتائی وجہ بھی۔';
 
   @override
-  String get waiveAmountLabel => 'معاف کی جانے والی رقم';
+  String get waiveAmountLabel => 'کتنی رقم معاف کریں';
 
   @override
   String waiveAmountHelp(String amount) {
@@ -2838,42 +2837,42 @@ class AppLocalizationsUr extends AppLocalizations {
   String get reasonLabel => 'وجہ';
 
   @override
-  String get chargeWaivedDone => 'واجب معاف ہو گیا۔';
+  String get chargeWaivedDone => 'چارج معاف ہو گیا۔';
 
   @override
-  String get chargeVoidedDone => 'واجب منسوخ ہو گیا۔';
+  String get chargeVoidedDone => 'چارج کینسل ہو گیا۔';
 
   @override
-  String get depositSection => 'زرِ ضمانت';
+  String get depositSection => 'سیکیورٹی';
 
   @override
-  String get depositAgreedLabel => 'طے شدہ';
+  String get depositAgreedLabel => 'طے ہوئی';
 
   @override
-  String get depositReceivedLabel => 'وصول شدہ';
+  String get depositReceivedLabel => 'وصول ہوئی';
 
   @override
-  String get depositAppliedLabel => 'واجبات میں استعمال';
+  String get depositAppliedLabel => 'باقی رقم میں کاٹی';
 
   @override
-  String get depositRefundedLabel => 'واپس کیا گیا';
+  String get depositRefundedLabel => 'واپس کی';
 
   @override
-  String get depositHeldLabel => 'جمع زرِ ضمانت';
+  String get depositHeldLabel => 'اب جمع سیکیورٹی';
 
   @override
   String get depositSettleAfterEnd =>
-      'کرایہ داری ختم ہو چکی ہے اور زرِ ضمانت ابھی آپ کے پاس ہے۔ اسے واجبات میں استعمال کریں، پھر باقی رقم واپس کریں۔';
+      'کرایہ داری ختم ہو چکی ہے اور سیکیورٹی ابھی آپ کے پاس ہے۔ اس میں سے کرایہ دار کے ذمے باقی رقم کاٹیں، پھر جو بچے وہ واپس کریں۔';
 
   @override
   String get depositTenancyActive =>
-      'یہ کرایہ داری ابھی جاری ہے۔ زرِ ضمانت عموماً کرایہ دار کے جانے پر واجبات میں استعمال یا واپس کیا جاتا ہے۔';
+      'یہ کرایہ داری ابھی جاری ہے۔ سیکیورٹی عام طور پر کرایہ دار کے جانے پر باقی رقم میں کٹتی ہے یا واپس ہوتی ہے۔';
 
   @override
-  String get applyDepositAction => 'واجبات میں استعمال کریں';
+  String get applyDepositAction => 'باقی رقم سیکیورٹی میں سے کاٹیں';
 
   @override
-  String get refundDepositAction => 'زرِ ضمانت واپس کریں';
+  String get refundDepositAction => 'سیکیورٹی واپس کریں';
 
   @override
   String refundOf(String amount) {
@@ -2882,34 +2881,34 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String voidedBecause(String reason) {
-    return 'منسوخ: $reason';
+    return 'کینسل: $reason';
   }
 
   @override
-  String get voidRefundAction => 'واپسی منسوخ کریں';
+  String get voidRefundAction => 'واپسی کینسل کریں';
 
   @override
   String get voidRefundExplain =>
-      'غلطی سے درج کی گئی واپسی منسوخ کرنے سے وہ رقم دوبارہ آپ کے پاس جمع شمار ہو گی۔ یہ منسوخ شدہ کے طور پر حساب میں رہے گی۔';
+      'غلطی سے درج ہوئی واپسی کینسل کرنے سے وہ رقم دوبارہ آپ کے پاس جمع مانی جائے گی۔ یہ واپسی حساب میں رہے گی، اس پر کینسل لکھا ہو گا۔';
 
   @override
-  String get refundVoided => 'واپسی منسوخ ہو گئی۔';
+  String get refundVoided => 'واپسی کینسل ہو گئی۔';
 
   @override
   String get applyDepositExplain =>
-      'زرِ ضمانت سے واجبات ادا ہوں گے، سب سے پرانا پہلے، اور کرایہ دار کو اس کی رسید ملے گی۔';
+      'سیکیورٹی میں سے کرایہ دار کے ذمے باقی رقم ادا ہو گی، سب سے پرانا چارج پہلے۔ کرایہ دار کو اس کی رسید ملے گی۔';
 
   @override
   String applyDepositHelp(String held, String owed) {
-    return 'جمع $held؛ واجب $owed۔';
+    return 'جمع: $held۔ ذمے باقی: $owed۔';
   }
 
   @override
-  String get appliedOnLabel => 'استعمال کی تاریخ';
+  String get appliedOnLabel => 'کاٹنے کی تاریخ';
 
   @override
   String depositApplied(String amount) {
-    return 'زرِ ضمانت میں سے $amount واجبات میں لگ گئے۔';
+    return 'سیکیورٹی میں سے $amount باقی رقم میں کٹ گئے۔';
   }
 
   @override
@@ -2922,7 +2921,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String depositRefunded(String amount) {
-    return 'زرِ ضمانت میں سے $amount واپس کر دیے گئے۔';
+    return 'سیکیورٹی میں سے $amount واپس ہو گئے۔';
   }
 
   @override
@@ -2932,17 +2931,17 @@ class AppLocalizationsUr extends AppLocalizations {
   String get paymentSectionMoney => 'کیا وصول ہوا';
 
   @override
-  String get paymentSectionTax => 'منہا شدہ ٹیکس';
+  String get paymentSectionTax => 'کٹا ہوا ٹیکس';
 
   @override
   String get paymentSectionSettle => 'یہ کس کی ادائیگی ہے';
 
   @override
-  String get amountReceivedLabel => 'وصول شدہ رقم';
+  String get amountReceivedLabel => 'کتنی رقم ملی';
 
   @override
   String useOwedAction(String amount) {
-    return 'واجب $amount لکھیں';
+    return 'باقی $amount لکھیں';
   }
 
   @override
@@ -2955,41 +2954,41 @@ class AppLocalizationsUr extends AppLocalizations {
   String get paymentReferenceHelp => 'ٹرانزیکشن آئی ڈی یا چیک نمبر، اگر ہو۔';
 
   @override
-  String get taxWithheldSwitch => 'کرایہ دار نے انکم ٹیکس منہا کیا';
+  String get taxWithheldSwitch => 'کرایہ دار نے انکم ٹیکس کاٹا';
 
   @override
   String get taxWithheldHelp =>
-      'کمپنیاں اور سرکاری ادارے سیکشن 155 کے تحت ٹیکس کاٹ کر سرٹیفکیٹ دیتے ہیں۔ نقد رقم اور ٹیکس مل کر کرایہ ادا کرتے ہیں۔';
+      'کمپنیاں اور سرکاری ادارے دفعہ 155 (سیکشن 155) کے تحت ٹیکس کاٹ کر سرٹیفکیٹ دیتے ہیں۔ نقد رقم اور ٹیکس مل کر کرایہ ادا کرتے ہیں۔';
 
   @override
-  String get taxWithheldLabel => 'منہا شدہ ٹیکس (سیکشن 155)';
+  String get taxWithheldLabel => 'کٹا ہوا ٹیکس (دفعہ 155)';
 
   @override
   String get taxCertificateLabel => 'سرٹیفکیٹ یا سی پی آر نمبر';
 
   @override
   String taxSettlesGross(String cash, String tax, String total) {
-    return '$cash وصول اور $tax منہا شدہ ٹیکس مل کر $total کے واجبات ادا کرتے ہیں۔';
+    return '$cash وصول اور $tax کٹا ہوا ٹیکس مل کر $total کے چارجز ادا کرتے ہیں۔';
   }
 
   @override
   String get noOpenDuesCredit =>
-      'اس وقت کچھ واجب نہیں: یہ ادائیگی اگلے واجبات کے لیے کریڈٹ کے طور پر محفوظ رہے گی۔';
+      'اس وقت کچھ باقی نہیں۔ یہ ادائیگی اگلے چارجز کے لیے کریڈٹ کے طور پر محفوظ رہے گی۔';
 
   @override
-  String get settleLabel => 'ادائیگی کی ترتیب';
+  String get settleLabel => 'ادائیگی کس میں لگے';
 
   @override
-  String get settleOldestFirst => 'سب سے پرانے واجبات پہلے';
+  String get settleOldestFirst => 'سب سے پرانے چارج پہلے';
 
   @override
-  String get settleChosen => 'میرے منتخب کردہ واجبات';
+  String get settleChosen => 'جو چارج میں خود چنوں';
 
   @override
-  String get chooseDuesError => 'کم از کم ایک واجب منتخب کریں۔';
+  String get chooseDuesError => 'کم از کم ایک چارج چنیں۔';
 
   @override
-  String get willSettleHeading => 'یہ ادائیگی ادا کرے گی';
+  String get willSettleHeading => 'یہ ادائیگی ان میں لگے گی';
 
   @override
   String settledInFull(String charge) {
@@ -2998,7 +2997,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String settledInPart(String charge) {
-    return '$charge، جزوی';
+    return '$charge، کچھ ادا';
   }
 
   @override
@@ -3006,12 +3005,12 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String allCreditExplain(String amount) {
-    return 'پوری $amount اگلے واجبات کے لیے کریڈٹ کے طور پر محفوظ رہے گی۔';
+    return 'پوری $amount اگلے چارجز کے لیے کریڈٹ کے طور پر محفوظ رہے گی۔';
   }
 
   @override
   String lateFeeCancelledNote(String amount) {
-    return '$amount کا تاخیر جرمانہ منسوخ ہو جائے گا: یہ ادائیگی اس کا کرایہ رعایتی دنوں کے اندر پورا ادا کرتی ہے۔';
+    return '$amount کی لیٹ فیس کینسل ہو جائے گی، کیونکہ یہ ادائیگی اس کا پورا کرایہ ان دنوں کے اندر ادا کرتی ہے جن میں لیٹ فیس نہیں لگتی۔';
   }
 
   @override
@@ -3033,14 +3032,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String receiptVoidedOn(String date, String reason) {
-    return 'منسوخ شدہ رسید: $date۔ $reason';
+    return 'کینسل: یہ رسید $date کو کینسل ہوئی۔ $reason';
   }
 
   @override
-  String get receivedFromLabel => 'ادا کنندہ';
+  String get receivedFromLabel => 'کس سے وصول ہوا';
 
   @override
-  String get receiptForLabel => 'برائے';
+  String get receiptForLabel => 'کس لیے';
 
   @override
   String get paidByLabel => 'ادائیگی کا طریقہ';
@@ -3053,23 +3052,23 @@ class AppLocalizationsUr extends AppLocalizations {
   String get shareReceiptAction => 'رسید بھیجیں';
 
   @override
-  String get shareVoidedReceiptAction => 'منسوخ شدہ رسید بھیجیں';
+  String get shareVoidedReceiptAction => 'کینسل ہوئی رسید بھیجیں';
 
   @override
   String get sendThanksAction => 'واٹس ایپ پر شکریہ';
 
   @override
-  String get voidPaymentAction => 'ادائیگی منسوخ کریں';
+  String get voidPaymentAction => 'ادائیگی کینسل کریں';
 
   @override
   String get voidPaymentExplain =>
-      'غلطی سے درج کی گئی ادائیگی منسوخ کرنے سے اس کے ادا کردہ واجبات دوبارہ واجب ہو جائیں گے۔ رسید اپنے نمبر کے ساتھ، آپ کی بتائی گئی وجہ سمیت، منسوخ شدہ رہے گی۔';
+      'غلطی سے درج ہوئی ادائیگی کینسل کرنے سے جو چارج اس نے ادا کیے تھے وہ دوبارہ باقی ہو جائیں گے۔ رسید کا نمبر وہی رہے گا، اس پر کینسل لکھا ہو گا اور آپ کی بتائی وجہ بھی۔';
 
   @override
-  String get paymentVoided => 'ادائیگی منسوخ ہو گئی۔';
+  String get paymentVoided => 'ادائیگی کینسل ہو گئی۔';
 
   @override
-  String get documentLanguageLabel => 'دستاویز کی زبان';
+  String get documentLanguageLabel => 'پی ڈی ایف کی زبان';
 
   @override
   String get shareDocumentAction => 'پی ڈی ایف بھیجیں';
@@ -3078,22 +3077,22 @@ class AppLocalizationsUr extends AppLocalizations {
   String get receiptDocumentTitle => 'کرائے کی رسید';
 
   @override
-  String get receiptVoid => 'منسوخ';
+  String get receiptVoid => 'کینسل';
 
   @override
   String receiptVoidBecause(String reason) {
-    return 'منسوخ: $reason';
+    return 'کینسل: $reason';
   }
 
   @override
-  String get totalSettledLabel => 'کل، ٹیکس سمیت';
+  String get totalSettledLabel => 'کل رقم، ٹیکس سمیت';
 
   @override
-  String get receiptSettledHeading => 'ادا شدہ واجبات';
+  String get receiptSettledHeading => 'ادا ہوئے چارجز';
 
   @override
   String documentMadeOn(String date) {
-    return 'مالکِ مکان سے $date کو بنائی گئی۔';
+    return '$date کو مالکِ مکان ایپ سے بنائی گئی۔';
   }
 
   @override
@@ -3102,7 +3101,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get statementDocumentTitle => 'کرایہ دار کا گوشوارہ';
+  String get statementDocumentTitle => 'کرایہ دار کی اسٹیٹمنٹ';
 
   @override
   String get statementPeriodLabel => 'مدت';
@@ -3116,32 +3115,32 @@ class AppLocalizationsUr extends AppLocalizations {
   String get statementSummaryHeading => 'خلاصہ';
 
   @override
-  String get totalBilledLabel => 'کل واجبات';
+  String get totalBilledLabel => 'کل چارجز';
 
   @override
   String get totalPaidLabel => 'ادا شدہ';
 
   @override
-  String get totalWaivedLabel => 'معاف شدہ';
+  String get totalWaivedLabel => 'معاف';
 
   @override
-  String get balanceOwedLabel => 'اب واجب الادا';
+  String get balanceOwedLabel => 'ابھی باقی';
 
   @override
-  String get statementDuesHeading => 'واجبات';
+  String get statementDuesHeading => 'چارجز';
 
   @override
-  String get chargeForLabel => 'کس مد میں';
+  String get chargeForLabel => 'کس چیز کا';
 
   @override
-  String get chargeStateLabel => 'حیثیت';
+  String get chargeStateLabel => 'اسٹیٹس';
 
   @override
   String get statementPaymentsHeading => 'ادائیگیاں';
 
   @override
   String voidedReceipt(String number) {
-    return '$number (منسوخ)';
+    return '$number (کینسل)';
   }
 
   @override
@@ -3158,7 +3157,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String statementFileTitle(String tenant) {
-    return 'گوشوارہ، $tenant';
+    return 'اسٹیٹمنٹ، $tenant';
   }
 
   @override
@@ -3168,19 +3167,19 @@ class AppLocalizationsUr extends AppLocalizations {
   String get reminderTemplateLabel => 'پیغام';
 
   @override
-  String get templateUpcoming => 'کرایہ جلد واجب';
+  String get templateUpcoming => 'کرائے کی تاریخ قریب ہے';
 
   @override
-  String get templateDueToday => 'کرایہ آج واجب';
+  String get templateDueToday => 'کرائے کی تاریخ آج ہے';
 
   @override
-  String get templateOverdue => 'کرایہ تاخیر شدہ';
+  String get templateOverdue => 'کرایہ لیٹ';
 
   @override
-  String get templatePaymentReceived => 'ادائیگی موصول';
+  String get templatePaymentReceived => 'ادائیگی مل گئی';
 
   @override
-  String get templateUtilityBill => 'یوٹیلیٹی بل';
+  String get templateUtilityBill => 'بل';
 
   @override
   String get reminderLanguageLabel => 'کرایہ دار کی زبان';
@@ -3189,15 +3188,15 @@ class AppLocalizationsUr extends AppLocalizations {
   String get languageRomanUrdu => 'Roman Urdu';
 
   @override
-  String get reminderMessageLabel => 'بھیجا جانے والا پیغام';
+  String get reminderMessageLabel => 'بھیجنے کے لیے پیغام';
 
   @override
   String get reminderNoPhone =>
-      'اس کرایہ دار کا فون نمبر درج نہیں: واٹس ایپ کھلے گا تاکہ آپ چیٹ منتخب کریں۔';
+      'اس کرایہ دار کا فون نمبر درج نہیں۔ واٹس ایپ کھلے گا تاکہ آپ خود چیٹ چنیں۔';
 
   @override
   String reminderTo(String name, String phone) {
-    return 'بنام $name، نمبر $phone۔';
+    return '$name کو، $phone پر۔';
   }
 
   @override
@@ -3230,7 +3229,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String etiquetteRecent(String moment) {
-    return 'اس کرایہ دار کو $moment کو پہلے ہی یاد دہانی بھیجی جا چکی ہے۔ بار بار یاد دہانی اچھے تعلق کو متاثر کر سکتی ہے۔';
+    return 'اس کرایہ دار کو $moment کو پہلے ہی یاد دہانی جا چکی ہے۔ بہت زیادہ یاد دہانیاں اچھا تعلق خراب کر سکتی ہیں۔';
   }
 
   @override
@@ -3257,12 +3256,12 @@ class AppLocalizationsUr extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'السلام علیکم $tenant۔ یاد دہانی ہے کہ $unit کے $amount مورخہ $date کو واجب الادا ہیں۔';
+    return 'السلام علیکم $tenant۔ یاد دہانی: $unit کے $amount، $date کو دینے ہیں۔';
   }
 
   @override
   String reminderDueToday(String tenant, String amount, String unit) {
-    return 'السلام علیکم $tenant۔ $unit کے $amount آج واجب الادا ہیں۔';
+    return 'السلام علیکم $tenant۔ $unit کے $amount آج دینے ہیں۔';
   }
 
   @override
@@ -3272,7 +3271,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'السلام علیکم $tenant۔ $unit کے $amount واجب الادا ہیں اور ابھی تک موصول نہیں ہوئے؛ ان میں سب سے پرانی رقم مورخہ $date کو واجب الادا تھی۔ براہِ کرم جلد از جلد ادا کر دیں۔';
+    return 'السلام علیکم $tenant۔ $unit کے $amount لیٹ ہیں۔ ان میں سب سے پرانی رقم $date کو دینی تھی۔ مہربانی کر کے جلد ادا کر دیں۔';
   }
 
   @override
@@ -3282,7 +3281,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String date,
     String receipt,
   ) {
-    return 'السلام علیکم $tenant۔ $date کو $amount موصول ہو گئے۔ رسید نمبر: $receipt۔ شکریہ۔';
+    return 'السلام علیکم $tenant۔ $date کو $amount مل گئے۔ رسید نمبر: $receipt۔ شکریہ۔';
   }
 
   @override
@@ -3293,23 +3292,23 @@ class AppLocalizationsUr extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'السلام علیکم $tenant۔ $unit کا $utility کا بل $amount مورخہ $date تک ادا کرنا ہے۔ براہِ کرم آخری تاریخ سے پہلے ادا کر دیں۔';
+    return 'السلام علیکم $tenant۔ $unit کا $utility $amount ہے، جو $date تک ادا کرنا ہے۔ مہربانی کر کے آخری تاریخ سے پہلے ادا کر دیں۔';
   }
 
   @override
-  String get reminderElectricity => 'بجلی';
+  String get reminderElectricity => 'بجلی کا بل';
 
   @override
-  String get reminderGas => 'گیس';
+  String get reminderGas => 'گیس کا بل';
 
   @override
-  String get reminderWater => 'پانی';
+  String get reminderWater => 'پانی کا بل';
 
   @override
-  String get reminderInternet => 'انٹرنیٹ';
+  String get reminderInternet => 'انٹرنیٹ کا بل';
 
   @override
-  String get reminderUtilityGeneric => 'یوٹیلیٹی';
+  String get reminderUtilityGeneric => 'بل';
 
   @override
   String reminderPayRaast(String raast) {
@@ -3338,12 +3337,12 @@ class AppLocalizationsUr extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'Assalam-o-Alaikum $tenant. Yaad dihani hai ke $unit ke $amount $date ko wajib-ul-ada hain.';
+    return 'Assalam-o-Alaikum $tenant. Yaad dihani: $unit ke $amount, $date ko dene hain.';
   }
 
   @override
   String reminderRomanDueToday(String tenant, String amount, String unit) {
-    return 'Assalam-o-Alaikum $tenant. $unit ke $amount aaj wajib-ul-ada hain.';
+    return 'Assalam-o-Alaikum $tenant. $unit ke $amount aaj dene hain.';
   }
 
   @override
@@ -3353,7 +3352,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'Assalam-o-Alaikum $tenant. $unit ke $amount wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam $date ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.';
+    return 'Assalam-o-Alaikum $tenant. $unit ke $amount late hain. In mein sab se purani raqam $date ko deni thi. Meherbani kar ke jald ada kar dein.';
   }
 
   @override
@@ -3363,7 +3362,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String date,
     String receipt,
   ) {
-    return 'Assalam-o-Alaikum $tenant. $date ko $amount mosool ho gaye. Raseed number: $receipt. Shukriya.';
+    return 'Assalam-o-Alaikum $tenant. $date ko $amount mil gaye. Raseed number: $receipt. Shukriya.';
   }
 
   @override
@@ -3374,23 +3373,23 @@ class AppLocalizationsUr extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'Assalam-o-Alaikum $tenant. $unit ka $utility ka bill $amount $date tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.';
+    return 'Assalam-o-Alaikum $tenant. $unit ka $utility $amount hai, jo $date tak ada karna hai. Meherbani kar ke aakhri tareekh se pehle ada kar dein.';
   }
 
   @override
-  String get reminderRomanElectricity => 'bijli';
+  String get reminderRomanElectricity => 'bijli ka bill';
 
   @override
-  String get reminderRomanGas => 'gas';
+  String get reminderRomanGas => 'gas ka bill';
 
   @override
-  String get reminderRomanWater => 'paani';
+  String get reminderRomanWater => 'paani ka bill';
 
   @override
-  String get reminderRomanInternet => 'internet';
+  String get reminderRomanInternet => 'internet ka bill';
 
   @override
-  String get reminderRomanUtilityGeneric => 'utility';
+  String get reminderRomanUtilityGeneric => 'bill';
 
   @override
   String reminderRomanPayRaast(String raast) {
@@ -3418,7 +3417,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get cashInHandHelp =>
-      'وصول کی گئی نقدی، آگے دی گئی یا نقد خرچ کی گئی رقم نکال کر۔';
+      'جتنی نقدی وصول ہوئی، اس میں سے جو آگے دی یا نقد خرچ ہوئی، وہ نکال کر۔';
 
   @override
   String get noCashYet => 'ابھی کوئی نقدی وصول نہیں ہوئی۔';
@@ -3436,49 +3435,49 @@ class AppLocalizationsUr extends AppLocalizations {
   String get cashInHandLabel => 'پاس موجود';
 
   @override
-  String get handoversSection => 'نقدی کی حوالگی';
+  String get handoversSection => 'آگے دی گئی نقدی';
 
   @override
-  String get noHandoversYet => 'ابھی کوئی نقدی حوالے نہیں کی گئی۔';
+  String get noHandoversYet => 'ابھی کوئی نقدی آگے نہیں دی گئی۔';
 
   @override
-  String get formerMember => 'سابق رکن';
+  String get formerMember => 'سابق ممبر';
 
   @override
   String handoverFromTo(String from, String to) {
-    return 'از $from بنام $to';
+    return '$from سے $to کو';
   }
 
   @override
   String get handoverConfirmed => 'تصدیق شدہ';
 
   @override
-  String get handoverAwaiting => 'تصدیق باقی';
+  String get handoverAwaiting => 'تصدیق کا انتظار';
 
   @override
-  String get handoverTitle => 'نقدی کی حوالگی';
+  String get handoverTitle => 'نقدی کس کو دی';
 
   @override
-  String get handedOverOnLabel => 'حوالگی کی تاریخ';
+  String get handedOverOnLabel => 'نقدی دینے کی تاریخ';
 
   @override
   String get confirmHandoverAction => 'تصدیق کریں کہ وصول ہوئی';
 
   @override
-  String get handoverConfirmedDone => 'حوالگی کی تصدیق ہو گئی۔';
+  String get handoverConfirmedDone => 'نقدی ملنے کی تصدیق ہو گئی۔';
 
   @override
-  String get voidHandoverAction => 'حوالگی منسوخ کریں';
+  String get voidHandoverAction => 'نقدی کی انٹری کینسل کریں';
 
   @override
   String get voidHandoverExplain =>
-      'غلطی سے درج کی گئی حوالگی منسوخ کرنے سے وہ نقدی دینے والے کے پاس ہی شمار ہو گی۔ یہ منسوخ شدہ کے طور پر فہرست میں رہے گی۔';
+      'غلطی سے درج ہوئی نقدی کی انٹری کینسل کرنے سے وہ نقدی دینے والے کے پاس ہی مانی جائے گی۔ یہ انٹری فہرست میں رہے گی، اس پر کینسل لکھا ہو گا۔';
 
   @override
-  String get handoverVoided => 'حوالگی منسوخ ہو گئی۔';
+  String get handoverVoided => 'نقدی کی انٹری کینسل ہو گئی۔';
 
   @override
-  String get recordHandoverAction => 'حوالگی درج کریں';
+  String get recordHandoverAction => 'نقدی دینے کی انٹری کریں';
 
   @override
   String get handoverFromLabel => 'دینے والا';
@@ -3487,17 +3486,17 @@ class AppLocalizationsUr extends AppLocalizations {
   String get handoverToLabel => 'وصول کرنے والا';
 
   @override
-  String get handoverChooseReceiver => 'منتخب کریں کہ نقدی کس نے وصول کی۔';
+  String get handoverChooseReceiver => 'چنیں کہ نقدی کس نے وصول کی۔';
 
   @override
-  String get handoverRecorded => 'حوالگی درج ہو گئی۔';
+  String get handoverRecorded => 'نقدی دینے کی انٹری ہو گئی۔';
 
   @override
   String get notificationsTitle => 'اطلاعات';
 
   @override
   String get notificationsSummary =>
-      'واجب کرایہ، ختم ہوتی کرایہ داریاں، پولیس اندراج';
+      'کرائے کی تاریخیں، ختم ہوتی کرایہ داریاں، پولیس رجسٹریشن';
 
   @override
   String unreadCount(int count) {
@@ -3521,7 +3520,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get notificationsEmptyBody =>
-      'ایپ ہر صبح واجب کرایہ، ختم ہوتی کرایہ داریاں، کرائے میں اضافہ، پولیس اندراج اور ختم ہوتے شناختی کارڈ دیکھتی ہے، اور آپ کو یہاں بتاتی ہے۔';
+      'ایپ ہر صبح کرائے کی تاریخیں، ختم ہوتی کرایہ داریاں، کرائے میں اضافہ، پولیس رجسٹریشن اور ایکسپائر ہوتے شناختی کارڈ دیکھتی ہے، اور آپ کو یہاں بتاتی ہے۔';
 
   @override
   String get markAllReadAction => 'سب کو پڑھا ہوا کریں';
@@ -3533,10 +3532,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get openNotificationAction => 'کھولیں';
 
   @override
-  String get notificationDeleted => 'اطلاع حذف ہو گئی۔';
+  String get notificationDeleted => 'اطلاع ڈیلیٹ ہو گئی۔';
 
   @override
-  String get notificationRentDueSoon => 'کرایہ جلد واجب';
+  String get notificationRentDueSoon => 'کرائے کی تاریخ قریب ہے';
 
   @override
   String notificationRentDueSoonBody(
@@ -3544,11 +3543,11 @@ class AppLocalizationsUr extends AppLocalizations {
     String amount,
     String date,
   ) {
-    return '$tenancy: $amount مورخہ $date کو واجب۔';
+    return '$tenancy: $amount کی تاریخ $date ہے۔';
   }
 
   @override
-  String get notificationRentOverdue => 'کرایہ تاخیر شدہ';
+  String get notificationRentOverdue => 'کرایہ لیٹ';
 
   @override
   String notificationRentOverdueBody(
@@ -3556,19 +3555,19 @@ class AppLocalizationsUr extends AppLocalizations {
     String amount,
     String date,
   ) {
-    return '$tenancy: $amount مورخہ $date کو واجب تھا۔';
+    return '$tenancy: $amount کی تاریخ $date تھی۔';
   }
 
   @override
-  String get notificationLeaseExpiring => 'معاہدہ ختم ہو رہا ہے';
+  String get notificationLeaseExpiring => 'کرایہ نامہ ختم ہو رہا ہے';
 
   @override
   String notificationLeaseExpiringBody(String tenancy, String date) {
-    return '$tenancy: معاہدہ $date کو ختم ہو گا۔';
+    return '$tenancy: کرایہ نامہ $date کو ختم ہو گا۔';
   }
 
   @override
-  String get notificationIncrementDue => 'کرائے میں اضافہ واجب';
+  String get notificationIncrementDue => 'کرایہ بڑھنے کی تاریخ';
 
   @override
   String notificationIncrementDueBody(
@@ -3576,40 +3575,40 @@ class AppLocalizationsUr extends AppLocalizations {
     String date,
     String rent,
   ) {
-    return '$tenancy: $rent کرائے پر سالانہ اضافہ $date سے واجب ہے۔';
+    return '$tenancy: $rent کرائے پر سالانہ اضافہ $date سے لاگو ہونا ہے۔';
   }
 
   @override
-  String get notificationPolicePending => 'پولیس اندراج باقی';
+  String get notificationPolicePending => 'پولیس رجسٹریشن ابھی نہیں ہوئی';
 
   @override
   String notificationPolicePendingBody(String tenancy, String date) {
-    return '$tenancy: کرایہ داری $date تک پولیس میں درج کروائیں۔';
+    return '$tenancy: $date تک کرایہ داری کی پولیس رجسٹریشن کروائیں۔';
   }
 
   @override
-  String get notificationPoliceOverdue => 'پولیس اندراج میں تاخیر';
+  String get notificationPoliceOverdue => 'پولیس رجسٹریشن لیٹ';
 
   @override
   String notificationPoliceOverdueBody(String tenancy, String date) {
-    return '$tenancy: پولیس اندراج کی آخری تاریخ $date تھی۔';
+    return '$tenancy: پولیس رجسٹریشن کی آخری تاریخ $date تھی۔';
   }
 
   @override
   String notificationPoliceReminderBody(String tenancy, String date) {
-    return '$tenancy: پولیس اندراج کے لیے ایپ کی یاد دہانی $date ہے۔ ایپ کے علم میں یہاں کوئی قانون آخری تاریخ مقرر نہیں کرتا۔';
+    return '$tenancy: پولیس رجسٹریشن کے لیے ایپ کی یاد دہانی $date کو ہے۔ ہمیں ایسا کوئی قانون نہیں ملا جو یہاں آخری تاریخ دے۔';
   }
 
   @override
-  String get notificationCnicExpiring => 'شناختی کارڈ کی میعاد ختم';
+  String get notificationCnicExpiring => 'شناختی کارڈ ایکسپائر ہو رہا ہے';
 
   @override
   String notificationCnicExpiringBody(String tenant, String date) {
-    return '$tenant کے شناختی کارڈ کی میعاد $date کو ختم ہو رہی ہے۔';
+    return '$tenant کا شناختی کارڈ $date کو ایکسپائر ہو گا۔';
   }
 
   @override
-  String get notificationUtilityDue => 'یوٹیلیٹی بل واجب';
+  String get notificationUtilityDue => 'بل ادا ہونا ہے';
 
   @override
   String notificationUtilityDueBody(
@@ -3617,7 +3616,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String amount,
     String date,
   ) {
-    return '$property: $amount کا بل $date کو واجب ہے۔';
+    return '$property: $amount کے بل کی آخری تاریخ $date ہے۔';
   }
 
   @override
@@ -3625,7 +3624,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String notificationInvitationAcceptedBody(String email, String role) {
-    return '$email بطور $role شامل ہو گئے۔';
+    return '$email شامل ہو گئے۔ رول: $role۔';
   }
 
   @override
@@ -3641,22 +3640,22 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonRefundUnconfirmed =>
-      'کنکشن ٹوٹ گیا، اس لیے ممکن ہے واپسی درج ہو چکی ہو۔ دوبارہ کوشش سے پہلے اسے بند کر کے زرِ ضمانت دیکھ لیں۔';
+      'رابطہ ٹوٹ گیا، اس لیے ہو سکتا ہے واپسی درج ہو چکی ہو۔ دوبارہ کوشش سے پہلے اسے بند کر کے سیکیورٹی دیکھ لیں۔';
 
   @override
-  String get checkDepositAction => 'بند کر کے زرِ ضمانت دیکھیں';
+  String get checkDepositAction => 'بند کر کے سیکیورٹی دیکھیں';
 
   @override
-  String get operationsSection => 'انتظامات';
+  String get operationsSection => 'خرچ، بل اور مرمت';
 
   @override
-  String get expensesSummary => 'آپ کی جائیدادوں پر ہونے والے اخراجات';
+  String get expensesSummary => 'آپ اپنی جائیدادوں پر کیا خرچ کرتے ہیں';
 
   @override
   String get utilitiesSummary => 'کنکشن، بل اور میٹر ریڈنگ';
 
   @override
-  String get maintenanceSummary => 'مرمت کے کام اور ہر ایک کی صورتِ حال';
+  String get maintenanceSummary => 'مرمت کے کام، اور ہر کام کہاں تک پہنچا';
 
   @override
   String get propertyLabel => 'جائیداد';
@@ -3681,7 +3680,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get descriptionLabel => 'تفصیل';
 
   @override
-  String get statusLabel => 'صورتِ حال';
+  String get statusLabel => 'اسٹیٹس';
 
   @override
   String get yes => 'ہاں';
@@ -3699,19 +3698,19 @@ class AppLocalizationsUr extends AppLocalizations {
   String get callAction => 'کال کریں';
 
   @override
-  String get callFailed => 'اس ڈیوائس پر فون نہیں کھل سکا۔';
+  String get callFailed => 'اس فون یا کمپیوٹر پر فون کی ایپ نہیں کھل سکی۔';
 
   @override
   String get paidOnLabel => 'ادائیگی کی تاریخ';
 
   @override
-  String get expenseCategoryRepairs => 'مرمت و دیکھ بھال';
+  String get expenseCategoryRepairs => 'مرمت اور دیکھ بھال';
 
   @override
   String get expenseCategoryPropertyTax => 'پراپرٹی ٹیکس';
 
   @override
-  String get expenseCategoryUtilities => 'یوٹیلیٹیز';
+  String get expenseCategoryUtilities => 'بل (بجلی، گیس، پانی، انٹرنیٹ)';
 
   @override
   String get expenseCategorySociety => 'سوسائٹی چارجز';
@@ -3720,7 +3719,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get expenseCategoryInsurance => 'انشورنس';
 
   @override
-  String get expenseCategoryLegal => 'قانونی و پیشہ ورانہ فیس';
+  String get expenseCategoryLegal => 'قانونی اور پروفیشنل فیس (وکیل، اکاؤنٹنٹ)';
 
   @override
   String get expenseCategoryAgent => 'ایجنٹ کا کمیشن';
@@ -3729,10 +3728,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get expenseCategorySalaries => 'عملے کی تنخواہیں';
 
   @override
-  String get expenseCategoryCleaning => 'صفائی اور سکیورٹی';
+  String get expenseCategoryCleaning => 'صفائی اور چوکیدار';
 
   @override
-  String get expenseCategoryRenovation => 'تزئین و آرائش';
+  String get expenseCategoryRenovation => 'رینوویشن (مرمت اور رنگ روغن)';
 
   @override
   String get expenseCategoryBank => 'بینک چارجز';
@@ -3741,7 +3740,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get expenseCategoryLoanInterest => 'قرض کا سود';
 
   @override
-  String get expensesTitle => 'اخراجات';
+  String get expensesTitle => 'خرچ';
 
   @override
   String get expenseTitle => 'خرچ';
@@ -3750,19 +3749,19 @@ class AppLocalizationsUr extends AppLocalizations {
   String get newExpenseTitle => 'نیا خرچ';
 
   @override
-  String get editExpenseTitle => 'خرچ میں ترمیم';
+  String get editExpenseTitle => 'خرچ کی تفصیل بدلیں';
 
   @override
   String get addExpenseAction => 'خرچ شامل کریں';
 
   @override
-  String get loadingExpenses => 'اخراجات لوڈ ہو رہے ہیں';
+  String get loadingExpenses => 'خرچے لوڈ ہو رہے ہیں';
 
   @override
   String get loadingExpense => 'خرچ لوڈ ہو رہا ہے';
 
   @override
-  String get expensesLoadFailedTitle => 'اخراجات لوڈ نہیں ہو سکے';
+  String get expensesLoadFailedTitle => 'خرچے لوڈ نہیں ہو سکے';
 
   @override
   String get expenseLoadFailedTitle => 'خرچ لوڈ نہیں ہو سکا';
@@ -3772,7 +3771,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get expensesEmptyBody =>
-      'مرمت، ٹیکس، تنخواہوں اور باقی کاموں پر ہونے والا خرچ درج کریں، ہر رسید کی تصویر کے ساتھ۔ اس سے پتا چلتا ہے کہ ہر جائیداد اصل میں کتنا کماتی ہے۔';
+      'مرمت، ٹیکس، تنخواہوں اور دوسرے کاموں پر جو خرچ کریں وہ درج کریں، ہر رسید کی تصویر کے ساتھ۔ اس سے پتہ چلتا ہے کہ ہر جائیداد اصل میں کتنا کماتی ہے۔';
 
   @override
   String get expenseSectionWhat => 'کیا خرچ ہوا';
@@ -3784,7 +3783,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get expenseSectionPaid => 'ادائیگی کیسے ہوئی';
 
   @override
-  String get expenseCategoryLabel => 'زمرہ';
+  String get expenseCategoryLabel => 'کس چیز پر خرچ';
 
   @override
   String get spentOnLabel => 'خرچ کی تاریخ';
@@ -3827,14 +3826,14 @@ class AppLocalizationsUr extends AppLocalizations {
   String get expenseSaved => 'خرچ محفوظ ہو گیا۔';
 
   @override
-  String get expenseDeleted => 'خرچ حذف ہو گیا۔';
+  String get expenseDeleted => 'خرچ ڈیلیٹ ہو گیا۔';
 
   @override
-  String get deleteExpenseTitle => 'یہ خرچ حذف کریں؟';
+  String get deleteExpenseTitle => 'یہ خرچ ڈیلیٹ کریں؟';
 
   @override
   String get deleteExpenseBody =>
-      'یہ اپنی رسیدوں سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ صرف غلطی سے درج کیے گئے خرچ کے لیے۔';
+      'یہ اپنی رسیدوں سمیت ہمیشہ کے لیے ڈیلیٹ ہو جائے گا۔ صرف تب کریں جب یہ خرچ غلطی سے درج ہوا ہو۔';
 
   @override
   String get providerLesco => 'لیسکو (لاہور)';
@@ -3915,23 +3914,23 @@ class AppLocalizationsUr extends AppLocalizations {
   String get readingMonthly => 'ماہانہ';
 
   @override
-  String get utilitiesTitle => 'یوٹیلیٹیز';
+  String get utilitiesTitle => 'بل اور کنکشن';
 
   @override
-  String get loadingUtilities => 'یوٹیلیٹیز لوڈ ہو رہی ہیں';
+  String get loadingUtilities => 'بل اور کنکشن لوڈ ہو رہے ہیں';
 
   @override
-  String get utilitiesLoadFailedTitle => 'یوٹیلیٹیز لوڈ نہیں ہو سکیں';
+  String get utilitiesLoadFailedTitle => 'بل اور کنکشن لوڈ نہیں ہو سکے';
 
   @override
-  String get unpaidBillsSection => 'واجب الادا بل';
+  String get unpaidBillsSection => 'جو بل ادا کرنے ہیں';
 
   @override
   String get unpaidBillsHelp =>
-      'غیر ادا شدہ بل، جس کی آخری تاریخ پہلے ہے وہ پہلے۔';
+      'جو بل ادا نہیں ہوئے، جس کی آخری تاریخ پہلے ہے وہ پہلے۔';
 
   @override
-  String get noUnpaidBills => 'کوئی غیر ادا شدہ بل نہیں۔';
+  String get noUnpaidBills => 'کوئی بل باقی نہیں۔';
 
   @override
   String landlordNameOverdue(int count) {
@@ -3939,8 +3938,8 @@ class AppLocalizationsUr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'آپ کے نام کے کنکشنوں کے $count بل تاخیر میں ہیں۔ بقایا جات جگہ اور کنکشن کے ساتھ رہتے ہیں، اس لیے یہ آپ پر آ سکتے ہیں۔',
-      one: 'آپ کے نام کے ایک کنکشن کا بل تاخیر میں ہے۔ بقایا جات جگہ اور کنکشن کے ساتھ رہتے ہیں، اس لیے یہ آپ پر آ سکتے ہیں۔',
+          'آپ کے نام کے کنکشنوں کے $count بل لیٹ ہیں۔ بقایا جگہ اور کنکشن کے ساتھ رہتا ہے، اس لیے یہ آپ پر آ سکتا ہے۔',
+      one: 'آپ کے نام کے ایک کنکشن کا بل لیٹ ہے۔ بقایا جگہ اور کنکشن کے ساتھ رہتا ہے، اس لیے یہ آپ پر آ سکتا ہے۔',
     );
     return '$_temp0';
   }
@@ -3957,14 +3956,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get connectionsEmptyBody =>
-      'ہر میٹر اس کے ریفرنس نمبر اور اس بات کے ساتھ شامل کریں کہ یہ کس کے نام پر ہے۔ غیر ادا شدہ بل جگہ کے ساتھ رہتے ہیں، اس لیے ان پر یہاں نظر رکھیں۔';
+      'ہر میٹر اس کے ریفرنس نمبر کے ساتھ شامل کریں، اور یہ بھی کہ وہ کس کے نام پر ہے۔ جو بل ادا نہ ہوں وہ جگہ کے ساتھ رہتے ہیں، اس لیے ان پر یہاں نظر رکھیں۔';
 
   @override
-  String get archivedConnectionsEmpty => 'کوئی آرکائیو شدہ کنکشن نہیں۔';
+  String get archivedConnectionsEmpty => 'آرکائیو میں کوئی کنکشن نہیں۔';
 
   @override
   String get archivedConnectionsEmptyBody =>
-      'آپ کے آرکائیو کیے گئے کنکشن اپنے بلوں اور ریڈنگز سمیت یہاں رہتے ہیں۔';
+      'آپ جو کنکشن آرکائیو کریں، وہ اپنے بلوں اور ریڈنگز سمیت یہاں رہتے ہیں۔';
 
   @override
   String get addConnectionAction => 'کنکشن شامل کریں';
@@ -3998,7 +3997,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get inYourNameWarning =>
-      'یہ کنکشن آپ کے نام پر ہے۔ غیر ادا شدہ بل اسی کے ساتھ رہتے ہیں اور آپ پر آ سکتے ہیں: ہر مہینے دیکھیں کہ بل ادا ہو گیا ہے۔';
+      'یہ کنکشن آپ کے نام پر ہے۔ جو بل ادا نہ ہوں وہ اسی کے ساتھ رہتے ہیں اور آپ پر آ سکتے ہیں۔ ہر مہینے دیکھیں کہ بل ادا ہو گیا ہے۔';
 
   @override
   String get referenceNumberLabel => 'ریفرنس نمبر';
@@ -4017,7 +4016,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get inMyNameHelp =>
-      'بقایا جات جگہ کے ساتھ رہتے ہیں: آپ کے نام کے کنکشن کے غیر ادا شدہ بل آپ پر آ سکتے ہیں۔';
+      'بقایا جگہ کے ساتھ رہتا ہے۔ آپ کے نام کے کنکشن کے جو بل ادا نہ ہوں، وہ آپ پر آ سکتے ہیں۔';
 
   @override
   String get whoPaysLabel => 'بل کون ادا کرتا ہے';
@@ -4030,11 +4029,11 @@ class AppLocalizationsUr extends AppLocalizations {
       'آپ کا اپنا میٹر جو مرکزی کنکشن میں سے کسی ایک پورشن کا حصہ ناپتا ہے۔';
 
   @override
-  String get protectedLabel => 'محفوظ ٹیرف';
+  String get protectedLabel => 'پروٹیکٹڈ ٹیرف';
 
   @override
   String protectedHelp(int limit) {
-    return '$limit یونٹ ماہانہ یا اس سے کم استعمال والے گھروں کا رعایتی ٹیرف۔ کسی ایک مہینے $limit سے زیادہ پر یہ چھ مہینے کے لیے ختم ہو جاتا ہے؛ ایپ حد کے قریب پہنچنے پر آپ کو خبردار کرتی ہے۔';
+    return '$limit یا اس سے کم بجلی کے یونٹ ماہانہ استعمال کرنے والے گھروں کا سبسڈی والا (سستا) ٹیرف۔ کسی ایک مہینے $limit سے زیادہ یونٹ پر یہ چھ مہینے کے لیے ختم ہو جاتا ہے۔ جب کوئی مہینہ اس حد کے قریب پہنچے تو ایپ آپ کو خبردار کرتی ہے۔';
   }
 
   @override
@@ -4081,35 +4080,35 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get archiveConnectionBody =>
-      'یہ آپ کی فہرستوں سے ہٹ جائے گا لیکن اس کے بل اور ریڈنگز محفوظ رہیں گی۔ آپ اسے بعد میں دوبارہ استعمال میں لا سکتے ہیں۔';
+      'یہ آپ کی فہرستوں سے ہٹ جائے گا، لیکن اس کے بل اور ریڈنگز محفوظ رہیں گی۔ آپ اسے بعد میں آرکائیو سے واپس لا سکتے ہیں۔';
 
   @override
   String get connectionArchived => 'کنکشن آرکائیو ہو گیا۔';
 
   @override
-  String get connectionRestored => 'کنکشن دوبارہ استعمال میں ہے۔';
+  String get connectionRestored => 'کنکشن آرکائیو سے واپس آ گیا۔';
 
   @override
-  String get deleteConnectionTitle => 'یہ کنکشن حذف کریں؟';
+  String get deleteConnectionTitle => 'یہ کنکشن ڈیلیٹ کریں؟';
 
   @override
   String get deleteConnectionBody =>
-      'یہ اپنے بلوں اور ریڈنگز سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ کرایہ دار کے کھاتے میں پہلے سے درج واجبات وہیں رہیں گے۔ صرف غلطی سے شامل کیے گئے کنکشن کے لیے؛ ورنہ اسے آرکائیو کریں۔';
+      'یہ اپنے بلوں اور ریڈنگز سمیت ہمیشہ کے لیے ڈیلیٹ ہو جائے گا۔ کرایہ دار کے کھاتے میں پہلے سے لگے چارجز وہیں رہیں گے۔ صرف تب کریں جب یہ کنکشن غلطی سے شامل ہوا ہو۔ ورنہ اسے آرکائیو کریں۔';
 
   @override
-  String get connectionDeleted => 'کنکشن حذف ہو گیا۔';
+  String get connectionDeleted => 'کنکشن ڈیلیٹ ہو گیا۔';
 
   @override
   String get newConnectionTitle => 'نیا کنکشن';
 
   @override
-  String get editConnectionTitle => 'کنکشن میں ترمیم';
+  String get editConnectionTitle => 'کنکشن کی تفصیل بدلیں';
 
   @override
   String get connectionSectionWhere => 'کہاں';
 
   @override
-  String get connectionSectionSupplier => 'کیا اور کون فراہم کرتا ہے';
+  String get connectionSectionSupplier => 'کیا کنکشن، کون سی کمپنی یا ادارہ';
 
   @override
   String get connectionSectionNumbers => 'کنکشن کے نمبر';
@@ -4121,17 +4120,17 @@ class AppLocalizationsUr extends AppLocalizations {
   String get utilityTypeLabel => 'قسم';
 
   @override
-  String get providerLabel => 'فراہم کنندہ';
+  String get providerLabel => 'کمپنی یا ادارہ';
 
   @override
-  String get providerNameLabel => 'فراہم کنندہ کا نام';
+  String get providerNameLabel => 'کمپنی یا ادارے کا نام';
 
   @override
   String get referenceNumberHelp => 'جیسا بل پر لکھا ہے۔';
 
   @override
   String referenceDigitsHint(int digits) {
-    return 'اس فراہم کنندہ کے بلوں پر عموماً $digits ہندسوں کا نمبر ہوتا ہے۔ اسے بل سے ملا لیں۔';
+    return 'اس کمپنی کے بلوں پر عام طور پر $digits ہندسوں کا نمبر ہوتا ہے۔ اسے بل سے ملا لیں۔';
   }
 
   @override
@@ -4165,21 +4164,21 @@ class AppLocalizationsUr extends AppLocalizations {
   String get billPaid => 'ادا شدہ';
 
   @override
-  String get billUnpaid => 'غیر ادا شدہ';
+  String get billUnpaid => 'ادا نہیں ہوا';
 
   @override
-  String get billMonthLabel => 'بل برائے';
+  String get billMonthLabel => 'کس مہینے کا بل';
 
   @override
-  String get unitsConsumedLabel => 'استعمال شدہ یونٹ';
+  String get unitsConsumedLabel => 'کتنے یونٹ استعمال ہوئے';
 
   @override
   String protectedUnitsHelp(int limit) {
-    return 'محفوظ ٹیرف پر: ہر مہینہ $limit یونٹ یا اس سے کم رکھیں۔';
+    return 'پروٹیکٹڈ ٹیرف کے لیے ہر مہینے $limit یا اس سے کم بجلی کے یونٹ استعمال کریں۔';
   }
 
   @override
-  String get validationUnits => 'یونٹس کی تعداد درج کریں، جیسے 185 یا 185.5۔';
+  String get validationUnits => 'یونٹس کی تعداد لکھیں، جیسے 185 یا 185.5۔';
 
   @override
   String get alreadyPaidLabel => 'ادا ہو چکا ہے';
@@ -4194,32 +4193,32 @@ class AppLocalizationsUr extends AppLocalizations {
   String get billSaved => 'بل محفوظ ہو گیا۔';
 
   @override
-  String get billDeleted => 'بل حذف ہو گیا۔';
+  String get billDeleted => 'بل ڈیلیٹ ہو گیا۔';
 
   @override
-  String get billMarkedPaid => 'بل ادا شدہ درج ہو گیا۔';
+  String get billMarkedPaid => 'بل پر ادا شدہ کا نشان لگ گیا۔';
 
   @override
-  String get billMarkedUnpaid => 'بل غیر ادا شدہ درج ہو گیا۔';
+  String get billMarkedUnpaid => 'بل سے ادا شدہ کا نشان ہٹ گیا۔';
 
   @override
   String get billCharged => 'بل کرایہ دار کے کھاتے میں درج ہو گیا۔';
 
   @override
-  String get markPaidAction => 'ادا شدہ درج کریں';
+  String get markPaidAction => 'ادا شدہ کا نشان لگائیں';
 
   @override
-  String get markUnpaidAction => 'غیر ادا شدہ درج کریں';
+  String get markUnpaidAction => 'ادا شدہ کا نشان ہٹائیں';
 
   @override
-  String get editBillAction => 'بل میں ترمیم';
+  String get editBillAction => 'بل کی تفصیل بدلیں';
 
   @override
-  String get chargeTenantAction => 'کرایہ دار کے ذمے ڈالیں';
+  String get chargeTenantAction => 'کرایہ دار پر چارج لگائیں';
 
   @override
   String chargeTenantExplain(String amount, String date) {
-    return '$amount کا بل کرایہ دار کے کھاتے میں واجب بن جائے گا، جس کی آخری تاریخ $date ہو گی۔ کرایہ دار کا پیشگی جمع کریڈٹ اس میں لگ جائے گا۔';
+    return '$amount کا بل کرایہ دار کے کھاتے میں چارج بن جائے گا، جسے $date تک دینا ہو گا۔ کرایہ دار کا کریڈٹ اس میں لگ جائے گا۔';
   }
 
   @override
@@ -4228,25 +4227,25 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get billChargeVoided =>
-      'اس بل کا کرایہ دار کے کھاتے میں درج واجب منسوخ کر دیا گیا تھا۔ آپ اسے دوبارہ ڈال سکتے ہیں۔';
+      'اس بل کا کرایہ دار کے کھاتے میں لگا چارج کینسل ہو گیا تھا۔ آپ اسے دوبارہ لگا سکتے ہیں۔';
 
   @override
   String get connectionDetailsAction => 'کنکشن کی تفصیل';
 
   @override
   String get inYourNameUnpaid =>
-      'یہ غیر ادا شدہ بل آپ کے نام کے کنکشن کا ہے: اگر یہ ادا نہ ہوا تو بقایا جات آپ پر آ سکتے ہیں۔';
+      'یہ بل ادا نہیں ہوا اور آپ کے نام کے کنکشن کا ہے۔ اگر یہ ادا نہ ہوا تو بقایا آپ پر آ سکتا ہے۔';
 
   @override
-  String get deleteBillTitle => 'یہ بل حذف کریں؟';
+  String get deleteBillTitle => 'یہ بل ڈیلیٹ کریں؟';
 
   @override
   String get deleteBillBody =>
-      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ صرف غلطی سے شامل کیے گئے بل کے لیے۔';
+      'یہ اپنی تصویروں سمیت ہمیشہ کے لیے ڈیلیٹ ہو جائے گا۔ صرف تب کریں جب یہ بل غلطی سے شامل ہوا ہو۔';
 
   @override
   String get deleteChargedBillBody =>
-      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ کرایہ دار کے کھاتے میں اس کا واجب وہیں رہے گا: اگر وہ بھی غلط ہے تو کھاتے میں منسوخ کریں۔';
+      'یہ اپنی تصویروں سمیت ہمیشہ کے لیے ڈیلیٹ ہو جائے گا۔ کرایہ دار کے کھاتے میں اس کا چارج وہیں رہے گا۔ اگر وہ بھی غلط ہے تو اسے کھاتے میں کینسل کریں۔';
 
   @override
   String protectedOver(int limit) {
@@ -4260,12 +4259,12 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String protectedOverExplain(int limit) {
-    return 'اس مہینے $limit یونٹ سے زیادہ استعمال ہوئے: اگلے چھ مہینے کے لیے محفوظ ٹیرف ختم ہو جاتا ہے، اور بل مہنگے ہوں گے۔';
+    return 'اس مہینے $limit سے زیادہ بجلی کے یونٹ استعمال ہوئے۔ اگلے چھ مہینے کے لیے پروٹیکٹڈ ٹیرف ختم ہو جاتا ہے، اور بل مہنگے ہوں گے۔';
   }
 
   @override
   String protectedNearExplain(int limit) {
-    return 'اس مہینے کا استعمال $limit یونٹ کے قریب ہے۔ کسی ایک مہینے $limit سے زیادہ پر محفوظ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔';
+    return 'اس مہینے کا استعمال $limit یونٹ کے قریب ہے۔ کسی ایک مہینے $limit سے زیادہ یونٹ پر پروٹیکٹڈ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔';
   }
 
   @override
@@ -4297,7 +4296,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get readingLower =>
-      'یہ پچھلی ریڈنگ سے کم ہے۔ اگر میٹر تبدیل ہوا ہے تو نیچے نوٹ میں لکھ دیں۔';
+      'یہ پچھلی ریڈنگ سے کم ہے۔ اگر میٹر بدلا گیا ہے تو نیچے نوٹ میں لکھ دیں۔';
 
   @override
   String get previousReadingLabel => 'پچھلی ریڈنگ';
@@ -4325,17 +4324,17 @@ class AppLocalizationsUr extends AppLocalizations {
   String get readingSaved => 'ریڈنگ محفوظ ہو گئی۔';
 
   @override
-  String get readingDeleted => 'ریڈنگ حذف ہو گئی۔';
+  String get readingDeleted => 'ریڈنگ ڈیلیٹ ہو گئی۔';
 
   @override
-  String get editReadingAction => 'ریڈنگ میں ترمیم';
+  String get editReadingAction => 'ریڈنگ کی تفصیل بدلیں';
 
   @override
-  String get deleteReadingTitle => 'یہ ریڈنگ حذف کریں؟';
+  String get deleteReadingTitle => 'یہ ریڈنگ ڈیلیٹ کریں؟';
 
   @override
   String get deleteReadingBody =>
-      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گی۔ صرف غلطی سے شامل کی گئی ریڈنگ کے لیے۔';
+      'یہ اپنی تصویروں سمیت ہمیشہ کے لیے ڈیلیٹ ہو جائے گی۔ صرف تب کریں جب یہ ریڈنگ غلطی سے شامل ہوئی ہو۔';
 
   @override
   String get maintenancePlumbing => 'پلمبنگ';
@@ -4353,7 +4352,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get maintenanceSeepage => 'سیلن';
 
   @override
-  String get maintenanceAppliance => 'برقی آلات';
+  String get maintenanceAppliance => 'گھر کی مشینیں (اے سی، فریج، گیزر، موٹر)';
 
   @override
   String get maintenancePestControl => 'کیڑے مار اسپرے';
@@ -4362,10 +4361,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get maintenanceCleaning => 'صفائی';
 
   @override
-  String get maintenanceStructural => 'تعمیراتی';
+  String get maintenanceStructural => 'عمارت کا ڈھانچہ (دیوار، چھت، فرش)';
 
   @override
-  String get maintenanceWaterSupply => 'پانی کی فراہمی';
+  String get maintenanceWaterSupply => 'پانی کی سپلائی';
 
   @override
   String get priorityLow => 'کم';
@@ -4381,26 +4380,26 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String priorityNamed(String priority) {
-    return 'ترجیح: $priority';
+    return 'کتنا ضروری: $priority';
   }
 
   @override
-  String get maintenanceOpen => 'زیرِ التوا';
+  String get maintenanceOpen => 'شروع نہیں ہوا';
 
   @override
   String get maintenanceInProgress => 'کام جاری';
 
   @override
-  String get maintenanceOnHold => 'روک دیا گیا';
+  String get maintenanceOnHold => 'رکا ہوا';
 
   @override
   String get maintenanceResolved => 'مکمل';
 
   @override
-  String get maintenanceCancelled => 'منسوخ';
+  String get maintenanceCancelled => 'کینسل';
 
   @override
-  String get maintenanceTitle => 'مرمت و دیکھ بھال';
+  String get maintenanceTitle => 'مرمت اور دیکھ بھال';
 
   @override
   String get loadingMaintenance => 'مرمت کے کام لوڈ ہو رہے ہیں';
@@ -4419,14 +4418,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get maintenanceEmptyBody =>
-      'ہر مرمت کا کام اطلاع ملتے ہی درج کریں، اور مکمل ہونے تک اس پر نظر رکھیں، اس کے خرچ سمیت۔';
+      'ہر مرمت کا کام اطلاع ملتے ہی درج کریں۔ کام پورا ہونے تک اس پر نظر رکھیں، اور اس کا خرچ بھی لکھیں۔';
 
   @override
   String get maintenanceClosedEmptyTitle => 'ابھی کوئی بند کام نہیں';
 
   @override
   String get maintenanceClosedEmptyBody =>
-      'جو کام آپ مکمل یا منسوخ کریں وہ یہاں محفوظ رہتے ہیں۔';
+      'جو کام آپ مکمل یا کینسل کریں، وہ یہاں محفوظ رہتے ہیں۔';
 
   @override
   String get addRequestAction => 'مرمت کا کام شامل کریں';
@@ -4440,7 +4439,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get maintenanceCategoryLabel => 'کام کی قسم';
 
   @override
-  String get priorityLabel => 'ترجیح';
+  String get priorityLabel => 'کتنا ضروری';
 
   @override
   String get reportedOnLabel => 'اطلاع کی تاریخ';
@@ -4458,17 +4457,17 @@ class AppLocalizationsUr extends AppLocalizations {
   String get vendorPhoneLabel => 'ان کا فون';
 
   @override
-  String get estimateLabel => 'تخمینہ';
+  String get estimateLabel => 'اندازاً خرچ';
 
   @override
   String get resolvedOnLabel => 'مکمل ہونے کی تاریخ';
 
   @override
-  String get resolutionLabel => 'کیا کام کیا گیا';
+  String get resolutionLabel => 'کیا کام ہوا';
 
   @override
   String get resolutionHelp =>
-      'ریکارڈ کے لیے: کیا ٹھیک کیا گیا، اور اگر کوئی گارنٹی ہو۔';
+      'ریکارڈ کے لیے لکھیں کہ کیا ٹھیک ہوا، اور اگر کوئی گارنٹی ملی ہو۔';
 
   @override
   String get startWorkAction => 'کام شروع کریں';
@@ -4483,7 +4482,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get markResolvedAction => 'مکمل درج کریں';
 
   @override
-  String get cancelRequestAction => 'کام منسوخ کریں';
+  String get cancelRequestAction => 'کام کینسل کریں';
 
   @override
   String get reopenAction => 'دوبارہ کھولیں';
@@ -4509,26 +4508,26 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String spentOfEstimate(String spent, String estimate) {
-    return '$estimate کے تخمینے میں سے $spent';
+    return '$estimate کے اندازے میں سے $spent';
   }
 
   @override
   String deleteRequestTitle(String title) {
-    return '$title حذف کریں؟';
+    return '$title ڈیلیٹ کریں؟';
   }
 
   @override
   String get deleteRequestBody =>
-      'یہ اپنی تصاویر سمیت ہمیشہ کے لیے ختم ہو جائے گا۔ صرف غلطی سے شامل کیے گئے کام کے لیے؛ ریکارڈ رکھنے کے لیے اسے منسوخ کریں۔';
+      'یہ اپنی تصویروں سمیت ہمیشہ کے لیے ڈیلیٹ ہو جائے گا۔ صرف تب کریں جب یہ کام غلطی سے شامل ہوا ہو۔ ریکارڈ رکھنے کے لیے اسے کینسل کریں۔';
 
   @override
-  String get requestDeleted => 'مرمت کا کام حذف ہو گیا۔';
+  String get requestDeleted => 'مرمت کا کام ڈیلیٹ ہو گیا۔';
 
   @override
   String get newRequestTitle => 'مرمت کا نیا کام';
 
   @override
-  String get editRequestTitle => 'مرمت کے کام میں ترمیم';
+  String get editRequestTitle => 'مرمت کے کام کی تفصیل بدلیں';
 
   @override
   String get requestSectionWhat => 'کیا کام کرنا ہے';
@@ -4540,7 +4539,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get requestSectionWho => 'کون اور کب';
 
   @override
-  String get requestSectionStatus => 'صورتِ حال';
+  String get requestSectionStatus => 'اسٹیٹس';
 
   @override
   String get requestTitleLabel => 'کیا خرابی ہے';
@@ -4560,7 +4559,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonDuplicateUtilityReference =>
-      'اس قسم کے زیرِ استعمال کسی اور کنکشن کا یہی ریفرنس نمبر پہلے سے موجود ہے۔';
+      'اس قسم کے استعمال میں کسی اور کنکشن کا یہی ریفرنس نمبر پہلے سے موجود ہے۔';
 
   @override
   String get reasonDuplicateBillMonth =>
@@ -4568,7 +4567,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get reasonRequestHasExpenses =>
-      'اس مرمت کے کام پر اخراجات درج ہیں، اس لیے یہ حذف نہیں ہو سکتا۔ اس کے بجائے اسے منسوخ کریں، یا پہلے وہ اخراجات حذف کریں۔';
+      'اس مرمت کے کام پر خرچے درج ہیں، اس لیے یہ ڈیلیٹ نہیں ہو سکتا۔ اس کے بجائے اسے کینسل کریں، یا پہلے وہ خرچے ڈیلیٹ کریں۔';
 
   @override
   String connectionReference(String number) {
@@ -4580,12 +4579,12 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String pacedNearExplain(int limit) {
-    return 'اس رفتار سے ایک مہینے کا استعمال $limit یونٹ کے قریب پہنچ جاتا ہے۔ کسی ایک مہینے $limit سے زیادہ پر محفوظ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔';
+    return 'اس رفتار سے ایک مہینے کا استعمال $limit یونٹ کے قریب پہنچ جاتا ہے۔ کسی ایک مہینے $limit سے زیادہ یونٹ پر پروٹیکٹڈ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔';
   }
 
   @override
   String pacedOverExplain(int limit) {
-    return 'اس رفتار سے ایک مہینے کا استعمال $limit یونٹ سے بڑھ جاتا ہے، جس سے محفوظ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔ بل آنے پر اسے دیکھ لیں۔';
+    return 'اس رفتار سے ایک مہینے کا استعمال $limit یونٹ سے بڑھ جاتا ہے، جس سے پروٹیکٹڈ ٹیرف چھ مہینے کے لیے ختم ہو جاتا ہے۔ بل آنے پر اسے دیکھ لیں۔';
   }
 
   @override
@@ -4593,7 +4592,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get billAmountLocked =>
-      'یہ بل کرایہ دار کے کھاتے میں واجب کے طور پر درج ہے، اس لیے اس کی رقم یہاں نہیں بدل سکتی۔ درست کرنے کے لیے کھاتے میں وہ واجب منسوخ کریں، پھر بل دوبارہ کرایہ دار پر ڈالیں۔';
+      'یہ بل کرایہ دار کے کھاتے میں چارج بن چکا ہے، اس لیے اس کی رقم یہاں نہیں بدل سکتی۔ ٹھیک کرنے کے لیے کھاتے میں وہ چارج کینسل کریں، پھر بل دوبارہ کرایہ دار پر چارج کریں۔';
 
   @override
   String paceAMonth(String units) {
@@ -4602,38 +4601,38 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String readingHigher(String value, String date) {
-    return 'یہ $date کی بعد والی ریڈنگ $value سے زیادہ ہے۔ عدد اور تاریخ دوبارہ دیکھ لیں۔';
+    return 'یہ $date کی بعد والی ریڈنگ $value سے زیادہ ہے۔ نمبر اور تاریخ دوبارہ دیکھ لیں۔';
   }
 
   @override
-  String get markUnpaidTitle => 'یہ بل غیر ادا شدہ درج کریں؟';
+  String get markUnpaidTitle => 'اس بل سے ادا شدہ کا نشان ہٹائیں؟';
 
   @override
   String markUnpaidBody(String date) {
-    return 'ادائیگی کی تاریخ ($date) اور ادا کرنے والے کا اندراج مٹ جائے گا۔';
+    return 'ادائیگی کی تاریخ ($date) اور ادا کرنے والے کی انٹری مٹ جائے گی۔';
   }
 
   @override
-  String get cancelRequestTitle => 'یہ کام منسوخ کر کے بند کریں؟';
+  String get cancelRequestTitle => 'یہ کام کینسل کر کے بند کریں؟';
 
   @override
   String get cancelRequestBody =>
-      'یہ اپنی تفصیلات اور اخراجات سمیت بند کاموں میں چلا جائے گا۔ آپ اسے بعد میں دوبارہ کھول سکتے ہیں۔';
+      'یہ اپنی تفصیلات اور خرچوں سمیت بند کاموں میں چلا جائے گا۔ آپ اسے بعد میں دوبارہ کھول سکتے ہیں۔';
 
   @override
-  String get closeAsCancelledAction => 'کام بند کریں';
+  String get closeAsCancelledAction => 'کینسل کر کے بند کریں';
 
   @override
   String get chargeDuePassed =>
-      'یہ تاریخ گزر چکی ہے، اس لیے یہ واجب فوراً تاخیر میں دکھائی دے گا۔';
+      'یہ تاریخ گزر چکی ہے، اس لیے یہ چارج فوراً لیٹ دکھائی دے گا۔';
 
   @override
   String get savedEarlierUnchanged =>
-      'یہ پہلے ہی محفوظ ہو چکا تھا، جیسا پہلے درج کیا گیا۔ بعد کی تبدیلیاں محفوظ نہیں ہوئیں: انہیں کرنے کے لیے اس میں ترمیم کریں۔';
+      'یہ پہلے ہی محفوظ ہو چکا تھا، جیسا پہلی بار درج ہوا۔ آپ کی بعد کی تبدیلیاں محفوظ نہیں ہوئیں۔ انہیں کرنے کے لیے اسے ایڈٹ کریں۔';
 
   @override
   String get requestHasExpensesClosed =>
-      'اس مرمت کے کام پر اخراجات درج ہیں، اس لیے یہ حذف نہیں ہو سکتا۔ اگر یہ غلطی سے درج ہوا تھا تو پہلے وہ اخراجات حذف کریں۔';
+      'اس مرمت کے کام پر خرچے درج ہیں، اس لیے یہ ڈیلیٹ نہیں ہو سکتا۔ اگر یہ غلطی سے درج ہوا تھا تو پہلے وہ خرچے ڈیلیٹ کریں۔';
 
   @override
   String get loadingDashboard => 'ڈیش بورڈ لوڈ ہو رہا ہے';
@@ -4648,11 +4647,11 @@ class AppLocalizationsUr extends AppLocalizations {
   String get reportsTitle => 'رپورٹس';
 
   @override
-  String get reportsEntryTitle => 'رپورٹس اور گوشوارے';
+  String get reportsEntryTitle => 'رپورٹس اور اسٹیٹمنٹ';
 
   @override
   String get reportsEntrySummary =>
-      'نقدی کا بہاؤ، ادائیگی کے اسکور، ٹیکس سال اور مالک کے گوشوارے، ایکسپورٹ';
+      'پیسہ کتنا آیا، کتنا گیا، ادائیگی کے اسکور، ٹیکس سال اور مالک کی اسٹیٹمنٹ، ایکسپورٹ';
 
   @override
   String thisMonthSection(String month) {
@@ -4660,26 +4659,26 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get collectedThisMonthLabel => 'اس مہینے کے واجبات کی ادائیگی';
+  String get collectedThisMonthLabel => 'اس مہینے کے چارجز میں سے ادا ہوئے';
 
   @override
   String collectedOfDue(String due, String rate) {
-    return '$due واجب میں سے، $rate وصول';
+    return '$due کے چارجز میں سے $rate وصول';
   }
 
   @override
-  String get receivedThisMonthLabel => 'اس مہینے موصول رقم';
+  String get receivedThisMonthLabel => 'اس مہینے ملی رقم';
 
   @override
   String get receivedThisMonthCaption =>
-      'اس مہینے درج ہر ادائیگی، کسی بھی مہینے کے واجبات کی';
+      'اس مہینے درج ہر ادائیگی، کسی بھی مہینے کے چارجز کی';
 
   @override
-  String get nothingDueThisMonth => 'اس مہینے ابھی کچھ واجب نہیں ہوا۔';
+  String get nothingDueThisMonth => 'اس مہینے ابھی کسی چارج کی تاریخ نہیں آئی۔';
 
   @override
   String owedInAll(String amount) {
-    return 'کل $amount واجب الادا';
+    return 'کل باقی رقم $amount';
   }
 
   @override
@@ -4709,23 +4708,23 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String monthBarSummary(String expected, String paid) {
-    return 'اس مہینے واجب $expected روپے میں سے $paid ادا ہو چکے ہیں۔';
+    return 'اس مہینے کے $expected روپے میں سے $paid ادا ہو چکے ہیں۔';
   }
 
   @override
-  String get insightsSection => 'توجہ طلب امور';
+  String get insightsSection => 'کن باتوں پر دھیان دیں';
 
   @override
-  String get noInsights => 'آج کسی بات پر توجہ کی ضرورت نہیں۔';
+  String get noInsights => 'آج کسی بات پر دھیان دینے کی ضرورت نہیں۔';
 
   @override
-  String get insightAlert => 'فوری توجہ';
+  String get insightAlert => 'فوری دھیان دیں';
 
   @override
-  String get insightWarning => 'توجہ دیں';
+  String get insightWarning => 'ایک نظر دیکھ لیں';
 
   @override
-  String get insightInfo => 'جاننے کے لائق';
+  String get insightInfo => 'جاننا اچھا ہے';
 
   @override
   String get insightGood => 'اچھی خبر';
@@ -4735,7 +4734,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'تمام $count دکھائیں',
+      other: 'سب $count دکھائیں',
     );
     return '$_temp0';
   }
@@ -4767,7 +4766,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get dashboardNoUnitsBody =>
-      'کرایہ پر دینے اور کرایہ وصول کرنے کے لیے کسی جائیداد میں یونٹ شامل کریں۔';
+      'کرائے پر دینے اور کرایہ وصول کرنے کے لیے کسی جائیداد میں یونٹ شامل کریں۔';
 
   @override
   String get dashboardNoUnitsViewer =>
@@ -4778,7 +4777,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String insightCollectionTitle(String rate) {
-    return 'اس مہینے کے واجبات کا $rate وصول';
+    return 'اس مہینے کے چارجز کا $rate وصول';
   }
 
   @override
@@ -4787,19 +4786,19 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get insightCollectionDone => 'اس مہینے کے تمام واجبات ادا ہو چکے ہیں۔';
+  String get insightCollectionDone => 'اس مہینے کے سب چارجز ادا ہو چکے ہیں۔';
 
   @override
   String insightLongArrearsTitle(String amount) {
-    return '$amount 90 دن سے زیادہ پرانے واجبات';
+    return '90 دن سے زیادہ پرانی باقی رقم: $amount';
   }
 
   @override
   String get insightLongArrearsBody =>
-      'اتنی پرانی رقم وصول کرنا سب سے مشکل ہوتا ہے۔ ان کرایہ داروں سے بات کریں، یا رخصتی پر ان کے زرِ ضمانت سے ادا کریں۔';
+      'اتنی پرانی رقم وصول کرنا سب سے مشکل ہوتا ہے۔ ان کرایہ داروں سے بات کریں، یا جگہ خالی کرتے وقت ان کی سیکیورٹی میں سے کاٹ لیں۔';
 
   @override
-  String get seeWhoOwesAction => 'دیکھیں کس پر واجب ہے';
+  String get seeWhoOwesAction => 'دیکھیں کس کے ذمے باقی ہے';
 
   @override
   String get insightIncrementTitle => 'کرائے میں اضافہ کرنا ہے';
@@ -4809,10 +4808,10 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count اضافے وقت پر نہیں کیے گئے',
-      one: '1 اضافہ وقت پر نہیں کیا گیا',
+      other: '$count اضافے وقت پر نہیں ہوئے',
+      one: '1 اضافہ وقت پر نہیں ہوا',
     );
-    return '$_temp0: ماہانہ $amount وصول نہیں ہو رہے۔';
+    return '$_temp0: ہر مہینے $amount کا چارج نہیں لگ رہا۔';
   }
 
   @override
@@ -4820,8 +4819,8 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count اضافے 30 دن کے اندر واجب ہیں۔',
-      one: '1 اضافہ 30 دن کے اندر واجب ہے۔',
+      other: 'اگلے 30 دن میں $count کرائے بڑھنے ہیں۔',
+      one: 'اگلے 30 دن میں 1 کرایہ بڑھنا ہے۔',
     );
     return '$_temp0';
   }
@@ -4846,7 +4845,7 @@ class AppLocalizationsUr extends AppLocalizations {
       one: '1 دن میں',
       zero: 'آج',
     );
-    return '$tenant کی سب سے پہلے ختم ہو رہی ہے، $_temp0۔ تجدید کریں یا رخصتی کی تیاری کریں۔';
+    return '$tenant کی سب سے پہلے ختم ہو رہی ہے، $_temp0۔ کرایہ نامہ رینیو کریں یا جگہ خالی ہونے کی تیاری کریں۔';
   }
 
   @override
@@ -4854,8 +4853,8 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count کرایہ داریاں پولیس میں درج نہیں',
-      one: '1 کرایہ داری پولیس میں درج نہیں',
+      other: '$count کرایہ داریوں کی پولیس رجسٹریشن نہیں ہوئی',
+      one: '1 کرایہ داری کی پولیس رجسٹریشن نہیں ہوئی',
     );
     return '$_temp0';
   }
@@ -4865,23 +4864,23 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count کی قانونی آخری تاریخ گزر چکی ہے: ابھی درج کروائیں۔',
-      one: '1 کی قانونی آخری تاریخ گزر چکی ہے: ابھی درج کروائیں۔',
+      other: '$count کی قانون کی آخری تاریخ گزر چکی ہے۔ ابھی رجسٹریشن کروائیں۔',
+      one: '1 کی قانون کی آخری تاریخ گزر چکی ہے۔ ابھی رجسٹریشن کروائیں۔',
     );
     return '$_temp0';
   }
 
   @override
   String get insightPoliceBody =>
-      'ہر ایک اپنی آخری تاریخ تک درج کروائیں۔ جہاں کوئی قانون آخری تاریخ مقرر نہیں کرتا، وہاں ایپ یاد دہانی کرواتی ہے۔';
+      'ہر ایک کی رجسٹریشن اس کی آخری تاریخ تک کروائیں۔ جہاں ہمیں آخری تاریخ دینے والا کوئی قانون نہیں ملا، وہاں ایپ یاد دلاتی ہے۔';
 
   @override
   String insightPoliceSubmittedTitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'پولیس میں $count اندراج تصدیق کے منتظر ہیں',
-      one: 'پولیس میں 1 اندراج تصدیق کا منتظر ہے',
+      other: '$count پولیس رجسٹریشن پر پولیس کی تصدیق کا انتظار ہے',
+      one: '1 پولیس رجسٹریشن پر پولیس کی تصدیق کا انتظار ہے',
     );
     return '$_temp0';
   }
@@ -4891,15 +4890,15 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'مزید $count جمع کرا دیے گئے ہیں، تصدیق باقی ہے۔',
-      one: 'مزید 1 جمع کرا دیا گیا ہے، تصدیق باقی ہے۔',
+      other: '$count اور جمع ہو چکی ہیں، پولیس کی تصدیق کا انتظار ہے۔',
+      one: '1 اور جمع ہو چکی ہے، پولیس کی تصدیق کا انتظار ہے۔',
     );
     return '$_temp0';
   }
 
   @override
   String get insightPoliceSubmittedBody =>
-      'قانون کا تقاضا آپ پورا کر چکے ہیں۔ پولیس کی تصدیق کے بعد کرایہ داری میں درج کریں۔';
+      'قانون کی شرط آپ پوری کر چکے ہیں۔ پولیس تصدیق کر دے تو کرایہ داری میں اپ ڈیٹ کریں۔';
 
   @override
   String insightVacancyTitle(int count) {
@@ -4917,7 +4916,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'سب سے پرانا',
+      other: 'سب سے پرانا خالی یونٹ',
       one: 'یہ',
     );
     String _temp1 = intl.Intl.pluralLogic(
@@ -4927,21 +4926,21 @@ class AppLocalizationsUr extends AppLocalizations {
       one: '1 دن سے',
       zero: 'آج سے',
     );
-    return 'طلب کردہ کرائے پر آپ کو ماہانہ $amount کا نقصان ہو رہا ہے۔ $_temp0 $_temp1 خالی ہے۔';
+    return 'جتنا کرایہ آپ مانگتے ہیں، اس حساب سے خالی رہنے پر ہر مہینے $amount کا نقصان ہو رہا ہے۔ $_temp0 $_temp1 خالی ہے۔';
   }
 
   @override
   String insightDepositTitle(String cover) {
-    return 'زرِ ضمانت تاخیر شدہ کرائے کا صرف $cover پورا کرتا ہے';
+    return 'سیکیورٹی ڈپازٹ سے لیٹ کرائے کا صرف $cover پورا ہوتا ہے';
   }
 
   @override
   String insightDepositBody(String overdue, String held) {
-    return '$overdue تاخیر شدہ ہے اور $held زرِ ضمانت جمع ہے۔ واجبات زرِ ضمانت سے زیادہ ہونے سے پہلے وصولی کریں۔';
+    return '$overdue لیٹ ہے اور $held سیکیورٹی جمع ہے۔ بقایا سیکیورٹی سے بڑھنے سے پہلے وصول کریں۔';
   }
 
   @override
-  String get insightUtilityTitle => 'یوٹیلیٹی بلوں پر توجہ کی ضرورت';
+  String get insightUtilityTitle => 'بلوں پر دھیان دیں';
 
   @override
   String insightUtilityLandlord(int count, String amount) {
@@ -4951,7 +4950,7 @@ class AppLocalizationsUr extends AppLocalizations {
       other: 'آپ کے نام پر $count بل ادا نہیں ہوئے',
       one: 'آپ کے نام پر 1 بل ادا نہیں ہوا',
     );
-    return '$_temp0، کل $amount: ان کی ذمہ داری آپ پر ہے۔';
+    return '$_temp0، کل رقم $amount۔ ان کی ذمہ داری آپ پر ہے۔';
   }
 
   @override
@@ -4970,8 +4969,8 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'محفوظ ٹیرف کے $count میٹر تازہ بل پر 200 یونٹ سے بڑھ گئے۔',
-      one: 'محفوظ ٹیرف کا 1 میٹر تازہ بل پر 200 یونٹ سے بڑھ گیا۔',
+      other: 'پروٹیکٹڈ ٹیرف کے $count میٹر تازہ بل پر 200 یونٹ سے بڑھ گئے۔',
+      one: 'پروٹیکٹڈ ٹیرف کا 1 میٹر تازہ بل پر 200 یونٹ سے بڑھ گیا۔',
     );
     return '$_temp0';
   }
@@ -4981,17 +4980,17 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'محفوظ ٹیرف کے $count میٹر 200 یونٹ کے قریب ہیں۔',
-      one: 'محفوظ ٹیرف کا 1 میٹر 200 یونٹ کے قریب ہے۔',
+      other: 'پروٹیکٹڈ ٹیرف کے $count میٹر 200 یونٹ کے قریب ہیں۔',
+      one: 'پروٹیکٹڈ ٹیرف کا 1 میٹر 200 یونٹ کے قریب ہے۔',
     );
     return '$_temp0';
   }
 
   @override
-  String get seeUtilitiesAction => 'یوٹیلیٹیز دیکھیں';
+  String get seeUtilitiesAction => 'بل اور کنکشن دیکھیں';
 
   @override
-  String get insightExpenseTitle => 'اس مہینے اخراجات زیادہ ہیں';
+  String get insightExpenseTitle => 'اس مہینے خرچ زیادہ ہے';
 
   @override
   String insightExpenseBody(String amount, String average) {
@@ -4999,22 +4998,22 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get seeExpensesAction => 'اخراجات دیکھیں';
+  String get seeExpensesAction => 'خرچ دیکھیں';
 
   @override
   String insightUnderpricedTitle(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count یونٹس طلب کردہ کرائے سے کم پر دیے ہوئے ہیں',
-      one: '1 یونٹ طلب کردہ کرائے سے کم پر دیا ہوا ہے',
+      other: '$count یونٹس اس کرائے سے کم پر ہیں جو آپ مانگتے ہیں',
+      one: '1 یونٹ اس کرائے سے کم پر ہے جو آپ مانگتے ہیں',
     );
     return '$_temp0';
   }
 
   @override
   String insightUnderpricedBody(String amount, String unit) {
-    return 'مجموعی طور پر آپ کے طلب کردہ کرائے سے ماہانہ $amount کم، سب سے زیادہ $unit پر۔ اگلے اضافے یا تجدید پر اس پر غور کریں۔';
+    return 'کل ملا کر یہ اس سے ہر مہینے $amount کم ہے جتنا آپ مانگتے ہیں، سب سے زیادہ $unit پر۔ اگلے اضافے یا رینیو پر اس کے بارے میں سوچیں۔';
   }
 
   @override
@@ -5037,33 +5036,33 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get insightCashAdvice =>
-      'بینک ٹرانسفر اور باقاعدہ حوالگی سے ہاتھ میں کم نقدی رہتی ہے۔';
+      'بینک ٹرانسفر اور نقدی کو باقاعدگی سے آگے دینے سے ہاتھ میں کم نقدی رہتی ہے۔';
 
   @override
   String get seeCashAction => 'ہاتھ میں نقدی دیکھیں';
 
   @override
-  String get owedSection => 'آپ کے واجبات';
+  String get owedSection => 'کرایہ داروں کے ذمے باقی رقم';
 
   @override
   String owedSectionHelp(String amount) {
-    return 'کل $amount، تاخیر کی مدت کے لحاظ سے';
+    return 'کل رقم $amount، اس حساب سے کہ کتنی دیر سے باقی ہے';
   }
 
   @override
-  String get ageNotDue => 'ابھی واجب نہیں';
+  String get ageNotDue => 'ابھی تاریخ نہیں آئی';
 
   @override
-  String get age1to30 => '1 سے 30 دن تاخیر';
+  String get age1to30 => '1 سے 30 دن لیٹ';
 
   @override
-  String get age31to60 => '31 سے 60 دن تاخیر';
+  String get age31to60 => '31 سے 60 دن لیٹ';
 
   @override
-  String get age61to90 => '61 سے 90 دن تاخیر';
+  String get age61to90 => '61 سے 90 دن لیٹ';
 
   @override
-  String get ageOver90 => '90 دن سے زیادہ تاخیر';
+  String get ageOver90 => '90 دن سے زیادہ لیٹ';
 
   @override
   String ageingSummary(
@@ -5074,17 +5073,17 @@ class AppLocalizationsUr extends AppLocalizations {
     String older,
     String late,
   ) {
-    return '$total روپے واجب الادا: $notDue ابھی واجب نہیں، $early 30 دن تک تاخیر، $middle 31 سے 60 دن تاخیر، $older 61 سے 90 دن تاخیر، $late 90 دن سے زیادہ تاخیر۔';
+    return '$total روپے باقی: $notDue کی ابھی تاریخ نہیں آئی، $early 30 دن تک لیٹ، $middle 31 سے 60 دن لیٹ، $older 61 سے 90 دن لیٹ، $late 90 دن سے زیادہ لیٹ۔';
   }
 
   @override
-  String get owingMostSection => 'سب سے زیادہ واجبات';
+  String get owingMostSection => 'جن کے ذمے سب سے زیادہ باقی ہے';
 
   @override
   String get seeAllAction => 'سب دیکھیں';
 
   @override
-  String get remindShortAction => 'یاد دہانی';
+  String get remindShortAction => 'یاد دلائیں';
 
   @override
   String lastRemindedOn(String moment) {
@@ -5092,10 +5091,10 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get upcomingSection => 'واجب اور آنے والے کام';
+  String get upcomingSection => 'آج اور آنے والی تاریخیں';
 
   @override
-  String get upcomingEmpty => 'آنے والے ہفتوں میں کچھ واجب نہیں۔';
+  String get upcomingEmpty => 'آنے والے ہفتوں میں کسی چیز کی تاریخ نہیں۔';
 
   @override
   String timelineLeaseEnds(String tenant) {
@@ -5119,41 +5118,41 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String timelinePolice(String tenant) {
-    return '$tenant کی کرایہ داری پولیس میں درج کروائیں';
+    return '$tenant کی کرایہ داری کی پولیس رجسٹریشن کروائیں';
   }
 
   @override
   String timelinePoliceLegal(String unit) {
-    return '$unit: قانون کی مقرر کردہ آخری تاریخ';
+    return '$unit: قانون کی آخری تاریخ';
   }
 
   @override
   String timelinePoliceLegalPassed(String unit) {
-    return '$unit: قانون کی مقرر کردہ آخری تاریخ گزر چکی';
+    return '$unit: قانون کی آخری تاریخ گزر چکی';
   }
 
   @override
   String timelinePoliceReminder(String unit) {
-    return '$unit: ایپ کی یاد دہانی، کوئی قانونی آخری تاریخ نہیں';
+    return '$unit: ایپ کی یاد دہانی، ہمیں آخری تاریخ دینے والا کوئی قانون نہیں ملا';
   }
 
   @override
   String timelinePoliceSubmitted(String unit) {
-    return '$unit: جمع کرا دیا، تصدیق باقی';
+    return '$unit: جمع کرا دیا، پولیس کی تصدیق کا انتظار';
   }
 
   @override
   String timelineCnicExpires(String tenant) {
-    return '$tenant کے شناختی کارڈ کی میعاد ختم ہو رہی ہے';
+    return '$tenant کا شناختی کارڈ ایکسپائر ہو رہا ہے';
   }
 
   @override
   String timelineCnicExpired(String tenant) {
-    return '$tenant کے شناختی کارڈ کی میعاد ختم ہو چکی ہے';
+    return '$tenant کا شناختی کارڈ ایکسپائر ہو چکا ہے';
   }
 
   @override
-  String get timelineCnicHelp => 'نئے کارڈ کی نقل طلب کریں۔';
+  String get timelineCnicHelp => 'نئے کارڈ کی کاپی مانگیں۔';
 
   @override
   String get vacantSection => 'خالی یونٹس';
@@ -5171,37 +5170,37 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get heldAndSpentSection => 'زرِ ضمانت، ٹیکس اور اخراجات';
+  String get heldAndSpentSection => 'سیکیورٹی ڈپازٹ، ٹیکس اور خرچ';
 
   @override
-  String get depositsHeldLabel => 'جمع شدہ زرِ ضمانت';
+  String get depositsHeldLabel => 'جمع سیکیورٹی';
 
   @override
-  String get depositsAgreedLabel => 'طے شدہ زرِ ضمانت';
+  String get depositsAgreedLabel => 'طے ہوئی سیکیورٹی';
 
   @override
-  String get taxWithheldThisMonthLabel => 'اس مہینے منہا شدہ ٹیکس';
+  String get taxWithheldThisMonthLabel => 'اس مہینے کٹا ہوا ٹیکس';
 
   @override
-  String get expensesThisMonthLabel => 'اس مہینے کے اخراجات';
+  String get expensesThisMonthLabel => 'اس مہینے کا خرچ';
 
   @override
   String get expensesAverageLabel => 'پچھلے 3 مہینوں کی ماہانہ اوسط';
 
   @override
-  String get loadingCashflow => 'نقدی کی آمد و رفت لوڈ ہو رہی ہے';
+  String get loadingCashflow => 'آئی اور گئی رقم لوڈ ہو رہی ہے';
 
   @override
-  String get cashflowLoadFailedTitle => 'نقدی کی آمد و رفت لوڈ نہیں ہو سکی';
+  String get cashflowLoadFailedTitle => 'آئی اور گئی رقم لوڈ نہیں ہو سکی';
 
   @override
-  String get cashflowSection => 'نقدی کی آمد و رفت، پچھلے 12 مہینے';
+  String get cashflowSection => 'آئی اور گئی رقم، پچھلے 12 مہینے';
 
   @override
-  String get moneyInSeries => 'آمد';
+  String get moneyInSeries => 'آئی رقم';
 
   @override
-  String get moneyOutSeries => 'خرچ';
+  String get moneyOutSeries => 'گئی رقم';
 
   @override
   String get monthColumn => 'مہینہ';
@@ -5213,52 +5212,51 @@ class AppLocalizationsUr extends AppLocalizations {
     String moneyIn,
     String moneyOut,
   ) {
-    return '$first سے $last تک ہر مہینے کی آمد اور خرچ: کل $moneyIn روپے آمد اور $moneyOut روپے خرچ۔';
+    return '$first سے $last تک ہر مہینے آئی اور گئی رقم: کل ملا کر $moneyIn روپے آئے اور $moneyOut روپے گئے۔';
   }
 
   @override
   String get cashflowEmpty => 'پچھلے 12 مہینوں میں نہ کوئی رقم آئی نہ گئی۔';
 
   @override
-  String get totalInLabel => 'کل آمد';
+  String get totalInLabel => 'آئی رقم';
 
   @override
-  String get totalOutLabel => 'کل خرچ';
+  String get totalOutLabel => 'گئی رقم';
 
   @override
-  String get netLabel => 'خالص';
+  String get netLabel => 'آئی اور گئی رقم کا فرق';
 
   @override
-  String get loadingPerformance => 'جائیدادوں کے اعداد و شمار لوڈ ہو رہے ہیں';
+  String get loadingPerformance => 'جائیدادوں کا حساب لوڈ ہو رہا ہے';
 
   @override
-  String get performanceLoadFailedTitle =>
-      'جائیدادوں کے اعداد و شمار لوڈ نہیں ہو سکے';
+  String get performanceLoadFailedTitle => 'جائیدادوں کا حساب لوڈ نہیں ہو سکا';
 
   @override
   String get performanceSection => 'جائیدادیں، پچھلے 12 مہینے';
 
   @override
   String get performanceEmpty =>
-      'یہاں آمدن اور اخراجات دیکھنے کے لیے جائیداد شامل کریں۔';
+      'یہاں آمدنی اور خرچ دیکھنے کے لیے جائیداد شامل کریں۔';
 
   @override
-  String get rentIncomeLabel => 'وصول شدہ کرایہ';
+  String get rentIncomeLabel => 'جو کرایہ ملا';
 
   @override
-  String get otherIncomeLabel => 'دیگر آمدن';
+  String get otherIncomeLabel => 'دوسری آمدنی';
 
   @override
-  String get propertyExpensesLabel => 'اخراجات';
+  String get propertyExpensesLabel => 'خرچ';
 
   @override
-  String get noiLabel => 'خالص آپریٹنگ آمدن';
+  String get noiLabel => 'خرچوں کے بعد آمدنی';
 
   @override
-  String get grossYieldLabel => 'مجموعی شرحِ منافع';
+  String get grossYieldLabel => 'خرچ سے پہلے سالانہ منافع (قیمت کا فیصد)';
 
   @override
-  String get netYieldLabel => 'خالص شرحِ منافع';
+  String get netYieldLabel => 'خرچ کے بعد سالانہ منافع (قیمت کا فیصد)';
 
   @override
   String yieldValue(String percent) {
@@ -5267,14 +5265,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get noYieldHelp =>
-      'شرحِ منافع دیکھنے کے لیے جائیداد کی تخمینی مالیت درج کریں۔';
+      'سالانہ منافع کا فیصد دیکھنے کے لیے جائیداد کی اندازاً قیمت لکھیں۔';
 
   @override
-  String get noiChartTitle => 'جائیداد کے لحاظ سے خالص آپریٹنگ آمدن';
+  String get noiChartTitle => 'ہر جائیداد کی خرچوں کے بعد آمدنی';
 
   @override
   String noiChartSummary(String best, String amount) {
-    return 'پچھلے 12 مہینوں کی خالص آپریٹنگ آمدن: سب سے زیادہ $best، $amount روپے۔';
+    return 'پچھلے 12 مہینوں میں خرچوں کے بعد آمدنی: سب سے زیادہ $best کی، $amount روپے۔';
   }
 
   @override
@@ -5290,16 +5288,16 @@ class AppLocalizationsUr extends AppLocalizations {
   String get scoresLoadFailedTitle => 'ادائیگی کے اسکور لوڈ نہیں ہو سکے';
 
   @override
-  String get scoresEmpty => 'کرایہ واجب ہونے کے بعد اسکور نظر آئیں گے۔';
+  String get scoresEmpty => 'کرائے کی تاریخ آنے کے بعد اسکور نظر آئیں گے۔';
 
   @override
   String get scoreBandGood => 'وقت پر ادائیگی';
 
   @override
-  String get scoreBandFair => 'کبھی کبھار تاخیر';
+  String get scoreBandFair => 'کبھی کبھی لیٹ';
 
   @override
-  String get scoreBandPoor => 'اکثر تاخیر';
+  String get scoreBandPoor => 'اکثر لیٹ';
 
   @override
   String scoreSpoken(String score, String band) {
@@ -5321,66 +5319,66 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       days,
       locale: localeName,
-      other: 'اوسطاً تقریباً $days دن تاخیر',
-      one: 'اوسطاً تقریباً 1 دن تاخیر',
+      other: 'اوسطاً تقریباً $days دن لیٹ',
+      one: 'اوسطاً تقریباً 1 دن لیٹ',
     );
     return '$_temp0';
   }
 
   @override
-  String get scoreNeverLate => 'کبھی تاخیر نہیں';
+  String get scoreNeverLate => 'کبھی لیٹ نہیں';
 
   @override
-  String get scoreUnderADayLate => 'اوسطاً ایک دن سے کم تاخیر';
+  String get scoreUnderADayLate => 'اوسطاً ایک دن سے کم لیٹ';
 
   @override
   String scoreArrears(String months) {
-    return '$months مہینوں کا کرایہ واجب';
+    return '$months مہینوں کا کرایہ باقی';
   }
 
   @override
-  String get scoreNoArrears => 'کوئی تاخیر شدہ واجب نہیں';
+  String get scoreNoArrears => 'کچھ لیٹ نہیں';
 
   @override
   String get scoreSectionTitle => 'ادائیگی کا اسکور';
 
   @override
-  String get scoreNotYet => 'اسکور کے لیے ابھی کرائے کی کافی تاریخ نہیں۔';
+  String get scoreNotYet => 'اسکور کے لیے ابھی کرائے کا کافی ریکارڈ نہیں۔';
 
   @override
   String get scoreFormulaHelp =>
-      '100 میں سے: 50 وقت پر ادائیگی کے، 30 کم دن تاخیر کے، 20 کم واجبات کے۔';
+      '100 میں سے: 50 وقت پر ادائیگی کے، 30 صرف چند دن لیٹ ہونے کے، 20 کم باقی رقم کے۔';
 
   @override
-  String get statementsSection => 'گوشوارے اور ایکسپورٹ';
+  String get statementsSection => 'اسٹیٹمنٹ اور ایکسپورٹ';
 
   @override
-  String get taxYearTitle => 'ٹیکس سال کا گوشوارہ';
+  String get taxYearTitle => 'ٹیکس سال کی اسٹیٹمنٹ';
 
   @override
   String get taxYearSummary =>
-      'ہر جائیداد کی کرائے کی آمدن، جولائی تا جون، آپ کے ٹیکس مشیر کے لیے';
+      'ہر جائیداد کی کرائے کی آمدنی، جولائی سے جون تک، آپ کے ٹیکس مشیر کے لیے';
 
   @override
-  String get ownerStatementTitle => 'مالک کا گوشوارہ';
+  String get ownerStatementTitle => 'مالک کی اسٹیٹمنٹ';
 
   @override
   String get ownerStatementSummary =>
-      'ایک مہینے کی رقم اور واجبات، بیرونِ ملک مالک کے لیے پی ڈی ایف';
+      'ایک مہینے کی رقم اور کرایہ داروں کے ذمے باقی رقم، اوورسیز مالک کے لیے پی ڈی ایف';
 
   @override
-  String get exportTitle => 'اسپریڈ شیٹ میں ایکسپورٹ';
+  String get exportTitle => 'فائل ایکسپورٹ (CSV)';
 
   @override
   String get exportSummary =>
-      'کھاتہ، ادائیگیاں یا اخراجات سی ایس وی فائل کے طور پر';
+      'کھاتہ، ادائیگیاں یا خرچ، ایک CSV فائل میں۔ یہ فائل ایکسل میں کھلتی ہے۔';
 
   @override
   String get taxYearLabel => 'ٹیکس سال';
 
   @override
   String taxYearOption(String endYear, String startYear) {
-    return 'ٹیکس سال $endYear: جولائی $startYear تا جون $endYear';
+    return 'ٹیکس سال $endYear: جولائی $startYear سے جون $endYear تک';
   }
 
   @override
@@ -5394,41 +5392,42 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get notTaxAdviceBody =>
-      'یہ اعداد و شمار آپ کے ریکارڈ سے ہیں، آپ کے ٹیکس مشیر کی مدد کے لیے۔ یہ ٹیکس کا حساب نہیں: ایپ کبھی آپ کے ذمے ٹیکس کا حساب نہیں لگاتی۔';
+      'یہ نمبر آپ کے ریکارڈ سے ہیں، آپ کے ٹیکس مشیر کی مدد کے لیے۔ یہ ٹیکس کا حساب نہیں۔ ایپ کبھی یہ حساب نہیں لگاتی کہ آپ کے ذمے کتنا ٹیکس ہے۔';
 
   @override
-  String get grossRentLabel => 'وصول شدہ کرایہ، مجموعی';
+  String get grossRentLabel => 'کرایہ، ٹیکس کٹنے سے پہلے';
 
   @override
-  String get repairsAllowanceLabel => 'مرمت کی چھوٹ، پانچواں حصہ';
+  String get repairsAllowanceLabel =>
+      'مرمت کے لیے پانچواں حصہ (آمدنی میں سے نکلتا ہے)';
 
   @override
-  String get netAfterAllowanceLabel => 'مرمت کی چھوٹ کے بعد کرایہ';
+  String get netAfterAllowanceLabel => 'مرمت کا حصہ نکال کر کرایہ';
 
   @override
-  String get expensesRecordedLabel => 'درج شدہ اخراجات';
+  String get expensesRecordedLabel => 'درج کیے گئے خرچ';
 
   @override
-  String get allPropertiesLabel => 'تمام جائیدادیں';
+  String get allPropertiesLabel => 'سب جائیدادیں';
 
   @override
   String get taxYearEmpty => 'اس ٹیکس سال میں کوئی کرایہ یا خرچ درج نہیں ہوا۔';
 
   @override
   String get deductibleNote =>
-      'کون سے اخراجات منہا ہو سکتے ہیں، یہ آپ کا ٹیکس مشیر طے کرے گا۔';
+      'ٹیکس کے حساب میں آمدنی میں سے کون سے خرچ نکل سکتے ہیں، یہ آپ کا ٹیکس مشیر طے کرے گا۔';
 
   @override
-  String get shareCsvAction => 'سی ایس وی بھیجیں';
+  String get shareCsvAction => 'فائل بھیجیں (CSV)';
 
   @override
   String taxYearFileTitle(String endYear) {
-    return 'ٹیکس سال کا گوشوارہ $endYear';
+    return 'ٹیکس سال کی اسٹیٹمنٹ $endYear';
   }
 
   @override
   String taxYearDocumentTitle(String endYear) {
-    return 'کرائے کی آمدن، ٹیکس سال $endYear';
+    return 'کرائے کی آمدنی، ٹیکس سال $endYear';
   }
 
   @override
@@ -5436,58 +5435,58 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String ownerStatementFileTitle(String month) {
-    return 'مالک کا گوشوارہ، $month';
+    return 'مالک کی اسٹیٹمنٹ، $month';
   }
 
   @override
-  String get moneyReceivedHeading => 'وصول شدہ رقم';
+  String get moneyReceivedHeading => 'جو رقم ملی';
 
   @override
-  String get rentAndFeesLabel => 'کرایہ اور تاخیر کی فیس';
+  String get rentAndFeesLabel => 'کرایہ اور لیٹ فیس';
 
   @override
-  String get depositsReceivedLabel => 'زرِ ضمانت';
+  String get depositsReceivedLabel => 'سیکیورٹی ڈپازٹ';
 
   @override
-  String get otherDuesLabel => 'دیگر واجبات';
+  String get otherDuesLabel => 'دوسرے چارجز';
 
   @override
   String get unallocatedLabel => 'کریڈٹ کے طور پر رکھا';
 
   @override
-  String get moneyPaidOutHeading => 'ادا شدہ رقم';
+  String get moneyPaidOutHeading => 'جو رقم دی';
 
   @override
-  String get depositRefundsLabel => 'واپس کیا گیا زرِ ضمانت';
+  String get depositRefundsLabel => 'سیکیورٹی ڈپازٹ کی واپسی';
 
   @override
-  String get netCashLabel => 'مہینے کی خالص رقم';
+  String get netCashLabel => 'مہینے میں آئی اور گئی رقم کا فرق';
 
   @override
   String owedOnHeading(String date) {
-    return '$date تک کرایہ داروں کے ذمے';
+    return '$date کو کرایہ داروں کے ذمے باقی';
   }
 
   @override
   String cashHeldOnHeading(String date) {
-    return '$date تک ہاتھ میں نقدی';
+    return '$date کو ہاتھ میں نقدی';
   }
 
   @override
   String get ownerStatementFooter =>
-      'پورٹ فولیو کے ریکارڈ سے بنایا گیا۔ صرف معلومات کے لیے: آڈٹ شدہ حساب نہیں۔';
+      'پورٹ فولیو کے ریکارڈ سے بنائی گئی۔ صرف معلومات کے لیے ہے، آڈٹ کیا ہوا حساب نہیں۔';
 
   @override
   String get exportWhatLabel => 'کیا ایکسپورٹ کریں';
 
   @override
-  String get exportLedger => 'کھاتہ: تمام واجبات';
+  String get exportLedger => 'کھاتہ: ہر کرایہ اور چارج';
 
   @override
   String get exportPayments => 'ادائیگیاں';
 
   @override
-  String get exportExpenses => 'اخراجات';
+  String get exportExpenses => 'خرچ';
 
   @override
   String get exportPeriodLabel => 'مدت';
@@ -5499,7 +5498,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get periodLastMonth => 'پچھلا مہینہ';
 
   @override
-  String get exportAction => 'سی ایس وی ایکسپورٹ کریں';
+  String get exportAction => 'فائل بنائیں (CSV)';
 
   @override
   String get exportEmpty => 'اس مدت میں کچھ درج نہیں ہوا۔';
@@ -5524,10 +5523,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get csvWaived => 'معاف';
 
   @override
-  String get csvOwed => 'واجب الادا';
+  String get csvOwed => 'باقی';
 
   @override
-  String get csvVoided => 'منسوخ';
+  String get csvVoided => 'کینسل';
 
   @override
   String get csvYes => 'ہاں';
@@ -5553,7 +5552,7 @@ class AppLocalizationsUr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count نتائج',
+      other: '$count نتیجے',
       one: '1 نتیجہ',
     );
     return '$_temp0';
@@ -5580,7 +5579,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get daysOverdueLabel => 'تاخیر کے دن';
+  String get daysOverdueLabel => 'کتنے دن لیٹ';
 
   @override
   String timeOfDay(String time, String period) {
@@ -5595,59 +5594,59 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get keepRepairAction => 'کام جاری رکھیں';
+  String get keepRepairAction => 'رہنے دیں';
 
   @override
-  String get keepInvitationAction => 'دعوت نامہ رہنے دیں';
+  String get keepInvitationAction => 'رہنے دیں';
 
   @override
-  String get deletePortfolioSection => 'یہ پورٹ فولیو حذف کریں';
+  String get deletePortfolioSection => 'یہ پورٹ فولیو ڈیلیٹ کریں';
 
   @override
   String get deletePortfolioHelp =>
-      'اس میں موجود ہر چیز سب کے لیے ہمیشہ کے لیے حذف ہو جائے گی: جائیدادیں، کرایہ دار، کرایہ داریاں، ادائیگیاں اور رسیدیں، اخراجات اور دستاویزات۔ پہلے جن رسیدوں اور گوشواروں کی ضرورت ہے ان کی نقول رکھ لیں۔';
+      'اس میں موجود ہر چیز سب کے لیے ہمیشہ کے لیے ڈیلیٹ ہو جائے گی: جائیدادیں، کرایہ دار، کرایہ داریاں، ادائیگیاں اور رسیدیں، خرچے اور کاغذات۔ پہلے جو رسیدیں اور اسٹیٹمنٹ آپ کو چاہییں، ان کی کاپیاں رکھ لیں۔';
 
   @override
-  String get deletePortfolioAction => 'پورٹ فولیو حذف کریں';
+  String get deletePortfolioAction => 'پورٹ فولیو ڈیلیٹ کریں';
 
   @override
   String deletePortfolioTitle(String name) {
-    return '$name اور اس میں موجود سب کچھ حذف کریں؟';
+    return '$name اور اس میں موجود سب کچھ ڈیلیٹ کریں؟';
   }
 
   @override
   String get deletePortfolioBody =>
-      'تمام اراکین کی رسائی فوراً ختم ہو جائے گی، اور یہ واپس نہیں آ سکتا، ہماری طرف سے بھی نہیں۔';
+      'فوراً کوئی ممبر اسے نہیں دیکھ سکے گا، اور یہ واپس نہیں آ سکتا، ہماری طرف سے بھی نہیں۔';
 
   @override
   String portfolioDeleted(String name) {
-    return '$name حذف ہو گیا۔';
+    return '$name ڈیلیٹ ہو گیا۔';
   }
 
   @override
-  String get chooseTenantTitle => 'کرایہ دار منتخب کریں';
+  String get chooseTenantTitle => 'کرایہ دار چنیں';
 
   @override
-  String get chooseTenantAction => 'کرایہ دار منتخب کریں';
+  String get chooseTenantAction => 'کرایہ دار چنیں';
 
   @override
-  String get changeTenantAction => 'کوئی اور کرایہ دار منتخب کریں';
+  String get changeTenantAction => 'کوئی اور کرایہ دار چنیں';
 
   @override
-  String get noTenantChosen => 'ابھی منتخب نہیں کیا';
+  String get noTenantChosen => 'ابھی نہیں چنا';
 
   @override
-  String get chooseUnitTitle => 'یونٹ منتخب کریں';
+  String get chooseUnitTitle => 'یونٹ چنیں';
 
   @override
-  String get chooseUnitAction => 'یونٹ منتخب کریں';
+  String get chooseUnitAction => 'یونٹ چنیں';
 
   @override
-  String get changeUnitAction => 'کوئی اور یونٹ منتخب کریں';
+  String get changeUnitAction => 'کوئی اور یونٹ چنیں';
 
   @override
   String get otherPropertyAction => 'دوسری جائیدادیں';
 
   @override
-  String get validationChooseUnit => 'یونٹ منتخب کریں۔';
+  String get validationChooseUnit => 'یونٹ چنیں۔';
 }

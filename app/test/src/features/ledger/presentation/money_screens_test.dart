@@ -220,7 +220,7 @@ void main() {
       expect(app.made.single, ('statement', DocumentLanguage.urdu));
       final shared = app.sharer.shared.single;
       expect(shared.fileName, 'statement-Ali-Raza-2026-11-07.pdf');
-      expect(shared.title, 'گوشوارہ، Ali Raza');
+      expect(shared.title, 'اسٹیٹمنٹ، Ali Raza');
       expect(shared.bytes, fakePdf);
     });
 

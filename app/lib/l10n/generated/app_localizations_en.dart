@@ -3336,12 +3336,12 @@ class AppLocalizationsEn extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'Assalam-o-Alaikum $tenant. Yaad dihani hai ke $unit ke $amount $date ko wajib-ul-ada hain.';
+    return 'Assalam-o-Alaikum $tenant. Yaad dihani: $unit ke $amount, $date ko dene hain.';
   }
 
   @override
   String reminderRomanDueToday(String tenant, String amount, String unit) {
-    return 'Assalam-o-Alaikum $tenant. $unit ke $amount aaj wajib-ul-ada hain.';
+    return 'Assalam-o-Alaikum $tenant. $unit ke $amount aaj dene hain.';
   }
 
   @override
@@ -3351,7 +3351,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'Assalam-o-Alaikum $tenant. $unit ke $amount wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam $date ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.';
+    return 'Assalam-o-Alaikum $tenant. $unit ke $amount late hain. In mein sab se purani raqam $date ko deni thi. Meherbani kar ke jald ada kar dein.';
   }
 
   @override
@@ -3361,7 +3361,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String date,
     String receipt,
   ) {
-    return 'Assalam-o-Alaikum $tenant. $date ko $amount mosool ho gaye. Raseed number: $receipt. Shukriya.';
+    return 'Assalam-o-Alaikum $tenant. $date ko $amount mil gaye. Raseed number: $receipt. Shukriya.';
   }
 
   @override
@@ -3372,23 +3372,23 @@ class AppLocalizationsEn extends AppLocalizations {
     String unit,
     String date,
   ) {
-    return 'Assalam-o-Alaikum $tenant. $unit ka $utility ka bill $amount $date tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.';
+    return 'Assalam-o-Alaikum $tenant. $unit ka $utility $amount hai, jo $date tak ada karna hai. Meherbani kar ke aakhri tareekh se pehle ada kar dein.';
   }
 
   @override
-  String get reminderRomanElectricity => 'bijli';
+  String get reminderRomanElectricity => 'bijli ka bill';
 
   @override
-  String get reminderRomanGas => 'gas';
+  String get reminderRomanGas => 'gas ka bill';
 
   @override
-  String get reminderRomanWater => 'paani';
+  String get reminderRomanWater => 'paani ka bill';
 
   @override
-  String get reminderRomanInternet => 'internet';
+  String get reminderRomanInternet => 'internet ka bill';
 
   @override
-  String get reminderRomanUtilityGeneric => 'utility';
+  String get reminderRomanUtilityGeneric => 'bill';
 
   @override
   String reminderRomanPayRaast(String raast) {

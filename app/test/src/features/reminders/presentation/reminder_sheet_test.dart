@@ -86,7 +86,7 @@ void main() {
     await _open(tester);
     await tester.tap(find.byType(Radio<ReminderLanguage>).at(2));
     await tester.pumpAndSettle();
-    expect(_message(tester), contains('wajib-ul-ada thi'));
+    expect(_message(tester), contains('ko deni thi'));
     await tester.tap(find.byType(Radio<ReminderLanguage>).at(1));
     await tester.pumpAndSettle();
     expect(_message(tester), startsWith('السلام علیکم'));

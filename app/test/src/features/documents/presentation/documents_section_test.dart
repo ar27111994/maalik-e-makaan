@@ -1117,11 +1117,14 @@ void main() {
       );
       // The list shows the name in its own direction too.
       await _tap(tester, '\u20662026 (signed)\u2069');
-      await _tap(tester, 'حذف کریں');
-      expect(find.text('\u20662026 (signed)\u2069 حذف کریں؟'), findsOneWidget);
-      await _confirm(tester, 'حذف کریں');
+      await _tap(tester, 'ڈیلیٹ کریں');
       expect(
-        find.text('\u20662026 (signed)\u2069 حذف ہو گئی۔'),
+        find.text('\u20662026 (signed)\u2069 ڈیلیٹ کریں؟'),
+        findsOneWidget,
+      );
+      await _confirm(tester, 'ڈیلیٹ کریں');
+      expect(
+        find.text('\u20662026 (signed)\u2069 ڈیلیٹ ہو گئی۔'),
         findsOneWidget,
       );
     });
@@ -1130,7 +1133,7 @@ void main() {
       tester,
     ) async {
       await pumpScreen(tester, _tenant, variant: MmVariant.urdu);
-      await _tap(tester, 'دستاویز شامل کریں');
+      await _tap(tester, 'کاغذ یا تصویر شامل کریں');
       // "10 MB" kept left to right in the help (else it reads "MB 10").
       expect(shown('\u200e10\u00a0MB\u200e تک'), findsOneWidget);
       await _tap(tester, 'تصویر کھینچیں');

@@ -186,7 +186,7 @@ void main() {
       expect(app.made.single, ('owner statement', DocumentLanguage.urdu));
       final shared = app.sharer.shared.single;
       expect(shared.fileName, 'owner-statement-2026-09.pdf');
-      expect(shared.title, 'مالک کا گوشوارہ، ستمبر 2026');
+      expect(shared.title, 'مالک کی اسٹیٹمنٹ، ستمبر 2026');
       expect(
         app.insights.calls.lastWhere((c) => c.$1 == 'cashflow').$2.skip(1),
         [CalendarDate(2026, 9, 1), CalendarDate(2026, 9, 30)],
