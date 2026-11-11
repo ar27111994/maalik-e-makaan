@@ -216,8 +216,11 @@ const pricingPlan = z.strictObject({
   price: text(1, 30),
   /** What the price is per: "a month", "for good". */
   period: text(2, 40),
-  /** The yearly price, or what replaces it on a free plan. */
-  annual: text(5, 140),
+  /**
+   * The price of more units and of a year, or what replaces it on a free plan.
+   * Overseas states two steps (Pro's up to 25 units, Business's from 30), so it runs longer.
+   */
+  annual: text(5, 220),
   /** How many units (and people) the plan covers. */
   allowance: text(5, 140),
   /** The plan the page recommends to most landlords. */

@@ -1,6 +1,8 @@
 # The pricing page (/pricing/). Its Urdu twin is ur.yaml; keep both in step.
 # Plans by size in rupees and an Overseas plan for owners abroad, decided after research
 # (prices, store rules, costs) on 11 Nov 2026. Billing is not switched on: the page says so.
+# Overseas is US$1 for each Rs 200 of the rupee price at every size, at the nearest price ending
+# in 49 or 99 cents; tests/unit/content.test.ts checks the figures against the rupee plans.
 # British English.
 title: "Pricing"
 description: "Free for up to 5 let units. Pro and Business in rupees for larger landlords, and an Overseas plan for owners abroad. Everything is free during early access."
@@ -86,7 +88,7 @@ plans:
     audience: "Owners living abroad whose property in Pakistan is looked after by a caretaker or a relative."
     price: "US$2.49"
     period: "a month, for 5 let units"
-    annual: "Then US$2.50 more a month for each 5 more let units, in your own currency. A year costs 10 months: US$24.99."
+    annual: "Then US$2.50 more a month for each 5 more let units up to 25. From 30 let units, US$14.99 and US$2.50 more for each 10 more. A year costs about 10 months: US$24.99 for 5 units."
     allowance: "5 to 25 let units, or up to 100 with Business features; 5 people (10 from 30 units); 10 GB"
     featured: false
     features:
@@ -109,16 +111,16 @@ notes:
     - "People are everyone who can sign in to your properties, including you. The people you invite never pay and need no plan of their own."
     - "The plans the apps show depend on the country of your Google Play or App Store account: a Pakistan account shows the rupee plans, any other country shows Overseas in that country’s currency. On our website anyone can pay the rupee prices."
     - "Always free, on every plan: the ledger, dues, late fees, deposits, receipts, WhatsApp reminders, police-registration deadlines, the dashboard, utilities, maintenance, expenses, tenant statements and CSV exports. You can always take your data out."
-    - "Prices include tax. They change at most once a year, with 60 days’ notice, and you keep your price for at least 12 months after a change."
+    - "Rupee prices include Pakistani tax. In Google Play and the App Store, the store shows any tax your country charges before you pay; some stores, such as the US ones, add it at checkout. Prices change at most once a year, with 60 days’ notice, and you keep your price for at least 12 months after a change."
     - "If you go over a limit, or a plan ends, nothing is deleted. Everything stays active for 14 days while we remind you; then the units above your plan become read-only, so you can still open, search and export them."
     - "Examples: a house of 4 portions is free. 8 flats let cost Rs 999 a month. A 40-bed hostel with every bed let costs Rs 3,499 a month. An owner in Dubai whose brother looks after 3 flats pays US$2.49 a month."
 faq:
   heading: "Questions about pricing"
   items:
     - question: "Which currency will I pay in?"
-      answer: "That depends on the country of your Google Play or App Store account, not on where you live. A Pakistan account shows Free, Pro and Business in rupees; an account anywhere else shows the Overseas plan in that country’s currency, with its VAT, and the store shows the exact price before you pay. On our website anyone can pay the rupee prices."
+      answer: "That depends on the country of your Google Play or App Store account, not on where you live. A Pakistan account shows Free, Pro and Business in rupees; an account anywhere else shows the Overseas plan in that country’s currency, and the store shows the price, with any tax your country charges, before you pay. On our website anyone can pay the rupee prices."
     - question: "Why does the Overseas plan cost more than the rupee plans?"
-      answer: "It is the same app, with 10 GB of storage instead of 5 GB and priority support. Overseas prices are US$1 for each Rs 200 of the rupee price; the store’s price includes your country’s VAT, and the store keeps a fee. If you would rather pay in rupees, you can on our website, or a relative in Pakistan can pay for your account."
+      answer: "It is the same app, with 10 GB of storage instead of 5 GB and priority support. Overseas prices are US$1 for each Rs 200 of the rupee price, at the nearest price ending in 49 or 99 cents; the store collects any tax your country charges, and keeps a fee. If you would rather pay in rupees, you can on our website, or a relative in Pakistan can pay for your account."
     - question: "I live abroad and a relative collects the rent. Which plan do we need?"
       answer: "Pro or Overseas, because Free has no room for a caretaker. From abroad, Overseas starts at US$2.49 a month for 5 let units, in your currency; or your relative can hold the plan and pay Pro in rupees, from Rs 499 a month. Either way the caretaker records each payment and hands cash over in the app, you confirm it, and you get a monthly owner statement."
     - question: "Will I need a card?"

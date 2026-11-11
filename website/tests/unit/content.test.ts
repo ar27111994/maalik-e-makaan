@@ -120,3 +120,109 @@ describe("content facts", () => {
     );
   });
 });
+
+describe("pricing facts", () => {
+  interface Plan {
+    id: string;
+    price: string;
+    annual: string;
+  }
+  type Locale = "en" | "ur";
+
+  function plan(locale: Locale, id: string): Plan {
+    const { plans } = read(`pricing/${locale}.yaml`) as { plans: Plan[] };
+    const found = plans.find((candidate) => candidate.id === id);
+    if (found === undefined) throw new Error(`pricing/${locale}.yaml has no plan ${id}`);
+    return found;
+  }
+
+  /** The groups [pattern] captures in [text], as numbers. */
+  function figures(text: string, pattern: RegExp): number[] {
+    const match = pattern.exec(text);
+    if (match === null) throw new Error(`${String(pattern)} does not match "${text}"`);
+    return match.slice(1).map((figure) => Number(figure.replaceAll(",", "")));
+  }
+
+  /** US$1 for each Rs 200 (half a cent a rupee), at the nearest price ending in 49 or 99 cents. */
+  const overseasCents = (rupees: number): number => 49 + 50 * Math.round((rupees / 2 - 49) / 50);
+
+  const [pro = 0] = figures(plan("en", "pro").price, /^Rs\u00A0([\d,]+)$/);
+  const [proStep = 0] = figures(
+    plan("en", "pro").annual,
+    /^Then Rs\u00A0([\d,]+) more a month for each 5 more let units\./,
+  );
+  const [business = 0] = figures(plan("en", "business").price, /^Rs\u00A0([\d,]+)$/);
+  const [businessStep = 0] = figures(
+    plan("en", "business").annual,
+    /^Then Rs\u00A0([\d,]+) more a month for each 10 more let units\./,
+  );
+
+  /** The rupee price of [units] let units, in Pro's blocks of 5 up to 25 or Business's of 10. */
+  const rupees = (units: number): number =>
+    units <= 25 ? pro + proStep * (units / 5 - 1) : business + businessStep * ((units - 30) / 10);
+
+  test("a year of a rupee plan costs exactly 10 months", () => {
+    for (const id of ["pro", "business"]) {
+      const en = plan("en", id);
+      const [monthly = 0] = figures(en.price, /^Rs\u00A0([\d,]+)$/);
+      expect(figures(en.annual, /A year costs 10 months: Rs\u00A0([\d,]+) for/)).toEqual([
+        10 * monthly,
+      ]);
+      const ur = plan("ur", id);
+      expect(figures(ur.price, /^([\d,]+)\u00A0روپے$/)).toEqual([monthly]);
+      expect(figures(ur.annual, /سال بھر کی قیمت دس ماہ کے برابر: .*?([\d,]+)\u00A0روپے/)).toEqual([
+        10 * monthly,
+      ]);
+    }
+  });
+
+  test("the Overseas plan is US$1 for each Rs 200 of the rupee price, at every size", () => {
+    const overseas = plan("en", "overseas");
+    const cents = (text: string, pattern: RegExp): number[] =>
+      figures(text, pattern).map((dollars) => Math.round(dollars * 100));
+    const [first = 0] = cents(overseas.price, /^US\$(\d+\.\d\d)$/);
+    const [step5 = 0, from30 = 0, step10 = 0, year = 0] = cents(
+      overseas.annual,
+      /^Then US\$(\d+\.\d\d) more a month for each 5 more let units up to 25\. From 30 let units, US\$(\d+\.\d\d) and US\$(\d+\.\d\d) more for each 10 more\. A year costs about 10 months: US\$(\d+\.\d\d) for 5 units\.$/,
+    );
+    const stated = (units: number): number =>
+      units <= 25 ? first + step5 * (units / 5 - 1) : from30 + step10 * ((units - 30) / 10);
+    for (const units of [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]) {
+      expect(stated(units), `${String(units)} let units`).toBe(overseasCents(rupees(units)));
+    }
+    // A year is the rule applied to 10 months of rupees; 10 × US$2.49 would be US$24.90,
+    // so the page says "about 10 months" here and nowhere else.
+    expect(year).toBe(overseasCents(10 * pro));
+    expect(year).not.toBe(10 * first);
+
+    // The Urdu states the same dollar figures, in the same order, and also says "about".
+    const dollars = (text: string): string[] => text.match(/\d+\.\d\d/g) ?? [];
+    const ur = plan("ur", "overseas");
+    expect(dollars(ur.price)).toEqual(dollars(overseas.price));
+    expect(dollars(ur.annual)).toEqual(dollars(overseas.annual));
+    expect(ur.annual).toContain("تقریباً دس ماہ کے برابر");
+  });
+
+  test("only rupee prices are said to include tax; the stores add their own", () => {
+    // In some stores, such as the US ones, sales tax is added at checkout.
+    const en = JSON.stringify(read("pricing/en.yaml"));
+    expect(en).toContain("Rupee prices include Pakistani tax.");
+    expect(en).not.toMatch(/\bprices? includes? (tax|VAT|your)|with its VAT/i);
+    const ur = JSON.stringify(read("pricing/ur.yaml"));
+    expect(ur).toContain("روپوں والی قیمتوں میں پاکستانی ٹیکس شامل ہے۔");
+    expect(ur).not.toMatch(/"قیمتوں میں ٹیکس شامل|قیمت میں آپ کے ملک کا ٹیکس شامل/);
+  });
+
+  test("a figure and its currency are never split across lines", () => {
+    expect(JSON.stringify(read("pricing/en.yaml"))).not.toMatch(/\bRs \d/);
+    expect(JSON.stringify(read("pricing/ur.yaml"))).not.toMatch(/\d (روپے|امریکی|ڈالر|سینٹ)/);
+  });
+
+  test("the deck's pricing slide shows the pricing page's prices", () => {
+    const slide = readFileSync(new URL("../../deck/slides/pricing.html", import.meta.url), "utf8");
+    const { plans } = read("pricing/en.yaml") as { plans: Plan[] };
+    for (const { price } of plans) expect(slide).toContain(`>${price}</p>`);
+    expect(slide).toContain("Rupee prices include Pakistani tax");
+    expect(slide).not.toMatch(/(?<!Rupee )Prices include tax/);
+  });
+});
