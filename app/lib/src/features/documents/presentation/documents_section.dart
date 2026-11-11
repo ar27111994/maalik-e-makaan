@@ -541,8 +541,10 @@ class _DocumentSheetState extends ConsumerState<DocumentSheet>
 /// and the screen ([location]) the photo is for ([CameraTarget]): Android
 /// may close the app behind the camera, and the photo then comes back to
 /// this sheet when the app starts again ([recoveredPhoto]), prepared as
-/// any photo and uploaded only when the landlord says so. iOS and the web
-/// never lose a photo, so nothing is kept there.
+/// any photo and uploaded only when the landlord says so. A device that
+/// cannot remember them opens the camera with nothing remembered, and does
+/// not open it while it may still remember another record's. iOS and the
+/// web never lose a photo, so nothing is kept there.
 class AddDocumentSheet extends ConsumerStatefulWidget {
   const new({
     required this.list,
@@ -638,33 +640,13 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
 
   /// A photo from [picker]'s camera. Where the camera can lose it
   /// ([cameraLosesPhotosProvider]), its [CameraTarget] is kept on the
-  /// device while the camera is open and forgotten when the camera answers
-  /// (a photo, a cancel or a refusal): the app was not closed behind it.
+  /// device while the camera is open ([_keepTarget]) and forgotten when the
+  /// camera answers (a photo, a cancel or a refusal): the app was not
+  /// closed behind it.
   Future<ChosenFile?> _takePhoto(DocumentPicker picker) async {
+    if (!ref.read(cameraLosesPhotosProvider)) return await picker.takePhoto();
     final targets = ref.read(cameraTargetStoreProvider);
-    final userId = ref.read(currentUserIdProvider);
-    final location = widget.location;
-    var target =
-        !ref.read(cameraLosesPhotosProvider) ||
-            userId == null ||
-            location == null
-        ? null
-        : CameraTarget(
-            userId: userId,
-            portfolioId: widget.list.portfolioId,
-            owner: widget.list.owner,
-            location: location,
-            openedAt: clock.now(),
-          );
-    if (target != null) {
-      try {
-        await targets.remember(target);
-      } on Exception {
-        // Not kept: the camera still opens, and only a photo Android loses
-        // cannot come back.
-        target = null;
-      }
-    }
+    final target = await _keepTarget(targets);
     try {
       return await picker.takePhoto();
     } finally {
@@ -672,13 +654,50 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
     }
   }
 
-  /// Forgets [target]; a device that cannot is left with one the next
-  /// camera replaces, and whose photo nothing will bring back.
+  /// Keeps the target of the photo about to be taken in [targets], in
+  /// place of any other, and returns it.
+  ///
+  /// Without one (the device cannot write it, or there is no screen to
+  /// come back to) the camera still opens, once no earlier target is kept
+  /// either: a photo Android loses then cannot come back, but it never
+  /// comes back to another record, as it would to a target left by a
+  /// camera before (one the device could not forget). Returns null then,
+  /// and throws `camera_not_ready` when the earlier target cannot be
+  /// forgotten: the camera does not open.
+  Future<CameraTarget?> _keepTarget(CameraTargetStore targets) async {
+    final userId = ref.read(currentUserIdProvider);
+    final location = widget.location;
+    if (userId != null && location != null) {
+      final target = CameraTarget(
+        userId: userId,
+        portfolioId: widget.list.portfolioId,
+        owner: widget.list.owner,
+        location: location,
+        openedAt: clock.now(),
+      );
+      try {
+        await targets.remember(target);
+        return target;
+      } on Exception {
+        // Not kept, and an earlier target perhaps not replaced.
+      }
+    }
+    try {
+      await targets.forget();
+    } on Exception {
+      throw const RejectedFailure('camera_not_ready');
+    }
+    return null;
+  }
+
+  /// Forgets [target]. A device that cannot is left with it until the
+  /// next camera replaces or forgets it ([_keepTarget]), or the app starts
+  /// again: while no camera is open, no photo can come back to it.
   Future<void> _forget(CameraTargetStore targets, CameraTarget target) async {
     try {
       await targets.forgetIfStill(target);
     } on Exception {
-      // As above.
+      // Left behind, as above.
     }
   }
 

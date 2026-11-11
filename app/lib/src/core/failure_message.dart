@@ -49,6 +49,7 @@ String _reason(AppLocalizations l10n, String reason) => switch (reason) {
   'file_type_not_allowed' => l10n.reasonFileTypeNotAllowed,
   'file_unreadable' => l10n.reasonFileUnreadable,
   'picker_access_denied' => l10n.reasonPickerAccessDenied,
+  'camera_not_ready' => l10n.reasonCameraNotReady,
   'idempotency_key_reused' => l10n.reasonIdempotencyKeyReused,
   'idempotency_key_required' => l10n.reasonIdempotencyKeyRequired,
   'refund_unconfirmed' => l10n.reasonRefundUnconfirmed,

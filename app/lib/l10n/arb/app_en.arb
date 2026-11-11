@@ -3298,6 +3298,10 @@
   "@reasonPickerAccessDenied": {
     "description": "The camera or files were refused to the app."
   },
+  "reasonCameraNotReady": "Your phone could not get ready to take a photo. Try again, or choose a file instead.",
+  "@reasonCameraNotReady": {
+    "description": "The camera was not opened: the phone could not clear what it kept about an earlier photo, so a photo taken now could end up on the wrong record."
+  },
   "chargeKindRent": "Rent",
   "@chargeKindRent": {
     "description": "A charge for rent."

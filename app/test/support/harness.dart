@@ -13,6 +13,7 @@ import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
 import 'package:maalik_e_makaan/src/features/handovers/data/handover_repository.dart';
@@ -130,6 +131,10 @@ final class TestApp {
   /// Pakistan.
   DateTime now = DateTime.utc(2026, 11, 7, 5);
   final MemorySettingsStore settings;
+
+  /// Where the camera's target is kept, when the test sets it before the
+  /// screen is pumped; otherwise it is kept in [settings], as on a device.
+  CameraTargetStore? cameraTargets;
   final MemoryStore store = MemoryStore();
   late final SwrCache cache = SwrCache(store);
 
@@ -152,6 +157,8 @@ final class TestApp {
     leaseRepositoryProvider.overrideWithValue(leases),
     documentRepositoryProvider.overrideWithValue(documents),
     documentPickerProvider.overrideWithValue(picker),
+    if (cameraTargets case final targets?)
+      cameraTargetStoreProvider.overrideWithValue(targets),
     filePreparerProvider.overrideWithValue(picker.prepare),
     ledgerRepositoryProvider.overrideWithValue(ledger),
     handoverRepositoryProvider.overrideWithValue(handovers),

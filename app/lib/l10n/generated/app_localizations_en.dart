@@ -2464,6 +2464,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Maalik-e-Makaan may not use the camera or your files. Allow it in your phone\'s settings.';
 
   @override
+  String get reasonCameraNotReady =>
+      'Your phone could not get ready to take a photo. Try again, or choose a file instead.';
+
+  @override
   String get chargeKindRent => 'Rent';
 
   @override

@@ -10,6 +10,7 @@ import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
@@ -1654,5 +1655,39 @@ final class FakeDocumentPicker implements DocumentPicker {
             type: type,
             originalSize: file.bytes.length,
           );
+  }
+}
+
+/// A [CameraTargetStore] whose writes fail one at a time, as the test
+/// sets: [rememberFailure] is thrown by [remember] and [forgetFailure] by
+/// [forget]. Like a device's, a write that fails leaves the target that
+/// was kept before it ([kept]).
+final class FakeCameraTargetStore implements CameraTargetStore {
+  new([this.kept]);
+
+  /// The target the device keeps.
+  CameraTarget? kept;
+
+  Exception? rememberFailure;
+  Exception? forgetFailure;
+
+  /// The writes asked for, in order, failed or not.
+  final calls = <String>[];
+
+  @override
+  CameraTarget? read() => kept;
+
+  @override
+  Future<void> remember(CameraTarget target) async {
+    calls.add('remember');
+    if (rememberFailure case final failure?) throw failure;
+    kept = target;
+  }
+
+  @override
+  Future<void> forget() async {
+    calls.add('forget');
+    if (forgetFailure case final failure?) throw failure;
+    kept = null;
   }
 }

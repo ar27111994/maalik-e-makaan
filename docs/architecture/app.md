@@ -166,7 +166,15 @@ it is not lost, and still goes to the right record:
    screen, and when the camera opened. The write finishes before the camera
    opens. When the camera answers (a photo, a cancel or a refusal) the target
    is forgotten. iOS and the web never lose a photo, so nothing is written
-   there (`cameraLosesPhotosProvider`).
+   there (`cameraLosesPhotosProvider`). If the target cannot be written (or
+   the sheet has no screen to come back to), the sheet removes whatever target
+   is stored before the camera opens: one that an earlier camera left behind,
+   because removing it failed, is still recent, and a lost photo would
+   otherwise go back to that earlier record. The camera then opens with no
+   target, so a photo Android loses cannot come back, which is safe. If the
+   removal fails as well, the camera does not open (`camera_not_ready`): the
+   sheet says that the phone could not get ready to take a photo, and that the
+   landlord can try again or choose a file instead.
 2. When the app starts, once the user is signed in and their portfolios are
    known, `LostPhotoRecovery` (around the signed-in shell) asks once per run
    for a lost photo (`DocumentPicker.recoverLostPhoto`), on Android only. On

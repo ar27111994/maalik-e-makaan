@@ -692,6 +692,7 @@
   "reasonFileTypeNotAllowed": "صرف تصاویر (JPEG، PNG، WebP یا HEIC) اور پی ڈی ایف شامل کی جا سکتی ہیں۔",
   "reasonFileUnreadable": "یہ فائل پڑھی نہیں جا سکی۔ کوئی اور فائل منتخب کریں، یا کاغذ کی تصویر کھینچ لیں۔",
   "reasonPickerAccessDenied": "اس ایپ کو کیمرہ یا آپ کی فائلیں استعمال کرنے کی اجازت نہیں۔ فون کی سیٹنگز میں اجازت دیں۔",
+  "reasonCameraNotReady": "آپ کا فون تصویر کھینچنے کے لیے تیار نہیں ہو سکا۔ دوبارہ کوشش کریں، یا اس کی جگہ کوئی فائل منتخب کریں۔",
   "chargeKindRent": "کرایہ",
   "chargeKindDeposit": "زرِ ضمانت",
   "chargeKindElectricity": "بجلی",

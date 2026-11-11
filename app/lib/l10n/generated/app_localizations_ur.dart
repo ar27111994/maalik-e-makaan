@@ -2466,6 +2466,10 @@ class AppLocalizationsUr extends AppLocalizations {
       'اس ایپ کو کیمرہ یا آپ کی فائلیں استعمال کرنے کی اجازت نہیں۔ فون کی سیٹنگز میں اجازت دیں۔';
 
   @override
+  String get reasonCameraNotReady =>
+      'آپ کا فون تصویر کھینچنے کے لیے تیار نہیں ہو سکا۔ دوبارہ کوشش کریں، یا اس کی جگہ کوئی فائل منتخب کریں۔';
+
+  @override
   String get chargeKindRent => 'کرایہ';
 
   @override

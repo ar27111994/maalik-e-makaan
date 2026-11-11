@@ -4250,6 +4250,12 @@ abstract class AppLocalizations {
   /// **'Maalik-e-Makaan may not use the camera or your files. Allow it in your phone\'s settings.'**
   String get reasonPickerAccessDenied;
 
+  /// The camera was not opened: the phone could not clear what it kept about an earlier photo, so a photo taken now could end up on the wrong record.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone could not get ready to take a photo. Try again, or choose a file instead.'**
+  String get reasonCameraNotReady;
+
   /// A charge for rent.
   ///
   /// In en, this message translates to:
