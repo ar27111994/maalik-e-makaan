@@ -76,7 +76,7 @@ jobs:
       - name: Repository tooling tests
         run: make test-tools
       - name: Generated files are up to date
-        run: make tokens-check icons-check contracts-check
+        run: make tokens-check icons-check contracts-check roadmap-check
       - name: DESIGN.md is valid
         run: npx --yes --package @google/design.md@0.4.0 designmd lint DESIGN.md
 
@@ -213,6 +213,8 @@ jobs:
         run: npm run check
       - name: Unit tests (Vitest)
         run: npm test
+      - name: Pitch deck (PDF, from deck/ and the current release)
+        run: npm run deck
       - name: Build (fails on a missing twin page or inline code)
         run: npm run build
       - name: Links, then Playwright end to end with axe

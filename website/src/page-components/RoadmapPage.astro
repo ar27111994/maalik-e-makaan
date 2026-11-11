@@ -1,0 +1,168 @@
+---
+import PageHeader from "../components/PageHeader.astro";
+import RoadmapItems from "../components/RoadmapItems.astro";
+import StatusChip from "../components/StatusChip.astro";
+import { SITE } from "../config/site.ts";
+import { formatDate, formatMonth } from "../i18n/dates.ts";
+import type { Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { localised, progress, ROADMAP } from "../lib/roadmap.ts";
+import { ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = ui(locale).roadmap;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+const urdu = locale === "ur";
+const someEnglishOnly =
+  urdu &&
+  (ROADMAP.milestones.some(
+    (milestone) =>
+      milestone.titleUr === null || milestone.issues.some((issue) => issue.titleUr === null),
+  ) ||
+    ROADMAP.unscheduled.some((issue) => issue.titleUr === null));
+const source =
+  ROADMAP.source === "github" && ROADMAP.updated !== null
+    ? strings.live.replace("{date}", formatDate(ROADMAP.updated, locale))
+    : strings.plan;
+---
+
+<BaseLayout
+  locale={locale}
+  path="/roadmap/"
+  title={documentTitle(strings.title, locale)}
+  description={strings.description}
+  pageName={strings.title}
+  pageExtra={{ about: { "@id": ids.app(site) } }}
+  breadcrumbs={[{ label: strings.heading, path: "/roadmap/" }]}
+>
+  <div class="container">
+    <PageHeader heading={strings.heading} intro={strings.intro} />
+    <p class="roadmap__source">
+      {source}
+      {someEnglishOnly && ` ${strings.englishOnly}`}
+    </p>
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ol class="roadmap" role="list">
+      {ROADMAP.milestones.map((milestone, index) => {
+        // On the Urdu page, text that exists only in English sits in lang="en" dir="ltr".
+        const title = localised(milestone.title, milestone.titleUr, locale);
+        const description = localised(milestone.description, milestone.descriptionUr, locale);
+        const count = progress(milestone);
+        return (
+          <li class="card roadmap__stage" id={milestone.id ?? `stage-${index + 1}`}>
+            <h2 class="roadmap__title" lang={title.lang} dir={title.dir}>
+              {title.text}
+            </h2>
+            <p class="roadmap__meta">
+              {milestone.state === "closed" ? (
+                <StatusChip status="paid" label={strings.milestoneDone} />
+              ) : (
+                milestone.due !== null && (
+                  <StatusChip
+                    status="credit"
+                    label={strings.due.replace("{date}", formatMonth(milestone.due, locale))}
+                  />
+                )
+              )}
+              <span>
+                {strings.progress
+                  .replace("{done}", String(count.done))
+                  .replace("{total}", String(count.total))}
+              </span>
+            </p>
+            {count.total > 0 && (
+              <progress
+                class="roadmap__progress"
+                max={count.total}
+                value={count.done}
+                aria-hidden="true"
+              />
+            )}
+            {description.text !== "" && (
+              <p lang={description.lang} dir={description.dir}>
+                {description.text}
+              </p>
+            )}
+            <RoadmapItems issues={milestone.issues} locale={locale} />
+          </li>
+        );
+      })}
+    </ol>
+    {ROADMAP.unscheduled.length > 0 && (
+      <section class="card roadmap__stage roadmap__stage--unscheduled" id="unscheduled">
+        <h2 class="roadmap__title">{strings.unscheduled}</h2>
+        <RoadmapItems issues={ROADMAP.unscheduled} locale={locale} />
+      </section>
+    )}
+    <p class="roadmap__links">
+      <a href={`${SITE.repositoryUrl}/milestones`}>{strings.github}</a>
+      {" · "}
+      <a href={`${SITE.repositoryUrl}/issues/new/choose`}>{strings.suggest}</a>
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  .roadmap__source {
+    max-inline-size: var(--reading-max);
+    margin-block-end: var(--mm-space-s6);
+    color: var(--mm-color-ink-muted);
+  }
+
+  .roadmap {
+    display: grid;
+    gap: var(--mm-space-s4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .roadmap__stage {
+    display: grid;
+    gap: var(--mm-space-s3);
+    border-block-start: var(--mm-size-stroke) solid var(--mm-color-primary);
+  }
+
+  .roadmap__title {
+    font-size: var(--mm-type-title-size);
+    font-weight: var(--mm-type-title-weight);
+    line-height: var(--mm-type-title-line);
+  }
+
+  :global(html[lang="ur"]) .roadmap__title {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .roadmap__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--mm-space-s3);
+    color: var(--mm-color-ink-muted);
+  }
+
+  .roadmap__progress {
+    inline-size: 100%;
+    max-inline-size: var(--reading-max);
+    block-size: var(--mm-space-s2);
+    accent-color: var(--mm-color-paid);
+  }
+
+  .roadmap__stage--unscheduled {
+    margin-block-start: var(--mm-space-s4);
+    border-block-start-color: var(--mm-color-ink-muted);
+  }
+
+  .roadmap__links {
+    margin-block-start: var(--mm-space-s6);
+  }
+</style>

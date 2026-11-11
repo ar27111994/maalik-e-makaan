@@ -1,0 +1,19 @@
+<section id="aws" data-transition="fade" style="background:#F4F5F7;color:#1F2328;font-family:'Atkinson Hyperlegible Next', Verdana, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#7A5A17">Building on AWS</p>
+<h2 style="font-size:64px;font-weight:700;line-height:1.15;color:#1F2328">What AWS credits would build</h2>
+</div>
+<table style="font-family:'Atkinson Hyperlegible Next', Verdana, sans-serif;font-size:26px;color:#1F2328;background:#FFFFFF;border:1px solid #D5DAE0;border-radius:16px">
+<tr style="background:#EBEDF0"><th style="width:30%;text-align:left">AWS service</th><th style="width:70%;text-align:left">What it does for Maalik-e-Makaan</th></tr>
+<tr><td><b>Amazon Bedrock (Claude)</b></td><td>Munshi in Urdu and Roman Urdu: answers, draft payments, reminders, owners’ statements</td></tr>
+<tr><td><b>Claude vision on Bedrock</b></td><td>Reading Urdu agreements and stamp paper, CNICs masked first</td></tr>
+<tr><td><b>Amazon Textract</b></td><td>Reading English utility bills</td></tr>
+<tr><td><b>Amazon Transcribe</b></td><td>Urdu voice notes, once tested with Pakistani speech</td></tr>
+<tr><td><b>Amazon SES</b></td><td>Receipts and statements by e-mail</td></tr>
+<tr><td><b>Region</b></td><td>ap-south-1 (Mumbai), next to today’s database</td></tr>
+</table>
+<div style="background:#F5EBD3;padding:28px 40px;border-radius:20px">
+<p style="font-size:28px;line-height:1.4;color:#4A3608">Today’s ledger runs on Supabase (Postgres) and Vercel. The credits fund the new AI and messaging layer, at an estimated fraction of a US cent per assistant action.</p>
+</div>
+<aside>The credits would go to the new agent layer, not today’s bills: Supabase and Vercel are billed outside AWS. Bedrock runs Claude for the assistant; our estimate is about half a US cent per action at list prices or less with the newest small models, and each plan would cap actions per month. Textract does not read Urdu, so Urdu documents go to Claude’s vision on Bedrock, with CNIC numbers masked before the call. Urdu support in Transcribe must be tested before we promise voice notes on AWS. We keep data in ap-south-1, next to the database, and will measure latency to me-central-1 from Pakistani networks before moving anything.</aside>
+</section>

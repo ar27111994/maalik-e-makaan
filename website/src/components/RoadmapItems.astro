@@ -1,0 +1,61 @@
+---
+/**
+ * The issues of one roadmap stage (or of the group not yet in a stage), each
+ * with its state in words. On the Urdu page, a title that exists only in
+ * English sits in lang="en" dir="ltr".
+ */
+import StatusChip from "./StatusChip.astro";
+import type { Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import { localised, type RoadmapIssue } from "../lib/roadmap.ts";
+
+interface Props {
+  issues: readonly RoadmapIssue[];
+  locale: Locale;
+}
+
+const { issues, locale } = Astro.props;
+const strings = ui(locale).roadmap;
+---
+
+{/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+{/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+<ul class="roadmap__items" role="list">
+  {issues.map((issue) => {
+    const title = localised(issue.title, issue.titleUr, locale);
+    return (
+      <li class="roadmap__item">
+        <StatusChip
+          status={issue.state === "closed" ? "paid" : "planned"}
+          label={issue.state === "closed" ? strings.done : strings.open}
+        />
+        {issue.url === null ? (
+          <span lang={title.lang} dir={title.dir}>
+            {title.text}
+          </span>
+        ) : (
+          <a href={issue.url} lang={title.lang} dir={title.dir}>
+            {title.text}
+          </a>
+        )}
+      </li>
+    );
+  })}
+</ul>
+
+<style>
+  .roadmap__items {
+    display: grid;
+    gap: var(--mm-space-s2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .roadmap__item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--mm-space-s2);
+  }
+</style>

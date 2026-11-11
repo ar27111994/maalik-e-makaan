@@ -8,6 +8,8 @@ import {
   homeSchema,
   howItWorksSchema,
   licencesSchema,
+  pricingSchema,
+  companySchema,
   textPageSchema,
   toolSchema,
 } from "./lib/content/schemas.ts";
@@ -30,6 +32,10 @@ export const collections = {
   features: defineCollection({ loader: yamlPair("features"), schema: featuresSchema }),
   /** The how-it-works page (/how-it-works/). */
   howItWorks: defineCollection({ loader: yamlPair("how-it-works"), schema: howItWorksSchema }),
+  /** The company page (/company/). */
+  company: defineCollection({ loader: yamlPair("company"), schema: companySchema }),
+  /** The pricing page (/pricing/). */
+  pricing: defineCollection({ loader: yamlPair("pricing"), schema: pricingSchema }),
   /** The app page (/download/). */
   download: defineCollection({ loader: yamlPair("download"), schema: downloadSchema }),
   /** Guides: src/content/guides/<en|ur>/<slug>.md or .mdx, the same slug in both folders. */

@@ -7,9 +7,16 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-08)
+## Current Position (2026-11-11)
 
-- Milestone v1.0, at commit e853378 on `claude/exciting-cray-2wue0f`. Phases 1–9 are built and
+- The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
+  items are researched and planned, one plan each in `docs/roadmap/`, indexed by
+  `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
+  decisions). The issue bodies in `.github/roadmap.toml` link the plans; the Roadmap workflow
+  creates the issues when this reaches `main`. The owner's decisions of 11 November 2026 are
+  D-16 to D-19 in `PROJECT.md`, and the roadmap changes that would reverse an earlier decision are
+  open proposals P-01 and P-02 there.
+- Milestone v1.0 (as of 2026-11-08), at commit e853378 on `claude/exciting-cray-2wue0f`. Phases 1–9 are built and
   tested; `REQUIREMENTS.md` ticks each requirement and says what remains of the six that are not
   finished (TEAM-05, WEB-01, NFR-03, NFR-04, NFR-07, NFR-08).
 - Phase 4 (Design System): `mm_ui` passed its final design QA with notes (2e791e4: 2,494 tests,
@@ -44,14 +51,23 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-15 record the decisions. The ones that carry most weight:
+- PROJECT.md D-01…D-19 record the decisions, and P-01 and P-02 the open proposals. The ones that
+  carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
   - D-06/07: the ledger and idempotent payments;
   - D-10: no tax estimate;
   - D-13: the Data API is opt-in;
   - D-14: the hosted migration history names the migrations;
-  - D-15: write RPCs are SECURITY DEFINER behind a pgTAP allowlist.
+  - D-15: write RPCs are SECURITY DEFINER behind a pgTAP allowlist;
+  - D-16 to D-18 (the owner, 2026-11-11): residence declared per person and recorded per
+    portfolio; letterheads on every generated document; privacy-first analytics, with PostHog
+    cookieless on the website, PostHog and Intercom opt-in in the app, and Customer.io e-mail;
+  - D-19 (the owner, 2026-11-11): Urdu interface text in Noto Sans Arabic, Nastaliq kept for the
+    wordmark.
+- Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
+  Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
+  of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.
 - App rules introduced by the feature stages (recorded in `docs/architecture/app.md`):
   - a document's file is uploaded first, then its row, with one uuid for every retry; a file
     queued for deletion is uploaded again under a new uuid;
@@ -119,7 +135,24 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 ## Blockers (need the owner)
 
 The ordered checklist of everything the owner must do before launch is in
-`docs/release-readiness.md`, Owner actions. In short:
+`docs/release-readiness.md`, Owner actions. For the roadmap, `docs/roadmap/README.md` lists the
+owner's decisions by date. The ones that hold up the launch milestone (due 2027-02-28):
+
+- **By 2026-11-30:** the response to the State Bank's draft open-banking regulations, if AR LABS
+  is to comment (`docs/roadmap/open-banking.md`).
+- **The D-U-N-S number** gates Google Play, the App Store and paid plans; Dun & Bradstreet quotes
+  up to 30 business days.
+- **A domain of AR LABS's own, with work e-mail:** Apple enrols an organisation only if its
+  website is on a domain associated with it, and both sites are on `vercel.app`. The same domain
+  serves Meta's verification and the e-mail sending subdomains.
+- **A lawyer:** a fixed-fee request for quotation this month, with a deadline at least six weeks
+  before the store submissions. The plans have the lawyer review the privacy text for D-18 before
+  any analytics SDK ships, as the research recommends.
+- **A native Urdu editor**, after the owner signs off the glossary.
+- **By 2026-12-30:** the 60-day notice to early-access users, if anyone is to be charged before
+  2027-02-28; billing's web checkout would then come into wave 1 (`docs/roadmap/README.md`).
+
+The rest, in short:
 
 - The first production run of the Deploy workflow: it must be on the default branch to be run by
   hand (or a release published). It deploys the web app to Vercel (`web` job, needs

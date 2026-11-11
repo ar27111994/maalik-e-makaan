@@ -21,11 +21,35 @@ export interface LocaleInfo {
   readonly ogLocale: string;
   /** The language's own name, shown in the language switch. */
   readonly endonym: string;
+  /**
+   * The comma and the space after it, for text a page or llms-full.txt joins
+   * from parts (a source and its publisher, a name and a role): Urdu writes
+   * "،", not ",".
+   */
+  readonly comma: string;
+  /** The full stop, without a space, for the same joins: Urdu writes "۔", not ".". */
+  readonly fullStop: string;
 }
 
 export const LOCALE_INFO: Readonly<Record<Locale, LocaleInfo>> = {
-  en: { htmlLang: "en-GB", dir: "ltr", hreflang: "en", ogLocale: "en_GB", endonym: "English" },
-  ur: { htmlLang: "ur", dir: "rtl", hreflang: "ur", ogLocale: "ur_PK", endonym: "اردو" },
+  en: {
+    htmlLang: "en-GB",
+    dir: "ltr",
+    hreflang: "en",
+    ogLocale: "en_GB",
+    endonym: "English",
+    comma: ", ",
+    fullStop: ".",
+  },
+  ur: {
+    htmlLang: "ur",
+    dir: "rtl",
+    hreflang: "ur",
+    ogLocale: "ur_PK",
+    endonym: "اردو",
+    comma: "، ",
+    fullStop: "۔",
+  },
 };
 
 const URDU_PREFIX = "/ur";

@@ -3,11 +3,14 @@ import { getEntry } from "astro:content";
 import PageHeader from "../components/PageHeader.astro";
 import StatusChip from "../components/StatusChip.astro";
 import { APP_URL } from "../config/app-url.ts";
+import { SITE } from "../config/site.ts";
+import { formatDate } from "../i18n/dates.ts";
 import type { Locale } from "../i18n/locales.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { contentHref } from "../lib/content/links.ts";
 import { ids } from "../lib/seo/json-ld.ts";
 import { documentTitle } from "../lib/seo/meta.ts";
+import { ATTACHED_ASSETS, LATEST_RELEASE, releaseAssets } from "../lib/release.ts";
 
 interface Props {
   locale: Locale;
@@ -19,6 +22,10 @@ if (entry === undefined) throw new Error(`src/content/download/${locale}.yaml is
 const page = entry.data;
 if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
 const site = Astro.site;
+const release = LATEST_RELEASE;
+// Only the files attached to the release when the site was built (src/lib/release.ts).
+const files =
+  release === undefined ? [] : releaseAssets(release, SITE.repositoryUrl, ATTACHED_ASSETS);
 ---
 
 <BaseLayout
@@ -43,6 +50,51 @@ const site = Astro.site;
         </li>
       ))}
     </ul>
+    {release !== undefined && (
+      <section class="section release" id="latest-release" aria-labelledby="release-heading">
+        <h2 id="release-heading">{page.release.heading.replace("{version}", release.version)}</h2>
+        <p>
+          <time datetime={release.date}>
+            {page.release.date.replace("{date}", formatDate(release.date, locale))}
+          </time>
+        </p>
+        {files.length > 0 && (
+          <>
+            <h3>{page.release.filesHeading}</h3>
+            {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+            <ul class="release__files" role="list">
+              {files.map((file) => (
+                <li class="card release__file">
+                  <a class="release__link" href={file.url}>
+                    {page.release.files[file.id].label}
+                  </a>
+                  <p>{page.release.files[file.id].note}</p>
+                  <p class="release__file-name" dir="ltr" lang="en">
+                    {file.file}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <h3>{page.release.notesHeading}</h3>
+        {locale !== "en" && <p class="release__language">{page.release.notesLanguage}</p>}
+        <ul class="release__notes" lang={locale === "en" ? undefined : "en"} dir="ltr">
+          {release.sections
+            .flatMap((section) => section.notes)
+            .map((note) => (
+              <li>{note.text}</li>
+            ))}
+        </ul>
+        <p>
+          <a href={contentHref(page.release.allReleases.href, locale, APP_URL)}>
+            {page.release.allReleases.label}
+          </a>
+          {" · "}
+          <a href={release.url}>{page.release.github}</a>
+        </p>
+      </section>
+    )}
     <section class="closing-band" aria-labelledby="web-app-heading">
       <h2 id="web-app-heading">{page.webApp.heading}</h2>
       <p>{page.webApp.body}</p>
@@ -89,6 +141,49 @@ const site = Astro.site;
   :global(html[lang="ur"]) .platforms__name {
     font-size: var(--mm-type-urdu-title-size);
     line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .release {
+    display: grid;
+    gap: var(--mm-space-s4);
+  }
+
+  .release__files {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+    gap: var(--mm-space-s3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .release__file {
+    display: grid;
+    align-content: start;
+    gap: var(--mm-space-s2);
+  }
+
+  .release__link {
+    font-weight: 600;
+  }
+
+  .release__file-name {
+    overflow-wrap: anywhere;
+    color: var(--mm-color-ink-muted);
+    font-size: var(--mm-type-body-small-size);
+    line-height: var(--mm-type-body-small-line);
+  }
+
+  .release__notes {
+    display: grid;
+    gap: var(--mm-space-s2);
+    max-inline-size: var(--reading-max);
+    margin: 0;
+    padding-inline-start: var(--mm-space-s6);
+  }
+
+  .release__language {
+    color: var(--mm-color-ink-muted);
   }
 
   .web-address {

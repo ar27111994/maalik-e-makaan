@@ -29,8 +29,10 @@ npm run preview        # serve dist/ the way Vercel does (headers, redirects, 40
 | `npm run lighthouse:ci` | the same on eight pages (home, a guide, a calculator and the FAQ, in both languages); CI runs this |
 | `npm run og`            | redraws the Open Graph images and icons in `public/` (after `npm run build`)                       |
 
-`make test-web` at the repository root runs `npm run check`, `npm test`, `npm run build`,
-`npm run test:e2e` and `npm run lighthouse:ci`, the same sequence as CI's `website` job.
+`make test-web` at the repository root runs `npm run check`, `npm test`, `npm run deck`,
+`npm run build`, `npm run test:e2e` and `npm run lighthouse:ci`, the same sequence as CI's
+`website` job. The deck comes before the build because the company page links to its PDF, which
+is not kept in the repository, and the link check fails without it.
 
 Playwright is pinned to 1.64.1 and uses its own Chromium build (156, build 1248), installed in CI
 by `npx playwright install --with-deps chromium`. The development environment's
@@ -221,6 +223,28 @@ writing rules. The guide appears at `/guides/<slug>/` and `/ur/guides/<slug>/`, 
 in `llms.txt` and `llms-full.txt`, with Article and BreadcrumbList structured data, its review
 date, the not-advice notice and its sources. Until the first guide exists the build logs that
 the `guides` collection is empty; that warning is expected.
+
+### Pages that update themselves
+
+- **Release:** `src/lib/release.ts` reads `CHANGELOG.md` and `.release-please-manifest.json` at
+  build time for the download page's release block, the release notes page (`/releases/`), the
+  footer and `llms.txt`; from 1.0.0 it switches the site from "in development" to "available".
+  The download page links only to the files attached to that release on GitHub when the site was
+  built: the Deploy workflow writes their names to `src/data/release-assets.json`, whose committed
+  copy (both values `null`) means "not looked up", so a local build links every file. Every
+  section title release-please can write needs a heading in both languages in `src/i18n/ui.ts`
+  (`releases.sections`): "⚠ BREAKING CHANGES" and each of the `changelog-sections`, hidden ones
+  included, since release-please lists a commit of a hidden type under its section when the commit
+  is breaking or has a `Release-As:` footer. The unit tests
+  check it.
+- **Roadmap:** `/roadmap/` renders `src/data/roadmap.json`, which `tool/github/fetch_roadmap.py`
+  writes from GitHub's roadmap milestones and issues before a deploy (`make roadmap` rewrites the
+  committed copy from `.github/roadmap.toml`). It leaves out issues opened outside the project,
+  whose authors could retitle them, and issues closed as not planned or as duplicates. On the Urdu
+  page, a title or description GitHub has only in English is set `lang="en" dir="ltr"`.
+- **Pitch deck:** `npm run deck` renders `deck/` to `public/pitch/` (not committed); the company
+  page (`/company/`) links to it. See [`deck/README.md`](deck/README.md).
+- **Pricing:** `/pricing/` is copy in `src/content/pricing/`; billing is not switched on in the app.
 
 ## Search and AI tools
 

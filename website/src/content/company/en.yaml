@@ -1,0 +1,37 @@
+# The company page (/company/). Its Urdu twin is ur.yaml; keep both in step.
+# The registration details (name, CUIN, date) come from src/config/site.ts.
+# The founder's details are from his résumé at ar27111994.dev. British English.
+title: "The company behind Maalik-e-Makaan"
+description: "AR Labs (SMC-Private) Limited builds Maalik-e-Makaan: who we are, how the company is registered, the founder, the pitch deck and how to reach us."
+heading: "The company"
+intro: "Maalik-e-Makaan is built and run by AR Labs, a small product company registered in Pakistan. We build one thing: a rent ledger that Pakistani landlords can trust, in English and Urdu."
+facts:
+  heading: "Registration"
+  legalName: "Registered name"
+  cuin: "Company number (CUIN)"
+  incorporated: "Incorporated"
+  registry:
+    label: "Registered with"
+    value: "The Securities and Exchange Commission of Pakistan, Company Registration Office, Islamabad"
+  product:
+    label: "Product"
+    value: "Maalik-e-Makaan, open source under the MIT licence"
+founder:
+  heading: "The founder"
+  name: "Ahmed Rehan"
+  role: "Founder and chief executive"
+  bio:
+    - "A full-stack engineer since 2014, based in Rawalpindi. For four years he built the front end of Eagle 6, an enterprise cybersecurity product, and helped hire and mentor its front-end team."
+    - "He has delivered more than 40 freelance projects, rated 5.0 on Upwork, and maintains open-source developer tools and agent systems. He holds a Master of Computer Science from Arid Agriculture University, Rawalpindi."
+  links: "His work and résumé"
+deck:
+  heading: "Pitch deck"
+  body: "The problem, the product, why its money can be trusted, where it goes next and how it will make money, in eighteen slides. It is rebuilt with every release, so the version and the date on it are always current."
+  link: "Download the pitch deck (PDF)"
+  language: "The pitch deck is in English."
+contact:
+  heading: "Get in touch"
+  body: "For questions about the app, your data, partnerships or investment, write to us. For a bug or a feature request, GitHub is quickest."
+  email: "Email"
+  website: "AR Labs"
+  linkedIn: "LinkedIn"

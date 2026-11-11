@@ -1,0 +1,213 @@
+---
+import { getEntry } from "astro:content";
+import PageHeader from "../components/PageHeader.astro";
+import StatusChip from "../components/StatusChip.astro";
+import { APP_URL } from "../config/app-url.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { contentHref } from "../lib/content/links.ts";
+import { ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("pricing", locale);
+if (entry === undefined) throw new Error(`src/content/pricing/${locale}.yaml is missing`);
+const page = entry.data;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+---
+
+<BaseLayout
+  locale={locale}
+  path="/pricing/"
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  pageExtra={{ about: { "@id": ids.app(site) } }}
+  breadcrumbs={[{ label: page.heading, path: "/pricing/" }]}
+>
+  <div class="container">
+    <PageHeader heading={page.heading} intro={page.intro} />
+    <section class="early-access" aria-labelledby="early-access">
+      <h2 id="early-access">{page.earlyAccess.heading}</h2>
+      <p>{page.earlyAccess.body}</p>
+    </section>
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ul class="plans" role="list">
+      {page.plans.map((plan) => (
+        <li
+          class:list={["card", "plan", plan.featured && "plan--featured"]}
+          id={plan.id}
+          aria-labelledby={`plan-${plan.id}`}
+        >
+          {plan.featured && <p class="plan__badge">{page.labels.featured}</p>}
+          <h2 class="plan__name" id={`plan-${plan.id}`}>
+            {plan.name}
+          </h2>
+          <p class="plan__audience">{plan.audience}</p>
+          <p class="plan__price">
+            <span class="plan__amount">{plan.price}</span> <span>{plan.period}</span>
+          </p>
+          <p class="plan__annual">{plan.annual}</p>
+          <p class="plan__allowance">{plan.allowance}</p>
+          <h3 class="plan__includes">{page.labels.includes}</h3>
+          <ul class="plan__features">
+            {plan.features.map((feature) => (
+              <li>
+                {feature.text}
+                {feature.soon && <StatusChip status="credit" label={page.labels.soon} />}
+              </li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+    <section class="pricing-notes reading" aria-labelledby="pricing-notes">
+      <h2 id="pricing-notes">{page.notes.heading}</h2>
+      <ul>
+        {page.notes.items.map((note) => (
+          <li>{note}</li>
+        ))}
+      </ul>
+    </section>
+    <section class="pricing-faq reading" aria-labelledby="pricing-faq">
+      <h2 id="pricing-faq">{page.faq.heading}</h2>
+      {page.faq.items.map((item) => (
+        <div class="pricing-faq__item">
+          <h3>{item.question}</h3>
+          <p>{item.answer}</p>
+        </div>
+      ))}
+    </section>
+    <section class="closing-band" aria-labelledby="pricing-closing">
+      <h2 id="pricing-closing">{page.closing.heading}</h2>
+      <p>{page.closing.body}</p>
+      <a class="button button--primary" href={contentHref(page.closing.cta.href, locale, APP_URL)}>
+        {page.closing.cta.label}
+      </a>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .early-access {
+    display: grid;
+    gap: var(--mm-space-s2);
+    max-inline-size: var(--reading-max);
+    margin-block-end: var(--mm-space-s8);
+    padding: var(--mm-space-s4);
+    border: var(--mm-size-hairline) solid transparent;
+    border-radius: var(--mm-radius-md);
+    background-color: var(--mm-color-brass-container);
+    color: var(--mm-color-on-brass-container);
+  }
+
+  .early-access h2 {
+    font-size: var(--mm-type-title-size);
+    font-weight: var(--mm-type-title-weight);
+    line-height: var(--mm-type-title-line);
+  }
+
+  :global(html[lang="ur"]) .early-access h2 {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+    gap: var(--mm-space-s4);
+    align-items: start;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .plan {
+    display: grid;
+    align-content: start;
+    gap: var(--mm-space-s3);
+  }
+
+  /* The recommended plan: a cobalt rule, as on the home page's steps, and its badge in brass. */
+  .plan--featured {
+    border-color: var(--mm-color-primary);
+    border-width: var(--mm-size-stroke);
+  }
+
+  .plan__badge {
+    justify-self: start;
+    padding: var(--mm-space-s1) var(--mm-space-s2);
+    border-radius: var(--mm-radius-full);
+    background-color: var(--mm-color-primary-container);
+    color: var(--mm-color-on-primary-container);
+    font-size: var(--mm-type-label-size);
+    font-weight: var(--mm-type-label-weight);
+    line-height: var(--mm-type-label-line);
+  }
+
+  .plan__name {
+    font-size: var(--mm-type-title-size);
+    font-weight: var(--mm-type-title-weight);
+    line-height: var(--mm-type-title-line);
+  }
+
+  :global(html[lang="ur"]) .plan__name {
+    font-size: var(--mm-type-urdu-title-size);
+    line-height: var(--mm-type-urdu-title-line);
+  }
+
+  .plan__audience,
+  .plan__annual,
+  .plan__allowance {
+    color: var(--mm-color-ink-muted);
+  }
+
+  .plan__amount {
+    font-size: var(--mm-type-headline-size);
+    font-weight: var(--mm-type-amount-weight);
+    line-height: var(--mm-type-headline-line);
+  }
+
+  .plan__includes {
+    padding-block-start: var(--mm-space-s3);
+    border-block-start: var(--mm-size-hairline) solid var(--mm-color-rule);
+    font-size: var(--mm-type-label-size);
+    font-weight: var(--mm-type-label-weight);
+    line-height: var(--mm-type-label-line);
+  }
+
+  .plan__features {
+    display: grid;
+    gap: var(--mm-space-s2);
+    margin: 0;
+    padding-inline-start: var(--mm-space-s5);
+  }
+
+  .plan__features :global(.chip) {
+    margin-inline-start: var(--mm-space-s1);
+  }
+
+  .pricing-notes,
+  .pricing-faq {
+    display: grid;
+    gap: var(--mm-space-s4);
+    margin-block-start: var(--mm-space-s12);
+  }
+
+  .pricing-notes ul {
+    display: grid;
+    gap: var(--mm-space-s2);
+    margin: 0;
+    padding-inline-start: var(--mm-space-s5);
+  }
+
+  .pricing-faq__item h3 {
+    margin-block-end: var(--mm-space-s2);
+  }
+</style>

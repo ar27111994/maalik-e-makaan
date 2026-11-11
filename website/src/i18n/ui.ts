@@ -16,6 +16,7 @@ export interface UiStrings {
   readonly footerNavLabel: string;
   readonly nav: {
     readonly features: string;
+    readonly pricing: string;
     readonly howItWorks: string;
     readonly guides: string;
     readonly tools: string;
@@ -40,7 +41,14 @@ export interface UiStrings {
     readonly terms: string;
     readonly faq: string;
     readonly llmsTxt: string;
-    readonly copyright: string;
+    readonly pricing: string;
+    readonly roadmap: string;
+    readonly releases: string;
+    readonly company: string;
+    readonly linkedIn: string;
+    /** The current release: "{version}" and "{date}" are filled in from CHANGELOG.md. */
+    readonly version: string;
+    readonly releaseNotes: string;
     readonly licence: string;
   };
   readonly notFound: {
@@ -72,6 +80,48 @@ export interface UiStrings {
   };
   /** Pages of running text (privacy, terms). */
   readonly textPage: { readonly lastUpdated: string };
+  /** The roadmap page (/roadmap/), built from the roadmap's GitHub milestones and issues. */
+  readonly roadmap: SectionStrings & {
+    /** "{date}" is filled in. */
+    readonly due: string;
+    /** "{done}" and "{total}" are filled in. */
+    readonly progress: string;
+    readonly done: string;
+    readonly open: string;
+    readonly milestoneDone: string;
+    /** The group of roadmap issues that are in no stage yet. */
+    readonly unscheduled: string;
+    /** "{date}" is filled in: the day the live data was read. */
+    readonly live: string;
+    readonly plan: string;
+    /** Shown on the Urdu page when some titles are only in English. */
+    readonly englishOnly: string;
+    readonly github: string;
+    readonly suggest: string;
+  };
+  /** The release notes page (/releases/), built from CHANGELOG.md. */
+  readonly releases: SectionStrings & {
+    /** "{version}" is filled in. */
+    readonly version: string;
+    /** "{date}" is filled in. */
+    readonly released: string;
+    readonly latest: string;
+    /** Shown on the Urdu page, whose notes are in English. */
+    readonly notesLanguage: string;
+    readonly github: string;
+    readonly download: string;
+    /**
+     * Every section title release-please can write, in this language: each
+     * section of release-please-config.json, and "⚠ BREAKING CHANGES", which it
+     * adds for a `feat!:` commit or a `BREAKING CHANGE:` footer. The hidden
+     * sections count too: release-please lists a commit of a hidden type under
+     * its section when the commit is breaking (`refactor(db)!:`) or carries a
+     * `Release-As:` footer. The heading replaces the title whole, so its "⚠",
+     * which the site's fonts do not draw, never reaches the page
+     * (tests/unit/release.test.ts checks every title).
+     */
+    readonly sections: Readonly<Record<string, string>>;
+  };
   /** Words for where a feature or platform stands. */
   readonly status: { readonly available: string };
 }
@@ -91,6 +141,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
     footerNavLabel: "Footer",
     nav: {
       features: "Features",
+      pricing: "Pricing",
       howItWorks: "How it works",
       guides: "Guides",
       tools: "Calculators",
@@ -113,7 +164,13 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       terms: "Terms of use",
       faq: "Questions and answers",
       llmsTxt: "Plain-text summary for AI tools",
-      copyright: "© 2026 Ahmed Rehan.",
+      pricing: "Pricing",
+      roadmap: "Roadmap",
+      releases: "Release notes",
+      company: "Company",
+      linkedIn: "AR Labs on LinkedIn",
+      version: "Version {version}, released {date}.",
+      releaseNotes: "What’s new",
       licence: "Released under the MIT licence.",
     },
     notFound: {
@@ -134,6 +191,53 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       accessed: "accessed",
       insecure:
         "this site uses plain HTTP, which is not encrypted; we could not confirm a secure (HTTPS) address for it",
+    },
+    roadmap: {
+      title: "Roadmap",
+      description:
+        "What is planned for Maalik-e-Makaan, stage by stage: store listings, an assistant that drafts while you confirm, tenant links and rent collection.",
+      heading: "Roadmap",
+      intro:
+        "What we are working on next, in stages. Each item is an issue on GitHub, where you can follow it, comment or suggest something new. Dates are targets, not promises.",
+      due: "Target: {date}",
+      progress: "{done} of {total} done",
+      done: "Done",
+      open: "Planned",
+      milestoneDone: "Complete",
+      unscheduled: "Not yet in a stage",
+      live: "Live from GitHub, as of {date}.",
+      plan: "This is the plan as written in the project; GitHub has the latest state of each item.",
+      englishOnly: "Items added on GitHub appear in English.",
+      github: "Follow the roadmap on GitHub",
+      suggest: "Suggest something",
+    },
+    releases: {
+      title: "Release notes",
+      description:
+        "What changed in each version of the Maalik-e-Makaan app and website, newest first, with the date of each release and links to its files.",
+      heading: "Release notes",
+      intro:
+        "Every version of the app, newest first. Each one lists what it added and what it fixed; the files for each version are on its GitHub page.",
+      version: "Version {version}",
+      released: "Released on {date}",
+      latest: "Latest",
+      notesLanguage: "The notes are written in English.",
+      github: "Files and details on GitHub",
+      download: "Get the latest version",
+      sections: {
+        "⚠ BREAKING CHANGES": "Changes that may affect you",
+        Features: "New",
+        "Bug fixes": "Fixed",
+        Performance: "Faster",
+        Reverts: "Undone",
+        Documentation: "Documentation",
+        Build: "How the app is built",
+        Maintenance: "Maintenance",
+        "Continuous integration": "Automatic checks",
+        Refactoring: "Code reorganised",
+        Style: "Code formatting",
+        Tests: "Tests",
+      },
     },
     guides: {
       title: "Guides for landlords in Pakistan",
@@ -165,6 +269,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
     footerNavLabel: "ذیلی روابط",
     nav: {
       features: "خصوصیات",
+      pricing: "قیمتیں",
       howItWorks: "طریقۂ کار",
       guides: "رہنمائی",
       tools: "کیلکولیٹر",
@@ -187,7 +292,13 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       terms: "شرائطِ استعمال",
       faq: "سوالات اور جوابات",
       llmsTxt: "مصنوعی ذہانت کے ٹولز کے لیے سادہ متن میں خلاصہ",
-      copyright: "© 2026 احمد ریحان۔",
+      pricing: "قیمتیں",
+      roadmap: "آئندہ منصوبہ",
+      releases: "ہر ورژن کی تبدیلیاں",
+      company: "کمپنی",
+      linkedIn: "لنکڈ اِن پر اے آر لیبز",
+      version: "ورژن {version}، {date} کو جاری ہوا۔",
+      releaseNotes: "نیا کیا ہے",
       licence: "ایم آئی ٹی لائسنس کے تحت جاری۔",
     },
     notFound: {
@@ -208,6 +319,53 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       accessed: "رسائی کی تاریخ",
       insecure:
         "یہ سائٹ سادہ ایچ ٹی ٹی پی استعمال کرتی ہے جو خفیہ کاری کے بغیر ہے؛ ہم اس کے محفوظ (ایچ ٹی ٹی پی ایس) پتے کی تصدیق نہیں کر سکے",
+    },
+    roadmap: {
+      title: "آئندہ منصوبہ",
+      description:
+        "مالکِ مکان کے لیے آگے کیا منصوبہ ہے، مرحلہ وار: ایپ اسٹورز، ایک معاون جو مسودہ بنائے اور آپ تصدیق کریں، کرایہ داروں کے لنک اور کرایے کی وصولی۔",
+      heading: "آئندہ منصوبہ",
+      intro:
+        "ہم آگے کس پر کام کر رہے ہیں، مرحلہ وار۔ ہر کام گٹ ہب پر ایک مسئلے کے طور پر درج ہے، جہاں آپ اس کی پیش رفت دیکھ سکتے ہیں، رائے دے سکتے ہیں یا کوئی نئی تجویز دے سکتے ہیں۔ تاریخیں ہدف ہیں، وعدے نہیں۔",
+      due: "ہدف: {date}",
+      progress: "{total} میں سے {done} مکمل",
+      done: "مکمل",
+      open: "منصوبے میں",
+      milestoneDone: "مرحلہ مکمل",
+      unscheduled: "ابھی کسی مرحلے میں نہیں",
+      live: "گٹ ہب سے براہِ راست، {date} تک کی صورتِ حال۔",
+      plan: "یہ منصوبہ پروجیکٹ میں لکھا ہوا ہے؛ ہر کام کی تازہ صورتِ حال گٹ ہب پر ہے۔",
+      englishOnly: "گٹ ہب پر شامل کیے گئے کام انگریزی میں دکھائے جاتے ہیں۔",
+      github: "گٹ ہب پر منصوبہ دیکھیں",
+      suggest: "کوئی تجویز دیں",
+    },
+    releases: {
+      title: "ہر ورژن کی تبدیلیاں",
+      description:
+        "مالکِ مکان ایپ اور ویب سائٹ کے ہر ورژن میں کیا بدلا، تازہ ترین پہلے، ہر اجرا کی تاریخ اور اس کی فائلوں کے روابط کے ساتھ۔",
+      heading: "ہر ورژن کی تبدیلیاں",
+      intro:
+        "ایپ کا ہر ورژن، تازہ ترین پہلے۔ ہر ایک میں درج ہے کہ اس میں کیا نیا آیا اور کیا درست ہوا؛ ہر ورژن کی فائلیں اس کے گٹ ہب صفحے پر ہیں۔",
+      version: "ورژن {version}",
+      released: "{date} کو جاری ہوا",
+      latest: "تازہ ترین",
+      notesLanguage: "تبدیلیوں کی تفصیل انگریزی میں لکھی گئی ہے۔",
+      github: "فائلیں اور تفصیل گٹ ہب پر",
+      download: "تازہ ترین ورژن حاصل کریں",
+      sections: {
+        "⚠ BREAKING CHANGES": "ایسی تبدیلیاں جن کا آپ پر اثر پڑ سکتا ہے",
+        Features: "نیا",
+        "Bug fixes": "درستیاں",
+        Performance: "رفتار میں بہتری",
+        Reverts: "واپس لی گئی تبدیلیاں",
+        Documentation: "دستاویزات",
+        Build: "ایپ بنانے کا طریقہ",
+        Maintenance: "دیکھ بھال",
+        "Continuous integration": "خودکار جانچ",
+        Refactoring: "کوڈ کی نئی ترتیب",
+        Style: "کوڈ لکھنے کا انداز",
+        Tests: "ٹیسٹ",
+      },
     },
     guides: {
       title: "پاکستانی مالکانِ مکان کے لیے رہنمائی",

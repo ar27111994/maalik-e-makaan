@@ -27,7 +27,7 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 
 - [App architecture](docs/architecture/app.md): layers, models, repositories, stale-while-revalidate cache, commands, retries, document uploads, open questions
 - [Permissions](docs/architecture/permissions.md): roles, the who-can-do-what matrix, how RLS, grants, RPCs, triggers and CHECKs enforce it, concurrency costs, rate limits
-- [Project decisions](.planning/PROJECT.md): vision, users, stack, decisions D-01 to D-15, constraints
+- [Project decisions](.planning/PROJECT.md): vision, users, stack, decisions D-01 to D-19, open proposals P-01 and P-02, constraints
 - [Design language](DESIGN.md): tokens, typography, colour, components, right-to-left and Urdu rules
 - [Components](packages/mm_ui/COMPONENTS.md): how mm_ui components are built, and the catalogue
 - [Domain library](packages/mm_core/README.md): the mm_core modules
@@ -52,4 +52,5 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 - [Project state](.planning/STATE.md): current position, hosted project, blockers, follow-ups
 - [Requirements](.planning/REQUIREMENTS.md): v1.0 requirements and what remains
 - [Roadmap](.planning/ROADMAP.md): the twelve phases of milestone v1.0
+- [Roadmap after v1.0](docs/roadmap/README.md): three milestones and 25 items, one plan each, the order of work and the owner's decisions
 - [Formal track READMEs](formal/tla/LedgerPayments/README.md): one per track under formal/tla, formal/lean, formal/smt and formal/bend

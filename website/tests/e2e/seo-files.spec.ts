@@ -58,6 +58,20 @@ test("llms.txt follows llmstxt.org and every link in it resolves", async ({ requ
   for (const link of own) expect((await request.get(localPath(link))).status(), link).toBe(200);
 });
 
+test("llms-full.txt joins Urdu text with the Urdu comma and full stop", async ({ request }) => {
+  const full = await (await request.get("/llms-full.txt")).text();
+  const start = full.indexOf(`URL: ${origin}/ur/`);
+  expect(start).toBeGreaterThan(0);
+  // A Latin "," or "." beside an Urdu word, where Urdu writes "،" and "۔". A
+  // Markdown list or heading number such as "1. " is not punctuation.
+  const pattern = /[؀-ۿ][^\S\n]*[,.]|[,.][^\S\n]*[؀-ۿ]/u;
+  const stray = full
+    .slice(start)
+    .split("\n")
+    .filter((line) => pattern.test(line.replace(/^(#+ )?\d+\. /u, "")));
+  expect(stray).toEqual([]);
+});
+
 test("llms-full.txt holds the text of every indexable page", async ({ page, request }) => {
   const full = await (await request.get("/llms-full.txt")).text();
   for (const site of indexable) {

@@ -1,0 +1,41 @@
+# The public roadmap, from .github/roadmap.toml to GitHub: the "roadmap" label,
+# a milestone for each stage and an issue for each item (tool/github/sync_roadmap.py).
+# It runs when the file or the script changes on main, and by hand. It creates
+# what is missing and keeps milestone titles, descriptions and due dates in step;
+# it never closes, reopens, deletes or rewrites an issue, so work on GitHub
+# (comments, assignees, closing an issue from a pull request) is left alone.
+# The website's roadmap page reads the result when it is next deployed
+# (deploy.yml; site-refresh.yml redeploys the site every week).
+name: Roadmap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/roadmap.toml
+      - tool/github/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: roadmap
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync milestones and issues
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Sync
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tool/github/sync_roadmap.py --repository "$GITHUB_REPOSITORY"

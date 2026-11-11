@@ -4,7 +4,7 @@
  * collections as the HTML pages, so they never drift from what the pages say.
  */
 import { SITE } from "../config/site.ts";
-import { absoluteUrl, localisePath, LOCALES, type Locale } from "../i18n/locales.ts";
+import { absoluteUrl, LOCALE_INFO, localisePath, LOCALES, type Locale } from "../i18n/locales.ts";
 import { ui } from "../i18n/ui.ts";
 import type {
   DownloadContent,
@@ -12,10 +12,16 @@ import type {
   FeaturesContent,
   HomeContent,
   HowItWorksContent,
+  CompanyContent,
   LicencesContent,
+  PricingContent,
   Source,
 } from "./content/schemas.ts";
 import { guidePath } from "./content/guides.ts";
+import { formatDate } from "../i18n/dates.ts";
+import { DECK_PATH } from "./deck.ts";
+import { APP_STATUS, LATEST_RELEASE, RELEASES } from "./release.ts";
+import { ROADMAP, type RoadmapIssue } from "./roadmap.ts";
 import { copyrightLine, fontLicence, fontLicencePath } from "./licences.ts";
 
 export interface LlmsGuide {
@@ -62,6 +68,8 @@ export interface LlmsInput {
   readonly howItWorks: Readonly<Record<Locale, HowItWorksContent>>;
   readonly faq: Readonly<Record<Locale, FaqContent>>;
   readonly download: Readonly<Record<Locale, DownloadContent>>;
+  readonly pricing: Readonly<Record<Locale, PricingContent>>;
+  readonly company: Readonly<Record<Locale, CompanyContent>>;
   readonly guides: readonly LlmsGuide[];
   readonly tools: readonly LlmsTool[];
   readonly textPages: readonly LlmsTextPage[];
@@ -75,6 +83,12 @@ const LANGUAGE_NAME: Readonly<Record<Locale, string>> = { en: "English", ur: "Ur
 function line(text: string): string {
   // Runs of whitespace become one space; a no-break space (between a figure and "Rs") is kept.
   return text.replace(/[^\S\u00A0]+/gu, " ").trim();
+}
+
+/** "Label: value." with the language's full stop, then what follows on the line, if anything. */
+function dated(label: string, value: string, locale: Locale, after?: string): string {
+  const sentence = `${label}: ${value}${LOCALE_INFO[locale].fullStop}`;
+  return after === undefined ? sentence : `${sentence} ${after}`;
 }
 
 function pageUrl(site: string | URL, path: string, locale: Locale): string {
@@ -109,7 +123,7 @@ function pageLink(
 }
 
 function statusLine(locale: Locale): string | undefined {
-  return SITE.appStatus === "in-development" ? ui(locale).appStatus.inDevelopment : undefined;
+  return APP_STATUS === "in-development" ? ui(locale).appStatus.inDevelopment : undefined;
 }
 
 /** The short index: what the product is, the key facts, and every page. */
@@ -125,6 +139,12 @@ export function llmsTxt(input: LlmsInput): string {
   ];
   const status = statusLine("en");
   if (status !== undefined) out.push(status, "");
+  if (LATEST_RELEASE !== undefined) {
+    out.push(
+      `Current version: ${LATEST_RELEASE.version}, released ${formatDate(LATEST_RELEASE.date, "en")} (${pageUrl(input.site, "/releases/", "en")}). Published by ${SITE.company.legalName}, a company registered in Pakistan (${SITE.company.url}).`,
+      "",
+    );
+  }
   out.push(
     `Key facts, from the site's questions and answers:`,
     "",
@@ -144,6 +164,13 @@ export function llmsTxt(input: LlmsInput): string {
         locale,
         input.features[locale].title,
         input.features[locale].description,
+      ),
+      pageLink(
+        input.site,
+        "/pricing/",
+        locale,
+        input.pricing[locale].title,
+        input.pricing[locale].description,
       ),
       pageLink(
         input.site,
@@ -174,6 +201,21 @@ export function llmsTxt(input: LlmsInput): string {
         input.licences[locale].title,
         input.licences[locale].description,
       ),
+      pageLink(input.site, "/roadmap/", locale, strings.roadmap.title, strings.roadmap.description),
+      pageLink(
+        input.site,
+        "/releases/",
+        locale,
+        strings.releases.title,
+        strings.releases.description,
+      ),
+      pageLink(
+        input.site,
+        "/company/",
+        locale,
+        input.company[locale].title,
+        input.company[locale].description,
+      ),
     );
   }
   if (input.guides.length > 0) {
@@ -197,7 +239,7 @@ export function llmsTxt(input: LlmsInput): string {
     "## Optional",
     "",
     `- [Full text](${absoluteUrl(input.site, "/llms-full.txt")}): every page of this site, in English and Urdu, in one Markdown file.`,
-    SITE.appStatus === "available"
+    APP_STATUS === "available"
       ? `- [Web app](${input.appUrl}): ${SITE.name} itself.`
       : `- [Web app](${input.appUrl}): the address reserved for ${SITE.name}; it shows a holding page until version 1.0 is released.`,
     `- [Source code](${SITE.repositoryUrl}): the app, its database and this website, under the MIT licence.`,
@@ -220,19 +262,22 @@ function homeSection(input: LlmsInput, locale: Locale): string[] {
   ];
   const status = statusLine(locale);
   if (status !== undefined) out.push(status, "");
+  // "**Title.** Body", with the language's full stop after the title.
+  const { fullStop } = LOCALE_INFO[locale];
+  const item = (title: string, body: string) => `**${line(title)}${fullStop}** ${line(body)}`;
   out.push(`### ${line(home.features.heading)}`, "");
-  for (const item of home.features.items) out.push(`- **${line(item.title)}.** ${line(item.body)}`);
+  for (const feature of home.features.items) out.push(`- ${item(feature.title, feature.body)}`);
   out.push("", `### ${line(home.steps.heading)}`, "");
-  home.steps.items.forEach((item, index) => {
-    out.push(`${index + 1}. **${line(item.title)}.** ${line(item.body)}`);
+  home.steps.items.forEach((step, index) => {
+    out.push(`${index + 1}. ${item(step.title, step.body)}`);
   });
   out.push("", `### ${line(home.trust.heading)}`, "");
-  for (const item of home.trust.items) out.push(`- **${line(item.title)}.** ${line(item.body)}`);
+  for (const point of home.trust.items) out.push(`- ${item(point.title, point.body)}`);
   out.push("", `### ${line(home.faq.heading)}`, "");
   for (const item of home.faq.items)
     out.push(`#### ${line(item.question)}`, "", line(item.answer), "");
   const closing =
-    SITE.appStatus === "available"
+    APP_STATUS === "available"
       ? `${line(home.closing.appBody)} ${input.appUrl}`
       : `${line(home.closing.body)} ${pageUrl(input.site, home.closing.cta.href, locale)}`;
   out.push(`### ${line(home.closing.heading)}`, "", closing, "");
@@ -276,28 +321,24 @@ function guideSection(input: LlmsInput, guide: LlmsGuide): string[] {
     "",
     `URL: ${pageUrl(input.site, guidePath(guide.slug), guide.locale)}`,
     "",
-    `${strings.lastReviewed}: ${guide.lastReviewed}. ${strings.notAdvice}`,
+    dated(strings.lastReviewed, guide.lastReviewed, guide.locale, strings.notAdvice),
     "",
     markdownBody(input.site, guide.body),
     "",
-    `### ${strings.sources}`,
-    "",
-    ...guide.sources.map(
-      (source) =>
-        `- [${line(source.title)}](${source.url}), ${line(source.publisher)} (${strings.accessed} ${source.accessed})`,
-    ),
-    "",
+    ...sourcesList(guide.locale, guide.sources),
   ];
 }
 
+/** Each source with its title linked, its publisher after the language's comma, and the day read. */
 function sourcesList(locale: Locale, sources: readonly Source[]): string[] {
   const strings = ui(locale).guide;
+  const { comma } = LOCALE_INFO[locale];
   return [
     `### ${strings.sources}`,
     "",
     ...sources.map(
       (source) =>
-        `- [${line(source.title)}](${source.url}), ${line(source.publisher)} (${strings.accessed} ${source.accessed})`,
+        `- [${line(source.title)}](${source.url})${comma}${line(source.publisher)} (${strings.accessed} ${source.accessed})`,
     ),
     "",
   ];
@@ -322,6 +363,40 @@ function featuresSection(input: LlmsInput, locale: Locale): string[] {
     for (const point of section.points) out.push(`- ${line(point)}`);
     out.push("");
   }
+  return out;
+}
+
+function pricingSection(input: LlmsInput, locale: Locale): string[] {
+  const page = input.pricing[locale];
+  const out = [
+    `## ${line(page.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/pricing/", locale)}`,
+    "",
+    line(page.intro),
+    "",
+    `### ${line(page.earlyAccess.heading)}`,
+    "",
+    line(page.earlyAccess.body),
+    "",
+  ];
+  for (const plan of page.plans) {
+    out.push(
+      `### ${line(plan.name)}: ${line(plan.price)} ${line(plan.period)}`,
+      "",
+      `${line(plan.audience)} ${line(plan.annual)} ${line(plan.allowance)}`,
+      "",
+    );
+    for (const feature of plan.features) {
+      out.push(`- ${line(feature.text)}${feature.soon ? ` (${line(page.labels.soon)})` : ""}`);
+    }
+    out.push("");
+  }
+  out.push(`### ${line(page.notes.heading)}`, "");
+  for (const note of page.notes.items) out.push(`- ${line(note)}`);
+  out.push("", `### ${line(page.faq.heading)}`, "");
+  for (const item of page.faq.items) out.push(`- ${line(item.question)} ${line(item.answer)}`);
+  out.push("");
   return out;
 }
 
@@ -379,6 +454,104 @@ function downloadSection(input: LlmsInput, locale: Locale): string[] {
   return out;
 }
 
+function companySection(input: LlmsInput, locale: Locale): string[] {
+  const page = input.company[locale];
+  const { comma, fullStop } = LOCALE_INFO[locale];
+  const out = [
+    `## ${line(page.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/company/", locale)}`,
+    "",
+  ];
+  out.push(line(page.heading), "", line(page.intro), "", `### ${line(page.facts.heading)}`, "");
+  out.push(
+    `- ${line(page.facts.legalName)}: ${SITE.company.legalName}`,
+    `- ${line(page.facts.cuin)}: ${SITE.company.cuin}`,
+    `- ${line(page.facts.incorporated)}: ${formatDate(SITE.company.incorporated, locale)}`,
+    `- ${line(page.facts.registry.label)}: ${line(page.facts.registry.value)}`,
+    `- ${line(page.facts.product.label)}: ${line(page.facts.product.value)}`,
+    "",
+    `### ${line(page.founder.heading)}`,
+    "",
+    `${line(page.founder.name)}${comma}${line(page.founder.role)}${fullStop}`,
+    "",
+  );
+  for (const paragraph of page.founder.bio) out.push(line(paragraph), "");
+  out.push(
+    `### ${line(page.deck.heading)}`,
+    "",
+    `${line(page.deck.body)} ${absoluteUrl(input.site, DECK_PATH)}`,
+    "",
+    `### ${line(page.contact.heading)}`,
+    "",
+    line(page.contact.body),
+    "",
+    `- ${line(page.contact.email)}: ${SITE.contactEmail}`,
+    `- ${line(page.contact.website)}: ${SITE.company.url}`,
+    `- ${line(page.contact.linkedIn)}: ${SITE.company.linkedInUrl}`,
+    "",
+  );
+  return out;
+}
+
+function roadmapIssues(issues: readonly RoadmapIssue[], locale: Locale): string[] {
+  const strings = ui(locale).roadmap;
+  return issues.map((issue) => {
+    const name = locale === "ur" ? (issue.titleUr ?? issue.title) : issue.title;
+    const state = issue.state === "closed" ? strings.done : strings.open;
+    return `- ${line(name)} (${state})`;
+  });
+}
+
+function roadmapSection(input: LlmsInput, locale: Locale): string[] {
+  const strings = ui(locale).roadmap;
+  const out = [
+    `## ${line(strings.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/roadmap/", locale)}`,
+    "",
+  ];
+  out.push(line(strings.intro), "");
+  for (const milestone of ROADMAP.milestones) {
+    const title = locale === "ur" ? (milestone.titleUr ?? milestone.title) : milestone.title;
+    const description =
+      locale === "ur" ? (milestone.descriptionUr ?? milestone.description) : milestone.description;
+    const due =
+      milestone.due === null
+        ? ""
+        : ` (${strings.due.replace("{date}", formatDate(milestone.due, locale))})`;
+    out.push(`### ${line(title)}${due}`, "");
+    if (description !== "") out.push(line(description), "");
+    out.push(...roadmapIssues(milestone.issues, locale), "");
+  }
+  if (ROADMAP.unscheduled.length > 0) {
+    out.push(`### ${line(strings.unscheduled)}`, "");
+    out.push(...roadmapIssues(ROADMAP.unscheduled, locale), "");
+  }
+  return out;
+}
+
+function releasesSection(input: LlmsInput, locale: Locale): string[] {
+  const strings = ui(locale).releases;
+  const out = [
+    `## ${line(strings.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/releases/", locale)}`,
+    "",
+  ];
+  out.push(line(strings.intro), "");
+  for (const release of RELEASES) {
+    const version = strings.version.replace("{version}", release.version);
+    const date = strings.released.replace("{date}", formatDate(release.date, locale));
+    out.push(`### ${version} (${date})`, "");
+    for (const section of release.sections) {
+      for (const note of section.notes) out.push(`- ${line(note.text)}`);
+    }
+    out.push("");
+  }
+  return out;
+}
+
 function toolSection(input: LlmsInput, tool: LlmsTool): string[] {
   const strings = ui(tool.locale);
   const out = [
@@ -386,7 +559,7 @@ function toolSection(input: LlmsInput, tool: LlmsTool): string[] {
     "",
     `URL: ${pageUrl(input.site, toolPath(tool.slug), tool.locale)}`,
     "",
-    `${strings.guide.lastReviewed}: ${tool.lastReviewed}. ${strings.tools.notAdvice}`,
+    dated(strings.guide.lastReviewed, tool.lastReviewed, tool.locale, strings.tools.notAdvice),
     "",
     line(tool.intro),
     "",
@@ -402,7 +575,7 @@ function textPageSection(input: LlmsInput, page: LlmsTextPage): string[] {
     "",
     `URL: ${pageUrl(input.site, textPagePath(page.slug), page.locale)}`,
     "",
-    `${ui(page.locale).textPage.lastUpdated}: ${page.lastUpdated}.`,
+    dated(ui(page.locale).textPage.lastUpdated, page.lastUpdated, page.locale),
     "",
     markdownBody(input.site, page.body),
     "",
@@ -446,9 +619,13 @@ export function llmsFullTxt(input: LlmsInput): string {
     out.push(
       ...homeSection(input, locale),
       ...featuresSection(input, locale),
+      ...pricingSection(input, locale),
       ...howItWorksSection(input, locale),
       ...faqSection(input, locale),
       ...downloadSection(input, locale),
+      ...companySection(input, locale),
+      ...roadmapSection(input, locale),
+      ...releasesSection(input, locale),
     );
     const guides = input.guides.filter((candidate) => candidate.locale === locale);
     const tools = input.tools.filter((candidate) => candidate.locale === locale);

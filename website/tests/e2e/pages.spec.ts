@@ -1,6 +1,7 @@
 // Every built page, in both languages: language and direction, one h1,
 // canonical and reciprocal hreflang links, Open Graph tags, structured data,
 // the language switch, a clean console, script hygiene and font coverage.
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { LOCALE_INFO } from "../../src/i18n/locales.ts";
 import {
@@ -13,12 +14,25 @@ import {
 } from "./site.ts";
 
 const pages = sitePages();
+// From version 1.0.0 the app is released (src/lib/release.ts reads the same manifest).
+const released =
+  Number(
+    (
+      JSON.parse(
+        readFileSync(new URL("../../../.release-please-manifest.json", import.meta.url), "utf8"),
+      ) as Record<string, string>
+    )["."]?.split(".")[0] ?? 0,
+  ) >= 1;
 const origin = siteOrigin();
 
 test("the site has every page WEB-01 requires, in both languages", () => {
   const neutral = [
     "/",
     "/features/",
+    "/pricing/",
+    "/roadmap/",
+    "/releases/",
+    "/company/",
     "/how-it-works/",
     "/faq/",
     "/download/",
@@ -206,19 +220,24 @@ for (const site of pages) {
       }
 
       if (site.path === "/" || site.path === "/ur/") {
-        // Until version 1.0 ships the app's address shows a holding page, so no main
-        // button leads there: the hero offers the calculators, the closing band the
-        // download page. (src/config/site.ts: appStatus.)
+        // Before version 1.0 the app's address showed a holding page, so no main button
+        // led there: the hero offered the calculators, the closing band the download
+        // page. From 1.0 both lead to the web app (src/lib/release.ts: APP_STATUS).
         const app = byType("SoftwareApplication")[0];
         const appUrl = String(app?.url);
         const buttons = await page
           .locator(".button--primary")
           .evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
-        expect(buttons).toEqual([
-          site.path === "/" ? "/tools/" : "/ur/tools/",
-          site.path === "/" ? "/download/" : "/ur/download/",
-        ]);
-        expect(buttons).not.toContain(appUrl);
+        if (released) {
+          // Once version 1.0 is out, both main buttons open the web app itself.
+          expect(buttons).toEqual([appUrl, appUrl]);
+        } else {
+          expect(buttons).toEqual([
+            site.path === "/" ? "/tools/" : "/ur/tools/",
+            site.path === "/" ? "/download/" : "/ur/download/",
+          ]);
+          expect(buttons).not.toContain(appUrl);
+        }
       }
 
       // The questions page is the site's one FAQPage, and states exactly the questions shown.
@@ -321,6 +340,28 @@ for (const site of pages) {
       }, site.locale);
       expect(stray).toEqual([]);
     });
+
+    if (site.locale === "ur") {
+      test("Urdu text takes the Urdu comma", async ({ page }) => {
+        await page.goto(site.path);
+        // A Latin "," beside Urdu words, or opening a run of text (where a page joins
+        // parts, such as a name and a role), outside lang="en": Urdu writes "،".
+        const latinCommas = await page.evaluate(() => {
+          const pattern = /,\s*[؀-ۿ]|[؀-ۿ]\s*,|^\s*,/;
+          const found: string[] = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+            if (node.parentElement?.closest("noscript") !== null) continue;
+            const text = node.textContent ?? "";
+            if (!pattern.test(text)) continue;
+            const lang = node.parentElement.closest("[lang]")?.getAttribute("lang") ?? "";
+            if (!lang.startsWith("en")) found.push(text.trim());
+          }
+          return found;
+        });
+        expect(latinCommas).toEqual([]);
+      });
+    }
 
     test("every character has a glyph in the self-hosted fonts", async ({ page }) => {
       await page.goto(site.path);

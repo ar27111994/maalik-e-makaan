@@ -7,7 +7,17 @@ import {
   type LlmsTextPage,
   type LlmsTool,
 } from "../../src/lib/llms.ts";
-import { download, faq, features, home, howItWorks, licences, licenceTexts } from "./fixtures.ts";
+import {
+  download,
+  faq,
+  features,
+  home,
+  howItWorks,
+  licences,
+  licenceTexts,
+  pricing,
+  company,
+} from "./fixtures.ts";
 
 const guide = (locale: "en" | "ur"): LlmsGuide => ({
   locale,
@@ -17,8 +27,11 @@ const guide = (locale: "en" | "ur"): LlmsGuide => ({
   lastReviewed: "2026-11-05",
   sources: [
     {
-      title: "Sindh Information of Temporary Residents Act 2015",
-      publisher: "Provincial Assembly of Sindh",
+      title:
+        locale === "en"
+          ? "Sindh Information of Temporary Residents Act 2015"
+          : "سندھ انفارمیشن آف ٹیمپریری ریذیڈنٹس ایکٹ 2015",
+      publisher: locale === "en" ? "Provincial Assembly of Sindh" : "صوبائی اسمبلی سندھ",
       url: "https://www.pas.gov.pk/uploads/acts/Sindh%20Act%20No.XXI%20of%202015.pdf",
       accessed: "2026-11-05",
     },
@@ -37,8 +50,11 @@ const tool = (locale: "en" | "ur"): LlmsTool => ({
   lastReviewed: "2026-11-05",
   sources: [
     {
-      title: "Withholding Tax Rate Card, Tax Year 2027",
-      publisher: "Federal Board of Revenue",
+      title:
+        locale === "en"
+          ? "Withholding Tax Rate Card, Tax Year 2027"
+          : "ودہولڈنگ ٹیکس ریٹ کارڈ، ٹیکس سال 2027",
+      publisher: locale === "en" ? "Federal Board of Revenue" : "فیڈرل بورڈ آف ریونیو",
       url: "https://download1.fbr.gov.pk/Docs/202681113864992WithholdingTaxRatesCard2027.pdf",
       accessed: "2026-11-05",
     },
@@ -68,11 +84,23 @@ const input = (
   howItWorks,
   faq,
   download,
+  pricing,
+  company,
   guides,
   tools,
   textPages,
   licenceTexts,
 });
+
+/**
+ * The lines of `text` with a Latin "," or "." beside an Urdu word, where Urdu
+ * writes "،" and "۔". A Markdown list or heading number such as "1. " is not
+ * punctuation and is set aside.
+ */
+function latinPunctuationBesideUrdu(text: string): string[] {
+  const pattern = /[؀-ۿ][^\S\n]*[,.]|[,.][^\S\n]*[؀-ۿ]/u;
+  return text.split("\n").filter((line) => pattern.test(line.replace(/^(#+ )?\d+\. /u, "")));
+}
 
 describe("llms.txt", () => {
   const text = llmsTxt(input());
@@ -92,7 +120,9 @@ describe("llms.txt", () => {
   test("states the key facts from the site's own answers, including the tax position", () => {
     for (const item of home.en.faq.items) expect(text).toContain(item.answer);
     expect(text).toContain("not legal or tax advice");
-    expect(text).toContain("In development");
+    // Version 1.0 is out: the summary gives the current version, not "in development".
+    expect(text).not.toContain("In development");
+    expect(text).toMatch(/Current version: \d+\.\d+\.\d+, released /);
   });
 
   test("lists every page in both languages, with absolute URLs", () => {
@@ -102,6 +132,11 @@ describe("llms.txt", () => {
       "https://example.pk/licences/",
       "https://example.pk/ur/licences/",
       "https://example.pk/features/",
+      "https://example.pk/pricing/",
+      "https://example.pk/ur/pricing/",
+      "https://example.pk/roadmap/",
+      "https://example.pk/ur/releases/",
+      "https://example.pk/company/",
       "https://example.pk/ur/how-it-works/",
       "https://example.pk/faq/",
       "https://example.pk/ur/download/",
@@ -148,6 +183,11 @@ describe("llms-full.txt", () => {
       expect(text).toContain(licences[locale].code.body);
       for (const section of features[locale].sections) expect(text).toContain(section.body);
       for (const step of howItWorks[locale].steps) expect(text).toContain(step.body);
+      for (const plan of pricing[locale].plans) {
+        expect(text).toContain(plan.price);
+        for (const feature of plan.features) expect(text).toContain(feature.text);
+      }
+      for (const item of pricing[locale].faq.items) expect(text).toContain(item.answer);
       for (const group of faq[locale].groups) {
         for (const item of group.items) expect(text).toContain(item.answer);
       }
@@ -175,6 +215,18 @@ describe("llms-full.txt", () => {
       "- [Withholding Tax Rate Card, Tax Year 2027](https://download1.fbr.gov.pk/Docs/202681113864992WithholdingTaxRatesCard2027.pdf), Federal Board of Revenue (accessed 2026-11-05)",
     );
     expect(text).toContain("Last updated: 2026-11-07.");
+  });
+
+  test("the Urdu half joins its parts with the Urdu comma and full stop", () => {
+    const urdu = text.slice(text.indexOf("URL: https://example.pk/ur/"));
+    expect(latinPunctuationBesideUrdu(urdu)).toEqual([]);
+    // The joins this file makes itself, which no content file supplies.
+    expect(urdu).toContain(`${company.ur.founder.name}، ${company.ur.founder.role}۔`);
+    expect(urdu).toContain(`**${home.ur.features.items[0]?.title}۔** `);
+    expect(urdu).toContain("آخری نظرِ ثانی: 2026-11-05۔ ");
+    expect(urdu).toContain("آخری تبدیلی: 2026-11-07۔");
+    expect(urdu).toContain(")، صوبائی اسمبلی سندھ (رسائی کی تاریخ 2026-11-05)");
+    expect(urdu).toContain(")، فیڈرل بورڈ آف ریونیو (رسائی کی تاریخ 2026-11-05)");
   });
 
   test("English comes before Urdu, and the file ends with one newline", () => {

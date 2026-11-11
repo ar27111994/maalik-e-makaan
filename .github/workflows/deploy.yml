@@ -1,9 +1,16 @@
 # Production deployment: the Supabase backend (migrations, then Edge Functions),
 # then the Flutter web app on Vercel, and, independently of both, the website
 # (website/) on Vercel, each followed by a smoke test. The Release workflow
-# calls it for the tag it has just released; it also runs by hand (Actions,
-# Deploy, Run workflow), for the branch or tag chosen there. The "production"
-# environment should require a reviewer (repository settings).
+# calls it twice for the tag it has just released: the backend and the web app
+# at once, and the website once the release's builds have finished, so that the
+# download page links to the files they attached. It also runs by hand
+# (Actions, Deploy, Run workflow), for the branch or tag chosen there. The
+# "production" environment should require a reviewer (repository settings).
+#
+# When another workflow calls this one, these steps come from the caller's
+# commit (main, for site-refresh.yml) but the files they build come from
+# inputs.ref, which can be an older tag: a step that runs a script from the
+# checkout must cope with a tag that predates the script.
 #
 # It is called rather than started by the "release published" event: a
 # release that release-please creates with the default GITHUB_TOKEN starts no
@@ -18,6 +25,14 @@ on:
         description: The tag to deploy
         type: string
         required: true
+      site-only:
+        description: Deploy only the website (site-refresh.yml, for a fresh roadmap)
+        type: boolean
+        default: false
+      skip-site:
+        description: Deploy everything but the website (release.yml deploys it later)
+        type: boolean
+        default: false
     secrets:
       SUPABASE_ACCESS_TOKEN:
         required: false
@@ -26,6 +41,11 @@ on:
       VERCEL_TOKEN:
         required: false
   workflow_dispatch:
+    inputs:
+      site-only:
+        description: Only the website (the backend and the web app stay as they are)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,6 +65,7 @@ defaults:
 jobs:
   supabase:
     name: Supabase (migrations and functions)
+    if: ${{ !inputs.site-only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment:
@@ -87,6 +108,7 @@ jobs:
   web:
     name: Web app (Vercel)
     needs: supabase
+    if: ${{ !inputs.site-only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment:
@@ -155,8 +177,13 @@ jobs:
   site:
     # The marketing site does not use Supabase, so it does not wait for it.
     name: Website (Vercel)
+    if: ${{ !inputs.skip-site }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      # The roadmap page reads the roadmap's milestones and issues.
+      issues: read
     environment:
       name: production
       url: https://maalik-e-makaan-site.vercel.app
@@ -200,9 +227,86 @@ jobs:
             '{orgId: $org, projectId: $project, projectName: "maalik-e-makaan-site",
               settings: {framework: "astro", rootDirectory: "website", nodeVersion: "22.x"}}' \
             > .vercel/project.json
+      - name: Pitch deck (PDF, with this release's version and date)
+        # Chromium renders website/deck/ into public/; the build then copies it.
+        # A tag from before the deck has no "deck" script and no link to the PDF.
+        working-directory: website
+        run: |
+          if ! jq -e '.scripts.deck' package.json >/dev/null; then
+            echo "::warning::This ref has no pitch deck (no \"deck\" script); the site is built without it"
+            exit 0
+          fi
+          npm ci
+          npx --no-install playwright install --with-deps chromium
+          npm run deck
+      - name: Roadmap, live from GitHub
+        # The roadmap page shows the milestones and issues as they are now; if
+        # GitHub cannot be read it keeps the copy in the repository and warns.
+        # A tag from before the tool keeps the roadmap committed with it, if any.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! -f tool/github/fetch_roadmap.py ]]; then
+            echo "::warning::This ref has no tool/github/fetch_roadmap.py; the site keeps the roadmap committed with it, if any"
+            exit 0
+          fi
+          python3 tool/github/fetch_roadmap.py --from-github --repository "$GITHUB_REPOSITORY"
+      - name: Release files, as attached now
+        # The download page links only to the files listed here. Release's
+        # artefacts and ios jobs attach them minutes after the tag, and a build
+        # that fails attaches nothing until it is re-run, so the page lists
+        # what is there and the deploy never waits on a missing file. A tag
+        # from before the list links to no release file.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIST: website/src/data/release-assets.json
+        run: |
+          if [[ ! -f "$LIST" ]]; then
+            echo "::notice::This ref has no $LIST; its download page links to no release file"
+            exit 0
+          fi
+          tag="v$(jq -er '."."' .release-please-manifest.json)"
+          files="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '[.assets[].name]')" || {
+            echo "::error::Cannot read release $tag's files; if it is not published yet, run this again once it is"
+            exit 1
+          }
+          jq -n --arg tag "$tag" --argjson files "$files" '{tag: $tag, files: $files}' > "$LIST"
+          echo "Release $tag has $(jq length <<<"$files") file(s) attached:"
+          jq -r '.[]' <<<"$files"
       - name: Build (Vercel Build Output API, with vercel.json's headers)
         # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
         run: npx --yes vercel@65.8.0 build --prod
+      - name: Every release file the site links to is attached
+        # A safety net: the download page links only to the files listed above,
+        # so this fails only if a page links to a release file some other way,
+        # or one was removed from the release since. The live site then stays
+        # as it was.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -t links < <(grep -rhoE --include='*.html' \
+            'https://github\.com/[^/"]+/[^/"]+/releases/download/[^/"]+/[^"#?<>[:space:]]+' \
+            .vercel/output/static | sort -u)
+          missing=0 release=""
+          for link in "${links[@]}"; do
+            IFS=/ read -r owner repository _ _ tag file <<<"${link#https://github.com/}"
+            if [[ "$owner/$repository/$tag" != "$release" ]]; then
+              release="$owner/$repository/$tag"
+              names="$(gh api "repos/$owner/$repository/releases/tags/$tag" \
+                --jq '.assets[].name')" || names=""
+            fi
+            if grep -qxF -- "$file" <<<"$names"; then
+              echo "Attached: $link"
+            else
+              echo "::error::$file is not attached to release $tag ($link)"
+              missing=$((missing + 1))
+            fi
+          done
+          echo "${#links[@]} release file link(s) checked"
+          if ((missing > 0)); then
+            echo "::error::Link to release files only through releaseAssets() (website/src/lib/release.ts), which lists the attached ones"
+            exit 1
+          fi
       - name: Deploy to production
         # Uploads .vercel/output as is; nothing is built on Vercel.
         env:

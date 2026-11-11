@@ -25,3 +25,5 @@ coverage/
 # Logs.
 npm-debug.log*
 *.log
+# The pitch deck, rendered from deck/ by scripts/render-deck.ts (npm run deck) before each build.
+public/pitch/

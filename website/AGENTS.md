@@ -30,7 +30,7 @@ cd website && npm ci
 npm run dev            # http://localhost:4321/
 npm run check          # astro check, tsc, ESLint, Stylelint, Prettier
 npm test               # Vitest, including the contract vectors
-npm run build && npm run test:e2e   # links, then Playwright with axe
+npm run deck && npm run build && npm run test:e2e   # the pitch deck PDF, links, then Playwright with axe
 make test-web          # the whole CI sequence, with Lighthouse (from the repository root)
 ```
 

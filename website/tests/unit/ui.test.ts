@@ -21,7 +21,10 @@ describe("UI strings", () => {
     // The not-found page's note for readers of the other language is English on purpose
     // and is rendered inside lang="en".
     const urdu = strings(UI.ur).filter(([key]) => !key.startsWith("notFound.otherLanguage"));
-    for (const [key, value] of urdu) expect(value, key).not.toMatch(/[A-Za-z]/);
+    // "{version}", "{date}", "{done}" and "{total}" are placeholders the pages fill in.
+    for (const [key, value] of urdu) {
+      expect(value.replaceAll(/\{(version|date|done|total)\}/g, ""), key).not.toMatch(/[A-Za-z]/);
+    }
   });
 
   test("English strings are in Latin script, except the note for Urdu readers", () => {

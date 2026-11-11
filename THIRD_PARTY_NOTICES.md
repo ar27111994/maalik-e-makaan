@@ -105,7 +105,9 @@ The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
 (`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoNastaliqUrdu.txt`,
 `LICENSE-lucide.txt`). Versions come from each font's name table. The website
 serves subsets of the two text fonts (one renamed "MM Nastaliq Label") and
-publishes both OFL texts at `/licences/`.
+publishes both OFL texts at `/licences/`. The pitch deck (`website/deck/`) embeds
+the two text fonts in its PDF and draws five Lucide icons (`website/deck/icons/`,
+with their ISC notice) from lucide-static 1.66.0.
 
 What the licences ask:
 

@@ -1,31 +1,66 @@
 # The app page (/download/). Its Urdu twin is ur.yaml; keep both in step.
-# No store links exist yet: version 1.0 is in development (.planning/STATE.md).
-# When the apps are published, add their links here. British English.
+# Version 1.0 has been released (CHANGELOG.md), so the copy says where to get
+# the app today, in the present tense. The release block's {version} and {date}
+# are filled in when the site is built, from CHANGELOG.md and the release-please
+# manifest (src/lib/release.ts); its files are the ones the Release workflow
+# attaches to each release, as many as were attached when the site was built
+# (SHA256SUMS covers the Android and web files; the iPhone file's sum is in
+# SHA256SUMS-ios). Google Play and the App Store have no listing yet: when they
+# do, add their links here, and promise no dates before then. British English.
 title: "Get the app"
-description: "Where to get Maalik-e-Makaan: the web app in any browser, and apps for Android phones and iPhones, all coming with version 1.0, which is in development."
+description: "Get Maalik-e-Makaan: the web app in any browser, installable files for Android phones, and a build for iPhone testers. Free during early access."
 heading: "Get the app"
-intro: "Maalik-e-Makaan will run in a web browser and as an app on Android phones and iPhones, with the same records on each. Version 1.0 has not been released yet; this page will link to each one as soon as it is available."
+intro: "Maalik-e-Makaan runs in a web browser and as an app on Android phones and iPhones, with the same records on each. The web app is live, and anyone can sign up. On an Android phone, you install the app from the files attached to each release on GitHub, and testers can try an iPhone build from there too. The Google Play and App Store listings are on their way. The app is free during early access."
 platforms:
   - name: "Web app"
-    status: "Address reserved"
-    available: false
-    body: "For any modern browser on a phone or computer. Its address is ready, and shows a holding page until version 1.0 is released."
+    status: "Available"
+    available: true
+    body: "For any modern browser on a phone or computer, with nothing to install. Open it, create your account and start adding your properties."
   - name: "Android"
-    status: "Coming soon"
-    available: false
-    body: "For Android 7.0 or later, built to run well on mid-range phones. The store link will appear here when the app is published."
+    status: "On GitHub; coming to Google Play"
+    available: true
+    body: "For phones with Android 7.0 or later. Install it from the files attached to each release on GitHub; your phone may first ask you to allow installs from your browser. The app is coming to Google Play as well."
   - name: "iPhone"
-    status: "Coming soon"
+    status: "Testers only"
     available: false
-    body: "The iPhone app is being built from the same code as the Android app. The store link will appear here when the app is published."
+    body: "The App Store listing is on its way. Until then, testers can install the build attached to each release by signing it with their own Apple Account."
 webApp:
   heading: "The web app's address"
-  body: "Bookmark it now: this is where the web app will open when version 1.0 is released."
+  body: "Open the address below in any browser, sign in and bookmark it for next time. Your records are the same on every phone and computer you use."
   cta:
     label: "Open the web app"
     href: "app"
+release:
+  heading: "Version {version}"
+  date: "Released on {date}."
+  notesHeading: "What is new in this version"
+  notesLanguage: "The release notes are written in English."
+  filesHeading: "Download the files"
+  files:
+    android-arm64:
+      label: "Android (most phones)"
+      note: "For most Android phones. If you are not sure which file you need, choose this one."
+    android-arm32:
+      label: "Android (older phones)"
+      note: "For older Android phones that cannot install the file for most phones."
+    android-x86:
+      label: "Android (emulators and Chromebooks)"
+      note: "For the Android emulator on a computer, and for Chromebooks with an Intel or AMD processor."
+    ios:
+      label: "iPhone (unsigned, for testers)"
+      note: "For testers who sign it with their own Apple Account before installing it. With a free account, the app runs for 7 days and then needs signing and installing again."
+    web:
+      label: "Web app files"
+      note: "The web app's files, for people who host it themselves. Everyone else can simply open the web app."
+    checksums:
+      label: "Checksums (SHA-256)"
+      note: "SHA-256 sums of the Android and web files, to check that a download arrived whole and unchanged."
+  allReleases:
+    label: "Every release and its notes"
+    href: "/releases/"
+  github: "This release on GitHub"
 requirements:
-  heading: "What you will need"
+  heading: "What you need"
   items:
     - "An email address, to sign up and to receive invitations."
     - "A phone or computer with a mobile data or Wi-Fi connection; the app is built to cope with a weak one."

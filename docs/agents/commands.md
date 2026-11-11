@@ -16,6 +16,7 @@ export PATH=/opt/flutter/bin:$PWD/.venv/bin:$PATH   # Flutter 3.47, and the pinn
 | `make tokens`    | Rebuilds `mm_tokens.g.dart`, `design/tokens/maalik.tokens.css` and `DESIGN.md`'s frontmatter from `design/tokens/maalik.tokens.json`                            | Python                         |
 | `make icons`     | Rebuilds `MmIcons.ttf` and `mm_icons.g.dart` from `design/icons/icons.json`                                                                                     | `npm ci`                       |
 | `make contracts` | Rewrites `contracts/rent_math_vectors.json`, `contracts/identity_vectors.json` and the generated pgTAP suites 10, 12, 13 and 20 (`tool/contracts/generate.py`)  | Python                         |
+| `make roadmap`   | Rewrites `website/src/data/roadmap.json`, the website's offline copy of the roadmap, from `.github/roadmap.toml` (`tool/github/fetch_roadmap.py --from-file`)   | Python                         |
 | `make format`    | Writes Dart, Deno, black, ruff, shfmt and Prettier formatting                                                                                                   | all toolchains                 |
 | `make clean`     | Removes build outputs and coverage                                                                                                                              | Flutter                        |
 
@@ -30,6 +31,7 @@ export PATH=/opt/flutter/bin:$PWD/.venv/bin:$PATH   # Flutter 3.47, and the pinn
 | `make analyze`           | `dart`/`flutter analyze --fatal-infos` for each package and the gallery, `deno lint` and `deno task check`, the Unicode guard                                                                                                                                                                                                                                                                                                             |
 | `make tokens-check`      | Tokens valid and their outputs current                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `make icons-check`       | Icon font and constants current                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `make roadmap-check`     | The website's offline roadmap copy matches `.github/roadmap.toml`                                                                                                                                                                                                                                                                                                                                                                         |
 | `make contracts-check`   | Contract vectors and generated suites current                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## Tests by area
@@ -47,7 +49,7 @@ export PATH=/opt/flutter/bin:$PWD/.venv/bin:$PATH   # Flutter 3.47, and the pinn
 | Database       | `make test-db-stress`      | Latency budgets and index use (fails when one is missed) and pgbench throughput; not run in CI                                              |
 | Edge Functions | `make test-functions`      | 100% line, branch and function coverage                                                                                                     |
 | Edge Functions | `make test-functions-e2e`  | Against a running `supabase start` stack                                                                                                    |
-| Website        | `make test-web`            | `npm run check`, `npm test`, `npm run build`, `npm run test:e2e`, `npm run lighthouse:ci`                                                   |
+| Website        | `make test-web`            | `npm run check`, `npm test`, `npm run deck`, `npm run build`, `npm run test:e2e`, `npm run lighthouse:ci`                                   |
 | UAT            | `make test-uat`            | 14 browser journeys on the release web build against `supabase start` ([`docs/uat.md`](../uat.md)); `UAT_RESET=1` resets the database first |
 | Formal         | `make formal-install`      | Pinned, sha256-checked tools into `.cache/formal`                                                                                           |
 | Formal         | `make verify`              | Every track's fast set, as CI runs it; `make verify-all` runs every configuration and mutant                                                |
@@ -79,7 +81,7 @@ them.
 
 | Job                   | Runs                                                                                                                                                               |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Repository hygiene    | commitlint, `make format-check-repo`, `make lint`, `make test-tools`, `make tokens-check icons-check contracts-check`, `designmd lint DESIGN.md`                   |
+| Repository hygiene    | commitlint, `make format-check-repo`, `make lint`, `make test-tools`, `make tokens-check icons-check contracts-check roadmap-check`, `designmd lint DESIGN.md`     |
 | Dart (matrix)         | `dart format` and analyze per package, then `make test-core`, `test-ui`, `test-app` or `test-gallery`; failing goldens are uploaded as `golden-failures-<package>` |
 | Flutter web build     | Release web build, `tool/web/package_vercel.py`, `tool/web/smoke_test.sh` against a local server                                                                   |
 | Website (Astro)       | The `make test-web` sequence, with Playwright and Lighthouse reports uploaded                                                                                      |
@@ -94,6 +96,9 @@ them.
 Other workflows: `security.yml` (CodeQL, gitleaks, OSV-Scanner, dependency review, zizmor,
 outdated function dependencies), `scorecard.yml`, `pr-title.yml` (the squash title), `release.yml`
 (release-please and the release artefacts), `deploy.yml` (Supabase, web app and website; see
-[`docs/operations.md`](../operations.md#deployment-github-actions)) and `backup.yml` (the weekly
+[`docs/operations.md`](../operations.md#deployment-github-actions)), `backup.yml` (the weekly
 encrypted backup, restored and checked on a local stack before it is kept; see
-[`docs/operations.md`](../operations.md#backups)).
+[`docs/operations.md`](../operations.md#backups)), `roadmap.yml` (the roadmap's GitHub
+milestones and issues, from `.github/roadmap.toml`) and `site-refresh.yml` (the website alone,
+redeployed at the latest release every week for a current roadmap; see
+[`docs/operations.md`](../operations.md#the-website-on-vercel)).

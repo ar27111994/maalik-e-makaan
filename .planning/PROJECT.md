@@ -77,7 +77,7 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   - It produces an accountant-ready statement labelled "not tax advice".
 - D-11: **WhatsApp through free `wa.me` links**, sent from the landlord's own number. The Business
   API costs $0.015 a message in Pakistan.
-- D-12: **Language is chosen at first launch.** Urdu (RTL, Nastaliq) and English are equal
+- D-12: **Language is chosen at first launch.** Urdu (RTL; its face is D-19) and English are equal
   citizens. Rupees use Western grouping by default, with lakh/crore available.
 - D-13: **The Data API is opt-in.** Default privileges are revoked, every grant is explicit (with
   column-level grants where clients must not write), and `pgrst.db_pre_request` rate-limits writes
@@ -91,6 +91,63 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   memberships and invitations are written only through RPCs that bypass row-level security, so
   each must authorise its caller first. The 21 reviewed RPCs are pinned by a pgTAP allowlist, which
   covers Supabase lint 0029 under its option 3.
+- D-16: **Residence is declared per person and recorded per portfolio.** (Decided by the owner,
+  11 November 2026.) Resident and overseas owners are told apart in two places:
+  - per person: the country of residence and the time zone, which the person declares and the app
+    never infers;
+  - per portfolio: whether the owner lives abroad, and who the caretaker is.
+
+  How the app holds and uses this is the research's proposed design, not a decision: the fields,
+  the caretaker as a member with the `manager` role, which times stay on Pakistan time and which
+  follow the owner's own zone, and keeping residence from tenants. Whether a caretaker can be
+  someone who does not use the app is still open. The design and its work are in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16).
+
+- D-17: **Letterheads on every generated document.** (Decided by the owner, 11 November 2026.)
+  Owners can upload a letterhead, or make one with a simple builder, and it is applied to every PDF
+  and image the app generates. An upload is a PDF (its first page for a document's first page, its
+  second for the pages after) or a PNG or JPG. Word users save their letterhead as a PDF; there is
+  no Word import. The design and its work are in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-2-letterheads-on-every-generated-document-d-17).
+- D-18: **Privacy-first analytics, support and e-mail.** (Decided by the owner, 11 November 2026.)
+  - The website counts visits with PostHog in cookieless, anonymous mode, and says so plainly. Its
+    privacy page, FAQ and footer, which promise no analytics in English and Urdu, change to match.
+  - The app sends nothing to PostHog or Intercom until the person opts in.
+  - Customer.io sends transactional e-mail, and lifecycle e-mail only to people who consented.
+- D-19: **Urdu interface text is set in Noto Sans Arabic; Nastaliq stays for the wordmark.**
+  (Decided by the owner, 11 November 2026, after seeing five candidates rendered on the real app
+  screens and website pages: Noto Nastaliq Urdu as it was, a tighter Nastaliq, Gulzar, Noto Naskh
+  Arabic and Noto Sans Arabic.) Nastaliq made the interface read like a printed book: at its line
+  height of 2.0 about one pair of body lines in twelve touched, and it sat low in buttons and
+  fields. Noto Sans Arabic never collides at line heights from 1.4 up, centres in controls and
+  makes app screens about 15% shorter. The name مالکِ مکان keeps Nastaliq where it is the
+  wordmark. This revises the "Nastaliq" in D-12; readers in the [pilot](../docs/roadmap/pilot.md)
+  confirm it rather than decide it.
+
+  The research recommends an order of work, which is not part of the decision: the new privacy
+  text first, reviewed by the lawyer, then consent records, then the SDKs. The design and its work
+  are in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
+## Open Proposals
+
+Changes that roadmap items would make to an earlier decision. Each stays a proposal until the
+owner accepts it; it then becomes a decision entry, recorded in the first pull request of the
+item's plan.
+
+- P-01: **Automatic WhatsApp reminders through the WhatsApp Business Platform**, which would
+  revisit D-11 (free `wa.me` links sent from the landlord's own number). The free links would stay
+  the default; automatic reminders would go only to tenants who opted in, at a cost per message,
+  once Meta has verified AR LABS. Plans:
+  [`whatsapp-reminders`](../docs/roadmap/whatsapp-reminders.md) and Munshi on WhatsApp,
+  [`whatsapp-assistant`](../docs/roadmap/whatsapp-assistant.md).
+- P-02: **Collecting rent through licensed partners**, which would end the rule that collection is
+  recorded, not processed (Constraints, below). Raast Request-to-Pay would go through a payment
+  service provider licensed by the State Bank, with the money settling straight to the landlord's
+  account and never through AR LABS; and, once the State Bank's rules are final, credits would be
+  read from the landlord's bank account with consent. Plans:
+  [`raast-request-to-pay`](../docs/roadmap/raast-request-to-pay.md) and
+  [`open-banking`](../docs/roadmap/open-banking.md).
 
 ## Constraints
 
@@ -99,7 +156,9 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 - Low- and mid-range Android dominates (Infinix/Tecno ≈44% of units). Budget: ≤15 MB download
   and <3 s cold start.
 - No payment-gateway or WhatsApp API credentials. Collection is recorded, not processed.
+  Proposals P-01 and P-02 would change this.
 
 ## Current Status
 
-Milestone v1.0 is in progress. See `STATE.md`.
+Milestone v1.0 is in progress. See `STATE.md`. What follows it is planned in
+[`docs/roadmap/README.md`](../docs/roadmap/README.md).

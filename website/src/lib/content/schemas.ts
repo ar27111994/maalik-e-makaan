@@ -163,9 +163,9 @@ export const faqSchema = z.strictObject({
 });
 
 /**
- * Where a feature stands. Version 1.0 is in development, so nothing is
- * released yet; "later" marks what is planned after 1.0 (the Should-Have list
- * in .planning/REQUIREMENTS.md).
+ * Where a feature stands: "v1" is in the released app (version 1.0 and later);
+ * "later" is planned for a later version (the Should-Have list in
+ * .planning/REQUIREMENTS.md, and the roadmap page).
  */
 export const featureStatus = z.enum(["v1", "later"]);
 
@@ -203,6 +203,101 @@ export const howItWorksSchema = z.strictObject({
   closing: z.strictObject({ heading: text(5, 80), body: text(10, 300), cta: link }),
 });
 
+/**
+ * A plan on the pricing page. Prices are written as they are read ("Rs 999",
+ * with a no-break space), not computed, because each language words them
+ * differently and the stores localise the overseas plan's price.
+ */
+const pricingPlan = z.strictObject({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/),
+  name: text(2, 40),
+  /** Who the plan is for, in one line. */
+  audience: text(10, 160),
+  price: text(1, 30),
+  /** What the price is per: "a month", "for good". */
+  period: text(2, 40),
+  /**
+   * The price of more units and of a year, or what replaces it on a free plan.
+   * Overseas states two steps (Pro's up to 25 units, Business's from 30), so it runs longer.
+   */
+  annual: text(5, 220),
+  /** How many units (and people) the plan covers. */
+  allowance: text(5, 140),
+  /** The plan the page recommends to most landlords. */
+  featured: z.boolean(),
+  features: z
+    .array(
+      z.strictObject({
+        text: text(5, 160),
+        /** Planned rather than in the app today; the page labels it. */
+        soon: z.boolean(),
+      }),
+    )
+    .min(3)
+    .max(10),
+});
+
+/**
+ * The pricing page (/pricing/). Billing is not switched on in the app yet, so
+ * the page states the prices and when and how they will apply.
+ */
+export const pricingSchema = z.strictObject({
+  ...pageHead,
+  earlyAccess: z.strictObject({ heading: text(5, 80), body: text(20, 600) }),
+  labels: z.strictObject({
+    featured: text(2, 40),
+    soon: text(2, 30),
+    includes: text(2, 40),
+  }),
+  plans: z.array(pricingPlan).min(3).max(5),
+  /** The rules every plan shares: what a unit is, currencies, tax. */
+  notes: z.strictObject({ heading: text(3, 60), items: z.array(text(10, 400)).min(2).max(8) }),
+  faq: z.strictObject({ heading: text(3, 60), items: z.array(question).min(4).max(10) }),
+  closing: z.strictObject({ heading: text(5, 80), body: text(10, 300), cta: link }),
+});
+
+/**
+ * The company page (/company/): who publishes the app, the founder, the pitch
+ * deck and how to get in touch. The registration details themselves come from
+ * src/config/site.ts, so they are written once.
+ */
+export const companySchema = z.strictObject({
+  ...pageHead,
+  facts: z.strictObject({
+    heading: text(3, 60),
+    legalName: text(3, 60),
+    cuin: text(3, 60),
+    incorporated: text(3, 60),
+    /** The label and the value, which is words, so it is translated here. */
+    registry: z.strictObject({ label: text(3, 60), value: text(5, 160) }),
+    product: z.strictObject({ label: text(3, 60), value: text(5, 160) }),
+  }),
+  founder: z.strictObject({
+    heading: text(3, 60),
+    name: text(3, 60),
+    role: text(3, 60),
+    bio: z.array(text(20, 400)).min(1).max(4),
+    links: text(3, 60),
+  }),
+  deck: z.strictObject({
+    heading: text(3, 60),
+    body: text(20, 400),
+    link: text(3, 80),
+    /** Shown on the Urdu page: the deck is in English. */
+    language: text(10, 200),
+  }),
+  contact: z.strictObject({
+    heading: text(3, 60),
+    body: text(20, 400),
+    email: text(3, 60),
+    website: text(3, 60),
+    linkedIn: text(3, 60),
+  }),
+});
+
+/** A file attached to each release, as the download page describes it. */
+const releaseFile = z.strictObject({ label: text(3, 60), note: text(10, 240) });
+
 /** The app page (/download/): the web app now, the store apps when they exist. */
 export const downloadSchema = z.strictObject({
   ...pageHead,
@@ -217,6 +312,28 @@ export const downloadSchema = z.strictObject({
     )
     .min(2),
   webApp: z.strictObject({ heading: text(3, 70), body: text(20, 500), cta: link }),
+  /**
+   * The latest release, filled in when the site is built from CHANGELOG.md and
+   * the release-please manifest: "{version}" and "{date}" are replaced.
+   */
+  release: z.strictObject({
+    heading: text(5, 70).regex(/\{version\}/),
+    date: text(5, 100).regex(/\{date\}/),
+    notesHeading: text(3, 60),
+    /** Shown on the Urdu page, whose release notes are in English. */
+    notesLanguage: text(10, 200),
+    filesHeading: text(3, 60),
+    files: z.strictObject({
+      "android-arm64": releaseFile,
+      "android-arm32": releaseFile,
+      "android-x86": releaseFile,
+      ios: releaseFile,
+      web: releaseFile,
+      checksums: releaseFile,
+    }),
+    allReleases: link,
+    github: text(5, 80),
+  }),
   requirements: z.strictObject({ heading: text(3, 70), items: z.array(text(10, 300)).min(1) }),
 });
 
@@ -256,6 +373,8 @@ export type FaqContent = z.infer<typeof faqSchema>;
 export type FeaturesContent = z.infer<typeof featuresSchema>;
 export type HowItWorksContent = z.infer<typeof howItWorksSchema>;
 export type DownloadContent = z.infer<typeof downloadSchema>;
+export type PricingContent = z.infer<typeof pricingSchema>;
+export type CompanyContent = z.infer<typeof companySchema>;
 export type TextPageData = z.infer<typeof textPageSchema>;
 export type ToolData = z.infer<typeof toolSchema>;
 export type HomeContent = z.infer<typeof homeSchema>;
