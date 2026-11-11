@@ -223,10 +223,10 @@ describe("llms-full.txt", () => {
     // The joins this file makes itself, which no content file supplies.
     expect(urdu).toContain(`${company.ur.founder.name}، ${company.ur.founder.role}۔`);
     expect(urdu).toContain(`**${home.ur.features.items[0]?.title}۔** `);
-    expect(urdu).toContain("آخری نظرِ ثانی: 2026-11-05۔ ");
+    expect(urdu).toContain("آخری بار چیک کیا: 2026-11-05۔ ");
     expect(urdu).toContain("آخری تبدیلی: 2026-11-07۔");
-    expect(urdu).toContain(")، صوبائی اسمبلی سندھ (رسائی کی تاریخ 2026-11-05)");
-    expect(urdu).toContain(")، فیڈرل بورڈ آف ریونیو (رسائی کی تاریخ 2026-11-05)");
+    expect(urdu).toContain(")، صوبائی اسمبلی سندھ (کب دیکھا 2026-11-05)");
+    expect(urdu).toContain(")، فیڈرل بورڈ آف ریونیو (کب دیکھا 2026-11-05)");
   });
 
   test("English comes before Urdu, and the file ends with one newline", () => {

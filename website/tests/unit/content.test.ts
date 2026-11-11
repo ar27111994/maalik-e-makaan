@@ -184,9 +184,9 @@ describe("pricing facts", () => {
       ]);
       const ur = plan("ur", id);
       expect(figures(ur.price, /^([\d,]+)\u00A0روپے$/)).toEqual([monthly]);
-      expect(figures(ur.annual, /سال بھر کی قیمت دس ماہ کے برابر: .*?([\d,]+)\u00A0روپے/)).toEqual([
-        10 * monthly,
-      ]);
+      expect(
+        figures(ur.annual, /سال بھر کی قیمت دس مہینوں کے برابر: .*?([\d,]+)\u00A0روپے/),
+      ).toEqual([10 * monthly]);
     }
   });
 
@@ -214,7 +214,7 @@ describe("pricing facts", () => {
     const ur = plan("ur", "overseas");
     expect(dollars(ur.price)).toEqual(dollars(overseas.price));
     expect(dollars(ur.annual)).toEqual(dollars(overseas.annual));
-    expect(ur.annual).toContain("تقریباً دس ماہ کے برابر");
+    expect(ur.annual).toContain("تقریباً دس مہینوں کے برابر");
   });
 
   test("only rupee prices are said to include tax; the stores add their own", () => {
