@@ -10,6 +10,7 @@ import {
   homeSchema,
   howItWorksSchema,
   licencesSchema,
+  pricingSchema,
 } from "../../src/lib/content/schemas.ts";
 
 const read = (path: string): unknown =>
@@ -22,6 +23,7 @@ const collections = [
   { name: "features", schema: featuresSchema },
   { name: "how-it-works", schema: howItWorksSchema },
   { name: "download", schema: downloadSchema },
+  { name: "pricing", schema: pricingSchema },
 ] as const;
 
 /** The shape of a value: its keys and array lengths, without the text. */

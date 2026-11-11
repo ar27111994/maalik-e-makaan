@@ -13,6 +13,7 @@ import type {
   HomeContent,
   HowItWorksContent,
   LicencesContent,
+  PricingContent,
   Source,
 } from "./content/schemas.ts";
 import { guidePath } from "./content/guides.ts";
@@ -62,6 +63,7 @@ export interface LlmsInput {
   readonly howItWorks: Readonly<Record<Locale, HowItWorksContent>>;
   readonly faq: Readonly<Record<Locale, FaqContent>>;
   readonly download: Readonly<Record<Locale, DownloadContent>>;
+  readonly pricing: Readonly<Record<Locale, PricingContent>>;
   readonly guides: readonly LlmsGuide[];
   readonly tools: readonly LlmsTool[];
   readonly textPages: readonly LlmsTextPage[];
@@ -144,6 +146,13 @@ export function llmsTxt(input: LlmsInput): string {
         locale,
         input.features[locale].title,
         input.features[locale].description,
+      ),
+      pageLink(
+        input.site,
+        "/pricing/",
+        locale,
+        input.pricing[locale].title,
+        input.pricing[locale].description,
       ),
       pageLink(
         input.site,
@@ -325,6 +334,40 @@ function featuresSection(input: LlmsInput, locale: Locale): string[] {
   return out;
 }
 
+function pricingSection(input: LlmsInput, locale: Locale): string[] {
+  const page = input.pricing[locale];
+  const out = [
+    `## ${line(page.title)}`,
+    "",
+    `URL: ${pageUrl(input.site, "/pricing/", locale)}`,
+    "",
+    line(page.intro),
+    "",
+    `### ${line(page.earlyAccess.heading)}`,
+    "",
+    line(page.earlyAccess.body),
+    "",
+  ];
+  for (const plan of page.plans) {
+    out.push(
+      `### ${line(plan.name)}: ${line(plan.price)} ${line(plan.period)}`,
+      "",
+      `${line(plan.audience)} ${line(plan.annual)} ${line(plan.allowance)}`,
+      "",
+    );
+    for (const feature of plan.features) {
+      out.push(`- ${line(feature.text)}${feature.soon ? ` (${line(page.labels.soon)})` : ""}`);
+    }
+    out.push("");
+  }
+  out.push(`### ${line(page.notes.heading)}`, "");
+  for (const note of page.notes.items) out.push(`- ${line(note)}`);
+  out.push("", `### ${line(page.faq.heading)}`, "");
+  for (const item of page.faq.items) out.push(`- ${line(item.question)} ${line(item.answer)}`);
+  out.push("");
+  return out;
+}
+
 function howItWorksSection(input: LlmsInput, locale: Locale): string[] {
   const page = input.howItWorks[locale];
   const out = [
@@ -446,6 +489,7 @@ export function llmsFullTxt(input: LlmsInput): string {
     out.push(
       ...homeSection(input, locale),
       ...featuresSection(input, locale),
+      ...pricingSection(input, locale),
       ...howItWorksSection(input, locale),
       ...faqSection(input, locale),
       ...downloadSection(input, locale),

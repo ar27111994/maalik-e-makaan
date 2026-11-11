@@ -156,10 +156,9 @@ describe("amounts never break from their currency or unit", () => {
         files(name, locale).map((file) => `${name}/${locale}/${file}`),
       ),
     ),
-    ...["home", "faq", "features", "how-it-works", "download", "licences"].flatMap((name) => [
-      `${name}/en.yaml`,
-      `${name}/ur.yaml`,
-    ]),
+    ...["home", "faq", "features", "pricing", "how-it-works", "download", "licences"].flatMap(
+      (name) => [`${name}/en.yaml`, `${name}/ur.yaml`],
+    ),
   ];
 
   test.each(sources)("src/content/%s", (path) => {

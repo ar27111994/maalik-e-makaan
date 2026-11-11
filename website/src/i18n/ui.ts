@@ -16,6 +16,7 @@ export interface UiStrings {
   readonly footerNavLabel: string;
   readonly nav: {
     readonly features: string;
+    readonly pricing: string;
     readonly howItWorks: string;
     readonly guides: string;
     readonly tools: string;
@@ -91,6 +92,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
     footerNavLabel: "Footer",
     nav: {
       features: "Features",
+      pricing: "Pricing",
       howItWorks: "How it works",
       guides: "Guides",
       tools: "Calculators",
@@ -165,6 +167,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
     footerNavLabel: "ذیلی روابط",
     nav: {
       features: "خصوصیات",
+      pricing: "قیمتیں",
       howItWorks: "طریقۂ کار",
       guides: "رہنمائی",
       tools: "کیلکولیٹر",

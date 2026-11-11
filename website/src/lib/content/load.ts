@@ -78,17 +78,29 @@ export async function loadLlmsInput(site: URL, appUrl: string): Promise<LlmsInpu
     loadTools(),
     loadTextPages(),
   ]);
-  const [featuresEn, featuresUr, howEn, howUr, faqEn, faqUr, downloadEn, downloadUr] =
-    await Promise.all([
-      getEntry("features", "en"),
-      getEntry("features", "ur"),
-      getEntry("howItWorks", "en"),
-      getEntry("howItWorks", "ur"),
-      getEntry("faq", "en"),
-      getEntry("faq", "ur"),
-      getEntry("download", "en"),
-      getEntry("download", "ur"),
-    ]);
+  const [
+    featuresEn,
+    featuresUr,
+    howEn,
+    howUr,
+    faqEn,
+    faqUr,
+    downloadEn,
+    downloadUr,
+    priceEn,
+    priceUr,
+  ] = await Promise.all([
+    getEntry("features", "en"),
+    getEntry("features", "ur"),
+    getEntry("howItWorks", "en"),
+    getEntry("howItWorks", "ur"),
+    getEntry("faq", "en"),
+    getEntry("faq", "ur"),
+    getEntry("download", "en"),
+    getEntry("download", "ur"),
+    getEntry("pricing", "en"),
+    getEntry("pricing", "ur"),
+  ]);
   return {
     site,
     appUrl,
@@ -115,6 +127,10 @@ export async function loadLlmsInput(site: URL, appUrl: string): Promise<LlmsInpu
     download: {
       en: required(downloadEn, "src/content/download/en.yaml").data,
       ur: required(downloadUr, "src/content/download/ur.yaml").data,
+    },
+    pricing: {
+      en: required(priceEn, "src/content/pricing/en.yaml").data,
+      ur: required(priceUr, "src/content/pricing/ur.yaml").data,
     },
     guides,
     tools,

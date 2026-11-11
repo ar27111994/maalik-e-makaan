@@ -8,12 +8,14 @@ import {
   homeSchema,
   howItWorksSchema,
   licencesSchema,
+  pricingSchema,
   type DownloadContent,
   type FaqContent,
   type FeaturesContent,
   type HomeContent,
   type HowItWorksContent,
   type LicencesContent,
+  type PricingContent,
 } from "../../src/lib/content/schemas.ts";
 
 const read = (path: string): unknown =>
@@ -61,4 +63,9 @@ export const licenceTexts: Record<string, string> = {
     new URL("../../../packages/mm_ui/assets/fonts/OFL-NotoNastaliqUrdu.txt", import.meta.url),
     "utf8",
   ),
+};
+
+export const pricing: Record<"en" | "ur", PricingContent> = {
+  en: pricingSchema.parse(read("pricing/en.yaml")),
+  ur: pricingSchema.parse(read("pricing/ur.yaml")),
 };

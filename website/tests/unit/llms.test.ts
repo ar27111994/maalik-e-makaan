@@ -7,7 +7,16 @@ import {
   type LlmsTextPage,
   type LlmsTool,
 } from "../../src/lib/llms.ts";
-import { download, faq, features, home, howItWorks, licences, licenceTexts } from "./fixtures.ts";
+import {
+  download,
+  faq,
+  features,
+  home,
+  howItWorks,
+  licences,
+  licenceTexts,
+  pricing,
+} from "./fixtures.ts";
 
 const guide = (locale: "en" | "ur"): LlmsGuide => ({
   locale,
@@ -68,6 +77,7 @@ const input = (
   howItWorks,
   faq,
   download,
+  pricing,
   guides,
   tools,
   textPages,
@@ -102,6 +112,8 @@ describe("llms.txt", () => {
       "https://example.pk/licences/",
       "https://example.pk/ur/licences/",
       "https://example.pk/features/",
+      "https://example.pk/pricing/",
+      "https://example.pk/ur/pricing/",
       "https://example.pk/ur/how-it-works/",
       "https://example.pk/faq/",
       "https://example.pk/ur/download/",
@@ -148,6 +160,11 @@ describe("llms-full.txt", () => {
       expect(text).toContain(licences[locale].code.body);
       for (const section of features[locale].sections) expect(text).toContain(section.body);
       for (const step of howItWorks[locale].steps) expect(text).toContain(step.body);
+      for (const plan of pricing[locale].plans) {
+        expect(text).toContain(plan.price);
+        for (const feature of plan.features) expect(text).toContain(feature.text);
+      }
+      for (const item of pricing[locale].faq.items) expect(text).toContain(item.answer);
       for (const group of faq[locale].groups) {
         for (const item of group.items) expect(text).toContain(item.answer);
       }

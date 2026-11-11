@@ -203,6 +203,56 @@ export const howItWorksSchema = z.strictObject({
   closing: z.strictObject({ heading: text(5, 80), body: text(10, 300), cta: link }),
 });
 
+/**
+ * A plan on the pricing page. Prices are written as they are read ("Rs 999",
+ * with a no-break space), not computed, because each language words them
+ * differently and the stores localise the overseas plan's price.
+ */
+const pricingPlan = z.strictObject({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/),
+  name: text(2, 40),
+  /** Who the plan is for, in one line. */
+  audience: text(10, 160),
+  price: text(1, 30),
+  /** What the price is per: "a month", "for good". */
+  period: text(2, 40),
+  /** The yearly price, or what replaces it on a free plan. */
+  annual: text(5, 140),
+  /** How many units (and people) the plan covers. */
+  allowance: text(5, 140),
+  /** The plan the page recommends to most landlords. */
+  featured: z.boolean(),
+  features: z
+    .array(
+      z.strictObject({
+        text: text(5, 160),
+        /** Planned rather than in the app today; the page labels it. */
+        soon: z.boolean(),
+      }),
+    )
+    .min(3)
+    .max(10),
+});
+
+/**
+ * The pricing page (/pricing/). Billing is not switched on in the app yet, so
+ * the page states the prices and when and how they will apply.
+ */
+export const pricingSchema = z.strictObject({
+  ...pageHead,
+  earlyAccess: z.strictObject({ heading: text(5, 80), body: text(20, 600) }),
+  labels: z.strictObject({
+    featured: text(2, 40),
+    soon: text(2, 30),
+    includes: text(2, 40),
+  }),
+  plans: z.array(pricingPlan).min(3).max(5),
+  /** The rules every plan shares: what a unit is, currencies, tax. */
+  notes: z.strictObject({ heading: text(3, 60), items: z.array(text(10, 400)).min(2).max(8) }),
+  faq: z.strictObject({ heading: text(3, 60), items: z.array(question).min(4).max(10) }),
+  closing: z.strictObject({ heading: text(5, 80), body: text(10, 300), cta: link }),
+});
+
 /** The app page (/download/): the web app now, the store apps when they exist. */
 export const downloadSchema = z.strictObject({
   ...pageHead,
@@ -256,6 +306,7 @@ export type FaqContent = z.infer<typeof faqSchema>;
 export type FeaturesContent = z.infer<typeof featuresSchema>;
 export type HowItWorksContent = z.infer<typeof howItWorksSchema>;
 export type DownloadContent = z.infer<typeof downloadSchema>;
+export type PricingContent = z.infer<typeof pricingSchema>;
 export type TextPageData = z.infer<typeof textPageSchema>;
 export type ToolData = z.infer<typeof toolSchema>;
 export type HomeContent = z.infer<typeof homeSchema>;

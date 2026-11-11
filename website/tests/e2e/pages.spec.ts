@@ -19,6 +19,7 @@ test("the site has every page WEB-01 requires, in both languages", () => {
   const neutral = [
     "/",
     "/features/",
+    "/pricing/",
     "/how-it-works/",
     "/faq/",
     "/download/",
