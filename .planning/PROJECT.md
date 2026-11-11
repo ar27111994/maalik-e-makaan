@@ -77,7 +77,7 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   - It produces an accountant-ready statement labelled "not tax advice".
 - D-11: **WhatsApp through free `wa.me` links**, sent from the landlord's own number. The Business
   API costs $0.015 a message in Pakistan.
-- D-12: **Language is chosen at first launch.** Urdu (RTL, Nastaliq) and English are equal
+- D-12: **Language is chosen at first launch.** Urdu (RTL; its face is D-19) and English are equal
   citizens. Rupees use Western grouping by default, with lakh/crore available.
 - D-13: **The Data API is opt-in.** Default privileges are revoked, every grant is explicit (with
   column-level grants where clients must not write), and `pgrst.db_pre_request` rate-limits writes
@@ -114,6 +114,15 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     privacy page, FAQ and footer, which promise no analytics in English and Urdu, change to match.
   - The app sends nothing to PostHog or Intercom until the person opts in.
   - Customer.io sends transactional e-mail, and lifecycle e-mail only to people who consented.
+- D-19: **Urdu interface text is set in Noto Sans Arabic; Nastaliq stays for the wordmark.**
+  (Decided by the owner, 11 November 2026, after seeing five candidates rendered on the real app
+  screens and website pages: Noto Nastaliq Urdu as it was, a tighter Nastaliq, Gulzar, Noto Naskh
+  Arabic and Noto Sans Arabic.) Nastaliq made the interface read like a printed book: at its line
+  height of 2.0 about one pair of body lines in twelve touched, and it sat low in buttons and
+  fields. Noto Sans Arabic never collides at line heights from 1.4 up, centres in controls and
+  makes app screens about 15% shorter. The name مالکِ مکان keeps Nastaliq where it is the
+  wordmark. This revises the "Nastaliq" in D-12; readers in the [pilot](../docs/roadmap/pilot.md)
+  confirm it rather than decide it.
 
   The research recommends an order of work, which is not part of the decision: the new privacy
   text first, reviewed by the lawyer, then consent records, then the SDKs. The design and its work

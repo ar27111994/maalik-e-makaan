@@ -1,7 +1,7 @@
 # Conventions
 
 The rules every change follows, with where each is enforced. `CONTRIBUTING.md` is the short
-human version; `.planning/PROJECT.md` (D-01 to D-18) records why.
+human version; `.planning/PROJECT.md` (D-01 to D-19) records why.
 
 ## Commits and pull requests
 

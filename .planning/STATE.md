@@ -13,8 +13,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   items are researched and planned, one plan each in `docs/roadmap/`, indexed by
   `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
   decisions). The issue bodies in `.github/roadmap.toml` link the plans; the Roadmap workflow
-  creates the issues when this reaches `main`. The owner's three decisions of 11 November 2026 are
-  D-16 to D-18 in `PROJECT.md`, and the roadmap changes that would reverse an earlier decision are
+  creates the issues when this reaches `main`. The owner's decisions of 11 November 2026 are
+  D-16 to D-19 in `PROJECT.md`, and the roadmap changes that would reverse an earlier decision are
   open proposals P-01 and P-02 there.
 - Milestone v1.0 (as of 2026-11-08), at commit e853378 on `claude/exciting-cray-2wue0f`. Phases 1–9 are built and
   tested; `REQUIREMENTS.md` ticks each requirement and says what remains of the six that are not
@@ -51,7 +51,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-18 record the decisions, and P-01 and P-02 the open proposals. The ones that
+- PROJECT.md D-01…D-19 record the decisions, and P-01 and P-02 the open proposals. The ones that
   carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
@@ -62,7 +62,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   - D-15: write RPCs are SECURITY DEFINER behind a pgTAP allowlist;
   - D-16 to D-18 (the owner, 2026-11-11): residence declared per person and recorded per
     portfolio; letterheads on every generated document; privacy-first analytics, with PostHog
-    cookieless on the website, PostHog and Intercom opt-in in the app, and Customer.io e-mail.
+    cookieless on the website, PostHog and Intercom opt-in in the app, and Customer.io e-mail;
+  - D-19 (the owner, 2026-11-11): Urdu interface text in Noto Sans Arabic, Nastaliq kept for the
+    wordmark.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.

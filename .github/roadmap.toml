@@ -84,7 +84,7 @@ id = "urdu-review"
 title = "A native speaker's review of every Urdu string"
 title_ur = "ہر اردو عبارت پر اہلِ زبان کی نظرِ ثانی"
 body = """
-Have a native Urdu editor review every Urdu surface (the app's strings, receipts and statements, the website, the e-mail templates and the store listings) for plain, respectful Urdu that landlords and tenants read easily (NFR-03). A glossary and style sheet, signed off by the owner, come before any editor, and a test keeps rejected terms out. Whether the interface moves from Nastaliq to a Naskh or sans face is tried with pilot readers before it is decided.
+Have a native Urdu editor review every Urdu surface (the app's strings, receipts and statements, the website, the e-mail templates and the store listings) for plain, respectful Urdu that landlords and tenants read easily (NFR-03). A glossary and style sheet, signed off by the owner, come before any editor, and a test keeps rejected terms out. The interface's Urdu moves from Nastaliq to Noto Sans Arabic, with Nastaliq kept for the wordmark (decided by the owner on 11 November 2026, D-19); pilot readers confirm that it reads easily.
 
 Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md
 
@@ -99,7 +99,7 @@ Done when:
 
 This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Depends on: none on the roadmap; the font trial uses readers from [pilot](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/pilot.md).
+Depends on: none on the roadmap; readers from [pilot](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/pilot.md) confirm the font.
 
 Waits on: a native Urdu editor, and the owner's time for the glossary.
 """

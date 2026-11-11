@@ -132,7 +132,7 @@ session replay.
   and [app-store](app-store.md) for the store channels (the APK and web app are the fallback), and
   the residence fields and consent table from decisions 1 and 3.
 - **Unblocks:** the public launch on [play-store](play-store.md) and [app-store](app-store.md), the
-  font decision in [urdu-review](urdu-review.md), and the order of the assistant milestone, starting
+  readers' check of the font decided in [urdu-review](urdu-review.md), and the order of the assistant milestone, starting
   with [overseas-oversight](overseas-oversight.md).
 - **Related:** [billing](billing.md), whose plans and prices the pilot informs without holding up
   its code.
