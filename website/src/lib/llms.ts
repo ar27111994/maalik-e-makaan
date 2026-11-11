@@ -4,7 +4,7 @@
  * collections as the HTML pages, so they never drift from what the pages say.
  */
 import { SITE } from "../config/site.ts";
-import { absoluteUrl, localisePath, LOCALES, type Locale } from "../i18n/locales.ts";
+import { absoluteUrl, LOCALE_INFO, localisePath, LOCALES, type Locale } from "../i18n/locales.ts";
 import { ui } from "../i18n/ui.ts";
 import type {
   DownloadContent,
@@ -83,6 +83,12 @@ const LANGUAGE_NAME: Readonly<Record<Locale, string>> = { en: "English", ur: "Ur
 function line(text: string): string {
   // Runs of whitespace become one space; a no-break space (between a figure and "Rs") is kept.
   return text.replace(/[^\S\u00A0]+/gu, " ").trim();
+}
+
+/** "Label: value." with the language's full stop, then what follows on the line, if anything. */
+function dated(label: string, value: string, locale: Locale, after?: string): string {
+  const sentence = `${label}: ${value}${LOCALE_INFO[locale].fullStop}`;
+  return after === undefined ? sentence : `${sentence} ${after}`;
 }
 
 function pageUrl(site: string | URL, path: string, locale: Locale): string {
@@ -256,14 +262,17 @@ function homeSection(input: LlmsInput, locale: Locale): string[] {
   ];
   const status = statusLine(locale);
   if (status !== undefined) out.push(status, "");
+  // "**Title.** Body", with the language's full stop after the title.
+  const { fullStop } = LOCALE_INFO[locale];
+  const item = (title: string, body: string) => `**${line(title)}${fullStop}** ${line(body)}`;
   out.push(`### ${line(home.features.heading)}`, "");
-  for (const item of home.features.items) out.push(`- **${line(item.title)}.** ${line(item.body)}`);
+  for (const feature of home.features.items) out.push(`- ${item(feature.title, feature.body)}`);
   out.push("", `### ${line(home.steps.heading)}`, "");
-  home.steps.items.forEach((item, index) => {
-    out.push(`${index + 1}. **${line(item.title)}.** ${line(item.body)}`);
+  home.steps.items.forEach((step, index) => {
+    out.push(`${index + 1}. ${item(step.title, step.body)}`);
   });
   out.push("", `### ${line(home.trust.heading)}`, "");
-  for (const item of home.trust.items) out.push(`- **${line(item.title)}.** ${line(item.body)}`);
+  for (const point of home.trust.items) out.push(`- ${item(point.title, point.body)}`);
   out.push("", `### ${line(home.faq.heading)}`, "");
   for (const item of home.faq.items)
     out.push(`#### ${line(item.question)}`, "", line(item.answer), "");
@@ -312,28 +321,24 @@ function guideSection(input: LlmsInput, guide: LlmsGuide): string[] {
     "",
     `URL: ${pageUrl(input.site, guidePath(guide.slug), guide.locale)}`,
     "",
-    `${strings.lastReviewed}: ${guide.lastReviewed}. ${strings.notAdvice}`,
+    dated(strings.lastReviewed, guide.lastReviewed, guide.locale, strings.notAdvice),
     "",
     markdownBody(input.site, guide.body),
     "",
-    `### ${strings.sources}`,
-    "",
-    ...guide.sources.map(
-      (source) =>
-        `- [${line(source.title)}](${source.url}), ${line(source.publisher)} (${strings.accessed} ${source.accessed})`,
-    ),
-    "",
+    ...sourcesList(guide.locale, guide.sources),
   ];
 }
 
+/** Each source with its title linked, its publisher after the language's comma, and the day read. */
 function sourcesList(locale: Locale, sources: readonly Source[]): string[] {
   const strings = ui(locale).guide;
+  const { comma } = LOCALE_INFO[locale];
   return [
     `### ${strings.sources}`,
     "",
     ...sources.map(
       (source) =>
-        `- [${line(source.title)}](${source.url}), ${line(source.publisher)} (${strings.accessed} ${source.accessed})`,
+        `- [${line(source.title)}](${source.url})${comma}${line(source.publisher)} (${strings.accessed} ${source.accessed})`,
     ),
     "",
   ];
@@ -451,6 +456,7 @@ function downloadSection(input: LlmsInput, locale: Locale): string[] {
 
 function companySection(input: LlmsInput, locale: Locale): string[] {
   const page = input.company[locale];
+  const { comma, fullStop } = LOCALE_INFO[locale];
   const out = [
     `## ${line(page.title)}`,
     "",
@@ -467,7 +473,7 @@ function companySection(input: LlmsInput, locale: Locale): string[] {
     "",
     `### ${line(page.founder.heading)}`,
     "",
-    `${line(page.founder.name)}, ${line(page.founder.role)}.`,
+    `${line(page.founder.name)}${comma}${line(page.founder.role)}${fullStop}`,
     "",
   );
   for (const paragraph of page.founder.bio) out.push(line(paragraph), "");
@@ -553,7 +559,7 @@ function toolSection(input: LlmsInput, tool: LlmsTool): string[] {
     "",
     `URL: ${pageUrl(input.site, toolPath(tool.slug), tool.locale)}`,
     "",
-    `${strings.guide.lastReviewed}: ${tool.lastReviewed}. ${strings.tools.notAdvice}`,
+    dated(strings.guide.lastReviewed, tool.lastReviewed, tool.locale, strings.tools.notAdvice),
     "",
     line(tool.intro),
     "",
@@ -569,7 +575,7 @@ function textPageSection(input: LlmsInput, page: LlmsTextPage): string[] {
     "",
     `URL: ${pageUrl(input.site, textPagePath(page.slug), page.locale)}`,
     "",
-    `${ui(page.locale).textPage.lastUpdated}: ${page.lastUpdated}.`,
+    dated(ui(page.locale).textPage.lastUpdated, page.lastUpdated, page.locale),
     "",
     markdownBody(input.site, page.body),
     "",
