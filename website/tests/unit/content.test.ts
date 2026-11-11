@@ -197,7 +197,7 @@ describe("pricing facts", () => {
     const [first = 0] = cents(overseas.price, /^US\$(\d+\.\d\d)$/);
     const [step5 = 0, from30 = 0, step10 = 0, year = 0] = cents(
       overseas.annual,
-      /^Then US\$(\d+\.\d\d) more a month for each 5 more let units up to 25\. From 30 let units, US\$(\d+\.\d\d) and US\$(\d+\.\d\d) more for each 10 more\. A year costs about 10 months: US\$(\d+\.\d\d) for 5 units\.$/,
+      /^Then US\$(\d+\.\d\d) more a month for each 5 more let units up to 25\. From 30 let units, US\$(\d+\.\d\d) a month, then US\$(\d+\.\d\d) more for each 10 more\. A year costs about 10 months: US\$(\d+\.\d\d) for 5 units\.$/,
     );
     const stated = (units: number): number =>
       units <= 25 ? first + step5 * (units / 5 - 1) : from30 + step10 * ((units - 30) / 10);
@@ -238,5 +238,37 @@ describe("pricing facts", () => {
     for (const { price } of plans) expect(slide).toContain(`>${price}</p>`);
     expect(slide).toContain("Rupee prices include Pakistani tax");
     expect(slide).not.toMatch(/(?<!Rupee )Prices include tax/);
+  });
+});
+
+describe("pitch deck facts", () => {
+  const slide = (id: string): string =>
+    readFileSync(new URL(`../../deck/slides/${id}.html`, import.meta.url), "utf8");
+  /** The speaker notes, which the PDF leaves out but a presenter reads aloud. */
+  const notes = (html: string): string => html.split("<aside>")[1] ?? "";
+
+  test("the status slide does not call the published pricing unfinished", () => {
+    const status = slide("status");
+    const next = status.split(">Next</h3>")[1]?.split("<aside>")[0] ?? "";
+    expect(next).not.toBe("");
+    expect(next).not.toMatch(/pricing/i);
+    expect(notes(status)).not.toMatch(/no pricing/i);
+  });
+
+  test("reminders are not said to be held back: the app only suggests waiting", () => {
+    // Etiquette.concerns (app reminders.dart) returns notes; the sheet still offers "Send anyway".
+    const product = slide("product");
+    expect(product).not.toMatch(/never[^.<]*(night|prayers)/i);
+    expect(product).toContain("a gentle suggestion to wait");
+  });
+
+  test("no slide says receipts or reminders carry a link", () => {
+    // Reminders are the template, payment details and sign-off; the PDFs' footers have no URL.
+    const { order } = JSON.parse(
+      readFileSync(new URL("../../deck/deck.json", import.meta.url), "utf8"),
+    ) as { order: string[] };
+    for (const id of order) {
+      expect(slide(id), id).not.toMatch(/carr(y|ies) a (small )?link|link back/i);
+    }
   });
 });
