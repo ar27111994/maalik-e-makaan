@@ -322,17 +322,22 @@ Three things on the site update themselves, so a release needs no copy edits for
 - **The roadmap.** `/roadmap/` shows the GitHub milestones and the issues labelled `roadmap`, as
   they are when the site is built: the `site` job runs `tool/github/fetch_roadmap.py
 --from-github` before the build (falling back, with a warning, to the copy in
-  `website/src/data/roadmap.json`). The plan itself is `.github/roadmap.toml`; when it changes on
-  main, the Roadmap workflow (`roadmap.yml`) creates the missing label, milestones and issues and
-  keeps milestone titles, descriptions and due dates in step, without ever closing, deleting or
-  rewriting an issue. Run `make roadmap` after editing the file, to refresh the offline copy.
-  Between releases, the Site refresh workflow (`site-refresh.yml`) redeploys the site alone at the
-  latest release's tag every Wednesday, and by hand (Actions, Site refresh, Run workflow); the
-  Deploy workflow can also be run by hand with "Only the website". Site refresh builds the
-  tag's content with main's `deploy.yml`, so its steps can be newer than the tag: a step whose
-  tool is newer than the tag (the pitch deck, the live roadmap) is skipped with a warning, and
-  the site keeps what the tag has (the committed `roadmap.json`, if any); the next release brings
-  the tool along.
+  `website/src/data/roadmap.json`). Two kinds of labelled issue stay off the page: one opened by
+  someone outside the project (not the owner, a member, a collaborator or the Roadmap workflow),
+  because its author can retitle it at any time and the weekly refresh would publish the new
+  title unreviewed; and one closed as not planned or as a duplicate, which was dropped, not done.
+  To put a suggestion from outside on the roadmap, open an issue of your own for it; to take an
+  item off, close its issue as not planned. The plan itself is `.github/roadmap.toml`; when it
+  changes on main, the Roadmap workflow (`roadmap.yml`) creates the missing label, milestones and
+  issues and keeps milestone titles, descriptions and due dates in step, without ever closing,
+  deleting or rewriting an issue. Run `make roadmap` after editing the file, to refresh the
+  offline copy. Between releases, the Site refresh workflow (`site-refresh.yml`) redeploys the
+  site alone at the latest release's tag every Wednesday, and by hand (Actions, Site refresh, Run
+  workflow); the Deploy workflow can also be run by hand with "Only the website". Site refresh
+  builds the tag's content with main's `deploy.yml`, so its steps can be newer than the tag: a
+  step whose tool is newer than the tag (the pitch deck, the live roadmap) is skipped with a
+  warning, and the site keeps what the tag has (the committed `roadmap.json`, if any); the next
+  release brings the tool along.
 - **The pitch deck.** `/company/` links to a PDF of the deck in `website/deck/`, rendered by
   `npm run deck` (`website/scripts/render-deck.ts`) with the release's version and date and the
   app's current screens; the `site` job renders it before every build. Edit the slides in

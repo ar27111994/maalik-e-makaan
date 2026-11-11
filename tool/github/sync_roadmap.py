@@ -7,8 +7,10 @@ Reads .github/roadmap.toml. What is missing is created; a milestone's title,
 description and due date are brought back in step with the file. Nothing is
 closed, reopened or deleted, and an issue is never rewritten after it is
 created: from then on it is managed on GitHub. Milestones and issues are
-matched by the hidden roadmap id in their description or body, then a
-milestone by its title. The Roadmap workflow runs it when the file changes.
+matched by the hidden roadmap id in their description or body (an issue only
+when the project opened it, so an outsider who copies the id cannot stand in
+for it), then a milestone by its title, unless another roadmap id has that
+milestone. The Roadmap workflow runs it when the file changes.
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ from roadmap_lib import (
     find_marker,
     load,
     marker,
+    opened_by_project,
 )
 
 
@@ -78,20 +81,23 @@ def sync(roadmap: Roadmap, github: GitHub, *, dry_run: bool = False, log=print) 
         find_marker(m.get("description")): m for m in existing if find_marker(m.get("description"))
     }
     by_title = {m.get("title"): m for m in existing}
+    roadmap_ids = {m.id for m in roadmap.milestones}
+    matched = {m.id: by_id[m.id] for m in roadmap.milestones if m.id in by_id}
+    taken = {int(m["number"]) for m in matched.values()}
     numbers: dict[str, int] = {}
-    for milestone in roadmap.milestones:
+
+    def bring_in_step(milestone: Milestone, found: dict[str, Any] | None) -> None:
         wanted = {
             "title": milestone.title,
             "description": milestone_description(milestone),
             "due_on": due_on(milestone.due),
         }
-        found = by_id.get(milestone.id) or by_title.get(milestone.title)
         if found is None:
             created = write("POST", "/milestones", wanted)
             numbers[milestone.id] = int(created["number"])
             log(f"milestone {milestone.id}: created")
             counts["created"] += 1
-            continue
+            return
         numbers[milestone.id] = int(found["number"])
         same = (
             found.get("title") == wanted["title"]
@@ -105,11 +111,36 @@ def sync(roadmap: Roadmap, github: GitHub, *, dry_run: bool = False, log=print) 
             log(f"milestone {milestone.id}: updated")
             counts["updated"] += 1
 
-    # Issues, matched by their hidden id among every issue, open or closed, with the label or
-    # without: an issue whose label was taken off is still the roadmap's, and creating it again
-    # would duplicate it. Pull requests share the issues endpoint; skip them.
+    # Those found by id first: a renamed milestone gives up its old title before another
+    # milestone in the file takes that title (GitHub refuses two milestones with one title).
+    for milestone in roadmap.milestones:
+        if milestone.id in matched:
+            bring_in_step(milestone, matched[milestone.id])
+    # Then the rest, each taking the milestone with its title only if no roadmap id has that
+    # milestone, in this run or in its description; otherwise a new milestone.
+    for milestone in roadmap.milestones:
+        if milestone.id in matched:
+            continue
+        found = by_title.get(milestone.title)
+        if found is not None and (
+            int(found["number"]) in taken or find_marker(found.get("description")) in roadmap_ids
+        ):
+            found = None
+        if found is not None:
+            taken.add(int(found["number"]))
+        bring_in_step(milestone, found)
+
+    # Issues, matched by their hidden id among every issue the project opened, open or closed,
+    # with the label or without: an issue whose label was taken off is still the roadmap's, and
+    # creating it again would duplicate it. An issue someone else opened with a roadmap id in it
+    # is not the roadmap's (roadmap_lib.opened_by_project). Pull requests share the issues
+    # endpoint; skip them.
     issues = github.paginate("/issues", {"state": "all"})
-    known = {find_marker(i.get("body")) for i in issues if "pull_request" not in i}
+    known = {
+        find_marker(i.get("body"))
+        for i in issues
+        if "pull_request" not in i and opened_by_project(i)
+    }
     for milestone in roadmap.milestones:
         for issue in milestone.issues:
             if issue.id in known:

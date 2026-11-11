@@ -6,12 +6,19 @@
 
 With --from-file it describes the plan in the roadmap file, every issue open:
 the copy kept in the repository for offline builds and tests (`make roadmap`,
-checked by `make roadmap-check`). With --from-github it reads the live
-milestones and the issues labelled "roadmap", with their state (a labelled
-issue in no milestone is listed as not yet scheduled), and takes the Urdu text
-from the file while the English it translates is unchanged; the Deploy workflow
-runs it before building the site. If GitHub cannot be reached it falls back to the file and says so,
-unless --strict.
+checked by `make roadmap-check`), always naming the project's own repository.
+With --from-github it reads the live milestones and the issues labelled
+"roadmap", with their state (a labelled issue in no milestone is listed as not
+yet scheduled), and takes the Urdu text from the file while the English it
+translates is unchanged; the Deploy workflow runs it before building the site.
+If GitHub cannot be reached it falls back to the file and says so, unless
+--strict.
+
+Two kinds of labelled issue stay off the site. One that someone outside the
+project opened: its author can retitle it at any time, and the weekly refresh
+would publish the new title unseen (roadmap_lib.opened_by_project). And one
+closed as not planned or as a duplicate: it was dropped, not done, so it is
+neither listed nor counted.
 """
 
 from __future__ import annotations
@@ -33,6 +40,7 @@ from roadmap_lib import (
     Roadmap,
     find_marker,
     load,
+    opened_by_project,
     strip_marker,
 )
 
@@ -74,6 +82,17 @@ def from_file(roadmap: Roadmap, repository: str) -> dict[str, Any]:
     }
 
 
+def state(issue: dict[str, Any]) -> str | None:
+    """An issue's state on the site: open, closed (done), or None when it was closed undone.
+
+    GitHub gives a closed issue's reason as "completed", "not_planned" or "duplicate"; one closed
+    before GitHub kept reasons has none, and GitHub shows it as completed.
+    """
+    if issue.get("state") != "closed":
+        return "open"
+    return "closed" if issue.get("state_reason") in ("completed", None) else None
+
+
 def from_github(roadmap: Roadmap, github: GitHub, today: dt.date) -> dict[str, Any]:
     label = roadmap.label.name
     milestones = github.paginate(
@@ -82,7 +101,7 @@ def from_github(roadmap: Roadmap, github: GitHub, today: dt.date) -> dict[str, A
     issues = [
         i
         for i in github.paginate("/issues", {"state": "all", "labels": label})
-        if "pull_request" not in i
+        if "pull_request" not in i and opened_by_project(i) and state(i) is not None
     ]
     planned = {m.id: m for m in roadmap.milestones}
     planned_issues = {i.id: i for m in roadmap.milestones for i in m.issues}
@@ -98,7 +117,7 @@ def from_github(roadmap: Roadmap, github: GitHub, today: dt.date) -> dict[str, A
             "title": title,
             # The Urdu title only while the English one is still the file's.
             "titleUr": known.title_ur if known and known.title == title else None,
-            "state": "closed" if issue.get("state") == "closed" else "open",
+            "state": state(issue),
             "url": issue.get("html_url"),
         }
 
@@ -164,7 +183,12 @@ def main(argv: list[str] | None = None) -> int:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--from-file", action="store_true")
     source.add_argument("--from-github", action="store_true")
-    parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY") or REPOSITORY)
+    # The file's copy names this repository unless told otherwise, as `make roadmap-check`
+    # expects; GITHUB_REPOSITORY (set in Codespaces and on forks) applies to --from-github only.
+    parser.add_argument(
+        "--repository",
+        help=f"owner/name (default {REPOSITORY}; with --from-github, GITHUB_REPOSITORY first)",
+    )
     parser.add_argument("--file", type=Path, default=ROADMAP_FILE)
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument(
@@ -173,26 +197,27 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     roadmap = load(args.file)
     if args.from_file:
-        write(from_file(roadmap, args.repository), args.output)
+        write(from_file(roadmap, args.repository or REPOSITORY), args.output)
         print(
             f"Roadmap from {args.file.name}: {len(roadmap.milestones)} milestones -> {args.output}"
         )
         return 0
+    repository = args.repository or os.environ.get("GITHUB_REPOSITORY") or REPOSITORY
     try:
         data = from_github(
             roadmap,
-            GitHub(args.repository, os.environ.get("GITHUB_TOKEN")),
+            GitHub(repository, os.environ.get("GITHUB_TOKEN")),
             dt.datetime.now(dt.UTC).date(),
         )
     except Exception as error:
         if args.strict:
             raise
         print(f"::warning::Roadmap: GitHub could not be read ({error}); using {args.file.name}")
-        data = from_file(roadmap, args.repository)
+        data = from_file(roadmap, repository)
     if data["source"] == "github" and not data["milestones"]:
         # Before the Roadmap workflow has run there is nothing on GitHub yet.
         print("::notice::Roadmap: no roadmap milestones on GitHub yet; using the file")
-        data = from_file(roadmap, args.repository)
+        data = from_file(roadmap, repository)
     write(data, args.output)
     print(f"Roadmap from {data['source']}: {len(data['milestones'])} milestones -> {args.output}")
     return 0

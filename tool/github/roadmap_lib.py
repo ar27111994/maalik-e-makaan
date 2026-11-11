@@ -6,6 +6,7 @@ GitHub, and fetch_roadmap.py, which reads them back for the website.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import re
 import tomllib
@@ -23,6 +24,9 @@ API = "https://api.github.com"
 ID = re.compile(r"^[a-z][a-z0-9-]{1,63}$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MARKER = re.compile(r"<!-- roadmap: ([a-z][a-z0-9-]{1,63}) -->")
+# How GitHub describes an issue's author who belongs to the project: the repository's owner, a
+# member of the organisation that owns it, or a collaborator on it.
+PROJECT_AUTHORS = frozenset({"OWNER", "MEMBER", "COLLABORATOR"})
 
 
 def marker(item_id: str) -> str:
@@ -37,6 +41,22 @@ def find_marker(text: str | None) -> str | None:
 
 def strip_marker(text: str | None) -> str:
     return MARKER.sub("", text or "").strip()
+
+
+def opened_by_project(issue: dict[str, Any]) -> bool:
+    """Whether an issue was opened by the project, so that no one outside it can retitle it.
+
+    Anyone can open an issue, and its author can change its title at any time, even after a
+    maintainer has labelled it or put it in a milestone. So the roadmap takes an issue as its own
+    only when the project opened it: its author is the project's owner, a member or a
+    collaborator, or it was opened by the sync, as a bot with a roadmap id in its body. A bot is a
+    GitHub App, which can open issues only in a repository it is installed in. The id alone proves
+    nothing, since anyone can type the hidden comment into an issue they open.
+    """
+    if issue.get("author_association") in PROJECT_AUTHORS:
+        return True
+    author = issue.get("user") or {}
+    return author.get("type") == "Bot" and find_marker(issue.get("body")) is not None
 
 
 @dataclass(frozen=True)
@@ -91,8 +111,22 @@ def _no_latin(value: str, where: str) -> str:
     return value
 
 
+def _date(value: str, where: str) -> str:
+    if not DATE.fullmatch(value):
+        raise RoadmapError(f"{where}: due must be YYYY-MM-DD, not {value!r}")
+    try:
+        dt.date.fromisoformat(value)
+    except ValueError:
+        raise RoadmapError(f"{where}: due {value!r} is not a real date") from None
+    return value
+
+
 def load(path: Path = ROADMAP_FILE) -> Roadmap:
-    """Reads and checks the roadmap file: unique ids, dates, Urdu in Urdu script."""
+    """Reads and checks the roadmap file.
+
+    Ids are unique, due dates are real dates, milestone titles are unique (GitHub refuses a second
+    milestone with a title already taken, ignoring case) and Urdu is in Urdu script.
+    """
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     label_table = data.get("label")
     if not isinstance(label_table, dict):
@@ -104,6 +138,7 @@ def load(path: Path = ROADMAP_FILE) -> Roadmap:
         _text(label_table, "name", "label"), color, _text(label_table, "description", "label")
     )
     seen: set[str] = set()
+    titles: dict[str, str] = {}
     milestones: list[Milestone] = []
     for index, table in enumerate(data.get("milestones") or []):
         where = f"milestones[{index}]"
@@ -111,9 +146,11 @@ def load(path: Path = ROADMAP_FILE) -> Roadmap:
         if not ID.fullmatch(milestone_id) or milestone_id in seen:
             raise RoadmapError(f"{where}: id {milestone_id!r} is not a unique lower-case id")
         seen.add(milestone_id)
-        due = _text(table, "due", where)
-        if not DATE.fullmatch(due):
-            raise RoadmapError(f"{where}: due must be YYYY-MM-DD, not {due!r}")
+        title = _text(table, "title", where)
+        if (other := titles.get(title.casefold())) is not None:
+            raise RoadmapError(f"{where}: milestone {other!r} already has the title {title!r}")
+        titles[title.casefold()] = milestone_id
+        due = _date(_text(table, "due", where), where)
         issues: list[Issue] = []
         for issue_index, issue in enumerate(table.get("issues") or []):
             issue_where = f"{where}.issues[{issue_index}]"
@@ -132,7 +169,7 @@ def load(path: Path = ROADMAP_FILE) -> Roadmap:
         milestones.append(
             Milestone(
                 id=milestone_id,
-                title=_text(table, "title", where),
+                title=title,
                 title_ur=_no_latin(_text(table, "title_ur", where), where),
                 due=due,
                 description=_text(table, "description", where),

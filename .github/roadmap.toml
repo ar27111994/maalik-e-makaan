@@ -8,7 +8,9 @@
 # with a pull request). An issue is matched by its id, kept in a hidden comment in its body.
 #
 # The website's roadmap page (/roadmap/) shows the live milestones and issues from GitHub, with the
-# Urdu titles below; tool/web/fetch_roadmap.py builds it (`make roadmap` for the offline copy).
+# Urdu titles below; tool/github/fetch_roadmap.py builds it (`make roadmap` for the offline copy).
+# It leaves out a labelled issue that someone outside the project opened (its author could retitle
+# it on the live site) and one closed as not planned or as a duplicate (dropped, not done).
 # British English; Urdu in Urdu script, never Roman Urdu.
 
 [label]
