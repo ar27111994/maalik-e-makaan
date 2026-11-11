@@ -69,6 +69,27 @@ title_ur = "تیسرا کام"
 body = "Do a third thing."
 """
 
+THIRD = (
+    SECOND.replace('id = "second"', 'id = "third"')
+    .replace('title = "Second"', 'title = "Third"')
+    .replace('id = "three"', 'id = "four"')
+)
+
+
+def stages(*titled: tuple[str, str]) -> str:
+    """A roadmap file with the milestones first, second and third named, in the order given."""
+    label, first = SMALL.split("[[milestones]]", 1)
+    parts = {
+        "first": ("[[milestones]]" + first, "First"),
+        "second": (SECOND, "Second"),
+        "third": (THIRD, "Third"),
+    }
+    return label + "".join(
+        parts[stage][0].replace(f'title = "{parts[stage][1]}"', f'title = "{title}"')
+        for stage, title in titled
+    )
+
+
 # How GitHub lists an issue's author: the sync's bot, and someone outside the project.
 SYNC_BOT = {"user": {"login": "github-actions[bot]", "type": "Bot"}, "author_association": "NONE"}
 OUTSIDER = {"user": {"login": "someone", "type": "User"}, "author_association": "NONE"}
@@ -317,14 +338,97 @@ class SyncTest(unittest.TestCase):
                 self.run_sync()
                 self.assertEqual(self.fake.writes, [])
 
+    def test_milestones_that_trade_titles_are_renamed_in_an_order_github_takes(self):
+        # One takes the old title of another renamed in the same commit, listed after it or
+        # before it; two swap titles, whatever their case; three pass theirs round; one changes
+        # only its title's case. Each case: the titles after it, and how many PATCHes it takes.
+        before = (("first", "Alpha"), ("second", "Beta"), ("third", "Gamma"))
+        cases = [
+            ((("first", "Beta"), ("second", "Delta"), ("third", "Gamma")), 2),
+            ((("second", "Delta"), ("first", "Beta"), ("third", "Gamma")), 2),
+            ((("first", "Beta"), ("second", "Gamma"), ("third", "Delta")), 3),
+            ((("first", "Beta"), ("second", "Alpha"), ("third", "Gamma")), 3),
+            ((("third", "Gamma"), ("second", "alpha"), ("first", "BETA")), 3),
+            ((("first", "Beta"), ("second", "Gamma"), ("third", "Alpha")), 4),
+            ((("first", "ALPHA"), ("second", "Beta"), ("third", "Gamma")), 1),
+        ]
+        for after, patches in cases:
+            with self.subTest(after=after):
+                self.fake = FakeGitHub()
+                self.github = GitHub("owner/repo", "token", opener=self.fake)
+                self.roadmap = small_roadmap(stages(*before))
+                self.run_sync()
+                self.roadmap = small_roadmap(stages(*after))
+                self.fake.writes.clear()
+                counts = self.run_sync()
+                self.assertEqual(counts["created"], 0)
+                self.assertEqual([method for method, _ in self.fake.writes], ["PATCH"] * patches)
+                titles = {find_marker(m["description"]): m["title"] for m in self.fake.milestones}
+                self.assertEqual(titles, dict(after))
+                issues = {
+                    find_marker(i["body"]): find_marker(i["milestone"]["description"])
+                    for i in self.fake.issues
+                }
+                self.assertEqual(
+                    issues, {"one": "first", "two": "first", "three": "second", "four": "third"}
+                )
+                self.fake.writes.clear()
+                self.run_sync()
+                self.assertEqual(self.fake.writes, [])
+
     def test_a_milestone_found_by_title_is_taken_over_once(self):
-        # A milestone made by hand before the roadmap existed is adopted by its title.
-        self.fake.milestones.append(
-            {"number": 1, "title": "First", "description": "", "state": "open", "due_on": None}
-        )
+        # A milestone made by hand before the roadmap existed is adopted by its title, whatever
+        # its case (GitHub would refuse a second milestone with it).
+        for title in ("First", "first"):
+            with self.subTest(title=title):
+                self.fake = FakeGitHub()
+                self.github = GitHub("owner/repo", "token", opener=self.fake)
+                self.fake.milestones.append(
+                    {
+                        "number": 1,
+                        "title": title,
+                        "description": "",
+                        "state": "open",
+                        "due_on": None,
+                    }
+                )
+                self.run_sync()
+                self.assertEqual(len(self.fake.milestones), 1)
+                self.assertEqual(self.fake.milestones[0]["title"], "First")
+                self.assertEqual(find_marker(self.fake.milestones[0]["description"]), "first")
+
+    def test_a_title_held_off_the_roadmap_stops_the_sync_before_it_writes(self):
         self.run_sync()
-        self.assertEqual(len(self.fake.milestones), 1)
-        self.assertEqual(find_marker(self.fake.milestones[0]["description"]), "first")
+        # Made by hand, or left by a stage taken off the roadmap: the sync never renames it, so
+        # "first" cannot take its title. The label's new description is not written either.
+        roadmap = SMALL.replace('title = "First"', 'title = "BETA"').replace(
+            '"On the roadmap"', '"Planned"'
+        )
+        for description in ("", "Dropped.\n\n<!-- roadmap: dropped -->"):
+            with self.subTest(description=description):
+                self.fake.milestones[1:] = [
+                    {"number": 2, "title": "Beta", "description": description, "due_on": None}
+                ]
+                self.roadmap = small_roadmap(roadmap)
+                self.fake.writes.clear()
+                with self.assertRaisesRegex(sync_roadmap.SyncError, "#2 already has the title"):
+                    self.run_sync()
+                self.assertEqual(self.fake.writes, [])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "roadmap.toml"
+            path.write_text(roadmap, encoding="utf-8")
+            arguments = ["--repository", "owner/repo", "--file", str(path), "--dry-run"]
+
+            def github(repository, token):
+                return GitHub(repository, token, opener=self.fake)
+
+            with (
+                mock.patch.object(sync_roadmap, "GitHub", github),
+                mock.patch("sys.stderr", new_callable=io.StringIO) as stderr,
+            ):
+                code = sync_roadmap.main(arguments)
+        self.assertEqual(code, 1)
+        self.assertIn("rename or delete it on GitHub", stderr.getvalue())
 
 
 class FetchTest(unittest.TestCase):

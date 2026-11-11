@@ -331,14 +331,16 @@ Three things on the site update themselves, so a release needs no copy edits for
   item off, close its issue as not planned. The plan itself is `.github/roadmap.toml`; when it
   changes on main, the Roadmap workflow (`roadmap.yml`) creates the missing label, milestones and
   issues and keeps milestone titles, descriptions and due dates in step, without ever closing,
-  deleting or rewriting an issue. Run `make roadmap` after editing the file, to refresh the
-  offline copy. Between releases, the Site refresh workflow (`site-refresh.yml`) redeploys the
-  site alone at the latest release's tag every Wednesday, and by hand (Actions, Site refresh, Run
-  workflow); the Deploy workflow can also be run by hand with "Only the website". Site refresh
-  builds the tag's content with main's `deploy.yml`, so its steps can be newer than the tag: a
-  step whose tool is newer than the tag (the pitch deck, the live roadmap) is skipped with a
-  warning, and the site keeps what the tag has (the committed `roadmap.json`, if any); the next
-  release brings the tool along.
+  deleting or rewriting an issue. It renames only the roadmap's own milestones: when a title in
+  the file is held by another milestone (made by hand, or left by a stage taken out of the file),
+  the workflow stops before changing anything and names it, to be renamed or deleted on GitHub.
+  Run `make roadmap` after editing the file, to refresh the offline copy. Between releases, the
+  Site refresh workflow (`site-refresh.yml`) redeploys the site alone at the latest release's tag
+  every Wednesday, and by hand (Actions, Site refresh, Run workflow); the Deploy workflow can also
+  be run by hand with "Only the website". Site refresh builds the tag's content with main's
+  `deploy.yml`, so its steps can be newer than the tag: a step whose tool is newer than the tag
+  (the pitch deck, the live roadmap) is skipped with a warning, and the site keeps what the tag
+  has (the committed `roadmap.json`, if any); the next release brings the tool along.
 - **The pitch deck.** `/company/` links to a PDF of the deck in `website/deck/`, rendered by
   `npm run deck` (`website/scripts/render-deck.ts`) with the release's version and date and the
   app's current screens; the `site` job renders it before every build. Edit the slides in
