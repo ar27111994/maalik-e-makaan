@@ -41,7 +41,9 @@ const notesLang = locale === "en" ? undefined : "en";
         {strings.download}
       </a>
     </p>
-    <ol class="releases" reversed>
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ol class="releases" role="list" reversed>
       {RELEASES.map((release, index) => (
         <li class="releases__item" id={release.tag}>
           <h2 class="releases__heading">
