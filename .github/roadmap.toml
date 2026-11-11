@@ -95,7 +95,7 @@ Done when:
 - [ ] The guardrail test passes, and no rejected term remains.
 - [ ] Placeholders and plurals pass the existing localisation tests.
 - [ ] Nothing is clipped at 200% text size in the Urdu goldens, and the common Urdu receipt fits one A5 page.
-- [ ] NFR-03 is marked done in `.planning/REQUIREMENTS.md`.
+- [ ] NFR-03 is marked done in [`.planning/REQUIREMENTS.md`](https://github.com/ar27111994/maalik-e-makaan/blob/main/.planning/REQUIREMENTS.md).
 
 This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
