@@ -44,7 +44,8 @@ by `contracts/`.
    [`docs/architecture/app.md`](../architecture/app.md).
 2. Data access goes in the feature's `data/` repository, state in `application/`, widgets in
    `presentation/`, built from `mm_ui` components.
-3. Add strings to both ARB files, then `make codegen`.
+3. Add strings to both ARB files, then `make codegen`. A change to `appName` in `app_en.arb` also
+   renames the web app: run `make app-icons`, which writes it into `app/web/manifest.json`.
 4. Add widget tests and goldens in the six variants; record them with `make goldens` on Linux and
    review every image.
 5. Run `make format-check analyze design-lint test-app`.
