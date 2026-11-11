@@ -110,7 +110,13 @@ export interface UiStrings {
     readonly notesLanguage: string;
     readonly github: string;
     readonly download: string;
-    /** Release-please's section titles (release-please-config.json), in this language. */
+    /**
+     * Every section title release-please writes, in this language: the visible
+     * sections of release-please-config.json, and "⚠ BREAKING CHANGES", which it
+     * adds for a `feat!:` commit or a `BREAKING CHANGE:` footer. The heading
+     * replaces the title whole, so its "⚠", which the site's fonts do not draw,
+     * never reaches the page (tests/unit/release.test.ts checks every title).
+     */
     readonly sections: Readonly<Record<string, string>>;
   };
   /** Words for where a feature or platform stands. */
@@ -216,6 +222,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       github: "Files and details on GitHub",
       download: "Get the latest version",
       sections: {
+        "⚠ BREAKING CHANGES": "Changes that may affect you",
         Features: "New",
         "Bug fixes": "Fixed",
         Performance: "Faster",
@@ -337,6 +344,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       github: "فائلیں اور تفصیل گٹ ہب پر",
       download: "تازہ ترین ورژن حاصل کریں",
       sections: {
+        "⚠ BREAKING CHANGES": "ایسی تبدیلیاں جن کا آپ پر اثر پڑ سکتا ہے",
         Features: "نیا",
         "Bug fixes": "درستیاں",
         Performance: "رفتار میں بہتری",

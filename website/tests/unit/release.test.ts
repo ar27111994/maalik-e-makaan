@@ -1,6 +1,10 @@
 // The release data the site reads from CHANGELOG.md and the release-please
 // manifest, and the roadmap data from src/data/roadmap.json.
 import { describe, expect, test } from "vitest";
+import releasePleaseConfig from "../../../release-please-config.json";
+import { charactersOf, isArabicScript, LATIN_RANGES } from "../../integrations/brand-assets.ts";
+import { LOCALES } from "../../src/i18n/locales.ts";
+import { ui } from "../../src/i18n/ui.ts";
 import {
   APP_STATUS,
   CURRENT_VERSION,
@@ -67,11 +71,80 @@ describe("parseChangelog", () => {
   });
 });
 
+/** The characters the self-hosted Latin font draws (integrations/brand-assets.ts). */
+const LATIN = new Set(charactersOf(LATIN_RANGES));
+
+/**
+ * The characters of `text` that the page's fonts cannot draw: on an English
+ * page, those outside the Latin subset; on an Urdu page, also Arabic-script
+ * ones, since the build subsets the Urdu fonts to every such character in src/.
+ */
+function undrawable(text: string, urdu: boolean): string[] {
+  // By code point, as the fonts' unicode-range is.
+  return Array.from(text).filter((char) => {
+    if (LATIN.has(char)) return false;
+    return !(urdu && isArabicScript(char.codePointAt(0) ?? 0));
+  });
+}
+
+/** The heading the release notes page shows for a section, as ReleasesPage.astro picks it. */
+function sectionHeadings(title: string) {
+  return LOCALES.map((locale) => ({ locale, heading: ui(locale).releases.sections[title] }));
+}
+
+describe("release notes section headings", () => {
+  /**
+   * Every section title release-please can write: the visible sections of its
+   * config, and the one it adds for breaking changes, "⚠" and all (the
+   * conventionalcommits preset that release-please uses).
+   */
+  const titles = [
+    "⚠ BREAKING CHANGES",
+    ...releasePleaseConfig["changelog-sections"]
+      .filter((section) => !("hidden" in section && section.hidden))
+      .map((section) => section.section),
+  ];
+
+  test("every section release-please can write has a heading in both languages", () => {
+    expect(titles).toContain("Features");
+    for (const title of titles) {
+      for (const { locale, heading } of sectionHeadings(title))
+        expect(heading, `${title} (${locale})`).toMatch(/\S/);
+    }
+  });
+
+  test("a breaking-changes section is shown under a translated heading the fonts can draw", () => {
+    const sample = parseChangelog(SAMPLE, repo);
+    const breaking = sample[0]?.sections[0];
+    expect(breaking?.title).toBe("⚠ BREAKING CHANGES");
+    expect(breaking?.notes).toEqual([{ scope: "db", text: "rename a column" }]);
+    for (const section of sample.flatMap((release) => release.sections)) {
+      for (const { locale, heading } of sectionHeadings(section.title)) {
+        if (heading === undefined) throw new Error(`no ${locale} heading for ${section.title}`);
+        expect(heading).not.toContain("⚠");
+        expect(undrawable(heading, locale === "ur"), `${section.title} (${locale})`).toEqual([]);
+      }
+    }
+  });
+});
+
 describe("the repository's releases", () => {
   test("the manifest's version is the newest entry in CHANGELOG.md", () => {
     expect(RELEASES[0]?.version).toBe(CURRENT_VERSION);
     expect(LATEST_RELEASE?.version).toBe(CURRENT_VERSION);
     expect(LATEST_RELEASE?.sections.length).toBeGreaterThan(0);
+  });
+
+  test("every section has a heading in both languages, and every note a glyph", () => {
+    for (const release of RELEASES) {
+      for (const section of release.sections) {
+        for (const { locale, heading } of sectionHeadings(section.title))
+          expect(heading, `${release.version}: ${section.title} (${locale})`).toBeDefined();
+        // The notes are shown as written, in English, on both pages.
+        for (const note of section.notes)
+          expect(undrawable(note.text, false), `${release.version}: ${note.text}`).toEqual([]);
+      }
+    }
   });
 
   test("from 1.0.0 the app is available", () => {

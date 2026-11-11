@@ -230,7 +230,9 @@ the `guides` collection is empty; that warning is expected.
   build time for the download page's release block, the release notes page (`/releases/`), the
   footer and `llms.txt`; from 1.0.0 it switches the site from "in development" to "available".
   The download page links to the files attached to that release on GitHub; the Deploy workflow
-  checks that each one is there before it publishes the site.
+  checks that each one is there before it publishes the site. Every section title release-please
+  writes (the visible `changelog-sections` and "⚠ BREAKING CHANGES") needs a heading in both
+  languages in `src/i18n/ui.ts` (`releases.sections`); the unit tests check it.
 - **Roadmap:** `/roadmap/` renders `src/data/roadmap.json`, which `tool/github/fetch_roadmap.py`
   writes from GitHub's roadmap milestones and issues before a deploy (`make roadmap` rewrites the
   committed copy from `.github/roadmap.toml`). It leaves out issues opened outside the project,
