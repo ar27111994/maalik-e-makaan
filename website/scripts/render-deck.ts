@@ -79,13 +79,17 @@ async function screen(name: string): Promise<string> {
 function icon(name: string, style: string): string {
   const file = ICONS[name];
   if (file === undefined) throw new Error(`deck: no icon called ${name}`);
-  const svg = text(new URL(`icons/${file}.svg`, deckDir))
-    .replace(/<!--[\s\S]*?-->/g, "")
+  // Lucide's files are a licence comment followed by one <svg> element: keep the
+  // element and drop everything before it, rather than editing comments out.
+  const source = text(new URL(`icons/${file}.svg`, deckDir));
+  const start = source.indexOf("<svg");
+  const end = source.lastIndexOf("</svg>");
+  if (start === -1 || end < start) throw new Error(`deck: icons/${file}.svg has no <svg> element`);
+  const svg = source
+    .slice(start, end + "</svg>".length)
     .replace(/\sclass="[^"]*"/, "")
     .replace(/\swidth="24"\s+height="24"/, "");
-  return svg
-    .replace("<svg", `<svg role="img" aria-hidden="true" style="flex:none;${style}"`)
-    .trim();
+  return svg.replace("<svg", `<svg aria-hidden="true" style="flex:none;${style}"`);
 }
 
 function connector(style: string): string {
