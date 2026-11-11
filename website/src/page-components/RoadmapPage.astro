@@ -7,7 +7,7 @@ import { formatDate, formatMonth } from "../i18n/dates.ts";
 import type { Locale } from "../i18n/locales.ts";
 import { ui } from "../i18n/ui.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { progress, ROADMAP } from "../lib/roadmap.ts";
+import { localised, progress, ROADMAP } from "../lib/roadmap.ts";
 import { ids } from "../lib/seo/json-ld.ts";
 import { documentTitle } from "../lib/seo/meta.ts";
 
@@ -20,11 +20,6 @@ const strings = ui(locale).roadmap;
 if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
 const site = Astro.site;
 const urdu = locale === "ur";
-// On the Urdu page, a title or description that exists only in English sits in lang="en".
-const pick = (english: string, urduText: string | null) =>
-  urdu && urduText !== null
-    ? { text: urduText, lang: undefined }
-    : { text: english, lang: urdu ? "en" : undefined };
 const someEnglishOnly =
   urdu &&
   (ROADMAP.milestones.some(
@@ -53,14 +48,17 @@ const source =
       {source}
       {someEnglishOnly && ` ${strings.englishOnly}`}
     </p>
-    <ol class="roadmap">
+    {/* WebKit drops the list role when list-style is none; the explicit role keeps it. */}
+    {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+    <ol class="roadmap" role="list">
       {ROADMAP.milestones.map((milestone, index) => {
-        const title = pick(milestone.title, milestone.titleUr);
-        const description = pick(milestone.description, milestone.descriptionUr);
+        // On the Urdu page, text that exists only in English sits in lang="en" dir="ltr".
+        const title = localised(milestone.title, milestone.titleUr, locale);
+        const description = localised(milestone.description, milestone.descriptionUr, locale);
         const count = progress(milestone);
         return (
           <li class="card roadmap__stage" id={milestone.id ?? `stage-${index + 1}`}>
-            <h2 class="roadmap__title" lang={title.lang}>
+            <h2 class="roadmap__title" lang={title.lang} dir={title.dir}>
               {title.text}
             </h2>
             <p class="roadmap__meta">
@@ -88,7 +86,11 @@ const source =
                 aria-hidden="true"
               />
             )}
-            {description.text !== "" && <p lang={description.lang}>{description.text}</p>}
+            {description.text !== "" && (
+              <p lang={description.lang} dir={description.dir}>
+                {description.text}
+              </p>
+            )}
             <RoadmapItems issues={milestone.issues} locale={locale} />
           </li>
         );

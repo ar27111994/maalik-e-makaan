@@ -233,7 +233,9 @@ the `guides` collection is empty; that warning is expected.
   checks that each one is there before it publishes the site.
 - **Roadmap:** `/roadmap/` renders `src/data/roadmap.json`, which `tool/github/fetch_roadmap.py`
   writes from GitHub's roadmap milestones and issues before a deploy (`make roadmap` rewrites the
-  committed copy from `.github/roadmap.toml`).
+  committed copy from `.github/roadmap.toml`). It leaves out issues opened outside the project,
+  whose authors could retitle them, and issues closed as not planned or as duplicates. On the Urdu
+  page, a title or description GitHub has only in English is set `lang="en" dir="ltr"`.
 - **Pitch deck:** `npm run deck` renders `deck/` to `public/pitch/` (not committed); the company
   page (`/company/`) links to it. See [`deck/README.md`](deck/README.md).
 - **Pricing:** `/pricing/` is copy in `src/content/pricing/`; billing is not switched on in the app.

@@ -7,9 +7,12 @@
  */
 import { z } from "astro/zod";
 import data from "../data/roadmap.json";
+import type { Locale } from "../i18n/locales.ts";
 
+/** "closed" is done: an issue closed as not planned or as a duplicate is left out of the data. */
 const state = z.enum(["open", "closed"]);
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+/** A day that exists, as YYYY-MM-DD: "2027-02-29" is refused, not read as 1 March. */
+const date = z.iso.date();
 
 const roadmapIssue = z.strictObject({
   /** The id from the roadmap file, or null for an issue added on GitHub. */
@@ -51,6 +54,22 @@ export type RoadmapMilestone = z.infer<typeof roadmapMilestone>;
 export type RoadmapIssue = z.infer<typeof roadmapIssue>;
 
 export const ROADMAP: Roadmap = roadmapSchema.parse(data);
+
+/**
+ * A title or description in the page's language: on the Urdu page, the Urdu
+ * when there is one. English there is marked as English and set left to
+ * right, as the site does with every block of Latin text on an Urdu page;
+ * otherwise the page's right-to-left direction would draw its closing full
+ * stop or question mark at the start.
+ */
+export function localised(
+  english: string,
+  urdu: string | null,
+  locale: Locale,
+): { text: string; lang?: "en"; dir?: "ltr" } {
+  if (locale === "en") return { text: english };
+  return urdu === null ? { text: english, lang: "en", dir: "ltr" } : { text: urdu };
+}
 
 /** How many of a milestone's issues are done, of how many. */
 export function progress(milestone: RoadmapMilestone): { done: number; total: number } {

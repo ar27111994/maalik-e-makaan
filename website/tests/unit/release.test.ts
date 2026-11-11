@@ -10,7 +10,7 @@ import {
   RELEASES,
   releaseAssets,
 } from "../../src/lib/release.ts";
-import { progress, ROADMAP, roadmapSchema } from "../../src/lib/roadmap.ts";
+import { localised, progress, ROADMAP, roadmapSchema } from "../../src/lib/roadmap.ts";
 
 const repo = "https://github.com/owner/repo";
 
@@ -123,6 +123,27 @@ describe("the roadmap", () => {
     expect(roadmapSchema.safeParse({ ...ROADMAP, milestones: [] }).success).toBe(false);
     expect(roadmapSchema.safeParse({ ...ROADMAP, source: "somewhere" }).success).toBe(false);
     expect(roadmapSchema.safeParse({ ...ROADMAP, unscheduled: undefined }).success).toBe(false);
+  });
+
+  test("a date is a day that exists, not one the calendar rolls over", () => {
+    const [first, ...rest] = ROADMAP.milestones;
+    if (first === undefined) throw new Error("the roadmap has no milestones");
+    const due = (value: string) =>
+      roadmapSchema.safeParse({ ...ROADMAP, milestones: [{ ...first, due: value }, ...rest] })
+        .success;
+    expect(due("2027-02-28")).toBe(true);
+    expect(due("2028-02-29")).toBe(true);
+    // new Date() would read these as 1 March and 1 July, and the page would show the wrong month.
+    expect(due("2027-02-29")).toBe(false);
+    expect(due("2027-06-31")).toBe(false);
+    expect(due("2027-13-01")).toBe(false);
+    expect(roadmapSchema.safeParse({ ...ROADMAP, updated: "2026-11-31" }).success).toBe(false);
+  });
+
+  test("English-only text on the Urdu page is marked as English, left to right", () => {
+    expect(localised("Launch.", "اجرا۔", "en")).toEqual({ text: "Launch." });
+    expect(localised("Launch.", "اجرا۔", "ur")).toEqual({ text: "اجرا۔" });
+    expect(localised("Launch.", null, "ur")).toEqual({ text: "Launch.", lang: "en", dir: "ltr" });
   });
 
   test("the file's copy has nothing unscheduled; live data may", () => {
