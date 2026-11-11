@@ -6,6 +6,12 @@ regulator or partner, so the rules should be built in the second half of 2027, o
 fields and [push-notifications](push-notifications.md) exist. Only the evidence pack's legal
 review and Munshi's explanations belong in 2028.
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 An owner in Riyadh, Dubai or London whose brother or a hired caretaker collects the rent cannot
@@ -145,8 +151,11 @@ the data export.
 7. **S:** high-severity push through [push-notifications](push-notifications.md).
 8. **S:** caretaker transparency text, privacy notice and data export.
 9. **M:** evidence-pack PDF and CSV, and the lawyer's review of its wording.
-10. **M (2028):** Munshi phrasing in the inbox and digest, checked against each finding's amounts
-    and dates, with a switch back to the fixed text.
+10. **M (2028):** Munshi's guarded phrasing function: it rewords a finding's fixed text and is
+    refused if any amount or date differs from the finding's own; with an evaluation set over the
+    rule catalogue's vectors in English and Urdu.
+11. **M (2028):** the phrasing in the inbox and the digest, with a switch back to the fixed text
+    per portfolio and automatically on any refusal.
 
 No audit work is needed for payment-detail changes: the `portfolios` trigger already records them.
 

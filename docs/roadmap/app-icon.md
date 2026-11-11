@@ -3,6 +3,12 @@
 Milestone **Launch and listen** (`launch`), due 28 February 2027. Issue `app-icon` in
 [`.github/roadmap.toml`](../../.github/roadmap.toml).
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 On a landlord's home screen the app shows Flutter's default blue logo, which says nothing about

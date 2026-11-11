@@ -3,6 +3,12 @@
 Milestone **The assistant** (`assistant`), due 30 November 2027. Issue `reconciliation` in
 [`.github/roadmap.toml`](../../.github/roadmap.toml).
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 A landlord with twenty tenants paying by Raast, bank transfer and wallet ends each month with a

@@ -4,6 +4,12 @@ Milestone **The assistant** (`assistant`), due 30 November 2027. Issue `whatsapp
 [`.github/roadmap.toml`](../../.github/roadmap.toml). Meta's verification of AR LABS gates it, so
 the owner's side should start in the first half of 2027 and the build in the second.
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 Landlords already remind tenants on WhatsApp, but by hand, one tenant at a time, and they forget
@@ -101,10 +107,13 @@ consent and suppression, and sends.
 
 **Planner.** In SQL, per active lease with consent: upcoming 3 days before the due day, due
 today, overdue 3 days after, overdue again 7 days after, then stop and tell the landlord. Sends
-fall between 10:00 and 20:00 Pakistan time, never during Friday prayers, and at least three days
-after the last reminder through any channel, including logged `wa.me` ones. The etiquette rules
-move to contract vectors in `contracts/`, read by Dart, SQL and TypeScript, so the app and the
-planner agree.
+fall between 10:00 and 20:00 Pakistan time, a narrower window inside the 08:00 to 22:00 the app
+allows for a reminder the landlord sends by hand. They never fall during Friday prayers, and come
+at least three days after the last reminder through any channel, including logged `wa.me` ones.
+The etiquette rules move to contract vectors in `contracts/`, read by Dart, SQL and TypeScript.
+The vectors carry both windows, the app's for reminders sent by hand and the planner's for
+automatic sends, and the Friday prayers and the three-day gap that both share, so the app and the
+planner agree on every shared rule. The app's own hours do not change.
 
 **Suppression.** Recording a payment that clears a due cancels its queued reminders in the same
 transaction, under the lease lock. A cap per due and per month, and the landlord's switch,
@@ -146,8 +155,8 @@ figures come from server aggregates. Customer.io is not used to message tenants.
 2. **S:** the legal name and address in the website footer in both languages; the privacy notice
    on messaging; a decision entry revisiting D-11.
 3. **M:** write and submit the 18 templates; track approval and category; Urdu review.
-4. **S:** etiquette rules as contract vectors in Dart, SQL and TypeScript; the app's `Etiquette`
-   reads them.
+4. **S:** etiquette rules as contract vectors in Dart, SQL and TypeScript, with both windows; the
+   app's `Etiquette` reads them and keeps its 08:00 to 22:00.
 5. **M:** migrations for schedules, the consent purpose, the queue, events and the
    `reminder_logs` marker; RLS and pgTAP; a concurrency scenario of a payment against the planner.
 6. **M:** `whatsapp-webhook`: signatures, idempotency by event and message ID, opt-in codes, STOP

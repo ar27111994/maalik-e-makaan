@@ -3,6 +3,12 @@
 Milestone **Launch and listen** (`launch`), due 28 February 2027. Issue `pilot` in
 [`.github/roadmap.toml`](../../.github/roadmap.toml).
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 The app has passed its tests, but no landlord has yet run a month's rent through it. A pilot with
@@ -126,9 +132,10 @@ session replay.
   and [app-store](app-store.md) for the store channels (the APK and web app are the fallback), and
   the residence fields and consent table from decisions 1 and 3.
 - **Unblocks:** the public launch on [play-store](play-store.md) and [app-store](app-store.md), the
-  font decision in [urdu-review](urdu-review.md), [billing](billing.md) (which plans and prices hold
-  up), and the order of the assistant milestone, starting with
-  [overseas-oversight](overseas-oversight.md).
+  font decision in [urdu-review](urdu-review.md), and the order of the assistant milestone, starting
+  with [overseas-oversight](overseas-oversight.md).
+- **Related:** [billing](billing.md), whose plans and prices the pilot informs without holding up
+  its code.
 
 ## Risks
 

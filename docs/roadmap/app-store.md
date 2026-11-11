@@ -3,6 +3,12 @@
 Milestone **Launch and listen** (`launch`), due 28 February 2027. Issue `app-store` in
 [`.github/roadmap.toml`](../../.github/roadmap.toml).
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 An iPhone owner cannot use the app today except in the browser: the release's iPhone build is
@@ -86,8 +92,9 @@ relying on them.
   confirmed so e-mail confirmation cannot block it, and reset before each submission.
 - **Storefronts.** Pakistan and the overseas countries; the EU only if AR LABS publishes its trader
   details.
-- **Later, with [billing](billing.md).** Subscriptions through StoreKit (3.1.1); a link to web
-  checkout only on the US storefront.
+- **Later, with [billing](billing.md).** Subscriptions through StoreKit (3.1.1). Apple allows a
+  link to web checkout on the US storefront, and elsewhere only by entitlement in the EU, Japan and
+  Brazil; whether to use it, or keep one rule everywhere, is an open question in billing.
 
 ### Residence (decision 1)
 

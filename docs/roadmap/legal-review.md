@@ -3,6 +3,12 @@
 Milestone **Launch and listen** (`launch`), due 28 February 2027. Issue `legal-review` in
 [`.github/roadmap.toml`](../../.github/roadmap.toml).
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 Landlords put their tenants' names, phone numbers and CNIC copies into the app, and rely on its
@@ -98,8 +104,9 @@ deleted with the portfolio. The tenant notice is designed to print on a letterhe
 
 ### Analytics (decision 3)
 
-The live promise of "no analytics" must be rewritten in both languages, and approved here, before
-any analytics SDK ships (open proposal P-03 in [PROJECT.md](../../.planning/PROJECT.md)). The new
+The owner's decision withdraws the live promise of "no analytics" (D-18 in
+[PROJECT.md](../../.planning/PROJECT.md)). The research recommends that its replacement, in both
+languages, is reviewed here before any analytics SDK ships, and this plan follows it. The new
 notice names every processor with its region and retention: PostHog (EU Cloud, cookieless on the
 website, opt-in in the app), Intercom (opt-in support chat, now owned by Salesforce _(summary)_),
 and Customer.io (transactional e-mail, lifecycle e-mail only with consent; the existing workspace is

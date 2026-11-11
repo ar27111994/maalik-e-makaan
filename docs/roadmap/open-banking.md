@@ -4,6 +4,12 @@ Milestone **Money that moves** (`money`), due 30 November 2028. Issue `open-bank
 [`.github/roadmap.toml`](../../.github/roadmap.toml). One step cannot wait: comments on the State
 Bank's draft regulations close on **30 November 2026**. Everything else waits for the final rules.
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 Rent paid by bank transfer or Raast lands in the landlord's account, and today someone has to
@@ -86,13 +92,14 @@ collecting credentials, so screen-scraping is out. Statement and message import 
 
 ### Residence (decision 1)
 
-Scope follows the account, not the person: any Pakistani account at an institution under the
-final rules, including one held by an owner abroad. Roshan Digital Accounts are in scope only if
-the rules cover them; foreign accounts are out. Only the account holder connects an account, from
-their own session; a caretaker never connects the owner's account, because the bank's data
-belongs to the holder. A bank's consent step that needs a Pakistani SIM may not work from abroad,
-which the connect screen says plainly. Credit dates stay Pakistan dates; "consent expires soon"
-and "new credits to match" notices follow the holder's time zone and quiet hours.
+The research recommends limiting this to resident landlords' Pakistani accounts; Roshan Digital
+Accounts and foreign accounts are probably out of scope. Whether an owner abroad may connect a
+Pakistani account too is the owner's call (question 2). If the owner allows it, a bank's consent
+step that needs a Pakistani SIM may not work from abroad, which the connect screen says plainly.
+Either way, only the account holder connects an account, from their own session; a caretaker never
+connects the owner's account, because the bank's data belongs to the holder. Credit dates stay
+Pakistan dates; "consent expires soon" and "new credits to match" notices follow the holder's time
+zone and quiet hours.
 
 ### Letterheads (decision 2)
 
@@ -164,8 +171,8 @@ reaches analytics; counts of connections and imports come from server aggregates
 ## Questions for the owner
 
 1. Will AR LABS send comments on the draft by 30 November 2026, and who signs them?
-2. Any Pakistani account, including those of owners abroad, or resident landlords only? Roshan
-   Digital Accounts if the rules allow?
+2. Resident landlords' Pakistani accounts only (the research's recommendation), or Pakistani
+   accounts held by owners abroad too? Roshan Digital Accounts if the rules allow?
 3. Is a partner provider acceptable, given that landlords consent to it as well as to AR LABS?
 4. How far back should the first import look: 30 days or 90?
 5. Which plans include it?

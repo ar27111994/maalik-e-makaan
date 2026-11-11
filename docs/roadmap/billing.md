@@ -3,6 +3,12 @@
 Milestone **Launch and listen** (`launch`), due 28 February 2027. Issue `billing` in
 [`.github/roadmap.toml`](../../.github/roadmap.toml).
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 Plans pay for the copy of the app that AR LABS runs: hosting, backups, the store apps and
@@ -69,9 +75,11 @@ purchase, never taken as the person's residence). A
 count. The new objects are named for plans and subscriptions, never "billing", so they cannot
 be confused with rent dues.
 
-**Free is counted per owner.** Paid entitlements cover named portfolios, but the free 5 units
-are counted across every portfolio a person owns, so splitting a building into portfolios does
-not multiply the free allowance.
+**How Free is counted is open.** The research counts let units per portfolio and does not say
+how Free is counted across several. This plan adds a proposal of its own, not from the research:
+count the free 5 units across every portfolio a person owns, so that splitting a building into
+portfolios does not multiply the free allowance, while paid entitlements still cover named
+portfolios. The owner decides (question 4); until then the design counts per portfolio.
 
 **Enforcement in Postgres.** Limits are checked where rows are written: the lease insert path
 (units), `create_invitation` (people) and document inserts (storage), each taking the account
@@ -144,13 +152,20 @@ from entitlement rows, aggregated on the server.
     in [`docs/uat.md`](../uat.md), and the new definer RPCs in
     [`01_schema_security.test.sql`](../../supabase/tests/database/01_schema_security.test.sql).
 
+In the index's [order of work](README.md#order-of-work), items 3 and 4 (the schema and the
+limits) come before 28 February 2027 and the checkout (items 6 to 10) after it, so the index
+recommends moving the checkout to The assistant. A charge before 28 February instead needs at
+least items 1, 2, 10 and 12 in that first wave as well, with the notice sent by 30 December 2026;
+the store checkout still follows.
+
 ## Depends on / Unblocks
 
 - **Depends on:** [play-store](play-store.md), [app-store](app-store.md),
   [legal-review](legal-review.md) (terms, refunds, the PSP named in the privacy notice),
   [urdu-review](urdu-review.md), the residence fields of decision 1, the consent records and
-  Customer.io set-up of decision 3, and the owner's tax registrations. [pilot](pilot.md) shows
-  which plans and prices hold up before anything is charged.
+  Customer.io set-up of decision 3, and the owner's tax registrations.
+- **Related:** [pilot](pilot.md) informs the plans and prices, but does not hold up the code or a
+  charge in February.
 - **Unblocks:** [hostel-mode](hostel-mode.md) (Business limits) and
   [raast-request-to-pay](raast-request-to-pay.md).
 
@@ -173,8 +188,8 @@ from entitlement rows, aggregated on the server.
 
 - [ ] No account is charged before its notice date, and a pgTAP test proves half price for 12
       months in every channel.
-- [ ] Calling the RPCs or the Data API directly cannot activate a sixth let unit on Free, nor a
-      sixth by spreading units across portfolios.
+- [ ] Calling the RPCs or the Data API directly cannot activate a sixth let unit on Free; if the
+      owner counts Free per owner, nor a sixth by spreading units across portfolios.
 - [ ] Duplicate store notifications or PSP IPNs produce exactly one entitlement change; a refund
       revokes it.
 - [ ] A lapsed plan gives 14 days of full access, then read-only units; nothing is deleted and
@@ -190,7 +205,8 @@ from entitlement rows, aggregated on the server.
 1. Where is AR LABS registered for services tax, and is it registered with PSEB?
 2. PayFast or Safepay?
 3. Does a plan belong to the portfolio (recommended) or the account?
-4. Is the Free allowance counted per owner across portfolios (recommended)?
+4. Is the Free allowance counted per portfolio, or per owner across portfolios (this plan's
+   proposal, not the research's)?
 5. Does the half-price year apply in the stores too, after the store's fee?
 6. A link out on the US storefront, or one rule everywhere?
 7. Web checkout first, then the stores?

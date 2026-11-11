@@ -4,6 +4,12 @@ Milestone **The assistant** (`assistant`), due 30 November 2027. Issue `whatsapp
 [`.github/roadmap.toml`](../../.github/roadmap.toml). It rests on five other items, so it is the
 last of the milestone to start, in the second half of 2027.
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 Many landlords and caretakers live in WhatsApp and send voice notes rather than open an app.

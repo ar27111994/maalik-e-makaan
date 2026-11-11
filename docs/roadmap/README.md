@@ -12,7 +12,9 @@ each milestone and an issue labelled `roadmap` for each item, and the website's
 GitHub's issues and milestones are the live record: who is working on what, the discussion, and
 whether an item is done. The sync creates each issue once, from its `body` in the file, and never
 rewrites it. The plans here record each item's design as researched on 11 November 2026; a pull
-request that changes an item's design updates its plan.
+request that changes an item's design updates its plan. An issue's **Done when** checklist is its
+plan's list, copied unchanged when the issue is created; if the plan's list changes later, the
+plan's list is the one to meet before the issue is closed.
 
 How to read a plan:
 
@@ -32,7 +34,7 @@ How to read a plan:
 | -------------------------------- | ---------------- | ----: | --------------- | ------------: |
 | **Launch and listen** (`launch`) | 28 February 2027 |    11 | 75 (30 S, 45 M) |            18 |
 | **The assistant** (`assistant`)  | 30 November 2027 |    10 | 81 (39 S, 42 M) |             2 |
-| **Money that moves** (`money`)   | 30 November 2028 |     4 | 34 (10 S, 24 M) |             4 |
+| **Money that moves** (`money`)   | 30 November 2028 |     4 | 35 (10 S, 25 M) |             4 |
 
 ### Launch and listen, due 28 February 2027
 
@@ -91,7 +93,7 @@ pace, except for the oversight rules, which need neither.
 | --------------------------------------------------------------------------------------------- | ------------- | ----: | ---------------------------------------------------------------------------------------------- |
 | [Collect rent with Raast Request-to-Pay, through a licensed partner](raast-request-to-pay.md) | 1 S, 7 M      |     2 | A partner contract and a legal opinion first; ends "record, not process" (proposal P-02)       |
 | [Bank account data through open banking](open-banking.md)                                     | 2 S, 6 M      |     2 | The response to the State Bank's draft is due 30 November 2026; the rest waits for final rules |
-| [An oversight assistant for owners abroad](overseas-oversight.md)                             | 4 S, 6 M      |     0 | Fixed rules, no model; recommended for the second half of 2027                                 |
+| [An oversight assistant for owners abroad](overseas-oversight.md)                             | 4 S, 7 M      |     0 | Fixed rules, no model; recommended for the second half of 2027                                 |
 | [Landlord, tenant and caretaker assistants that work together](agent-coordination.md)         | 3 S, 5 M      |     0 | The last item; its second phase only when an outside agent wants it                            |
 
 ## The owner's three decisions
@@ -101,11 +103,16 @@ D-16, D-17 and D-18 in [`PROJECT.md`](../../.planning/PROJECT.md). None of them 
 so the foundation work each needs is listed here, and the plans depend on it by name ("the residence
 fields of decision 1"). Each plan has a section for every decision that changes it.
 
+Each subsection below opens with what the owner decided, then says what is true today. The design
+that follows is the research's proposal, which the plans follow; the owner can still change it, and
+the questions left open are under
+[Decisions the owner still has to make](#decisions-the-owner-still-has-to-make).
+
 ### Decision 1: residence, per person and per portfolio (D-16)
 
 Resident and overseas owners are told apart in two places. For each person, the country of residence
 and the time zone, which the person declares and the app never infers. For each portfolio, whether
-its owner lives abroad and which manager is their caretaker.
+its owner lives abroad and who their caretaker is.
 
 Today `profiles` holds an e-mail address, a name, a phone number and a language, and a portfolio has
 no owner-abroad flag: a caretaker is simply a member with the `manager` role
@@ -123,7 +130,8 @@ The design:
   status are never stored, and residence is never shown to tenants.
 - **On `portfolios`:** `owner_abroad`, always set by an explicit choice; `caretaker_user_id`, a
   member with the `manager` role, cleared when that membership ends; and `caretaker_since`. Every
-  change is audited.
+  change is audited. A caretaker who does not use the app (a name and a phone number only) would
+  need another shape; that question is open.
 - **Time:** ledger dates, due dates, police deadlines, the tax year and every message to tenants
   stay on Pakistan time. An owner's alerts, digests and quiet hours follow their own time zone, and
   an owner abroad sees both times: "3:15 pm in Lahore (10:15 am in London)".
@@ -211,9 +219,9 @@ Today the privacy page promises the opposite, in English and Urdu: "This website
 uses no analytics or trackers" and "The app has no advertising, no analytics and no trackers"
 ([privacy.md](../../website/src/content/pages/en/privacy.md)). The website's content security policy
 allows scripts and connections to its own origin only ([vercel.json](../../website/vercel.json)).
-Withdrawing that promise is a matter of trust, not of configuration, so the work runs in this order:
-rewrite the text and have the lawyer approve it, record consent, and only then add the SDKs
-(proposal P-03 below).
+The owner's decision withdraws that promise. Doing so is a matter of trust, not of configuration,
+so the research recommends this order of work: rewrite the text and have the lawyer review it,
+record consent, and only then add the SDKs.
 
 The design:
 
@@ -260,7 +268,7 @@ The design:
 | The `cio-sync` outbox and function; the unsubscribe webhook                                                                                                                                | M         |
 | Urdu e-mail templates, right to left with amounts kept left to right, checked in Gmail and Outlook                                                                                         | M         |
 
-Where it lands: [legal-review](legal-review.md) approves the new notice before any SDK ships;
+Where it lands: [legal-review](legal-review.md) reviews the new notice before any SDK ships;
 [play-store](play-store.md) and [app-store](app-store.md) declare even the opt-in collection in Data
 safety and App Privacy; [billing](billing.md) sends its notice through the transactional path and no
 purchase event to analytics; [pilot](pilot.md) measures from server aggregates;
@@ -278,7 +286,8 @@ dependency, leaving out arrows that follow from others and those that only a lat
 needs (Munshi's wording of oversight findings, for example). Three loose links are left out because
 they run both ways: pilot readers for the Urdu font trial, pilot testers on the stores' test tracks,
 and the drafts the lawyer reads from [billing](billing.md), [retention](retention.md) and
-[move-out](move-out.md).
+[move-out](move-out.md). The [pilot](pilot.md) also informs billing's plans and prices without
+holding it up, so no arrow joins them.
 
 ```mermaid
 flowchart TD
@@ -322,7 +331,6 @@ flowchart TD
   D3 --> pilot & billing & mcp & drafts & wa & docread
   play --> billing
   apple --> billing & push
-  pilot --> billing
   audit --> mcp & drafts & ret
   parser --> drafts & docread
   mcp --> limits
@@ -345,18 +353,26 @@ flowchart TD
 The waves follow from the graph and the calendar. Wave 0 matters most: every later date assumes it
 starts in November 2026.
 
-| Wave | When                           | Pull requests                                                                                                                                                                                                                                                                                                                            | Owner actions                                                                                                                                                                                                                                                                                   | Gate to the next wave               |
-| ---- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| 0    | 11 to 30 November 2026         | The decision entries (D-16 to D-18, recorded); the privacy draft and the `consents` table (decision 3); the residence fields (decision 1); the audit feed; the amount lexicon and vectors                                                                                                                                                | Chase the D-U-N-S number; buy the domain and set up work e-mail; start Apple's enrolment; send the lawyer's request for quotation; shortlist editors and agree the glossary; **answer the State Bank by 30 November**; choose the Customer.io region; choose the icon's mark; recruit the pilot | The D-U-N-S number; the domain live |
-| 1    | December 2026 to February 2027 | The audit screens; the amount grammar; the Urdu corrections; the app icon; the Play and App Store pipelines; pilot feedback and metrics; website analytics and the app's PostHog, once the lawyer approves the notice; builder and image letterheads; billing's schema and limits; the text path of draft-payments; a spike for mcp-read | The lawyer's and the editor's reviews; the Play and Apple accounts; tax registration and a payment provider; **the early-access notice by 30 December 2026** if anyone is to be charged before 28 February; the pilot sessions                                                                  | Both stores live; the pilot report  |
-| 2    | March to June 2027             | Billing's store and web checkout; PDF letterheads; push-notifications; tenant-portal; agent-limits; mcp-read if the OAuth server is ready; retention; Intercom; Customer.io's sync and templates                                                                                                                                         | Meta's verification and templates; Firebase and APNs; the retention period, with the lawyer; the choice of model and speech-to-text providers                                                                                                                                                   | Mandates enforced; push live        |
-| 3    | July to November 2027          | whatsapp-reminders; whatsapp-assistant; reconciliation; document-reading; move-out; hostel-mode; the overseas-oversight rules, brought forward from 2028                                                                                                                                                                                 | Template approvals; what a caretaker may see of the oversight findings                                                                                                                                                                                                                          | The assistant milestone             |
-| 4    | 2028                           | raast-request-to-pay; open-banking; the oversight evidence pack and Munshi's wording of findings; the first phase of agent-coordination                                                                                                                                                                                                  | A partner contract and a legal opinion; the State Bank's final rules; licensed providers                                                                                                                                                                                                        | The money milestone                 |
+| Wave | When                           | Pull requests                                                                                                                                                                                                                                                                                                                                                                                      | Owner actions                                                                                                                                                                                                                                                                                   | Gate to the next wave               |
+| ---- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 0    | 11 to 30 November 2026         | The decision entries (D-16 to D-18, recorded); the privacy draft and the `consents` table (decision 3); the residence fields (decision 1); the audit feed; the amount lexicon and vectors                                                                                                                                                                                                          | Chase the D-U-N-S number; buy the domain and set up work e-mail; start Apple's enrolment; send the lawyer's request for quotation; shortlist editors and agree the glossary; **answer the State Bank by 30 November**; choose the Customer.io region; choose the icon's mark; recruit the pilot | The D-U-N-S number; the domain live |
+| 1    | December 2026 to February 2027 | The audit screens; the amount grammar; the Urdu corrections; the app icon; the Play and App Store pipelines; pilot feedback and metrics; website analytics and the app's PostHog, once the lawyer approves the notice; builder and image letterheads; billing's schema and limits, and its web checkout only if charging before 28 February; the text path of draft-payments; a spike for mcp-read | The lawyer's and the editor's reviews; the Play and Apple accounts; tax registration and a payment provider; **the early-access notice by 30 December 2026** if anyone is to be charged before 28 February; the pilot sessions                                                                  | Both stores live; the pilot report  |
+| 2    | March to June 2027             | Billing's store checkout, and its web checkout unless it came in wave 1; PDF letterheads; push-notifications; tenant-portal; agent-limits; mcp-read if the OAuth server is ready; retention; Intercom; Customer.io's sync and templates                                                                                                                                                            | Meta's verification and templates; Firebase and APNs; the retention period, with the lawyer; the choice of model and speech-to-text providers                                                                                                                                                   | Mandates enforced; push live        |
+| 3    | July to November 2027          | whatsapp-reminders; whatsapp-assistant; reconciliation; document-reading; move-out; hostel-mode; the overseas-oversight rules, brought forward from 2028                                                                                                                                                                                                                                           | Template approvals; what a caretaker may see of the oversight findings                                                                                                                                                                                                                          | The assistant milestone             |
+| 4    | 2028                           | raast-request-to-pay; open-banking; the oversight evidence pack and Munshi's wording of findings; the first phase of agent-coordination                                                                                                                                                                                                                                                            | A partner contract and a legal opinion; the State Bank's final rules; licensed providers                                                                                                                                                                                                        | The money milestone                 |
 
-Two changes to the milestones are recommended but not made: build the overseas-oversight rules in
-2027, because they need no regulator or partner and are the clearest reason the Overseas plan
-exists; and let [mcp-read](mcp-read.md), and the voice and screenshot parts of
-[draft-payments](draft-payments.md), move to The assistant rather than hold up the launch.
+Three changes to the milestones are recommended but not made:
+
+- Build the overseas-oversight rules in 2027, because they need no regulator or partner and are the
+  clearest reason the Overseas plan exists.
+- Let [mcp-read](mcp-read.md), and the voice and screenshot parts of
+  [draft-payments](draft-payments.md), move to The assistant rather than hold up the launch.
+- Let [billing](billing.md)'s checkout move to The assistant. In the waves above, only its schema
+  and limits are built before 28 February 2027, and the store and web checkout come after the
+  launch milestone is due. The exception is a charge before 28 February: then the web checkout
+  comes into wave 1, with the early-access notice sent by 30 December 2026, the tax registration
+  and a payment provider's agreement in place. It need not wait for the pilot's report, which
+  informs prices but does not hold up the code; the store checkout still follows in wave 2.
 
 ## Decisions the owner still has to make
 
@@ -390,9 +406,9 @@ work or have a date.
 
 ## Proposals that would reverse earlier decisions
 
-Three items would undo something already decided or promised. Each is recorded as an open proposal
-in [`PROJECT.md`](../../.planning/PROJECT.md), not as a decision, and becomes one only when the
-owner accepts it:
+Four items would undo something already decided, through two changes. Each change is recorded as an
+open proposal in [`PROJECT.md`](../../.planning/PROJECT.md), not as a decision, and becomes one only
+when the owner accepts it:
 
 - **P-01:** WhatsApp reminders sent automatically through the WhatsApp Business Platform
   ([whatsapp-reminders](whatsapp-reminders.md), and Munshi in
@@ -401,16 +417,25 @@ owner accepts it:
 - **P-02:** collecting rent through a licensed partner
   ([raast-request-to-pay](raast-request-to-pay.md)) and reading bank data
   ([open-banking](open-banking.md)), against the rule that collection is recorded, not processed.
-- **P-03:** withdrawing the privacy page's promise of no analytics, in English and Urdu, so that
-  decision 3 can ship ([legal-review](legal-review.md)).
+
+The website's promise of no analytics is not among them: the owner withdrew it with decision 3
+(D-18). What remains is the new text in English and Urdu, which the research recommends the lawyer
+reviews before any analytics SDK ships ([legal-review](legal-review.md)).
 
 ## Before relying on a summary
 
-The research ran behind a network allowlist that blocked, among others, Google's support pages, the
-State Bank's site, Meta's developer documentation, Pakistani news sites and the official Pakistani
-law sites. Facts from those hosts were read only through search summaries and carry _(summary)_ in
-the plans. Every cost built on a price (WhatsApp per landlord, the Urdu editing budget, what a store
-sale nets) is an inference from that price and is no surer than it. Some facts are the project's own
+The research ran behind a network allowlist that blocked these hosts: `support.google.com`,
+`sbp.org.pk`, `developers.facebook.com`, `propakistani.pk`, `techjuice.pk`, `dawn.com`,
+`ycloud.com`, direct fetches from `supabase.com` and `posthog.com` (their documentation was read
+from its sources on GitHub instead), `arxiv.org`, `pakistancode.gov.pk`, `punjablaws.gov.pk`, the
+legal directories (Chambers, Legal 500, DLA Piper), `download.microsoft.com` and Google's fonts
+blog. Facts from those hosts were read only through search summaries. Most carry _(summary)_ in
+the plans, but some citations to them have no marker, because the research recorded none: treat
+any link to one of these hosts as a summary, marked or not. For a host outside this list,
+_(summary)_ marks the facts that were read through a search summary all the same.
+
+Every cost built on a price (WhatsApp per landlord, the Urdu editing budget, what a store sale
+nets) is an inference from that price and is no surer than it. Some facts are the project's own
 published guides, which cite official texts that the research did not read again: the
 police-registration deadlines, the tenancy rules and the NEPRA decisions.
 

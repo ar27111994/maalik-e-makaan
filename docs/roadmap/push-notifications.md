@@ -4,6 +4,12 @@ Milestone **The assistant** (`assistant`), due 30 November 2027. Issue `push-not
 [`.github/roadmap.toml`](../../.github/roadmap.toml). It has few blockers, so it should start in
 the first half of 2027; Android and the web can ship before the iPhone.
 
+Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
+owner's decisions of 11 November 2026, and the index describes each one and its foundation work:
+[residence](README.md#decision-1-residence-per-person-and-per-portfolio-d-16),
+[letterheads](README.md#decision-2-letterheads-on-every-generated-document-d-17) and
+[privacy-first analytics, support and e-mail](README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 ## Why it matters
 
 Today a landlord learns that rent is overdue, that a police-registration deadline is close or
