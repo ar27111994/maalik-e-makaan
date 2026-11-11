@@ -52,4 +52,5 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 - [Project state](.planning/STATE.md): current position, hosted project, blockers, follow-ups
 - [Requirements](.planning/REQUIREMENTS.md): v1.0 requirements and what remains
 - [Roadmap](.planning/ROADMAP.md): the twelve phases of milestone v1.0
+- [Roadmap after v1.0](docs/roadmap/README.md): three milestones and 25 items, one plan each, the order of work and the owner's decisions
 - [Formal track READMEs](formal/tla/LedgerPayments/README.md): one per track under formal/tla, formal/lean, formal/smt and formal/bend

@@ -35,11 +35,12 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 
 ## Planning
 
-| Document                                                       | What it covers                                                           |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [`../.planning/STATE.md`](../.planning/STATE.md)               | Where the project is now: position, hosted project, blockers, follow-ups |
-| [`../.planning/REQUIREMENTS.md`](../.planning/REQUIREMENTS.md) | The v1.0 requirements and what remains of each                           |
-| [`../.planning/ROADMAP.md`](../.planning/ROADMAP.md)           | The twelve phases of milestone v1.0                                      |
+| Document                                                       | What it covers                                                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| [`../.planning/STATE.md`](../.planning/STATE.md)               | Where the project is now: position, hosted project, blockers, follow-ups                                |
+| [`../.planning/REQUIREMENTS.md`](../.planning/REQUIREMENTS.md) | The v1.0 requirements and what remains of each                                                          |
+| [`../.planning/ROADMAP.md`](../.planning/ROADMAP.md)           | The twelve phases of milestone v1.0                                                                     |
+| [`roadmap/README.md`](roadmap/README.md)                       | After v1.0: three milestones and 25 items, a plan for each, the order of work and the owner's decisions |
 
 ## For coding agents
 
