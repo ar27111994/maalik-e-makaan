@@ -22,11 +22,17 @@ describe("shared nodes", () => {
     expect(organization).toMatchObject({
       "@type": "Organization",
       "@id": "https://example.pk/#organization",
-      name: "Maalik-e-Makaan",
-      alternateName: "مالکِ مکان",
-      url: "https://example.pk/",
+      name: "AR Labs",
+      legalName: "AR LABS (SMC-PRIVATE) LIMITED",
+      url: "https://ar27111994.dev/",
       logo: { url: "https://example.pk/icon-512.png", width: 512, height: 512 },
-      sameAs: ["https://github.com/ar27111994/maalik-e-makaan"],
+      brand: { name: "Maalik-e-Makaan", alternateName: "مالکِ مکان", url: "https://example.pk/" },
+      identifier: { propertyID: "SECP CUIN", value: "0361950" },
+      founder: { "@type": "Person", name: "Ahmed Rehan" },
+      sameAs: [
+        "https://www.linkedin.com/company/ar27111994",
+        "https://github.com/ar27111994/maalik-e-makaan",
+      ],
     });
     expect(website).toMatchObject({
       "@type": "WebSite",

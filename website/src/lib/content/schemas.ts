@@ -253,6 +253,48 @@ export const pricingSchema = z.strictObject({
   closing: z.strictObject({ heading: text(5, 80), body: text(10, 300), cta: link }),
 });
 
+/**
+ * The company page (/company/): who publishes the app, the founder, the pitch
+ * deck and how to get in touch. The registration details themselves come from
+ * src/config/site.ts, so they are written once.
+ */
+export const companySchema = z.strictObject({
+  ...pageHead,
+  facts: z.strictObject({
+    heading: text(3, 60),
+    legalName: text(3, 60),
+    cuin: text(3, 60),
+    incorporated: text(3, 60),
+    /** The label and the value, which is words, so it is translated here. */
+    registry: z.strictObject({ label: text(3, 60), value: text(5, 160) }),
+    product: z.strictObject({ label: text(3, 60), value: text(5, 160) }),
+  }),
+  founder: z.strictObject({
+    heading: text(3, 60),
+    name: text(3, 60),
+    role: text(3, 60),
+    bio: z.array(text(20, 400)).min(1).max(4),
+    links: text(3, 60),
+  }),
+  deck: z.strictObject({
+    heading: text(3, 60),
+    body: text(20, 400),
+    link: text(3, 80),
+    /** Shown on the Urdu page: the deck is in English. */
+    language: text(10, 200),
+  }),
+  contact: z.strictObject({
+    heading: text(3, 60),
+    body: text(20, 400),
+    email: text(3, 60),
+    website: text(3, 60),
+    linkedIn: text(3, 60),
+  }),
+});
+
+/** A file attached to each release, as the download page describes it. */
+const releaseFile = z.strictObject({ label: text(3, 60), note: text(10, 240) });
+
 /** The app page (/download/): the web app now, the store apps when they exist. */
 export const downloadSchema = z.strictObject({
   ...pageHead,
@@ -267,6 +309,28 @@ export const downloadSchema = z.strictObject({
     )
     .min(2),
   webApp: z.strictObject({ heading: text(3, 70), body: text(20, 500), cta: link }),
+  /**
+   * The latest release, filled in when the site is built from CHANGELOG.md and
+   * the release-please manifest: "{version}" and "{date}" are replaced.
+   */
+  release: z.strictObject({
+    heading: text(5, 70).regex(/\{version\}/),
+    date: text(5, 100).regex(/\{date\}/),
+    notesHeading: text(3, 60),
+    /** Shown on the Urdu page, whose release notes are in English. */
+    notesLanguage: text(10, 200),
+    filesHeading: text(3, 60),
+    files: z.strictObject({
+      "android-arm64": releaseFile,
+      "android-arm32": releaseFile,
+      "android-x86": releaseFile,
+      ios: releaseFile,
+      web: releaseFile,
+      checksums: releaseFile,
+    }),
+    allReleases: link,
+    github: text(5, 80),
+  }),
   requirements: z.strictObject({ heading: text(3, 70), items: z.array(text(10, 300)).min(1) }),
 });
 
@@ -307,6 +371,7 @@ export type FeaturesContent = z.infer<typeof featuresSchema>;
 export type HowItWorksContent = z.infer<typeof howItWorksSchema>;
 export type DownloadContent = z.infer<typeof downloadSchema>;
 export type PricingContent = z.infer<typeof pricingSchema>;
+export type CompanyContent = z.infer<typeof companySchema>;
 export type TextPageData = z.infer<typeof textPageSchema>;
 export type ToolData = z.infer<typeof toolSchema>;
 export type HomeContent = z.infer<typeof homeSchema>;

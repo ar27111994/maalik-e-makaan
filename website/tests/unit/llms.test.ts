@@ -16,6 +16,7 @@ import {
   licences,
   licenceTexts,
   pricing,
+  company,
 } from "./fixtures.ts";
 
 const guide = (locale: "en" | "ur"): LlmsGuide => ({
@@ -78,6 +79,7 @@ const input = (
   faq,
   download,
   pricing,
+  company,
   guides,
   tools,
   textPages,
@@ -102,7 +104,9 @@ describe("llms.txt", () => {
   test("states the key facts from the site's own answers, including the tax position", () => {
     for (const item of home.en.faq.items) expect(text).toContain(item.answer);
     expect(text).toContain("not legal or tax advice");
-    expect(text).toContain("In development");
+    // Version 1.0 is out: the summary gives the current version, not "in development".
+    expect(text).not.toContain("In development");
+    expect(text).toMatch(/Current version: \d+\.\d+\.\d+, released /);
   });
 
   test("lists every page in both languages, with absolute URLs", () => {
@@ -114,6 +118,9 @@ describe("llms.txt", () => {
       "https://example.pk/features/",
       "https://example.pk/pricing/",
       "https://example.pk/ur/pricing/",
+      "https://example.pk/roadmap/",
+      "https://example.pk/ur/releases/",
+      "https://example.pk/company/",
       "https://example.pk/ur/how-it-works/",
       "https://example.pk/faq/",
       "https://example.pk/ur/download/",

@@ -3,12 +3,12 @@ import { getEntry } from "astro:content";
 import AppStatus from "../components/AppStatus.astro";
 import Receipt from "../components/Receipt.astro";
 import { APP_URL } from "../config/app-url.ts";
-import { SITE } from "../config/site.ts";
 import type { Locale } from "../i18n/locales.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { contentHref } from "../lib/content/links.ts";
 import { ids, softwareApplicationNode } from "../lib/seo/json-ld.ts";
 import { documentTitle } from "../lib/seo/meta.ts";
+import { APP_STATUS } from "../lib/release.ts";
 
 interface Props {
   locale: Locale;
@@ -24,7 +24,7 @@ const site = Astro.site;
 const hrefOf = (href: string) => contentHref(href, locale, APP_URL);
 // Until version 1.0 ships the web app's address shows only a holding page, so
 // the main buttons lead to something the reader can use today.
-const released = SITE.appStatus === "available";
+const released = APP_STATUS === "available";
 const primaryCta = released ? home.hero.appCta : home.hero.primaryCta;
 const closingBody = released ? home.closing.appBody : home.closing.body;
 const closingCta = released ? home.closing.appCta : home.closing.cta;

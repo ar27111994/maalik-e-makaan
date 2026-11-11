@@ -12,11 +12,14 @@ import type {
   FeaturesContent,
   HomeContent,
   HowItWorksContent,
+  CompanyContent,
   LicencesContent,
   PricingContent,
   Source,
 } from "./content/schemas.ts";
 import { guidePath } from "./content/guides.ts";
+import { formatDate } from "../i18n/dates.ts";
+import { APP_STATUS, LATEST_RELEASE } from "./release.ts";
 import { copyrightLine, fontLicence, fontLicencePath } from "./licences.ts";
 
 export interface LlmsGuide {
@@ -64,6 +67,7 @@ export interface LlmsInput {
   readonly faq: Readonly<Record<Locale, FaqContent>>;
   readonly download: Readonly<Record<Locale, DownloadContent>>;
   readonly pricing: Readonly<Record<Locale, PricingContent>>;
+  readonly company: Readonly<Record<Locale, CompanyContent>>;
   readonly guides: readonly LlmsGuide[];
   readonly tools: readonly LlmsTool[];
   readonly textPages: readonly LlmsTextPage[];
@@ -111,7 +115,7 @@ function pageLink(
 }
 
 function statusLine(locale: Locale): string | undefined {
-  return SITE.appStatus === "in-development" ? ui(locale).appStatus.inDevelopment : undefined;
+  return APP_STATUS === "in-development" ? ui(locale).appStatus.inDevelopment : undefined;
 }
 
 /** The short index: what the product is, the key facts, and every page. */
@@ -127,6 +131,12 @@ export function llmsTxt(input: LlmsInput): string {
   ];
   const status = statusLine("en");
   if (status !== undefined) out.push(status, "");
+  if (LATEST_RELEASE !== undefined) {
+    out.push(
+      `Current version: ${LATEST_RELEASE.version}, released ${formatDate(LATEST_RELEASE.date, "en")} (${pageUrl(input.site, "/releases/", "en")}). Published by ${SITE.company.legalName}, a company registered in Pakistan (${SITE.company.url}).`,
+      "",
+    );
+  }
   out.push(
     `Key facts, from the site's questions and answers:`,
     "",
@@ -183,6 +193,21 @@ export function llmsTxt(input: LlmsInput): string {
         input.licences[locale].title,
         input.licences[locale].description,
       ),
+      pageLink(input.site, "/roadmap/", locale, strings.roadmap.title, strings.roadmap.description),
+      pageLink(
+        input.site,
+        "/releases/",
+        locale,
+        strings.releases.title,
+        strings.releases.description,
+      ),
+      pageLink(
+        input.site,
+        "/company/",
+        locale,
+        input.company[locale].title,
+        input.company[locale].description,
+      ),
     );
   }
   if (input.guides.length > 0) {
@@ -206,7 +231,7 @@ export function llmsTxt(input: LlmsInput): string {
     "## Optional",
     "",
     `- [Full text](${absoluteUrl(input.site, "/llms-full.txt")}): every page of this site, in English and Urdu, in one Markdown file.`,
-    SITE.appStatus === "available"
+    APP_STATUS === "available"
       ? `- [Web app](${input.appUrl}): ${SITE.name} itself.`
       : `- [Web app](${input.appUrl}): the address reserved for ${SITE.name}; it shows a holding page until version 1.0 is released.`,
     `- [Source code](${SITE.repositoryUrl}): the app, its database and this website, under the MIT licence.`,
@@ -241,7 +266,7 @@ function homeSection(input: LlmsInput, locale: Locale): string[] {
   for (const item of home.faq.items)
     out.push(`#### ${line(item.question)}`, "", line(item.answer), "");
   const closing =
-    SITE.appStatus === "available"
+    APP_STATUS === "available"
       ? `${line(home.closing.appBody)} ${input.appUrl}`
       : `${line(home.closing.body)} ${pageUrl(input.site, home.closing.cta.href, locale)}`;
   out.push(`### ${line(home.closing.heading)}`, "", closing, "");

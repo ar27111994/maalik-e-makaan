@@ -308,6 +308,28 @@ Graph URLs, the sitemap, `robots.txt`, `llms.txt`), so it takes two values from 
 `maalik-e-makaan-site.vercel.app` is the project's default production domain (Vercel assigned it
 when the project was created); every production deployment is aliased to it.
 
+Three things on the site update themselves, so a release needs no copy edits for them:
+
+- **The release.** The download page's "Version …" block, the footer's version line, the
+  release notes page (`/releases/`) and `llms.txt` are built from `CHANGELOG.md` and
+  `.release-please-manifest.json` (`website/src/lib/release.ts`). The Release workflow deploys the
+  site at the tag it has just made, so they always show that release; from version 1.0.0 the
+  site describes the app as available rather than in development.
+- **The roadmap.** `/roadmap/` shows the GitHub milestones and the issues labelled `roadmap`, as
+  they are when the site is built: the `site` job runs `tool/github/fetch_roadmap.py
+--from-github` before the build (falling back, with a warning, to the copy in
+  `website/src/data/roadmap.json`). The plan itself is `.github/roadmap.toml`; when it changes on
+  main, the Roadmap workflow (`roadmap.yml`) creates the missing label, milestones and issues and
+  keeps milestone titles, descriptions and due dates in step, without ever closing, deleting or
+  rewriting an issue. Run `make roadmap` after editing the file, to refresh the offline copy.
+  Between releases, the Site refresh workflow (`site-refresh.yml`) redeploys the site alone at the
+  latest release's tag every Wednesday, and by hand (Actions, Site refresh, Run workflow); the
+  Deploy workflow can also be run by hand with "Only the website".
+- **The pitch deck.** `/company/` links to a PDF of the deck in `website/deck/`, rendered by
+  `npm run deck` (`website/scripts/render-deck.ts`) with the release's version and date and the
+  app's current screens; the `site` job renders it before every build. Edit the slides in
+  `website/deck/slides/`; their format is the one in that folder's README.
+
 To move the site to a custom domain later:
 
 1. In the Vercel project `maalik-e-makaan-site`, Settings, Domains, add the domain (for example

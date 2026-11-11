@@ -1,0 +1,246 @@
+{
+  "source": "file",
+  "repository": "https://github.com/ar27111994/maalik-e-makaan",
+  "updated": null,
+  "milestones": [
+    {
+      "id": "launch",
+      "number": null,
+      "title": "Launch and listen",
+      "titleUr": "اجرا، پھر سننا",
+      "description": "Get into the stores, get the Urdu and the legal texts reviewed, and put the app in the hands of the first landlords.",
+      "descriptionUr": "ایپ اسٹورز تک پہنچنا، اردو اور قانونی تحریروں پر نظرِ ثانی کروانا، اور ایپ پہلے مالکانِ مکان کے ہاتھ میں دینا۔",
+      "due": "2027-02-28",
+      "state": "open",
+      "url": null,
+      "issues": [
+        {
+          "id": "play-store",
+          "number": null,
+          "title": "Publish the Android app on Google Play",
+          "titleUr": "اینڈرائیڈ ایپ گوگل پلے پر شائع کرنا",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "app-store",
+          "number": null,
+          "title": "Publish the iPhone app on the App Store",
+          "titleUr": "آئی فون ایپ ایپ اسٹور پر شائع کرنا",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "urdu-review",
+          "number": null,
+          "title": "A native speaker's review of every Urdu string",
+          "titleUr": "ہر اردو عبارت پر اہلِ زبان کی نظرِ ثانی",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "legal-review",
+          "number": null,
+          "title": "A lawyer's review of the privacy notice and terms",
+          "titleUr": "رازداری کی پالیسی اور شرائط پر وکیل کی نظرِ ثانی",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "app-icon",
+          "number": null,
+          "title": "The app's own icon and store artwork",
+          "titleUr": "ایپ کا اپنا آئیکن اور اسٹور کی تصاویر",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "billing",
+          "number": null,
+          "title": "Paid plans, with early-access users told first",
+          "titleUr": "ادا شدہ پلان، ابتدائی صارفین کو پہلے اطلاع کے ساتھ",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "audit-screen",
+          "number": null,
+          "title": "A screen that shows who changed what",
+          "titleUr": "ایک اسکرین جو دکھائے کہ کس نے کیا بدلا",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "mcp-read",
+          "number": null,
+          "title": "A read-only MCP server, so a landlord's own AI can read their ledger",
+          "titleUr": "صرف پڑھنے کا رابطہ، تاکہ مالک کا اپنا مصنوعی ذہانت والا معاون اس کا کھاتہ پڑھ سکے",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "draft-payments",
+          "number": null,
+          "title": "Draft a payment from a voice note or a pasted SMS, always confirmed",
+          "titleUr": "وائس نوٹ یا ایس ایم ایس سے ادائیگی کا مسودہ، ہمیشہ تصدیق کے بعد",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "amount-parser",
+          "number": null,
+          "title": "A tested reader for amounts in Urdu numerals, lakh and crore, and Roman Urdu",
+          "titleUr": "اردو ہندسوں، لاکھ کروڑ اور رومن اردو میں لکھی رقمیں پڑھنے کا جانچا ہوا طریقہ",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "pilot",
+          "number": null,
+          "title": "A pilot with the first landlords",
+          "titleUr": "پہلے مالکانِ مکان کے ساتھ آزمائشی استعمال",
+          "state": "open",
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "assistant",
+      "number": null,
+      "title": "The assistant",
+      "titleUr": "معاون",
+      "description": "Munshi, an assistant that drafts while the landlord confirms: on WhatsApp, for tenants, and for the paperwork.",
+      "descriptionUr": "منشی، ایک معاون جو مسودہ بناتا ہے اور مالک تصدیق کرتا ہے: واٹس ایپ پر، کرایہ داروں کے لیے، اور کاغذی کارروائی میں۔",
+      "due": "2027-11-30",
+      "state": "open",
+      "url": null,
+      "issues": [
+        {
+          "id": "whatsapp-assistant",
+          "number": null,
+          "title": "A WhatsApp assistant, with voice notes",
+          "titleUr": "واٹس ایپ پر معاون، وائس نوٹ کے ساتھ",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "whatsapp-reminders",
+          "number": null,
+          "title": "Scheduled reminders through the WhatsApp Business Platform",
+          "titleUr": "واٹس ایپ بزنس کے ذریعے طے شدہ وقت پر خودکار یاد دہانیاں",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "agent-limits",
+          "number": null,
+          "title": "An agent role that writes only within set limits",
+          "titleUr": "معاون کا ایسا کردار جو صرف طے شدہ حدوں کے اندر لکھ سکے",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "tenant-portal",
+          "number": null,
+          "title": "A read-only link for tenants",
+          "titleUr": "کرایہ داروں کے لیے صرف دیکھنے کا لنک",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "reconciliation",
+          "number": null,
+          "title": "Suggested matches between incoming payments and open dues",
+          "titleUr": "آنے والی ادائیگیوں اور واجب الادا رقموں کے ممکنہ جوڑ کی تجویز",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "document-reading",
+          "number": null,
+          "title": "Read CNICs and agreements on the phone, with masking and consent",
+          "titleUr": "شناختی کارڈ اور کرایہ نامے فون پر پڑھنا، نمبر چھپا کر اور رضامندی کے ساتھ",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "hostel-mode",
+          "number": null,
+          "title": "Hostel and PG mode",
+          "titleUr": "ہاسٹل اور پی جی کے لیے خاص طریقہ",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "push-notifications",
+          "number": null,
+          "title": "Push notifications",
+          "titleUr": "فون پر فوری اطلاعات",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "retention",
+          "number": null,
+          "title": "Remove identity documents automatically after a tenancy ends",
+          "titleUr": "کرایہ داری ختم ہونے کے بعد شناختی دستاویزات خود بخود حذف کرنا",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "move-out",
+          "number": null,
+          "title": "A move-out photo checklist",
+          "titleUr": "مکان چھوڑتے وقت تصویروں کے ساتھ جانچ کی فہرست",
+          "state": "open",
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "money",
+      "number": null,
+      "title": "Money that moves",
+      "titleUr": "براہِ راست وصولی",
+      "description": "Collect rent, not just record it, through licensed partners on Pakistan's payment rails, and give owners abroad an assistant that watches for them.",
+      "descriptionUr": "کرایہ صرف درج نہیں بلکہ وصول کرنا، پاکستان کے ادائیگی کے نظام پر لائسنس یافتہ شراکت داروں کے ذریعے، اور بیرونِ ملک مالکان کے لیے ایک نگران معاون۔",
+      "due": "2028-11-30",
+      "state": "open",
+      "url": null,
+      "issues": [
+        {
+          "id": "raast-request-to-pay",
+          "number": null,
+          "title": "Collect rent with Raast Request-to-Pay, through a licensed partner",
+          "titleUr": "لائسنس یافتہ شراکت دار کے ذریعے راست سے کرایہ وصولی",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "open-banking",
+          "number": null,
+          "title": "Bank account data through open banking",
+          "titleUr": "اوپن بینکنگ کے ذریعے بینک کھاتے کی معلومات",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "overseas-oversight",
+          "number": null,
+          "title": "An oversight assistant for owners abroad",
+          "titleUr": "بیرونِ ملک مالکان کے لیے نگران معاون",
+          "state": "open",
+          "url": null
+        },
+        {
+          "id": "agent-coordination",
+          "number": null,
+          "title": "Landlord, tenant and caretaker assistants that work together",
+          "titleUr": "مالک، کرایہ دار اور نگران کے معاون جو مل کر کام کریں",
+          "state": "open",
+          "url": null
+        }
+      ]
+    }
+  ]
+}

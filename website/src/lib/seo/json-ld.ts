@@ -37,22 +37,34 @@ export const ids = {
 /** The language tags of the site's content, as `inLanguage` values. */
 const inLanguage = (locale: Locale) => LOCALE_INFO[locale].htmlLang;
 
-/** The project and publisher behind the site and the app. */
+/**
+ * The company that publishes the site and the app (registered with the SECP),
+ * with the product as its brand.
+ */
 export function organizationNode(site: string | URL): JsonLdNode {
   return {
     "@type": "Organization",
     "@id": ids.organization(site),
-    name: SITE.name,
-    alternateName: SITE.nameUrdu,
-    url: `${origin(site)}/`,
+    name: SITE.company.name,
+    legalName: SITE.company.legalName,
+    url: SITE.company.url,
     logo: {
       "@type": "ImageObject",
       url: `${origin(site)}/icon-512.png`,
       width: 512,
       height: 512,
     },
-    founder: { "@type": "Person", name: SITE.copyrightHolder },
-    sameAs: [SITE.repositoryUrl],
+    brand: {
+      "@type": "Brand",
+      name: SITE.name,
+      alternateName: SITE.nameUrdu,
+      url: `${origin(site)}/`,
+    },
+    foundingDate: SITE.company.incorporated,
+    identifier: { "@type": "PropertyValue", propertyID: "SECP CUIN", value: SITE.company.cuin },
+    email: SITE.contactEmail,
+    founder: { "@type": "Person", name: SITE.founder.name, sameAs: [SITE.founder.url] },
+    sameAs: [SITE.company.linkedInUrl, SITE.repositoryUrl],
   };
 }
 

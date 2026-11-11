@@ -1,7 +1,9 @@
 ---
 import { SITE } from "../config/site.ts";
+import { formatDate } from "../i18n/dates.ts";
 import { localisePath, type Locale } from "../i18n/locales.ts";
 import { ui } from "../i18n/ui.ts";
+import { LATEST_RELEASE } from "../lib/release.ts";
 import AppStatus from "./AppStatus.astro";
 
 interface Props {
@@ -12,13 +14,28 @@ const { locale } = Astro.props;
 const strings = ui(locale).footer;
 const links = [
   { label: strings.download, href: localisePath("/download/", locale) },
+  { label: strings.pricing, href: localisePath("/pricing/", locale) },
+  { label: strings.roadmap, href: localisePath("/roadmap/", locale) },
+  { label: strings.releases, href: localisePath("/releases/", locale) },
   { label: strings.faq, href: localisePath("/faq/", locale) },
+  { label: strings.company, href: localisePath("/company/", locale) },
   { label: strings.privacyPage, href: localisePath("/privacy/", locale) },
   { label: strings.terms, href: localisePath("/terms/", locale) },
   { label: strings.licences, href: localisePath("/licences/", locale) },
   { label: strings.llmsTxt, href: "/llms.txt" },
   { label: strings.sourceCode, href: SITE.repositoryUrl },
+  { label: strings.linkedIn, href: SITE.company.linkedInUrl },
 ];
+// The copyright runs from the first year to the year this page was built.
+const builtYear = new Date().getUTCFullYear();
+const years =
+  builtYear > SITE.copyrightYear ? `${SITE.copyrightYear}–${builtYear}` : `${SITE.copyrightYear}`;
+const version =
+  LATEST_RELEASE === undefined
+    ? undefined
+    : strings.version
+        .replace("{version}", LATEST_RELEASE.version)
+        .replace("{date}", formatDate(LATEST_RELEASE.date, locale));
 ---
 
 <footer class="site-footer">
@@ -36,8 +53,17 @@ const links = [
         ))}
       </ul>
     </nav>
+    {version !== undefined && (
+      <p class="site-footer__version">
+        {version} <a href={localisePath("/releases/", locale)}>{strings.releaseNotes}</a>
+      </p>
+    )}
     <p class="site-footer__legal">
-      {strings.copyright} <a href={SITE.licenceUrl}>{strings.licence}</a>
+      © {years}{" "}
+      <a href={SITE.company.url} lang={locale === "en" ? undefined : "en"}>
+        {SITE.company.legalName}
+      </a>
+      {locale === "en" ? "." : "۔"} <a href={SITE.licenceUrl}>{strings.licence}</a>
     </p>
   </div>
 </footer>

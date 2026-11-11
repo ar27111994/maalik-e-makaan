@@ -206,6 +206,7 @@ jobs:
     if: needs.release-please.outputs.created == 'true'
     permissions:
       contents: read
+      issues: read
     uses: ./.github/workflows/deploy.yml
     with:
       ref: ${{ needs.release-please.outputs.tag }}

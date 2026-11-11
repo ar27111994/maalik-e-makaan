@@ -1,0 +1,132 @@
+---
+import { getEntry } from "astro:content";
+import PageHeader from "../components/PageHeader.astro";
+import { SITE } from "../config/site.ts";
+import { formatDate } from "../i18n/dates.ts";
+import type { Locale } from "../i18n/locales.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { DECK_PATH } from "../lib/deck.ts";
+import { ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const entry = await getEntry("company", locale);
+if (entry === undefined) throw new Error(`src/content/company/${locale}.yaml is missing`);
+const page = entry.data;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+// Latin text on the Urdu page (the registered name, addresses) sits in lang="en".
+const latin = locale === "en" ? undefined : "en";
+---
+
+<BaseLayout
+  locale={locale}
+  path="/company/"
+  title={documentTitle(page.title, locale)}
+  description={page.description}
+  pageName={page.title}
+  pageType="AboutPage"
+  pageExtra={{ about: { "@id": ids.organization(site) } }}
+  breadcrumbs={[{ label: page.heading, path: "/company/" }]}
+>
+  <div class="container reading">
+    <PageHeader heading={page.heading} intro={page.intro} />
+    <section class="company-section" aria-labelledby="company-facts">
+      <h2 id="company-facts">{page.facts.heading}</h2>
+      <dl class="company-facts">
+        <dt>{page.facts.legalName}</dt>
+        <dd lang={latin}>{SITE.company.legalName}</dd>
+        <dt>{page.facts.cuin}</dt>
+        <dd>{SITE.company.cuin}</dd>
+        <dt>{page.facts.incorporated}</dt>
+        <dd>
+          <time datetime={SITE.company.incorporated}>
+            {formatDate(SITE.company.incorporated, locale)}
+          </time>
+        </dd>
+        <dt>{page.facts.registry.label}</dt>
+        <dd>{page.facts.registry.value}</dd>
+        <dt>{page.facts.product.label}</dt>
+        <dd>{page.facts.product.value}</dd>
+      </dl>
+    </section>
+    <section class="company-section" aria-labelledby="company-founder">
+      <h2 id="company-founder">{page.founder.heading}</h2>
+      <p class="company-founder__name">
+        <strong>{page.founder.name}</strong>, {page.founder.role}
+      </p>
+      {page.founder.bio.map((paragraph) => (
+        <p>{paragraph}</p>
+      ))}
+      <p>
+        <a href={SITE.company.url}>{page.founder.links}</a>
+      </p>
+    </section>
+    <section class="company-section" aria-labelledby="company-deck">
+      <h2 id="company-deck">{page.deck.heading}</h2>
+      <p>{page.deck.body}</p>
+      {locale !== "en" && <p class="company-note">{page.deck.language}</p>}
+      <p>
+        <a class="button button--primary" href={DECK_PATH} type="application/pdf" download>
+          {page.deck.link}
+        </a>
+      </p>
+    </section>
+    <section class="company-section" aria-labelledby="company-contact">
+      <h2 id="company-contact">{page.contact.heading}</h2>
+      <p>{page.contact.body}</p>
+      <dl class="company-facts">
+        <dt>{page.contact.email}</dt>
+        <dd>
+          <a href={`mailto:${SITE.contactEmail}`} lang={latin} dir="ltr">
+            {SITE.contactEmail}
+          </a>
+        </dd>
+        <dt>{page.contact.website}</dt>
+        <dd>
+          <a href={SITE.company.url} lang={latin} dir="ltr">
+            {new URL(SITE.company.url).host}
+          </a>
+        </dd>
+        <dt>{page.contact.linkedIn}</dt>
+        <dd>
+          <a href={SITE.company.linkedInUrl} lang={latin} dir="ltr">
+            {new URL(SITE.company.linkedInUrl).pathname.replace(/^\//, "")}
+          </a>
+        </dd>
+      </dl>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .company-section {
+    display: grid;
+    gap: var(--mm-space-s3);
+    margin-block-start: var(--mm-space-s8);
+  }
+
+  .company-facts {
+    display: grid;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    gap: var(--mm-space-s2) var(--mm-space-s4);
+    margin: 0;
+  }
+
+  .company-facts dt {
+    color: var(--mm-color-ink-muted);
+  }
+
+  .company-facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .company-note {
+    color: var(--mm-color-ink-muted);
+  }
+</style>

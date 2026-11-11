@@ -1,7 +1,7 @@
 ---
 title: "Privacy"
 description: "How this website and the Maalik-e-Makaan app treat your data: no cookies or trackers on the site, and in the app, your records seen only by the people you invite."
-lastUpdated: 2026-11-09
+lastUpdated: 2026-11-11
 ---
 
 ## In short
@@ -16,9 +16,9 @@ The site is a set of plain pages. Its fonts and images are served from the site 
 
 Like every website, its pages are delivered by a hosting provider, [Vercel](https://vercel.com/legal/privacy-policy), whose servers necessarily receive the technical details of each request, such as your IP address and the page asked for. We do not add any tracking to that, and we do not use it to identify you.
 
-## The app (version 1.0, in development)
+## The app
 
-Version 1.0 has not been released. This section describes how it is being built; we will update this page before it is released if anything changes.
+This section describes version 1.0 of the app, released on 9 November 2026, and the versions after it. If anything here changes, this page will show the new date at the top.
 
 ### What it stores
 
@@ -45,17 +45,17 @@ When you record a tenant, you hold their personal details. The app asks you to r
 
 ### How long it is kept
 
-Your records are kept until you delete them, or delete your account. Version 1.0 will not delete identity documents automatically when a tenancy ends; that is planned for a later version. Financial records that are cancelled are kept, marked as cancelled, so that the receipt series stays complete.
+Your records are kept until you delete them, or delete your account. Version 1.0 does not delete identity documents automatically when a tenancy ends; that is planned for a later version. Financial records that are cancelled are kept, marked as cancelled, so that the receipt series stays complete.
 
 Once a week an encrypted copy of the database, with the photos and documents, is made so that the records can be restored after a mistake or an outage. An automated job on [GitHub](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement)'s servers makes it and encrypts it there, so that only the person who runs the app can open it, and GitHub keeps it for 90 days. Something you delete can stay in these copies until they expire, at most 90 days later.
 
 ### Deleting your account
 
-You will be able to delete your account from inside the app. Deletion removes your account and every portfolio in which you are the only owner, with its records and files, and removes you from portfolios that others own.
+You can delete your account from inside the app, in Settings. Deletion removes your account and every portfolio in which you are the only owner, with its records and files, and removes you from portfolios that others own.
 
 ## Who runs it, and how to reach us
 
-The website and the app are run by Ahmed Rehan, the project's maintainer, who decides how this data is used. There is no contact address other than GitHub yet; one will be added here before the app is released.
+The website and the app are run by **AR LABS (SMC-PRIVATE) LIMITED**, a company registered with the Securities and Exchange Commission of Pakistan (CUIN 0361950), which decides how this data is used. Write to us at [maalik-e-makaan@news.ar27111994.dev](mailto:maalik-e-makaan@news.ar27111994.dev) about your data, to correct it or to have it deleted.
 
 ## Questions
 

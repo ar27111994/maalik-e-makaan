@@ -1,0 +1,40 @@
+<section id="agentsafe" data-transition="fade" style="background:#F4F5F7;color:#1F2328;font-family:'Atkinson Hyperlegible Next', Verdana, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-direction:column;gap:16px">
+<p style="font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#7A5A17">Agent-safe by design</p>
+<h2 style="font-size:64px;font-weight:700;line-height:1.15;color:#1F2328">The database decides what an agent may do</h2>
+</div>
+<div style="display:flex;gap:16px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:32px;border:1px solid #D5DAE0;border-radius:20px">
+<h3 style="font-size:30px;font-weight:700;line-height:1.2;color:#1D3F8F">The request</h3>
+<p style="font-size:24px;line-height:1.35;color:#57606A">From WhatsApp, a voice note, or the landlord’s own AI through MCP</p>
+</div>
+<x-connector head="end" style="width:48px;height:2px;align-self:center;color:#1D3F8F;border-width:4px"></x-connector>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:32px;border:1px solid #D5DAE0;border-radius:20px">
+<h3 style="font-size:30px;font-weight:700;line-height:1.2;color:#1D3F8F">A scoped agent role</h3>
+<p style="font-size:24px;line-height:1.35;color:#57606A">Read-only at first; limits on which tenancies, the largest amount, a monthly budget and an expiry</p>
+</div>
+<x-connector head="end" style="width:48px;height:2px;align-self:center;color:#1D3F8F;border-width:4px"></x-connector>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:32px;border:1px solid #D5DAE0;border-radius:20px">
+<h3 style="font-size:30px;font-weight:700;line-height:1.2;color:#1D3F8F">21 checked functions</h3>
+<p style="font-size:24px;line-height:1.35;color:#57606A">The only way to write, each checking the caller’s role; voids and team changes never offered to agents</p>
+</div>
+<x-connector head="end" style="width:48px;height:2px;align-self:center;color:#1D3F8F;border-width:4px"></x-connector>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#DDE6F8;padding:32px;border:1px solid #1D3F8F;border-radius:20px">
+<h3 style="font-size:30px;font-weight:700;line-height:1.2;color:#0F2556">The ledger</h3>
+<p style="font-size:24px;line-height:1.35;color:#0F2556">Idempotent, void-never-delete, an audit trail that marks agents, proven in TLA+ and Lean</p>
+</div>
+</div>
+<div style="display:flex;gap:32px">
+<div style="flex:1;background:#F5EBD3;padding:28px;border-radius:20px">
+<p style="font-size:24px;line-height:1.35;color:#4A3608"><b>No amount from model text alone.</b> Urdu numerals, lakh and crore, and Roman Urdu are parsed by tested code, then read back.</p>
+</div>
+<div style="flex:1;background:#F5EBD3;padding:28px;border-radius:20px">
+<p style="font-size:24px;line-height:1.35;color:#4A3608"><b>A person confirms.</b> Every agent write above a set amount waits for the landlord’s tap.</p>
+</div>
+<div style="flex:1;background:#F5EBD3;padding:28px;border-radius:20px">
+<p style="font-size:24px;line-height:1.35;color:#4A3608"><b>Privacy first.</b> CNICs are masked before any model call, data stays in the region and consent is recorded.</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#57606A">Built today: the 21 functions, idempotent payments, voids, audit records and the proofs. Proposed: the agent role and its limits.</p>
+<aside>An agent is just another unreliable client, and the database already defends against unreliable clients: a flaky phone that retries, two people paying at once, a caretaker and an owner editing the same tenancy. The agent role would be a new, read-only-by-default member with limits borrowed from Google’s AP2 payment mandates: which tenancies, the largest amount, a monthly budget, an expiry. Its check would be one more function pinned by the same test allowlist. We would also extend the TLA+ payment model with an agent that retries, reorders and duplicates, and ship the audit screen before any agent can write.</aside>
+</section>

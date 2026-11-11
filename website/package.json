@@ -21,7 +21,8 @@
     "test:e2e": "npm run test:links && playwright test",
     "lighthouse": "lhci autorun --config=./lighthouserc.cjs",
     "lighthouse:ci": "lhci autorun --config=./lighthouserc.ci.cjs",
-    "og": "node scripts/generate-og.ts"
+    "og": "node scripts/generate-og.ts",
+    "deck": "node scripts/render-deck.ts"
   },
   "dependencies": {
     "@astrojs/mdx": "8.1.2",

@@ -1,0 +1,245 @@
+# The product roadmap, as code. Each [[milestones]] entry becomes a GitHub milestone and each
+# [[milestones.issues]] entry an issue in it, labelled "roadmap": the Roadmap workflow
+# (.github/workflows/roadmap.yml) runs tool/github/sync_roadmap.py when this file changes on main.
+#
+# The sync creates what is missing and keeps milestone titles, descriptions and due dates in step
+# with this file. It never closes, reopens or deletes anything, and it does not rewrite an issue
+# after creating it: once an issue exists, it is managed on GitHub (comments, assignees, closing it
+# with a pull request). An issue is matched by its id, kept in a hidden comment in its body.
+#
+# The website's roadmap page (/roadmap/) shows the live milestones and issues from GitHub, with the
+# Urdu titles below; tool/web/fetch_roadmap.py builds it (`make roadmap` for the offline copy).
+# British English; Urdu in Urdu script, never Roman Urdu.
+
+[label]
+name = "roadmap"
+color = "1D3F8F"
+description = "On the public roadmap (maalik-e-makaan-site.vercel.app/roadmap/)"
+
+[[milestones]]
+id = "launch"
+title = "Launch and listen"
+title_ur = "اجرا، پھر سننا"
+due = "2027-02-28"
+description = "Get into the stores, get the Urdu and the legal texts reviewed, and put the app in the hands of the first landlords."
+description_ur = "ایپ اسٹورز تک پہنچنا، اردو اور قانونی تحریروں پر نظرِ ثانی کروانا، اور ایپ پہلے مالکانِ مکان کے ہاتھ میں دینا۔"
+
+[[milestones.issues]]
+id = "play-store"
+title = "Publish the Android app on Google Play"
+title_ur = "اینڈرائیڈ ایپ گوگل پلے پر شائع کرنا"
+body = """
+Upload the app bundle that each release attaches, write the store listing in English and Urdu, and add Google Play's app-signing key to `assetlinks.json` so that e-mail links open the app.
+
+Waiting on: a D-U-N-S number for AR Labs.
+"""
+
+[[milestones.issues]]
+id = "app-store"
+title = "Publish the iPhone app on the App Store"
+title_ur = "آئی فون ایپ ایپ اسٹور پر شائع کرنا"
+body = """
+Sign the iOS build, add the associated-domains file for e-mail links, and write the store listing in English and Urdu.
+
+Waiting on: an Apple Developer Program membership.
+"""
+
+[[milestones.issues]]
+id = "urdu-review"
+title = "A native speaker's review of every Urdu string"
+title_ur = "ہر اردو عبارت پر اہلِ زبان کی نظرِ ثانی"
+body = """
+Have a native Urdu editor review the app's strings (`app/lib/l10n/arb/app_ur.arb`), the receipts and the website, for natural, respectful Urdu that Pakistani landlords and tenants read easily (NFR-03).
+"""
+
+[[milestones.issues]]
+id = "legal-review"
+title = "A lawyer's review of the privacy notice and terms"
+title_ur = "رازداری کی پالیسی اور شرائط پر وکیل کی نظرِ ثانی"
+body = """
+Have a Pakistani lawyer review the privacy notice and the terms of use, and the official legal texts behind the guides (WEB-01).
+"""
+
+[[milestones.issues]]
+id = "app-icon"
+title = "The app's own icon and store artwork"
+title_ur = "ایپ کا اپنا آئیکن اور اسٹور کی تصاویر"
+body = """
+Replace Flutter's default launcher icon on Android, iOS and the web, with an adaptive icon and a monochrome layer for Android's themed icons, and make the store screenshots.
+"""
+
+[[milestones.issues]]
+id = "billing"
+title = "Paid plans, with early-access users told first"
+title_ur = "ادا شدہ پلان، ابتدائی صارفین کو پہلے اطلاع کے ساتھ"
+body = """
+Turn on the plans on the pricing page: store subscriptions on Android and iPhone, the plan limits in the app, and notice to everyone who joined during early access before anything is charged.
+"""
+
+[[milestones.issues]]
+id = "audit-screen"
+title = "A screen that shows who changed what"
+title_ur = "ایک اسکرین جو دکھائے کہ کس نے کیا بدلا"
+body = """
+The database already records structural and financial changes with who made them and when (`audit_logs`); add the screen that reads them (TEAM-05). It must exist before any assistant can write.
+"""
+
+[[milestones.issues]]
+id = "mcp-read"
+title = "A read-only MCP server, so a landlord's own AI can read their ledger"
+title_ur = "صرف پڑھنے کا رابطہ، تاکہ مالک کا اپنا مصنوعی ذہانت والا معاون اس کا کھاتہ پڑھ سکے"
+body = """
+Expose who owes what, statements and the overdue list as Model Context Protocol tools, read-only, with OAuth 2.1 and a scope per portfolio, through the same role-checked database functions the app uses.
+"""
+
+[[milestones.issues]]
+id = "draft-payments"
+title = "Draft a payment from a voice note or a pasted SMS, always confirmed"
+title_ur = "وائس نوٹ یا ایس ایم ایس سے ادائیگی کا مسودہ، ہمیشہ تصدیق کے بعد"
+body = """
+Turn a voice note, a bank or wallet SMS or a Raast screenshot into a draft payment that the landlord confirms. The confirmation goes through the existing idempotent `record_payment`, keyed on the message, so a resent message never counts twice.
+"""
+
+[[milestones.issues]]
+id = "amount-parser"
+title = "A tested reader for amounts in Urdu numerals, lakh and crore, and Roman Urdu"
+title_ur = "اردو ہندسوں، لاکھ کروڑ اور رومن اردو میں لکھی رقمیں پڑھنے کا جانچا ہوا طریقہ"
+body = """
+No amount should come from a model's text alone. Parse amounts deterministically in `mm_core`, with shared contract vectors, and read them back before anything is saved.
+"""
+
+[[milestones.issues]]
+id = "pilot"
+title = "A pilot with the first landlords"
+title_ur = "پہلے مالکانِ مکان کے ساتھ آزمائشی استعمال"
+body = """
+Put the app in the hands of a first group of landlords, including owners abroad with a caretaker, and learn what to fix and what to build next.
+"""
+
+[[milestones]]
+id = "assistant"
+title = "The assistant"
+title_ur = "معاون"
+due = "2027-11-30"
+description = "Munshi, an assistant that drafts while the landlord confirms: on WhatsApp, for tenants, and for the paperwork."
+description_ur = "منشی، ایک معاون جو مسودہ بناتا ہے اور مالک تصدیق کرتا ہے: واٹس ایپ پر، کرایہ داروں کے لیے، اور کاغذی کارروائی میں۔"
+
+[[milestones.issues]]
+id = "whatsapp-assistant"
+title = "A WhatsApp assistant, with voice notes"
+title_ur = "واٹس ایپ پر معاون، وائس نوٹ کے ساتھ"
+body = """
+Ask who owes what, record a payment or draft a reminder from WhatsApp, in Urdu, Roman Urdu or English, by text or voice note. Every write is confirmed by the landlord.
+"""
+
+[[milestones.issues]]
+id = "whatsapp-reminders"
+title = "Scheduled reminders through the WhatsApp Business Platform"
+title_ur = "واٹس ایپ بزنس کے ذریعے طے شدہ وقت پر خودکار یاد دہانیاں"
+body = """
+Send rent reminders automatically, on the landlord's schedule and with the same etiquette rules, once the business account and its message templates are approved.
+"""
+
+[[milestones.issues]]
+id = "agent-limits"
+title = "An agent role that writes only within set limits"
+title_ur = "معاون کا ایسا کردار جو صرف طے شدہ حدوں کے اندر لکھ سکے"
+body = """
+A separate, read-only-by-default role for assistants, with limits on which tenancies, the largest amount, a monthly budget and an expiry, checked in the database and marked in the audit trail. Voids, waivers, deletions and team changes are never offered to an agent.
+"""
+
+[[milestones.issues]]
+id = "tenant-portal"
+title = "A read-only link for tenants"
+title_ur = "کرایہ داروں کے لیے صرف دیکھنے کا لنک"
+body = """
+A tenant opens a link to see their own ledger, receipts and the landlord's Raast ID, and can ask for them in their language.
+"""
+
+[[milestones.issues]]
+id = "reconciliation"
+title = "Suggested matches between incoming payments and open dues"
+title_ur = "آنے والی ادائیگیوں اور واجب الادا رقموں کے ممکنہ جوڑ کی تجویز"
+body = """
+From bank or wallet statements, or messages the landlord shares, suggest which open dues each credit pays, for a person to approve.
+"""
+
+[[milestones.issues]]
+id = "document-reading"
+title = "Read CNICs and agreements on the phone, with masking and consent"
+title_ur = "شناختی کارڈ اور کرایہ نامے فون پر پڑھنا، نمبر چھپا کر اور رضامندی کے ساتھ"
+body = """
+Fill a tenant's details from a photo of their CNIC or the agreement, on the device where possible, with the CNIC masked before any model sees it and the tenant's consent recorded. Extracted fields stay suggestions until confirmed.
+"""
+
+[[milestones.issues]]
+id = "hostel-mode"
+title = "Hostel and PG mode"
+title_ur = "ہاسٹل اور پی جی کے لیے خاص طریقہ"
+body = """
+Beds as units, a HotelEye checklist, and one action to record a whole month's rent for every bed.
+"""
+
+[[milestones.issues]]
+id = "push-notifications"
+title = "Push notifications"
+title_ur = "فون پر فوری اطلاعات"
+body = """
+Notifications on Android and iPhone for dues, deadlines and handovers, through the `device_tokens` table and an Edge Function.
+"""
+
+[[milestones.issues]]
+id = "retention"
+title = "Remove identity documents automatically after a tenancy ends"
+title_ur = "کرایہ داری ختم ہونے کے بعد شناختی دستاویزات خود بخود حذف کرنا"
+body = """
+Delete CNIC copies and similar documents a set number of months after a tenancy ends, keeping the financial records and the receipt series intact.
+"""
+
+[[milestones.issues]]
+id = "move-out"
+title = "A move-out photo checklist"
+title_ur = "مکان چھوڑتے وقت تصویروں کے ساتھ جانچ کی فہرست"
+body = """
+Photos of each room at move-in and move-out, so deductions from the deposit rest on a record both sides saw.
+"""
+
+[[milestones]]
+id = "money"
+title = "Money that moves"
+title_ur = "براہِ راست وصولی"
+due = "2028-11-30"
+description = "Collect rent, not just record it, through licensed partners on Pakistan's payment rails, and give owners abroad an assistant that watches for them."
+description_ur = "کرایہ صرف درج نہیں بلکہ وصول کرنا، پاکستان کے ادائیگی کے نظام پر لائسنس یافتہ شراکت داروں کے ذریعے، اور بیرونِ ملک مالکان کے لیے ایک نگران معاون۔"
+
+[[milestones.issues]]
+id = "raast-request-to-pay"
+title = "Collect rent with Raast Request-to-Pay, through a licensed partner"
+title_ur = "لائسنس یافتہ شراکت دار کے ذریعے راست سے کرایہ وصولی"
+body = """
+Send each month's rent as a Raast request to pay and reconcile it by its reference, through a payment service provider licensed by the State Bank. This ends version 1's "record, not process" rule, so it needs its own design and review.
+"""
+
+[[milestones.issues]]
+id = "open-banking"
+title = "Bank account data through open banking"
+title_ur = "اوپن بینکنگ کے ذریعے بینک کھاتے کی معلومات"
+body = """
+Read incoming rent from the landlord's bank account, with their consent, once the State Bank's open-banking regulations are final.
+"""
+
+[[milestones.issues]]
+id = "overseas-oversight"
+title = "An oversight assistant for owners abroad"
+title_ur = "بیرونِ ملک مالکان کے لیے نگران معاون"
+body = """
+Watch the caretaker's cash in hand and handovers, and tell the owner when something looks wrong.
+"""
+
+[[milestones.issues]]
+id = "agent-coordination"
+title = "Landlord, tenant and caretaker assistants that work together"
+title_ur = "مالک، کرایہ دار اور نگران کے معاون جو مل کر کام کریں"
+body = """
+Let each role's assistant coordinate with the others through an open agent-to-agent protocol, within each role's permissions.
+"""

@@ -1,0 +1,50 @@
+# Redeploys the website, and only the website, at the latest release every
+# week and by hand, so the roadmap page shows the milestones and issues as they
+# stand on GitHub between releases (deploy.yml, "site-only"). The backend and
+# the web app are not touched, and the site is built from the release's tag, so
+# nothing unreleased on main reaches it. Like every deployment it waits for the
+# production environment's reviewer, if one is set.
+name: Site refresh
+
+on:
+  schedule:
+    # Wednesdays 09:23 Pakistan time.
+    - cron: "23 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-refresh
+  cancel-in-progress: true
+
+jobs:
+  latest:
+    name: Latest release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Find the latest release's tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::No release tag found ($tag)"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Website
+    needs: latest
+    permissions:
+      contents: read
+      issues: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ needs.latest.outputs.tag }}
+      site-only: true
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

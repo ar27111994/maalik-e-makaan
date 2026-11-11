@@ -11,6 +11,7 @@ import {
   howItWorksSchema,
   licencesSchema,
   pricingSchema,
+  companySchema,
 } from "../../src/lib/content/schemas.ts";
 
 const read = (path: string): unknown =>
@@ -24,6 +25,7 @@ const collections = [
   { name: "how-it-works", schema: howItWorksSchema },
   { name: "download", schema: downloadSchema },
   { name: "pricing", schema: pricingSchema },
+  { name: "company", schema: companySchema },
 ] as const;
 
 /** The shape of a value: its keys and array lengths, without the text. */
@@ -69,8 +71,8 @@ describe.each(collections)("the $name collection", ({ name, schema }) => {
 
   test("Urdu copy is in Urdu script, with no Latin letters (no Roman Urdu)", () => {
     for (const text of texts(ur).filter((value) => !IDENTIFIER.test(value))) {
-      // "{font}" is a placeholder the page fills with a font's name, inside lang="en".
-      expect(text.replaceAll("{font}", "")).not.toMatch(/[A-Za-z]/);
+      // "{font}", "{version}" and "{date}" are placeholders the page fills in.
+      expect(text.replaceAll(/\{(font|version|date)\}/g, "")).not.toMatch(/[A-Za-z]/);
     }
   });
 
@@ -92,15 +94,19 @@ describe("content facts", () => {
     expect(en).not.toMatch(/\b(calculates|estimates|works out) your (income )?tax\b/i);
   });
 
-  test("until version 1.0 ships, the home page speaks of the app in the future tense", () => {
+  test("now that version 1.0 is out, the pages speak of the app in the present tense", () => {
     const en = read("home/en.yaml") as { description: string; hero: { lede: string } };
-    expect(en.description).toMatch(/^An app in development/);
-    expect(en.hero.lede).toMatch(/will replace/);
-    expect(en.hero.lede).not.toMatch(/\b(replaces|shows) /);
+    expect(en.description).not.toMatch(/in development/i);
+    expect(en.hero.lede).not.toMatch(/\bwill (replace|show)\b/);
     const ur = read("home/ur.yaml") as { hero: { lede: string } };
     // The product's name is also the word for "landlord": as a subject it is "مالکِ مکان ایپ".
     expect(ur.hero.lede).toMatch(/^مالکِ مکان ایپ /);
-    expect(ur.hero.lede).toMatch(/دے گی/);
+    for (const name of ["home", "features", "how-it-works", "faq", "download"]) {
+      const text = JSON.stringify(read(`${name}/en.yaml`));
+      expect(text, name).not.toMatch(
+        /in development|has not been released|not out yet|being built now/i,
+      );
+    }
   });
 
   test("no guides are published in one language only", async () => {

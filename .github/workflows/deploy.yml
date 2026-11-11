@@ -18,6 +18,10 @@ on:
         description: The tag to deploy
         type: string
         required: true
+      site-only:
+        description: Deploy only the website (site-refresh.yml, for a fresh roadmap)
+        type: boolean
+        default: false
     secrets:
       SUPABASE_ACCESS_TOKEN:
         required: false
@@ -26,6 +30,11 @@ on:
       VERCEL_TOKEN:
         required: false
   workflow_dispatch:
+    inputs:
+      site-only:
+        description: Only the website (the backend and the web app stay as they are)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,6 +54,7 @@ defaults:
 jobs:
   supabase:
     name: Supabase (migrations and functions)
+    if: ${{ !inputs.site-only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment:
@@ -87,6 +97,7 @@ jobs:
   web:
     name: Web app (Vercel)
     needs: supabase
+    if: ${{ !inputs.site-only }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment:
@@ -157,6 +168,10 @@ jobs:
     name: Website (Vercel)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      # The roadmap page reads the roadmap's milestones and issues.
+      issues: read
     environment:
       name: production
       url: https://maalik-e-makaan-site.vercel.app
@@ -200,6 +215,19 @@ jobs:
             '{orgId: $org, projectId: $project, projectName: "maalik-e-makaan-site",
               settings: {framework: "astro", rootDirectory: "website", nodeVersion: "22.x"}}' \
             > .vercel/project.json
+      - name: Pitch deck (PDF, with this release's version and date)
+        # Chromium renders website/deck/ into public/; the build then copies it.
+        working-directory: website
+        run: |
+          npm ci
+          npx --no-install playwright install --with-deps chromium
+          npm run deck
+      - name: Roadmap, live from GitHub
+        # The roadmap page shows the milestones and issues as they are now; if
+        # GitHub cannot be read it keeps the copy in the repository and warns.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tool/github/fetch_roadmap.py --from-github --repository "$GITHUB_REPOSITORY"
       - name: Build (Vercel Build Output API, with vercel.json's headers)
         # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
         run: npx --yes vercel@65.8.0 build --prod

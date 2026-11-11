@@ -89,6 +89,8 @@ export async function loadLlmsInput(site: URL, appUrl: string): Promise<LlmsInpu
     downloadUr,
     priceEn,
     priceUr,
+    companyEn,
+    companyUr,
   ] = await Promise.all([
     getEntry("features", "en"),
     getEntry("features", "ur"),
@@ -100,6 +102,8 @@ export async function loadLlmsInput(site: URL, appUrl: string): Promise<LlmsInpu
     getEntry("download", "ur"),
     getEntry("pricing", "en"),
     getEntry("pricing", "ur"),
+    getEntry("company", "en"),
+    getEntry("company", "ur"),
   ]);
   return {
     site,
@@ -131,6 +135,10 @@ export async function loadLlmsInput(site: URL, appUrl: string): Promise<LlmsInpu
     pricing: {
       en: required(priceEn, "src/content/pricing/en.yaml").data,
       ur: required(priceUr, "src/content/pricing/ur.yaml").data,
+    },
+    company: {
+      en: required(companyEn, "src/content/company/en.yaml").data,
+      ur: required(companyUr, "src/content/company/ur.yaml").data,
     },
     guides,
     tools,

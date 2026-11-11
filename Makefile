@@ -143,6 +143,14 @@ contracts: ## Regenerate the rent-maths contract vectors shared by Dart and SQL
 contracts-check: ## Fail when the committed contract vectors are stale
 	python3 tool/contracts/generate.py --check
 
+.PHONY: roadmap
+roadmap: ## Rewrite the website's offline roadmap copy from .github/roadmap.toml
+	python3 tool/github/fetch_roadmap.py --from-file
+
+.PHONY: roadmap-check
+roadmap-check: ## Fail when the website's offline roadmap copy is stale
+	python3 -m unittest discover -s tool/github -p 'test_roadmap.py' -k committed_copy
+
 .PHONY: test-functions
 test-functions: ## Edge Function tests with the 100% coverage gate
 	cd supabase/functions && $(DENO) task test
@@ -167,7 +175,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web and iOS packaging, Android manifest, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web and iOS packaging, Android manifest, roadmap, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
@@ -176,6 +184,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/formal -p 'test_*.py'
 	python3 -m unittest discover -s tool/ios -p 'test_*.py'
 	python3 -m unittest discover -s tool/android -p 'test_*.py'
+	python3 -m unittest discover -s tool/github -p 'test_*.py'
 
 .PHONY: tokens
 tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)

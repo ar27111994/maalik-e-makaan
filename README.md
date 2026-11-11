@@ -168,5 +168,7 @@ for bugs and ideas.
 
 ## Licence
 
-[MIT](LICENSE) © 2026 Ahmed Rehan. The third-party packages and fonts the project uses, and
+[MIT](LICENSE) © 2026 AR LABS (SMC-PRIVATE) LIMITED ([AR Labs](https://ar27111994.dev/),
+[LinkedIn](https://www.linkedin.com/company/ar27111994)), registered with the SECP (CUIN
+0361950). The third-party packages and fonts the project uses, and
 what their licences ask, are listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

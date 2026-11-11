@@ -1,0 +1,118 @@
+---
+import PageHeader from "../components/PageHeader.astro";
+import StatusChip from "../components/StatusChip.astro";
+import { formatDate } from "../i18n/dates.ts";
+import { localisePath, type Locale } from "../i18n/locales.ts";
+import { ui } from "../i18n/ui.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { RELEASES } from "../lib/release.ts";
+import { ids } from "../lib/seo/json-ld.ts";
+import { documentTitle } from "../lib/seo/meta.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const strings = ui(locale).releases;
+if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
+const site = Astro.site;
+// On the Urdu page the notes, written in English, sit inside lang="en".
+const notesLang = locale === "en" ? undefined : "en";
+---
+
+<BaseLayout
+  locale={locale}
+  path="/releases/"
+  title={documentTitle(strings.title, locale)}
+  description={strings.description}
+  pageName={strings.title}
+  pageExtra={{ about: { "@id": ids.app(site) } }}
+  breadcrumbs={[{ label: strings.heading, path: "/releases/" }]}
+>
+  <div class="container reading">
+    <PageHeader heading={strings.heading} intro={strings.intro} />
+    {locale !== "en" && <p class="releases__language">{strings.notesLanguage}</p>}
+    <p>
+      <a
+        class="button button--primary"
+        href={`${localisePath("/download/", locale)}#latest-release`}
+      >
+        {strings.download}
+      </a>
+    </p>
+    <ol class="releases" reversed>
+      {RELEASES.map((release, index) => (
+        <li class="releases__item" id={release.tag}>
+          <h2 class="releases__heading">
+            {strings.version.replace("{version}", release.version)}
+            {index === 0 && <StatusChip status="paid" label={strings.latest} />}
+          </h2>
+          <p class="releases__date">
+            <time datetime={release.date}>
+              {strings.released.replace("{date}", formatDate(release.date, locale))}
+            </time>
+          </p>
+          {release.sections.map((section) => (
+            <section class="releases__section">
+              {strings.sections[section.title] === undefined ? (
+                <h3 lang={notesLang}>{section.title}</h3>
+              ) : (
+                <h3>{strings.sections[section.title]}</h3>
+              )}
+              <ul lang={notesLang} dir="ltr">
+                {section.notes.map((note) => (
+                  <li>{note.text}</li>
+                ))}
+              </ul>
+            </section>
+          ))}
+          <p>
+            <a href={release.url}>{strings.github}</a>
+          </p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</BaseLayout>
+
+<style>
+  .releases {
+    display: grid;
+    gap: var(--mm-space-s8);
+    margin: 0;
+    margin-block-start: var(--mm-space-s6);
+    padding: 0;
+    list-style: none;
+  }
+
+  .releases__item {
+    display: grid;
+    gap: var(--mm-space-s3);
+    padding-block-start: var(--mm-space-s3);
+    border-block-start: var(--mm-size-stroke) solid var(--mm-color-primary);
+  }
+
+  .releases__heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--mm-space-s2);
+  }
+
+  .releases__date,
+  .releases__language {
+    color: var(--mm-color-ink-muted);
+  }
+
+  .releases__section ul {
+    display: grid;
+    gap: var(--mm-space-s2);
+    margin: 0;
+    padding-inline-start: var(--mm-space-s6);
+  }
+
+  .releases__section h3 {
+    margin-block-end: var(--mm-space-s2);
+  }
+</style>
