@@ -69,13 +69,18 @@ def filtered(header: bytes, image: bytes, kinds: list[int]) -> bytes:
     return bytes(out)
 
 
+def chunks(*parts: tuple[bytes, bytes]) -> bytes:
+    """A PNG file of the given (type, data) chunks, each with its length and checksum."""
+    return bai.PNG_SIGNATURE + b"".join(bai._chunk(kind, body) for kind, body in parts)
+
+
 def png(header: bytes, scanlines: bytes, level: int = 9) -> bytes:
-    return (
-        bai.PNG_SIGNATURE
-        + bai._chunk(b"IHDR", header)
-        + bai._chunk(b"IDAT", zlib.compress(scanlines, level))
-        + bai._chunk(b"IEND", b"")
-    )
+    return chunks((b"IHDR", header), (b"IDAT", zlib.compress(scanlines, level)), (b"IEND", b""))
+
+
+def flip(data: bytes, index: int) -> bytes:
+    """[data] with every bit of the byte at [index] inverted."""
+    return data[:index] + bytes([data[index] ^ 0xFF]) + data[index + 1 :]
 
 
 class PathTest(unittest.TestCase):
@@ -291,11 +296,12 @@ class PngTest(unittest.TestCase):
 
     def test_other_files_are_refused(self) -> None:
         header = struct.pack(">IIBBBBB", 1, 1, 8, bai.RGB, 0, 0, 0)
+        end = (b"IEND", b"")
         for data in (
             b"GIF89a",
-            bai.PNG_SIGNATURE + bai._chunk(b"IHDR", header) + bai._chunk(b"IEND", b""),
-            bai.PNG_SIGNATURE + bai._chunk(b"IHDR", header[:12]) + bai._chunk(b"IDAT", b""),
-            bai.PNG_SIGNATURE + bai._chunk(b"IHDR", header) + bai._chunk(b"IDAT", b"not zlib"),
+            chunks((b"IHDR", header), end),
+            chunks((b"IHDR", header[:12]), (b"IDAT", zlib.compress(b"\x00\x01\x02\x03")), end),
+            chunks((b"IHDR", header), (b"IDAT", b"not zlib"), end),
             png(header, b"\x00\x01\x02\x03\x04"),  # a row too long
             png(header, b"\x05\x01\x02\x03"),  # no filter type 5
             png(struct.pack(">IIBBBBB", 1, 1, 16, bai.RGB, 0, 0, 0), bytes(7)),
@@ -304,6 +310,82 @@ class PngTest(unittest.TestCase):
         ):
             with self.subTest(data=data[:12]), self.assertRaises(bai.IconError):
                 bai.png_image(data)
+
+    def test_a_damaged_file_is_refused_even_when_its_pixels_decode(self) -> None:
+        header = struct.pack(">IIBBBBB", 1, 1, 8, bai.RGB, 0, 0, 0)
+        scanlines = b"\x00\x01\x02\x03"
+        data = png(header, scanlines)
+        self.assertEqual(bai.png_image(data), (header, b"\x01\x02\x03"))
+        idat = len(bai.PNG_SIGNATURE) + 12 + len(header)  # where the IDAT chunk starts
+        (length,) = struct.unpack(">I", data[idat : idat + 4])
+        compressed = zlib.compress(scanlines)
+        start, end = (b"IHDR", header), (b"IEND", b"")
+        text = bai._chunk(b"tEXt", b"Title\x00x")
+        for damaged, problem in (
+            # The last byte of IDAT's checksum, just before the 12 bytes of IEND.
+            (flip(data, len(data) - 13), "bad checksum in IDAT"),
+            (flip(data, idat + 10), "bad checksum in IDAT"),  # a byte of the compressed data
+            (flip(data, 8 + 8 + 4), "bad checksum in IHDR"),  # the image's height
+            (flip(data, 8 + 4), "bad checksum in b'\\xb6HDR'"),  # the I of its type
+            (flip(data, len(data) - 1), "bad checksum in IEND"),
+            (data[:-12], "the file ends before an IEND chunk"),
+            (data[:-4], "the file ends part-way through the IEND chunk"),  # no checksum
+            (data[:-9], "the file ends part-way through a chunk"),  # no type
+            (data + b"\x00", "1 byte follows the IEND chunk"),
+            (data + text, f"{len(text)} bytes follow the IEND chunk"),
+            # IDAT's length made longer: 12 bytes more still end inside the file (where IEND's
+            # checksum was), 13 run past it.
+            (
+                data[:idat] + struct.pack(">I", length + 12) + data[idat + 4 :],
+                "bad checksum in IDAT",
+            ),
+            (
+                data[:idat] + struct.pack(">I", length + 13) + data[idat + 4 :],
+                "the file ends part-way through the IDAT chunk",
+            ),
+            (
+                data[:idat] + b"\xff\xff\xff\xff" + data[idat + 4 :],
+                "the file ends part-way through the IDAT chunk",
+            ),
+            (
+                chunks(start, (b"IDAT", compressed), (b"IEND", b"\x00")),
+                "the IEND chunk is not empty",
+            ),
+            (bai.PNG_SIGNATURE + text + data[8:], "the first chunk is tEXt, not IHDR"),
+            (chunks(end, start, (b"IDAT", compressed), end), "the first chunk is IEND, not IHDR"),
+            (chunks(start, start, (b"IDAT", compressed), end), "a second IHDR chunk"),
+            (
+                chunks(start, (b"IDAT", compressed + b"tail"), end),
+                "4 bytes follow the compressed image data",
+            ),
+            (
+                chunks(start, (b"IDAT", compressed[:-1]), end),
+                "the compressed image data is cut short",
+            ),
+        ):
+            with self.subTest(problem=problem):
+                with self.assertRaises(bai.DamagedPngError) as caught:
+                    bai.png_image(damaged)
+                self.assertEqual(str(caught.exception), problem)
+        with self.assertRaises(bai.DamagedPngError) as caught:
+            bai.png_image(chunks(start, (b"IDAT", b"not zlib"), end))
+        self.assertTrue(str(caught.exception).startswith("the compressed image data is damaged ("))
+
+    def test_ancillary_chunks_and_split_image_data_are_read(self) -> None:
+        # As another encoder or an optimiser may write a file: the image data split over several
+        # IDAT chunks, one of them empty, and ancillary chunks before and after it.
+        header = struct.pack(">IIBBBBB", 2, 1, 8, bai.RGBA, 0, 0, 0)
+        compressed = zlib.compress(b"\x00" + bytes(range(8)))
+        data = chunks(
+            (b"IHDR", header),
+            (b"gAMA", struct.pack(">I", 45455)),
+            (b"IDAT", compressed[:3]),
+            (b"IDAT", b""),
+            (b"IDAT", compressed[3:]),
+            (b"tEXt", b"Title\x00x"),
+            (b"IEND", b""),
+        )
+        self.assertEqual(bai.png_image(data), (header, bytes(range(8))))
 
     def test_formats_are_described(self) -> None:
         self.assertEqual(
@@ -532,6 +614,26 @@ class WriteAndCheckTest(unittest.TestCase):
         )
         self.assertEqual(bai.write(self.root), [f"wrote {bai.WEB}/favicon.png"])
         self.assertEqual(bai.png_image(favicon.read_bytes()), (header, image))
+
+    def test_a_damaged_icon_is_reported_and_rewritten(self) -> None:
+        bai.write(self.root)
+        favicon = self.root / bai.WEB / "favicon.png"
+        good = favicon.read_bytes()
+        # Each of these still decodes to the generated pixels with a lenient reader.
+        for damaged, problem in (
+            (flip(good, len(good) - 13), "bad checksum in IDAT"),  # IDAT's checksum
+            (good[:-12], "the file ends before an IEND chunk"),
+            (good[:-2], "the file ends part-way through the IEND chunk"),
+            (good + b"\x00\x00", "2 bytes follow the IEND chunk"),
+        ):
+            with self.subTest(problem=problem):
+                favicon.write_bytes(damaged)
+                self.assertEqual(
+                    bai.problems(self.root), [f"{bai.WEB}/favicon.png is damaged: {problem}"]
+                )
+                self.assertEqual(bai.write(self.root), [f"wrote {bai.WEB}/favicon.png"])
+                self.assertEqual(favicon.read_bytes(), good)
+                self.assertEqual(bai.problems(self.root), [])
 
     def test_clutter_in_the_icon_set_is_left_alone(self) -> None:
         bai.write(self.root)

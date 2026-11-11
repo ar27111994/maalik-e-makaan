@@ -12,16 +12,16 @@ left), phones first, WCAG 2.2 AA.
 
 These run in CI and, where fast enough, in the git hooks.
 
-| Gate                              | What it catches                                                                                                                    | Where                                                |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Token build and lint              | Invalid tokens, stale generated outputs, component colour pairs under 4.5:1                                                        | `make tokens-check`                                  |
-| `DESIGN.md` lint                  | An agent-facing design file that drifted from its schema                                                                           | CI hygiene job                                       |
-| Design lint                       | Colours, font sizes, spacing, radii and durations written in code instead of tokens; left/right geometry that breaks right to left | `make design-lint` (`tool/design/lint_hardcoded.py`) |
-| Accessibility guidelines in tests | Tap targets under 48 dp (Android) or 44 pt (iOS), unlabelled targets, text contrast, in every theme variant                        | `packages/mm_ui/test/support/harness.dart`           |
-| Golden tests                      | Visual regressions in light, dark, both high-contrast themes, Urdu and large text                                                  | `make test-ui`, `make test-app`                      |
-| Icons                             | Icons that drifted from `design/icons/icons.json`                                                                                  | `make icons-check`                                   |
-| App icons                         | Launcher icons that drifted from the mark or the colour tokens, or a house that leaves the adaptive or maskable safe zone          | `make app-icons-check`                               |
-| Website checks                    | WCAG violations (axe), Lighthouse scores under 95, broken links, invalid structured data                                           | `make test-web`                                      |
+| Gate                              | What it catches                                                                                                                          | Where                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Token build and lint              | Invalid tokens, stale generated outputs, component colour pairs under 4.5:1                                                              | `make tokens-check`                                  |
+| `DESIGN.md` lint                  | An agent-facing design file that drifted from its schema                                                                                 | CI hygiene job                                       |
+| Design lint                       | Colours, font sizes, spacing, radii and durations written in code instead of tokens; left/right geometry that breaks right to left       | `make design-lint` (`tool/design/lint_hardcoded.py`) |
+| Accessibility guidelines in tests | Tap targets under 48 dp (Android) or 44 pt (iOS), unlabelled targets, text contrast, in every theme variant                              | `packages/mm_ui/test/support/harness.dart`           |
+| Golden tests                      | Visual regressions in light, dark, both high-contrast themes, Urdu and large text                                                        | `make test-ui`, `make test-app`                      |
+| Icons                             | Icons that drifted from `design/icons/icons.json`                                                                                        | `make icons-check`                                   |
+| App icons                         | Launcher icons that are damaged or drifted from the mark or the colour tokens, or a house that leaves the adaptive or maskable safe zone | `make app-icons-check`                               |
+| Website checks                    | WCAG violations (axe), Lighthouse scores under 95, broken links, invalid structured data                                                 | `make test-web`                                      |
 
 ## Review checklist
 

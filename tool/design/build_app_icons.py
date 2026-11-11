@@ -19,7 +19,10 @@ is needed, and the result matches librsvg's to within ordinary anti-aliasing dif
 check decodes each PNG and compares its format (size, bit depth, colour type) and its pixels, not
 its bytes: another zlib build, other row filters or a lossless optimiser that keeps the format
 give the same image. A file converted to another colour type or bit depth fails, because the
-stores pin them: Google Play wants a 32-bit PNG and iOS an icon without alpha.
+stores pin them: Google Play wants a 32-bit PNG and iOS an icon without alpha. So does a damaged
+file, even one whose pixels still decode: the reader is strict, so every chunk must be whole and
+match its CRC-32 checksum, IHDR must come first, an empty IEND last with nothing after it, and the
+compressed image data must end where its IDAT chunks do. Writing replaces a damaged file.
 
 Outputs (all committed):
 
@@ -101,6 +104,10 @@ COLOUR_TYPES = {0: "greyscale", RGB: "RGB", 3: "palette", 4: "greyscale and alph
 
 class IconError(ValueError):
     """The mark, the tokens or a committed icon cannot be used."""
+
+
+class DamagedPngError(IconError):
+    """A PNG file whose bytes are broken: a bad checksum, a chunk cut short, data past its end."""
 
 
 # --- The mark -------------------------------------------------------------------------------
@@ -469,30 +476,68 @@ def describe(header: bytes) -> str:
     )
 
 
-def png_parts(data: bytes) -> tuple[bytes, bytes]:
-    """The header fields (IHDR) and the decompressed, still filtered scanlines of a PNG file."""
+def _chunk_name(kind: bytes) -> str:
+    """A chunk's type as the PNG specification spells it (four ASCII letters), or its bytes."""
+    return kind.decode("ascii") if kind.isalpha() else repr(kind)
+
+
+def _follow(count: int, what: str) -> str:
+    return f"{count} {'byte follows' if count == 1 else 'bytes follow'} {what}"
+
+
+def png_chunks(data: bytes) -> list[tuple[bytes, bytes]]:
+    """The chunks of a PNG file, as (type, data) pairs, once its structure is sound: the
+    signature, then whole chunks whose checksums (CRC-32 of the type and the data) match, IHDR
+    first and only there, and an empty IEND last, with nothing after it. A file damaged in
+    storage or in transit (a flipped bit, a file cut short, bytes appended) fails here, even
+    when its image data would still decode."""
     if not data.startswith(PNG_SIGNATURE):
         raise IconError("not a PNG file")
+    found: list[tuple[bytes, bytes]] = []
     position = len(PNG_SIGNATURE)
-    header = b""
-    compressed = []
-    while position + 8 <= len(data):
-        (length,) = struct.unpack(">I", data[position : position + 4])
-        kind = data[position + 4 : position + 8]
-        body = data[position + 8 : position + 8 + length]
-        if kind == b"IHDR":
-            header = body
-        elif kind == b"IDAT":
-            compressed.append(body)
-        elif kind == b"IEND":
-            break
-        position += 12 + length
+    while not found or found[-1][0] != b"IEND":
+        if position == len(data):
+            raise DamagedPngError("the file ends before an IEND chunk")
+        if position + 8 > len(data):
+            raise DamagedPngError("the file ends part-way through a chunk")
+        length, kind = struct.unpack(">I4s", data[position : position + 8])
+        name = _chunk_name(kind)
+        end = position + 8 + length  # where the chunk's data ends and its checksum starts
+        if end + 4 > len(data):
+            raise DamagedPngError(f"the file ends part-way through the {name} chunk")
+        body = data[position + 8 : end]
+        if data[end : end + 4] != struct.pack(">I", zlib.crc32(kind + body)):
+            raise DamagedPngError(f"bad checksum in {name}")
+        if not found and kind != b"IHDR":
+            raise DamagedPngError(f"the first chunk is {name}, not IHDR")
+        if found and kind == b"IHDR":
+            raise DamagedPngError("a second IHDR chunk")
+        found.append((kind, body))
+        position = end + 4
+    if found[-1][1]:
+        raise DamagedPngError("the IEND chunk is not empty")
+    if position < len(data):
+        raise DamagedPngError(_follow(len(data) - position, "the IEND chunk"))
+    return found
+
+
+def png_parts(data: bytes) -> tuple[bytes, bytes]:
+    """The header fields (IHDR) and the decompressed, still filtered scanlines of a PNG file."""
+    found = png_chunks(data)
+    header = found[0][1]
+    compressed = [body for kind, body in found if kind == b"IDAT"]
     if len(header) != 13 or not compressed:
         raise IconError("the PNG file has no valid header or no image data")
+    stream = zlib.decompressobj()
     try:
-        return header, zlib.decompress(b"".join(compressed))
+        scanlines = stream.decompress(b"".join(compressed))
     except zlib.error as error:
-        raise IconError(f"the PNG file's image data is damaged ({error})") from None
+        raise DamagedPngError(f"the compressed image data is damaged ({error})") from None
+    if not stream.eof:
+        raise DamagedPngError("the compressed image data is cut short")
+    if stream.unused_data:
+        raise DamagedPngError(_follow(len(stream.unused_data), "the compressed image data"))
+    return header, scanlines
 
 
 def _paeth(left: int, up: int, corner: int) -> int:
@@ -775,6 +820,8 @@ def _image_problem(root: Path, path: str, header: bytes, pixels: bytes) -> str |
             return f"{path} is {describe(found)}, not {describe(header)}"
         if unfilter(header, scanlines) != pixels:
             return f"{path} does not hold the generated pixels"
+    except DamagedPngError as error:
+        return f"{path} is damaged: {error}"
     except IconError as error:
         return f"{path} cannot be read: {error}"
     return None
