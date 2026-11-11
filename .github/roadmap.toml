@@ -14,7 +14,8 @@
 # British English; Urdu in Urdu script, never Roman Urdu.
 #
 # An issue's body is final when the sync creates it: a short summary, a link to the item's plan in
-# docs/roadmap/, a "Done when" checklist and the ids it depends on (docs/roadmap/README.md).
+# docs/roadmap/, the plan's "Done when" checklist copied unchanged, and links to the plans it
+# depends on (docs/roadmap/README.md). Links are absolute, since a body is read on GitHub.
 
 [label]
 name = "roadmap"
@@ -40,14 +41,16 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/play-
 
 Done when:
 
-- [ ] The app is live in production under AR LABS, with English and Urdu listings.
-- [ ] Every declaration form is complete, and the Console shows no policy issues.
-- [ ] The account-deletion URL in Data safety loads in both languages.
-- [ ] `assetlinks.json` lists the Play app-signing key, and an e-mail link opens the app on a device.
+- [ ] The app is live in production under AR LABS in Pakistan and the chosen countries, with English and Urdu listings.
+- [ ] The Console shows no policy issues, and every declaration form is complete.
+- [ ] The deletion URL in Data safety loads, in both languages, and in-app deletion removes what the privacy notice says.
+- [ ] `assetlinks.json` lists the Play app-signing key, the API answers `"linked": true`, and an e-mail link opens the app on a device.
 - [ ] The pre-launch report shows no crashes, and CI fails on a forbidden photo permission.
 - [ ] The download page links to the listing in both languages.
 
-Depends on: `legal-review`, `app-icon`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [app-icon](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/app-icon.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
 
 Waits on: a D-U-N-S number for AR LABS.
 """
@@ -57,19 +60,21 @@ id = "app-store"
 title = "Publish the iPhone app on the App Store"
 title_ur = "آئی فون ایپ ایپ اسٹور پر شائع کرنا"
 body = """
-Publish the iPhone app on the App Store, with TestFlight first, so that iPhone owners, many of them abroad, get a normal install, updates and e-mail links that open the app. Apple enrols an organisation only if its website is on a domain associated with it, so AR LABS's own domain and work e-mail come first, then enrolment with the D-U-N-S number. The work covers signing on Xcode 26, universal links, the privacy manifest and App Privacy answers, and an iPhone-only listing in English and Urdu.
+Publish the iPhone app on the App Store, with TestFlight first, so that iPhone owners, many of them abroad, get a normal install, updates and e-mail links that open the app. Apple enrols an organisation only if its website is on a domain associated with it, so AR LABS's own domain and work e-mail come first, then enrolment with the D-U-N-S number. The work covers signing on Xcode 26, universal links, the privacy manifest and App Privacy answers, and a listing in English and Urdu for iPhone, and for iPad too if the owner keeps it.
 
 Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/app-store.md
 
 Done when:
 
 - [ ] An organisation membership for AR LABS is active.
-- [ ] A signed build from CI installs through TestFlight and is approved on the App Store, with English and Urdu listings.
-- [ ] An e-mail link opens the app on an iPhone through a universal link on AR LABS's own domain.
-- [ ] In-app deletion and the privacy-policy link pass review, and the App Privacy answers match the privacy notice.
+- [ ] A signed build from CI (Xcode 26, iOS 26 SDK) installs through TestFlight and is approved on the App Store, with English and Urdu listings.
+- [ ] An e-mail link opens the app on an iPhone through a universal link served from AR LABS's domain.
+- [ ] In-app deletion and the privacy-policy link pass review, and the App Privacy answers match the privacy notice and the SDKs.
 - [ ] Storefronts are set, with EU trader details published or the EU excluded.
 
-Depends on: `legal-review`, `app-icon`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [app-icon](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/app-icon.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
 
 Waits on: a domain and work e-mail of AR LABS's own, and a D-U-N-S number.
 """
@@ -86,12 +91,15 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-
 Done when:
 
 - [ ] The glossary and style sheet are in the repository, signed off by the owner.
-- [ ] Every Urdu surface has been reviewed by a native editor and accepted by the owner.
-- [ ] The glossary test passes, and no rejected term remains.
+- [ ] Every Urdu surface (app, receipts and statements, website, e-mail templates, store listings) has been reviewed by a native editor and accepted by the owner.
+- [ ] The guardrail test passes, and no rejected term remains.
+- [ ] Placeholders and plurals pass the existing localisation tests.
 - [ ] Nothing is clipped at 200% text size in the Urdu goldens, and the common Urdu receipt fits one A5 page.
 - [ ] NFR-03 is marked done in `.planning/REQUIREMENTS.md`.
 
-Depends on: none on the roadmap; the font trial uses readers from `pilot`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: none on the roadmap; the font trial uses readers from [pilot](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/pilot.md).
 
 Waits on: a native Urdu editor, and the owner's time for the glossary.
 """
@@ -101,7 +109,7 @@ id = "legal-review"
 title = "A lawyer's review of the privacy notice and terms"
 title_ur = "رازداری کی پالیسی اور شرائط پر وکیل کی نظرِ ثانی"
 body = """
-Have a Pakistani lawyer review the privacy notice, the terms of use and the facts in the guides before the stores ask for a privacy policy (WEB-01). Today's notice says AR LABS decides how tenants' data is used, though landlords enter it, and promises no analytics, so it is rewritten for the owner's three decisions of 11 November 2026, and the analytics text is approved before any analytics SDK ships. The work is a fixed-fee request for quotation to two or three firms, a review pack, the terms and notice rewritten in English and Urdu, a tenant notice, corrections to the guides and two new guides.
+Have a Pakistani lawyer review the privacy notice, the terms of use and the facts in the guides before the stores ask for a privacy policy (WEB-01). Today's notice says AR LABS decides how tenants' data is used, though landlords enter it, and promises no analytics, so it is rewritten for the [owner's three decisions](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#the-owners-three-decisions) of 11 November 2026, and the plan has the lawyer review the analytics text before any analytics SDK ships. The work is a fixed-fee request for quotation to two or three firms, a review pack, the terms and notice rewritten in English and Urdu, a tenant notice, corrections to the guides and two new guides.
 
 Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md
 
@@ -110,10 +118,13 @@ Done when:
 - [ ] A signed review memo or letter exists, dated after November 2026.
 - [ ] Every question for the lawyer is answered or explicitly deferred.
 - [ ] The notice names every processor and country, matching the infrastructure and both store forms.
-- [ ] The terms state the governing law, the parties' roles and the prevailing language.
-- [ ] Every claim in the guides is verified against an official source or labelled unverified.
+- [ ] The terms state governing law, the parties' roles and the prevailing language.
+- [ ] Both languages are published with the same `lastUpdated`, and the website checks pass.
+- [ ] Every guide claim is verified against an official source or labelled unverified.
 
-Depends on: `urdu-review`. The lawyer also reads the paid terms from `billing`, the schedule from `retention` and the deposit guide for `move-out` as each is drafted.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md). The lawyer also reads the paid terms from [billing](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/billing.md), the schedule from [retention](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/retention.md) and the deposit guide for [move-out](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/move-out.md) as each is drafted.
 
 Waits on: a lawyer, chosen through the request for quotation.
 """
@@ -131,11 +142,14 @@ Done when:
 
 - [ ] No Flutter default icon or colour remains on Android, iOS or the web app.
 - [ ] `make app-icons-check` passes in CI and fails when an output is stale.
-- [ ] The Android icon looks right under every mask and as a themed icon, and the iOS icon in every appearance and on the oldest supported iOS.
-- [ ] The maskable web icons pass the safe-zone preview.
-- [ ] Both stores have the icon, the feature graphic and screenshots in English and Urdu, made from fictional data.
+- [ ] The Android icon looks right under the circle and squircle masks and as a themed icon.
+- [ ] The iOS icon renders in default, dark, clear and tinted appearances, and shows on the oldest supported iOS.
+- [ ] The maskable web icons pass the 40% safe-zone preview.
+- [ ] Both stores have the icon, the feature graphic and screenshot sets in English and Urdu, made from fictional data.
 
-Depends on: `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
 
 Waits on: the owner's choice of mark, and a Mac for the iOS icon.
 """
@@ -151,15 +165,19 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/billi
 
 Done when:
 
-- [ ] No account is charged before its notice date, and every early-access account was sent the notice, logged, at least 60 days before its first charge.
-- [ ] Calling the RPCs or the Data API directly cannot activate a sixth let unit on Free, nor one more by spreading units across portfolios.
-- [ ] Duplicate store notifications or payment notices produce exactly one entitlement change, and a refund revokes it.
-- [ ] A lapsed plan gives 14 days of full access, then read-only units; nothing is deleted, and export works.
-- [ ] The Pakistani storefront shows only the rupee plans, other storefronts only Overseas, and no app text points to web prices.
+- [ ] No account is charged before its notice date, and a pgTAP test proves half price for 12 months in every channel.
+- [ ] Calling the RPCs or the Data API directly cannot activate a sixth let unit on Free; if the owner counts Free per owner, nor a sixth by spreading units across portfolios.
+- [ ] Duplicate store notifications or PSP IPNs produce exactly one entitlement change; a refund revokes it.
+- [ ] A lapsed plan gives 14 days of full access, then read-only units; nothing is deleted and export works.
+- [ ] The Pakistani storefront shows only Free, Pro and Business in rupees; others show only Overseas; no app text points to web prices.
+- [ ] Web receipts show the tax included and a sequential number.
+- [ ] Every early-access account received the notice, logged, at least 60 days before its first charge.
 
-Depends on: `play-store`, `app-store`, `legal-review`, `urdu-review`, `pilot`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: tax registrations and a written tax opinion; a payment provider's agreement; the residence fields (decision 1) and the consent records and Customer.io set-up (decision 3). A charge before 28 February 2027 needs the notice sent by 30 December 2026.
+Depends on: [play-store](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/play-store.md), [app-store](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/app-store.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md). Related: [pilot](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/pilot.md), which informs the plans and prices but does not hold up the code.
+
+Waits on: tax registrations and a written tax opinion; a payment provider's agreement; the residence fields ([decision 1](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16)) and the consent records and Customer.io set-up ([decision 3](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)). A charge before 28 February 2027 needs the notice sent by 30 December 2026.
 """
 
 [[milestones.issues]]
@@ -173,14 +191,17 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit
 
 Done when:
 
-- [ ] Every change in the pgTAP fixtures appears in the feed with its actor, time and readable text in English and Urdu.
-- [ ] No CNIC appears on the screen, phone numbers are masked, and a former member's entries say "former member".
+- [ ] Every change in the pgTAP fixtures appears in the feed with actor, time and readable text in English and Urdu.
+- [ ] No CNIC appears on the screen, and phone numbers are masked.
+- [ ] A former member's entries show "former member", never an empty name.
 - [ ] Writes by an assistant and reads through MCP are visibly marked.
 - [ ] `verify_audit` fails after a manual edit in a test database, in CI.
 - [ ] An accountant and a viewer cannot read the feed, through the app or the Data API.
 - [ ] The first page loads in under a second on the 32,716-row stress portfolio.
 
-Depends on: nothing that blocks a start; its strings go through `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: nothing that blocks a start; its strings go through [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
 """
 
 [[milestones.issues]]
@@ -194,15 +215,18 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/mcp-r
 
 Done when:
 
-- [ ] Two AI assistant apps from different vendors connect with OAuth and PKCE and call all four tools.
+- [ ] The Claude and ChatGPT apps both connect with OAuth and PKCE and call all four tools.
 - [ ] A request without a token gets a 401 that points to the metadata.
-- [ ] pgTAP proves isolation between portfolios, revocation and expiry, and that a token with a client id cannot write through any RPC or table.
-- [ ] No tool output contains a CNIC, a phone number or a URL, checked over fixtures.
+- [ ] pgTAP proves isolation between portfolios, revocation and expiry.
+- [ ] A `client_id` token cannot write through any RPC or table, and every tool runs read-only.
+- [ ] No tool output contains a CNIC, phone number or URL, checked over fixtures.
 - [ ] Every call appears in `agent_access_log` and on the audit screen.
 
-Depends on: `audit-screen`, `legal-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: Supabase's OAuth server on the hosted project, and the consent records (decision 3).
+Depends on: [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md).
+
+Waits on: Supabase's OAuth server on the hosted project, and the consent records ([decision 3](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)).
 """
 
 [[milestones.issues]]
@@ -217,15 +241,17 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/draft
 Done when:
 
 - [ ] Nothing is recorded without a Confirm tap.
-- [ ] Sharing a message twice, or the SMS and then a screenshot of the same transfer, records one payment, in Dart and SQL tests.
+- [ ] Sharing a message twice, or the SMS and then a screenshot of the same transfer, yields one payment, in Dart and SQL tests.
 - [ ] Every amount comes from `mm_core` and is read back in words in both languages.
 - [ ] The release manifest has no SMS or call-log permission.
 - [ ] No raw message text remains after confirmation or discard.
 - [ ] Every confirmed draft appears on the audit screen with its source.
 
-Depends on: `amount-parser`, `audit-screen`, `legal-review`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: the consent records (decision 3), before any cloud speech or OCR provider.
+Depends on: [amount-parser](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/amount-parser.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
+
+Waits on: the consent records ([decision 3](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)), before any cloud speech or OCR provider.
 """
 
 [[milestones.issues]]
@@ -241,11 +267,14 @@ Done when:
 
 - [ ] All vectors pass in Dart, Deno and the website's TypeScript.
 - [ ] 10,000 random amounts round-trip through words and back in both languages.
-- [ ] Every example in the roadmap and the investor deck is a vector.
-- [ ] Ambiguous inputs return `ambiguous`, never a number.
-- [ ] The parser uses no floating-point type, and no screen saves a parsed amount without the read-back.
+- [ ] Every example in the roadmap and the investor deck ("1.5 lac", "ڈیڑھ لاکھ", "پچاس ہزار", "50k", "Rs. 25,000/-") is a vector.
+- [ ] Ambiguous inputs in the vectors return `ambiguous`, never a number.
+- [ ] The parser uses no floating-point type.
+- [ ] No screen saves a parsed amount without showing the read-back.
 
-Depends on: `urdu-review`, for the review of the word list; the first pull requests can start before it.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md), for the review of the word list; the first pull requests can start before it.
 """
 
 [[milestones.issues]]
@@ -261,13 +290,15 @@ Done when:
 
 - [ ] At least 15 landlords are onboarded, at least 5 of them abroad with a caretaker.
 - [ ] At least 10 moderated sessions have run in Urdu.
-- [ ] The metric views cover two rent cycles, against a target the owner sets.
+- [ ] The metric views cover two rent cycles, against a target the owner sets (an illustrative one: 60% record rent in both cycles).
 - [ ] Every finding is filed as an issue with a severity and no personal data.
 - [ ] The pilot report, with its go or no-go, is in the repository.
 
-Depends on: `legal-review`, `urdu-review`. Testers join through the test tracks of `play-store` and `app-store` once they exist, and through the APK and the web app until then.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: the residence fields (decision 1) and the consent records (decision 3).
+Depends on: [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md). Testers join through the test tracks of [play-store](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/play-store.md) and [app-store](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/app-store.md) once they exist, and through the APK and the web app until then.
+
+Waits on: the residence fields ([decision 1](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16)) and the consent records ([decision 3](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)).
 """
 
 [[milestones]]
@@ -290,14 +321,18 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/whats
 Done when:
 
 - [ ] No ledger write happens without a Confirm tap from the linked number of a person whose role and mandate allow it.
-- [ ] Unlinked numbers and tenants never receive portfolio data, and off-topic requests get the fixed refusal.
+- [ ] Unlinked numbers and tenants never receive portfolio data, tested over fixtures.
+- [ ] Off-topic requests get the fixed refusal.
 - [ ] Every amount comes from the deterministic parser and is read back in words; the evaluation set meets the owner's target in all three languages, by text and by voice.
 - [ ] Audio is deleted after transcription, and transcripts with their draft.
+- [ ] Every confirmed draft appears on the audit screen as made through Munshi and confirmed by the person.
 - [ ] No request reaches a model or speech provider before the person's consent is recorded.
 
-Depends on: `whatsapp-reminders`, `agent-limits`, `amount-parser`, `draft-payments`, `mcp-read`, `audit-screen`, `legal-review`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: the owner's choice of model and speech-to-text providers, and the consent records (decision 3).
+Depends on: [whatsapp-reminders](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/whatsapp-reminders.md), [agent-limits](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/agent-limits.md), [amount-parser](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/amount-parser.md), [draft-payments](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/draft-payments.md), [mcp-read](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/mcp-read.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
+
+Waits on: the owner's choice of model and speech-to-text providers, and the consent records ([decision 3](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)).
 """
 
 [[milestones.issues]]
@@ -305,21 +340,26 @@ id = "whatsapp-reminders"
 title = "Scheduled reminders through the WhatsApp Business Platform"
 title_ur = "واٹس ایپ بزنس کے ذریعے طے شدہ وقت پر خودکار یاد دہانیاں"
 body = """
-Send rent reminders automatically through the WhatsApp Cloud API, on the landlord's schedule and by the etiquette the app already follows: between 10:00 and 20:00 Pakistan time, never during Friday prayers and never twice in three days. A tenant opts in by sending a single-use code, a recorded payment cancels the reminders queued for it, and the free `wa.me` reminder from the landlord's own phone stays the default. It reverses decision D-11 (open proposal P-01 in `.planning/PROJECT.md`), so the owner decides first.
+Send rent reminders automatically through the WhatsApp Cloud API, on the landlord's schedule: between 10:00 and 20:00 Pakistan time, a narrower window inside the 08:00 to 22:00 the app allows for reminders sent by hand, and, as the app already requires, never during Friday prayers and never twice in three days. A tenant opts in by sending a single-use code, a recorded payment cancels the reminders queued for it, and the free `wa.me` reminder from the landlord's own phone stays the default. It reverses decision D-11 (open proposal P-01 in [`.planning/PROJECT.md`](https://github.com/ar27111994/maalik-e-makaan/blob/main/.planning/PROJECT.md)), so the owner decides first.
 
 Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/whatsapp-reminders.md
 
 Done when:
 
 - [ ] No automatic message reaches a tenant without recorded, unrevoked consent.
-- [ ] Nothing is sent outside 10:00 to 20:00 Pakistan time, during Friday prayers, or within three days of the tenancy's last reminder, tested with the shared vectors.
+- [ ] Nothing is sent outside 10:00 to 20:00 Pakistan time, during Friday prayers, or within three days of the tenancy's last reminder by any channel, tested with the shared vectors.
 - [ ] A recorded payment cancels the due's queued reminders before their send time, even when the two race.
-- [ ] STOP in English, Urdu and Roman Urdu revokes consent, and a webhook without a valid signature changes nothing.
-- [ ] Re-running the planner never sends a message twice, and with the switch off nothing is sent.
+- [ ] STOP in English, Urdu and Roman Urdu revokes consent with one confirmation; START restores it.
+- [ ] A webhook without a valid signature gets 401 and changes nothing; replayed events are ignored.
+- [ ] Re-running the planner never sends a message twice.
+- [ ] The tenant gets the template in their recorded language; the landlord sees delivery status and the month's count.
+- [ ] With the switch off, nothing is sent and `wa.me` works as today.
 
-Depends on: `app-store`, `legal-review`, `urdu-review`, `billing`, `tenant-portal`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: Meta's business verification of AR LABS and the approval of the templates; letterheads (decision 2).
+Depends on: [app-store](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/app-store.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md), [billing](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/billing.md), [tenant-portal](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/tenant-portal.md).
+
+Waits on: Meta's business verification of AR LABS and the approval of the templates; letterheads ([decision 2](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-2-letterheads-on-every-generated-document-d-17)).
 """
 
 [[milestones.issues]]
@@ -336,10 +376,13 @@ Done when:
 - [ ] With no mandate, an agent token can call no write function (pgTAP).
 - [ ] Each limit (lease, largest amount, monthly budget, expiry, revocation) has a passing and a failing test.
 - [ ] Void, waive, delete and team functions always refuse an agent.
-- [ ] Parallel confirmations never exceed the monthly budget, in the concurrency scenario and in TLA+.
-- [ ] Every agent write shows on the audit screen as made through the assistant, for the person.
+- [ ] Parallel agent confirmations never exceed the monthly budget, in the concurrency scenario and in TLA+.
+- [ ] Revoking a mandate discards its open drafts, and none of them can be confirmed.
+- [ ] Every agent write shows on the audit screen as "via the assistant, for the person".
 
-Depends on: `audit-screen`, `mcp-read`, `amount-parser`, `draft-payments`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [mcp-read](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/mcp-read.md), [amount-parser](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/amount-parser.md), [draft-payments](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/draft-payments.md).
 """
 
 [[milestones.issues]]
@@ -353,15 +396,20 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/tenan
 
 Done when:
 
-- [ ] A link returns only its own tenancy, tested against every other lease in the fixtures.
+- [ ] A link returns only its own tenancy; pgTAP and Deno tests try every other lease in the fixtures.
 - [ ] Revoked, rotated and expired links show the same neutral page and no data.
-- [ ] No response contains a CNIC, a phone number, a note or any document other than a receipt.
+- [ ] No response contains a CNIC, phone number, note, document other than a receipt, or another tenancy, checked over fixtures.
+- [ ] The page works in English, Urdu and Roman Urdu at 360 px wide with no horizontal scroll, and passes the design gates.
 - [ ] Every receipt downloads as a PDF on the portfolio's letterhead.
-- [ ] The page works at 360 px wide in all three languages, and makes no request to an analytics or support host.
+- [ ] The landlord revokes a link in one action and sees when it was last opened.
+- [ ] A tenant's request reaches the owners and managers, and the limit holds.
+- [ ] The page makes no request to an analytics or support host.
 
-Depends on: `legal-review`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: letterheads (decision 2).
+Depends on: [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
+
+Waits on: letterheads ([decision 2](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-2-letterheads-on-every-generated-document-d-17)).
 """
 
 [[milestones.issues]]
@@ -375,13 +423,17 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/recon
 
 Done when:
 
-- [ ] On a synthetic month of 60 credits, the right match is the top suggestion for at least 90% of the rent credits.
+- [ ] On a synthetic month of 60 credits, 25 of them rent from 20 leases (with three two-month lump sums and two payers who are not the tenant), the right match is the top suggestion for at least 90% of the rent credits.
 - [ ] No payment is recorded without a person's approval.
-- [ ] Importing the same file twice, or the same credit from an SMS and a statement, creates no duplicate suggestion or payment.
+- [ ] Importing the same file twice, or a credit shared as an SMS and then found in a statement, creates no duplicate suggestion or payment, in Dart and pgTAP tests.
 - [ ] A network-layer test shows that no debit or dismissed line leaves the device.
-- [ ] Kept credits are deleted the set number of days after they are resolved.
+- [ ] A 500-line CSV parses offline in under 2 seconds on a mid-range Android phone.
+- [ ] Kept credits are deleted the set number of days after resolution (pgTAP).
+- [ ] Every string exists in English and Urdu, and the design lint passes.
 
-Depends on: `amount-parser`, `draft-payments`, `tenant-portal`, `audit-screen`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [amount-parser](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/amount-parser.md), [draft-payments](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/draft-payments.md), [tenant-portal](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/tenant-portal.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
 """
 
 [[milestones.issues]]
@@ -395,15 +447,19 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/docum
 
 Done when:
 
-- [ ] Network capture on Android and iOS shows no unmasked CNIC digit leaving the device.
+- [ ] Network capture on Android and iOS shows no unmasked CNIC digit leaving the device for any synthetic specimen.
 - [ ] No extracted field is saved without a person's confirmation and a `tenant_consents` row for its purpose.
-- [ ] With image storage off, nothing but the confirmed fields remains after the flow.
-- [ ] Field accuracy on the synthetic evaluation set meets the owner's threshold for each type of document.
-- [ ] Existing consent dates and notes survive the migration.
+- [ ] With image storage off, nothing but the confirmed fields remains after the flow, in storage or in temporary files.
+- [ ] Field accuracy on the synthetic evaluation set meets the owner's threshold per document type.
+- [ ] Existing consent dates and notes survive the migration (upgrade test).
+- [ ] The release stays within the download budget, or the measured increase is accepted.
+- [ ] Every string exists in English and Urdu, and the design lint passes.
 
-Depends on: `retention`, `legal-review`, `tenant-portal`, `audit-screen`, `amount-parser`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: the owner's decision on processing outside Pakistan, and the consent records (decision 3).
+Depends on: [retention](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/retention.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [tenant-portal](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/tenant-portal.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [amount-parser](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/amount-parser.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
+
+Waits on: the owner's decision on processing outside Pakistan, and the consent records ([decision 3](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)).
 """
 
 [[milestones.issues]]
@@ -417,13 +473,17 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/hoste
 
 Done when:
 
-- [ ] A 40-bed hostel is created in one action, in under two minutes on a mid-range Android phone.
-- [ ] Recording a month for 38 of 40 let beds creates 38 payments and 38 numbered receipts, and running it again creates none.
-- [ ] A 200-item call finishes well inside the statement timeout in the stress harness.
+- [ ] A 40-bed hostel (10 rooms of 4 beds) is created in one action, in under two minutes end to end on a mid-range Android phone.
+- [ ] Recording October for 38 of 40 let beds creates 38 payments and 38 numbered receipts in one action, and running it again creates none.
+- [ ] A 200-item call finishes well inside the timeout in the stress harness.
+- [ ] A resident who joins on the 18th is charged the prorated amount that `rent_math` gives.
 - [ ] Vacant beds raise no dues and are not counted against the plan.
 - [ ] A resident with no police or HotelEye entry three hours after check-in appears on the checklist and the dashboard.
+- [ ] Every string exists in English and Urdu, and the design lint and goldens pass.
 
-Depends on: `billing`, `push-notifications`, `document-reading`, `retention`, `move-out`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [billing](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/billing.md), [push-notifications](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/push-notifications.md), [document-reading](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/document-reading.md), [retention](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/retention.md), [move-out](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/move-out.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
 """
 
 [[milestones.issues]]
@@ -437,15 +497,20 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/push-
 
 Done when:
 
-- [ ] Each notification reaches each of a person's devices at most once, after retries and re-runs.
-- [ ] Nothing arrives in the recipient's quiet hours in their own time zone, tested across the UK clock change.
-- [ ] By default no payload contains a tenant name, a phone number or an amount.
-- [ ] Signing out and deleting the account stop pushes to that device, and a recorded cash handover notifies the owners who can confirm it.
-- [ ] It works on Android 13 and later, on an iPhone and in Chrome, with no Firebase Analytics among the dependencies.
+- [ ] Each notification reaches each of a person's active devices at most once, including after retries and planner re-runs (pgTAP and Deno tests).
+- [ ] Nothing arrives in the recipient's quiet hours in their own time zone; held events arrive in one digest, tested across the UK clock change.
+- [ ] By default no payload contains a tenant name, phone number or amount, checked over fixtures.
+- [ ] A token reported as unregistered is revoked after the first failure.
+- [ ] Signing out and deleting the account stop pushes to that device.
+- [ ] A recorded cash handover notifies the owners who can confirm it.
+- [ ] It works on Android 13 and later with the permission flow, on an iPhone device build and in Chrome on the web.
+- [ ] The app's dependencies include no Firebase Analytics.
 
-Depends on: `app-store`, `legal-review`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: the time-zone field (decision 1).
+Depends on: [app-store](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/app-store.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
+
+Waits on: the time-zone field ([decision 1](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16)).
 """
 
 [[milestones.issues]]
@@ -459,13 +524,17 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/reten
 
 Done when:
 
-- [ ] For a tenancy past the period with no hold, no identity document remains in storage or in `documents`.
-- [ ] Identifying fields are blank in tenants, occupants, reminder previews and the audit trail's changes.
+- [ ] No class A object remains in storage or in `documents`.
+- [ ] Class B fields are blank in `tenants`, `lease_occupants`, reminder previews and `audit_logs.changes`.
 - [ ] Receipt numbers, amounts, voids and balances are byte-identical before and after.
-- [ ] The owner was told at least 30 days earlier, a hold stops the purge, and an outstanding balance holds it automatically.
-- [ ] The audit seals still verify, and the privacy notice states the schedule in English and Urdu.
+- [ ] The owner was notified at least 30 days earlier, a hold stops the purge, and an outstanding balance holds it automatically.
+- [ ] `retention_events` holds counts only, and the audit seals still verify.
+- [ ] The privacy notice states the schedule in English and Urdu.
+- [ ] `make test` passes with the new pgTAP suites.
 
-Depends on: `legal-review`, `push-notifications`, `audit-screen`, `urdu-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [push-notifications](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/push-notifications.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md).
 """
 
 [[milestones.issues]]
@@ -480,14 +549,19 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/move-
 Done when:
 
 - [ ] A move-in inspection with at least one photo per room can be completed and acknowledged.
-- [ ] Move-out shows each room beside its move-in photo, and every deduction links to a photo, a final bill or an unpaid charge.
+- [ ] Move-out shows each room beside its move-in photo.
+- [ ] Every deduction links to a photo, a final bill or an unpaid charge.
 - [ ] Settlement totals equal the ledger postings to the paisa, and the deposit adjustment carries a receipt in the gapless series.
-- [ ] An acknowledged inspection cannot be edited, only voided with a reason.
-- [ ] The report renders in English and Urdu with the letterhead, and no stored photo carries a location.
+- [ ] An acknowledged inspection cannot be edited, only voided with a reason (pgTAP).
+- [ ] The report renders in English and Urdu with the letterhead, within its size budget.
+- [ ] No stored photo carries Exif location.
+- [ ] The design lint, goldens and tests pass.
 
-Depends on: `legal-review`, `retention`, `tenant-portal`, `urdu-review`, `push-notifications`, `billing`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: letterheads (decision 2).
+Depends on: [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md), [retention](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/retention.md), [tenant-portal](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/tenant-portal.md), [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md), [push-notifications](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/push-notifications.md), [billing](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/billing.md).
+
+Waits on: letterheads ([decision 2](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-2-letterheads-on-every-generated-document-d-17)).
 """
 
 [[milestones]]
@@ -503,19 +577,24 @@ id = "raast-request-to-pay"
 title = "Collect rent with Raast Request-to-Pay, through a licensed partner"
 title_ur = "لائسنس یافتہ شراکت دار کے ذریعے راست سے کرایہ وصولی"
 body = """
-Send each month's rent as a Raast request to pay and record it by its reference, through a payment service provider licensed by the State Bank. AR LABS acts only as a technical client of that partner: each landlord is the partner's merchant, and the money settles straight to the landlord's own account, never through AR LABS. This ends version 1's rule that collection is recorded, not processed (open proposal P-02 in `.planning/PROJECT.md`), so the owner's decision, a partner contract and a legal opinion come before any migration.
+Send each month's rent as a Raast request to pay and record it by its reference, through a payment service provider licensed by the State Bank. AR LABS acts only as a technical client of that partner: each landlord is the partner's merchant, and the money settles straight to the landlord's own account, never through AR LABS. This ends version 1's rule that collection is recorded, not processed (open proposal P-02 in [`.planning/PROJECT.md`](https://github.com/ar27111994/maalik-e-makaan/blob/main/.planning/PROJECT.md)), so the owner's decision, a partner contract and a legal opinion come before any migration.
 
 Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/raast-request-to-pay.md
 
 Done when:
 
 - [ ] The decision entry is merged and the legal opinion is on file before the first migration.
-- [ ] Each due has at most one live request, and ending a lease cancels its requests.
-- [ ] Each partner payment is recorded exactly once with duplicate, late and out-of-order webhooks, and alongside a manual entry of the same transfer.
-- [ ] A forged, unsigned or replayed webhook records nothing.
-- [ ] In the sandbox every settlement goes to the landlord's account and none to AR LABS, and no request goes to a tenant without their consent.
+- [ ] Each due has at most one live request, and ending a lease cancels its requests (pgTAP).
+- [ ] Each partner payment is recorded exactly once with duplicate, late and out-of-order webhooks, a webhook caught only by the poll, and a manual entry of the same transfer.
+- [ ] A forged, unsigned or replayed webhook records nothing (Deno tests).
+- [ ] In the sandbox every settlement goes to the landlord's account, none to AR LABS.
+- [ ] The landlord sees the fee before switching on and on each payment.
+- [ ] No request goes to a tenant without their recorded consent.
+- [ ] Every string exists in English and Urdu, and the design lint passes.
 
-Depends on: `billing`, `audit-screen`, `tenant-portal`, `reconciliation`, `draft-payments`, `push-notifications`, `legal-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [billing](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/billing.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [tenant-portal](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/tenant-portal.md), [reconciliation](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/reconciliation.md), [draft-payments](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/draft-payments.md), [push-notifications](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/push-notifications.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md).
 
 Waits on: a partner contract and a legal opinion.
 """
@@ -531,13 +610,17 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/open-
 
 Done when:
 
-- [ ] The consultation response is sent by 30 November 2026, or the owner has decided not to send one.
-- [ ] Imports run only under an active, recorded consent, and revoking it stops imports within one cycle and deletes the token.
+- [ ] The consultation response is sent by 30 November 2026, or the owner has decided not to.
+- [ ] Imports run only under an active, recorded consent (pgTAP and Deno tests).
+- [ ] Revoking consent in the app or at the bank stops imports within one cycle and deletes the token.
 - [ ] No banking password, PIN or other credential is ever asked for or stored.
-- [ ] Only credits are written: fixtures that mix credits and debits leave no debit in any table or log.
-- [ ] No credit becomes a payment without a person's approval, and one already recorded by hand shows as matched.
+- [ ] Only credits are written: fixtures that mix both leave no debit in any table or log.
+- [ ] No credit becomes a payment without a person's approval, and a credit already recorded by hand with the same reference shows as matched, not as a new suggestion.
+- [ ] Every string exists in English and Urdu, and the design lint passes.
 
-Depends on: `reconciliation`, `draft-payments`, `audit-screen`, `legal-review`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [reconciliation](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/reconciliation.md), [draft-payments](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/draft-payments.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md).
 
 Waits on: the State Bank's final rules, licensed providers and a partner contract.
 """
@@ -553,15 +636,19 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/overs
 
 Done when:
 
-- [ ] A caretaker holding Rs 60,000 in cash across three leases for 15 days produces exactly one finding of Rs 60,000.00, which resolves within one run after an owner confirms the handover.
+- [ ] A caretaker holding Rs 60,000 in cash across three leases for 15 days produces exactly one `cash_not_handed_over` finding of Rs 60,000.00, linked to the three payments; it resolves within one run after an owner confirms a handover of Rs 60,000 (pgTAP).
 - [ ] A recorded but unconfirmed handover does not lower the cash the findings use.
-- [ ] A change of IBAN reaches every owner by push within 15 minutes, never at night in the owner's own time zone.
+- [ ] An IBAN change reaches every owner by push within 15 minutes, never between 22:00 and 08:00 owner-local time, before and after British Summer Time ends.
 - [ ] Re-running the job, or two runs at once, never duplicates a finding.
-- [ ] A caretaker sees only the findings the owner allowed, and the evidence pack reconciles to the ledger to the paisa.
+- [ ] A caretaker sees only the findings the owner allowed (RLS tests).
+- [ ] The evidence pack for a property and month reconciles to the ledger to the paisa.
+- [ ] Every string exists in English and Urdu, and no finding content reaches analytics.
 
-Depends on: `push-notifications`, `audit-screen`, `retention`, `legal-review`; Munshi's wording of findings also needs `whatsapp-assistant`.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
 
-Waits on: the residence fields (decision 1).
+Depends on: [push-notifications](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/push-notifications.md), [audit-screen](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/audit-screen.md), [retention](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/retention.md), [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/legal-review.md); Munshi's wording of findings also needs [whatsapp-assistant](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/whatsapp-assistant.md).
+
+Waits on: the residence fields ([decision 1](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16)).
 """
 
 [[milestones.issues]]
@@ -575,11 +662,14 @@ Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/agent
 
 Done when:
 
-- [ ] A tenant's claim and a caretaker's handover each reach an owner as a draft to confirm, never as a ledger write.
+- [ ] A tenant's claim and a caretaker's handover each reach an owner as a draft to confirm, never as a ledger write (pgTAP for each role).
 - [ ] A claim and a statement line for the same transfer record one payment.
 - [ ] Injection fixtures in a claim's or a handover's text never reach the other side's assistant.
 - [ ] Outbound webhooks verify against the published key directory, including after a key rotation.
-- [ ] If an agent-to-agent interface is built, an outside agent can do nothing beyond its grant.
+- [ ] If an A2A interface is built, an outside agent can do nothing beyond its grant (tests).
+- [ ] Every string exists in English and Urdu, and the design lint passes.
 
-Depends on: `agent-limits`, `tenant-portal` and `whatsapp-assistant` for the first phase; `mcp-read`, `reconciliation`, `overseas-oversight`, `raast-request-to-pay` and `open-banking` for the rest.
+This is the plan's list as it stood when this issue was opened. If the plan has changed since, its list is the one to meet before the issue is closed.
+
+Depends on: [agent-limits](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/agent-limits.md), [tenant-portal](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/tenant-portal.md) and [whatsapp-assistant](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/whatsapp-assistant.md) for the first phase; [mcp-read](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/mcp-read.md), [reconciliation](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/reconciliation.md), [overseas-oversight](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/overseas-oversight.md), [raast-request-to-pay](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/raast-request-to-pay.md) and [open-banking](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/open-banking.md) for the rest.
 """
