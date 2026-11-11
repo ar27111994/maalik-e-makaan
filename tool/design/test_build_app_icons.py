@@ -387,6 +387,24 @@ class PngTest(unittest.TestCase):
         )
         self.assertEqual(bai.png_image(data), (header, bytes(range(8))))
 
+    def test_split_image_data_and_unknown_critical_chunks_are_refused(self) -> None:
+        # libpng refuses both: IDAT chunks must form one run, and a critical chunk it does not
+        # know (an upper-case first letter) means it cannot read the file.
+        header = struct.pack(">IIBBBBB", 2, 1, 8, bai.RGBA, 0, 0, 0)
+        compressed = zlib.compress(b"\x00" + bytes(range(8)))
+        interleaved = chunks(
+            (b"IHDR", header),
+            (b"IDAT", compressed[:3]),
+            (b"tEXt", b"a\x00b"),
+            (b"IDAT", compressed[3:]),
+            (b"IEND", b""),
+        )
+        with self.assertRaisesRegex(bai.DamagedPngError, "not one unbroken run"):
+            bai.png_image(interleaved)
+        unknown = chunks((b"IHDR", header), (b"ABCD", b""), (b"IDAT", compressed), (b"IEND", b""))
+        with self.assertRaisesRegex(bai.DamagedPngError, "unknown critical chunk, ABCD"):
+            bai.png_image(unknown)
+
     def test_formats_are_described(self) -> None:
         self.assertEqual(
             bai.describe(struct.pack(">IIBBBBB", 512, 512, 8, bai.RGBA, 0, 0, 0)),

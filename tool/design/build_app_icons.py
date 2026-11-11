@@ -485,12 +485,17 @@ def _follow(count: int, what: str) -> str:
     return f"{count} {'byte follows' if count == 1 else 'bytes follow'} {what}"
 
 
+# The critical chunks a PNG reader must understand; PLTE is allowed though the icons never use it.
+KNOWN_CRITICAL_CHUNKS = frozenset({b"IHDR", b"PLTE", b"IDAT", b"IEND"})
+
+
 def png_chunks(data: bytes) -> list[tuple[bytes, bytes]]:
     """The chunks of a PNG file, as (type, data) pairs, once its structure is sound: the
     signature, then whole chunks whose checksums (CRC-32 of the type and the data) match, IHDR
-    first and only there, and an empty IEND last, with nothing after it. A file damaged in
-    storage or in transit (a flipped bit, a file cut short, bytes appended) fails here, even
-    when its image data would still decode."""
+    first and only there, the IDAT chunks in one unbroken run, no critical chunk this reader does
+    not know, and an empty IEND last, with nothing after it. A file damaged in storage or in
+    transit (a flipped bit, a file cut short, bytes appended) fails here, even when its image
+    data would still decode, and so does a file that libpng would refuse."""
     if not data.startswith(PNG_SIGNATURE):
         raise IconError("not a PNG file")
     found: list[tuple[bytes, bytes]] = []
@@ -512,6 +517,11 @@ def png_chunks(data: bytes) -> list[tuple[bytes, bytes]]:
             raise DamagedPngError(f"the first chunk is {name}, not IHDR")
         if found and kind == b"IHDR":
             raise DamagedPngError("a second IHDR chunk")
+        if kind[0] & 0x20 == 0 and kind not in KNOWN_CRITICAL_CHUNKS:
+            # An upper-case first letter marks a chunk a decoder must understand to read the file.
+            raise DamagedPngError(f"an unknown critical chunk, {name}")
+        if kind == b"IDAT" and found[-1][0] != b"IDAT" and any(k == b"IDAT" for k, _ in found):
+            raise DamagedPngError("the IDAT chunks are not one unbroken run")
         found.append((kind, body))
         position = end + 4
     if found[-1][1]:
