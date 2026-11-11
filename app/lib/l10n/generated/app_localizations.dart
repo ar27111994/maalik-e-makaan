@@ -4112,6 +4112,18 @@ abstract class AppLocalizations {
   /// **'The app closed while the camera was open, but your photo was kept. Check it, then upload it.'**
   String get photoRecovered;
 
+  /// Snackbar when the app starts again with a camera photo that Android kept after closing the app, and the landlord has already moved to another screen; its action (photoKeptAction) takes them to the photo.
+  ///
+  /// In en, this message translates to:
+  /// **'The app closed while the camera was open, but your photo was kept.'**
+  String get photoKeptOffer;
+
+  /// Action of the photoKeptOffer snackbar: goes to the record the photo was taken for and opens it in the add-document sheet, where nothing is uploaded until the landlord taps Upload.
+  ///
+  /// In en, this message translates to:
+  /// **'Show photo'**
+  String get photoKeptAction;
+
   /// Label of a document's kind.
   ///
   /// In en, this message translates to:

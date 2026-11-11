@@ -53,10 +53,12 @@ abstract interface class DocumentRepository {
     PageCursor? after,
   });
 
-  /// Whether [owner] is a record of [portfolioId] that the member can see:
-  /// one a document can still be added to (`recordDocument` refuses any
-  /// other with `document_entity_not_found`).
-  Future<bool> ownerExists(String portfolioId, DocumentOwner owner);
+  /// Whether [owner] is a record of [portfolioId] that still takes
+  /// documents: the member can see it (`recordDocument` refuses any other
+  /// with `document_entity_not_found`), and it is not archived or voided
+  /// ([DocumentEntity.closedColumn]), as its screen offers "Add document"
+  /// only then.
+  Future<bool> ownerTakesDocuments(String portfolioId, DocumentOwner owner);
 
   /// Stores [upload]'s file. A retry of an upload that reached the server
   /// finds the file there and succeeds.
@@ -154,15 +156,18 @@ final class SupabaseDocumentRepository implements DocumentRepository {
   });
 
   @override
-  Future<bool> ownerExists(String portfolioId, DocumentOwner owner) =>
+  Future<bool> ownerTakesDocuments(String portfolioId, DocumentOwner owner) =>
       _guard(() async {
         // The record's own row policy decides whether the member sees it.
-        final row = await _client
+        var query = _client
             .from(owner.entity.table)
             .select('id')
             .eq('id', owner.id)
-            .eq('portfolio_id', portfolioId)
-            .maybeSingle();
+            .eq('portfolio_id', portfolioId);
+        if (owner.entity.closedColumn case final closed?) {
+          query = query.isFilter(closed, null);
+        }
+        final row = await query.maybeSingle();
         return row != null;
       });
 

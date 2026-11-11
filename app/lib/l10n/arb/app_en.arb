@@ -3178,6 +3178,14 @@
   "@photoRecovered": {
     "description": "At the top of the add-document sheet when it opens by itself with a camera photo that Android kept after closing the app; nothing is uploaded until the landlord taps Upload."
   },
+  "photoKeptOffer": "The app closed while the camera was open, but your photo was kept.",
+  "@photoKeptOffer": {
+    "description": "Snackbar when the app starts again with a camera photo that Android kept after closing the app, and the landlord has already moved to another screen; its action (photoKeptAction) takes them to the photo."
+  },
+  "photoKeptAction": "Show photo",
+  "@photoKeptAction": {
+    "description": "Action of the photoKeptOffer snackbar: goes to the record the photo was taken for and opens it in the add-document sheet, where nothing is uploaded until the landlord taps Upload."
+  },
   "documentKindLabel": "Kind",
   "@documentKindLabel": {
     "description": "Label of a document's kind."

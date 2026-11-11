@@ -2380,6 +2380,13 @@ class AppLocalizationsUr extends AppLocalizations {
       'کیمرہ کھلا تھا کہ ایپ بند ہو گئی، لیکن آپ کی تصویر محفوظ رہی۔ اسے دیکھ لیں، پھر اپ لوڈ کریں۔';
 
   @override
+  String get photoKeptOffer =>
+      'کیمرہ کھلا تھا کہ ایپ بند ہو گئی، لیکن آپ کی تصویر محفوظ رہی۔';
+
+  @override
+  String get photoKeptAction => 'تصویر دیکھیں';
+
+  @override
   String get documentKindLabel => 'قسم';
 
   @override

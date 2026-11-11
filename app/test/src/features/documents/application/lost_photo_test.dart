@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
@@ -101,7 +103,7 @@ void main() {
         expect(world.targets.read(), isNull);
         expect(world.picker.calls, ['recoverLostPhoto']);
         // The record was checked, and nothing was uploaded.
-        expect(world.documents.calls.map((c) => c.$1), ['ownerExists']);
+        expect(world.documents.calls.map((c) => c.$1), ['ownerTakesDocuments']);
         expect(world.documents.calls.single.$2, [gulberg.id, _owner]);
       },
     );
@@ -173,9 +175,9 @@ void main() {
         await viewer.recover(portfolios: const [gulbergAsViewer, plaza]),
         _discarded(LostPhotoDiscard.unreachable),
       );
-      // The record is gone, or hidden from them.
+      // The record is gone, archived or voided, or hidden from them.
       final gone = _World();
-      gone.documents.missingOwners.add(_owner);
+      gone.documents.closedOwners.add(_owner);
       await gone.targets.remember(_opened(const Duration(minutes: 3)));
       expect(await gone.recover(), _discarded(LostPhotoDiscard.unreachable));
       expect(gone.targets.read(), isNull);
@@ -187,6 +189,44 @@ void main() {
       await world.targets.remember(_opened(const Duration(minutes: 3)));
       expect(await world.recover(), isA<LostPhotoRecovered>());
     });
+
+    testWidgets('a record check with no answer keeps its photo', (
+      tester,
+    ) async {
+      final world = _World();
+      await world.targets.remember(_opened(const Duration(minutes: 3)));
+      world.documents.gate.close();
+      LostPhotoOutcome? outcome;
+      unawaited(world.recover().then((o) => outcome = o));
+      await tester.pump(lostPhotoCheckLimit - const Duration(milliseconds: 1));
+      expect(outcome, isNull);
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(outcome, isA<LostPhotoRecovered>());
+      // An answer after the limit changes nothing.
+      world.documents.closedOwners.add(_owner);
+      world.documents.gate.open();
+      await tester.pump();
+      expect(outcome, isA<LostPhotoRecovered>());
+    });
+
+    test(
+      'a device that cannot forget the target still gets its photo',
+      () async {
+        final world = _World();
+        await world.targets.remember(_opened(const Duration(minutes: 3)));
+        world.settings.writeFailure = Exception('read-only');
+        expect(await world.recover(), isA<LostPhotoRecovered>());
+        // Left behind, for the next camera to replace.
+        expect(world.targets.read(), _opened(const Duration(minutes: 3)));
+        // Nor does a failure, or no photo, end in an error.
+        world.picker.lostFailure = const RejectedFailure(
+          'picker_access_denied',
+        );
+        expect(await world.recover(), isA<LostPhotoFailed>());
+        expect(await world.recover(), isA<NoLostPhoto>());
+        expect(await world.recover(android: false), isA<NoLostPhoto>());
+      },
+    );
 
     test("the camera's failure is passed on, and the target goes", () async {
       final world = _World()
@@ -251,45 +291,45 @@ void main() {
       expect(containerFor(TestApp()).read(cameraLosesPhotosProvider), isFalse);
     });
 
-    test(
-      'looks once, and keeps the photo for its record until taken',
-      () async {
-        final app = TestApp();
-        app.picker.lostPhoto = _photo;
-        await app.settings.setString(
-          AppSettings.cameraTargetKey,
-          CameraTarget(
-            userId: testUserId,
-            portfolioId: gulberg.id,
-            owner: _owner,
-            location: '/tenants/${aliRaza.id}',
-            openedAt: DateTime.now().toUtc(),
-          ).toJson(),
-        );
-        final container = containerFor(app);
-        listen(container, lostPhotoProvider);
-        final lost = container.read(lostPhotoProvider.notifier);
-        final outcome = await lost.look(
+    test('looks once; a photo held waits for its record until taken', () async {
+      final app = TestApp();
+      app.picker.lostPhoto = _photo;
+      await app.settings.setString(
+        AppSettings.cameraTargetKey,
+        CameraTarget(
           userId: testUserId,
-          portfolios: const [gulberg],
-        );
-        expect(outcome, isA<LostPhotoRecovered>());
-        final list = (portfolioId: gulberg.id, owner: _owner);
-        expect(container.read(lostPhotoProvider), (list: list, photo: _photo));
-        // Once a run: the plugin hands a photo over once.
-        app.picker.lostPhoto = _photo;
-        expect(
-          await lost.look(userId: testUserId, portfolios: const [gulberg]),
-          isA<NoLostPhoto>(),
-        );
-        expect(app.picker.calls, ['recoverLostPhoto']);
-        // Another record's section finds nothing; its own takes it, once.
-        expect(lost.take((portfolioId: plaza.id, owner: _owner)), isNull);
-        expect(lost.take(list), same(_photo));
-        expect(lost.take(list), isNull);
-        expect(container.read(lostPhotoProvider), isNull);
-      },
-    );
+          portfolioId: gulberg.id,
+          owner: _owner,
+          location: '/tenants/${aliRaza.id}',
+          openedAt: DateTime.now().toUtc(),
+        ).toJson(),
+      );
+      final container = containerFor(app);
+      listen(container, lostPhotoProvider);
+      final lost = container.read(lostPhotoProvider.notifier);
+      final outcome = await lost.look(
+        userId: testUserId,
+        portfolios: const [gulberg],
+      );
+      expect(outcome, isA<LostPhotoRecovered>());
+      // Not held until the landlord is on the way to its record.
+      expect(container.read(lostPhotoProvider), isNull);
+      final list = (portfolioId: gulberg.id, owner: _owner);
+      lost.hold(list, _photo);
+      expect(container.read(lostPhotoProvider), (list: list, photo: _photo));
+      // Once a run: the plugin hands a photo over once.
+      app.picker.lostPhoto = _photo;
+      expect(
+        await lost.look(userId: testUserId, portfolios: const [gulberg]),
+        isA<NoLostPhoto>(),
+      );
+      expect(app.picker.calls, ['recoverLostPhoto']);
+      // Another record's section finds nothing; its own takes it, once.
+      expect(lost.take((portfolioId: plaza.id, owner: _owner)), isNull);
+      expect(lost.take(list), same(_photo));
+      expect(lost.take(list), isNull);
+      expect(container.read(lostPhotoProvider), isNull);
+    });
 
     test('signing out lets go of a photo still waiting', () async {
       final app = TestApp();

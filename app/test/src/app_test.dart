@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
@@ -594,6 +595,30 @@ void main() {
       );
     });
 
+    testWidgets('a device that cannot write still gets it back', (
+      tester,
+    ) async {
+      final app = keptFor(portfolioId: plaza.id)
+        ..settings.writeFailure = Exception('read-only');
+      await _pumpApp(tester, app: app);
+      // In the other portfolio for this run, though the device could not
+      // note it, nor forget the camera's target.
+      expect(find.text(notice), findsOneWidget);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(app.settings.values, contains(AppSettings.cameraTargetKey));
+      app.settings.writeFailure = null;
+      await tester.ensureVisible(find.text('Upload'));
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(
+        app.documents.calls.lastWhere((c) => c.$1 == 'recordDocument').$2.first,
+        startsWith('${plaza.id}/tenant/${aliRaza.id}/'),
+      );
+    });
+
     testWidgets('a day later it is let go', (tester) async {
       final app = await _pumpApp(
         tester,
@@ -647,13 +672,101 @@ void main() {
     });
 
     testWidgets('iOS keeps no photo to look for', (tester) async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       final app = keptFor();
-      await _pumpApp(tester, app: app);
-      debugDefaultTargetPlatformOverride = null;
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await _pumpApp(tester, app: app);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
       expect(find.text('What needs attention'), findsOneWidget);
       expect(app.picker.calls, isEmpty);
       expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+    });
+
+    const offer =
+        'The app closed while the camera was open, but your photo was kept.';
+
+    /// The path the app shows.
+    String location(WidgetTester tester) =>
+        GoRouter.of(tester.element(find.byType(Scaffold).first)).state.uri.path;
+
+    testWidgets('a record that no longer takes documents moves nothing', (
+      tester,
+    ) async {
+      // Archived since, in the other portfolio.
+      final app = keptFor(portfolioId: plaza.id);
+      app.documents.closedOwners.add((
+        entity: DocumentEntity.tenant,
+        id: aliRaza.id,
+      ));
+      await _pumpApp(tester, app: app);
+      expect(app.picker.calls, ['recoverLostPhoto']);
+      expect(
+        app.documents.calls.map((c) => c.$1),
+        contains('ownerTakesDocuments'),
+      );
+      expect(find.text('What needs attention'), findsOneWidget);
+      expect(location(tester), Routes.home);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(find.text(notice), findsNothing);
+      expect(find.text(offer), findsNothing);
+      expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+    });
+
+    testWidgets('a landlord who moved on meanwhile is offered the photo, '
+        'not taken to it', (tester) async {
+      final app = keptFor(portfolioId: plaza.id);
+      // The record's check is slow to answer.
+      app.documents.gate.close();
+      await _pumpApp(tester, app: app);
+      await tester.tap(_inNavigation('Tenants'));
+      await tester.pumpAndSettle();
+      app.documents.gate.open();
+      await tester.pumpAndSettle();
+      // Still where they went, in the portfolio they were in.
+      expect(location(tester), Routes.tenants);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(find.text(notice), findsNothing);
+      expect(find.text(offer), findsOneWidget);
+      // Asked, the app takes them to it.
+      await tester.tap(find.text('Show photo'));
+      await tester.pumpAndSettle();
+      expect(location(tester), Routes.tenant(aliRaza.id));
+      expect(
+        app.settings.values[AppSettings.currentPortfolioKey],
+        '$testUserId/${plaza.id}',
+      );
+      expect(find.text(notice), findsOneWidget);
+      await tester.ensureVisible(find.text('Upload'));
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(
+        app.documents.calls.lastWhere((c) => c.$1 == 'recordDocument').$2.first,
+        startsWith('${plaza.id}/tenant/${aliRaza.id}/'),
+      );
+    });
+
+    testWidgets('a record check with no answer keeps the photo', (
+      tester,
+    ) async {
+      final app = keptFor();
+      app.documents.gate.close();
+      await _pumpApp(tester, app: app);
+      expect(location(tester), Routes.home);
+      await tester.pump(lostPhotoCheckLimit);
+      await tester.pump();
+      // On to the record without the answer, which comes later.
+      expect(location(tester), Routes.tenant(aliRaza.id));
+      app.documents.gate.open();
+      await tester.pumpAndSettle();
+      expect(find.text(notice), findsOneWidget);
     });
   });
 

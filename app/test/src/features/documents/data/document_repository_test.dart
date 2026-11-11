@@ -273,45 +273,68 @@ void main() {
       expect(query['limit'], ['50']);
     });
 
-    test("a record's existence is asked of its own table", () async {
-      supabase.respond = (_) async => jsonResponse([
-        {'id': _upload.owner.id},
-      ]);
-      expect(await repository.ownerExists(gulberg.id, _upload.owner), isTrue);
-      final request = supabase.request;
-      expect(request.method, 'GET');
-      expect(request.url.path, '/rest/v1/tenants');
-      final query = request.url.queryParameters;
-      expect(query['select'], 'id');
-      expect(query['id'], 'eq.${_upload.owner.id}');
-      expect(query['portfolio_id'], 'eq.${gulberg.id}');
-      // Gone, or hidden from the member by its row policy.
-      supabase.respond = (_) async => jsonResponse(<Object?>[]);
-      expect(await repository.ownerExists(gulberg.id, _upload.owner), isFalse);
-      supabase.respond = (_) async => postgrestError('XX000', status: 500);
-      await expectLater(
-        repository.ownerExists(gulberg.id, _upload.owner),
-        throwsA(isA<AppFailure>()),
-      );
-    });
+    test(
+      'whether a record takes documents is asked of its own table',
+      () async {
+        supabase.respond = (_) async => jsonResponse([
+          {'id': _upload.owner.id},
+        ]);
+        expect(
+          await repository.ownerTakesDocuments(gulberg.id, _upload.owner),
+          isTrue,
+        );
+        final request = supabase.request;
+        expect(request.method, 'GET');
+        expect(request.url.path, '/rest/v1/tenants');
+        final query = request.url.queryParameters;
+        expect(query['select'], 'id');
+        expect(query['id'], 'eq.${_upload.owner.id}');
+        expect(query['portfolio_id'], 'eq.${gulberg.id}');
+        // Not an archived tenant, whose screen offers no "Add document".
+        expect(query['archived_at'], 'is.null');
+        // Gone, archived, or hidden from the member by its row policy.
+        supabase.respond = (_) async => jsonResponse(<Object?>[]);
+        expect(
+          await repository.ownerTakesDocuments(gulberg.id, _upload.owner),
+          isFalse,
+        );
+        supabase.respond = (_) async => postgrestError('XX000', status: 500);
+        await expectLater(
+          repository.ownerTakesDocuments(gulberg.id, _upload.owner),
+          throwsA(isA<AppFailure>()),
+        );
+      },
+    );
 
-    test('every kind of record has its table', () async {
+    test('every kind of record has its table, and the closed ones are left '
+        'out', () async {
       supabase.respond = (_) async => jsonResponse(<Object?>[]);
       for (final entity in DocumentEntity.values) {
-        await repository.ownerExists(gulberg.id, (entity: entity, id: 'r1'));
+        await repository.ownerTakesDocuments(gulberg.id, (
+          entity: entity,
+          id: 'r1',
+        ));
       }
+      String? closedFilter(Uri url) => switch (url.queryParameters) {
+        {'archived_at': final filter} => 'archived_at=$filter',
+        {'voided_at': final filter} => 'voided_at=$filter',
+        _ => null,
+      };
       expect(
-        [for (final request in supabase.requests) request.url.path],
         [
-          '/rest/v1/properties',
-          '/rest/v1/units',
-          '/rest/v1/tenants',
-          '/rest/v1/leases',
-          '/rest/v1/payments',
-          '/rest/v1/expenses',
-          '/rest/v1/maintenance_requests',
-          '/rest/v1/utility_bills',
-          '/rest/v1/meter_readings',
+          for (final request in supabase.requests)
+            (request.url.path, closedFilter(request.url)),
+        ],
+        [
+          ('/rest/v1/properties', 'archived_at=is.null'),
+          ('/rest/v1/units', 'archived_at=is.null'),
+          ('/rest/v1/tenants', 'archived_at=is.null'),
+          ('/rest/v1/leases', null),
+          ('/rest/v1/payments', 'voided_at=is.null'),
+          ('/rest/v1/expenses', null),
+          ('/rest/v1/maintenance_requests', null),
+          ('/rest/v1/utility_bills', null),
+          ('/rest/v1/meter_readings', null),
         ],
       );
     });

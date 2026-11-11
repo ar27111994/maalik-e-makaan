@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +25,16 @@ const lostPhotoMaxAge = Duration(days: 1);
 /// whose clock the network set back a little while the app restarted
 /// keeps the photo; one whose clock was moved by more does not.
 const lostPhotoClockSkew = Duration(minutes: 5);
+
+/// How long the record of a photo that came back is checked for.
+///
+/// The landlord can use the app while the check runs, and is taken to the
+/// record only if they are still where they were when it started; a check
+/// that takes longer is treated as one that could not be made (no
+/// connection): the photo is kept, and the database checks the record
+/// again when the document is uploaded. One small read takes well under
+/// this on a working mobile connection.
+const lostPhotoCheckLimit = Duration(seconds: 5);
 
 /// What became of a photo the camera took after Android closed the app.
 sealed class LostPhotoOutcome {
@@ -55,7 +67,8 @@ enum LostPhotoDiscard {
   stale,
 
   /// The member no longer adds documents to the record: they left the
-  /// portfolio, their role changed, or the record is gone.
+  /// portfolio, their role changed, or the record is gone, archived or
+  /// voided.
   unreachable,
 }
 
@@ -82,12 +95,16 @@ final class LostPhotoFailed extends LostPhotoOutcome {
 /// target [userId] remembered for it ([targets]) is younger than
 /// [lostPhotoMaxAge], and the member may still add documents to that
 /// record: they belong to its portfolio ([portfolios]) with a role that
-/// adds documents, and [documents] still finds the record. When the
-/// record cannot be checked (no connection), the photo is kept: the
-/// database checks the record again when the document is uploaded.
+/// adds documents, and [documents] finds the record still taking documents
+/// (not gone, archived or voided). When the record cannot be checked (no
+/// connection, or no answer within [lostPhotoCheckLimit]), the photo is
+/// kept: the database checks the record again when the document is
+/// uploaded.
 ///
 /// Whatever happens, the target is forgotten, unless a camera opened since
-/// kept a new one.
+/// kept a new one. A device that cannot forget it still gets its photo:
+/// the target left behind is replaced by the next camera's, or forgotten
+/// at a later start.
 Future<LostPhotoOutcome> recoverLostPhoto({
   required bool android,
   required DocumentPicker picker,
@@ -99,7 +116,13 @@ Future<LostPhotoOutcome> recoverLostPhoto({
 }) async {
   final target = targets.read();
   Future<void> forgetTarget() async {
-    if (target != null) await targets.forgetIfStill(target);
+    if (target == null) return;
+    try {
+      await targets.forgetIfStill(target);
+    } on Exception {
+      // Left behind: see above. The photo, if any, is handed over once,
+      // and must not be lost to a preference that could not be removed.
+    }
   }
 
   if (!android) {
@@ -131,13 +154,17 @@ Future<LostPhotoOutcome> recoverLostPhoto({
   if (membership == null || !membership.role.recordsDocuments) {
     return const LostPhotoDiscarded(LostPhotoDiscard.unreachable);
   }
-  bool exists;
+  bool open;
   try {
-    exists = await documents.ownerExists(target.portfolioId, target.owner);
+    open = await documents
+        .ownerTakesDocuments(target.portfolioId, target.owner)
+        .timeout(lostPhotoCheckLimit);
   } on AppFailure {
-    exists = true;
+    open = true;
+  } on TimeoutException {
+    open = true;
   }
-  if (!exists) return const LostPhotoDiscarded(LostPhotoDiscard.unreachable);
+  if (!open) return const LostPhotoDiscarded(LostPhotoDiscard.unreachable);
   return LostPhotoRecovered(target: target, photo: photo);
 }
 
@@ -158,8 +185,8 @@ final NotifierProvider<LostPhotoController, RecoveredPhoto?> lostPhotoProvider =
       LostPhotoController.new,
     );
 
-/// Looks for a lost photo once, keeps it for its record, and hands it to
-/// that record's documents section.
+/// Looks for a lost photo once, and keeps one that came back for its
+/// record until that record's documents section takes it.
 final class LostPhotoController extends Notifier<RecoveredPhoto?> {
   /// Whether this run of the app has looked: a lost photo can only be
   /// lost by an earlier run, and the plugin hands it over once.
@@ -176,16 +203,16 @@ final class LostPhotoController extends Notifier<RecoveredPhoto?> {
   }
 
   /// Looks for a lost photo the first time it is called in this run of
-  /// the app (see [recoverLostPhoto]), for [userId] in [portfolios], and
-  /// keeps one that came back for its record ([take]). Later calls find
-  /// [NoLostPhoto].
+  /// the app (see [recoverLostPhoto]), for [userId] in [portfolios]. Later
+  /// calls find [NoLostPhoto]. A photo that came back is not kept yet: the
+  /// caller [hold]s it once the landlord is on its way to the record.
   Future<LostPhotoOutcome> look({
     required String userId,
     required List<PortfolioMembership> portfolios,
-  }) async {
-    if (_looked) return const NoLostPhoto();
+  }) {
+    if (_looked) return Future.value(const NoLostPhoto());
     _looked = true;
-    final outcome = await recoverLostPhoto(
+    return recoverLostPhoto(
       android: ref.read(cameraLosesPhotosProvider),
       picker: ref.read(documentPickerProvider),
       targets: ref.read(cameraTargetStoreProvider),
@@ -194,14 +221,10 @@ final class LostPhotoController extends Notifier<RecoveredPhoto?> {
       portfolios: portfolios,
       now: clock.now(),
     );
-    if (outcome case LostPhotoRecovered(:final target, :final photo)
-        when ref.mounted) {
-      hold((portfolioId: target.portfolioId, owner: target.owner), photo);
-    }
-    return outcome;
   }
 
-  /// Keeps [photo] until [list]'s documents section takes it.
+  /// Keeps [photo] until [list]'s documents section takes it: a section
+  /// of that record already shown opens it at once.
   void hold(DocumentList list, ChosenFile photo) =>
       state = (list: list, photo: photo);
 

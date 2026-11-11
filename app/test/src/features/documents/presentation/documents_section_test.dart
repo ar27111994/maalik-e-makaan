@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -650,6 +649,32 @@ void main() {
       expect(kept(app), isNull);
       // A camera photo is never one that came back.
       expect(find.text(recoveredNotice), findsNothing);
+    });
+
+    testWidgets('iOS and the web remember nothing: they never lose a photo', (
+      tester,
+    ) async {
+      final app = TestApp();
+      app.picker.gate.close();
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await pumpScreen(tester, _tenant, app: app);
+        await _tap(tester, 'Add document');
+        await tester.tap(find.text('Take a photo'));
+        await tester.pump();
+        // The camera is open, and the device keeps nothing.
+        expect(app.picker.calls, ['takePhoto']);
+        expect(
+          app.settings.values,
+          isNot(contains(AppSettings.cameraTargetKey)),
+        );
+        app.picker.gate.open();
+        await tester.pumpAndSettle();
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+      expect(find.text('Upload'), findsOneWidget);
+      expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
     });
 
     testWidgets('a device that cannot remember still takes photos', (

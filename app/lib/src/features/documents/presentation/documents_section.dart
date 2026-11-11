@@ -537,11 +537,12 @@ class _DocumentSheetState extends ConsumerState<DocumentSheet>
 /// deleted (for the roles that may, [discardsFiles]; otherwise the daily
 /// sweep queues it a day later).
 ///
-/// While the camera is open, the device remembers the record and the
-/// screen ([location]) the photo is for ([CameraTarget]): Android may close
-/// the app behind the camera, and the photo then comes back to this sheet
-/// when the app starts again ([recoveredPhoto]), prepared as any photo and
-/// uploaded only when the landlord says so.
+/// On Android, while the camera is open, the device remembers the record
+/// and the screen ([location]) the photo is for ([CameraTarget]): Android
+/// may close the app behind the camera, and the photo then comes back to
+/// this sheet when the app starts again ([recoveredPhoto]), prepared as
+/// any photo and uploaded only when the landlord says so. iOS and the web
+/// never lose a photo, so nothing is kept there.
 class AddDocumentSheet extends ConsumerStatefulWidget {
   const new({
     required this.list,
@@ -635,14 +636,18 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
     });
   }
 
-  /// A photo from [picker]'s camera, its [CameraTarget] kept on the device
-  /// while the camera is open and forgotten when the camera answers (a
-  /// photo, a cancel or a refusal): the app was not closed behind it.
+  /// A photo from [picker]'s camera. Where the camera can lose it
+  /// ([cameraLosesPhotosProvider]), its [CameraTarget] is kept on the
+  /// device while the camera is open and forgotten when the camera answers
+  /// (a photo, a cancel or a refusal): the app was not closed behind it.
   Future<ChosenFile?> _takePhoto(DocumentPicker picker) async {
     final targets = ref.read(cameraTargetStoreProvider);
     final userId = ref.read(currentUserIdProvider);
     final location = widget.location;
-    var target = userId == null || location == null
+    var target =
+        !ref.read(cameraLosesPhotosProvider) ||
+            userId == null ||
+            location == null
         ? null
         : CameraTarget(
             userId: userId,

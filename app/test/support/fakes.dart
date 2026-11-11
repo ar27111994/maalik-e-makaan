@@ -1399,11 +1399,11 @@ final class FakeDocumentRepository implements DocumentRepository {
   /// The paths of the stored files.
   final stored = <String>{};
 
-  /// Records [ownerExists] does not find (deleted, or hidden from the
-  /// member).
-  final missingOwners = <DocumentOwner>{};
+  /// Records that no longer take documents for [ownerTakesDocuments]:
+  /// deleted, hidden from the member, archived or voided.
+  final closedOwners = <DocumentOwner>{};
 
-  /// Fails [ownerExists] when set.
+  /// Fails [ownerTakesDocuments] when set.
   AppFailure? ownerFailure;
 
   List<Document> documentsOf(DocumentOwner owner) => byOwner[owner] ??= [];
@@ -1440,11 +1440,14 @@ final class FakeDocumentRepository implements DocumentRepository {
   }
 
   @override
-  Future<bool> ownerExists(String portfolioId, DocumentOwner owner) async {
-    await _call('ownerExists', [portfolioId, owner]);
+  Future<bool> ownerTakesDocuments(
+    String portfolioId,
+    DocumentOwner owner,
+  ) async {
+    await _call('ownerTakesDocuments', [portfolioId, owner]);
     final failure = ownerFailure;
     if (failure != null) throw failure;
-    return !missingOwners.contains(owner);
+    return !closedOwners.contains(owner);
   }
 
   @override

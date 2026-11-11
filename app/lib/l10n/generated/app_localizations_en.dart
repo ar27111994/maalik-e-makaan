@@ -2379,6 +2379,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The app closed while the camera was open, but your photo was kept. Check it, then upload it.';
 
   @override
+  String get photoKeptOffer =>
+      'The app closed while the camera was open, but your photo was kept.';
+
+  @override
+  String get photoKeptAction => 'Show photo';
+
+  @override
   String get documentKindLabel => 'Kind';
 
   @override
