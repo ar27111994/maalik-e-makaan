@@ -91,6 +91,57 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   memberships and invitations are written only through RPCs that bypass row-level security, so
   each must authorise its caller first. The 21 reviewed RPCs are pinned by a pgTAP allowlist, which
   covers Supabase lint 0029 under its option 3.
+- D-16: **Residence is declared per person and recorded per portfolio.** (Decided by the owner,
+  11 November 2026.) Resident and overseas owners are told apart in two places:
+  - per person: the country of residence and the time zone, which the person declares and the app
+    never infers (not from a +92 number, the store country, the IP address, the app's language or
+    the payment currency);
+  - per portfolio: whether the owner lives abroad, and which manager is the owner's caretaker.
+
+  Ledger dates, due dates, police deadlines, the tax year and messages to tenants stay on Pakistan
+  time; an owner's own alerts and digests follow the owner's time zone. Residence is never shown to
+  tenants. The design and its work are in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16).
+
+- D-17: **Letterheads on every generated document.** (Decided by the owner, 11 November 2026.)
+  Owners can upload a letterhead, or make one with a simple builder, and it is applied to every PDF
+  and image the app generates. An upload is a PDF (its first page for a document's first page, its
+  second for the pages after) or a PNG or JPG. Word users save their letterhead as a PDF; there is
+  no Word import. The design and its work are in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-2-letterheads-on-every-generated-document-d-17).
+- D-18: **Privacy-first analytics, support and e-mail.** (Decided by the owner, 11 November 2026.)
+  - The website counts visits with PostHog in cookieless, anonymous mode, and the privacy page
+    says so plainly.
+  - The app sends nothing to PostHog or Intercom until the person opts in.
+  - Customer.io sends transactional e-mail, and lifecycle e-mail only to people who consented.
+
+  The text comes first: the promise of no analytics stands until the rewritten privacy notice is
+  approved (P-03), and no analytics SDK ships before then. The design and its work are in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
+## Open Proposals
+
+Changes that roadmap items would make to an earlier decision or a public promise. Each stays a
+proposal until the owner accepts it; it then becomes a decision entry, recorded in the first pull
+request of the item's plan.
+
+- P-01: **Automatic WhatsApp reminders through the WhatsApp Business Platform**, which would
+  revisit D-11 (free `wa.me` links sent from the landlord's own number). The free links would stay
+  the default; automatic reminders would go only to tenants who opted in, at a cost per message,
+  once Meta has verified AR LABS. Plans:
+  [`whatsapp-reminders`](../docs/roadmap/whatsapp-reminders.md) and Munshi on WhatsApp,
+  [`whatsapp-assistant`](../docs/roadmap/whatsapp-assistant.md).
+- P-02: **Collecting rent through licensed partners**, which would end the rule that collection is
+  recorded, not processed (Constraints, below). Raast Request-to-Pay would go through a payment
+  service provider licensed by the State Bank, with the money settling straight to the landlord's
+  account and never through AR LABS; and, once the State Bank's rules are final, credits would be
+  read from the landlord's bank account with consent. Plans:
+  [`raast-request-to-pay`](../docs/roadmap/raast-request-to-pay.md) and
+  [`open-banking`](../docs/roadmap/open-banking.md).
+- P-03: **Withdrawing the promise of no analytics**, which the website's privacy page, FAQ and
+  footer make in English and Urdu, and the READMEs repeat. D-18 sets the direction; this proposal
+  is the public text, which the lawyer approves before any analytics SDK ships. Plan:
+  [`legal-review`](../docs/roadmap/legal-review.md).
 
 ## Constraints
 
@@ -99,7 +150,9 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 - Low- and mid-range Android dominates (Infinix/Tecno ≈44% of units). Budget: ≤15 MB download
   and <3 s cold start.
 - No payment-gateway or WhatsApp API credentials. Collection is recorded, not processed.
+  Proposals P-01 and P-02 would change this.
 
 ## Current Status
 
-Milestone v1.0 is in progress. See `STATE.md`.
+Milestone v1.0 is in progress. See `STATE.md`. What follows it is planned in
+[`docs/roadmap/README.md`](../docs/roadmap/README.md).

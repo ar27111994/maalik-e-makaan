@@ -9,7 +9,7 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | [`architecture/app.md`](architecture/app.md)                         | How the Flutter app reads, writes, caches, retries and fails: layers, models, repositories, uploads, open questions |
 | [`architecture/permissions.md`](architecture/permissions.md)         | Who can do what in a portfolio, how the database enforces it, the global lock order and what it costs               |
-| [`../.planning/PROJECT.md`](../.planning/PROJECT.md)                 | The product, its users, the stack, and the key decisions D-01 to D-15                                               |
+| [`../.planning/PROJECT.md`](../.planning/PROJECT.md)                 | The product, its users, the stack, the key decisions D-01 to D-18 and the open proposals P-01 to P-03               |
 | [`../DESIGN.md`](../DESIGN.md)                                       | The visual language: tokens, type, colour, components, Urdu and right-to-left rules                                 |
 | [`../packages/mm_ui/COMPONENTS.md`](../packages/mm_ui/COMPONENTS.md) | How the design system's components are built, and the catalogue                                                     |
 | [`../packages/mm_core/README.md`](../packages/mm_core/README.md)     | The domain library's modules: money, time, identity, text, rent, ledger                                             |
