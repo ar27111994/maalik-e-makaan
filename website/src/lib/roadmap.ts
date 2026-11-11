@@ -42,10 +42,13 @@ export const roadmapSchema = z.strictObject({
   /** The day the live data was read, or null for the repository's copy. */
   updated: date.nullable(),
   milestones: z.array(roadmapMilestone).min(1),
+  /** Issues labelled "roadmap" that are in no milestone yet (always empty in the file's copy). */
+  unscheduled: z.array(roadmapIssue),
 });
 
 export type Roadmap = z.infer<typeof roadmapSchema>;
 export type RoadmapMilestone = z.infer<typeof roadmapMilestone>;
+export type RoadmapIssue = z.infer<typeof roadmapIssue>;
 
 export const ROADMAP: Roadmap = roadmapSchema.parse(data);
 

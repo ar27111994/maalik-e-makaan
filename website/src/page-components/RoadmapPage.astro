@@ -1,5 +1,6 @@
 ---
 import PageHeader from "../components/PageHeader.astro";
+import RoadmapItems from "../components/RoadmapItems.astro";
 import StatusChip from "../components/StatusChip.astro";
 import { SITE } from "../config/site.ts";
 import { formatDate, formatMonth } from "../i18n/dates.ts";
@@ -26,10 +27,11 @@ const pick = (english: string, urduText: string | null) =>
     : { text: english, lang: urdu ? "en" : undefined };
 const someEnglishOnly =
   urdu &&
-  ROADMAP.milestones.some(
+  (ROADMAP.milestones.some(
     (milestone) =>
       milestone.titleUr === null || milestone.issues.some((issue) => issue.titleUr === null),
-  );
+  ) ||
+    ROADMAP.unscheduled.some((issue) => issue.titleUr === null));
 const source =
   ROADMAP.source === "github" && ROADMAP.updated !== null
     ? strings.live.replace("{date}", formatDate(ROADMAP.updated, locale))
@@ -87,30 +89,17 @@ const source =
               />
             )}
             {description.text !== "" && <p lang={description.lang}>{description.text}</p>}
-            <ul class="roadmap__items">
-              {milestone.issues.map((issue) => {
-                const item = pick(issue.title, issue.titleUr);
-                return (
-                  <li class="roadmap__item">
-                    <StatusChip
-                      status={issue.state === "closed" ? "paid" : "planned"}
-                      label={issue.state === "closed" ? strings.done : strings.open}
-                    />
-                    {issue.url === null ? (
-                      <span lang={item.lang}>{item.text}</span>
-                    ) : (
-                      <a href={issue.url} lang={item.lang}>
-                        {item.text}
-                      </a>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <RoadmapItems issues={milestone.issues} locale={locale} />
           </li>
         );
       })}
     </ol>
+    {ROADMAP.unscheduled.length > 0 && (
+      <section class="card roadmap__stage roadmap__stage--unscheduled" id="unscheduled">
+        <h2 class="roadmap__title">{strings.unscheduled}</h2>
+        <RoadmapItems issues={ROADMAP.unscheduled} locale={locale} />
+      </section>
+    )}
     <p class="roadmap__links">
       <a href={`${SITE.repositoryUrl}/milestones`}>{strings.github}</a>
       {" · "}
@@ -166,19 +155,9 @@ const source =
     accent-color: var(--mm-color-paid);
   }
 
-  .roadmap__items {
-    display: grid;
-    gap: var(--mm-space-s2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .roadmap__item {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: var(--mm-space-s2);
+  .roadmap__stage--unscheduled {
+    margin-block-start: var(--mm-space-s4);
+    border-block-start-color: var(--mm-color-ink-muted);
   }
 
   .roadmap__links {

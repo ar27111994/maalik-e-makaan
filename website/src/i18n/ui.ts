@@ -89,6 +89,8 @@ export interface UiStrings {
     readonly done: string;
     readonly open: string;
     readonly milestoneDone: string;
+    /** The group of roadmap issues that are in no stage yet. */
+    readonly unscheduled: string;
     /** "{date}" is filled in: the day the live data was read. */
     readonly live: string;
     readonly plan: string;
@@ -193,6 +195,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       done: "Done",
       open: "Planned",
       milestoneDone: "Complete",
+      unscheduled: "Not yet in a stage",
       live: "Live from GitHub, as of {date}.",
       plan: "This is the plan as written in the project; GitHub has the latest state of each item.",
       englishOnly: "Items added on GitHub appear in English.",
@@ -313,6 +316,7 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
       done: "مکمل",
       open: "منصوبے میں",
       milestoneDone: "مرحلہ مکمل",
+      unscheduled: "ابھی کسی مرحلے میں نہیں",
       live: "گٹ ہب سے براہِ راست، {date} تک کی صورتِ حال۔",
       plan: "یہ منصوبہ پروجیکٹ میں لکھا ہوا ہے؛ ہر کام کی تازہ صورتِ حال گٹ ہب پر ہے۔",
       englishOnly: "گٹ ہب پر شامل کیے گئے کام انگریزی میں دکھائے جاتے ہیں۔",

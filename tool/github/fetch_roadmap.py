@@ -7,9 +7,10 @@
 With --from-file it describes the plan in the roadmap file, every issue open:
 the copy kept in the repository for offline builds and tests (`make roadmap`,
 checked by `make roadmap-check`). With --from-github it reads the live
-milestones and the issues labelled "roadmap", with their state, and takes the
-Urdu titles from the file; the Deploy workflow runs it before building the
-site. If GitHub cannot be reached it falls back to the file and says so,
+milestones and the issues labelled "roadmap", with their state (a labelled
+issue in no milestone is listed as not yet scheduled), and takes the Urdu text
+from the file while the English it translates is unchanged; the Deploy workflow
+runs it before building the site. If GitHub cannot be reached it falls back to the file and says so,
 unless --strict.
 """
 
@@ -69,6 +70,7 @@ def from_file(roadmap: Roadmap, repository: str) -> dict[str, Any]:
             }
             for m in roadmap.milestones
         ],
+        "unscheduled": [],
     }
 
 
@@ -86,26 +88,30 @@ def from_github(roadmap: Roadmap, github: GitHub, today: dt.date) -> dict[str, A
     planned_issues = {i.id: i for m in roadmap.milestones for i in m.issues}
     order = {issue_id: index for index, issue_id in enumerate(roadmap.issue_ids())}
 
-    by_milestone: dict[int, list[dict[str, Any]]] = {}
-    for issue in issues:
-        milestone = issue.get("milestone")
-        if not milestone:
-            continue
+    def entry(issue: dict[str, Any]) -> dict[str, Any]:
         issue_id = find_marker(issue.get("body"))
         known = planned_issues.get(issue_id or "")
-        by_milestone.setdefault(int(milestone["number"]), []).append(
-            {
-                "id": issue_id if known else None,
-                "number": int(issue["number"]),
-                "title": str(issue["title"]).strip(),
-                # The Urdu title only while the English one is still the file's.
-                "titleUr": (
-                    known.title_ur if known and known.title == str(issue["title"]).strip() else None
-                ),
-                "state": "closed" if issue.get("state") == "closed" else "open",
-                "url": issue.get("html_url"),
-            }
-        )
+        title = str(issue["title"]).strip()
+        return {
+            "id": issue_id if known else None,
+            "number": int(issue["number"]),
+            "title": title,
+            # The Urdu title only while the English one is still the file's.
+            "titleUr": known.title_ur if known and known.title == title else None,
+            "state": "closed" if issue.get("state") == "closed" else "open",
+            "url": issue.get("html_url"),
+        }
+
+    by_milestone: dict[int, list[dict[str, Any]]] = {}
+    # Labelled issues in no milestone yet: still on the roadmap, so still shown.
+    unscheduled: list[dict[str, Any]] = []
+    for issue in issues:
+        milestone = issue.get("milestone")
+        if milestone:
+            by_milestone.setdefault(int(milestone["number"]), []).append(entry(issue))
+        else:
+            unscheduled.append(entry(issue))
+    unscheduled.sort(key=lambda i: i["number"])
 
     out: list[dict[str, Any]] = []
     for milestone in milestones:
@@ -117,18 +123,21 @@ def from_github(roadmap: Roadmap, github: GitHub, today: dt.date) -> dict[str, A
             continue  # a milestone that is not on the roadmap
         items.sort(key=lambda i: (order.get(i["id"] or "", len(order)), i["number"]))
         due = milestone.get("due_on")
+        title = str(milestone["title"]).strip()
+        description = strip_marker(milestone.get("description"))
         out.append(
             {
                 "id": milestone_id if known else None,
                 "number": number,
-                "title": str(milestone["title"]).strip(),
-                "titleUr": (
-                    known.title_ur
-                    if known and known.title == str(milestone["title"]).strip()
+                "title": title,
+                # The Urdu text only while the English it translates is still the file's.
+                "titleUr": known.title_ur if known and known.title == title else None,
+                "description": description,
+                "descriptionUr": (
+                    known.description_ur
+                    if known and known.description.strip() == description
                     else None
                 ),
-                "description": strip_marker(milestone.get("description")),
-                "descriptionUr": known.description_ur if known else None,
                 "due": str(due)[:10] if due else None,
                 "state": "closed" if milestone.get("state") == "closed" else "open",
                 "url": milestone.get("html_url"),
@@ -141,6 +150,7 @@ def from_github(roadmap: Roadmap, github: GitHub, today: dt.date) -> dict[str, A
         "repository": f"https://github.com/{github.repository}",
         "updated": today.isoformat(),
         "milestones": out,
+        "unscheduled": unscheduled,
     }
 
 

@@ -105,8 +105,10 @@ def sync(roadmap: Roadmap, github: GitHub, *, dry_run: bool = False, log=print) 
             log(f"milestone {milestone.id}: updated")
             counts["updated"] += 1
 
-    # Issues, matched by their hidden id. Pull requests share the issues endpoint; skip them.
-    issues = github.paginate("/issues", {"state": "all", "labels": label.name})
+    # Issues, matched by their hidden id among every issue, open or closed, with the label or
+    # without: an issue whose label was taken off is still the roadmap's, and creating it again
+    # would duplicate it. Pull requests share the issues endpoint; skip them.
+    issues = github.paginate("/issues", {"state": "all"})
     known = {find_marker(i.get("body")) for i in issues if "pull_request" not in i}
     for milestone in roadmap.milestones:
         for issue in milestone.issues:

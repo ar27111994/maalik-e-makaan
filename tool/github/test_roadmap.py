@@ -113,8 +113,18 @@ class FakeGitHub:
                 }
                 self.issues.append(issue)
                 return issue
-            return self.issues if page == 1 else []
+            if page != 1:
+                return []
+            if "labels" not in query:
+                return self.issues
+            # GitHub's label filter. Issues created here keep their labels as names; GitHub's
+            # (and the tests' own) carry objects with a name.
+            return [i for i in self.issues if query["labels"] in label_names(i)]
         raise AssertionError(f"unexpected {method} {path}")
+
+
+def label_names(issue):
+    return [x if isinstance(x, str) else x["name"] for x in issue.get("labels", [])]
 
 
 def small_roadmap(text=SMALL):
@@ -184,6 +194,15 @@ class SyncTest(unittest.TestCase):
         self.assertEqual(counts["created"], 4)
         self.assertEqual(self.fake.writes, [])
 
+    def test_an_issue_whose_label_was_removed_is_not_created_again(self):
+        self.run_sync()
+        self.fake.issues[0]["labels"] = []
+        self.fake.writes.clear()
+        counts = self.run_sync()
+        self.assertEqual(counts["created"], 0)
+        self.assertEqual(self.fake.writes, [])
+        self.assertEqual(len(self.fake.issues), 2)
+
     def test_pull_requests_with_the_label_are_not_mistaken_for_issues(self):
         self.fake.labels["roadmap"] = {
             "name": "roadmap",
@@ -206,6 +225,7 @@ class FetchTest(unittest.TestCase):
         self.assertEqual(data["source"], "file")
         self.assertEqual([i["state"] for i in data["milestones"][0]["issues"]], ["open", "open"])
         self.assertEqual(data["milestones"][0]["issues"][1]["titleUr"], "دوسرا کام")
+        self.assertEqual(data["unscheduled"], [])
 
     def test_from_github_shows_live_state_and_keeps_urdu_only_for_unchanged_titles(self):
         sync_roadmap.sync(
@@ -217,6 +237,7 @@ class FetchTest(unittest.TestCase):
             "number": 3,
             "title": "Added on GitHub",
             "body": "",
+            "labels": [{"name": "roadmap"}],
             "state": "open",
             "milestone": self.fake.milestones[0],
             "html_url": "https://github.com/i/3",
@@ -239,12 +260,48 @@ class FetchTest(unittest.TestCase):
         self.assertEqual(milestone["due"], "2027-02-28")
         self.assertEqual(milestone["description"], "The first step.")
         self.assertEqual(milestone["titleUr"], "پہلا")
+        self.assertEqual(milestone["descriptionUr"], "پہلا قدم")
         issues = milestone["issues"]
         self.assertEqual([i["number"] for i in issues], [1, 2, 3])
         self.assertEqual(issues[0]["state"], "closed")
         self.assertEqual(issues[0]["titleUr"], "پہلا کام")
         self.assertIsNone(issues[1]["titleUr"])
         self.assertIsNone(issues[2]["id"])
+
+    def test_a_changed_description_drops_its_urdu_until_the_file_catches_up(self):
+        sync_roadmap.sync(
+            self.roadmap, GitHub("owner/repo", "t", opener=self.fake), log=lambda _: None
+        )
+        self.fake.milestones[0]["description"] = "A newer plan.\n\n<!-- roadmap: first -->"
+        data = fetch_roadmap.from_github(self.roadmap, self.github, dt.date(2026, 11, 11))
+        milestone = data["milestones"][0]
+        self.assertEqual(milestone["description"], "A newer plan.")
+        self.assertIsNone(milestone["descriptionUr"])
+        self.assertEqual(milestone["titleUr"], "پہلا")
+
+    def test_a_labelled_issue_in_no_milestone_is_listed_as_unscheduled(self):
+        sync_roadmap.sync(
+            self.roadmap, GitHub("owner/repo", "t", opener=self.fake), log=lambda _: None
+        )
+        self.fake.issues[1]["milestone"] = None
+        self.fake.issues.append(
+            {
+                "number": 3,
+                "title": "Suggested on GitHub",
+                "body": "",
+                "labels": [{"name": "roadmap"}],
+                "state": "open",
+                "milestone": None,
+                "html_url": "https://github.com/i/3",
+            }
+        )
+        data = fetch_roadmap.from_github(self.roadmap, self.github, dt.date(2026, 11, 11))
+        self.assertEqual([i["number"] for i in data["milestones"][0]["issues"]], [1])
+        unscheduled = data["unscheduled"]
+        self.assertEqual([i["number"] for i in unscheduled], [2, 3])
+        self.assertEqual(unscheduled[0]["id"], "two")
+        self.assertEqual(unscheduled[0]["titleUr"], "دوسرا کام")
+        self.assertIsNone(unscheduled[1]["titleUr"])
 
     def test_main_falls_back_to_the_file_when_github_has_no_roadmap(self):
         with tempfile.TemporaryDirectory() as directory:

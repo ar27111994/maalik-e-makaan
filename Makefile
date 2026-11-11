@@ -171,7 +171,7 @@ test-uat: ## UAT: the web app in Chromium against a local Supabase stack, every 
 
 .PHONY: test-web
 test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page subset (CI's website job)
-	cd website && npm run check && npm test && npm run build && npm run test:e2e \
+	cd website && npm run check && npm test && npm run deck && npm run build && npm run test:e2e \
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools

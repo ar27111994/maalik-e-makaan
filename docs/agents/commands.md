@@ -49,7 +49,7 @@ export PATH=/opt/flutter/bin:$PWD/.venv/bin:$PATH   # Flutter 3.47, and the pinn
 | Database       | `make test-db-stress`      | Latency budgets and index use (fails when one is missed) and pgbench throughput; not run in CI                                              |
 | Edge Functions | `make test-functions`      | 100% line, branch and function coverage                                                                                                     |
 | Edge Functions | `make test-functions-e2e`  | Against a running `supabase start` stack                                                                                                    |
-| Website        | `make test-web`            | `npm run check`, `npm test`, `npm run build`, `npm run test:e2e`, `npm run lighthouse:ci`                                                   |
+| Website        | `make test-web`            | `npm run check`, `npm test`, `npm run deck`, `npm run build`, `npm run test:e2e`, `npm run lighthouse:ci`                                   |
 | UAT            | `make test-uat`            | 14 browser journeys on the release web build against `supabase start` ([`docs/uat.md`](../uat.md)); `UAT_RESET=1` resets the database first |
 | Formal         | `make formal-install`      | Pinned, sha256-checked tools into `.cache/formal`                                                                                           |
 | Formal         | `make verify`              | Every track's fast set, as CI runs it; `make verify-all` runs every configuration and mutant                                                |

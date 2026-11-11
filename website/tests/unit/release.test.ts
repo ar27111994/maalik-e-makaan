@@ -122,5 +122,17 @@ describe("the roadmap", () => {
   test("a malformed file is refused", () => {
     expect(roadmapSchema.safeParse({ ...ROADMAP, milestones: [] }).success).toBe(false);
     expect(roadmapSchema.safeParse({ ...ROADMAP, source: "somewhere" }).success).toBe(false);
+    expect(roadmapSchema.safeParse({ ...ROADMAP, unscheduled: undefined }).success).toBe(false);
+  });
+
+  test("the file's copy has nothing unscheduled; live data may", () => {
+    expect(ROADMAP.unscheduled).toEqual([]);
+    const live = {
+      ...ROADMAP,
+      source: "github",
+      updated: "2026-11-11",
+      unscheduled: [{ id: null, number: 40, title: "A", titleUr: null, state: "open", url: null }],
+    };
+    expect(roadmapSchema.parse(live).unscheduled).toHaveLength(1);
   });
 });

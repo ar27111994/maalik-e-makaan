@@ -29,8 +29,10 @@ npm run preview        # serve dist/ the way Vercel does (headers, redirects, 40
 | `npm run lighthouse:ci` | the same on eight pages (home, a guide, a calculator and the FAQ, in both languages); CI runs this |
 | `npm run og`            | redraws the Open Graph images and icons in `public/` (after `npm run build`)                       |
 
-`make test-web` at the repository root runs `npm run check`, `npm test`, `npm run build`,
-`npm run test:e2e` and `npm run lighthouse:ci`, the same sequence as CI's `website` job.
+`make test-web` at the repository root runs `npm run check`, `npm test`, `npm run deck`,
+`npm run build`, `npm run test:e2e` and `npm run lighthouse:ci`, the same sequence as CI's
+`website` job. The deck comes before the build because the company page links to its PDF, which
+is not kept in the repository, and the link check fails without it.
 
 Playwright is pinned to 1.64.1 and uses its own Chromium build (156, build 1248), installed in CI
 by `npx playwright install --with-deps chromium`. The development environment's

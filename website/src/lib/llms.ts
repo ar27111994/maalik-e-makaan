@@ -21,7 +21,7 @@ import { guidePath } from "./content/guides.ts";
 import { formatDate } from "../i18n/dates.ts";
 import { DECK_PATH } from "./deck.ts";
 import { APP_STATUS, LATEST_RELEASE, RELEASES } from "./release.ts";
-import { ROADMAP } from "./roadmap.ts";
+import { ROADMAP, type RoadmapIssue } from "./roadmap.ts";
 import { copyrightLine, fontLicence, fontLicencePath } from "./licences.ts";
 
 export interface LlmsGuide {
@@ -488,6 +488,15 @@ function companySection(input: LlmsInput, locale: Locale): string[] {
   return out;
 }
 
+function roadmapIssues(issues: readonly RoadmapIssue[], locale: Locale): string[] {
+  const strings = ui(locale).roadmap;
+  return issues.map((issue) => {
+    const name = locale === "ur" ? (issue.titleUr ?? issue.title) : issue.title;
+    const state = issue.state === "closed" ? strings.done : strings.open;
+    return `- ${line(name)} (${state})`;
+  });
+}
+
 function roadmapSection(input: LlmsInput, locale: Locale): string[] {
   const strings = ui(locale).roadmap;
   const out = [
@@ -507,12 +516,11 @@ function roadmapSection(input: LlmsInput, locale: Locale): string[] {
         : ` (${strings.due.replace("{date}", formatDate(milestone.due, locale))})`;
     out.push(`### ${line(title)}${due}`, "");
     if (description !== "") out.push(line(description), "");
-    for (const issue of milestone.issues) {
-      const name = locale === "ur" ? (issue.titleUr ?? issue.title) : issue.title;
-      const state = issue.state === "closed" ? strings.done : strings.open;
-      out.push(`- ${line(name)} (${state})`);
-    }
-    out.push("");
+    out.push(...roadmapIssues(milestone.issues, locale), "");
+  }
+  if (ROADMAP.unscheduled.length > 0) {
+    out.push(`### ${line(strings.unscheduled)}`, "");
+    out.push(...roadmapIssues(ROADMAP.unscheduled, locale), "");
   }
   return out;
 }
