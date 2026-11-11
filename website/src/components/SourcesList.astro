@@ -1,7 +1,7 @@
 ---
 /** The official sources a guide or calculator relies on, with the date each was checked. */
 import { formatDate } from "../i18n/dates.ts";
-import type { Locale } from "../i18n/locales.ts";
+import { LOCALE_INFO, type Locale } from "../i18n/locales.ts";
 import { scriptAttributes } from "../i18n/script.ts";
 import { ui } from "../i18n/ui.ts";
 import type { Source } from "../lib/content/schemas.ts";
@@ -13,8 +13,6 @@ interface Props {
 
 const { locale, sources } = Astro.props;
 const strings = ui(locale).guide;
-/** The list separator of the page's language. */
-const comma = locale === "en" ? ", " : "، ";
 ---
 
 <section class="sources" aria-labelledby="sources-heading">
@@ -25,7 +23,7 @@ const comma = locale === "en" ? ", " : "، ";
         <a href={source.url} {...scriptAttributes(source.title, locale)}>
           {source.title}
         </a>
-        {comma}
+        {LOCALE_INFO[locale].comma}
         <span {...scriptAttributes(source.publisher, locale)}>{source.publisher}</span> (
         {strings.accessed}:{" "}
         <time datetime={source.accessed}>{formatDate(source.accessed, locale)}</time>)

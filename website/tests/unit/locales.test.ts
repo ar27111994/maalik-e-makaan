@@ -16,6 +16,12 @@ describe("locales", () => {
     expect(LOCALE_INFO.ur.endonym).toBe("اردو");
   });
 
+  test("each language joins parts of a sentence with its own comma", () => {
+    expect(LOCALE_INFO.en.comma).toBe(", ");
+    // The Arabic comma U+060C, which Urdu uses; never the Latin "," between Urdu words.
+    expect(LOCALE_INFO.ur.comma).toBe("، ");
+  });
+
   test("isLocale and otherLocale", () => {
     expect(isLocale("ur")).toBe(true);
     expect(isLocale("fr")).toBe(false);

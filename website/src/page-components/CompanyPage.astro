@@ -3,7 +3,7 @@ import { getEntry } from "astro:content";
 import PageHeader from "../components/PageHeader.astro";
 import { SITE } from "../config/site.ts";
 import { formatDate } from "../i18n/dates.ts";
-import type { Locale } from "../i18n/locales.ts";
+import { LOCALE_INFO, type Locale } from "../i18n/locales.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { DECK_PATH } from "../lib/deck.ts";
 import { ids } from "../lib/seo/json-ld.ts";
@@ -57,7 +57,9 @@ const latin = locale === "en" ? undefined : "en";
     <section class="company-section" aria-labelledby="company-founder">
       <h2 id="company-founder">{page.founder.heading}</h2>
       <p class="company-founder__name">
-        <strong>{page.founder.name}</strong>, {page.founder.role}
+        <strong>{page.founder.name}</strong>
+        {LOCALE_INFO[locale].comma}
+        {page.founder.role}
       </p>
       {page.founder.bio.map((paragraph) => (
         <p>{paragraph}</p>

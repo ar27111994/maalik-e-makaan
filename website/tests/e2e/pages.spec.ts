@@ -341,6 +341,28 @@ for (const site of pages) {
       expect(stray).toEqual([]);
     });
 
+    if (site.locale === "ur") {
+      test("Urdu text takes the Urdu comma", async ({ page }) => {
+        await page.goto(site.path);
+        // A Latin "," beside Urdu words, or opening a run of text (where a page joins
+        // parts, such as a name and a role), outside lang="en": Urdu writes "،".
+        const latinCommas = await page.evaluate(() => {
+          const pattern = /,\s*[؀-ۿ]|[؀-ۿ]\s*,|^\s*,/;
+          const found: string[] = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+            if (node.parentElement?.closest("noscript") !== null) continue;
+            const text = node.textContent ?? "";
+            if (!pattern.test(text)) continue;
+            const lang = node.parentElement.closest("[lang]")?.getAttribute("lang") ?? "";
+            if (!lang.startsWith("en")) found.push(text.trim());
+          }
+          return found;
+        });
+        expect(latinCommas).toEqual([]);
+      });
+    }
+
     test("every character has a glyph in the self-hosted fonts", async ({ page }) => {
       await page.goto(site.path);
       const manifest = fontManifest();
