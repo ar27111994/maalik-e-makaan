@@ -565,6 +565,20 @@ release-please titles its pull request `chore(release): release X.Y.Z`
 (`pull-request-title-pattern` in `release-please-config.json`), which the title check and
 commitlint accept; commitlint skips that commit's generated changelog body.
 
+### Store icons
+
+The launcher icons and the store icons come from the brand mark (`website/src/lib/brand.ts`) and
+the colour tokens, through `make app-icons` (`tool/design/build_app_icons.py`); CI fails when a
+committed icon is stale (`make app-icons-check`).
+
+- **Google Play:** the listing's app icon is `app/android/store/play-icon-512.png` (512 × 512,
+  32-bit PNG, a full square; Play rounds the corners itself). Upload it in Play Console, Grow
+  users, Store presence, Main store listing, App icon, and again whenever it changes.
+- **App Store:** nothing to upload. The 1024 × 1024 icon in
+  `app/ios/Runner/Assets.xcassets/AppIcon.appiconset/` ships in the build, and App Store Connect
+  takes the store icon from it. The dark and tinted versions beside it are what iOS 18 and later
+  show on a home screen set to those looks.
+
 ## Rollback and restore
 
 Migrations are forward only: a mistake is fixed by a new migration, never by editing or reverting

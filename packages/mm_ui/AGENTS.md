@@ -41,5 +41,6 @@ make test-gallery                # every gallery page in every theme, Urdu and 2
 make goldens                     # re-record (also the app's); Linux only, review every image
 make tokens tokens-check         # rebuild or check the token outputs
 make icons icons-check           # rebuild or check the icon font and constants
+make app-icons app-icons-check   # the app's launcher icons, after a change to primary, onPrimary or bg
 cd packages/mm_ui/example && flutter run -d chrome   # the gallery
 ```

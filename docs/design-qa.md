@@ -20,6 +20,7 @@ These run in CI and, where fast enough, in the git hooks.
 | Accessibility guidelines in tests | Tap targets under 48 dp (Android) or 44 pt (iOS), unlabelled targets, text contrast, in every theme variant                        | `packages/mm_ui/test/support/harness.dart`           |
 | Golden tests                      | Visual regressions in light, dark, both high-contrast themes, Urdu and large text                                                  | `make test-ui`, `make test-app`                      |
 | Icons                             | Icons that drifted from `design/icons/icons.json`                                                                                  | `make icons-check`                                   |
+| App icons                         | Launcher icons that drifted from the mark or the colour tokens, or a house that leaves the adaptive or maskable safe zone          | `make app-icons-check`                               |
 | Website checks                    | WCAG violations (axe), Lighthouse scores under 95, broken links, invalid structured data                                           | `make test-web`                                      |
 
 ## Review checklist
