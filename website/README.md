@@ -232,8 +232,10 @@ the `guides` collection is empty; that warning is expected.
   The download page links only to the files attached to that release on GitHub when the site was
   built: the Deploy workflow writes their names to `src/data/release-assets.json`, whose committed
   copy (both values `null`) means "not looked up", so a local build links every file. Every
-  section title release-please writes (the visible `changelog-sections` and "⚠ BREAKING CHANGES")
-  needs a heading in both languages in `src/i18n/ui.ts` (`releases.sections`); the unit tests
+  section title release-please can write needs a heading in both languages in `src/i18n/ui.ts`
+  (`releases.sections`): "⚠ BREAKING CHANGES" and each of the `changelog-sections`, hidden ones
+  included, since release-please lists a commit of a hidden type under its section when the commit
+  is breaking or has a `Release-As:` footer. The unit tests
   check it.
 - **Roadmap:** `/roadmap/` renders `src/data/roadmap.json`, which `tool/github/fetch_roadmap.py`
   writes from GitHub's roadmap milestones and issues before a deploy (`make roadmap` rewrites the

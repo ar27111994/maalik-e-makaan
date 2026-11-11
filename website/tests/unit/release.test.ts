@@ -30,12 +30,17 @@ const SAMPLE = `# Changelog
 
 ### ⚠ BREAKING CHANGES
 
-* **db:** rename a column ([abc1234](https://github.com/owner/repo/commit/abc1234))
+* **db:** rename a column
 
 ### Features
 
 * **app:** a new screen ([abc1234](https://github.com/owner/repo/commit/abc1234)), closes [#7](https://github.com/owner/repo/issues/7)
 * plain entry without scope
+
+
+### Refactoring
+
+* **db:** rename a column ([fed4321](https://github.com/owner/repo/commit/fed4321))
 
 ## 1.0.0 (2026-11-09)
 
@@ -60,6 +65,7 @@ describe("parseChangelog", () => {
     expect(releases[0]?.sections.map((section) => section.title)).toEqual([
       "⚠ BREAKING CHANGES",
       "Features",
+      "Refactoring",
     ]);
     expect(releases[0]?.sections[1]?.notes).toEqual([
       { scope: "app", text: "a new screen" },
@@ -99,30 +105,40 @@ function sectionHeadings(title: string) {
 
 describe("release notes section headings", () => {
   /**
-   * Every section title release-please can write: the visible sections of its
-   * config, and the one it adds for breaking changes, "⚠" and all (the
-   * conventionalcommits preset that release-please uses).
+   * Every section title release-please can write: each section of its config,
+   * hidden ones included, and the one it adds for breaking changes, "⚠" and
+   * all. The conventionalcommits preset that release-please uses keeps a commit
+   * of a hidden type when it is breaking or has a `Release-As:` footer, and
+   * lists it under its type's section.
    */
   const titles = [
     "⚠ BREAKING CHANGES",
-    ...releasePleaseConfig["changelog-sections"]
-      .filter((section) => !("hidden" in section && section.hidden))
-      .map((section) => section.section),
+    ...releasePleaseConfig["changelog-sections"].map((section) => section.section),
   ];
 
   test("every section release-please can write has a heading in both languages", () => {
-    expect(titles).toContain("Features");
+    expect(titles).toEqual(expect.arrayContaining(["Features", "Refactoring", "Tests"]));
     for (const title of titles) {
       for (const { locale, heading } of sectionHeadings(title))
-        expect(heading, `${title} (${locale})`).toMatch(/\S/);
+        expect(heading ?? "", `${title} (${locale})`).toMatch(/\S/);
     }
   });
 
-  test("a breaking-changes section is shown under a translated heading the fonts can draw", () => {
+  test("each language gives each section its own heading", () => {
+    for (const locale of LOCALES) {
+      const headings = titles.map((title) => ui(locale).releases.sections[title]);
+      expect(new Set(headings).size, locale).toBe(titles.length);
+    }
+  });
+
+  test("a breaking change of a hidden type is shown under translated headings the fonts can draw", () => {
+    // What release-please writes for `refactor(db)!: rename a column`.
     const sample = parseChangelog(SAMPLE, repo);
-    const breaking = sample[0]?.sections[0];
-    expect(breaking?.title).toBe("⚠ BREAKING CHANGES");
-    expect(breaking?.notes).toEqual([{ scope: "db", text: "rename a column" }]);
+    const sections = sample[0]?.sections ?? [];
+    expect(sections[0]?.title).toBe("⚠ BREAKING CHANGES");
+    expect(sections[0]?.notes).toEqual([{ scope: "db", text: "rename a column" }]);
+    expect(sections[2]?.title).toBe("Refactoring");
+    expect(sections[2]?.notes).toEqual([{ scope: "db", text: "rename a column" }]);
     for (const section of sample.flatMap((release) => release.sections)) {
       for (const { locale, heading } of sectionHeadings(section.title)) {
         if (heading === undefined) throw new Error(`no ${locale} heading for ${section.title}`);

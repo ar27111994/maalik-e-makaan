@@ -111,11 +111,14 @@ export interface UiStrings {
     readonly github: string;
     readonly download: string;
     /**
-     * Every section title release-please writes, in this language: the visible
-     * sections of release-please-config.json, and "⚠ BREAKING CHANGES", which it
-     * adds for a `feat!:` commit or a `BREAKING CHANGE:` footer. The heading
-     * replaces the title whole, so its "⚠", which the site's fonts do not draw,
-     * never reaches the page (tests/unit/release.test.ts checks every title).
+     * Every section title release-please can write, in this language: each
+     * section of release-please-config.json, and "⚠ BREAKING CHANGES", which it
+     * adds for a `feat!:` commit or a `BREAKING CHANGE:` footer. The hidden
+     * sections count too: release-please lists a commit of a hidden type under
+     * its section when the commit is breaking (`refactor(db)!:`) or carries a
+     * `Release-As:` footer. The heading replaces the title whole, so its "⚠",
+     * which the site's fonts do not draw, never reaches the page
+     * (tests/unit/release.test.ts checks every title).
      */
     readonly sections: Readonly<Record<string, string>>;
   };
@@ -228,6 +231,12 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
         Performance: "Faster",
         Reverts: "Undone",
         Documentation: "Documentation",
+        Build: "How the app is built",
+        Maintenance: "Maintenance",
+        "Continuous integration": "Automatic checks",
+        Refactoring: "Code reorganised",
+        Style: "Code formatting",
+        Tests: "Tests",
       },
     },
     guides: {
@@ -350,6 +359,12 @@ export const UI: Readonly<Record<Locale, UiStrings>> = {
         Performance: "رفتار میں بہتری",
         Reverts: "واپس لی گئی تبدیلیاں",
         Documentation: "دستاویزات",
+        Build: "ایپ بنانے کا طریقہ",
+        Maintenance: "دیکھ بھال",
+        "Continuous integration": "خودکار جانچ",
+        Refactoring: "کوڈ کی نئی ترتیب",
+        Style: "کوڈ لکھنے کا انداز",
+        Tests: "ٹیسٹ",
       },
     },
     guides: {

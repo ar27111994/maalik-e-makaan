@@ -13,7 +13,9 @@ human version; `.planning/PROJECT.md` (D-01 to D-15) records why.
 - Pull requests are squash-merged; `pr-title.yml` checks the title the same way.
 - release-please writes `CHANGELOG.md` and the version from these messages
   (`release-please-config.json`), so the type matters: `feat` and `fix` appear in the
-  changelog, `chore`, `ci`, `test`, `refactor`, `style` and `build` do not.
+  changelog, `chore`, `ci`, `test`, `refactor`, `style` and `build` do not, unless the commit is
+  breaking (`!`) or has a `Release-As:` footer. Each section needs a heading in both languages on
+  the website's release notes page (`website/src/i18n/ui.ts`, `releases.sections`).
 
 ## Language and text
 
