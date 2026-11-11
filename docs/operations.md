@@ -316,9 +316,10 @@ Three things on the site update themselves, so a release needs no copy edits for
   site at the tag it has just made, so they always show that release; from version 1.0.0 the
   site describes the app as available rather than in development. The download page links to the
   APKs, the unsigned iOS app, the web zip and `SHA256SUMS`, which exist only once Release's
-  `artefacts` and `ios` jobs have attached them, so Release deploys the site after both, and the
-  Deploy workflow stops rather than publish a link to a file the release lacks (Deployment,
-  below).
+  `artefacts` and `ios` jobs have attached them. So the `site` job lists the files attached when
+  it runs (`website/src/data/release-assets.json`) and the page links to those alone, and Release
+  deploys the site after both builds have finished (Deployment, below). A build that fails, even
+  on every re-run, then costs the page that build's links only, never the deploy.
 - **The roadmap.** `/roadmap/` shows the GitHub milestones and the issues labelled `roadmap`, as
   they are when the site is built: the `site` job runs `tool/github/fetch_roadmap.py
 --from-github` before the build (falling back, with a warning, to the copy in
@@ -381,24 +382,28 @@ job then:
 Its `site` job deploys the website. It does not wait for Supabase (the site never calls it), so it
 runs alongside the other two when the workflow runs by hand. The Release workflow instead calls
 Deploy twice: once with `skip-site` straight after tagging, for the backend and the web app, and
-once with `site-only` after its `artefacts` and `ios` jobs have attached the release's files,
-because the download page links to them. If either build fails, the website is not deployed and
-keeps describing the previous release; re-running the failed job (Re-run failed jobs) deploys it
-afterwards. The `site` job:
+once with `site-only` after its `artefacts` and `ios` jobs have finished, so that the download page
+links to the files they attached. If a build fails, the website still goes out, without that
+build's links; re-running the failed job (Re-run failed jobs) runs the website's deploy again
+after it, which adds them. The `site` job:
 
 1. fails at once if the `VERCEL_TOKEN` secret or the `APP_URL` variable is missing;
 2. renders the pitch deck (`npm run deck`, with Playwright's Chromium) and fetches the live
    roadmap (`tool/github/fetch_roadmap.py --from-github`); a tag from before either tool skips
    that step with a warning (see Hosting, The website on Vercel);
-3. writes `.vercel/project.json` and runs `vercel build --prod` with `SITE_URL` and
+3. writes the names of the files attached to the manifest's release, read from GitHub, to
+   `website/src/data/release-assets.json`, so the download page links to those alone: a run
+   while a release is still building, or after one of its builds failed, publishes fewer links
+   rather than dead ones. It fails, before anything is deployed, only if GitHub cannot be read
+   or the release is not published yet; run it again later;
+4. writes `.vercel/project.json` and runs `vercel build --prod` with `SITE_URL` and
    `PUBLIC_APP_URL` set (see Hosting, The website on Vercel); the build fails on a page without
    its twin in the other language or with inline code;
-4. checks that every release file the built pages link to (`/releases/download/…`) is attached to
-   its GitHub release, and stops before deploying if one is not: a run by hand or a Site refresh
-   while a release is still building, or after one of its builds failed, leaves the live site as
-   it was;
-5. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
-6. runs `tool/web/site_smoke_test.sh`, which first waits the same way for `/` to answer 200.
+5. checks, as a safety net, that every release file the built pages link to
+   (`/releases/download/…`) is attached to its GitHub release, and stops before deploying if one
+   is not, leaving the live site as it was;
+6. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
+7. runs `tool/web/site_smoke_test.sh`, which first waits the same way for `/` to answer 200.
    Then `/`, `/ur/`, `/robots.txt`, `/sitemap-index.xml` and
    `/llms.txt` must answer 200 with the right type, the canonical links, `robots.txt` and the
    sitemap must name `SITE_URL`, a missing page must answer 404, and every response must carry
@@ -521,11 +526,14 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    builds the signed Android app and the web app and attaches them (`artefacts`), builds and
    attaches the unsigned iOS app (`ios`), and calls the Deploy workflow for the tag twice: at once
    for the backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
-   attached their files (`site`), since its download page links to them. Each deployment waits
-   for a reviewer when the `production` environment requires one.
+   finished (`site`), since its download page links to the files they attached. Each deployment
+   waits for a reviewer when the `production` environment requires one.
 4. Watch both Deploy calls: each job ends with its smoke test, and the `supabase` job with a call
-   to `health`. If `artefacts` or `ios` failed, the website stays at the previous release until
-   the failed job is re-run. Then run the daily query of Monitoring and alerts.
+   to `health`. If `artefacts` or `ios` failed, the website still describes the new release, but
+   its download page has no links to that build's files; re-run the failed job (Re-run failed
+   jobs), which deploys the website again afterwards. A build that keeps failing (the optional
+   iOS one after a macOS runner change, say) leaves those links out until a release has them,
+   and holds up nothing else. Then run the daily query of Monitoring and alerts.
 
 `RELEASE_PLEASE_TOKEN` (repository secret) is needed once `main` requires "CI passed" with no
 bypass. A

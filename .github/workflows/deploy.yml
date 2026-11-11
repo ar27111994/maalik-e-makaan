@@ -2,10 +2,10 @@
 # then the Flutter web app on Vercel, and, independently of both, the website
 # (website/) on Vercel, each followed by a smoke test. The Release workflow
 # calls it twice for the tag it has just released: the backend and the web app
-# at once, and the website once the release's files are attached, because the
-# download page links to them. It also runs by hand (Actions, Deploy, Run
-# workflow), for the branch or tag chosen there. The "production" environment
-# should require a reviewer (repository settings).
+# at once, and the website once the release's builds have finished, so that the
+# download page links to the files they attached. It also runs by hand
+# (Actions, Deploy, Run workflow), for the branch or tag chosen there. The
+# "production" environment should require a reviewer (repository settings).
 #
 # When another workflow calls this one, these steps come from the caller's
 # commit (main, for site-refresh.yml) but the files they build come from
@@ -251,15 +251,36 @@ jobs:
             exit 0
           fi
           python3 tool/github/fetch_roadmap.py --from-github --repository "$GITHUB_REPOSITORY"
+      - name: Release files, as attached now
+        # The download page links only to the files listed here. Release's
+        # artefacts and ios jobs attach them minutes after the tag, and a build
+        # that fails attaches nothing until it is re-run, so the page lists
+        # what is there and the deploy never waits on a missing file. A tag
+        # from before the list links to no release file.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIST: website/src/data/release-assets.json
+        run: |
+          if [[ ! -f "$LIST" ]]; then
+            echo "::notice::This ref has no $LIST; its download page links to no release file"
+            exit 0
+          fi
+          tag="v$(jq -er '."."' .release-please-manifest.json)"
+          files="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq '[.assets[].name]')" || {
+            echo "::error::Cannot read release $tag's files; if it is not published yet, run this again once it is"
+            exit 1
+          }
+          jq -n --arg tag "$tag" --argjson files "$files" '{tag: $tag, files: $files}' > "$LIST"
+          echo "Release $tag has $(jq length <<<"$files") file(s) attached:"
+          jq -r '.[]' <<<"$files"
       - name: Build (Vercel Build Output API, with vercel.json's headers)
         # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
         run: npx --yes vercel@65.8.0 build --prod
       - name: Every release file the site links to is attached
-        # The download page links to the files that release.yml's artefacts and
-        # ios jobs attach to the release. Release deploys the site only after
-        # both; this stops any other run (by hand, or Site refresh while a
-        # release is building or after a build failed) from publishing links
-        # to files that are not there. The live site then stays as it was.
+        # A safety net: the download page links only to the files listed above,
+        # so this fails only if a page links to a release file some other way,
+        # or one was removed from the release since. The live site then stays
+        # as it was.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -283,7 +304,7 @@ jobs:
           done
           echo "${#links[@]} release file link(s) checked"
           if ((missing > 0)); then
-            echo "::error::Release's artefacts or ios job has not attached them: wait for it, or re-run it if it failed"
+            echo "::error::Link to release files only through releaseAssets() (website/src/lib/release.ts), which lists the attached ones"
             exit 1
           fi
       - name: Deploy to production

@@ -10,7 +10,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import { contentHref } from "../lib/content/links.ts";
 import { ids } from "../lib/seo/json-ld.ts";
 import { documentTitle } from "../lib/seo/meta.ts";
-import { LATEST_RELEASE, releaseAssets } from "../lib/release.ts";
+import { ATTACHED_ASSETS, LATEST_RELEASE, releaseAssets } from "../lib/release.ts";
 
 interface Props {
   locale: Locale;
@@ -23,7 +23,9 @@ const page = entry.data;
 if (Astro.site === undefined) throw new Error("Set `site` in astro.config.ts");
 const site = Astro.site;
 const release = LATEST_RELEASE;
-const files = release === undefined ? [] : releaseAssets(release, SITE.repositoryUrl);
+// Only the files attached to the release when the site was built (src/lib/release.ts).
+const files =
+  release === undefined ? [] : releaseAssets(release, SITE.repositoryUrl, ATTACHED_ASSETS);
 ---
 
 <BaseLayout
@@ -56,21 +58,25 @@ const files = release === undefined ? [] : releaseAssets(release, SITE.repositor
             {page.release.date.replace("{date}", formatDate(release.date, locale))}
           </time>
         </p>
-        <h3>{page.release.filesHeading}</h3>
-        {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
-        <ul class="release__files" role="list">
-          {files.map((file) => (
-            <li class="card release__file">
-              <a class="release__link" href={file.url}>
-                {page.release.files[file.id].label}
-              </a>
-              <p>{page.release.files[file.id].note}</p>
-              <p class="release__file-name" dir="ltr" lang="en">
-                {file.file}
-              </p>
-            </li>
-          ))}
-        </ul>
+        {files.length > 0 && (
+          <>
+            <h3>{page.release.filesHeading}</h3>
+            {/* eslint-disable-next-line astro/jsx-a11y/no-redundant-roles */}
+            <ul class="release__files" role="list">
+              {files.map((file) => (
+                <li class="card release__file">
+                  <a class="release__link" href={file.url}>
+                    {page.release.files[file.id].label}
+                  </a>
+                  <p>{page.release.files[file.id].note}</p>
+                  <p class="release__file-name" dir="ltr" lang="en">
+                    {file.file}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <h3>{page.release.notesHeading}</h3>
         {locale !== "en" && <p class="release__language">{page.release.notesLanguage}</p>}
         <ul class="release__notes" lang={locale === "en" ? undefined : "en"} dir="ltr">

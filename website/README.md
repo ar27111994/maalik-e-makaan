@@ -229,10 +229,12 @@ the `guides` collection is empty; that warning is expected.
 - **Release:** `src/lib/release.ts` reads `CHANGELOG.md` and `.release-please-manifest.json` at
   build time for the download page's release block, the release notes page (`/releases/`), the
   footer and `llms.txt`; from 1.0.0 it switches the site from "in development" to "available".
-  The download page links to the files attached to that release on GitHub; the Deploy workflow
-  checks that each one is there before it publishes the site. Every section title release-please
-  writes (the visible `changelog-sections` and "⚠ BREAKING CHANGES") needs a heading in both
-  languages in `src/i18n/ui.ts` (`releases.sections`); the unit tests check it.
+  The download page links only to the files attached to that release on GitHub when the site was
+  built: the Deploy workflow writes their names to `src/data/release-assets.json`, whose committed
+  copy (both values `null`) means "not looked up", so a local build links every file. Every
+  section title release-please writes (the visible `changelog-sections` and "⚠ BREAKING CHANGES")
+  needs a heading in both languages in `src/i18n/ui.ts` (`releases.sections`); the unit tests
+  check it.
 - **Roadmap:** `/roadmap/` renders `src/data/roadmap.json`, which `tool/github/fetch_roadmap.py`
   writes from GitHub's roadmap milestones and issues before a deploy (`make roadmap` rewrites the
   committed copy from `.github/roadmap.toml`). It leaves out issues opened outside the project,

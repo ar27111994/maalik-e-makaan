@@ -3,7 +3,7 @@
 # publishes a GitHub release. This workflow then builds the signed Android app,
 # the web app and an unsigned iOS app for that tag, attests their provenance and
 # attaches them, and deploys the tag to production (deploy.yml): the backend and
-# the web app at once, the website once the files it links to are attached.
+# the web app at once, the website once those builds have finished.
 name: Release
 
 on:
@@ -219,13 +219,14 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
   site:
-    # The download page links to the files artefacts and ios attach, so the
-    # website goes out only once both have attached them (and deploy.yml checks
-    # each link). If either fails, the live site keeps describing the previous
-    # release; re-running the failed job runs this one after it.
+    # The download page links to the files artefacts and ios attach, and only
+    # to those attached when the site is built (deploy.yml), so the website
+    # waits for both builds to finish. It goes out even if one failed, without
+    # that build's files; re-running the failed job runs this one again after
+    # it, and the page then links to them too.
     name: Deploy the website
     needs: [release-please, artefacts, ios]
-    if: needs.release-please.outputs.created == 'true'
+    if: ${{ !cancelled() && needs.release-please.outputs.created == 'true' }}
     permissions:
       contents: read
       issues: read # the roadmap page reads the roadmap's milestones and issues

@@ -1,5 +1,6 @@
 // The release data the site reads from CHANGELOG.md and the release-please
-// manifest, and the roadmap data from src/data/roadmap.json.
+// manifest, the release's attached files from src/data/release-assets.json,
+// and the roadmap data from src/data/roadmap.json.
 import { describe, expect, test } from "vitest";
 import releasePleaseConfig from "../../../release-please-config.json";
 import { charactersOf, isArabicScript, LATIN_RANGES } from "../../integrations/brand-assets.ts";
@@ -7,6 +8,8 @@ import { LOCALES } from "../../src/i18n/locales.ts";
 import { ui } from "../../src/i18n/ui.ts";
 import {
   APP_STATUS,
+  ATTACHED_ASSETS,
+  attachedAssetsSchema,
   CURRENT_VERSION,
   isReleased,
   LATEST_RELEASE,
@@ -17,6 +20,8 @@ import {
 import { localised, progress, ROADMAP, roadmapSchema } from "../../src/lib/roadmap.ts";
 
 const repo = "https://github.com/owner/repo";
+/** src/data/release-assets.json as committed: the attached files were not looked up. */
+const NOT_LOOKED_UP = { tag: null, files: null } as const;
 
 const SAMPLE = `# Changelog
 
@@ -155,7 +160,7 @@ describe("the repository's releases", () => {
   });
 
   test("names the files the Release workflow attaches", () => {
-    const files = releaseAssets({ tag: "v1.0.1" }, repo);
+    const files = releaseAssets({ tag: "v1.0.1" }, repo, NOT_LOOKED_UP);
     expect(files.map((file) => file.file)).toEqual([
       "maalik-e-makaan-v1.0.1-arm64-v8a.apk",
       "maalik-e-makaan-v1.0.1-armeabi-v7a.apk",
@@ -167,6 +172,55 @@ describe("the repository's releases", () => {
     expect(files[0]?.url).toBe(
       "https://github.com/owner/repo/releases/download/v1.0.1/maalik-e-makaan-v1.0.1-arm64-v8a.apk",
     );
+  });
+});
+
+describe("the release's files on the download page", () => {
+  test("the committed list is not looked up, so a local build links every file", () => {
+    expect(ATTACHED_ASSETS).toEqual(NOT_LOOKED_UP);
+  });
+
+  test("once looked up, only the attached files are linked, in the page's order", () => {
+    // The iOS job failed and the Android one has attached its files: no link to the IPA.
+    const attached = {
+      tag: "v1.0.1",
+      files: [
+        "SHA256SUMS",
+        "maalik-e-makaan-v1.0.1-web.zip",
+        "maalik-e-makaan-v1.0.1-x86_64.apk",
+        "maalik-e-makaan-v1.0.1-armeabi-v7a.apk",
+        "maalik-e-makaan-v1.0.1-arm64-v8a.apk",
+        "maalik-e-makaan-v1.0.1.aab",
+        "maalik-e-makaan-v1.0.1-debug-symbols.zip",
+      ],
+    };
+    expect(releaseAssets({ tag: "v1.0.1" }, repo, attached).map((file) => file.id)).toEqual([
+      "android-arm64",
+      "android-arm32",
+      "android-x86",
+      "web",
+      "checksums",
+    ]);
+  });
+
+  test("a release whose builds have attached nothing yet gets no links", () => {
+    expect(releaseAssets({ tag: "v1.0.1" }, repo, { tag: "v1.0.1", files: [] })).toEqual([]);
+  });
+
+  test("a list made for another release fails the build", () => {
+    expect(() =>
+      releaseAssets({ tag: "v1.0.1" }, repo, { tag: "v1.0.0", files: ["SHA256SUMS"] }),
+    ).toThrow(/lists the files of v1.0.0, not of v1.0.1/);
+  });
+
+  test("the list deploy.yml writes is accepted; a malformed one is refused", () => {
+    const written = { tag: "v1.2.3", files: ["SHA256SUMS", "SHA256SUMS-ios"] };
+    expect(attachedAssetsSchema.parse(written)).toEqual(written);
+    expect(attachedAssetsSchema.safeParse({ tag: "v1.2.3", files: null }).success).toBe(false);
+    expect(attachedAssetsSchema.safeParse({ tag: null, files: [] }).success).toBe(false);
+    expect(attachedAssetsSchema.safeParse({ tag: "1.2.3", files: [] }).success).toBe(false);
+    expect(attachedAssetsSchema.safeParse({ tag: "v1.2.3", files: [""] }).success).toBe(false);
+    expect(attachedAssetsSchema.safeParse({ ...written, extra: true }).success).toBe(false);
   });
 });
 

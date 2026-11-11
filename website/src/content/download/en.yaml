@@ -3,10 +3,10 @@
 # the app today, in the present tense. The release block's {version} and {date}
 # are filled in when the site is built, from CHANGELOG.md and the release-please
 # manifest (src/lib/release.ts); its files are the ones the Release workflow
-# attaches to each release (SHA256SUMS covers the Android and web files; the
-# iPhone file's sum is in SHA256SUMS-ios). Google Play and the App Store have no
-# listing yet: when they do, add their links here, and promise no dates before
-# then. British English.
+# attaches to each release, as many as were attached when the site was built
+# (SHA256SUMS covers the Android and web files; the iPhone file's sum is in
+# SHA256SUMS-ios). Google Play and the App Store have no listing yet: when they
+# do, add their links here, and promise no dates before then. British English.
 title: "Get the app"
 description: "Get Maalik-e-Makaan: the web app in any browser, installable files for Android phones, and a build for iPhone testers. Free during early access."
 heading: "Get the app"

@@ -6,13 +6,17 @@
  * describe the release being deployed; nothing is fetched.
  *
  * The release's files are another matter: the tag exists minutes before the
- * Release workflow has built and attached them. So it deploys the site only
- * after they are attached, and the Deploy workflow refuses to publish a site
- * that links to a file the release does not have (deploy.yml, site job).
+ * Release workflow has built and attached them, and a build that fails
+ * attaches nothing until it is re-run. So the Deploy workflow lists the files
+ * attached when the site is built (src/data/release-assets.json), and the
+ * download page links to those alone; a deploy is never held up by a missing
+ * file, and never publishes a link to one.
  */
+import { z } from "astro/zod";
 import changelogText from "../../../CHANGELOG.md?raw";
 import manifest from "../../../.release-please-manifest.json";
 import { SITE } from "../config/site.ts";
+import attachedAssets from "../data/release-assets.json";
 
 export interface ReleaseNote {
   /** The Conventional Commits scope ("app", "db", "web"), if the entry has one. */
@@ -110,14 +114,40 @@ export function parseChangelog(text: string, repositoryUrl: string): Release[] {
 }
 
 /**
+ * The files attached to a release on GitHub, as deploy.yml's site job found
+ * them just before the build: it writes src/data/release-assets.json. The
+ * committed copy has both null, for "not looked up": a local or CI build
+ * links every file the Release workflow attaches.
+ */
+export const attachedAssetsSchema = z.union([
+  z.strictObject({ tag: z.null(), files: z.null() }),
+  z.strictObject({
+    tag: z.string().regex(new RegExp(`^v${VERSION}$`)),
+    files: z.array(z.string().min(1)),
+  }),
+]);
+
+export type AttachedAssets = z.infer<typeof attachedAssetsSchema>;
+
+export const ATTACHED_ASSETS: AttachedAssets = attachedAssetsSchema.parse(attachedAssets);
+
+/**
  * The files the Release workflow attaches to `release`, with their download
- * addresses. Keep it in step with release.yml's file names: a link to a file
- * that is not attached stops the deploy.
+ * addresses, keeping those `attached` names when it has looked them up: the
+ * site then links only to files that exist, whether or not the release's
+ * builds have attached the rest yet. Keep it in step with release.yml's file
+ * names; deploy.yml checks every link before it publishes the site.
  */
 export function releaseAssets(
   release: Pick<Release, "tag">,
   repositoryUrl: string,
+  attached: AttachedAssets,
 ): ReleaseAsset[] {
+  if (attached.tag !== null && attached.tag !== release.tag) {
+    throw new Error(
+      `src/data/release-assets.json lists the files of ${attached.tag}, not of ${release.tag}`,
+    );
+  }
   const base = `${repositoryUrl}/releases/download/${release.tag}`;
   const file = (suffix: string) => `maalik-e-makaan-${release.tag}${suffix}`;
   const assets: Omit<ReleaseAsset, "url">[] = [
@@ -128,7 +158,9 @@ export function releaseAssets(
     { id: "web", file: file("-web.zip") },
     { id: "checksums", file: "SHA256SUMS" },
   ];
-  return assets.map((asset) => ({ ...asset, url: `${base}/${asset.file}` }));
+  return assets
+    .filter((asset) => attached.files === null || attached.files.includes(asset.file))
+    .map((asset) => ({ ...asset, url: `${base}/${asset.file}` }));
 }
 
 /** Whether `version` is 1.0.0 or later: the app is released, not in development. */
