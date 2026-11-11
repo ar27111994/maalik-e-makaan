@@ -324,7 +324,11 @@ Three things on the site update themselves, so a release needs no copy edits for
   rewriting an issue. Run `make roadmap` after editing the file, to refresh the offline copy.
   Between releases, the Site refresh workflow (`site-refresh.yml`) redeploys the site alone at the
   latest release's tag every Wednesday, and by hand (Actions, Site refresh, Run workflow); the
-  Deploy workflow can also be run by hand with "Only the website".
+  Deploy workflow can also be run by hand with "Only the website". Site refresh builds the
+  tag's content with main's `deploy.yml`, so its steps can be newer than the tag: a step whose
+  tool is newer than the tag (the pitch deck, the live roadmap) is skipped with a warning, and
+  the site keeps what the tag has (the committed `roadmap.json`, if any); the next release brings
+  the tool along.
 - **The pitch deck.** `/company/` links to a PDF of the deck in `website/deck/`, rendered by
   `npm run deck` (`website/scripts/render-deck.ts`) with the release's version and date and the
   app's current screens; the `site` job renders it before every build. Edit the slides in
@@ -369,11 +373,14 @@ Its `site` job deploys the website. It does not wait for Supabase (the site neve
 runs alongside the other two. It:
 
 1. fails at once if the `VERCEL_TOKEN` secret or the `APP_URL` variable is missing;
-2. writes `.vercel/project.json` and runs `vercel build --prod` with `SITE_URL` and
+2. renders the pitch deck (`npm run deck`, with Playwright's Chromium) and fetches the live
+   roadmap (`tool/github/fetch_roadmap.py --from-github`); a tag from before either tool skips
+   that step with a warning (see Hosting, The website on Vercel);
+3. writes `.vercel/project.json` and runs `vercel build --prod` with `SITE_URL` and
    `PUBLIC_APP_URL` set (see Hosting, The website on Vercel); the build fails on a page without
    its twin in the other language or with inline code;
-3. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
-4. runs `tool/web/site_smoke_test.sh`, which first waits the same way for `/` to answer 200.
+4. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
+5. runs `tool/web/site_smoke_test.sh`, which first waits the same way for `/` to answer 200.
    Then `/`, `/ur/`, `/robots.txt`, `/sitemap-index.xml` and
    `/llms.txt` must answer 200 with the right type, the canonical links, `robots.txt` and the
    sitemap must name `SITE_URL`, a missing page must answer 404, and every response must carry

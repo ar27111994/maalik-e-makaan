@@ -5,6 +5,11 @@
 # Deploy, Run workflow), for the branch or tag chosen there. The "production"
 # environment should require a reviewer (repository settings).
 #
+# When another workflow calls this one, these steps come from the caller's
+# commit (main, for site-refresh.yml) but the files they build come from
+# inputs.ref, which can be an older tag: a step that runs a script from the
+# checkout must cope with a tag that predates the script.
+#
 # It is called rather than started by the "release published" event: a
 # release that release-please creates with the default GITHUB_TOKEN starts no
 # other workflow, so the first release would not have deployed without a
@@ -217,17 +222,28 @@ jobs:
             > .vercel/project.json
       - name: Pitch deck (PDF, with this release's version and date)
         # Chromium renders website/deck/ into public/; the build then copies it.
+        # A tag from before the deck has no "deck" script and no link to the PDF.
         working-directory: website
         run: |
+          if ! jq -e '.scripts.deck' package.json >/dev/null; then
+            echo "::warning::This ref has no pitch deck (no \"deck\" script); the site is built without it"
+            exit 0
+          fi
           npm ci
           npx --no-install playwright install --with-deps chromium
           npm run deck
       - name: Roadmap, live from GitHub
         # The roadmap page shows the milestones and issues as they are now; if
         # GitHub cannot be read it keeps the copy in the repository and warns.
+        # A tag from before the tool keeps the roadmap committed with it, if any.
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 tool/github/fetch_roadmap.py --from-github --repository "$GITHUB_REPOSITORY"
+        run: |
+          if [[ ! -f tool/github/fetch_roadmap.py ]]; then
+            echo "::warning::This ref has no tool/github/fetch_roadmap.py; the site keeps the roadmap committed with it, if any"
+            exit 0
+          fi
+          python3 tool/github/fetch_roadmap.py --from-github --repository "$GITHUB_REPOSITORY"
       - name: Build (Vercel Build Output API, with vercel.json's headers)
         # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
         run: npx --yes vercel@65.8.0 build --prod
