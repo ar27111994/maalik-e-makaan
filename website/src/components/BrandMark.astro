@@ -1,6 +1,11 @@
 ---
 /** The site's mark: a house on a cobalt tile. Decorative; the site name beside it is the text. */
-import { MARK_HOUSE_PATH, MARK_TILE_RADIUS, MARK_VIEWBOX } from "../lib/brand.ts";
+import {
+  MARK_HOUSE_PATH,
+  MARK_STROKE_WIDTH,
+  MARK_TILE_RADIUS,
+  MARK_VIEWBOX,
+} from "../lib/brand.ts";
 ---
 
 <svg class="brand-mark" viewBox={MARK_VIEWBOX} aria-hidden="true" focusable="false">
@@ -9,7 +14,7 @@ import { MARK_HOUSE_PATH, MARK_TILE_RADIUS, MARK_VIEWBOX } from "../lib/brand.ts
     class="brand-mark__glyph"
     d={MARK_HOUSE_PATH}
     fill="none"
-    stroke-width="2"
+    stroke-width={MARK_STROKE_WIDTH}
     stroke-linecap="round"
     stroke-linejoin="round"
   ></path>

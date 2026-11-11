@@ -175,7 +175,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, web and iOS packaging, Android manifest, roadmap, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, icons, web and iOS packaging, Android manifest, roadmap, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
@@ -201,6 +201,14 @@ icons: ## Rebuild the MmIcons font subset and constants (needs npm ci)
 .PHONY: icons-check
 icons-check: ## Fail when the icon font or MmIcons are out of date with design/icons/icons.json
 	python3 tool/design/build_icons.py --check
+
+.PHONY: app-icons
+app-icons: ## Rebuild the app's launcher icons (Android, iOS, web) from the brand mark and the colour tokens
+	python3 tool/design/build_app_icons.py
+
+.PHONY: app-icons-check
+app-icons-check: ## Fail when the app's launcher icons are out of date with the brand mark or the tokens
+	python3 tool/design/build_app_icons.py --check
 
 .PHONY: test
 test: test-tools test-core test-ui test-app test-gallery test-db test-functions ## Run every fast test suite

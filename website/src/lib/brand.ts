@@ -1,10 +1,14 @@
 /**
  * The site's mark: a house drawn on a 32 × 32 tile. One definition feeds the
- * header (src/components/BrandMark.astro) and the icon files that
- * scripts/generate-og.ts writes to public/.
+ * header (src/components/BrandMark.astro), the icon files that
+ * scripts/generate-og.ts writes to public/, and the app's launcher icons,
+ * which tool/design/build_app_icons.py (`make app-icons`) reads from this file:
+ * keep these constants plain literals, and the house in straight lines (M, L,
+ * H and V commands) with round caps and joins.
  */
 export const MARK_VIEWBOX = "0 0 32 32";
 export const MARK_TILE_RADIUS = 8;
+export const MARK_STROKE_WIDTH = 2;
 export const MARK_HOUSE_PATH = "M8 15.5 16 8.5l8 7M10.5 13.5V24h11V13.5M14 24v-5h4v5";
 
 /** A standalone SVG of the mark, for favicons and app icons. */
@@ -20,7 +24,7 @@ export function markSvg({
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" width="${size}" height="${size}">`,
     `<rect width="32" height="32" rx="${MARK_TILE_RADIUS}" fill="${tile}"/>`,
-    `<path d="${MARK_HOUSE_PATH}" fill="none" stroke="${glyph}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+    `<path d="${MARK_HOUSE_PATH}" fill="none" stroke="${glyph}" stroke-width="${MARK_STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"/>`,
     "</svg>",
   ].join("");
 }
