@@ -25,6 +25,7 @@ final class PreferencesSettingsStore implements SettingsStore {
     AppSettings.groupingKey,
     AppSettings.currentPortfolioKey,
     AppSettings.pendingInvitationKey,
+    AppSettings.cameraTargetKey,
   };
 
   final SharedPreferencesWithCache _preferences;
@@ -86,6 +87,11 @@ final class AppSettings {
   /// token), kept while the invited person signs in or creates an account;
   /// the team feature reads and writes it.
   static const pendingInvitationKey = 'mm.invitation.pending';
+
+  /// The record a camera photo is being taken for, kept while the camera
+  /// is open in case Android closes the app behind it; the documents
+  /// feature reads and writes it (`CameraTargetStore`).
+  static const cameraTargetKey = 'mm.documents.camera_target';
 
   /// The chosen language; null until it is picked on first launch.
   final Locale? locale;

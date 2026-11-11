@@ -49,6 +49,19 @@ enum DocumentEntity with DbEnum {
 
   static DocumentEntity parse(String name) => parseDbEnum(values, name);
 
+  /// The table of these records (`private.document_entity_table`).
+  String get table => switch (this) {
+    property => 'properties',
+    unit => 'units',
+    tenant => 'tenants',
+    lease => 'leases',
+    payment => 'payments',
+    expense => 'expenses',
+    maintenanceRequest => 'maintenance_requests',
+    utilityBill => 'utility_bills',
+    meterReading => 'meter_readings',
+  };
+
   /// The kinds offered first for a document of this record, the likeliest
   /// first; the other kinds follow them.
   List<DocumentKind> get suggestedKinds => switch (this) {

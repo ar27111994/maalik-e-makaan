@@ -4106,6 +4106,12 @@ abstract class AppLocalizations {
   /// **'Getting the file ready'**
   String get preparingFile;
 
+  /// At the top of the add-document sheet when it opens by itself with a camera photo that Android kept after closing the app; nothing is uploaded until the landlord taps Upload.
+  ///
+  /// In en, this message translates to:
+  /// **'The app closed while the camera was open, but your photo was kept. Check it, then upload it.'**
+  String get photoRecovered;
+
   /// Label of a document's kind.
   ///
   /// In en, this message translates to:

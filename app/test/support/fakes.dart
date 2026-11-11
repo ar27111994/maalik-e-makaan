@@ -569,6 +569,14 @@ final class MemorySettingsStore implements SettingsStore {
 
   final Map<String, Object> values;
 
+  /// Thrown by every write while set, as by a device that cannot write.
+  Exception? writeFailure;
+
+  void _write() {
+    final failure = writeFailure;
+    if (failure != null) throw failure;
+  }
+
   @override
   String? getString(String key) => values[key] as String?;
 
@@ -576,14 +584,22 @@ final class MemorySettingsStore implements SettingsStore {
   bool? getBool(String key) => values[key] as bool?;
 
   @override
-  Future<void> setString(String key, String value) async => values[key] = value;
+  Future<void> setString(String key, String value) async {
+    _write();
+    values[key] = value;
+  }
 
   @override
-  Future<void> setBool(String key, {required bool value}) async =>
-      values[key] = value;
+  Future<void> setBool(String key, {required bool value}) async {
+    _write();
+    values[key] = value;
+  }
 
   @override
-  Future<void> remove(String key) async => values.remove(key);
+  Future<void> remove(String key) async {
+    _write();
+    values.remove(key);
+  }
 }
 
 /// An in-memory [KeyValueStore].
@@ -1383,6 +1399,13 @@ final class FakeDocumentRepository implements DocumentRepository {
   /// The paths of the stored files.
   final stored = <String>{};
 
+  /// Records [ownerExists] does not find (deleted, or hidden from the
+  /// member).
+  final missingOwners = <DocumentOwner>{};
+
+  /// Fails [ownerExists] when set.
+  AppFailure? ownerFailure;
+
   List<Document> documentsOf(DocumentOwner owner) => byOwner[owner] ??= [];
 
   Iterable<Document> get _all => byOwner.values.expand((list) => list);
@@ -1414,6 +1437,14 @@ final class FakeDocumentRepository implements DocumentRepository {
       items,
       next: start + items.length < all.length ? items.last.cursor : null,
     );
+  }
+
+  @override
+  Future<bool> ownerExists(String portfolioId, DocumentOwner owner) async {
+    await _call('ownerExists', [portfolioId, owner]);
+    final failure = ownerFailure;
+    if (failure != null) throw failure;
+    return !missingOwners.contains(owner);
   }
 
   @override
@@ -1562,6 +1593,14 @@ final class FakeDocumentPicker implements DocumentPicker {
     ]),
   );
 
+  /// The photo the camera kept after Android closed the app, handed over
+  /// once by [recoverLostPhoto]; null when there is none.
+  ChosenFile? lostPhoto;
+
+  /// Thrown by [recoverLostPhoto] when set: the camera's refusal before
+  /// the app closed.
+  AppFailure? lostFailure;
+
   /// What a picked JPEG is prepared into.
   Uint8List preparedJpeg = preparedPhoto;
 
@@ -1583,6 +1622,17 @@ final class FakeDocumentPicker implements DocumentPicker {
 
   @override
   Future<ChosenFile?> chooseFile() => _pick('chooseFile', file);
+
+  @override
+  Future<ChosenFile?> recoverLostPhoto() async {
+    calls.add('recoverLostPhoto');
+    final failure = lostFailure;
+    lostFailure = null;
+    if (failure != null) throw failure;
+    final photo = lostPhoto;
+    lostPhoto = null;
+    return photo;
+  }
 
   Future<PreparedFile> prepare(ChosenFile file) async {
     final type = DocumentFileType.sniff(file.bytes);

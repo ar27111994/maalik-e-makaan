@@ -53,6 +53,11 @@ abstract interface class DocumentRepository {
     PageCursor? after,
   });
 
+  /// Whether [owner] is a record of [portfolioId] that the member can see:
+  /// one a document can still be added to (`recordDocument` refuses any
+  /// other with `document_entity_not_found`).
+  Future<bool> ownerExists(String portfolioId, DocumentOwner owner);
+
   /// Stores [upload]'s file. A retry of an upload that reached the server
   /// finds the file there and succeeds.
   Future<void> uploadFile(DocumentUpload upload);
@@ -147,6 +152,19 @@ final class SupabaseDocumentRepository implements DocumentRepository {
         .limit(pageSize);
     return Paged.page(rows.map(Document.fromRow).toList(), (d) => d.cursor);
   });
+
+  @override
+  Future<bool> ownerExists(String portfolioId, DocumentOwner owner) =>
+      _guard(() async {
+        // The record's own row policy decides whether the member sees it.
+        final row = await _client
+            .from(owner.entity.table)
+            .select('id')
+            .eq('id', owner.id)
+            .eq('portfolio_id', portfolioId)
+            .maybeSingle();
+        return row != null;
+      });
 
   @override
   Future<void> uploadFile(DocumentUpload upload) => _guard(() async {

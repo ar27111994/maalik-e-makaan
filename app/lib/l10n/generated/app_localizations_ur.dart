@@ -2376,6 +2376,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get preparingFile => 'فائل تیار کی جا رہی ہے';
 
   @override
+  String get photoRecovered =>
+      'کیمرہ کھلا تھا کہ ایپ بند ہو گئی، لیکن آپ کی تصویر محفوظ رہی۔ اسے دیکھ لیں، پھر اپ لوڈ کریں۔';
+
+  @override
   String get documentKindLabel => 'قسم';
 
   @override

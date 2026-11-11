@@ -273,6 +273,49 @@ void main() {
       expect(query['limit'], ['50']);
     });
 
+    test("a record's existence is asked of its own table", () async {
+      supabase.respond = (_) async => jsonResponse([
+        {'id': _upload.owner.id},
+      ]);
+      expect(await repository.ownerExists(gulberg.id, _upload.owner), isTrue);
+      final request = supabase.request;
+      expect(request.method, 'GET');
+      expect(request.url.path, '/rest/v1/tenants');
+      final query = request.url.queryParameters;
+      expect(query['select'], 'id');
+      expect(query['id'], 'eq.${_upload.owner.id}');
+      expect(query['portfolio_id'], 'eq.${gulberg.id}');
+      // Gone, or hidden from the member by its row policy.
+      supabase.respond = (_) async => jsonResponse(<Object?>[]);
+      expect(await repository.ownerExists(gulberg.id, _upload.owner), isFalse);
+      supabase.respond = (_) async => postgrestError('XX000', status: 500);
+      await expectLater(
+        repository.ownerExists(gulberg.id, _upload.owner),
+        throwsA(isA<AppFailure>()),
+      );
+    });
+
+    test('every kind of record has its table', () async {
+      supabase.respond = (_) async => jsonResponse(<Object?>[]);
+      for (final entity in DocumentEntity.values) {
+        await repository.ownerExists(gulberg.id, (entity: entity, id: 'r1'));
+      }
+      expect(
+        [for (final request in supabase.requests) request.url.path],
+        [
+          '/rest/v1/properties',
+          '/rest/v1/units',
+          '/rest/v1/tenants',
+          '/rest/v1/leases',
+          '/rest/v1/payments',
+          '/rest/v1/expenses',
+          '/rest/v1/maintenance_requests',
+          '/rest/v1/utility_bills',
+          '/rest/v1/meter_readings',
+        ],
+      );
+    });
+
     test('the file is uploaded under its path, with its type', () async {
       supabase.respond = (_) async => jsonResponse({'Key': 'documents/$_path'});
       await repository.uploadFile(_upload);

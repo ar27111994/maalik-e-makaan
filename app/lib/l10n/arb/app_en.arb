@@ -3174,6 +3174,10 @@
   "@preparingFile": {
     "description": "Spoken while a picked file is checked and made smaller."
   },
+  "photoRecovered": "The app closed while the camera was open, but your photo was kept. Check it, then upload it.",
+  "@photoRecovered": {
+    "description": "At the top of the add-document sheet when it opens by itself with a camera photo that Android kept after closing the app; nothing is uploaded until the landlord taps Upload."
+  },
   "documentKindLabel": "Kind",
   "@documentKindLabel": {
     "description": "Label of a document's kind."

@@ -2,13 +2,17 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/documents.dart';
+import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/presentation/documents_section.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
+import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../../../support/harness.dart';
@@ -596,6 +600,211 @@ void main() {
     });
   });
 
+  group('a photo Android lost', () {
+    const recoveredNotice =
+        'The app closed while the camera was open, but your photo was kept. '
+        'Check it, then upload it.';
+    final tenantList = (
+      portfolioId: gulberg.id,
+      owner: (entity: DocumentEntity.tenant, id: aliRaza.id),
+    );
+
+    LostPhotoController lost(WidgetTester tester) =>
+        ProviderScope.containerOf(tester.element(find.byType(Scaffold).first))
+            .read(lostPhotoProvider.notifier);
+
+    String? kept(TestApp app) =>
+        app.settings.values[AppSettings.cameraTargetKey] as String?;
+
+    testWidgets('the record is remembered while the camera is open, and '
+        'forgotten when it answers', (tester) async {
+      final app = TestApp();
+      app.picker.gate.close();
+      await pumpScreen(tester, _tenant, app: app);
+      await _tap(tester, 'Add document');
+      await tester.tap(find.text('Take a photo'));
+      await tester.pump();
+      final target = CameraTarget.tryParse(kept(app)!)!;
+      expect(target.userId, testUserId);
+      expect(target.portfolioId, gulberg.id);
+      expect(target.owner, tenantList.owner);
+      // The screen the sheet is over, to come back to.
+      expect(target.location, screenPath);
+      expect(
+        DateTime.now().difference(target.openedAt),
+        lessThan(const Duration(minutes: 1)),
+      );
+      // A photo.
+      app.picker.gate.open();
+      await tester.pumpAndSettle();
+      expect(find.text('Upload'), findsOneWidget);
+      expect(kept(app), isNull);
+      // No photo.
+      await _tap(tester, 'Choose another file');
+      app.picker.photo = null;
+      await _tap(tester, 'Take a photo');
+      expect(kept(app), isNull);
+      // A refusal.
+      app.picker.failure = const RejectedFailure('picker_access_denied');
+      await _tap(tester, 'Take a photo');
+      expect(kept(app), isNull);
+      // A camera photo is never one that came back.
+      expect(find.text(recoveredNotice), findsNothing);
+    });
+
+    testWidgets('a device that cannot remember still takes photos', (
+      tester,
+    ) async {
+      final app = TestApp()..settings.writeFailure = Exception('read-only');
+      await pumpScreen(tester, _tenant, app: app);
+      await _tap(tester, 'Add document');
+      await _tap(tester, 'Take a photo');
+      expect(app.picker.calls, ['takePhoto']);
+      expect(find.text('Upload'), findsOneWidget);
+      expect(kept(app), isNull);
+      // Remembered, but not forgotten: the next camera's target replaces
+      // it.
+      app
+        ..settings.writeFailure = null
+        ..picker.gate.close();
+      await _tap(tester, 'Choose another file');
+      await tester.tap(find.text('Take a photo'));
+      await tester.pump();
+      expect(kept(app), isNotNull);
+      app.settings.writeFailure = Exception('read-only');
+      app.picker.gate.open();
+      await tester.pumpAndSettle();
+      expect(find.text('Upload'), findsOneWidget);
+      expect(kept(app), isNotNull);
+    });
+
+    testWidgets('one that came back opens in the add sheet, made ready, and '
+        'goes up only when the landlord says', (tester) async {
+      final app = await pumpScreen(tester, _tenant);
+      final photo = app.picker.photo!;
+      lost(tester).hold(tenantList, photo);
+      await tester.pumpAndSettle();
+      expect(find.text(recoveredNotice), findsOneWidget);
+      // Prepared as any camera photo: smaller, and named after its kind.
+      expect(find.text('JPEG photo'), findsOneWidget);
+      expect(
+        find.text('Made smaller from 2.4\u00a0MB to 286\u00a0KB.'),
+        findsOneWidget,
+      );
+      final preview = tester.widget<Image>(find.byType(Image));
+      expect((preview.image as MemoryImage).bytes, same(preparedPhoto));
+      expect(
+        tester.widget<TextField>(_field('Name')).controller!.text,
+        isEmpty,
+      );
+      // Taken: the camera was not opened again, and nothing went up.
+      expect(
+        ProviderScope.containerOf(tester.element(find.text('Upload')))
+            .read(lostPhotoProvider),
+        isNull,
+      );
+      expect(app.picker.calls, isEmpty);
+      expect(_called(app), isNot(contains('uploadFile')));
+      await expectAccessible(tester);
+      await _tap(tester, 'Upload');
+      expect(find.text('CNIC, front added.'), findsOneWidget);
+      expect(
+        app.documents.calls.lastWhere((c) => c.$1 == 'recordDocument').$2,
+        [
+          startsWith('${gulberg.id}/tenant/${aliRaza.id}/'),
+          'CNIC, front',
+          DocumentKind.cnicFront,
+        ],
+      );
+    });
+
+    testWidgets('choosing another file leaves the photo that came back', (
+      tester,
+    ) async {
+      final app = await pumpScreen(tester, _tenant);
+      lost(tester).hold(tenantList, app.picker.photo!);
+      await tester.pumpAndSettle();
+      await _tap(tester, 'Choose another file');
+      expect(find.text(recoveredNotice), findsNothing);
+      await _tap(tester, 'Choose a file');
+      expect(find.text(recoveredNotice), findsNothing);
+      expect(find.text('PDF'), findsOneWidget);
+    });
+
+    testWidgets('one that came back and cannot be read says why', (
+      tester,
+    ) async {
+      await pumpScreen(tester, _tenant);
+      lost(tester).hold(tenantList, ChosenFileFor.gif);
+      await tester.pumpAndSettle();
+      expect(find.text(recoveredNotice), findsOneWidget);
+      expect(
+        find.text(
+          'Only photos (JPEG, PNG, WebP or HEIC) and PDFs can be added.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Take a photo'), findsOneWidget);
+    });
+
+    testWidgets('one waiting when the record opens is opened at once', (
+      tester,
+    ) async {
+      final app = await pumpScreen(tester, () => const _OpensLater());
+      lost(tester).hold(tenantList, app.picker.photo!);
+      await tester.pumpAndSettle();
+      expect(find.text(recoveredNotice), findsNothing);
+      await _tap(tester, 'Open the record');
+      expect(find.text(recoveredNotice), findsOneWidget);
+      expect(find.text('Upload'), findsOneWidget);
+    });
+
+    testWidgets("another record's photo waits for it", (tester) async {
+      final app = await pumpScreen(tester, _tenant);
+      final leaseList = (
+        portfolioId: gulberg.id,
+        owner: (entity: DocumentEntity.lease, id: aliLease.id),
+      );
+      lost(tester).hold(leaseList, app.picker.photo!);
+      await tester.pumpAndSettle();
+      expect(find.text(recoveredNotice), findsNothing);
+      expect(
+        ProviderScope.containerOf(tester.element(find.byType(DocumentsSection)))
+            .read(lostPhotoProvider)
+            ?.list,
+        leaseList,
+      );
+    });
+
+    testWidgets('a record no longer in use lets it go', (tester) async {
+      final app = await pumpScreen(tester, _archivedUnit);
+      lost(tester).hold((
+        portfolioId: gulberg.id,
+        owner: (entity: DocumentEntity.unit, id: groundFloor.id),
+      ), app.picker.photo!);
+      await tester.pumpAndSettle();
+      expect(find.text(recoveredNotice), findsNothing);
+      expect(
+        ProviderScope.containerOf(tester.element(find.byType(DocumentsSection)))
+            .read(lostPhotoProvider),
+        isNull,
+      );
+    });
+
+    testWidgets('a viewer lets it go', (tester) async {
+      final app = await pumpScreen(tester, _tenant, app: _as(gulbergAsViewer));
+      lost(tester).hold(tenantList, app.picker.photo!);
+      await tester.pumpAndSettle();
+      expect(find.text(recoveredNotice), findsNothing);
+      expect(find.text('Upload'), findsNothing);
+      expect(
+        ProviderScope.containerOf(tester.element(find.byType(DocumentsSection)))
+            .read(lostPhotoProvider),
+        isNull,
+      );
+    });
+  });
+
   group('checks', () {
     testWidgets('links are made again while the sheet is open', (tester) async {
       final app = await pumpScreen(tester, _tenant);
@@ -835,6 +1044,31 @@ void main() {
     expect(tester.takeException(), isNull);
     await expectAccessible(tester);
   });
+}
+
+/// A screen that shows Ali Raza's documents only once asked to: the
+/// record opening after a photo came back for it.
+class _OpensLater extends StatefulWidget {
+  const new();
+
+  @override
+  State<_OpensLater> createState() => _OpensLaterState();
+}
+
+class _OpensLaterState extends State<_OpensLater> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) => _open
+      ? _tenant()
+      : Scaffold(
+          body: Center(
+            child: TextButton(
+              onPressed: () => setState(() => _open = true),
+              child: const Text('Open the record'),
+            ),
+          ),
+        );
 }
 
 /// Files the fake picker can answer with.
