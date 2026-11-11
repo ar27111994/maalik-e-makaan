@@ -1,9 +1,11 @@
 # Production deployment: the Supabase backend (migrations, then Edge Functions),
 # then the Flutter web app on Vercel, and, independently of both, the website
 # (website/) on Vercel, each followed by a smoke test. The Release workflow
-# calls it for the tag it has just released; it also runs by hand (Actions,
-# Deploy, Run workflow), for the branch or tag chosen there. The "production"
-# environment should require a reviewer (repository settings).
+# calls it twice for the tag it has just released: the backend and the web app
+# at once, and the website once the release's files are attached, because the
+# download page links to them. It also runs by hand (Actions, Deploy, Run
+# workflow), for the branch or tag chosen there. The "production" environment
+# should require a reviewer (repository settings).
 #
 # When another workflow calls this one, these steps come from the caller's
 # commit (main, for site-refresh.yml) but the files they build come from
@@ -25,6 +27,10 @@ on:
         required: true
       site-only:
         description: Deploy only the website (site-refresh.yml, for a fresh roadmap)
+        type: boolean
+        default: false
+      skip-site:
+        description: Deploy everything but the website (release.yml deploys it later)
         type: boolean
         default: false
     secrets:
@@ -171,6 +177,7 @@ jobs:
   site:
     # The marketing site does not use Supabase, so it does not wait for it.
     name: Website (Vercel)
+    if: ${{ !inputs.skip-site }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -247,6 +254,38 @@ jobs:
       - name: Build (Vercel Build Output API, with vercel.json's headers)
         # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
         run: npx --yes vercel@65.8.0 build --prod
+      - name: Every release file the site links to is attached
+        # The download page links to the files that release.yml's artefacts and
+        # ios jobs attach to the release. Release deploys the site only after
+        # both; this stops any other run (by hand, or Site refresh while a
+        # release is building or after a build failed) from publishing links
+        # to files that are not there. The live site then stays as it was.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -t links < <(grep -rhoE --include='*.html' \
+            'https://github\.com/[^/"]+/[^/"]+/releases/download/[^/"]+/[^"#?<>[:space:]]+' \
+            .vercel/output/static | sort -u)
+          missing=0 release=""
+          for link in "${links[@]}"; do
+            IFS=/ read -r owner repository _ _ tag file <<<"${link#https://github.com/}"
+            if [[ "$owner/$repository/$tag" != "$release" ]]; then
+              release="$owner/$repository/$tag"
+              names="$(gh api "repos/$owner/$repository/releases/tags/$tag" \
+                --jq '.assets[].name')" || names=""
+            fi
+            if grep -qxF -- "$file" <<<"$names"; then
+              echo "Attached: $link"
+            else
+              echo "::error::$file is not attached to release $tag ($link)"
+              missing=$((missing + 1))
+            fi
+          done
+          echo "${#links[@]} release file link(s) checked"
+          if ((missing > 0)); then
+            echo "::error::Release's artefacts or ios job has not attached them: wait for it, or re-run it if it failed"
+            exit 1
+          fi
       - name: Deploy to production
         # Uploads .vercel/output as is; nothing is built on Vercel.
         env:

@@ -2,7 +2,8 @@
 # conventional commits on main; merging it tags vX.Y.Z, writes CHANGELOG.md and
 # publishes a GitHub release. This workflow then builds the signed Android app,
 # the web app and an unsigned iOS app for that tag, attests their provenance and
-# attaches them, and deploys the tag to production (deploy.yml).
+# attaches them, and deploys the tag to production (deploy.yml): the backend and
+# the web app at once, the website once the files it links to are attached.
 name: Release
 
 on:
@@ -201,16 +202,36 @@ jobs:
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
 
   deploy:
+    # The backend and the web app, without waiting for the builds above.
     name: Deploy the release
     needs: release-please
     if: needs.release-please.outputs.created == 'true'
     permissions:
       contents: read
-      issues: read
+      issues: read # asked for by deploy.yml's site job, skipped here
     uses: ./.github/workflows/deploy.yml
     with:
       ref: ${{ needs.release-please.outputs.tag }}
+      skip-site: true
     secrets:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  site:
+    # The download page links to the files artefacts and ios attach, so the
+    # website goes out only once both have attached them (and deploy.yml checks
+    # each link). If either fails, the live site keeps describing the previous
+    # release; re-running the failed job runs this one after it.
+    name: Deploy the website
+    needs: [release-please, artefacts, ios]
+    if: needs.release-please.outputs.created == 'true'
+    permissions:
+      contents: read
+      issues: read # the roadmap page reads the roadmap's milestones and issues
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ needs.release-please.outputs.tag }}
+      site-only: true
+    secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

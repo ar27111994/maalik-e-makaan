@@ -314,7 +314,11 @@ Three things on the site update themselves, so a release needs no copy edits for
   release notes page (`/releases/`) and `llms.txt` are built from `CHANGELOG.md` and
   `.release-please-manifest.json` (`website/src/lib/release.ts`). The Release workflow deploys the
   site at the tag it has just made, so they always show that release; from version 1.0.0 the
-  site describes the app as available rather than in development.
+  site describes the app as available rather than in development. The download page links to the
+  APKs, the unsigned iOS app, the web zip and `SHA256SUMS`, which exist only once Release's
+  `artefacts` and `ios` jobs have attached them, so Release deploys the site after both, and the
+  Deploy workflow stops rather than publish a link to a file the release lacks (Deployment,
+  below).
 - **The roadmap.** `/roadmap/` shows the GitHub milestones and the issues labelled `roadmap`, as
   they are when the site is built: the `site` job runs `tool/github/fetch_roadmap.py
 --from-github` before the build (falling back, with a warning, to the copy in
@@ -370,7 +374,12 @@ job then:
    `/.well-known/assetlinks.json` answers 200 as JSON, delegating to the Android package.
 
 Its `site` job deploys the website. It does not wait for Supabase (the site never calls it), so it
-runs alongside the other two. It:
+runs alongside the other two when the workflow runs by hand. The Release workflow instead calls
+Deploy twice: once with `skip-site` straight after tagging, for the backend and the web app, and
+once with `site-only` after its `artefacts` and `ios` jobs have attached the release's files,
+because the download page links to them. If either build fails, the website is not deployed and
+keeps describing the previous release; re-running the failed job (Re-run failed jobs) deploys it
+afterwards. The `site` job:
 
 1. fails at once if the `VERCEL_TOKEN` secret or the `APP_URL` variable is missing;
 2. renders the pitch deck (`npm run deck`, with Playwright's Chromium) and fetches the live
@@ -379,8 +388,12 @@ runs alongside the other two. It:
 3. writes `.vercel/project.json` and runs `vercel build --prod` with `SITE_URL` and
    `PUBLIC_APP_URL` set (see Hosting, The website on Vercel); the build fails on a page without
    its twin in the other language or with inline code;
-4. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
-5. runs `tool/web/site_smoke_test.sh`, which first waits the same way for `/` to answer 200.
+4. checks that every release file the built pages link to (`/releases/download/…`) is attached to
+   its GitHub release, and stops before deploying if one is not: a run by hand or a Site refresh
+   while a release is still building, or after one of its builds failed, leaves the live site as
+   it was;
+5. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
+6. runs `tool/web/site_smoke_test.sh`, which first waits the same way for `/` to answer 200.
    Then `/`, `/ur/`, `/robots.txt`, `/sitemap-index.xml` and
    `/llms.txt` must answer 200 with the right type, the canonical links, `robots.txt` and the
    sitemap must name `SITE_URL`, a missing page must answer 404, and every response must carry
@@ -501,10 +514,13 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    one. (v1.0.0 was pinned with `"release-as"`, removed straight after it was tagged.)
 3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
    builds the signed Android app and the web app and attaches them (`artefacts`), builds and
-   attaches the unsigned iOS app (`ios`), and calls the Deploy workflow for the tag (`deploy`),
-   which waits for a reviewer when the `production` environment requires one.
-4. Watch the Deploy run: each job ends with its smoke test, and the `supabase` job with a call to
-   `health`. Then run the daily query of Monitoring and alerts.
+   attaches the unsigned iOS app (`ios`), and calls the Deploy workflow for the tag twice: at once
+   for the backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
+   attached their files (`site`), since its download page links to them. Each deployment waits
+   for a reviewer when the `production` environment requires one.
+4. Watch both Deploy calls: each job ends with its smoke test, and the `supabase` job with a call
+   to `health`. If `artefacts` or `ios` failed, the website stays at the previous release until
+   the failed job is re-run. Then run the daily query of Monitoring and alerts.
 
 `RELEASE_PLEASE_TOKEN` (repository secret) is needed once `main` requires "CI passed" with no
 bypass. A
@@ -512,7 +528,7 @@ release pull request that release-please opens or updates with the default `GITH
 no workflow by itself: GitHub either holds its runs until someone clicks "Approve workflows to
 run" or starts none, so the required check waits on every update. With the token, CI, Security
 and the title check run on it as on any pull request; nothing else starts (no workflow listens to
-tags or releases), and Deploy still runs once, called by Release. Without the token, the
+tags or releases), and Deploy still runs only when Release calls it. Without the token, the
 repository setting "Allow GitHub Actions to create and approve pull requests" (Settings, Actions,
 General) must be on, or release-please cannot open its pull request.
 

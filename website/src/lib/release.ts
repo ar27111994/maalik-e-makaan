@@ -4,6 +4,11 @@
  * and `CHANGELOG.md` (every version, its date and its notes). The Release
  * workflow deploys the site at the tag it has just made, so these always
  * describe the release being deployed; nothing is fetched.
+ *
+ * The release's files are another matter: the tag exists minutes before the
+ * Release workflow has built and attached them. So it deploys the site only
+ * after they are attached, and the Deploy workflow refuses to publish a site
+ * that links to a file the release does not have (deploy.yml, site job).
  */
 import changelogText from "../../../CHANGELOG.md?raw";
 import manifest from "../../../.release-please-manifest.json";
@@ -104,7 +109,11 @@ export function parseChangelog(text: string, repositoryUrl: string): Release[] {
   }));
 }
 
-/** The files the Release workflow attaches to `release`, with their download addresses. */
+/**
+ * The files the Release workflow attaches to `release`, with their download
+ * addresses. Keep it in step with release.yml's file names: a link to a file
+ * that is not attached stops the deploy.
+ */
 export function releaseAssets(
   release: Pick<Release, "tag">,
   repositoryUrl: string,

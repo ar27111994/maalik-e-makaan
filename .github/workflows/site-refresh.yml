@@ -4,8 +4,10 @@
 # the web app are not touched. The site's content comes from the release's tag,
 # so nothing unreleased on main reaches the pages; the steps that build and
 # deploy it come from main's deploy.yml, and skip, with a warning, a tool that
-# is newer than the tag (the pitch deck, the live roadmap). Like every
-# deployment it waits for the production environment's reviewer, if one is set.
+# is newer than the tag (the pitch deck, the live roadmap). The deploy stops if
+# a release file the download page links to is not attached (a release still
+# building, or one whose build failed). Like every deployment it waits for the
+# production environment's reviewer, if one is set.
 name: Site refresh
 
 on:
