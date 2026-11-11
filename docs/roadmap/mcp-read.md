@@ -151,7 +151,8 @@ Nothing a tool returns is sent to analytics.
 
 ## Done when
 
-- [ ] The Claude and ChatGPT apps both connect with OAuth and PKCE and call all four tools.
+- [ ] Two AI assistant apps from different vendors connect with OAuth and PKCE and call all four
+      tools.
 - [ ] A request without a token gets a 401 that points to the metadata.
 - [ ] pgTAP proves isolation between portfolios, revocation and expiry.
 - [ ] A `client_id` token cannot write through any RPC or table, and every tool runs read-only.
