@@ -22,7 +22,7 @@ Widget _tenantPage(BuildContext context, Say say, {double? height}) {
       actions: [
         IconButton(
           onPressed: tapped,
-          tooltip: say('Edit tenant', 'کرایہ دار میں ترمیم کریں'),
+          tooltip: say('Edit tenant', 'کرایہ دار ایڈٹ کریں'),
           icon: const Icon(MmIcons.edit),
         ),
       ],
@@ -36,7 +36,7 @@ Widget _tenantPage(BuildContext context, Say say, {double? height}) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(say('Rent due', 'واجب الادا کرایہ'), style: muted),
+                  Text(say('Rent due', 'کرائے کی تاریخ'), style: muted),
                   moneyText(context, 45000, large: true),
                   Text(
                     say('House 12, Gulberg, Lahore', 'مکان 12، گلبرگ، لاہور'),
@@ -49,7 +49,7 @@ Widget _tenantPage(BuildContext context, Say say, {double? height}) {
           Text(
             say(
               'October rent was due on the 5th.',
-              'اکتوبر کا کرایہ 5 تاریخ کو واجب الادا تھا۔',
+              'اکتوبر کا کرایہ 5 تاریخ کو دینا تھا۔',
             ),
             style: text.bodyLarge,
           ),

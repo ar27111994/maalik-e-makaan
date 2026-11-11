@@ -39,7 +39,7 @@ class _InputsPageState extends State<InputsPage> {
         child: SpecimenList(
           children: [
             Specimen(
-              title: context.tr('Text fields', 'متن کے خانے'),
+              title: context.tr('Text fields', 'لکھنے کے خانے'),
               component: 'MmTextField',
               note: context.tr(
                 'Labelled above, helper or error below in words.',
@@ -74,7 +74,7 @@ class _InputsPageState extends State<InputsPage> {
                   ),
                   initialValue: context.tr(
                     'Rent is due by the 5th of every month.',
-                    'کرایہ ہر ماہ کی 5 تاریخ تک واجب ہے۔',
+                    'کرایہ ہر مہینے کی 5 تاریخ تک دینا ہے۔',
                   ),
                   maxLength: 120,
                   maxLines: 3,
@@ -93,7 +93,7 @@ class _InputsPageState extends State<InputsPage> {
                   enabled: false,
                   helper: context.tr(
                     'Disabled: set by the lease.',
-                    'غیر فعال: کرایہ نامے سے طے شدہ۔',
+                    'بند: کرایہ نامے میں طے ہے۔',
                   ),
                 ),
                 MmTextField(
@@ -102,13 +102,13 @@ class _InputsPageState extends State<InputsPage> {
                   readOnly: true,
                   helper: context.tr(
                     'Read only: select and copy.',
-                    'صرف پڑھنے کے لیے: منتخب کر کے کاپی کریں۔',
+                    'صرف پڑھنے کے لیے: چن کر کاپی کریں۔',
                   ),
                 ),
                 Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: MmButton(
-                    label: context.tr('Check the form', 'فارم جانچیں'),
+                    label: context.tr('Check the form', 'فارم چیک کریں'),
                     variant: MmButtonVariant.secondary,
                     icon: MmIcons.check,
                     onPressed: () => _form.currentState!.validate(),
@@ -159,22 +159,22 @@ class _InputsPageState extends State<InputsPage> {
                   onChanged: (value) => setState(() => _rent = value),
                 ),
                 MmMoneyField(
-                  label: context.tr('Security deposit', 'زر ضمانت'),
+                  label: context.tr('Security deposit', 'سیکیورٹی'),
                   value: _deposit,
                   optional: true,
                   onChanged: (value) => setState(() => _deposit = value),
                 ),
                 MmMoneyField(
-                  label: context.tr('Amount received', 'وصول شدہ رقم'),
+                  label: context.tr('Amount received', 'کتنی رقم ملی'),
                   value: const Money.fromRupees(150000),
                   errorText: context.tr(
                     'More than the Rs 1,25,000 due. Check the amount.',
-                    'واجب 1,25,000 روپے سے زیادہ ہے۔ رقم جانچیں۔',
+                    'یہ باقی 1,25,000 روپے سے زیادہ ہے۔ رقم چیک کریں۔',
                   ),
                   onChanged: (_) {},
                 ),
                 MmMoneyField(
-                  label: context.tr('Late fee', 'تاخیر کی فیس'),
+                  label: context.tr('Late fee', 'لیٹ فیس'),
                   value: const Money.fromRupees(2500),
                   enabled: false,
                   onChanged: (_) {},
@@ -238,7 +238,7 @@ class _InputsPageState extends State<InputsPage> {
                   onChanged: (value) => setState(() => _phone = value),
                 ),
                 MmPhoneField(
-                  label: context.tr('Emergency contact', 'ہنگامی رابطہ'),
+                  label: context.tr('Emergency contact', 'ایمرجنسی رابطہ'),
                   value: _newPhone,
                   optional: true,
                   helper: context.tr(

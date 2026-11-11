@@ -20,7 +20,7 @@ Widget _page() => Scaffold(
     padding: const EdgeInsets.all(MmSpace.s4),
     child: Builder(
       builder: (context) => MmDateField(
-        label: sayIn(context)('Agreement signed', 'معاہدے پر دستخط'),
+        label: sayIn(context)('Agreement signed', 'کرایہ نامے پر دستخط'),
         value: CalendarDate(2026, 9, 30),
         firstDate: CalendarDate(2020, 1, 1),
         lastDate: CalendarDate(2030, 12, 31),

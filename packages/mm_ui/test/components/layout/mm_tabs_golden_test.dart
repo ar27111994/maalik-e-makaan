@@ -23,7 +23,7 @@ void main() {
     // into view.
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     await tester.pumpAndSettle();
-    expect(focusedAt(tester, say('Dues', 'واجبات', variant)), isTrue);
+    expect(focusedAt(tester, say('Dues', 'چارجز', variant)), isTrue);
     await expectAccessible(tester);
     await expectGolden('mm_tabs', variant);
   });
@@ -39,7 +39,7 @@ Widget _tabs() => GoldenPage(
         initialIndex: 1,
         child: MmTabs(
           labels: [
-            say('Dues', 'واجبات'),
+            say('Dues', 'چارجز'),
             say('Payments', 'ادائیگیاں'),
             say('Notes', 'نوٹس'),
           ],
@@ -51,7 +51,7 @@ Widget _tabs() => GoldenPage(
           labels: [
             say('Overview', 'خلاصہ'),
             say('Payments', 'ادائیگیاں'),
-            say('Documents', 'دستاویزات'),
+            say('Documents', 'کاغذات'),
             say('Utilities', 'یوٹیلیٹیز'),
             say('History', 'تاریخچہ'),
           ],

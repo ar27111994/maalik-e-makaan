@@ -25,7 +25,7 @@ Widget scoreGaugeGolden() => GoldenPage(
           ),
           caption: say(
             'Based on 12 months of payments',
-            '12 ماہ کی ادائیگیوں کی بنیاد پر',
+            '12 مہینوں کی ادائیگیوں کی بنیاد پر',
           ),
         ),
         Wrap(

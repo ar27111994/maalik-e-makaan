@@ -23,7 +23,7 @@ Widget receiptGolden() => GoldenPage(
           issuer: 'Ayesha Khan',
           numberLabel: say('Receipt no.', 'رسید نمبر'),
           receiptNumber: 'R-2026-0142',
-          amountLabel: say('Amount received', 'وصول شدہ رقم'),
+          amountLabel: say('Amount received', 'کتنی رقم ملی'),
           amount: const Money.fromRupees(45000),
           rows: [
             MmReceiptRow(label: say('Tenant', 'کرایہ دار'), value: 'Ali Raza'),
@@ -52,7 +52,7 @@ Widget receiptGolden() => GoldenPage(
           issuer: 'Ayesha Khan',
           numberLabel: say('Receipt no.', 'رسید نمبر'),
           receiptNumber: 'R-2026-0139',
-          amountLabel: say('Amount received', 'وصول شدہ رقم'),
+          amountLabel: say('Amount received', 'کتنی رقم ملی'),
           amount: const Money.fromRupees(125000),
           rows: [
             MmReceiptRow(
@@ -61,12 +61,12 @@ Widget receiptGolden() => GoldenPage(
             ),
             MmReceiptRow(
               label: say('Period', 'مدت'),
-              value: say('Jul to Sep 2026', 'جولائی تا ستمبر 2026'),
+              value: say('Jul to Sep 2026', 'جولائی سے ستمبر 2026 تک'),
             ),
           ],
           voidedLabel: say(
             'VOID: cancelled on 12 Oct 2026',
-            'کالعدم: 12 اکتوبر 2026 کو منسوخ',
+            'کینسل: 12 اکتوبر 2026 کو کینسل ہوئی',
           ),
         ),
       ],

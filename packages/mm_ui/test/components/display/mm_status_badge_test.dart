@@ -133,7 +133,7 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        const MmStatusBadge(status: MmStatus.overdue, label: '12 دن سے بقایا'),
+        const MmStatusBadge(status: MmStatus.overdue, label: '12 دن لیٹ'),
         variant: MmVariant.urdu,
       );
       final badge = tester.getRect(find.byType(MmStatusBadge));
@@ -222,7 +222,7 @@ void main() {
             as RenderParagraph;
 
     const amount = '1,25,000\u00A0روپے';
-    const label = '$amount واجب';
+    const label = '$amount باقی';
 
     Widget badge(double width) => Align(
       alignment: AlignmentDirectional.centerStart,
@@ -266,8 +266,8 @@ void main() {
     ) async {
       // The app's money badges: an icon, then an amount and words.
       const labels = [
-        '115,000\u00A0روپے تاخیر شدہ، سب سے پرانا 33 دن',
-        'واجب 150,000\u00A0روپے',
+        '115,000\u00A0روپے لیٹ، سب سے پرانی رقم 33 دن سے',
+        'باقی 150,000\u00A0روپے',
         'کریڈٹ 15,000\u00A0روپے',
       ];
       for (final label in labels) {

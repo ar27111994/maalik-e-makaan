@@ -56,7 +56,7 @@ void main() {
       // An Urdu label that wraps, as the Urdu UI shows one, and a short
       // Latin one: the icon ends on the start (right) edge.
       for (final label in [
-        '5 اکتوبر سے 12 دن واجب الادا، کرایہ ابھی تک ادا نہیں ہوا',
+        '5 اکتوبر سے 12 دن لیٹ، کرایہ ابھی تک ادا نہیں ہوا',
         'CNIC',
       ]) {
         await pumpThemed(

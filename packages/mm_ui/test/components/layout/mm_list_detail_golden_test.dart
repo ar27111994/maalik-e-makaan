@@ -49,7 +49,7 @@ Widget _ayesha(BuildContext context, Say say) {
         style: text.bodyMedium!.copyWith(color: context.mm.colors.inkMuted),
       ),
       const SizedBox(height: MmSpace.s3),
-      Text(say('Rent due', 'واجب الادا کرایہ'), style: text.bodyMedium),
+      Text(say('Rent due', 'کرائے کی تاریخ'), style: text.bodyMedium),
       moneyText(context, 45000, large: true),
     ],
   );
@@ -73,7 +73,7 @@ Widget _window(Size size, {required bool selected}) => WindowPanel(
               child: Text(
                 say(
                   'Choose a tenant to see their ledger.',
-                  'کھاتہ دیکھنے کے لیے کرایہ دار منتخب کریں۔',
+                  'کھاتہ دیکھنے کے لیے کرایہ دار چنیں۔',
                 ),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge!

@@ -29,7 +29,7 @@ class _DisplayPageState extends State<DisplayPage> {
       body: SpecimenList(
         children: [
           Specimen(
-            title: context.tr('Status badges', 'حالت کے نشان'),
+            title: context.tr('Status badges', 'اسٹیٹس کے نشان'),
             component: 'MmStatusBadge',
             note: context.tr(
               'Colour, icon and word together, never colour alone.',
@@ -53,13 +53,13 @@ class _DisplayPageState extends State<DisplayPage> {
             ],
           ),
           Specimen(
-            title: context.tr('Amounts', 'رقوم'),
+            title: context.tr('Amounts', 'رقمیں'),
             component: 'MmAmount',
             note: context.tr(
               'Tabular figures in the chosen grouping. Switch lakh and crore '
                   'grouping in the display settings.',
-              'منتخب گروپنگ میں یکساں ہندسے۔ لاکھ اور کروڑ کی گروپنگ ڈسپلے '
-                  'کی ترتیبات میں بدلیں۔',
+              'چنی ہوئی گروپنگ میں ایک جیسے ہندسے۔ لاکھ اور کروڑ کی گروپنگ '
+                  'ڈسپلے کی سیٹنگز میں بدلیں۔',
             ),
             children: [
               StateLabel(
@@ -114,7 +114,7 @@ class _DisplayPageState extends State<DisplayPage> {
                   children: [
                     MmAmount(
                       amount: const Money.fromRupees(-15000),
-                      creditLabel: context.tr('advance', 'پیشگی'),
+                      creditLabel: context.tr('advance', 'کریڈٹ'),
                     ),
                     const MmAmount(amount: Money.fromRupees(-5000)),
                   ],
@@ -123,7 +123,7 @@ class _DisplayPageState extends State<DisplayPage> {
             ],
           ),
           Specimen(
-            title: context.tr('Stat tiles', 'اعداد کے خانے'),
+            title: context.tr('Stat tiles', 'نمبروں کے خانے'),
             component: 'MmStatTile',
             children: [
               MmStatTile(
@@ -134,13 +134,13 @@ class _DisplayPageState extends State<DisplayPage> {
                 ),
                 caption: Wrap(
                   children: [
-                    Text(context.tr('of ', 'کل ')),
+                    Text(context.tr('of ', 'اکتوبر کے ')),
                     const MmAmount(
                       amount: Money.fromRupees(320000),
                       tone: MmAmountTone.muted,
                       size: MmAmountSize.small,
                     ),
-                    Text(context.tr(' due', ' واجب میں سے')),
+                    Text(context.tr(' due', ' میں سے')),
                   ],
                 ),
                 trend: MmTrend(
@@ -157,7 +157,7 @@ class _DisplayPageState extends State<DisplayPage> {
                 ),
               ),
               MmStatTile(
-                label: context.tr('Overdue', 'واجب الادا'),
+                label: context.tr('Overdue', 'لیٹ'),
                 value: const MmAmount(
                   amount: Money.fromRupees(125000),
                   size: MmAmountSize.large,
@@ -188,8 +188,8 @@ class _DisplayPageState extends State<DisplayPage> {
             note: context.tr(
               'A card groups one thing; rows inside it pad themselves. '
                   'Tap a row to select it.',
-              'کارڈ ایک چیز کو یکجا کرتا ہے؛ اس کی قطاریں اپنا فاصلہ خود '
-                  'رکھتی ہیں۔ منتخب کرنے کے لیے قطار دبائیں۔',
+              'کارڈ ایک چیز کو ایک جگہ رکھتا ہے۔ اس کی قطاریں اپنا فاصلہ خود '
+                  'رکھتی ہیں۔ چننے کے لیے قطار دبائیں۔',
             ),
             children: [
               MmCard(
@@ -220,7 +220,7 @@ class _DisplayPageState extends State<DisplayPage> {
               StateLabel(
                 label: context.tr(
                   'Static row, with a status',
-                  'ساکن قطار، حالت کے ساتھ',
+                  'ساکن قطار، اسٹیٹس کے ساتھ',
                 ),
                 child: MmCard(
                   padding: EdgeInsets.zero,
@@ -296,8 +296,8 @@ class _DisplayPageState extends State<DisplayPage> {
                   semanticLabel: context.tr(
                     'Ayesha Khan, House 12, owes 125000 rupees, overdue 12 '
                         'days',
-                    'عائشہ خان، مکان 12، 125000 روپے واجب، 12 دن سے واجب '
-                        'الادا',
+                    'عائشہ خان، مکان 12، 125000 روپے باقی، 12 دن سے '
+                        'لیٹ',
                   ),
                   onTap: () => showPressed(context, ayesha.name.of(context)),
                   child: Column(
@@ -329,7 +329,7 @@ class _DisplayPageState extends State<DisplayPage> {
               StateLabel(
                 label: context.tr(
                   'Avatars: initials, either script, an icon, sizes',
-                  'اوتار: ابتدائی حروف، دونوں رسم الخط، آئیکن، سائز',
+                  'اوتار: نام کے پہلے حروف، دونوں رسم الخط، آئیکن، سائز',
                 ),
                 child: const SpecimenWrap(
                   children: [
@@ -350,13 +350,13 @@ class _DisplayPageState extends State<DisplayPage> {
               StateLabel(
                 label: context.tr(
                   'With a line of context and an action',
-                  'وضاحتی سطر اور ایک عمل کے ساتھ',
+                  'وضاحت کی سطر اور ایک بٹن کے ساتھ',
                 ),
                 child: MmSectionHeader(
                   title: context.tr('Tenants', 'کرایہ دار'),
                   subtitle: context.tr(
                     '3 overdue this month',
-                    'اس ماہ 3 واجب الادا',
+                    'اس مہینے 3 لیٹ',
                   ),
                   actionLabel: context.tr('See all', 'سب دیکھیں'),
                   onAction: () =>
@@ -366,17 +366,17 @@ class _DisplayPageState extends State<DisplayPage> {
               StateLabel(
                 label: context.tr(
                   'A property’s name in English; the action disabled',
-                  'انگریزی میں جائیداد کا نام؛ عمل غیر فعال',
+                  'انگریزی میں جائیداد کا نام، بٹن بند',
                 ),
                 child: MmSectionHeader(
                   title: 'Gulberg Heights',
-                  actionLabel: context.tr('Edit', 'ترمیم'),
+                  actionLabel: context.tr('Edit', 'ایڈٹ کریں'),
                 ),
               ),
               StateLabel(
                 label: context.tr('Title only', 'صرف عنوان'),
                 child: MmSectionHeader(
-                  title: context.tr('October dues', 'اکتوبر کے واجبات'),
+                  title: context.tr('October dues', 'اکتوبر کے چارجز'),
                 ),
               ),
             ],
@@ -417,7 +417,7 @@ class _DisplayPageState extends State<DisplayPage> {
                       ),
                     ),
                     MmDetailRow(
-                      label: context.tr('Lease start', 'کرایہ نامے کا آغاز'),
+                      label: context.tr('Lease start', 'کرایہ نامہ شروع'),
                       value: dateLabel(context, CalendarDate(2026, 7, 1)),
                       userData: false,
                     ),
@@ -426,17 +426,17 @@ class _DisplayPageState extends State<DisplayPage> {
                       amount: ayesha.rent,
                     ),
                     MmDetailRow.amount(
-                      label: context.tr('Late fee', 'تاخیر کی فیس'),
+                      label: context.tr('Late fee', 'لیٹ فیس'),
                       amount: const Money.fromRupees(2500),
                     ),
                     MmDetailRow.amount(
-                      label: context.tr('Advance held', 'جمع شدہ پیشگی'),
+                      label: context.tr('Advance held', 'جمع کریڈٹ'),
                       amount: const Money.fromRupees(-10000),
-                      creditLabel: context.tr('advance', 'پیشگی'),
+                      creditLabel: context.tr('advance', 'کریڈٹ'),
                     ),
                     const Divider(),
                     MmDetailRow.amount(
-                      label: context.tr('Total due', 'کل واجب'),
+                      label: context.tr('Total due', 'کل باقی رقم'),
                       amount: const Money.fromRupees(117500),
                       emphasized: true,
                     ),
@@ -446,7 +446,7 @@ class _DisplayPageState extends State<DisplayPage> {
               StateLabel(
                 label: context.tr(
                   "A passage of the landlord's words",
-                  'مالک کے اپنے الفاظ کا اقتباس',
+                  'مالک کے اپنے الفاظ کا حصہ',
                 ),
                 child: MmCard(
                   child: Column(
@@ -457,7 +457,7 @@ class _DisplayPageState extends State<DisplayPage> {
                         value: context.tr(
                           'Paid in cash before the deadline. Asked for the '
                               'receipt on WhatsApp.',
-                          'مقررہ تاریخ سے پہلے نقد ادا کیا۔ رسید WhatsApp پر '
+                          'تاریخ سے پہلے نقد ادا کیا۔ رسید WhatsApp پر '
                               'مانگی۔',
                         ),
                       ),

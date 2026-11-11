@@ -46,12 +46,12 @@ class _ActionsPageState extends State<ActionsPage> {
             note: context.tr(
               'One filled button per screen for the main action; the others '
                   'outlined or text.',
-              'ہر اسکرین پر مرکزی کام کے لیے ایک بھرا ہوا بٹن؛ باقی خاکہ یا '
-                  'متن والے۔',
+              'ہر اسکرین پر مرکزی کام کے لیے ایک بھرا ہوا بٹن۔ دوسرے بٹن صرف '
+                  'کنارے یا الفاظ والے۔',
             ),
             children: [
               StateLabel(
-                label: context.tr('Variants', 'اقسام'),
+                label: context.tr('Variants', 'قسمیں'),
                 child: SpecimenWrap(
                   children: [
                     MmButton(
@@ -80,7 +80,7 @@ class _ActionsPageState extends State<ActionsPage> {
                 ),
               ),
               StateLabel(
-                label: context.tr('Disabled', 'غیر فعال'),
+                label: context.tr('Disabled', 'بند'),
                 child: SpecimenWrap(
                   children: [
                     MmButton(label: record, onPressed: null),
@@ -132,7 +132,7 @@ class _ActionsPageState extends State<ActionsPage> {
                       Text(
                         context.tr(
                           "Ayesha Khan's rent is 12 days late.",
-                          'عائشہ خان کا کرایہ 12 دن سے واجب ہے۔',
+                          'عائشہ خان کا کرایہ 12 دن سے لیٹ ہے۔',
                         ),
                       ),
                       MmButton(
@@ -171,7 +171,7 @@ class _ActionsPageState extends State<ActionsPage> {
                       context,
                       MmIcons.edit,
                       'Edit tenant',
-                      'کرایہ دار میں ترمیم',
+                      'کرایہ دار ایڈٹ کریں',
                     ),
                     _icon(
                       context,
@@ -198,7 +198,7 @@ class _ActionsPageState extends State<ActionsPage> {
                 ),
               ),
               StateLabel(
-                label: context.tr('Toggle and disabled', 'ٹوگل اور غیر فعال'),
+                label: context.tr('Toggle and disabled', 'ٹوگل اور بند'),
                 child: SpecimenWrap(
                   children: [
                     MmIconButton(
@@ -214,7 +214,10 @@ class _ActionsPageState extends State<ActionsPage> {
                     ),
                     MmIconButton(
                       icon: MmIcons.delete,
-                      tooltip: context.tr('Delete payment', 'ادائیگی حذف کریں'),
+                      tooltip: context.tr(
+                        'Delete payment',
+                        'ادائیگی ڈیلیٹ کریں',
+                      ),
                       onPressed: null,
                     ),
                     MmIconButton(
@@ -258,11 +261,11 @@ class _ActionsPageState extends State<ActionsPage> {
             ],
           ),
           Specimen(
-            title: context.tr('Segmented controls', 'منقسم انتخاب'),
+            title: context.tr('Segmented controls', 'حصوں والے بٹن'),
             component: 'MmSegmentedControl',
             note: context.tr(
               'Two to five options, one always chosen.',
-              'دو سے پانچ اختیارات، ایک ہمیشہ منتخب۔',
+              'دو سے پانچ آپشن، ایک ہمیشہ چنا ہوا۔',
             ),
             children: [
               StateLabel(
@@ -320,7 +323,7 @@ class _ActionsPageState extends State<ActionsPage> {
                 ),
               ),
               StateLabel(
-                label: context.tr('Disabled', 'غیر فعال'),
+                label: context.tr('Disabled', 'بند'),
                 child: MmSegmentedControl<_Period>(
                   semanticLabel: context.tr('Report period', 'رپورٹ کی مدت'),
                   segments: [

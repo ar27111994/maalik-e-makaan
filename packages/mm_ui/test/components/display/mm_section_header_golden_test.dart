@@ -25,19 +25,19 @@ void main() {
             onAction: tapped,
           ),
           MmSectionHeader(
-            title: say('October dues', 'اکتوبر کے واجبات'),
+            title: say('October dues', 'اکتوبر کے چارجز'),
             subtitle: say(
               '3 overdue, Rs 1,25,000 outstanding',
-              '3 بقایا، 1,25,000 روپے باقی',
+              '3 لیٹ، 1,25,000 روپے باقی',
             ),
             actionLabel: say('Remind', 'یاد دلائیں'),
             onAction: tapped,
           ),
           MmSectionHeader(
             title: 'Gulberg Heights, Block C, Main Boulevard',
-            actionLabel: say('Edit', 'ترمیم'),
+            actionLabel: say('Edit', 'ایڈٹ کریں'),
           ),
-          MmSectionHeader(title: say('Documents', 'دستاویزات')),
+          MmSectionHeader(title: say('Documents', 'کاغذات')),
         ],
       ),
     ),

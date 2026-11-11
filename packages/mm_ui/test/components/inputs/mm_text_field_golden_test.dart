@@ -28,7 +28,7 @@ void main() {
             label: tr("Father's name", 'والد کا نام'),
             optional: true,
             autofocus: true,
-            hint: tr('For example, Muhammad Raza', 'مثلاً محمد رضا'),
+            hint: tr('For example, Muhammad Raza', 'جیسے محمد رضا'),
           ),
           MmTextField(
             label: tr('Unit', 'یونٹ'),
@@ -61,7 +61,7 @@ void main() {
           MmTextField(
             label: tr('Reminder', 'یاد دہانی'),
             initialValue: tr(
-              'اکتوبر کا کرایہ 45,000 روپے واجب ہے۔',
+              'اکتوبر کا کرایہ 45,000 روپے دینا ہے۔',
               'October rent of Rs 45,000 is due.',
             ),
             minLines: 2,

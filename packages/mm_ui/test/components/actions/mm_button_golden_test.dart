@@ -97,7 +97,7 @@ Widget _link() => GoldenPage(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          say('Rent is 12 days late', 'کرایہ 12 دن سے واجب ہے'),
+          say('Rent is 12 days late', 'کرایہ 12 دن سے لیٹ ہے'),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         Text(say('Flat 3, Gulberg Heights', 'فلیٹ 3، گلبرگ ہائٹس')),
@@ -122,19 +122,19 @@ Widget _removal() => GoldenPage(
     spacing: MmSpace.s3,
     children: [
       MmButton(
-        label: say('Change role', 'کردار بدلیں'),
+        label: say('Change role', 'رول بدلیں'),
         expand: true,
         onPressed: tapped,
       ),
       MmButton(
-        label: say('Remove member', 'رکن ہٹائیں'),
+        label: say('Remove member', 'ممبر ہٹائیں'),
         icon: MmIcons.delete,
         variant: MmButtonVariant.destructiveOutlined,
         expand: true,
         onPressed: tapped,
       ),
       MmButton(
-        label: say('Remove member', 'رکن ہٹائیں'),
+        label: say('Remove member', 'ممبر ہٹائیں'),
         variant: MmButtonVariant.destructiveOutlined,
         onPressed: null,
       ),

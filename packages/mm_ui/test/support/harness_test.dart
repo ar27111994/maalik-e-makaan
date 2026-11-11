@@ -247,12 +247,12 @@ void main() {
         tester,
         GoldenPage(
           width: 200,
-          (context, say) => Text(say('Rent due', 'کرایہ واجب')),
+          (context, say) => Text(say('Rent due', 'کرائے کی تاریخ')),
         ),
         variant: variant,
       );
       final urdu = variant == MmVariant.urdu;
-      expect(find.text(urdu ? 'کرایہ واجب' : 'Rent due'), findsOneWidget);
+      expect(find.text(urdu ? 'کرائے کی تاریخ' : 'Rent due'), findsOneWidget);
       expect(tester.getSize(find.byType(GoldenPage)).width, 200);
     }, variants: const [MmVariant.light, MmVariant.urdu]);
   });

@@ -24,7 +24,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
 
   @override
   Widget build(BuildContext context) {
-    final renew = context.tr('Renew lease', 'کرایہ نامہ تجدید کریں');
+    final renew = context.tr('Renew lease', 'کرایہ نامہ رینیو کریں');
     return FamilyPage(
       family: GalleryFamily.feedback,
       body: SpecimenList(
@@ -34,14 +34,14 @@ class _FeedbackPageState extends State<FeedbackPage> {
             component: 'MmBanner',
             note: context.tr(
               'An inline notice: info, success, warning or error.',
-              'صفحے کے اندر اطلاع: معلومات، کامیابی، انتباہ یا غلطی۔',
+              'صفحے کے اندر اطلاع: معلومات، کامیابی، وارننگ یا غلطی۔',
             ),
             children: [
               MmBanner(
                 tone: MmBannerTone.info,
                 message: context.tr(
                   'Reminders go out on the 1st of every month.',
-                  'یاد دہانیاں ہر ماہ کی پہلی تاریخ کو جاتی ہیں۔',
+                  'یاد دہانیاں ہر مہینے کی پہلی تاریخ کو جاتی ہیں۔',
                 ),
               ),
               MmBanner(
@@ -49,7 +49,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 title: context.tr('Payment recorded', 'ادائیگی درج ہو گئی'),
                 message: context.tr(
                   'Ali Raza’s November rent is marked paid.',
-                  'علی رضا کا نومبر کا کرایہ ادا شدہ درج ہو گیا۔',
+                  'علی رضا کے نومبر کے کرائے پر ادا شدہ کا نشان لگ گیا۔',
                 ),
               ),
               if (_bannerShown)
@@ -71,7 +71,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                   child: MmButton(
                     label: context.tr(
                       'Show the warning again',
-                      'انتباہ دوبارہ دکھائیں',
+                      'وارننگ دوبارہ دکھائیں',
                     ),
                     variant: MmButtonVariant.tertiary,
                     icon: MmIcons.undo,
@@ -87,7 +87,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 message: context.tr(
                   '3 SMS reminders failed. Check the phone numbers and try '
                       'again.',
-                  '3 ایس ایم ایس یاد دہانیاں ناکام ہوئیں۔ فون نمبر جانچ کر '
+                  '3 ایس ایم ایس یاد دہانیاں نہیں جا سکیں۔ فون نمبر چیک کر کے '
                       'دوبارہ کوشش کریں۔',
                 ),
                 actionLabel: context.tr('Try again', 'دوبارہ کوشش کریں'),
@@ -143,7 +143,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         context,
                         message: context.tr(
                           'Payment deleted',
-                          'ادائیگی حذف ہو گئی',
+                          'ادائیگی ڈیلیٹ ہو گئی',
                         ),
                         actionLabel: context.tr('Undo', 'واپس کریں'),
                         onAction: () => showPressed(
@@ -176,7 +176,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
             component: 'showMmConfirmDialog',
             note: context.tr(
               'Destructive actions confirm first; the answer shows below.',
-              'مٹانے والے کام پہلے تصدیق مانگتے ہیں؛ جواب نیچے نظر آتا ہے۔',
+              'مٹانے والے کام پہلے تصدیق مانگتے ہیں۔ جواب نیچے نظر آتا ہے۔',
             ),
             children: [
               SpecimenWrap(
@@ -194,7 +194,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         message: context.tr(
                           'She will get an SMS about Rs 1,25,000 overdue since '
                               '5 October.',
-                          'انہیں 5 اکتوبر سے واجب الادا 1,25,000 روپے کے بارے '
+                          'انہیں 5 اکتوبر سے لیٹ 1,25,000 روپے کے بارے '
                               'میں ایس ایم ایس ملے گا۔',
                         ),
                         confirmLabel: context.tr(
@@ -217,7 +217,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                         message: context.tr(
                           'His ledger and receipts stay in your records; he '
                               'will no longer appear in Raza Manzil.',
-                          'ان کا کھاتہ اور رسیدیں آپ کے ریکارڈ میں رہیں گی؛ وہ '
+                          'ان کا کھاتہ اور رسیدیں آپ کے ریکارڈ میں رہیں گی۔ وہ '
                               'رضا منزل میں مزید نظر نہیں آئیں گے۔',
                         ),
                         confirmLabel: context.tr(
@@ -229,24 +229,24 @@ class _FeedbackPageState extends State<FeedbackPage> {
                     ),
                   ),
                   MmButton(
-                    label: context.tr('Delete property', 'جائیداد حذف کریں'),
+                    label: context.tr('Delete property', 'جائیداد ڈیلیٹ کریں'),
                     variant: MmButtonVariant.destructive,
                     onPressed: () => _confirm(
                       showMmConfirmDialog(
                         context,
                         title: context.tr(
                           'Delete Raza Manzil?',
-                          'رضا منزل حذف کریں؟',
+                          'رضا منزل ڈیلیٹ کریں؟',
                         ),
                         message: context.tr(
                           'Its 4 units, 2 leases and 38 payments are deleted '
                               'for good.',
                           'اس کے 4 یونٹس، 2 کرایہ نامے اور 38 ادائیگیاں ہمیشہ '
-                              'کے لیے حذف ہو جائیں گی۔',
+                              'کے لیے ڈیلیٹ ہو جائیں گی۔',
                         ),
                         confirmLabel: context.tr(
                           'Delete property',
-                          'جائیداد حذف کریں',
+                          'جائیداد ڈیلیٹ کریں',
                         ),
                         destructive: true,
                         typedConfirmation: context.tr(
@@ -277,13 +277,13 @@ class _FeedbackPageState extends State<FeedbackPage> {
               Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: MmButton(
-                  label: context.tr('Show dues', 'واجبات دکھائیں'),
+                  label: context.tr('Show dues', 'چارجز دکھائیں'),
                   variant: MmButtonVariant.secondary,
                   icon: MmIcons.ledger,
                   onPressed: () => unawaited(
                     showMmSheet<void>(
                       context,
-                      title: context.tr('October dues', 'اکتوبر کے واجبات'),
+                      title: context.tr('October dues', 'اکتوبر کے چارجز'),
                       builder: (context) => Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -309,7 +309,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 title: context.tr('No tenants yet', 'ابھی کوئی کرایہ دار نہیں'),
                 message: context.tr(
                   'Add your first tenant to start tracking rent.',
-                  'کرایہ کا حساب رکھنے کے لیے پہلا کرایہ دار شامل کریں۔',
+                  'کرائے کا حساب رکھنے کے لیے پہلا کرایہ دار شامل کریں۔',
                 ),
                 actionLabel: context.tr('Add tenant', 'کرایہ دار شامل کریں'),
                 onAction: () => showPressed(
@@ -328,7 +328,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
                 message: context.tr(
                   'Your ledger could not be loaded. Check your connection and '
                       'try again.',
-                  'آپ کا کھاتہ لوڈ نہیں ہو سکا۔ انٹرنیٹ کنکشن جانچ کر دوبارہ '
+                  'آپ کا کھاتہ لوڈ نہیں ہو سکا۔ اپنا انٹرنیٹ چیک کر کے دوبارہ '
                       'کوشش کریں۔',
                 ),
                 onRetry: () =>
@@ -370,7 +370,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
       setState(
         () => _lastAnswer = confirmed
             ? context.tr('Answer: confirmed.', 'جواب: تصدیق کی گئی۔')
-            : context.tr('Answer: cancelled.', 'جواب: منسوخ کیا گیا۔'),
+            : context.tr('Answer: cancelled.', 'جواب: رہنے دیا۔'),
       );
     }),
   );

@@ -75,7 +75,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
             ),
             children: [
               MmDateField(
-                label: context.tr('Lease start', 'کرایہ نامے کا آغاز'),
+                label: context.tr('Lease start', 'کرایہ نامہ شروع'),
                 value: _leaseStart,
                 firstDate: first,
                 lastDate: last,
@@ -83,14 +83,14 @@ class _ChoicesPageState extends State<ChoicesPage> {
                 onChanged: (value) => setState(() => _leaseStart = value),
               ),
               MmDateField(
-                label: context.tr('Lease end', 'کرایہ نامے کا اختتام'),
+                label: context.tr('Lease end', 'کرایہ نامہ ختم'),
                 value: _moveOut,
                 firstDate: first,
                 lastDate: last,
                 optional: true,
                 helper: context.tr(
                   'Optional: clear it for a rolling lease.',
-                  'اختیاری: غیر معینہ مدت کے لیے خالی کریں۔',
+                  'ضروری نہیں: اگر مدت طے نہیں تو خالی چھوڑیں۔',
                 ),
                 onChanged: (value) => setState(() => _moveOut = value),
               ),
@@ -109,7 +109,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
                 onChanged: (value) => setState(() => _paidOn = value),
               ),
               MmDateField(
-                label: context.tr('Agreement signed', 'معاہدے پر دستخط'),
+                label: context.tr('Agreement signed', 'کرایہ نامے پر دستخط'),
                 value: CalendarDate(2026, 6, 24),
                 firstDate: first,
                 lastDate: last,
@@ -123,7 +123,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
             component: 'MmSelectField',
             note: context.tr(
               'Opens a sheet of options.',
-              'اختیارات کی شیٹ کھولتا ہے۔',
+              'آپشن کی شیٹ کھولتا ہے۔',
             ),
             children: [
               MmSelectField<int>(
@@ -163,7 +163,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
                 value: 0,
                 helper: context.tr(
                   'Disabled: only one landlord on this account.',
-                  'غیر فعال: اس اکاؤنٹ میں ایک ہی مالک مکان ہے۔',
+                  'بند: اس اکاؤنٹ میں ایک ہی مالک مکان ہے۔',
                 ),
                 onChanged: null,
               ),
@@ -174,7 +174,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
             component: 'MmSwitchTile',
             note: context.tr(
               'A setting that takes effect at once.',
-              'ایسی ترتیب جو فوراً لاگو ہو۔',
+              'ایسی سیٹنگ جو فوراً لاگو ہو۔',
             ),
             children: [
               MmSwitchTile(
@@ -184,21 +184,21 @@ class _ChoicesPageState extends State<ChoicesPage> {
                 ),
                 description: context.tr(
                   'By SMS, 3 days before the due date.',
-                  'ایس ایم ایس سے، مقررہ تاریخ سے 3 دن پہلے۔',
+                  'ایس ایم ایس سے، تاریخ سے 3 دن پہلے۔',
                 ),
                 value: _reminders,
                 onChanged: (value) => setState(() => _reminders = value),
               ),
               MmSwitchTile(
-                label: context.tr('Add late fees', 'تاخیر کی فیس لگائیں'),
+                label: context.tr('Add late fees', 'لیٹ فیس لگائیں'),
                 value: _lateFees,
                 onChanged: (value) => setState(() => _lateFees = value),
               ),
               MmSwitchTile(
-                label: context.tr('Sync with bank', 'بینک سے ہم آہنگ کریں'),
+                label: context.tr('Sync with bank', 'بینک سے ملائیں'),
                 description: context.tr(
                   'Disabled: link a bank account first.',
-                  'غیر فعال: پہلے بینک اکاؤنٹ جوڑیں۔',
+                  'بند: پہلے بینک اکاؤنٹ جوڑیں۔',
                 ),
                 value: false,
                 onChanged: null,
@@ -269,19 +269,22 @@ class _ChoicesPageState extends State<ChoicesPage> {
                 onChanged: (value) => setState(() => _method = value),
               ),
               MmRadioGroup<_Method>(
-                label: context.tr('Deposit returned by', 'زر ضمانت کی واپسی'),
+                label: context.tr(
+                  'Deposit returned by',
+                  'سیکیورٹی کیسے واپس کی',
+                ),
                 options: _methods(context),
                 value: _unanswered,
                 errorText: _unanswered == null
                     ? context.tr(
                         'Choose how the deposit was returned.',
-                        'چنیں کہ زر ضمانت کیسے واپس ہوا۔',
+                        'چنیں کہ سیکیورٹی کیسے واپس ہوئی۔',
                       )
                     : null,
                 onChanged: (value) => setState(() => _unanswered = value),
               ),
               MmRadioGroup<_Method>(
-                label: context.tr('Advance paid by', 'پیشگی ادائیگی'),
+                label: context.tr('Advance paid by', 'ایڈوانس کرایہ کیسے دیا'),
                 options: _methods(context),
                 value: _Method.cash,
                 onChanged: null,
@@ -317,12 +320,12 @@ class _ChoicesPageState extends State<ChoicesPage> {
                   options: [
                     MmFilterOption(
                       value: MmStatus.overdue,
-                      label: context.tr('Overdue', 'واجب الادا'),
+                      label: context.tr('Overdue', 'لیٹ'),
                       count: 3,
                     ),
                     MmFilterOption(
                       value: MmStatus.dueSoon,
-                      label: context.tr('Due soon', 'جلد واجب'),
+                      label: context.tr('Due soon', 'تاریخ قریب'),
                       count: 2,
                     ),
                     MmFilterOption(
@@ -332,7 +335,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
                     ),
                     MmFilterOption(
                       value: MmStatus.credit,
-                      label: context.tr('Advance', 'پیشگی'),
+                      label: context.tr('Advance', 'کریڈٹ'),
                     ),
                   ],
                   selected: _filters,
@@ -362,7 +365,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
                 ),
               ),
               StateLabel(
-                label: context.tr('Disabled', 'غیر فعال'),
+                label: context.tr('Disabled', 'بند'),
                 child: MmFilterChips<String>(
                   options: [
                     MmFilterOption(
@@ -387,7 +390,7 @@ class _ChoicesPageState extends State<ChoicesPage> {
               MmStepperField(
                 label: context.tr(
                   'Months of advance rent',
-                  'پیشگی کرائے کے مہینے',
+                  'ایڈوانس کرائے کے مہینے',
                 ),
                 value: _advance,
                 min: 0,
@@ -396,18 +399,18 @@ class _ChoicesPageState extends State<ChoicesPage> {
                 increaseLabel: context.tr('More months', 'زیادہ مہینے'),
                 format: (value) => context.tr(
                   value == 1 ? '1 month' : '$value months',
-                  '$value ماہ',
+                  '$value مہینے',
                 ),
                 helper: context.tr(
                   'Up to 12 months.',
-                  'زیادہ سے زیادہ 12 ماہ۔',
+                  'زیادہ سے زیادہ 12 مہینے۔',
                 ),
                 onChanged: (value) => setState(() => _advance = value),
               ),
               MmStepperField(
                 label: context.tr(
                   'Remind before due date',
-                  'مقررہ تاریخ سے پہلے یاد دہانی',
+                  'تاریخ سے پہلے یاد دہانی',
                 ),
                 value: _reminderDays,
                 min: 1,

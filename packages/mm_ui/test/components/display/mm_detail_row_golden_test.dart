@@ -49,13 +49,13 @@ void main() {
                 ),
               ),
               MmDetailRow.amount(
-                label: say('Advance', 'ایڈوانس'),
+                label: say('Advance', 'کریڈٹ'),
                 amount: const Money.fromRupees(-5000),
                 creditLabel: say('credit', 'جمع'),
               ),
               const Divider(),
               MmDetailRow.amount(
-                label: say('Total due', 'کل واجب الادا'),
+                label: say('Total due', 'کل باقی رقم'),
                 amount: const Money.fromRupees(125000),
                 emphasized: true,
               ),

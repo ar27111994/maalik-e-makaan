@@ -24,7 +24,8 @@ Widget proportionBarGolden() => GoldenPage(
           MmProportionBar(
             semanticSummary: say(
               '60% paid, 16% due this week, 12% overdue, 12% not yet due',
-              '60% ادا، 16% اس ہفتے واجب، 12% بقایا، 12% ابھی واجب نہیں',
+              '60% ادا، 16% کی اس ہفتے تاریخ، 12% لیٹ، '
+                  '12% کی ابھی تاریخ نہیں آئی',
             ),
             segments: [
               MmProportionSegment(
@@ -33,17 +34,17 @@ Widget proportionBarGolden() => GoldenPage(
                 tone: MmSegmentTone.paid,
               ),
               MmProportionSegment(
-                label: say('Due this week', 'اس ہفتے واجب'),
+                label: say('Due this week', 'اس ہفتے تاریخ'),
                 value: const Money.fromRupees(20000),
                 tone: MmSegmentTone.dueSoon,
               ),
               MmProportionSegment(
-                label: say('Overdue', 'بقایا'),
+                label: say('Overdue', 'لیٹ'),
                 value: const Money.fromRupees(15000),
                 tone: MmSegmentTone.overdue,
               ),
               MmProportionSegment(
-                label: say('Not yet due', 'ابھی واجب نہیں'),
+                label: say('Not yet due', 'ابھی تاریخ نہیں آئی'),
                 value: const Money.fromRupees(15000),
                 tone: MmSegmentTone.neutral,
               ),
@@ -52,7 +53,7 @@ Widget proportionBarGolden() => GoldenPage(
         ),
         chartCard(
           context,
-          heading: say('Overdue by age', 'بقایا، مدت کے لحاظ سے'),
+          heading: say('Overdue by age', 'لیٹ، کتنے دن سے'),
           MmProportionBar(
             semanticSummary: say(
               '45% 1 to 30 days late, 30% 31 to 60 days, 25% over 60 days',
@@ -60,12 +61,12 @@ Widget proportionBarGolden() => GoldenPage(
             ),
             segments: [
               MmProportionSegment(
-                label: say('1–30 days', '1 تا 30 دن'),
+                label: say('1–30 days', '1 سے 30 دن'),
                 value: const Money.fromRupees(45000),
                 tone: MmSegmentTone.dueSoon,
               ),
               MmProportionSegment(
-                label: say('31–60 days', '31 تا 60 دن'),
+                label: say('31–60 days', '31 سے 60 دن'),
                 value: const Money.fromRupees(30000),
                 tone: MmSegmentTone.overdue,
               ),
@@ -83,16 +84,16 @@ Widget proportionBarGolden() => GoldenPage(
           MmProportionBar(
             semanticSummary: say(
               '83% security deposits, 17% advance rent',
-              '83% زرِ ضمانت، 17% پیشگی کرایہ',
+              '83% سیکیورٹی ڈپازٹ، 17% ایڈوانس کرایہ',
             ),
             segments: [
               MmProportionSegment(
-                label: say('Security deposits', 'زرِ ضمانت'),
+                label: say('Security deposits', 'سیکیورٹی ڈپازٹ'),
                 value: const Money.fromRupees(150000),
                 tone: MmSegmentTone.primary,
               ),
               MmProportionSegment(
-                label: say('Advance rent', 'پیشگی کرایہ'),
+                label: say('Advance rent', 'ایڈوانس کرایہ'),
                 value: const Money.fromRupees(30000),
                 tone: MmSegmentTone.credit,
               ),
@@ -105,11 +106,11 @@ Widget proportionBarGolden() => GoldenPage(
           MmProportionBar(
             semanticSummary: say(
               'No rent due yet',
-              'ابھی کوئی کرایہ واجب نہیں',
+              'ابھی کسی کرائے کی تاریخ نہیں آئی',
             ),
             emptyLabel: say(
               'No rent is due yet for December.',
-              'دسمبر کا کرایہ ابھی واجب نہیں ہوا۔',
+              'دسمبر کے کرائے کی ابھی تاریخ نہیں آئی۔',
             ),
             segments: [
               MmProportionSegment(
@@ -131,32 +132,32 @@ Widget proportionBarAgingGolden() => GoldenPage(
   (context, say) => lakhGrouping(
     chartCard(
       context,
-      heading: say('Owed by age', 'واجبات، مدت کے لحاظ سے'),
+      heading: say('Owed by age', 'باقی رقم، کتنی پرانی'),
       MmProportionBar(
         semanticSummary: say(
           '20% not yet due, 30% 1 to 30 days late, 20% 31 to 60 days, '
               '15% 61 to 90 days, 15% over 90 days',
-          '20% ابھی واجب نہیں، 30% ایک سے 30 دن، 20% 31 سے 60 دن، '
+          '20% کی ابھی تاریخ نہیں آئی، 30% ایک سے 30 دن، 20% 31 سے 60 دن، '
               '15% 61 سے 90 دن، 15% 90 دن سے زیادہ',
         ),
         segments: [
           MmProportionSegment(
-            label: say('Not yet due', 'ابھی واجب نہیں'),
+            label: say('Not yet due', 'ابھی تاریخ نہیں آئی'),
             value: const Money.fromRupees(40000),
             tone: MmSegmentTone.neutral,
           ),
           MmProportionSegment(
-            label: say('1–30 days', '1 تا 30 دن'),
+            label: say('1–30 days', '1 سے 30 دن'),
             value: const Money.fromRupees(60000),
             tone: MmSegmentTone.dueSoon,
           ),
           MmProportionSegment(
-            label: say('31–60 days', '31 تا 60 دن'),
+            label: say('31–60 days', '31 سے 60 دن'),
             value: const Money.fromRupees(40000),
             tone: MmSegmentTone.overdue,
           ),
           MmProportionSegment(
-            label: say('61–90 days', '61 تا 90 دن'),
+            label: say('61–90 days', '61 سے 90 دن'),
             value: const Money.fromRupees(30000),
             tone: MmSegmentTone.overdueOlder,
           ),

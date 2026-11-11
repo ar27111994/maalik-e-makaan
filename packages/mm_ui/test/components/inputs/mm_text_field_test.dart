@@ -80,8 +80,8 @@ void main() {
         ),
         variant: MmVariant.urdu,
       );
-      expect(find.text('نام  لازمی', findRichText: true), findsOneWidget);
-      expect(find.text('پتہ  اختیاری', findRichText: true), findsOneWidget);
+      expect(find.text('نام  ضروری', findRichText: true), findsOneWidget);
+      expect(find.text('پتہ  ضروری نہیں', findRichText: true), findsOneWidget);
     });
 
     test('a field is not both required and optional', () {
@@ -722,7 +722,7 @@ void main() {
       await pumpThemed(tester, const MmTextField(label: 'Reminder'));
       // Empty, the field runs in the UI's direction.
       expect(editable(tester).textDirection, TextDirection.ltr);
-      await tester.enterText(find.byType(TextField), 'کرایہ واجب ہے۔');
+      await tester.enterText(find.byType(TextField), 'کرایہ دینا ہے۔');
       await tester.pump();
       expect(editable(tester).textDirection, TextDirection.rtl);
       expect(editable(tester).textAlign, TextAlign.left);
@@ -741,8 +741,8 @@ void main() {
         'every line at the start of its own direction', (tester) async {
       // An Urdu reminder in the English UI, as the reminder sheet takes it.
       const message =
-          'اکتوبر کا کرایہ 45,000 روپے واجب ہے۔ براہِ کرم جمعہ تک ادا کر دیں، '
-          'ورنہ تاخیر کی فیس لگے گی۔';
+          'اکتوبر کا کرایہ 45,000 روپے دینا ہے۔ مہربانی کر کے جمعہ تک ادا '
+          'کر دیں، ورنہ لیٹ فیس لگے گی۔';
       await pumpThemed(
         tester,
         const SizedBox(

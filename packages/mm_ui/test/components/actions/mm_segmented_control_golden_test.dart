@@ -58,10 +58,7 @@ Widget _controls() => GoldenPage(
         segments: [
           MmSegment(value: _Filter.all, label: say('All', 'سب')),
           MmSegment(value: _Filter.paid, label: say('Paid', 'ادا شدہ')),
-          MmSegment(
-            value: _Filter.overdue,
-            label: say('Overdue', 'واجب الادا'),
-          ),
+          MmSegment(value: _Filter.overdue, label: say('Overdue', 'لیٹ')),
         ],
         selected: _Filter.overdue,
         onChanged: null,

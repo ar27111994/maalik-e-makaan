@@ -135,7 +135,12 @@ void main() {
     group("lines every action's words up with the end edge", () {
       for (final variant in const [MmVariant.light, MmVariant.urdu]) {
         for (final enabled in const [true, false]) {
-          for (final label in const ['See all', 'Edit', 'ترمیم', 'سب دیکھیں']) {
+          for (final label in const [
+            'See all',
+            'Edit',
+            'ایڈٹ کریں',
+            'سب دیکھیں',
+          ]) {
             testWidgets('${variant.name}, "$label", '
                 '${enabled ? 'enabled' : 'disabled'}', (tester) async {
               await pumpThemed(

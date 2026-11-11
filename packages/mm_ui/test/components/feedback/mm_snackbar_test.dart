@@ -318,7 +318,7 @@ void main() {
     });
 
     testWidgets('wraps in Urdu at 200% text on a 320 dp phone', (tester) async {
-      const message = 'علی رضا کی 1,25,000 روپے کی ادائیگی حذف ہو گئی';
+      const message = 'علی رضا کی 1,25,000 روپے کی ادائیگی ڈیلیٹ ہو گئی';
       final context = await pumpUrduLargeNarrow(tester);
       unawaited(
         showMmSnackbar(
@@ -447,7 +447,7 @@ void main() {
       unawaited(
         showMmSnackbar(
           context,
-          message: 'علی رضا کی ادائیگی حذف ہو گئی',
+          message: 'علی رضا کی ادائیگی ڈیلیٹ ہو گئی',
           actionLabel: 'واپس لیں',
           onAction: tapped,
         ),
@@ -456,14 +456,14 @@ void main() {
       expect(
         tester.getCenter(find.text('واپس لیں')).dx,
         lessThan(
-          tester.getCenter(find.text('علی رضا کی ادائیگی حذف ہو گئی')).dx,
+          tester.getCenter(find.text('علی رضا کی ادائیگی ڈیلیٹ ہو گئی')).dx,
         ),
       );
       // A short action stays on the message's row.
       expect(
         tester.getCenter(find.text('واپس لیں')).dy,
         moreOrLessEquals(
-          tester.getCenter(find.text('علی رضا کی ادائیگی حذف ہو گئی')).dy,
+          tester.getCenter(find.text('علی رضا کی ادائیگی ڈیلیٹ ہو گئی')).dy,
           epsilon: 1,
         ),
       );

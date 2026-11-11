@@ -22,12 +22,12 @@ void main() {
       final statuses = [
         MmFilterOption(
           value: _Status.overdue,
-          label: tr('Overdue', 'واجب الادا'),
+          label: tr('Overdue', 'لیٹ'),
           count: 3,
         ),
         MmFilterOption(
           value: _Status.dueSoon,
-          label: tr('Due soon', 'جلد واجب'),
+          label: tr('Due soon', 'تاریخ قریب'),
           count: 5,
         ),
         MmFilterOption(
@@ -101,12 +101,12 @@ void main() {
                 options: [
                   MmFilterOption(
                     value: _Status.overdue,
-                    label: tr('Overdue', 'واجب الادا'),
+                    label: tr('Overdue', 'لیٹ'),
                     count: 3,
                   ),
                   MmFilterOption(
                     value: _Status.dueSoon,
-                    label: tr('Due soon', 'جلد واجب'),
+                    label: tr('Due soon', 'تاریخ قریب'),
                     count: 5,
                   ),
                   MmFilterOption(

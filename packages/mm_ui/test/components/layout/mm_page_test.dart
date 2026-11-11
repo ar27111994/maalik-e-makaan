@@ -232,7 +232,7 @@ void main() {
     for (final urdu in [false, true]) {
       testWidgets('on a wide window the title starts on the content '
           "column's edge (${urdu ? 'Urdu' : 'English'})", (tester) async {
-        final title = urdu ? 'واجبات' : 'Dues';
+        final title = urdu ? 'چارجز' : 'Dues';
         final long = urdu ? _longUrduTitle * 3 : _longTitle * 3;
         void expectOnColumnEdge(String text) {
           final body = tester.getRect(find.byKey(_bodyKey));
@@ -290,7 +290,7 @@ void main() {
     testWidgets('pads from the start edge in Urdu too', (tester) async {
       await pumpScreen(
         tester,
-        MmPage(title: 'واجبات', body: _body()),
+        MmPage(title: 'چارجز', body: _body()),
         variant: MmVariant.urdu,
       );
       final body = tester.getRect(find.byKey(_bodyKey));

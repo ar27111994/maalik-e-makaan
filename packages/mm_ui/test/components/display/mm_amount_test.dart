@@ -149,11 +149,11 @@ void main() {
 
       await pumpThemed(
         tester,
-        const MmAmount(amount: _advance, creditLabel: 'ایڈوانس'),
+        const MmAmount(amount: _advance, creditLabel: 'کریڈٹ'),
         variant: MmVariant.urdu,
       );
-      expect(_shown(tester), '5,000\u00A0روپے ایڈوانس');
-      expect(_label(tester), '5000 روپے ایڈوانس');
+      expect(_shown(tester), '5,000\u00A0روپے کریڈٹ');
+      expect(_label(tester), '5000 روپے کریڈٹ');
     });
 
     testWidgets('a positive amount ignores the credit label', (tester) async {

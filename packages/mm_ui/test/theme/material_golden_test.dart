@@ -41,7 +41,7 @@ class _MaterialSpecimenState extends State<_MaterialSpecimen> {
     final urdu = mm.script == MmScript.urdu;
     String say(String english, String inUrdu) => urdu ? inUrdu : english;
     final record = say('Record payment', 'ادائیگی درج کریں');
-    final edit = say('Edit', 'ترمیم کریں');
+    final edit = say('Edit', 'ایڈٹ کریں');
     // A name in the other script than the UI's, and a tenant's advance as a
     // negative amount: the minus stays on the left of the figures.
     final name = urdu ? 'Ali Raza' : 'علی رضا';
@@ -160,7 +160,7 @@ class _MaterialSpecimenState extends State<_MaterialSpecimen> {
                   isScrollable: true,
                   tabAlignment: TabAlignment.start,
                   tabs: [
-                    Tab(height: MmSize.minTarget, text: say('Dues', 'واجبات')),
+                    Tab(height: MmSize.minTarget, text: say('Dues', 'چارجز')),
                     Tab(
                       height: MmSize.minTarget,
                       text: say('Payments', 'ادائیگیاں'),

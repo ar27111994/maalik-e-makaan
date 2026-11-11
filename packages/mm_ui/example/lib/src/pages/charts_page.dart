@@ -49,24 +49,27 @@ class ChartsPage extends StatelessWidget {
             note: context.tr(
               'Tap or use the arrow keys to read a month; switch to a table '
                   'from the chart’s button.',
-              'کسی مہینے کو پڑھنے کے لیے دبائیں یا تیر والی کیز استعمال کریں؛ '
-                  'چارٹ کے بٹن سے جدول دیکھیں۔',
+              'کسی مہینے کو پڑھنے کے لیے دبائیں یا تیر والی کیز استعمال کریں۔ '
+                  'چارٹ کے بٹن سے ٹیبل دیکھیں۔',
             ),
             children: [
               MmBarChart(
-                title: context.tr('Rent, last 6 months', 'کرایہ، پچھلے 6 ماہ'),
+                title: context.tr(
+                  'Rent, last 6 months',
+                  'کرایہ، پچھلے 6 مہینے',
+                ),
                 groupLabel: context.tr('Month', 'مہینہ'),
                 series: [
                   MmBarSeries(label: context.tr('Collected', 'وصول')),
-                  MmBarSeries(label: context.tr('Due', 'واجب')),
+                  MmBarSeries(label: context.tr('Due', 'چارج')),
                 ],
                 groups: collectedGroups,
                 semanticSummary: context.tr(
                   'Rent collected against rent due each month from June to '
                       'November 2026. October collected 270000 of 320000 '
                       'rupees; November so far 45000.',
-                  'جون سے نومبر 2026 تک ہر ماہ واجب کرائے کے مقابلے میں '
-                      'وصولی۔ اکتوبر میں 320000 میں سے 270000 روپے؛ نومبر میں '
+                  'جون سے نومبر 2026 تک ہر مہینے لگے کرائے کے مقابلے میں '
+                      'وصولی۔ اکتوبر میں 320000 میں سے 270000 روپے۔ نومبر میں '
                       'اب تک 45000۔',
                 ),
               ),
@@ -78,12 +81,14 @@ class ChartsPage extends StatelessWidget {
                 child: MmBarChart(
                   title: context.tr(
                     'Net income by unit, October',
-                    'یونٹ کے لحاظ سے خالص آمدن، اکتوبر',
+                    'ہر یونٹ کی خرچوں کے بعد آمدنی، اکتوبر',
                   ),
                   groupLabel: context.tr('Unit', 'یونٹ'),
                   groupKind: MmBarGroupKind.names,
                   series: [
-                    MmBarSeries(label: context.tr('Net income', 'خالص آمدن')),
+                    MmBarSeries(
+                      label: context.tr('Net income', 'خرچوں کے بعد آمدنی'),
+                    ),
                   ],
                   groups: [
                     for (final unit in net)
@@ -95,8 +100,8 @@ class ChartsPage extends StatelessWidget {
                   semanticSummary: context.tr(
                     'Net income in October: House 12 earned most, 104000 '
                         'rupees; Shop 7 lost 12000 rupees to repairs.',
-                    'اکتوبر میں خالص آمدن: مکان 12 سب سے زیادہ، 104000 روپے؛ '
-                        'دکان 7 میں مرمت پر 12000 روپے کا نقصان۔',
+                    'اکتوبر میں خرچوں کے بعد آمدنی: مکان 12 سب سے زیادہ، '
+                        '104000 روپے۔ دکان 7 میں مرمت پر 12000 روپے کا نقصان۔',
                   ),
                 ),
               ),
@@ -106,12 +111,12 @@ class ChartsPage extends StatelessWidget {
                   'دو الگ پیمانے، ساتھ ساتھ',
                 ),
                 child: MmBarChart(
-                  title: context.tr('Money in and out', 'آمد و خرچ'),
+                  title: context.tr('Money in and out', 'آئی اور گئی رقم'),
                   groupLabel: context.tr('Month', 'مہینہ'),
                   arrangement: MmBarArrangement.sideBySide,
                   series: [
-                    MmBarSeries(label: context.tr('Money in', 'آمد')),
-                    MmBarSeries(label: context.tr('Money out', 'خرچ')),
+                    MmBarSeries(label: context.tr('Money in', 'آئی رقم')),
+                    MmBarSeries(label: context.tr('Money out', 'گئی رقم')),
                   ],
                   groups: [
                     for (final (index, month) in months.indexed)
@@ -126,15 +131,15 @@ class ChartsPage extends StatelessWidget {
                   semanticSummary: context.tr(
                     'Money in and money out each month from June to November '
                         '2026. August spent 185000 rupees on a new water pump.',
-                    'جون سے نومبر 2026 تک ہر ماہ آمد و خرچ۔ اگست میں نئے پانی '
-                        'کے پمپ پر 185000 روپے خرچ ہوئے۔',
+                    'جون سے نومبر 2026 تک ہر مہینے آئی اور گئی رقم۔ اگست میں '
+                        'نئے پانی کے پمپ پر 185000 روپے خرچ ہوئے۔',
                   ),
                 ),
               ),
             ],
           ),
           Specimen(
-            title: context.tr('Proportion bars', 'تناسب کی بار'),
+            title: context.tr('Proportion bars', 'حصوں والی بار'),
             component: 'MmProportionBar',
             note: context.tr(
               'One whole split into parts, each with its own pattern.',
@@ -151,30 +156,30 @@ class ChartsPage extends StatelessWidget {
                       tone: MmSegmentTone.paid,
                     ),
                     MmProportionSegment(
-                      label: context.tr('Due soon', 'جلد واجب'),
+                      label: context.tr('Due soon', 'تاریخ قریب'),
                       value: const Money.fromRupees(60000),
                       tone: MmSegmentTone.dueSoon,
                     ),
                     MmProportionSegment(
-                      label: context.tr('Overdue', 'واجب الادا'),
+                      label: context.tr('Overdue', 'لیٹ'),
                       value: const Money.fromRupees(125000),
                       tone: MmSegmentTone.overdue,
                     ),
                     MmProportionSegment(
-                      label: context.tr('Not yet due', 'ابھی واجب نہیں'),
+                      label: context.tr('Not yet due', 'ابھی تاریخ نہیں آئی'),
                       value: const Money.fromRupees(38000),
                       tone: MmSegmentTone.neutral,
                     ),
                   ],
                   semanticSummary: context.tr(
                     '30% paid, 19% due soon, 39% overdue, 12% not yet due.',
-                    '30% ادا شدہ، 19% جلد واجب، 39% واجب الادا، 12% ابھی '
-                        'واجب نہیں۔',
+                    '30% ادا شدہ، 19% کی تاریخ قریب، 39% لیٹ، 12% کی ابھی '
+                        'تاریخ نہیں آئی۔',
                   ),
                 ),
               ),
               StateLabel(
-                label: context.tr('Overdue by age', 'تاخیر کی مدت کے لحاظ سے'),
+                label: context.tr('Overdue by age', 'کتنے دن سے لیٹ'),
                 child: MmProportionBar(
                   segments: [
                     MmProportionSegment(
@@ -202,7 +207,7 @@ class ChartsPage extends StatelessWidget {
                     'Overdue rent by age: 60000 rupees up to 30 days, 125000 '
                         'from 31 to 60 days, 30000 from 61 to 90 days, 15000 '
                         'over 90 days.',
-                    'تاخیر کی مدت کے لحاظ سے: 30 دن تک 60000 روپے، 31 سے 60 '
+                    'کتنے دن سے لیٹ: 30 دن تک 60000 روپے، 31 سے 60 '
                         'دن 125000، 61 سے 90 دن 30000، 90 دن سے زیادہ 15000۔',
                   ),
                 ),
@@ -215,12 +220,12 @@ class ChartsPage extends StatelessWidget {
                 child: MmProportionBar(
                   segments: [
                     MmProportionSegment(
-                      label: context.tr('Security deposits', 'زر ضمانت'),
+                      label: context.tr('Security deposits', 'سیکیورٹی ڈپازٹ'),
                       value: const Money.fromRupees(250000),
                       tone: MmSegmentTone.primary,
                     ),
                     MmProportionSegment(
-                      label: context.tr('Advance rent', 'پیشگی کرایہ'),
+                      label: context.tr('Advance rent', 'ایڈوانس کرایہ'),
                       value: const Money.fromRupees(15000),
                       tone: MmSegmentTone.credit,
                     ),
@@ -228,13 +233,16 @@ class ChartsPage extends StatelessWidget {
                   semanticSummary: context.tr(
                     'Held for tenants: 250000 rupees of security deposits '
                         'and 15000 of advance rent.',
-                    'کرایہ داروں کے لیے جمع: 250000 روپے زر ضمانت اور 15000 '
-                        'پیشگی کرایہ۔',
+                    'کرایہ داروں کے لیے جمع: 250000 روپے سیکیورٹی ڈپازٹ اور '
+                        '15000 ایڈوانس کرایہ۔',
                   ),
                 ),
               ),
               StateLabel(
-                label: context.tr('Nothing due yet', 'ابھی کچھ واجب نہیں'),
+                label: context.tr(
+                  'Nothing due yet',
+                  'ابھی کسی چیز کی تاریخ نہیں آئی',
+                ),
                 child: MmProportionBar(
                   segments: [
                     MmProportionSegment(
@@ -243,18 +251,18 @@ class ChartsPage extends StatelessWidget {
                       tone: MmSegmentTone.paid,
                     ),
                     MmProportionSegment(
-                      label: context.tr('Overdue', 'واجب الادا'),
+                      label: context.tr('Overdue', 'لیٹ'),
                       value: Money.zero,
                       tone: MmSegmentTone.overdue,
                     ),
                   ],
                   emptyLabel: context.tr(
                     'No rent due yet this month.',
-                    'اس ماہ ابھی کوئی کرایہ واجب نہیں۔',
+                    'اس مہینے ابھی کسی کرائے کی تاریخ نہیں آئی۔',
                   ),
                   semanticSummary: context.tr(
                     'No rent due yet this month.',
-                    'اس ماہ ابھی کوئی کرایہ واجب نہیں۔',
+                    'اس مہینے ابھی کسی کرائے کی تاریخ نہیں آئی۔',
                   ),
                 ),
               ),
@@ -266,7 +274,8 @@ class ChartsPage extends StatelessWidget {
             note: context.tr(
               'A word-sized trend beside a figure; time runs from the start '
                   'edge.',
-              'کسی عدد کے ساتھ لفظ جتنا رجحان؛ وقت شروع والے کنارے سے چلتا ہے۔',
+              'کسی نمبر کے ساتھ ایک لفظ جتنا رجحان۔ وقت شروع والے کنارے '
+                  'سے چلتا ہے۔',
             ),
             children: [
               MmCard(
@@ -278,7 +287,7 @@ class ChartsPage extends StatelessWidget {
                         title: tenant.name.of(context),
                         subtitle: context.tr(
                           'Days late, last 6 months',
-                          'تاخیر کے دن، پچھلے 6 ماہ',
+                          'کتنے دن لیٹ، پچھلے 6 مہینے',
                         ),
                         trailing: ExcludeSemantics(
                           child: MmSparkline(
@@ -296,11 +305,11 @@ class ChartsPage extends StatelessWidget {
             ],
           ),
           Specimen(
-            title: context.tr('Data table', 'جدول'),
+            title: context.tr('Data table', 'ٹیبل'),
             component: 'MmDataTable',
             note: context.tr(
               'A plain ledger table; figures line up at the end.',
-              'سادہ کھاتے کا جدول؛ اعداد آخر میں ایک سیدھ میں۔',
+              'سادہ کھاتے کا ٹیبل۔ نمبر آخر میں ایک سیدھ میں۔',
             ),
             children: [
               MmDataTable(

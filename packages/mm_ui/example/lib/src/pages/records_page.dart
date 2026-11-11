@@ -57,7 +57,7 @@ class RecordsPage extends StatelessWidget {
             children: [
               _receipt(context),
               StateLabel(
-                label: context.tr('Void', 'منسوخ'),
+                label: context.tr('Void', 'کینسل'),
                 child: _receipt(context, voided: true),
               ),
             ],
@@ -87,7 +87,7 @@ class RecordsPage extends StatelessWidget {
               MmMeter(
                 value: 10 / 12,
                 label: context.tr('Lease used, Flat 3', 'کرایہ نامہ، فلیٹ 3'),
-                valueLabel: context.tr('10 of 12 months', '12 میں سے 10 ماہ'),
+                valueLabel: context.tr('10 of 12 months', '12 میں سے 10 مہینے'),
                 tone: MmMeterTone.dueSoon,
               ),
               MmMeter(
@@ -136,7 +136,7 @@ class RecordsPage extends StatelessWidget {
                   ),
                   MmTimelineItem(
                     dateLabel: dateLabel(context, CalendarDate(2026, 11, 1)),
-                    title: context.tr('Rent due', 'کرایہ واجب'),
+                    title: context.tr('Rent due', 'کرائے کی تاریخ'),
                     subtitle: context.tr(
                       'Reminder sent by SMS',
                       'ایس ایم ایس سے یاد دہانی',
@@ -146,17 +146,20 @@ class RecordsPage extends StatelessWidget {
                   ),
                   MmTimelineItem(
                     dateLabel: dateLabel(context, CalendarDate(2026, 9, 12)),
-                    title: context.tr('Rent overdue', 'کرایہ واجب الادا'),
+                    title: context.tr('Rent overdue', 'کرایہ لیٹ'),
                     subtitle: context.tr(
                       'Paid 7 days late',
-                      '7 دن تاخیر سے ادا',
+                      '7 دن لیٹ ادا ہوا',
                     ),
                     tone: MmTimelineTone.overdue,
                   ),
                   MmTimelineItem(
                     dateLabel: dateLabel(context, CalendarDate(2026, 7, 1)),
                     title: context.tr('Lease signed', 'کرایہ نامے پر دستخط'),
-                    subtitle: context.tr('12 months, Flat 3', '12 ماہ، فلیٹ 3'),
+                    subtitle: context.tr(
+                      '12 months, Flat 3',
+                      '12 مہینے، فلیٹ 3',
+                    ),
                     icon: MmIcons.lease,
                     tone: MmTimelineTone.primary,
                   ),
@@ -179,7 +182,7 @@ class RecordsPage extends StatelessWidget {
       issuer: context.tr('Imran Qureshi, Raza Manzil', 'عمران قریشی، رضا منزل'),
       numberLabel: context.tr('Receipt no.', 'رسید نمبر'),
       receiptNumber: voided ? 'R-2026-0139' : 'R-2026-0142',
-      amountLabel: context.tr('Amount received', 'وصول شدہ رقم'),
+      amountLabel: context.tr('Amount received', 'کتنی رقم ملی'),
       amount: ali.rent,
       rows: [
         MmReceiptRow(
@@ -210,7 +213,7 @@ class RecordsPage extends StatelessWidget {
       voidedLabel: voided
           ? context.tr(
               'VOID: cancelled on 6 Nov 2026',
-              'منسوخ: 6 نومبر 2026 کو منسوخ کی گئی',
+              'کینسل: 6 نومبر 2026 کو کینسل ہوئی',
             )
           : null,
     );
@@ -230,7 +233,7 @@ class RecordsPage extends StatelessWidget {
         'Payment score $score out of 100, $word',
         'ادائیگی اسکور 100 میں سے $score، $word',
       ),
-      caption: context.tr('12 months of payments', '12 ماہ کی ادائیگیاں'),
+      caption: context.tr('12 months of payments', '12 مہینوں کی ادائیگیاں'),
     );
   }
 }

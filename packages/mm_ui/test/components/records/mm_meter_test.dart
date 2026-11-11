@@ -126,7 +126,7 @@ void main() {
     testWidgets('fills from the right in Urdu', (tester) async {
       await pumpThemed(
         tester,
-        _meter(label: 'وصول شدہ کرایہ', valueLabel: '10 میں سے 8'),
+        _meter(label: 'جو کرایہ ملا', valueLabel: '10 میں سے 8'),
         variant: MmVariant.urdu,
       );
       final track = tester.getRect(_track);
@@ -134,7 +134,7 @@ void main() {
       expect(fill.right, track.right);
       expect(fill.width, moreOrLessEquals(track.width * 0.72, epsilon: 0.01));
       final meter = tester.getRect(find.byType(MmMeter));
-      expect(tester.getRect(find.text('وصول شدہ کرایہ')).right, meter.right);
+      expect(tester.getRect(find.text('جو کرایہ ملا')).right, meter.right);
     });
 
     testWidgets('clamps values outside 0 to 1, and shows nothing for NaN', (
@@ -276,7 +276,7 @@ void main() {
               value: 0.36,
               label: say(
                 'Overdue rent across all properties this month',
-                'اس ماہ تمام جائیدادوں کا بقایا کرایہ',
+                'اس مہینے سب جائیدادوں کا لیٹ کرایہ',
               ),
               valueLabel: say(
                 'Rs\u00A045,000 of Rs\u00A01,25,000',
@@ -295,7 +295,7 @@ void main() {
       const value = '1,25,000 میں سے 90,000\u00A0روپے';
       await pumpThemed(
         tester,
-        _meter(label: 'وصول شدہ کرایہ', valueLabel: value),
+        _meter(label: 'جو کرایہ ملا', valueLabel: value),
         variant: MmVariant.urdu,
       );
       expect(latinRunsIn(tester, value), ['1,25,000 ', ' 90,000\u00A0']);

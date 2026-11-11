@@ -87,7 +87,7 @@ void main() {
         unawaited(
           showMmSheet<void>(
             context,
-            title: say('Choose a unit', 'یونٹ منتخب کریں'),
+            title: say('Choose a unit', 'یونٹ چنیں'),
             builder: (context) => Column(
               children: [
                 for (var unit = 1; unit <= 16; unit++)

@@ -340,13 +340,16 @@ void main() {
             final say = sayIn(context);
             return MmBanner(
               tone: MmBannerTone.warning,
-              title: say(subject.title!, 'علی رضا کا معاہدہ ختم ہو رہا ہے'),
+              title: say(subject.title!, 'علی رضا کا کرایہ نامہ ختم ہو رہا ہے'),
               message: say(
                 long,
-                'فلیٹ 3، گلبرگ III، لاہور میں علی رضا کا معاہدہ 14 دن میں ختم '
-                'ہو گا اور 1,25,000 روپے ابھی واجب الادا ہیں۔',
+                'فلیٹ 3، گلبرگ III، لاہور میں علی رضا کا کرایہ نامہ 14 دن میں '
+                'ختم ہو گا اور 1,25,000 روپے ابھی باقی ہیں۔',
               ),
-              actionLabel: say(subject.actionLabel!, 'ابھی معاہدہ تجدید کریں'),
+              actionLabel: say(
+                subject.actionLabel!,
+                'ابھی کرایہ نامہ رینیو کریں',
+              ),
               onAction: tapped,
               onDismiss: tapped,
             );
@@ -430,8 +433,8 @@ void main() {
     });
 
     testWidgets('sets figures in Urdu text in the Latin face', (tester) async {
-      const title = 'عائشہ خان کے 2 ماہ';
-      const message = '3 کرایہ داروں سے 1,25,000 روپے واجب الادا ہیں۔';
+      const title = 'عائشہ خان کے 2 مہینے';
+      const message = '3 کرایہ داروں کے ذمے 1,25,000 روپے باقی ہیں۔';
       await pumpThemed(
         tester,
         const MmBanner(
@@ -453,7 +456,7 @@ void main() {
         tester,
         const MmBanner(
           tone: MmBannerTone.error,
-          message: '3 کرایہ داروں سے 1,25,000 روپے واجب الادا ہیں۔',
+          message: '3 کرایہ داروں کے ذمے 1,25,000 روپے باقی ہیں۔',
           onDismiss: tapped,
         ),
         variant: MmVariant.urdu,

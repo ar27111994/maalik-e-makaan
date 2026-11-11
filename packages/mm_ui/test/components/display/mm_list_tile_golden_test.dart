@@ -25,10 +25,7 @@ void main() {
               leading: MmAvatar(name: say('Ali Raza', 'علی رضا')),
               title: say('Ali Raza', 'علی رضا'),
               // The overdue tone emphasises what the words say.
-              subtitle: say(
-                'Flat 3, overdue 12 days',
-                'فلیٹ 3، 12 دن سے بقایا',
-              ),
+              subtitle: say('Flat 3, overdue 12 days', 'فلیٹ 3، 12 دن لیٹ'),
               trailing: const MmAmount(
                 amount: Money.fromRupees(45000),
                 tone: MmAmountTone.overdue,
@@ -57,7 +54,7 @@ void main() {
               subtitle: say('6 units, 2 vacant', '6 یونٹ، 2 خالی'),
               trailing: MmStatusBadge(
                 status: MmStatus.overdue,
-                label: say('Overdue 12 days', '12 دن سے بقایا'),
+                label: say('Overdue 12 days', '12 دن لیٹ'),
               ),
               onTap: tapped,
             ),

@@ -40,16 +40,16 @@ void main() {
         "so they keep the Latin space's width", () {
       // Nastaliq's space is about half as wide as Atkinson's: beside a
       // Latin name it looked like no space at all.
-      expect(MmScriptText.runsOf('از Bilal Ahmed بنام'), [
-        (text: 'از', latin: false),
+      expect(MmScriptText.runsOf('نقدی Bilal Ahmed کو'), [
+        (text: 'نقدی', latin: false),
         (text: ' Bilal Ahmed ', latin: true),
-        (text: 'بنام', latin: false),
+        (text: 'کو', latin: false),
       ]);
       // Through the isolate a name is shown in.
-      expect(MmScriptText.runsOf('از \u2066Bilal\u2069 بنام'), [
-        (text: 'از', latin: false),
+      expect(MmScriptText.runsOf('نقدی \u2066Bilal\u2069 کو'), [
+        (text: 'نقدی', latin: false),
         (text: ' \u2066Bilal\u2069 ', latin: true),
-        (text: 'بنام', latin: false),
+        (text: 'کو', latin: false),
       ]);
       // Punctuation stays with the Urdu, and so does a space after it.
       expect(MmScriptText.runsOf('Gulberg III، لاہور'), [
@@ -101,7 +101,7 @@ void main() {
 
     testWidgets('keeps a whole Latin space between Urdu words and a Latin '
         'name', (tester) async {
-      const text = 'از Bilal Ahmed بنام';
+      const text = 'نقدی Bilal Ahmed کو';
       await pumpThemed(
         tester,
         Builder(
@@ -124,7 +124,7 @@ void main() {
       // metrics shift the last digit of a width by a fraction of a pixel.
       final between = widthAt(text.indexOf(' Ahmed'));
       expect(widthAt(text.indexOf(' Bilal')), closeTo(between, 0.5));
-      expect(widthAt(text.indexOf(' بنام')), closeTo(between, 0.5));
+      expect(widthAt(text.indexOf(' کو')), closeTo(between, 0.5));
     });
 
     for (final variant in [MmVariant.light, MmVariant.urdu]) {

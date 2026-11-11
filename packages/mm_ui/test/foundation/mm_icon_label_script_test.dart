@@ -44,13 +44,9 @@ void main() {
   group('MmIconLabel by script', () {
     testWidgets('sets the figures among Urdu words in the Latin face, on the '
         'Urdu lines', (tester) async {
-      await pumpThemed(
-        tester,
-        _label('12 دن سے واجب'),
-        variant: MmVariant.urdu,
-      );
+      await pumpThemed(tester, _label('12 دن سے لیٹ'), variant: MmVariant.urdu);
       final words = _words(tester);
-      expect(words.map((span) => span.text), ['12 ', 'دن سے واجب']);
+      expect(words.map((span) => span.text), ['12 ', 'دن سے لیٹ']);
       expect(words.first.style!.fontFamily, _latin);
       expect(words.last.style, isNull);
       expect(_paragraph(tester).text.style!.fontFamily, isNot(_latin));
@@ -89,12 +85,8 @@ void main() {
 
     testWidgets('is still read as its words', (tester) async {
       final semantics = tester.ensureSemantics();
-      await pumpThemed(
-        tester,
-        _label('12 دن سے واجب'),
-        variant: MmVariant.urdu,
-      );
-      expect(find.bySemanticsLabel('12 دن سے واجب'), findsOneWidget);
+      await pumpThemed(tester, _label('12 دن سے لیٹ'), variant: MmVariant.urdu);
+      expect(find.bySemanticsLabel('12 دن سے لیٹ'), findsOneWidget);
       semantics.dispose();
     });
   });

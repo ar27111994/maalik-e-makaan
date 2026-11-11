@@ -14,7 +14,7 @@ List<MmDestination> _destinations(Say say) => [
   MmDestination(icon: MmIcons.tenants, label: say('Tenants', 'کرایہ دار')),
   MmDestination(
     icon: MmIcons.receipt,
-    label: say('Dues', 'واجبات'),
+    label: say('Dues', 'چارجز'),
     badgeCount: 3,
   ),
   MmDestination(icon: MmIcons.reports, label: say('Reports', 'رپورٹس')),
@@ -66,7 +66,7 @@ Widget _tenants(BuildContext context, Say say) =>
 
 /// The dues screen as the app builds it: an `MmPage` with its action bar.
 Widget _dues(BuildContext context, Say say) => MmPage(
-  title: say('Dues', 'واجبات'),
+  title: say('Dues', 'چارجز'),
   body: Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     spacing: MmSpace.s2,
@@ -181,7 +181,7 @@ void main() {
                 actions: const [
                   IconButton(
                     onPressed: tapped,
-                    tooltip: 'ترمیم کریں',
+                    tooltip: 'ایڈٹ کریں',
                     icon: Icon(MmIcons.edit),
                   ),
                 ],

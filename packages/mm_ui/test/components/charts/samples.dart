@@ -75,17 +75,17 @@ const netIncome = [
 MmBarChart unitsChart(Say say) => MmBarChart(
   title: say(
     'Net income by unit, October',
-    'یونٹ کے لحاظ سے خالص آمدن، اکتوبر',
+    'ہر یونٹ کی خرچوں کے بعد آمدنی، اکتوبر',
   ),
   semanticSummary: say(
     'Net income in October: House 12 earned most, 104000 rupees; Shop 7 '
         'lost 12000 rupees to repairs.',
-    'اکتوبر میں خالص آمدن: مکان 12 سب سے زیادہ، 104000 روپے؛ دکان 7 میں '
-        'مرمت پر 12000 روپے کا نقصان۔',
+    'اکتوبر میں خرچوں کے بعد آمدنی: مکان 12 سب سے زیادہ، 104000 روپے۔ '
+        'دکان 7 میں مرمت پر 12000 روپے کا نقصان۔',
   ),
   groupLabel: say('Unit', 'یونٹ'),
   groupKind: MmBarGroupKind.names,
-  series: [MmBarSeries(label: say('Net income', 'خالص آمدن'))],
+  series: [MmBarSeries(label: say('Net income', 'خرچوں کے بعد آمدنی'))],
   groups: [
     MmBarGroup(
       label: say('Flat 3', 'فلیٹ 3'),
@@ -108,18 +108,18 @@ MmBarChart unitsChart(Say say) => MmBarChart(
 
 /// The rent chart of the samples: collected against due, by month.
 MmBarChart rentChart(Say say, {bool autofocus = false}) => MmBarChart(
-  title: say('Rent, last 6 months', 'کرایہ، پچھلے 6 ماہ'),
+  title: say('Rent, last 6 months', 'کرایہ، پچھلے 6 مہینے'),
   semanticSummary: say(
     'Rent collected against rent due, June to November. '
         'November is lowest: Rs 45,000 of Rs 1,25,000.',
-    'جون سے نومبر تک وصول شدہ اور واجب کرایہ۔ '
+    'جون سے نومبر تک وصول اور لگا کرایہ۔ '
         'نومبر میں سب سے کم: 1,25,000 میں سے 45,000 روپے۔',
   ),
   groupLabel: say('Month', 'مہینہ'),
   autofocus: autofocus,
   series: [
-    MmBarSeries(label: say('Collected', 'وصول شدہ')),
-    MmBarSeries(label: say('Due', 'واجب')),
+    MmBarSeries(label: say('Collected', 'وصول')),
+    MmBarSeries(label: say('Due', 'چارج')),
   ],
   groups: [
     for (final (index, month) in months(say).indexed)
@@ -129,13 +129,13 @@ MmBarChart rentChart(Say say, {bool autofocus = false}) => MmBarChart(
 
 /// The net income chart of the samples: one series with a loss in August.
 MmBarChart netIncomeChart(Say say) => MmBarChart(
-  title: say('Net income', 'خالص آمدنی'),
+  title: say('Net income', 'خرچوں کے بعد آمدنی'),
   semanticSummary: say(
     'Net income, June to November. August was a loss of Rs 30,000.',
-    'جون سے نومبر تک خالص آمدنی۔ اگست میں 30,000 روپے کا نقصان ہوا۔',
+    'جون سے نومبر تک خرچوں کے بعد آمدنی۔ اگست میں 30,000 روپے کا نقصان ہوا۔',
   ),
   groupLabel: say('Month', 'مہینہ'),
-  series: [MmBarSeries(label: say('Net income', 'خالص آمدنی'))],
+  series: [MmBarSeries(label: say('Net income', 'خرچوں کے بعد آمدنی'))],
   groups: [
     for (final (index, month) in months(say).indexed)
       MmBarGroup(label: month, values: [netIncome[index]]),
@@ -145,17 +145,17 @@ MmBarChart netIncomeChart(Say say) => MmBarChart(
 /// Rent collected against rent due over a year at a building of shops in
 /// Hall Road, Lahore: collected climbs back towards what is due.
 MmBarChart yearChart(Say say) => MmBarChart(
-  title: say('Rent, last 12 months', 'کرایہ، پچھلے 12 ماہ'),
+  title: say('Rent, last 12 months', 'کرایہ، پچھلے 12 مہینے'),
   semanticSummary: say(
     'Rent collected against rent due, December to November. Collected '
         'rose from Rs 2.5 lakh to Rs 13.5 lakh.',
-    'دسمبر سے نومبر تک وصول شدہ اور واجب کرایہ۔ وصولی 2.5 لاکھ سے بڑھ کر '
+    'دسمبر سے نومبر تک وصول اور لگا کرایہ۔ وصولی 2.5 لاکھ سے بڑھ کر '
         '13.5 لاکھ روپے ہو گئی۔',
   ),
   groupLabel: say('Month', 'مہینہ'),
   series: [
-    MmBarSeries(label: say('Collected', 'وصول شدہ')),
-    MmBarSeries(label: say('Due', 'واجب')),
+    MmBarSeries(label: say('Collected', 'وصول')),
+    MmBarSeries(label: say('Due', 'چارج')),
   ],
   groups: [
     for (final (index, month) in [
