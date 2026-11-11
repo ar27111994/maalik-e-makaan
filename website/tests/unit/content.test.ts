@@ -109,6 +109,20 @@ describe("content facts", () => {
     }
   });
 
+  test("the home page says a receipt is made in English or Urdu, not in both", () => {
+    // The app makes each receipt PDF in the one language the landlord picks (DocumentLanguage).
+    const en = JSON.stringify(read("home/en.yaml"));
+    expect(en).toMatch(/receipts? in English or Urdu/);
+    expect(en).not.toMatch(
+      /receipts? (is |are )?in (both|two) languages|receipts? in English and Urdu/i,
+    );
+    const ur = JSON.stringify(read("home/ur.yaml"));
+    expect(ur).toMatch(/اردو یا انگریزی میں/);
+    expect(ur).not.toMatch(
+      /رسید[یں]* دونوں زبانوں|دو زبانوں میں نمبر والی|اردو اور انگریزی میں (پی ڈی ایف )?رسید/,
+    );
+  });
+
   test("no guides are published in one language only", async () => {
     const { readdirSync } = await import("node:fs");
     const list = (locale: string) =>
