@@ -1,8 +1,9 @@
 -- What 20261112092618_residence.sql did to the rows of
 -- 20261112092618.before.sql: existing portfolios are "not yet answered" and
 -- have no caretaker, every profile has an empty residence row, nothing else
--- changed and nothing was audited, and an app that does not know the
--- question still creates portfolios and can answer it.
+-- changed and nothing was audited, an app that does not know the question
+-- still creates portfolios, and the app that asks on the next open
+-- (p_if_unanswered) answers an existing portfolio once.
 do $$
 declare
   v_got jsonb;
@@ -81,8 +82,35 @@ begin
        .owner_abroad is not null then
     raise exception 'upgrade 20261112092618: a named {p_name, p_id} call stored an answer';
   end if;
-  if public.set_owner_abroad('00000000-0000-4000-8000-0000001d0001', true) is distinct from true then
-    raise exception 'upgrade 20261112092618: the owner could not answer the question';
+end
+$$;
+
+-- The app's question on the next open, on existing portfolio A: its manager
+-- opens it first and answers; the owner's question, already on screen,
+-- then gets that answer back and changes nothing.
+do $$
+begin
+  perform set_config('request.jwt.claims',
+                     '{"sub": "00000000-0000-4000-8000-0000001c0002", "role": "authenticated"}', true);
+  if public.set_owner_abroad('00000000-0000-4000-8000-0000001d0001', true, p_if_unanswered => true)
+       is distinct from true then
+    raise exception 'upgrade 20261112092618: the manager could not answer an existing portfolio''s question';
+  end if;
+  perform set_config('request.jwt.claims',
+                     '{"sub": "00000000-0000-4000-8000-0000001c0001", "role": "authenticated"}', true);
+  if public.set_owner_abroad('00000000-0000-4000-8000-0000001d0001', false, p_if_unanswered => true)
+       is distinct from true then
+    raise exception 'upgrade 20261112092618: the owner''s stale question did not get the stored answer';
+  end if;
+  if (select p.owner_abroad from public.portfolios p where p.id = '00000000-0000-4000-8000-0000001d0001')
+       is distinct from true
+     or (select jsonb_agg(jsonb_build_array(a.changes, a.actor_id)) from public.audit_logs a
+         where a.table_name = 'portfolios' and a.action = 'update'
+           and a.record_id = '00000000-0000-4000-8000-0000001d0001')
+       is distinct from jsonb_build_array(jsonb_build_array('{"owner_abroad": [null, true]}'::jsonb,
+                                                            '00000000-0000-4000-8000-0000001c0002'))
+  then
+    raise exception 'upgrade 20261112092618: the answer was not stored once, audited with the manager';
   end if;
 end
 $$;

@@ -5,7 +5,7 @@
 -- tool/db/upgrade/20261112092618.*.sql.
 begin;
 \ir _helpers.psql
-select plan(86);
+select plan(93);
 
 select tests.create_user('owner.res@example.com') as owner \gset
 select tests.create_user('coowner.res@example.com') as coowner \gset
@@ -320,6 +320,36 @@ select is(
   'a stale question changes nothing and writes no audit entry'
 );
 
+-- The app's own call (answerOwnerAbroad: p_if_unanswered => true, the
+-- question on the next open) on portfolios still unanswered: the answer is
+-- stored, returned, and audited once with its actor.
+select tests.clear_authentication();
+select tests.create_portfolio(:'owner', 'Residence Q') as pq \gset
+select tests.create_portfolio(:'owner', 'Residence R') as pr \gset
+select tests.add_member(:'pr', :'manager', 'manager');
+select tests.authenticate_as(:'owner');
+select is(public.set_owner_abroad(:'pq', true, p_if_unanswered => true), true,
+          'an owner answers an unanswered question when asked on the next open, and gets the answer back');
+select results_eq(
+  format($$select p.owner_abroad, a.changes, a.actor_id from public.portfolios p
+           join public.audit_logs a
+             on a.portfolio_id = p.id and a.table_name = 'portfolios' and a.action = 'update'
+           where p.id = %L$$, :'pq'),
+  format($$values (true, '{"owner_abroad": [null, true]}'::jsonb, %L::uuid)$$, :'owner'),
+  'the owner''s answer is stored and audited once, with the owner as actor'
+);
+select tests.authenticate_as(:'manager');
+select is(public.set_owner_abroad(:'pr', false, p_if_unanswered => true), false,
+          'a manager answers an unanswered question when asked on the next open (no), and gets it back');
+select results_eq(
+  format($$select p.owner_abroad, a.changes, a.actor_id from public.portfolios p
+           join public.audit_logs a
+             on a.portfolio_id = p.id and a.table_name = 'portfolios' and a.action = 'update'
+           where p.id = %L$$, :'pr'),
+  format($$values (false, '{"owner_abroad": [null, false]}'::jsonb, %L::uuid)$$, :'manager'),
+  'the manager''s answer is stored and audited once, with the manager as actor'
+);
+
 select tests.authenticate_as(:'outsider');
 select throws_ok(format('select public.set_owner_abroad(%L, null)', :'pa'), '22023', 'invalid_owner_abroad',
                  'an answer cannot be taken back to NULL (refused before authorisation)');
@@ -457,11 +487,44 @@ select is(tests.caretaker_clearings(:'pc', :'m_auth'),
           jsonb_build_object('caretaker', null, 'since', null, 'cleared_by', jsonb_build_array(null)),
           'deleting the caretaker directly in Auth clears it, once');
 
+-- A service-role UPDATE that moves the caretaker's membership to another
+-- person or to another portfolio ends it as a caretaker's membership too.
+select tests.clear_authentication();
+select tests.create_user('m-moved.res@example.com') as m_moved \gset
+select tests.create_user('m-heir.res@example.com') as m_heir \gset
+select tests.create_user('m-transferred.res@example.com') as m_transferred \gset
+select tests.add_member(:'pc', u, 'manager') from unnest(array[:'m_moved', :'m_transferred']::uuid[]) u;
+
+select tests.authenticate_as(:'owner');
+select public.set_caretaker(:'pc', :'m_moved');
+select tests.authenticate_as_service_role();
+update public.portfolio_members set user_id = :'m_heir' where portfolio_id = :'pc' and user_id = :'m_moved';
+select is(tests.caretaker_clearings(:'pc', :'m_moved'),
+          jsonb_build_object('caretaker', null, 'since', null, 'cleared_by', jsonb_build_array(null)),
+          'moving the caretaker''s membership to another person clears it');
+
+select tests.authenticate_as(:'owner');
+select public.set_caretaker(:'pc', :'m_transferred');
+select tests.authenticate_as_service_role();
+update public.portfolio_members set portfolio_id = :'pb' where portfolio_id = :'pc' and user_id = :'m_transferred';
+select is(tests.caretaker_clearings(:'pc', :'m_transferred'),
+          jsonb_build_object('caretaker', null, 'since', null, 'cleared_by', jsonb_build_array(null)),
+          'moving the caretaker''s membership to another portfolio clears it where it was');
+
 select tests.authenticate_as(:'owner');
 select public.set_caretaker(:'pc', :'m_kept');
 select public.update_member_role(:'pc', :'m_kept', 'manager');
 select is((select p.caretaker_user_id from public.portfolios p where p.id = :'pc'), :'m_kept'::uuid,
           'a role change from manager to manager keeps the caretaker');
+select tests.authenticate_as_service_role();
+update public.portfolio_members set portfolio_id = portfolio_id, user_id = user_id, role = 'manager'
+where portfolio_id = :'pc' and user_id = :'m_kept';
+select is(
+  (select format('%s:%s', p.caretaker_user_id, tests.caretaker_clearings(p.id, :'m_kept') -> 'cleared_by')
+   from public.portfolios p where p.id = :'pc'),
+  format('%s:[]', :'m_kept'),
+  'a service-role UPDATE that keeps a manager''s ids and role keeps the caretaker'
+);
 
 -- ---------------------------------------------------------------------------
 -- Deleting a portfolio with a caretaker

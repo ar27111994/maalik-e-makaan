@@ -6,7 +6,7 @@
 -- cross-portfolio references must be rejected by composite foreign keys.
 begin;
 \ir _helpers.psql
-select plan(91);
+select plan(95);
 
 select tests.create_user('owner.a@example.com') as owner \gset
 select tests.create_user('manager.a@example.com') as manager \gset
@@ -333,6 +333,29 @@ select throws_ok(format('select public.set_owner_abroad(%L, true)', :'pa'), '425
                  'viewers cannot answer the owner-abroad question');
 select tests.authenticate_as(:'manager');
 select is(public.set_owner_abroad(:'pa', true), true, 'managers answer an unanswered owner-abroad question');
+
+-- The same rule for the app's question on the next open (p_if_unanswered),
+-- on a second portfolio with the same manager, accountant and viewer that is
+-- still unanswered (its own owner, so the owner's deletion scope below stays
+-- portfolio A).
+select tests.clear_authentication();
+select tests.create_user('owner.a2@example.com') as owner_a2 \gset
+select tests.create_portfolio(:'owner_a2', 'Portfolio A2') as pa2 \gset
+select tests.add_member(:'pa2', :'manager', 'manager');
+select tests.add_member(:'pa2', :'accountant', 'accountant');
+select tests.add_member(:'pa2', :'viewer', 'viewer');
+select tests.authenticate_as(:'outsider');
+select throws_ok(format('select public.set_owner_abroad(%L, true, p_if_unanswered => true)', :'pa2'), '42501',
+                 'forbidden', 'outsiders cannot answer the owner-abroad question when asked on the next open');
+select tests.authenticate_as(:'accountant');
+select throws_ok(format('select public.set_owner_abroad(%L, true, p_if_unanswered => true)', :'pa2'), '42501',
+                 'forbidden', 'accountants cannot answer the owner-abroad question when asked on the next open');
+select tests.authenticate_as(:'viewer');
+select throws_ok(format('select public.set_owner_abroad(%L, true, p_if_unanswered => true)', :'pa2'), '42501',
+                 'forbidden', 'viewers cannot answer the owner-abroad question when asked on the next open');
+select tests.authenticate_as(:'manager');
+select is(public.set_owner_abroad(:'pa2', true, p_if_unanswered => true), true,
+          'managers answer an unanswered owner-abroad question when asked on the next open');
 
 -- The caretaker: owners only.
 select throws_ok(format('select public.set_caretaker(%L, %L)', :'pa', :'manager'), '42501', 'forbidden',
