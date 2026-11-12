@@ -20,7 +20,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   screenshots, and an independent design review of the change (`docs/design-qa.md`). Pilot
   readers confirm the face (`docs/roadmap/urdu-review.md`).
 - Decision 1 of the roadmap (D-16, residence), backend and domain half, on branch
-  `wip/residence` (not pushed, not merged): `20261112092618_residence.sql`
+  `wip/residence`, rebased on `main` at 415ce29 (not pushed, not merged):
+  `20261112092618_residence.sql`
   (`profile_residences`, `portfolios.owner_abroad` added as NULL with the caretaker columns and
   their triggers, `create_portfolio` with `p_owner_abroad`, `set_owner_abroad`, `set_caretaker`;
   the definer allowlist is now 23), pgTAP suites 22 (by hand) and 23 (generated), the upgrade test,
@@ -32,9 +33,14 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   is now 32, with `CaretakerIsManager`), pgTAP cases for the app's next-open answer and for
   memberships moved by the service role, an import-chain Pakistan-time guard in `mm_core`, and
   checks that `docs/agents/commands.md` names what `make test-tools` and `make contracts` do.
-  Scenario 31 orders its sessions by their locks with a first session held open through a pipe,
-  so it does not wait for `wip/db-concurrency-hang`; whichever of the two branches merges second
-  gives it a `scenario <budget> <lock wait>` line and may move it to `fv.hold`/`await_session`.
+  In the rebase onto #56's harness, scenario 31 got `scenario 60 30` and orders its sessions with
+  `fv.hold` and `await_session` like the others: about 7 s, at most 12.1 s under four busy loops,
+  and it fails on each of five mutants of the migration (the caretaker trigger without
+  `FOR SHARE`, either second role check, the answer read without its lock, the residence clear
+  filtered on its values). After the rebase every gate passed: `make format-check analyze lint`,
+  the generated-file checks, `test-tools`, `test-core`, `test-ui`, `test-app`, `test-gallery`,
+  `test-db`, `test-db-concurrency` (three runs, and one under four busy loops),
+  `test-functions` and `verify`; no golden changed.
   Not done: the TLA+ Membership extension (the caretaker and the answer). `make test-db-stress` ran
   while another worktree was building (load average up to 15): every check passed except the
   once-a-day notifications' 15 s budget (25 s), which the base commit 9480e22 missed too (30 s and
@@ -42,8 +48,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   round's run (load average 6, no schema change) missed only the same budget (25.5 s). Re-run it
   on an idle machine.
   The UI half (onboarding, the owner-abroad question, settings, ARB strings, goldens, the privacy
-  page, the data export) waits for the Noto Sans Arabic switch, because it re-records goldens. The
-  owner's open questions Q1–Q7 are in `docs/roadmap/README.md`, decision 1.
+  page, the data export) can start: the Noto Sans Arabic switch it waited for, because it
+  re-records goldens, is in place (D-19). The owner's open questions Q1–Q7 are in
+  `docs/roadmap/README.md`, decision 1.
 - The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
   items are researched and planned, one plan each in `docs/roadmap/`, indexed by
   `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
@@ -130,7 +137,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
 - `20261112092618_residence.sql` is **not applied** to the hosted project (D-14: the owner applies
   it, then "After every migration" in `docs/operations.md`, then `tool/db/time_zone_skew.sql` on
-  the hosted project).
+  the hosted project). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
+  speaker notes) says 21 reviewed write functions, which stays true of the hosted project until
+  then; its wording after that is the owner's to choose.
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
   was applied on 2026-11-09 by the process in `docs/operations.md`; afterwards no live automatic
