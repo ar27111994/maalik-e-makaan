@@ -1139,13 +1139,47 @@ def check_version_mentions(repo: Repo, tracked: Tracked) -> list[Problem]:
         if path in DATED or path.startswith(".planning/") or not repo.exists(path):
             continue
         text = strip_generated(repo.text(path))
-        for line_number, line in enumerate(text.split("\n"), start=1):
-            for regex, agrees, source in rules:
-                for match in regex.finditer(line):
-                    value = next(group for group in match.groups() if group is not None)
-                    if not agrees(value):
-                        problems.append(Problem(path, line_number, f"says {match[0]}; {source}"))
+        joined, origin = soft_joined(text)
+        found = []
+        for regex, agrees, source in rules:
+            for match in regex.finditer(joined):
+                value = next(group for group in match.groups() if group is not None)
+                if not agrees(value):
+                    line_number = text.count("\n", 0, origin[match.start()]) + 1
+                    found.append((origin[match.start()], line_number, match[0], source))
+        problems += [
+            Problem(path, line_number, f"says {words}; {source}")
+            for _, line_number, words, source in sorted(found)
+        ]
     return problems
+
+
+def soft_joined(text: str) -> tuple[str, list[int]]:
+    """The text with each Markdown soft line break (a single newline, with the spaces around
+    it) read as one space, so "Node" at the end of a line and "22" at the start of the next
+    are one mention; a blank line still ends the paragraph. Also returns, for each character
+    of the result, its offset in the text, so a match reports its real line."""
+    out: list[str] = []
+    origin: list[int] = []
+    i = 0
+    while i < len(text):
+        if text[i] == "\n":
+            j = i + 1
+            while j < len(text) and text[j] in " \t":
+                j += 1
+            before = text[i - 1] if i else "\n"
+            if before != "\n" and j < len(text) and text[j] != "\n":
+                while out and out[-1] in " \t":
+                    out.pop()
+                    origin.pop()
+                out.append(" ")
+                origin.append(i)
+                i = j
+                continue
+        out.append(text[i])
+        origin.append(i)
+        i += 1
+    return "".join(out), origin
 
 
 def check_generated_files_table(repo: Repo, tracked: Tracked) -> list[Problem]:

@@ -839,6 +839,28 @@ class VersionMentionsTest(FixtureCase):
             [(p, n) for p, n, _ in found], [("docs/extra.md", 3), ("docs/extra.md", 4)]
         )
 
+    def test_a_mention_wrapped_across_lines_is_read(self) -> None:
+        # Prettier wraps prose at 100 columns, so "Node" can end one line and "20" start the
+        # next; the problem is reported on the line where the mention starts.
+        for words, line in (
+            ("It uses Node\n20 today.", 3),
+            ("It uses Node   \n   20 today.", 3),
+            ("- a list item that ends in Node\n  20, then more.", 3),
+            ("First line.\nIt uses Flutter\n3.46 today.", 4),
+        ):
+            found = self.mention(words)
+            self.assertEqual([(p, n) for p, n, _ in found], [("docs/extra.md", line)], words)
+
+    def test_a_blank_line_still_ends_the_paragraph(self) -> None:
+        self.assertEqual(self.mention("It uses Node\n\n20 people."), [])
+        self.assertEqual(self.mention("It uses Node\n   \n20 people."), [])
+
+    def test_soft_joined_keeps_offsets(self) -> None:
+        joined, origin = reg.soft_joined("a  \n  b\n\nc")
+        self.assertEqual(joined, "a b\n\nc")
+        self.assertEqual([origin[joined.index(x)] for x in "abc"], [0, 6, 9])
+        self.assertEqual(reg.soft_joined("\nx\n"), ("\nx\n", [0, 1, 2]))
+
     def test_llms_txt_is_read(self) -> None:
         found = self.run_check(
             check("version-mentions"), {"llms.txt": "# Project\n\n> Flutter 3.1 on Supabase.\n"}
