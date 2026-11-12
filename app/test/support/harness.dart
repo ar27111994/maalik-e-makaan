@@ -31,7 +31,6 @@ import 'package:maalik_e_makaan/src/features/operations/data/operations_reposito
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
 import 'package:maalik_e_makaan/src/features/properties/data/property_repository.dart';
-import 'package:maalik_e_makaan/src/features/reminders/application/reminders.dart';
 import 'package:maalik_e_makaan/src/features/reminders/data/reminder_repository.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
 import 'package:maalik_e_makaan/src/features/tenants/data/tenant_repository.dart';

@@ -1,4 +1,3 @@
-import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -358,9 +357,3 @@ abstract final class Etiquette {
     ];
   }
 }
-
-/// Now, for the etiquette guard; tests fix it.
-final Provider<DateTime Function()> nowProvider = Provider(
-  (ref) =>
-      () => clock.now().toUtc(),
-);

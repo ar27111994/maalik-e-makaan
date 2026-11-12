@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -95,3 +96,11 @@ final Provider<CalendarDate> todayProvider = Provider.autoDispose<CalendarDate>(
 /// Today in Pakistan, as [todayProvider] says.
 CalendarDate today(BuildContext context) =>
     ProviderScope.containerOf(context, listen: false).read(todayProvider);
+
+/// Now, as an instant in UTC: for the reminders' etiquette, when a
+/// question may be asked again, and the person's own time beside Pakistan
+/// time. Tests fix it.
+final Provider<DateTime Function()> nowProvider = Provider(
+  (ref) =>
+      () => clock.now().toUtc(),
+);
