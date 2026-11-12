@@ -16,12 +16,15 @@ import type { EmailMessage } from '../_shared/email.ts';
 import { EMAIL_TYPOGRAPHY } from '../_shared/email_typography.g.ts';
 import {
   displayName,
+  expiryPieces,
   formatExpiry,
   type InvitationEmailInput,
   inviterLabel,
   type InviteRole,
+  inviterPieces,
   type Locale,
   looksLikeLink,
+  plainText,
   renderInvitationEmail,
   SUBJECTS,
 } from '../invite-member/email.ts';
@@ -202,8 +205,14 @@ Deno.test('the Urdu half is set in the generated e-mail type, never Nastaliq (D-
       `<div lang="en" dir="ltr" style="font-family:'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;line-height:1.55;text-align:left;">\n` +
         '<h1 style="margin:0 0 12px;font-size:22px;color:#1F2328;">',
     );
-    assertEquals(count(html, 'font-family:'), 3, locale); // two sections and the footer
-    assertFalse(/nastaliq|nastaleeq/i.test(html), locale);
+    // The two halves, the Urdu half's link, and the footer and its wordmark.
+    assertEquals(count(html, 'font-family:'), 5, locale);
+    // Nastaliq only for the brand name in the footer, where it stands as the wordmark.
+    const wordmark =
+      `<span lang="ur" dir="rtl" style="font-family:${EMAIL_TYPOGRAPHY.urduWordmark.fontFamily};">مالکِ مکان</span></p>`;
+    assertStringIncludes(html, `>Maalik-e-Makaan · ${wordmark}`);
+    assertEquals(count(html, EMAIL_TYPOGRAPHY.urduWordmark.fontFamily), 1, locale);
+    assertFalse(/nastaliq|nastaleeq/i.test(html.replace(wordmark, '')), locale);
   }
 });
 
@@ -222,6 +231,121 @@ Deno.test('each Urdu text is a size larger than its English, on a line of whole,
     assert(line >= Math.round(line) && line - Math.round(line) < 1 / 64, style);
     assertEquals(Math.round(line) % 2, 0, style);
   }
+});
+
+/** Elements that have no end tag. */
+const VOID_ELEMENTS = new Set(['br', 'hr', 'img', 'meta', 'link', 'input']);
+
+/** Each run of text in [html], with the attributes of the elements it is in, outermost first. */
+function textRuns(html: string): Array<{ text: string; within: Array<Record<string, string>> }> {
+  const runs: Array<{ text: string; within: Array<Record<string, string>> }> = [];
+  const open: Array<{ tag: string; attributes: Record<string, string> }> = [];
+  for (const match of html.matchAll(/<(\/?)([a-z][a-z0-9]*)([^>]*)>|<![^>]*>|([^<]+)/gi)) {
+    const [, closing, tag, attributes = '', text] = match;
+    if (text !== undefined) {
+      runs.push({ text, within: open.map((element) => element.attributes) });
+    } else if (tag !== undefined && closing === '/') {
+      open.splice(open.findLastIndex((element) => element.tag === tag.toLowerCase()));
+    } else if (tag !== undefined && !VOID_ELEMENTS.has(tag.toLowerCase())) {
+      const pairs = [...attributes.matchAll(/([a-z-]+)="([^"]*)"/g)];
+      open.push({
+        tag: tag.toLowerCase(),
+        attributes: Object.fromEntries(pairs.map((pair) => [pair[1], pair[2]])),
+      });
+    }
+  }
+  return runs;
+}
+
+/** The language of the innermost element with a lang attribute. */
+function langOf(within: Array<Record<string, string>>): string | undefined {
+  return within.findLast((attributes) => attributes.lang !== undefined)?.lang;
+}
+
+Deno.test('every Urdu letter of the e-mail is in an element marked lang="ur", the footer too', () => {
+  for (const locale of LOCALES) {
+    const runs = textRuns(renderInvitationEmail({ ...INPUT, locale }).html);
+    const urdu = runs.filter((run) => /[؀-ۿ]/.test(run.text));
+    // The heading, the intro and validity between their values, the button, the two notes and
+    // the wordmark; with Urdu first, the title (the Urdu subject) too.
+    assertEquals(urdu.length, locale === 'ur' ? 11 : 10, locale);
+    for (const run of urdu) assertEquals(langOf(run.within), 'ur', run.text);
+  }
+});
+
+Deno.test('in the Urdu half every Latin value is isolated, so it keeps its order in the sentence', () => {
+  for (const locale of LOCALES) {
+    const html = renderInvitationEmail({ ...INPUT, locale }).html;
+    const urdu = section(html, 'ur');
+    // The inviter's name and address, the quoted portfolio name, the time and the recipient.
+    assertStringIncludes(
+      urdu,
+      '<span dir="auto">Ahmed Raza</span> (<span dir="ltr" style="word-break:break-word;">ahmed@example.com</span>) نے',
+    );
+    assertStringIncludes(
+      urdu,
+      ' پر <span dir="auto">&quot;Raza Family Properties&quot;</span> نام',
+    );
+    assertStringIncludes(urdu, ' کو <span dir="ltr">5:00 PM</span> (پاکستانی وقت) تک');
+    assertStringIncludes(
+      urdu,
+      ' صرف <span dir="ltr" style="word-break:break-word;">imran@example.com</span> کے لیے',
+    );
+    for (const run of textRuns(urdu)) {
+      if (!/[A-Za-z]/.test(run.text) || langOf(run.within) !== 'ur') continue;
+      // Inside an element of its own direction, within the section (whose dir is rtl).
+      assert(run.within.slice(1).some((attributes) => attributes.dir !== undefined), run.text);
+    }
+    // The English half sets no direction of its own, but lets an address break.
+    const english = section(html, 'en');
+    assertFalse(english.includes('<span dir='), locale);
+    assertStringIncludes(
+      english,
+      ' only for <span style="word-break:break-word;">imran@example.com</span>. Sign in',
+    );
+  }
+});
+
+Deno.test("the Urdu half's link is English text: lang en, the English face, aligned left", () => {
+  const urdu = section(renderInvitationEmail(INPUT).html, 'ur');
+  assertStringIncludes(
+    urdu,
+    `<p dir="ltr" lang="en" style="margin:0 0 12px;font-family:'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;font-size:13px;line-height:${EMAIL_TYPOGRAPHY.urdu.caption.lineHeight};text-align:left;word-break:break-all;"><a href="${INPUT.inviteUrl}"`,
+  );
+  const link = textRuns(urdu).filter((run) => run.text === INPUT.inviteUrl);
+  assertEquals(link.map((run) => langOf(run.within)), ['en']);
+});
+
+Deno.test('a value is marked by its kind in the pieces, and the text part reads as before', () => {
+  assertEquals(inviterPieces('Ahmed Raza', 'ahmed@example.com', 'ur'), [
+    { kind: 'name', value: 'Ahmed Raza' },
+    ' (',
+    { kind: 'address', value: 'ahmed@example.com' },
+    ')',
+  ]);
+  assertEquals(inviterPieces('', 'ahmed@example.com', 'en'), [
+    { kind: 'address', value: 'ahmed@example.com' },
+  ]);
+  assertEquals(inviterPieces('', null, 'ur'), ['کسی']);
+  for (const locale of LOCALES) {
+    const pieces = expiryPieces(INPUT.expiresAt, locale);
+    assertEquals(pieces.filter((piece) => typeof piece !== 'string'), [
+      { kind: 'time', value: locale === 'ur' ? '5:00 PM' : '5:00 pm' },
+    ]);
+    assertEquals(plainText(pieces), formatExpiry(INPUT.expiresAt, locale));
+  }
+  // An Urdu name sets its own direction (auto), whatever the half.
+  const urduName = renderInvitationEmail({
+    ...INPUT,
+    inviterName: 'احمد رضا',
+    portfolioName: 'رضا خاندان',
+  });
+  assertStringIncludes(section(urduName.html, 'ur'), '<span dir="auto">احمد رضا</span> (');
+  assertStringIncludes(
+    section(urduName.html, 'ur'),
+    '<span dir="auto">&quot;رضا خاندان&quot;</span>',
+  );
+  assertStringIncludes(section(urduName.html, 'en'), '>احمد رضا (<span style="word-break:');
 });
 
 Deno.test('the generated e-mail type starts with Noto Sans Arabic, ends sans-serif and keeps Nastaliq for the wordmark', () => {
@@ -349,7 +473,8 @@ Deno.test('every name and the link are HTML-escaped in the html part and verbati
   const url = 'https://app.example.com/invite#token=a&quot;b&#39;c&lt;d&gt;&amp;e';
   // Each language's intro, inside the quotes the template adds.
   assertEquals(count(message.html, `&quot;${portfolio}&quot;`), 2);
-  assertEquals(count(message.html, `${inviter} (ahmed@example.com)`), 2);
+  assertStringIncludes(message.html, `>${inviter} (<span style="word-break:break-word;">`);
+  assertStringIncludes(message.html, `<span dir="auto">${inviter}</span> (<span dir="ltr" `);
   // Each language's button and fallback link: the URL as attribute twice, as text once.
   assertEquals(count(message.html, `href="${url}"`), 4);
   assertEquals(count(message.html, `>${url}</a>`), 2);
