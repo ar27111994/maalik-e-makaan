@@ -15,10 +15,13 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   wordmark مالکِ مکان. Urdu pages download 50,892 bytes of Urdu fonts instead of 196,068; English
   pages 1,352 on a phone and 16,788 from 30rem wide (where the header shows the wordmark) instead
   of 23,696. The app bundles Noto Sans Arabic at its normal width and Nastaliq cut to the
-  wordmark's letters (`make fonts`): its fonts come to about 700 KB, down from 838 KB. Not yet
-  changed: the e-mail templates (`supabase/templates/` and `invite-member`), the gallery's Urdu
-  screenshots, and an independent design review of the change (`docs/design-qa.md`). Pilot
-  readers confirm the face (`docs/roadmap/urdu-review.md`).
+  wordmark's letters (`make fonts`): its fonts come to about 700 KB, down from 838 KB. The
+  e-mails followed (branch `claude/email-urdu-font`): the three Auth templates and the invitation
+  set Urdu text in Noto Sans Arabic or an installed sans, with Nastaliq only for the header's
+  wordmark, written by `make tokens`; the owner pastes the three template bodies again after the
+  release that carries them (`docs/release-readiness.md`, Owner actions, item 5). Not yet
+  changed: the gallery's Urdu screenshots, and an independent design review of the change
+  (`docs/design-qa.md`). Pilot readers confirm the face (`docs/roadmap/urdu-review.md`).
 - The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
   items are researched and planned, one plan each in `docs/roadmap/`, indexed by
   `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
