@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.1.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.0.1...v1.1.0) (2026-11-12)
+
+
+### Features
+
+* **app:** recover camera photos Android loses, and the app's own launcher icon ([#51](https://github.com/ar27111994/maalik-e-makaan/issues/51)) ([353e625](https://github.com/ar27111994/maalik-e-makaan/commit/353e625fb34274fa886dd0141d043df14a2ef6c6))
+* **repo:** the roadmap as code, synced to GitHub milestones and issues, with a researched plan for each item ([3886aed](https://github.com/ar27111994/maalik-e-makaan/commit/3886aed59c0b975bafe44284764feba29708474e))
+* **ui:** set Urdu interface text in Noto Sans Arabic, with Nastaliq kept for the wordmark ([#58](https://github.com/ar27111994/maalik-e-makaan/issues/58)) ([f316bb7](https://github.com/ar27111994/maalik-e-makaan/commit/f316bb79ff84c099c5505c603a29bbb5e24c59b0))
+* **web:** a company page with the pitch deck, rendered with each release ([3886aed](https://github.com/ar27111994/maalik-e-makaan/commit/3886aed59c0b975bafe44284764feba29708474e))
+* **web:** a pricing page: free for up to 5 let units, Pro and Business in rupees, Overseas for owners abroad, all free during early access ([3886aed](https://github.com/ar27111994/maalik-e-makaan/commit/3886aed59c0b975bafe44284764feba29708474e))
+* **web:** a roadmap page, live from the roadmap's GitHub milestones and issues ([3886aed](https://github.com/ar27111994/maalik-e-makaan/commit/3886aed59c0b975bafe44284764feba29708474e))
+* **web:** every page describes the released app ([3886aed](https://github.com/ar27111994/maalik-e-makaan/commit/3886aed59c0b975bafe44284764feba29708474e))
+* **web:** release notes and the current version on the site, built from each release ([3886aed](https://github.com/ar27111994/maalik-e-makaan/commit/3886aed59c0b975bafe44284764feba29708474e))
+
+
+### Bug fixes
+
+* **repo:** write the Urdu in plain everyday words, with a glossary and a lint guard ([#52](https://github.com/ar27111994/maalik-e-makaan/issues/52)) ([be1bdf9](https://github.com/ar27111994/maalik-e-makaan/commit/be1bdf93ac3c6b73bf4ca07c940f7de1732dc7f4))
+
+
+### Documentation
+
+* **planning:** record the owner's answers on caretakers, currency, letterheads and data regions ([#53](https://github.com/ar27111994/maalik-e-makaan/issues/53)) ([9480e22](https://github.com/ar27111994/maalik-e-makaan/commit/9480e220946b307267c187ad7bc21723e01df145))
+* **repo:** add formal verification and agentification to the quality bar ([#57](https://github.com/ar27111994/maalik-e-makaan/issues/57)) ([4d32f1e](https://github.com/ar27111994/maalik-e-makaan/commit/4d32f1eda5401bd203cf151cac984acfe74bfa3c))
+* **repo:** write the owner's way of working and quality bar into AGENTS.md ([#55](https://github.com/ar27111994/maalik-e-makaan/issues/55)) ([eea6698](https://github.com/ar27111994/maalik-e-makaan/commit/eea669857a20a9030af19ce96ca052ca7b52f34e))
+
 ## [1.0.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.0.0...v1.0.1) (2026-11-09)
 
 
