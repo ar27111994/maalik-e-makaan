@@ -202,8 +202,9 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    sign-up e-mail. The app uses no magic link, invite or reauthentication e-mail. The hosted
    project keeps the copy last pasted, and Deploy does not change it (it deploys the invitation
    e-mail with `invite-member`, but not these), so paste a body again after every release that
-   changes its file (Releasing, step 5). The Urdu `font-family` and `line-height` in the files
-   are written by `make tokens` from the type tokens; edit the tokens, not the files.
+   changes its file (Releasing, step 5). The Urdu `font-family`, `font-size` and `line-height`
+   in the files are written by `make tokens` from the type tokens, at the role each Urdu element
+   names with `data-mm-type`; edit the tokens, not the values in the files.
 7. **Invitations**: the Edge Function secrets `RESEND_API_KEY` (the second key) and
    `MAIL_FROM="Maalik-e-Makaan <no-reply@mail.<domain>>"` (Edge Function secrets, above).
 8. **Check**: sign up in each language, reset a password, change an address, and invite someone

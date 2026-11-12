@@ -178,11 +178,12 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   Graph cards, the pitch deck and the e-mails (the three Auth templates in `supabase/templates/`
   and the `invite-member` invitation). An e-mail loads no web font, so its Urdu text names
   Noto Sans Arabic and then sans faces readers already have (Segoe UI and Tahoma on Windows,
-  Geeza Pro on Apple devices, the system's own on Android), on the Urdu line heights; `make tokens`
-  writes it from the tokens, and `make tokens-check` fails when a template differs. The wordmark
-  appears in the app's e-mail-link sign-in and portfolio-loading screens, the website's header and
-  cards, the deck's cover and the header of the Auth e-mails. Still on Nastaliq: the gallery's
-  screenshots, which predate the change.
+  Geeza Pro on Apple devices, the system's own on Android), at the Urdu type roles' sizes (a
+  size larger than the English) on lines of whole pixels; `make tokens` writes it from the
+  tokens, and `make tokens-check` fails when a template differs. The wordmark appears in the
+  app's e-mail-link sign-in and portfolio-loading screens, the website's header and cards, the
+  deck's cover, the header of the Auth e-mails and the invitation's footer. Still on Nastaliq:
+  the gallery's screenshots, which predate the change.
 
   What the app bundles (an engineering choice, 12 November 2026): Flutter on the web downloads
   every bundled font before the app starts, so the app does not ship the two upstream files

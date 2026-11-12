@@ -5,9 +5,10 @@
   pasted into the dashboard (docs/operations.md, E-mail); supabase/config.toml
   points the local stack at this file. Colours are the light theme's tokens
   (design/tokens/maalik.tokens.css), written out because e-mail clients ignore
-  CSS variables. The font-family and line-height of the Urdu elements are written
-  by `make tokens` from the type tokens (D-19: Urdu text in installed sans faces,
-  Nastaliq for the wordmark only), and `make tokens-check` fails if they differ.
+  CSS variables. The type of the Urdu elements is written by `make tokens` from the
+  type tokens (D-19: Urdu text in installed sans faces, at the size and line height
+  of the Urdu role each names with data-mm-type; Nastaliq for the wordmark only),
+  and `make tokens-check` fails if it differs.
 -->
 <html lang="en">
   <head>
