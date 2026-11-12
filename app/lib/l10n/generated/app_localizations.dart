@@ -5615,31 +5615,31 @@ abstract class AppLocalizations {
     String date,
   );
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'electricity'**
   String get reminderElectricity;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'gas'**
   String get reminderGas;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'water'**
   String get reminderWater;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'internet'**
   String get reminderInternet;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'utility'**
@@ -5720,31 +5720,31 @@ abstract class AppLocalizations {
     String date,
   );
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
   /// **'bijli ka bill'**
   String get reminderRomanElectricity;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
   /// **'gas ka bill'**
   String get reminderRomanGas;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
   /// **'paani ka bill'**
   String get reminderRomanWater;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
   /// **'internet ka bill'**
   String get reminderRomanInternet;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
   /// **'bill'**
@@ -9230,7 +9230,7 @@ abstract class AppLocalizations {
   /// **'Keep the repair'**
   String get keepRepairAction;
 
-  /// The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous, in Urdu too: both are منسوخ کریں): the invitation stays.
+  /// The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous: both would say Cancel): the invitation stays.
   ///
   /// In en, this message translates to:
   /// **'Keep the invitation'**
