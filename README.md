@@ -20,7 +20,7 @@ that global tools ignore:
 
 ## Status
 
-**v1.1.0 is the latest release** <!-- x-release-please-version -->
+**v1.1.1 is the latest release** <!-- x-release-please-version -->
 ([release notes](CHANGELOG.md), downloads on the
 [releases page](https://github.com/ar27111994/maalik-e-makaan/releases)): Android APKs and app
 bundle, the web app at <https://maalik-e-makaan.vercel.app> and an unsigned iOS build; the first,
