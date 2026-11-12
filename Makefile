@@ -56,7 +56,7 @@ format-check-repo: ## Formatting of Python, shell and docs (no Flutter or Deno n
 	npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
 .PHONY: lint
-lint: ## Lint Python, shell, workflows, migrations, docs, text, Urdu words and the Android manifest
+lint: ## Lint Python, shell, workflows, migrations, docs, text, Urdu words, the Android manifest and the design lint
 	ruff check $(PYTHON_SOURCES)
 	shellcheck $(SHELL_SOURCES)
 	actionlint
@@ -108,7 +108,7 @@ goldens: ## Re-record golden images (review the diff before committing!)
 	cd app && $(FLUTTER) test --update-goldens --tags golden
 
 .PHONY: test-integration
-test-integration: ## Flutter integration tests on the Linux desktop target (needs xvfb)
+test-integration: ## Flutter integration tests in app/integration_test/ on Linux (none yet: the app's end-to-end tests are test-uat)
 	cd app && xvfb-run -a $(FLUTTER) test integration_test -d linux
 
 .PHONY: test-db
@@ -117,7 +117,7 @@ test-db: ## Migrations + pgTAP suite, and the migrations' data changes, on a loc
 	tool/db/upgrade_test.sh
 
 .PHONY: test-db-concurrency
-test-db-concurrency: ## Parallel payments, retries and billing races keep the ledger invariants
+test-db-concurrency: ## Payments, retries, billing, deletions and membership changes racing in parallel keep the invariants
 	tool/db/concurrency_test.sh
 
 .PHONY: test-db-stress
@@ -223,7 +223,7 @@ fonts-check: ## Fail when the app's Urdu fonts are out of date with design/fonts
 	python3 tool/design/build_fonts.py --check
 
 .PHONY: app-icons
-app-icons: ## Rebuild the app's launcher icons (Android, iOS, web) from the brand mark and the colour tokens
+app-icons: ## Rebuild the app's launcher icons (Android, iOS, web, Google Play) from the brand mark and the colour tokens
 	python3 tool/design/build_app_icons.py
 
 .PHONY: app-icons-check

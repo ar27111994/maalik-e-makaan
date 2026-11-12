@@ -23,8 +23,8 @@ make test-db-concurrency
 make formal-install verify   # when you change the ledger, locking or money code (formal/README.md)
 ```
 
-`make lint` runs ruff, shellcheck, actionlint, squawk (on migrations newer than its baseline),
-editorconfig-checker, markdownlint, the Unicode guard, the plain-Urdu guard and the design lint.
+`make lint` runs the linters and guards listed in
+[`docs/agents/commands.md`](docs/agents/commands.md#gates).
 The Dart packages use `very_good_analysis` and the Edge Functions `deno lint`.
 
 When a change moves pixels, re-record the goldens on Linux with `make goldens`, look at every

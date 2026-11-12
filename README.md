@@ -37,7 +37,7 @@ what the owner must still do.
 ## Screenshots
 
 From the design-system gallery's acceptance record
-([`packages/mm_ui/example/screenshots/`](packages/mm_ui/example/screenshots), 181 images: every
+([`packages/mm_ui/example/screenshots/`](packages/mm_ui/example/screenshots): every
 page in English light and Urdu dark, on a phone and a desktop window):
 
 <p>
@@ -142,7 +142,7 @@ target, so a green `make` means a green pull request:
   local Supabase stack, each checked against the database (`make test-uat`,
   [`docs/uat.md`](docs/uat.md));
 - the website's checks, unit tests, Playwright with axe, and Lighthouse budgets;
-- release builds for the web and Android.
+- release builds for the web, Android and iOS (unsigned).
 
 Commit messages and pull-request titles follow Conventional Commits with the scopes in
 [`commitlint.config.mjs`](commitlint.config.mjs); release-please writes the changelog and the

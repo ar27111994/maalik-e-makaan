@@ -17,10 +17,10 @@ purpose: read the file for the area you are changing, not everything.
 | `formal/`           | TLA+, Lean 4, Z3 and Bend models and proofs                                     | [`formal/AGENTS.md`](formal/AGENTS.md)                       |
 | `contracts/`        | Test vectors shared by Dart, SQL and TypeScript; the Urdu glossary              | [`docs/agents/conventions.md`](docs/agents/conventions.md)   |
 | `design/`           | Design-token, icon and font sources (`make tokens`, `make icons`, `make fonts`) | [`packages/mm_ui/AGENTS.md`](packages/mm_ui/AGENTS.md)       |
-| `tool/`             | Repository tooling (db, design, coverage, formal, web, guards)                  | [`docs/agents/commands.md`](docs/agents/commands.md)         |
+| `tool/`             | Repository tooling: generators, checks and test harnesses                       | [`docs/agents/commands.md`](docs/agents/commands.md)         |
 | `docs/`             | Architecture, operations runbook, permissions, design QA                        | [`docs/README.md`](docs/README.md)                           |
 | `.planning/`        | Project decisions, requirements, roadmap, current state                         | [`.planning/STATE.md`](.planning/STATE.md)                   |
-| `.github/`          | Workflows (CI, Security, Release, Deploy, Backup); issue, PR forms              | [`docs/agents/commands.md`](docs/agents/commands.md#ci-jobs) |
+| `.github/`          | The workflows, Dependabot, the roadmap file; issue and PR forms                 | [`docs/agents/commands.md`](docs/agents/commands.md#ci-jobs) |
 
 ## Commands
 

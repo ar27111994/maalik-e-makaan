@@ -415,12 +415,12 @@ after it, which adds them. The `site` job:
    the Content-Security-Policy, HSTS, `nosniff`, `X-Frame-Options`, `Referrer-Policy`,
    `Permissions-Policy` and `Cross-Origin-Opener-Policy`.
 
-CI's `website` job checks every push first: `npm run check`, `npm test`, `npm run build`,
-`npm run test:e2e` (links, then Playwright with axe) and Lighthouse on eight pages
-(`npm run lighthouse:ci`); `make test-web` runs the same sequence.
+CI's `website` job checks every push first, with the steps of `make test-web` (listed in
+[`docs/agents/commands.md`](agents/commands.md#tests-by-area)), Lighthouse on a subset of pages
+included.
 
-The Release workflow builds the signed Android app and attaches the web build to the release. The
-workflows read these repository settings:
+The Release workflow builds the signed Android app and an unsigned iOS app, and attaches them and
+the web build to the release. The workflows read these repository settings:
 
 | Setting                     | Kind     | What it is                                                                |
 | --------------------------- | -------- | ------------------------------------------------------------------------- |
@@ -436,6 +436,7 @@ workflows read these repository settings:
 | `SUPABASE_URL`              | variable | `https://aaifamxzzjspohwksxyr.supabase.co`                                |
 | `SUPABASE_PUBLISHABLE_KEY`  | variable | The project's publishable (client) key                                    |
 | `APP_URL`                   | variable | `https://maalik-e-makaan.vercel.app`; also the website's `PUBLIC_APP_URL` |
+| `BACKUP_AGE_RECIPIENTS`     | variable | The public keys the weekly backup is encrypted to, one per line (Backups) |
 
 The `production` environment should require a reviewer; `release` holds the signing secrets.
 

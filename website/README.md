@@ -108,6 +108,7 @@ served from the site. The e2e suite fails if a page makes a request that fails o
 ```text
 website/
   astro.config.ts          site URL, i18n routing, integrations
+  deck/                    the pitch deck's slides and data (deck/README.md)
   integrations/
     brand-assets.ts        font subsets and the type scale, generated from the design system
     site-checks.ts         build guards: every page in both languages, no inline code
@@ -118,7 +119,8 @@ website/
     components/            Seo, JsonLd, SiteHeader, LanguageSwitch, Breadcrumbs, Receipt, …
     components/tools/      the calculator form, its result and each calculator's script tag
     content/               the copy, in en and ur: home/, features/, how-it-works/, faq/,
-                           download/, licences/ (YAML); guides/, tools/, pages/ (Markdown)
+                           download/, licences/, company/, pricing/ (YAML); guides/, tools/,
+                           pages/ (Markdown)
     i18n/                  locales and URL mapping, the interface strings, script detection
     lib/money/             exact money and rent arithmetic for the calculators (integer paisa)
     lib/tax/s155.ts        section 155 withholding on rent, TY2027 (the FBR rate card)
@@ -129,7 +131,8 @@ website/
     lib/llms.ts, robots.ts llms.txt, llms-full.txt and robots.txt, built from the content
     styles/global.css      base styles on the design tokens
     generated/             (git-ignored) font subsets, @font-face rules, type scale
-  scripts/                 serve.ts (local Vercel), check-links.ts, generate-og.ts
+  scripts/                 serve.ts (local Vercel), check-links.ts, generate-og.ts,
+                           render-deck.ts (npm run deck)
   tests/unit/              Vitest
   tests/e2e/               Playwright
 ```
@@ -245,8 +248,7 @@ Add `src/content/guides/en/<slug>.md` and `src/content/guides/ur/<slug>.md`; see
 [`src/content/guides/README.md`](src/content/guides/README.md) for the front matter and the
 writing rules. The guide appears at `/guides/<slug>/` and `/ur/guides/<slug>/`, in the sitemap,
 in `llms.txt` and `llms-full.txt`, with Article and BreadcrumbList structured data, its review
-date, the not-advice notice and its sources. Until the first guide exists the build logs that
-the `guides` collection is empty; that warning is expected.
+date, the not-advice notice and its sources.
 
 ### Pages that update themselves
 
