@@ -4,11 +4,13 @@
  */
 import atkinson from "../../../packages/mm_ui/assets/fonts/OFL-AtkinsonHyperlegibleNext.txt?raw";
 import nastaliq from "../../../packages/mm_ui/assets/fonts/OFL-NotoNastaliqUrdu.txt?raw";
+import sansArabic from "../../../packages/mm_ui/assets/fonts/OFL-NotoSansArabic.txt?raw";
 import { FONT_LICENCES } from "./licences.ts";
 
 const TEXTS: Readonly<Record<string, string>> = {
   "OFL-AtkinsonHyperlegibleNext.txt": atkinson,
   "OFL-NotoNastaliqUrdu.txt": nastaliq,
+  "OFL-NotoSansArabic.txt": sansArabic,
 };
 
 /** The full licence text for the font licence `slug`. */

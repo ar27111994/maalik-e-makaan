@@ -10,6 +10,11 @@ export const FONT_LICENCES = [
     sourceFile: "OFL-AtkinsonHyperlegibleNext.txt",
   },
   {
+    slug: "ofl-noto-sans-arabic",
+    family: "Noto Sans Arabic",
+    sourceFile: "OFL-NotoSansArabic.txt",
+  },
+  {
     slug: "ofl-noto-nastaliq-urdu",
     family: "Noto Nastaliq Urdu",
     sourceFile: "OFL-NotoNastaliqUrdu.txt",
@@ -18,7 +23,7 @@ export const FONT_LICENCES = [
 
 export type FontLicence = (typeof FONT_LICENCES)[number];
 
-/** The URL path of a licence text, e.g. "/licences/ofl-noto-nastaliq-urdu.txt". */
+/** The URL path of a licence text, e.g. "/licences/ofl-noto-sans-arabic.txt". */
 export function fontLicencePath(slug: string): string {
   return `/licences/${slug}.txt`;
 }

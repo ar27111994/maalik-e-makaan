@@ -42,9 +42,9 @@ const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
   <div class="container site-header__inner">
     <a class="brand" href={home}>
       <BrandMark />
-      <span class="brand__name">{primaryName}</span>
+      <span class:list={["brand__name", locale === "ur" && "wordmark"]}>{primaryName}</span>
       <span
-        class:list={["brand__secondary", locale === "en" && "ur-label"]}
+        class:list={["brand__secondary", locale === "en" && "wordmark"]}
         lang={locale === "en" ? "ur" : "en"}
       >
         {secondaryName}
@@ -107,6 +107,11 @@ const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
     display: none;
     color: var(--mm-color-ink-muted);
     font-weight: 400;
+  }
+
+  /* The wordmark keeps its own weight (global.css), the one weight its font subset holds. */
+  .brand__secondary.wordmark {
+    font-weight: var(--mm-type-urdu-wordmark-weight);
   }
 
   .site-header :global(.language-switch) {

@@ -33,13 +33,24 @@ describe("font licences", () => {
       // No Reserved Font Name: the subsets may keep the fonts' names.
       expect(text.split("\n")[0]).not.toMatch(/Reserved Font Name/i);
     }
+    expect(copyrightLine(licenceTexts["ofl-noto-sans-arabic"] ?? "")).toBe(
+      "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic)",
+    );
     expect(copyrightLine(licenceTexts["ofl-noto-nastaliq-urdu"] ?? "")).toBe(
       "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/nastaliq)",
     );
   });
 
+  test("lists the three fonts the site serves: Latin, Urdu and the Urdu wordmark", () => {
+    expect(FONT_LICENCES.map((font) => font.family)).toEqual([
+      "Atkinson Hyperlegible Next",
+      "Noto Sans Arabic",
+      "Noto Nastaliq Urdu",
+    ]);
+  });
+
   test("paths and lookups", () => {
-    expect(fontLicencePath("ofl-noto-nastaliq-urdu")).toBe("/licences/ofl-noto-nastaliq-urdu.txt");
+    expect(fontLicencePath("ofl-noto-sans-arabic")).toBe("/licences/ofl-noto-sans-arabic.txt");
     expect(fontLicence("ofl-atkinson-hyperlegible-next").family).toBe("Atkinson Hyperlegible Next");
     expect(() => fontLicence("ofl-unknown")).toThrow(/Unknown/);
     expect(() => copyrightLine("no notice here")).toThrow(/no copyright line/);

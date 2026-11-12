@@ -72,7 +72,7 @@ sections:
   - id: "languages"
     heading: "Urdu and English as equals"
     status: "v1"
-    body: "Choose either language when you first open the app. Urdu reads right to left in Nastaliq, at a size that is comfortable to read."
+    body: "Choose either language when you first open the app. Urdu reads right to left, in clear letters at a size that is comfortable to read on a phone."
     points:
       - "Every screen, receipt and statement in both languages."
       - "Amounts in figures that line up, with lakh and crore if you prefer them."

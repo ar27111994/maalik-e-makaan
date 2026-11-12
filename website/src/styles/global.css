@@ -59,7 +59,7 @@ body {
   overflow-wrap: break-word;
 }
 
-/* Urdu: Nastaliq needs a size step up and about twice the line height. */
+/* Urdu: its own type roles from the tokens, a step larger than Latin, on a taller line. */
 html[lang="ur"] body {
   font-size: var(--mm-type-urdu-body-size);
   line-height: var(--mm-type-urdu-body-line);
@@ -165,8 +165,8 @@ kbd {
 
 /* Tables in long-form text are wrapped in .table-scroll at build time (src/lib/markdown/tables.ts). */
 
+/* The Urdu page title keeps the Latin size and takes the Urdu headline's taller line. */
 html[lang="ur"] h1 {
-  font-size: clamp(1.875rem, 1.5rem + 1.5vw, 2.5rem);
   line-height: var(--mm-type-urdu-headline-line);
 }
 
@@ -248,10 +248,25 @@ a:hover {
   border: 0;
 }
 
-/* Urdu words on English pages use a small subset of the Nastaliq font. */
+/*
+ * Urdu words on English pages (the language switch's "اردو") use a few letters
+ * of the Urdu face, in the label role's one weight.
+ */
 .ur-label {
-  font-family: "MM Nastaliq Label", var(--mm-font-urdu);
-  font-weight: 400;
+  font-family: "MM Urdu Label", var(--mm-font-urdu);
+  font-weight: var(--mm-type-urdu-label-weight);
+}
+
+/*
+ * The brand name مالکِ مکان where it stands as the wordmark (the header) is
+ * Nastaliq (D-19); no other text is. Its subset holds only these letters, in
+ * the wordmark's one weight. Nastaliq rises far above its baseline, so it
+ * keeps the wordmark's line, twice its size.
+ */
+.wordmark {
+  font-family: var(--mm-font-urdu-wordmark);
+  font-weight: var(--mm-type-urdu-wordmark-weight);
+  line-height: var(--mm-type-urdu-wordmark-line);
 }
 
 /* Amounts: the Latin face's figures in both languages, in even columns. */

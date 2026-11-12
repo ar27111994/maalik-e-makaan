@@ -11,8 +11,9 @@ import Seo from "../components/Seo.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import latinFont from "../generated/fonts/atkinson-hyperlegible-next-latin.woff2?url";
-import labelFont from "../generated/fonts/noto-nastaliq-urdu-label.woff2?url";
-import urduFont from "../generated/fonts/noto-nastaliq-urdu.woff2?url";
+import wordmarkFont from "../generated/fonts/noto-nastaliq-urdu-wordmark.woff2?url";
+import labelFont from "../generated/fonts/noto-sans-arabic-label.woff2?url";
+import urduFont from "../generated/fonts/noto-sans-arabic.woff2?url";
 import {
   absoluteUrl,
   LOCALE_INFO,
@@ -122,7 +123,9 @@ if (!noindex && path !== undefined) {
 }
 
 const colors = tokens.color;
-const fontPreloads = locale === "en" ? [latinFont, labelFont] : [urduFont, latinFont];
+// The page's own face first; the header's wordmark (مالکِ مکان) is on every page.
+const fontPreloads =
+  locale === "en" ? [latinFont, labelFont, wordmarkFont] : [urduFont, wordmarkFont, latinFont];
 ---
 
 <!doctype html>

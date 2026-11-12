@@ -23,7 +23,7 @@ groups:
       - question: "Does it work on a slow connection?"
         answer: "It is designed for mid-range Android phones and patchy mobile data: it shows the last data it loaded straight away while it refreshes, and a payment sent twice because the connection dropped is still recorded only once."
       - question: "Which languages does it support?"
-        answer: "English and Urdu: you choose one when you first open the app and can change it later in Settings. Urdu reads right to left in Nastaliq. WhatsApp reminders can also be written in Roman Urdu."
+        answer: "English and Urdu: you choose one when you first open the app and can change it later in Settings. Urdu reads right to left, in clear letters that are easy to read on a phone. WhatsApp reminders can also be written in Roman Urdu."
       - question: "Is it open source?"
         answer: "Yes. The app, its database and this website are public on GitHub under the MIT licence, so anyone can check how they work."
       - question: "What is planned next?"
