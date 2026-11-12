@@ -4167,6 +4167,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get billMonthLabel => 'Bill for';
 
   @override
+  String get billDueDateLabel => 'Due date';
+
+  @override
   String get unitsConsumedLabel => 'Units used';
 
   @override

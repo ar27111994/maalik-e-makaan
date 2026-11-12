@@ -201,7 +201,7 @@ class _BillFormSheetState extends ConsumerState<BillFormSheet>
             ),
           const SizedBox(height: MmSpace.s4),
           MmDateField(
-            label: l10n.dueDateLabel,
+            label: l10n.billDueDateLabel,
             value: _due,
             optional: true,
             firstDate: today.addYears(-2),
@@ -454,7 +454,7 @@ class _BillDetails extends StatelessWidget {
               ),
               if (bill.dueDate case final due?)
                 MmDetailRow(
-                  label: l10n.dueDateLabel,
+                  label: l10n.billDueDateLabel,
                   value: dateLabel(context, due),
                   userData: false,
                 ),

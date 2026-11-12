@@ -13,7 +13,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get appName => 'مالکِ مکان';
 
   @override
-  String get welcomeTitle => 'مالکِ مکان میں خوش آمدید';
+  String get welcomeTitle => 'مالکِ مکان ایپ میں خوش آمدید';
 
   @override
   String get welcomeBody =>
@@ -41,7 +41,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get signUpAction => 'اکاؤنٹ بنائیں';
 
   @override
-  String get noAccountPrompt => 'مالکِ مکان پر نئے ہیں؟';
+  String get noAccountPrompt => 'مالکِ مکان ایپ پر نئے ہیں؟';
 
   @override
   String get haveAccountPrompt => 'پہلے سے اکاؤنٹ ہے؟';
@@ -408,7 +408,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get accountDeletedBody =>
-      'آپ کا سائن اِن، پروفائل اور وہ پورٹ فولیوز جن کے آپ اکیلے مالک تھے، ختم ہو گئے ہیں۔ مالکِ مکان استعمال کرنے کا شکریہ۔';
+      'آپ کا سائن اِن، پروفائل اور وہ پورٹ فولیوز جن کے آپ اکیلے مالک تھے، ختم ہو گئے ہیں۔ مالکِ مکان ایپ استعمال کرنے کا شکریہ۔';
 
   @override
   String get emailSentAgain => 'ہم نے ای میل دوبارہ بھیج دی ہے۔';
@@ -1800,7 +1800,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get deleteTenantBody =>
-      'ان کی تفصیلات ہمیشہ کے لیے ڈیلیٹ ہو جائیں گی۔ صرف تب کریں جب یہ کرایہ دار غلطی سے شامل ہوئے ہوں۔ جس کرایہ دار کی کرایہ داری ہو، اسے ڈیلیٹ نہیں کیا جا سکتا۔ اسے آرکائیو کریں۔';
+      'ان کی تفصیلات ہمیشہ کے لیے ڈیلیٹ ہو جائیں گی۔ صرف تب کریں جب یہ کرایہ دار غلطی سے شامل ہوئے ہوں۔ جس کرایہ دار کی کرایہ داری ہو، وہ ڈیلیٹ نہیں ہو سکتے۔ انہیں آرکائیو کریں۔';
 
   @override
   String tenantDeleted(String name) {
@@ -1901,7 +1901,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get termPeriodic => 'مدت طے نہیں (مہینہ وار)';
 
   @override
-  String get endsOnLabel => 'ختم ہونے کی تاریخ';
+  String get endsOnLabel => 'کرایہ داری کب تک طے ہے';
 
   @override
   String get validationEndAfterStart =>
@@ -2207,7 +2207,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get tenancyEnded => 'کرایہ داری ختم ہو گئی۔';
 
   @override
-  String get endedOnLabel => 'ختم ہونے کی تاریخ';
+  String get endedOnLabel => 'کب ختم ہوئی';
 
   @override
   String get deleteTenancyTitle => 'یہ کرایہ داری ڈیلیٹ کریں؟';
@@ -2686,7 +2686,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String creditHeldEnded(String amount) {
-    return 'کرایہ داری ختم ہو چکی ہے اور کرایہ دار کا $amount کریڈٹ آپ کے پاس ہے۔';
+    return 'کرایہ داری ختم ہو چکی ہے، اور کرایہ دار کا $amount کریڈٹ ابھی بچا ہوا ہے۔';
   }
 
   @override
@@ -2814,7 +2814,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String chargeAdded(String kind) {
-    return '$kind کا چارج لگ گیا۔';
+    return 'چارج لگ گیا: $kind';
   }
 
   @override
@@ -4170,6 +4170,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get billMonthLabel => 'کس مہینے کا بل';
 
   @override
+  String get billDueDateLabel => 'آخری تاریخ';
+
+  @override
   String get unitsConsumedLabel => 'کتنے یونٹ استعمال ہوئے';
 
   @override
@@ -5091,7 +5094,7 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get upcomingSection => 'آج اور آنے والی تاریخیں';
+  String get upcomingSection => 'رہ گئے، آج کے اور آنے والے کام';
 
   @override
   String get upcomingEmpty => 'آنے والے ہفتوں میں کسی چیز کی تاریخ نہیں۔';

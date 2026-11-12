@@ -2537,7 +2537,7 @@
   },
   "endsOnLabel": "Ends on",
   "@endsOnLabel": {
-    "description": "Label of a tenancy's agreed end."
+    "description": "Label of a tenancy's agreed end, a term of the tenancy. Both this and endedOnLabel, the day it actually ended, can show on one screen, so the two must read differently."
   },
   "validationEndAfterStart": "Choose a date on or after the move-in date.",
   "@validationEndAfterStart": {
@@ -2961,7 +2961,7 @@
   },
   "endedOnLabel": "Ended on",
   "@endedOnLabel": {
-    "description": "Label of when a tenancy ended."
+    "description": "Label of when a tenancy ended: the day the tenant moved out, not the agreed end (endsOnLabel)."
   },
   "deleteTenancyTitle": "Delete this tenancy?",
   "@deleteTenancyTitle": {
@@ -3702,7 +3702,7 @@
   },
   "dueDateLabel": "Due date",
   "@dueDateLabel": {
-    "description": "Label of a due's date."
+    "description": "Label of a due's date (a charge in the ledger). A bill's due date is billDueDateLabel."
   },
   "chargeNoteLabel": "Note",
   "@chargeNoteLabel": {
@@ -5749,6 +5749,10 @@
   "billMonthLabel": "Bill for",
   "@billMonthLabel": {
     "description": "Label of a bill's month."
+  },
+  "billDueDateLabel": "Due date",
+  "@billDueDateLabel": {
+    "description": "Label of the last date to pay a bill, as the bill prints it. It sits beside the date the bill was paid (paidOnLabel), so the two must read differently."
   },
   "unitsConsumedLabel": "Units used",
   "@unitsConsumedLabel": {

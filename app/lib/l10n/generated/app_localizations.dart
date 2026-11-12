@@ -3266,7 +3266,7 @@ abstract class AppLocalizations {
   /// **'Month to month'**
   String get termPeriodic;
 
-  /// Label of a tenancy's agreed end.
+  /// Label of a tenancy's agreed end, a term of the tenancy. Both this and endedOnLabel, the day it actually ended, can show on one screen, so the two must read differently.
   ///
   /// In en, this message translates to:
   /// **'Ends on'**
@@ -3806,7 +3806,7 @@ abstract class AppLocalizations {
   /// **'Tenancy ended.'**
   String get tenancyEnded;
 
-  /// Label of when a tenancy ended.
+  /// Label of when a tenancy ended: the day the tenant moved out, not the agreed end (endsOnLabel).
   ///
   /// In en, this message translates to:
   /// **'Ended on'**
@@ -4742,7 +4742,7 @@ abstract class AppLocalizations {
   /// **'Still owed'**
   String get stillOwedLabel;
 
-  /// Label of a due's date.
+  /// Label of a due's date (a charge in the ledger). A bill's due date is billDueDateLabel.
   ///
   /// In en, this message translates to:
   /// **'Due date'**
@@ -7099,6 +7099,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bill for'**
   String get billMonthLabel;
+
+  /// Label of the last date to pay a bill, as the bill prints it. It sits beside the date the bill was paid (paidOnLabel), so the two must read differently.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date'**
+  String get billDueDateLabel;
 
   /// Label of a bill's units.
   ///

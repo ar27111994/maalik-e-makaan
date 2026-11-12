@@ -51,7 +51,7 @@ void main() {
         app: TestApp(auth: const SignedOut(), language: null),
       );
       final english = find.text('Welcome to Maalik-e-Makaan');
-      final urdu = find.text('مالکِ مکان میں خوش آمدید');
+      final urdu = find.text('مالکِ مکان ایپ میں خوش آمدید');
       expect(Directionality.of(tester.element(english)), TextDirection.ltr);
       expect(Directionality.of(tester.element(urdu)), TextDirection.rtl);
       expect(
@@ -60,7 +60,7 @@ void main() {
       );
       expect(
         tester.getSemantics(urdu),
-        matchesSemantics(label: 'مالکِ مکان میں خوش آمدید', isHeader: true),
+        matchesSemantics(label: 'مالکِ مکان ایپ میں خوش آمدید', isHeader: true),
       );
     });
 
