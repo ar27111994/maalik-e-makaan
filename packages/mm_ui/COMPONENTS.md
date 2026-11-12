@@ -133,9 +133,11 @@ first: it is the source of the visual rules this file turns into code convention
   switch, checkbox and radio rows, navigation destinations, banner, snack bar and section
   actions) go through `MmScriptText` too, so an app word in Latin script in an Urdu label
   ("English", "100%", "PDF") keeps the Latin face rather than the Urdu face's own Latin
-  glyphs. The other way round needs nothing: every style in the Latin face (the English text
-  theme, Urdu amounts, `context.mm.amount`) falls back to the Urdu face (Noto Sans Arabic)
-  for Arabic-script letters. A style
+  glyphs. So do the hints, helper lines and errors of fields and a stepper's value, so an
+  amount in a helper below a money field has the figures of the amount typed in it. The other
+  way round needs nothing: every style in the Latin face (the English text theme, Urdu amounts,
+  `context.mm.amount`) falls back to the Urdu face (Noto Sans Arabic) for Arabic-script
+  letters. A style
   built from `MmTypeScale` directly gets the same fallback from
   `MmSemantics.withUrduFallback(style)`. Figures that count or line up (amounts, counts,
   percentages, receipt numbers, detail-row values) take `MmSemantics.withTabularFigures(style)`.

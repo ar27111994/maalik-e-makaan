@@ -155,6 +155,72 @@ void main() {
       );
     });
 
+    testWidgets("in text fields' hints, helpers and errors", (tester) async {
+      await pumpUrdu(
+        tester,
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              const MmTextField(
+                label: 'پتہ',
+                hint: 'مکان 12B، گلی 4',
+                helper: 'ذمے باقی: 122,450 روپے',
+              ),
+              const MmTextField(
+                label: 'شناختی کارڈ',
+                errorText: 'کارڈ پر لکھے 13 ہندسے لکھیں',
+              ),
+              MmMoneyField(
+                label: 'رقم',
+                helper: 'جمع: 170,000 روپے',
+                onChanged: (_) {},
+              ),
+            ],
+          ),
+        ),
+      );
+      _expectFaces(
+        tester,
+        latin: ['12B', '122,450', '13', '170,000'],
+        urdu: ['مکان', 'ذمے', 'ہندسے', 'جمع'],
+      );
+    });
+
+    testWidgets("in choice fields' helpers, a stepper's value and a search "
+        "field's hint", (tester) async {
+      await pumpUrdu(
+        tester,
+        SingleChildScrollView(
+          child: Column(
+            children: [
+              MmSelectField<int>(
+                label: 'تاریخ',
+                options: const [MmOption(value: 1, label: 'پہلی')],
+                helper: 'مہینے کی 1 سے 28 تک',
+                onChanged: (_) {},
+              ),
+              MmStepperField(
+                label: 'مدت',
+                value: 11,
+                min: 1,
+                max: 60,
+                onChanged: (_) {},
+                decreaseLabel: 'کم کریں',
+                increaseLabel: 'زیادہ کریں',
+                format: (months) => '$months مہینے',
+              ),
+              const MmSearchField(hint: 'فلیٹ 7C ڈھونڈیں'),
+            ],
+          ),
+        ),
+      );
+      _expectFaces(
+        tester,
+        latin: ['28', '11', '7C'],
+        urdu: ['تک', 'مہینے', 'فلیٹ'],
+      );
+    });
+
     testWidgets("in a section header's action", (tester) async {
       await pumpUrdu(
         tester,

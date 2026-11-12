@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_clean_text_formatter.dart';
 import 'package:mm_ui/src/foundation/mm_icon_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/l10n/mm_localizations.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
@@ -162,9 +163,9 @@ class _MmSearchFieldState extends State<MmSearchField> {
           // The hint is the field's name, given once above; shown here,
           // it may wrap rather than be cut short at large text sizes.
           hint: ExcludeSemantics(
-            child: Text(
+            child: MmScriptText(
               hint,
-              style: Theme.of(context).inputDecorationTheme.hintStyle,
+              style: Theme.of(context).inputDecorationTheme.hintStyle!,
             ),
           ),
           filled: true,
