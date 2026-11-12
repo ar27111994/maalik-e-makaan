@@ -63,6 +63,12 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   - D-16 to D-18 (the owner, 2026-11-11): residence declared per person and recorded per
     portfolio; letterheads on every generated document; privacy-first analytics, with PostHog
     cookieless on the website, PostHog and Intercom opt-in in the app, and Customer.io e-mail;
+  - the owner's answers of 2026-11-12, recorded in D-16 to D-18: every caretaker is a member with
+    the `manager` role; amounts in rupees only at launch, with no converted totals and no
+    `display_currency`; the owner-abroad question asked with no answer chosen; letterheads per
+    portfolio, with an optional Urdu version, A5 or A4 receipts (A5 by default), on every plan;
+    PostHog's US Cloud project and Customer.io's US workspace kept, with the US named in the
+    privacy notice and PostHog's recording, heatmap, console-log and dead-click settings off;
   - D-19 (the owner, 2026-11-11): Urdu interface text in Noto Sans Arabic, Nastaliq kept for the
     wordmark.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02

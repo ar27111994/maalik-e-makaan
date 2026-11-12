@@ -11,8 +11,9 @@ each milestone and an issue labelled `roadmap` for each item, and the website's
 
 GitHub's issues and milestones are the live record: who is working on what, the discussion, and
 whether an item is done. The sync creates each issue once, from its `body` in the file, and never
-rewrites it. The plans here record each item's design as researched on 11 November 2026; a pull
-request that changes an item's design updates its plan. An issue's **Done when** checklist is its
+rewrites it. The plans here record each item's design as researched on 11 November 2026, updated
+with the owner's answers of 12 November 2026; a pull request that changes an item's design updates
+its plan. An issue's **Done when** checklist is its
 plan's list, copied unchanged when the issue is created; if the plan's list changes later, the
 plan's list is the one to meet before the issue is closed.
 
@@ -103,9 +104,14 @@ D-16, D-17 and D-18 in [`PROJECT.md`](../../.planning/PROJECT.md). None of them 
 so the foundation work each needs is listed here, and the plans depend on it by name ("the residence
 fields of decision 1"). Each plan has a section for every decision that changes it.
 
+On 12 November 2026 the owner answered eight questions about them: the caretaker, the currency and
+the owner-abroad question (decision 1); where a letterhead is set, an Urdu letterhead, the receipt
+size and which plans have letterheads (decision 2); and where PostHog and Customer.io handle data
+(decision 3).
+
 Each subsection below opens with what the owner decided, then says what is true today. The design
-that follows is the research's proposal, which the plans follow; the owner can still change it, and
-the questions left open are under
+that follows is the research's proposal, which the plans follow, except where it says the owner
+decided; the owner can still change the rest, and the questions left open are under
 [Decisions the owner still has to make](#decisions-the-owner-still-has-to-make).
 
 ### Decision 1: residence, per person and per portfolio (D-16)
@@ -113,6 +119,16 @@ the questions left open are under
 Resident and overseas owners are told apart in two places. For each person, the country of residence
 and the time zone, which the person declares and the app never infers. For each portfolio, whether
 its owner lives abroad and who their caretaker is.
+
+On 12 November 2026 the owner decided three details. The caretaker is always someone who uses the
+app: a member with the `manager` role, never only a name and a phone number. Amounts stay in rupees
+at launch: owners abroad see no converted or "indicative" total in another currency, because there
+is no free official API for rupee rates (the ECB publishes no PKR rate, and the State Bank
+publishes web pages, not an API), so conversion waits until a rate source is chosen; the owner's
+own time zone and the dual time are still shown. And when a portfolio is created, the app asks
+"Does the owner of these properties live abroad?" with no answer chosen, and the person must
+choose; it is never filled in from the creator's residence, because the creator is often a
+caretaker or a relative.
 
 Today `profiles` holds an e-mail address, a name, a phone number and a language, and a portfolio has
 no owner-abroad flag: a caretaker is simply a member with the `manager` role
@@ -123,30 +139,35 @@ in [`calendar_date.dart`](../../packages/mm_core/lib/src/time/calendar_date.dart
 
 The design:
 
-- **On `profiles`:** `residence_country` (ISO 3166-1 alpha-2, empty for "not stated"), `time_zone`
-  (an IANA name, checked by a function) and `display_currency` (ISO 4217, rupees by default). The
-  device's time zone may pre-fill a suggestion. A +92 number, the store country, the IP address, the
-  app's language and the payment currency are never read as residence. Nationality and immigration
-  status are never stored, and residence is never shown to tenants.
-- **On `portfolios`:** `owner_abroad`, always set by an explicit choice; `caretaker_user_id`, a
-  member with the `manager` role, cleared when that membership ends; and `caretaker_since`. Every
-  change is audited. A caretaker who does not use the app (a name and a phone number only) would
-  need another shape; that question is open.
+- **On `profiles`:** `residence_country` (ISO 3166-1 alpha-2, empty for "not stated") and
+  `time_zone` (an IANA name, checked by a function). The device's time zone may pre-fill a
+  suggestion. A +92 number, the store country, the IP address, the app's language and the payment
+  currency are never read as residence. Nationality and immigration status are never stored, and
+  residence is never shown to tenants. There is no `display_currency` at launch (decided).
+- **On `portfolios`:** `owner_abroad`, always set by an explicit choice when the portfolio is
+  created, with no answer chosen in advance and never filled in from the creator's residence
+  (decided); `caretaker_user_id`, a member with the `manager` role, cleared when that membership
+  ends; and `caretaker_since`. Every change is audited. The caretaker is always someone who uses the
+  app (decided), so there is no caretaker who is only a name and a phone number.
 - **Time:** ledger dates, due dates, police deadlines, the tax year and every message to tenants
   stay on Pakistan time. An owner's alerts, digests and quiet hours follow their own time zone, and
   an owner abroad sees both times: "3:15 pm in Lahore (10:15 am in London)".
-- **Money** stays in rupees. A converted total is for display only, labelled indicative, with the
-  rate's date and source.
+- **Money** is shown in rupees only at launch (decided): no converted or indicative total in
+  another currency.
 
-| Foundation work                                                                                                                                              | Size |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| Residence country, time zone and display currency on `profiles`, with the validation function, column grants, pgTAP and identity contract vectors            | S    |
-| `owner_abroad`, `caretaker_user_id` with its trigger, and `caretaker_since`; audit triggers, rows in the RLS matrix, an upgrade test and the `mm_core` model | M    |
-| A time-zone utility in `mm_core` for owner-local send windows, quiet hours and dual times, with vectors across the UK and US clock changes                   | M    |
-| Onboarding ("Do you live in Pakistan?") and settings for country, time zone and currency, in English and Urdu, with goldens                                  | M    |
-| Caretaker wording in both ARB files; the plan suggestion, where the store sets the price and declared residence only suggests a plan                         | S    |
-| Indicative currency on owner statements: the rate's source, a cache and the label                                                                            | M    |
-| The privacy page and the data export; the caretaker in [`permissions.md`](../architecture/permissions.md)                                                    | S    |
+| Foundation work                                                                                                                                                                        | Size |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| Residence country and time zone on `profiles`, with the validation function, column grants, pgTAP and identity contract vectors                                                        | S    |
+| `owner_abroad`, `caretaker_user_id` with its trigger, and `caretaker_since`; audit triggers, rows in the RLS matrix, an upgrade test and the `mm_core` model                           | M    |
+| A time-zone utility in `mm_core` for owner-local send windows, quiet hours and dual times, with vectors across the UK and US clock changes                                             | M    |
+| Onboarding ("Do you live in Pakistan?"), the owner-abroad question on a new portfolio with no answer chosen, and settings for country and time zone, in English and Urdu, with goldens | M    |
+| Caretaker wording in both ARB files; the plan suggestion, where the store sets the price and declared residence only suggests a plan                                                   | S    |
+| The privacy page and the data export; the caretaker in [`permissions.md`](../architecture/permissions.md)                                                                              | S    |
+
+**Later, not at launch:** a total in the owner's own currency, for display only, labelled indicative
+with the rate's date and source, and a `display_currency` (ISO 4217) on `profiles` to choose it.
+It waits until the owner chooses a rate source, for the reason above. The work then is the column
+and its setting, the rate's source, a cache and the label (M).
 
 Where it lands: [billing](billing.md) attaches plans to portfolios, not store accounts;
 [push-notifications](push-notifications.md) keeps quiet hours and the digest in each person's zone;
@@ -162,6 +183,15 @@ store country as residence and show both kinds of owner in the screenshots.
 Owners can upload a letterhead or make one with a simple builder, and it is applied to every PDF and
 image the app generates. An upload is a PDF, whose first page is used for the first page and whose
 second for later pages, or a PNG or JPG. Word users save their letterhead as a PDF.
+
+On 12 November 2026 the owner decided four details. A letterhead is set per portfolio, not per
+account, because the portfolio is the issuer on its receipts, and one upload can be copied to the
+owner's other portfolios. Each portfolio may add an optional Urdu version of its letterhead:
+documents issued in Urdu use it when it exists, and the main letterhead otherwise, and the builder
+can make both from the same logo and details. Each portfolio chooses A5 or A4 receipts, with A5 by
+default as today; an A4 letterhead on an A5 receipt is scaled down, and the preview warns when its
+text becomes too small to read. And letterheads, both the builder and uploads, are on every plan,
+Free included.
 
 Today every document is a PDF made on the device with `pdf` 3.13.1, an A5 receipt and A4 statements,
 and its only branding is an issuer line
@@ -180,40 +210,59 @@ The design:
   [pdfrx](https://pub.dev/packages/pdfrx), and caches them. The owner adjusts the safe content area,
   which is stored in points. One page theme serves every PDF builder, and an image export is a
   rendering of the finished PDF page, so letterhead and shaped Urdu come out the same in both.
-- **Storage:** a private `letterheads` bucket, one default per portfolio (the portfolio is the
-  issuer on a receipt), and an audited `letterheads` table. Portfolio deletion and the storage
-  cleanup learn the new bucket, since both name only `documents` today
+- **Storage:** a private `letterheads` bucket and an audited `letterheads` table, with a main
+  letterhead and an optional Urdu one per portfolio (decided: the portfolio is the issuer on a
+  receipt). One upload can be copied to the owner's other portfolios (decided). Portfolio deletion
+  and the storage cleanup learn the new bucket, since both name only `documents` today
   ([storage.ts](../../supabase/functions/_shared/storage.ts)).
+- **Language and paper size:** a document issued in Urdu uses the portfolio's Urdu letterhead when
+  it has one, and the main letterhead otherwise. Receipts are A5 or A4, as the portfolio chooses,
+  A5 by default; an A4 letterhead on an A5 receipt is scaled down, and the preview warns when its
+  text becomes too small to read (decided).
+- **Plans:** letterheads, the builder and uploads alike, are on every plan, Free included
+  (decided), so no entitlement check gates them.
 - **Receipts sent by the server** (WhatsApp, the tenant's link, a partner payment) are the
   letterheaded file the app stores as a `receipt` document when a payment is confirmed.
 - **Order:** builder and image letterheads first, then PDF uploads.
 
-| Foundation work                                                                                                                                                        | Size |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| The `letterheads` table, a private bucket with type and size limits, RLS, audit and a default per portfolio; cleanup and deletion extended to the bucket               | M    |
-| The shared page theme in the ledger and report PDFs, page numbers inside the safe area, the first PDF image goldens (A4 and A5, English and Urdu) and a file-size test | M    |
-| The builder, with a live preview                                                                                                                                       | M    |
-| Image letterheads: re-encoding, aspect and resolution checks, header and footer bands                                                                                  | S    |
-| `letterhead-ingest`, first half: validation, tested with hostile files (scripts, embedded files, encryption, 50 pages, 30 MB)                                          | M    |
-| `letterhead-ingest`, second half: the rebuild                                                                                                                          | M    |
-| Rasterising and caching; on the web, pdfrx's WASM file served from the app's own origin and loaded only when needed                                                    | M    |
-| Safe-area detection and the adjustment screen                                                                                                                          | M    |
-| Image exports through the PDF renderer                                                                                                                                 | S    |
+| Foundation work                                                                                                                                                                        | Size |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| The `letterheads` table, a private bucket with type and size limits, RLS, audit, and a main and an optional Urdu letterhead per portfolio; cleanup and deletion extended to the bucket | M    |
+| The shared page theme in the ledger and report PDFs, page numbers inside the safe area, the first PDF image goldens (A4 and A5, English and Urdu) and a file-size test                 | M    |
+| The builder, with a live preview, making the main and the Urdu letterhead from the same logo and details                                                                               | M    |
+| Copying a letterhead to the owner's other portfolios                                                                                                                                   | S    |
+| The receipt size per portfolio (A5 by default, or A4); an A4 letterhead scaled onto an A5 receipt, with the preview's warning when its text is too small to read                       | M    |
+| Image letterheads: re-encoding, aspect and resolution checks, header and footer bands                                                                                                  | S    |
+| `letterhead-ingest`, first half: validation, tested with hostile files (scripts, embedded files, encryption, 50 pages, 30 MB)                                                          | M    |
+| `letterhead-ingest`, second half: the rebuild                                                                                                                                          | M    |
+| Rasterising and caching; on the web, pdfrx's WASM file served from the app's own origin and loaded only when needed                                                                    | M    |
+| Safe-area detection and the adjustment screen                                                                                                                                          | M    |
+| Image exports through the PDF renderer                                                                                                                                                 | S    |
 
 Where it lands: [tenant-portal](tenant-portal.md), [whatsapp-reminders](whatsapp-reminders.md) and
 [raast-request-to-pay](raast-request-to-pay.md) serve the stored receipt; [move-out](move-out.md)
 prints the report and settlement on it, with a "for and on behalf of the owner, through attorney"
 block when a caretaker signs; [overseas-oversight](overseas-oversight.md) prints the evidence pack
 on it; [hostel-mode](hostel-mode.md) makes 38 letterheaded receipts in one action, the size test;
-[billing](billing.md) leaves open whether Free includes letterheads; [legal-review](legal-review.md)
+[billing](billing.md) puts letterheads on every plan, Free included; [legal-review](legal-review.md)
 adds the owner's warranty for what they upload; and [urdu-review](urdu-review.md) reviews the
-builder's labels and error messages.
+builder's labels and error messages, the Urdu letterhead and the small-text warning.
 
 ### Decision 3: privacy-first analytics, support and e-mail (D-18)
 
 - **Website:** PostHog, cookieless and anonymous, said plainly on the privacy page.
 - **App:** PostHog and Intercom only after the person opts in.
 - **E-mail:** Customer.io for transactional e-mail, and for lifecycle e-mail to people who consent.
+
+On 12 November 2026 the owner decided where these processors handle data: the existing accounts
+stay, PostHog's US Cloud project and Customer.io's US workspace, which is on Customer.io's Startup
+plan. The privacy notice names the US as where they handle data, under their standard
+data-transfer terms. This replaces the research's suggestion of PostHog's EU Cloud. The rest of the
+research's design is unchanged and still applies: cookieless mode on the website; opt-in only in
+the app; no replay, autocapture, surveys or feature flags; the objection switch and Do Not Track.
+The existing PostHog project has session recording, heatmaps, console-log capture and dead-click
+capture switched on in its project settings; the website and the app must not use them, as the
+design says below.
 
 Today the privacy page promises the opposite, in English and Urdu: "This website sets no cookies,
 uses no analytics or trackers" and "The app has no advertising, no analytics and no trackers"
@@ -225,21 +274,26 @@ record consent, and only then add the SDKs.
 
 The design:
 
-- **Website:** PostHog's EU Cloud with `cookieless_mode: 'always'`, which writes no cookie or
-  browser storage and counts visitors with a server-side hash whose salt is deleted daily
+- **Website:** PostHog's existing US Cloud project (decided) with `cookieless_mode: 'always'`,
+  which writes no cookie or browser storage and counts visitors with a server-side hash whose salt
+  is deleted daily
   ([PostHog cookieless tutorial](https://posthog.com/tutorials/cookieless-tracking)). The slim build
   is bundled as a first-party module; requests go through Vercel rewrites on the site's own origin;
   query strings are stripped, so calculator inputs never leave; there is no replay, autocapture,
   survey or feature flag. Visitors can object on the privacy page, and Do Not Track is honoured.
+- **Recording off everywhere:** the SDK configuration on the website and in the app turns off
+  session recording, heatmaps, console-log capture and dead-click capture, and the same settings
+  are switched off in the PostHog project before any SDK ships, as an owner or set-up step.
 - **App:** a `consents` table and a Privacy section in Settings with three switches, all off at
-  first: analytics, support chat and lifecycle e-mail. PostHog starts opted out on the EU host, with
-  a scrubber that drops names, phone numbers, CNICs, IBANs and amounts. Intercom starts only after
-  support-chat consent, with a signed token from an Edge Function, and not on the web at launch.
+  first: analytics, support chat and lifecycle e-mail. PostHog starts opted out, on the same US
+  project, with a scrubber that drops names, phone numbers, CNICs, IBANs and amounts. Intercom
+  starts only after support-chat consent, with a signed token from an Edge Function, and not on the
+  web at launch.
 - **E-mail:** account, invitation, receipt, security and contractual messages go through
-  Customer.io's transactional path with link tracking off; lifecycle mail goes only to people who
-  consented, and an unsubscribe is written back to `consents`. Auth e-mail stays on Resend for
-  launch. The 60-day notice before billing starts is a contractual message, sent to every
-  early-access user whatever their marketing consent.
+  Customer.io's transactional path, on the existing US workspace (decided), with link tracking off;
+  lifecycle mail goes only to people who consented, and an unsubscribe is written back to
+  `consents`. Auth e-mail stays on Resend for launch. The 60-day notice before billing starts is a
+  contractual message, sent to every early-access user whatever their marketing consent.
 - **Measurement** for the pilot and billing comes from aggregates of database rows on the server, so
   the opt-in rule costs no product insight. No plan sends an amount, a name, a phone number, a CNIC
   or a record's content to analytics.
@@ -250,23 +304,23 @@ The design:
   and mandates of [agent-limits](agent-limits.md) follow it too. The privacy notice, the data export
   and the deletion fan-out read the same columns.
 
-| Foundation work                                                                                                                                                                            | Size      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| The privacy notice, FAQ, footer, README and `website/AGENTS.md` rewritten in English and Urdu (processors, regions, retention, how to object), approved in [legal-review](legal-review.md) | S         |
-| The `consents` table, own-row RLS, a write RPC and audit; the consent screen and Privacy settings, with widget and pgTAP tests                                                             | M         |
-| Account deletion fans out to PostHog, Intercom and Customer.io, retried without holding up the deletion                                                                                    | M         |
-| The PostHog EU organisation and project; the data processing agreement                                                                                                                     | Owner     |
-| The slim posthog-js on the website, the rewrites, a browser test that fails on any CSP or Trusted Types violation, performance budgets                                                     | M         |
-| Preview checks: whether PostHog sees the visitor's IP through the rewrite (if not, only page views can be counted), and POST redirects                                                     | S         |
-| The objection switch and Do Not Track                                                                                                                                                      | S         |
-| `posthog_flutter` behind an analytics wrapper: opt-in, the scrubber, a pseudonymous identity that is not the account's id                                                                  | M         |
-| The Flutter web app: PostHog started from the app's own files with a CSP change, or no analytics on the web                                                                                | S         |
-| A list of about 20 events, none carrying an amount or a name                                                                                                                               | S         |
-| The Intercom workspace: region, languages, a Help Center in English and Urdu                                                                                                               | Owner     |
-| The `intercom-token` function; Intercom started after consent, and logged out on sign-out and withdrawal                                                                                   | M         |
-| Customer.io's data region, the sending subdomains, SPF, DKIM and DMARC                                                                                                                     | Owner + S |
-| The `cio-sync` outbox and function; the unsubscribe webhook                                                                                                                                | M         |
-| Urdu e-mail templates, right to left with amounts kept left to right, checked in Gmail and Outlook                                                                                         | M         |
+| Foundation work                                                                                                                                                                                                                        | Size      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| The privacy notice, FAQ, footer, README and `website/AGENTS.md` rewritten in English and Urdu (processors, the US as where PostHog and Customer.io handle data, retention, how to object), approved in [legal-review](legal-review.md) | S         |
+| The `consents` table, own-row RLS, a write RPC and audit; the consent screen and Privacy settings, with widget and pgTAP tests                                                                                                         | M         |
+| Account deletion fans out to PostHog, Intercom and Customer.io, retried without holding up the deletion                                                                                                                                | M         |
+| The existing PostHog US Cloud project: session recording, heatmaps, console-log capture and dead-click capture switched off in its project settings before any SDK ships; the data processing agreement                                | Owner     |
+| The slim posthog-js on the website with recording, heatmaps and console-log and dead-click capture off, the rewrites, a browser test that fails on any CSP or Trusted Types violation, performance budgets                             | M         |
+| Preview checks: whether PostHog sees the visitor's IP through the rewrite (if not, only page views can be counted), and POST redirects                                                                                                 | S         |
+| The objection switch and Do Not Track                                                                                                                                                                                                  | S         |
+| `posthog_flutter` behind an analytics wrapper: opt-in, the scrubber, session recording off, a pseudonymous identity that is not the account's id                                                                                       | M         |
+| The Flutter web app: PostHog started from the app's own files with a CSP change, or no analytics on the web                                                                                                                            | S         |
+| A list of about 20 events, none carrying an amount or a name                                                                                                                                                                           | S         |
+| The Intercom workspace: region, languages, a Help Center in English and Urdu                                                                                                                                                           | Owner     |
+| The `intercom-token` function; Intercom started after consent, and logged out on sign-out and withdrawal                                                                                                                               | M         |
+| The sending subdomains for Customer.io's existing US workspace, SPF, DKIM and DMARC                                                                                                                                                    | Owner + S |
+| The `cio-sync` outbox and function; the unsubscribe webhook                                                                                                                                                                            | M         |
+| Urdu e-mail templates, right to left with amounts kept left to right, checked in Gmail and Outlook                                                                                                                                     | M         |
 
 Where it lands: [legal-review](legal-review.md) reviews the new notice before any SDK ships;
 [play-store](play-store.md) and [app-store](app-store.md) declare even the opt-in collection in Data
@@ -353,13 +407,13 @@ flowchart TD
 The waves follow from the graph and the calendar. Wave 0 matters most: every later date assumes it
 starts in November 2026.
 
-| Wave | When                           | Pull requests                                                                                                                                                                                                                                                                                                                                                                                      | Owner actions                                                                                                                                                                                                                                                                                   | Gate to the next wave               |
-| ---- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| 0    | 11 to 30 November 2026         | The decision entries (D-16 to D-18, recorded); the privacy draft and the `consents` table (decision 3); the residence fields (decision 1); the audit feed; the amount lexicon and vectors                                                                                                                                                                                                          | Chase the D-U-N-S number; buy the domain and set up work e-mail; start Apple's enrolment; send the lawyer's request for quotation; shortlist editors and agree the glossary; **answer the State Bank by 30 November**; choose the Customer.io region; choose the icon's mark; recruit the pilot | The D-U-N-S number; the domain live |
-| 1    | December 2026 to February 2027 | The audit screens; the amount grammar; the Urdu corrections; the app icon; the Play and App Store pipelines; pilot feedback and metrics; website analytics and the app's PostHog, once the lawyer approves the notice; builder and image letterheads; billing's schema and limits, and its web checkout only if charging before 28 February; the text path of draft-payments; a spike for mcp-read | The lawyer's and the editor's reviews; the Play and Apple accounts; tax registration and a payment provider; **the early-access notice by 30 December 2026** if anyone is to be charged before 28 February; the pilot sessions                                                                  | Both stores live; the pilot report  |
-| 2    | March to June 2027             | Billing's store checkout, and its web checkout unless it came in wave 1; PDF letterheads; push-notifications; tenant-portal; agent-limits; mcp-read if the OAuth server is ready; retention; Intercom; Customer.io's sync and templates                                                                                                                                                            | Meta's verification and templates; Firebase and APNs; the retention period, with the lawyer; the choice of model and speech-to-text providers                                                                                                                                                   | Mandates enforced; push live        |
-| 3    | July to November 2027          | whatsapp-reminders; whatsapp-assistant; reconciliation; document-reading; move-out; hostel-mode; the overseas-oversight rules, brought forward from 2028                                                                                                                                                                                                                                           | Template approvals; what a caretaker may see of the oversight findings                                                                                                                                                                                                                          | The assistant milestone             |
-| 4    | 2028                           | raast-request-to-pay; open-banking; the oversight evidence pack and Munshi's wording of findings; the first phase of agent-coordination                                                                                                                                                                                                                                                            | A partner contract and a legal opinion; the State Bank's final rules; licensed providers                                                                                                                                                                                                        | The money milestone                 |
+| Wave | When                           | Pull requests                                                                                                                                                                                                                                                                                                                                                                                      | Owner actions                                                                                                                                                                                                                                                                                                                       | Gate to the next wave               |
+| ---- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 0    | 11 to 30 November 2026         | The decision entries (D-16 to D-18, recorded); the privacy draft and the `consents` table (decision 3); the residence fields (decision 1); the audit feed; the amount lexicon and vectors                                                                                                                                                                                                          | Chase the D-U-N-S number; buy the domain and set up work e-mail; start Apple's enrolment; send the lawyer's request for quotation; shortlist editors and agree the glossary; **answer the State Bank by 30 November**; choose the icon's mark; recruit the pilot                                                                    | The D-U-N-S number; the domain live |
+| 1    | December 2026 to February 2027 | The audit screens; the amount grammar; the Urdu corrections; the app icon; the Play and App Store pipelines; pilot feedback and metrics; website analytics and the app's PostHog, once the lawyer approves the notice; builder and image letterheads; billing's schema and limits, and its web checkout only if charging before 28 February; the text path of draft-payments; a spike for mcp-read | The lawyer's and the editor's reviews; PostHog's recording, heatmap, console-log and dead-click settings switched off before its SDKs ship; the Play and Apple accounts; tax registration and a payment provider; **the early-access notice by 30 December 2026** if anyone is to be charged before 28 February; the pilot sessions | Both stores live; the pilot report  |
+| 2    | March to June 2027             | Billing's store checkout, and its web checkout unless it came in wave 1; PDF letterheads; push-notifications; tenant-portal; agent-limits; mcp-read if the OAuth server is ready; retention; Intercom; Customer.io's sync and templates                                                                                                                                                            | Meta's verification and templates; Firebase and APNs; the retention period, with the lawyer; the choice of model and speech-to-text providers                                                                                                                                                                                       | Mandates enforced; push live        |
+| 3    | July to November 2027          | whatsapp-reminders; whatsapp-assistant; reconciliation; document-reading; move-out; hostel-mode; the overseas-oversight rules, brought forward from 2028                                                                                                                                                                                                                                           | Template approvals; what a caretaker may see of the oversight findings                                                                                                                                                                                                                                                              | The assistant milestone             |
+| 4    | 2028                           | raast-request-to-pay; open-banking; the oversight evidence pack and Munshi's wording of findings; the first phase of agent-coordination                                                                                                                                                                                                                                                            | A partner contract and a legal opinion; the State Bank's final rules; licensed providers                                                                                                                                                                                                                                            | The money milestone                 |
 
 Three changes to the milestones are recommended but not made:
 
@@ -379,30 +433,43 @@ Three changes to the milestones are recommended but not made:
 The most urgent first. Each plan ends with its own questions; these are the ones that hold up other
 work or have a date.
 
-| When                                             | Decision                                                                                                                      | Items                                                                                                                                              | Recommendation                                                                                                                                                                                         |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **By 30 November 2026**                          | Respond to the State Bank's draft open-banking regulations?                                                                   | [open-banking](open-banking.md), [reconciliation](reconciliation.md)                                                                               | Yes: two pages asking for the remitter's name and the transfer reference in transaction data, a proportionate read-only category, consent limited to credits, and rules for joint accounts             |
-| **Now**                                          | When the pilot starts, its size and split, where it runs, the Urdu moderator, incentives                                      | [pilot](pilot.md)                                                                                                                                  | Recruit from late November so December, January and February rents are covered; 15 to 25 landlords, about a third abroad; real data only once the notice covers tenants                                |
-| **Now**                                          | Chase the D-U-N-S number; make the D&B name and address match the SECP record exactly; the public developer name              | [play-store](play-store.md), [app-store](app-store.md), [billing](billing.md)                                                                      | Start today                                                                                                                                                                                            |
-| **Now**                                          | A domain and work e-mail; move both sites to it                                                                               | [app-store](app-store.md), [whatsapp-reminders](whatsapp-reminders.md), e-mail DNS, links that open the app                                        | Buy now: it unblocks Apple, Meta's verification and e-mail authentication at once                                                                                                                      |
-| **Now**                                          | The lawyer's budget and request for quotation; whether AR LABS accepts the processor role; the city for disputes              | [legal-review](legal-review.md) and everything after it                                                                                            | Send the request this month, with a deadline at least six weeks before the store submissions                                                                                                           |
-| Before any analytics SDK                         | EU visitors; PostHog's region                                                                                                 | Decision 3, the store forms                                                                                                                        | PostHog EU Cloud, with notice, an objection switch and Do Not Track; the lawyer weighs the EU risk                                                                                                     |
-| Before any profile is sent                       | Keep Customer.io's existing workspace in the US region, or start one in the EU                                                | Decision 3, [billing](billing.md)                                                                                                                  | Decide before the first sync; moving later means importing everyone again                                                                                                                              |
-| Before the first Play upload                     | The application ID and the signing key; sideloaded copies; countries; category; the financial-features declaration            | [play-store](play-store.md)                                                                                                                        | Settle the ID first, since it can never change after the upload; if it stays, upload the existing release key so the sideloaded app updates in place; declare no financial features; Business category |
-| Before pilot round 1                             | Urdu digits, loanwords                                                                                                        | [urdu-review](urdu-review.md), [pilot](pilot.md)                                                                                                   | Settle the glossary; the font is D-19, confirmed with readers                                                                                                                                          |
-| **By 30 December 2026**, if charging in February | When billing starts; tax registration; the payment provider; plans per portfolio; half price in the stores                    | [billing](billing.md)                                                                                                                              | Plans per portfolio; web checkout first; one rule everywhere                                                                                                                                           |
-| Before store artwork                             | The icon's mark; iPhone only or iPad too; EU storefronts                                                                      | [app-icon](app-icon.md), [app-store](app-store.md)                                                                                                 | No text in the mark; iPhone only at launch unless iPad layouts are reviewed                                                                                                                            |
-| Before Intercom                                  | Intercom after its sale to Salesforce; startup terms; chat on the web                                                         | Decision 3                                                                                                                                         | Keep support behind the app's own Help screen so the vendor can change; no web chat at launch                                                                                                          |
-| Before letterheads ship                          | Per portfolio or per account; A5 or A4 receipts; bilingual variants; limits; images at launch; which plans                    | Decision 2                                                                                                                                         | Per portfolio; images at launch; builder and image letterheads first                                                                                                                                   |
-| Before onboarding ships                          | Pre-filling `owner_abroad`; caretakers who do not use the app; currencies and the rate source; co-owners; residence and price | Decision 1                                                                                                                                         | Ask explicitly; leave residence empty until stated; the store alone sets the price                                                                                                                     |
-| With the lawyer                                  | How long identity documents are kept, and holds; agreement and police-form images                                             | [retention](retention.md)                                                                                                                          | Between 3 and 12 months, held automatically while rent is outstanding                                                                                                                                  |
-| Before an assistant writes, 2027                 | Model and speech-to-text providers; whether data may leave Pakistan                                                           | [draft-payments](draft-payments.md), [whatsapp-assistant](whatsapp-assistant.md), [document-reading](document-reading.md), [mcp-read](mcp-read.md) | On the device where possible; any cloud provider with no retention, explicit consent and a line in the notice                                                                                          |
-| 2027                                             | WhatsApp costs, the signature on reminders, a fallback provider, a Roman Urdu variant                                         | [whatsapp-reminders](whatsapp-reminders.md)                                                                                                        | A monthly cap in the plan; the owner chooses the signature                                                                                                                                             |
-| 2027                                             | Caretakers' mandates, the longest mandate, skipping the tap, the budget after voids; MCP's price and expiry                   | [agent-limits](agent-limits.md), [mcp-read](mcp-read.md)                                                                                           | An owner approves a caretaker's mandate; every write is confirmed at first                                                                                                                             |
-| 2027                                             | Tenants: accounts or links; how long a link lasts; disputes                                                                   | [tenant-portal](tenant-portal.md), [agent-coordination](agent-coordination.md), [legal-review](legal-review.md)                                    | Links first                                                                                                                                                                                            |
-| 2027                                             | Oversight thresholds; what a caretaker sees; several owners; when the evidence pack comes                                     | [overseas-oversight](overseas-oversight.md)                                                                                                        | Bring the rules forward; caretakers see their to-dos                                                                                                                                                   |
-| 2027                                             | Hostel mess charges, advances, pricing by room or by bed                                                                      | [hostel-mode](hostel-mode.md)                                                                                                                      | A flat monthly mess charge; rent per bed                                                                                                                                                               |
-| 2028                                             | The partner model, the first partner, who pays the merchant fees, whether it is a Business feature                            | [raast-request-to-pay](raast-request-to-pay.md)                                                                                                    | The partner model only, settling to the landlord, with a legal opinion first                                                                                                                           |
+| When                                             | Decision                                                                                                           | Items                                                                                                                                              | Recommendation                                                                                                                                                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **By 30 November 2026**                          | Respond to the State Bank's draft open-banking regulations?                                                        | [open-banking](open-banking.md), [reconciliation](reconciliation.md)                                                                               | Yes: two pages asking for the remitter's name and the transfer reference in transaction data, a proportionate read-only category, consent limited to credits, and rules for joint accounts             |
+| **Now**                                          | When the pilot starts, its size and split, where it runs, the Urdu moderator, incentives                           | [pilot](pilot.md)                                                                                                                                  | Recruit from late November so December, January and February rents are covered; 15 to 25 landlords, about a third abroad; real data only once the notice covers tenants                                |
+| **Now**                                          | Chase the D-U-N-S number; make the D&B name and address match the SECP record exactly; the public developer name   | [play-store](play-store.md), [app-store](app-store.md), [billing](billing.md)                                                                      | Start today                                                                                                                                                                                            |
+| **Now**                                          | A domain and work e-mail; move both sites to it                                                                    | [app-store](app-store.md), [whatsapp-reminders](whatsapp-reminders.md), e-mail DNS, links that open the app                                        | Buy now: it unblocks Apple, Meta's verification and e-mail authentication at once                                                                                                                      |
+| **Now**                                          | The lawyer's budget and request for quotation; whether AR LABS accepts the processor role; the city for disputes   | [legal-review](legal-review.md) and everything after it                                                                                            | Send the request this month, with a deadline at least six weeks before the store submissions                                                                                                           |
+| Before the first Play upload                     | The application ID and the signing key; sideloaded copies; countries; category; the financial-features declaration | [play-store](play-store.md)                                                                                                                        | Settle the ID first, since it can never change after the upload; if it stays, upload the existing release key so the sideloaded app updates in place; declare no financial features; Business category |
+| Before pilot round 1                             | Urdu digits, loanwords                                                                                             | [urdu-review](urdu-review.md), [pilot](pilot.md)                                                                                                   | Settle the glossary; the font is D-19, confirmed with readers                                                                                                                                          |
+| **By 30 December 2026**, if charging in February | When billing starts; tax registration; the payment provider; plans per portfolio; half price in the stores         | [billing](billing.md)                                                                                                                              | Plans per portfolio; web checkout first; one rule everywhere                                                                                                                                           |
+| Before store artwork                             | The icon's mark; iPhone only or iPad too; EU storefronts                                                           | [app-icon](app-icon.md), [app-store](app-store.md)                                                                                                 | No text in the mark; iPhone only at launch unless iPad layouts are reviewed                                                                                                                            |
+| Before Intercom                                  | Intercom after its sale to Salesforce; startup terms; chat on the web                                              | Decision 3                                                                                                                                         | Keep support behind the app's own Help screen so the vendor can change; no web chat at launch                                                                                                          |
+| Before letterheads ship                          | Upload limits; image letterheads at launch                                                                         | Decision 2                                                                                                                                         | Images at launch; builder and image letterheads first                                                                                                                                                  |
+| Before onboarding ships                          | Co-owners; residence and price                                                                                     | Decision 1                                                                                                                                         | Leave residence empty until stated; the store alone sets the price                                                                                                                                     |
+| With the lawyer                                  | How long identity documents are kept, and holds; agreement and police-form images                                  | [retention](retention.md)                                                                                                                          | Between 3 and 12 months, held automatically while rent is outstanding                                                                                                                                  |
+| Before an assistant writes, 2027                 | Model and speech-to-text providers; whether data may leave Pakistan                                                | [draft-payments](draft-payments.md), [whatsapp-assistant](whatsapp-assistant.md), [document-reading](document-reading.md), [mcp-read](mcp-read.md) | On the device where possible; any cloud provider with no retention, explicit consent and a line in the notice                                                                                          |
+| 2027                                             | WhatsApp costs, the signature on reminders, a fallback provider, a Roman Urdu variant                              | [whatsapp-reminders](whatsapp-reminders.md)                                                                                                        | A monthly cap in the plan; the owner chooses the signature                                                                                                                                             |
+| 2027                                             | Caretakers' mandates, the longest mandate, skipping the tap, the budget after voids; MCP's price and expiry        | [agent-limits](agent-limits.md), [mcp-read](mcp-read.md)                                                                                           | An owner approves a caretaker's mandate; every write is confirmed at first                                                                                                                             |
+| 2027                                             | Tenants: accounts or links; how long a link lasts; disputes                                                        | [tenant-portal](tenant-portal.md), [agent-coordination](agent-coordination.md), [legal-review](legal-review.md)                                    | Links first                                                                                                                                                                                            |
+| 2027                                             | Oversight thresholds; what a caretaker sees; several owners; when the evidence pack comes                          | [overseas-oversight](overseas-oversight.md)                                                                                                        | Bring the rules forward; caretakers see their to-dos                                                                                                                                                   |
+| 2027                                             | Hostel mess charges, advances, pricing by room or by bed                                                           | [hostel-mode](hostel-mode.md)                                                                                                                      | A flat monthly mess charge; rent per bed                                                                                                                                                               |
+| 2028                                             | The partner model, the first partner, who pays the merchant fees, whether it is a Business feature                 | [raast-request-to-pay](raast-request-to-pay.md)                                                                                                    | The partner model only, settling to the landlord, with a legal opinion first                                                                                                                           |
+
+Settled by the owner on 12 November 2026, and recorded in D-16 to D-18 in
+[`PROJECT.md`](../../.planning/PROJECT.md) and in the decisions above:
+
+- **Decision 1, before onboarding:** `owner_abroad` is never pre-filled; the question is asked with
+  no answer chosen. Every caretaker uses the app, as a member with the `manager` role. Amounts are
+  in rupees only at launch, with no `display_currency`; conversion waits until a rate source is
+  chosen.
+- **Decision 2, before letterheads ship:** per portfolio, and one upload can be copied to the
+  owner's other portfolios; an optional Urdu letterhead; A5 or A4 receipts per portfolio, A5 by
+  default; on every plan, Free included.
+- **Decision 3, before any analytics SDK ships or any profile is sent:** PostHog's existing US
+  Cloud project and Customer.io's existing US workspace stay, and the privacy notice names the US.
+  EU visitors get the same cookieless counting, notice, objection switch and Do Not Track as
+  everyone else, and the lawyer still weighs the residual risk ([legal-review](legal-review.md)).
 
 ## Proposals that would reverse earlier decisions
 

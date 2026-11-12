@@ -101,15 +101,19 @@ Facts marked _(summary)_ were read only through a search engine's summary.
 ### Residence (decision 1)
 
 New strings for the caretaker context ("Your caretaker recorded…", "Confirm the cash you received
-from…", "while you are abroad"), the onboarding question about where the owner lives, country and
-time-zone names, the dual time ("3:15 pm in Lahore (10:15 am in London)") and the "indicative" label
-on converted totals. They keep the respectful forms.
+from…", "while you are abroad"), the onboarding question about where the person lives, the
+question asked when a portfolio is created ("Does the owner of these properties live abroad?"),
+country and time-zone names and the dual time ("3:15 pm in Lahore (10:15 am in London)"). They
+keep the respectful forms. Amounts stay in rupees at launch, so no label for a converted total is
+needed (D-16).
 
 ### Letterheads (decision 2)
 
-The builder's field labels, the upload checks and their bilingual error messages, and the business
-name in both scripts. The "for and on behalf of the owner, through attorney" block comes from the
-lawyer and is only made readable.
+The builder's field labels, the upload checks and their bilingual error messages, the business
+name in both scripts, the optional Urdu letterhead that the builder makes from the same details,
+and the preview's warning when a letterhead's text becomes too small to read on an A5 receipt. The
+"for and on behalf of the owner, through attorney" block comes from the lawyer and is only made
+readable.
 
 ### Analytics (decision 3)
 

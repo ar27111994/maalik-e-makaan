@@ -92,28 +92,73 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   each must authorise its caller first. The 21 reviewed RPCs are pinned by a pgTAP allowlist, which
   covers Supabase lint 0029 under its option 3.
 - D-16: **Residence is declared per person and recorded per portfolio.** (Decided by the owner,
-  11 November 2026.) Resident and overseas owners are told apart in two places:
+  11 November 2026; the caretaker, the currency and the owner-abroad question decided by the
+  owner, 12 November 2026.) Resident and overseas owners are told apart in two places:
   - per person: the country of residence and the time zone, which the person declares and the app
     never infers;
   - per portfolio: whether the owner lives abroad, and who the caretaker is.
 
-  How the app holds and uses this is the research's proposed design, not a decision: the fields,
-  the caretaker as a member with the `manager` role, which times stay on Pakistan time and which
-  follow the owner's own zone, and keeping residence from tenants. Whether a caretaker can be
-  someone who does not use the app is still open. The design and its work are in
+  On 12 November 2026 the owner decided:
+  - **The caretaker always uses the app.** A portfolio's caretaker is a member with the `manager`
+    role. There is no caretaker who is only a name and a phone number, with no account.
+  - **Amounts stay in rupees at launch.** Owners abroad see no total converted into another
+    currency, indicative or not, and `display_currency` is not added at launch. There is no free
+    official API for rupee rates (the ECB publishes no PKR rate, and the State Bank publishes web
+    pages, not an API), so conversion waits until a rate source is chosen. The owner's own time
+    zone and the dual time are still shown.
+  - **The owner-abroad question is always answered.** When a portfolio is created, the app asks
+    "Does the owner of these properties live abroad?" with no answer chosen, and the person must
+    choose. It is never filled in from the creator's residence, because the creator is often a
+    caretaker or a relative.
+
+  The rest of how the app holds and uses this is the research's proposed design, not a decision:
+  the fields, which times stay on Pakistan time and which follow the owner's own zone, and keeping
+  residence from tenants. The design and its work are in
   [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-1-residence-per-person-and-per-portfolio-d-16).
 
-- D-17: **Letterheads on every generated document.** (Decided by the owner, 11 November 2026.)
-  Owners can upload a letterhead, or make one with a simple builder, and it is applied to every PDF
-  and image the app generates. An upload is a PDF (its first page for a document's first page, its
-  second for the pages after) or a PNG or JPG. Word users save their letterhead as a PDF; there is
-  no Word import. The design and its work are in
+- D-17: **Letterheads on every generated document.** (Decided by the owner, 11 November 2026; the
+  details below decided by the owner, 12 November 2026.) Owners can upload a letterhead, or make
+  one with a simple builder, and it is applied to every PDF and image the app generates. An upload
+  is a PDF (its first page for a document's first page, its second for the pages after) or a PNG
+  or JPG. Word users save their letterhead as a PDF; there is no Word import.
+
+  On 12 November 2026 the owner decided:
+  - **Per portfolio.** A letterhead is set per portfolio, not per account, because the portfolio is
+    the issuer on its receipts. One upload can be copied to the owner's other portfolios.
+  - **An optional Urdu letterhead.** Each portfolio may add an Urdu version of its letterhead.
+    Documents issued in Urdu use it when it exists, and the main letterhead otherwise. The builder
+    can make both from the same logo and details.
+  - **A5 or A4 receipts.** Each portfolio chooses A5 or A4 receipts, with A5 by default as today.
+    An A4 letterhead on an A5 receipt is scaled down, and the preview warns when its text becomes
+    too small to read.
+  - **On every plan.** Letterheads, both the builder and uploads, are on every plan, Free included.
+
+  The design and its work are in
   [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-2-letterheads-on-every-generated-document-d-17).
-- D-18: **Privacy-first analytics, support and e-mail.** (Decided by the owner, 11 November 2026.)
+
+- D-18: **Privacy-first analytics, support and e-mail.** (Decided by the owner, 11 November 2026;
+  the data regions decided by the owner, 12 November 2026.)
   - The website counts visits with PostHog in cookieless, anonymous mode, and says so plainly. Its
     privacy page, FAQ and footer, which promise no analytics in English and Urdu, change to match.
   - The app sends nothing to PostHog or Intercom until the person opts in.
   - Customer.io sends transactional e-mail, and lifecycle e-mail only to people who consented.
+  - The existing accounts stay (12 November 2026): PostHog's US Cloud project, and Customer.io's
+    US workspace, which is on Customer.io's Startup plan. The privacy notice names the US as where
+    these processors handle data, under their standard data-transfer terms. This replaces the
+    research's suggestion of PostHog's EU Cloud.
+
+  The rest of the research's design is unchanged and still applies: cookieless mode on the
+  website; opt-in only in the app; no session replay, autocapture, surveys or feature flags; the
+  objection switch and Do Not Track. The existing PostHog project has session recording, heatmaps,
+  console-log capture and dead-click capture switched on in its project settings. The website and
+  the app must not use them: the SDK configuration turns them off, and those project settings are
+  switched off before any SDK ships, as an owner or set-up step.
+
+  The research recommends an order of work, which is not part of the decision: the new privacy
+  text first, reviewed by the lawyer, then consent records, then the SDKs. The design and its work
+  are in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
+
 - D-19: **Urdu interface text is set in Noto Sans Arabic; Nastaliq stays for the wordmark.**
   (Decided by the owner, 11 November 2026, after seeing five candidates rendered on the real app
   screens and website pages: Noto Nastaliq Urdu as it was, a tighter Nastaliq, Gulzar, Noto Naskh
@@ -123,11 +168,6 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   makes app screens about 15% shorter. The name مالکِ مکان keeps Nastaliq where it is the
   wordmark. This revises the "Nastaliq" in D-12; readers in the [pilot](../docs/roadmap/pilot.md)
   confirm it rather than decide it.
-
-  The research recommends an order of work, which is not part of the decision: the new privacy
-  text first, reviewed by the lawyer, then consent records, then the SDKs. The design and its work
-  are in
-  [`docs/roadmap/README.md`](../docs/roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18).
 
 ## Open Proposals
 
