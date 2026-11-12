@@ -10,6 +10,7 @@ import check_manifest
 
 HEADER = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
 INTERNET = '<uses-permission android:name="android.permission.INTERNET"/>'
+ICONS = 'android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"'
 
 
 class CheckManifestTest(unittest.TestCase):
@@ -20,9 +21,9 @@ class CheckManifestTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def manifest(self, body, name="AndroidManifest.xml"):
+    def manifest(self, body, name="AndroidManifest.xml", application=f"<application {ICONS}/>"):
         path = self.dir / name
-        path.write_text(f"{HEADER}{body}<application/></manifest>", encoding="utf-8")
+        path.write_text(f"{HEADER}{body}{application}</manifest>", encoding="utf-8")
         return path
 
     def run_main(self, *paths):
@@ -57,6 +58,25 @@ class CheckManifestTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("bad.xml", err)
         self.assertNotIn("good.xml", err)
+
+    def test_the_application_must_name_both_launcher_icons(self):
+        for application in (
+            "<application/>",
+            '<application android:icon="@mipmap/ic_launcher"/>',
+            '<application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/other"/>',
+            '<application icon="@mipmap/ic_launcher" roundIcon="@mipmap/ic_launcher_round"/>',
+        ):
+            with self.subTest(application=application):
+                path = self.manifest(INTERNET, application=application)
+                found = check_manifest.problems(path)
+                self.assertEqual(len(found), 1 if "android:icon" in application else 2)
+                self.assertTrue(all("<application> needs android:" in line for line in found))
+
+    def test_a_manifest_without_an_application_fails(self):
+        path = self.manifest(INTERNET, application="")
+        found = check_manifest.problems(path)
+        self.assertEqual(len(found), 1)
+        self.assertIn("no <application>", found[0])
 
     def test_an_unreadable_or_foreign_file_fails(self):
         missing = self.dir / "absent.xml"

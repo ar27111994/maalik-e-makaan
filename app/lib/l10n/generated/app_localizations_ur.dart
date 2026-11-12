@@ -2376,6 +2376,17 @@ class AppLocalizationsUr extends AppLocalizations {
   String get preparingFile => 'فائل تیار کی جا رہی ہے';
 
   @override
+  String get photoRecovered =>
+      'کیمرہ کھلا تھا کہ ایپ بند ہو گئی، لیکن آپ کی تصویر محفوظ رہی۔ اسے دیکھ لیں، پھر اپ لوڈ کریں۔';
+
+  @override
+  String get photoKeptOffer =>
+      'کیمرہ کھلا تھا کہ ایپ بند ہو گئی، لیکن آپ کی تصویر محفوظ رہی۔';
+
+  @override
+  String get photoKeptAction => 'تصویر دیکھیں';
+
+  @override
   String get documentKindLabel => 'قسم';
 
   @override
@@ -2453,6 +2464,10 @@ class AppLocalizationsUr extends AppLocalizations {
   @override
   String get reasonPickerAccessDenied =>
       'اس ایپ کو کیمرہ یا آپ کی فائلیں استعمال کرنے کی اجازت نہیں۔ فون کی سیٹنگز میں اجازت دیں۔';
+
+  @override
+  String get reasonCameraNotReady =>
+      'آپ کا فون تصویر کھینچنے کے لیے تیار نہیں ہو سکا۔ دوبارہ کوشش کریں، یا اس کی جگہ کوئی فائل منتخب کریں۔';
 
   @override
   String get chargeKindRent => 'کرایہ';

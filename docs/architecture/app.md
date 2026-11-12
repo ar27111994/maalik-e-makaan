@@ -152,6 +152,68 @@ one request signs a link for every photo it shows (`thumbnailLinks`), and the
 links are signed again before they expire; a file that cannot be signed keeps
 its row's icon.
 
+#### A camera photo Android lost
+
+On a phone short of memory, Android may close the app while the camera app is
+in front. The photo is then not returned to the sheet that asked for it:
+`image_picker` keeps it for the app's next start (`retrieveLostData`). So that
+it is not lost, and still goes to the right record:
+
+1. On Android, before the camera opens, the add-document sheet remembers the
+   target in the device's preferences (`CameraTarget`, key
+   `mm.documents.camera_target`, behind `CameraTargetStore`): the signed-in
+   user, the portfolio, the record (entity and id), the path of the record's
+   screen, and when the camera opened. The write finishes before the camera
+   opens. When the camera answers (a photo, a cancel or a refusal) the target
+   is forgotten. iOS and the web never lose a photo, so nothing is written
+   there (`cameraLosesPhotosProvider`). If the target cannot be written (or
+   the sheet has no screen to come back to), the sheet removes whatever target
+   is stored before the camera opens: one that an earlier camera left behind,
+   because removing it failed, is still recent, and a lost photo would
+   otherwise go back to that earlier record. The camera then opens with no
+   target, so a photo Android loses cannot come back, which is safe. If the
+   removal fails as well, the camera does not open (`camera_not_ready`): the
+   sheet says that the phone could not get ready to take a photo, and that the
+   landlord can try again or choose a file instead.
+2. When the app starts, once the user is signed in and their portfolios are
+   known, `LostPhotoRecovery` (around the signed-in shell) asks once per run
+   for a lost photo (`DocumentPicker.recoverLostPhoto`), on Android only. On
+   iOS and the web it does not ask, and a target an older version left there
+   is forgotten. It does not ask again when the app comes back to the
+   foreground, because a run that was not closed gets its photo from the
+   camera itself.
+3. `recoverLostPhoto` decides. The photo comes back only if all of these
+   hold: a readable target says which record it is for; the same user opened
+   the camera; the camera opened at most a day ago (`lostPhotoMaxAge`); the
+   member still belongs to the portfolio with a role that adds documents; and
+   the record still takes documents (`ownerTakesDocuments`, a `select` under
+   the record's row policy that leaves out an archived property, unit or
+   tenant and a voided payment, whose screens offer no "Add document"). A day
+   still covers a landlord called away just after taking the photo. Older
+   photos are let go, so that a photo of a CNIC never appears days later on a
+   record the landlord has forgotten. If the record cannot be checked (no
+   connection, or no answer within five seconds, `lostPhotoCheckLimit`), the
+   photo is kept, because the database checks the record again on upload.
+   Otherwise the photo is let go without a message, and the app does not move.
+   If the camera had failed, the usual failure message is shown. In every case
+   the target is forgotten, unless a camera opened in the meantime has stored
+   a new one; a device that cannot remove it still gets its photo.
+4. The app can be used while this runs. If the landlord is still on the screen
+   and in the portfolio they were in when it started, a photo that comes back
+   takes them to its portfolio and record (`GoRouter.go` to the remembered
+   path). If they have moved on, they are not pulled away: a snackbar says the
+   photo was kept, and its "Show photo" action takes them there; if they let
+   it pass, the photo is let go. On the record, its documents section opens
+   the add-document sheet with the photo already chosen. A banner says that
+   the photo was kept when the app closed. The photo goes through
+   `prepareFile` like any other: it is made smaller and its metadata is
+   removed. Nothing is uploaded until the landlord taps Upload. If the record
+   was archived in the meantime, or the role does not upload, the section lets
+   the photo go.
+
+The camera's own copy of the photo stays in the app's cache directory, as it
+does for every camera photo, until Android clears it.
+
 ## State
 
 - The current portfolio is chosen once and remembered on the device; every

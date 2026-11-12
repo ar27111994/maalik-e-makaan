@@ -5,8 +5,11 @@ Flutter's debug and profile manifests add the INTERNET permission for the
 tool's own connection, so `flutter run` and the integration tests reach the
 network even when the main manifest forgets it. A release build merges only the
 main manifest, and without the permission every request fails as if the phone
-were offline (v1.0.0 shipped that way). This check reads the main manifest, and
-in CI the merged release manifest, and fails on anything missing.
+were offline (v1.0.0 shipped that way). The application must also name the
+launcher icons that `make app-icons` writes (tool/design/build_app_icons.py),
+its round variant included, or launchers that use round icons fall back to a
+default. This check reads the main manifest, and in CI the merged release
+manifest, and fails on anything missing.
 
     python3 tool/android/check_manifest.py [manifest.xml ...]
 """
@@ -23,6 +26,12 @@ MAIN_MANIFEST = Path(__file__).resolve().parents[2] / "app/android/app/src/main/
 # Supabase (auth, data, storage, Edge Functions) needs the network.
 REQUIRED_PERMISSIONS = ("android.permission.INTERNET",)
 
+# The launcher icons that tool/design/build_app_icons.py writes.
+REQUIRED_APPLICATION_ATTRIBUTES = {
+    "icon": "@mipmap/ic_launcher",
+    "roundIcon": "@mipmap/ic_launcher_round",
+}
+
 
 def problems(manifest: Path) -> list[str]:
     """Return what the manifest lacks; an empty list means it passes."""
@@ -34,11 +43,20 @@ def problems(manifest: Path) -> list[str]:
     if root.tag != "manifest":
         return [f"{manifest}: the root element is <{root.tag}>, not <manifest>"]
     declared = {element.get(f"{ANDROID}name") for element in root.findall("uses-permission")}
-    return [
+    found = [
         f'{manifest}: missing <uses-permission android:name="{permission}"/>'
         for permission in REQUIRED_PERMISSIONS
         if permission not in declared
     ]
+    application = root.find("application")
+    if application is None:
+        return [*found, f"{manifest}: no <application> element"]
+    found += [
+        f'{manifest}: <application> needs android:{name}="{value}"'
+        for name, value in REQUIRED_APPLICATION_ATTRIBUTES.items()
+        if application.get(f"{ANDROID}{name}") != value
+    ]
+    return found
 
 
 def main(argv: list[str]) -> int:

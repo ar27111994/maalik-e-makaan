@@ -4106,6 +4106,24 @@ abstract class AppLocalizations {
   /// **'Getting the file ready'**
   String get preparingFile;
 
+  /// At the top of the add-document sheet when it opens by itself with a camera photo that Android kept after closing the app; nothing is uploaded until the landlord taps Upload.
+  ///
+  /// In en, this message translates to:
+  /// **'The app closed while the camera was open, but your photo was kept. Check it, then upload it.'**
+  String get photoRecovered;
+
+  /// Snackbar when the app starts again with a camera photo that Android kept after closing the app, and the landlord has already moved to another screen; its action (photoKeptAction) takes them to the photo.
+  ///
+  /// In en, this message translates to:
+  /// **'The app closed while the camera was open, but your photo was kept.'**
+  String get photoKeptOffer;
+
+  /// Action of the photoKeptOffer snackbar: goes to the record the photo was taken for and opens it in the add-document sheet, where nothing is uploaded until the landlord taps Upload.
+  ///
+  /// In en, this message translates to:
+  /// **'Show photo'**
+  String get photoKeptAction;
+
   /// Label of a document's kind.
   ///
   /// In en, this message translates to:
@@ -4231,6 +4249,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Maalik-e-Makaan may not use the camera or your files. Allow it in your phone\'s settings.'**
   String get reasonPickerAccessDenied;
+
+  /// The camera was not opened: the phone could not clear what it kept about an earlier photo, so a photo taken now could end up on the wrong record.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone could not get ready to take a photo. Try again, or choose a file instead.'**
+  String get reasonCameraNotReady;
 
   /// A charge for rent.
   ///

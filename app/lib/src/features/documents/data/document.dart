@@ -49,6 +49,34 @@ enum DocumentEntity with DbEnum {
 
   static DocumentEntity parse(String name) => parseDbEnum(values, name);
 
+  /// The table of these records (`private.document_entity_table`).
+  String get table => switch (this) {
+    property => 'properties',
+    unit => 'units',
+    tenant => 'tenants',
+    lease => 'leases',
+    payment => 'payments',
+    expense => 'expenses',
+    maintenanceRequest => 'maintenance_requests',
+    utilityBill => 'utility_bills',
+    meterReading => 'meter_readings',
+  };
+
+  /// The column of [table] that, once set, closes a record to new
+  /// documents in the app: an archived property, unit or tenant, or a
+  /// voided payment, whose screens offer no "Add document" (their
+  /// `DocumentsSection.canAdd`). Null for the records that always take
+  /// documents.
+  String? get closedColumn => switch (this) {
+    property || unit || tenant => 'archived_at',
+    payment => 'voided_at',
+    lease => null,
+    expense => null,
+    maintenanceRequest => null,
+    utilityBill => null,
+    meterReading => null,
+  };
+
   /// The kinds offered first for a document of this record, the likeliest
   /// first; the other kinds follow them.
   List<DocumentKind> get suggestedKinds => switch (this) {

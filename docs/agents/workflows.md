@@ -44,7 +44,8 @@ by `contracts/`.
    [`docs/architecture/app.md`](../architecture/app.md).
 2. Data access goes in the feature's `data/` repository, state in `application/`, widgets in
    `presentation/`, built from `mm_ui` components.
-3. Add strings to both ARB files, then `make codegen`.
+3. Add strings to both ARB files, then `make codegen`. A change to `appName` in `app_en.arb` also
+   renames the web app: run `make app-icons`, which writes it into `app/web/manifest.json`.
 4. Add widget tests and goldens in the six variants; record them with `make goldens` on Linux and
    review every image.
 5. Run `make format-check analyze design-lint test-app`.
@@ -52,12 +53,15 @@ by `contracts/`.
 ## Change the design system
 
 1. Visual values: edit `design/tokens/maalik.tokens.json`, then `make tokens`. Icons: add the
-   Lucide name to `design/icons/icons.json`, then `make icons` (needs `npm ci`).
+   Lucide name to `design/icons/icons.json`, then `make icons` (needs `npm ci`). A change to
+   `primary`, `onPrimary` or the light `bg`, or to the mark in `website/src/lib/brand.ts`, also
+   changes the app's launcher icons: run `make app-icons` and look at every changed image (and
+   `npm run og` in `website/` for the site's own icons).
 2. Components: follow `packages/mm_ui/COMPONENTS.md`; keep the API additive, because the app
    depends on it.
 3. Add the component to its family's gallery page in `packages/mm_ui/example/lib/src/pages/`.
-4. Run `make tokens-check icons-check test-ui test-gallery test-app` (the app's goldens show
-   whether a change leaks into its screens).
+4. Run `make tokens-check icons-check app-icons-check test-ui test-gallery test-app` (the app's
+   goldens show whether a change leaks into its screens).
 
 ## Change an Edge Function
 

@@ -34,6 +34,12 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 - UI comes from `mm_ui`; no literal colours, sizes, radii or durations (`make design-lint`).
 - The UI hides what a role cannot do, but the database is the authority; do not add client-only
   permission checks as protection.
+- The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
+  tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
+  `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,
+  `web/icons/` and the name, colours and icons in `web/manifest.json`, whose `name` and
+  `short_name` come from `appName` in `lib/l10n/arb/app_en.arb`. Change the source instead, run
+  `make app-icons` (also after renaming the app), then look at every changed image.
 
 ## Commands
 

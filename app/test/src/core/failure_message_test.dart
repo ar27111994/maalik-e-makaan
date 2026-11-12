@@ -46,6 +46,7 @@ void main() {
       'file_type_not_allowed',
       'file_unreadable',
       'picker_access_denied',
+      'camera_not_ready',
       'idempotency_key_reused',
       'invalid_amount',
       'invalid_charge_selection',

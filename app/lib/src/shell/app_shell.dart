@@ -5,6 +5,7 @@ import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
+import 'package:maalik_e_makaan/src/features/documents/presentation/lost_photo_recovery.dart';
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:mm_ui/mm_ui.dart';
@@ -18,7 +19,9 @@ import 'package:mm_ui/mm_ui.dart';
 /// frame shows that it is loading, or why it could not load, with a retry.
 ///
 /// When the app comes back to the foreground, the unread count on More is
-/// read again: notifications may have arrived while it was away.
+/// read again: notifications may have arrived while it was away. A camera
+/// photo Android kept after closing the app is brought back to its record
+/// ([LostPhotoRecovery]).
 class AppShell extends ConsumerStatefulWidget {
   const new({required this.shell, super.key});
 
@@ -55,24 +58,27 @@ class _AppShellState extends ConsumerState<AppShell> {
     final l10n = AppLocalizations.of(context);
     final portfolio = ref.watch(currentPortfolioProvider);
     final unread = ref.watch(unreadCountProvider).value;
-    return MmAdaptiveScaffold(
-      destinations: [
-        MmDestination(icon: MmIcons.home, label: l10n.navDashboard),
-        MmDestination(icon: MmIcons.property, label: l10n.navProperties),
-        MmDestination(icon: MmIcons.tenants, label: l10n.navTenants),
-        MmDestination(icon: MmIcons.ledger, label: l10n.navMoney),
-        MmDestination(
-          icon: MmIcons.more,
-          label: l10n.navMore,
-          // Unread notifications wait under More.
-          badgeCount: unread,
-        ),
-      ],
-      selectedIndex: shell.currentIndex,
-      onDestinationSelected: _select,
-      body: portfolio.hasValue
-          ? shell
-          : _PortfolioPending(error: portfolio.error),
+    // A camera photo Android kept after closing the app comes back here.
+    return LostPhotoRecovery(
+      child: MmAdaptiveScaffold(
+        destinations: [
+          MmDestination(icon: MmIcons.home, label: l10n.navDashboard),
+          MmDestination(icon: MmIcons.property, label: l10n.navProperties),
+          MmDestination(icon: MmIcons.tenants, label: l10n.navTenants),
+          MmDestination(icon: MmIcons.ledger, label: l10n.navMoney),
+          MmDestination(
+            icon: MmIcons.more,
+            label: l10n.navMore,
+            // Unread notifications wait under More.
+            badgeCount: unread,
+          ),
+        ],
+        selectedIndex: shell.currentIndex,
+        onDestinationSelected: _select,
+        body: portfolio.hasValue
+            ? shell
+            : _PortfolioPending(error: portfolio.error),
+      ),
     );
   }
 }

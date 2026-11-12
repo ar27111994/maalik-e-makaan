@@ -10,6 +10,7 @@ import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
@@ -569,6 +570,14 @@ final class MemorySettingsStore implements SettingsStore {
 
   final Map<String, Object> values;
 
+  /// Thrown by every write while set, as by a device that cannot write.
+  Exception? writeFailure;
+
+  void _write() {
+    final failure = writeFailure;
+    if (failure != null) throw failure;
+  }
+
   @override
   String? getString(String key) => values[key] as String?;
 
@@ -576,14 +585,22 @@ final class MemorySettingsStore implements SettingsStore {
   bool? getBool(String key) => values[key] as bool?;
 
   @override
-  Future<void> setString(String key, String value) async => values[key] = value;
+  Future<void> setString(String key, String value) async {
+    _write();
+    values[key] = value;
+  }
 
   @override
-  Future<void> setBool(String key, {required bool value}) async =>
-      values[key] = value;
+  Future<void> setBool(String key, {required bool value}) async {
+    _write();
+    values[key] = value;
+  }
 
   @override
-  Future<void> remove(String key) async => values.remove(key);
+  Future<void> remove(String key) async {
+    _write();
+    values.remove(key);
+  }
 }
 
 /// An in-memory [KeyValueStore].
@@ -1383,6 +1400,13 @@ final class FakeDocumentRepository implements DocumentRepository {
   /// The paths of the stored files.
   final stored = <String>{};
 
+  /// Records that no longer take documents for [ownerTakesDocuments]:
+  /// deleted, hidden from the member, archived or voided.
+  final closedOwners = <DocumentOwner>{};
+
+  /// Fails [ownerTakesDocuments] when set.
+  AppFailure? ownerFailure;
+
   List<Document> documentsOf(DocumentOwner owner) => byOwner[owner] ??= [];
 
   Iterable<Document> get _all => byOwner.values.expand((list) => list);
@@ -1414,6 +1438,17 @@ final class FakeDocumentRepository implements DocumentRepository {
       items,
       next: start + items.length < all.length ? items.last.cursor : null,
     );
+  }
+
+  @override
+  Future<bool> ownerTakesDocuments(
+    String portfolioId,
+    DocumentOwner owner,
+  ) async {
+    await _call('ownerTakesDocuments', [portfolioId, owner]);
+    final failure = ownerFailure;
+    if (failure != null) throw failure;
+    return !closedOwners.contains(owner);
   }
 
   @override
@@ -1562,6 +1597,14 @@ final class FakeDocumentPicker implements DocumentPicker {
     ]),
   );
 
+  /// The photo the camera kept after Android closed the app, handed over
+  /// once by [recoverLostPhoto]; null when there is none.
+  ChosenFile? lostPhoto;
+
+  /// Thrown by [recoverLostPhoto] when set: the camera's refusal before
+  /// the app closed.
+  AppFailure? lostFailure;
+
   /// What a picked JPEG is prepared into.
   Uint8List preparedJpeg = preparedPhoto;
 
@@ -1584,6 +1627,17 @@ final class FakeDocumentPicker implements DocumentPicker {
   @override
   Future<ChosenFile?> chooseFile() => _pick('chooseFile', file);
 
+  @override
+  Future<ChosenFile?> recoverLostPhoto() async {
+    calls.add('recoverLostPhoto');
+    final failure = lostFailure;
+    lostFailure = null;
+    if (failure != null) throw failure;
+    final photo = lostPhoto;
+    lostPhoto = null;
+    return photo;
+  }
+
   Future<PreparedFile> prepare(ChosenFile file) async {
     final type = DocumentFileType.sniff(file.bytes);
     if (type == null) throw const RejectedFailure('file_type_not_allowed');
@@ -1601,5 +1655,39 @@ final class FakeDocumentPicker implements DocumentPicker {
             type: type,
             originalSize: file.bytes.length,
           );
+  }
+}
+
+/// A [CameraTargetStore] whose writes fail one at a time, as the test
+/// sets: [rememberFailure] is thrown by [remember] and [forgetFailure] by
+/// [forget]. Like a device's, a write that fails leaves the target that
+/// was kept before it ([kept]).
+final class FakeCameraTargetStore implements CameraTargetStore {
+  new([this.kept]);
+
+  /// The target the device keeps.
+  CameraTarget? kept;
+
+  Exception? rememberFailure;
+  Exception? forgetFailure;
+
+  /// The writes asked for, in order, failed or not.
+  final calls = <String>[];
+
+  @override
+  CameraTarget? read() => kept;
+
+  @override
+  Future<void> remember(CameraTarget target) async {
+    calls.add('remember');
+    if (rememberFailure case final failure?) throw failure;
+    kept = target;
+  }
+
+  @override
+  Future<void> forget() async {
+    calls.add('forget');
+    if (forgetFailure case final failure?) throw failure;
+    kept = null;
   }
 }

@@ -4,7 +4,9 @@ import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
@@ -14,6 +16,8 @@ import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/documents.dart';
+import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
@@ -26,7 +30,12 @@ import 'package:mm_ui/mm_ui.dart';
 /// police forms and photos, newest first, each opening a sheet to open,
 /// download, rename or delete it as the member's role allows, and "Add
 /// document" for the roles that upload (when [canAdd]: a record in use).
-class DocumentsSection extends ConsumerWidget {
+///
+/// A camera photo that came back after Android closed the app
+/// ([lostPhotoProvider]) opens in the add-document sheet once its record's
+/// section is shown; for a record no longer in use, or a role that does
+/// not upload, it is let go.
+class DocumentsSection extends ConsumerStatefulWidget {
   const new({required this.owner, this.canAdd = true, super.key});
 
   final DocumentOwner owner;
@@ -35,13 +44,80 @@ class DocumentsSection extends ConsumerWidget {
   final bool canAdd;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DocumentsSection> createState() => _DocumentsSectionState();
+}
+
+class _DocumentsSectionState extends ConsumerState<DocumentsSection> {
+  @override
+  void initState() {
+    super.initState();
+    // A photo already waiting when the record's screen opens (the app
+    // went to it for the photo); one held later, or a portfolio known
+    // later, arrives by the listeners in [build].
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openRecovered());
+  }
+
+  /// Opens the add-document sheet for [portfolio]'s list of this record,
+  /// with the photo that came back when there is one.
+  void _openAdd(PortfolioMembership portfolio, {ChosenFile? recovered}) {
     final l10n = AppLocalizations.of(context);
+    final list = (portfolioId: portfolio.id, owner: widget.owner);
+    // The screen the sheet is over, to come back to if Android closes the
+    // app while the camera is open.
+    final location = GoRouter.maybeOf(context)?.state.uri.toString();
+    unawaited(
+      showMmSheet<void>(
+        context,
+        title: l10n.addDocumentAction,
+        builder: (_) => AddDocumentSheet(
+          list: list,
+          discardsFiles: portfolio.role.deletesDocuments,
+          location: location,
+          recoveredPhoto: recovered,
+        ),
+      ),
+    );
+  }
+
+  /// Takes the photo that came back for this record, if one waits, and
+  /// opens it in the add-document sheet when the record takes documents.
+  void _openRecovered() {
+    if (!mounted) return;
+    final portfolio = ref.read(currentPortfolioProvider).value;
+    if (portfolio == null) return;
+    final photo = ref.read(lostPhotoProvider.notifier).take((
+      portfolioId: portfolio.id,
+      owner: widget.owner,
+    ));
+    if (photo == null) return;
+    if (widget.canAdd && portfolio.role.recordsDocuments) {
+      // In view behind the sheet, so the document is seen arriving.
+      Scrollable.ensureVisible(context);
+      _openAdd(portfolio, recovered: photo);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    // A photo held, or the portfolio known, after the section was shown:
+    // taken once the change has gone round, not while it does.
+    ref
+      ..listen(lostPhotoProvider, (_, waiting) {
+        if (waiting != null) scheduleMicrotask(_openRecovered);
+      })
+      ..listen(currentPortfolioProvider.select((current) => current.value), (
+        _,
+        portfolio,
+      ) {
+        if (portfolio != null) scheduleMicrotask(_openRecovered);
+      });
     final portfolio = ref.watch(currentPortfolioProvider).value;
     if (portfolio == null) return const SizedBox.shrink();
+    final owner = widget.owner;
     final list = (portfolioId: portfolio.id, owner: owner);
     final role = portfolio.role;
-    final add = canAdd && role.recordsDocuments;
+    final add = widget.canAdd && role.recordsDocuments;
     final provider = documentsProvider(list);
     // Photos shown small in their rows; their icons until (or unless)
     // their links are signed.
@@ -54,16 +130,7 @@ class DocumentsSection extends ConsumerWidget {
           title: l10n.documentsSection,
           subtitle: l10n.documentsSectionHelp,
           actionLabel: add ? l10n.addDocumentAction : null,
-          onAction: add
-              ? () => showMmSheet<void>(
-                  context,
-                  title: l10n.addDocumentAction,
-                  builder: (_) => AddDocumentSheet(
-                    list: list,
-                    discardsFiles: role.deletesDocuments,
-                  ),
-                )
-              : null,
+          onAction: add ? () => _openAdd(portfolio) : null,
         ),
         const SizedBox(height: MmSpace.s2),
         SnapshotView(
@@ -469,13 +536,38 @@ class _DocumentSheetState extends ConsumerState<DocumentSheet>
 /// the sheet closes with the file stored but not recorded, the file is
 /// deleted (for the roles that may, [discardsFiles]; otherwise the daily
 /// sweep queues it a day later).
+///
+/// On Android, while the camera is open, the device remembers the record
+/// and the screen ([location]) the photo is for ([CameraTarget]): Android
+/// may close the app behind the camera, and the photo then comes back to
+/// this sheet when the app starts again ([recoveredPhoto]), prepared as
+/// any photo and uploaded only when the landlord says so. A device that
+/// cannot remember them opens the camera with nothing remembered, and does
+/// not open it while it may still remember another record's. iOS and the
+/// web never lose a photo, so nothing is kept there.
 class AddDocumentSheet extends ConsumerStatefulWidget {
-  const new({required this.list, required this.discardsFiles, super.key});
+  const new({
+    required this.list,
+    required this.discardsFiles,
+    this.location,
+    this.recoveredPhoto,
+    super.key,
+  });
 
   final DocumentList list;
 
   /// Whether the member may delete a stored file no row refers to.
   final bool discardsFiles;
+
+  /// The path of the screen the sheet is over, to come back to with a
+  /// photo Android kept after closing the app; without it, a photo lost
+  /// that way cannot find its way back.
+  final String? location;
+
+  /// A photo that came back after Android closed the app while the camera
+  /// was open: it is prepared at once, and the sheet says where it came
+  /// from.
+  final ChosenFile? recoveredPhoto;
 
   @override
   ConsumerState<AddDocumentSheet> createState() => _AddDocumentSheetState();
@@ -493,12 +585,26 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
   UploadAttempt? _attempt;
   _Source? _source;
 
+  /// Whether the photo in hand is [AddDocumentSheet.recoveredPhoto].
+  bool _recovered = false;
+
   @override
   void initState() {
     super.initState();
     // Read now: the sheet gives up its upload when it is disposed, when it
     // may no longer read providers.
     _discard = ref.read(uploadDiscarderProvider);
+    final recovered = widget.recoveredPhoto;
+    if (recovered != null) {
+      _source = _Source.camera;
+      _recovered = true;
+      final prepare = ref.read(filePreparerProvider);
+      // After the first frame: a command changes the sheet's state.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(runCommand(() => _use(recovered, _Source.camera, prepare)));
+      });
+    }
   }
 
   @override
@@ -518,27 +624,102 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
   }
 
   Future<void> _pick(_Source source) async {
-    setState(() => _source = source);
+    setState(() {
+      _source = source;
+      _recovered = false;
+    });
     final picker = ref.read(documentPickerProvider);
     final prepare = ref.read(filePreparerProvider);
     await runCommand(() async {
       final picked = await (source == _Source.camera
-          ? picker.takePhoto()
+          ? _takePhoto(picker)
           : picker.chooseFile());
-      if (picked == null) return;
-      final file = await prepare(picked);
-      if (!mounted) return;
-      _giveUp();
-      setState(() {
-        _attempt = UploadAttempt(
-          portfolioId: widget.list.portfolioId,
-          owner: widget.list.owner,
-          file: file,
-        );
-        // A camera photo's file name means nothing: it is named after its
-        // kind unless the landlord names it.
-        _name.text = source == _Source.camera ? '' : documentName(file.name);
-      });
+      if (picked != null) await _use(picked, source, prepare);
+    });
+  }
+
+  /// A photo from [picker]'s camera. Where the camera can lose it
+  /// ([cameraLosesPhotosProvider]), its [CameraTarget] is kept on the
+  /// device while the camera is open ([_keepTarget]) and forgotten when the
+  /// camera answers (a photo, a cancel or a refusal): the app was not
+  /// closed behind it.
+  Future<ChosenFile?> _takePhoto(DocumentPicker picker) async {
+    if (!ref.read(cameraLosesPhotosProvider)) return await picker.takePhoto();
+    final targets = ref.read(cameraTargetStoreProvider);
+    final target = await _keepTarget(targets);
+    try {
+      return await picker.takePhoto();
+    } finally {
+      if (target != null) await _forget(targets, target);
+    }
+  }
+
+  /// Keeps the target of the photo about to be taken in [targets], in
+  /// place of any other, and returns it.
+  ///
+  /// Without one (the device cannot write it, or there is no screen to
+  /// come back to) the camera still opens, once no earlier target is kept
+  /// either: a photo Android loses then cannot come back, but it never
+  /// comes back to another record, as it would to a target left by a
+  /// camera before (one the device could not forget). Returns null then,
+  /// and throws `camera_not_ready` when the earlier target cannot be
+  /// forgotten: the camera does not open.
+  Future<CameraTarget?> _keepTarget(CameraTargetStore targets) async {
+    final userId = ref.read(currentUserIdProvider);
+    final location = widget.location;
+    if (userId != null && location != null) {
+      final target = CameraTarget(
+        userId: userId,
+        portfolioId: widget.list.portfolioId,
+        owner: widget.list.owner,
+        location: location,
+        openedAt: clock.now(),
+      );
+      try {
+        await targets.remember(target);
+        return target;
+      } on Exception {
+        // Not kept, and an earlier target perhaps not replaced.
+      }
+    }
+    try {
+      await targets.forget();
+    } on Exception {
+      throw const RejectedFailure('camera_not_ready');
+    }
+    return null;
+  }
+
+  /// Forgets [target]. A device that cannot is left with it until the
+  /// next camera replaces or forgets it ([_keepTarget]), or the app starts
+  /// again: while no camera is open, no photo can come back to it.
+  Future<void> _forget(CameraTargetStore targets, CameraTarget target) async {
+    try {
+      await targets.forgetIfStill(target);
+    } on Exception {
+      // Left behind, as above.
+    }
+  }
+
+  /// Makes [picked] (from [source]) ready with [prepare], as the file to
+  /// upload in place of any other.
+  Future<void> _use(
+    ChosenFile picked,
+    _Source source,
+    FilePreparer prepare,
+  ) async {
+    final file = await prepare(picked);
+    if (!mounted) return;
+    _giveUp();
+    setState(() {
+      _attempt = UploadAttempt(
+        portfolioId: widget.list.portfolioId,
+        owner: widget.list.owner,
+        file: file,
+      );
+      // A camera photo's file name means nothing: it is named after its
+      // kind unless the landlord names it.
+      _name.text = source == _Source.camera ? '' : documentName(file.name);
     });
   }
 
@@ -546,6 +727,7 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
     _giveUp();
     setState(() {
       _attempt = null;
+      _recovered = false;
       failure = null;
     });
   }
@@ -582,6 +764,10 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_recovered) ...[
+          MmBanner(tone: MmBannerTone.info, message: l10n.photoRecovered),
+          const SizedBox(height: MmSpace.s4),
+        ],
         if (failure != null) FailureBanner(failure: failure),
         if (attempt == null || file == null) ...[
           Text(

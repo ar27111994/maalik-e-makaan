@@ -164,12 +164,18 @@ bool _contains(List<int> haystack, List<int> needle) {
 Matcher _refused(String reason) =>
     throwsA(isA<RejectedFailure>().having((f) => f.reason, 'reason', reason));
 
-/// A camera that answers [photo] and records what it was asked.
+/// A camera that answers [photo], and [lost] when asked for a photo kept
+/// after Android closed the app, and records what it was asked.
 final class _Camera extends ImagePicker {
-  new(this.photo);
+  new(this.photo, {this.lost});
 
   final Future<XFile?> Function() photo;
+  final Future<LostDataResponse> Function()? lost;
   final asked = <Map<String, Object?>>[];
+
+  @override
+  Future<LostDataResponse> retrieveLostData() =>
+      lost?.call() ?? Future.value(LostDataResponse.empty());
 
   @override
   Future<XFile?> pickImage({
@@ -445,6 +451,79 @@ void main() {
         _Camera(() => throw PlatformException(code: 'no_available_camera')),
       );
       await expectLater(broken.takePhoto(), throwsA(isA<UnexpectedFailure>()));
+    });
+
+    test('a photo kept after Android closed the app comes back once', () async {
+      Future<ChosenFile?> recover(LostDataResponse lost) =>
+          PluginDocumentPicker(
+            _Camera(() async => null, lost: () async => lost),
+          ).recoverLostPhoto();
+
+      final photo = await recover(
+        LostDataResponse(
+          file: XFile.fromData(
+            Uint8List.fromList([7, 8, 9]),
+            path: '/data/cache/scaled_2.jpg',
+          ),
+          type: RetrieveType.image,
+        ),
+      );
+      expect(photo!.name, 'scaled_2.jpg');
+      expect(photo.bytes, [7, 8, 9]);
+      // Nothing kept.
+      expect(await recover(LostDataResponse.empty()), isNull);
+      expect(
+        await PluginDocumentPicker(_Camera(() async => null))
+            .recoverLostPhoto(),
+        isNull,
+      );
+      // Not a photo: the app takes no videos.
+      expect(
+        await recover(
+          LostDataResponse(
+            file: XFile.fromData(Uint8List(1), path: '/data/cache/v.mp4'),
+            type: RetrieveType.video,
+          ),
+        ),
+        isNull,
+      );
+      expect(await recover(LostDataResponse(type: RetrieveType.image)), isNull);
+    });
+
+    test("a lost photo's failure is the camera's", () async {
+      Future<ChosenFile?> recover(LostDataResponse lost) =>
+          PluginDocumentPicker(
+            _Camera(() async => null, lost: () async => lost),
+          ).recoverLostPhoto();
+
+      await expectLater(
+        recover(
+          LostDataResponse(
+            exception: PlatformException(code: 'camera_access_denied'),
+            type: RetrieveType.image,
+          ),
+        ),
+        _refused('picker_access_denied'),
+      );
+      await expectLater(
+        recover(
+          LostDataResponse(
+            exception: PlatformException(code: 'no_available_camera'),
+            type: RetrieveType.image,
+          ),
+        ),
+        throwsA(isA<UnexpectedFailure>()),
+      );
+      // The kept file is gone (the app's cache was cleared).
+      await expectLater(
+        recover(
+          LostDataResponse(
+            file: XFile('/nonexistent/scaled_3.jpg'),
+            type: RetrieveType.image,
+          ),
+        ),
+        throwsA(isA<AppFailure>()),
+      );
     });
 
     test('chooses a photo or PDF of the accepted types', () async {

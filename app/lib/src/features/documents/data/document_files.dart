@@ -29,6 +29,17 @@ abstract interface class DocumentPicker {
 
   /// A photo or PDF chosen from the device.
   Future<ChosenFile?> chooseFile();
+
+  /// The photo the camera took after Android closed the app behind it (a
+  /// phone short of memory may), which the camera plugin keeps for the
+  /// app's next start: it is handed over once, and null means there is
+  /// none. Throws [AppFailure] when taking it had failed, as [takePhoto]
+  /// would have.
+  ///
+  /// Only Android loses photos this way: on iOS and the web there is
+  /// nothing to recover, and this is not called there (`lostPhotoProvider`
+  /// asks `cameraLosesPhotosProvider` first).
+  Future<ChosenFile?> recoverLostPhoto();
 }
 
 /// The extensions the file chooser offers: the types the bucket accepts.
@@ -46,9 +57,10 @@ const pickableExtensions = <String>[
 const int maxPickedImageBytes = 50 * 1024 * 1024;
 
 /// [DocumentPicker] over image_picker (the camera, which it asks to keep
-/// photos to 2048 px and to compress them) and file_picker (the device's
-/// files, filtered to [pickableExtensions]); both work on Android, iOS
-/// and the web.
+/// photos to 2048 px and to compress them, and the photo it keeps when
+/// Android closed the app behind it) and file_picker (the device's files,
+/// filtered to [pickableExtensions]); both work on Android, iOS and the
+/// web.
 final class PluginDocumentPicker implements DocumentPicker {
   new([ImagePicker? camera]) : _camera = camera ?? ImagePicker();
 
@@ -69,6 +81,23 @@ final class PluginDocumentPicker implements DocumentPicker {
     );
     if (photo == null) return null;
     return ChosenFile(name: photo.name, bytes: await photo.readAsBytes());
+  });
+
+  @override
+  Future<ChosenFile?> recoverLostPhoto() => _guard(() async {
+    final lost = await _camera.retrieveLostData();
+    if (lost.isEmpty) return null;
+    // The camera's refusal before the app closed, as takePhoto throws it.
+    if (lost.exception case final exception?) throw exception;
+    final photo = lost.file;
+    // The app takes only photos (never videos) with image_picker.
+    if (photo == null || lost.type != RetrieveType.image) return null;
+    try {
+      return ChosenFile(name: photo.name, bytes: await photo.readAsBytes());
+    } on Exception catch (error) {
+      // The kept photo is gone: Android cleared the app's cache since.
+      throw AppFailure.from(error);
+    }
   });
 
   @override

@@ -2375,6 +2375,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preparingFile => 'Getting the file ready';
 
   @override
+  String get photoRecovered =>
+      'The app closed while the camera was open, but your photo was kept. Check it, then upload it.';
+
+  @override
+  String get photoKeptOffer =>
+      'The app closed while the camera was open, but your photo was kept.';
+
+  @override
+  String get photoKeptAction => 'Show photo';
+
+  @override
   String get documentKindLabel => 'Kind';
 
   @override
@@ -2451,6 +2462,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reasonPickerAccessDenied =>
       'Maalik-e-Makaan may not use the camera or your files. Allow it in your phone\'s settings.';
+
+  @override
+  String get reasonCameraNotReady =>
+      'Your phone could not get ready to take a photo. Try again, or choose a file instead.';
 
   @override
   String get chargeKindRent => 'Rent';

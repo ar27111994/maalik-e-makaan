@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +7,9 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
+import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
@@ -523,6 +528,247 @@ void main() {
       expect(find.text('Add document'), findsOneWidget);
     });
   }
+
+  group('a camera photo Android kept after closing the app', () {
+    const notice =
+        'The app closed while the camera was open, but your photo was kept. '
+        'Check it, then upload it.';
+
+    /// An app whose camera kept a photo for Ali Raza's documents in
+    /// [portfolioId], the camera having opened [ago].
+    TestApp keptFor({String? portfolioId, Duration ago = Duration.zero}) {
+      final target = CameraTarget(
+        userId: testUserId,
+        portfolioId: portfolioId ?? gulberg.id,
+        owner: (entity: DocumentEntity.tenant, id: aliRaza.id),
+        location: Routes.tenant(aliRaza.id),
+        // The test's clock, which the app reads.
+        openedAt: clock.now().toUtc().subtract(ago),
+      );
+      final app = TestApp(
+        settings: {AppSettings.cameraTargetKey: target.toJson()},
+      );
+      app.picker.lostPhoto = app.picker.photo;
+      return app;
+    }
+
+    testWidgets('comes back to its record, ready to upload', (tester) async {
+      final app = await _pumpApp(tester, app: keptFor());
+      // On Ali Raza's screen, in the add-document sheet.
+      expect(find.text('Ali Raza'), findsWidgets);
+      expect(find.text(notice), findsOneWidget);
+      expect(
+        find.text('Made smaller from 2.4\u00a0MB to 286\u00a0KB.'),
+        findsOneWidget,
+      );
+      expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+      // Nothing goes up before the landlord says so.
+      expect(
+        app.documents.calls.map((c) => c.$1),
+        isNot(contains('uploadFile')),
+      );
+      await tester.ensureVisible(find.text('Upload'));
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(find.text('CNIC, front added.'), findsOneWidget);
+      expect(
+        app.documents.calls.lastWhere((c) => c.$1 == 'recordDocument').$2.first,
+        startsWith('${gulberg.id}/tenant/${aliRaza.id}/'),
+      );
+      // Back at the documents, the photo is not offered again.
+      expect(find.text(notice), findsNothing);
+    });
+
+    testWidgets('comes back in the portfolio it was taken in', (tester) async {
+      final app = await _pumpApp(tester, app: keptFor(portfolioId: plaza.id));
+      expect(find.text(notice), findsOneWidget);
+      expect(
+        app.settings.values[AppSettings.currentPortfolioKey],
+        '$testUserId/${plaza.id}',
+      );
+      await tester.ensureVisible(find.text('Upload'));
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(
+        app.documents.calls.lastWhere((c) => c.$1 == 'recordDocument').$2.first,
+        startsWith('${plaza.id}/tenant/${aliRaza.id}/'),
+      );
+    });
+
+    testWidgets('a device that cannot write still gets it back', (
+      tester,
+    ) async {
+      final app = keptFor(portfolioId: plaza.id)
+        ..settings.writeFailure = Exception('read-only');
+      await _pumpApp(tester, app: app);
+      // In the other portfolio for this run, though the device could not
+      // note it, nor forget the camera's target.
+      expect(find.text(notice), findsOneWidget);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(app.settings.values, contains(AppSettings.cameraTargetKey));
+      app.settings.writeFailure = null;
+      await tester.ensureVisible(find.text('Upload'));
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(
+        app.documents.calls.lastWhere((c) => c.$1 == 'recordDocument').$2.first,
+        startsWith('${plaza.id}/tenant/${aliRaza.id}/'),
+      );
+    });
+
+    testWidgets('a day later it is let go', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        app: keptFor(ago: const Duration(days: 1, minutes: 1)),
+      );
+      expect(find.text('What needs attention'), findsOneWidget);
+      expect(find.text(notice), findsNothing);
+      expect(app.picker.calls, ['recoverLostPhoto']);
+      expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+    });
+
+    testWidgets("the camera's failure says so, as any failure does", (
+      tester,
+    ) async {
+      final app = keptFor()
+        ..picker.lostPhoto = null
+        ..picker.lostFailure = const RejectedFailure('picker_access_denied');
+      await _pumpApp(tester, app: app);
+      expect(find.text('What needs attention'), findsOneWidget);
+      expect(
+        find.text(
+          'Maalik-e-Makaan may not use the camera or your files. Allow it '
+          "in your phone's settings.",
+        ),
+        findsOneWidget,
+      );
+      expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+    });
+
+    testWidgets('is looked for once, after signing in', (tester) async {
+      final app = keptFor();
+      app.auth.emit(const SignedOut());
+      await _pumpApp(tester, app: app);
+      expect(app.picker.calls, isEmpty);
+      await tester.enterText(find.byType(TextField).first, testEmail);
+      await tester.enterText(find.byType(TextField).last, 'Secret1234');
+      await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+      await tester.pumpAndSettle();
+      expect(find.text(notice), findsOneWidget);
+      // Coming back to the foreground does not look again.
+      const [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ].forEach(tester.binding.handleAppLifecycleStateChanged);
+      await tester.pumpAndSettle();
+      expect(app.picker.calls, ['recoverLostPhoto']);
+    });
+
+    testWidgets('iOS keeps no photo to look for', (tester) async {
+      final app = keptFor();
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        await _pumpApp(tester, app: app);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+      expect(find.text('What needs attention'), findsOneWidget);
+      expect(app.picker.calls, isEmpty);
+      expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+    });
+
+    const offer =
+        'The app closed while the camera was open, but your photo was kept.';
+
+    /// The path the app shows.
+    String location(WidgetTester tester) =>
+        GoRouter.of(tester.element(find.byType(Scaffold).first)).state.uri.path;
+
+    testWidgets('a record that no longer takes documents moves nothing', (
+      tester,
+    ) async {
+      // Archived since, in the other portfolio.
+      final app = keptFor(portfolioId: plaza.id);
+      app.documents.closedOwners.add((
+        entity: DocumentEntity.tenant,
+        id: aliRaza.id,
+      ));
+      await _pumpApp(tester, app: app);
+      expect(app.picker.calls, ['recoverLostPhoto']);
+      expect(
+        app.documents.calls.map((c) => c.$1),
+        contains('ownerTakesDocuments'),
+      );
+      expect(find.text('What needs attention'), findsOneWidget);
+      expect(location(tester), Routes.home);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(find.text(notice), findsNothing);
+      expect(find.text(offer), findsNothing);
+      expect(app.settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+    });
+
+    testWidgets('a landlord who moved on meanwhile is offered the photo, '
+        'not taken to it', (tester) async {
+      final app = keptFor(portfolioId: plaza.id);
+      // The record's check is slow to answer.
+      app.documents.gate.close();
+      await _pumpApp(tester, app: app);
+      await tester.tap(_inNavigation('Tenants'));
+      await tester.pumpAndSettle();
+      app.documents.gate.open();
+      await tester.pumpAndSettle();
+      // Still where they went, in the portfolio they were in.
+      expect(location(tester), Routes.tenants);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(find.text(notice), findsNothing);
+      expect(find.text(offer), findsOneWidget);
+      // Asked, the app takes them to it.
+      await tester.tap(find.text('Show photo'));
+      await tester.pumpAndSettle();
+      expect(location(tester), Routes.tenant(aliRaza.id));
+      expect(
+        app.settings.values[AppSettings.currentPortfolioKey],
+        '$testUserId/${plaza.id}',
+      );
+      expect(find.text(notice), findsOneWidget);
+      await tester.ensureVisible(find.text('Upload'));
+      await tester.tap(find.text('Upload'));
+      await tester.pumpAndSettle();
+      expect(
+        app.documents.calls.lastWhere((c) => c.$1 == 'recordDocument').$2.first,
+        startsWith('${plaza.id}/tenant/${aliRaza.id}/'),
+      );
+    });
+
+    testWidgets('a record check with no answer keeps the photo', (
+      tester,
+    ) async {
+      final app = keptFor();
+      app.documents.gate.close();
+      await _pumpApp(tester, app: app);
+      expect(location(tester), Routes.home);
+      await tester.pump(lostPhotoCheckLimit);
+      await tester.pump();
+      // On to the record without the answer, which comes later.
+      expect(location(tester), Routes.tenant(aliRaza.id));
+      app.documents.gate.open();
+      await tester.pumpAndSettle();
+      expect(find.text(notice), findsOneWidget);
+    });
+  });
 
   testWidgets('/leases on its own shows the tenants', (tester) async {
     await _pumpApp(tester, location: '/leases');

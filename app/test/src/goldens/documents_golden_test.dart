@@ -4,8 +4,10 @@ library;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/presentation/documents_section.dart';
@@ -90,6 +92,27 @@ Future<void> _addPhoto(WidgetTester tester) async {
   await _openAdd(tester);
   // The first choice: the camera.
   await tester.tap(find.byIcon(MmIcons.camera));
+  await tester.pumpAndSettle();
+  // The preview decodes outside the test's fake time.
+  final preview = find.byType(Image);
+  await tester.runAsync(
+    () => precacheImage(
+      tester.widget<Image>(preview).image,
+      tester.element(preview),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// The add sheet as it opens by itself with a camera photo that Android
+/// kept after closing the app.
+Future<void> _recoverPhoto(WidgetTester tester) async {
+  ProviderScope.containerOf(tester.element(find.byType(DocumentsSection)))
+      .read(lostPhotoProvider.notifier)
+      .hold((
+        portfolioId: gulberg.id,
+        owner: (entity: DocumentEntity.tenant, id: aliRaza.id),
+      ), FakeDocumentPicker().photo!);
   await tester.pumpAndSettle();
   // The preview decodes outside the test's fake time.
   final preview = find.byType(Image);
@@ -187,6 +210,14 @@ void main() {
     size: const Size(360, 1200),
     sizes: {MmVariant.largeText: const Size(360, 2600)},
     act: _addPhoto,
+  );
+
+  screenGoldenEveryVariant(
+    'add_document_recovered',
+    _tenantDocuments,
+    size: const Size(360, 1300),
+    sizes: {MmVariant.largeText: const Size(360, 2800)},
+    act: _recoverPhoto,
   );
 
   screenGoldenEveryVariant(
