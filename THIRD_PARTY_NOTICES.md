@@ -107,10 +107,12 @@ The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
 `LICENSE-lucide.txt`). Versions come from each font's name table. The app sets Urdu interface
 text in Noto Sans Arabic (the variable font from google/fonts, `ofl/notosansarabic`) and keeps
 Noto Nastaliq Urdu for the Urdu wordmark only. The website serves subsets of
-Atkinson Hyperlegible Next and Noto Nastaliq Urdu (one renamed "MM Nastaliq
-Label") and publishes both OFL texts at `/licences/`. The pitch deck (`website/deck/`) embeds
-the two text fonts in its PDF and draws five Lucide icons (`website/deck/icons/`,
-with their ISC notice) from lucide-static 1.66.0.
+the three: Atkinson Hyperlegible Next, Noto Sans Arabic (one subset, for the
+language switch on English pages, renamed "MM Urdu Label") and Noto Nastaliq
+Urdu (the letters of the wordmark only), and publishes the three OFL texts at
+`/licences/`. The pitch deck (`website/deck/`) embeds the three in its PDF (Noto
+Nastaliq Urdu for the cover's wordmark only) and draws five Lucide icons
+(`website/deck/icons/`, with their ISC notice) from lucide-static 1.66.0.
 
 What the licences ask:
 

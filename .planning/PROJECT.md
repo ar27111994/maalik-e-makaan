@@ -162,12 +162,20 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 - D-19: **Urdu interface text is set in Noto Sans Arabic; Nastaliq stays for the wordmark.**
   (Decided by the owner, 11 November 2026, after seeing five candidates rendered on the real app
   screens and website pages: Noto Nastaliq Urdu as it was, a tighter Nastaliq, Gulzar, Noto Naskh
-  Arabic and Noto Sans Arabic.) Nastaliq made the interface read like a printed book: at its line
-  height of 2.0 about one pair of body lines in twelve touched, and it sat low in buttons and
-  fields. Noto Sans Arabic never collides at line heights from 1.4 up, centres in controls and
-  makes app screens about 15% shorter. The name مالکِ مکان keeps Nastaliq where it is the
-  wordmark. This revises the "Nastaliq" in D-12; readers in the [pilot](../docs/roadmap/pilot.md)
-  confirm it rather than decide it.
+  Arabic and Noto Sans Arabic. In place since 12 November 2026.) Nastaliq made the interface read
+  like a printed book: at its line height of 2.0 about one pair of body lines in twelve touched,
+  and it sat low in buttons and fields. Noto Sans Arabic never collides at line heights from 1.4
+  up, centres in controls and makes app screens about 15% shorter. The name مالکِ مکان keeps
+  Nastaliq where it is the wordmark. This revises the "Nastaliq" in D-12; readers in the
+  [pilot](../docs/roadmap/pilot.md) confirm it rather than decide it.
+
+  What is in place: the type tokens (`font.family.urdu` and `urduWordmark`, Urdu lines of whole
+  even pixels), `mm_ui` and the app with every Urdu golden re-recorded, the website (Urdu pages
+  load about 50 KB of fonts instead of 196 KB, and most are 10–17% shorter on a phone), its Open
+  Graph cards and the pitch deck. The wordmark appears in the app's e-mail-link sign-in and
+  portfolio-loading screens, the website's header and cards, and the deck's cover. Still on
+  Nastaliq: the e-mail templates (`supabase/templates/`, `invite-member`) and the gallery's
+  screenshots, which predate the change.
 
 ## Open Proposals
 

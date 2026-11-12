@@ -40,9 +40,12 @@ page in English light and Urdu dark, on a phone and a desktop window):
 
 <p>
   <img src="packages/mm_ui/example/screenshots/records-en-light-phone-01.png" width="260" alt="Gallery records page in English, light: a brass nameplate for Raza Manzil and the top of a rent receipt for Rs 45,000 with receipt number R-2026-0142.">
-  <img src="packages/mm_ui/example/screenshots/records-ur-dark-phone-01.png" width="260" alt="The same records page in Urdu, dark theme, laid out right to left in Nastaliq: the nameplate and the receipt with its brass seal.">
+  <img src="packages/mm_ui/example/screenshots/records-ur-dark-phone-01.png" width="260" alt="The same records page in Urdu, dark theme, laid out right to left: the nameplate and the receipt with its brass seal. Recorded before Urdu interface text moved from Nastaliq to Noto Sans Arabic.">
   <img src="packages/mm_ui/example/screenshots/charts-en-light-phone-01.png" width="260" alt="Gallery charts page: a bar chart of rent collected against rent due over the last six months, with a button to show it as a table.">
 </p>
+
+The record's Urdu screenshots were taken before Urdu interface text moved from Nastaliq to Noto
+Sans Arabic (decision D-19); the Urdu goldens below show the current face.
 
 The app's screens are recorded as golden images in six variants (light, dark, both high-contrast
 themes, Urdu and 200% text) in [`app/test/src/goldens/goldens/`](app/test/src/goldens/goldens),

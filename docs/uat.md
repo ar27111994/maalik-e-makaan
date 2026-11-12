@@ -403,7 +403,8 @@ TABLE`, fail. The earlier check ran `SET LOCAL` in psql's autocommit mode, which
 - **Where:** `app/lib/src/features/ledger/presentation/pdf/ledger_pdfs.dart` (the receipt layout).
 - **What happens:** the same receipt is one A5 page in English and two in Urdu; page 2 holds only
   "Made with Maalik-e-Makaan on 9 November 2026" (see J12). Taller Nastaliq lines push the footer
-  over.
+  over. (Since D-19 the PDF's Urdu is Noto Sans Arabic on shorter lines; a voided receipt with tax
+  withheld, a certificate and a note still takes two pages.)
 
 ## Environment
 

@@ -45,4 +45,7 @@ unlabelled control or text under WCAG AA contrast.
 `screenshots/` holds the user acceptance record: every page in English light
 and Urdu dark, on a 390 x 844 phone and a 1280 x 800 desktop window, plus the
 settings sheet, a confirmation dialog, a pushed page, a select sheet and the
-phone's "More" list.
+phone's "More" list. It was taken before Urdu interface text moved from
+Nastaliq to Noto Sans Arabic (D-19), so its Urdu pages still show Nastaliq;
+the design system's Urdu goldens (`../test/components/*/goldens/*_urdu.png`)
+show the current face.

@@ -260,9 +260,10 @@ the high-contrast modes.
   shorter than in Nastaliq. It is set a size step larger than Latin, on lines about one and a
   half times its size; never squeeze it to fit.
 - **The wordmark: Noto Nastaliq Urdu.** The brand name مالکِ مکان keeps Nastaliq where it stands
-  alone as the wordmark (a screen that shows only the app's name, `MmPage.wordmark`), on a line
-  twice its size for its tall letters. Nastaliq is never used for interface text, nor for the
-  name inside a sentence.
+  alone as the wordmark: in the app, a screen that shows only the app's name (`MmPage.wordmark`);
+  on the website, the header's brand name and the link-preview cards; the pitch deck's cover. It
+  sits on a line twice its size for its tall letters. Nastaliq is never used for interface text,
+  nor for the name inside a sentence.
 - **Amounts** use the Latin face with tabular figures in both languages, so columns of rupees
   line up and a 1 never looks like a 7.
 - **User data keeps its own script's face.** Latin-script data in the Urdu UI (a name typed in
