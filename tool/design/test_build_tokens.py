@@ -649,6 +649,21 @@ class EmailTemplateTest(unittest.TestCase):
                     [("td", "body"), ("h1", "headline"), ("p", "body"), ("a", "body")]
                     + [("p", "bodySmall")] * 3,
                 )
+                # The link is Latin text in both halves: in the Urdu half it stands in its own
+                # left-aligned English block, in the English half's face, not the Urdu stack.
+                links = [urdu for text, urdu in parser.runs if "{{ .ConfirmationURL }}" in text]
+                self.assertEqual(links, [False, False])
+                english = html[
+                    html.index('<td lang="en"') : html.index("</td>", html.index('<td lang="en"'))
+                ]
+                face = bt.FONT_FAMILY.search(english).group(2)
+                self.assertIn(
+                    '<div lang="en" dir="ltr" style="margin: 0 0 12px; text-align: left; '
+                    f'font-family: {face}; font-size: 14px; line-height: 1.5;">'
+                    '<a href="{{ .ConfirmationURL }}" style="color: #1D3F8F; '
+                    'word-break: break-all;">{{ .ConfirmationURL }}</a></div>',
+                    html,
+                )
                 # Every Urdu line is a whole, even number of pixels.
                 for element in parser.urdu:
                     size = bt.FONT_SIZE.search(element["raw"])
