@@ -8,7 +8,7 @@
 <p style="font-size:28px;line-height:1.4;color:#1F2328"><b>Whole paisa,</b> never floating-point numbers.</p>
 <p style="font-size:28px;line-height:1.4;color:#1F2328"><b>Idempotent payments:</b> a retry on a bad connection never counts a payment twice.</p>
 <p style="font-size:28px;line-height:1.4;color:#1F2328"><b>Void, never delete:</b> every correction keeps its reason, and receipts are numbered without gaps.</p>
-<p style="font-size:28px;line-height:1.4;color:#1F2328"><b>Rules in the database:</b> row-level security on every table, and 21 reviewed functions are the only way to write.</p>
+<p style="font-size:28px;line-height:1.4;color:#1F2328"><b>Rules in the database:</b> row-level security on every table, and 23 reviewed functions are the only way to write.</p>
 <p style="font-size:28px;line-height:1.4;color:#1F2328"><b>Open source</b> under the MIT licence, with an OpenSSF Best Practices badge.</p>
 </div>
 <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
@@ -18,7 +18,7 @@
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border:1px solid #D5DAE0;border-radius:20px">
 <p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">912</p>
-<p style="font-size:24px;line-height:1.35;color:#57606A">database tests in 21 suites</p>
+<p style="font-size:24px;line-height:1.35;color:#57606A">database tests in 23 suites</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border:1px solid #D5DAE0;border-radius:20px">
 <p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">30</p>
@@ -39,5 +39,5 @@
 </div>
 </div>
 <p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#57606A">App tests run on 11 Nov 2026; coverage and the other suites as recorded on 8 Nov 2026. Z3 and Bend checks too.</p>
-<aside>This is the moat for the agentic era. The rules live in Postgres, not in the app: row-level security on every table, explicit grants, and 21 SECURITY DEFINER write functions pinned by a test allowlist, each checking the caller’s role. Payments need an idempotency key, so the same payment sent twice is recorded once. The formal models cover payment retries, receipts, late fees and the order locks are taken in; Z3 checks for overflow and rounding, and Bend checks the laws against deliberately broken versions. 1,755 app tests passed on 11 November 2026.</aside>
+<aside>This is the moat for the agentic era. The rules live in Postgres, not in the app: row-level security on every table, explicit grants, and 23 SECURITY DEFINER write functions pinned by a test allowlist, each checking the caller’s role. Payments need an idempotency key, so the same payment sent twice is recorded once. The formal models cover payment retries, receipts, late fees and the order locks are taken in; Z3 checks for overflow and rounding, and Bend checks the laws against deliberately broken versions. 1,755 app tests passed on 11 November 2026.</aside>
 </section>

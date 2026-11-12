@@ -135,11 +135,12 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   to the commits that applied them (764e640, c1c0d7a, 13c5d18, f155413, 67639d8, e853378 and the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
-- `20261112092618_residence.sql` is **not applied** to the hosted project (D-14: the owner applies
-  it, then "After every migration" in `docs/operations.md`, then `tool/db/time_zone_skew.sql` on
-  the hosted project). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
-  speaker notes) says 21 reviewed write functions, which stays true of the hosted project until
-  then; its wording after that is the owner's to choose.
+- `20261112092618_residence.sql` is **not applied** to the hosted project yet. The next release
+  the owner approves applies it (the Deploy workflow's `supabase db push`), and then come "After
+  every migration" in `docs/operations.md` and `tool/db/time_zone_skew.sql` on the hosted project.
+  The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and speaker notes) now says
+  23 reviewed write functions and 23 database suites: the deck is rendered from the release tag,
+  the same release that applies the migration.
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
   was applied on 2026-11-09 by the process in `docs/operations.md`; afterwards no live automatic
