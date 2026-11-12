@@ -69,6 +69,11 @@ applied all 23 migrations (including the wrapped `20261108200216_identity_checks
 and **all 14 journeys passed** in 59.7 s (3 min 9 s in all). The screenshots in this report are
 from that run, so they show the fixed screens; the tables below describe the first run.
 
+Note of 2026-11-12: the app's Urdu has since been rewritten in plain everyday words
+([`contracts/urdu_glossary.json`](../contracts/urdu_glossary.json)), and the suite now expects
+the new wording. The tables and the screenshots still quote what these runs displayed (J8, J12 and
+D6), until `UAT_SCREENSHOTS=docs/uat make test-uat` runs again.
+
 ### First run
 
 Run on 2026-11-08 (Pakistan date 2026-11-09) at commit `e853378`, Supabase CLI 2.122.1, Chrome for
@@ -203,9 +208,11 @@ call the app makes, sent with the viewer's own session.
 
 | Expected                                                            | Actual                                                       |
 | ------------------------------------------------------------------- | ------------------------------------------------------------ |
-| The viewer sees the owner's figures                                 | "باقی رقم 132000 روپے"                                       |
+| The viewer sees the owner's figures                                 | "واجب الادا 132000 روپے"                                     |
 | No record payment, add charge, use deposit or refund deposit action | None of the four buttons exists                              |
 | The database refuses the payment even when asked directly           | HTTP 403 `{"code":"42501","message":"forbidden"}`; 1 payment |
+
+Since 2026-11-12 the suite expects "باقی رقم 132000 روپے" here (for a run with two late rents).
 
 ### J9 Dashboard figures match the ledger
 
@@ -254,8 +261,10 @@ receipt; Share receipt in Urdu.
 | Expected                                                       | Actual                                                          |
 | -------------------------------------------------------------- | --------------------------------------------------------------- |
 | The UI switches to Urdu and the choice is saved to the profile | Urdu everywhere; `profiles.locale` = `ur`; `<html lang="ur">`   |
-| The dashboard and the ledger show the same figures in Urdu     | "کل باقی رقم 132,000 روپے"                                      |
+| The dashboard and the ledger show the same figures in Urdu     | "کل 132,000 روپے واجب الادا"                                    |
 | An Urdu PDF receipt on one A5 page, like the English one       | A valid PDF, but of 2 pages: the second holds one line (**D8**) |
+
+Since 2026-11-12 the suite expects "کل باقی رقم 132,000 روپے" on the dashboard.
 
 ![The Urdu receipt after the D8 fix, on one A5 page](uat/ur-07-receipt.png)
 
@@ -375,7 +384,8 @@ TABLE`, fail. The earlier check ran `SET LOCAL` in psql's autocommit mode, which
   (`supabase/migrations/20261104143928_ledger_jobs_hardening.sql`, line 707); the ledger prints
   the note (`app/lib/src/features/ledger/presentation/tenancy_ledger_screen.dart`, line 319).
 - **What happens:** every automatic fee reads "Late fee, September 2026 … · Late fee" in English
-  (the kind twice) and "لیٹ فیس، ستمبر 2026 … · Late fee" in Urdu.
+  (the kind twice) and "تاخیر جرمانہ، ستمبر 2026 … · Late fee" in Urdu (the kind is "لیٹ فیس"
+  since 2026-11-12).
 - **Suggested direction:** leave the note empty for automatic fees (the kind already says it), or
   translate known system notes in the app.
 

@@ -1596,6 +1596,21 @@
       "path": ".planning/research/market-painpoints.md",
       "avoid": "چونکہ",
       "reason": "A research note from before the app: its first draft reminder templates are kept as they were written. The app's own reminders (app_ur.arb) follow the glossary."
+    },
+    {
+      "path": "docs/uat.md",
+      "avoid": "\"واجب الادا 132000 روپے\"",
+      "reason": "What the UAT run of 2026-11-08 displayed, quoted as observed beside its screenshots; a dated note says the suite now expects the plain wording."
+    },
+    {
+      "path": "docs/uat.md",
+      "avoid": "\"کل 132,000 روپے واجب الادا\"",
+      "reason": "What the UAT run of 2026-11-08 displayed, quoted as observed beside its screenshots; a dated note says the suite now expects the plain wording."
+    },
+    {
+      "path": "docs/uat.md",
+      "avoid": "\"تاخیر جرمانہ، ستمبر 2026 … · Late fee\"",
+      "reason": "What the UAT run of 2026-11-08 displayed, quoted as observed beside its screenshots; a dated note says the suite now expects the plain wording."
     }
   ],
   "sentenceRules": [
