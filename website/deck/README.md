@@ -14,6 +14,9 @@ Deploy workflow render it before every build, so the PDF is not committed.
   sample data. The crop of each screen is in `scripts/render-deck.ts`.
 - `{{version}}` and `{{releaseDate}}` are replaced with the current release, from
   `.release-please-manifest.json` and `CHANGELOG.md`.
+- The fonts are the app's own (`packages/mm_ui/assets/fonts/`). An Urdu word sits in an element
+  with `lang="ur"` and `font-family: 'Noto Sans Arabic'`; Noto Nastaliq Urdu is only for the
+  wordmark مالکِ مکان on the cover (decision D-19).
 
 Market figures on the slides name their sources in the footer. Check a figure against its
 primary source before changing it, and keep the speaker notes in step with the slide.
