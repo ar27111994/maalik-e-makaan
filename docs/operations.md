@@ -69,7 +69,7 @@ still removes a deleted account's files itself, within a few seconds' budget.
 | The documents bucket keeps versioning off (a versioned delete is an update, which the trigger keeping referenced files does not see)   | `select versioning_status from storage.buckets where id = 'documents';` → `DISABLED`                                                                                                                                                     |
 | The most portfolios one person belongs to (each client write locks all of them)                                                        | `select max(n) from (select count(*) n from public.portfolio_members group by user_id) m;` stays well below 100                                                                                                                          |
 | Every caretaker is a manager of their portfolio (`CaretakerIsManager`; see [Deleting a user account](#deleting-a-user-account))        | `select p.id from public.portfolios p where p.caretaker_user_id is not null and not exists (select 1 from public.portfolio_members m where m.portfolio_id = p.id and m.user_id = p.caretaker_user_id and m.role = 'manager');` → no rows |
-| The server's time zones agree with the app's (after a Supabase Postgres upgrade or a `tzdata` bump; [Time-zone data](#time-zone-data)) | Run `tool/db/time_zone_skew.sql` → no rows                                                                                                                                                                                               |
+| The server's time zones agree with the app's (after a Supabase Postgres upgrade or a `tzdata` bump; [Time-zone data](#time-zone-data)) | Run `tool/db/time_zone_skew.sql` → never an `Asia/Karachi` row; any other row is explained by a `tzdata` release the server and the app do not share, and recorded                                                                       |
 | Recent pg_cron runs (kept for two weeks)                                                                                               | `select jobname, status, return_message, start_time from cron.job_run_details join cron.job using (jobid) order by start_time desc limit 20;`                                                                                            |
 | pg_net responses of cleanup calls                                                                                                      | `select status_code, content, created from net._http_response order by created desc limit 10;`                                                                                                                                           |
 
@@ -815,9 +815,23 @@ the PyPI `tzdata` package pinned in `tool/requirements.txt`. When IANA publishes
 The hosted database keeps its own tz data (the Supabase image's). After each Supabase Postgres
 upgrade, and after a `tzdata` bump, run `tool/db/time_zone_skew.sql` on the hosted project (SQL
 editor, read-only). Every row it returns is a stored zone and an instant where the server's offset
-differs from the app's; `Africa/Casablanca`, whose changes Morocco sets year by year, may appear.
-Business dates are unaffected (they use Pakistan's fixed offset); a difference matters to the push
-planner's SQL helpers once they exist.
+differs from the app's. Rows are normal when the server's `tzdata` and the pinned one are different
+releases; read each one this way:
+
+- `Asia/Karachi`: never expected. Stop and follow "The Pakistan tripwire" in
+  [time](architecture/time.md): Pakistan's clock has changed, and business time needs its own
+  change.
+- A zone that a release between the server's and the pinned one changed (IANA's `NEWS` file names
+  the zones of each release; on PostgreSQL 16 with tzdata 2026e it is `America/Havana`, which
+  2026f changed), or `Africa/Casablanca`, whose changes Morocco sets year by year: expected. Record
+  the rows where the run is recorded (its commit, and `.planning/STATE.md`, Hosted Supabase
+  Project). Nothing reads a stored zone in SQL yet, so they change nothing; once the push
+  planner's SQL helpers exist, a person in that zone may get an alert an hour early or late on the
+  dates listed, until the two releases agree.
+- `server_seconds` NULL (the server does not know the zone), or a row no release explains: look
+  into it before any SQL relies on that zone.
+
+Business dates are unaffected: they use Pakistan's fixed offset.
 
 ## Phone and CNIC checks (`20261108200216`, `20261108200227`)
 

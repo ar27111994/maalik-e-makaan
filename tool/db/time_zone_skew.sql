@@ -3,8 +3,15 @@
 -- Supabase Postgres upgrade or tzdata bump (docs/operations.md, "Time-zone data"):
 -- every row it returns is a stored zone and an instant at which the server's UTC
 -- offset differs from the one mm_core bundles (server_seconds is NULL when the
--- server does not know the zone). Expect no rows; Africa/Casablanca may differ
--- by decree. Business dates are unaffected: they use Asia/Karachi's fixed offset.
+-- server does not know the zone). Asia/Karachi must never appear: if it does,
+-- stop and follow "The Pakistan tripwire" in docs/architecture/time.md. Any other
+-- row is expected when the server's tzdata is older or newer than 2026f and a
+-- release between the two changed that zone (IANA's NEWS file names the zones each
+-- release changes); Africa/Casablanca may also differ by decree. Record such rows
+-- with the run. They change nothing while no SQL reads a stored zone (the push
+-- planner's helpers do not exist yet). A NULL server_seconds, or a row no release
+-- explains, needs a look before any SQL relies on that zone. Business dates are
+-- unaffected: they use Asia/Karachi's fixed offset.
 with known as materialized (select n.name from pg_timezone_names n),
 expected (zone, at, bundled_seconds) as (values
   ('Africa/Abidjan', timestamptz '2026-01-01T12:00:00Z', 0),

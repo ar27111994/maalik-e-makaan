@@ -114,6 +114,8 @@ keeps its own tz data (PostgreSQL's, from the Supabase image), so after each Sup
 upgrade or `tzdata` bump, run `tool/db/time_zone_skew.sql` on the hosted project: it lists every
 stored zone and instant (1 January and 1 July 2026 to 2030, and each clock change from 2026 to 2028)
 where the server's offset differs from the bundled one. It is not run in CI, where PostgreSQL 16
-and the Supabase image each bring their own tz data. On this machine (PostgreSQL 16 with the
-system's tzdata 2026e) it returns one row: `America/Havana` on 1 January 2027, because 2026f keeps
-Cuba on daylight saving time from March 2026 to November 2027.
+and the Supabase image each bring their own tz data. A row is normal when the two are different
+`tzdata` releases and one between them changed that zone, and `Asia/Karachi` must never appear;
+[operations](../operations.md#time-zone-data) says how to read each row. On this machine
+(PostgreSQL 16 with the system's tzdata 2026e) it returns one row: `America/Havana` on 1 January
+2027, because 2026f keeps Cuba on daylight saving time from March 2026 to November 2027.
