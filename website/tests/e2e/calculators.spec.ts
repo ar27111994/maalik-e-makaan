@@ -108,21 +108,25 @@ for (const { path, id } of calculators) {
 
     test("with JavaScript off, submitting sends nothing anywhere", async ({ browser }) => {
       // The privacy page promises the figures never leave the device. A form
-      // without method="dialog" would navigate to ?<name>=<figure>.
+      // without method="dialog" would send them, in the URL (GET) or in the
+      // body (POST), so once the page has settled no request may start at all.
       const context = await browser.newContext({ javaScriptEnabled: false });
       const page = await context.newPage();
       await page.goto(path);
+      await page.waitForLoadState("networkidle");
       const start = page.url();
-      const sent: string[] = [];
-      page.on("request", (request) => sent.push(request.url()));
       const marker = "987654";
       for (const input of await page.locator(`#${id}-form input[type=text]`).all()) {
         await input.fill(marker);
       }
+      const sent: string[] = [];
+      page.on("request", (request) =>
+        sent.push(`${request.method()} ${request.url()} ${request.postData() ?? ""}`),
+      );
       await page.locator(`#${id}-form button[type='submit']`).click();
       await page.waitForLoadState("networkidle");
+      expect(sent).toEqual([]);
       expect(page.url()).toBe(start);
-      expect(sent.filter((url) => url.includes(marker) || url.includes("?"))).toEqual([]);
       await context.close();
     });
   });
