@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// One option of an `MmSelectField` or an `MmRadioGroup`: the [value] the
@@ -23,6 +24,7 @@ class MmOption<T> {
     required this.label,
     this.description,
     this.icon,
+    this.searchTerms = const [],
   });
 
   /// The value reported when this option is chosen.
@@ -37,14 +39,21 @@ class MmOption<T> {
   /// An icon shown with the option.
   final IconData? icon;
 
+  /// Other words the search of an `MmSelectField` finds this option by (its
+  /// name in the other language, a short form such as "UK"); never shown
+  /// or read out.
+  final List<String> searchTerms;
+
   @override
   bool operator ==(Object other) =>
       other is MmOption<T> &&
       other.value == value &&
       other.label == label &&
       other.description == description &&
-      other.icon == icon;
+      other.icon == icon &&
+      listEquals(other.searchTerms, searchTerms);
 
   @override
-  int get hashCode => Object.hash(value, label, description, icon);
+  int get hashCode =>
+      Object.hash(value, label, description, icon, Object.hashAll(searchTerms));
 }

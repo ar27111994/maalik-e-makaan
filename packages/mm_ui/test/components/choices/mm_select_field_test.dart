@@ -87,7 +87,7 @@ class _DisablingState extends State<_Disabling> {
 
 void main() {
   group('MmOption', () {
-    test('compares by value, label, description and icon', () {
+    test('compares by value, label, description, icon and search terms', () {
       const a = MmOption(
         value: 1,
         label: 'Cash',
@@ -135,6 +135,24 @@ void main() {
         ),
       );
       expect(a, isNot('Cash'));
+      const termed = MmOption(value: 1, label: 'Cash', searchTerms: ['نقد']);
+      expect(
+        MmOption(value: 1, label: 'Cash', searchTerms: List.of(const ['نقد'])),
+        termed,
+      );
+      expect(
+        MmOption(
+          value: 1,
+          label: 'Cash',
+          searchTerms: List.of(const ['نقد']),
+        ).hashCode,
+        termed.hashCode,
+      );
+      expect(termed, isNot(const MmOption(value: 1, label: 'Cash')));
+      expect(
+        termed,
+        isNot(const MmOption(value: 1, label: 'Cash', searchTerms: ['Cash'])),
+      );
     });
   });
 
@@ -372,6 +390,60 @@ void main() {
       await tester.pumpAndSettle();
       expect(log, [11]);
     });
+
+    testWidgets(
+      'finds an option by a search term it does not show, and does not show '
+      'the term',
+      (tester) async {
+        final log = <String>[];
+        final countries = [
+          for (final (code, name) in const [
+            ('AE', 'United Arab Emirates'),
+            ('AU', 'Australia'),
+            ('CA', 'Canada'),
+            ('DE', 'Germany'),
+            ('FR', 'France'),
+            ('IT', 'Italy'),
+            ('NL', 'Netherlands'),
+            ('SA', 'Saudi Arabia'),
+          ])
+            MmOption(value: code, label: name),
+          const MmOption(
+            value: 'GB',
+            label: 'United Kingdom',
+            searchTerms: ['UK', 'برطانیہ'],
+          ),
+        ];
+        await pumpThemed(
+          tester,
+          _field(options: countries, label: 'Country', log: log),
+        );
+        await _open(tester);
+        expect(find.text('UK'), findsNothing);
+        await tester.enterText(find.byType(TextField), ' uk ');
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(ListTile),
+          ),
+          findsOneWidget,
+        );
+        expect(_row('United Kingdom'), findsOneWidget);
+        // The term is only searched: never shown, never read out.
+        expect(find.text('UK'), findsNothing);
+        expect(find.bySemanticsLabel(RegExp('UK')), findsNothing);
+        await tester.enterText(find.byType(TextField), 'برطانیہ');
+        await tester.pumpAndSettle();
+        expect(_row('United Kingdom'), findsOneWidget);
+        // A label still matches as before.
+        await tester.enterText(find.byType(TextField), 'kingdom');
+        await tester.pumpAndSettle();
+        await tester.tap(_row('United Kingdom'));
+        await tester.pumpAndSettle();
+        expect(log, ['GB']);
+      },
+    );
 
     testWidgets('a search that matches nothing says so, live', (tester) async {
       await pumpThemed(tester, _field(options: _units, label: 'Unit'));

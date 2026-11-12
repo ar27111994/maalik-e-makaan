@@ -22,7 +22,8 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// that lists the options; the chosen one carries a check mark, not colour
 /// alone. With more than eight options the sheet starts with a search
 /// field that filters the labels as the landlord types (ignoring case, and
-/// reading Urdu digits as Western ones). Choosing an option closes the
+/// reading Urdu digits as Western ones), and finds an option by its
+/// [MmOption.searchTerms] too. Choosing an option closes the
 /// sheet and focus returns to the field.
 ///
 /// The label sits above the field, helper or error text below it, as for
@@ -192,12 +193,18 @@ class _SelectSheetState<T> extends State<_SelectSheet<T>> {
   static String _normalise(String text) =>
       normalizeDigits(text).trim().toLowerCase();
 
+  /// Whether [option]'s label, or one of its search terms, holds the
+  /// search.
+  bool _matches(MmOption<T> option) =>
+      _normalise(option.label).contains(_query) ||
+      option.searchTerms.any((term) => _normalise(term).contains(_query));
+
   @override
   Widget build(BuildContext context) {
     final searchable = widget.options.length > MmSelectField.searchThreshold;
     final matches = [
       for (final option in widget.options)
-        if (_normalise(option.label).contains(_query)) option,
+        if (_matches(option)) option,
     ];
     final textTheme = Theme.of(context).textTheme;
     final colors = context.mm.colors;

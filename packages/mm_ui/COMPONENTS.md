@@ -259,6 +259,9 @@ Notes on composing them:
   of its own, so a snack bar shown from a screen appears on that screen's `Scaffold`, above
   its bottom bar. A screen inside it must therefore be (or hold) a `Scaffold`; an `MmPage` is
   one.
+- **A select field finds an option by words it does not show.** Give `MmOption.searchTerms`
+  the option's name in the other language and its short forms ("UK", "UAE"): the sheet's
+  search matches them as it matches labels, and they are never shown or read out.
 - **Badges count, they do not judge.** A count on a destination or an icon is ink on paper,
   not the overdue red: the label beside it says what is counted.
 - **Value fields** (`MmMoneyField`, `MmCnicField`, `MmPhoneField`) report the value, or null
