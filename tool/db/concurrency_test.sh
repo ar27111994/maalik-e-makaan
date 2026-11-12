@@ -99,7 +99,11 @@
 #      no one; set_owner_abroad asked on the next open by two members → the
 #      first answer is kept and audited once, and a demoted manager's answer
 #      is refused; a declared residence written while the account is
-#      deleted → cleared, and every later write refused (account_deleted).
+#      deleted → cleared, and every later write refused (account_deleted);
+#      the caretaker's account deleted in the delete-account order while
+#      named, deleted or demoted → no deadlock, no caretaker, no Auth user;
+#      an operator who locks the portfolio before changing the caretaker's
+#      membership, against a membership RPC holding it → no deadlock.
 #  32. Invariants: paid_amount = Σ allocations, allocated_amount =
 #      Σ allocations, nothing overpaid, cash conserved; no portfolio is left
 #      without an owner or without members; no document outlives its entity,
@@ -2333,6 +2337,75 @@ for c in residence_then_deletion deletion_then_residence; do
   as_user "$RS_U" "$STATE" | psql_db >/dev/null 2>"$WORK/rs_${c}_later.err" || true
   grep -q 'ERROR:  account_deleted' "$WORK/rs_${c}_later.err" \
     || fail_case "${c}: a later write was not refused with account_deleted: $(head -1 "$WORK/rs_${c}_later.err")"
+done
+
+# The caretaker's account deleted in the delete-account order
+# (admin_delete_account_data, then the Auth delete) while the caretaker is
+# named, and while the manager is demoted (Membership model, caretaker_acct).
+# A direct Auth delete without the first step is the operator's rule in
+# docs/operations.md (formal/tla/Membership/replay/residence.sh, R1 and R2).
+for c in naming_holds deletion_holds demote_holds; do
+  rs_estate "$c"
+  NAME_IT="select public.set_caretaker('${RS_P}', '${RS_M}');"
+  DELETE_ACCOUNT="$(as_service "select public.admin_delete_account_data('${RS_M}') is not null;")
+delete from auth.users where id = '${RS_M}';"
+  case "$c" in
+    naming_holds)
+      rs_race "$c" "$RS_O" "$NAME_IT" "$DELETE_ACCOUNT" ""
+      ;;
+    deletion_holds)
+      rs_race "$c" service "select public.admin_delete_account_data('${RS_M}') is not null;" \
+        "$(as_user "$RS_O" "$NAME_IT")" member_not_found
+      psql_db -c "delete from auth.users where id = '${RS_M}'" >/dev/null
+      ;;
+    demote_holds)
+      as_user "$RS_O" "$NAME_IT" | psql_db >/dev/null
+      rs_race "$c" "$RS_C" "select public.update_member_role('${RS_P}', '${RS_M}', 'viewer');" \
+        "$DELETE_ACCOUNT" ""
+      ;;
+  esac
+  GOT="$(rs_caretaker):$(psql_db -c "select count(*) from auth.users where id = '${RS_M}'")"
+  [[ "$GOT" == "none:false:gone:0" ]] \
+    || fail_case "${c}: caretaker:named:manager's role:auth users is ${GOT}, expected none:false:gone:0"
+done
+
+# An operator (the service role) who changes the caretaker's membership locks
+# the portfolio first, as docs/operations.md says; then a membership RPC that
+# holds the portfolio (lock_portfolio_for_change) before its write cannot
+# form a cycle with the operator's trigger (Membership model,
+# assume_service_member_write).
+for c in operator_locks_portfolio_first_demote operator_locks_portfolio_first_remove; do
+  rs_estate "$c"
+  as_user "$RS_O" "select public.set_caretaker('${RS_P}', '${RS_M}');" | psql_db >/dev/null
+  if [[ "$c" == *_demote ]]; then
+    RPC="select public.update_member_role('${RS_P}', '${RS_M}', 'viewer');"
+    OPERATOR="delete from public.portfolio_members where portfolio_id = '${RS_P}' and user_id = '${RS_M}';"
+  else
+    RPC="select public.remove_member('${RS_P}', '${RS_M}');"
+    OPERATOR="update public.portfolio_members set role = 'viewer'
+              where portfolio_id = '${RS_P}' and user_id = '${RS_M}';"
+  fi
+  # The RPC's session holds the portfolio as lock_portfolio_for_change does,
+  # and waits at its gate before the RPC writes the membership.
+  PGAPPNAME="rs_${c}_first" psql_db >/dev/null 2>"$WORK/rs_${c}_first.err" <<SQL &
+set app.today_override = '2026-11-03';
+begin;
+select 1 from public.portfolios where id = '${RS_P}' for update;
+set local "request.jwt.claims" to '{"sub":"${RS_C}","role":"authenticated"}';
+set local role authenticated;
+select fv.hold('rs_${c}');
+${RPC}
+commit;
+SQL
+  await_session holding "rs_${c}_first"
+  as_service "select 1 from public.portfolios where id = '${RS_P}' for update;
+              ${OPERATOR}" | PGAPPNAME="rs_${c}_second" psql_db >/dev/null 2>"$WORK/rs_${c}_second.err" &
+  await_session waiting "rs_${c}_second" "rs_${c}_first"
+  open_gate "rs_${c}"
+  wait
+  check_errors "${c}" "never-allowed" "$WORK/rs_${c}_first.err" "$WORK/rs_${c}_second.err"
+  GOT="$(rs_caretaker)"
+  [[ "$GOT" == "none:false:gone" ]] || fail_case "${c}: caretaker:named:manager's role is ${GOT}, expected none:false:gone"
 done
 check_deadlocks "residence races" "$BEFORE"
 end_scenario "residence races"
