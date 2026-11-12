@@ -17,7 +17,7 @@ make help        # every target, with a one-line description
 
 ```sh
 make format        # Dart, TypeScript, Python (black, ruff), shell (shfmt) and docs
-make format-check analyze lint
+make format-check analyze lint docs-check
 make test          # tooling, Dart packages, the mm_ui gallery, app, database and Edge Functions
 make test-db-concurrency
 make formal-install verify   # when you change the ledger, locking or money code (formal/README.md)
@@ -56,6 +56,8 @@ CI runs the same targets, so a green `make` means a green pull request.
   bundle a font or icon set, update `THIRD_PARTY_NOTICES.md` with its version
   and licence. Copyleft code (GPL, LGPL, AGPL, MPL) needs the
   owner's agreement before it ships to users.
+- **Documentation**: a fact shown in several places is generated: change its
+  source and run `make docs` (`make docs-check` fails when a copy drifts).
 
 Coding agents start at [`AGENTS.md`](AGENTS.md); every command is listed in
 [`docs/agents/commands.md`](docs/agents/commands.md).

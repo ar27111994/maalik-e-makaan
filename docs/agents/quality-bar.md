@@ -126,7 +126,6 @@ lifecycle. Each check is a `make` target first, so it runs the same way locally.
 
 - A smoke test after each deploy.
 - Lighthouse over every page.
-- A check that keeps repeated facts in the documentation in step with their sources.
 
 ## API and database
 
@@ -449,11 +448,23 @@ CI fails when a copy drifts.
 
 **Gates today.**
 
+- `make docs-check` keeps every fact in `tool/docs/fact_registry.py` in step with its source:
+  the generated facts (commit scopes and types, changelog sections, coverage gates, test counts,
+  the website's checks, the range of decisions) and the copies it checks (versions named in the
+  docs, workflow pins, the CI jobs table, every `make` reference, the generated-files table, the
+  README's release line).
 - `make roadmap-check` keeps the website's copy of the roadmap in step with `.github/roadmap.toml`.
 - `make tokens-check` keeps `DESIGN.md`'s frontmatter in step with the tokens.
 - The Markdown linters and the Unicode and Urdu guards run in `make lint`.
 
-**Still to reach.** Generated blocks, with a CI check, for the other repeated facts.
+**Still to reach.** The facts still copied by hand, each generated or checked:
+
+- the versions in `THIRD_PARTY_NOTICES.md` against the lockfiles;
+- the roadmap's milestone tables, counts and totals;
+- the runbook's tables of settings and function secrets against the workflows and functions;
+- the definer RPCs in `docs/architecture/permissions.md` against the allowlist;
+- the typefaces, once the Urdu font change lands;
+- every relative link and anchor, and every document listed in an index.
 
 ## Tools and skills
 

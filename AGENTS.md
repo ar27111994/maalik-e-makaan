@@ -28,11 +28,11 @@ Every check is a `make` target, and CI runs the same targets. `make help` lists 
 [`docs/agents/commands.md`](docs/agents/commands.md) maps each to its area, prerequisites and CI job.
 
 ```sh
-make bootstrap                       # pub, npm (installs the git hooks), deno, Python tools in .venv
-make format-check-repo lint          # docs, shell, Python, workflows, migrations, design lint, Unicode and Urdu guards
-make format-check analyze            # adds Dart and Deno formatting and every analyzer
-make test                            # tooling, mm_core, mm_ui, gallery, app, database, Edge Functions
-make test-uat                        # browser UAT on a local Supabase stack (docs/uat.md)
+make bootstrap                           # pub, npm (installs the git hooks), deno, Python tools in .venv
+make format-check-repo lint docs-check   # docs, shell, Python, workflows, migrations, Android manifest, design lint, Unicode and Urdu guards, repeated facts
+make format-check analyze                # adds Dart and Deno formatting and every analyzer
+make test                                # tooling, mm_core, mm_ui, gallery, app, database, Edge Functions
+make test-uat                            # browser UAT on a local Supabase stack (docs/uat.md)
 ```
 
 Toolchain on the path: `export PATH=/opt/flutter/bin:$PWD/.venv/bin:$PATH` (see
@@ -94,8 +94,10 @@ how to do common tasks is [`docs/agents/workflows.md`](docs/agents/workflows.md)
 - **Keep the documentation current.** A pull request updates every document its change makes
   wrong: the READMEs, the `AGENTS.md` files, `docs/`, `.planning/` and `llms.txt`.
   `CHANGELOG.md` is written by release-please from the squash commits, so a commit message says
-  what changed for the person reading the changelog. Where one fact appears in several places,
-  generate it from its source, with a check in CI, rather than copying it by hand.
+  what changed for the person reading the changelog. A fact that appears in several places is
+  generated from its source by `make docs` (never edit between `<!-- docs:… -->` markers), and
+  `make docs-check` fails CI when a copy drifts. A new repeated fact goes into
+  `tool/docs/fact_registry.py`, not into another hand-made copy.
 
 ## Quality bar
 

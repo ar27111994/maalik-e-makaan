@@ -142,7 +142,8 @@ target, so a green `make` means a green pull request:
   local Supabase stack, each checked against the database (`make test-uat`,
   [`docs/uat.md`](docs/uat.md));
 - the website's checks, unit tests, Playwright with axe, and Lighthouse budgets;
-- release builds for the web, Android and iOS (unsigned).
+- release builds for the web, Android and iOS (unsigned);
+- the facts the docs repeat, generated from their sources and checked (`make docs-check`).
 
 Commit messages and pull-request titles follow Conventional Commits with the scopes in
 [`commitlint.config.mjs`](commitlint.config.mjs); release-please writes the changelog and the
