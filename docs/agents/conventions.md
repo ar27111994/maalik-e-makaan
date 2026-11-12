@@ -10,7 +10,9 @@ human version; `.planning/PROJECT.md` (D-01 to D-19) records why.
   `deps-dev`, `docs`, `formal`, `planning`, `release`, `repo`, `security`, `test`. A scope
   outside the list fails (`feat(foo): …` is refused).
 - Body lines at most 100 characters; the subject is not upper, Pascal or Start case.
-- Pull requests are squash-merged; `pr-title.yml` checks the title the same way.
+- Pull requests are squash-merged; `pr-title.yml` checks the title the same way, and checks that
+  the title with the `(#123)` GitHub adds when it squash-merges stays within commitlint's
+  100-character header.
 - release-please writes `CHANGELOG.md` and the version from these messages
   (`release-please-config.json`), so the type matters: `feat` and `fix` appear in the
   changelog, `chore`, `ci`, `test`, `refactor`, `style` and `build` do not, unless the commit is
