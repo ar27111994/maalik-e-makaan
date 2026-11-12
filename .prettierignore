@@ -30,3 +30,5 @@ CHANGELOG.md
 .release-please-manifest.json
 # The pitch deck's slides keep the deck artifact's format (website/deck/README.md).
 website/deck/slides/
+# Written by lake when formal/lean builds (git ignores it: formal/lean/.gitignore).
+formal/lean/lake-manifest.json
