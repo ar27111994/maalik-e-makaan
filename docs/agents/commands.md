@@ -47,7 +47,7 @@ export PATH=/opt/flutter/bin:$PWD/.venv/bin:$PATH   # Flutter 3.47, and the pinn
 | App            | `make test-app`            | Unit, widget and golden tests; at least 90% line coverage                                                                                   |
 | Goldens        | `make goldens`             | Re-records `mm_ui` and app goldens (`--tags golden`); review every changed image                                                            |
 | Database       | `make test-db`             | Migrations and pgTAP on a local PostgreSQL 16 (`tool/db/test.sh`), then `tool/db/upgrade_test.sh`                                           |
-| Database       | `make test-db-concurrency` | Parallel payments, retries, billing and deletion races keep the invariants                                                                  |
+| Database       | `make test-db-concurrency` | Parallel payments, retries, billing and deletion races keep the invariants; a stuck scenario fails with its sessions and locks printed      |
 | Database       | `make test-db-stress`      | Latency budgets and index use (fails when one is missed) and pgbench throughput; not run in CI                                              |
 | Edge Functions | `make test-functions`      | 100% line, branch and function coverage                                                                                                     |
 | Edge Functions | `make test-functions-e2e`  | Against a running `supabase start` stack                                                                                                    |
