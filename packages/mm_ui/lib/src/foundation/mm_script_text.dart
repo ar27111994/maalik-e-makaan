@@ -10,18 +10,18 @@ typedef MmScriptRun = ({String text, bool latin});
 /// an address with "Gulberg III" in it), with each run in its own script's
 /// face.
 ///
-/// Nastaliq draws Latin letters in its own serif and figures in its own
-/// plain shapes, so in the Urdu UI the figures of "45,000 روپے" would not
-/// match the same amount anywhere else. DESIGN.md sets amounts and
+/// The Urdu face draws Latin letters and figures in its own shapes, so in
+/// the Urdu UI the figures of "45,000 روپے" would not match the same
+/// amount anywhere else. DESIGN.md sets amounts and
 /// Latin-script data in Atkinson in both languages: this sets each run of
 /// Latin letters and figures inside Arabic-script text in the Latin face,
 /// on the Urdu style's own lines, so a line with figures is as tall as one
 /// without. Text with no Arabic-script letter is set as a whole, through
 /// `MmSemantics.styleFor`. The English UI needs nothing more: its Latin
-/// styles fall back to Nastaliq for Urdu letters.
+/// styles fall back to the Urdu face for Urdu letters.
 ///
 /// A narrow no-break space (which `intl` puts before AM and PM, and which
-/// neither face draws) is shown as a no-break space
+/// the Latin face does not draw) is shown as a no-break space
 /// (`MmSemantics.drawableSpaces`). Screen readers get the text as written.
 ///
 /// Internal to mm_ui: any component family may use it.
@@ -72,9 +72,9 @@ class MmScriptText extends StatelessWidget {
   /// last one before the next Arabic-script letter, taking in the spaces
   /// and punctuation between them ("Rs 45,000", "1,25,000"). It also takes
   /// the spaces (and the invisible direction marks and isolates) between it
-  /// and the words on either side: Nastaliq's space is about half as wide
-  /// as Atkinson's, so beside a Latin name it looked like no space at all
-  /// ("رقم Bilal Ahmed سے ملی"). Punctuation beside Arabic-script letters
+  /// and the words on either side, so a Latin name has the Latin face's
+  /// spaces around it, as it has in the English UI ("رقم Bilal Ahmed سے
+  /// ملی"). Punctuation beside Arabic-script letters
   /// stays with them, as do Urdu's own figures and punctuation (۴۵, ، and
   /// ۔) and the spaces between Urdu words.
   static List<MmScriptRun> runsOf(String text) {
@@ -172,7 +172,8 @@ class MmScriptText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Neither face draws the narrow no-break space intl puts before AM.
+    // The Latin face does not draw the narrow no-break space intl puts
+    // before AM.
     final text = MmSemantics.drawableSpaces(this.text);
     final mixed = spansOf(context, text, style);
     if (mixed == null) {

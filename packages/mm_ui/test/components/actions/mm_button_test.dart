@@ -534,7 +534,7 @@ void main() {
             ? icon.left - ink.right
             : ink.left - icon.right;
         // The row's gap, give or take a line's trailing space or a
-        // Nastaliq stroke that overhangs its advance (centred across the
+        // stroke that overhangs its advance (centred across the
         // whole button instead, the lines started 30 dp from the icon).
         expect(
           gap,

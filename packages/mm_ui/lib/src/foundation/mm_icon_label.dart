@@ -75,7 +75,8 @@ class MmIconLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Neither face draws the narrow no-break space intl puts before AM.
+    // The Latin face does not draw the narrow no-break space intl puts
+    // before AM.
     final label = MmSemantics.drawableSpaces(this.label);
     final loose = fitWords ? MmFitWords.loosened(label) : label;
     return Semantics(

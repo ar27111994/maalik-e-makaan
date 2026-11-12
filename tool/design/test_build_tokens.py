@@ -153,7 +153,11 @@ class OutputTest(unittest.TestCase):
             self.assertIn(f"static const MmColorTokens {mode} = MmColorTokens(", dart)
         self.assertIn("primary: Color(0xFF1D3F8F),", dart)
         self.assertIn("static const TextStyle urduBody = TextStyle(", dart)
-        self.assertIn("fontFamily: 'NotoNastaliqUrdu',", dart)
+        self.assertIn("fontFamily: 'NotoSansArabic',", dart)
+        # Nastaliq only for the Urdu wordmark: one family, one style.
+        self.assertIn("static const String urduWordmark = 'NotoNastaliqUrdu';", dart)
+        self.assertIn("static const TextStyle urduWordmark = TextStyle(", dart)
+        self.assertEqual(dart.count("fontFamily: 'NotoNastaliqUrdu',"), 1)
         self.assertIn("static const Duration standard = Duration(milliseconds: 200);", dart)
         self.assertIn("static const Cubic standard = Cubic(0.2, 0, 0, 1);", dart)
 
@@ -169,6 +173,9 @@ class OutputTest(unittest.TestCase):
         self.assertIn("@media (prefers-contrast: more) and (prefers-color-scheme: dark)", css)
         self.assertIn("--mm-duration-standard: 0ms;", css)
         self.assertIn('--mm-font-latin: "Atkinson Hyperlegible Next", Roboto, sans-serif;', css)
+        # Custom properties are named in kebab case, as every other group's are.
+        self.assertIn('--mm-font-urdu-wordmark: "Noto Nastaliq Urdu", ', css)
+        self.assertNotIn("--mm-font-urduWordmark", css)
 
     def test_design_md_keeps_its_body(self) -> None:
         rendered = bt.render_design_md(self.model, "---\nname: old\n---\n\n## Overview\n\nKept.\n")

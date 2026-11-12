@@ -1,7 +1,7 @@
 name: mm_ui
 description: >-
   Maalik-e-Makaan design system: design tokens, light/dark/high-contrast
-  themes, Latin and Urdu Nastaliq typography, and the shared component library.
+  themes, Latin and Urdu typography, and the shared component library.
 version: 0.1.0
 publish_to: none
 resolution: workspace
@@ -28,12 +28,18 @@ flutter:
   # (MmLicenses.register).
   assets:
     - assets/fonts/OFL-AtkinsonHyperlegibleNext.txt
+    - assets/fonts/OFL-NotoSansArabic.txt
     - assets/fonts/OFL-NotoNastaliqUrdu.txt
     - assets/fonts/LICENSE-lucide.txt
   fonts:
     - family: AtkinsonHyperlegibleNext
       fonts:
         - asset: assets/fonts/AtkinsonHyperlegibleNext-Variable.ttf
+    # Urdu interface text (MmFontFamily.urdu).
+    - family: NotoSansArabic
+      fonts:
+        - asset: assets/fonts/NotoSansArabic-Variable.ttf
+    # The Urdu wordmark only (MmFontFamily.urduWordmark).
     - family: NotoNastaliqUrdu
       fonts:
         - asset: assets/fonts/NotoNastaliqUrdu-Variable.ttf

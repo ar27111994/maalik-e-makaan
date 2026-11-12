@@ -394,11 +394,16 @@ abstract final class MmFontFamily {
   /// Atkinson Hyperlegible Next.
   static const String latin = 'AtkinsonHyperlegibleNext';
 
+  /// Noto Sans Arabic.
+  static const String urdu = 'NotoSansArabic';
+
   /// Noto Nastaliq Urdu.
-  static const String urdu = 'NotoNastaliqUrdu';
+  static const String urduWordmark = 'NotoNastaliqUrdu';
 }
 
-/// Text styles of each script (Latin for English, Nastaliq for Urdu).
+/// Text styles of each script: Atkinson Hyperlegible Next for English,
+/// Noto Sans Arabic for Urdu, and Noto Nastaliq Urdu for the Urdu wordmark
+/// only.
 abstract final class MmTypeScale {
   /// Latin amount: 32 px on a 40 px line.
   static const TextStyle latinAmount = TextStyle(
@@ -490,73 +495,83 @@ abstract final class MmTypeScale {
     letterSpacing: 0,
   );
 
-  /// Urdu headline: 26 px on a 52 px line.
+  /// Urdu headline: 25 px on a 38 px line.
   static const TextStyle urduHeadline = TextStyle(
-    fontFamily: 'NotoNastaliqUrdu',
+    fontFamily: 'NotoSansArabic',
     package: 'mm_ui',
-    fontSize: 26,
-    height: 2,
+    fontSize: 25,
+    height: 1.52,
     fontWeight: FontWeight.w700,
     letterSpacing: 0,
   );
 
-  /// Urdu title: 22 px on a 44 px line.
+  /// Urdu title: 21 px on a 32 px line.
   static const TextStyle urduTitle = TextStyle(
+    fontFamily: 'NotoSansArabic',
+    package: 'mm_ui',
+    fontSize: 21,
+    height: 1.5238095238095237,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+  );
+
+  /// Urdu titleSmall: 17 px on a 26 px line.
+  static const TextStyle urduTitleSmall = TextStyle(
+    fontFamily: 'NotoSansArabic',
+    package: 'mm_ui',
+    fontSize: 17,
+    height: 1.5294117647058822,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+  );
+
+  /// Urdu body: 17 px on a 28 px line.
+  static const TextStyle urduBody = TextStyle(
+    fontFamily: 'NotoSansArabic',
+    package: 'mm_ui',
+    fontSize: 17,
+    height: 1.6470588235294117,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0,
+  );
+
+  /// Urdu bodySmall: 15 px on a 24 px line.
+  static const TextStyle urduBodySmall = TextStyle(
+    fontFamily: 'NotoSansArabic',
+    package: 'mm_ui',
+    fontSize: 15,
+    height: 1.6,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0,
+  );
+
+  /// Urdu label: 15 px on a 22 px line.
+  static const TextStyle urduLabel = TextStyle(
+    fontFamily: 'NotoSansArabic',
+    package: 'mm_ui',
+    fontSize: 15,
+    height: 1.4666666666666666,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+  );
+
+  /// Urdu caption: 13 px on a 20 px line.
+  static const TextStyle urduCaption = TextStyle(
+    fontFamily: 'NotoSansArabic',
+    package: 'mm_ui',
+    fontSize: 13,
+    height: 1.5384615384615385,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0,
+  );
+
+  /// Urdu wordmark: 22 px on a 44 px line.
+  static const TextStyle urduWordmark = TextStyle(
     fontFamily: 'NotoNastaliqUrdu',
     package: 'mm_ui',
     fontSize: 22,
     height: 2,
     fontWeight: FontWeight.w600,
-    letterSpacing: 0,
-  );
-
-  /// Urdu titleSmall: 18 px on a 36 px line.
-  static const TextStyle urduTitleSmall = TextStyle(
-    fontFamily: 'NotoNastaliqUrdu',
-    package: 'mm_ui',
-    fontSize: 18,
-    height: 2,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0,
-  );
-
-  /// Urdu body: 18 px on a 36 px line.
-  static const TextStyle urduBody = TextStyle(
-    fontFamily: 'NotoNastaliqUrdu',
-    package: 'mm_ui',
-    fontSize: 18,
-    height: 2,
-    fontWeight: FontWeight.w400,
-    letterSpacing: 0,
-  );
-
-  /// Urdu bodySmall: 16 px on a 32 px line.
-  static const TextStyle urduBodySmall = TextStyle(
-    fontFamily: 'NotoNastaliqUrdu',
-    package: 'mm_ui',
-    fontSize: 16,
-    height: 2,
-    fontWeight: FontWeight.w400,
-    letterSpacing: 0,
-  );
-
-  /// Urdu label: 16 px on a 30 px line.
-  static const TextStyle urduLabel = TextStyle(
-    fontFamily: 'NotoNastaliqUrdu',
-    package: 'mm_ui',
-    fontSize: 16,
-    height: 1.875,
-    fontWeight: FontWeight.w600,
-    letterSpacing: 0,
-  );
-
-  /// Urdu caption: 14 px on a 28 px line.
-  static const TextStyle urduCaption = TextStyle(
-    fontFamily: 'NotoNastaliqUrdu',
-    package: 'mm_ui',
-    fontSize: 14,
-    height: 2,
-    fontWeight: FontWeight.w400,
     letterSpacing: 0,
   );
 }

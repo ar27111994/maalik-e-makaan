@@ -29,7 +29,7 @@ class GoldenPage extends StatelessWidget {
   final double width;
 
   /// Space around the composition, for text that starts at the edge:
-  /// Nastaliq glyphs overhang their line, which the page's gutter absorbs
+  /// Urdu marks overhang their line, which the page's gutter absorbs
   /// in the app but the golden's boundary would cut.
   final EdgeInsetsGeometry padding;
 

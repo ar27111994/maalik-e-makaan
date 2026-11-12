@@ -5,8 +5,8 @@ import 'package:mm_ui/src/foundation/mm_icon_label.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
 /// A decorative icon that sits before a block of text, centred on the
-/// text's first line at every text size and in both scripts (a Nastaliq
-/// line is about twice as tall as a Latin one).
+/// text's first line at every text size and in both scripts (an Urdu line
+/// is taller than a Latin one).
 ///
 /// It grows with the text size, up to [MmIconLabel.maxIconScale] times its
 /// [MmSize.iconLg] size, as every icon beside words in mm_ui does. It is

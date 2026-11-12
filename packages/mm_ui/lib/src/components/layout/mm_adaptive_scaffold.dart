@@ -70,7 +70,7 @@ final class MmDestination {
 ///
 /// * **compact** (phones): [body] above a bottom [NavigationBar], so the
 ///   destinations sit within thumb reach. The bar grows taller with large
-///   text and with Nastaliq labels, so no label is clipped. A label wraps
+///   text and with Urdu labels, so no label is clipped. A label wraps
 ///   only between its words, never inside one: when a word would not fit
 ///   its destination at the reader's text size (five destinations at 200%
 ///   text), the labels are set only as much smaller as that word needs, but
@@ -312,7 +312,7 @@ class _MmAdaptiveScaffoldState extends State<MmAdaptiveScaffold> {
   /// The bottom bar of a phone, [width] wide.
   ///
   /// Material's bar is a fixed height that fits one Latin line of label;
-  /// Nastaliq labels and large text need more, so the bar grows to hold
+  /// Urdu labels and large text need more, so the bar grows to hold
   /// the tallest label (as wrapped in its destination's width) with its
   /// glyphs' overhang and [MmSpace.s1] to spare above and below.
   Widget _navigationBar(BuildContext context, double width) {

@@ -223,7 +223,7 @@ void main() {
     });
 
     testWidgets('sets a name written in English in the Latin face in the '
-        'Urdu UI, and one written in Urdu with Nastaliq in the English UI', (
+        'Urdu UI, and one written in Urdu in the Urdu face in the English UI', (
       tester,
     ) async {
       await pumpThemed(

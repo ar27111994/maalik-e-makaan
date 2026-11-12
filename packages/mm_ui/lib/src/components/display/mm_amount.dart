@@ -137,8 +137,8 @@ class MmAmount extends StatelessWidget {
     final shown = credit ? amount.abs() : amount;
     final words = credit ? ' $creditLabel' : '';
     final colors = context.mm.colors;
-    // The Latin face, which falls back to Nastaliq for the Urdu currency
-    // word and credit label.
+    // The Latin face, which falls back to the Urdu face for the Urdu
+    // currency word and credit label.
     final style = _style(context)
         .copyWith(color: (credit ? MmAmountTone.credit : tone).colorIn(colors));
     // A negative amount comes with a left-to-right mark before its minus

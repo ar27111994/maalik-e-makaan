@@ -79,4 +79,25 @@ void main() {
     size: const Size(1280, 800),
     variants: const [MmVariant.light, MmVariant.urdu],
   );
+
+  // A screen that shows only the app's name, as the wordmark: Nastaliq in
+  // Urdu, the title style in English.
+  screenGoldenEveryVariant(
+    'mm_page_wordmark',
+    () => Builder(
+      builder: (context) {
+        final say = sayIn(context);
+        return MmPage(
+          title: say('Maalik-e-Makaan', 'مالکِ مکان'),
+          wordmark: true,
+          body: Text(
+            say('Signing you in…', 'سائن اِن ہو رہا ہے…'),
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+        );
+      },
+    ),
+    size: const Size(360, 200),
+    variants: const [MmVariant.light, MmVariant.urdu],
+  );
 }

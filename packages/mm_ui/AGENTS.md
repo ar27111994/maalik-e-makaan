@@ -1,6 +1,6 @@
 # packages/mm_ui/AGENTS.md
 
-The design system: tokens, light, dark and high-contrast themes, Latin and Nastaliq type, the
+The design system: tokens, light, dark and high-contrast themes, Latin and Urdu type, the
 `MmIcons` font and the component library, with a gallery app in `example/`. The root
 [`AGENTS.md`](../../AGENTS.md) rules apply; this file adds what is specific here.
 
@@ -18,7 +18,7 @@ Read first: [`DESIGN.md`](../../DESIGN.md) (the visual rules) and [`COMPONENTS.m
 | `lib/src/foundation/`               | Shared building blocks: `MmLicenses`, `MmIconSize`, `MmReflow`, `MmFitWords`, `MmUrduMaterialLocalizations` |
 | `lib/src/components/<family>/`      | `actions`, `charts`, `choices`, `display`, `feedback`, `inputs`, `layout`, `records`                        |
 | `lib/src/l10n/`                     | The package's own strings (`mm_localizations.dart`)                                                         |
-| `assets/fonts/`                     | Atkinson Hyperlegible Next, Noto Nastaliq Urdu, `MmIcons.ttf`, and their licence texts                      |
+| `assets/fonts/`                     | Atkinson Hyperlegible Next, Noto Sans Arabic, Noto Nastaliq Urdu (wordmark), `MmIcons.ttf`, licence texts   |
 | `test/support/harness.dart`         | `MmVariant` (six variants), golden and accessibility helpers                                                |
 | `test/components/<family>/goldens/` | Golden images, `<name>_<variant>.png`                                                                       |
 | `example/`                          | The gallery; `example/screenshots/` is the UAT record (English light, Urdu dark)                            |

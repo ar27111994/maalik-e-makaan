@@ -30,7 +30,7 @@ String? _faceOf(WidgetTester tester, String run) {
 }
 
 /// Expects each of [latin] set in the Latin face and each of [urdu] in
-/// Nastaliq.
+/// the Urdu face.
 void _expectFaces(
   WidgetTester tester, {
   required List<String> latin,
@@ -46,7 +46,7 @@ void _expectFaces(
 
 /// Every label a component sets from the app's words keeps Latin words and
 /// figures inside the Urdu UI in the Latin face, as `MmScriptText` does,
-/// rather than in Nastaliq's own Latin glyphs.
+/// rather than in the Urdu face's own Latin glyphs.
 void main() {
   group('Latin words in Urdu labels are set in the Latin face', () {
     Future<void> pumpUrdu(WidgetTester tester, Widget child) =>

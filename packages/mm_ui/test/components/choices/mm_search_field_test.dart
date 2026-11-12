@@ -263,7 +263,7 @@ void main() {
       );
     });
 
-    testWidgets('sets Latin text in Atkinson and Urdu in Nastaliq', (
+    testWidgets('sets Latin text in Atkinson and Urdu in the Urdu face', (
       tester,
     ) async {
       await pumpThemed(tester, const MmSearchField(), variant: MmVariant.urdu);

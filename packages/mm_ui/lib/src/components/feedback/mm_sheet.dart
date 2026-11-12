@@ -20,7 +20,8 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// When the title is the landlord's data (a member's name or email, a
 /// document's name), set [userTitle]: the title is then set in its own
 /// script's face (a name typed in English in the Latin face in the Urdu UI,
-/// rather than Nastaliq's serif Latin) and kept in its own direction.
+/// rather than the Urdu face's own Latin letters) and kept in its own
+/// direction.
 ///
 /// Use it for a short task in the context of a screen: recording a
 /// payment, choosing a filter, sharing a receipt. For a yes or no question,

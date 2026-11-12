@@ -327,9 +327,8 @@ void main() {
       );
     });
 
-    testWidgets('falls back to Nastaliq for Urdu words in the English UI', (
-      tester,
-    ) async {
+    testWidgets('falls back to the Urdu face for Urdu words in the English '
+        'UI', (tester) async {
       await pumpThemed(tester, _meter(valueLabel: 'رضا منزل'));
       expect(styleOf(tester, 'رضا منزل').fontFamilyFallback, [
         'packages/mm_ui/${MmFontFamily.urdu}',

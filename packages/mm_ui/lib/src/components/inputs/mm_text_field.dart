@@ -14,7 +14,7 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// enclosing `Form` validates) replaces it in the overdue colour with the
 /// error icon and is announced. Characters the database rejects are
 /// removed as they are typed or pasted ([MmCleanTextFormatter]), and Latin
-/// text typed in the Urdu UI is set in Atkinson rather than Nastaliq.
+/// text typed in the Urdu UI is set in Atkinson rather than the Urdu face.
 ///
 /// Use `MmPasswordField` for passwords and the money, CNIC and phone
 /// fields for those values: they format and parse them as they are typed.

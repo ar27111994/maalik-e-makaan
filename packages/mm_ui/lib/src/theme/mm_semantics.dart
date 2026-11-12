@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
-/// The script a theme sets text in: Latin for English, Nastaliq for Urdu.
+/// The script a theme sets text in: Latin for English, Arabic script for
+/// Urdu.
 enum MmScript {
   /// Atkinson Hyperlegible Next.
   latin,
 
-  /// Noto Nastaliq Urdu (right to left, about twice the line height).
+  /// Noto Sans Arabic, right to left, on lines about one and a half times
+  /// its size, a size step larger than Latin. The brand name keeps Noto
+  /// Nastaliq Urdu where it stands as the wordmark ([MmSemantics.wordmark]).
   urdu;
 
   /// The script of [locale]: Urdu for `ur`, Latin for everything else.
@@ -36,7 +39,7 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
   }) {
     // Amounts are always set in the Latin face with tabular figures, in both
     // languages, so columns of rupees line up and stay unambiguous. The
-    // Urdu currency word (روپے) after an amount falls back to Nastaliq.
+    // Urdu currency word (روپے) after an amount falls back to the Urdu face.
     return MmSemantics(
       colors: colors,
       script: script,
@@ -65,7 +68,7 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
     ],
   );
 
-  /// [style] with Noto Nastaliq Urdu as its fallback face.
+  /// [style] with the Urdu face (Noto Sans Arabic) as its fallback.
   ///
   /// The Latin face has no Arabic-script letters. Without a fallback, Urdu
   /// in a Latin style (a tenant's name typed in Urdu in the English UI, the
@@ -103,10 +106,21 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
   /// Amounts in lists, chips and forms.
   final TextStyle amount;
 
+  /// The brand name where it stands alone as the wordmark (the title of a
+  /// screen that shows only the app's name, `MmPage.wordmark`): in Urdu,
+  /// مالکِ مکان in Noto Nastaliq Urdu ([MmTypeScale.urduWordmark]), the one
+  /// place Nastaliq is used, on a line twice its size for its tall letters;
+  /// in English, the title style. Never use it for other text, nor for the
+  /// name inside a sentence, which stays in the UI's face.
+  TextStyle get wordmark => script == MmScript.urdu
+      ? MmTypeScale.urduWordmark.copyWith(color: colors.ink)
+      : withUrduFallback(MmTypeScale.latinTitle.copyWith(color: colors.ink));
+
   /// [style] for showing [text] that a user wrote (a name, an address, a
   /// note). In the Urdu UI, text without any Arabic-script letter (a name
-  /// typed in English, a CNIC) is set in Atkinson rather than Nastaliq's
-  /// serif Latin, on the same line height so rows stay even.
+  /// typed in English, a CNIC) is set in Atkinson, the face the English UI
+  /// reads it in, rather than in the Urdu face's own Latin letters, on the
+  /// same line height so rows stay even.
   TextStyle styleFor(String text, TextStyle style) {
     if (script != MmScript.urdu || hasArabicScript(text)) return style;
     return style.copyWith(fontFamily: MmFontFamily.latin, package: 'mm_ui');
@@ -198,11 +212,12 @@ final class MmSemantics extends ThemeExtension<MmSemantics> {
   /// space (U+00A0).
   ///
   /// `intl` puts a narrow no-break space between a time and its AM or PM
-  /// ("10:42\u202FAM"), and neither of the app's faces has a glyph for it,
-  /// so it would be drawn by whatever face the platform falls back to, or
-  /// as an empty box. The no-break space keeps the time and its AM or PM
-  /// together just the same. Every mm_ui component that shows text does
-  /// this itself; use it for text the app shows in its own `Text` widgets:
+  /// ("10:42\u202FAM"), and the Latin face, in which times are set in both
+  /// languages, has no glyph for it, so it would be drawn by whatever face
+  /// the platform falls back to, or as an empty box. The no-break space
+  /// keeps the time and its AM or PM together just the same. Every mm_ui
+  /// component that shows text does this itself; use it for text the app
+  /// shows in its own `Text` widgets:
   ///
   /// ```dart
   /// Text(MmSemantics.drawableSpaces(DateFormat.jm().format(paidAt)))

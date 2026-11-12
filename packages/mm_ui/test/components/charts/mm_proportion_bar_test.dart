@@ -884,38 +884,57 @@ void main() {
           await tester.pump();
         }
 
-        testWidgets('in Urdu with lakh grouping at 200% on a 320 dp window', (
-          tester,
-        ) async {
-          await pumpDeposits(
-            tester,
-            barWidth: 288,
-            scale: 2,
-            locale: const Locale('ur'),
-            grouping: DigitGrouping.southAsian,
-          );
-          expect(tester.takeException(), isNull);
-          // Every figure is whole on the screen: nothing is clipped or
-          // pushed past the bar's edges.
-          final bar = tester.getRect(find.byType(MmProportionBar));
-          for (final amount in ['1,25,000', '15,000', '38,000', '70%']) {
-            final rect = tester.getRect(find.textContaining(amount).first);
-            expect(rect.left, greaterThanOrEqualTo(bar.left), reason: amount);
-            expect(rect.right, lessThanOrEqualTo(bar.right), reason: amount);
-          }
-          // Too narrow for both side by side, each share moves under its
-          // amount, ending on the same right edge, where figures end.
-          for (final (amount, share) in const [
-            ('1,25,000', '70%'),
-            ('15,000', '9%'),
-            ('38,000', '21%'),
-          ]) {
-            final figures = tester.getRect(find.textContaining(amount));
-            final percent = tester.getRect(find.text(share));
-            expect(percent.top, greaterThanOrEqualTo(figures.bottom));
-            expect(percent.right, closeTo(figures.right, 0.5), reason: share);
-          }
-        });
+        for (final (window, under) in const [(320.0, false), (240.0, true)]) {
+          testWidgets('in Urdu with lakh grouping at 200% on a '
+              '${window.toInt()} dp window', (tester) async {
+            await pumpDeposits(
+              tester,
+              barWidth: window - 2 * MmSpace.s4,
+              scale: 2,
+              locale: const Locale('ur'),
+              grouping: DigitGrouping.southAsian,
+            );
+            expect(tester.takeException(), isNull);
+            // Every figure is whole on the screen: nothing is clipped or
+            // pushed past the bar's edges.
+            final bar = tester.getRect(find.byType(MmProportionBar));
+            for (final amount in ['1,25,000', '15,000', '38,000', '70%']) {
+              final rect = tester.getRect(find.textContaining(amount).first);
+              expect(rect.left, greaterThanOrEqualTo(bar.left), reason: amount);
+              expect(rect.right, lessThanOrEqualTo(bar.right), reason: amount);
+            }
+            for (final (amount, share, label) in const [
+              ('1,25,000', '70%', 'سیکیورٹی ڈپازٹ'),
+              ('15,000', '9%', 'ایڈوانس کرایہ'),
+              ('38,000', '21%', 'ابھی تاریخ نہیں آئی'),
+            ]) {
+              final figures = tester.getRect(find.textContaining(amount));
+              final percent = tester.getRect(find.text(share));
+              // Each amount moves under its label.
+              expect(
+                figures.top,
+                greaterThanOrEqualTo(tester.getRect(find.text(label)).bottom),
+                reason: amount,
+              );
+              if (under) {
+                // Too narrow for both side by side, each share moves under
+                // its amount, ending on the same right edge, where figures
+                // end.
+                expect(percent.top, greaterThanOrEqualTo(figures.bottom));
+                expect(
+                  percent.right,
+                  closeTo(figures.right, 0.5),
+                  reason: share,
+                );
+              } else {
+                // On a line of their own the two sit side by side, the
+                // share on the amount's left, as the Urdu UI reads them.
+                expect(percent.center.dy, closeTo(figures.center.dy, 0.5));
+                expect(percent.right, lessThan(figures.left), reason: share);
+              }
+            }
+          });
+        }
 
         testWidgets('shows a crore at 200% on the narrowest phone smaller, '
             'never cut off or broken', (tester) async {

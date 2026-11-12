@@ -574,7 +574,7 @@ void main() {
       );
     });
 
-    testWidgets('sets an issuer written in Urdu with Nastaliq in the '
+    testWidgets('sets an issuer written in Urdu in the Urdu face in the '
         'English UI', (tester) async {
       await _pump(tester, _receipt(issuer: 'عائشہ خان'));
       expect(styleOf(tester, 'عائشہ خان').fontFamilyFallback, [

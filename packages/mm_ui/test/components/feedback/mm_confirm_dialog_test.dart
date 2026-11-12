@@ -298,8 +298,8 @@ void main() {
       field = tester.widget<TextField>(find.byType(TextField));
       expect(field.textDirection, isNull);
       expect(field.style!.fontFamily, contains(MmFontFamily.urdu));
-      // Urdu text to type stays in Nastaliq, in bold; a figure elsewhere in
-      // the label is in the Latin face.
+      // Urdu text to type stays in the Urdu face, in bold; a figure
+      // elsewhere in the label is in the Latin face.
       final name = runStyleIn(tester, label, 'گلبرگ ہاؤس');
       expect(isLatinFace(name), isFalse);
       expect(name.fontWeight, FontWeight.w700);

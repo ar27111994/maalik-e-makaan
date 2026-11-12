@@ -51,10 +51,27 @@ void main() {
         script: MmScript.urdu,
       ).textTheme;
       expect(latin.bodyLarge!.fontFamily, contains('AtkinsonHyperlegibleNext'));
-      expect(urdu.bodyLarge!.fontFamily, contains('NotoNastaliqUrdu'));
-      // Nastaliq needs about twice the line height of Latin.
-      expect(urdu.bodyLarge!.height, greaterThanOrEqualTo(1.9));
+      expect(urdu.bodyLarge!.fontFamily, contains('NotoSansArabic'));
       expect(latin.bodyLarge!.height, closeTo(1.5, 0.01));
+      // Urdu lines are 1.4 to 1.7 times their size (Noto Sans Arabic's
+      // lines never touch from 1.4 up), each a whole, even number of
+      // pixels, so a line centred in a 48 dp control lands on whole pixels.
+      // Nastaliq is no style's face: it is kept for the wordmark.
+      for (final style in [
+        urdu.headlineLarge!,
+        urdu.titleLarge!,
+        urdu.titleMedium!,
+        urdu.bodyLarge!,
+        urdu.bodyMedium!,
+        urdu.bodySmall!,
+        urdu.labelLarge!,
+      ]) {
+        expect(style.fontFamily, contains('NotoSansArabic'));
+        expect(style.height, inInclusiveRange(1.4, 1.7));
+        final line = style.fontSize! * style.height!;
+        expect(line, line.roundToDouble(), reason: '$style');
+        expect(line % 2, 0, reason: '$style');
+      }
       // Amounts stay Latin with tabular figures in both languages.
       final semantics = MmTheme.data(
         brightness: Brightness.light,
@@ -67,8 +84,8 @@ void main() {
       );
     });
 
-    test('the Latin face falls back to Nastaliq for Urdu letters', () {
-      const nastaliq = ['packages/mm_ui/NotoNastaliqUrdu'];
+    test('the Latin face falls back to the Urdu face for Urdu letters', () {
+      const urduFace = ['packages/mm_ui/NotoSansArabic'];
       for (final script in MmScript.values) {
         final theme = MmTheme.data(
           brightness: Brightness.light,
@@ -78,10 +95,10 @@ void main() {
         // Amounts are Latin in both languages, and the Urdu currency word
         // follows them.
         for (final amount in [semantics.amount, semantics.amountLarge]) {
-          expect(amount.fontFamilyFallback, nastaliq);
+          expect(amount.fontFamilyFallback, urduFace);
           expect(amount.fontFamily, 'packages/mm_ui/AtkinsonHyperlegibleNext');
         }
-        expect(theme.textTheme.displayLarge!.fontFamilyFallback, nastaliq);
+        expect(theme.textTheme.displayLarge!.fontFamilyFallback, urduFace);
       }
       final english = MmTheme.data(brightness: Brightness.light).textTheme;
       for (final style in [
@@ -92,7 +109,7 @@ void main() {
         english.labelLarge,
         english.labelSmall,
       ]) {
-        expect(style!.fontFamilyFallback, nastaliq);
+        expect(style!.fontFamilyFallback, urduFace);
       }
       final urdu = MmTheme.data(
         brightness: Brightness.light,
@@ -104,7 +121,7 @@ void main() {
     test('withUrduFallback needs one of the package faces', () {
       expect(
         MmSemantics.withUrduFallback(MmTypeScale.latinBody).fontFamilyFallback,
-        ['packages/mm_ui/NotoNastaliqUrdu'],
+        ['packages/mm_ui/NotoSansArabic'],
       );
       expect(
         () => MmSemantics.withUrduFallback(const TextStyle()),

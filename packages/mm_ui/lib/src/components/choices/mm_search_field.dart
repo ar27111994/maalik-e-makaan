@@ -136,7 +136,7 @@ class _MmSearchFieldState extends State<MmSearchField> {
     final hint = widget.hint ?? strings.search;
     final body = Theme.of(context).textTheme.bodyLarge!;
     // Latin text typed in the Urdu UI (a name in English) is set in
-    // Atkinson; Urdu stays in Nastaliq.
+    // Atkinson; Urdu stays in the Urdu face.
     final style = mm.styleFor(_controller.text, body);
     const radius = BorderRadius.all(Radius.circular(MmRadius.sm));
     // The well's tone is within 1.1:1 of the page in dark and high-contrast

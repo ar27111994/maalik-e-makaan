@@ -160,8 +160,8 @@ void main() {
     await expectGolden('mm_adaptive_scaffold', variant);
   });
 
-  // No variant combines Urdu with large text: the Nastaliq labels of the
-  // bar and a long Nastaliq title are the tallest the frame holds.
+  // No variant combines Urdu with large text: the Urdu labels of the bar
+  // and a long Urdu title are the tallest the frame holds.
   testWidgets('mm_adaptive_scaffold Urdu at 200% golden', (tester) async {
     tester.view
       ..physicalSize = const Size(360, 740)

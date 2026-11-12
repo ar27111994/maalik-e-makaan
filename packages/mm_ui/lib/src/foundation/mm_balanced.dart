@@ -6,8 +6,8 @@ import 'package:flutter/widgets.dart';
 /// even and the last one never holds a single word under the others: a
 /// balanced line break, as CSS's `text-wrap: balance` gives.
 ///
-/// A paragraph that fits on one line keeps its own width. Nastaliq's long
-/// words and the widest word of any paragraph set how narrow it can go.
+/// A paragraph that fits on one line keeps its own width. The widest word
+/// of a paragraph sets how narrow it can go.
 ///
 /// Internal to mm_ui: any component family may use it.
 class MmBalanced extends SingleChildRenderObjectWidget {

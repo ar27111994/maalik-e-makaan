@@ -112,12 +112,12 @@ bool _isPrivateUse(int rune) =>
 /// Flutter's `textContrastGuideline` guesses both colours of a label from
 /// the pixels around it: the lightest and darkest of its most frequent
 /// colours. At one device pixel per logical pixel, thin strokes (12 to 14 px
-/// regular text, Nastaliq hairlines) have few solid pixels, so it often
-/// takes an anti-aliased grey for the text colour, and the result depends on
-/// the wording and the sub-pixel position: muted helper text with a real
-/// contrast of 6:1 measures 1.4:1. It also checks only text whose semantics
-/// label equals one `Text`, so merged tiles and text excluded from
-/// semantics go unchecked.
+/// regular text, the dots and marks of Urdu letters) have few solid
+/// pixels, so it often takes an anti-aliased grey for the text colour, and
+/// the result depends on the wording and the sub-pixel position: muted
+/// helper text with a real contrast of 6:1 measures 1.4:1. It also checks
+/// only text whose semantics label equals one `Text`, so merged tiles and
+/// text excluded from semantics go unchecked.
 ///
 /// This guideline checks every run of text on screen (every [RenderParagraph]
 /// and [RenderEditable], and each styled span in them) that is painted, not

@@ -38,8 +38,8 @@ void main() {
 
     test('sets the spaces between Urdu and Latin words in the Latin face, '
         "so they keep the Latin space's width", () {
-      // Nastaliq's space is about half as wide as Atkinson's: beside a
-      // Latin name it looked like no space at all.
+      // A Latin name has the Latin face's spaces around it, as in the
+      // English UI.
       expect(MmScriptText.runsOf('نقدی Bilal Ahmed کو'), [
         (text: 'نقدی', latin: false),
         (text: ' Bilal Ahmed ', latin: true),
@@ -120,8 +120,8 @@ void main() {
           .single
           .toRect()
           .width;
-      // Nastaliq's own space is about half as wide; the Latin face's
-      // metrics shift the last digit of a width by a fraction of a pixel.
+      // The Latin face's metrics shift the last digit of a width by a
+      // fraction of a pixel.
       final between = widthAt(text.indexOf(' Ahmed'));
       expect(widthAt(text.indexOf(' Bilal')), closeTo(between, 0.5));
       expect(widthAt(text.indexOf(' کو')), closeTo(between, 0.5));

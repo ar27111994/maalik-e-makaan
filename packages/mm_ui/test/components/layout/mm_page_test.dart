@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -590,6 +592,71 @@ void main() {
         }
       });
     }
+
+    for (final (variant, title) in [
+      (MmVariant.urdu, 'مالکِ مکان'),
+      (MmVariant.light, 'Maalik-e-Makaan'),
+    ]) {
+      testWidgets("sets the app's name as the wordmark (${variant.name})", (
+        tester,
+      ) async {
+        await pumpScreen(
+          tester,
+          MmPage(title: title, wordmark: true, body: _body()),
+          variant: variant,
+        );
+        final style = styleOf(tester, title);
+        final wordmark = tester.element(find.text(title)).mm.wordmark;
+        expect(style.fontFamily, wordmark.fontFamily);
+        expect(style.fontSize, wordmark.fontSize);
+        expect(style.height, wordmark.height);
+        if (variant == MmVariant.urdu) {
+          // Nastaliq, on a line twice its size: the bar holds its tall
+          // letters with 8 dp to spare above and below.
+          expect(style.fontFamily, contains(MmFontFamily.urduWordmark));
+          expect(style.height, 2);
+          final line = tester.getSize(find.text(title)).height;
+          expect(
+            tester.getSize(find.byType(AppBar)).height,
+            math.max(MmSize.appBar, line + 2 * MmSpace.s2),
+          );
+        } else {
+          // In English the wordmark is the title style.
+          expect(style.fontFamily, contains(MmFontFamily.latin));
+          expect(style.fontSize, MmTypeScale.latinTitle.fontSize);
+        }
+        expect(
+          tester.getSemantics(find.text(title)),
+          isSemantics(label: title, isHeader: true),
+        );
+      });
+    }
+
+    testWidgets('the wordmark in Latin letters keeps the Latin face in the '
+        'Urdu UI', (tester) async {
+      await pumpScreen(
+        tester,
+        MmPage(title: 'Maalik-e-Makaan', wordmark: true, body: _body()),
+        variant: MmVariant.urdu,
+      );
+      final style = styleOf(tester, 'Maalik-e-Makaan');
+      expect(style.fontFamily, contains(MmFontFamily.latin));
+      expect(style.fontSize, MmTypeScale.urduTitle.fontSize);
+    });
+
+    testWidgets('a title that is not the wordmark is never set in Nastaliq', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        MmPage(title: 'مالکِ مکان', body: _body()),
+        variant: MmVariant.urdu,
+      );
+      expect(
+        styleOf(tester, 'مالکِ مکان').fontFamily,
+        contains(MmFontFamily.urdu),
+      );
+    });
 
     for (final variant in [MmVariant.light, MmVariant.urdu]) {
       for (final scrollable in [true, false]) {

@@ -109,9 +109,7 @@ void main() {
       expect(line.maxIntrinsicWidth, greaterThan(word.maxIntrinsicWidth));
     });
 
-    testWidgets('finds Nastaliq rising and falling past its lines', (
-      tester,
-    ) async {
+    testWidgets('finds Urdu letters reaching past their lines', (tester) async {
       late MmTextMetrics urdu;
       await pumpThemed(
         tester,

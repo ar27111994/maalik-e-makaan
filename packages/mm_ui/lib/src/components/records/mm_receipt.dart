@@ -316,8 +316,8 @@ class _AmountBlock extends StatelessWidget {
     final mm = context.mm;
     final colors = mm.colors;
     final text = Theme.of(context).textTheme;
-    // The Latin face, which falls back to Nastaliq for the Urdu currency
-    // word.
+    // The Latin face, which falls back to the Urdu face for the Urdu
+    // currency word.
     final style = mm.amountLarge.copyWith(
       decoration: voided ? TextDecoration.lineThrough : null,
       decorationColor: colors.overdue,

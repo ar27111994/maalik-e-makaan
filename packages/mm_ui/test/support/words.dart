@@ -19,7 +19,7 @@ List<String> brokenWords(WidgetTester tester, {Finder? within}) {
     final text = paragraph.text.toPlainText();
     double lineOf(int offset) =>
         paragraph.getOffsetForCaret(TextPosition(offset: offset), Rect.zero).dy;
-    // Runs in different faces (Latin and Nastaliq) start a few pixels apart
+    // Runs in different faces (Latin and Urdu) start a few pixels apart
     // on one line; a new line starts at least half a line further down.
     final fontSize = paragraph.text.style?.fontSize ?? kDefaultFontSize;
     final newLine = paragraph.textScaler.scale(fontSize) / 2;

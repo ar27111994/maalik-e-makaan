@@ -150,7 +150,7 @@ class _MmStepperFieldState extends State<MmStepperField> {
     // limit (muted ink) stands apart from the other.
     final buttonStyle = MmChoiceBox.buttonStyle(context, color: colors.ink);
     // Figures are set in the Latin face with tabular figures, like amounts;
-    // words in Urdu stay in Nastaliq.
+    // words in Urdu stay in the Urdu face.
     final style = MmSemantics.hasArabicScript(shown)
         ? textTheme.titleMedium!.copyWith(color: ink)
         : mm.amount.copyWith(color: ink);

@@ -83,7 +83,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('sets Urdu initials in Nastaliq a size smaller than Latin', (
+    testWidgets('sets Urdu initials in the Urdu face, as large as Latin', (
       tester,
     ) async {
       await pumpThemed(
@@ -93,17 +93,17 @@ void main() {
       );
       final style = styleOf(tester, 'ع');
       expect(style.fontFamily, contains(MmFontFamily.urdu));
-      expect(style.fontSize, 40 * 0.3);
+      expect(style.fontSize, 40 * 0.4);
       expect(style.height, 1);
     });
 
     testWidgets('scales wide initials down to fit across the circle', (
       tester,
     ) async {
-      // ک and گ are each about one and a half ems wide.
-      await pumpThemed(tester, const MmAvatar(name: 'کامران گل'));
-      final style = styleOf(tester, 'ک');
-      expect(style.fontSize, lessThan(40 * 0.3));
+      // ص and ش are each about one and a quarter ems wide.
+      await pumpThemed(tester, const MmAvatar(name: 'صائم شاہ'));
+      final style = styleOf(tester, 'ص');
+      expect(style.fontSize, lessThan(40 * 0.4));
       final ink = tester.getSize(find.byType(Text));
       expect(ink.width, lessThanOrEqualTo(40 * 0.7 + 0.01));
     });
@@ -134,8 +134,13 @@ void main() {
           // Sindhi and Pashto initials.
           'ٻاجھ ڪريم',
           'ښکلی ځلمی',
+          // A mark above (آ, ٹ), a dot below (پ), wide letters set smaller.
+          'آمنہ',
+          'ٹیپو',
+          'پرویز',
+          'صائم شاہ',
         ];
-        for (final size in [24.0, 56.0]) {
+        for (final size in [24.0, MmSize.avatar, 56.0]) {
           for (final name in names) {
             await pumpThemed(
               tester,
@@ -146,11 +151,13 @@ void main() {
               variant: variant,
             );
             final ink = await inkOnCircle(tester, find.byKey(_boundary), fill);
-            // Within a pixel of the middle, as Latin capitals are. Before,
-            // Urdu initials sat 9.5 dp low at 56 dp.
+            // Within three quarters of a pixel of the middle, as Latin
+            // capitals are (the ink is found on whole pixels, so half a
+            // pixel of it is rounding). Before, Urdu initials sat 9.5 dp
+            // low at 56 dp.
             expect(
               ink.center.dy,
-              moreOrLessEquals(size / 2, epsilon: 1),
+              moreOrLessEquals(size / 2, epsilon: 0.75),
               reason: '$name at $size',
             );
           }
@@ -158,7 +165,7 @@ void main() {
       });
     }
 
-    testWidgets('sets Urdu initials in Nastaliq in the English UI', (
+    testWidgets('sets Urdu initials in the Urdu face in the English UI', (
       tester,
     ) async {
       await pumpThemed(tester, const MmAvatar(name: 'علی رضا'));

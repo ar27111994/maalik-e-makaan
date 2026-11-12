@@ -70,6 +70,7 @@ CONTRAST_PAIRS = [
 # Font families as the mm_ui package declares them in pubspec.yaml.
 FLUTTER_FAMILIES = {
     "Atkinson Hyperlegible Next": "AtkinsonHyperlegibleNext",
+    "Noto Sans Arabic": "NotoSansArabic",
     "Noto Nastaliq Urdu": "NotoNastaliqUrdu",
 }
 
@@ -380,7 +381,9 @@ def render_dart(model: dict) -> str:
     out += [
         "}",
         "",
-        "/// Text styles of each script (Latin for English, Nastaliq for Urdu).",
+        "/// Text styles of each script: Atkinson Hyperlegible Next for English,",
+        "/// Noto Sans Arabic for Urdu, and Noto Nastaliq Urdu for the Urdu wordmark",
+        "/// only.",
         "abstract final class MmTypeScale {",
     ]
     styles = []
@@ -434,7 +437,7 @@ def render_css(model: dict) -> str:
         for name, value in model["easing"].items()
     ]
     out += [
-        f"  --mm-font-{name}: {', '.join(repr(f) if ' ' in f else f for f in stack)};".replace(
+        f"  --mm-font-{_kebab(name)}: {', '.join(repr(f) if ' ' in f else f for f in stack)};".replace(
             "'", '"'
         )
         for name, stack in model["families"].items()
@@ -544,7 +547,8 @@ DESIGN_COMPONENTS = {
 
 DESIGN_DESCRIPTION = (
     "A raseed book made trustworthy on a phone: carbon-copy cobalt ink on cool white paper, "
-    "a brass nameplate for what deserves honour, Atkinson Hyperlegible Next and Noto Nastaliq Urdu."
+    "a brass nameplate for what deserves honour, Atkinson Hyperlegible Next and Noto Sans Arabic, "
+    "with the Urdu wordmark in Noto Nastaliq Urdu."
 )
 
 

@@ -21,10 +21,10 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// optional [chevron]. The title and subtitle are the landlord's data
 /// unless [userData] is false: in the Urdu UI a name typed in English is
 /// set in the Latin face, and in the English UI a name typed in Urdu in
-/// Nastaliq; each keeps its own direction, so an Urdu address in the
+/// the Urdu face; each keeps its own direction, so an Urdu address in the
 /// English UI keeps its word order when it wraps. In the Urdu UI the
-/// subtitle keeps 4 dp from the title, so Nastaliq's dots and tall letters
-/// on the two lines stay apart.
+/// subtitle keeps 4 dp from the title, so the dots and marks of Urdu
+/// letters on the two lines stay apart.
 ///
 /// When the trailing widget and the title do not fit side by side (a narrow
 /// screen or large text), the trailing widget moves under the text, still at
@@ -146,8 +146,8 @@ class MmListTile extends StatelessWidget {
       below: subtitle == null
           ? null
           : Padding(
-              // Nastaliq's dots and tall letters reach past its lines: in
-              // Urdu the two lines keep apart.
+              // The dots and marks of Urdu letters reach a little past
+              // their lines: in Urdu the two lines keep apart.
               padding: EdgeInsetsDirectional.only(
                 top: context.mm.script == MmScript.urdu ? MmSpace.s1 : 0,
               ),

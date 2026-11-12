@@ -444,7 +444,7 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets("a title from the app's localisations keeps Nastaliq", (
+    testWidgets("a title from the app's localisations keeps the Urdu face", (
       tester,
     ) async {
       final context = await _page(tester, variant: MmVariant.urdu);
