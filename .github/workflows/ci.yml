@@ -18,6 +18,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  # The toolchain pins. Other workflows repeat them, and make docs-check
+  # (tool/docs/sync_facts.py) checks those copies and the versions the docs name.
   FLUTTER_VERSION: 3.47.9
   DENO_VERSION: 2.9.6
   SUPABASE_CLI_VERSION: 2.122.1
@@ -71,12 +73,12 @@ jobs:
           fi
       - name: Formatting (Python, shell, Markdown, YAML, JSON)
         run: make format-check-repo
-      - name: Lint (Python, shell, workflows, migrations, Markdown, plain text, Unicode)
+      - name: Lint (make lint)
         run: make lint
       - name: Repository tooling tests
         run: make test-tools
       - name: Generated files are up to date
-        run: make tokens-check icons-check fonts-check app-icons-check contracts-check roadmap-check
+        run: make tokens-check icons-check fonts-check app-icons-check contracts-check roadmap-check docs-check
       - name: DESIGN.md is valid
         run: npx --yes --package @google/design.md@0.4.0 designmd lint DESIGN.md
 
@@ -481,7 +483,8 @@ jobs:
     runs-on: ubuntu-24.04
     # `make verify` took 11 minutes on a shared, overloaded 4-CPU machine from a
     # cold Lean build and Bend kernel (TLA+ 10, Lean and Z3 0.25, Bend 1). The
-    # installer unpacks in under a minute; a cache miss also downloads 1.2 GB.
+    # installer unpacks in under a minute; a cache miss also downloads the pinned tools (sizes in
+    # formal/README.md).
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

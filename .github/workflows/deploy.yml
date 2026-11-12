@@ -55,8 +55,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Keep equal to ci.yml and release.yml.
+  # Equal to ci.yml's; make docs-check checks it.
   FLUTTER_VERSION: 3.47.9
+  SUPABASE_CLI_VERSION: 2.122.1
 
 defaults:
   run:
@@ -88,7 +89,7 @@ jobs:
           done
       - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
-          version: 2.122.1
+          version: ${{ env.SUPABASE_CLI_VERSION }}
       - name: Link the project
         run: supabase link --project-ref "$PROJECT_REF"
       - name: Pending migrations

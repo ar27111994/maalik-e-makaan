@@ -19,6 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  # Equal to ci.yml's; make docs-check checks it.
   FLUTTER_VERSION: 3.47.9
 
 defaults:
