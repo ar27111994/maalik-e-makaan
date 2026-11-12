@@ -23,6 +23,8 @@ env:
   FLUTTER_VERSION: 3.47.9
   DENO_VERSION: 2.9.6
   SUPABASE_CLI_VERSION: 2.122.1
+  JAVA_VERSION: "21"
+  PYTHON_VERSION: "3.13"
   # Colour in logs, no telemetry prompts.
   FORCE_COLOR: "1"
   DO_NOT_TRACK: "1"
@@ -48,7 +50,7 @@ jobs:
       - run: npm ci
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.13"
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: tool/requirements*.txt
       - name: Python tools, formatters and linters (hash-pinned)
@@ -254,7 +256,7 @@ jobs:
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: ${{ env.JAVA_VERSION }}
           cache: gradle
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
@@ -494,11 +496,11 @@ jobs:
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: ${{ env.JAVA_VERSION }}
       # z3-solver is hash-pinned for the Python requirements.txt is compiled with.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.13"
+          python-version: ${{ env.PYTHON_VERSION }}
       # The pinned tools (about 7 GB unpacked, mostly the two Lean toolchains)
       # and the Bend kernel built with Lean 4.34.0. The installer checks every
       # download's sha256, so a new pin needs a new key: it hashes the installer.
