@@ -41,7 +41,18 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   the generated-file checks, `test-tools`, `test-core`, `test-ui`, `test-app`, `test-gallery`,
   `test-db`, `test-db-concurrency` (three runs, and one under four busy loops),
   `test-functions` and `verify`; no golden changed.
-  Not done: the TLA+ Membership extension (the caretaker and the answer). `make test-db-stress` ran
+  The TLA+ Membership model now covers the residence paths (`set_caretaker`, its two triggers
+  and the foreign key's `SET NULL`, `set_owner_abroad`, a declared residence and its clear, and
+  GoTrue's `invited_by` `SET NULL`): five new properties, 28 new configurations (79 in all, 53 in
+  `ci`), every mutant of scenario 31 mirrored. The app's own paths needed no SQL change. Four
+  lock-order behaviours outside them are documented as operator rules in `docs/operations.md`
+  and replayed by `formal/tla/Membership/replay/residence.sh`: a direct Auth delete of a
+  caretaker (D1, D3) and a service-role change of its membership (D2) can deadlock with
+  membership changes, and a schema restored from a dump runs GoTrue's foreign-key actions by name
+  (P1). Scenario 31 gained the delete-account order of the caretaker and the operator's rule. A
+  possible follow-up for P1: `admin_delete_account_data` could null the user's
+  `portfolios.created_by` and `portfolio_members.invited_by` under its portfolio locks.
+  `make test-db-stress` ran
   while another worktree was building (load average up to 15): every check passed except the
   once-a-day notifications' 15 s budget (25 s), which the base commit 9480e22 missed too (30 s and
   38 s), so its figures were not compared with "What it costs" in `permissions.md`; the review
