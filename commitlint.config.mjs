@@ -4,7 +4,7 @@
 export default {
   extends: ['@commitlint/config-conventional'],
   // release-please's own commit (release-please-config.json sets its title). Its
-  // body is the generated changelog, whose links run past 100 characters.
+  // body is the generated changelog, whose links run past body-max-line-length.
   ignores: [(message) => /^chore\(release\): release \d+\.\d+\.\d+/.test(message)],
   rules: {
     // The types and header limit @commitlint/config-conventional sets, stated here so the

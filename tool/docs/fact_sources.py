@@ -39,8 +39,22 @@ PYPROJECT = "pyproject.toml"
 FORMAL_INSTALL = "tool/formal/install.sh"
 FORMAL_REQUIREMENTS = "tool/formal/requirements.txt"
 LEAN_TOOLCHAIN = "formal/lean/lean-toolchain"
+SUPABASE_CONFIG = "supabase/config.toml"
+MM_VARIANTS = "packages/mm_ui/test/support/harness.dart"
+TLA_DIR = "formal/tla"
 
-TOOLCHAIN_VARS = ("FLUTTER_VERSION", "DENO_VERSION", "SUPABASE_CLI_VERSION")
+# The pins ci.yml's env sets, which other workflows repeat (C11 holds the copies equal).
+TOOLCHAIN_VARS = (
+    "FLUTTER_VERSION",
+    "DENO_VERSION",
+    "SUPABASE_CLI_VERSION",
+    "JAVA_VERSION",
+    "PYTHON_VERSION",
+)
+# Pins a workflow sets for a tool ci.yml does not use; every workflow that sets one agrees.
+OTHER_PIN_VARS = ("VERCEL_CLI_VERSION",)
+# Inputs of setup actions, each of which reads its pin from env (C11).
+TOOL_INPUTS = ("flutter-version", "deno-version", "java-version", "python-version")
 COVERAGE_TARGETS = ("test-core", "test-ui", "test-app", "test-functions")
 APP_PACKAGES = ("flutter_riverpod", "go_router", "supabase_flutter")
 SEMVER = re.compile(r"\d+\.\d+\.\d+")
@@ -69,9 +83,24 @@ class CommitConventions:
     types: tuple[str, ...]
     scopes: tuple[str, ...]
     header_max: int
+    body_max: int
+    subject_cases: tuple[str, ...]  # the cases a subject may not be in
     ignores: re.Pattern[str]
     ignores_line: int
     header_line: int
+
+
+# The cases commitlint's subject-case rule knows (@commitlint/ensure, case.ts).
+COMMIT_CASES = (
+    "lower-case",
+    "upper-case",
+    "camel-case",
+    "kebab-case",
+    "pascal-case",
+    "sentence-case",
+    "snake-case",
+    "start-case",
+)
 
 
 def _skip_string(text: str, i: int) -> int:
@@ -157,13 +186,15 @@ def _rule(text: str, rule: str) -> tuple[str, int]:
     return _strip_comments(text[start + 1 : end - 1]), _line(text, found[0].start())
 
 
-def _enum_rule(text: str, rule: str) -> tuple[str, ...]:
+def _enum_rule(text: str, rule: str, condition: str = "always") -> tuple[str, ...]:
     inner, _ = _rule(text, rule)
     shape = (
-        f"'{rule}' is not [2, 'always', [quoted names]] (a value outside the list must fail, as"
-        " the docs say); update parse_commitlint in tool/docs/fact_sources.py"
+        f"'{rule}' is not [2, '{condition}', [quoted names]] (the docs say what it allows);"
+        " update parse_commitlint in tool/docs/fact_sources.py"
     )
-    match = re.fullmatch(r"\s*2\s*,\s*(['\"])always\1\s*,\s*\[(?P<items>[^\[\]]*)\]\s*,?\s*", inner)
+    match = re.fullmatch(
+        rf"\s*2\s*,\s*(['\"]){condition}\1\s*,\s*\[(?P<items>[^\[\]]*)\]\s*,?\s*", inner
+    )
     if not match:
         raise SourceShapeError(COMMITLINT, shape)
     parts = [part.strip() for part in match["items"].split(",")]
@@ -171,14 +202,21 @@ def _enum_rule(text: str, rule: str) -> tuple[str, ...]:
         parts.pop()
     names = []
     for part in parts:
-        item = re.fullmatch(r"(['\"])([a-z][a-z0-9-]*)\1", part)
-        if not item:
+        quoted = re.fullmatch(r"(['\"])(.*)\1", part)
+        if not quoted:
             raise SourceShapeError(
                 COMMITLINT,
                 f"'{rule}' has the item {part or '(empty)'!r}, not a quoted name; a spread,"
                 " variable or call cannot be read without running the file",
             )
-        names.append(item[2])
+        if not re.fullmatch(r"[a-z][a-z0-9-]*", quoted[2]):
+            raise SourceShapeError(
+                COMMITLINT,
+                f"'{rule}' has {part}, which is not written as the other names are: lower-case"
+                " letters, digits and hyphens, starting with a letter; rename it, or widen the"
+                " pattern in _enum_rule in tool/docs/fact_sources.py if the docs can hold it",
+            )
+        names.append(quoted[2])
     if not names:
         raise SourceShapeError(COMMITLINT, f"'{rule}' lists no names")
     duplicates = sorted({name for name in names if names.count(name) > 1})
@@ -187,17 +225,30 @@ def _enum_rule(text: str, rule: str) -> tuple[str, ...]:
     return tuple(names)
 
 
-def parse_commitlint(text: str) -> CommitConventions:
-    """The types, scopes, header limit and ignored messages of commitlint.config.mjs."""
-    types = _enum_rule(text, "type-enum")
-    scopes = _enum_rule(text, "scope-enum")
-    inner, header_line = _rule(text, "header-max-length")
-    header = re.fullmatch(r"\s*2\s*,\s*(['\"])always\1\s*,\s*(\d+)\s*,?\s*", inner)
-    if not header:
+def _number_rule(text: str, rule: str) -> tuple[int, int]:
+    """N in `'rule': [2, 'always', N]`, and the rule's line."""
+    inner, line = _rule(text, rule)
+    match = re.fullmatch(r"\s*2\s*,\s*(['\"])always\1\s*,\s*(\d+)\s*,?\s*", inner)
+    if not match:
         raise SourceShapeError(
             COMMITLINT,
-            "'header-max-length' is not [2, 'always', N] with N a whole number; update"
-            " parse_commitlint in tool/docs/fact_sources.py",
+            f"'{rule}' is not [2, 'always', N] with N a whole number; update parse_commitlint in"
+            " tool/docs/fact_sources.py",
+        )
+    return int(match[2]), line
+
+
+def parse_commitlint(text: str) -> CommitConventions:
+    """The types, scopes, length limits, subject cases and ignored messages of the config."""
+    types = _enum_rule(text, "type-enum")
+    scopes = _enum_rule(text, "scope-enum")
+    header_max, header_line = _number_rule(text, "header-max-length")
+    body_max, _ = _number_rule(text, "body-max-line-length")
+    cases = _enum_rule(text, "subject-case", "never")
+    unknown = [case for case in cases if case not in COMMIT_CASES]
+    if unknown:
+        raise SourceShapeError(
+            COMMITLINT, f"'subject-case' names {unknown[0]}, which is not a case commitlint knows"
         )
     found = list(re.finditer(r"\bignores\s*:", text))
     shape = (
@@ -222,7 +273,9 @@ def parse_commitlint(text: str) -> CommitConventions:
     return CommitConventions(
         types=types,
         scopes=scopes,
-        header_max=int(header[2]),
+        header_max=header_max,
+        body_max=body_max,
+        subject_cases=cases,
         ignores=pattern,
         ignores_line=_line(text, found[0].start()),
         header_line=header_line,
@@ -499,6 +552,59 @@ def parse_pgtap(files: dict[str, str]) -> PgTap:
     return PgTap(len(files), total)
 
 
+# ── Golden variants and TLA+ models ────────────────────────────────────────────────────────
+
+
+def parse_mm_variants(text: str) -> tuple[str, ...]:
+    """The values of `enum MmVariant` in mm_ui's test harness, in order."""
+    match = re.search(r"^enum MmVariant \{\n(?P<body>.*?);", text, re.M | re.S)
+    if not match:
+        raise SourceShapeError(
+            MM_VARIANTS,
+            "has no `enum MmVariant {` whose values end with `;` (Dart's enhanced enum)",
+        )
+    names = re.findall(r"^  ([a-z][A-Za-z0-9]*)\(", match["body"], re.M)
+    if not names:
+        raise SourceShapeError(MM_VARIANTS, "MmVariant has no value `  name(…)`")
+    return tuple(names)
+
+
+def tla_models(tracked: Sequence[str]) -> tuple[str, ...]:
+    """The TLA+ models: each directory under formal/tla/ that holds a .tla file."""
+    models = sorted(
+        {PurePosixPath(path).parts[2] for path in tracked if glob_match(path, f"{TLA_DIR}/*/*.tla")}
+    )
+    if not models:
+        raise SourceShapeError(TLA_DIR, "has no model (a directory with a .tla file)")
+    return tuple(models)
+
+
+# ── PostgreSQL ─────────────────────────────────────────────────────────────────────────────
+
+
+def parse_supabase_major(text: str) -> int:
+    """The PostgreSQL major version of the Supabase stack: `[db] major_version`."""
+    try:
+        config = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as error:
+        raise SourceShapeError(SUPABASE_CONFIG, f"is not TOML: {error}") from None
+    major = config.get("db", {}).get("major_version")
+    if not isinstance(major, int) or isinstance(major, bool):
+        raise SourceShapeError(SUPABASE_CONFIG, "has no whole-number [db] major_version")
+    return major
+
+
+def parse_ci_postgres(text: str) -> int:
+    """The PostgreSQL major version ci.yml installs for the suites (`postgresql-N`)."""
+    majors = sorted({int(n) for n in re.findall(r"\bpostgresql-(\d+)\b", text)})
+    if len(majors) != 1:
+        found = ", ".join(f"postgresql-{n}" for n in majors) or "no postgresql-N package"
+        raise SourceShapeError(
+            CI, f"installs {found}; the docs name one local PostgreSQL, so install one major"
+        )
+    return majors[0]
+
+
 # ── .planning/PROJECT.md ───────────────────────────────────────────────────────────────────
 
 
@@ -566,8 +672,9 @@ class Pin:
 class Workflow:
     path: str
     jobs: tuple[Job, ...]
-    env: tuple[Pin, ...]  # FLUTTER_VERSION, DENO_VERSION and SUPABASE_CLI_VERSION, any level
-    inputs: tuple[Pin, ...]  # flutter-version, deno-version and setup-cli's version
+    env: tuple[Pin, ...]  # TOOLCHAIN_VARS and OTHER_PIN_VARS, at any level
+    inputs: tuple[Pin, ...]  # TOOL_INPUTS and setup-cli's version
+    packages: tuple[Pin, ...]  # what follows `vercel@` (npx runs the CLI from npm)
 
     def job(self, job_id: str) -> Job:
         for job in self.jobs:
@@ -640,16 +747,19 @@ def _run(lines: list[str], index: int, key_column: int, value: str) -> list[tupl
 def parse_workflow(path: str, text: str) -> Workflow:
     """Jobs (name, needs, steps and their run lines) and the toolchain pins of a workflow."""
     lines = text.split("\n")
+    names = "|".join(TOOLCHAIN_VARS + OTHER_PIN_VARS)
     env = [
         Pin(m[1], m[2], _line(text, m.start()))
-        for m in re.finditer(
-            rf"^ *({'|'.join(TOOLCHAIN_VARS)}): *\"?([^\"\s#]+)\"? *(?:#.*)?$", text, re.M
-        )
+        for m in re.finditer(rf"^ *({names}): *\"?([^\"\s#]+)\"? *(?:#.*)?$", text, re.M)
     ]
     inputs = [
         Pin(m[1], _unquote(m[2]), _line(text, m.start()))
-        for m in re.finditer(r"^ *(flutter-version|deno-version): *(.+?) *$", text, re.M)
+        for m in re.finditer(rf"^ *({'|'.join(TOOL_INPUTS)}): *(.+?) *$", text, re.M)
     ]
+    packages = tuple(
+        Pin("vercel", m[1], _line(text, m.start()))
+        for m in re.finditer(r"\bvercel@(\$\{\{[^}]*\}\}|[^\s\"']+)", text)
+    )
     for index, line in enumerate(lines):
         uses = re.match(r"^( *)(- )?uses: supabase/setup-cli@", line)
         if not uses:
@@ -680,7 +790,7 @@ def parse_workflow(path: str, text: str) -> Workflow:
         for number, (index, job_id) in enumerate(headers):
             stop = headers[number + 1][0] if number + 1 < len(headers) else end
             jobs.append(_job(path, lines, index, stop, job_id))
-    return Workflow(path, tuple(jobs), tuple(env), tuple(inputs))
+    return Workflow(path, tuple(jobs), tuple(env), tuple(inputs), packages)
 
 
 def _job(path: str, lines: list[str], start: int, stop: int, job_id: str) -> Job:
@@ -908,20 +1018,31 @@ class Repo:
         self.root = root
         self.tracked = tuple(tracked)
         self._texts: dict[str, str] = {}
+        self._crlf: set[str] = set()
         self._parsed: dict[str, tuple[bool, Any]] = {}
 
     def exists(self, path: str) -> bool:
         return (self.root / path).is_file()
 
     def text(self, path: str) -> str:
+        """The file with CRLF line breaks read as LF, so every parser and check sees one kind
+        of line (and the line numbers stay those of the file)."""
         if path not in self._texts:
             try:
-                self._texts[path] = (self.root / path).read_bytes().decode("utf-8")
+                raw = (self.root / path).read_bytes().decode("utf-8")
             except (FileNotFoundError, IsADirectoryError):
                 raise SourceShapeError(path, "is missing") from None
             except UnicodeDecodeError:
                 raise SourceShapeError(path, "is not UTF-8") from None
+            if "\r\n" in raw and raw.count("\r\n") == raw.count("\n"):
+                self._crlf.add(path)
+            self._texts[path] = raw.replace("\r\n", "\n")
         return self._texts[path]
+
+    def newline(self, path: str) -> str:
+        """CRLF for a file read by text() whose every line break is CRLF, else LF (a file with
+        both is written back with LF, as .gitattributes and .editorconfig want)."""
+        return "\r\n" if path in self._crlf else "\n"
 
     def tracked_matching(self, pattern: str) -> list[str]:
         return [path for path in self.tracked if glob_match(path, pattern)]
@@ -977,6 +1098,20 @@ class Repo:
     def decisions(self) -> Decisions:
         return self._cached("decisions", lambda: parse_decisions(self.text(PROJECT)))
 
+    def mm_variants(self) -> tuple[str, ...]:
+        return self._cached("mm-variants", lambda: parse_mm_variants(self.text(MM_VARIANTS)))
+
+    def tla_models(self) -> tuple[str, ...]:
+        return self._cached("tla-models", lambda: tla_models(self.tracked))
+
+    def supabase_major(self) -> int:
+        return self._cached(
+            "supabase-major", lambda: parse_supabase_major(self.text(SUPABASE_CONFIG))
+        )
+
+    def ci_postgres(self) -> int:
+        return self._cached("ci-postgres", lambda: parse_ci_postgres(self.text(CI)))
+
     def workflow(self, path: str) -> Workflow:
         return self._cached(f"workflow:{path}", lambda: parse_workflow(path, self.text(path)))
 
@@ -991,11 +1126,13 @@ class Repo:
         return self._cached("dependabot", lambda: parse_dependabot(self.text(DEPENDABOT)))
 
     def ci_versions(self) -> dict[str, str]:
-        """FLUTTER_VERSION, DENO_VERSION and SUPABASE_CLI_VERSION in ci.yml's env."""
+        """The TOOLCHAIN_VARS in ci.yml's env."""
 
         def load() -> dict[str, str]:
             found: dict[str, str] = {}
             for pin in self.workflow(CI).env:
+                if pin.name not in TOOLCHAIN_VARS:
+                    continue
                 if found.setdefault(pin.name, pin.value) != pin.value:
                     raise SourceShapeError(CI, f"sets {pin.name} twice, to different values")
             missing = [name for name in TOOLCHAIN_VARS if name not in found]

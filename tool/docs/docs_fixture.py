@@ -32,6 +32,7 @@ export default {
       ],
     ],
     'body-max-line-length': [2, 'always', 100],
+    'subject-case': [2, 'never', ['upper-case', 'pascal-case', 'start-case']],
   },
 };
 """
@@ -146,6 +147,8 @@ env:
   FLUTTER_VERSION: 3.47.9
   DENO_VERSION: 2.9.6
   SUPABASE_CLI_VERSION: 2.122.1
+  JAVA_VERSION: "21"
+  PYTHON_VERSION: "3.13"
 
 jobs:
   hygiene:
@@ -200,6 +203,17 @@ jobs:
       - uses: denoland/setup-deno@0000000000000000000000000000000000000000 # v1
         with:
           deno-version: ${{ env.DENO_VERSION }}
+      - uses: actions/setup-java@0000000000000000000000000000000000000000 # v1
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: actions/setup-python@0000000000000000000000000000000000000000 # v1
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install PostgreSQL 16 and pgTAP
+        run: |
+          sudo apt-get install -y postgresql-16 postgresql-16-pgtap
+          sudo pg_ctlcluster 16 main start
 
   passed:
     name: CI passed
@@ -239,6 +253,17 @@ jobs:
         uses: supabase/setup-cli@0000000000000000000000000000000000000000 # v1
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
+  site:
+    name: Website
+    env:
+      # npx runs the CLI from npm.
+      VERCEL_CLI_VERSION: 65.8.0
+    steps:
+      - name: Build
+        run: npx --yes "vercel@$VERCEL_CLI_VERSION" build --prod
+      - name: Deploy
+        run: |
+          npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy --prebuilt --prod
 """
 
 PR_TITLE = """\
@@ -316,6 +341,27 @@ PROJECT = """\
 - P-01: **Reminders.** Later.
 """
 
+HARNESS = """\
+import 'package:flutter/material.dart';
+
+/// The variants every golden runs in.
+enum MmVariant {
+  /// Light mode, English.
+  light(Brightness.light, 1),
+
+  /// Dark mode, English.
+  dark(Brightness.dark, 1),
+
+  /// English, text at 200%.
+  largeText(Brightness.light, 2);
+
+  const MmVariant(this.brightness, this.textScale);
+
+  final Brightness brightness;
+  final double textScale;
+}
+"""
+
 INSTALL = """\
 #!/usr/bin/env bash
 TLA_VERSION=1.7.4 # TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
@@ -332,7 +378,8 @@ AGENTS = """\
 # AGENTS.md
 
 - **Commits**: a scope from `commitlint.config.mjs`: <!-- docs:commit-scopes -->`app`, `ci`,
-  `deps`, `deps-dev`, `docs`, `repo`<!-- /docs:commit-scopes -->.
+  `deps`, `deps-dev`, `docs`, `repo`<!-- /docs:commit-scopes -->. Body lines at most <!-- docs:commit-body-max -->100<!-- /docs:commit-body-max -->
+  characters, and a title within the <!-- docs:commit-header-max -->100<!-- /docs:commit-header-max -->-character header.
 
 ```sh
 make lint docs-check   # every guard
@@ -348,6 +395,9 @@ The rules; `.planning/PROJECT.md` (<!-- docs:decision-range -->D-01 to D-02<!-- 
 - Scopes: <!-- docs:commit-scopes -->`app`, `ci`, `deps`, `deps-dev`, `docs`, `repo`<!-- /docs:commit-scopes -->.
 - The type matters: <!-- docs:changelog-visible -->`feat`, `fix` and `docs`<!-- /docs:changelog-visible -->
   appear in the changelog, and <!-- docs:changelog-hidden -->`build`, `chore`, `ci` and `test`<!-- /docs:changelog-hidden --> do not.
+- Body lines at most <!-- docs:commit-body-max -->100<!-- /docs:commit-body-max --> characters; the subject is not <!-- docs:commit-subject-case -->upper<!-- /docs:commit-subject-case --> case.
+- The title fits commitlint's <!-- docs:commit-header-max -->100<!-- /docs:commit-header-max -->-character header.
+- Goldens run in three variants: <!-- docs:golden-variants -->`light`<!-- /docs:golden-variants -->.
 
 ## Generated files
 
@@ -424,6 +474,10 @@ Bend 2.0.39, TLC 2.19 from tlaplus v1.7.4, and z3-solver 5.3.3.0.
 | UI   | `make test-ui` checks 200% text                                |
 
 Make the most of it: make sure, make do.
+
+The database is Postgres 17 on Supabase; the suites need a local PostgreSQL 16 with pgTAP, or a
+PostgreSQL 16 server. Measured on PostgreSQL 15, which is a record. Goldens in three variants,
+and two TLA+ models. The decisions D-01 to D-02 and the proposal P-01 are in `.planning/`.
 """
 
 QUALITY_BAR = """\
@@ -432,6 +486,20 @@ QUALITY_BAR = """\
 | Gate                                                                                                    | Where           |
 | ------------------------------------------------------------------------------------------------------- | --------------- |
 | `mm_ui` <!-- docs:coverage-ui -->95%<!-- /docs:coverage-ui --> of lines, the app <!-- docs:coverage-app -->90%<!-- /docs:coverage-app --> | `make test-ui`, `make test-app` |
+"""
+
+CONTRIBUTING = """\
+# Contributing
+
+- **Commits**: with the `(#123)` GitHub adds, a title stays within <!-- docs:commit-header-max -->100<!-- /docs:commit-header-max --> characters.
+"""
+
+OPERATIONS = """\
+# Operations
+
+## Releasing
+
+1. release-please bumps the version in <!-- docs:release-files -->`app/pubspec.yaml`<!-- /docs:release-files -->.
 """
 
 UAT = """\
@@ -445,6 +513,22 @@ WEBSITE_README = """\
 
 `make test-web` runs <!-- docs:test-web-steps -->`npm run check`,
 `npm test` and `npm run build`<!-- /docs:test-web-steps -->, as CI does.
+"""
+
+LLMS = """\
+# Project
+
+> A Flutter app on a Supabase backend (PostgreSQL 17), with `make test` and decisions D-01 to
+> D-02.
+"""
+
+TRUST_SLIDE = """\
+<section id="trust">
+<p style="font-size:60px">1,974</p>
+<p style="font-size:24px">database tests in 2 suites</p>
+<p style="font-size:60px">2</p>
+<p style="font-size:24px">TLA+ models of the concurrent paths</p>
+</section>
 """
 
 FILES: dict[str, str] = {
@@ -476,6 +560,13 @@ FILES: dict[str, str] = {
         '[tool.ruff]\nline-length = 100\ntarget-version = "py312"\n'
     ),
     "tool/formal/install.sh": INSTALL,
+    "supabase/config.toml": "[db]\nport = 54322\nmajor_version = 17\n",
+    "packages/mm_ui/test/support/harness.dart": HARNESS,
+    "formal/tla/Alpha/Alpha.tla": "---- MODULE Alpha ----\n====\n",
+    "formal/tla/Beta/Beta.tla": "---- MODULE Beta ----\n====\n",
+    "formal/tla/Beta/BetaProbes.tla": "---- MODULE BetaProbes ----\n====\n",
+    "formal/tla/README.md": "# TLA+\n",
+    "website/deck/slides/trust.html": TRUST_SLIDE,
     "tool/formal/requirements.txt": "z3-solver==5.3.3.0 \\\n    --hash=sha256:00\n",
     "formal/lean/lean-toolchain": "leanprover/lean4:v4.35.0\n",
     "tool/test_guard.py": "",
@@ -485,13 +576,15 @@ FILES: dict[str, str] = {
     "docs/agents/conventions.md": CONVENTIONS,
     "docs/agents/commands.md": COMMANDS,
     "docs/agents/quality-bar.md": QUALITY_BAR,
+    "docs/operations.md": OPERATIONS,
+    "CONTRIBUTING.md": CONTRIBUTING,
     "docs/uat.md": UAT,
     "docs/release-readiness.md": "# Dated\n\nFlutter 3.40 and `make test-app` at 80% line coverage.\n",
     "website/README.md": WEBSITE_README,
     "website/src/content/guides/en/a.md": "Flutter 1.0, `make nothing`.\n",
     "README.md": README,
     "CHANGELOG.md": "# Changelog\n\n## 1.2.3\n",
-    "llms.txt": "# Project\n",
+    "llms.txt": LLMS,
 }
 
 

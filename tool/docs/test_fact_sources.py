@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -103,7 +104,8 @@ class CommitlintTest(unittest.TestCase):
         self.assertEqual(len(parsed.scopes), 16)
         self.assertEqual(parsed.scopes[:3], ("app", "core", "ui"))
         self.assertEqual(parsed.scopes[-1], "test")
-        self.assertEqual(parsed.header_max, 100)
+        self.assertEqual((parsed.header_max, parsed.body_max), (100, 100))
+        self.assertEqual(parsed.subject_cases, ("upper-case", "pascal-case", "start-case"))
         self.assertTrue(parsed.ignores.search("chore(release): release 1.2.3"))
         self.assertFalse(parsed.ignores.search("chore(release): bump"))
         self.assertEqual(parsed.ignores_line, 7)
@@ -165,8 +167,35 @@ class CommitlintTest(unittest.TestCase):
             self.assert_refused(
                 commitlint_with("        'app',\n", f"        {item},\n"),
                 "'scope-enum' has the item",
-                "quoted name",
+                "a spread, variable or call",
             )
+
+    def test_a_quoted_name_written_unlike_the_others(self) -> None:
+        # commitlint itself accepts these; the tool reads only lower-case, digit and hyphen names.
+        for item, shown in (("'mm_ui'", "'mm_ui'"), ('"UI"', '"UI"'), ("'it\\'s'", "'it\\'s'")):
+            with self.assertRaises(SourceShapeError) as caught:
+                fs.parse_commitlint(commitlint_with("        'app',\n", f"        {item},\n"))
+            self.assertIn(
+                f"'scope-enum' has {shown}, which is not written as", caught.exception.message
+            )
+            self.assertNotIn("spread", caught.exception.message)
+
+    def test_the_body_limit_and_the_subject_cases(self) -> None:
+        self.assert_refused(
+            commitlint_with(
+                "'body-max-line-length': [2, 'always', 100]",
+                "'body-max-line-length': [1, 'always', 100]",
+            ),
+            "'body-max-line-length' is not [2, 'always', N]",
+        )
+        self.assert_refused(
+            commitlint_with("'subject-case': [2, 'never',", "'subject-case': [2, 'always',"),
+            "'subject-case' is not [2, 'never', [quoted names]]",
+        )
+        self.assert_refused(
+            commitlint_with("'start-case']", "'title-case']"),
+            "'subject-case' names title-case, which is not a case commitlint knows",
+        )
 
     def test_a_duplicate_or_an_empty_list(self) -> None:
         self.assert_refused(
@@ -177,6 +206,15 @@ class CommitlintTest(unittest.TestCase):
             + "    'scope-enum': [2, 'always', []],\n  },\n};\n"
         )
         self.assert_refused(empty, "'scope-enum' lists no names")
+
+    def test_ignores_given_twice_or_that_does_not_compile(self) -> None:
+        self.assert_refused(
+            commitlint_with("  rules: {", "  ignores: [],\n  rules: {"), "ignores is not exactly"
+        )
+        self.assert_refused(
+            commitlint_with("/^chore\\(release\\): release", "/^chore(release\\): release"),
+            "the ignores pattern does not compile",
+        )
 
     def test_ignores_with_a_flag_or_another_shape(self) -> None:
         self.assert_refused(
@@ -202,6 +240,8 @@ class CommitlintTest(unittest.TestCase):
             commitlint_with("        'app',\n", "        'app', /* open\n"), "is not closed"
         )
         self.assert_refused(commitlint_with("        'app',\n", "        'app,\n"), "is not closed")
+        at_the_end = COMMITLINT_TODAY[: COMMITLINT_TODAY.index("        'app',") + 11]
+        self.assert_refused(at_the_end, "a string opened on line", "is not closed")
 
 
 class ReleasePleaseTest(unittest.TestCase):
@@ -315,6 +355,11 @@ class MakefileTest(unittest.TestCase):
             fs.coverage_gates(
                 fs.parse_makefile(docs_fixture.MAKEFILE.replace("test-app:", "test-apps:"))
             )
+        unquoted = docs_fixture.MAKEFILE.replace(
+            "app/coverage/lcov.info --min 90", "'app/coverage/lcov.info --min 90"
+        )
+        with self.assertRaisesRegex(SourceShapeError, "No closing quotation"):
+            fs.coverage_gates(fs.parse_makefile(unquoted))
 
     def test_test_web_steps(self) -> None:
         self.assertEqual(
@@ -338,6 +383,8 @@ class MakefileTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(SourceShapeError, "update test_tools_dirs"):
             fs.test_tools_dirs(fs.parse_makefile(odd))
+        with self.assertRaisesRegex(SourceShapeError, "test-tools has no recipe"):
+            fs.test_tools_dirs(fs.parse_makefile("test-tools: ## nothing to run\n"))
 
 
 class SuitesTest(unittest.TestCase):
@@ -404,7 +451,7 @@ class WorkflowTest(unittest.TestCase):
             ],
         )
         self.assertEqual(self.ci.job("passed").needs, ("hygiene", "dart", "website", "database"))
-        self.assertEqual(self.ci.job("hygiene").line, 12)
+        self.assertEqual(self.ci.job("hygiene").line, 14)
         deploy = fs.parse_workflow("deploy.yml", docs_fixture.DEPLOY)
         self.assertEqual(deploy.job("web").needs, ("supabase",))
         with self.assertRaisesRegex(SourceShapeError, "has no job nope"):
@@ -421,24 +468,45 @@ class WorkflowTest(unittest.TestCase):
             fs.parse_workflow("w.yml", "jobs:\n  a:\n    needs:\n      b: c\n")
         with self.assertRaisesRegex(SourceShapeError, "is not closed"):
             fs.parse_workflow("w.yml", "jobs:\n  a:\n    needs: [b,\n")
+        with self.assertRaisesRegex(SourceShapeError, "line 3: needs: has no value"):
+            fs.parse_workflow("w.yml", "jobs:\n  a:\n    needs:\n    steps: []\n")
+
+    def test_a_top_level_key_after_jobs_ends_them(self) -> None:
+        parsed = fs.parse_workflow("w.yml", "jobs:\n  a:\n    name: A\non:\n  push:\n")
+        self.assertEqual([(j.id, j.name) for j in parsed.jobs], [("a", "A")])
+
+    def test_steps_without_items_and_lines_before_the_first(self) -> None:
+        text = (
+            "jobs:\n  a:\n    steps:\n      # none yet\n  b:\n    steps:\n      # first\n"
+            "      - run: make lint\n"
+        )
+        parsed = fs.parse_workflow("w.yml", text)
+        self.assertEqual(parsed.job("a").steps, ())
+        self.assertEqual(parsed.job("b").runs, ((8, "make lint"),))
 
     def test_runs_single_line_literal_and_folded(self) -> None:
         self.assertEqual(
             [(s.name, s.runs) for s in self.ci.job("hygiene").steps],
             [
                 (None, ()),
-                ("Lint (make lint)", ((18, "make lint"),)),
-                ("Generated files are up to date", ((20, "make tokens-check docs-check"),)),
+                ("Lint (make lint)", ((20, "make lint"),)),
+                ("Generated files are up to date", ((22, "make tokens-check docs-check"),)),
             ],
         )
         self.assertEqual(
-            self.ci.job("database").runs, ((59, "# The pgTAP suites."), (60, "make test-db"))
+            self.ci.job("database").runs,
+            (
+                (61, "# The pgTAP suites."),
+                (62, "make test-db"),
+                (75, "sudo apt-get install -y postgresql-16 postgresql-16-pgtap"),
+                (76, "sudo pg_ctlcluster 16 main start"),
+            ),
         )
         self.assertEqual(
             [cmd for _, cmd in self.ci.job("website").runs],
             ["npm ci", "npm run check", "npm test", "npm run build"],
         )
-        self.assertEqual(self.ci.job("dart").runs, ((32, 'make "$TARGET"'),))
+        self.assertEqual(self.ci.job("dart").runs, ((34, 'make "$TARGET"'),))
 
     def test_env_pins_at_workflow_and_job_level(self) -> None:
         self.assertEqual(
@@ -447,6 +515,8 @@ class WorkflowTest(unittest.TestCase):
                 ("FLUTTER_VERSION", "3.47.9", 7),
                 ("DENO_VERSION", "2.9.6", 8),
                 ("SUPABASE_CLI_VERSION", "2.122.1", 9),
+                ("JAVA_VERSION", "21", 10),
+                ("PYTHON_VERSION", "3.13", 11),
             ],
         )
         job_level = fs.parse_workflow(
@@ -461,6 +531,8 @@ class WorkflowTest(unittest.TestCase):
                 ("flutter-version", "${{ env.FLUTTER_VERSION }}"),
                 ("setup-cli version", "${{ env.SUPABASE_CLI_VERSION }}"),
                 ("deno-version", "${{ env.DENO_VERSION }}"),
+                ("java-version", "${{ env.JAVA_VERSION }}"),
+                ("python-version", "${{ env.PYTHON_VERSION }}"),
             ],
         )
         deploy = fs.parse_workflow("deploy.yml", docs_fixture.DEPLOY)
@@ -470,9 +542,66 @@ class WorkflowTest(unittest.TestCase):
         )
         other = "jobs:\n  a:\n    steps:\n      - uses: actions/setup-node@x\n        with:\n          version: 22\n"
         self.assertEqual(fs.parse_workflow("w.yml", other).inputs, ())
+        no_version = (
+            "jobs:\n  a:\n    steps:\n      - uses: supabase/setup-cli@x\n      - run: ok\n"
+        )
+        self.assertEqual(fs.parse_workflow("w.yml", no_version).inputs, ())
+
+    def test_the_vercel_cli_a_run_line_names(self) -> None:
+        deploy = fs.parse_workflow("deploy.yml", docs_fixture.DEPLOY)
+        self.assertEqual(
+            [(p.value, p.line) for p in deploy.packages],
+            [("$VERCEL_CLI_VERSION", 30), ("${VERCEL_CLI_VERSION}", 33)],
+        )
+        self.assertIn(("VERCEL_CLI_VERSION", "65.8.0"), [(p.name, p.value) for p in deploy.env])
+        text = "jobs:\n  a:\n    steps:\n      - run: npx vercel@1.2.3 x && npx 'vercel@${{ env.V }}'\n"
+        self.assertEqual(
+            [p.value for p in fs.parse_workflow("w.yml", text).packages],
+            ["1.2.3", "${{ env.V }}"],
+        )
 
     def test_a_workflow_without_jobs(self) -> None:
         self.assertEqual(fs.parse_workflow("w.yml", "name: x\n").jobs, ())
+
+
+class VariantsModelsAndPostgresTest(unittest.TestCase):
+    def test_mm_variants(self) -> None:
+        self.assertEqual(fs.parse_mm_variants(docs_fixture.HARNESS), ("light", "dark", "largeText"))
+        with self.assertRaisesRegex(SourceShapeError, "has no `enum MmVariant"):
+            fs.parse_mm_variants("enum Other {\n  a;\n}\n")
+        with self.assertRaisesRegex(SourceShapeError, "MmVariant has no value"):
+            fs.parse_mm_variants("enum MmVariant {\n  ;\n}\n")
+
+    def test_tla_models(self) -> None:
+        tracked = [
+            "formal/tla/README.md",
+            "formal/tla/B/B.tla",
+            "formal/tla/A/A.tla",
+            "formal/tla/A/AProbes.tla",
+            "formal/tla/A/run.sh",
+            "formal/lean/X.tla",
+        ]
+        self.assertEqual(fs.tla_models(tracked), ("A", "B"))
+        with self.assertRaisesRegex(SourceShapeError, "formal/tla: has no model"):
+            fs.tla_models(["formal/tla/README.md"])
+
+    def test_supabase_major(self) -> None:
+        self.assertEqual(fs.parse_supabase_major("[db]\nport = 1\nmajor_version = 17\n"), 17)
+        for text, words in (
+            ("[db\n", "is not TOML"),
+            ("[db]\nport = 1\n", "has no whole-number [db] major_version"),
+            ("[db]\nmajor_version = true\n", "has no whole-number"),
+            ('[db]\nmajor_version = "17"\n', "has no whole-number"),
+        ):
+            with self.assertRaisesRegex(SourceShapeError, re.escape(words)):
+                fs.parse_supabase_major(text)
+
+    def test_ci_postgres(self) -> None:
+        self.assertEqual(fs.parse_ci_postgres(docs_fixture.CI), 16)
+        with self.assertRaisesRegex(SourceShapeError, "installs no postgresql-N package"):
+            fs.parse_ci_postgres("jobs: {}\n")
+        with self.assertRaisesRegex(SourceShapeError, "installs postgresql-16, postgresql-17;"):
+            fs.parse_ci_postgres("run: apt-get install postgresql-17 postgresql-16-pgtap\n")
 
 
 class DependabotTest(unittest.TestCase):
@@ -614,6 +743,29 @@ class RepoTest(unittest.TestCase):
             self.assertEqual(repo.app_majors()["go_router"], 18)
             self.assertEqual(repo.python_floor(), "3.12")
             self.assertEqual(repo.manifest(), "1.2.3")
+            self.assertEqual(repo.mm_variants(), ("light", "dark", "largeText"))
+            self.assertEqual(repo.tla_models(), ("Alpha", "Beta"))
+            self.assertEqual((repo.supabase_major(), repo.ci_postgres()), (17, 16))
+
+    def test_crlf_is_read_as_lf_and_remembered(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "crlf.md").write_bytes(b"a\r\nb\r\n")
+            (root / "mixed.md").write_bytes(b"a\r\nb\n")
+            (root / "lf.md").write_bytes(b"a\nb\n")
+            (root / "lone.md").write_bytes(b"a\rb\n")
+            repo = fs.Repo(root, ["crlf.md", "mixed.md", "lf.md", "lone.md"])
+            for path in ("crlf.md", "mixed.md", "lf.md"):
+                self.assertEqual(repo.text(path), "a\nb\n", path)
+            self.assertEqual(repo.text("lone.md"), "a\rb\n")
+            self.assertEqual(
+                [repo.newline(p) for p in ("crlf.md", "mixed.md", "lf.md", "lone.md", "unread.md")],
+                ["\r\n", "\n", "\n", "\n", "\n"],
+            )
+            (root / "pins.yml").write_bytes(docs_fixture.CI.replace("\n", "\r\n").encode())
+            parsed = repo.workflow("pins.yml")
+            self.assertEqual(len(parsed.jobs), 5)
+            self.assertEqual(parsed.env[0].value, "3.47.9")
 
     def test_ci_versions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -633,6 +785,16 @@ class RepoTest(unittest.TestCase):
             )
             with self.assertRaisesRegex(SourceShapeError, "sets DENO_VERSION twice"):
                 fs.Repo(root, tracked).ci_versions()
+            # A pin of a tool ci.yml does not run is not one of its toolchain pins.
+            tracked = docs_fixture.write(
+                root,
+                docs_fixture.edited(
+                    ".github/workflows/ci.yml",
+                    '  PYTHON_VERSION: "3.13"\n',
+                    '  PYTHON_VERSION: "3.13"\n  VERCEL_CLI_VERSION: 1.0.0\n',
+                ),
+            )
+            self.assertNotIn("VERCEL_CLI_VERSION", fs.Repo(root, tracked).ci_versions())
 
 
 if __name__ == "__main__":

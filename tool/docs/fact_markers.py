@@ -513,7 +513,7 @@ def _scan_yaml(
 
 def _yaml_indent(regex: re.Pattern[str], text: str, start: int) -> str:
     match = regex.match(text, start)
-    if match is None:  # start came from this regex, so it matches there
+    if match is None:  # pragma: no cover - start came from this regex, so it matches there
         raise ValueError(f"no marker at offset {start}")
     return match["indent"]
 

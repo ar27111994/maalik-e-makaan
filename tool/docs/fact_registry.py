@@ -30,6 +30,7 @@ from fact_sources import (
     LEAN_TOOLCHAIN,
     MAKEFILE,
     MANIFEST,
+    MM_VARIANTS,
     NPM_STEP,
     NVMRC,
     PGTAP_DIR,
@@ -37,6 +38,8 @@ from fact_sources import (
     PUBSPEC,
     PYPROJECT,
     RELEASE_PLEASE,
+    SUPABASE_CONFIG,
+    TLA_DIR,
     Repo,
     SourceShapeError,
     glob_match,
@@ -44,6 +47,10 @@ from fact_sources import (
 
 README = "README.md"
 AGENTS = "AGENTS.md"
+CONTRIBUTING = "CONTRIBUTING.md"
+OPERATIONS = "docs/operations.md"
+LLMS = "llms.txt"
+DECK_SLIDES = "website/deck/slides/*.html"
 COMMANDS = "docs/agents/commands.md"
 CONVENTIONS = "docs/agents/conventions.md"
 QUALITY_BAR = "docs/agents/quality-bar.md"
@@ -95,15 +102,34 @@ class Check:
 # ── Wording ────────────────────────────────────────────────────────────────────────────────
 
 _WORDS = ("one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+# What a count in prose may be written as (the checks read "six variants" and "6 variants").
+_NUMBER_WORDS = {
+    word: n
+    for n, word in enumerate(
+        (
+            *_WORDS,
+            *("ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen"),
+            *("seventeen", "eighteen", "nineteen", "twenty"),
+        ),
+        start=1,
+    )
+}
+_COUNT = rf"(?:\d[\d,]*|{'|'.join(_NUMBER_WORDS)})"
 
 
-def prose_list(items: Sequence[str]) -> str:
+def prose_list(items: Sequence[str], conjunction: str = "and") -> str:
     """ "a", "a and b", "a, b and c": no serial comma, as in the rest of the docs."""
     if not items:
         raise ValueError("an empty list has no wording")
     if len(items) == 1:
         return items[0]
-    return ", ".join(items[:-1]) + " and " + items[-1]
+    return ", ".join(items[:-1]) + f" {conjunction} " + items[-1]
+
+
+def count_value(text: str) -> int:
+    """The number a count in prose stands for: "six", "Six", "6" or "1,974"."""
+    word = text.lower()
+    return _NUMBER_WORDS[word] if word in _NUMBER_WORDS else int(word.replace(",", ""))
 
 
 def count_text(n: int) -> str:
@@ -190,6 +216,56 @@ def render_pgtap_count(repo: Repo) -> str:
 def render_decision_range(repo: Repo) -> str:
     count = repo.decisions().decisions
     return "D-01" if count == 1 else f"D-01 to D-{count:02d}"
+
+
+def render_header_max(repo: Repo) -> str:
+    return str(repo.commitlint().header_max)
+
+
+def render_body_max(repo: Repo) -> str:
+    return str(repo.commitlint().body_max)
+
+
+# How the docs name each commitlint case ("upper, Pascal or Start case").
+_CASE_WORDS = {
+    "lower-case": "lower",
+    "upper-case": "upper",
+    "camel-case": "camel",
+    "kebab-case": "kebab",
+    "pascal-case": "Pascal",
+    "sentence-case": "sentence",
+    "snake-case": "snake",
+    "start-case": "Start",
+}
+
+
+def render_subject_case(repo: Repo) -> str:
+    cases = repo.commitlint().subject_cases
+    if "sentence-case" in cases:
+        raise SourceShapeError(
+            COMMITLINT,
+            "'subject-case' now refuses sentence case, but docs/agents/conventions.md says it is"
+            " allowed (Dependabot writes `Bump …`); reword it and update render_subject_case in"
+            " tool/docs/fact_registry.py",
+        )
+    return prose_list([_CASE_WORDS[case] for case in cases], "or")
+
+
+def render_release_files(repo: Repo) -> str:
+    """The files the release pull request bumps: the manifest and every extra file."""
+    paths = [MANIFEST]
+    for entry in repo.release_please().extra_files:
+        path = entry.get("path")
+        if not isinstance(path, str) or not path:
+            raise SourceShapeError(
+                RELEASE_PLEASE, f'the extra file {entry!r} has no "path"; give it one'
+            )
+        paths.append(path)
+    return prose_list([code(path) for path in paths])
+
+
+def render_golden_variants(repo: Repo) -> str:
+    return prose_list([code(name) for name in repo.mm_variants()])
 
 
 FACTS: tuple[Fact, ...] = (
@@ -292,6 +368,51 @@ FACTS: tuple[Fact, ...] = (
         (CONVENTIONS,),
         render_decision_range,
     ),
+    Fact(
+        "G12",
+        "commit-header-max",
+        "inline",
+        "commitlint.config.mjs header-max-length",
+        (COMMITLINT,),
+        (AGENTS, CONVENTIONS, CONTRIBUTING),
+        render_header_max,
+    ),
+    Fact(
+        "G13",
+        "commit-body-max",
+        "inline",
+        "commitlint.config.mjs body-max-line-length",
+        (COMMITLINT,),
+        (AGENTS, CONVENTIONS),
+        render_body_max,
+    ),
+    Fact(
+        "G14",
+        "commit-subject-case",
+        "inline",
+        "commitlint.config.mjs subject-case",
+        (COMMITLINT,),
+        (CONVENTIONS,),
+        render_subject_case,
+    ),
+    Fact(
+        "G15",
+        "release-files",
+        "inline",
+        "release-please-config.json extra-files",
+        (RELEASE_PLEASE,),
+        (OPERATIONS,),
+        render_release_files,
+    ),
+    Fact(
+        "G16",
+        "golden-variants",
+        "inline",
+        f"{MM_VARIANTS} MmVariant",
+        (MM_VARIANTS,),
+        (CONVENTIONS,),
+        render_golden_variants,
+    ),
 )
 
 
@@ -303,11 +424,15 @@ _TARGET_WORD = re.compile(r"[a-z][a-z0-9-]*")
 
 
 def scanned_markdown(tracked: Tracked) -> list[str]:
-    """The tracked Markdown the checks read: all but site copy, research and the changelog."""
+    """The tracked Markdown the checks read: all but site copy, research and the changelog.
+
+    llms.txt is Markdown too. It can hold no marker (M16), so the checks are what keep it right.
+    """
     return [
         path
         for path in tracked
-        if path.endswith(".md") and not any(glob_match(path, p) for p in UNSCANNED)
+        if (path.endswith(".md") or path == LLMS)
+        and not any(glob_match(path, p) for p in UNSCANNED)
     ]
 
 
@@ -450,8 +575,37 @@ def check_release_title_ignored(repo: Repo, tracked: Tracked) -> list[Problem]:
     ]
 
 
+_HEADER_CLAIM = re.compile(r"\b(\d+)-character\s+header\b")
+_BODY_CLAIM = re.compile(r"\bbody\s+lines\s+(?:of\s+)?at\s+most\s+(\d+)\s+characters\b", re.I)
+
+
 def check_header_length(repo: Repo, tracked: Tracked) -> list[Problem]:
-    limit = repo.commitlint().header_max
+    conventions = repo.commitlint()
+    limit = conventions.header_max
+    problems = []
+    claims = (
+        (_HEADER_CLAIM, limit, "header-max-length"),
+        (_BODY_CLAIM, conventions.body_max, "body-max-line-length"),
+    )
+    for path in scanned_markdown(tracked):
+        if path in DATED or not repo.exists(path):
+            continue
+        prose = strip_generated(repo.text(path))
+        for regex, value, rule in claims:
+            for match in regex.finditer(prose):
+                if int(match[1]) != value:
+                    problems.append(
+                        Problem(
+                            path,
+                            fact_markers.line_of(prose, match.start()),
+                            f"says {' '.join(match[0].split())}; commitlint's {rule} is {value}",
+                        )
+                    )
+    problems += _pr_title_length(repo, limit)
+    return problems
+
+
+def _pr_title_length(repo: Repo, limit: int) -> list[Problem]:
     text = repo.text(PR_TITLE)
     problems = []
     found = list(re.finditer(r"^ *MAX_HEADER: *\"?(\d+)\"? *(?:#.*)?$", text, re.M))
@@ -771,23 +925,34 @@ def check_website_sequence(repo: Repo, tracked: Tracked) -> list[Problem]:
 _INPUT_VARS = {
     "flutter-version": "FLUTTER_VERSION",
     "deno-version": "DENO_VERSION",
+    "java-version": "JAVA_VERSION",
+    "python-version": "PYTHON_VERSION",
     "setup-cli version": "SUPABASE_CLI_VERSION",
 }
+# How a run line reads the Vercel CLI's pin: `npx --yes "vercel@$VERCEL_CLI_VERSION" …`.
+_VERCEL_PIN = re.compile(
+    r"\$VERCEL_CLI_VERSION|\$\{VERCEL_CLI_VERSION\}|\$\{\{\s*env\.VERCEL_CLI_VERSION\s*\}\}"
+)
 
 
 def check_toolchain_pins(repo: Repo, tracked: Tracked) -> list[Problem]:
     versions = repo.ci_versions()
     problems = []
+    shared: dict[str, tuple[str, str]] = {}  # a pin ci.yml does not set: (first path, value)
     for path in repo.workflow_paths():
         workflow = repo.workflow(path)
         defined = {pin.name for pin in workflow.env}
         for pin in workflow.env:
-            if pin.value != versions[pin.name]:
+            if pin.name in versions:
+                where, expected = CI, versions[pin.name]
+            else:
+                where, expected = shared.setdefault(pin.name, (path, pin.value))
+            if pin.value != expected:
                 problems.append(
                     Problem(
                         path,
                         pin.line,
-                        f"{pin.name} is {pin.value}; {CI} has {versions[pin.name]}; make them equal",
+                        f"{pin.name} is {pin.value}; {where} has {expected}; make them equal",
                     )
                 )
         for pin in workflow.inputs:
@@ -811,6 +976,25 @@ def check_toolchain_pins(repo: Repo, tracked: Tracked) -> list[Problem]:
                         f" it in env, equal to {CI}'s",
                     )
                 )
+        for pin in workflow.packages:
+            if not _VERCEL_PIN.fullmatch(pin.value):
+                problems.append(
+                    Problem(
+                        path,
+                        pin.line,
+                        f'runs vercel@{pin.value}; run "vercel@$VERCEL_CLI_VERSION" and set'
+                        " VERCEL_CLI_VERSION once, in the workflow's env",
+                    )
+                )
+            elif "VERCEL_CLI_VERSION" not in defined:
+                problems.append(
+                    Problem(
+                        path,
+                        pin.line,
+                        "reads VERCEL_CLI_VERSION, which this workflow does not set; set it in env",
+                    )
+                )
+    problems += _ci_postgres_mentions(repo)
     root = repo.dart_sdk()
     for path, sdk in repo.member_sdks().items():
         if sdk != root:
@@ -833,6 +1017,24 @@ def check_toolchain_pins(repo: Repo, tracked: Tracked) -> list[Problem]:
     return problems
 
 
+def _ci_postgres_mentions(repo: Repo) -> list[Problem]:
+    """ci.yml's step names and pg_ctlcluster name the PostgreSQL it installs."""
+    text = repo.text(CI)
+    mentions = list(re.finditer(r"\bPostgreSQL (\d+)\b|\bpg_ctlcluster (\d+)\b", text))
+    if not mentions:
+        return []
+    major = repo.ci_postgres()
+    return [
+        Problem(
+            CI,
+            fact_markers.line_of(text, match.start()),
+            f"says {match[0]}; it installs postgresql-{major}",
+        )
+        for match in mentions
+        if int(match[1] or match[2]) != major
+    ]
+
+
 def _is_prefix(found: str, version: str) -> bool:
     found_parts = found.split(".")
     return version.split(".")[: len(found_parts)] == found_parts
@@ -845,6 +1047,8 @@ def check_version_mentions(repo: Repo, tracked: Tracked) -> list[Problem]:
     python = repo.python_floor()
     majors = repo.app_majors()
     pins = repo.formal_pins()
+    hosted = repo.supabase_major()
+    local = repo.ci_postgres()
     number = r"(\d+(?:\.\d+){0,2})(?![\d%]|\.\d)"
     rules: list[tuple[re.Pattern[str], Callable[[str], bool], str]] = [
         (
@@ -911,6 +1115,24 @@ def check_version_mentions(repo: Repo, tracked: Tracked) -> list[Problem]:
             lambda v: v == pins.z3,
             f"{FORMAL_REQUIREMENTS} pins z3-solver {pins.z3}",
         ),
+        # The Supabase stack, hosted or local: "Postgres 17 on Supabase", "Supabase … (PostgreSQL
+        # 17". The plain local server of make test-db: "local PostgreSQL 16", "PostgreSQL 16 with
+        # pgTAP", "a PostgreSQL 16 server". "Measured on PostgreSQL 16" is a record, not a pin.
+        (
+            re.compile(
+                r"Supabase[^.;:()\n]{0,40}\(\s*Postgre(?:s|SQL) (\d+)"
+                r"|\bPostgre(?:s|SQL) (\d+)(?:\.\d+)* on Supabase\b"
+            ),
+            lambda v: int(v) == hosted,
+            f"{SUPABASE_CONFIG}'s [db] major_version is {hosted}",
+        ),
+        (
+            re.compile(
+                r"\blocal PostgreSQL (\d+)\b|\bPostgreSQL (\d+)(?:\.\d+)* (?:with pgTAP|server)\b"
+            ),
+            lambda v: int(v) == local,
+            f"{CI} installs postgresql-{local} for make test-db",
+        ),
     ]
     problems = []
     for path in scanned_markdown(tracked):
@@ -920,7 +1142,8 @@ def check_version_mentions(repo: Repo, tracked: Tracked) -> list[Problem]:
         for line_number, line in enumerate(text.split("\n"), start=1):
             for regex, agrees, source in rules:
                 for match in regex.finditer(line):
-                    if not agrees(match[1]):
+                    value = next(group for group in match.groups() if group is not None)
+                    if not agrees(value):
                         problems.append(Problem(path, line_number, f"says {match[0]}; {source}"))
     return problems
 
@@ -1026,6 +1249,106 @@ def check_release_in_readme(repo: Repo, tracked: Tracked) -> list[Problem]:
     return problems
 
 
+_DECISIONS_CLAIM = re.compile(r"\bdecisions\s+D-01\s+to\s+D-(\d+)\b")
+# A range, not a reference to one proposal ("proposal P-01" names that one).
+_PROPOSALS_CLAIM = re.compile(r"\bproposals\s+P-01(?:,?\s+and|\s+to)\s+P-(\d+)\b")
+
+
+def _range(letter: str, count: int) -> str:
+    if count == 0:
+        return f"no {letter}- entry"
+    return f"{letter}-01" if count == 1 else f"{letter}-01 to {letter}-{count:02d}"
+
+
+def check_decision_ranges(repo: Repo, tracked: Tracked) -> list[Problem]:
+    """Every "decisions D-01 to D-NN" and "proposals P-01 and P-NN" names PROJECT.md's last."""
+    problems = []
+    for path in scanned_markdown(tracked):
+        if path in DATED or path.startswith(".planning/") or not repo.exists(path):
+            continue
+        prose = strip_generated(repo.text(path))
+        for regex, letter in ((_DECISIONS_CLAIM, "D"), (_PROPOSALS_CLAIM, "P")):
+            for match in regex.finditer(prose):
+                found = repo.decisions()
+                count = found.decisions if letter == "D" else found.proposals
+                if int(match[1]) != count:
+                    problems.append(
+                        Problem(
+                            path,
+                            fact_markers.line_of(prose, match.start()),
+                            f"says {' '.join(match[0].split())}; {PROJECT} has"
+                            f" {_range(letter, count)}",
+                        )
+                    )
+    return problems
+
+
+_VARIANTS_CLAIM = re.compile(rf"\b({_COUNT})\s+variants\b", re.I)
+_TLA_CLAIM = re.compile(rf"\b({_COUNT})\s+TLA\+\s+models?\b", re.I)
+_PGTAP_CLAIM = re.compile(r"\b(\d[\d,]*)\s+database\s+tests\s+in\s+(\d+)\s+suites\b")
+
+
+def _html_text(text: str) -> str:
+    """`text` with its tags taken out, and its line breaks kept so line numbers still hold."""
+    return re.sub(r"<[^>]*>", lambda match: " " + "\n" * match[0].count("\n"), text)
+
+
+def _variants_disagree(repo: Repo, match: re.Match[str]) -> str | None:
+    variants = repo.mm_variants()
+    if count_value(match[1]) == len(variants):
+        return None
+    return f"{MM_VARIANTS} has {len(variants)} MmVariant values"
+
+
+def _models_disagree(repo: Repo, match: re.Match[str]) -> str | None:
+    models = repo.tla_models()
+    if count_value(match[1]) == len(models):
+        return None
+    return f"{TLA_DIR} has {len(models)} models ({', '.join(models)})"
+
+
+def _pgtap_disagrees(repo: Repo, match: re.Match[str]) -> str | None:
+    pgtap = repo.pgtap()
+    if (count_value(match[1]), int(match[2])) == (pgtap.tests, pgtap.suites):
+        return None
+    return f"{PGTAP_DIR} plans {plural(pgtap.tests, 'test')} in {plural(pgtap.suites, 'suite')}"
+
+
+_COUNT_CLAIMS = (
+    (_VARIANTS_CLAIM, _variants_disagree),
+    (_TLA_CLAIM, _models_disagree),
+    (_PGTAP_CLAIM, _pgtap_disagrees),
+)
+
+
+def check_counts(repo: Repo, tracked: Tracked) -> list[Problem]:
+    """The golden variants, TLA+ models and pgTAP tests the docs and the deck count. A source
+    is read only when a file counts what it holds."""
+    problems = []
+    paths = [
+        path
+        for path in scanned_markdown(tracked)
+        if path not in DATED and not path.startswith(".planning/")
+    ] + repo.tracked_matching(DECK_SLIDES)
+    for path in paths:
+        if not repo.exists(path):
+            continue
+        text = repo.text(path)
+        prose = _html_text(text) if path.endswith(".html") else strip_generated(text)
+        for regex, disagrees in _COUNT_CLAIMS:
+            for match in regex.finditer(prose):
+                source = disagrees(repo, match)
+                if source:
+                    problems.append(
+                        Problem(
+                            path,
+                            fact_markers.line_of(prose, match.start()),
+                            f"says {' '.join(match[0].split())}; {source}",
+                        )
+                    )
+    return problems
+
+
 _MARKDOWN = "**/*.md"
 _WORKFLOWS = ".github/workflows/*.yml"
 
@@ -1047,8 +1370,9 @@ CHECKS: tuple[Check, ...] = (
     Check(
         "C3",
         "header-length",
-        (COMMITLINT, PR_TITLE),
-        "pr-title.yml's MAX_HEADER and every N-character in it equal commitlint's header limit",
+        (COMMITLINT, PR_TITLE, _MARKDOWN, LLMS),
+        'pr-title.yml\'s MAX_HEADER and every N-character in it, and every "N-character header"'
+        ' and "body lines at most N characters" in the docs, equal commitlint\'s limits',
         check_header_length,
     ),
     Check(
@@ -1061,7 +1385,7 @@ CHECKS: tuple[Check, ...] = (
     Check(
         "C5",
         "make-targets",
-        (MAKEFILE, _MARKDOWN),
+        (MAKEFILE, _MARKDOWN, LLMS),
         "every target is in commands.md and .PHONY; every `make X` in the docs names a target",
         check_make_targets,
     ),
@@ -1105,8 +1429,9 @@ CHECKS: tuple[Check, ...] = (
         "C11",
         "toolchain-pins",
         (_WORKFLOWS, PUBSPEC, "**/pubspec.yaml", LEAN_TOOLCHAIN, FORMAL_INSTALL),
-        "workflow pins equal ci.yml's and tool inputs read env; member pubspecs' sdk equals the"
-        " root's; lean-toolchain equals LEAN_VERSION",
+        "workflow pins equal ci.yml's (or, for one ci.yml does not set, each other's); tool inputs"
+        " and npx vercel read env; ci.yml names the PostgreSQL it installs; member pubspecs' sdk"
+        " equals the root's; lean-toolchain equals LEAN_VERSION",
         check_toolchain_pins,
     ),
     Check(
@@ -1114,7 +1439,9 @@ CHECKS: tuple[Check, ...] = (
         "version-mentions",
         (
             _MARKDOWN,
+            LLMS,
             CI,
+            SUPABASE_CONFIG,
             PUBSPEC,
             NVMRC,
             PYPROJECT,
@@ -1124,7 +1451,8 @@ CHECKS: tuple[Check, ...] = (
             LEAN_TOOLCHAIN,
         ),
         "Flutter, Dart, Deno, Node, Python, Riverpod, go_router, supabase_flutter, Lean, Bend,"
-        " TLC, tlaplus and z3-solver versions in the docs match their pins",
+        " TLC, tlaplus, z3-solver and PostgreSQL (the Supabase stack's and the local one's)"
+        " versions in the docs match their pins",
         check_version_mentions,
     ),
     Check(
@@ -1141,6 +1469,28 @@ CHECKS: tuple[Check, ...] = (
         (README, MANIFEST, RELEASE_PLEASE),
         "README's release line (written by release-please) names the manifest's version",
         check_release_in_readme,
+    ),
+    Check(
+        "C15",
+        "decision-ranges",
+        (PROJECT, _MARKDOWN, LLMS),
+        'every "decisions D-01 to D-NN" and "proposals P-01 … P-NN" ends at PROJECT.md\'s last',
+        check_decision_ranges,
+    ),
+    Check(
+        "C16",
+        "counts",
+        (
+            MM_VARIANTS,
+            f"{TLA_DIR}/*/*.tla",
+            f"{PGTAP_DIR}/*.test.sql",
+            _MARKDOWN,
+            LLMS,
+            DECK_SLIDES,
+        ),
+        'the golden variants, TLA+ models and "N database tests in M suites" the docs and the'
+        " deck's slides count match MmVariant, formal/tla and the pgTAP plans",
+        check_counts,
     ),
 )
 

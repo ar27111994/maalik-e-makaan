@@ -168,6 +168,14 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(
             rules(errors_of("a: 1\n# docs:gamma\n# /docs:gamma\n", "f.yml")), [("M5", 2)]
         )
+        # A Markdown marker with an unknown key in YAML, and a YAML open marker left unpaired.
+        self.assertEqual(
+            rules(errors_of("x: 1 # <!-- docs:gamma -->1<!-- /docs:gamma -->\n", "f.yml")),
+            [("M5", 1), ("M5", 1)],
+        )
+        self.assertEqual(
+            rules(errors_of("a: 1\n# docs:gamma\nb: 2\n", "f.yml")), [("M1", 2), ("M5", 2)]
+        )
 
     def test_m6_a_kind_that_does_not_suit_the_file(self) -> None:
         self.assertEqual(rules(errors_of("a <!-- docs:yml -->1<!-- /docs:yml -->\n")), [("M6", 1)])

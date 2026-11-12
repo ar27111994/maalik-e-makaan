@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import docs_fixture
 import fact_markers
 import fact_registry as reg
+import fact_sources
 from docs_fixture import edited
 from fact_sources import Repo, SourceShapeError
 
@@ -30,9 +31,12 @@ def line(path: str, needle: str, changes: dict[str, str | None] | None = None) -
 
 
 def merge(*changes: dict[str, str | None]) -> dict[str, str | None]:
-    """Several changes at once; two edits of one file are applied in turn."""
+    """Several changes at once, each to its own file: edited() starts from the fixture, so a
+    second edit of the same file would replace the first."""
     merged: dict[str, str | None] = {}
     for change in changes:
+        if set(change) & set(merged):
+            raise ValueError(f"two changes to {sorted(set(change) & set(merged))}")
         merged.update(change)
     return merged
 
@@ -79,8 +83,13 @@ class WordingTest(unittest.TestCase):
         self.assertEqual(reg.prose_list(["a"]), "a")
         self.assertEqual(reg.prose_list(["a", "b"]), "a and b")
         self.assertEqual(reg.prose_list(["a", "b", "c"]), "a, b and c")
+        self.assertEqual(reg.prose_list(["a", "b", "c"], "or"), "a, b or c")
         with self.assertRaises(ValueError):
             reg.prose_list([])
+
+    def test_count_value(self) -> None:
+        for text, value in (("six", 6), ("Six", 6), ("6", 6), ("1,974", 1974), ("twenty", 20)):
+            self.assertEqual(reg.count_value(text), value, text)
 
     def test_counts(self) -> None:
         self.assertEqual(reg.count_text(1), "one")
@@ -117,6 +126,31 @@ class RenderTest(FixtureCase):
         self.assertEqual(self.render("uat-journeys"), "three")
         self.assertEqual(self.render("pgtap-count"), "2 suites, 1,974 tests")
         self.assertEqual(self.render("decision-range"), "D-01 to D-02")
+        self.assertEqual(self.render("commit-header-max"), "100")
+        self.assertEqual(self.render("commit-body-max"), "100")
+        self.assertEqual(self.render("commit-subject-case"), "upper, Pascal or Start")
+        self.assertEqual(
+            self.render("release-files"),
+            "`.release-please-manifest.json`, `app/pubspec.yaml` and `README.md`",
+        )
+        self.assertEqual(self.render("golden-variants"), "`light`, `dark` and `largeText`")
+
+    def test_every_commitlint_case_has_a_word(self) -> None:
+        self.assertEqual(set(reg._CASE_WORDS), set(fact_sources.COMMIT_CASES))
+
+    def test_the_docs_say_sentence_case_is_allowed(self) -> None:
+        changes = edited("commitlint.config.mjs", "'start-case']", "'start-case', 'sentence-case']")
+        with self.assertRaisesRegex(SourceShapeError, "now refuses sentence case"):
+            self.render("commit-subject-case", changes)
+
+    def test_an_extra_file_without_a_path(self) -> None:
+        changes = edited(
+            "release-please-config.json",
+            '{ "type": "generic", "path": "README.md" }',
+            '{ "type": "generic", "file": "README.md" }',
+        )
+        with self.assertRaisesRegex(SourceShapeError, 'has no "path"; give it one'):
+            self.render("release-files", changes)
 
     def test_renderers_at_their_edges(self) -> None:
         many = "".join(f'  test("J{n} x", async () => {{}});\n' for n in range(1, 15))
@@ -254,9 +288,12 @@ class MarkdownHelpersTest(unittest.TestCase):
             ".planning/STATE.md",
             "docs/a.md",
             "a.yml",
+            "llms.txt",
+            "docs/llms.txt",
         ]
         self.assertEqual(
-            reg.scanned_markdown(tracked), ["README.md", ".planning/STATE.md", "docs/a.md"]
+            reg.scanned_markdown(tracked),
+            ["README.md", ".planning/STATE.md", "docs/a.md", "llms.txt"],
         )
 
     def test_strip_markers_and_generated_spans(self) -> None:
@@ -359,6 +396,42 @@ class CommitChecksTest(FixtureCase):
             [(PR_TITLE, 1, "sets MAX_HEADER 0 times")],
         )
 
+    def test_c3_the_limits_the_docs_state(self) -> None:
+        hand = merge(
+            edited("docs/uat.md", " journeys.", " journeys. Titles fit the 72-character header."),
+            edited("CHANGELOG.md", "## 1.2.3\n", "## 1.2.3\n\nBody lines at most 50 characters.\n"),
+            edited(
+                "docs/release-readiness.md",
+                "# Dated\n",
+                "# Dated\n\nThen a 50-character header.\n",
+            ),
+            {"llms.txt": "# Project\n\nBody lines at\nmost 80 characters.\n"},
+            {"docs/agrees.md": "# Agrees\n\nA title fits the 100-character header.\n"},
+        )
+        self.assert_problems(
+            check("header-length"),
+            hand,
+            [
+                (
+                    "docs/uat.md",
+                    3,
+                    "says 72-character header; commitlint's header-max-length is 100",
+                ),
+                (
+                    "llms.txt",
+                    3,
+                    "says Body lines at most 80 characters; commitlint's body-max-line-length",
+                ),
+            ],
+        )
+        limits = edited(
+            "commitlint.config.mjs",
+            "'body-max-line-length': [2, 'always', 100]",
+            "'body-max-line-length': [2, 'always', 72]",
+        )
+        # The generated copies are make docs's to rewrite; the check leaves them out.
+        self.assert_problems(check("header-length"), limits, [])
+
     def test_c4_dependabot_commits(self) -> None:
         self.assert_problems(
             check("dependabot-commits"),
@@ -374,6 +447,12 @@ class CommitChecksTest(FixtureCase):
             ),
             [(".github/dependabot.yml", 6, "use the scope deps-dev")],
         )
+        no_scope = edited(
+            ".github/dependabot.yml",
+            "      prefix: ci\n      include: scope\n",
+            "      prefix: ci\n",
+        )
+        self.assert_problems(check("dependabot-commits"), no_scope, [])
 
 
 class MakeChecksTest(FixtureCase):
@@ -400,9 +479,24 @@ class MakeChecksTest(FixtureCase):
             check("make-targets"),
             changes,
             [
-                ("AGENTS.md", 8, "names make tset, which is not a Makefile target"),
+                (
+                    "AGENTS.md",
+                    line("AGENTS.md", "make test  "),
+                    "names make tset, which is not a Makefile target",
+                ),
                 ("docs/uat.md", 3, "names make test-uatt"),
             ],
+        )
+
+    def test_c5_reads_llms_txt_and_skips_a_tracked_file_that_is_gone(self) -> None:
+        changes = {
+            "llms.txt": "# Project\n\n- [UAT](docs/uat.md): `make test-uat`\n",
+            "docs/gone.md": None,
+        }
+        repo = self.repo(changes)
+        problems = check("make-targets").run(repo, (*repo.tracked, "docs/gone.md"))
+        self.assertEqual(
+            [(p.path, p.line) for p in problems], [("llms.txt", 3)], [str(p) for p in problems]
         )
 
     def test_c6_test_tools_discovery(self) -> None:
@@ -531,7 +625,8 @@ class WorkflowChecksTest(FixtureCase):
                 (
                     COMMANDS,
                     line(COMMANDS, "| Repository hygiene"),
-                    "does not name docs-check, which the job runs (.github/workflows/ci.yml line 20)",
+                    "does not name docs-check, which the job runs (.github/workflows/ci.yml line"
+                    f" {line(CI, 'run: make tokens-check docs-check')})",
                 )
             ],
         )
@@ -610,8 +705,62 @@ class WorkflowChecksTest(FixtureCase):
                 "flutter-version: ${{ env.FLUTTER_VERSION }}",
                 "flutter-version: ${{ env.DENO_VERSION }}",
             ),
-            [(CI, 28, "read ${{ env.FLUTTER_VERSION }}")],
+            [(CI, line(CI, "flutter-version: "), "read ${{ env.FLUTTER_VERSION }}")],
         )
+
+    def test_c11_java_python_and_the_vercel_cli(self) -> None:
+        self.assert_problems(
+            check("toolchain-pins"),
+            edited(CI, "java-version: ${{ env.JAVA_VERSION }}", 'java-version: "17"'),
+            [(CI, line(CI, "java-version: "), "java-version is 17; read ${{ env.JAVA_VERSION }}")],
+        )
+        literal = edited(DEPLOY, '"vercel@$VERCEL_CLI_VERSION" build', "vercel@64.0.0 build")
+        self.assert_problems(
+            check("toolchain-pins"),
+            literal,
+            [
+                (
+                    DEPLOY,
+                    line(DEPLOY, "vercel@$VERCEL"),
+                    'runs vercel@64.0.0; run "vercel@$VERCEL_CLI_VERSION"',
+                )
+            ],
+        )
+        unset = edited(DEPLOY, "      VERCEL_CLI_VERSION: 65.8.0\n", "")
+        self.assert_problems(
+            check("toolchain-pins"),
+            unset,
+            [
+                (DEPLOY, line(DEPLOY, "vercel@$VERCEL", unset), "reads VERCEL_CLI_VERSION, which"),
+                (DEPLOY, line(DEPLOY, "vercel@${VERCEL", unset), "reads VERCEL_CLI_VERSION, which"),
+            ],
+        )
+        # A pin ci.yml does not set: every workflow that sets it agrees with the first.
+        other = {
+            ".github/workflows/zz.yml": "name: Z\nenv:\n  VERCEL_CLI_VERSION: 64.0.0\njobs: {}\n"
+        }
+        self.assert_problems(
+            check("toolchain-pins"),
+            other,
+            [(".github/workflows/zz.yml", 3, f"VERCEL_CLI_VERSION is 64.0.0; {DEPLOY} has 65.8.0")],
+        )
+
+    def test_c11_ci_names_the_postgresql_it_installs(self) -> None:
+        self.assert_problems(
+            check("toolchain-pins"),
+            edited(CI, "Install PostgreSQL 16 and", "Install PostgreSQL 17 and"),
+            [(CI, line(CI, "Install PostgreSQL"), "says PostgreSQL 17; it installs postgresql-16")],
+        )
+        self.assert_problems(
+            check("toolchain-pins"),
+            edited(CI, "pg_ctlcluster 16", "pg_ctlcluster 15"),
+            [(CI, line(CI, "pg_ctlcluster"), "says pg_ctlcluster 15; it installs postgresql-16")],
+        )
+        quiet = edited(
+            CI, "      - name: Install PostgreSQL 16 and pgTAP\n", "      - name: Database\n"
+        )
+        quiet[CI] = (quiet[CI] or "").replace("          sudo pg_ctlcluster 16 main start\n", "")
+        self.assert_problems(check("toolchain-pins"), quiet, [])
 
     def test_c11_pubspecs_and_lean(self) -> None:
         self.assert_problems(
@@ -647,6 +796,9 @@ class VersionMentionsTest(FixtureCase):
             "Lean 4 is the language",
             "`make test-ui` at 200% text",
             "go_router 18.2 and supabase_flutter 2",
+            "Postgres 17 on Supabase, a local Supabase stack (Postgres 17.11.0)",
+            "the local PostgreSQL 16, PostgreSQL 16.15 with pgTAP and a PostgreSQL 16 server",
+            "Measured on PostgreSQL 15, and PostgreSQL 14 and 17 behave alike",
         ):
             self.assertEqual(self.mention(words), [], words)
 
@@ -668,6 +820,11 @@ class VersionMentionsTest(FixtureCase):
             "TLC 2.18": "pins TLC 2.19",
             "tlaplus v1.7.3": "pins tlaplus v1.7.4",
             "z3-solver 5.3.2.0": "pins z3-solver 5.3.3.0",
+            "Postgres 16 on Supabase": "supabase/config.toml's [db] major_version is 17",
+            "Supabase backend (PostgreSQL 15": "major_version is 17",
+            "local PostgreSQL 17": "ci.yml installs postgresql-16 for make test-db",
+            "PostgreSQL 15 with pgTAP": "installs postgresql-16",
+            "PostgreSQL 17 server": "installs postgresql-16",
         }
         for words, source in cases.items():
             found = self.mention(f"It uses {words} today.")
@@ -681,6 +838,12 @@ class VersionMentionsTest(FixtureCase):
         self.assertEqual(
             [(p, n) for p, n, _ in found], [("docs/extra.md", 3), ("docs/extra.md", 4)]
         )
+
+    def test_llms_txt_is_read(self) -> None:
+        found = self.run_check(
+            check("version-mentions"), {"llms.txt": "# Project\n\n> Flutter 3.1 on Supabase.\n"}
+        )
+        self.assertEqual([(p, n) for p, n, _ in found], [("llms.txt", 3)])
 
     def test_dated_evidence_planning_and_site_copy_are_left_out(self) -> None:
         for path in (
@@ -770,6 +933,110 @@ class GeneratedFilesAndReleaseTest(FixtureCase):
                 )
             ],
         )
+
+
+class RangesAndCountsTest(FixtureCase):
+    def test_c15_the_ranges_of_decisions_and_proposals(self) -> None:
+        changes = merge(
+            {"llms.txt": "# Project\n\n- decisions D-01 to D-07, open proposals P-01 and P-02\n"},
+            edited("docs/uat.md", " journeys.", " journeys; decisions\nD-01 to D-02 hold."),
+            {".planning/STATE.md": "decisions D-01 to D-09 on 1 November\n"},
+        )
+        self.assert_problems(
+            check("decision-ranges"),
+            changes,
+            [
+                (
+                    "llms.txt",
+                    3,
+                    "says decisions D-01 to D-07; .planning/PROJECT.md has D-01 to D-02",
+                ),
+                ("llms.txt", 3, "says proposals P-01 and P-02; .planning/PROJECT.md has P-01"),
+            ],
+        )
+        none = merge(
+            {
+                ".planning/PROJECT.md": docs_fixture.PROJECT.replace(
+                    "- P-01: **Reminders.** Later.\n", ""
+                )
+            },
+            {"llms.txt": "# Project\n\nThe proposals P-01 to P-03.\n"},
+        )
+        self.assert_problems(check("decision-ranges"), none, [("llms.txt", 3, "has no P- entry")])
+        three = {
+            ".planning/PROJECT.md": docs_fixture.PROJECT.replace("- D-02:", "- D-02: x\n- D-03:"),
+            "llms.txt": "# Project\n\nAll the decisions D-01 to D-03.\n",
+        }
+        self.assert_problems(
+            check("decision-ranges"),
+            three,
+            [("README.md", line("README.md", "The decisions D-01"), "has D-01 to D-03")],
+        )
+
+    def test_c16_golden_variants_and_tla_models(self) -> None:
+        changes = merge(
+            edited("README.md", "Goldens in three variants,", "Goldens in 4 variants,"),
+            edited(
+                "docs/uat.md",
+                " journeys.",
+                " journeys, in all Three\nvariants and Five TLA+ models.",
+            ),
+            {"docs/release-readiness.md": "# Dated\n\nGoldens in 9 variants.\n"},
+            {".planning/STATE.md": "Seven TLA+ models.\n"},
+        )
+        self.assert_problems(
+            check("counts"),
+            changes,
+            [
+                (
+                    "README.md",
+                    line("README.md", "Goldens in"),
+                    "says 4 variants; packages/mm_ui/test/support/harness.dart has 3 MmVariant values",
+                ),
+                ("docs/uat.md", 4, "says Five TLA+ models; formal/tla has 2 models (Alpha, Beta)"),
+            ],
+        )
+
+    def test_c16_the_pgtap_figures_in_the_docs_and_the_deck(self) -> None:
+        slide = "website/deck/slides/trust.html"
+        changes = {
+            slide: docs_fixture.TRUST_SLIDE.replace("in 2 suites", "in 3 suites").replace(
+                ">2</p>", ">3</p>"
+            ),
+            "docs/extra.md": "# Extra\n\nThe 912 database tests in 21 suites.\n",
+        }
+        self.assert_problems(
+            check("counts"),
+            changes,
+            [
+                (
+                    "docs/extra.md",
+                    3,
+                    "says 912 database tests in 21 suites; supabase/tests/database plans 1,974 tests in 2 suites",
+                ),
+                (slide, 2, "says 1,974 database tests in 3 suites"),
+                (slide, 4, "says 3 TLA+ models; formal/tla has 2 models"),
+            ],
+        )
+
+    def test_c16_reads_a_source_only_when_something_counts_it(self) -> None:
+        broken = {"packages/mm_ui/test/support/harness.dart": "enum Other {}\n"}
+        quiet = merge(
+            broken,
+            edited("README.md", "Goldens in three variants,", "Goldens in each variant,"),
+            edited(CONVENTIONS, "Goldens run in three variants:", "Goldens run in each variant:"),
+        )
+        self.assertEqual(self.run_check(check("counts"), quiet), [])
+        with self.assertRaisesRegex(SourceShapeError, "has no `enum MmVariant"):
+            self.run_check(check("counts"), broken)
+
+    def test_the_fixture_helpers_refuse_what_they_cannot_do(self) -> None:
+        with self.assertRaisesRegex(ValueError, "is not in README.md exactly once"):
+            docs_fixture.edited("README.md", "no such text", "x")
+        with self.assertRaisesRegex(ValueError, r"two changes to \['README.md'\]"):
+            merge(
+                edited("README.md", "# Project", "# A"), edited("README.md", "## Quality", "## B")
+            )
 
 
 if __name__ == "__main__":

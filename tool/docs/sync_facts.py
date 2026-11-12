@@ -10,7 +10,8 @@
 A generated fact sits between markers that name it (`<!-- docs:KEY … -->` and
 `<!-- /docs:KEY -->`, or `# docs:KEY …` and `# /docs:KEY` in YAML), and --write rewrites the
 text between them from the source (tool/docs/fact_registry.py lists the facts). --write is all
-or nothing: with a broken marker or a source it cannot read, it writes no file. --check writes
+or nothing: with a broken marker or a source it cannot read, it writes no file, and it keeps a
+file's CRLF line endings (a file with both kinds is written with LF). --check writes
 nothing; it fails when a generated fact is stale, and when a copy the tool checks but does not
 write (a version in prose, a workflow pin, a row of the CI table, a `make` reference) disagrees
 with its source. `make docs` runs --write, Prettier on the files, then --check.
@@ -144,7 +145,7 @@ def _report_errors(state: State, out: list[str]) -> None:
         out.append(f"  not checked: {', '.join(what)}")
 
 
-def write(root: Path, state: State) -> int:
+def write(root: Path, state: State, repo: Repo) -> int:
     if state.marker_errors or state.source_errors:
         out: list[str] = []
         _report_errors(state, out)
@@ -152,7 +153,9 @@ def write(root: Path, state: State) -> int:
         print("\n".join(out), file=sys.stderr)
         return 1
     for path in sorted(state.new_texts):
-        (root / path).write_bytes(state.new_texts[path].encode("utf-8"))
+        # The scan read CRLF as LF (Repo.text); a file that had CRLF keeps it.
+        text = state.new_texts[path].replace("\n", repo.newline(path))
+        (root / path).write_bytes(text.encode("utf-8"))
         keys = ", ".join(dict.fromkeys(state.changed[path]))
         print(f"make docs: rewrote {path} ({keys})")
     if not state.new_texts:
@@ -277,9 +280,9 @@ def main(
     repo = Repo(root, tracked)
     state = examine(root, repo)
     if args.write:
-        return write(root, state)
+        return write(root, state, repo)
     return check(state, repo)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - the tests call main()
     sys.exit(main())

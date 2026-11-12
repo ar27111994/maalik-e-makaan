@@ -449,10 +449,12 @@ CI fails when a copy drifts.
 **Gates today.**
 
 - `make docs-check` keeps every fact in `tool/docs/fact_registry.py` in step with its source:
-  the generated facts (commit scopes and types, changelog sections, coverage gates, test counts,
-  the website's checks, the range of decisions) and the copies it checks (versions named in the
-  docs, workflow pins, the CI jobs table, every `make` reference, the generated-files table, the
-  README's release line).
+  the generated facts (commit scopes, types and length limits, changelog sections, coverage
+  gates, test counts, the website's checks, the range of decisions, the files a release bumps,
+  the golden variants) and the copies it checks (versions named in the docs and `llms.txt`,
+  PostgreSQL's among them, workflow pins, the CI jobs table, every `make` reference, the
+  generated-files table, the README's release line, the ranges of decisions and proposals, and
+  the counts of golden variants, TLA+ models and pgTAP tests, the deck's included).
 - `make roadmap-check` keeps the website's copy of the roadmap in step with `.github/roadmap.toml`.
 - `make tokens-check` keeps `DESIGN.md`'s frontmatter in step with the tokens.
 - The Markdown linters and the Unicode and Urdu guards run in `make lint`.

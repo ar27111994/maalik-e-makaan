@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import io
 import os
 import shutil
@@ -11,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -27,20 +29,13 @@ class CommandLineCase(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
 
-    def build(
-        self, changes: dict[str, str | None] | None = None, *, current: bool = True
-    ) -> list[str]:
-        """The fixture repository, with its generated facts made current first."""
+    def build(self, changes: dict[str, str] | None = None) -> list[str]:
+        """The fixture repository, with its generated facts made current, then `changes`."""
         tracked = docs_fixture.write(self.root)
-        if current:
-            code, _, err = self.run_main("--write", tracked=tracked)
-            self.assertEqual(code, 0, err)
+        code, _, err = self.run_main("--write", tracked=tracked)
+        self.assertEqual(code, 0, err)
         for path, text in (changes or {}).items():
             target = self.root / path
-            if text is None:
-                target.unlink()
-                tracked.remove(path)
-                continue
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(text, encoding="utf-8")
             if path not in tracked:
@@ -73,7 +68,7 @@ class WriteAndCheckTest(CommandLineCase):
         self.assertIn("2 suites, 1,974 tests", self.read("README.md"))
         code, out, err = self.run_main("--check", tracked=tracked)
         self.assertEqual((code, err), (0, ""))
-        self.assertIn("11 generated facts and 14 checks agree with their sources", out)
+        self.assertIn("16 generated facts and 16 checks agree with their sources", out)
 
     def test_a_second_write_changes_no_file(self) -> None:
         tracked = self.build()
@@ -174,7 +169,8 @@ class WriteAndCheckTest(CommandLineCase):
         self.assertEqual(code, 1)
         self.assertIn("source: commitlint.config.mjs: 'scope-enum' has the item '...shared'", err)
         self.assertIn(
-            "  not checked: G1 commit-scopes, G2 commit-types-and-scopes, C1 changelog-sections,"
+            "  not checked: G1 commit-scopes, G2 commit-types-and-scopes, G12 commit-header-max,"
+            " G13 commit-body-max, G14 commit-subject-case, C1 changelog-sections,"
             " C2 release-title-ignored, C3 header-length, C4 dependabot-commits",
             err,
         )
@@ -194,6 +190,64 @@ class WriteAndCheckTest(CommandLineCase):
             (self.root / "docs/uat.md").read_bytes(),
             crlf.replace("two<!--", "three<!--").encode("utf-8"),
         )
+
+    def test_a_crlf_workflow_is_read_and_written_with_crlf(self) -> None:
+        tracked = self.build()
+        path = ".github/workflows/pr-title.yml"
+        current = self.current(path)
+        (self.root / path).write_bytes(current.replace("\n", "\r\n").encode("utf-8"))
+        code, out, err = self.run_main("--check", tracked=tracked)
+        self.assertEqual((code, err), (0, ""), err)
+        stale = current.replace("            test\n          scopes:", "          scopes:")
+        (self.root / path).write_bytes(stale.replace("\n", "\r\n").encode("utf-8"))
+        code, _, err = self.run_main("--check", tracked=tracked)
+        self.assertEqual(code, 1)
+        self.assertIn("docs-check: 1 generated fact is stale:", err)
+        self.assertIn("+            test\n", err)
+        code, out, _ = self.run_main("--write", tracked=tracked)
+        self.assertEqual(code, 0)
+        self.assertIn(f"make docs: rewrote {path} (commit-types-and-scopes)", out)
+        self.assertEqual(
+            (self.root / path).read_bytes(), current.replace("\n", "\r\n").encode("utf-8")
+        )
+
+    def test_a_file_with_both_line_endings_is_written_with_lf(self) -> None:
+        tracked = self.build()
+        expected = self.current("docs/uat.md")
+        mixed = expected.replace("# UAT\n", "# UAT\r\n").replace("three<!--", "two<!--")
+        (self.root / "docs/uat.md").write_bytes(mixed.encode("utf-8"))
+        self.assertEqual(self.run_main("--write", tracked=tracked)[0], 0)
+        self.assertEqual((self.root / "docs/uat.md").read_bytes(), expected.encode("utf-8"))
+
+    def test_a_body_its_markers_cannot_hold_is_refused(self) -> None:
+        tracked = self.build()
+        before = {p: (self.root / p).read_bytes() for p in tracked}
+        facts = tuple(
+            dataclasses.replace(f, render=lambda repo: "a | b") if f.key == "uat-journeys" else f
+            for f in fact_registry.FACTS
+        )
+        with mock.patch.object(sync_facts, "FACTS", facts):
+            code, out, err = self.run_main("--write", tracked=tracked)
+            self.assertEqual((code, out), (1, ""))
+            self.assertIn(
+                "source: tool/docs/fact_registry.py: uat-journeys rendered |, which its markers"
+                " cannot hold\n  not checked: G9 uat-journeys",
+                err,
+            )
+            self.assertIn("make docs: wrote nothing", err)
+            code, _, err = self.run_main("--check", tracked=tracked)
+            self.assertEqual(code, 1)
+            self.assertIn("not checked: G9 uat-journeys", err)
+        self.assertEqual(before, {p: (self.root / p).read_bytes() for p in tracked})
+
+    def test_a_tracked_file_that_is_gone_or_not_utf8(self) -> None:
+        tracked = self.build()
+        code, _, err = self.run_main("--check", tracked=[*tracked, "docs/gone.md"])
+        self.assertEqual((code, err), (0, ""), err)
+        (self.root / "docs/latin.md").write_bytes(b"# Latin\n\ncaf\xe9 docs:\n")
+        code, _, err = self.run_main("--check", tracked=[*tracked, "docs/latin.md"])
+        self.assertEqual(code, 1)
+        self.assertIn("source: docs/latin.md: is not UTF-8\n  not checked: C3 header-length", err)
 
 
 class PathsTest(CommandLineCase):
