@@ -38,17 +38,27 @@ const ROLE_NAMES: Readonly<Record<Locale, Readonly<Record<InviteRole, string>>>>
     accountant: 'accountant',
     viewer: 'viewer',
   },
-  ur: { owner: 'شریک مالک', manager: 'منیجر (نگران)', accountant: 'اکاؤنٹنٹ', viewer: 'ناظر' },
+  ur: {
+    owner: 'شریک مالک',
+    manager: 'منیجر (نگران)',
+    accountant: 'اکاؤنٹنٹ',
+    viewer: 'صرف دیکھنے والا',
+  },
 };
 
+/**
+ * Who invited, when neither a name nor an address can be shown. The Urdu is the
+ * oblique "someone", because the Urdu intro reads "{inviter} نے": the sentence
+ * then says that someone on the Maalik-e-Makaan app sent the invitation.
+ */
 const UNNAMED_INVITER: Readonly<Record<Locale, string>> = {
   en: 'A Maalik-e-Makaan user',
-  ur: 'مالکِ مکان کے ایک صارف',
+  ur: 'کسی',
 };
 
 export const SUBJECTS: Readonly<Record<Locale, string>> = {
   en: "You're invited to a portfolio on Maalik-e-Makaan",
-  ur: 'مالکِ مکان پر ایک پورٹ فولیو میں شمولیت کی دعوت',
+  ur: 'مالکِ مکان ایپ پر ایک پورٹ فولیو میں شامل ہونے کی دعوت',
 };
 
 const LINK_LIKE = [
@@ -128,11 +138,11 @@ function copy(locale: Locale, input: InvitationEmailInput, inviter: string): Cop
     return {
       heading: 'آپ کو دعوت دی گئی ہے',
       intro: named
-        ? `${inviter} نے آپ کو مالکِ مکان پر "${input.portfolioName}" نامی پورٹ فولیو میں بطور ${role} شامل ہونے کی دعوت دی ہے۔`
-        : `${inviter} نے آپ کو مالکِ مکان پر ایک پورٹ فولیو میں بطور ${role} شامل ہونے کی دعوت دی ہے۔`,
+        ? `${inviter} نے آپ کو مالکِ مکان ایپ پر "${input.portfolioName}" نام کے پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`
+        : `${inviter} نے آپ کو مالکِ مکان ایپ پر ایک پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`,
       button: 'دعوت قبول کریں',
       validity:
-        `یہ لنک صرف ایک بار، ${expiry} تک، اور صرف ${input.recipient} کے لیے کارآمد ہے۔ قبول کرنے کے لیے اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں۔`,
+        `یہ لنک صرف ایک بار، ${expiry} تک، اور صرف ${input.recipient} کے لیے کام کرے گا۔ قبول کرنے کے لیے اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں۔`,
       fallback: 'اگر بٹن کام نہ کرے تو یہ لنک کھولیں:',
       ignore: 'اگر آپ اس دعوت کی توقع نہیں کر رہے تھے تو اس ای میل کو نظر انداز کر دیں۔',
     };

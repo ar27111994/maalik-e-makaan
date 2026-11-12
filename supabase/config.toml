@@ -96,15 +96,15 @@ otp_expiry = 3600
 # The e-mails, in English then Urdu. The hosted project's subjects and bodies
 # are set in the dashboard from these same files (docs/operations.md, E-mail).
 [auth.email.template.confirmation]
-subject = "Confirm your e-mail address · اپنا ای میل پتہ تصدیق کریں"
+subject = "Confirm your e-mail address · اپنی ای میل کی تصدیق کریں"
 content_path = "./supabase/templates/confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Reset your password · اپنا پاس ورڈ دوبارہ ترتیب دیں"
+subject = "Reset your password · نیا پاس ورڈ بنائیں"
 content_path = "./supabase/templates/recovery.html"
 
 [auth.email.template.email_change]
-subject = "Confirm the change of e-mail address · ای میل پتے کی تبدیلی کی تصدیق کریں"
+subject = "Confirm the change of e-mail address · ای میل کی تبدیلی کی تصدیق کریں"
 content_path = "./supabase/templates/email_change.html"
 
 [auth.sms]

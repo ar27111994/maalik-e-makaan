@@ -49,7 +49,7 @@ const ROLES: ReadonlyArray<readonly [InviteRole, string, string]> = [
   ['owner', 'co-owner', 'شریک مالک'],
   ['manager', 'manager (caretaker)', 'منیجر (نگران)'],
   ['accountant', 'accountant', 'اکاؤنٹنٹ'],
-  ['viewer', 'viewer', 'ناظر'],
+  ['viewer', 'viewer', 'صرف دیکھنے والا'],
 ];
 const MANAGER_EN = 'manager (caretaker)';
 const MANAGER_UR = 'منیجر (نگران)';
@@ -70,8 +70,8 @@ function enIntro(inviter: string, role: string, portfolio?: string): string {
 
 function urIntro(inviter: string, role: string, portfolio?: string): string {
   return portfolio === undefined
-    ? `${inviter} نے آپ کو مالکِ مکان پر ایک پورٹ فولیو میں بطور ${role} شامل ہونے کی دعوت دی ہے۔`
-    : `${inviter} نے آپ کو مالکِ مکان پر "${portfolio}" نامی پورٹ فولیو میں بطور ${role} شامل ہونے کی دعوت دی ہے۔`;
+    ? `${inviter} نے آپ کو مالکِ مکان ایپ پر ایک پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`
+    : `${inviter} نے آپ کو مالکِ مکان ایپ پر "${portfolio}" نام کے پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`;
 }
 
 /** The text part of a rendering of INPUT, one language per section. */
@@ -98,7 +98,7 @@ const LINES: Readonly<Record<Locale, readonly string[]>> = {
     '',
     `یہ لنک صرف ایک بار، ${
       formatExpiry(INPUT.expiresAt, 'ur')
-    } تک، اور صرف imran@example.com کے لیے کارآمد ہے۔ قبول کرنے کے لیے اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں۔`,
+    } تک، اور صرف imran@example.com کے لیے کام کرے گا۔ قبول کرنے کے لیے اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں۔`,
     '',
     'اگر آپ اس دعوت کی توقع نہیں کر رہے تھے تو اس ای میل کو نظر انداز کر دیں۔',
   ],
@@ -135,7 +135,7 @@ for (const locale of LOCALES) {
 Deno.test('the subject is SUBJECTS[locale], whatever the names', () => {
   assertEquals(SUBJECTS, {
     en: "You're invited to a portfolio on Maalik-e-Makaan",
-    ur: 'مالکِ مکان پر ایک پورٹ فولیو میں شمولیت کی دعوت',
+    ur: 'مالکِ مکان ایپ پر ایک پورٹ فولیو میں شامل ہونے کی دعوت',
   });
   const names = [
     'Raza Family Properties',
@@ -263,7 +263,7 @@ Deno.test('the inviter is introduced by name and verified address, or by a neutr
       'ahmed@example.com',
     ],
     ['name only', 'احمد رضا', null, 'احمد رضا', 'احمد رضا'],
-    ['neither', '', null, 'A Maalik-e-Makaan user', 'مالکِ مکان کے ایک صارف'],
+    ['neither', '', null, 'A Maalik-e-Makaan user', 'کسی'],
   ];
   for (const [label, inviterName, inviterEmail, en, ur] of cases) {
     const message = renderInvitationEmail({ ...INPUT, inviterName, inviterEmail });
@@ -400,8 +400,8 @@ Deno.test('inviterLabel is "name (address)" from whichever parts exist, else a n
     ['evil.com', null, 'en', 'A Maalik-e-Makaan user'],
     ['', null, 'en', 'A Maalik-e-Makaan user'],
     ['', '', 'en', 'A Maalik-e-Makaan user'],
-    ['', null, 'ur', 'مالکِ مکان کے ایک صارف'],
-    ['', '', 'ur', 'مالکِ مکان کے ایک صارف'],
+    ['', null, 'ur', 'کسی'],
+    ['', '', 'ur', 'کسی'],
     [long, null, 'en', cut],
     [long, 'ahmed@example.com', 'en', `${cut} (ahmed@example.com)`],
   ];
