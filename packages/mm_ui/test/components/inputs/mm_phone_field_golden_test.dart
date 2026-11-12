@@ -23,7 +23,7 @@ void main() {
             required: true,
             helper: tr(
               'Rent reminders are sent to this number',
-              'کرایے کی یاد دہانی اسی نمبر پر جائے گی',
+              'کرائے کی یاد دہانی اسی نمبر پر جائے گی',
             ),
             onChanged: (_) {},
           ),

@@ -49,7 +49,7 @@ Widget _ayesha(BuildContext context, Say say) {
         style: text.bodyMedium!.copyWith(color: context.mm.colors.inkMuted),
       ),
       const SizedBox(height: MmSpace.s3),
-      Text(say('Rent due', 'کرائے کی تاریخ'), style: text.bodyMedium),
+      Text(say('Rent due', 'کرایہ جو دینا ہے'), style: text.bodyMedium),
       moneyText(context, 45000, large: true),
     ],
   );

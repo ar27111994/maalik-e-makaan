@@ -612,7 +612,7 @@ void main() {
           children: [
             for (final kind in MmButtonVariant.values)
               MmButton(
-                label: 'عائشہ خان کو اکتوبر کے کرایے کی یاد دہانی بھیجیں',
+                label: 'عائشہ خان کو اکتوبر کے کرائے کی یاد دہانی بھیجیں',
                 icon: MmIcons.reminder,
                 variant: kind,
                 expand: kind == MmButtonVariant.primary,

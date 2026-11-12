@@ -140,7 +140,7 @@ void main() {
               onChanged: (_) {},
             ),
             MmCheckboxTile(
-              label: 'CNIC کی نقل',
+              label: 'CNIC کی کاپی',
               description: 'PDF یا تصویر',
               value: true,
               onChanged: (_) {},
@@ -151,7 +151,7 @@ void main() {
       _expectFaces(
         tester,
         latin: ['WhatsApp', 'SMS', 'CNIC', 'PDF'],
-        urdu: ['یاددہانی', 'نقل'],
+        urdu: ['یاددہانی', 'کاپی'],
       );
     });
 

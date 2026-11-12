@@ -52,7 +52,7 @@ Widget _tabs() => GoldenPage(
             say('Overview', 'خلاصہ'),
             say('Payments', 'ادائیگیاں'),
             say('Documents', 'کاغذات'),
-            say('Utilities', 'یوٹیلیٹیز'),
+            say('Utilities', 'بل'),
             say('History', 'تاریخچہ'),
           ],
         ),

@@ -43,7 +43,7 @@ Widget _buttons() => GoldenPage(
         MmButton(
           label: say(
             'Send the October rent reminder to Ayesha Khan',
-            'عائشہ خان کو اکتوبر کے کرایے کی یاد دہانی بھیجیں',
+            'عائشہ خان کو اکتوبر کے کرائے کی یاد دہانی بھیجیں',
           ),
           icon: MmIcons.reminder,
           variant: MmButtonVariant.secondary,

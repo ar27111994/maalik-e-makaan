@@ -15,7 +15,7 @@ const Key _focused = ValueKey('focused');
 /// toggle that is on. The filled action has keyboard focus.
 Widget _iconButtons() => GoldenPage((context, say) {
   final edit = say('Edit tenant', 'کرایہ دار ایڈٹ کریں');
-  final reminders = say('Rent reminders', 'کرایے کی یاد دہانیاں');
+  final reminders = say('Rent reminders', 'کرائے کی یاد دہانیاں');
   final back = say('Back', 'واپس');
   return Column(
     mainAxisSize: MainAxisSize.min,

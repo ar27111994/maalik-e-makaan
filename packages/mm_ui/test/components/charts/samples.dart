@@ -180,12 +180,12 @@ MmBarChart yearChart(Say say) => MmBarChart(
 /// Money in and money out of Gulberg Heights each month of [months]: two
 /// independent measures, side by side.
 MmBarChart cashFlowChart(Say say) => MmBarChart(
-  title: say('Money in and out', 'آمد و خرچ'),
+  title: say('Money in and out', 'آئی اور گئی رقم'),
   semanticSummary: say(
     'Money in and money out, June to November. August spent more than it '
         'took in: Rs 1,55,000 out for a new water pump.',
-    'جون سے نومبر تک آمد و خرچ۔ اگست میں آمد سے زیادہ خرچ ہوا: نئے پانی کے '
-        'پمپ پر 1,55,000 روپے۔',
+    'جون سے نومبر تک آئی اور گئی رقم۔ اگست میں جتنی رقم آئی، اس سے زیادہ '
+        'خرچ ہوئی: نئے پانی کے پمپ پر 1,55,000 روپے۔',
   ),
   groupLabel: say('Month', 'مہینہ'),
   arrangement: MmBarArrangement.sideBySide,

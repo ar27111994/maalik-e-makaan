@@ -79,7 +79,7 @@ void main() {
               title: say('Gas bill, October', 'گیس کا بل، اکتوبر'),
               subtitle: say(
                 'Paid by the tenant with the rent every month since March',
-                'مارچ سے ہر مہینے کرایہ دار کرایے کے ساتھ ادا کرتا ہے',
+                'مارچ سے ہر مہینے کرایہ دار کرائے کے ساتھ ادا کرتا ہے',
               ),
               subtitleMaxLines: 1,
               trailing: const MmAmount(

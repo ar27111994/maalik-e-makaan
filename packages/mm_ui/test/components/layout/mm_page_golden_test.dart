@@ -36,7 +36,7 @@ Widget _tenantPage(BuildContext context, Say say, {double? height}) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(say('Rent due', 'کرائے کی تاریخ'), style: muted),
+                  Text(say('Rent due', 'کرایہ جو دینا ہے'), style: muted),
                   moneyText(context, 45000, large: true),
                   Text(
                     say('House 12, Gulberg, Lahore', 'مکان 12، گلبرگ، لاہور'),

@@ -50,7 +50,7 @@ void main() {
               tone: MmBannerTone.error,
               message: say(
                 'Rs 1,25,000 is overdue from 3 tenants.',
-                '3 کرایہ داروں کے ذمے 1,25,000 روپے باقی ہیں۔',
+                '3 کرایہ داروں کے ذمے 1,25,000\u00A0روپے باقی ہیں۔',
               ),
               actionLabel: say('Send reminders', 'یاد دہانی بھیجیں'),
               onAction: tapped,
