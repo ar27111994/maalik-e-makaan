@@ -176,7 +176,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer, time-zone reference)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer, time-zone reference, the command map's rows)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'

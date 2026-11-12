@@ -74,9 +74,9 @@ null`).
 
 **Read-only by construction, not by annotation.** Because an OAuth token is an ordinary user JWT,
 an AI client could call the Data API directly. So the client-write lock helper and every definer
-write RPC refuse a token that carries a `client_id`, and pgTAP proves it for each of the 21 RPCs
-pinned in [`01_schema_security.test.sql`](../../supabase/tests/database/01_schema_security.test.sql)
-and for direct table writes.
+write RPC refuse a token that carries a `client_id`, and pgTAP proves it for every RPC pinned in
+[`01_schema_security.test.sql`](../../supabase/tests/database/01_schema_security.test.sql) and for
+direct table writes.
 
 **Four tools:** `list_portfolios`; `who_owes` (portfolio, as-of date); `tenant_statement`
 (lease, period); `overdue_list` (portfolio, minimum days overdue). Each is a `STABLE` SQL function
