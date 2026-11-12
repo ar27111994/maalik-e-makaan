@@ -57,6 +57,7 @@
   --mm-font-latin: "Atkinson Hyperlegible Next", Roboto, sans-serif;
   --mm-font-urdu: "Noto Sans Arabic", "Segoe UI", Tahoma, sans-serif;
   --mm-font-urdu-wordmark: "Noto Nastaliq Urdu", "Noto Naskh Arabic", serif;
+  --mm-font-latin-urdu: "Atkinson Hyperlegible Next", Roboto, "Noto Sans Arabic", "Segoe UI", Tahoma, sans-serif;
   --mm-color-bg: #F4F5F7;
   --mm-color-surface: #FFFFFF;
   --mm-color-surface-sunken: #EBEDF0;

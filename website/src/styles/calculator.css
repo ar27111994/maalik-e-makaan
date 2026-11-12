@@ -124,7 +124,7 @@ html[lang="ur"] .field__hint {
   background-color: var(--mm-color-surface);
   color: var(--mm-color-ink);
   font: inherit;
-  font-family: var(--mm-font-latin), var(--mm-font-urdu);
+  font-family: var(--mm-font-latin-urdu);
   font-variant-numeric: tabular-nums;
 }
 
@@ -326,7 +326,7 @@ html[lang="ur"] .result__notes {
 .math {
   display: inline-block;
   max-inline-size: 100%;
-  font-family: var(--mm-font-latin), var(--mm-font-urdu);
+  font-family: var(--mm-font-latin-urdu);
   font-variant-numeric: tabular-nums;
   unicode-bidi: isolate;
 }

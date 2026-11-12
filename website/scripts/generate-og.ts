@@ -132,7 +132,7 @@ html[lang="ur"] h1 { font-size: 56px; line-height: ${urduLine("headline")}; font
 .seal .n { font-family: var(--mm-font-latin); }
 .label { color: var(--mm-color-ink-muted); font-size: 22px; }
 .value { font-size: 26px; font-weight: 600; }
-.amount { font-family: var(--mm-font-latin), var(--mm-font-urdu); font-size: 46px; font-weight: 700; white-space: nowrap; }
+.amount { font-family: var(--mm-font-latin-urdu); font-size: 46px; font-weight: 700; white-space: nowrap; }
 .chip { justify-self: start; background: var(--mm-color-paid-container); color: var(--mm-color-on-paid-container);
   border-radius: 6px; padding: 4px 14px; font-size: 22px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
 html[lang="ur"] .label, html[lang="ur"] .value, html[lang="ur"] .title { line-height: ${urduLine("body")}; }

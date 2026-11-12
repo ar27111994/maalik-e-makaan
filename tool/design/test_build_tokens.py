@@ -176,6 +176,12 @@ class OutputTest(unittest.TestCase):
         # Custom properties are named in kebab case, as every other group's are.
         self.assertIn('--mm-font-urdu-wordmark: "Noto Nastaliq Urdu", ', css)
         self.assertNotIn("--mm-font-urduWordmark", css)
+        # Figures with Urdu words: both stacks' named faces before the one generic family.
+        self.assertIn(
+            '--mm-font-latin-urdu: "Atkinson Hyperlegible Next", Roboto, "Noto Sans Arabic", '
+            '"Segoe UI", Tahoma, sans-serif;',
+            css,
+        )
 
     def test_design_md_keeps_its_body(self) -> None:
         rendered = bt.render_design_md(self.model, "---\nname: old\n---\n\n## Overview\n\nKept.\n")
@@ -254,3 +260,24 @@ class MainTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LatinUrduStackTest(unittest.TestCase):
+    def test_named_faces_of_both_stacks_come_before_the_generic_family(self):
+        families = {
+            "latin": ["Atkinson Hyperlegible Next", "Roboto", "sans-serif"],
+            "urdu": ["Noto Sans Arabic", "Tahoma", "sans-serif"],
+        }
+        self.assertEqual(
+            bt.latin_urdu_stack(families),
+            ["Atkinson Hyperlegible Next", "Roboto", "Noto Sans Arabic", "Tahoma", "sans-serif"],
+        )
+
+    def test_a_face_in_both_stacks_appears_once(self):
+        families = {"latin": ["Roboto", "sans-serif"], "urdu": ["Tahoma", "Roboto", "serif"]}
+        self.assertEqual(bt.latin_urdu_stack(families), ["Roboto", "Tahoma", "sans-serif"])
+
+    def test_a_latin_stack_without_a_generic_family_is_refused(self):
+        families = {"latin": ["Roboto"], "urdu": ["Tahoma", "sans-serif"]}
+        with self.assertRaises(bt.TokenError):
+            bt.latin_urdu_stack(families)
