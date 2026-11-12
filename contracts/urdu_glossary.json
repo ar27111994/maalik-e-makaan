@@ -1,5 +1,5 @@
 {
-  "$comment": "The owner's plain-Urdu glossary, for every Urdu word a person reads: the app, mm_ui, the website, the e-mails, the reminders and the roadmap. Each entry names a word to avoid, the plain word to write instead (prefer), the English it stands for, a note on where it was found and why, and the exact forms tool/check_urdu_words.py looks for as whole words (match); an empty match means the rule depends on meaning and is judged in review. exceptions let an official name, a quoted law or a table of letters keep a formal word: path is a glob over repository paths, avoid is the form or a longer phrase that contains it (the form is then allowed only inside that phrase), and reason says why. sentenceRules and keep are the style sheet: how to write, and which words stay. Edit it deliberately, and change the copy it governs in the same change.",
+  "$comment": "The owner's plain-Urdu glossary, for every Urdu word a person reads: the app, mm_ui, the website, the e-mails, the reminders and the roadmap. Each entry names a word to avoid, the plain word to write instead (prefer), the English it stands for, a note on where it was found and why, and the exact forms tool/check_urdu_words.py looks for as whole words (match), also with an izafat zer or hamza after them and in text typed with the Arabic yeh, kaf or heh; an empty match means the rule depends on meaning and is judged in review. exceptions let an official name, a quoted law or a table of letters keep a formal word: path is a glob over repository paths, avoid is the form or a longer phrase that contains it (the form is then allowed only inside that phrase), and reason says why. sentenceRules and keep are the style sheet: how to write, and which words stay. Edit it deliberately, and change the copy it governs in the same change.",
   "entries": [
     {
       "avoid": "زرِ ضمانت",
@@ -188,7 +188,7 @@
       "prefer": "کے طور پر؛ بن کر; 'by default': 'پہلے سے'",
       "english": "as; by default",
       "note": "Found: app 3, website 1, e-mails 2, tests 7. signedInAs → 'آپ اس ای میل سے سائن اِن ہیں'; 'بطور {role} شامل' → '{role} کے طور پر شامل'. On the privacy page 'بطورِ طے شدہ چھپے رہتے ہیں' means 'masked by default': the CNIC shows only its first five digits and the last one, and a button reveals the whole number, so 'خود بخود چھپے' loses both facts. Write: 'اسکرین پر شناختی کارڈ نمبر کا زیادہ حصہ پہلے سے چھپا رہتا ہے۔ پورا نمبر بٹن دبا کر دیکھا جا سکتا ہے۔'",
-      "match": ["بطور", "بطورِ"]
+      "match": ["بطور"]
     },
     {
       "avoid": "بشمول",
@@ -454,7 +454,7 @@
       "prefer": "ریٹ",
       "english": "rate",
       "note": "Found: website 23. People say 'ٹیکس کا ریٹ', and FBR's own 'ریٹ کارڈ' is already used. Keep 'اضافے کی شرح' where it quotes the Punjab Act's words.",
-      "match": ["شرح", "شرحِ", "شرحیں", "شرحوں"]
+      "match": ["شرح", "شرحیں", "شرحوں"]
     },
     {
       "avoid": "تناسب",

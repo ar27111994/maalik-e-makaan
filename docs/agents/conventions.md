@@ -33,7 +33,9 @@ human version; `.planning/PROJECT.md` (D-01 to D-19) records why.
   [`contracts/urdu_glossary.json`](../../contracts/urdu_glossary.json), gives each formal word to
   avoid with the word to write instead (`prefer`), the English and a note, then the sentence rules
   (`sentenceRules`) and the words that stay (`keep`). `tool/check_urdu_words.py` (`make lint`, the
-  pre-commit hook) fails when a tracked file has one of an entry's `match` forms as a whole word.
+  pre-commit hook) fails when a tracked file has one of an entry's `match` forms as a whole word,
+  also with an izafat zer or hamza after it, and also when it is typed with the Arabic keyboard's
+  yeh, kaf or heh, so a `match` list needs neither the izafat form nor the Arabic spellings.
   An entry with an empty `match` depends on meaning (`مکان` is right for a home, not for a shop)
   and is judged in review. An official name, a quoted law or a table of letters that must keep a
   formal word goes in the glossary's `exceptions` as `path` (a glob), `avoid` (the form, or a

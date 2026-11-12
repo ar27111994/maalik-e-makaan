@@ -11,6 +11,13 @@ A form matches only as a whole word: the characters on either side must not be l
 combining marks, digits or the Urdu joiners (U+200C, U+200D), so a form کتاب would not match
 کتابیں. Where a longer form and a shorter one overlap, only the longer is reported.
 
+Two ways of writing a word must not hide it. An izafat after a form, a zer (U+0650) or a hamza
+above (U+0654), ends the word rather than continuing it, so کتاب also matches in کتابِ نو. And
+the letters an Arabic keyboard types are read as the Urdu ones before matching, in the text, the
+forms and the exceptions alike: yeh (U+064A) and alef maksura (U+0649) as ی, kaf (U+0643) as ک,
+and heh (U+0647) and heh with the izafat written as one letter (U+06C0, U+06C2) as heh goal
+(U+06C1). Each is one code point for one, so lines and columns stay those of the file.
+
 The glossary's "exceptions" let an official name keep a formal word. Each is
 {"path", "avoid", "reason"}: "path" is a glob over repository paths (fnmatch, so * also crosses
 folders), and "avoid" is either an avoided form, allowed anywhere in those files, or a longer
@@ -41,6 +48,22 @@ GLOSSARY = ROOT / "contracts" / "urdu_glossary.json"
 ENTRY_FIELDS = ("avoid", "prefer", "english", "note")
 EXCEPTION_FIELDS = ("path", "avoid", "reason")
 JOINERS = {chr(0x200C), chr(0x200D)}
+IZAFAT = {chr(0x0650), chr(0x0654)}  # zer, hamza above
+FOLD = str.maketrans(
+    {
+        chr(0x064A): chr(0x06CC),  # Arabic yeh → Farsi yeh, as Urdu writes it
+        chr(0x0649): chr(0x06CC),  # alef maksura → Farsi yeh
+        chr(0x0643): chr(0x06A9),  # Arabic kaf → keheh
+        chr(0x0647): chr(0x06C1),  # Arabic heh → heh goal
+        chr(0x06C0): chr(0x06C1),  # heh with yeh above (the izafat) → heh goal
+        chr(0x06C2): chr(0x06C1),  # heh goal with hamza above (the izafat) → heh goal
+    }
+)
+
+
+def fold(text: str) -> str:
+    """[text] with the Arabic keyboard's letters read as the Urdu ones, one for one."""
+    return text.translate(FOLD)
 
 
 @dataclass(frozen=True)
@@ -51,6 +74,11 @@ class Form:
     avoid: str
     prefer: str
     english: str
+
+    @property
+    def needle(self) -> str:
+        """The form as the guard looks for it: folded, like the text it searches."""
+        return fold(self.text)
 
 
 @dataclass(frozen=True)
@@ -90,7 +118,8 @@ def whole_word_spans(text: str, needle: str) -> list[tuple[int, int]]:
     """Every (start, end) where [needle] stands in [text] as a whole word.
 
     The edges are checked only where [needle] itself starts or ends with a letter, so a phrase
-    in brackets, such as an exception's "(term)", may sit directly beside a word.
+    in brackets, such as an exception's "(term)", may sit directly beside a word. An izafat
+    (zer or hamza above) straight after [needle] ends the word, as a space would.
     """
     spans = []
     open_start = not is_word_char(needle[0])
@@ -98,8 +127,9 @@ def whole_word_spans(text: str, needle: str) -> list[tuple[int, int]]:
     start = text.find(needle)
     while start != -1:
         end = start + len(needle)
+        after = end + 1 if end < len(text) and text[end] in IZAFAT else end
         before_ok = open_start or start == 0 or not is_word_char(text[start - 1])
-        after_ok = open_end or end == len(text) or not is_word_char(text[end])
+        after_ok = open_end or after == len(text) or not is_word_char(text[after])
         if before_ok and after_ok:
             spans.append((start, end))
         start = text.find(needle, start + 1)
@@ -132,9 +162,11 @@ def load_glossary(path: Path | None = None) -> Glossary:
         for text in match:
             if not isinstance(text, str) or text == "" or text != text.strip():
                 raise ValueError(f"{where} ({avoid}): bad form {text!r}")
-            if text in seen:
-                raise ValueError(f"{where} ({avoid}): {text} is already a form of {seen[text]}")
-            seen[text] = avoid
+            if fold(text) in seen:
+                raise ValueError(
+                    f"{where} ({avoid}): {text} is already a form of {seen[fold(text)]}"
+                )
+            seen[fold(text)] = avoid
             forms.append(Form(text, avoid, prefer, english))
     exceptions = data.get("exceptions", [])
     if not isinstance(exceptions, list):
@@ -145,7 +177,7 @@ def load_glossary(path: Path | None = None) -> Glossary:
         if not isinstance(item, dict):
             raise ValueError(f"{where}: must be an object")
         allowance = Allowance(*(_text_field(item, f, where) for f in EXCEPTION_FIELDS))
-        if not any(whole_word_spans(allowance.phrase, form.text) for form in forms):
+        if not any(whole_word_spans(fold(allowance.phrase), form.needle) for form in forms):
             raise ValueError(f"{where}: '{allowance.phrase}' contains no avoided form")
         allowances.append(allowance)
     return Glossary(tuple(forms), tuple(allowances))
@@ -176,10 +208,11 @@ def findings_in_text(
     """Every avoided form in [text], outside the exceptions that apply to [rel_path]."""
     if not has_arabic_script(text):
         return []
+    text = fold(text)
     hits = [
         (start, end, form)
         for form in glossary.forms
-        for start, end in whole_word_spans(text, form.text)
+        for start, end in whole_word_spans(text, form.needle)
     ]
     hits.sort(key=lambda hit: (hit[0], hit[0] - hit[1]))
     kept: list[tuple[int, int, Form]] = []
@@ -194,7 +227,7 @@ def findings_in_text(
         (start, end, allowance)
         for allowance in glossary.exceptions
         if fnmatch.fnmatchcase(rel_path, allowance.path)
-        for start, end in whole_word_spans(text, allowance.phrase)
+        for start, end in whole_word_spans(text, fold(allowance.phrase))
     ]
     findings = []
     for start, end, form in kept:

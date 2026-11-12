@@ -1,7 +1,7 @@
 """Tests for the plain-Urdu guard (python3 -m unittest discover -s tool -p 'test_*.py').
 
-The sample words (کتاب، قلم، گھر) are ordinary words the glossary does not avoid, so this file
-passes the guard it tests.
+The sample words (کتاب، قلم، گھر، کرسی، کمرہ) are ordinary words the glossary does not avoid, so
+this file passes the guard it tests. The Arabic keyboard's letters are written as chr() calls.
 """
 
 from __future__ import annotations
@@ -24,7 +24,16 @@ BOOK = "کتاب"
 BOOKS = "کتابیں"
 BOOKSHOP = "کتاب گھر"
 PEN = "قلم"
+CHAIR = "کرسی"
+ROOM = "کمرہ"
 ZER = chr(0x0650)
+HAMZA = chr(0x0654)  # hamza above
+ARABIC_YEH = chr(0x064A)
+ALEF_MAKSURA = chr(0x0649)
+ARABIC_KAF = chr(0x0643)
+ARABIC_HEH = chr(0x0647)
+HEH_YEH_ABOVE = chr(0x06C0)
+HEH_GOAL_HAMZA = chr(0x06C2)
 ZWNJ = chr(0x200C)
 FULL_STOP = chr(0x06D4)  # the Urdu full stop
 
@@ -122,6 +131,8 @@ class LoadTest(unittest.TestCase):
 
     def test_refuses_a_form_listed_twice(self) -> None:
         self.assert_refused([entry(BOOK, [BOOK]), entry("again", [BOOK])])
+        # The same word typed with the Arabic kaf is the same form.
+        self.assert_refused([entry(BOOK, [BOOK, ARABIC_KAF + BOOK[1:]])])
 
     def test_refuses_an_exception_that_allows_no_avoided_form(self) -> None:
         self.assert_refused([entry(BOOK, [BOOK])], [{"path": "*", "avoid": PEN, "reason": "x"}])
@@ -147,11 +158,40 @@ class MatchTest(unittest.TestCase):
         self.assertEqual(found(f"یہ {BOOKS} ہیں", glossary), [])
         self.assertEqual(found(f"نئی{BOOK}", glossary), [])
 
-    def test_marks_and_joiners_continue_a_word(self) -> None:
+    def test_marks_and_joiners_inside_a_word_continue_it(self) -> None:
         glossary = sample()
-        self.assertEqual(found(f"{BOOK}{ZER} نو", glossary), [])
+        self.assertEqual(found(f"{BOOK}{ZER}یں", glossary), [])
         self.assertEqual(found(f"{BOOK}{ZWNJ}یں", glossary), [])
         self.assertEqual(found(f"{BOOK}1", glossary), [])
+        self.assertEqual(found(f"{ZER}{BOOK} نو", glossary), [])
+
+    def test_an_izafat_after_a_form_ends_the_word(self) -> None:
+        glossary = sample()
+        self.assertEqual(found(f"{BOOK}{ZER} نو", glossary), [BOOK])
+        self.assertEqual(found(f"{BOOK}{HAMZA} نو", glossary), [BOOK])
+        self.assertEqual(found(f"ایک {BOOK}{ZER}", glossary), [BOOK])
+        self.assertEqual(found(f"({BOOKSHOP}{ZER})", glossary), [BOOKSHOP])
+
+    def test_arabic_keyboard_letters_are_read_as_urdu(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            path = glossary_file(folder, [entry(CHAIR, [CHAIR]), entry(ROOM, [ROOM])])
+            glossary = check_urdu_words.load_glossary(path)
+        self.assertEqual(found(f"{ARABIC_KAF}رس{ARABIC_YEH}", glossary), [CHAIR])
+        self.assertEqual(found(f"کرس{ALEF_MAKSURA}", glossary), [CHAIR])
+        self.assertEqual(found(f"کمر{ARABIC_HEH}", glossary), [ROOM])
+        for izafat in (HEH_GOAL_HAMZA, HEH_YEH_ABOVE, ARABIC_HEH + HAMZA, ROOM[-1] + HAMZA):
+            self.assertEqual(found(f"کمر{izafat} نمبر", glossary), [ROOM], hex(ord(izafat[0])))
+        # One letter for one: the column is the file's.
+        findings = check_urdu_words.findings_in_text(
+            f"{ARABIC_KAF}{ARABIC_KAF} {ARABIC_KAF}رسی", glossary, "a.md"
+        )
+        self.assertEqual([(f.line, f.column, f.form.text) for f in findings], [(1, 4, CHAIR)])
+
+    def test_forms_written_with_arabic_letters_match_urdu_text(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            path = glossary_file(folder, [entry(CHAIR, [ARABIC_KAF + CHAIR[1:]])])
+            glossary = check_urdu_words.load_glossary(path)
+        self.assertEqual(found(f"ایک {CHAIR}", glossary), [ARABIC_KAF + CHAIR[1:]])
 
     def test_the_longer_of_two_overlapping_forms_is_reported_once(self) -> None:
         glossary = sample()
@@ -181,6 +221,14 @@ class ExceptionTest(unittest.TestCase):
         name = f"{PEN} گھر"
         glossary = sample([{"path": "*", "avoid": name, "reason": "an official name"}])
         self.assertEqual(found(f"{name} اور {PEN}", glossary), [PEN])
+
+    def test_an_exception_matches_however_its_letters_are_typed(self) -> None:
+        name = f"{BOOK} گھر"
+        typed = ARABIC_KAF + name[1:]
+        glossary = sample([{"path": "*", "avoid": typed, "reason": "an official name"}])
+        self.assertEqual(found(name, glossary), [])
+        glossary = sample([{"path": "*", "avoid": name, "reason": "an official name"}])
+        self.assertEqual(found(typed, glossary), [])
 
     def test_a_bracketed_phrase_may_touch_the_words_beside_it(self) -> None:
         glossary = sample([{"path": "*", "avoid": f"({PEN})", "reason": "a term of art"}])
