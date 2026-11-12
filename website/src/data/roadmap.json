@@ -7,9 +7,9 @@
       "id": "launch",
       "number": null,
       "title": "Launch and listen",
-      "titleUr": "اجرا، پھر سننا",
+      "titleUr": "ایپ جاری کرنا، پھر لوگوں کی بات سننا",
       "description": "Get into the stores, get the Urdu and the legal texts reviewed, and put the app in the hands of the first landlords.",
-      "descriptionUr": "ایپ اسٹورز تک پہنچنا، اردو اور قانونی تحریروں پر نظرِ ثانی کروانا، اور ایپ پہلے مالکانِ مکان کے ہاتھ میں دینا۔",
+      "descriptionUr": "ایپ اسٹورز تک پہنچنا، اردو اور قانونی صفحے چیک کروانا، اور ایپ سب سے پہلے کچھ مکانوں کے مالکوں کے ہاتھ میں دینا۔",
       "due": "2027-02-28",
       "state": "open",
       "url": null,
@@ -18,7 +18,7 @@
           "id": "play-store",
           "number": null,
           "title": "Publish the Android app on Google Play",
-          "titleUr": "اینڈرائیڈ ایپ گوگل پلے پر شائع کرنا",
+          "titleUr": "اینڈرائیڈ ایپ گوگل پلے پر لانا",
           "state": "open",
           "url": null
         },
@@ -26,7 +26,7 @@
           "id": "app-store",
           "number": null,
           "title": "Publish the iPhone app on the App Store",
-          "titleUr": "آئی فون ایپ ایپ اسٹور پر شائع کرنا",
+          "titleUr": "آئی فون ایپ ایپ اسٹور پر لانا",
           "state": "open",
           "url": null
         },
@@ -34,7 +34,7 @@
           "id": "urdu-review",
           "number": null,
           "title": "A native speaker's review of every Urdu string",
-          "titleUr": "ہر اردو عبارت پر اہلِ زبان کی نظرِ ثانی",
+          "titleUr": "ساری اردو کسی اردو بولنے والے سے چیک کروانا",
           "state": "open",
           "url": null
         },
@@ -42,7 +42,7 @@
           "id": "legal-review",
           "number": null,
           "title": "A lawyer's review of the privacy notice and terms",
-          "titleUr": "رازداری کی پالیسی اور شرائط پر وکیل کی نظرِ ثانی",
+          "titleUr": "پرائیویسی پالیسی اور شرائط وکیل سے چیک کروانا",
           "state": "open",
           "url": null
         },
@@ -50,7 +50,7 @@
           "id": "app-icon",
           "number": null,
           "title": "The app's own icon and store artwork",
-          "titleUr": "ایپ کا اپنا آئیکن اور اسٹور کی تصاویر",
+          "titleUr": "ایپ کا اپنا آئیکن اور اسٹور کی تصویریں",
           "state": "open",
           "url": null
         },
@@ -58,7 +58,7 @@
           "id": "billing",
           "number": null,
           "title": "Paid plans, with early-access users told first",
-          "titleUr": "ادا شدہ پلان، ابتدائی صارفین کو پہلے اطلاع کے ساتھ",
+          "titleUr": "ادا شدہ پلان، ابھی مفت استعمال کرنے والوں کو پہلے بتا کر",
           "state": "open",
           "url": null
         },
@@ -74,7 +74,7 @@
           "id": "mcp-read",
           "number": null,
           "title": "A read-only MCP server, so a landlord's own AI can read their ledger",
-          "titleUr": "صرف پڑھنے کا رابطہ، تاکہ مالک کا اپنا مصنوعی ذہانت والا معاون اس کا کھاتہ پڑھ سکے",
+          "titleUr": "صرف پڑھنے والا رابطہ، تاکہ مالک کا اپنا اے آئی اس کا کھاتہ پڑھ سکے",
           "state": "open",
           "url": null
         },
@@ -82,7 +82,7 @@
           "id": "draft-payments",
           "number": null,
           "title": "Draft a payment from a voice note or a pasted SMS, always confirmed",
-          "titleUr": "وائس نوٹ یا ایس ایم ایس سے ادائیگی کا مسودہ، ہمیشہ تصدیق کے بعد",
+          "titleUr": "وائس نوٹ یا ایس ایم ایس سے ادائیگی لکھ کر تیار کرنا، جو ہمیشہ تصدیق کے بعد ہی درج ہو",
           "state": "open",
           "url": null
         },
@@ -98,7 +98,7 @@
           "id": "pilot",
           "number": null,
           "title": "A pilot with the first landlords",
-          "titleUr": "پہلے مالکانِ مکان کے ساتھ آزمائشی استعمال",
+          "titleUr": "کچھ مکانوں کے مالکوں کے ساتھ ایپ کا پہلا ٹیسٹ",
           "state": "open",
           "url": null
         }
@@ -108,9 +108,9 @@
       "id": "assistant",
       "number": null,
       "title": "The assistant",
-      "titleUr": "معاون",
+      "titleUr": "اسسٹنٹ",
       "description": "Munshi, an assistant that drafts while the landlord confirms: on WhatsApp, for tenants, and for the paperwork.",
-      "descriptionUr": "منشی، ایک معاون جو مسودہ بناتا ہے اور مالک تصدیق کرتا ہے: واٹس ایپ پر، کرایہ داروں کے لیے، اور کاغذی کارروائی میں۔",
+      "descriptionUr": "منشی ایک اسسٹنٹ ہے جو لکھ کر تیار کرتا ہے، اور مالک دیکھ کر ہاں کرتا ہے۔ یہ واٹس ایپ پر، کرایہ داروں کے لیے اور کاغذی کارروائی میں کام آئے گا۔",
       "due": "2027-11-30",
       "state": "open",
       "url": null,
@@ -119,7 +119,7 @@
           "id": "whatsapp-assistant",
           "number": null,
           "title": "A WhatsApp assistant, with voice notes",
-          "titleUr": "واٹس ایپ پر معاون، وائس نوٹ کے ساتھ",
+          "titleUr": "واٹس ایپ پر اسسٹنٹ، وائس نوٹ کے ساتھ",
           "state": "open",
           "url": null
         },
@@ -127,7 +127,7 @@
           "id": "whatsapp-reminders",
           "number": null,
           "title": "Scheduled reminders through the WhatsApp Business Platform",
-          "titleUr": "واٹس ایپ بزنس کے ذریعے طے شدہ وقت پر خودکار یاد دہانیاں",
+          "titleUr": "واٹس ایپ بزنس کے ذریعے آٹومیٹک یاد دہانیاں، طے کیے ہوئے وقت پر",
           "state": "open",
           "url": null
         },
@@ -135,7 +135,7 @@
           "id": "agent-limits",
           "number": null,
           "title": "An agent role that writes only within set limits",
-          "titleUr": "معاون کا ایسا کردار جو صرف طے شدہ حدوں کے اندر لکھ سکے",
+          "titleUr": "اسسٹنٹ کا ایسا رول جو صرف طے کی ہوئی حدوں کے اندر لکھ سکے",
           "state": "open",
           "url": null
         },
@@ -151,7 +151,7 @@
           "id": "reconciliation",
           "number": null,
           "title": "Suggested matches between incoming payments and open dues",
-          "titleUr": "آنے والی ادائیگیوں اور واجب الادا رقموں کے ممکنہ جوڑ کی تجویز",
+          "titleUr": "آنے والی ادائیگیاں کن باقی چارجز سے ملتی ہیں، اس کی تجویز",
           "state": "open",
           "url": null
         },
@@ -183,7 +183,7 @@
           "id": "retention",
           "number": null,
           "title": "Remove identity documents automatically after a tenancy ends",
-          "titleUr": "کرایہ داری ختم ہونے کے بعد شناختی دستاویزات خود بخود حذف کرنا",
+          "titleUr": "کرایہ داری ختم ہونے کے بعد شناختی کاغذات خود بخود ڈیلیٹ کرنا",
           "state": "open",
           "url": null
         },
@@ -191,7 +191,7 @@
           "id": "move-out",
           "number": null,
           "title": "A move-out photo checklist",
-          "titleUr": "مکان چھوڑتے وقت تصویروں کے ساتھ جانچ کی فہرست",
+          "titleUr": "جگہ خالی کرتے وقت تصویروں والی چیک لسٹ",
           "state": "open",
           "url": null
         }
@@ -201,9 +201,9 @@
       "id": "money",
       "number": null,
       "title": "Money that moves",
-      "titleUr": "براہِ راست وصولی",
+      "titleUr": "ایپ سے سیدھا کرایہ وصول کرنا",
       "description": "Collect rent, not just record it, through licensed partners on Pakistan's payment rails, and give owners abroad an assistant that watches for them.",
-      "descriptionUr": "کرایہ صرف درج نہیں بلکہ وصول کرنا، پاکستان کے ادائیگی کے نظام پر لائسنس یافتہ شراکت داروں کے ذریعے، اور بیرونِ ملک مالکان کے لیے ایک نگران معاون۔",
+      "descriptionUr": "کرایہ صرف درج نہیں بلکہ وصول بھی کرنا، پاکستان کے ادائیگی کے نظام پر لائسنس والے پارٹنرز کے ذریعے۔ اوورسیز مالکوں کے لیے ایک اسسٹنٹ بھی، جو ان کے لیے نظر رکھے۔",
       "due": "2028-11-30",
       "state": "open",
       "url": null,
@@ -212,7 +212,7 @@
           "id": "raast-request-to-pay",
           "number": null,
           "title": "Collect rent with Raast Request-to-Pay, through a licensed partner",
-          "titleUr": "لائسنس یافتہ شراکت دار کے ذریعے راست سے کرایہ وصولی",
+          "titleUr": "لائسنس والے پارٹنر کے ذریعے راست سے کرایہ وصول کرنا",
           "state": "open",
           "url": null
         },
@@ -228,7 +228,7 @@
           "id": "overseas-oversight",
           "number": null,
           "title": "An oversight assistant for owners abroad",
-          "titleUr": "بیرونِ ملک مالکان کے لیے نگران معاون",
+          "titleUr": "اوورسیز مالکوں کے لیے نظر رکھنے والا اسسٹنٹ",
           "state": "open",
           "url": null
         },
@@ -236,7 +236,7 @@
           "id": "agent-coordination",
           "number": null,
           "title": "Landlord, tenant and caretaker assistants that work together",
-          "titleUr": "مالک، کرایہ دار اور نگران کے معاون جو مل کر کام کریں",
+          "titleUr": "مالک، کرایہ دار اور نگران کے اسسٹنٹ جو مل کر کام کریں",
           "state": "open",
           "url": null
         }
