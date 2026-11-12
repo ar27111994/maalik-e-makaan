@@ -232,10 +232,11 @@ does for every camera photo, until Android clears it.
 - Screens: widget and golden tests in light, dark, high-contrast, Urdu and
   large-text variants, with the tap-target and contrast guidelines; the design
   lint keeps values on tokens.
-- End to end: the local Supabase stack in CI. Not built yet for the app: the
-  REST requests (including foreign-key embed names such as
-  `utility_bills_charge_id_fkey`) are checked against the SQL by hand, not
-  against a running PostgREST.
+- End to end: the browser UAT ([`docs/uat.md`](../uat.md)) drives the release
+  web build against a local Supabase stack, in CI as well, so the REST requests
+  its journeys make meet a running PostgREST. Other requests (foreign-key embed
+  names such as `utility_bills_charge_id_fkey` included) are still checked
+  against the SQL by hand.
 
 ## Open questions
 

@@ -19,7 +19,9 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  # Equal to ci.yml's; make docs-check checks them.
   FLUTTER_VERSION: 3.47.9
+  JAVA_VERSION: "21"
 
 defaults:
   run:
@@ -70,7 +72,7 @@ jobs:
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: ${{ env.JAVA_VERSION }}
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable

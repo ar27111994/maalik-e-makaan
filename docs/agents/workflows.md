@@ -90,4 +90,7 @@ Follow [`website/README.md`](../../website/README.md) ("Add a page", "Add a guid
 1. Update the doc in the same change as the code it describes. The index is
    [`docs/README.md`](../README.md); per-area context is each `AGENTS.md`.
 2. Every command you write is one you ran; every path is one that exists.
-3. Run `make format-check-repo lint` (Prettier and markdownlint cover every `*.md`).
+3. A fact between `<!-- docs:… -->` markers is generated: change its source and run
+   `make docs`. To repeat a fact in a new place, or add a new one, edit
+   `tool/docs/fact_registry.py` (and `fact_sources.py` for a new source) with tests.
+4. Run `make format-check-repo lint docs-check` (Prettier and markdownlint cover every `*.md`).

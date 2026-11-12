@@ -17,4 +17,4 @@
 - [ ] Changed goldens were re-recorded on Linux (`make goldens`) and every changed image was reviewed; they are listed below.
 - [ ] No secrets, personal data or real tenant details in code, tests, logs or screenshots.
 - [ ] A new, removed or upgraded direct dependency, font or icon set is recorded in `THIRD_PARTY_NOTICES.md`.
-- [ ] Documentation (README, `docs/`, `AGENTS.md`, `DESIGN.md`, `formal/`) matches the change.
+- [ ] Documentation (README, `docs/`, `AGENTS.md`, `DESIGN.md`, `formal/`) matches the change, and `make docs-check` passes (`make docs` rewrites the generated facts).
