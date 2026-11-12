@@ -464,8 +464,12 @@ CI fails when a copy drifts.
 - the versions in `THIRD_PARTY_NOTICES.md` against the lockfiles;
 - the roadmap's milestone tables, counts and totals;
 - the runbook's tables of settings and function secrets against the workflows and functions;
-- the definer RPCs in `docs/architecture/permissions.md` against the allowlist;
-- the typefaces, once the Urdu font change lands;
+- the definer RPCs: their number (`conventions.md`, this file, the deck's trust slide) and the
+  list in `docs/architecture/permissions.md`, against the allowlist;
+- the typefaces named in `DESIGN.md`, the `mm_ui` and website READMEs and
+  `THIRD_PARTY_NOTICES.md`, against `design/fonts/`;
+- the deck's other figures (app tests, coverage, race scenarios, Lean theorems), which its
+  footer dates;
 - every relative link and anchor, and every document listed in an index.
 
 ## Tools and skills
