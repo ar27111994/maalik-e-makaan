@@ -152,6 +152,16 @@ roadmap: ## Rewrite the website's offline roadmap copy from .github/roadmap.toml
 roadmap-check: ## Fail when the website's offline roadmap copy is stale
 	python3 -m unittest discover -s tool/github -p 'test_roadmap.py' -k committed_copy
 
+.PHONY: docs
+docs: ## Rewrite the facts the docs repeat from their sources (tool/docs/sync_facts.py), then format them
+	python3 tool/docs/sync_facts.py --write
+	files="$$(python3 tool/docs/sync_facts.py --list-files)"; npx --no-install prettier --write --log-level warn $$files
+	python3 tool/docs/sync_facts.py --check
+
+.PHONY: docs-check
+docs-check: ## Fail when a fact the docs repeat disagrees with its source (make docs fixes generated ones)
+	python3 tool/docs/sync_facts.py --check
+
 .PHONY: test-functions
 test-functions: ## Edge Function tests with the 100% coverage gate
 	cd supabase/functions && $(DENO) task test
@@ -181,6 +191,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
 	python3 -m unittest discover -s tool/design -p 'test_*.py'
+	python3 -m unittest discover -s tool/docs -p 'test_*.py'
 	python3 -m unittest discover -s tool/web -p 'test_*.py'
 	python3 -m unittest discover -s tool/formal -p 'test_*.py'
 	python3 -m unittest discover -s tool/ios -p 'test_*.py'
