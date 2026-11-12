@@ -257,7 +257,7 @@
       "avoid": "نظرِ ثانی",
       "prefer": "'آخری بار چیک کیا'؛ 'نیا ورژن'",
       "english": "review",
-      "note": "Found: website 5, roadmap 3. Guide date label 'آخری نظرِ ثانی' → 'آخری بار چیک کیا' (not 'آخری اپ ڈیٹ': checked and updated are different claims); roadmap 'اہلِ زبان کی نظرِ ثانی' → 'اردو بولنے والے سے چیک'; prose 'نظرِ ثانی ہوئی' (NEPRA manual) → 'نیا ورژن آیا'. NEPRA's 'نظرِ ثانی شدہ 2025' inside a source title stays as the title.",
+      "note": "Found: website 5, roadmap 3. Guide date label 'آخری نظرِ ثانی' → 'آخری بار چیک کیا' (not 'آخری اپ ڈیٹ': checked and updated are different claims); roadmap 'اہلِ زبان کی نظرِ ثانی' → 'اردو بولنے والے سے چیک'; prose 'نظرِ ثانی ہوئی' (NEPRA manual) → 'نیا ورژن آیا'. NEPRA publishes its manual's title in English, so the Urdu source title is ours and is plain too: 'کنزیومر سروس مینول، 2025 کا نیا ورژن'.",
       "match": ["نظرِ ثانی", "نظر ثانی"]
     },
     {
@@ -1554,11 +1554,6 @@
     },
     {
       "path": "website/*",
-      "avoid": "نظرِ ثانی شدہ 2025",
-      "reason": "Part of the title of NEPRA's Consumer Service Manual (revised 2025)."
-    },
-    {
-      "path": "website/*",
       "avoid": "(ڈسٹری بیوشن لائسنسی) کے ضوابط 2021",
       "reason": "Part of the title of NEPRA's 2021 consumer eligibility regulations."
     },
@@ -1670,7 +1665,7 @@
     "حلف نامہ: what the police and courts ask for.",
     "دفعہ (49): how Pakistanis name sections of a law (دفعہ 144). The app's three 'سیکشن 155' become 'دفعہ 155', as the website says; a first mention on a tax screen may read 'دفعہ 155 (سیکشن 155)', since tax advisers say it in English.",
     "ٹیکس سال (41)، مالی سال، ود ہولڈنگ ٹیکس، این ٹی این، ایف بی آر، اے ٹی ایل، سی پی آر، ریٹ کارڈ، فائلر، نان فائلر: the FBR's own words, which tax advisers and landlords use. The ATL, not filing, decides the rate, so فائلر follows 'اے ٹی ایل میں نام' as the common name.",
-    "Official names stay as officially written, with a plain gloss where the page explains them. Law titles: پنجاب انفارمیشن آف ٹیمپریری ریذیڈنٹس ایکٹ 2015، پنجاب رینٹڈ پریمیسز ایکٹ 2009، سندھ رینٹڈ پریمیسز آرڈیننس 1979، رجسٹریشن ایکٹ 1908، انکم ٹیکس آرڈیننس 2001، ضابطۂ فوجداری، and the KP and Balochistan 'رینٹڈ بلڈنگز (سیکیورٹی) ایکٹ' names, whose سیکیورٹی means public safety, not a deposit (gloss: 'پولیس رجسٹریشن کا قانون'). Citation forms stay ('سندھ ایکٹ نمبر 21 بابت 2015'). Offices and systems: خدمت مرکز، رینٹ رجسٹرار، رینٹ کنٹرولر، رینٹ ٹریبونل، مصالحتی کونسل، ٹیننٹ رجسٹریشن سسٹم، ٹرسٹ پورٹل. Ministries and places: وزارتِ قانون و انصاف، آزاد جموں و کشمیر، اسلام آباد کیپیٹل ٹیریٹری. Also the FBR's 'فعال ٹیکس دہندگان کی فہرست', once, next to اے ٹی ایل, and source titles quoted as titles (NEPRA's 'نظرِ ثانی شدہ 2025' and its regulation titles).",
+    "Official names stay as officially written, with a plain gloss where the page explains them. Law titles: پنجاب انفارمیشن آف ٹیمپریری ریذیڈنٹس ایکٹ 2015، پنجاب رینٹڈ پریمیسز ایکٹ 2009، سندھ رینٹڈ پریمیسز آرڈیننس 1979، رجسٹریشن ایکٹ 1908، انکم ٹیکس آرڈیننس 2001، ضابطۂ فوجداری، and the KP and Balochistan 'رینٹڈ بلڈنگز (سیکیورٹی) ایکٹ' names, whose سیکیورٹی means public safety, not a deposit (gloss: 'پولیس رجسٹریشن کا قانون'). Citation forms stay ('سندھ ایکٹ نمبر 21 بابت 2015'). Offices and systems: خدمت مرکز، رینٹ رجسٹرار، رینٹ کنٹرولر، رینٹ ٹریبونل، مصالحتی کونسل، ٹیننٹ رجسٹریشن سسٹم، ٹرسٹ پورٹل. Ministries and places: وزارتِ قانون و انصاف، آزاد جموں و کشمیر، اسلام آباد کیپیٹل ٹیریٹری. Also the FBR's 'فعال ٹیکس دہندگان کی فہرست', once, next to اے ٹی ایل, and source titles quoted as titles (NEPRA's regulation titles).",
     "'منصفانہ کرایہ' (fair rent)، 'مقررہ شخص' (prescribed person)، 'جائیداد سے آمدنی' (the head of income): legal terms of art. Keep them in quotes with a plain gloss.",
     "انوائس (documentKindInvoice): a supplier's invoice, distinct from بل (a utility bill), رسید (proof of money received) and اسٹیٹمنٹ (an account summary), so keep the loanword.",
     "سابق ('سابق ممبر'): everyday from the news (سابق وزیرِ اعظم). Do not replace it with پرانا, which means long-standing. Only سابقہ in 'سابقہ پتہ' becomes 'پچھلا پتہ'.",

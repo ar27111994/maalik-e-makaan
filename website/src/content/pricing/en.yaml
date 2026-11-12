@@ -22,7 +22,7 @@ plans:
     price: "Rs 0"
     period: "for good"
     annual: "No card and no time limit."
-    allowance: "Up to 5 let units, you and 1 viewer, and 500 MB for photos and documents"
+    allowance: "Up to 5 let units, you and 1 viewer, and 500 MB for photos and documents"
     featured: false
     features:
       - text: "Properties, units, tenants and leases, with CNICs masked"
@@ -47,7 +47,7 @@ plans:
     price: "Rs 499"
     period: "a month, for 5 let units"
     annual: "Then Rs 500 more a month for each 5 more let units. A year costs 10 months: Rs 4,990 for 5 units."
-    allowance: "5 to 25 let units, 5 people, and 5 GB for photos and documents"
+    allowance: "5 to 25 let units, 5 people, and 5 GB for photos and documents"
     featured: true
     features:
       - text: "Everything in Free"
@@ -68,7 +68,7 @@ plans:
     price: "Rs 2,999"
     period: "a month, for 30 let units"
     annual: "Then Rs 500 more a month for each 10 more let units. A year costs 10 months: Rs 29,990 for 30 units."
-    allowance: "30 to 100 let units in the apps and up to 200 on our website, 10 people, and 25 GB"
+    allowance: "30 to 100 let units in the apps and up to 200 on our website, 10 people, and 25 GB"
     featured: false
     features:
       - text: "Everything in Pro"
@@ -89,14 +89,14 @@ plans:
     price: "US$2.49"
     period: "a month, for 5 let units"
     annual: "Then US$2.50 more a month for each 5 more let units up to 25. From 30 let units, US$14.99 a month, then US$2.50 more for each 10 more. A year costs about 10 months: US$24.99 for 5 units."
-    allowance: "5 to 25 let units, or up to 100 with Business features; 5 people (10 from 30 units); 10 GB"
+    allowance: "5 to 25 let units, or up to 100 with Business features; 5 people (10 from 30 units); 10 GB"
     featured: false
     features:
       - text: "Everything in Pro, paid in your own currency through Google Play or the App Store"
         soon: false
       - text: "Your caretaker records rent and receipts; you confirm cash handovers and read the owner statement"
         soon: false
-      - text: "10 GB for photos and documents"
+      - text: "10 GB for photos and documents"
         soon: false
       - text: "Priority support by email"
         soon: false
@@ -120,7 +120,7 @@ faq:
     - question: "Which currency will I pay in?"
       answer: "That depends on the country of your Google Play or App Store account, not on where you live. A Pakistan account shows Free, Pro and Business in rupees; an account anywhere else shows the Overseas plan in that country’s currency, and the store shows the price, with any tax your country charges, before you pay. On our website anyone can pay the rupee prices."
     - question: "Why does the Overseas plan cost more than the rupee plans?"
-      answer: "It is the same app, with 10 GB of storage instead of 5 GB and priority support. Overseas prices are US$1 for each Rs 200 of the rupee price, at the nearest price ending in 49 or 99 cents; the store collects any tax your country charges, and keeps a fee. If you would rather pay in rupees, you can on our website, or a relative in Pakistan can pay for your account."
+      answer: "It is the same app, with 10 GB of storage instead of 5 GB and priority support. Overseas prices are US$1 for each Rs 200 of the rupee price, at the nearest price ending in 49 or 99 cents; the store collects any tax your country charges, and keeps a fee. If you would rather pay in rupees, you can on our website, or a relative in Pakistan can pay for your account."
     - question: "I live abroad and a relative collects the rent. Which plan do we need?"
       answer: "Pro or Overseas, because Free has no room for a caretaker. From abroad, Overseas starts at US$2.49 a month for 5 let units, in your currency; or your relative can hold the plan and pay Pro in rupees, from Rs 499 a month. Either way the caretaker records each payment and hands cash over in the app, you confirm it, and you get a monthly owner statement."
     - question: "Will I need a card?"
