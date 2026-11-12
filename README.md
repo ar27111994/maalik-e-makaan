@@ -20,11 +20,13 @@ that global tools ignore:
 
 ## Status
 
-**v1.0.0 was released on 9 November 2026** ([release notes](CHANGELOG.md), downloads on the
+**v1.1.0 is the latest release** <!-- x-release-please-version -->
+([release notes](CHANGELOG.md), downloads on the
 [releases page](https://github.com/ar27111994/maalik-e-makaan/releases)): Android APKs and app
-bundle, the web app at <https://maalik-e-makaan.vercel.app> and an unsigned iOS build. The
-domain library, the database, the Edge Functions, the design system, the app, the website and
-CI/CD are built, tested and deployed, and the browser UAT passes ([`docs/uat.md`](docs/uat.md)).
+bundle, the web app at <https://maalik-e-makaan.vercel.app> and an unsigned iOS build; the first,
+v1.0.0, came out on 9 November 2026. The domain library, the database, the Edge Functions, the
+design system, the app, the website and CI/CD are built, tested and deployed, and the browser UAT
+passes ([`docs/uat.md`](docs/uat.md)).
 Still to come before inviting real users: a native-speaker review of the Urdu and a legal review
 of the privacy and terms pages. Google Play waits on a D-U-N-S number, and the App Store on an
 Apple Developer Program membership. [`docs/release-readiness.md`](docs/release-readiness.md) has
