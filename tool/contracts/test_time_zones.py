@@ -11,12 +11,23 @@ must give the same offsets as the standard library's zoneinfo.
 from __future__ import annotations
 
 import random
+import re
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import generate
 import time_zones as tz
+
+
+def latest_definition(migrations: Path, function: str) -> Path | None:
+    """The newest migration that (re)defines app.<function>(), or None."""
+    pattern = re.compile(rf"create (or replace )?function app\.{function}\(\)")
+    defining = [m for m in sorted(migrations.glob("*.sql")) if pattern.search(m.read_text("utf-8"))]
+    return defining[-1] if defining else None
+
 
 # (zone, local time, the instant PostgreSQL gives, kind)
 POSTGRESQL = [
@@ -174,13 +185,40 @@ class GeneratorTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "AN"):
             generate.check_append_only(dropped)
 
-    def test_the_sql_lists_match_the_migration(self):
-        migration = (
-            generate.ROOT / "supabase" / "migrations" / "20261112092618_residence.sql"
-        ).read_text(encoding="utf-8")
+    def test_the_sql_lists_match_the_latest_migration(self):
+        # Each list is compared with the newest migration that (re)defines its
+        # function, so after a tzdata bump the widening migration is what is
+        # checked (docs/operations.md, "Time-zone data", step 3).
+        migrations = generate.ROOT / "supabase" / "migrations"
         lists = generate.render_sql_lists(generate.build_residence())
         for block in lists.strip().split("\n\n"):
-            self.assertIn(block.split("\n", 1)[1], migration)
+            header, body = block.split("\n", 1)
+            function = re.search(r"app\.(\w+)\(\)", header).group(1)
+            migration = latest_definition(migrations, function)
+            self.assertIsNotNone(migration, f"no migration defines app.{function}()")
+            self.assertIn(body, migration.read_text("utf-8"))
+
+    def test_a_later_widening_migration_is_the_one_checked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "20261112092618_residence.sql").write_text(
+                "create function app.supported_time_zones()\n  select array['Asia/Karachi']\n",
+                "utf-8",
+            )
+            self.assertEqual(
+                latest_definition(folder, "supported_time_zones").name,
+                "20261112092618_residence.sql",
+            )
+            (folder / "20270301000000_widen_time_zones.sql").write_text(
+                "create or replace function app.supported_time_zones()\n  select array[]\n",
+                "utf-8",
+            )
+            (folder / "20270401000000_unrelated.sql").write_text("select 1;\n", "utf-8")
+            self.assertEqual(
+                latest_definition(folder, "supported_time_zones").name,
+                "20270301000000_widen_time_zones.sql",
+            )
+            self.assertIsNone(latest_definition(folder, "supported_country_codes"))
 
     def test_the_vectors_cover_both_kinds_of_change(self):
         vectors = generate.build_time_zone_vectors()
