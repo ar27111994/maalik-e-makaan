@@ -13,6 +13,7 @@ import {
 } from '@std/assert';
 import { assertSnapshot } from '@std/testing/snapshot';
 import type { EmailMessage } from '../_shared/email.ts';
+import { EMAIL_TYPOGRAPHY } from '../_shared/email_typography.g.ts';
 import {
   displayName,
   formatExpiry,
@@ -173,6 +174,36 @@ Deno.test("both languages are always included, the inviter's first", () => {
     assertEquals(count(message.html, '<hr '), 1, locale);
     assertEquals(sections(message), [LINES[locale], LINES[other]], locale);
   }
+});
+
+Deno.test('the Urdu half is set in the generated e-mail type, never Nastaliq (D-19); the English half keeps its own', () => {
+  const urdu = EMAIL_TYPOGRAPHY.urdu;
+  for (const locale of LOCALES) {
+    const html = renderInvitationEmail({ ...INPUT, locale }).html;
+    assertStringIncludes(
+      html,
+      `<div lang="ur" dir="rtl" style="font-family:${urdu.fontFamily};line-height:${urdu.lineHeight};text-align:right;">\n` +
+        `<h1 style="margin:0 0 12px;font-size:22px;line-height:${urdu.headingLineHeight};color:#1F2328;">`,
+    );
+    assertStringIncludes(
+      html,
+      `<div lang="en" dir="ltr" style="font-family:'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;line-height:1.55;text-align:left;">\n` +
+        '<h1 style="margin:0 0 12px;font-size:22px;color:#1F2328;">',
+    );
+    assertEquals(count(html, 'font-family:'), 3, locale); // two sections and the footer
+    assertFalse(/nastaliq|nastaleeq/i.test(html), locale);
+  }
+});
+
+Deno.test('the generated e-mail type starts with Noto Sans Arabic, ends sans-serif and keeps Nastaliq for the wordmark', () => {
+  const urdu = EMAIL_TYPOGRAPHY.urdu.fontFamily.split(', ');
+  assertEquals(urdu[0], "'Noto Sans Arabic'");
+  assertEquals(urdu.at(-1), 'sans-serif');
+  assertFalse(urdu.some((face) => /nastaliq|nastaleeq/i.test(face)));
+  // Sans Urdu lines need far less than Nastaliq's twice the size.
+  assert(EMAIL_TYPOGRAPHY.urdu.lineHeight >= 1.4 && EMAIL_TYPOGRAPHY.urdu.lineHeight < 2);
+  assert(EMAIL_TYPOGRAPHY.urdu.headingLineHeight >= 1.4);
+  assertEquals(EMAIL_TYPOGRAPHY.urduWordmark.fontFamily.split(', ')[0], "'Noto Nastaliq Urdu'");
 });
 
 Deno.test('the html title is the escaped subject', () => {

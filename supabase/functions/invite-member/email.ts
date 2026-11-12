@@ -13,6 +13,7 @@
  */
 
 import type { EmailMessage } from '../_shared/email.ts';
+import { EMAIL_TYPOGRAPHY } from '../_shared/email_typography.g.ts';
 import { escapeHtml, singleLine, truncate } from '../_shared/text.ts';
 
 export type InviteRole = 'owner' | 'manager' | 'accountant' | 'viewer';
@@ -160,17 +161,33 @@ function copy(locale: Locale, input: InvitationEmailInput, inviter: string): Cop
   };
 }
 
+/**
+ * Each language's type. Urdu is generated from the design tokens (D-19): Noto Sans Arabic and
+ * installed sans faces, on the Urdu body's and headline's line heights.
+ */
+const TYPE: Readonly<
+  Record<Locale, { readonly font: string; readonly lineHeight: number; readonly heading: string }>
+> = {
+  en: {
+    font: "'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    lineHeight: 1.55,
+    heading: '',
+  },
+  ur: {
+    font: EMAIL_TYPOGRAPHY.urdu.fontFamily,
+    lineHeight: EMAIL_TYPOGRAPHY.urdu.lineHeight,
+    heading: `line-height:${EMAIL_TYPOGRAPHY.urdu.headingLineHeight};`,
+  },
+};
+
 function htmlSection(locale: Locale, text: Copy, url: string): string {
   const dir = locale === 'ur' ? 'rtl' : 'ltr';
-  const font = locale === 'ur'
-    ? "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', serif"
-    : "'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-  const lineHeight = locale === 'ur' ? '2.1' : '1.55';
+  const { font, lineHeight, heading } = TYPE[locale];
   const e = escapeHtml;
   return `<div lang="${locale}" dir="${dir}" style="font-family:${font};line-height:${lineHeight};text-align:${
     dir === 'rtl' ? 'right' : 'left'
   };">
-<h1 style="margin:0 0 12px;font-size:22px;color:${COLORS.ink};">${e(text.heading)}</h1>
+<h1 style="margin:0 0 12px;font-size:22px;${heading}color:${COLORS.ink};">${e(text.heading)}</h1>
 <p style="margin:0 0 20px;font-size:16px;color:${COLORS.ink};">${e(text.intro)}</p>
 <p style="margin:0 0 20px;"><a href="${
     e(url)
