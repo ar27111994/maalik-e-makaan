@@ -9,6 +9,7 @@ import json
 import sys
 import tempfile
 import unittest
+from decimal import Decimal
 from pathlib import Path
 from unittest import mock
 
@@ -273,16 +274,26 @@ EMAIL_URDU = "'Noto Sans Arabic', 'Segoe UI', Tahoma, 'Geeza Pro', sans-serif"
 EMAIL_WORDMARK = "'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif"
 NASTALIQ_BODY = "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', serif"
 NAME = "مالکِ مکان"
+# The Urdu type roles e-mails use: size in px, line height, and the line it makes in px.
+ROLES = {
+    "headline": (25, "1.52", 38),
+    "body": (17, "1.6471", 28),
+    "bodySmall": (15, "1.6", 24),
+    "caption": (13, "1.5385", 20),
+}
+# An Urdu root with a face and a role, for fragments.
+URDU_ROOT = '<div lang="ur" data-mm-type="body" style="font-family: serif; font-size: 16px; line-height: 2;">'
 
 # A template in the shape of supabase/templates: an English part, the wordmark in its header,
-# and an Urdu part still in Nastaliq.
+# and an Urdu part still in Nastaliq, at the English sizes.
 TEMPLATE = f"""<!doctype html>
 <html lang="en">
   <body>
     <p style="font-family: Arial, sans-serif; line-height: 1.5;">Maalik-e-Makaan · <span lang="ur" dir="rtl" style="font-family: {NASTALIQ_BODY};">{NAME}</span></p>
-    <div lang="ur" dir="rtl" style="padding: 8px; font-family: {NASTALIQ_BODY}; line-height: 2.2;">
-      <h1 style="margin: 0; line-height: 2.2;">اپنی ای میل کی تصدیق کریں</h1>
-      <p style="font-size: 16px;">{NAME} ایپ میں خوش آمدید<br><a href="{{{{ .ConfirmationURL }}}}" dir="ltr">{{{{ .ConfirmationURL }}}}</a></p>
+    <div lang="ur" dir="rtl" data-mm-type="body" style="padding: 8px; font-family: {NASTALIQ_BODY}; font-size: 16px; line-height: 2.2;">
+      <h1 data-mm-type="headline" style="margin: 0; font-size: 22px; line-height: 2.2;">اپنی ای میل کی تصدیق کریں</h1>
+      <p data-mm-type="bodySmall" style="font-size: 14px; line-height: 2.2;">{NAME} ایپ میں خوش آمدید<br><a href="{{{{ .ConfirmationURL }}}}" dir="ltr">{{{{ .ConfirmationURL }}}}</a></p>
+      <p style="margin: 0;"><strong dir="ltr">{{{{ .Email }}}}</strong> سے</p>
       <hr style="border: 0;"/>
     </div>
   </body>
@@ -307,15 +318,60 @@ class EmailTypographyTest(unittest.TestCase):
         )
         self.assertEqual(bt.email_stack(email["urduWordmark"]["fontFamily"]), EMAIL_WORDMARK)
 
-    def test_line_heights_follow_the_urdu_styles(self) -> None:
+    def test_the_roles_are_the_urdu_styles_on_whole_even_lines(self) -> None:
         email = bt.email_typography(self.model)
-        typography = self.model["typography"]
-        self.assertEqual(email["urdu"]["lineHeight"], 1.65)
-        self.assertAlmostEqual(
-            email["urdu"]["lineHeight"], typography[("urdu", "body")]["height"], 2
+        roles = email["urdu"]["roles"]
+        # Every Urdu style in the Urdu face; amount (Latin digits) and the wordmark are not text
+        # roles.
+        self.assertEqual(
+            list(roles),
+            ["headline", "title", "titleSmall", "body", "bodySmall", "label", "caption"],
         )
-        self.assertEqual(email["urdu"]["headingLineHeight"], 1.52)
-        self.assertEqual(email["urduWordmark"]["lineHeight"], 2)
+        for name, (size, ratio, line) in ROLES.items():
+            with self.subTest(role=name):
+                self.assertEqual(roles[name], {"fontSize": size, "lineHeight": ratio, "line": line})
+        for name, role in roles.items():
+            style = self.model["typography"][("urdu", name)]
+            with self.subTest(role=name):
+                self.assertEqual(role["fontSize"], style["size"])
+                self.assertEqual(role["line"], round(style["size"] * style["height"]))
+                self.assertEqual(role["line"] % 2, 0)
+                # Size times the written ratio is the line, never under it, and within 1/64 px
+                # (a layout unit in Chromium and WebKit) over it.
+                laid_out = Decimal(role["fontSize"]) * Decimal(role["lineHeight"])
+                self.assertGreaterEqual(laid_out, role["line"])
+                self.assertLess(laid_out - role["line"], Decimal(1) / 64)
+        self.assertEqual(email["urduWordmark"]["lineHeight"], "2")
+
+    def test_the_line_ratio_rounds_up_to_four_places(self) -> None:
+        self.assertEqual(bt.line_ratio(28, 17), "1.6471")  # 1.64705...
+        self.assertEqual(bt.line_ratio(20, 13), "1.5385")  # 1.53846...
+        self.assertEqual(bt.line_ratio(24, 15), "1.6")
+        self.assertEqual(bt.line_ratio(44, 22), "2")
+        self.assertEqual(bt.line_ratio(26, 17), "1.5295")  # 1.52941..., up, not to 1.5294
+
+    def test_a_line_of_a_fraction_or_odd_number_of_pixels_is_refused(self) -> None:
+        for height, line in ((1.65, "28.05"), (1.588235294117647, "27")):
+
+            def mutate(d, height=height):
+                d["typography"]["urdu"]["body"]["$value"]["lineHeight"] = height
+
+            with self.subTest(line=line), self.assertRaises(bt.TokenError) as caught:
+                bt.email_typography(load_variant(mutate))
+            self.assertIn(
+                f"typography.urdu.body: a 17px size on a {line}px line; Urdu lines are a whole, "
+                "even number of pixels",
+                str(caught.exception),
+            )
+
+    def test_the_body_role_is_required(self) -> None:
+        model = {
+            **self.model,
+            "typography": {k: v for k, v in self.model["typography"].items() if k[1] != "body"},
+        }
+        with self.assertRaises(bt.TokenError) as caught:
+            bt.email_typography(model)
+        self.assertIn("typography.urdu.body is missing", str(caught.exception))
 
     def test_a_face_already_in_the_stack_is_not_named_twice(self) -> None:
         model = {**self.model, "families": {**self.model["families"]}}
@@ -366,13 +422,18 @@ class EmailTypographyTest(unittest.TestCase):
             bt.email_typography(model)
         self.assertIn("font.family.urduWordmark", str(caught.exception))
 
-    def test_the_typescript_module_holds_the_stacks_and_line_heights(self) -> None:
+    def test_the_typescript_module_holds_the_stacks_and_roles(self) -> None:
         ts = bt.render_email_ts(bt.email_typography(self.model))
         self.assertTrue(ts.startswith("// GENERATED by tool/design/build_tokens.py"))
-        self.assertIn(f'    fontFamily: "{EMAIL_URDU}",\n    lineHeight: 1.65,\n', ts)
-        self.assertIn("    headingLineHeight: 1.52,\n", ts)
+        self.assertIn(f'    fontFamily: "{EMAIL_URDU}",\n    headline: {{', ts)
+        for name, (size, ratio, line) in ROLES.items():
+            self.assertIn(
+                f"    {name}: {{ fontSize: {size}, lineHeight: {ratio} }}, // {line}px lines\n", ts
+            )
         self.assertIn(f'    fontFamily: "{EMAIL_WORDMARK}",\n    lineHeight: 2,\n', ts)
         self.assertTrue(ts.endswith("} as const;\n"))
+        # The committed module is this one.
+        self.assertEqual(bt.EMAIL_TS_OUT.read_text(encoding="utf-8"), ts)
 
     def test_the_wordmark_name_is_the_apps_urdu_name(self) -> None:
         self.assertEqual(bt.wordmark_name(), NAME)
@@ -395,14 +456,20 @@ class EmailTemplateTest(unittest.TestCase):
             self.render(html)
         self.assertIn(fragment, str(caught.exception))
 
-    def test_a_nastaliq_body_is_rewritten_in_the_sans_stack(self) -> None:
+    def test_a_nastaliq_body_is_rewritten_in_the_sans_stack_and_the_roles(self) -> None:
         out = self.render(TEMPLATE)
         self.assertIn(
-            f'<div lang="ur" dir="rtl" style="padding: 8px; font-family: {EMAIL_URDU}; '
-            'line-height: 1.65;">',
+            f'<div lang="ur" dir="rtl" data-mm-type="body" style="padding: 8px; font-family: '
+            f'{EMAIL_URDU}; font-size: 17px; line-height: 1.6471;">',
             out,
         )
-        self.assertIn('<h1 style="margin: 0; line-height: 1.52;">', out)
+        self.assertIn(
+            '<h1 data-mm-type="headline" style="margin: 0; font-size: 25px; line-height: 1.52;">',
+            out,
+        )
+        self.assertIn(
+            '<p data-mm-type="bodySmall" style="font-size: 15px; line-height: 1.6;">', out
+        )
         # Nastaliq is left only on the brand name standing alone.
         self.assertIn(f'style="font-family: {EMAIL_WORDMARK};">{NAME}</span>', out)
         self.assertEqual(out.count("Nastaliq"), 1)
@@ -413,25 +480,44 @@ class EmailTemplateTest(unittest.TestCase):
         before, after = TEMPLATE.splitlines(), out.splitlines()
         self.assertEqual(len(before), len(after))
         changed = [i for i, (a, b) in enumerate(zip(before, after, strict=True)) if a != b]
-        self.assertEqual(changed, [3, 4, 5])
-        # The English text keeps its own face, and a paragraph or link without type is untouched.
+        self.assertEqual(changed, [3, 4, 5, 6])
+        # The English text keeps its own face, and Urdu text without a role or type is untouched.
         self.assertIn('<p style="font-family: Arial, sans-serif; line-height: 1.5;">', out)
-        self.assertIn('<p style="font-size: 16px;">', out)
+        self.assertIn('<p style="margin: 0;"><strong dir="ltr">', out)
         self.assertIn('<hr style="border: 0;"/>', out)
         # Rendering again changes nothing.
         self.assertEqual(self.render(out), out)
 
+    def test_every_role_is_written(self) -> None:
+        for name, role in self.email["urdu"]["roles"].items():
+            html = (
+                f'<p lang="ur" data-mm-type="{name}" '
+                'style="font-family: serif; font-size: 1em; line-height: normal;">خوش آمدید</p>'
+            )
+            with self.subTest(role=name):
+                self.assertEqual(
+                    self.render(html),
+                    f'<p lang="ur" data-mm-type="{name}" style="font-family: {EMAIL_URDU}; '
+                    f'font-size: {role["fontSize"]}px; line-height: {role["lineHeight"]};">'
+                    "خوش آمدید</p>",
+                )
+
     def test_the_brand_name_inside_a_sentence_is_urdu_text(self) -> None:
         html = (
-            f'<p lang="ur" style="font-family: {NASTALIQ_BODY}; line-height: 2;">' f"{NAME} ایپ</p>"
+            f'<p lang="ur" data-mm-type="body" style="font-family: {NASTALIQ_BODY}; '
+            f'font-size: 16px; line-height: 2;">{NAME} ایپ</p>'
         )
         self.assertEqual(
             self.render(html),
-            f'<p lang="ur" style="font-family: {EMAIL_URDU}; line-height: 1.65;">{NAME} ایپ</p>',
+            f'<p lang="ur" data-mm-type="body" style="font-family: {EMAIL_URDU}; '
+            f'font-size: 17px; line-height: 1.6471;">{NAME} ایپ</p>',
         )
 
     def test_a_language_tag_with_a_region_is_urdu(self) -> None:
-        html = '<p lang="ur-PK" style="font-family: serif; line-height: 2;">خوش آمدید</p>'
+        html = (
+            '<p lang="ur-PK" data-mm-type="body" '
+            'style="font-family: serif; font-size: 16px; line-height: 2;">خوش آمدید</p>'
+        )
         self.assertIn(EMAIL_URDU, self.render(html))
 
     def test_urdu_text_must_be_marked_as_urdu(self) -> None:
@@ -440,23 +526,60 @@ class EmailTemplateTest(unittest.TestCase):
             't.html:2: Urdu text outside a lang="ur" element',
         )
 
-    def test_urdu_must_set_its_own_face_and_line_height(self) -> None:
+    def test_an_urdu_root_sets_a_face_and_names_a_role(self) -> None:
         self.assert_refused(
             '<div lang="ur">\nخوش آمدید</div>', 't.html:1: <div lang="ur"> sets no font-family'
         )
         self.assert_refused(
             '<div lang="ur" style="font-family: serif;">خوش آمدید</div>',
-            '<div lang="ur"> sets no line-height',
+            '<div lang="ur"> names no Urdu type role (data-mm-type="..."; one of headline, '
+            "title, titleSmall, body, bodySmall, label, caption)",
         )
-        # The wordmark needs a face but no line height of its own.
+        # The wordmark needs a face but no role or line height of its own.
         self.assertIn(
             EMAIL_WORDMARK,
             self.render(f'<span lang="ur" style="font-family: serif;">{NAME}</span>'),
         )
 
+    def test_urdu_size_and_line_height_come_only_from_a_role(self) -> None:
+        for prop in ("font-size: 14px;", "line-height: 1.5;"):
+            with self.subTest(prop=prop):
+                self.assert_refused(
+                    f'{URDU_ROOT}<p style="{prop}">خوش آمدید</p></div>',
+                    f"t.html:1: Urdu {prop.split(':')[0]} comes from a type role",
+                )
+        for prop in ("font-size", "line-height"):
+            style = "font-size: 14px;" if prop == "line-height" else "line-height: 1;"
+            with self.subTest(missing=prop):
+                self.assert_refused(
+                    f'{URDU_ROOT}<p data-mm-type="caption" style="{style}">خوش آمدید</p></div>',
+                    f'<p data-mm-type="caption"> sets no {prop}',
+                )
+        self.assert_refused(
+            f'{URDU_ROOT}<p data-mm-type="small" style="font-size: 14px;">خوش آمدید</p></div>',
+            'data-mm-type="small" is not an Urdu type role; the roles are headline, title,',
+        )
+        # A role is for Urdu text only, and the wordmark keeps the size of its line.
+        self.assert_refused(
+            '<p lang="en" data-mm-type="body" style="font-size: 16px;">Hello</p>',
+            "data-mm-type names an Urdu type role, on an element not in Urdu",
+        )
+        self.assert_refused(
+            f'<span lang="ur" data-mm-type="body" style="font-family: serif;">{NAME}</span>',
+            "the wordmark takes no data-mm-type",
+        )
+
+    def test_the_wordmark_line_height_is_the_wordmarks(self) -> None:
+        self.assertEqual(
+            self.render(
+                f'<span lang="ur" style="font-family: serif; line-height: 1;">{NAME}</span>'
+            ),
+            f'<span lang="ur" style="font-family: {EMAIL_WORDMARK}; line-height: 2;">{NAME}</span>',
+        )
+
     def test_type_is_set_in_double_quoted_longhand_inline_styles(self) -> None:
         self.assert_refused(
-            "<div lang=\"ur\" style='font-family: serif;'>خوش آمدید</div>",
+            '<div lang="ur" data-mm-type="body" style=\'font-family: serif;\'>خوش آمدید</div>',
             "write the style attribute in double quotes",
         )
         self.assert_refused(
@@ -480,7 +603,7 @@ class EmailTemplateTest(unittest.TestCase):
 
     def test_type_is_set_only_through_the_style_attribute(self) -> None:
         for html in (
-            f'<div lang="ur" style="font-family: serif; line-height: 2;"><font face="Noto Nastaliq Urdu">{NAME} ایپ</font></div>',
+            f'{URDU_ROOT}<font face="Noto Nastaliq Urdu">{NAME} ایپ</font></div>',
             '<p><FONT FACE="Noto Nastaliq Urdu">Hello</FONT></p>',
             '<basefont face="Noto Nastaliq Urdu">',
             '<p lang="ur" face="Noto Nastaliq Urdu">خوش آمدید</p>',
@@ -498,8 +621,7 @@ class EmailTemplateTest(unittest.TestCase):
         ):
             with self.subTest(style=style):
                 self.assert_refused(
-                    f'<div lang="ur" style="font-family: serif; line-height: 2;">'
-                    f'<p style="{style}">خوش آمدید</p></div>',
+                    f'{URDU_ROOT}<p style="{style}">خوش آمدید</p></div>',
                     "without CSS comments, CSS escapes or character references",
                 )
 
@@ -514,15 +636,36 @@ class EmailTemplateTest(unittest.TestCase):
             with self.subTest(template=path.name):
                 self.assertEqual(self.render(html), html)
                 self.assertEqual(html.count(f"font-family: {EMAIL_URDU};"), 1)
-                self.assertEqual(html.count("line-height: 1.65;"), 1)
-                self.assertEqual(html.count("line-height: 1.52;"), 1)
                 self.assertEqual(html.count("'Noto Nastaliq Urdu'"), 1)
                 self.assertIn(f'style="font-family: {EMAIL_WORDMARK};">{NAME}</span>', html)
+                # The Urdu half: its root and the button in body type, the heading a headline,
+                # the first paragraph body text and the grey ones bodySmall, each a size larger
+                # than the English element it stands for (16, 22 and 14px).
+                parser = bt._UrduElements(html, path.name)
+                parser.feed(html)
+                roles = [(e["tag"], e["role"]) for e in parser.urdu if e["role"] is not None]
+                self.assertEqual(
+                    roles,
+                    [("td", "body"), ("h1", "headline"), ("p", "body"), ("a", "body")]
+                    + [("p", "bodySmall")] * 3,
+                )
+                # Every Urdu line is a whole, even number of pixels.
+                for element in parser.urdu:
+                    size = bt.FONT_SIZE.search(element["raw"])
+                    ratio = bt.LINE_HEIGHT.search(element["raw"])
+                    if element["role"] is None:
+                        self.assertEqual((size, ratio), (None, None))
+                        continue
+                    line = Decimal(size.group(2).removesuffix("px")) * Decimal(ratio.group(2))
+                    with self.subTest(line=element["line"]):
+                        self.assertLess(line - round(line), Decimal(1) / 64)
+                        self.assertGreaterEqual(line, round(line))
+                        self.assertEqual(round(line) % 2, 0)
 
     def test_check_refuses_a_template_set_in_nastaliq(self) -> None:
         real = (bt.EMAIL_TEMPLATES / "confirmation.html").read_text(encoding="utf-8")
         nastaliq = real.replace(EMAIL_URDU, NASTALIQ_BODY).replace(
-            "line-height: 1.65", "line-height: 2.2"
+            "line-height: 1.6471", "line-height: 2.2"
         )
         self.assertNotEqual(nastaliq, real)
         with tempfile.TemporaryDirectory() as folder:
@@ -553,7 +696,7 @@ class EmailTemplateTest(unittest.TestCase):
 
     def test_check_refuses_a_face_set_outside_the_style_attributes(self) -> None:
         real = (bt.EMAIL_TEMPLATES / "confirmation.html").read_text(encoding="utf-8")
-        welcome = real.index("<p ", real.index('lang="ur" dir="rtl" style="padding'))
+        welcome = real.index("<p ", real.index('<td lang="ur" dir="rtl"'))
         end = real.index("</p>", welcome) + len("</p>")
         mutants = {
             "a font element": real[:welcome]
@@ -591,10 +734,6 @@ class EmailTemplateTest(unittest.TestCase):
             self.assertIn("broken.html:1:", err.getvalue())
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class LatinUrduStackTest(unittest.TestCase):
     def test_named_faces_of_both_stacks_come_before_the_generic_family(self):
         families = {
@@ -614,3 +753,7 @@ class LatinUrduStackTest(unittest.TestCase):
         families = {"latin": ["Roboto"], "urdu": ["Tahoma", "sans-serif"]}
         with self.assertRaises(bt.TokenError):
             bt.latin_urdu_stack(families)
+
+
+if __name__ == "__main__":
+    unittest.main()

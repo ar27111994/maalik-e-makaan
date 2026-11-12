@@ -161,45 +161,70 @@ function copy(locale: Locale, input: InvitationEmailInput, inviter: string): Cop
   };
 }
 
+/** The English half's face, as the English e-mail has always set it. */
+const ENGLISH_FONT =
+  "'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+/** The Urdu type generated from the design tokens. */
+const URDU = EMAIL_TYPOGRAPHY.urdu;
+
+/** An Urdu type role as a style: its size, and its line height (a whole number of pixels). */
+function urduRole(role: { readonly fontSize: number; readonly lineHeight: number }): string {
+  return `font-size:${role.fontSize}px;line-height:${role.lineHeight};`;
+}
+
+/** The type of one language's half: its own, and that of each kind of text in it. */
+interface SectionType {
+  /** The face, and the size and line height that what sets neither inherits. */
+  readonly section: string;
+  readonly heading: string;
+  readonly body: string;
+  readonly small: string;
+  readonly caption: string;
+}
+
 /**
  * Each language's type. Urdu is generated from the design tokens (D-19): Noto Sans Arabic and
- * installed sans faces, on the Urdu body's and headline's line heights.
+ * installed sans faces, a size larger than the English in each role (its letters are small for
+ * their size), on lines of whole pixels.
  */
-const TYPE: Readonly<
-  Record<Locale, { readonly font: string; readonly lineHeight: number; readonly heading: string }>
-> = {
+const TYPE: Readonly<Record<Locale, SectionType>> = {
   en: {
-    font: "'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    lineHeight: 1.55,
-    heading: '',
+    section: `font-family:${ENGLISH_FONT};line-height:1.55;`,
+    heading: 'font-size:22px;',
+    body: 'font-size:16px;',
+    small: 'font-size:14px;',
+    caption: 'font-size:13px;',
   },
   ur: {
-    font: EMAIL_TYPOGRAPHY.urdu.fontFamily,
-    lineHeight: EMAIL_TYPOGRAPHY.urdu.lineHeight,
-    heading: `line-height:${EMAIL_TYPOGRAPHY.urdu.headingLineHeight};`,
+    section: `font-family:${URDU.fontFamily};${urduRole(URDU.body)}`,
+    heading: urduRole(URDU.headline),
+    body: urduRole(URDU.body),
+    small: urduRole(URDU.bodySmall),
+    caption: urduRole(URDU.caption),
   },
 };
 
 function htmlSection(locale: Locale, text: Copy, url: string): string {
   const dir = locale === 'ur' ? 'rtl' : 'ltr';
-  const { font, lineHeight, heading } = TYPE[locale];
+  const type = TYPE[locale];
   const e = escapeHtml;
-  return `<div lang="${locale}" dir="${dir}" style="font-family:${font};line-height:${lineHeight};text-align:${
+  return `<div lang="${locale}" dir="${dir}" style="${type.section}text-align:${
     dir === 'rtl' ? 'right' : 'left'
   };">
-<h1 style="margin:0 0 12px;font-size:22px;${heading}color:${COLORS.ink};">${e(text.heading)}</h1>
-<p style="margin:0 0 20px;font-size:16px;color:${COLORS.ink};">${e(text.intro)}</p>
+<h1 style="margin:0 0 12px;${type.heading}color:${COLORS.ink};">${e(text.heading)}</h1>
+<p style="margin:0 0 20px;${type.body}color:${COLORS.ink};">${e(text.intro)}</p>
 <p style="margin:0 0 20px;"><a href="${
     e(url)
-  }" style="display:inline-block;padding:12px 22px;background:${COLORS.primary};color:${COLORS.onPrimary};text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;">${
+  }" style="display:inline-block;padding:12px 22px;background:${COLORS.primary};color:${COLORS.onPrimary};text-decoration:none;border-radius:8px;${type.body}font-weight:600;">${
     e(text.button)
   }</a></p>
-<p style="margin:0 0 12px;font-size:14px;color:${COLORS.muted};">${e(text.validity)}</p>
-<p style="margin:0 0 4px;font-size:13px;color:${COLORS.muted};">${e(text.fallback)}</p>
-<p dir="ltr" style="margin:0 0 12px;font-size:13px;word-break:break-all;"><a href="${
+<p style="margin:0 0 12px;${type.small}color:${COLORS.muted};">${e(text.validity)}</p>
+<p style="margin:0 0 4px;${type.caption}color:${COLORS.muted};">${e(text.fallback)}</p>
+<p dir="ltr" style="margin:0 0 12px;${type.caption}word-break:break-all;"><a href="${
     e(url)
   }" style="color:${COLORS.primary};">${e(url)}</a></p>
-<p style="margin:0;font-size:13px;color:${COLORS.muted};">${e(text.ignore)}</p>
+<p style="margin:0;${type.caption}color:${COLORS.muted};">${e(text.ignore)}</p>
 </div>`;
 }
 

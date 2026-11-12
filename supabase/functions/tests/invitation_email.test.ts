@@ -176,14 +176,26 @@ Deno.test("both languages are always included, the inviter's first", () => {
   }
 });
 
+/** The section of [html] in [locale], from its opening tag to its closing one. */
+function section(html: string, locale: Locale): string {
+  const start = html.indexOf(`<div lang="${locale}" `);
+  assert(start >= 0, locale);
+  return html.slice(start, html.indexOf('\n</div>', start) + '\n</div>'.length);
+}
+
+/** The style attribute of every element in [html] that sets a font-size. */
+function sizedStyles(html: string): string[] {
+  return [...html.matchAll(/style="([^"]*font-size:[^"]*)"/g)].map((match) => match[1] ?? '');
+}
+
 Deno.test('the Urdu half is set in the generated e-mail type, never Nastaliq (D-19); the English half keeps its own', () => {
   const urdu = EMAIL_TYPOGRAPHY.urdu;
   for (const locale of LOCALES) {
     const html = renderInvitationEmail({ ...INPUT, locale }).html;
     assertStringIncludes(
       html,
-      `<div lang="ur" dir="rtl" style="font-family:${urdu.fontFamily};line-height:${urdu.lineHeight};text-align:right;">\n` +
-        `<h1 style="margin:0 0 12px;font-size:22px;line-height:${urdu.headingLineHeight};color:#1F2328;">`,
+      `<div lang="ur" dir="rtl" style="font-family:${urdu.fontFamily};font-size:17px;line-height:${urdu.body.lineHeight};text-align:right;">\n` +
+        `<h1 style="margin:0 0 12px;font-size:25px;line-height:${urdu.headline.lineHeight};color:#1F2328;">`,
     );
     assertStringIncludes(
       html,
@@ -195,14 +207,32 @@ Deno.test('the Urdu half is set in the generated e-mail type, never Nastaliq (D-
   }
 });
 
+Deno.test('each Urdu text is a size larger than its English, on a line of whole, even pixels', () => {
+  const html = renderInvitationEmail(INPUT).html;
+  // The section, heading, intro, button, validity, fallback, link and last line, in order.
+  const sizes = (locale: Locale) =>
+    sizedStyles(section(html, locale)).map((style) => /font-size:(\d+)px/.exec(style)?.[1]);
+  assertEquals(sizes('en'), ['22', '16', '16', '14', '13', '13', '13']);
+  assertEquals(sizes('ur'), ['17', '25', '17', '17', '15', '13', '13', '13']);
+  for (const style of sizedStyles(section(html, 'ur'))) {
+    const size = Number(/font-size:(\d+)px/.exec(style)?.[1]);
+    const ratio = Number(/line-height:([\d.]+);/.exec(style)?.[1]);
+    const line = size * ratio;
+    // Never under the whole line, and within a layout unit (1/64 px) over it.
+    assert(line >= Math.round(line) && line - Math.round(line) < 1 / 64, style);
+    assertEquals(Math.round(line) % 2, 0, style);
+  }
+});
+
 Deno.test('the generated e-mail type starts with Noto Sans Arabic, ends sans-serif and keeps Nastaliq for the wordmark', () => {
   const urdu = EMAIL_TYPOGRAPHY.urdu.fontFamily.split(', ');
   assertEquals(urdu[0], "'Noto Sans Arabic'");
   assertEquals(urdu.at(-1), 'sans-serif');
   assertFalse(urdu.some((face) => /nastaliq|nastaleeq/i.test(face)));
   // Sans Urdu lines need far less than Nastaliq's twice the size.
-  assert(EMAIL_TYPOGRAPHY.urdu.lineHeight >= 1.4 && EMAIL_TYPOGRAPHY.urdu.lineHeight < 2);
-  assert(EMAIL_TYPOGRAPHY.urdu.headingLineHeight >= 1.4);
+  for (const role of [EMAIL_TYPOGRAPHY.urdu.body, EMAIL_TYPOGRAPHY.urdu.headline]) {
+    assert(role.lineHeight >= 1.4 && role.lineHeight < 2);
+  }
   assertEquals(EMAIL_TYPOGRAPHY.urduWordmark.fontFamily.split(', ')[0], "'Noto Nastaliq Urdu'");
 });
 
