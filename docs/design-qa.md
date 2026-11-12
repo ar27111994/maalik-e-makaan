@@ -33,7 +33,7 @@ test output, file and line) and gives a verdict.
    success) and both languages.
 2. **Visual quality**: hierarchy reads at a glance; spacing follows the scale;
    type is legible at the target size in Atkinson Hyperlegible Next and Noto
-   Nastaliq Urdu (whose tall ascenders need more line height); colour carries
+   Sans Arabic (on taller lines, so its dots and marks never touch); colour carries
    meaning, not decoration.
 3. **Accessibility**: AA contrast in every theme; visible focus; targets of at
    least 48 dp; meaning never by colour alone (status pairs an icon or a word

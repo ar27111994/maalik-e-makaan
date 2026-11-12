@@ -265,7 +265,8 @@ The Content-Security-Policy, with `<ref>` the Supabase project:
 | `form-action`     | `'self'`                                                                             | Flutter wraps autofill groups in a `<form>`, whose submission it cancels     |
 | `frame-ancestors` | `'none'`                                                                             | The app cannot be framed (clickjacking)                                      |
 
-The bundled fonts cover Latin (Atkinson Hyperlegible Next) and Urdu (Noto Nastaliq Urdu). For any
+The bundled fonts cover Latin (Atkinson Hyperlegible Next) and Urdu (Noto Sans Arabic, and Noto
+Nastaliq Urdu for the Urdu wordmark). For any
 other glyph, such as a tenant's name in another script or an emoji, Flutter's engine downloads a
 Noto font from `https://fonts.gstatic.com/s/` (its default `fontFallbackBaseUrl`) with `fetch()`.
 That is why `connect-src` allows exactly that origin and `font-src` stays `'self'`. Bundling every

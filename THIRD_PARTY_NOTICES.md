@@ -98,14 +98,17 @@ AGPL.
 | Font                       | Version              | Licence                                     | Copyright                                                |
 | -------------------------- | -------------------- | ------------------------------------------- | -------------------------------------------------------- |
 | Atkinson Hyperlegible Next | 2.001                | SIL Open Font License 1.1                   | 2020-2024 The Atkinson Hyperlegible Next Project Authors |
+| Noto Sans Arabic           | 2.012                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
 | Noto Nastaliq Urdu         | 3.009                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
 | MmIcons (subset of Lucide) | lucide-static 1.66.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
 
 The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
-(`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoNastaliqUrdu.txt`,
-`LICENSE-lucide.txt`). Versions come from each font's name table. The website
-serves subsets of the two text fonts (one renamed "MM Nastaliq Label") and
-publishes both OFL texts at `/licences/`. The pitch deck (`website/deck/`) embeds
+(`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoSansArabic.txt`, `OFL-NotoNastaliqUrdu.txt`,
+`LICENSE-lucide.txt`). Versions come from each font's name table. The app sets Urdu interface
+text in Noto Sans Arabic (the variable font from google/fonts, `ofl/notosansarabic`) and keeps
+Noto Nastaliq Urdu for the Urdu wordmark only. The website serves subsets of
+Atkinson Hyperlegible Next and Noto Nastaliq Urdu (one renamed "MM Nastaliq
+Label") and publishes both OFL texts at `/licences/`. The pitch deck (`website/deck/`) embeds
 the two text fonts in its PDF and draws five Lucide icons (`website/deck/icons/`,
 with their ISC notice) from lucide-static 1.66.0.
 
@@ -115,7 +118,7 @@ What the licences ask:
   makes), subset and redistributed with the app, as long as every copy carries
   the copyright notice and the licence, and the fonts are not sold on their
   own. Neither licence names a Reserved Font Name, so a renamed subset is
-  allowed. The two font files carry their copyright and a pointer to the OFL
+  allowed. The three font files carry their copyright and a pointer to the OFL
   in their name tables; the full texts ship with the app and appear on its
   licence page (see [Gaps](#gaps)).
 - **ISC and MIT** (icons): keep the copyright and permission notice with every
@@ -264,7 +267,8 @@ Found while compiling this page. Closed since (checked on 2026-11-08):
   licence.
 - `MmLicenses.register()` (`packages/mm_ui/lib/src/foundation/mm_licenses.dart`,
   called from `app/lib/src/bootstrap.dart`) adds `OFL-AtkinsonHyperlegibleNext.txt`,
-  `OFL-NotoNastaliqUrdu.txt` and `LICENSE-lucide.txt` to `LicenseRegistry`, and
+  `OFL-NotoSansArabic.txt`, `OFL-NotoNastaliqUrdu.txt` and `LICENSE-lucide.txt` to
+  `LicenseRegistry`, and
   Settings, About opens `showLicensePage`.
 
 Still open:
