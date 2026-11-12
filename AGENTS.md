@@ -116,3 +116,15 @@ says what each means here, the gates in force today and what is still to reach.
   whole stack is hardened: type safety, rate limits, caching, indexes, roles and row-level
   security, timing-safe comparison of secrets, and search-engine readiness. The aim is a
   complete, fast and secure production system.
+- **Formal verification**: every money path, every concurrency protocol and every state machine
+  they pass through has a model or a proof that CI checks, tied to the code by contract vectors,
+  replays and mutants that must fail. Properties have names, assumptions name the guard that makes
+  them true, and a change to modelled code updates its track in the same pull request. A prose
+  argument is not evidence.
+- **Agentification** (agents that build the repository, and agents in the product): in the
+  repository, layered context, rules a machine checks, the same gates for every author, evidence
+  instead of claims, a review pass before merge, stated limits on what an agent does alone, and
+  commits that name their agent. In the product, agents get the least they need: read-only by
+  construction, writes only as drafts within a mandate a person grants and can revoke, with
+  consent, audit, rate limits, deterministic checks around every model output, and evaluation sets
+  with a held-out part.
