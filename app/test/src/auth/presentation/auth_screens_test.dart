@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
@@ -56,7 +57,7 @@ void main() {
       expect(Directionality.of(tester.element(urdu)), TextDirection.rtl);
       expect(
         Theme.of(tester.element(urdu)).textTheme.headlineSmall!.fontFamily,
-        contains('Nastaliq'),
+        contains(MmFontFamily.urdu),
       );
       expect(
         tester.getSemantics(urdu),
@@ -504,6 +505,35 @@ void main() {
       );
       expect(app.auth.calls.single.$1, 'completeEmailLink');
       expect(routeShown(Routes.home), findsOneWidget);
+    });
+
+    testWidgets('names the app with its wordmark, in Nastaliq in Urdu', (
+      tester,
+    ) async {
+      final app = TestApp(auth: const SignedOut());
+      app.auth.gate.failure = const RejectedFailure('link_expired');
+      await pumpScreen(
+        tester,
+        () => AuthCallbackScreen(link: Uri.parse('/auth/callback?code=x')),
+        app: app,
+        variant: MmVariant.urdu,
+      );
+      final title = find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('مالکِ مکان'),
+      );
+      TextStyle styleOf(Finder text) => tester
+          .renderObject<RenderParagraph>(
+            find.descendant(of: text, matching: find.byType(RichText)),
+          )
+          .text
+          .style!;
+      expect(styleOf(title).fontFamily, contains(MmFontFamily.urduWordmark));
+      // The screen's other words are in the Urdu face.
+      expect(
+        styleOf(find.text('یہ لنک کام نہیں کر سکا')).fontFamily,
+        contains(MmFontFamily.urdu),
+      );
     });
 
     for (final (reason, message) in [

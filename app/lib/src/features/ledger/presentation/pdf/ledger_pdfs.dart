@@ -104,9 +104,9 @@ const double documentMargin = MmSpace.s8;
 
 /// A receipt's margin above and below, in points. With it, and the receipt's
 /// tighter gaps and one-paragraph footer, an A5 page holds an Urdu receipt
-/// that settles three dues and has a reference; before, the tall Nastaliq
-/// lines pushed the footer of one settling two on to a second page
-/// (docs/uat.md, D8).
+/// that settles three dues and has a reference; before, the tall lines of
+/// the Nastaliq the app then used pushed the footer of one settling two on
+/// to a second page (docs/uat.md, D8).
 const double receiptMarginVertical = MmSpace.s5;
 
 /// The type sizes of documents, in points.
@@ -232,7 +232,7 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
     ],
     pw.SizedBox(height: MmSpace.s2),
     pw.Divider(color: DocumentColors.rule, thickness: 0.5),
-    // One paragraph, not two lines: a Nastaliq line is tall (D8).
+    // One paragraph, not two lines: an Urdu line is tall (D8).
     await writer.text(
       '${l10n.receiptFooter} ${l10n.documentMadeOn(words.date(setup.today))}',
       size: DocumentSize.caption,
@@ -248,8 +248,8 @@ Future<Uint8List> receiptPdf(PaymentDetail detail, DocumentSetup setup) async {
         creator: l10n.appName,
       )..addPage(
         // The rows flow on to another page when they do not fit (an Urdu
-        // receipt's Nastaliq lines are tall, and a payment may settle many
-        // dues), so nothing is cut off.
+        // receipt's lines are tall, and a payment may settle many dues),
+        // so nothing is cut off.
         pw.MultiPage(
           pageFormat: format,
           margin: const pw.EdgeInsets.symmetric(

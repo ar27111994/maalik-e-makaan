@@ -55,6 +55,7 @@ class _AuthCallbackScreenState extends ConsumerState<AuthCallbackScreen>
     final failure = this.failure;
     return MmPage(
       title: l10n.appName,
+      wordmark: true,
       scrollable: failure != null,
       body: failure == null
           ? Center(

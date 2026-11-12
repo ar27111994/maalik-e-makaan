@@ -56,7 +56,7 @@ void main() {
     expect(_images(pdf), 0);
   });
 
-  testWidgets('a tax-year statement in Urdu draws its Nastaliq', (
+  testWidgets('a tax-year statement in Urdu draws its Urdu with Flutter', (
     tester,
   ) async {
     final pdf = (await tester.runAsync(

@@ -96,6 +96,7 @@ class _PortfolioPending extends ConsumerWidget {
     final error = this.error;
     return MmPage(
       title: l10n.appName,
+      wordmark: true,
       body: error == null
           ? Semantics(
               label: l10n.loadingPortfolios,

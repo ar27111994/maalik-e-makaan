@@ -53,7 +53,8 @@ export 'operations_fakes.dart';
 export 'words.dart';
 
 /// The ways every screen is checked (as in mm_ui's harness): each theme
-/// mode, Urdu (right to left, Nastaliq), and English at 200% text size.
+/// mode, Urdu (right to left, in Noto Sans Arabic), and English at 200%
+/// text size.
 enum MmVariant {
   light(Brightness.light, Locale('en'), 1),
   dark(Brightness.dark, Locale('en'), 1),

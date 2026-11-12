@@ -25,17 +25,17 @@ PdfColor pdfColor(Color color) => PdfColor.fromInt(color.toARGB32());
 /// Writes the words of a PDF (receipts, statements) in the app's two faces.
 ///
 /// The pdf package draws text from a font's glyph table without shaping it,
-/// which Nastaliq needs: its letters join and stack through the font's
+/// which Urdu needs: its letters change shape and join through the font's
 /// substitution and positioning rules. So text with Urdu letters is laid
 /// out by Flutter's own text engine (as the app's screens are, with the
-/// bundled Noto Nastaliq Urdu, and Atkinson for Latin letters and figures
-/// inside it) and placed as an image at print resolution; all other text
-/// is PDF text in the bundled Atkinson face, which can be selected and
-/// searched.
+/// bundled Noto Sans Arabic on the Urdu body text's line height, and
+/// Atkinson for Latin letters and figures inside it) and placed as an image
+/// at print resolution; all other text is PDF text in the bundled Atkinson
+/// face, which can be selected and searched.
 ///
 /// Text set apart in Latin letters in an Urdu document (a tenant's name, a
 /// reference) is set as the Urdu UI sets it, at the Urdu type's size
-/// ([latinScale]), not smaller than the Nastaliq around it. A row's label
+/// ([latinScale]), not smaller than the Urdu around it. A row's label
 /// and value stand on one baseline ([cell], `documentRow`) and a drawn
 /// line's letters, not the room drawn around them, line up with the edge
 /// of their column.
@@ -59,7 +59,7 @@ final class PdfTextWriter {
 
   /// How much larger Latin text is set in an Urdu document: as much as the
   /// Urdu UI's body type is larger than the English UI's, so a name typed
-  /// in English is as large beside Nastaliq on paper as on screen.
+  /// in English is as large beside Urdu on paper as on screen.
   static final double urduLatinScale =
       MmTypeScale.urduBody.fontSize! / MmTypeScale.latinBody.fontSize!;
 
@@ -183,7 +183,7 @@ final class PdfTextWriter {
       end: end,
     );
     return (
-      // The room drawn beside the letters (for Nastaliq's strokes) reaches
+      // The room drawn beside the letters (for strokes past the line) reaches
       // past the column's edge, so the letters line up with it, as PDF
       // text does.
       widget: pw.Transform.translate(
@@ -227,7 +227,8 @@ final class PdfTextWriter {
               fontFamily: urdu
                   ? 'packages/mm_ui/${MmFontFamily.urdu}'
                   : 'packages/mm_ui/${MmFontFamily.latin}',
-              height: urdu ? 2 : 1.4,
+              // Urdu on the Urdu UI's body lines.
+              height: urdu ? MmTypeScale.urduBody.height : 1.4,
             ),
           )
           ..addText(run)
@@ -238,10 +239,9 @@ final class PdfTextWriter {
 
     final wide = layout(maxWidth * resolution);
     final paragraph = layout(wide.longestLine.ceilToDouble() + 1);
-    // Room for Nastaliq's strokes above and below its lines, and beside
-    // them: a line's first letter reaches past the start of its line (a
-    // kaf's slanted stroke by about a third of the size), and would
-    // otherwise be cut off.
+    // Room for the dots and marks that reach past the lines above and
+    // below, and beside them, for a stroke that reaches past the start of
+    // its line, which would otherwise be cut off.
     final margin = (scaled * 0.25).ceilToDouble();
     final side = (scaled * 0.5).ceilToDouble();
     final width = (paragraph.width + 2 * side).ceil();
