@@ -27,12 +27,20 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   the contracts `residence_vectors.json` and `time_zone_vectors.json` from the pinned PyPI
   `tzdata` 2026.6 (IANA 2026f), `mm_core`'s `CountryCode`, `Residence`, `OwnerAbroad`,
   `TimeZoneId`, `QuietHours` and `DualTime` with the bundled zone data, and the app's data layer
-  (models, repositories, providers; no screens). Not done in that run: concurrency scenario 31 and
-  the TLA+ Membership extension (to follow `wip/db-concurrency-hang`). `make test-db-stress` ran
+  (models, repositories, providers; no screens). A review round added concurrency scenario 31
+  (the caretaker, the owner-abroad answer and a declared residence in races; the invariants step
+  is now 32, with `CaretakerIsManager`), pgTAP cases for the app's next-open answer and for
+  memberships moved by the service role, an import-chain Pakistan-time guard in `mm_core`, and
+  checks that `docs/agents/commands.md` names what `make test-tools` and `make contracts` do.
+  Scenario 31 orders its sessions by their locks with a first session held open through a pipe,
+  so it does not wait for `wip/db-concurrency-hang`; whichever of the two branches merges second
+  gives it a `scenario <budget> <lock wait>` line and may move it to `fv.hold`/`await_session`.
+  Not done: the TLA+ Membership extension (the caretaker and the answer). `make test-db-stress` ran
   while another worktree was building (load average up to 15): every check passed except the
   once-a-day notifications' 15 s budget (25 s), which the base commit 9480e22 missed too (30 s and
-  38 s), so its figures were not compared with "What it costs" in `permissions.md`; re-run it on an
-  idle machine.
+  38 s), so its figures were not compared with "What it costs" in `permissions.md`; the review
+  round's run (load average 6, no schema change) missed only the same budget (25.5 s). Re-run it
+  on an idle machine.
   The UI half (onboarding, the owner-abroad question, settings, ARB strings, goldens, the privacy
   page, the data export) waits for the Noto Sans Arabic switch, because it re-records goldens. The
   owner's open questions Q1–Q7 are in `docs/roadmap/README.md`, decision 1.
