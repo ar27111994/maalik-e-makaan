@@ -237,9 +237,9 @@ void main() {
   test('etiquette: late night, Friday prayers and a recent reminder', () {
     // 11 PM and 6 AM in Pakistan: quiet hours until 8 AM.
     final night = Etiquette.concerns(now: DateTime.utc(2026, 11, 7, 18));
-    expect((night.single as QuietHours).until, DateTime.utc(2026, 11, 8, 8));
+    expect((night.single as LateNight).until, DateTime.utc(2026, 11, 8, 8));
     final dawn = Etiquette.concerns(now: DateTime.utc(2026, 11, 7, 1));
-    expect((dawn.single as QuietHours).until, DateTime.utc(2026, 11, 7, 8));
+    expect((dawn.single as LateNight).until, DateTime.utc(2026, 11, 7, 8));
     // Friday 1 PM: the prayer until 2:30 PM.
     final friday = Etiquette.concerns(now: DateTime.utc(2026, 11, 13, 8));
     expect(
