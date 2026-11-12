@@ -46,12 +46,12 @@ void _destructive(BuildContext context) {
   unawaited(
     showMmConfirmDialog(
       context,
-      title: say('Delete Gulberg House?', 'گلبرگ ہاؤس حذف کریں؟'),
+      title: say('Delete Gulberg House?', 'گلبرگ ہاؤس ڈیلیٹ کریں؟'),
       message: say(
         'Its 4 units and Rs 1,25,000 of history will be removed.',
         'اس کے 4 یونٹ اور 1,25,000 روپے کا ریکارڈ ختم ہو جائے گا۔',
       ),
-      confirmLabel: say('Delete property', 'جائیداد حذف کریں'),
+      confirmLabel: say('Delete property', 'جائیداد ڈیلیٹ کریں'),
       destructive: true,
       typedConfirmation: 'Gulberg House',
       typedConfirmationLabel: say(

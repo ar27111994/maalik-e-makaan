@@ -39,7 +39,7 @@ void main() {
         Expanded(
           flex: large ? 0 : 1,
           child: MmStatTile(
-            label: say('Overdue tenants', 'بقایا دار کرایہ دار'),
+            label: say('Overdue tenants', 'لیٹ کرایہ دار'),
             value: const Text('3'),
             trend: MmTrend(
               direction: MmTrendDirection.up,

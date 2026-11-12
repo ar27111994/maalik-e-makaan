@@ -239,7 +239,7 @@ void main() {
     testWidgets('sets the figures inside an Urdu caption in the Latin face', (
       tester,
     ) async {
-      const caption = '12 ماہ کی ادائیگیوں کی بنیاد پر';
+      const caption = '12 مہینوں کی ادائیگیوں کی بنیاد پر';
       await pumpThemed(
         tester,
         const MmScoreGauge(
@@ -251,7 +251,7 @@ void main() {
         variant: MmVariant.urdu,
       );
       expect(latinRunsIn(tester, caption), ['12 ']);
-      expect(urduRunsIn(tester, caption), ['ماہ کی ادائیگیوں کی بنیاد پر']);
+      expect(urduRunsIn(tester, caption), ['مہینوں کی ادائیگیوں کی بنیاد پر']);
     });
 
     testWidgets('at 200% on a 320 dp phone, fits long words in English and '
@@ -263,14 +263,14 @@ void main() {
             final say = sayIn(context);
             return MmScoreGauge(
               score: 61,
-              bandLabel: say('Sometimes late', 'کبھی کبھی تاخیر'),
+              bandLabel: say('Sometimes late', 'کبھی کبھی لیٹ'),
               semanticLabel: say(
                 'Payment score 61 out of 100, sometimes late',
-                'ادائیگی کا اسکور 100 میں سے 61، کبھی کبھی تاخیر',
+                'ادائیگی کا اسکور 100 میں سے 61، کبھی کبھی لیٹ',
               ),
               caption: say(
                 'Based on 12 months of rent and utility payments',
-                'کرائے اور بلوں کی 12 ماہ کی ادائیگیوں کی بنیاد پر',
+                'کرائے اور بلوں کی 12 مہینوں کی ادائیگیوں کی بنیاد پر',
               ),
               size: 200,
             );

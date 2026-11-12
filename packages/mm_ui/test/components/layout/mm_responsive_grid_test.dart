@@ -370,9 +370,9 @@ void main() {
         const MmResponsiveGrid(
           minItemWidth: 120,
           children: [
-            Text('اس مہینے کا واجب کرایہ'),
+            Text('اس مہینے کا کرایہ'),
             Text('گلبرگ میں خالی یونٹ'),
-            Text('واجب الادا'),
+            Text('لیٹ'),
           ],
         ),
       );

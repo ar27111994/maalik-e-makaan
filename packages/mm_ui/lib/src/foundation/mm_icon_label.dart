@@ -12,7 +12,7 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// The icon grows with the text size, up to one and a half times its size,
 /// and mirrors with the text direction when its glyph points. The words
 /// are set as [MmScriptText] sets them: in the Urdu UI, figures and Latin
-/// letters among Urdu words ("12 دن سے واجب") are in the Latin face, on
+/// letters among Urdu words ("12 دن سے لیٹ") are in the Latin face, on
 /// the Urdu style's lines, like amounts everywhere else. It is
 /// decorative: assistive technology reads only [label], which joins the
 /// semantics node of the nearest container or merging ancestor.

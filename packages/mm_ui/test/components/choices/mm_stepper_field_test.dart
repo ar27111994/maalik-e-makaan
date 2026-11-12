@@ -210,7 +210,7 @@ void main() {
       await pumpThemed(
         tester,
         MmStepperField(
-          label: 'پیشگی کرایہ',
+          label: 'ایڈوانس کرایہ',
           value: 3,
           min: 0,
           max: 12,
@@ -403,7 +403,7 @@ void main() {
             return MmStepperField(
               label: tr(
                 'Months of advance rent from Ali Raza',
-                'علی رضا سے پیشگی کرایہ کے مہینے',
+                'علی رضا سے ایڈوانس کرائے کے مہینے',
               ),
               value: 12,
               min: 0,

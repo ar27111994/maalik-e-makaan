@@ -28,7 +28,7 @@ void main() {
                 label: say('CNIC', 'شناختی کارڈ'),
                 value: '35202-1234567-1',
                 action: IconButton(
-                  tooltip: say('Copy CNIC', 'شناختی کارڈ نقل کریں'),
+                  tooltip: say('Copy CNIC', 'شناختی کارڈ نمبر کاپی کریں'),
                   onPressed: tapped,
                   icon: const Icon(MmIcons.copy),
                 ),
@@ -49,13 +49,13 @@ void main() {
                 ),
               ),
               MmDetailRow.amount(
-                label: say('Advance', 'ایڈوانس'),
+                label: say('Advance', 'کریڈٹ'),
                 amount: const Money.fromRupees(-5000),
                 creditLabel: say('credit', 'جمع'),
               ),
               const Divider(),
               MmDetailRow.amount(
-                label: say('Total due', 'کل واجب الادا'),
+                label: say('Total due', 'کل باقی رقم'),
                 amount: const Money.fromRupees(125000),
                 emphasized: true,
               ),
@@ -79,7 +79,7 @@ void main() {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             MmDetailRow(
-              label: say('Category', 'زمرہ'),
+              label: say('Category', 'قسم'),
               value: say('Plumbing', 'پلمبنگ'),
               userData: false,
             ),

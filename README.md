@@ -63,7 +63,7 @@ for example the [dashboard](app/test/src/goldens/goldens/dashboard_light.png),
 | Edge Functions   | `supabase/functions`  | Deno 2: account deletion, invitations, health checks and storage clean-up.                                                           |
 | Website          | `website/`            | Astro static site in English and Urdu: guides, calculators, no tracking. See [`website/README.md`](website/README.md).               |
 | Formal models    | `formal/`             | TLA+ models of the concurrent paths; Lean 4, Bend and Z3 proofs of the money arithmetic. See [`formal/README.md`](formal/README.md). |
-| Shared contracts | `contracts/`          | Test vectors that keep Dart, SQL and TypeScript in agreement (rent maths, identity, text cleaning).                                  |
+| Shared contracts | `contracts/`          | Test vectors that keep Dart, SQL and TypeScript in agreement (rent maths, identity, text cleaning), and the plain-Urdu glossary.     |
 
 Key decisions are recorded in [`.planning/PROJECT.md`](.planning/PROJECT.md):
 
@@ -124,7 +124,9 @@ target, so a green `make` means a green pull request:
 
 - formatting and linting for every language in the repository (Dart, TypeScript, Python, shell,
   SQL migrations, workflows, Markdown), the Unicode guard against invisible and bidi-control
-  characters, and the design lint that keeps UI code on its tokens;
+  characters, the plain-Urdu guard (`tool/check_urdu_words.py`, `contracts/urdu_glossary.json`)
+  against the formal words ordinary readers stumble on, and the design lint that keeps UI code on
+  its tokens;
 - analysis and tests for each Dart package with coverage gates (100% for `mm_core`, 95% for
   `mm_ui`, 90% for the app), golden tests in six variants, and the gallery in every theme;
 - Edge Function tests at 100% line, branch and function coverage;

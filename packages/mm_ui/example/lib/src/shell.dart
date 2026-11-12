@@ -18,8 +18,8 @@ import 'package:mm_ui_gallery/src/settings.dart';
 
 /// The name of [family]'s page in both languages.
 Words familyTitle(GalleryFamily family) => switch (family) {
-  GalleryFamily.actions => (en: 'Actions', ur: 'اقدامات'),
-  GalleryFamily.inputs => (en: 'Inputs', ur: 'اندراج'),
+  GalleryFamily.actions => (en: 'Actions', ur: 'ایکشن'),
+  GalleryFamily.inputs => (en: 'Inputs', ur: 'لکھنے کے خانے'),
   GalleryFamily.choices => (en: 'Choices', ur: 'انتخاب'),
   GalleryFamily.display => (en: 'Display', ur: 'نمائش'),
   GalleryFamily.records => (en: 'Records', ur: 'ریکارڈ'),
@@ -43,11 +43,11 @@ IconData _familyIcon(GalleryFamily family) => switch (family) {
 Words familyComponents(GalleryFamily family) => switch (family) {
   GalleryFamily.actions => (
     en: 'Buttons, icon buttons, floating button, segments',
-    ur: 'بٹن، آئیکن بٹن، تیرتا بٹن، منقسم انتخاب',
+    ur: 'بٹن، آئیکن بٹن، تیرتا بٹن، حصوں والے بٹن',
   ),
   GalleryFamily.inputs => (
     en: 'Text, password, money, CNIC and phone fields',
-    ur: 'متن، پاس ورڈ، رقم، شناختی کارڈ اور فون کے خانے',
+    ur: 'الفاظ، پاس ورڈ، رقم، شناختی کارڈ اور فون کے خانے',
   ),
   GalleryFamily.choices => (
     en: 'Dates, selects, switches, checkboxes, search, filters',
@@ -55,7 +55,7 @@ Words familyComponents(GalleryFamily family) => switch (family) {
   ),
   GalleryFamily.display => (
     en: 'Badges, amounts, stat tiles, cards, rows, avatars',
-    ur: 'نشان، رقوم، اعداد، کارڈ، قطاریں، اوتار',
+    ur: 'نشان، رقمیں، نمبر، کارڈ، قطاریں، اوتار',
   ),
   GalleryFamily.records => (
     en: 'Nameplate, receipt, meters, score, timeline',
@@ -71,7 +71,7 @@ Words familyComponents(GalleryFamily family) => switch (family) {
   ),
   GalleryFamily.charts => (
     en: 'Bar charts, proportion bars, sparklines, tables',
-    ur: 'بار چارٹ، تناسب کی بار، رجحان، جدول',
+    ur: 'بار چارٹ، حصوں والی بار، رجحان، ٹیبل',
   ),
 };
 
@@ -260,11 +260,11 @@ class SettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MmIconButton(
     icon: MmIcons.settings,
-    tooltip: context.tr('Display settings', 'ڈسپلے کی ترتیبات'),
+    tooltip: context.tr('Display settings', 'ڈسپلے کی سیٹنگز'),
     onPressed: () => unawaited(
       showMmSheet<void>(
         context,
-        title: context.tr('Display settings', 'ڈسپلے کی ترتیبات'),
+        title: context.tr('Display settings', 'ڈسپلے کی سیٹنگز'),
         builder: (context) => const SettingsPanel(),
       ),
     ),
@@ -295,11 +295,11 @@ class SettingsPanel extends StatelessWidget {
           segments: [
             MmSegment(
               value: Brightness.light,
-              label: context.tr('Light', 'روشن'),
+              label: context.tr('Light', 'لائٹ'),
             ),
             MmSegment(
               value: Brightness.dark,
-              label: context.tr('Dark', 'تاریک'),
+              label: context.tr('Dark', 'ڈارک'),
             ),
           ],
           selected: settings.brightness,
@@ -310,7 +310,7 @@ class SettingsPanel extends StatelessWidget {
           label: context.tr('High contrast', 'زیادہ کنٹراسٹ'),
           description: context.tr(
             'Darker ink and stronger borders: text at 7:1 or better.',
-            'گہری سیاہی اور واضح کنارے: متن کا کنٹراسٹ کم از کم 7:1۔',
+            'گہری سیاہی اور واضح کنارے: الفاظ کا کنٹراسٹ کم از کم 7:1۔',
           ),
           value: settings.highContrast,
           onChanged: (value) => update(settings.copyWith(highContrast: value)),
@@ -332,7 +332,7 @@ class SettingsPanel extends StatelessWidget {
           },
         ),
         const SizedBox(height: MmSpace.s4),
-        heading(context.tr('Text size', 'متن کا سائز')),
+        heading(context.tr('Text size', 'الفاظ کا سائز')),
         MmSegmentedControl<double>(
           expand: true,
           segments: [

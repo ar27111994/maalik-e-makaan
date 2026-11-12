@@ -2537,7 +2537,7 @@
   },
   "endsOnLabel": "Ends on",
   "@endsOnLabel": {
-    "description": "Label of a tenancy's agreed end."
+    "description": "Label of a tenancy's agreed end, a term of the tenancy. Both this and endedOnLabel, the day it actually ended, can show on one screen, so the two must read differently."
   },
   "validationEndAfterStart": "Choose a date on or after the move-in date.",
   "@validationEndAfterStart": {
@@ -2961,7 +2961,7 @@
   },
   "endedOnLabel": "Ended on",
   "@endedOnLabel": {
-    "description": "Label of when a tenancy ended."
+    "description": "Label of when a tenancy ended: the day the tenant moved out, not the agreed end (endsOnLabel)."
   },
   "deleteTenancyTitle": "Delete this tenancy?",
   "@deleteTenancyTitle": {
@@ -3702,7 +3702,7 @@
   },
   "dueDateLabel": "Due date",
   "@dueDateLabel": {
-    "description": "Label of a due's date."
+    "description": "Label of a due's date (a charge in the ledger). A bill's due date is billDueDateLabel."
   },
   "chargeNoteLabel": "Note",
   "@chargeNoteLabel": {
@@ -4511,23 +4511,23 @@
   },
   "reminderElectricity": "electricity",
   "@reminderElectricity": {
-    "description": "Utility word in a reminder."
+    "description": "The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل)."
   },
   "reminderGas": "gas",
   "@reminderGas": {
-    "description": "Utility word in a reminder."
+    "description": "The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل)."
   },
   "reminderWater": "water",
   "@reminderWater": {
-    "description": "Utility word in a reminder."
+    "description": "The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل)."
   },
   "reminderInternet": "internet",
   "@reminderInternet": {
-    "description": "Utility word in a reminder."
+    "description": "The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل)."
   },
   "reminderUtilityGeneric": "utility",
   "@reminderUtilityGeneric": {
-    "description": "Utility word in a reminder."
+    "description": "The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل)."
   },
   "reminderPayRaast": "You can pay by Raast to {raast}.",
   "@reminderPayRaast": {
@@ -4571,7 +4571,7 @@
       }
     }
   },
-  "reminderRomanUpcoming": "Assalam-o-Alaikum {tenant}. Yaad dihani hai ke {unit} ke {amount} {date} ko wajib-ul-ada hain.",
+  "reminderRomanUpcoming": "Assalam-o-Alaikum {tenant}. Yaad dihani: {unit} ke {amount}, {date} ko dene hain.",
   "@reminderRomanUpcoming": {
     "description": "Roman Urdu reminder: rent due soon (the same in every UI language).",
     "placeholders": {
@@ -4589,7 +4589,7 @@
       }
     }
   },
-  "reminderRomanDueToday": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj wajib-ul-ada hain.",
+  "reminderRomanDueToday": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj dene hain.",
   "@reminderRomanDueToday": {
     "description": "Roman Urdu reminder: due today.",
     "placeholders": {
@@ -4604,7 +4604,7 @@
       }
     }
   },
-  "reminderRomanOverdue": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam {date} ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.",
+  "reminderRomanOverdue": "Assalam-o-Alaikum {tenant}. {unit} ke {amount} late hain. In mein sab se purani raqam {date} ko deni thi. Meherbani kar ke jald ada kar dein.",
   "@reminderRomanOverdue": {
     "description": "Roman Urdu reminder: overdue.",
     "placeholders": {
@@ -4622,7 +4622,7 @@
       }
     }
   },
-  "reminderRomanReceived": "Assalam-o-Alaikum {tenant}. {date} ko {amount} mosool ho gaye. Raseed number: {receipt}. Shukriya.",
+  "reminderRomanReceived": "Assalam-o-Alaikum {tenant}. {date} ko {amount} mil gaye. Raseed number: {receipt}. Shukriya.",
   "@reminderRomanReceived": {
     "description": "Roman Urdu message: payment received.",
     "placeholders": {
@@ -4640,7 +4640,7 @@
       }
     }
   },
-  "reminderRomanUtility": "Assalam-o-Alaikum {tenant}. {unit} ka {utility} ka bill {amount} {date} tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.",
+  "reminderRomanUtility": "Assalam-o-Alaikum {tenant}. {unit} ka {utility} {amount} hai, jo {date} tak ada karna hai. Meherbani kar ke aakhri tareekh se pehle ada kar dein.",
   "@reminderRomanUtility": {
     "description": "Roman Urdu reminder: utility bill.",
     "placeholders": {
@@ -4661,25 +4661,25 @@
       }
     }
   },
-  "reminderRomanElectricity": "bijli",
+  "reminderRomanElectricity": "bijli ka bill",
   "@reminderRomanElectricity": {
-    "description": "Roman Urdu utility word."
+    "description": "The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill."
   },
-  "reminderRomanGas": "gas",
+  "reminderRomanGas": "gas ka bill",
   "@reminderRomanGas": {
-    "description": "Roman Urdu utility word."
+    "description": "The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill."
   },
-  "reminderRomanWater": "paani",
+  "reminderRomanWater": "paani ka bill",
   "@reminderRomanWater": {
-    "description": "Roman Urdu utility word."
+    "description": "The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill."
   },
-  "reminderRomanInternet": "internet",
+  "reminderRomanInternet": "internet ka bill",
   "@reminderRomanInternet": {
-    "description": "Roman Urdu utility word."
+    "description": "The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill."
   },
-  "reminderRomanUtilityGeneric": "utility",
+  "reminderRomanUtilityGeneric": "bill",
   "@reminderRomanUtilityGeneric": {
-    "description": "Roman Urdu utility word."
+    "description": "The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill."
   },
   "reminderRomanPayRaast": "Aap Raast ke zariye {raast} par adaigi kar sakte hain.",
   "@reminderRomanPayRaast": {
@@ -5749,6 +5749,10 @@
   "billMonthLabel": "Bill for",
   "@billMonthLabel": {
     "description": "Label of a bill's month."
+  },
+  "billDueDateLabel": "Due date",
+  "@billDueDateLabel": {
+    "description": "Label of the last date to pay a bill, as the bill prints it. It sits beside the date the bill was paid (paidOnLabel), so the two must read differently."
   },
   "unitsConsumedLabel": "Units used",
   "@unitsConsumedLabel": {
@@ -7715,7 +7719,7 @@
   },
   "keepInvitationAction": "Keep the invitation",
   "@keepInvitationAction": {
-    "description": "The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous, in Urdu too: both are منسوخ کریں): the invitation stays."
+    "description": "The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous: both would say Cancel): the invitation stays."
   },
   "deletePortfolioSection": "Delete this portfolio",
   "@deletePortfolioSection": {

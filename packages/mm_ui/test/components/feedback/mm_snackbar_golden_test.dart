@@ -56,7 +56,7 @@ void main() {
         context,
         message: say(
           'Ali Raza’s payment was deleted',
-          'علی رضا کی ادائیگی حذف ہو گئی',
+          'علی رضا کی ادائیگی ڈیلیٹ ہو گئی',
         ),
         actionLabel: say('Undo', 'واپس لیں'),
         onAction: tapped,
@@ -79,7 +79,7 @@ void main() {
             context,
             message: say(
               'Rs 45,000 from Ayesha Khan was deleted',
-              'عائشہ خان کے 45,000 روپے حذف ہو گئے',
+              'عائشہ خان کے 45,000 روپے ڈیلیٹ ہو گئے',
             ),
             tone: MmBannerTone.info,
             actionLabel: say('Undo', 'واپس لیں'),

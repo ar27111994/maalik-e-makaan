@@ -47,7 +47,7 @@ void main() {
               options: [
                 MmOption(value: 'a1', label: tr('Flat A-1', 'فلیٹ اے-1')),
               ],
-              placeholder: tr('Choose a unit', 'یونٹ منتخب کریں'),
+              placeholder: tr('Choose a unit', 'یونٹ چنیں'),
               optional: true,
               onChanged: _changed,
             ),
@@ -55,9 +55,9 @@ void main() {
           MmSelectField<String>(
             label: tr('Tenant', 'کرایہ دار'),
             options: const [MmOption(value: 'ayesha', label: 'Ayesha Khan')],
-            placeholder: tr('Choose a tenant', 'کرایہ دار منتخب کریں'),
+            placeholder: tr('Choose a tenant', 'کرایہ دار چنیں'),
             required: true,
-            errorText: tr('Choose who rents the unit', 'کرایہ دار منتخب کریں'),
+            errorText: tr('Choose who rents the unit', 'کرایہ دار چنیں'),
             onChanged: _changed,
           ),
           MmSelectField<String>(

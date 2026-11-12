@@ -24,7 +24,7 @@ void main() {
           spacing: MmSpace.s4,
           children: [
             MmStepperField(
-              label: tr('Advance rent', 'پیشگی کرایہ'),
+              label: tr('Advance rent', 'ایڈوانس کرایہ'),
               value: 3,
               min: 0,
               max: 12,

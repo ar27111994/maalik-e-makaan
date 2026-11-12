@@ -388,7 +388,7 @@ void main() {
         tester,
         MmFilterChips<int>(
           options: const [
-            MmFilterOption(value: 1, label: 'واجب الادا', count: 3),
+            MmFilterOption(value: 1, label: 'لیٹ', count: 3),
             MmFilterOption(value: 2, label: 'DHA'),
           ],
           selected: const {},
@@ -405,7 +405,7 @@ void main() {
           return true;
         });
       }
-      expect(spans['واجب الادا']!.fontFamily, isNull);
+      expect(spans['لیٹ']!.fontFamily, isNull);
       expect(spans[' · 3']!.fontFamily, contains(MmFontFamily.latin));
       expect(spans['DHA']!.fontFamily, contains(MmFontFamily.latin));
     });
@@ -443,12 +443,15 @@ void main() {
             options: [
               MmFilterOption(
                 value: _Status.overdue,
-                label: tr('Overdue more than a month', 'ایک ماہ سے زیادہ واجب'),
+                label: tr(
+                  'Overdue more than a month',
+                  'ایک مہینے سے زیادہ لیٹ',
+                ),
                 count: 3,
               ),
               MmFilterOption(
                 value: _Status.dueSoon,
-                label: tr('Due this week', 'اس ہفتے واجب'),
+                label: tr('Due this week', 'اس ہفتے تاریخ'),
                 count: 5,
               ),
               MmFilterOption(

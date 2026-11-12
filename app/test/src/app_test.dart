@@ -63,7 +63,7 @@ void main() {
       app: TestApp(auth: const SignedOut(), language: null),
     );
     expect(find.text('Welcome to Maalik-e-Makaan'), findsOneWidget);
-    expect(find.text('مالکِ مکان میں خوش آمدید'), findsOneWidget);
+    expect(find.text('مالکِ مکان ایپ میں خوش آمدید'), findsOneWidget);
     await tester.tap(find.text('اردو میں جاری رکھیں'));
     await tester.pumpAndSettle();
     expect(app.settings.values[AppSettings.localeKey], 'ur');

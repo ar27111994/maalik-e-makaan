@@ -56,7 +56,7 @@ void main() {
           ),
           MmAmount(
             amount: const Money.fromRupees(-5000),
-            creditLabel: say('credit', 'ایڈوانس'),
+            creditLabel: say('credit', 'کریڈٹ'),
           ),
           const MmAmount(amount: Money.fromRupees(-5000)),
           MmFormats(

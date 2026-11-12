@@ -457,7 +457,7 @@ void main() {
             ),
             numberLabel: say('Receipt no.', 'رسید نمبر'),
             receiptNumber: 'R-2026-0142',
-            amountLabel: say('Amount received', 'وصول شدہ رقم'),
+            amountLabel: say('Amount received', 'کتنی رقم ملی'),
             amount: const Money.fromRupees(12500000),
             rows: [
               if (rows) ...[
@@ -470,7 +470,10 @@ void main() {
                 ),
                 MmReceiptRow(
                   label: say('Period', 'مدت'),
-                  value: say('July to September 2026', 'جولائی تا ستمبر 2026'),
+                  value: say(
+                    'July to September 2026',
+                    'جولائی سے ستمبر 2026 تک',
+                  ),
                 ),
               ],
             ],
@@ -480,7 +483,7 @@ void main() {
             ),
             voidedLabel: say(
               'VOID: cancelled on 12 Oct 2026',
-              'کالعدم: 12 اکتوبر 2026 کو منسوخ',
+              'کینسل: 12 اکتوبر 2026 کو کینسل ہوئی',
             ),
           );
         },
@@ -502,15 +505,15 @@ void main() {
         _receipt(
           rows: const [
             MmReceiptRow(label: 'جائیداد', value: value),
-            MmReceiptRow(label: 'جرمانہ', value: '500\u00A0روپے'),
+            MmReceiptRow(label: 'لیٹ فیس', value: '500\u00A0روپے'),
           ],
-          footer: 'رسید 12 ماہ تک سنبھال کر رکھیں۔',
+          footer: 'رسید 12 مہینے تک سنبھال کر رکھیں۔',
         ),
         variant: MmVariant.urdu,
       );
       expect(latinRunsIn(tester, value), [' 12', ' III']);
       expect(latinRunsIn(tester, '500\u00A0روپے'), ['500\u00A0']);
-      expect(latinRunsIn(tester, 'رسید 12 ماہ'), [' 12 ']);
+      expect(latinRunsIn(tester, 'رسید 12 مہینے'), [' 12 ']);
       expect(styleOf(tester, value).fontFeatures, [
         const FontFeature.tabularFigures(),
       ]);
@@ -598,7 +601,7 @@ void main() {
           issuer: 'علی رضا',
           numberLabel: 'رسید نمبر',
           receiptNumber: 'MM-2026-00041',
-          amountLabel: 'وصول شدہ رقم',
+          amountLabel: 'کتنی رقم ملی',
           amount: Money.fromRupees(45000),
           rows: [],
         ),
@@ -627,7 +630,7 @@ void main() {
                     issuer: 'علی رضا',
                     numberLabel: 'رسید نمبر',
                     receiptNumber: number,
-                    amountLabel: 'وصول شدہ رقم',
+                    amountLabel: 'کتنی رقم ملی',
                     amount: Money.fromRupees(45000),
                     rows: [],
                   ),

@@ -22,7 +22,7 @@ Widget _page() => GoldenPage((context, say) {
     children: [
       Text(say('Gulberg Heights', 'گلبرگ ہائٹس'), style: text.titleLarge),
       Text(
-        say('Rent is due on the 5th.', 'کرایہ 5 تاریخ کو واجب ہے۔'),
+        say('Rent is due on the 5th.', 'کرایہ 5 تاریخ کو دینا ہے۔'),
         style: text.bodySmall!.copyWith(color: context.mm.colors.inkMuted),
       ),
       ListTile(
@@ -90,7 +90,7 @@ void _confirm(BuildContext context) {
           ),
         ),
         actions: [
-          TextButton(onPressed: tapped, child: Text(say('Cancel', 'منسوخ'))),
+          TextButton(onPressed: tapped, child: Text(say('Cancel', 'رہنے دیں'))),
           FilledButton(onPressed: tapped, child: Text(say('Remove', 'ہٹائیں'))),
         ],
       ),

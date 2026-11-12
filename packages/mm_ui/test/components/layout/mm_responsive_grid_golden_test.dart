@@ -41,19 +41,11 @@ void main() {
         children: [
           _tile(
             context,
-            say('Rent due this month', 'اس مہینے کا واجب کرایہ'),
+            say('Rent due this month', 'اس مہینے کا کرایہ'),
             moneyText(context, 95000),
           ),
-          _tile(
-            context,
-            say('Collected', 'وصول شدہ'),
-            moneyText(context, 80000),
-          ),
-          _tile(
-            context,
-            say('Overdue', 'واجب الادا'),
-            moneyText(context, 15000),
-          ),
+          _tile(context, say('Collected', 'وصول'), moneyText(context, 80000)),
+          _tile(context, say('Overdue', 'لیٹ'), moneyText(context, 15000)),
           _tile(
             context,
             say('Vacant units in Gulberg', 'گلبرگ میں خالی یونٹ'),

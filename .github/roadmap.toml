@@ -25,15 +25,15 @@ description = "On the public roadmap (maalik-e-makaan-site.vercel.app/roadmap/)"
 [[milestones]]
 id = "launch"
 title = "Launch and listen"
-title_ur = "اجرا، پھر سننا"
+title_ur = "ایپ جاری کرنا، پھر لوگوں کی بات سننا"
 due = "2027-02-28"
 description = "Get into the stores, get the Urdu and the legal texts reviewed, and put the app in the hands of the first landlords."
-description_ur = "ایپ اسٹورز تک پہنچنا، اردو اور قانونی تحریروں پر نظرِ ثانی کروانا، اور ایپ پہلے مالکانِ مکان کے ہاتھ میں دینا۔"
+description_ur = "ایپ اسٹورز تک پہنچنا، اردو اور قانونی صفحے چیک کروانا، اور ایپ سب سے پہلے کچھ مکانوں کے مالکوں کے ہاتھ میں دینا۔"
 
 [[milestones.issues]]
 id = "play-store"
 title = "Publish the Android app on Google Play"
-title_ur = "اینڈرائیڈ ایپ گوگل پلے پر شائع کرنا"
+title_ur = "اینڈرائیڈ ایپ گوگل پلے پر لانا"
 body = """
 Publish Maalik-e-Makaan on Google Play under an organisation account for AR LABS (SMC-PRIVATE) LIMITED, so that Android landlords get a normal install and automatic updates instead of an APK from a GitHub release. The application ID and the app-signing key are settled before the first upload, because the ID can never change afterwards. The listing is in English and Urdu, the Data safety form says what the privacy notice says, and the app declares no financial features.
 
@@ -58,7 +58,7 @@ Waits on: a D-U-N-S number for AR LABS.
 [[milestones.issues]]
 id = "app-store"
 title = "Publish the iPhone app on the App Store"
-title_ur = "آئی فون ایپ ایپ اسٹور پر شائع کرنا"
+title_ur = "آئی فون ایپ ایپ اسٹور پر لانا"
 body = """
 Publish the iPhone app on the App Store, with TestFlight first, so that iPhone owners, many of them abroad, get a normal install, updates and e-mail links that open the app. Apple enrols an organisation only if its website is on a domain associated with it, so AR LABS's own domain and work e-mail come first, then enrolment with the D-U-N-S number. The work covers signing on Xcode 26, universal links, the privacy manifest and App Privacy answers, and a listing in English and Urdu for iPhone, and for iPad too if the owner keeps it.
 
@@ -82,7 +82,7 @@ Waits on: a domain and work e-mail of AR LABS's own, and a D-U-N-S number.
 [[milestones.issues]]
 id = "urdu-review"
 title = "A native speaker's review of every Urdu string"
-title_ur = "ہر اردو عبارت پر اہلِ زبان کی نظرِ ثانی"
+title_ur = "ساری اردو کسی اردو بولنے والے سے چیک کروانا"
 body = """
 Have a native Urdu editor review every Urdu surface (the app's strings, receipts and statements, the website, the e-mail templates and the store listings) for plain, respectful Urdu that landlords and tenants read easily (NFR-03). A glossary and style sheet, signed off by the owner, come before any editor, and a test keeps rejected terms out. The interface's Urdu moves from Nastaliq to Noto Sans Arabic, with Nastaliq kept for the wordmark (decided by the owner on 11 November 2026, D-19); pilot readers confirm that it reads easily.
 
@@ -107,7 +107,7 @@ Waits on: a native Urdu editor, and the owner's time for the glossary.
 [[milestones.issues]]
 id = "legal-review"
 title = "A lawyer's review of the privacy notice and terms"
-title_ur = "رازداری کی پالیسی اور شرائط پر وکیل کی نظرِ ثانی"
+title_ur = "پرائیویسی پالیسی اور شرائط وکیل سے چیک کروانا"
 body = """
 Have a Pakistani lawyer review the privacy notice, the terms of use and the facts in the guides before the stores ask for a privacy policy (WEB-01). Today's notice says AR LABS decides how tenants' data is used, though landlords enter it, and promises no analytics, so it is rewritten for the [owner's three decisions](https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/README.md#the-owners-three-decisions) of 11 November 2026, and the plan has the lawyer review the analytics text before any analytics SDK ships. The work is a fixed-fee request for quotation to two or three firms, a review pack, the terms and notice rewritten in English and Urdu, a tenant notice, corrections to the guides and two new guides.
 
@@ -132,7 +132,7 @@ Waits on: a lawyer, chosen through the request for quotation.
 [[milestones.issues]]
 id = "app-icon"
 title = "The app's own icon and store artwork"
-title_ur = "ایپ کا اپنا آئیکن اور اسٹور کی تصاویر"
+title_ur = "ایپ کا اپنا آئیکن اور اسٹور کی تصویریں"
 body = """
 Replace Flutter's default launcher icon and colours on Android, iOS and the web with the app's own mark, generated from one SVG master by `make app-icons` and checked in CI. Android gets adaptive and monochrome icons, and iOS an icon made in Icon Composer. The store screenshots come from code with fictional data, in English and Urdu, showing both a resident landlord and an owner abroad.
 
@@ -157,7 +157,7 @@ Waits on: the owner's choice of mark, and a Mac for the iOS icon.
 [[milestones.issues]]
 id = "billing"
 title = "Paid plans, with early-access users told first"
-title_ur = "ادا شدہ پلان، ابتدائی صارفین کو پہلے اطلاع کے ساتھ"
+title_ur = "پیسوں والے پلان، ابھی مفت استعمال کرنے والوں کو پہلے بتا کر"
 body = """
 Turn on the plans on the pricing page and keep the promises made to early-access landlords: at least 60 days' notice, no plan they did not choose, and half price for their first year. Plans attach to portfolios, not to store accounts, and Postgres enforces the limits; over a limit there are 14 days of grace, then the extra units become read-only, and nothing is deleted. Payment is through Google Play and StoreKit 2, verified on the server, and a rupee checkout on the website through one licensed payment provider.
 
@@ -207,7 +207,7 @@ Depends on: nothing that blocks a start; its strings go through [urdu-review](ht
 [[milestones.issues]]
 id = "mcp-read"
 title = "A read-only MCP server, so a landlord's own AI can read their ledger"
-title_ur = "صرف پڑھنے کا رابطہ، تاکہ مالک کا اپنا مصنوعی ذہانت والا معاون اس کا کھاتہ پڑھ سکے"
+title_ur = "صرف پڑھنے والا رابطہ، تاکہ مالک کا اپنا اے آئی اس کا کھاتہ پڑھ سکے"
 body = """
 Let a landlord's own AI assistant read their ledger through a Model Context Protocol server: one `mcp` Edge Function with four read-only tools (their portfolios, who owes what, a tenant's statement and the overdue list) behind Supabase's OAuth server. An `agent_grants` table limits each client to the portfolios the landlord chose, until they revoke it, and every write path in the database refuses a token that carries a client id, so the server is read-only by construction. It ships behind a flag, and may move to the assistant milestone while Supabase's OAuth server is in beta.
 
@@ -232,7 +232,7 @@ Waits on: Supabase's OAuth server on the hosted project, and the consent records
 [[milestones.issues]]
 id = "draft-payments"
 title = "Draft a payment from a voice note or a pasted SMS, always confirmed"
-title_ur = "وائس نوٹ یا ایس ایم ایس سے ادائیگی کا مسودہ، ہمیشہ تصدیق کے بعد"
+title_ur = "وائس نوٹ یا ایس ایم ایس سے ادائیگی لکھ کر تیار کرنا، جو ہمیشہ تصدیق کے بعد ہی درج ہو"
 body = """
 Turn a bank or wallet SMS, a Raast screenshot or, later, a voice note into a draft payment that the landlord checks and confirms with one tap; nothing is recorded without that tap. Messages come in through the share sheet or by paste, never by reading the phone's SMS, and the amount, date and reference come only from tested parsers in `mm_core`. The confirmation goes through the existing idempotent `record_payment`, keyed on the transfer's own reference, so that a message shared twice, or an SMS and a screenshot of the same transfer, records one payment. The text path is for launch; screenshots and voice notes may move to the assistant milestone.
 
@@ -280,7 +280,7 @@ Depends on: [urdu-review](https://github.com/ar27111994/maalik-e-makaan/blob/mai
 [[milestones.issues]]
 id = "pilot"
 title = "A pilot with the first landlords"
-title_ur = "پہلے مالکانِ مکان کے ساتھ آزمائشی استعمال"
+title_ur = "کچھ مکانوں کے مالکوں کے ساتھ ایپ کا پہلا ٹیسٹ"
 body = """
 Put the app in the hands of 15 to 25 landlords from December 2026 to February 2027, over at least two rent days: about 10 at home, about 8 abroad with their caretakers, and at least 5 tenants who receive receipts. Moderated sessions in Urdu come first, then eight weeks of real use with weekly check-ins, then exit interviews, each scheduled in the participant's own time zone. Measurement comes from aggregate database views that clients cannot read, not from trackers, and the pilot ends with a report and a go or no-go for the public launch.
 
@@ -304,15 +304,15 @@ Waits on: the residence fields ([decision 1](https://github.com/ar27111994/maali
 [[milestones]]
 id = "assistant"
 title = "The assistant"
-title_ur = "معاون"
+title_ur = "اسسٹنٹ"
 due = "2027-11-30"
 description = "Munshi, an assistant that drafts while the landlord confirms: on WhatsApp, for tenants, and for the paperwork."
-description_ur = "منشی، ایک معاون جو مسودہ بناتا ہے اور مالک تصدیق کرتا ہے: واٹس ایپ پر، کرایہ داروں کے لیے، اور کاغذی کارروائی میں۔"
+description_ur = "منشی ایک اسسٹنٹ ہے جو لکھ کر تیار کرتا ہے، اور مالک دیکھ کر ہاں کرتا ہے۔ یہ واٹس ایپ پر، کرایہ داروں کے لیے اور کاغذی کارروائی میں کام آئے گا۔"
 
 [[milestones.issues]]
 id = "whatsapp-assistant"
 title = "A WhatsApp assistant, with voice notes"
-title_ur = "واٹس ایپ پر معاون، وائس نوٹ کے ساتھ"
+title_ur = "واٹس ایپ پر اسسٹنٹ، وائس نوٹ کے ساتھ"
 body = """
 Munshi on WhatsApp: ask who owes what, record a payment or draft a reminder in Urdu, Roman Urdu or English, by text or voice note. Munshi answers only about the linked person's own portfolios and acts as that person, under the same mandate checks as any other assistant, and every write is a draft confirmed with a button. Amounts come only from the deterministic parser, audio is deleted after transcription, and no AI provider receives anything before the person's consent is recorded.
 
@@ -338,7 +338,7 @@ Waits on: the owner's choice of model and speech-to-text providers, and the cons
 [[milestones.issues]]
 id = "whatsapp-reminders"
 title = "Scheduled reminders through the WhatsApp Business Platform"
-title_ur = "واٹس ایپ بزنس کے ذریعے طے شدہ وقت پر خودکار یاد دہانیاں"
+title_ur = "واٹس ایپ بزنس کے ذریعے آٹومیٹک یاد دہانیاں، طے کیے ہوئے وقت پر"
 body = """
 Send rent reminders automatically through the WhatsApp Cloud API, on the landlord's schedule: between 10:00 and 20:00 Pakistan time, a narrower window inside the 08:00 to 22:00 the app allows for reminders sent by hand, and, as the app already requires, never during Friday prayers and never twice in three days. A tenant opts in by sending a single-use code, a recorded payment cancels the reminders queued for it, and the free `wa.me` reminder from the landlord's own phone stays the default. It reverses decision D-11 (open proposal P-01 in [`.planning/PROJECT.md`](https://github.com/ar27111994/maalik-e-makaan/blob/main/.planning/PROJECT.md)), so the owner decides first.
 
@@ -365,7 +365,7 @@ Waits on: Meta's business verification of AR LABS and the approval of the templa
 [[milestones.issues]]
 id = "agent-limits"
 title = "An agent role that writes only within set limits"
-title_ur = "معاون کا ایسا کردار جو صرف طے شدہ حدوں کے اندر لکھ سکے"
+title_ur = "اسسٹنٹ کا ایسا رول جو صرف طے کی ہوئی حدوں کے اندر لکھ سکے"
 body = """
 An assistant acts for one person and can write only within limits that person sets: which tenancies, the largest amount, a monthly total and an expiry, kept in `agent_mandates` and checked in Postgres rather than by the assistant. Its writes are drafts that wait for the person's tap unless they decide otherwise, and voids, waivers, deletions and team changes are never open to an assistant. An owner approves a caretaker's mandate, and every write is marked in the audit trail.
 
@@ -415,7 +415,7 @@ Waits on: letterheads ([decision 2](https://github.com/ar27111994/maalik-e-makaa
 [[milestones.issues]]
 id = "reconciliation"
 title = "Suggested matches between incoming payments and open dues"
-title_ur = "آنے والی ادائیگیوں اور واجب الادا رقموں کے ممکنہ جوڑ کی تجویز"
+title_ur = "آنے والی ادائیگیاں کن باقی چارجز سے ملتی ہیں، اس کی تجویز"
 body = """
 From a bank or wallet statement, or the alerts a landlord shares, suggest which open dues each incoming credit pays, for a person to approve. Statements are read on the phone: debits and dismissed lines never leave it, and only the credits the landlord keeps are uploaded. Approval goes through `record_payment` with the same key as a drafted payment, so that an SMS and a statement line for the same transfer record one payment.
 
@@ -516,7 +516,7 @@ Waits on: the time-zone field ([decision 1](https://github.com/ar27111994/maalik
 [[milestones.issues]]
 id = "retention"
 title = "Remove identity documents automatically after a tenancy ends"
-title_ur = "کرایہ داری ختم ہونے کے بعد شناختی دستاویزات خود بخود حذف کرنا"
+title_ur = "کرایہ داری ختم ہونے کے بعد شناختی کاغذات خود بخود ڈیلیٹ کرنا"
 body = """
 Delete CNIC copies and similar identity documents, and blank the identifying fields, a set number of months after a tenancy ends, while payments, receipts and the tenant's name on them stay for the six years the tax law asks for. Owners are told 30 days ahead, can export first and can hold a file while there is a dispute; unpaid rent holds it automatically. The first release runs as a dry run.
 
@@ -540,7 +540,7 @@ Depends on: [legal-review](https://github.com/ar27111994/maalik-e-makaan/blob/ma
 [[milestones.issues]]
 id = "move-out"
 title = "A move-out photo checklist"
-title_ur = "مکان چھوڑتے وقت تصویروں کے ساتھ جانچ کی فہرست"
+title_ur = "جگہ خالی کرتے وقت تصویروں والی چیک لسٹ"
 body = """
 Dated photos of each room at move-in and at move-out, acknowledged by both sides, so that deductions from the deposit rest on a record both of them saw. The settlement raises damage charges, pays them from the deposit with a receipt in the gapless series and refunds the rest, and a utilities checklist covers the final bills. The report and statement are in English and Urdu on the landlord's letterhead; the app records what both sides saw and does not decide what may be deducted.
 
@@ -567,15 +567,15 @@ Waits on: letterheads ([decision 2](https://github.com/ar27111994/maalik-e-makaa
 [[milestones]]
 id = "money"
 title = "Money that moves"
-title_ur = "براہِ راست وصولی"
+title_ur = "ایپ سے سیدھا کرایہ وصول کرنا"
 due = "2028-11-30"
 description = "Collect rent, not just record it, through licensed partners on Pakistan's payment rails, and give owners abroad an assistant that watches for them."
-description_ur = "کرایہ صرف درج نہیں بلکہ وصول کرنا، پاکستان کے ادائیگی کے نظام پر لائسنس یافتہ شراکت داروں کے ذریعے، اور بیرونِ ملک مالکان کے لیے ایک نگران معاون۔"
+description_ur = "کرایہ صرف درج نہیں بلکہ وصول بھی کرنا، پاکستان کے ادائیگی کے نظام پر لائسنس والے پارٹنرز کے ذریعے۔ اوورسیز مالکوں کے لیے ایک اسسٹنٹ بھی، جو ان کے لیے نظر رکھے۔"
 
 [[milestones.issues]]
 id = "raast-request-to-pay"
 title = "Collect rent with Raast Request-to-Pay, through a licensed partner"
-title_ur = "لائسنس یافتہ شراکت دار کے ذریعے راست سے کرایہ وصولی"
+title_ur = "لائسنس والے پارٹنر کے ذریعے راست سے کرایہ وصول کرنا"
 body = """
 Send each month's rent as a Raast request to pay and record it by its reference, through a payment service provider licensed by the State Bank. AR LABS acts only as a technical client of that partner: each landlord is the partner's merchant, and the money settles straight to the landlord's own account, never through AR LABS. This ends version 1's rule that collection is recorded, not processed (open proposal P-02 in [`.planning/PROJECT.md`](https://github.com/ar27111994/maalik-e-makaan/blob/main/.planning/PROJECT.md)), so the owner's decision, a partner contract and a legal opinion come before any migration.
 
@@ -628,7 +628,7 @@ Waits on: the State Bank's final rules, licensed providers and a partner contrac
 [[milestones.issues]]
 id = "overseas-oversight"
 title = "An oversight assistant for owners abroad"
-title_ur = "بیرونِ ملک مالکان کے لیے نگران معاون"
+title_ur = "اوورسیز مالکوں کے لیے نظر رکھنے والا اسسٹنٹ"
 body = """
 Watch the caretaker's cash in hand, handovers and changes to payment details with a fixed set of plain checks over the records the caretaker already keeps, and tell the owner abroad when something needs a look, at a sensible hour where they live. Findings go to an owner inbox, a weekly digest in the owner's time zone and, when urgent, a push; no model makes the judgement. The rules need no regulator or partner and are recommended for the second half of 2027; only the evidence pack and Munshi's wording of findings belong in 2028.
 
@@ -654,7 +654,7 @@ Waits on: the residence fields ([decision 1](https://github.com/ar27111994/maali
 [[milestones.issues]]
 id = "agent-coordination"
 title = "Landlord, tenant and caretaker assistants that work together"
-title_ur = "مالک، کرایہ دار اور نگران کے معاون جو مل کر کام کریں"
+title_ur = "مالک، کرایہ دار اور نگران کے اسسٹنٹ جو مل کر کام کریں"
 body = """
 Let the tenant's, the caretaker's and the landlord's assistants hand each other structured items that can be checked, such as a tenant's payment claim or a caretaker's cash handover, which reach the owner as drafts to confirm and never as ledger writes. The first phase coordinates through database rows, and only structured fields pass from one role to another; signed webhooks come with the first outside subscriber. An open agent-to-agent interface is built only when a real outside agent wants one.
 

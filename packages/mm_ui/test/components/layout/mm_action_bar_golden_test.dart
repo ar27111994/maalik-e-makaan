@@ -20,7 +20,7 @@ void main() {
           MmActionBar(
             secondary: OutlinedButton(
               onPressed: tapped,
-              child: Text(say('Cancel', 'منسوخ کریں')),
+              child: Text(say('Cancel', 'رہنے دیں')),
             ),
             primary: FilledButton(
               onPressed: tapped,

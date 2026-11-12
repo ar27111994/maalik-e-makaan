@@ -429,7 +429,7 @@ void main() {
           context,
           title: 'kamran@example.com',
           userTitle: true,
-          builder: (context) => const Text('کردار: مالک'),
+          builder: (context) => const Text('رول: مالک'),
         ),
       );
       await tester.pumpAndSettle();

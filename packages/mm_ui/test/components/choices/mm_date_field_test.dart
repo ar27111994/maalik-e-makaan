@@ -123,7 +123,9 @@ Future<void> _openLargeNarrow(WidgetTester tester, Locale locale) async {
     themedApp(
       Scaffold(
         body: _field(
-          label: locale.languageCode == 'ur' ? 'لیز کا آغاز' : 'Lease start',
+          label: locale.languageCode == 'ur'
+              ? 'کرایہ نامہ شروع'
+              : 'Lease start',
           value: CalendarDate(2026, 9, 30),
         ),
       ),
@@ -219,7 +221,7 @@ void main() {
     testWidgets('Urdu shows Urdu month names', (tester) async {
       await pumpThemed(
         tester,
-        _field(value: CalendarDate(2026, 11, 5), label: 'لیز کا آغاز'),
+        _field(value: CalendarDate(2026, 11, 5), label: 'کرایہ نامہ شروع'),
         variant: MmVariant.urdu,
       );
       expect(find.textContaining('نومبر'), findsOneWidget);
@@ -259,7 +261,7 @@ void main() {
     testWidgets('the Urdu picker keeps Urdu, also day first', (tester) async {
       await pumpThemed(
         tester,
-        _field(value: CalendarDate(2026, 11, 5), label: 'لیز کا آغاز'),
+        _field(value: CalendarDate(2026, 11, 5), label: 'کرایہ نامہ شروع'),
         variant: MmVariant.urdu,
       );
       await tester.tap(_box);
@@ -272,8 +274,8 @@ void main() {
         MaterialLocalizations.of(tester.element(_picker)).firstDayOfWeekIndex,
         0,
       );
-      expect(find.text('منسوخ کریں'), findsOneWidget);
-      expect(find.text('تاریخ منتخب کریں'), findsOneWidget);
+      expect(find.text('رہنے دیں'), findsOneWidget);
+      expect(find.text('تاریخ چنیں'), findsOneWidget);
       // The columns of days are headed by Urdu day names, Sunday first,
       // never by the English initials Flutter gives Urdu.
       final words = [
@@ -306,7 +308,7 @@ void main() {
     ) async {
       await pumpThemed(
         tester,
-        _field(value: CalendarDate(2026, 11, 5), label: 'لیز کا آغاز'),
+        _field(value: CalendarDate(2026, 11, 5), label: 'کرایہ نامہ شروع'),
         variant: MmVariant.urdu,
       );
       final date = tester.widget<Text>(find.textContaining('نومبر'));
@@ -960,7 +962,7 @@ void main() {
       await pumpThemed(
         tester,
         _field(
-          label: 'لیز کا اختتام',
+          label: 'کرایہ نامہ ختم',
           value: CalendarDate(2027, 10, 31),
           optional: true,
         ),
@@ -974,7 +976,7 @@ void main() {
       expect(
         tester
             .getTopRight(
-              find.textContaining('لیز کا اختتام', findRichText: true),
+              find.textContaining('کرایہ نامہ ختم', findRichText: true),
             )
             .dx,
         closeTo(tester.getTopRight(_box).dx, 1),
@@ -990,7 +992,10 @@ void main() {
             return Column(
               children: [
                 _field(
-                  label: tr('Agreement signed on', 'معاہدے پر دستخط کی تاریخ'),
+                  label: tr(
+                    'Agreement signed on',
+                    'کرایہ نامے پر دستخط کی تاریخ',
+                  ),
                   value: CalendarDate(2026, 9, 30),
                   optional: true,
                   helper: tr(
@@ -1003,7 +1008,7 @@ void main() {
                   required: true,
                   errorText: tr(
                     'Choose the date rent is due',
-                    'کرایہ کی تاریخ منتخب کریں',
+                    'کرائے کی تاریخ چنیں',
                   ),
                 ),
               ],

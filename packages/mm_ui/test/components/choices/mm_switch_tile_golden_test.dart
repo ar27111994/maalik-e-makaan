@@ -32,7 +32,7 @@ void main() {
           // Keyboard focus: the row is ringed.
           KeyboardFocused(
             child: MmSwitchTile(
-              label: tr('Add late fees', 'تاخیر کی فیس شامل کریں'),
+              label: tr('Add late fees', 'لیٹ فیس لگائیں'),
               value: false,
               onChanged: _changed,
             ),

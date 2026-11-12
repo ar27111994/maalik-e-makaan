@@ -17,6 +17,8 @@
         "sub",
         "sup",
         "kbd",
+        // A left-to-right run inside Urdu text, such as the year range 2026-27.
+        "span",
       ],
     },
     "MD041": false,

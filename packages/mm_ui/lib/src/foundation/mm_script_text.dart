@@ -74,7 +74,7 @@ class MmScriptText extends StatelessWidget {
   /// the spaces (and the invisible direction marks and isolates) between it
   /// and the words on either side: Nastaliq's space is about half as wide
   /// as Atkinson's, so beside a Latin name it looked like no space at all
-  /// ("از Bilal Ahmed بنام"). Punctuation beside Arabic-script letters
+  /// ("رقم Bilal Ahmed سے ملی"). Punctuation beside Arabic-script letters
   /// stays with them, as do Urdu's own figures and punctuation (۴۵, ، and
   /// ۔) and the spaces between Urdu words.
   static List<MmScriptRun> runsOf(String text) {

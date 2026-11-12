@@ -56,7 +56,7 @@ format-check-repo: ## Formatting of Python, shell and docs (no Flutter or Deno n
 	npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
 .PHONY: lint
-lint: ## Lint Python, shell, workflows, migrations, docs, plain text and the Android manifest
+lint: ## Lint Python, shell, workflows, migrations, docs, text, Urdu words and the Android manifest
 	ruff check $(PYTHON_SOURCES)
 	shellcheck $(SHELL_SOURCES)
 	actionlint
@@ -66,6 +66,7 @@ lint: ## Lint Python, shell, workflows, migrations, docs, plain text and the And
 	python3 tool/check_unicode.py
 	python3 tool/android/check_manifest.py
 	$(MAKE) --no-print-directory design-lint
+	python3 tool/check_urdu_words.py
 
 .PHONY: design-lint
 design-lint: ## UI code takes colours, type, spacing, radii and motion from tokens, and is RTL-safe
@@ -175,7 +176,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, migration lint, tokens, icons, web and iOS packaging, Android manifest, roadmap, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, web and iOS packaging, Android manifest, roadmap, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'

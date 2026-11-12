@@ -1413,7 +1413,7 @@ void main() {
 
       testWidgets('uses the Urdu toggle words', (tester) async {
         await pumpThemed(tester, _rent(), variant: MmVariant.urdu);
-        expect(find.text('جدول کی شکل میں دکھائیں'), findsOneWidget);
+        expect(find.text('ٹیبل کی شکل میں دکھائیں'), findsOneWidget);
         await tester.tap(find.byType(TextButton));
         await tester.pumpAndSettle();
         expect(find.text('چارٹ کی شکل میں دکھائیں'), findsOneWidget);

@@ -1,5 +1,5 @@
 /* Why the app asks for the camera: taking photos of documents. */
-"NSCameraUsageDescription" = "شناختی کارڈ، معاہدوں اور رسیدوں کی تصاویر کھینچیں، تاکہ وہ آپ کے کرایہ داروں اور جائیدادوں کے ساتھ محفوظ رہیں۔";
+"NSCameraUsageDescription" = "شناختی کارڈ، کرایہ ناموں اور رسیدوں کی تصویریں کھینچیں، تاکہ وہ آپ کے کرایہ داروں اور جائیدادوں کے ساتھ محفوظ رہیں۔";
 
 /* Why the app asks for the photo library: choosing photos of documents. */
-"NSPhotoLibraryUsageDescription" = "شناختی کارڈ، معاہدوں اور رسیدوں کی تصاویر منتخب کریں، تاکہ وہ آپ کے کرایہ داروں اور جائیدادوں کے ساتھ محفوظ رہیں۔";
+"NSPhotoLibraryUsageDescription" = "شناختی کارڈ، کرایہ ناموں اور رسیدوں کی تصویریں چنیں، تاکہ وہ آپ کے کرایہ داروں اور جائیدادوں کے ساتھ محفوظ رہیں۔";

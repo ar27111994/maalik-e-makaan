@@ -2,7 +2,7 @@
 /** The official sources a guide or calculator relies on, with the date each was checked. */
 import { formatDate } from "../i18n/dates.ts";
 import { LOCALE_INFO, type Locale } from "../i18n/locales.ts";
-import { scriptAttributes } from "../i18n/script.ts";
+import { numberRanges, scriptAttributes } from "../i18n/script.ts";
 import { ui } from "../i18n/ui.ts";
 import type { Source } from "../lib/content/schemas.ts";
 
@@ -13,6 +13,7 @@ interface Props {
 
 const { locale, sources } = Astro.props;
 const strings = ui(locale).guide;
+const rtl = LOCALE_INFO[locale].dir === "rtl";
 ---
 
 <section class="sources" aria-labelledby="sources-heading">
@@ -21,7 +22,11 @@ const strings = ui(locale).guide;
     {sources.map((source) => (
       <li>
         <a href={source.url} {...scriptAttributes(source.title, locale)}>
-          {source.title}
+          {rtl
+            ? numberRanges(source.title).map((part) =>
+                part.numberRange ? <span dir="ltr">{part.text}</span> : part.text,
+              )
+            : source.title}
         </a>
         {LOCALE_INFO[locale].comma}
         <span {...scriptAttributes(source.publisher, locale)}>{source.publisher}</span> (

@@ -474,7 +474,7 @@ void main() {
         isSemantics(
           label: 'ماہانہ کرایہ',
           value: '125000 روپے',
-          hint: 'لازمی',
+          hint: 'ضروری',
           isRequired: true,
         ),
       );

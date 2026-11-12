@@ -200,7 +200,7 @@ void main() {
             return MmSwitchTile(
               label: tr(
                 'Add a late fee after the grace period',
-                'رعایتی مدت کے بعد تاخیر کی فیس شامل کریں',
+                'تاریخ کے کچھ دن بعد لیٹ فیس لگائیں',
               ),
               description: tr(
                 'Rs 500 a day, up to Rs 5,000',

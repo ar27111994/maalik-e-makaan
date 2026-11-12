@@ -15,7 +15,7 @@ purpose: read the file for the area you are changing, not everything.
 | `supabase/`         | Migrations, pgTAP suites, Deno Edge Functions, `config.toml`       | [`supabase/AGENTS.md`](supabase/AGENTS.md)                   |
 | `website/`          | Astro static site, English and Urdu                                | [`website/AGENTS.md`](website/AGENTS.md)                     |
 | `formal/`           | TLA+, Lean 4, Z3 and Bend models and proofs                        | [`formal/AGENTS.md`](formal/AGENTS.md)                       |
-| `contracts/`        | Test vectors shared by Dart, SQL and TypeScript                    | [`docs/agents/conventions.md`](docs/agents/conventions.md)   |
+| `contracts/`        | Test vectors shared by Dart, SQL and TypeScript; the Urdu glossary | [`docs/agents/conventions.md`](docs/agents/conventions.md)   |
 | `design/`           | Design-token and icon sources (`make tokens`, `make icons`)        | [`packages/mm_ui/AGENTS.md`](packages/mm_ui/AGENTS.md)       |
 | `tool/`             | Repository tooling (db, design, coverage, formal, web, guards)     | [`docs/agents/commands.md`](docs/agents/commands.md)         |
 | `docs/`             | Architecture, operations runbook, permissions, design QA           | [`docs/README.md`](docs/README.md)                           |
@@ -29,7 +29,7 @@ Every check is a `make` target, and CI runs the same targets. `make help` lists 
 
 ```sh
 make bootstrap                       # pub, npm (installs the git hooks), deno, Python tools in .venv
-make format-check-repo lint          # docs, shell, Python, workflows, migrations, design lint, Unicode guard
+make format-check-repo lint          # docs, shell, Python, workflows, migrations, design lint, Unicode and Urdu guards
 make format-check analyze            # adds Dart and Deno formatting and every analyzer
 make test                            # tooling, mm_core, mm_ui, gallery, app, database, Edge Functions
 make test-uat                        # browser UAT on a local Supabase stack (docs/uat.md)
@@ -48,6 +48,9 @@ port 54329 and what this container cannot reach).
 - **British English** in prose, comments and UI text (`licence`, `colour`, `organisation`);
   identifiers follow their framework (`MmColorModes`, `MmLicenses`). Every user-facing string
   exists in English and Urdu.
+- **Plain Urdu**: the everyday words an ordinary landlord or tenant reads easily, in Urdu script
+  (an English word people say is written in it: `سیکیورٹی`). `make lint` runs
+  `tool/check_urdu_words.py`, which refuses the words `contracts/urdu_glossary.json` avoids.
 - **No secrets, no real people.** Clients take only the publishable key (`AppConfig` refuses a
   secret key). No real names, CNICs, phone numbers or documents in code, tests, logs or
   screenshots.

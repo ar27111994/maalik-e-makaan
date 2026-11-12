@@ -20,7 +20,7 @@ Widget meterGolden() => GoldenPage(
         children: [
           MmMeter(
             value: 0.72,
-            label: say('Rent collected', 'وصول شدہ کرایہ'),
+            label: say('Rent collected', 'جو کرایہ ملا'),
             valueLabel: say(
               'Rs\u00A090,000 of Rs\u00A01,25,000',
               '1,25,000 میں سے 90,000\u00A0روپے',
@@ -34,13 +34,13 @@ Widget meterGolden() => GoldenPage(
           ),
           MmMeter(
             value: 9 / 11,
-            label: say('Lease elapsed', 'معاہدے کی گزری مدت'),
-            valueLabel: say('9 of 11 months', '11 میں سے 9 ماہ'),
+            label: say('Lease elapsed', 'کرایہ نامے کی گزری مدت'),
+            valueLabel: say('9 of 11 months', '11 میں سے 9 مہینے'),
             tone: MmMeterTone.dueSoon,
           ),
           MmMeter(
             value: 0.36,
-            label: say('Overdue', 'بقایا'),
+            label: say('Overdue', 'لیٹ'),
             valueLabel: say(
               'Rs\u00A045,000 of Rs\u00A01,25,000',
               '1,25,000 میں سے 45,000\u00A0روپے',

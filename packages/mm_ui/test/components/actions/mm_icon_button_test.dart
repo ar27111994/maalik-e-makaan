@@ -436,7 +436,7 @@ void main() {
                 MmIconButton(
                   icon: MmIcons.notificationsOff,
                   selectedIcon: MmIcons.notifications,
-                  tooltip: 'کرایے کی یاد دہانیاں',
+                  tooltip: 'کرائے کی یاد دہانیاں',
                   variant: kind,
                   selected: selected,
                   onPressed: tapped,

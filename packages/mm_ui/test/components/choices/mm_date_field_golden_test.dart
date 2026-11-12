@@ -26,7 +26,7 @@ void main() {
         spacing: MmSpace.s4,
         children: [
           MmDateField(
-            label: tr('Lease start', 'لیز کا آغاز'),
+            label: tr('Lease start', 'کرایہ نامہ شروع'),
             value: CalendarDate(2026, 11, 5),
             firstDate: _first,
             lastDate: _last,
@@ -38,7 +38,7 @@ void main() {
           KeyboardFocused(
             index: 1,
             child: MmDateField(
-              label: tr('Lease end', 'لیز کا اختتام'),
+              label: tr('Lease end', 'کرایہ نامہ ختم'),
               value: CalendarDate(2027, 10, 31),
               firstDate: _first,
               lastDate: _last,
@@ -51,14 +51,11 @@ void main() {
             firstDate: _first,
             lastDate: _last,
             required: true,
-            errorText: tr(
-              'Choose the date rent is due',
-              'کرایہ کی تاریخ منتخب کریں',
-            ),
+            errorText: tr('Choose the date rent is due', 'کرائے کی تاریخ چنیں'),
             onChanged: _changed,
           ),
           MmDateField(
-            label: tr('Agreement signed', 'معاہدے پر دستخط'),
+            label: tr('Agreement signed', 'کرایہ نامے پر دستخط'),
             value: CalendarDate(2026, 10, 28),
             firstDate: _first,
             lastDate: _last,
@@ -79,7 +76,7 @@ void main() {
       tester,
       GoldenPage(
         (context, tr) => MmDateField(
-          label: tr('Lease start', 'لیز کا آغاز'),
+          label: tr('Lease start', 'کرایہ نامہ شروع'),
           value: CalendarDate(2026, 7, 1),
           firstDate: _first,
           lastDate: _last,

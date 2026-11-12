@@ -28,15 +28,15 @@ void main() {
               ),
               MmStatusBadge(
                 status: MmStatus.overdue,
-                label: say('Overdue 12 days', '12 دن سے بقایا'),
+                label: say('Overdue 12 days', '12 دن لیٹ'),
               ),
               MmStatusBadge(
                 status: MmStatus.dueSoon,
-                label: say('Due in 3 days', '3 دن میں واجب الادا'),
+                label: say('Due in 3 days', '3 دن بعد تاریخ'),
               ),
               MmStatusBadge(
                 status: MmStatus.credit,
-                label: say('Advance', 'ایڈوانس'),
+                label: say('Advance', 'کریڈٹ'),
               ),
               MmStatusBadge(
                 status: MmStatus.neutral,
@@ -55,7 +55,7 @@ void main() {
               status: MmStatus.overdue,
               label: say(
                 'Overdue since 5 October, reminder sent twice',
-                '5 اکتوبر سے بقایا، دو بار یاد دہانی بھیجی گئی',
+                '5 اکتوبر سے لیٹ، دو بار یاد دہانی بھیجی گئی',
               ),
             ),
           ),

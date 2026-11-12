@@ -7,6 +7,8 @@ pre-commit:
   commands:
     unicode-guard:
       run: python3 tool/check_unicode.py {staged_files}
+    urdu-words:
+      run: python3 tool/check_urdu_words.py {staged_files}
     editorconfig:
       run: PATH="$PWD/.venv/bin:$PATH" ec {staged_files}
     dart-format:

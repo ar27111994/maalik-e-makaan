@@ -38,7 +38,7 @@ class _LayoutPageState extends State<LayoutPage> {
       MmWindowSize.large => context.tr('large (desktop)', 'بڑا (ڈیسک ٹاپ)'),
     };
     final record = context.tr('Record payment', 'ادائیگی درج کریں');
-    final draft = context.tr('Save draft', 'مسودہ محفوظ کریں');
+    final draft = context.tr('Save draft', 'ادھورا محفوظ کریں');
     return FamilyPage(
       family: GalleryFamily.layout,
       body: SpecimenList(
@@ -223,7 +223,7 @@ class _LayoutPageState extends State<LayoutPage> {
                     onChanged: (value) => setState(() => _rent = value),
                   ),
                   MmDateField(
-                    label: context.tr('First rent due', 'پہلا کرایہ واجب'),
+                    label: context.tr('First rent due', 'پہلے کرائے کی تاریخ'),
                     value: _start,
                     firstDate: CalendarDate(2026, 1, 1),
                     lastDate: CalendarDate(2027, 12, 31),
@@ -294,7 +294,7 @@ class _TenantDetail extends StatelessWidget {
           amount: tenant.rent,
         ),
         MmDetailRow(
-          label: context.tr('Status', 'حالت'),
+          label: context.tr('Status', 'اسٹیٹس'),
           value: tenant.statusLabel.of(context),
           userData: false,
         ),
@@ -327,10 +327,10 @@ class _TenantScreen extends StatelessWidget {
         ),
         MmIconButton(
           icon: MmIcons.edit,
-          tooltip: context.tr('Edit tenant', 'کرایہ دار میں ترمیم'),
+          tooltip: context.tr('Edit tenant', 'کرایہ دار ایڈٹ کریں'),
           onPressed: () => showPressed(
             context,
-            context.tr('Edit tenant', 'کرایہ دار میں ترمیم'),
+            context.tr('Edit tenant', 'کرایہ دار ایڈٹ کریں'),
           ),
         ),
       ],
@@ -378,7 +378,7 @@ class _TenantScreen extends StatelessWidget {
                   amount: ayesha.rent,
                 ),
                 MmDetailRow.amount(
-                  label: context.tr('Total due', 'کل واجب'),
+                  label: context.tr('Total due', 'کل باقی رقم'),
                   amount: const Money.fromRupees(127500),
                   emphasized: true,
                 ),
@@ -418,9 +418,9 @@ class _TabsDemoState extends State<_TabsDemo>
         MmTabs(
           controller: _tabs,
           labels: [
-            context.tr('Dues', 'واجبات'),
+            context.tr('Dues', 'چارجز'),
             context.tr('Payments', 'ادائیگیاں'),
-            context.tr('Documents', 'دستاویزات'),
+            context.tr('Documents', 'کاغذات'),
           ],
         ),
         const SizedBox(height: MmSpace.s3),

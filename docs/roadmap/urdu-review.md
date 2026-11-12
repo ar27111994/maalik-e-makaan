@@ -22,8 +22,14 @@ Facts marked _(summary)_ were read only through a search engine's summary.
 
 - **The app.** [`app_ur.arb`](../../app/lib/l10n/arb/app_ur.arb) holds 1,523 strings, about 9,400 to
   10,000 words depending on whether placeholders and plural syntax are counted (11 November 2026).
-  The formal `زرِ ضمانت` (security deposit) appears 27 times; the owner's plain-Urdu rule would use
-  `سیکیورٹی`.
+- **The glossary.** In November 2026 the owner asked for everyday Urdu that ordinary landlords and
+  tenants understand, with an English word in Urdu script where that is what people say (the
+  security deposit is `سیکیورٹی`). The result is
+  [`contracts/urdu_glossary.json`](../../contracts/urdu_glossary.json): 209 formal words and
+  phrases to avoid, each with the plain word to write instead, the sentence rules and the words
+  that stay.
+  [`tool/check_urdu_words.py`](../../tool/check_urdu_words.py) fails `make lint` when an avoided
+  word returns to any tracked file.
 - **Other surfaces.** The website's Urdu content files hold about 5,800 words
   ([website/src/content](../../website/src/content/)), and there are three bilingual Auth e-mail
   templates ([supabase/templates](../../supabase/templates/)). No store listing text exists yet.
@@ -62,13 +68,16 @@ Facts marked _(summary)_ were read only through a search engine's summary.
 
 ## Design
 
-- **Glossary first, before an editor touches a string.** `docs/glossary.md` (to be created) lists 40
-  to 80 terms, each with the chosen Urdu, the rejected alternatives and a usage note. English
-  loanwords stay where people actually say them, written in Urdu script. Candidates to settle:
-  tenant, rent, receipt, security deposit, advance, balance and arrears, due and overdue, agreement,
-  unit and portion, caretaker, account, password, sign in, settings, notification, statement.
-- **A style sheet in the same file:**
-  - `آپ` throughout, and gender-neutral phrasing where Urdu allows;
+- **Glossary first, before an editor touches a string.** The glossary
+  ([`contracts/urdu_glossary.json`](../../contracts/urdu_glossary.json)) gives each rejected word
+  with the chosen Urdu, the English and a usage note. English loanwords stay where people actually
+  say them, written in Urdu script. It settles, among others: the security deposit, advance rent
+  and credit, a charge, due, overdue and arrears, void, delete and edit, the agreement, settings
+  and the statement. The word for a portfolio is still the owner's to choose.
+- **A style sheet in the same file.** Its `sentenceRules` cover `آپ` with plural verbs, short
+  sentences in the active voice, buttons, error messages, empty states, messages to tenants and
+  spelling. Still to settle there:
+  - gender-neutral phrasing where Urdu allows;
   - Urdu punctuation (`۔ ، ؟`);
   - one choice of digits per surface, and `Rs` or `روپے` for amounts;
   - how English words, numbers and amounts sit inside right-to-left sentences;
@@ -80,8 +89,9 @@ Facts marked _(summary)_ were read only through a search engine's summary.
 - **The brief** tells the editor that the glossary overrides formal guides, that placeholders and
   ICU plurals must survive untouched, and that the readers include older landlords and tenants with
   little schooling. On legal texts the lawyer's meaning wins, and the editor only makes it readable.
-- **A guardrail.** A test that fails if a rejected glossary term returns to the ARB files or the
-  website's Urdu.
+- **A guardrail.** `tool/check_urdu_words.py`, run by `make lint` and so in CI, fails when a form
+  the glossary avoids appears in any tracked file. Words that depend on meaning are left to review,
+  and an official name that must keep a formal word is listed as an exception with its reason.
 - **The font is decided; readers confirm it.** D-19 moves interface text to Noto Sans Arabic, with
   new line-height tokens and every Urdu golden re-recorded; Nastaliq stays for the wordmark. The
   [pilot](pilot.md) asks readers whether the new face reads easily and looks like Urdu to them; a
@@ -111,14 +121,16 @@ articles carry the Urdu.
 
 ## Work
 
-1. **Owner + S:** glossary and style sheet in `docs/glossary.md`, signed off by the owner.
+1. **Owner + S:** glossary and style sheet in `contracts/urdu_glossary.json`, signed off by the
+   owner.
 2. **S:** the review export tool and its test.
 3. **Owner:** shortlist three editors; a paid 300-word test (one screen, one receipt, one error
    message), judged for plainness and respect.
 4. **M:** apply the corrections to the ARB files; re-record the Urdu goldens on Linux; check that
    the common Urdu receipt still fits one A5 page.
 5. **M:** the website's Urdu, the e-mail templates and both store listings.
-6. **S:** the glossary guardrail test across the ARB files and the website.
+6. **S:** the glossary guardrail across every tracked file, `tool/check_urdu_words.py` in
+   `make lint` (in place since November 2026).
 7. **M:** the font change of D-19 (Noto Sans Arabic for interface text, Nastaliq for the wordmark,
    new line-height tokens, Urdu goldens re-recorded); then a check with pilot readers.
 
@@ -158,7 +170,9 @@ articles carry the Urdu.
 
 - Western digits (123) or Urdu digits (۱۲۳) for amounts, dates and phone numbers, and the same on
   receipts?
-- Which loanwords to accept beyond `سیکیورٹی` (for example `ایڈوانس`, `بیلنس`, `اکاؤنٹ`, `پاس ورڈ`)?
+- Which loanwords to accept beyond those the glossary takes (for example `بیلنس`)?
+- Keep `پورٹ فولیو`, explained once where a portfolio is created and in the invitation e-mail, or
+  rename it?
 - Beyond the wordmark, keep Nastaliq anywhere else, such as large headings or letterheads?
 - One editor for everything, or a second for the legal texts?
 - Will you review yourself after the editor, or accept the editor's text with spot checks?

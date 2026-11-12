@@ -24,8 +24,8 @@ make formal-install verify   # when you change the ledger, locking or money code
 ```
 
 `make lint` runs ruff, shellcheck, actionlint, squawk (on migrations newer than its baseline),
-editorconfig-checker, markdownlint, the Unicode guard and the design lint. The Dart packages use
-`very_good_analysis` and the Edge Functions `deno lint`.
+editorconfig-checker, markdownlint, the Unicode guard, the plain-Urdu guard and the design lint.
+The Dart packages use `very_good_analysis` and the Edge Functions `deno lint`.
 
 When a change moves pixels, re-record the goldens on Linux with `make goldens`, look at every
 changed image, and say in the pull request which ones changed and why.

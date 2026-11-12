@@ -853,17 +853,21 @@ void main() {
                           semanticSummary: _summary,
                           segments: [
                             MmProportionSegment(
-                              label: urdu ? 'زر ضمانت' : 'Security deposit',
+                              label: urdu
+                                  ? 'سیکیورٹی ڈپازٹ'
+                                  : 'Security deposit',
                               value: const Money.fromRupees(125000),
                               tone: MmSegmentTone.primary,
                             ),
                             MmProportionSegment(
-                              label: urdu ? 'پیشگی کرایہ' : 'Advance rent',
+                              label: urdu ? 'ایڈوانس کرایہ' : 'Advance rent',
                               value: const Money.fromRupees(15000),
                               tone: MmSegmentTone.credit,
                             ),
                             MmProportionSegment(
-                              label: urdu ? 'ابھی واجب نہیں' : 'Not yet due',
+                              label: urdu
+                                  ? 'ابھی تاریخ نہیں آئی'
+                                  : 'Not yet due',
                               value: const Money.fromRupees(38000),
                               tone: MmSegmentTone.neutral,
                             ),

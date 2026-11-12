@@ -43,7 +43,7 @@ Rect _labelRect(WidgetTester tester, String label) =>
 const _urduDestinations = [
   MmDestination(icon: MmIcons.property, label: 'جائیدادیں'),
   MmDestination(icon: MmIcons.tenants, label: 'کرایہ دار'),
-  MmDestination(icon: MmIcons.receipt, label: 'واجبات', badgeCount: 3),
+  MmDestination(icon: MmIcons.receipt, label: 'چارجز', badgeCount: 3),
   MmDestination(icon: MmIcons.reports, label: 'رپورٹس'),
 ];
 
@@ -1046,8 +1046,8 @@ void main() {
               MmDestination(icon: MmIcons.reports, label: 'ڈیش بورڈ'),
               MmDestination(icon: MmIcons.property, label: 'جائیدادیں'),
               MmDestination(icon: MmIcons.tenants, label: 'کرایہ دار'),
-              MmDestination(icon: MmIcons.receipt, label: 'واجبات'),
-              MmDestination(icon: MmIcons.settings, label: 'ترتیبات'),
+              MmDestination(icon: MmIcons.receipt, label: 'چارجز'),
+              MmDestination(icon: MmIcons.settings, label: 'سیٹنگز'),
             ],
           ),
           variant: MmVariant.largeText,

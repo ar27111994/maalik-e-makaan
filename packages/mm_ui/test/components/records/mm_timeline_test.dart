@@ -253,7 +253,7 @@ void main() {
 
       const urdu = MmTimelineItem(
         dateLabel: '7 اکتوبر 2026',
-        title: 'ادائیگی موصول ہوئی',
+        title: 'ادائیگی مل گئی',
         icon: MmIcons.payment,
       );
       await pumpThemed(
@@ -400,7 +400,7 @@ void main() {
                   dateLabel: say('1 Sep 2026', '1 ستمبر 2026'),
                   title: say(
                     'Lease renewed for 11 months at Rs\u00A045,000',
-                    'معاہدے کی 11 ماہ کے لیے 45,000\u00A0روپے پر تجدید',
+                    'کرایہ نامہ 11 مہینے کے لیے 45,000\u00A0روپے پر رینیو',
                   ),
                   subtitle: say(
                     'House 12, Street 4, Gulberg III, Lahore',
@@ -439,7 +439,7 @@ void main() {
               items: [
                 MmTimelineItem(
                   dateLabel: '7 اکتوبر 2026',
-                  title: 'ادائیگی موصول ہوئی',
+                  title: 'ادائیگی مل گئی',
                   subtitle: subtitle,
                 ),
               ],
@@ -466,7 +466,7 @@ void main() {
     ) async {
       const item = MmTimelineItem(
         dateLabel: '1 ستمبر 2026',
-        title: 'معاہدے کی 11 ماہ کے لیے تجدید',
+        title: 'کرایہ نامہ 11 مہینے کے لیے رینیو',
         subtitle: 'بینک ٹرانسفر سے 45,000\u00A0روپے',
       );
       await pumpThemed(
@@ -477,7 +477,10 @@ void main() {
       expect(latinRunsIn(tester, item.dateLabel), ['1 ', ' 2026']);
       expect(latinRunsIn(tester, item.title), [' 11 ']);
       expect(latinRunsIn(tester, item.subtitle!), [' 45,000\u00A0']);
-      expect(urduRunsIn(tester, item.title), ['معاہدے کی', 'ماہ کے لیے تجدید']);
+      expect(urduRunsIn(tester, item.title), [
+        'کرایہ نامہ',
+        'مہینے کے لیے رینیو',
+      ]);
     });
 
     testWidgets('sets Latin data in the Latin face in the Urdu UI and '

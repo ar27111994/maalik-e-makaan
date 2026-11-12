@@ -21,7 +21,7 @@ void main() {
             label: tr('Monthly rent', 'ماہانہ کرایہ'),
             value: const Money.fromRupees(45000),
             required: true,
-            helper: tr('As agreed in the lease', 'جیسا معاہدے میں طے ہے'),
+            helper: tr('As agreed in the lease', 'جیسا کرایہ نامے میں طے ہے'),
             onChanged: (_) {},
           ),
           MmFormats(
@@ -29,7 +29,7 @@ void main() {
                 .copyWith(grouping: DigitGrouping.southAsian),
             // Focused, as when the landlord has just moved to it.
             child: MmMoneyField(
-              label: tr('Security deposit', 'زرِ ضمانت'),
+              label: tr('Security deposit', 'سیکیورٹی'),
               value: const Money.fromRupees(125000),
               optional: true,
               autofocus: true,
@@ -37,7 +37,7 @@ void main() {
             ),
           ),
           MmMoneyField(
-            label: tr('Amount received', 'وصول شدہ رقم'),
+            label: tr('Amount received', 'کتنی رقم ملی'),
             required: true,
             errorText: tr('Enter the amount received', 'رقم درج کریں'),
             onChanged: (_) {},

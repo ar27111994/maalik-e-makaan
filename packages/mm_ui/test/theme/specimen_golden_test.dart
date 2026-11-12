@@ -28,17 +28,14 @@ class _Specimen extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('Rs 1,25,000', style: mm.amountLarge),
-          Text(
-            urdu ? 'کرایہ واجب الادا' : 'Rent due',
-            style: text.headlineLarge,
-          ),
+          Text(urdu ? 'کرائے کی تاریخ' : 'Rent due', style: text.headlineLarge),
           Text(
             urdu ? 'گلبرگ کا مکان' : 'House in Gulberg',
             style: text.titleLarge,
           ),
           Text(
             urdu
-                ? 'اکتوبر کا کرایہ ۵ تاریخ کو واجب الادا تھا۔'
+                ? 'اکتوبر کا کرایہ ۵ تاریخ کو دینا تھا۔'
                 : 'October rent was due on the 5th.',
             style: text.bodyLarge,
           ),

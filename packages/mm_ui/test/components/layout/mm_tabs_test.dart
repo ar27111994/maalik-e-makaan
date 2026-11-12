@@ -326,7 +326,7 @@ void main() {
         tester,
         const DefaultTabController(
           length: 3,
-          child: MmTabs(labels: ['واجبات', 'ادائیگیاں', 'دستاویزات']),
+          child: MmTabs(labels: ['چارجز', 'ادائیگیاں', 'کاغذات']),
         ),
       );
     });

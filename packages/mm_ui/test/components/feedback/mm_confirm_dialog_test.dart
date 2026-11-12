@@ -285,7 +285,7 @@ void main() {
       var field = tester.widget<TextField>(find.byType(TextField));
       expect(field.textDirection, TextDirection.ltr);
       expect(field.style!.fontFamily, contains(MmFontFamily.latin));
-      await tester.tap(find.text('منسوخ کریں'));
+      await tester.tap(find.text('رہنے دیں'));
       await tester.pumpAndSettle();
 
       const label = 'فلیٹ 3 کی تصدیق کے لیے گلبرگ ہاؤس لکھیں';
@@ -343,7 +343,7 @@ void main() {
 
     testWidgets('sets figures in an Urdu title and message in the Latin '
         'face', (tester) async {
-      const title = 'گلبرگ ہاؤس کے 4 یونٹ حذف کریں؟';
+      const title = 'گلبرگ ہاؤس کے 4 یونٹ ڈیلیٹ کریں؟';
       const message = 'اس کے 1,25,000 روپے کا ریکارڈ ختم ہو جائے گا۔';
       final urdu = await _page(tester, variant: MmVariant.urdu);
       unawaited(
@@ -351,7 +351,7 @@ void main() {
           urdu,
           title: title,
           message: message,
-          confirmLabel: 'حذف کریں',
+          confirmLabel: 'ڈیلیٹ کریں',
         ),
       );
       await tester.pumpAndSettle();
@@ -443,7 +443,7 @@ void main() {
     });
 
     testWidgets('fits in Urdu at 200% text on a 320 dp phone', (tester) async {
-      const title = 'گلبرگ ہاؤس حذف کریں؟';
+      const title = 'گلبرگ ہاؤس ڈیلیٹ کریں؟';
       const message =
           'اس کے 4 یونٹ اور 1,25,000 روپے کا ریکارڈ ختم ہو جائے گا۔';
       const label = 'تصدیق کے لیے Gulberg House لکھیں';
@@ -453,7 +453,7 @@ void main() {
           context,
           title: title,
           message: message,
-          confirmLabel: 'جائیداد حذف کریں',
+          confirmLabel: 'جائیداد ڈیلیٹ کریں',
           destructive: true,
           typedConfirmation: _typed,
           typedConfirmationLabel: label,
@@ -468,7 +468,7 @@ void main() {
       await tester.enterText(find.byType(TextField), _typed);
       await tester.pump();
       final confirm = find.ancestor(
-        of: find.text('جائیداد حذف کریں'),
+        of: find.text('جائیداد ڈیلیٹ کریں'),
         matching: find.byType(FilledButton),
       );
       await tester.ensureVisible(confirm);
@@ -553,7 +553,7 @@ void main() {
       final context = await _page(tester, variant: MmVariant.urdu);
       await _open(tester, context);
       expect(
-        tester.getCenter(find.text('منسوخ کریں')).dx,
+        tester.getCenter(find.text('رہنے دیں')).dx,
         greaterThan(tester.getCenter(_confirmButton).dx),
       );
     });
@@ -610,9 +610,9 @@ void main() {
       unawaited(
         showMmConfirmDialog(
           context,
-          title: 'مرمت منسوخ کریں؟',
+          title: 'مرمت کا کام کینسل کریں؟',
           message: 'پلمبر کو نہیں بلایا جائے گا۔',
-          confirmLabel: 'مرمت منسوخ کریں',
+          confirmLabel: 'کام کینسل کریں',
           cancelLabel: 'PDF رکھیں',
         ),
       );

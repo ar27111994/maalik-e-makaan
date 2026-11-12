@@ -31,18 +31,18 @@ void main() {
               tone: MmBannerTone.success,
               message: say(
                 'Rs 45,000 received from Ayesha Khan.',
-                'عائشہ خان سے 45,000 روپے موصول ہوئے۔',
+                'عائشہ خان سے 45,000 روپے مل گئے۔',
               ),
               onDismiss: tapped,
             ),
             MmBanner(
               tone: MmBannerTone.warning,
-              title: say('Lease ending', 'معاہدہ ختم ہو رہا ہے'),
+              title: say('Lease ending', 'کرایہ نامہ ختم ہو رہا ہے'),
               message: say(
                 'Ali Raza’s lease for Flat 3 ends in 14 days.',
-                'علی رضا کا فلیٹ 3 کا معاہدہ 14 دن میں ختم ہو گا۔',
+                'علی رضا کا فلیٹ 3 کا کرایہ نامہ 14 دن میں ختم ہو گا۔',
               ),
-              actionLabel: say('Renew lease', 'معاہدہ تجدید کریں'),
+              actionLabel: say('Renew lease', 'کرایہ نامہ رینیو کریں'),
               onAction: tapped,
               onDismiss: tapped,
             ),
@@ -50,7 +50,7 @@ void main() {
               tone: MmBannerTone.error,
               message: say(
                 'Rs 1,25,000 is overdue from 3 tenants.',
-                '3 کرایہ داروں سے 1,25,000 روپے واجب الادا ہیں۔',
+                '3 کرایہ داروں کے ذمے 1,25,000\u00A0روپے باقی ہیں۔',
               ),
               actionLabel: say('Send reminders', 'یاد دہانی بھیجیں'),
               onAction: tapped,

@@ -17,7 +17,7 @@ Widget timelineGolden() => GoldenPage(
         items: [
           MmTimelineItem(
             dateLabel: say('7 Oct 2026', '7 اکتوبر 2026'),
-            title: say('Payment received', 'ادائیگی موصول ہوئی'),
+            title: say('Payment received', 'ادائیگی مل گئی'),
             subtitle: say(
               'Rs\u00A045,000 by bank transfer',
               'بینک ٹرانسفر سے 45,000\u00A0روپے',
@@ -27,14 +27,14 @@ Widget timelineGolden() => GoldenPage(
           ),
           MmTimelineItem(
             dateLabel: say('5 Oct 2026', '5 اکتوبر 2026'),
-            title: say('October rent due', 'اکتوبر کا کرایہ واجب الادا'),
+            title: say('October rent due', 'اکتوبر کے کرائے کی تاریخ'),
             subtitle: say('Rs\u00A045,000', '45,000\u00A0روپے'),
             tone: MmTimelineTone.dueSoon,
           ),
           MmTimelineItem(
             dateLabel: say('11 Sep 2026', '11 ستمبر 2026'),
-            title: say('September rent overdue', 'ستمبر کا کرایہ بقایا'),
-            subtitle: say('6 days late', '6 دن تاخیر'),
+            title: say('September rent overdue', 'ستمبر کا کرایہ لیٹ'),
+            subtitle: say('6 days late', '6 دن لیٹ'),
             icon: MmIcons.error,
             tone: MmTimelineTone.overdue,
           ),
@@ -42,7 +42,7 @@ Widget timelineGolden() => GoldenPage(
             dateLabel: say('1 Sep 2026', '1 ستمبر 2026'),
             title: say(
               'Lease renewed for 11 months at Rs\u00A045,000',
-              'معاہدے کی 11 ماہ کے لیے 45,000\u00A0روپے پر تجدید',
+              'کرایہ نامہ 11 مہینے کے لیے 45,000\u00A0روپے پر رینیو',
             ),
             icon: MmIcons.lease,
             tone: MmTimelineTone.primary,

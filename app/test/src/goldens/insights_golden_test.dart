@@ -99,7 +99,7 @@ void main() {
     sizes: {MmVariant.largeText: const Size(360, 1800)},
     act: (tester) async {
       final tile = find.text('Owner statement').evaluate().isEmpty
-          ? find.text('مالک کا گوشوارہ')
+          ? find.text('مالک کی اسٹیٹمنٹ')
           : find.text('Owner statement');
       await tester.ensureVisible(tile);
       await tester.tap(tile);
@@ -114,7 +114,7 @@ void main() {
     sizes: {MmVariant.largeText: const Size(360, 2000)},
     act: (tester) async {
       final tile = find.text('Export to a spreadsheet').evaluate().isEmpty
-          ? find.text('اسپریڈ شیٹ میں ایکسپورٹ')
+          ? find.text('فائل ایکسپورٹ (CSV)')
           : find.text('Export to a spreadsheet');
       await tester.ensureVisible(tile);
       await tester.tap(tile);

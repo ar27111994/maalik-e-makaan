@@ -291,7 +291,7 @@ void main() {
       () => PdfTextWriter.load(direction: TextDirection.ltr),
     ))!;
     final label = (await tester.runAsync(
-      () => rtl.cell('ادا کنندہ', size: 9),
+      () => rtl.cell('کس سے وصول ہوا', size: 9),
     ))!;
     final name = (await tester.runAsync(() => rtl.cell('Ali Raza')))!;
     final english = (await tester.runAsync(() => ltr.cell('Ali Raza')))!;

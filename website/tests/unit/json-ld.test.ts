@@ -106,11 +106,11 @@ describe("page nodes", () => {
 
   test("BreadcrumbList numbers its items from 1 and ends at the page", () => {
     const list = breadcrumbListNode(url, [
-      { name: "سرورق", url: "https://example.pk/ur/" },
+      { name: "ہوم", url: "https://example.pk/ur/" },
       { name: "لائسنس", url },
     ]);
     expect(list.itemListElement).toEqual([
-      { "@type": "ListItem", position: 1, name: "سرورق", item: "https://example.pk/ur/" },
+      { "@type": "ListItem", position: 1, name: "ہوم", item: "https://example.pk/ur/" },
       { "@type": "ListItem", position: 2, name: "لائسنس", item: url },
     ]);
     expect(() => breadcrumbListNode(url, [{ name: "Home", url: "https://example.pk/" }])).toThrow(

@@ -3266,7 +3266,7 @@ abstract class AppLocalizations {
   /// **'Month to month'**
   String get termPeriodic;
 
-  /// Label of a tenancy's agreed end.
+  /// Label of a tenancy's agreed end, a term of the tenancy. Both this and endedOnLabel, the day it actually ended, can show on one screen, so the two must read differently.
   ///
   /// In en, this message translates to:
   /// **'Ends on'**
@@ -3806,7 +3806,7 @@ abstract class AppLocalizations {
   /// **'Tenancy ended.'**
   String get tenancyEnded;
 
-  /// Label of when a tenancy ended.
+  /// Label of when a tenancy ended: the day the tenant moved out, not the agreed end (endsOnLabel).
   ///
   /// In en, this message translates to:
   /// **'Ended on'**
@@ -4742,7 +4742,7 @@ abstract class AppLocalizations {
   /// **'Still owed'**
   String get stillOwedLabel;
 
-  /// Label of a due's date.
+  /// Label of a due's date (a charge in the ledger). A bill's due date is billDueDateLabel.
   ///
   /// In en, this message translates to:
   /// **'Due date'**
@@ -5615,31 +5615,31 @@ abstract class AppLocalizations {
     String date,
   );
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'electricity'**
   String get reminderElectricity;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'gas'**
   String get reminderGas;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'water'**
   String get reminderWater;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'internet'**
   String get reminderInternet;
 
-  /// Utility word in a reminder.
+  /// The utility in reminderUtility. English puts it before 'bill'; a language whose sentence has no word for bill gives the whole bill name (Urdu: بجلی کا بل).
   ///
   /// In en, this message translates to:
   /// **'utility'**
@@ -5672,7 +5672,7 @@ abstract class AppLocalizations {
   /// Roman Urdu reminder: rent due soon (the same in every UI language).
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. Yaad dihani hai ke {unit} ke {amount} {date} ko wajib-ul-ada hain.'**
+  /// **'Assalam-o-Alaikum {tenant}. Yaad dihani: {unit} ke {amount}, {date} ko dene hain.'**
   String reminderRomanUpcoming(
     String tenant,
     String amount,
@@ -5683,13 +5683,13 @@ abstract class AppLocalizations {
   /// Roman Urdu reminder: due today.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj wajib-ul-ada hain.'**
+  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} aaj dene hain.'**
   String reminderRomanDueToday(String tenant, String amount, String unit);
 
   /// Roman Urdu reminder: overdue.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} wajib-ul-ada hain aur abhi tak mosool nahi hue; in mein sab se purani raqam {date} ko wajib-ul-ada thi. Barah-e-karam jald az jald ada kar dein.'**
+  /// **'Assalam-o-Alaikum {tenant}. {unit} ke {amount} late hain. In mein sab se purani raqam {date} ko deni thi. Meherbani kar ke jald ada kar dein.'**
   String reminderRomanOverdue(
     String tenant,
     String amount,
@@ -5700,7 +5700,7 @@ abstract class AppLocalizations {
   /// Roman Urdu message: payment received.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {date} ko {amount} mosool ho gaye. Raseed number: {receipt}. Shukriya.'**
+  /// **'Assalam-o-Alaikum {tenant}. {date} ko {amount} mil gaye. Raseed number: {receipt}. Shukriya.'**
   String reminderRomanReceived(
     String tenant,
     String amount,
@@ -5711,7 +5711,7 @@ abstract class AppLocalizations {
   /// Roman Urdu reminder: utility bill.
   ///
   /// In en, this message translates to:
-  /// **'Assalam-o-Alaikum {tenant}. {unit} ka {utility} ka bill {amount} {date} tak ada karna hai. Barah-e-karam aakhri tareekh se pehle ada kar dein.'**
+  /// **'Assalam-o-Alaikum {tenant}. {unit} ka {utility} {amount} hai, jo {date} tak ada karna hai. Meherbani kar ke aakhri tareekh se pehle ada kar dein.'**
   String reminderRomanUtility(
     String tenant,
     String utility,
@@ -5720,34 +5720,34 @@ abstract class AppLocalizations {
     String date,
   );
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
-  /// **'bijli'**
+  /// **'bijli ka bill'**
   String get reminderRomanElectricity;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
-  /// **'gas'**
+  /// **'gas ka bill'**
   String get reminderRomanGas;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
-  /// **'paani'**
+  /// **'paani ka bill'**
   String get reminderRomanWater;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
-  /// **'internet'**
+  /// **'internet ka bill'**
   String get reminderRomanInternet;
 
-  /// Roman Urdu utility word.
+  /// The bill in reminderRomanUtility, as a whole bill name (bijli ka bill), since that sentence has no word for bill.
   ///
   /// In en, this message translates to:
-  /// **'utility'**
+  /// **'bill'**
   String get reminderRomanUtilityGeneric;
 
   /// Roman Urdu payment details: Raast.
@@ -7099,6 +7099,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bill for'**
   String get billMonthLabel;
+
+  /// Label of the last date to pay a bill, as the bill prints it. It sits beside the date the bill was paid (paidOnLabel), so the two must read differently.
+  ///
+  /// In en, this message translates to:
+  /// **'Due date'**
+  String get billDueDateLabel;
 
   /// Label of a bill's units.
   ///
@@ -9230,7 +9236,7 @@ abstract class AppLocalizations {
   /// **'Keep the repair'**
   String get keepRepairAction;
 
-  /// The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous, in Urdu too: both are منسوخ کریں): the invitation stays.
+  /// The way out of the dialog that asks to cancel an invitation, in place of 'Cancel' beside 'Cancel invitation' (ambiguous: both would say Cancel): the invitation stays.
   ///
   /// In en, this message translates to:
   /// **'Keep the invitation'**

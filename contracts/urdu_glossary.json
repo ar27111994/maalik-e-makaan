@@ -1,0 +1,1714 @@
+{
+  "$comment": "The owner's plain-Urdu glossary, for every Urdu word a person reads: the app, mm_ui, the website, the e-mails, the reminders and the roadmap. Each entry names a word to avoid, the plain word to write instead (prefer), the English it stands for, a note on where it was found and why, and the exact forms tool/check_urdu_words.py looks for as whole words (match), also with an izafat zer or hamza after them and in text typed with the Arabic yeh, kaf or heh; an empty match means the rule depends on meaning and is judged in review. exceptions let an official name, a quoted law or a table of letters keep a formal word: path is a glob over repository paths, avoid is the form or a longer phrase that contains it (the form is then allowed only inside that phrase), and reason says why. sentenceRules and keep are the style sheet: how to write, and which words stay. Edit it deliberately, and change the copy it governs in the same change.",
+  "entries": [
+    {
+      "avoid": "زرِ ضمانت",
+      "prefer": "سیکیورٹی (labels and buttons inside a tenancy); سیکیورٹی ڈپازٹ (headings, receipts, PDFs and reports, the website, the first mention on a page, and anywhere another kind of 'security' is near)",
+      "english": "security deposit",
+      "note": "Found: app 27, website 11, mm_ui gallery 5, tests 7. The owner's own example; landlords and tenants say سیکیورٹی. depositLabel, chargeKindDeposit, depositSection → سیکیورٹی; heldAndSpentSection → 'سیکیورٹی ڈپازٹ، ٹیکس اور خرچ'; methodDeposit → 'سیکیورٹی میں سے'; refundDepositAction → 'سیکیورٹی واپس کریں'; applyDepositAction ('Use for dues') → 'باقی رقم سیکیورٹی میں سے کاٹیں'; depositSettleAfterEnd → '… اس میں سے کرایہ دار کے ذمے باقی رقم کاٹیں، پھر جو بچے وہ واپس کریں' (باقی and 'the rest' never share a sentence); insightDepositBody says arrears → 'بقایا سیکیورٹی سے بڑھنے سے پہلے وصول کریں'; insightLongArrearsBody 'رخصتی پر ان کے زرِ ضمانت سے ادا کریں' → 'جگہ خالی کرتے وقت ان کی سیکیورٹی میں سے کاٹ لیں'. Under a سیکیورٹی heading the four figures stay apart as 'طے ہوئی'، 'وصول ہوئی'، 'اب جمع ہے'، 'واپس کی'. Never ایڈوانس for the deposit: many people in Lahore, Rawalpindi/Islamabad and Karachi do call it that, so an explanatory page may say once 'سیکیورٹی ڈپازٹ (کئی لوگ اسے ایڈوانس بھی کہتے ہیں)'; a form helper says it only if the English gets the same helper. Other meanings of 'security' in the repository stay distinct: the guards in expenseCategoryCleaning (see the چوکیدار entry); the KP and Balochistan '(سیکیورٹی) ایکٹ' names, which mean policing and stay as names; the checklist's 'کرایہ داروں کی سیکیورٹی کے قوانین' → 'کرایہ داروں کی پولیس رجسٹریشن کے قوانین'; and the gas company's own deposit in the utilities guide, written 'کمپنی کی سیکیورٹی' where both deposits share a paragraph. The pricing page today says only ڈپازٹ; it changes too. ضمانت stays for bail, a guarantee and the licence's warranty.",
+      "match": ["زرِ ضمانت", "زر ضمانت"]
+    },
+    {
+      "avoid": "پیشگی",
+      "prefer": "never a bare ایڈوانس. Advance rent: 'ایڈوانس کرایہ' (always with کرایہ). The app's credit balance: کریڈٹ ('رقم پہلے دے دی'). Prepaying a plan: 'ایڈوانس ادائیگی'. In other sentences: 'پہلے سے'",
+      "english": "advance, prepaid",
+      "note": "Found: app 2, website 6, mm_ui gallery 9, tests 6. A bare ایڈوانس is read by many people as the security deposit, so it never stands alone. The app has no advance-rent charge: there 'advance' is credit (totalCreditLabel, 'advances tenants have paid'), which can come from overpaying any charge, so do not say کرایہ there. creditExplainActive → 'کرایہ دار نے رقم پہلے دے دی ہے۔ یہ کریڈٹ اگلے چارجز میں خود بخود لگ جائے گا۔'; chargeTenantExplain 'پیشگی جمع کریڈٹ' → 'کریڈٹ'; the mm_ui credit labels and badges ('ایڈوانس' in the tests, 'پیشگی' in the gallery) → کریڈٹ; features 'پیشگی رقم' → 'پہلے سے دی گئی رقم'; guides 'پیشگی کرایہ، زرِ ضمانت اور پگڑی' → 'ایڈوانس کرایہ، سیکیورٹی ڈپازٹ اور پگڑی' (three different things); tax guide 'gross rent, including any advance' → '… ایڈوانس کرایہ بھی'. Tax guide 'یہ کٹوتی مالکِ مکان کے ٹیکس کی پیشگی ادائیگی ہے' → 'یہ مالکِ مکان کے سال کے ٹیکس کی پہلے سے ادائیگی ہے، کوئی الگ ٹیکس نہیں'. Never write 'ایڈوانس ٹیکس': that is a different FBR term (section 147). Pricing 'ایک مہینے یا سال کی ایڈوانس ادائیگی' is fine.",
+      "match": ["پیشگی"]
+    },
+    {
+      "avoid": "واجب الادا",
+      "prefer": "باقی (labels; 'باقی رقم' when it stands alone); in sentences, give the direction: 'کرایہ دار کے ذمے … باقی'; a charge's due date: 'دینے کی تاریخ'; a bill's due date: 'آخری تاریخ' (as bills print it); to a tenant: 'دینے ہیں' / 'دینا ہے'",
+      "english": "due, owed, outstanding",
+      "note": "Found: app 20, website 1, roadmap 1, mm_ui gallery 9, tests 25, docs/planning 5. Known from bills but stiff. totalOwedLabel → 'باقی رقم'; openDuesSection, csvOwed → 'باقی'; owedNowLabel → 'ابھی باقی'; owedInAll ('all that is owed, due or not') → 'کل باقی رقم {amount}' (کل before a noun, never alone beside a figure); receivablesEmptyTitle → 'ابھی کسی کے ذمے کچھ باقی نہیں'. dueDateLabel ('Label of a due's date') → 'دینے کی تاریخ', not 'ادائیگی کی تاریخ', which paidOnLabel and markUnpaidBody already use for the date something was paid, and not 'آخری تاریخ', because rent has grace days. A bill's due date has its own key, billDueDateLabel → 'آخری تاریخ', because a paid bill shows it beside paidOnLabel ('ادائیگی کی تاریخ'), and 'دینے کی تاریخ' beside 'ادائیگی کی تاریخ' reads as one date twice. Reminders: {amount} can include bills and late fees ('{amount} for {unit}'), so never add کرایہ; use the plural to agree with روپے. reminderUpcoming → 'السلام علیکم {tenant}۔ یاد دہانی: {unit} کے {amount}، {date} کو دینے ہیں۔'; reminderDueToday → '… {unit} کے {amount} آج دینے ہیں۔'; reminderOverdue keeps 'the oldest of it': '… {unit} کے {amount} لیٹ ہیں۔ ان میں سب سے پرانی رقم {date} کو دینی تھی۔ مہربانی کر کے جلد ادا کر دیں۔'. Change the Roman Urdu twins in step ('… {date} ko dene hain.'; wajib-ul-ada goes). docs/uat.md and app/uat/tests/journeys.spec.ts assert the current Urdu ('واجب الادا 132000 روپے'), so their expectations change too.",
+      "match": ["واجب الادا"]
+    },
+    {
+      "avoid": "واجب (as a noun: a charge; as an adjective: due)",
+      "prefer": "a charge: چارج, plural چارجز (or name its kind: کرایہ، بل، لیٹ فیس); due chips on the landlord's screens: 'آج تاریخ ہے'، '{days} دن بعد تاریخ'، 'تاریخ: {date}'; not yet due: 'ابھی تاریخ نہیں آئی'; to a tenant: 'دینا ہے'; a bill the landlord pays: 'ادا ہونا ہے'; a rent increase that is due: 'کرایہ بڑھنے کی تاریخ'",
+      "english": "a charge; due",
+      "note": "Found: app 61, website 14, mm_ui gallery 22, tests 35. The app uses واجب as a noun ('واجب شامل کریں'), which nobody says. A charge is چارج, not رقم: the ledger lists charges and payments side by side, and voiding a payment makes its dues owed again while voiding a charge removes the debt, so 'یہ رقم کینسل کریں' could mean either. چارجز is already in the app ('سوسائٹی چارجز'، 'بینک چارجز') and on every bill. addChargeAction → 'چارج لگائیں'; voidChargeAction → 'چارج کینسل کریں'; chargeSaved → 'چارج محفوظ ہو گیا'; editChargeAction → 'چارج ایڈٹ کریں'; chargeTenantExplain → '{amount} کا بل کرایہ دار کے کھاتے میں چارج بن جائے گا، جسے {date} تک دینا ہو گا۔ کرایہ دار کا کریڈٹ اس میں لگ جائے گا۔'. On the landlord's own screens a subjectless 'آج دینا ہے' reads as 'I must pay today', so due chips are built on تاریخ, as people say ('کرائے کی تاریخ آ گئی'): dueToday → 'آج تاریخ ہے'; dueInDays → '=1{کل تاریخ ہے} other{{days} دن بعد تاریخ}'; dueOn → 'تاریخ: {date}'; ageNotDue → 'ابھی تاریخ نہیں آئی'; whoOwesSection → 'کس کے ذمے کتنا باقی ہے'; notificationUtilityDue (a bill the landlord pays) → 'بل ادا ہونا ہے'; notificationsSummary 'واجب کرایہ' → 'کرائے کی تاریخیں'. 'Due' also means 'time for' an increase: notificationIncrementDue → 'کرایہ بڑھنے کی تاریخ'; its body → '{tenancy}: {rent} کرائے پر سالانہ اضافہ {date} سے لاگو ہونا ہے۔'; insightIncrementUpcoming → 'اگلے 30 دن میں {count} کرائے بڑھنے ہیں۔'. Do not use 'بنتا ہے' for 'has fallen due': it means 'comes to' and says nothing about the date. nothingDueThisMonth → 'اس مہینے ابھی کسی چارج کی تاریخ نہیں آئی۔'; scoresEmpty → 'کرائے کی تاریخ آنے کے بعد اسکور نظر آئیں گے۔'.",
+      "match": ["واجب"]
+    },
+    {
+      "avoid": "واجبات",
+      "prefer": "what is still owed: 'باقی رقم' or 'ذمے باقی'; charges in general: چارجز; where the English says arrears: بقایا",
+      "english": "dues",
+      "note": "Found: app 34, website 14, mm_ui gallery 4, tests 16. 'کرایہ داروں کے واجبات' → 'کرایہ داروں کے ذمے باقی رقم'; allDuesSection 'تمام واجبات' (includes paid, waived and cancelled ones) → 'سب چارجز'; settleOldestFirst → 'سب سے پرانے چارج پہلے'; settleChosen ('The dues I choose') → 'جو چارج میں خود چنوں'; applyDepositAction → 'باقی رقم سیکیورٹی میں سے کاٹیں'; features 'اگلے واجبات' → 'اگلے چارجز'; pricing 'کرایے کے واجبات' → 'کرایہ اور دوسرے چارجز'. Keep two dashboard figures visibly different: collectedThisMonthLabel ('This month's dues paid') → 'اس مہینے کے چارجز میں سے ادا ہوئے'; receivedThisMonthLabel (all money received this month, for any month) → 'اس مہینے ملی رقم'.",
+      "match": ["واجبات"]
+    },
+    {
+      "avoid": "بقایا جات",
+      "prefer": "بقایا",
+      "english": "arrears",
+      "note": "Found: app 4, website 6. Named by the owner. The -جات plural is office Urdu; بقایا alone is what bills print and people say, and it keeps its meaning of old unpaid amounts. The warning stays: unpaid bills stay with the connection and the premises, so they can fall on the landlord.",
+      "match": ["بقایا جات", "بقایاجات"]
+    },
+    {
+      "avoid": "رقوم",
+      "prefer": "رقمیں (where the amounts are charges: چارجز)",
+      "english": "amounts",
+      "note": "Found: app 8, website 3, mm_ui gallery 2. Arabic broken plural; the website already says رقمیں.",
+      "match": ["رقوم"]
+    },
+    {
+      "avoid": "ادا کنندہ",
+      "prefer": "receipt label: 'کس سے وصول ہوا'; in sentences: 'ادا کرنے والا'",
+      "english": "payer, received from",
+      "note": "Found: app 1, website 1, tests 1. -کنندہ agent nouns are bookish. receivedFromLabel ('Received from', who paid) and the sample receipt on the home page.",
+      "match": ["ادا کنندہ", "ادا کنندگان"]
+    },
+    {
+      "avoid": "فراہم کنندہ",
+      "prefer": "'کمپنی یا ادارہ' (بجلی، گیس، پانی یا انٹرنیٹ کا)",
+      "english": "provider, supplier",
+      "note": "Found: app 3. Not every provider is a company: WASA, KWSC and CDA are public bodies, PTCL supplies internet, and 'other' can be anyone. providerLabel → 'کمپنی یا ادارہ'; providerNameLabel → 'کمپنی یا ادارے کا نام'; referenceDigitsHint may say 'اس کمپنی کے بلوں پر…', because only the electricity companies have a digit count.",
+      "match": ["فراہم کنندہ", "فراہم کنندگان"]
+    },
+    {
+      "avoid": "فراہم کرنا، فراہمی",
+      "prefer": "دینا؛ سپلائی",
+      "english": "provide, supply",
+      "note": "Found: app 5, website 5 (without فراہم کنندہ). 'پانی کی فراہمی' → 'پانی کی سپلائی'; connectionSectionSupplier → 'کیا کنکشن، کون سی کمپنی یا ادارہ'; licences 'سائٹ سے فراہم کیے جاتے ہیں' → 'اسی سائٹ سے آتے ہیں'; licences 'فونٹس کے مختصر نسخے فراہم کرتی ہے' → 'فونٹس کے چھوٹے ورژن خود دیتی ہے'; gas guide 'فراہمی روک سکتی ہے' → 'گیس بند کر سکتی ہے'; source title 'گیس کی فراہمی کا معاہدہ' → 'گیس سپلائی کا معاہدہ'.",
+      "match": ["فراہم", "فراہمی"]
+    },
+    {
+      "avoid": "موصول",
+      "prefer": "مل گیا، ملا، آ گیا",
+      "english": "received",
+      "note": "Found: app 4, website 1, tests 4, docs/planning 2. templatePaymentReceived 'ادائیگی موصول' → 'ادائیگی مل گئی'; reminderReceived '{amount} موصول ہو گئے' → '{amount} مل گئے'; receivedThisMonthLabel → 'اس مہینے ملی رقم'. وصول stays: it is everyday.",
+      "match": ["موصول"]
+    },
+    {
+      "avoid": "وصول شدہ",
+      "prefer": "in sentences: 'جو رقم ملی'، 'جو کرایہ مل چکا'; columns and short labels: وصول; a status under a heading: 'وصول ہوئی'",
+      "english": "received (adjective)",
+      "note": "Found: app 6, website 3, mm_ui gallery 2, tests 15. 'وصول ہوا کرایہ' is not how anyone says it, and 'وصول ہونے والا' or 'ملنے والا کرایہ' can be read as rent still to come, so use a past verb. depositReceivedLabel → 'وصول ہوئی'. Exception: grossRentLabel ('Rent received, gross') on the tax-year statement includes tax the tenant withheld, which the landlord never had in hand, so it is 'کرایہ، ٹیکس کٹنے سے پہلے' (see مجموعی).",
+      "match": ["وصول شدہ"]
+    },
+    {
+      "avoid": "تاخیر شدہ",
+      "prefer": "لیٹ",
+      "english": "overdue",
+      "note": "Found: app 9, website 1, tests 1. People say 'کرایہ لیٹ ہے'. totalOverdueLabel → 'لیٹ رقم'; overdueLabel, templateOverdue, notificationRentOverdue → لیٹ; '{days} دن کی تاخیر' → '{days} دن لیٹ'; age buckets → '1 سے 30 دن لیٹ'; notificationPoliceOverdue 'پولیس اندراج میں تاخیر' → 'پولیس رجسٹریشن لیٹ'. Overdue (لیٹ: past its date) stays apart from owed (باقی: may include charges not yet due) and arrears (بقایا). تاخیر alone can stay in prose.",
+      "match": ["تاخیر شدہ"]
+    },
+    {
+      "avoid": "تاخیر جرمانہ، تاخیری جرمانہ، تاخیر کی فیس",
+      "prefer": "لیٹ فیس",
+      "english": "late fee",
+      "note": "Found: app 8, website 6, mm_ui gallery 3, tests 3, docs/planning 1. Three words for one thing today; schools, banks and utility bills all say لیٹ فیس. endTenancyExplain 'خودکار تاخیر جرمانے منسوخ ہو جائیں گے' → 'خود لگنے والی لیٹ فیس کینسل ہو جائے گی'. جرمانہ alone stays where it means a fine under a law, including the 10 per cent of the annual rent that the Punjab Act's section 9 makes a party deposit before the Rent Tribunal hears the case.",
+      "match": ["تاخیر جرمانہ", "تاخیر جرمانے", "تاخیری جرمانہ", "تاخیری جرمانے", "تاخیر کی فیس"]
+    },
+    {
+      "avoid": "غیر ادا شدہ",
+      "prefer": "'ادا نہیں ہوا'؛ 'جو ابھی ادا نہیں ہوا'",
+      "english": "unpaid",
+      "note": "Found: app 13. billUnpaid → 'ادا نہیں ہوا'; unpaidBillsHelp → 'جو بل ادا نہیں ہوئے، جس کی آخری تاریخ پہلے ہے وہ پہلے'; markUnpaidAction ('Mark unpaid') → 'ادا شدہ کا نشان ہٹائیں' (a verb; 'ادا نہیں ہوا لکھیں' reads as an instruction to write something); markUnpaidBody keeps its meaning: 'ادائیگی کی تاریخ ({date}) اور ادا کرنے والے کی انٹری مٹ جائے گی۔'. changeRentHelp must not say 'باقی کرایہ', which also reads 'the rest of the rent': 'اس مہینے اور بعد کا جو کرایہ ابھی ادا نہیں ہوا وہ نئی رقم پر ہو جائے گا۔ جن مہینوں کا کرایہ ادا ہو چکا، ان کی رقم وہی رہے گی۔'",
+      "match": ["غیر ادا شدہ"]
+    },
+    {
+      "avoid": "منہا، منہا شدہ",
+      "prefer": "tax the tenant withholds: 'کٹا ہوا ٹیکس'، 'ٹیکس کاٹا'; a tax deduction from income: 'آمدنی میں سے نکالنا'",
+      "english": "withheld; deducted",
+      "note": "Found: app 8. 'منہا شدہ ٹیکس' → 'کٹا ہوا ٹیکس' (the website already says 'کاٹا ہوا ٹیکس'); taxWithheldSwitch → 'کرایہ دار نے انکم ٹیکس کاٹا'; withTax → '{amount} ٹیکس کٹا'. A deduction is taken off taxable income, not off the rent: deductibleNote ('Which expenses can be deducted is for your tax adviser to decide') → 'ٹیکس کے حساب میں آمدنی میں سے کون سے خرچ نکل سکتے ہیں، یہ آپ کا ٹیکس مشیر طے کرے گا۔' (see the کٹوتی entry).",
+      "match": ["منہا"]
+    },
+    {
+      "avoid": "منسوخ",
+      "prefer": "voiding a money entry: کینسل, always with its object ('ادائیگی کینسل کریں'، 'چارج کینسل کریں'، status 'کینسل'); a repair: 'کام کینسل کریں'; a dialog's Cancel button: 'رہنے دیں'; an invitation: 'دعوت واپس لیں'",
+      "english": "void; cancel",
+      "note": "Found: app 51, website 7, mm_ui gallery 5, tests 9, docs/planning 2. Named by the owner. One word does two jobs today: the Cancel button of every dialog (cancelAction, mm_ui cancel) and voiding a payment, charge, refund or handover. People say 'کینسل کر دیا'. But most phone users have pressed an English 'Cancel' for years to close a dialog, so a void button that says only 'کینسل کریں' will be tapped as 'never mind' and void a payment: every void button names its object, کینسل never stands alone on a button, and the dismiss button is always 'رہنے دیں'. Keep the money rule in the wording: 'کینسل ہونے والی انٹری ریکارڈ میں رہتی ہے، مٹائی نہیں جاتی'. Keep void apart from waive (معاف: forgives what is owed, the charge stays) and delete (ڈیلیٹ). The receipt stamp 'VOID' → 'کینسل'; voidedReceipt → '{number} (کینسل)'; revokeInvitationAction → 'دعوت واپس لیں'.",
+      "match": ["منسوخ", "منسوخی"]
+    },
+    {
+      "avoid": "حذف",
+      "prefer": "ڈیلیٹ (کریں / ہو گیا), with the object on a button ('جائیداد ڈیلیٹ کریں')",
+      "english": "delete",
+      "note": "Found: app 58, website 10, roadmap 1, mm_ui gallery 6, tests 25. What people say ('ڈیلیٹ کر دو'), known from WhatsApp. Keep it distinct from کینسل (void, kept on record) and آرکائیو (hidden but kept). Keep 'ہمیشہ کے لیے' and 'واپس نہیں آ سکتا، ہماری طرف سے بھی نہیں' wherever the English says it. In website prose 'مٹانا' is also plain ('مٹائی نہیں جاتی'). reasonMfaRequired → 'اس اکاؤنٹ میں سائن اِن کے لیے دوسرا کوڈ بھی لگتا ہے (ٹو اسٹیپ)، جسے یہ ایپ ابھی چیک نہیں کر سکتی، اس لیے اسے یہاں سے ڈیلیٹ نہیں کیا جا سکتا۔'",
+      "match": ["حذف"]
+    },
+    {
+      "avoid": "دوبارہ استعمال میں لائیں",
+      "prefer": "button: 'آرکائیو سے واپس لائیں' ('واپس لائیں' inside the archive list); message: '{name} آرکائیو سے واپس آ گئی'",
+      "english": "restore (from the archive)",
+      "note": "Found: app 9. restoreAction and the archive dialogs. A bare '{name} واپس آ گئی' sounds as if the property itself came back, so say where from: propertyRestored → '{name} آرکائیو سے واپس آ گئی'. Match the verb's gender: جائیداد and کرایہ داری are feminine, یونٹ and کرایہ دار masculine.",
+      "match": ["دوبارہ استعمال میں"]
+    },
+    {
+      "avoid": "ترمیم",
+      "prefer": "the Edit button: 'ایڈٹ کریں'; titles: '… کی تفصیل بدلیں'; keep the bare 'بدلیں' for setting a new value ('کرایہ بدلیں')",
+      "english": "edit",
+      "note": "Found: app 12, mm_ui gallery 4, tests 6. To most readers ترمیم is what Parliament does to the Constitution. A bare 'بدلیں' cannot carry Edit: switchPortfolioAction already says 'پورٹ فولیو بدلیں' (switch), and changeRentAction 'کرایہ بدلیں' sets a new rent from a chosen month and re-prices unpaid months, which is not the same as correcting a record. editAction → 'ایڈٹ کریں'; editPropertyTitle → 'جائیداد کی تفصیل بدلیں'; the bill title → 'بل کی تفصیل بدلیں'; editChargeAction → 'چارج ایڈٹ کریں'. Keep ترمیمی only inside official names of laws ('ترمیمی ایکٹ 2021'), which this count excludes.",
+      "match": ["ترمیم"]
+    },
+    {
+      "avoid": "منتخب",
+      "prefer": "چنیں؛ چنا ہوا",
+      "english": "choose, select",
+      "note": "Found: app 33, website 2, e-mails 2, mm_ui gallery 5, iOS/Android 1, tests 8. Shorter and spoken; the website already uses چنیں ('سلیکٹ کریں' is also said). settleChosen → 'جو چارج میں خود چنوں' (a noun is needed; 'میرے چنے ہوئے' reads as unfinished). The recovery e-mail's 'نیا پاس ورڈ منتخب کریں' → 'نیا پاس ورڈ بنائیں'.",
+      "match": ["منتخب"]
+    },
+    {
+      "avoid": "اندراج",
+      "prefer": "a money record: انٹری; police: 'پولیس رجسٹریشن' (first mention on a guide: 'پولیس رجسٹریشن، یعنی تھانے میں کرایہ دار کی رجسٹریشن'); the Rent Registrar: 'رینٹ رجسٹرار کے پاس رجسٹریشن'",
+      "english": "entry; registration",
+      "note": "Found: app 17, website 6, mm_ui gallery 1. The app says 'پولیس میں اندراج' and the website 'پولیس رجسٹریشن' for the same thing: use پولیس رجسٹریشن everywhere (leaseSectionPolice, documentKindPoliceRegistration, notificationPolicePending, notificationPoliceOverdueBody, notificationsSummary, insightPolice*). documentKindRentRegistration ('کرایہ داری کا سرکاری اندراج') is registration with the Rent Registrar, a different thing: 'رینٹ رجسٹرار کے پاس رجسٹریشن'. Registration under the Registration Act 1908 is a third (see پٹہ). reasonAlreadyVoided → 'یہ انٹری پہلے ہی کینسل ہو چکی ہے'; 'مالی اندراج' → 'رقم کی انٹری'; markUnpaidBody → '… ادا کرنے والے کی انٹری مٹ جائے گی'.",
+      "match": ["اندراج"]
+    },
+    {
+      "avoid": "درج کریں (asking the user to type)",
+      "prefer": "لکھیں; a code or PIN: ڈالیں",
+      "english": "enter (type)",
+      "note": "Found: app 29, website 15, mm_ui gallery 3, tests 21. درج is on every form and understood, so it stays for recording ('ادائیگی درج کریں') and for the police ('تھانے میں درج کروائیں'). Where a message asks someone to type into a box, لکھیں is plainer: validationEmail → 'name@example.com جیسی ای میل لکھیں۔' (keep the example; see the ای میل پتہ entry); validationRent → 'کرایہ لکھیں'; validationRequired → 'یہ خانہ بھرنا ضروری ہے'; validationNumberRange → 'کوئی نمبر لکھیں'. For one-time codes people say 'کوڈ ڈالیں'. The count is every 'درج کریں'; judge each.",
+      "match": []
+    },
+    {
+      "avoid": "مورخہ",
+      "prefer": "(drop it) '{date} کو'; '{date} تک' where the English means 'by'",
+      "english": "dated, on",
+      "note": "Found: app 5, tests 1. Office language in tenant WhatsApp reminders and notifications. reminderUtility today says 'مورخہ {date} تک ادا کرنا ہے' (pay by the date), so keep تک there; do not turn every مورخہ into کو.",
+      "match": ["مورخہ"]
+    },
+    {
+      "avoid": "بنام؛ از … بنام …",
+      "prefer": "کو؛ '{from} سے {to} کو'",
+      "english": "to (addressee); from … to …",
+      "note": "Found: app 3, website 1, mm_ui gallery 1, tests 6. reminderTo 'بنام {name}، نمبر {phone}' → '{name} کو، {phone} پر'; handoverFromTo ('{from} to {to}') → '{from} سے {to} کو', not 'نے … کو دی': a recorded handover is the giver's entry until the receiver confirms it. بنام and بابت stay inside court case names and law citations ('سندھ ایکٹ نمبر 21 بابت 2015'). 'کم از کم' and 'جلد از جلد' are not counted and stay.",
+      "match": ["بنام"]
+    },
+    {
+      "avoid": "برائے",
+      "prefer": "کے لیے؛ کا؛ 'کس مہینے کا'؛ 'کس لیے'",
+      "english": "for",
+      "note": "Found: app 3, website 3. chargeMonthLabel → 'کس مہینے کا'; billMonthLabel → 'کس مہینے کا بل'; receiptForLabel ('what the payment is for') → 'کس لیے', which works on a receipt for rent, a bill or a deposit; 'سرکلر نمبر 2 برائے مالی سال 2026 تا 2027' → 'مالی سال 2026-27 کا سرکلر نمبر 2', the official one-year citation, with 2026-27 in a left-to-right run (website/AGENTS.md), not 'مالی سال 2026 سے 2027 تک', which reads as a range of years.",
+      "match": ["برائے"]
+    },
+    {
+      "avoid": "بطور، بطورِ",
+      "prefer": "کے طور پر؛ بن کر; 'by default': 'پہلے سے'",
+      "english": "as; by default",
+      "note": "Found: app 3, website 1, e-mails 2, tests 7. signedInAs → 'آپ اس ای میل سے سائن اِن ہیں'; 'بطور {role} شامل' → '{role} کے طور پر شامل'. On the privacy page 'بطورِ طے شدہ چھپے رہتے ہیں' means 'masked by default': the CNIC shows only its first five digits and the last one, and a button reveals the whole number, so 'خود بخود چھپے' loses both facts. Write: 'اسکرین پر شناختی کارڈ نمبر کا زیادہ حصہ پہلے سے چھپا رہتا ہے۔ پورا نمبر بٹن دبا کر دیکھا جا سکتا ہے۔'",
+      "match": ["بطور"]
+    },
+    {
+      "avoid": "بشمول",
+      "prefer": "سمیت؛ 'اور … بھی'",
+      "english": "including",
+      "note": "Found: app 1, website 2. In the section 15A list ('بشمول انتظامی اور وصولی کے اخراجات ایک حد تک') keep 'ایک حد تک' (up to a limit).",
+      "match": ["بشمول"]
+    },
+    {
+      "avoid": "بشرطیکہ",
+      "prefer": "اگر؛ 'شرط یہ ہے کہ'",
+      "english": "provided that",
+      "note": "Found: app 1, website 1. A condition with legal weight stays a condition, in the same sentence. deleteTenancyBody → '… اگر ابھی تک کچھ ادا، معاف یا کینسل نہیں ہوا', and keep the 'otherwise end the tenancy' sentence after it; licences: 'شرط یہ ہے کہ کاپی رائٹ نوٹس اور لائسنس ساتھ رہیں'.",
+      "match": ["بشرطیکہ"]
+    },
+    {
+      "avoid": "الا یہ کہ",
+      "prefer": "'اگر … نہ ہو تو'؛ سوائے اس کے کہ",
+      "english": "unless",
+      "note": "Found: website 3. The Islamabad default keeps both parts of the rule: the rise comes at the end of each year of the tenancy (not each calendar year), and the parties can agree in writing on a different increase or none. 'کرایہ داری کے ہر سال کے آخر میں کرایہ خود 10 فیصد بڑھ جاتا ہے، اگر مالک اور کرایہ دار نے لکھ کر کوئی اور اضافہ، یا کوئی اضافہ نہ کرنا، طے نہ کیا ہو۔'",
+      "match": ["الا یہ کہ"]
+    },
+    {
+      "avoid": "حتی الامکان",
+      "prefer": "جہاں تک ہو سکے",
+      "english": "as far as possible",
+      "note": "Found: website 1 (the Sindh Ordinance summary on receipts).",
+      "match": ["حتی الامکان", "حتیٰ الامکان"]
+    },
+    {
+      "avoid": "براہِ کرم",
+      "prefer": "(drop it in app messages); in messages to tenants, only where the English says please: 'مہربانی کر کے'",
+      "english": "please",
+      "note": "Found: app 11, website 1, tests 1, docs/planning 3. Understood from signboards, but in error messages it adds length and no meaning: کریں and 'کر دیں' are already polite. failureSessionExpired → 'آپ سائن آؤٹ ہو گئے ہیں۔ دوبارہ سائن اِن کریں۔'. reminderOverdue and reminderUtility say 'Please', so they use 'مہربانی کر کے'; the Roman Urdu 'Barah-e-karam' → 'Meherbani kar ke'. Do not add شکریہ to a reminder body: the app appends reminderThanks ('والسلام، {landlord}') and the payment lines itself.",
+      "match": ["براہِ کرم", "براہ کرم"]
+    },
+    {
+      "avoid": "براہِ راست",
+      "prefer": "سیدھا؛ ڈائریکٹ؛ تازہ",
+      "english": "direct, live",
+      "note": "Found: website 3, roadmap 1. 'پورٹلز کے براہِ راست لنک' → 'سیدھے لنک'; roadmap 'گٹ ہب سے براہِ راست، {date} تک کی صورتِ حال' → 'گٹ ہب سے تازہ حال، {date} تک'; roadmap theme 'براہِ راست وصولی' → 'ایپ سے سیدھا کرایہ وصول کرنا'.",
+      "match": ["براہِ راست", "براہ راست"]
+    },
+    {
+      "avoid": "صورتِ حال",
+      "prefer": "labels: اسٹیٹس; prose: معاملہ",
+      "english": "status, situation",
+      "note": "Found: app 6, website 13. Fine in prose, but as a label (policeStatusLabel, statusLabel, requestSectionStatus) اسٹیٹس is shorter and known from NADRA and bank tracking. occupancyLabel has six values (let, starting soon, vacant, not available, archived, unknown), so 'خالی ہے یا کرائے پر' offers too few: use 'کرائے کا اسٹیٹس'. occupancyUnknown ('Status unknown') → 'معلوم نہیں' ('پتہ نہیں' reads like a shrug on a badge). Disclaimer → 'اپنے معاملے کے بارے میں کسی وکیل یا ٹیکس مشیر سے پوچھیں'.",
+      "match": ["صورتِ حال", "صورت حال", "صورتحال"]
+    },
+    {
+      "avoid": "زیرِ التوا",
+      "prefer": "a repair not started: 'شروع نہیں ہوا'; a police registration not yet done: 'ابھی نہیں ہوئی' (website prose: 'باقی پولیس رجسٹریشن')",
+      "english": "open, pending",
+      "note": "Found: app 1, website 2. maintenanceOpen sits beside In progress, On hold, Resolved and Cancelled; 'نیا' misleads for a request weeks old. Keep 'not yet registered' apart from 'submitted, waiting for the police' (see منتظر).",
+      "match": ["زیرِ التوا", "زیر التوا", "زیرِ التواء", "زیر التواء"]
+    },
+    {
+      "avoid": "زیرِ استعمال، زیرِ تیاری",
+      "prefer": "استعمال میں؛ 'ابھی تیار ہو رہی ہے'",
+      "english": "in use; in development",
+      "note": "Found: app 2, website 1. filterInUse → 'استعمال میں'; site appStatus 'زیرِ تیاری: ورژن 1.0 ابھی جاری نہیں ہوا' → 'ایپ ابھی تیار ہو رہی ہے: ورژن 1.0 ابھی جاری نہیں ہوا'.",
+      "match": ["زیرِ استعمال", "زیر استعمال", "زیرِ تیاری", "زیر تیاری"]
+    },
+    {
+      "avoid": "نظرِ ثانی",
+      "prefer": "'آخری بار چیک کیا'؛ 'نیا ورژن'",
+      "english": "review",
+      "note": "Found: website 5, roadmap 3. Guide date label 'آخری نظرِ ثانی' → 'آخری بار چیک کیا' (not 'آخری اپ ڈیٹ': checked and updated are different claims); roadmap 'اہلِ زبان کی نظرِ ثانی' → 'اردو بولنے والے سے چیک'; prose 'نظرِ ثانی ہوئی' (NEPRA manual) → 'نیا ورژن آیا'. NEPRA publishes its manual's title in English, so the Urdu source title is ours and is plain too: 'کنزیومر سروس مینول، 2025 کا نیا ورژن'.",
+      "match": ["نظرِ ثانی", "نظر ثانی"]
+    },
+    {
+      "avoid": "میعاد؛ 'مدت ختم' (for links and invitations)",
+      "prefer": "ایکسپائر؛ 'ایکسپائر ہونے کی تاریخ'؛ 'کام کرنا بند'",
+      "english": "validity, expiry",
+      "note": "Found: app 6, website 3 (میعاد only). NADRA's own Urdu says 'میعاد ختم', so the word is known, but people say 'کارڈ ایکسپائر ہو گیا'. cnicExpiryLabel ('CNIC expires on') is a date label that also shows past dates, so no future tense: 'شناختی کارڈ ایکسپائر ہونے کی تاریخ'; cnicExpired → 'شناختی کارڈ ایکسپائر ہو چکا'; reasonLinkExpired → 'یہ لنک ایکسپائر ہو چکا ہے یا پہلے استعمال ہو چکا ہے۔ نیا لنک منگوائیں۔'; invitationExpiredBody → 'یہ دعوت ایکسپائر ہو چکی ہے: دعوت 7 دن تک کام کرتی ہے۔ نئی دعوت منگوائیں۔'; features 'جس کی میعاد سات دن بعد ختم ہو جاتی ہے' → 'جو سات دن بعد کام نہیں کرتا'. مدت stays for a lease term and a notice period.",
+      "match": ["میعاد"]
+    },
+    {
+      "avoid": "تجدید",
+      "prefer": "رینیو؛ 'نیا کرایہ نامہ'",
+      "english": "renewal",
+      "note": "Found: app 2, website 4, mm_ui gallery 1, tests 6. Known from licences and car tokens. insightExpiringBody 'تجدید کریں یا رخصتی کی تیاری کریں' → 'کرایہ نامہ رینیو کریں یا جگہ خالی ہونے کی تیاری کریں' (جگہ, because units include shops; see رخصتی); pricing 'خودکار تجدید کے بغیر' → 'خود بخود رینیو نہیں ہو گا'.",
+      "match": ["تجدید"]
+    },
+    {
+      "avoid": "اختتام",
+      "prefer": "ختم ہونا؛ آخر",
+      "english": "end",
+      "note": "Found: app 1, website 3, mm_ui gallery 1, tests 3. endsOnLabel ('Ends on', the agreed end) → 'کرایہ داری کب تک طے ہے', and endedOnLabel ('Ended on', the day the tenant moved out) → 'کب ختم ہوئی': both show on the tenancy screen, so one is a term and the other an event, never one label; 'ٹیکس سال کے اختتام' → 'ٹیکس سال کے آخر'.",
+      "match": ["اختتام"]
+    },
+    {
+      "avoid": "ابتدا، ابتدائی، آغاز",
+      "prefer": "شروع؛ پہلے سے",
+      "english": "start, initial; defaults",
+      "note": "Found: app 4, website 1, roadmap 1, mm_ui gallery 3, tests 6. rentReasonInitial → 'شروع کا کرایہ'; 'آغاز ہی سے' → 'شروع ہی سے'. tenancyDefaultsSection ('New tenancies start with') holds values that are pre-filled and can be changed for each tenancy; 'پہلے سے طے شرائط' reads as binding terms: 'نئی کرایہ داری میں پہلے سے بھرا جائے گا' (portfolioDetailsSummary follows). billingStartsLabel ('Bill from', the date rent charges begin, on the lease form) → 'کرایہ کب سے شروع ہو', not 'بل کب سے بنیں', which reads as utility bills.",
+      "match": ["ابتدا", "ابتدائی", "آغاز"]
+    },
+    {
+      "avoid": "ابتدائی رسائی",
+      "prefer": "lead with what the reader gets: 'ابھی مفت'; the period itself: 'شروعاتی دور'",
+      "english": "early access",
+      "note": "Found: website 14. Neither word means anything to most readers. 'ابتدائی رسائی میں مفت' → 'ابھی مفت'; 'ابتدائی رسائی کے دوران ایپ مفت ہے' → 'ایپ ابھی شروعاتی دور میں مفت ہے'. Keep the pricing promise exact: everything is free now; at least 60 days' notice by e-mail and in the app before any charge; nobody is moved onto a paid plan without choosing one; accounts opened before billing starts get half price for their first year.",
+      "match": ["ابتدائی رسائی"]
+    },
+    {
+      "avoid": "مہلت (as a label)",
+      "prefer": "next to a date: 'آخری تاریخ'; a period: '15 دن کے اندر'، '48 گھنٹے کے اندر' (table heading: 'کتنے وقت میں'); prose may keep مہلت",
+      "english": "deadline; time allowed",
+      "note": "Found: website 19. مہلت is everyday in prose ('ایک ہفتے کی مہلت'), but the app shows a date and the website gives periods (15 days, 48 hours, 7 days, 3 days), and 'آخری تاریخ: 48 گھنٹے' is wrong. Keep the unit (Sindh counts hours, not days) and the starting event: Punjab and Sindh count from possession, Khyber Pakhtunkhwa and Balochistan from signing the agreement; KP does not count public holidays. Islamabad has no deadline in any statute we found, and the app's one day is its own suggestion. Never use مہلت for grace days.",
+      "match": []
+    },
+    {
+      "avoid": "ماہ (on its own)",
+      "prefer": "مہینہ",
+      "english": "month",
+      "note": "Found: website 12, mm_ui gallery 14, tests 16. ماہانہ stays (it is on every bill). 'ہر ماہ' → 'ہر مہینے'; '12 ماہ' → '12 مہینے'; 'چھ ماہ تک قید' → 'چھ مہینے تک قید'.",
+      "match": ["ماہ"]
+    },
+    {
+      "avoid": "ماہ بہ ماہ، سال بہ سال، صوبہ بہ صوبہ",
+      "prefer": "a tenancy term: 'مدت طے نہیں (مہینہ وار)'; 'ہر سال کا'؛ 'ہر صوبے کا'",
+      "english": "month to month; year to year; province by province",
+      "note": "Found: app 2, website 5. termPeriodic and periodicValue sit beside '11 مہینے'، '12 مہینے' and 'کسی تاریخ تک'. A bare 'مہینہ وار' reads as 'rent paid monthly', which is true of every option; the point is that there is no fixed end, so lead with 'مدت طے نہیں'. Registration Act section 17 has three cases and all must stay: 'ہر سال خود آگے چلنے والی لیز، ایک سال سے زیادہ کی لیز، یا سالانہ کرائے والی لیز'. 'قدم بہ قدم' is everyday and stays.",
+      "match": ["ماہ بہ ماہ", "سال بہ سال", "صوبہ بہ صوبہ"]
+    },
+    {
+      "avoid": "تا (in ranges)",
+      "prefer": "'… سے … تک'",
+      "english": "to (range)",
+      "note": "Found: app 2, website 5, tests 7. Write the تک: 'جولائی تا جون' → 'جولائی سے جون تک'; 'دفعات 11 تا 13' → 'دفعہ 11 سے 13 تک'.",
+      "match": ["تا"]
+    },
+    {
+      "avoid": "دستاویز، دستاویزات",
+      "prefer": "section titles and plurals: کاغذات (the section also holds photos: 'کاغذات اور تصویریں'); a single item: فائل",
+      "english": "document(s)",
+      "note": "Found: app 13, website 15, roadmap 1, mm_ui gallery 1, tests 4. کاغذات is the everyday word and the app already says 'جائیداد کے کاغذات'. One 'کاغذ' is a sheet of paper, and most items are photos or PDFs, so one item is a فائل ('یہ فائل ڈیلیٹ کریں؟'). documentsSection → 'کاغذات اور تصویریں' (documentsEmptyUnit shows it holds photos of units and meters); addDocumentAction → 'کاغذ یا تصویر شامل کریں'; documentLanguageLabel (the language of the generated PDF) → 'پی ڈی ایف کی زبان'.",
+      "match": ["دستاویز", "دستاویزات", "دستاویزی"]
+    },
+    {
+      "avoid": "تصاویر",
+      "prefer": "تصویریں",
+      "english": "photos",
+      "note": "Found: app 10, website 3, roadmap 1, iOS/Android 2. Arabic broken plural; the website already says تصویریں.",
+      "match": ["تصاویر"]
+    },
+    {
+      "avoid": "نقل، نقول",
+      "prefer": "کاپی، کاپیاں؛ بیک اپ",
+      "english": "copy",
+      "note": "Found: app 3, website 23, tests 3. Landlords who deal with the patwari know نقل as a certified copy, but in everyday speech it means copying in an exam; for papers people say کاپی or فوٹو کاپی. 'تصدیق شدہ نقل' → 'تصدیق شدہ کاپی' (the attested copy the police ask for); timelineCnicHelp 'نئے کارڈ کی نقل طلب کریں' → 'نئے کارڈ کی کاپی مانگیں'; self-hosting 'اپنی نقل چلا سکتا ہے' → 'اپنی کاپی چلا سکتا ہے'. Privacy 'خفیہ کردہ نقل' → 'انکرپٹ کیا ہوا بیک اپ', not just 'بیک اپ': that only the operator can open it is the promise. Keep 'what you delete can stay in these backups for at most 90 days'.",
+      "match": ["نقل", "نقول"]
+    },
+    {
+      "avoid": "گوشوارہ",
+      "prefer": "اسٹیٹمنٹ؛ (a tax return) ٹیکس ریٹرن",
+      "english": "statement",
+      "note": "Found: app 12, website 8, tests 3. The app says گوشوارہ and the website اسٹیٹمنٹ for the same PDFs, and to most people گوشوارہ means the FBR income tax return ('گوشوارے جمع کروانے کی آخری تاریخ'), which the app never files. Use اسٹیٹمنٹ, as in bank statement; reportsEntrySummary 'مالک کے گوشوارے' → 'مالک کی اسٹیٹمنٹ'. Where the meaning really is the return (the terms page's 'ٹیکس گوشواروں'), say ٹیکس ریٹرن. Keep statement, receipt, invoice and bill apart: رسید is proof that money was received, انوائس a supplier's invoice, بل a utility bill, اسٹیٹمنٹ an account summary.",
+      "match": ["گوشوارہ", "گوشوارے", "گوشواروں"]
+    },
+    {
+      "avoid": "سی ایس وی، اسپریڈ شیٹ",
+      "prefer": "buttons: 'فائل بنائیں (CSV)'، 'فائل بھیجیں (CSV)'; once in helper text: 'یہ فائل ایکسل میں کھلتی ہے'",
+      "english": "CSV, spreadsheet",
+      "note": "Found: app 4, website 6, tests 1. People know ایکسل, not CSV, but a CSV is not an Excel file, and someone expecting .xlsx would be misled, so do not label the button 'ایکسل فائل'. exportAction → 'فائل بنائیں (CSV)'; shareCsvAction → 'فائل بھیجیں (CSV)'. ایکسپورٹ can stay in secondary text.",
+      "match": ["سی ایس وی", "اسپریڈ شیٹ"]
+    },
+    {
+      "avoid": "حوالگی",
+      "prefer": "'آگے دی گئی نقدی'؛ 'نقدی کس کو دی'",
+      "english": "handover (of cash)",
+      "note": "Found: app 10, website 4. Builds on wording the app already uses (methodCash 'نقد'، 'ہاتھ میں نقدی'، cashInHandHelp 'آگے دی گئی'). handoversSection → 'آگے دی گئی نقدی'; handoverTitle → 'نقدی کس کو دی'; recordHandoverAction → 'نقدی دینے کی انٹری کریں'; noHandoversYet → 'ابھی کوئی نقدی آگے نہیں دی گئی۔'; voidHandoverAction names its object → 'نقدی کی انٹری کینسل کریں'; confirmHandoverAction 'تصدیق کریں کہ وصول ہوئی' stays; voidHandoverExplain 'دینے والے کے پاس ہی شمار ہو گی' → 'دینے والے کے پاس ہی مانی جائے گی'. Use one of نقدی or کیش per screen.",
+      "match": ["حوالگی", "حوالگیاں"]
+    },
+    {
+      "avoid": "بے باق",
+      "prefer": "حساب صاف",
+      "english": "settled",
+      "note": "Found: app 1. settledSection → 'حساب صاف یا کریڈٹ میں'. An old bahi-khata word most city readers no longer use.",
+      "match": ["بے باق", "بےباق"]
+    },
+    {
+      "avoid": "مد میں، کس مد میں",
+      "prefer": "'کس چیز کا'؛ کے لیے؛ کے بدلے; the Ordinance's head of income: 'جائیداد سے آمدنی' کا خانہ",
+      "english": "under the head of; towards",
+      "note": "Found: app 2, website 10, docs/planning 1. chargeKindLabel, chargeForLabel → 'کس چیز کا'. 'مرمت کی مد میں پانچویں حصے کی کٹوتی' is taken off taxable income, not off the rent the tenant pays: 'ٹیکس کے حساب میں مرمت کے لیے کرائے کا پانچواں حصہ آمدنی میں سے نکالنا'. In the tax guide 'جائیداد سے آمدنی کی مد' is a legal category: 'ٹیکس میں یہ \"جائیداد سے آمدنی\" کے خانے میں آتا ہے'. Utilities guide 'کرایہ دار کے واجبات کی مد میں' → 'کرایہ دار کے بقایا کے بدلے' (the tenant's electricity arrears).",
+      "match": ["مد میں", "کی مد"]
+    },
+    {
+      "avoid": "مالیت",
+      "prefer": "قیمت",
+      "english": "value",
+      "note": "Found: app 4, website 1. propertySectionValue, estimatedValueLabel → 'اندازاً قیمت'. Punjab section 9: 'سالانہ کرایے کی مالیت کا 10 فیصد' → 'سال بھر کے کرائے کا 10 فیصد'; the amount is the same.",
+      "match": ["مالیت"]
+    },
+    {
+      "avoid": "تخمینہ، تخمینی",
+      "prefer": "اندازہ؛ اندازاً",
+      "english": "estimate",
+      "note": "Found: app 3. estimateLabel → 'اندازاً خرچ'; spentOfEstimate → '{estimate} کے اندازے میں سے {spent}'; noYieldHelp: see شرحِ منافع.",
+      "match": ["تخمینہ", "تخمینے", "تخمینی"]
+    },
+    {
+      "avoid": "قیمتِ خرید، تاریخِ خرید، سنِ تعمیر",
+      "prefer": "خریدنے کی قیمت؛ کب خریدی؛ کس سال بنی",
+      "english": "purchase price; purchased on; year built",
+      "note": "Found: app 3. Izafat chains on the property form.",
+      "match": ["قیمتِ خرید", "قیمت خرید", "تاریخِ خرید", "تاریخ خرید", "سنِ تعمیر", "سن تعمیر"]
+    },
+    {
+      "avoid": "تعمیر شدہ رقبہ",
+      "prefer": "کورڈ ایریا (بنا ہوا رقبہ)",
+      "english": "covered area",
+      "note": "Found: app 1. What owners and estate agents say. Keep the unit '(مربع فٹ)'.",
+      "match": ["تعمیر شدہ رقبہ"]
+    },
+    {
+      "avoid": "اکائی (پیمائش کی اکائی)",
+      "prefer": "'رقبہ کس میں' (مرلہ، کنال، فٹ…)",
+      "english": "unit of measure",
+      "note": "Found: app 2. Textbook Urdu, and یونٹ already means a rented unit. plotUnitLabel → 'رقبہ کس میں'; validationPlotUnit → 'رقبہ کس میں ہے، یہ چنیں'.",
+      "match": ["اکائی"]
+    },
+    {
+      "avoid": "اخراجات",
+      "prefer": "خرچ (titles and labels); خرچے (sentences)",
+      "english": "expenses",
+      "note": "Found: app 23, website 11. Lower priority: اخراجات is understood from the news ('گھر کے اخراجات'), so this is about consistency and the spoken word. The app mixes خرچ and اخراجات today.",
+      "match": ["اخراجات"]
+    },
+    {
+      "avoid": "آمدن",
+      "prefer": "آمدنی",
+      "english": "income",
+      "note": "Found: app 7, mm_ui gallery 3, tests 3. One word: the app says آمدن, the website آمدنی.",
+      "match": ["آمدن"]
+    },
+    {
+      "avoid": "خالص",
+      "prefer": "money in less money out: 'آئی اور گئی رقم کا فرق'; income less expenses: 'خرچوں کے بعد آمدنی'",
+      "english": "net",
+      "note": "Found: app 6, website 1, mm_ui gallery 3, tests 6. In everyday speech خالص means pure (خالص گھی). netLabel is 'money in less money out', and money out includes deposit refunds as well as expenses; it can also be negative. So neither 'بچت' (a negative saving makes no sense) nor 'خرچ نکال کر' is right: netLabel → 'آئی اور گئی رقم کا فرق'; netCashLabel ('received less paid out') → 'مہینے میں آئی اور گئی رقم کا فرق'; moneyInSeries 'آمد' → 'آئی رقم'; moneyOutSeries 'خرچ' (expenses and deposits refunded) → 'گئی رقم'; noiLabel ('income less expenses', including other income) → 'خرچوں کے بعد آمدنی', not 'کرائے کی آمدنی'. A negative figure keeps its minus sign. The yields are under شرحِ منافع.",
+      "match": ["خالص"]
+    },
+    {
+      "avoid": "مجموعی",
+      "prefer": "total: کل, always before a noun ('کل رقم'، 'کل کرایہ'); gross (before tax or expenses): 'پورا کرایہ (ٹیکس کٹنے سے پہلے)'",
+      "english": "total; gross",
+      "note": "Found: app 3, website 27. Bills print 'کل رقم', so کل is right for a total ('کل ملا کر' for insightUnderpricedBody). But کل also means tomorrow (dueInDays) and yesterday, so it never stands alone beside a figure. It is wrong for 'gross': 'کل کرایہ' reads as the cash the landlord got, while the section 155 bands and rates apply to rent before withholding, including furniture, fixtures and services, and a landlord adding up net cash would land in the wrong band. On the tax pages, the calculator and grossRentLabel write 'پورا کرایہ (ٹیکس کٹنے سے پہلے)' (grossRentLabel: 'کرایہ، ٹیکس کٹنے سے پہلے') and keep the definition beside it. Never 'کل منافع' for gross yield.",
+      "match": ["مجموعی"]
+    },
+    {
+      "avoid": "شرحِ منافع",
+      "prefer": "gross yield: 'خرچ سے پہلے سالانہ منافع (قیمت کا فیصد)'; net yield: 'خرچ کے بعد سالانہ منافع (قیمت کا فیصد)'",
+      "english": "yield",
+      "note": "Found: app 3. grossYieldLabel is rent a year over the estimated value; netYieldLabel is net operating income a year over the estimated value. One label for both would make two different figures look the same, so each keeps 'before' or 'after expenses' and 'as a share of the value'. noYieldHelp 'تخمینی مالیت' → 'سالانہ منافع کا فیصد دیکھنے کے لیے جائیداد کی اندازاً قیمت لکھیں'.",
+      "match": ["شرحِ منافع", "شرح منافع"]
+    },
+    {
+      "avoid": "شرح، شرحیں",
+      "prefer": "ریٹ",
+      "english": "rate",
+      "note": "Found: website 23. People say 'ٹیکس کا ریٹ', and FBR's own 'ریٹ کارڈ' is already used. Keep 'اضافے کی شرح' where it quotes the Punjab Act's words.",
+      "match": ["شرح", "شرحیں", "شرحوں"]
+    },
+    {
+      "avoid": "تناسب",
+      "prefer": "'کتنا فیصد'؛ حصہ",
+      "english": "proportion",
+      "note": "Found: website 2, mm_ui gallery 2. Calculator 'مجموعی کرایے کے تناسب سے' → 'پورے کرائے کا کتنا فیصد'; mm_ui 'تناسب کی بار' → 'حصوں والی بار'.",
+      "match": ["تناسب"]
+    },
+    {
+      "avoid": "اعداد، اعداد و شمار",
+      "prefer": "حساب؛ نمبر; the settings section: رقمیں",
+      "english": "numbers, figures",
+      "note": "Found: app 4, website 12, mm_ui gallery 3. settingsNumbers ('how amounts are grouped') → 'رقمیں' (a bare 'نمبر' there reads as phone numbers); loadingPerformance → 'جائیدادوں کا حساب لوڈ ہو رہا ہے'; notTaxAdviceBody 'یہ اعداد و شمار' → 'یہ نمبر'.",
+      "match": ["اعداد"]
+    },
+    {
+      "avoid": "عدد",
+      "prefer": "نمبر",
+      "english": "number",
+      "note": "Found: app 3, website 4, mm_ui gallery 1. validationNumberRange 'کوئی عدد درج کریں' → 'کوئی نمبر لکھیں'.",
+      "match": ["عدد"]
+    },
+    {
+      "avoid": "اعشاریہ",
+      "prefer": "پوائنٹ",
+      "english": "decimal point",
+      "note": "Found: app 3. 'اعشاریہ کے بعد زیادہ سے زیادہ دو ہندسے' → 'پوائنٹ کے بعد زیادہ سے زیادہ دو ہندسے'.",
+      "match": ["اعشاریہ"]
+    },
+    {
+      "avoid": "گروہ بندی",
+      "prefer": "'رقم لکھنے کا انداز'",
+      "english": "digit grouping",
+      "note": "Found: app 1. groupingLabel 'رقوم کے ہندسوں کی گروہ بندی' → 'رقم لکھنے کا انداز'. The options show the two forms: 'لاکھ اور کروڑ (12,50,000 روپے)' (already plain) and 'مغربی (1,250,000 روپے)' → 'انگریزی انداز (1,250,000 روپے)'.",
+      "match": ["گروہ بندی"]
+    },
+    {
+      "avoid": "مقرر، مقررہ",
+      "prefer": "طے؛ فکس",
+      "english": "set, fixed",
+      "note": "Found: app 7, website 10, mm_ui gallery 3, docs/planning 2. 'فکس کرایہ' is everyday. lateFeeFlat 'مقررہ رقم' → 'فکس رقم'; timelinePoliceLegal 'قانون کی مقرر کردہ آخری تاریخ' → 'قانون کی آخری تاریخ'; 'منصفانہ کرایہ مقرر کرانا' → 'طے کروانا'. Keep the hedge in every 'no deadline' sentence: 'ہمیں کسی قانون میں آخری تاریخ نہیں ملی', not 'کسی قانون میں آخری تاریخ نہیں دی گئی', which claims more than we know. Do not apply this to 'مقررہ شخص', the Ordinance's term (its own entry).",
+      "match": ["مقرر", "مقررہ"]
+    },
+    {
+      "avoid": "رعایتی دن",
+      "prefer": "label: 'کتنے دن بعد لیٹ فیس لگے'; helper: 'تاریخ کے بعد اتنے دن تک کرایہ لیٹ نہیں مانا جائے گا'",
+      "english": "grace days",
+      "note": "Found: app 3, website 1. رعایت reads as 'discount'. In the code grace days delay only the late fee (late_fee_policy.dart: no fee while daysLate <= graceDays), so the label names the fee. graceDaysHelper follows its English ('Days after the due day before rent counts as late') and uses مانا, not گنا (see شمار); if the overdue badge counts from the due date, raise that mismatch between the English and the code with the owner rather than letting the Urdu diverge. lateFeeHelp ('Charged once the grace days have passed') → 'یہ دن گزرنے کے بعد لگتی ہے'. The how-it-works page and the reason string 'رعایتی دنوں کے اندر' change the same way.",
+      "match": ["رعایتی دن", "رعایتی دنوں"]
+    },
+    {
+      "avoid": "رعایتی ٹیرف، نرخ",
+      "prefer": "'سبسڈی والا (سستا) ٹیرف'؛ ریٹ",
+      "english": "subsidised tariff; rates",
+      "note": "Found: app 1, website 2. سبسڈی is the word the news uses for cheap electricity, and it says why it is cheap: a government subsidy that a home loses by going over the limit. 'غیر محفوظ نرخ' → 'نان پروٹیکٹڈ ریٹ'.",
+      "match": ["رعایتی ٹیرف", "نرخ"]
+    },
+    {
+      "avoid": "محفوظ ٹیرف، محفوظ صارف، محفوظ حد",
+      "prefer": "پروٹیکٹڈ ٹیرف (200 یونٹ والا)؛ نان پروٹیکٹڈ",
+      "english": "protected tariff",
+      "note": "Found: app 10, website 4. Bills and news say پروٹیکٹڈ, and محفوظ reads as 'saved' next to the Save button 'محفوظ کریں'. Write 'بجلی کے یونٹ' so they are not confused with rented units. Keep every condition: a residential consumer, not on a time-of-use meter, who used 200 units or fewer in each of the last six months; one month over loses it for the next six months.",
+      "match": ["محفوظ ٹیرف", "محفوظ صارف", "محفوظ صارفین", "محفوظ حد", "غیر محفوظ"]
+    },
+    {
+      "avoid": "ذیلی",
+      "prefer": "سب میٹر؛ 'نیچے کے لنک'",
+      "english": "sub-",
+      "note": "Found: website 3. Utilities guide 'ذیلی میٹر' → 'سب میٹر' (the app already says this); site footerNavLabel 'ذیلی روابط' → 'نیچے کے لنک'.",
+      "match": ["ذیلی"]
+    },
+    {
+      "avoid": "یوٹیلیٹی، یوٹیلیٹیز",
+      "prefer": "بل; name the services ('بجلی، گیس، پانی، انٹرنیٹ'); the screen: 'بل اور کنکشن'",
+      "english": "utility, utilities",
+      "note": "Found: app 12, tests 1. The app's utilities include internet and 'other', so 'بجلی، گیس، پانی' drops one. utilitiesTitle → 'بل اور کنکشن'; documentKindUtilityBill → 'بل (بجلی، گیس، پانی، انٹرنیٹ)'; templateUtilityBill → 'بل'; notificationUtilityDue → 'بل ادا ہونا ہے'. reminderUtilityGeneric is placed inside '{unit} کا {utility} کا بل', so a plain 'بل' would print 'بل کا بل': give the generic case its own sentence ('{unit} کا بل {amount}…'), and change its Roman twin 'utility' the same way.",
+      "match": ["یوٹیلیٹی", "یوٹیلیٹیز"]
+    },
+    {
+      "avoid": "نقصانات",
+      "prefer": "نقصان",
+      "english": "damages (a charge to the tenant)",
+      "note": "Found: app 1 (chargeKindDamages). The singular is everyday ('نقصان پورا کرنا'). Not 'ٹوٹ پھوٹ', which also means ordinary wear and tear, which tenants are normally not charged for.",
+      "match": ["نقصانات"]
+    },
+    {
+      "avoid": "تزئین و آرائش",
+      "prefer": "رینوویشن (مرمت اور رنگ روغن)",
+      "english": "renovation",
+      "note": "Found: app 1 (expenseCategoryRenovation). The gloss names the work owners pay for.",
+      "match": ["تزئین"]
+    },
+    {
+      "avoid": "برقی آلات",
+      "prefer": "'گھر کی مشینیں (اے سی، فریج، گیزر، موٹر)'",
+      "english": "appliances",
+      "note": "Found: app 1 (maintenanceAppliance). Appliances include gas geysers and stoves, and 'بجلی کا سامان' would overlap with maintenanceElectrical 'بجلی کا کام'.",
+      "match": ["برقی آلات"]
+    },
+    {
+      "avoid": "تعمیراتی",
+      "prefer": "'عمارت کا ڈھانچہ (دیوار، چھت، فرش)'",
+      "english": "structural",
+      "note": "Found: app 1 (maintenanceStructural). Name the category and give the parts as examples; a bare list of three reads as a closed list.",
+      "match": ["تعمیراتی"]
+    },
+    {
+      "avoid": "و (Persian 'and')",
+      "prefer": "اور",
+      "english": "and",
+      "note": "Found: app 12, website 5, mm_ui gallery 3, tests 3. 'مرمت و دیکھ بھال' → 'مرمت اور دیکھ بھال'; expenseCategoryLegal 'قانونی و پیشہ ورانہ فیس' ('Legal and professional fees') → 'قانونی اور پروفیشنل فیس (وکیل، اکاؤنٹنٹ)' ('وکیل کی فیس' alone would drop legal costs that are not a lawyer's fee); cash flow 'نقدی کی آمد و رفت' → 'پیسہ کتنا آیا، کتنا گیا'; 'اعداد و شمار' → 'حساب'. Keep و inside official names (وزارتِ قانون و انصاف، آزاد جموں و کشمیر) and in 'رنگ و روغن', which shop signs use.",
+      "match": ["و"]
+    },
+    {
+      "avoid": "ترجیح، ترجیحی",
+      "prefer": "'کتنا ضروری'؛ 'دوسروں سے پہلے'",
+      "english": "priority",
+      "note": "Found: app 2, website 3. priorityLabel (a repair's priority) → 'کتنا ضروری'. Pricing 'ای میل پر ترجیحی مدد' promises your questions are answered before others', not a reply time: 'ای میل پر مدد میں آپ کی باری پہلے', not 'جلد جواب'.",
+      "match": ["ترجیح", "ترجیحی"]
+    },
+    {
+      "avoid": "توجہ طلب امور",
+      "prefer": "'کن باتوں پر دھیان دیں'",
+      "english": "what needs attention",
+      "note": "Found: app 2 (insightsSection). دھیان is the spoken word, and the title is short.",
+      "match": ["توجہ طلب", "امور"]
+    },
+    {
+      "avoid": "انتظامات",
+      "prefer": "'خرچ، بل اور مرمت' (name the contents)",
+      "english": "operations",
+      "note": "Found: app 1. operationsSection is the heading on More above expenses, utilities and maintenance; name them rather than a vague 'روز کے کام'.",
+      "match": ["انتظامات"]
+    },
+    {
+      "avoid": "تصحیح",
+      "prefer": "'غلطی ٹھیک کی'",
+      "english": "correction",
+      "note": "Found: app 1 (rentReasonCorrection).",
+      "match": ["تصحیح"]
+    },
+    {
+      "avoid": "حیثیت (status)",
+      "prefer": "اسٹیٹس",
+      "english": "status",
+      "note": "Found: app 1 (chargeStateLabel on the statement PDF).",
+      "match": []
+    },
+    {
+      "avoid": "نامعلوم",
+      "prefer": "'معلوم نہیں'",
+      "english": "unknown",
+      "note": "Found: app 1 (occupancyUnknown, a badge). The news uses نامعلوم for 'unknown attackers', and 'پتہ نہیں' on a badge sounds like a shrug.",
+      "match": ["نامعلوم"]
+    },
+    {
+      "avoid": "بلنگ",
+      "prefer": "a tenancy's start of rent: 'کرایہ کب سے شروع ہو'; for utilities: 'بل بنانا'",
+      "english": "billing",
+      "note": "Found: app 1, website 1. billingStartsLabel is the date rent charges start, so 'بل کب سے بنیں' would read as utility bills (see ابتدا).",
+      "match": ["بلنگ"]
+    },
+    {
+      "avoid": "مالکانِ مکان",
+      "prefer": "'مالک مکان' with a plural verb; 'مکانوں کے مالک'",
+      "english": "landlords",
+      "note": "Found: website 12, roadmap 2. A Persian izafat plural. 'مالک مکان' is the spoken Pakistani phrase (police notices print it); the word order 'مکان مالک' is less common in Punjab. Site tagline 'پاکستانی مالکانِ مکان کے لیے کرایہ، رسیدیں اور ریکارڈ' → reword with 'مکانوں کے مالکوں کے لیے' or a plural verb; company page 'مالکانِ مکان بھروسا کر سکیں' → 'مکانوں کے مالک بھروسا کر سکیں'. Keep 'مالکِ مکان' as the product name.",
+      "match": ["مالکانِ مکان", "مالکان مکان"]
+    },
+    {
+      "avoid": "ناظر",
+      "prefer": "'صرف دیکھنے والا'",
+      "english": "viewer (role)",
+      "note": "Found: app 2, website 5, e-mails 1, tests 2. roleViewer, reasonInvalidRole, the invitation e-mail's role list, pricing and FAQ. roleViewerHelp: 'سب کچھ دیکھ سکتا ہے، کچھ بدل نہیں سکتا'.",
+      "match": ["ناظر"]
+    },
+    {
+      "avoid": "رکن، اراکین، رکنیت",
+      "prefer": "ممبر (plural ممبر or ممبران)؛ ممبرشپ",
+      "english": "member",
+      "note": "Found: app 3, website 2, tests 2. memberNoName → 'بغیر نام کا ممبر'; formerMember ('a member whose account is gone') → 'سابق ممبر', not 'پرانا ممبر', which means long-standing; deletePortfolioBody 'تمام اراکین کی رسائی' → 'کوئی ممبر اسے نہیں دیکھ سکے گا' (see رسائی).",
+      "match": ["رکن", "اراکین", "رکنیت"]
+    },
+    {
+      "avoid": "مدعو",
+      "prefer": "'دعوت بھیجیں'",
+      "english": "invite",
+      "note": "Found: app 5, website 7. 'کسی کو بلائیں' can be read as phoning someone or asking them over; the action e-mails an invitation link, and دعوت is already the app's noun. inviteAction, inviteTitle → 'کسی کو دعوت بھیجیں'; inviteAgainAction → 'دوبارہ دعوت بھیجیں'; leaveBody → 'صرف کوئی مالک آپ کو دوبارہ دعوت بھیج سکتا ہے'; FAQ 'جنہیں آپ مدعو کریں' → 'جنہیں آپ شامل کریں'. Pricing's 'جنہیں آپ بلاتے ہیں' can stay in prose.",
+      "match": ["مدعو"]
+    },
+    {
+      "avoid": "منتظر",
+      "prefer": "'انتظار میں'; police: 'پولیس کی تصدیق کا انتظار'",
+      "english": "awaiting",
+      "note": "Found: app 4. teamInvitationsSection 'جواب کے منتظر دعوت نامے' → 'جن دعوتوں کا جواب نہیں آیا'. insightPoliceSubmittedTitle means the landlord has registered and the police have not yet confirmed; 'تصدیق باقی' reads as if the landlord still has something to do and blurs into notificationPolicePending (not yet registered), so → 'پولیس کی تصدیق کا انتظار'. Its body ('You have done what the law asks') must stay.",
+      "match": ["منتظر"]
+    },
+    {
+      "avoid": "شمولیت",
+      "prefer": "'شامل ہونا'",
+      "english": "joining",
+      "note": "Found: e-mails 1, tests 3. Invitation e-mail subject 'پورٹ فولیو میں شمولیت کی دعوت' → 'پورٹ فولیو میں شامل ہونے کی دعوت'.",
+      "match": ["شمولیت"]
+    },
+    {
+      "avoid": "ہنگامی",
+      "prefer": "ایمرجنسی",
+      "english": "emergency",
+      "note": "Found: app 1, mm_ui gallery 1. tenantSectionEmergency → 'ایمرجنسی رابطہ'; a helper can say 'ایمرجنسی میں کس سے رابطہ کریں'.",
+      "match": ["ہنگامی"]
+    },
+    {
+      "avoid": "آجر",
+      "prefer": "'کہاں کام کرتے ہیں'",
+      "english": "employer",
+      "note": "Found: app 1 (employerLabel).",
+      "match": ["آجر"]
+    },
+    {
+      "avoid": "پیشہ، پیشہ ورانہ",
+      "prefer": "'کیا کام کرتے ہیں'؛ پروفیشنل",
+      "english": "occupation; professional",
+      "note": "Found: app 2. occupationLabel → 'کیا کام کرتے ہیں', which covers jobs and businesses and pairs with employerLabel 'کہاں کام کرتے ہیں'. expenseCategoryLegal → see و ('پیشہ ور' in the news usually comes as 'پیشہ ور بھکاری'). A guide that quotes a police form can keep the form's 'پیشہ'.",
+      "match": ["پیشہ ورانہ"]
+    },
+    {
+      "avoid": "سابقہ",
+      "prefer": "پچھلا",
+      "english": "previous",
+      "note": "Found: app 2, website 1 (the count includes سابق). previousAddressLabel 'سابقہ پتہ' → 'پچھلا پتہ'. سابق (former) stays: it is everyday from the news ('سابق وزیرِ اعظم'), and 'پرانا' would mean long-standing.",
+      "match": ["سابقہ"]
+    },
+    {
+      "avoid": "حوالہ جات",
+      "prefer": "حوالے",
+      "english": "references",
+      "note": "Found: website 3. tenantSectionReferences already says حوالے. Police guide 'دو حوالہ دینے والے افراد (حوالہ جات)' → 'دو لوگ جو حوالہ دیں'.",
+      "match": ["حوالہ جات"]
+    },
+    {
+      "avoid": "باہمی",
+      "prefer": "'دونوں کی مرضی سے'",
+      "english": "mutual",
+      "note": "Found: app 2. endMutualAgreement ('Both agreed') → 'دونوں کی مرضی سے'; rentReasonRenegotiation → 'دونوں کی مرضی سے نیا کرایہ'. مرضی is the spoken word; رضامندی stays for the tenant's consent record.",
+      "match": ["باہمی"]
+    },
+    {
+      "avoid": "رہائش اختیار کرنا",
+      "prefer": "'کرایہ دار کو جگہ ملنا'",
+      "english": "move in (take possession)",
+      "note": "Found: app 2. policeHintPossession and policeHintReminder: 'کرایہ دار کے رہائش اختیار کرنے کے {days} کے اندر' → 'کرایہ دار کو جگہ ملنے کے {days} کے اندر'. 'رہنے آنا' is wrong for shops, godowns and offices, where nobody comes to live, and the provinces this hint covers count from possession (see قبضہ). {days} may be hours (Sindh), so do not add the word دن around it.",
+      "match": ["رہائش اختیار"]
+    },
+    {
+      "avoid": "مکین",
+      "prefer": "'رہنے والا'",
+      "english": "occupant",
+      "note": "Found: website 2. Utilities guide (NEPRA eligibility for homes).",
+      "match": ["مکین", "مکینوں"]
+    },
+    {
+      "avoid": "صارف، صارفین (outside electricity)",
+      "prefer": "'استعمال کرنے والے'",
+      "english": "user(s)",
+      "note": "Found: website 15, roadmap 1, e-mails 1, mm_ui gallery 1, tests 11. Keep صارف for electricity, because bills print it. Do not use یوزر, which most readers do not say. The invitation e-mail's 'مالکِ مکان کے ایک صارف' → 'مالکِ مکان ایپ پر کسی نے آپ کو دعوت بھیجی ہے' ('مالکِ مکان استعمال کرنے والے ایک شخص' can be read as 'a person who uses a landlord'). 'آزمائشی صارفین' → see آزمائشی.",
+      "match": []
+    },
+    {
+      "avoid": "آزمائشی",
+      "prefer": "ٹیسٹ؛ 'ٹیسٹ کرنے والے'",
+      "english": "trial, test",
+      "note": "Found: website 12, roadmap 1. 'آزمائشی صارفین' (iPhone testers) → 'ٹیسٹ کرنے والے'; 'ایک ہی آزمائشی مثالوں پر جانچا جاتا ہے' → 'ایک ہی ٹیسٹ مثالوں پر چیک ہوتا ہے'; roadmap 'آزمائشی استعمال' → 'ٹیسٹ'.",
+      "match": ["آزمائشی"]
+    },
+    {
+      "avoid": "معاون",
+      "prefer": "اسسٹنٹ (its name: منشی)",
+      "english": "assistant",
+      "note": "Found: website 2, roadmap 8. Understood from offices; 'مددگار' is an acceptable plain alternative in prose. Pricing: 'منشی، وہ معاون جو مسودہ بناتا ہے اور آپ تصدیق کرتے ہیں' → 'منشی: ایپ کا اسسٹنٹ جو لکھ کر تیار کرتا ہے، اور آپ دیکھ کر ہاں کرتے ہیں' (see مسودہ).",
+      "match": ["معاون"]
+    },
+    {
+      "avoid": "شراکت دار، شراکت داری",
+      "prefer": "پارٹنر؛ پارٹنرشپ",
+      "english": "partner(ship)",
+      "note": "Found: website 1, roadmap 2. What business people say.",
+      "match": ["شراکت"]
+    },
+    {
+      "avoid": "لائسنس یافتہ",
+      "prefer": "'لائسنس والا'",
+      "english": "licensed",
+      "note": "Found: roadmap 2.",
+      "match": ["لائسنس یافتہ"]
+    },
+    {
+      "avoid": "ترتیبات",
+      "prefer": "سیٹنگز",
+      "english": "settings",
+      "note": "Found: app 5, website 2, mm_ui gallery 3, tests 3. The app already says 'فون کی سیٹنگز' once (reasonPickerAccessDenied), and phones show 'Settings'. textSizeBody 'فون کی ڈسپلے ترتیبات' → 'فون کی ڈسپلے سیٹنگز'. tenancyDefaultsSection is under ابتدا.",
+      "match": ["ترتیبات"]
+    },
+    {
+      "avoid": "ترتیب دیں، دوبارہ ترتیب دیں، ادائیگی کی ترتیب",
+      "prefer": "'نیا بنائیں'؛ 'سیٹ اپ'؛ 'ادائیگی کس میں لگے'",
+      "english": "reset; configure; settle (allocation)",
+      "note": "Found: app 3, e-mails 3, tests 2. resetPasswordTitle → 'نیا پاس ورڈ بنائیں' (also the recovery e-mail and its subject in supabase/config.toml); deliveryNotConfigured → 'ای میل سیٹ اپ نہیں'. settleLabel ('Settle') offers 'the oldest dues first' and 'the dues I choose'; the second is not an order, so 'پہلے کون سی رقم' does not fit: 'ادائیگی کس میں لگے'.",
+      "match": ["ترتیب دیں", "ترتیب دینے", "ترتیب دی", "ادائیگی کی ترتیب"]
+    },
+    {
+      "avoid": "ظاہری شکل",
+      "prefer": "'اسکرین کا انداز'",
+      "english": "appearance",
+      "note": "Found: app 2 (settingsAppearance, settingsSummary).",
+      "match": ["ظاہری شکل"]
+    },
+    {
+      "avoid": "روشن، تاریک (theme)",
+      "prefer": "لائٹ؛ ڈارک",
+      "english": "light, dark (theme)",
+      "note": "Found: app 2, mm_ui gallery 2. WhatsApp and phones call it 'ڈارک موڈ'.",
+      "match": []
+    },
+    {
+      "avoid": "تحریر، تحریری",
+      "prefer": "text size: 'الفاظ کا سائز'; written: 'لکھا ہوا'؛ 'لکھ کر'",
+      "english": "text; written",
+      "note": "Found: app 2, website 18, roadmap 1. textSizeTitle 'تحریر کا سائز' → 'الفاظ کا سائز' ('لکھائی' means handwriting). 'تحریری کرایہ نامہ' → 'لکھا ہوا کرایہ نامہ'. Keep consent and agreement apart: 'تحریری رضامندی' (written consent) → 'لکھ کر رضامندی'; 'agree in writing' (Islamabad, section 155 adjustments) → 'لکھ کر طے کریں'; never 'اجازت', which means permission. The legal requirement that it be in writing stays.",
+      "match": ["تحریر", "تحریری", "تحریراً"]
+    },
+    {
+      "avoid": "متن",
+      "prefer": "الفاظ؛ 'لکھا ہوا'؛ 'سرکاری کاپی'",
+      "english": "text",
+      "note": "Found: website 19, mm_ui gallery 5. 'قانون کا متن' → 'قانون کے الفاظ'; 'ایکٹ کا سرکاری متن' → 'ایکٹ کی سرکاری کاپی' (keep سرکاری: the pages contrast official and unofficial copies); footer 'سادہ متن میں خلاصہ' → 'سادہ لکھا ہوا خلاصہ'.",
+      "match": ["متن"]
+    },
+    {
+      "avoid": "عبارت",
+      "prefer": "'ساری اردو'",
+      "english": "wording",
+      "note": "Found: roadmap 1. 'ہر اردو عبارت پر اہلِ زبان کی نظرِ ثانی' → 'ساری اردو کسی اردو بولنے والے سے چیک کروانا'.",
+      "match": ["عبارت"]
+    },
+    {
+      "avoid": "اہلِ زبان",
+      "prefer": "'اردو بولنے والا'",
+      "english": "native speaker",
+      "note": "Found: roadmap 1.",
+      "match": ["اہلِ زبان", "اہل زبان"]
+    },
+    {
+      "avoid": "مطابقت",
+      "prefer": "ملنا",
+      "english": "match",
+      "note": "Found: app 1. reasonConfirmationMismatch 'آپ کا لکھا ہوا نام مطابقت نہیں رکھتا' → 'آپ کا لکھا نام نہیں ملتا'.",
+      "match": ["مطابقت"]
+    },
+    {
+      "avoid": "کارآمد",
+      "prefer": "'چلے گا'؛ 'کام کرے گا'",
+      "english": "valid",
+      "note": "Found: app 1, e-mails 1, tests 5. invitationWorksUntil ('Works until') → 'کب تک چلے گی'; invitation e-mail '… کے لیے کارآمد ہے' → '… تک کام کرے گا'.",
+      "match": ["کارآمد"]
+    },
+    {
+      "avoid": "فعال، غیر فعال",
+      "prefer": "جاری؛ چالو؛ بند",
+      "english": "active, inactive",
+      "note": "Found: app 1, website 10, mm_ui gallery 8. reasonLeaseNotActive → 'یہ کرایہ داری جاری نہیں'; pricing 'سب کچھ فعال رہتا ہے' → 'سب کچھ چلتا رہتا ہے'. The count includes FBR's 'فعال ٹیکس دہندگان کی فہرست', which keeps its official name once (see ٹیکس دہندگان).",
+      "match": ["فعال"]
+    },
+    {
+      "avoid": "تبدیل کریں",
+      "prefer": "بدلیں (setting a new value)",
+      "english": "change",
+      "note": "Found: app 4. changeRentAction → 'کرایہ بدلیں'. تبدیلی (a change) is fine. The Edit button is 'ایڈٹ کریں', not بدلیں (see ترمیم).",
+      "match": ["تبدیل کریں"]
+    },
+    {
+      "avoid": "شمار",
+      "prefer": "'مانا جائے گا'؛ 'چھوڑ کر'؛ گنتی",
+      "english": "counted; excluding",
+      "note": "Found: app 3, website 9. 'گنا' (counted) is spelled like گنا (sugarcane), and 'گنے بغیر' can be misread, so use مانا. graceDaysHelper '… تاخیر شمار نہیں ہو گا' → '… لیٹ نہیں مانا جائے گا'; police guide 'سرکاری چھٹیاں شمار کیے بغیر' → 'سرکاری چھٹیاں چھوڑ کر'; voidHandoverExplain → 'دینے والے کے پاس ہی مانی جائے گی'.",
+      "match": ["شمار"]
+    },
+    {
+      "avoid": "ڈیوائس",
+      "prefer": "'فون یا کمپیوٹر'",
+      "english": "device",
+      "note": "Found: app 5, e-mails 3. checkEmailInstructions and the three e-mail templates: 'اسی ڈیوائس اور براؤزر پر کھولیں' → 'اسی فون یا کمپیوٹر اور اسی براؤزر میں کھولیں'.",
+      "match": ["ڈیوائس", "ڈیوائسز"]
+    },
+    {
+      "avoid": "سیشن",
+      "prefer": "'سائن اِن'",
+      "english": "session",
+      "note": "Found: app 1. failureSessionExpired 'آپ کا سیشن ختم ہو گیا ہے' → 'آپ سائن آؤٹ ہو گئے ہیں۔ دوبارہ سائن اِن کریں۔'.",
+      "match": ["سیشن"]
+    },
+    {
+      "avoid": "آلہ، آلے",
+      "prefer": "'فون یا کمپیوٹر'؛ ایپ",
+      "english": "device, tool",
+      "note": "Found: website 2. Privacy 'آپ کے آلے سے باہر نہیں جاتا' → 'آپ کے فون یا کمپیوٹر سے باہر نہیں جاتا'; terms 'ریکارڈ رکھنے کا آلہ' → 'ریکارڈ رکھنے کی ایپ', keeping 'it does not collect, hold or transfer money' beside it.",
+      "match": ["آلہ", "آلے"]
+    },
+    {
+      "avoid": "اختیارات، اختیاری",
+      "prefer": "آپشن؛ 'ضروری نہیں'",
+      "english": "options; optional",
+      "note": "Found: website 1, mm_ui gallery 5, tests 1. mm_ui moreOptions → 'مزید آپشن'; optionalField → 'ضروری نہیں'. اختیار stays where it means a legal power ('جائیداد سیل کرنے کا کوئی اختیار').",
+      "match": ["اختیارات", "اختیاری"]
+    },
+    {
+      "avoid": "جدول",
+      "prefer": "ٹیبل",
+      "english": "table",
+      "note": "Found: website 4, mm_ui gallery 5, tests 1. mm_ui showAsTable. Keep 'دسویں جدول' (the Tenth Schedule) in tax citations.",
+      "match": ["جدول"]
+    },
+    {
+      "avoid": "انتباہ، تنبیہ",
+      "prefer": "وارننگ؛ خبردار",
+      "english": "warning",
+      "note": "Found: website 3, mm_ui gallery 2.",
+      "match": ["انتباہ", "تنبیہ"]
+    },
+    {
+      "avoid": "خصوصیات، خصوصیت",
+      "prefer": "فیچرز؛ فیچر",
+      "english": "features",
+      "note": "Found: website 7. Site navigation and the features page title; known from phone adverts. The home button 'خصوصیات دیکھیں' → 'فیچرز دیکھیں'.",
+      "match": ["خصوصیات", "خصوصیت"]
+    },
+    {
+      "avoid": "سرورق",
+      "prefer": "'ہوم پیج'; navigation: 'ہوم'",
+      "english": "home page",
+      "note": "Found: website 5, tests 2. Bookish (a magazine cover). Site nav, breadcrumbs, 404 page.",
+      "match": ["سرورق"]
+    },
+    {
+      "avoid": "روابط، مرکزی مواد",
+      "prefer": "لنک؛ مینو؛ 'اصل صفحہ'",
+      "english": "links; main content",
+      "note": "Found: website 4. Screen-reader landmarks: skipLink 'مرکزی مواد پر جائیں' → 'سیدھا اصل صفحے پر جائیں'; navLabel 'مرکزی روابط' → 'مینو' (the usual spelling, as on restaurant cards); footerNavLabel → 'نیچے کے لنک'.",
+      "match": ["روابط", "مرکزی مواد"]
+    },
+    {
+      "avoid": "رازداری",
+      "prefer": "پرائیویسی",
+      "english": "privacy",
+      "note": "Found: website 5, roadmap 1, tests 1. 'پرائیویسی پالیسی' is the common term; رازداری means secrecy.",
+      "match": ["رازداری"]
+    },
+    {
+      "avoid": "خفیہ کاری، خفیہ کردہ، ہیش شدہ",
+      "prefer": "encrypted: 'انکرپٹ کیا ہوا (تالا لگا)'; hashed: 'ایسی شکل (ہیش) جس سے اصل پاس ورڈ واپس نہیں نکالا جا سکتا'",
+      "english": "encryption; encrypted; hashed",
+      "note": "Found: website 3. Encryption can be reversed with the key and hashing cannot, so the two never share a word, or the privacy page would say the password can be decrypted. Backup: 'انکرپٹ کیا ہوا (تالا لگا) بیک اپ، جسے صرف ایپ چلانے والا کھول سکتا ہے'. Password: 'پاس ورڈ ایسی شکل (ہیش) میں رکھا جاتا ہے جس سے اصل پاس ورڈ واپس نہیں نکالا جا سکتا'. The insecure-site note 'خفیہ کاری کے بغیر' → 'بغیر انکرپشن (تالے) کے'.",
+      "match": ["خفیہ کاری", "خفیہ کردہ", "ہیش شدہ"]
+    },
+    {
+      "avoid": "مصنوعی ذہانت",
+      "prefer": "اے آئی",
+      "english": "AI",
+      "note": "Found: website 1, roadmap 1. Pakistani TV and newspapers now say اے آئی.",
+      "match": ["مصنوعی ذہانت"]
+    },
+    {
+      "avoid": "تجزیاتی",
+      "prefer": "اینالیٹکس, with a plain gloss once ('یعنی کوئی ایسا ٹول نہیں جو گنے کہ کون کیا دیکھتا ہے')",
+      "english": "analytics",
+      "note": "Found: website 4. 'نہ کوئی تجزیاتی یا ٹریکنگ ٹول' → 'نہ کوکی، نہ اینالیٹکس، نہ ٹریکنگ'. Office readers know اینالیٹکس; ٹریکر is known from car trackers; the gloss carries it for everyone else. Keep the full promise: no cookies, no analytics, no tracking, nothing loaded from other sites.",
+      "match": ["تجزیاتی"]
+    },
+    {
+      "avoid": "آئندہ منصوبہ؛ منصوبہ، منصوبے",
+      "prefer": "the roadmap page: 'روڈ میپ (آگے کیا آ رہا ہے)'؛ اگلے؛ پروجیکٹ",
+      "english": "roadmap; plan; project",
+      "note": "Found: website 27, counting every آئندہ; judge each. آئندہ on its own is everyday ('آئندہ ہفتے') and stays. Not 'آگے کا پلان': on the pricing page پلان is a paid plan ('پیسوں والا پلان'; not 'ادا شدہ پلان', which reads as a plan already paid for), so a reader could take the roadmap for upcoming prices. Features 'آئندہ ورژنز' → 'اگلے ورژن'; company 'فری لانس منصوبے' → 'فری لانس پروجیکٹ'.",
+      "match": ["منصوبہ", "منصوبے", "منصوبوں"]
+    },
+    {
+      "avoid": "اجرا",
+      "prefer": "'جاری ہونا'؛ ریلیز",
+      "english": "release",
+      "note": "Found: website 4, roadmap 1. 'ورژن 1.0 کا اجرا 9 نومبر 2026 کو ہوا' → 'ورژن 1.0، 9 نومبر 2026 کو جاری ہوا'.",
+      "match": ["اجرا", "اجراء"]
+    },
+    {
+      "avoid": "شائع",
+      "prefer": "'جاری کرنا'؛ لانا",
+      "english": "publish",
+      "note": "Found: website 4, roadmap 2. Low priority: شائع is known from newspapers. Roadmap 'گوگل پلے پر شائع کرنا' → 'گوگل پلے پر لانا'.",
+      "match": ["شائع"]
+    },
+    {
+      "avoid": "مسودہ",
+      "prefer": "a verb: 'لکھ کر تیار کرنا'",
+      "english": "draft",
+      "note": "Found: website 2, roadmap 2, mm_ui gallery 1. Not 'ڈرافٹ': in a money app it is also a bank draft (پے آرڈر), which landlords meet when paying a deposit or a registry fee. Pricing and roadmap: 'ایک معاون جو مسودہ بنائے اور آپ تصدیق کریں' → 'ایک اسسٹنٹ جو لکھ کر تیار کرے، اور آپ دیکھ کر ہاں کریں'. Keep 'Munshi drafts, you confirm'.",
+      "match": ["مسودہ", "مسودے"]
+    },
+    {
+      "avoid": "نسخہ، نسخے",
+      "prefer": "ورژن",
+      "english": "version",
+      "note": "Found: website 2. The terms say 'These terms are a first version'; 'پہلا ڈرافٹ' would suggest they are not yet in force. Terms → 'یہ شرائط کا پہلا ورژن ہے، جو قانونی جائزے کے بعد مکمل کیا جائے گا'; licences 'فونٹس کے مختصر نسخے' → 'فونٹس کے چھوٹے ورژن'.",
+      "match": ["نسخہ", "نسخے"]
+    },
+    {
+      "avoid": "مرحلہ، مراحل، مرحلہ وار",
+      "prefer": "قدم؛ حصہ؛ 'قدم بہ قدم'",
+      "english": "stage, step",
+      "note": "Found: app 1, website 6. reasonMfaRequired → see حذف ('دوسرا کوڈ بھی لگتا ہے (ٹو اسٹیپ)', as WhatsApp says); roadmap 'مرحلہ وار' → 'قدم بہ قدم'; milestoneDone 'مرحلہ مکمل' → 'یہ حصہ مکمل'; unscheduled → 'ابھی کسی حصے میں نہیں'.",
+      "match": ["مرحلہ", "مرحلے", "مراحل"]
+    },
+    {
+      "avoid": "نتائج",
+      "prefer": "نتیجے",
+      "english": "results",
+      "note": "Found: app 1 (searchResultCount plural: '{count} نتیجے').",
+      "match": ["نتائج"]
+    },
+    {
+      "avoid": "یہ عمل، خودکار عمل، عمل درآمد",
+      "prefer": "'یہ کام'؛ 'خود چلنے والا کام'؛ 'لاگو کروانا'",
+      "english": "this action; automated job; enforcement",
+      "note": "Found: app 1, website 2. deleteDocumentBody 'یہ عمل واپس نہیں ہو سکتا' → 'ڈیلیٹ کرنے کے بعد یہ واپس نہیں آئے گا'. 'This cannot be undone' must survive.",
+      "match": ["یہ عمل", "عمل درآمد"]
+    },
+    {
+      "avoid": "پورٹ فولیو",
+      "prefer": "owner's decision: keep it, explained once as 'آپ کی سب جائیدادیں، ایک جگہ', or rename it",
+      "english": "portfolio",
+      "note": "Found: app 43, website 11, e-mails 3, tests 13. The app's central container; young office workers know the word, most landlords do not. Renaming touches about 70 strings, the e-mails and the website, so it is a product decision. If it stays, explain it once where a portfolio is first created and once in the invitation e-mail. If it is renamed, note that 'گروپ' brings a WhatsApp group to mind (helpful for 'people you add', misleading for 'a set of properties') and کھاتہ is already the tenant ledger.",
+      "match": []
+    },
+    {
+      "avoid": "معاہدہ (the tenancy agreement)",
+      "prefer": "کرایہ نامہ (ایگریمنٹ)",
+      "english": "agreement",
+      "note": "Found: app 7, website 9, mm_ui gallery 1, iOS/Android 2, tests 15. The app's lease section says معاہدہ, the site کرایہ نامہ, for the same paper; stamp vendors write کرایہ نامہ and people say 'رینٹ ایگریمنٹ'. leaseSectionAgreement → 'کرایہ نامہ'; notificationLeaseExpiring → 'کرایہ نامہ ختم ہو رہا ہے'. Keep معاہدہ for a gas company's supply contract.",
+      "match": []
+    },
+    {
+      "avoid": "پٹہ، پٹے دار",
+      "prefer": "لیز؛ 'لیز لینے والا'",
+      "english": "lease; lessee",
+      "note": "Found: website 5. Registration Act wording. Section 17 makes registration compulsory in three cases and all three stay: a lease from year to year, a lease for more than one year, and a lease reserving a yearly rent. Keep the courts' point that an unregistered document that should have been registered has limited effect in evidence. In the KP and Balochistan police sections 'lessee' is one of the people with the duty: 'لیز لینے والا'.",
+      "match": ["پٹہ", "پٹے"]
+    },
+    {
+      "avoid": "ٹیکس دہندگان",
+      "prefer": "'ٹیکس دینے والے'; ATL: 'اے ٹی ایل میں نام ہو (جسے عام طور پر فائلر کہتے ہیں)'",
+      "english": "taxpayers",
+      "note": "Found: website 5. Keep FBR's Urdu name 'فعال ٹیکس دہندگان کی فہرست (اے ٹی ایل)' once. The rate depends on being on the ATL, not on having filed: a late filer is not on it until the surcharge is paid, so 'فائلر' alone can mislead someone into expecting the lower rate. Write 'اے ٹی ایل میں نام ہو (جسے عام طور پر فائلر کہتے ہیں)' / 'اے ٹی ایل میں نام نہ ہو (نان فائلر)' and keep the SMS check.",
+      "match": ["ٹیکس دہندگان", "ٹیکس دہندہ"]
+    },
+    {
+      "avoid": "قابلِ تعدیل",
+      "prefer": "'ایڈجسٹ ہوتا ہے: جتنا کٹا، اتنا آپ کے سال کے ٹیکس میں ادا شدہ مانا جاتا ہے'",
+      "english": "adjustable (tax)",
+      "note": "Found: website 4. ایڈجسٹ is everyday. The legal effect must stay, and the withheld tax can be less or more than the liability, so do not imply more is always owed: 'دفعہ 155 کے تحت کٹا ہوا ٹیکس ایڈجسٹ ہوتا ہے: یہ آپ کے سال کے اصل ٹیکس میں ادا شدہ مانا جاتا ہے۔ اس سے آپ کے ٹیکس کا حساب ختم نہیں ہوتا۔ سال کا اصل ٹیکس ریٹرن میں نکلتا ہے۔'",
+      "match": ["قابلِ تعدیل", "قابل تعدیل"]
+    },
+    {
+      "avoid": "حتمی",
+      "prefer": "'سال کا اصل ٹیکس (جو ریٹرن میں نکلتا ہے)'؛ آخری",
+      "english": "final (tax)",
+      "note": "Found: website 21, all meaning the landlord's final tax for the year (guide, calculator, FAQ, home, withholding.ts). 'پورا ٹیکس' suggests a full payment still due; write 'اصل ٹیکس'. 'The app does not estimate your final tax' → 'ایپ آپ کے سال کے اصل ٹیکس کا اندازہ نہیں لگاتی'. Never 'فائنل ٹیکس': the final tax regime is a different FBR term, and section 155 withholding here is not final.",
+      "match": ["حتمی"]
+    },
+    {
+      "avoid": "مقررہ شخص",
+      "prefer": "'وہ کرایہ دار جن پر ٹیکس کاٹنا لازم ہے' (keep 'مقررہ شخص' once, in quotes)",
+      "english": "prescribed person",
+      "note": "Found: website 2. A term from the Ordinance.",
+      "match": ["مقررہ شخص"]
+    },
+    {
+      "avoid": "غیر منقولہ، فرضی آمدنی، متصادم، کالعدم",
+      "prefer": "'زمین اور عمارت'؛ 'مان لی گئی آمدنی'؛ خلاف؛ ختم",
+      "english": "immovable; deemed income; repugnant; void",
+      "note": "Found: website 4, tests 2. Section 7E: 'آئین سے متصادم اور کالعدم قرار دیا' → 'آئین کے خلاف قرار دے کر ختم کر دیا'. Keep that the court struck it down, that the Finance Act 2026 removed it, that the order was reported by the press, and that we did not read the judgment.",
+      "match": ["غیر منقولہ", "فرضی آمدنی", "متصادم", "کالعدم"]
+    },
+    {
+      "avoid": "سرمایہ جاتی بوجھ، رہن، بیمہ",
+      "prefer": "'جائیداد گروی رکھ کر (یا کسی اور طرح جائیداد پر) لیے گئے قرض کا سود یا منافع'؛ انشورنس",
+      "english": "capital charge; mortgage; insurance",
+      "note": "Found: website 3. Section 15A deductions. A mortgaged house is 'گروی' in everyday speech; رہن is the court word (keep '(رہن)' once if the source quotes it). Section 15A allows 'interest or profit' (profit is what Islamic banks charge) on a mortgage 'or other capital charge'; both must stay. The app already says انشورنس.",
+      "match": ["سرمایہ جاتی", "رہن", "بیمہ"]
+    },
+    {
+      "avoid": "تقاضا",
+      "prefer": "'قانون کے مطابق … لازم ہے'؛ شرط",
+      "english": "requirement",
+      "note": "Found: app 1, website 10. 'قانون تقاضا کرتا ہے کہ' → 'قانون کے مطابق … لازم ہے' ('قانون کہتا ہے کہ' weakens a duty into a statement); insightPoliceSubmittedBody → 'قانون کی شرط آپ پوری کر چکے ہیں'.",
+      "match": ["تقاضا", "تقاضے"]
+    },
+    {
+      "avoid": "قبضہ (on its own, or قبضہ کرنا)",
+      "prefer": "'کرایہ دار کو جگہ ملنا'; on the legal guides: 'کرایہ دار کو جگہ (قبضہ) ملنے کے … کے اندر'",
+      "english": "possession",
+      "note": "Found: website 7. 'قبضہ ملنا / دینا' is everyday property speech ('قبضہ کب ملے گا'), but 'قبضہ' on its own or 'قبضہ کرنا' suggests seizure (قبضہ مافیا), and 'چابی دینا' is what people say. Possession is the legal trigger for the Punjab (15 days) and Sindh (48 hours) deadlines, so keep the term once in brackets and the exact unit: 'کرایہ دار کو جگہ (قبضہ) ملنے کے 15 دن کے اندر'، '48 گھنٹے کے اندر'. The table column 'قبضہ دینے سے' → 'جگہ (چابی) دینے سے'. The app's police hints use the same wording (see رہائش اختیار کرنا).",
+      "match": []
+    },
+    {
+      "avoid": "ایپ کے علم میں",
+      "prefer": "'ہمیں ایسا کوئی قانون نہیں ملا جو آخری تاریخ دے'",
+      "english": "as far as the app knows",
+      "note": "Found: app 3, website 1. policeHintReminder, policeReminderNote, notificationPoliceReminderBody and how-it-works: '… ہمیں ایسا کوئی قانون نہیں ملا جو آخری تاریخ دے۔ یہ صرف ایپ کی یاد دہانی ہے۔' Keep both halves: the hedge (we found none, not 'there is none') and that the date is only the app's reminder.",
+      "match": ["ایپ کے علم میں"]
+    },
+    {
+      "avoid": "بری الذمہ",
+      "prefer": "'باقی لوگوں کی ذمہ داری پوری ہو جاتی ہے'",
+      "english": "discharged (of a duty)",
+      "note": "Found: website 1. Punjab: if any one of the dealer, landlord or tenant gives the details, the others are covered.",
+      "match": ["بری الذمہ"]
+    },
+    {
+      "avoid": "قابلِ دست اندازی",
+      "prefer": "'پولیس وارنٹ کے بغیر گرفتار کر سکتی ہے' (keep the term once, in brackets)",
+      "english": "cognisable",
+      "note": "Found: website 3. The legal effect must stay exact.",
+      "match": ["قابلِ دست اندازی", "قابل دست اندازی"]
+    },
+    {
+      "avoid": "ناقابلِ ضمانت",
+      "prefer": "'ضمانت حق کے طور پر نہیں ملتی؛ عدالت فیصلہ کرتی ہے'",
+      "english": "non-bailable",
+      "note": "Found: website 3. Readers know 'ناقابلِ ضمانت وارنٹ' from the news, which is why the gloss matters: it does not mean bail is impossible. Never shorten it to 'ضمانت نہیں ہوتی'.",
+      "match": ["ناقابلِ ضمانت", "ناقابل ضمانت"]
+    },
+    {
+      "avoid": "مصالحت، مصالحتی",
+      "prefer": "'جرمانہ دے کر معاملہ ختم کرنا'؛ صلح",
+      "english": "compounding; conciliation",
+      "note": "Found: website 4. Two meanings. Punjab Act: compounding an offence, which the government may close for an administrative penalty of at least Rs 10,000, but not for someone convicted or compounded before. Islamabad's 'مصالحتی کونسل' is an official body: keep the name and gloss it 'صلح کروانے والی کونسل'.",
+      "match": ["مصالحت", "مصالحتی"]
+    },
+    {
+      "avoid": "اعانتِ جرم، مجرمانہ",
+      "prefer": "'جرم میں مدد کا مقدمہ'؛ 'جرم کے ارادے'",
+      "english": "abetment; criminal (intent)",
+      "note": "Found: website 2. KP police registration. Keep both triggers: the landlord knew of the tenant's criminal designs, or did not take due care in checking the tenant.",
+      "match": ["اعانتِ جرم", "اعانت جرم", "مجرمانہ"]
+    },
+    {
+      "avoid": "بے دخلی",
+      "prefer": "'جگہ خالی کروانا'; a reason a tenancy ended: 'خالی کروایا'",
+      "english": "eviction",
+      "note": "Found: app 1, website 2. endEviction → 'خالی کروایا'; guides 'بے دخلی کی بنیاد' → 'جگہ خالی کروانے کی وجہ' (جگہ, because units include shops). Keep the listed legal grounds unchanged.",
+      "match": ["بے دخلی", "بےدخلی"]
+    },
+    {
+      "avoid": "فریقین، فریق",
+      "prefer": "'دونوں (مالک اور کرایہ دار)'",
+      "english": "parties",
+      "note": "Found: website 9.",
+      "match": ["فریقین", "فریق"]
+    },
+    {
+      "avoid": "قابلِ نفاذ، نافذ، نفاذ",
+      "prefer": "binding: 'دونوں پر لازم'; in force: لاگو",
+      "english": "binding; in force",
+      "note": "Found: website 4. For Sindh, 'binding' is stronger than 'applies': 'مالک اور کرایہ دار نے جو اضافہ طے کیا وہ دونوں پر لازم ہے', and keep the exception in the next sentence: 'لیکن کوئی بھی منصفانہ کرایہ طے کروانے کے لیے رینٹ کنٹرولر کو درخواست دے سکتا ہے'. KP 'اب بھی نافذ ہے' → 'اب بھی لاگو ہے'.",
+      "match": ["قابلِ نفاذ", "نافذ", "نفاذ"]
+    },
+    {
+      "avoid": "رجوع",
+      "prefer": "advice: '… سے پوچھیں'; a Rent Controller, court or police: '… کو درخواست دیں'; a store refund: '… سے رابطہ کریں'",
+      "english": "consult; apply to",
+      "note": "Found: website 6. Disclaimers → 'کسی وکیل یا ٹیکس مشیر سے پوچھیں'. Applying to the Rent Controller to fix a fair rent (checklist, increase calculator) is a formal application, and 'پوچھیں' would change the legal step: 'رینٹ کنٹرولر کو درخواست دیں'. Store refunds: 'اسٹور سے رابطہ کریں'.",
+      "match": ["رجوع"]
+    },
+    {
+      "avoid": "یک طرفہ طور پر",
+      "prefer": "'اکیلے، کرایہ دار کی مرضی کے بغیر'",
+      "english": "unilaterally",
+      "note": "Found: website 2. Cantonments: no unilateral increase within three years.",
+      "match": ["یک طرفہ", "یکطرفہ"]
+    },
+    {
+      "avoid": "عدالتی نظائر",
+      "prefer": "'عدالتی فیصلے'",
+      "english": "case-law precedents",
+      "note": "Found: website 2. One source title says نظائر and another فیصلوں for the same LHC bulletin.",
+      "match": ["نظائر"]
+    },
+    {
+      "avoid": "عملاً، وقتاً فوقتاً",
+      "prefer": "'اصل میں'؛ 'کبھی کبھی'",
+      "english": "in practice; from time to time",
+      "note": "Found: website 2. Islamabad section of the police guide; keep that each section 144 order was for a fixed period.",
+      "match": ["عملاً", "وقتاً فوقتاً"]
+    },
+    {
+      "avoid": "عائد، احکامات، حکام",
+      "prefer": "لگانا؛ حکم؛ افسر",
+      "english": "imposed; orders; officials",
+      "note": "Found: website 5. Islamabad and Balochistan sections of the police guide.",
+      "match": ["عائد", "احکامات", "حکام"]
+    },
+    {
+      "avoid": "اطلاق، مبنی، مشتمل",
+      "prefer": "'لاگو ہونا'؛ 'کی بنیاد پر'؛ 'میں … ہیں'",
+      "english": "application; based on; consisting of",
+      "note": "Found: website 3. Terms and privacy pages.",
+      "match": ["اطلاق", "مبنی", "مشتمل"]
+    },
+    {
+      "avoid": "ضوابط، قواعد، قاعدہ",
+      "prefer": "a named instrument: رولز، ریگولیشنز; in general: اصول; never قانون for them",
+      "english": "regulations, rules",
+      "note": "Found: app 1, website 10. Rules and regulations are made under an Act; they are not the Act, so calling NEPRA's 2021 eligibility regulations 'قانون' overstates them: 'نیپرا کے 2021 کے ریگولیشنز'. provinceHelper 'اسی سے لاگو قواعد طے ہوتے ہیں' → 'اسی سے پتہ چلتا ہے کون سے قانون اور اصول لاگو ہیں'. Keep 'دسویں جدول کا قاعدہ 1' in tax citations and NEPRA's published titles as titles.",
+      "match": ["ضوابط", "قواعد", "قاعدہ"]
+    },
+    {
+      "avoid": "نادہندہ، نادہندگی",
+      "prefer": "ڈیفالٹر؛ 'بل نہ دینا'",
+      "english": "defaulter; default",
+      "note": "Found: website 6. What people and the power companies say. Keep 'three months in a row' for the landlord's request to disconnect.",
+      "match": ["نادہندہ", "نادہندگی", "نادہندگان"]
+    },
+    {
+      "avoid": "عدم اعتراض کا سرٹیفکیٹ",
+      "prefer": "این او سی",
+      "english": "no-objection certificate",
+      "note": "Found: website 2. Everyone says این او سی.",
+      "match": ["عدم اعتراض"]
+    },
+    {
+      "avoid": "اقرار",
+      "prefer": "'لکھ کر ذمہ داری لینا' (انڈرٹیکنگ)؛ '(اقرار نامہ)' once if the source names it",
+      "english": "undertaking",
+      "note": "Found: website 2. Keep the legal effect: on a Rs 50 stamp paper the landlord becomes liable for the tenant's defaulted amount.",
+      "match": ["اقرار"]
+    },
+    {
+      "avoid": "اقتباس، اقتباسات",
+      "prefer": "حصہ",
+      "english": "excerpt",
+      "note": "Found: website 2, mm_ui gallery 1.",
+      "match": ["اقتباس", "اقتباسات"]
+    },
+    {
+      "avoid": "اعلامیہ",
+      "prefer": "نوٹیفکیشن؛ اعلان",
+      "english": "official notification",
+      "note": "Found: website 1.",
+      "match": ["اعلامیہ"]
+    },
+    {
+      "avoid": "تقسیم کار کمپنی",
+      "prefer": "'بجلی کمپنی (جیسے لیسکو، آئیسکو)'",
+      "english": "distribution company",
+      "note": "Found: website 2. Karachi readers know کے الیکٹرک; add it as an example only where the rule also applies to K-Electric, which NEPRA treats separately from the distribution companies.",
+      "match": ["تقسیم کار"]
+    },
+    {
+      "avoid": "غیر منافع بخش تنظیمیں، سفارتی مشن، زچہ خانے",
+      "prefer": "'غیر منافع بخش ادارے (جیسے ٹرسٹ اور فلاحی ادارے)'؛ 'غیر ملکی سفارت خانے اور ہائی کمیشن'؛ 'میٹرنٹی ہوم'",
+      "english": "non-profit organisations; diplomatic missions; maternity homes",
+      "note": "Found: website 11. The FBR list of who must deduct tax: keep every category and change only the words. Not 'این جی اوز': trusts and welfare bodies are non-profit organisations but are not always called NGOs. Diplomatic missions are embassies and high commissions; consulates are not missions.",
+      "match": [
+        "غیر منافع بخش تنظیمیں",
+        "غیر منافع بخش تنظیموں",
+        "سفارتی مشن",
+        "زچہ خانے",
+        "زچہ خانہ"
+      ]
+    },
+    {
+      "avoid": "تنازع، تنازعات",
+      "prefer": "جھگڑا",
+      "english": "dispute",
+      "note": "Found: website 2. Features 'کسی تنازع کے حل کے لیے' → 'جھگڑا ہو تو کام آئے'; Islamabad 'تنازعات پہلے مصالحتی کونسل میں جاتے ہیں' → 'جھگڑے پہلے مصالحتی کونسل میں جاتے ہیں'.",
+      "match": ["تنازع", "تنازعہ", "تنازعات"]
+    },
+    {
+      "avoid": "بیشتر، بعض، محض، چونکہ، اگرچہ",
+      "prefer": "'زیادہ تر'؛ کچھ؛ صرف؛ کیونکہ؛ 'لیکن' (split the sentence)",
+      "english": "most; some; merely; since; although",
+      "note": "Found: website 11, docs/planning 1. When 'اگرچہ' carries a legal exception (Sindh fair rent), the exception moves to the next sentence and is not dropped.",
+      "match": ["بیشتر", "بعض", "محض", "چونکہ", "اگرچہ"]
+    },
+    {
+      "avoid": "مثلاً",
+      "prefer": "جیسے",
+      "english": "for example",
+      "note": "Found: app 4, website 9, tests 1. Fine in writing, but جیسے is what people say, and the app mixes both.",
+      "match": ["مثلاً", "مثلا"]
+    },
+    {
+      "avoid": "لازماً، مختصراً، یکجا، موزوں، قارئین",
+      "prefer": "ضرور؛ خلاصہ؛ 'پورا، سب ترمیموں سمیت'؛ مناسب؛ 'پڑھنے والے'",
+      "english": "necessarily; in brief; consolidated; suitable; readers",
+      "note": "Found: website 5, mm_ui gallery 1. Privacy ('مختصراً' heading → 'خلاصہ'), licences and tax pages. Tax guide 'آرڈیننس کا 2026 کا یکجا متن' → 'آرڈیننس کی 2026 کی پوری کاپی، سب ترمیموں سمیت'.",
+      "match": ["لازماً", "مختصراً", "یکجا", "موزوں", "قارئین"]
+    },
+    {
+      "avoid": "درکار، مطلوبہ، طلب کردہ، طلب کریں",
+      "prefer": "چاہیے؛ 'کتنا کرایہ مانگ رہے ہیں'؛ مانگیں",
+      "english": "needed; asking (rent); ask for",
+      "note": "Found: app 7, website 7. askingRentLabel 'طلب کردہ کرایہ' → 'کتنا کرایہ مانگ رہے ہیں' ('مانگا ہوا کرایہ' reads like rent already demanded); a helper may add the market word: 'پراپرٹی ڈیلر اسے ڈیمانڈ کہتے ہیں'. 'مطلوبہ کرایہ' → 'جتنا کرایہ آپ مانگتے ہیں'; timelineCnicHelp → 'نئے کارڈ کی کاپی مانگیں'.",
+      "match": ["درکار", "مطلوبہ", "طلب کردہ", "طلب کریں"]
+    },
+    {
+      "avoid": "شائستہ",
+      "prefer": "'نرم لہجے کی'؛ 'اچھے انداز میں'",
+      "english": "polite",
+      "note": "Found: website 3.",
+      "match": ["شائستہ"]
+    },
+    {
+      "avoid": "مسلسل سلسلہ",
+      "prefer": "'ایک کے بعد ایک نمبر، بیچ میں کوئی نمبر خالی نہیں'",
+      "english": "unbroken sequence",
+      "note": "Found: website 3. Receipt numbering: the promise (no gaps, every receipt traceable) must stay, and so must the point that a cancelled receipt keeps its number.",
+      "match": ["مسلسل سلسلہ"]
+    },
+    {
+      "avoid": "سکیورٹی (meaning guards, in an expense category)",
+      "prefer": "چوکیدار ('صفائی اور چوکیدار')",
+      "english": "security (guards)",
+      "note": "Found: app 1 (expenseCategoryCleaning 'صفائی اور سکیورٹی', 'Cleaning and security'). A different meaning, not a misspelt deposit. Once the deposit is سیکیورٹی, 'صفائی اور سیکیورٹی' in the expense list, beside heldAndSpentSection, would read as a deposit spent on cleaning.",
+      "match": ["سکیورٹی"]
+    },
+    {
+      "avoid": "ای میل پتہ، ای میل پتا",
+      "prefer": "ای میل",
+      "english": "e-mail address",
+      "note": "Found: app 7, website 5, e-mails 8, tests 1. A word-for-word copy of the English; پتہ is a home address. People say 'اپنی ای میل' or 'ای میل ایڈریس'. validationEmail → 'name@example.com جیسی ای میل لکھیں۔'; the confirmation e-mail 'اپنا ای میل پتہ تصدیق کریں' → 'اپنی ای میل کی تصدیق کریں'; the change e-mail 'ای میل پتے کی تبدیلی' → 'ای میل کی تبدیلی'.",
+      "match": ["ای میل پتہ", "ای میل پتا", "ای میل پتے"]
+    },
+    {
+      "avoid": "افراد",
+      "prefer": "لوگ",
+      "english": "people, persons",
+      "note": "Found: app 5, website 17. An Arabic plural (of فرد). teamMembersSection ('People') → 'ٹیم کے لوگ'; tenantsEmptyBody 'وہ افراد یا کاروبار' → 'وہ لوگ یا کاروبار'; householdSizeLabel 'رہنے والے افراد' → 'کتنے لوگ رہتے ہیں'; occupantsHelp 'بالغ افراد' → 'بالغ لوگ' (keep بالغ: the police form asks for adults); police guide '14 سال سے بڑے مرد افراد' → '14 سال سے بڑے مرد'; the count plural '{count} اور افراد' → '{count} اور لوگ'. Keep افراد inside quoted law text.",
+      "match": ["افراد"]
+    },
+    {
+      "avoid": "بیرونِ ملک مقیم",
+      "prefer": "اوورسیز؛ 'ملک سے باہر رہنے والے'",
+      "english": "overseas, living abroad",
+      "note": "Found: app 2, website 13. 'اوورسیز پاکستانی' is universal, and the pricing page already says اوورسیز, while the home, features and how-it-works pages say 'بیرونِ ملک مقیم مالکان'. 'نگران اور بیرونِ ملک مقیم مالکان' → 'منیجر اور اوورسیز مالک' (see نگران); the phone hint 'بیرونِ ملک کا نمبر' → 'باہر کے ملک کا نمبر'.",
+      "match": ["بیرونِ ملک مقیم", "بیرون ملک مقیم"]
+    },
+    {
+      "avoid": "رسائی (outside 'ابتدائی رسائی')",
+      "prefer": "say what happens: '… نہیں دیکھ سکیں گے'; a citation date: 'کب دیکھا'",
+      "english": "access; accessed on",
+      "note": "Found: app 5, website 3. 'رسائی ختم ہو جائے گی' is news Urdu. removeMemberBody → 'وہ یہ پورٹ فولیو فوراً نہیں دیکھ سکیں گے۔ ان کا درج کیا ہوا سب کچھ ریکارڈ میں رہے گا۔'; leaveBody → 'آپ یہ پورٹ فولیو فوراً نہیں دیکھ سکیں گے'; doomedPortfolioOthers → '{count} اور لوگ اسے نہیں دیکھ سکیں گے'; deletePortfolioBody → 'کوئی ممبر اسے نہیں دیکھ سکے گا'; the guide source label 'رسائی کی تاریخ' (Accessed) → 'کب دیکھا'.",
+      "match": ["رسائی"]
+    },
+    {
+      "avoid": "کردار (a team role)",
+      "prefer": "رول (with what the role can do)",
+      "english": "role",
+      "note": "Found: app 6, website 12, tests 2. Lower priority. In everyday Urdu کردار is a character in a drama; at work people say رول. When a role name stands beside it either is understood. yourRole → 'آپ کا رول: {role}'; memberRoleLabel, inviteRoleLabel → 'رول'; changeRoleAction → 'رول بدلیں'. Where a page lists the four roles, say once what each can do.",
+      "match": []
+    },
+    {
+      "avoid": "نگران (as the name of the Manager role)",
+      "prefer": "منیجر",
+      "english": "manager (role)",
+      "note": "Found: app 1, website 25, tests 6; judge each. The app's role label is منیجر, while the website calls the same role نگران. Use منیجر wherever the role is named; نگران stays only to describe a caretaker in prose (it is understood, as in نگران حکومت).",
+      "match": []
+    },
+    {
+      "avoid": "زمرہ",
+      "prefer": "قسم; an expense category: 'کس چیز پر خرچ'",
+      "english": "category",
+      "note": "Found: app 1, website 2, tests 1. Textbook word. expenseCategoryLabel → 'کس چیز پر خرچ' (the app already says 'قسم' elsewhere). Keep a NEPRA category's official name as written, with 'قسم' in the gloss.",
+      "match": ["زمرہ", "زمرے"]
+    },
+    {
+      "avoid": "رخصتی",
+      "prefer": "'جگہ خالی کرنا'; 'کرایہ دار کا جانا'",
+      "english": "move-out",
+      "note": "Found: app 2. رخصتی is a bride leaving her parents' home. insightExpiringBody → '… یا جگہ خالی ہونے کی تیاری کریں'; insightLongArrearsBody 'رخصتی پر' → 'جگہ خالی کرتے وقت'.",
+      "match": ["رخصتی"]
+    },
+    {
+      "avoid": "خودکار",
+      "prefer": "sentences: 'خود بخود'؛ 'خود لگنے والی'; feature lists: آٹومیٹک",
+      "english": "automatic",
+      "note": "Found: app 1, website 6. endTenancyExplain 'خودکار تاخیر جرمانے' → 'خود لگنے والی لیٹ فیس'; pricing 'خودکار واٹس ایپ یاد دہانیاں' → 'آٹومیٹک واٹس ایپ یاد دہانیاں'; pricing 'خودکار تجدید' → see تجدید. 'خودکار عمل' is under یہ عمل. خود بخود does not mean 'by default' (see بطور).",
+      "match": ["خودکار"]
+    },
+    {
+      "avoid": "نقدی کا بہاؤ",
+      "prefer": "'پیسہ کتنا آیا، کتنا گیا'",
+      "english": "cash flow",
+      "note": "Found: app 1 (reportsEntrySummary). A word-for-word copy of the English that nobody says; matches the و entry and the net labels ('آئی اور گئی رقم').",
+      "match": ["نقدی کا بہاؤ"]
+    },
+    {
+      "avoid": "متاثر کرنا",
+      "prefer": "خراب کرنا؛ 'اثر پڑنا'",
+      "english": "affect",
+      "note": "Found: app 1. etiquetteRecent 'اچھے تعلق کو متاثر کر سکتی ہے' → 'تعلق خراب کر سکتی ہے'.",
+      "match": ["متاثر"]
+    },
+    {
+      "avoid": "ہدف، پیش رفت",
+      "prefer": "'کب تک'؛ 'کام کہاں تک پہنچا'",
+      "english": "target (date); progress",
+      "note": "Found: website 3. Roadmap 'ہدف: {date}' → 'کب تک: {date}' (keep that it is a target, not a promise); 'اس کی پیش رفت دیکھ سکتے ہیں' → 'دیکھ سکتے ہیں کہ کام کہاں تک پہنچا'.",
+      "match": ["ہدف", "پیش رفت"]
+    },
+    {
+      "avoid": "عمومی",
+      "prefer": "عام",
+      "english": "general",
+      "note": "Found: website 6. Disclaimers: 'عمومی معلومات ہے، قانونی یا ٹیکس مشورہ نہیں' → 'عام معلومات ہے، قانونی یا ٹیکس مشورہ نہیں'. The 'not legal or tax advice' part must survive.",
+      "match": ["عمومی"]
+    },
+    {
+      "avoid": "جزوی، فاضل",
+      "prefer": "'کچھ ادا'؛ 'کچھ حصہ'؛ 'زیادہ دی گئی رقم'",
+      "english": "partial; surplus",
+      "note": "Found: app 1, website 2. settledInPart ('{charge}, in part') → '{charge}، کچھ ادا'. Features 'جزوی ادائیگیاں، پیشگی رقم، اور وہ فاضل رقم جو خود بخود اگلے واجبات میں لگ جاتی ہے' → 'کچھ حصہ ادا کرنا، رقم پہلے دینا، اور زیادہ دی گئی رقم جو خود بخود اگلے چارجز میں لگ جاتی ہے'.",
+      "match": ["جزوی", "فاضل"]
+    },
+    {
+      "avoid": "حاصل کریں (get the app, get a statement)",
+      "prefer": "'ڈاؤن لوڈ کریں'؛ 'کہاں سے ملے گی'؛ نکالیں",
+      "english": "get",
+      "note": "Found: website 11. 'ایپ حاصل کریں' translates 'Get the app'; people say 'ایپ ڈاؤن لوڈ کرنی ہے' or 'ایپ کہاں سے ملے گی'. Download page title and footer link → 'ایپ ڈاؤن لوڈ کریں'; FAQ 'ایپ کہاں سے حاصل کریں؟' → 'ایپ کہاں سے ملے گی؟'; 'تازہ ترین ورژن حاصل کریں' → 'نیا ورژن ڈاؤن لوڈ کریں'; 'اسٹیٹمنٹ جب چاہیں حاصل کریں' → 'اسٹیٹمنٹ جب چاہیں نکالیں'.",
+      "match": []
+    },
+    {
+      "avoid": "ادائیگی کی تاریخ (for a due date)",
+      "prefer": "'دینے کی تاریخ'; on the website, the rent's payment day: 'کرایہ دینے کی تاریخ'",
+      "english": "due date (versus date paid)",
+      "note": "Found: app 2, mm_ui gallery 1, website 4. 'ادائیگی کی تاریخ' already means the date something was paid (paidOnLabel, markUnpaidBody), so it must never also mean the date it is due. Keep it in the app only for 'paid on'. On the website (first-month calculator, checklist) it means the rent's payment day: 'کرایہ دینے کی تاریخ'.",
+      "match": []
+    },
+    {
+      "avoid": "کٹوتی (for a section 15A deduction)",
+      "prefer": "withholding stays 'کٹوتی' / 'کٹا ہوا ٹیکس'; a deduction from income: 'ٹیکس کے حساب میں آمدنی میں سے نکالی جانے والی رقم'",
+      "english": "withholding; deduction",
+      "note": "Found: website 31; judge each. The tax guide uses کٹوتی both for the tenant cutting tax from the rent (section 155) and for amounts taken off taxable income (section 15A: repairs, insurance, interest), so a landlord can read 'مرمت کی کٹوتی' as money cut from the rent. Keep کٹوتی for withholding (it is everyday: 'تنخواہ سے کٹوتی'). For section 15A write 'دفعہ 15 اے کے تحت آمدنی میں سے کیا نکلتا ہے', and say 'ٹیکس کے حساب میں' with the one-fifth on the home and features pages.",
+      "match": []
+    },
+    {
+      "avoid": "مکان (for any let unit)",
+      "prefer": "جگہ؛ یونٹ",
+      "english": "premises, unit",
+      "note": "Found: app 2, mm_ui gallery 1, website 1 ('مکان خالی …'). Units include shops, flats, portions, rooms and godowns. endTenancyExplain 'مکان خالی کرنے کے مہینے' → 'جگہ خالی کرنے کے مہینے'; the same in any rewrite that would add مکان ('مکان خالی ہونے کی تیاری'). مکان stays in 'مالکِ مکان' and where the English says home.",
+      "match": []
+    },
+    {
+      "avoid": "قابلِ وصول",
+      "prefer": "'جو ملنا بنتا تھا، چاہے ابھی نہ ملا ہو'",
+      "english": "receivable",
+      "note": "Found: website 1. Tax guide: 'rent received or receivable' (section 15). The legal point is that rent is taxed when it is due to you even if unpaid; 'جو کرایہ ملنا ہے' reads as future rent and drops that. 'سال کا جو کرایہ ملا، یا ملنا بنتا تھا چاہے ابھی نہ ملا ہو'.",
+      "match": ["قابلِ وصول", "قابل وصول"]
+    },
+    {
+      "avoid": "کنکشن (meaning the internet, in error messages)",
+      "prefer": "'رابطہ نہیں ہو سکا'؛ انٹرنیٹ",
+      "english": "(no) connection",
+      "note": "Found: app 3. In this app کنکشن means an electricity, gas or water connection, so failureNetwork 'کنکشن نہیں ہے' can be read as a utility problem. failureNetwork ('The request could not reach the server') → 'رابطہ نہیں ہو سکا۔ اپنا انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔'",
+      "match": []
+    },
+    {
+      "avoid": "بذریعہ",
+      "prefer": "'کے ذریعے'؛ سے",
+      "english": "by means of",
+      "note": "Found: none. Named by the owner; kept as a guard. 'کے ذریعے' (20 uses) is common and stays.",
+      "match": ["بذریعہ"]
+    },
+    {
+      "avoid": "مندرجہ ذیل، درج ذیل",
+      "prefer": "'نیچے دی گئی'؛ 'اوپر دی گئی'",
+      "english": "the following; the above",
+      "note": "Found: none. Named by the owner; kept as a guard and widened to 'درج ذیل', the same office phrase.",
+      "match": ["مندرجہ ذیل", "درج ذیل"]
+    },
+    {
+      "avoid": "ازراہِ کرم",
+      "prefer": "(drop it) or 'مہربانی کر کے'",
+      "english": "kindly",
+      "note": "Found: none. Named by the owner; kept as a guard. See براہِ کرم.",
+      "match": ["ازراہِ کرم", "ازراہ کرم"]
+    },
+    {
+      "avoid": "مطلع کریں",
+      "prefer": "بتائیں",
+      "english": "inform",
+      "note": "Found: none. Named by the owner; kept as a guard.",
+      "match": ["مطلع"]
+    },
+    {
+      "avoid": "وغیرہ (on its own, in place of a list)",
+      "prefer": "name the items, or 'جیسے …'; وغیرہ only after two or three named items",
+      "english": "etc.",
+      "note": "Found: none. Named by the owner. وغیرہ itself is everyday spoken Urdu, not a formal word; the rule is only that it never replaces a list.",
+      "match": []
+    },
+    {
+      "avoid": "کیجیے، کیجئے، فرمائیں",
+      "prefer": "کریں",
+      "english": "please do (formal imperative)",
+      "note": "Found: none. The copy already uses کریں; kept as a guard.",
+      "match": ["کیجیے", "کیجئے", "فرمائیں"]
+    }
+  ],
+  "exceptions": [
+    {
+      "path": "*",
+      "avoid": "رنگ و روغن",
+      "reason": "Shop signs say it; the glossary keeps this one Persian و."
+    },
+    {
+      "path": "website/*",
+      "avoid": "قانون و انصاف",
+      "reason": "Part of the official name وزارتِ قانون و انصاف (Ministry of Law and Justice)."
+    },
+    {
+      "path": "website/*",
+      "avoid": "جموں و کشمیر",
+      "reason": "Part of the official name آزاد جموں و کشمیر."
+    },
+    {
+      "path": "packages/mm_ui/lib/src/components/display/mm_avatar.dart",
+      "avoid": "و",
+      "reason": "A table of single Urdu letters for avatar initials, not a word."
+    },
+    {
+      "path": "website/tests/unit/brand-assets.test.ts",
+      "avoid": "و",
+      "reason": "The Urdu alphabet, letter by letter, that the font subset must cover."
+    },
+    {
+      "path": "website/*",
+      "avoid": "فعال ٹیکس دہندگان کی فہرست",
+      "reason": "The FBR's official Urdu name for the Active Taxpayers List, kept beside اے ٹی ایل."
+    },
+    {
+      "path": "website/*",
+      "avoid": "مقررہ شخص",
+      "reason": "The Income Tax Ordinance's term (prescribed person), kept once in quotes."
+    },
+    {
+      "path": "website/*",
+      "avoid": "دسویں جدول",
+      "reason": "The Tenth Schedule of the Income Tax Ordinance, in tax citations."
+    },
+    {
+      "path": "website/*",
+      "avoid": "دسواں جدول",
+      "reason": "The same Tenth Schedule, as the subject of a sentence (the direct case of دسویں جدول)."
+    },
+    {
+      "path": "website/*",
+      "avoid": "قاعدہ 1",
+      "reason": "Rule 1 of the Tenth Schedule, in tax citations."
+    },
+    {
+      "path": "website/*",
+      "avoid": "افراد کی انجمن",
+      "reason": "The Ordinance's category association of persons (AOP)."
+    },
+    {
+      "path": "website/*",
+      "avoid": "افراد کی انجمنیں",
+      "reason": "The Ordinance's category association of persons (AOP), in the plural."
+    },
+    {
+      "path": "website/*",
+      "avoid": "اضافے کی شرح",
+      "reason": "The Punjab Rented Premises Act's own words (rate of increase), quoted."
+    },
+    {
+      "path": "website/*",
+      "avoid": "مصالحتی کونسل",
+      "reason": "An official body in Islamabad, named and then glossed."
+    },
+    {
+      "path": "website/*",
+      "avoid": "(قابلِ دست اندازی)",
+      "reason": "A legal term of art, kept once in brackets after its plain meaning."
+    },
+    {
+      "path": "website/*",
+      "avoid": "(ناقابلِ ضمانت)",
+      "reason": "A legal term of art, kept once in brackets after its plain meaning."
+    },
+    {
+      "path": "website/*",
+      "avoid": "(ڈسٹری بیوشن لائسنسی) کے ضوابط 2021",
+      "reason": "Part of the title of NEPRA's 2021 consumer eligibility regulations."
+    },
+    {
+      "path": "website/*",
+      "avoid": "اللہ دیوایا بنام غلام فاطمہ",
+      "reason": "A reported court case's name, cited as reported."
+    },
+    {
+      "path": ".planning/research/market-painpoints.md",
+      "avoid": "واجب الادا",
+      "reason": "A research note from before the app: its first draft reminder templates are kept as they were written. The app's own reminders (app_ur.arb) follow the glossary."
+    },
+    {
+      "path": ".planning/research/market-painpoints.md",
+      "avoid": "براہِ کرم",
+      "reason": "A research note from before the app: its first draft reminder templates are kept as they were written. The app's own reminders (app_ur.arb) follow the glossary."
+    },
+    {
+      "path": ".planning/research/market-painpoints.md",
+      "avoid": "مقررہ",
+      "reason": "A research note from before the app: its first draft reminder templates are kept as they were written. The app's own reminders (app_ur.arb) follow the glossary."
+    },
+    {
+      "path": ".planning/research/market-painpoints.md",
+      "avoid": "موصول",
+      "reason": "A research note from before the app: its first draft reminder templates are kept as they were written. The app's own reminders (app_ur.arb) follow the glossary."
+    },
+    {
+      "path": ".planning/research/market-painpoints.md",
+      "avoid": "کی مد میں",
+      "reason": "A research note from before the app: its first draft reminder templates are kept as they were written. The app's own reminders (app_ur.arb) follow the glossary."
+    },
+    {
+      "path": ".planning/research/market-painpoints.md",
+      "avoid": "چونکہ",
+      "reason": "A research note from before the app: its first draft reminder templates are kept as they were written. The app's own reminders (app_ur.arb) follow the glossary."
+    },
+    {
+      "path": "docs/uat.md",
+      "avoid": "\"واجب الادا 132000 روپے\"",
+      "reason": "What the UAT run of 2026-11-08 displayed, quoted as observed beside its screenshots; a dated note says the suite now expects the plain wording."
+    },
+    {
+      "path": "docs/uat.md",
+      "avoid": "\"کل 132,000 روپے واجب الادا\"",
+      "reason": "What the UAT run of 2026-11-08 displayed, quoted as observed beside its screenshots; a dated note says the suite now expects the plain wording."
+    },
+    {
+      "path": "docs/uat.md",
+      "avoid": "\"تاخیر جرمانہ، ستمبر 2026 … · Late fee\"",
+      "reason": "What the UAT run of 2026-11-08 displayed, quoted as observed beside its screenshots; a dated note says the suite now expects the plain wording."
+    }
+  ],
+  "sentenceRules": [
+    "Use کریں for every instruction and button. The copy already does: کیجیے، کیجئے and فرمائیں appear nowhere. Keep it that way.",
+    "Drop براہِ کرم from app messages (16 uses): کریں and 'کر دیں' are already polite. In messages to tenants, write 'مہربانی کر کے' only where the English says please.",
+    "One idea per sentence, under about 20 words. App sentences are short (median 4 words), but the website's are not (median 10 words; 262 sentences of 25 or more words, 83 of 35 or more). Split at ؛ and : into separate sentences. When you split, a condition or exception stays in the sentence it limits ('as long as nothing was paid, waived or voided', 'unless they agree in writing', 'although either side can apply to the Rent Controller'); never strand it or drop it.",
+    "Use the active voice and name who acts: 'ایپ رسید بناتی ہے'، 'آپ رقم لکھیں'، 'کرایہ دار ٹیکس کاٹتا ہے'. Avoid 'کیا جاتا ہے'، 'کی جائے گی'، 'جا سکتا ہے' when a person or the app is the actor (at least 37 such passives, 27 on the website). But never invent an actor: where the law or the English leaves it open (in Punjab any one of dealer, landlord or tenant registers), keep it open, and never credit the app with something it does not do.",
+    "Lead with what happens, then the condition: 'یہ ہمیشہ کے لیے ڈیلیٹ ہو جائے گا۔ صرف تب کریں جب یہ غلطی سے بنا ہو۔', not 'صرف غلطی سے شامل کی گئی … کے لیے: …' (nine delete dialogs use that pattern). Keep the 'otherwise archive it / end the tenancy / cancel it' sentence that follows in the English.",
+    "Write every app label from the reader's side. The landlord and his team read the app; only WhatsApp messages are read by tenants. On the landlord's screens a subjectless 'دینا ہے' reads as 'I must pay', so due labels are built on تاریخ ('آج تاریخ ہے'، '{days} دن بعد تاریخ'، 'تاریخ: {date}'، 'ابھی تاریخ نہیں آئی'); a bill the landlord pays himself is 'ادا ہونا ہے'; 'دینا ہے / دینے ہیں' is for messages addressed to the tenant.",
+    "No izafat chains: at most one izafat in a phrase, and never on an English loanword. Use کا، کی، کے: 'قیمتِ خرید' → 'خریدنے کی قیمت'، 'شرائطِ استعمال' → 'استعمال کی شرائط'، 'بیرونِ ملک مقیم' → 'اوورسیز'، 'طریقۂ کار' → 'ایپ کیسے کام کرتی ہے'. For yield use the entry ('خرچ سے پہلے / بعد سالانہ منافع، قیمت کا فیصد'). There are 62 izafat zers in the app and 156 on the website. Names written with izafat stay: مالکِ مکان، وزارتِ قانون و انصاف، ضابطۂ فوجداری.",
+    "Use اور, not the Persian و ('مرمت و دیکھ بھال' → 'مرمت اور دیکھ بھال'), except in fixed names (وزارتِ قانون و انصاف، آزاد جموں و کشمیر) and 'رنگ و روغن', which shop signs use.",
+    "Avoid شدہ participles in sentences (149 uses). Use a past verb that cannot be read as future: 'جو رقم ملی'، 'جو رسید کینسل ہوئی'. Avoid the -نے والا form for something that has already happened ('ملنے والا کرایہ' can mean rent still to come). Under a heading, a short predicate is fine ('وصول ہوئی'، 'واپس کی'). Three fixed uses stay: ادا شدہ as a short status badge (paid bills print it), 'تصدیق شدہ کاپی' (the attested copy the police ask for), and شدہ inside official titles.",
+    "Avoid Arabic broken plurals and -جات plurals: رقوم → رقمیں، تصاویر → تصویریں، نقول → کاپیاں، اراکین → ممبر، افراد → لوگ، روابط → لنک، امور → باتیں، بقایا جات → بقایا، حوالہ جات → حوالے، دستاویزات → کاغذات، مالکانِ مکان → 'مالک مکان' (plural verb) or 'مکانوں کے مالک'. قواعد and ضوابط become رولز or ریگولیشنز when they name an instrument, and اصول in general, never قانون: rules and regulations are made under an Act and are not the Act. ذرائع and اطلاعات are known from the news and may stay.",
+    "Avoid 'قابلِ X' and 'ناقابلِ X' adjectives: say what happens. The exception is 'قابلِ بھروسا', which is everyday. For a legal term of art, put the plain meaning first and the term once in brackets: 'پولیس وارنٹ کے بغیر گرفتار کر سکتی ہے (قابلِ دست اندازی)'. In the tax guide, 'قابلِ وصول کرایہ' is 'جو کرایہ ملنا بنتا تھا، چاہے ابھی نہ ملا ہو', not 'جو کرایہ ملنا ہے'.",
+    "Prefer plain verbs to an Arabic or Persian noun + کرنا: بدلیں for a new value (not تبدیل کریں); 'ایڈٹ کریں' for the Edit button and '… کی تفصیل بدلیں' in titles (not ترمیم کریں); چنیں (not منتخب کریں); 'دعوت بھیجیں' (not مدعو کریں); 'چارج لگائیں' for adding a charge; پوچھیں for advice and 'درخواست دیں' for a Rent Controller, court or the police (not رجوع کریں); بتائیں (not مطلع کریں); 'ٹھیک کریں' (not تصحیح کریں); لکھیں when the user types into a box (not درج کریں); ڈالیں for a code or PIN; 'آمدنی میں سے نکالیں' for a tax deduction (not منہا کریں).",
+    "Drop office connectors: مورخہ، بنام، از … بنام، برائے، بطور، بشمول، بشرطیکہ، الا یہ کہ، حتی الامکان، بعض، محض، بیشتر، چونکہ become '{date} کو' ('{date} تک' where the English means 'by')، کو، '{from} سے {to} کو'، 'کے لیے' or 'کا'، 'کے طور پر'، سمیت، اگر، 'اگر … نہ ہو تو'، 'جہاں تک ہو سکے'، کچھ، صرف، 'زیادہ تر'، کیونکہ. Keep 'کم از کم'، 'زیادہ سے زیادہ' and 'جلد از جلد', which are everyday, and بنام or بابت only inside court case names and official Act citations.",
+    "Write the English word people say, in Urdu script, when that is what they say: سیکیورٹی، لیٹ فیس، چارج، ڈیلیٹ، کینسل، ایڈٹ، انٹری، سیٹنگز، اسٹیٹمنٹ، انوائس، این او سی، ڈیفالٹر، ایکسپائر، رینیو، پروٹیکٹڈ، سبسڈی، اسٹیٹس، ایمرجنسی، فائلر، ایڈجسٹ، اوورسیز، فکس، ریٹ، رول، منیجر. Do not add English words most readers do not say (یوٹیلیٹیز، سی ایس وی، ڈیوائس، سیشن، یوزر): use بل، 'فائل (CSV)'، 'فون یا کمپیوٹر'، سائن اِن، 'استعمال کرنے والے'. Do not use an English word that already means something else in money matters: a bare ایڈوانس (many readers mean the deposit; write 'ایڈوانس کرایہ' or کریڈٹ), ڈرافٹ (a bank draft; write 'لکھ کر تیار کرنا' or ورژن), کنکشن for the internet (here it is a bill connection). Never call a CSV an Excel file. On the website, a Latin-script word goes in lang=\"en\".",
+    "Use one word per thing across the app, website, e-mails and PDFs. Deposit: سیکیورٹی (سیکیورٹی ڈپازٹ in headings, receipts, PDFs, on the website and wherever another 'security' is near). Credit balance: کریڈٹ. Advance rent: 'ایڈوانس کرایہ'. Key money: پگڑی. A charge: چارج. A payment: ادائیگی. Still owed: باقی (in sentences with ذمے). Past its date: لیٹ. Old unpaid amounts: بقایا. A charge's due date: 'دینے کی تاریخ'. A bill's due date: 'آخری تاریخ'. Date paid: 'ادائیگی کی تاریخ'. Late fee: لیٹ فیس. Agreement: کرایہ نامہ. Police registration: 'پولیس رجسٹریشن'. Rent Registrar registration: 'رینٹ رجسٹرار کے پاس رجسٹریشن'. Receipt رسید; invoice انوائس; utility bill بل; statement اسٹیٹمنٹ. Tax withheld: 'کٹا ہوا ٹیکس'. A section 15A deduction: 'آمدنی میں سے نکالی جانے والی رقم'. Section of a law: دفعہ (the app's three 'سیکشن 155' too). Void کینسل; waive معاف; delete ڈیلیٹ; archive آرکائیو. Edit 'ایڈٹ کریں'. Settings سیٹنگز. Protected tariff 'پروٹیکٹڈ ٹیرف'. Roadmap 'روڈ میپ' (پلان is a paid plan). Overseas owner اوورسیز. E-mail ای میل (not 'ای میل پتہ'). Invite 'دعوت بھیجیں'. People لوگ. Role رول. The Manager role منیجر, with نگران only to describe a caretaker in prose. Any let unit: جگہ.",
+    "Every pair the app keeps apart must stay apart in Urdu: charge and payment; void, waive, delete and archive; due, overdue and arrears; a charge's due date and the date paid; a bill's due date and the date paid; a tenancy's agreed end and the day it ended; this month's charges paid and money received this month; deposit, credit, advance rent and پگڑی; receipt, invoice, bill and statement; police, Rent Registrar and Registration Act registration; withholding and deductions; gross and net; before and after expenses; encrypted and hashed; not yet registered and waiting for the police; edit, change a value and switch. Never let one Urdu word carry two of these, and read each rewritten pair side by side before accepting either.",
+    "Simplifying must never change a number, an amount, a date, a unit of time (hours are not days), the event a period counts from (possession, signing the agreement, the end of each year of the tenancy), who has to act, who owes whom, what an amount covers (never turn '{amount} for {unit}' into rent), or a legal effect (binding, cognisable, non-bailable, adjustable, compulsory registration). These must survive every rewrite: 'not legal or tax advice', 'not your final tax' ('سال کا اصل ٹیکس نہیں'), 'cancelled entries are kept, never deleted', 'this cannot be undone', 'an estimate, not a promise', 'we found no law', 'encrypted', 'a first version' (the terms are not a draft) and 'one case on its own facts, not a general rule'.",
+    "باقی means both 'still owed' and 'the rest'. Never use it in both senses in one sentence: write the remainder of a deposit or a payment as بچا or بچی ('پھر جو بچے وہ واپس کریں'), and give an owed amount a direction with ذمے ('کرایہ دار کے ذمے').",
+    "Write کل for 'total' only before a noun ('کل رقم'، 'کل باقی رقم'). The same word means tomorrow (the app's dueInDays) and yesterday, so it never stands alone beside a figure. کل never translates 'gross': that is 'پورا کرایہ (ٹیکس کٹنے سے پہلے)'.",
+    "Units can be shops, godowns, offices, portions and rooms, not only houses. In text that covers every unit write جگہ, not مکان: 'جگہ خالی کروانا'، 'کرایہ دار کو جگہ ملنا'، 'جگہ خالی ہونے کی تیاری'. مکان stays where the English says home.",
+    "The product's name مالکِ مکان is also the ordinary word for 'the landlord'. In a sentence about the app write 'مالکِ مکان ایپ' so it is not read as a person ('مالکِ مکان ایپ پر کسی نے آپ کو دعوت بھیجی ہے', not 'مالکِ مکان کے ایک صارف نے').",
+    "Messages to tenants (WhatsApp, in Urdu and Roman Urdu) are the plainest of all: a greeting and one or two short sentences with the amount and the date, saying exactly what the English says. Do not add کرایہ when the amount can include bills or late fees; the overdue message keeps 'the oldest of it was due on {date}'. Do not write payment details or thanks into the body: the app appends them (reminderPayRaast, reminderPayBank, reminderThanks 'والسلام، {landlord}'). Example: 'السلام علیکم {tenant}۔ یاد دہانی: {unit} کے {amount}، {date} کو دینے ہیں۔' Change the Roman Urdu twin in step ('… {unit} ke {amount}, {date} ko dene hain.').",
+    "Buttons are a verb, or a short verb phrase, of 1 to 3 words ending in an imperative ('ڈیلیٹ کریں'، 'رسید بھیجیں'، 'دعوت بھیجیں'). A destructive or money button always names its object ('ادائیگی کینسل کریں'، 'چارج کینسل کریں'، 'جائیداد ڈیلیٹ کریں'); کینسل never stands alone on a button, because readers have pressed an English Cancel for years to close a dialog. A dialog's dismiss button is always 'رہنے دیں'. Titles and labels are short noun phrases without izafat ('کرائے کی رسید'). A form field may be a short question when that is plainer ('کتنے دن بعد لیٹ فیس لگے'، 'کیا کام کرتے ہیں'، 'کتنا کرایہ مانگ رہے ہیں').",
+    "Error messages say what happened, then what to do, in two short sentences, with no blame and no براہِ کرم: 'رابطہ نہیں ہو سکا۔ اپنا انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔' Do not use کنکشن for the internet: in this app it means a bill connection.",
+    "Empty states are 'ابھی کوئی … نہیں' followed by one sentence on what to do next ('ابھی کوئی کرایہ دار نہیں۔ پہلا کرایہ دار شامل کریں۔').",
+    "Address the reader as آپ with plural verbs, and refer to tenants and team members in the polite plural (وہ، انہیں، 'شامل ہو گئے'), as the app already does.",
+    "Spell a word the same way everywhere. The oblique of کرایہ is کرائے: the app uses it, while the website mixes کرایے (82) and کرائے (14). Write پتہ for an address, as the CNIC and police forms print it ('مستقل پتہ'، 'موجودہ پتہ'; the app already uses it), and in 'پتہ چلنا' and 'پتہ نہیں'; the website's 15 پتا change. Write سائن اِن (the website sometimes writes سائن ان), ہو گا as two words (the website has some ہوگا), انہیں (not انھیں), سیکیورٹی for the deposit (the app's one سکیورٹی means guards and becomes چوکیدار) and مینو (not مینیو).",
+    "Prefer the spoken word for everyday things: مہینہ, not ماہ (ماہانہ stays); جیسے, not مثلاً; کاغذات, not دستاویزات (one item is a فائل); خرچ in labels and خرچے in sentences, not اخراجات; آمدنی, not آمدن; لوگ, not افراد; عام, not عمومی; دھیان, not توجہ, in short titles; '… سے … تک', not تا.",
+    "Change every copy of a string in step: the Urdu ARB and its Roman Urdu twins, the e-mail templates and their subjects in supabase/config.toml, the mm_ui gallery, the website, and the tests and UAT expectations that assert Urdu (app/uat/tests/journeys.spec.ts, docs/uat.md, the mm_ui golden tests). Rebuild generated localisations (app_localizations_ur.dart) rather than editing them, re-record goldens only with make goldens on Linux and look at every changed image, and add no bidi controls or invisible characters."
+  ],
+  "keep": [
+    "مالکِ مکان (115 with مالک مکان): the product's name, in the app, e-mails and on the website, and also an ordinary word. In a sentence about the app write 'مالکِ مکان ایپ'. Only the plural 'مالکانِ مکان' changes (see entries).",
+    "کرایہ، کرایہ دار (253)، مالک، رسید، دکان، فلیٹ، پورشن، پلاٹ، گودام، پلازہ: everyday words; the owner named most of them. مکان stays where the English says home; a let unit in general is جگہ or یونٹ.",
+    "کرایہ داری (114): built from two everyday words, and there is no shorter word for 'tenancy'. Avoid the plural کرایہ داریاں in short labels.",
+    "کرایہ نامہ (73): what stamp vendors, lawyers and police stations call it; 'رینٹ ایگریمنٹ' is fine in speech. Use it, not معاہدہ, for the tenancy agreement.",
+    "جائیداد (126): everyday ('جائیداد کے کاغذات'); پراپرٹی is fine in speech too.",
+    "ادائیگی (202)، ادائیگیاں، وصول، وصولی (91): on every bank slip, bill and receipt. 'ادائیگی کی تاریخ' is reserved for the date something was paid (paidOnLabel) and is never the due date.",
+    "ادا شدہ (50): stamped on paid bills and receipts, so it is fine as a status badge; 'ادا ہو گیا' reads better in a sentence.",
+    "بقایا (20 on its own): printed on every utility bill. Keep it for old unpaid amounts (arrears), including insightDepositBody; use باقی for what is owed now, including charges not yet due.",
+    "کریڈٹ (15, app): known from banking, Easypaisa and JazzCash. It is the word for a credit balance; explain it once as 'پہلے سے دی ہوئی رقم', and never replace it with a bare ایڈوانس, which many readers take to mean the deposit.",
+    "پگڑی: key money, a third thing distinct from the deposit and advance rent (tenancy checklist). Keep it as is.",
+    "چارج، چارجز ('سوسائٹی چارجز'، 'بینک چارجز' already in the app): the word for a charge on the ledger. Do not use رقم for a charge, because a payment is also a رقم.",
+    "کھاتہ (39): the shopkeeper's word for a running account.",
+    "نقد، نقدی، 'ہاتھ میں نقدی' (40+): on every shop sign ('نقد اور ادھار'); the handover wording builds on them. کیش is fine in speech; use one word per screen.",
+    "واپسی (8, refund): everyday ('پیسے واپس'); ریفنڈ is fine in speech but not needed.",
+    "جرمانہ (20): a fine under a law, including the sums the Punjab Act's section 9 makes a party deposit before the Rent Tribunal hears the case. Only the late fee becomes لیٹ فیس.",
+    "معاف (15): everyday ('کرایہ معاف کر دیا'), and it must stay distinct from کینسل: waiving forgives what is owed and the charge stays; voiding cancels an entry made by mistake.",
+    "کٹوتی (31, website): everyday ('تنخواہ سے کٹوتی') and the right word for tax the tenant withholds from rent. A section 15A deduction from income gets its own wording (see entries).",
+    "قانون، عدالت، مقدمہ، جرم، سزا، قید، خلاف ورزی، قرار دیا: known from TV news and needed to carry the legal effect.",
+    "کے تحت (51): how the news says 'under section X' ('دفعہ 144 کے تحت').",
+    "تصدیق، تصدیق شدہ (67): banks, NADRA and SMS codes use them, and 'تصدیق شدہ کاپی' is the attested copy the police ask for.",
+    "محفوظ کریں (59 uses of محفوظ outside the tariff): the standard Save button in Urdu phone interfaces. Only محفوظ ٹیرف changes.",
+    "شناختی کارڈ (78)، ولد / دختر / زوجہ (6)، مستقل پتہ، موجودہ پتہ: exactly as printed on the CNIC and on police forms.",
+    "حلف نامہ: what the police and courts ask for.",
+    "دفعہ (49): how Pakistanis name sections of a law (دفعہ 144). The app's three 'سیکشن 155' become 'دفعہ 155', as the website says; a first mention on a tax screen may read 'دفعہ 155 (سیکشن 155)', since tax advisers say it in English.",
+    "ٹیکس سال (41)، مالی سال، ود ہولڈنگ ٹیکس، این ٹی این، ایف بی آر، اے ٹی ایل، سی پی آر، ریٹ کارڈ، فائلر، نان فائلر: the FBR's own words, which tax advisers and landlords use. The ATL, not filing, decides the rate, so فائلر follows 'اے ٹی ایل میں نام' as the common name.",
+    "Official names stay as officially written, with a plain gloss where the page explains them. Law titles: پنجاب انفارمیشن آف ٹیمپریری ریذیڈنٹس ایکٹ 2015، پنجاب رینٹڈ پریمیسز ایکٹ 2009، سندھ رینٹڈ پریمیسز آرڈیننس 1979، رجسٹریشن ایکٹ 1908، انکم ٹیکس آرڈیننس 2001، ضابطۂ فوجداری، and the KP and Balochistan 'رینٹڈ بلڈنگز (سیکیورٹی) ایکٹ' names, whose سیکیورٹی means public safety, not a deposit (gloss: 'پولیس رجسٹریشن کا قانون'). Citation forms stay ('سندھ ایکٹ نمبر 21 بابت 2015'). Offices and systems: خدمت مرکز، رینٹ رجسٹرار، رینٹ کنٹرولر، رینٹ ٹریبونل، مصالحتی کونسل، ٹیننٹ رجسٹریشن سسٹم، ٹرسٹ پورٹل. Ministries and places: وزارتِ قانون و انصاف، آزاد جموں و کشمیر، اسلام آباد کیپیٹل ٹیریٹری. Also the FBR's 'فعال ٹیکس دہندگان کی فہرست', once, next to اے ٹی ایل, and source titles quoted as titles (NEPRA's regulation titles).",
+    "'منصفانہ کرایہ' (fair rent)، 'مقررہ شخص' (prescribed person)، 'جائیداد سے آمدنی' (the head of income): legal terms of art. Keep them in quotes with a plain gloss.",
+    "انوائس (documentKindInvoice): a supplier's invoice, distinct from بل (a utility bill), رسید (proof of money received) and اسٹیٹمنٹ (an account summary), so keep the loanword.",
+    "سابق ('سابق ممبر'): everyday from the news (سابق وزیرِ اعظم). Do not replace it with پرانا, which means long-standing. Only سابقہ in 'سابقہ پتہ' becomes 'پچھلا پتہ'.",
+    "ضمانت outside زرِ ضمانت (6): bail (ناقابلِ ضمانت), a guarantee for a tenant's connection (utilities guide) and the licence's 'without warranty' (terms). These are different meanings, so keep the word.",
+    "سیکیورٹی in its other senses on the website (privacy: 'سیکیورٹی پالیسی', a security issue; company page: 'سائبر سیکیورٹی'): different contexts with no deposit nearby, so leave them.",
+    "کم از کم، زیادہ سے زیادہ، جلد از جلد (31): fixed everyday phrases, despite the از.",
+    "خود بخود (15): everyday, and plainer than خودکار. It does not mean 'by default' (see بطور).",
+    "پائی پائی کا حساب (4): an everyday idiom in exactly the right register.",
+    "لاگو، لازمی، ضروری، دستیاب، موجود، مزید، تمام، دیگر، درست، مکمل، مطابق، دوران، معلومات: common on forms, in the news and in speech. In prose prefer سب to تمام and دوسرے to دیگر, but none of them is an obstacle. 'لازم', not 'لاگو', carries 'binding'.",
+    "اطلاع، اطلاعات (30): everyday ('اطلاع دی'); نوٹیفکیشن is fine for phone alerts.",
+    "یاد دہانی، یاد دہانیاں (53): understood from bank and utility reminders, and the app's name for the WhatsApp reminder; ریمائنڈر is fine in speech.",
+    "نگران (32): understood (as in نگران حکومت) and fine for describing a caretaker in prose. Where the role itself is named, use منیجر (see entries).",
+    "منشی (3): the assistant's name, and an everyday word.",
+    "دعوت، دعوت نامہ (63): known from wedding cards. 'دعوت' alone is enough on a button, and it gives the invite verb ('دعوت بھیجیں').",
+    "آرکائیو (25, app only): familiar from WhatsApp's Archive. Say once what it does ('فہرست سے ہٹ جائے گا، ریکارڈ محفوظ رہے گا'). Its restore label changes (see entries).",
+    "بحال (5): understood ('بجلی بحال ہو گئی'), so fine when a power or gas connection is restored.",
+    "رقبہ، مرلہ، کنال، مربع فٹ، گز، کورڈ ایریا: the standard property words.",
+    "یونٹ (rented unit, about 56 in the app): builders and estate agents say it for flats and portions. On electricity screens write 'بجلی کے یونٹ' so the two meanings do not blur.",
+    "ہندسے، حروف (54): school Urdu for digits and letters; fine in the password and CNIC hints.",
+    "تفصیلات، تفصیل (68): the owner listed 'تفصیلات وغیرہ' for judgement. تفصیلات is everyday on forms and in the news, so it stays; use تفصیل in short labels and in 'تفصیل بدلیں'.",
+    "آئندہ: everyday ('آئندہ ہفتے'، 'آئندہ خیال رکھنا'). Only the roadmap title 'آئندہ منصوبہ' and the noun منصوبہ change.",
+    "مہلت: everyday in prose ('ایک ہفتے کی مہلت'، 'قانونی مہلت'). Labels use 'آخری تاریخ' only next to a date, and a period is '15 دن کے اندر' or '48 گھنٹے کے اندر'. Never used for grace days.",
+    "مدت (20): understood for a lease term and a notice period ('نوٹس کی مدت'). Only 'مدت ختم' for links and invitations becomes ایکسپائر.",
+    "رضامندی (13): understood (consent, as in marriage). Keep it for the tenant's consent record, and 'لکھ کر رضامندی' for written consent; 'both agreed' is 'دونوں کی مرضی سے'.",
+    "تاخیر (36 outside the replaced phrases): understood in prose ('ادائیگی میں تاخیر'). Only the overdue badges become لیٹ.",
+    "کے ذریعے (20): common. The bookish بذریعہ is not used anywhere.",
+    "شرائط (13): understood ('شرائط لاگو ہیں' in adverts). Only 'شرائطِ استعمال' changes, to 'استعمال کی شرائط'.",
+    "اضافہ (60): everyday ('کرائے میں اضافہ').",
+    "تجویز (12) and 'قرار دیا': common in news reports.",
+    "گول کرنا (28): what people say for rounding money.",
+    "لوڈ ہو رہا ہے / لوڈ نہیں ہو سکا (87): common phone vocabulary; keep this pattern for loading messages and error titles.",
+    "منگوائیں (6): everyday ('نیا لنک منگوائیں').",
+    "اسکور (8)، اوسط، اوسطاً (3): known from cricket; fine for the payment score.",
+    "قابلِ بھروسا (1): everyday; the one 'قابلِ' adjective that reads naturally.",
+    "نظر انداز کریں (8, e-mails): everyday ('اس ای میل کو نظر انداز کر دیں').",
+    "ذرائع، رہنمائی: known from the news ('ذرائع کے مطابق') and fine as headings ('سرکاری ذرائع', the guides menu item).",
+    "قسط، نمازِ جمعہ، السلام علیکم، شکریہ، والسلام: everyday, and fine in tenant messages; the sign-off is appended by the app, so it is not repeated in the body.",
+    "بالغ (3): understood. Add '(18 سال یا زیادہ)' only where a form needs the age, and not on KP's form, which asks for male members over 14.",
+    "مشترکہ (2): understood (as in مشترکہ خاندان).",
+    "بجلی، گیس، پانی، انٹرنیٹ، میٹر، ریڈنگ، کنکشن، ٹیرف، ریفرنس نمبر، کسٹمر آئی ڈی، سب میٹر: as printed on bills. کنکشن is kept for these only, not for the internet.",
+    "رجسٹریشن، رجسٹرڈ، پولیس رجسٹریشن، ای اسٹامپ، اسٹامپ پیپر، پراپرٹی ڈیلر، پراپرٹی ٹیکس، ڈیش بورڈ، پی ڈی ایف، واٹس ایپ، ایزی پیسہ، جاز کیش، راست، ٹیم، منیجر، اکاؤنٹنٹ: English words and brand names people already say.",
+    "صارف: only for electricity, because bills print it. Elsewhere see the entry.",
+    "رنگ و روغن (1): on shop signs; the one Persian و that reads naturally.",
+    "قدم بہ قدم: an everyday idiom. Only ماہ بہ ماہ، سال بہ سال and صوبہ بہ صوبہ change."
+  ]
+}

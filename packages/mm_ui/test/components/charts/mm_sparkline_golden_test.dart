@@ -44,7 +44,7 @@ Widget sparklineGolden() => GoldenPage((context, say) {
             const MmSparkline(values: [110, 125, 125, 95, 125, 145]),
           ),
           row(
-            say('Overdue', 'بقایا'),
+            say('Overdue', 'لیٹ'),
             // A no-break space keeps the amount whole when the line wraps.
             say('Down from Rs\u00A045,000', '45,000\u00A0روپے سے کم'),
             const MmSparkline(values: [45, 40, 42, 30, 20, 15]),
