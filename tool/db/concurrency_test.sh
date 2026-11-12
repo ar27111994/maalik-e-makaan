@@ -238,10 +238,69 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' USR1
 
+# Ordering sessions ------------------------------------------------------------------
+# A race needs its sessions in a set order: the first holds its locks, and the
+# second arrives while it does. Sleeps cannot promise that on a loaded machine
+# (a session started 0.3 s earlier may not have connected yet, or may have
+# finished already), so the first session holds its transaction open in
+# fv.hold(gate) instead of pg_sleep, the suite waits until it is there and the
+# second session is waiting for it (await_session), then opens the gate.
+# await_session holding NAME: the session whose application_name is NAME
+#   (PGAPPNAME) has reached fv.hold, so it holds every lock it took before.
+# await_session waiting NAME HOLDER: session NAME waits for a lock (wait
+#   event Lock) that session HOLDER holds (pg_blocking_pids).
+# Either fails the run, with the sessions and their locks, after the
+# scenario's lock wait.
+await_session() {
+  local condition deadline=$((SECONDS + SCENARIO_LOCK_WAIT))
+  case "$1" in
+    holding) condition="a.state = 'active' and a.query like '%fv.hold(%'" ;;
+    waiting)
+      condition="a.wait_event_type = 'Lock' and exists (
+                   select 1 from pg_stat_activity h
+                   where h.datname = a.datname and h.application_name = '$3'
+                     and h.pid = any (pg_blocking_pids(a.pid)))"
+      ;;
+  esac
+  until [[ "$(psql_db -c "select count(*) from pg_stat_activity a
+                          where a.datname = current_database() and a.application_name = '$2'
+                            and ${condition}")" != "0" ]]; do
+    if ((SECONDS >= deadline)); then
+      echo "✗ ${SCENARIO}: session $2 was not $1${3:+ on $3} after ${SCENARIO_LOCK_WAIT} s"
+      report_sessions
+      exit 1
+    fi
+    sleep 0.05
+  done
+}
+# Lets the session holding gate $1 commit.
+open_gate() { psql_db -c "insert into fv.gates (name) values ('$1')" >/dev/null; }
+
 scenario 300 60 "0. A fresh database and the fixture"
 # The migrations run as tool/db/reset.sh runs them for everyone, under the
 # watchdog only.
 PGOPTIONS="${BASE_PGOPTIONS:--c client_min_messages=warning}" "$ROOT/tool/db/reset.sh" >/dev/null
+# The gates, in this test database only. fv.hold waits for its gate as long as
+# the scenario's statement_timeout allows; it holds no lock of its own.
+psql_db >/dev/null <<'SQL'
+create schema fv;
+create table fv.gates (name text primary key);
+create function fv.hold(p_gate text)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+begin
+  while not exists (select 1 from fv.gates g where g.name = p_gate) loop
+    perform pg_sleep(0.02);
+  end loop;
+end
+$$;
+grant usage on schema fv to authenticated, service_role;
+grant execute on function fv.hold(text) to authenticated, service_role;
+SQL
 
 # Fixture: one owner, one lease with 24 months of unpaid rent (so payments
 # always have dues to settle).
@@ -425,17 +484,20 @@ PY
 
 # 5. A busy lease is skipped, not waited for --------------------------------------------
 scenario 60 30 "5. The daily job skips a lease that a user transaction holds"
-psql_db >/dev/null 2>"$WORK/holder.err" <<SQL &
+PGAPPNAME=mm_holder psql_db >/dev/null 2>"$WORK/holder.err" <<SQL &
 begin;
 select 1 from public.leases where id = '${LEASE}' for update;
-select pg_sleep(4);
+select fv.hold('busy_lease');
 commit;
 SQL
 HOLDER=$!
-sleep 1
+await_session holding mm_holder
 START="$(date +%s%N)"
 BUSY="$(run_job 2026-11-20 1000 "->> 'leases_busy'" | psql_db)"
 ELAPSED_MS=$((($(date +%s%N) - START) / 1000000))
+# The lease stays held until the job has returned, so a job that waited for
+# it would have run into its lock_timeout and counted it failed, not busy.
+open_gate busy_lease
 wait "$HOLDER"
 [[ ! -s "$WORK/holder.err" ]] || {
   echo "✗ the lock holder failed:"
@@ -444,10 +506,6 @@ wait "$HOLDER"
 }
 [[ "$BUSY" == "1" ]] || {
   echo "✗ expected 1 busy lease, got '${BUSY}'"
-  exit 1
-}
-((ELAPSED_MS < 2500)) || {
-  echo "✗ the job waited ${ELAPSED_MS} ms for a busy lease"
   exit 1
 }
 echo "  skipped the busy lease in ${ELAPSED_MS} ms"
@@ -954,7 +1012,7 @@ only_errors "never-allowed" "$WORK"/handed_*.err
 # Deleting a lease must never take a charge someone entered with it: either the
 # charge commits first and the delete is refused, or the delete commits first
 # and the charge's foreign key fails. Odd rounds delete first, even rounds
-# charge first; each holds its transaction open so the other has to wait.
+# charge first; the first holds its transaction open until the other waits for it.
 scenario 120 30 "18. A tenancy deleted while a charge is added to it (both orders, 6 rounds)"
 reset_limits
 CLERK="$(new_user "clerk@example.com")"
@@ -964,14 +1022,16 @@ for round in 1 2 3 4 5 6; do
   ADD_CHARGE="insert into public.charges (portfolio_id, lease_id, kind, due_date, amount, description) values ('${ESTATE}', '${MISTAKE}', 'damages', '2026-11-03', 700, 'Round ${round}');"
   DELETE_LEASE="delete from public.leases where id = '${MISTAKE}';"
   if ((round % 2)); then
-    as_user "$CLERK" "${DELETE_LEASE} select pg_sleep(0.5);" | psql_db >/dev/null 2>"$WORK/mistake_del_${round}.err" &
-    sleep 0.2
-    as_user "$CLERK" "${ADD_CHARGE}" | psql_db >/dev/null 2>"$WORK/mistake_chg_${round}.err" &
+    FIRST="$DELETE_LEASE" FIRST_ERR=mistake_del SECOND="$ADD_CHARGE" SECOND_ERR=mistake_chg
   else
-    as_user "$CLERK" "${ADD_CHARGE} select pg_sleep(0.5);" | psql_db >/dev/null 2>"$WORK/mistake_chg_${round}.err" &
-    sleep 0.2
-    as_user "$CLERK" "${DELETE_LEASE}" | psql_db >/dev/null 2>"$WORK/mistake_del_${round}.err" &
+    FIRST="$ADD_CHARGE" FIRST_ERR=mistake_chg SECOND="$DELETE_LEASE" SECOND_ERR=mistake_del
   fi
+  as_user "$CLERK" "${FIRST} select fv.hold('mistake_${round}');" \
+    | PGAPPNAME=mm_first psql_db >/dev/null 2>"$WORK/${FIRST_ERR}_${round}.err" &
+  await_session holding mm_first
+  as_user "$CLERK" "$SECOND" | PGAPPNAME=mm_second psql_db >/dev/null 2>"$WORK/${SECOND_ERR}_${round}.err" &
+  await_session waiting mm_second mm_first
+  open_gate "mistake_${round}"
   wait
   LEASE_LEFT="$(psql_db -c "select count(*) from public.leases where id = '${MISTAKE}'")"
   ENTERED_LEFT="$(psql_db -c "select count(*) from public.charges where lease_id = '${MISTAKE}' and source = 'manual'")"
@@ -1570,25 +1630,29 @@ for order in insert_first sweep_first; do
     # The sweep finds the gate busy: it records no sweep for the day, so the
     # next run of the daily job sweeps again (private.run_daily_jobs).
     psql_db -c "delete from private.job_runs where job_name = 'orphaned_file_sweep'" >/dev/null
-    as_user "$S2_OWNER" "${ATTACH} select pg_sleep(1.5);" | psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
-    sleep 0.3
+    as_user "$S2_OWNER" "${ATTACH} select fv.hold('s2_${order}');" \
+      | PGAPPNAME=mm_attach psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
+    await_session holding mm_attach
     psql_db -c "select private.enqueue_orphaned_storage(now())" >/dev/null 2>"$WORK/s2_${order}_sweep.err"
     [[ "$(psql_db -c "select count(*) from private.job_runs where job_name = 'orphaned_file_sweep'")" == "0" ]] \
       || fail_case "${order}: a sweep that found the gate busy was recorded as done"
     clean_file "$S2_FILE" 2>"$WORK/s2_${order}_clean.err"
+    open_gate "s2_${order}"
     wait
     psql_db -c "select private.sweep_orphaned_files(now())" >/dev/null 2>>"$WORK/s2_${order}_sweep.err"
     [[ "$(psql_db -c "select count(*) from private.job_runs where job_name = 'orphaned_file_sweep'")" == "1" ]] \
       || fail_case "${order}: the sweep after the insert was not recorded"
   else
-    psql_db >/dev/null 2>"$WORK/s2_${order}_sweep.err" <<SQL &
+    PGAPPNAME=mm_sweep psql_db >/dev/null 2>"$WORK/s2_${order}_sweep.err" <<SQL &
 begin;
 select private.enqueue_orphaned_storage(now());
-select pg_sleep(0.8);
+select fv.hold('s2_${order}');
 commit;
 SQL
-    sleep 0.3
-    as_user "$S2_OWNER" "$ATTACH" | psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
+    await_session holding mm_sweep
+    as_user "$S2_OWNER" "$ATTACH" | PGAPPNAME=mm_attach psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
+    await_session waiting mm_attach mm_sweep
+    open_gate "s2_${order}"
     wait
   fi
   # A document row must never reference a file waiting for deletion ...
@@ -1930,16 +1994,20 @@ iv_owner2="$(new_user "iv-owner2@example.com")"
 IV_ESTATE="$(new_portfolio "$iv_owner1" "Invites")"
 add_member "$IV_ESTATE" "$iv_owner2" owner
 # $1 tag, $2 e-mail: the two owners re-invite $2, the first holding its
-# transaction open for a moment after its create (the window of F1).
+# transaction open after its create until the second waits for it (the
+# window of F1).
 iv_reinvite() {
   local first="$iv_owner1" second="$iv_owner2" before pending
   [[ "$1" == *b ]] && first="$iv_owner2" second="$iv_owner1"
   before="$(deadlocks)"
-  as_user "$first" "select public.create_invitation('${IV_ESTATE}', '$2', 'manager') ->> 'role'; select pg_sleep(0.8);" \
-    | psql_db >"$WORK/iv_$1_first.out" 2>"$WORK/iv_$1_first.err" &
-  sleep 0.3
+  as_user "$first" "select public.create_invitation('${IV_ESTATE}', '$2', 'manager') ->> 'role';
+                     select fv.hold('iv_$1');" \
+    | PGAPPNAME=mm_first psql_db >"$WORK/iv_$1_first.out" 2>"$WORK/iv_$1_first.err" &
+  await_session holding mm_first
   as_user "$second" "select public.create_invitation('${IV_ESTATE}', '$2', 'viewer') ->> 'role';" \
-    | psql_db >"$WORK/iv_$1_second.out" 2>"$WORK/iv_$1_second.err" &
+    | PGAPPNAME=mm_second psql_db >"$WORK/iv_$1_second.out" 2>"$WORK/iv_$1_second.err" &
+  await_session waiting mm_second mm_first
+  open_gate "iv_$1"
   wait
   check_deadlocks "re-invite $1" "$before"
   check_errors "re-invite $1" "never-allowed" "$WORK/iv_$1_first.err" "$WORK/iv_$1_second.err"
@@ -1971,9 +2039,9 @@ check_errors "re-invite burst" "never-allowed" "$WORK"/iv_burst_*.err
                   from public.portfolio_invitations
                   where portfolio_id = '${IV_ESTATE}' and email = 'iv-burst@example.com'")" == "1/8" ]] \
   || fail_case "re-invite burst: expected 8 invitations with exactly one pending"
-# $1 tag, $2 order: "direct" (GoTrue's DELETE alone, held open 0.8 s; the
-# acceptance arrives during it), "account_arriving" (admin_delete_account_data
-# held open, then the DELETE; the acceptance arrives during it),
+# $1 tag, $2 order: "direct" (GoTrue's DELETE alone, held open until the
+# acceptance waits for it), "account_arriving" (admin_delete_account_data
+# held open likewise, then the DELETE),
 # "account_holding" (the acceptance holds its locks, as accept_invitation
 # takes them, when admin_delete_account_data and the DELETE start).
 iv_inviter_deleted() {
@@ -1992,23 +2060,28 @@ iv_inviter_deleted() {
   before="$(deadlocks)"
   case "$2" in
     direct)
-      psql_db -c "begin" -c "delete from auth.users where id = '${inviter}'" -c "select pg_sleep(0.8)" -c "commit" \
-        >/dev/null 2>"$WORK/iv_$1_delete.err" &
-      sleep 0.3
+      PGAPPNAME=mm_deleter psql_db -c "begin" -c "delete from auth.users where id = '${inviter}'" \
+        -c "select fv.hold('iv_$1')" -c "commit" >/dev/null 2>"$WORK/iv_$1_delete.err" &
+      await_session holding mm_deleter
       as_user "$guest" "select public.accept_invitation('${token}') ->> 'status';" \
-        | psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+        | PGAPPNAME=mm_accept psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+      await_session waiting mm_accept mm_deleter
+      open_gate "iv_$1"
       ;;
     account_arriving)
       {
-        as_service "select public.admin_delete_account_data('${inviter}') is not null; select pg_sleep(0.8);" | psql_db
+        as_service "select public.admin_delete_account_data('${inviter}') is not null;
+                    select fv.hold('iv_$1');" | PGAPPNAME=mm_deleter psql_db
         psql_db -c "delete from auth.users where id = '${inviter}'"
       } >/dev/null 2>"$WORK/iv_$1_delete.err" &
-      sleep 0.3
+      await_session holding mm_deleter
       as_user "$guest" "select public.accept_invitation('${token}') ->> 'status';" \
-        | psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+        | PGAPPNAME=mm_accept psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+      await_session waiting mm_accept mm_deleter
+      open_gate "iv_$1"
       ;;
     account_holding)
-      psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" <<SQL &
+      PGAPPNAME=mm_accept psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" <<SQL &
 set app.today_override = '2026-11-03';
 begin;
 select from public.profiles where id = '${guest}' for key share;
@@ -2016,15 +2089,18 @@ select from public.portfolios where id = '${estate}' for key share;
 select from public.portfolio_invitations where id = '${id}' for update;
 set local "request.jwt.claims" to '{"sub":"${guest}","role":"authenticated"}';
 set local role authenticated;
-select pg_sleep(0.8);
+select fv.hold('iv_$1');
 select public.accept_invitation('${token}') ->> 'status';
 commit;
 SQL
-      sleep 0.3
+      await_session holding mm_accept
       {
-        as_service "select public.admin_delete_account_data('${inviter}') is not null;" | psql_db
+        as_service "select public.admin_delete_account_data('${inviter}') is not null;" \
+          | PGAPPNAME=mm_deleter psql_db
         psql_db -c "delete from auth.users where id = '${inviter}'"
       } >/dev/null 2>"$WORK/iv_$1_delete.err" &
+      await_session waiting mm_deleter mm_accept
+      open_gate "iv_$1"
       ;;
   esac
   wait
