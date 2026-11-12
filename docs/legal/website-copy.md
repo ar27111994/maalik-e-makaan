@@ -62,8 +62,8 @@ Proposed (the same as the draft notice's front matter):
 
 > How this website and the Maalik-e-Makaan app treat your data: no cookies, visits counted
 > without knowing who you are, nothing sent to analytics or support chat from the app unless you
-> switch it on, and your records seen only by the people you invite and the services that run the
-> app.
+> switch it on, and your records seen only by the people you invite and the services and people
+> that run the app.
 
 Current Urdu, `website/src/content/pages/ur/privacy.md`:3:
 
@@ -71,7 +71,7 @@ Current Urdu, `website/src/content/pages/ur/privacy.md`:3:
 
 Proposed Urdu (the same as the draft Urdu notice's front matter):
 
-> یہ ویب سائٹ اور مالکِ مکان ایپ آپ کے ڈیٹا کے ساتھ کیا کرتی ہیں: سائٹ پر کوئی کوکی نہیں، اور وزٹس کی گنتی آپ کی پہچان کے بغیر۔ ایپ اینالیٹکس یا سپورٹ چیٹ کو کچھ نہیں بھیجتی، جب تک آپ خود انہیں آن نہ کریں۔ ایپ میں آپ کا ریکارڈ صرف وہ لوگ دیکھ سکتے ہیں جنہیں آپ دعوت بھیجیں، اور وہ سروسز جو ایپ چلاتی ہیں۔
+> یہ ویب سائٹ اور مالکِ مکان ایپ آپ کے ڈیٹا کے ساتھ کیا کرتی ہیں: سائٹ پر کوئی کوکی نہیں، اور وزٹس کی گنتی آپ کی پہچان کے بغیر۔ ایپ اینالیٹکس یا سپورٹ چیٹ کو کچھ نہیں بھیجتی، جب تک آپ خود انہیں آن نہ کریں۔ ایپ میں آپ کا ریکارڈ صرف وہ لوگ دیکھ سکتے ہیں جنہیں آپ دعوت بھیجیں، اور وہ سروسز اور لوگ جو ایپ چلاتے ہیں۔
 
 Why: "no … trackers" is untrue once the site counts visits (PJ:141-142). It says "without knowing
 who you are", not "anonymously": whether the counting is anonymous in law is
@@ -149,7 +149,8 @@ Current:
 Proposed:
 
 > **Who can see my tenants' details?** Only the people you invite to your portfolio, and only as far
-> as their role allows, and the services that run the app for us, which the privacy page names.
+> as their role allows, and the services and people that run the app for us, which the privacy page
+> describes.
 > Your tenants' details are never sent to analytics. CNIC numbers are masked on screen by default
 > and identity documents are kept in private storage, opened through short-lived links.
 
@@ -159,13 +160,15 @@ Current Urdu, `website/src/content/faq/ur.yaml`:57-58:
 
 Proposed Urdu:
 
-> **میرے کرایہ داروں کی تفصیلات کون دیکھ سکتا ہے؟** صرف وہ لوگ جنہیں آپ اپنے پورٹ فولیو میں شامل کریں، اور وہ بھی صرف اتنا جتنا ان کا رول اجازت دے۔ ان لوگوں کے علاوہ صرف وہ سروسز یہ تفصیل دیکھ سکتی ہیں جو ہمارے لیے ایپ چلاتی ہیں۔ ان کے نام پرائیویسی کے صفحے پر ہیں۔ ہم آپ کے کرایہ داروں کی تفصیل کبھی اینالیٹکس کو نہیں بھیجتے۔ شناختی کارڈ نمبر اسکرین پر پہلے سے چھپے رہتے ہیں۔ شناختی کاغذات نجی اسٹوریج میں رہتے ہیں، اور ایسے لنک سے کھلتے ہیں جو تھوڑی دیر بعد کام کرنا بند کر دیتا ہے۔
+> **میرے کرایہ داروں کی تفصیلات کون دیکھ سکتا ہے؟** صرف وہ لوگ جنہیں آپ اپنے پورٹ فولیو میں شامل کریں، اور وہ بھی صرف اتنا جتنا ان کا رول اجازت دے۔ ان لوگوں کے علاوہ صرف وہ سروسز اور لوگ یہ تفصیل دیکھ سکتے ہیں جو ہمارے لیے ایپ چلاتے ہیں۔ پرائیویسی کے صفحے پر ان کا ذکر ہے۔ ہم آپ کے کرایہ داروں کی تفصیل کبھی اینالیٹکس کو نہیں بھیجتے۔ شناختی کارڈ نمبر اسکرین پر پہلے سے چھپے رہتے ہیں۔ شناختی کاغذات نجی اسٹوریج میں رہتے ہیں، اور ایسے لنک سے کھلتے ہیں جو تھوڑی دیر بعد کام کرنا بند کر دیتا ہے۔
 
-Why: incomplete today (the hosting and e-mail services hold the data) and after decision 3
-(e-mailed receipts through Customer.io, RM:294-297; support chat holds what a person writes). The
-answer stays short and points to the privacy page. Every role can read the full CNIC through the
-app's server, so "as far as their role allows" is accurate only with the masking caveat
-([T3](questions.md#tenants)).
+Why: incomplete today (the hosting and e-mail services hold the data, and the people who run the
+app can reach the database: the draft notice's "Who can see it", [R5](questions.md#roles)) and
+after decision 3 (e-mailed receipts through Customer.io, RM:294-297; support chat holds what a
+person writes). The answer stays short and points to the privacy page, which describes the
+services and those people but does not name the people yet. Every role can read the full CNIC
+through the app's server, so "as far as their role allows" is accurate only with the masking
+caveat ([T3](questions.md#tenants)).
 
 ## 5. FAQ: a new item on the app's analytics
 

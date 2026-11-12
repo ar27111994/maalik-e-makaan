@@ -131,11 +131,17 @@ placeholder until each is settled.
       [data map](data-map.md#sources-for-the-live-rows), row 2).
 - [ ] **Supabase Edge Functions:** where they run, since they send invitations and delete accounts
       ([X1](questions.md#transfers-and-regions); data map, gap 11).
+- [ ] **Supabase's logs:** whether its API logs keep each request's query string, which carries a
+      tenant search or the duplicate check, and its database logs the detail of a duplicate-CNIC
+      error; or send those searches another way (data map, gap 22;
+      [X1](questions.md#transfers-and-regions)).
 - [ ] **The contact mailbox:** who receives mail for the address on the privacy page, in which
       country, and how long it keeps it (data map, row 20).
 - [ ] **The weekly backup:** keep it as a workflow artefact of the public repository, which any
       signed-in GitHub user can download though only the owner's key opens it, or store it
-      elsewhere (data map, row 18; [X3](questions.md#transfers-and-regions)).
+      elsewhere; and whether it is still made on a GitHub-hosted runner, which holds the data
+      unencrypted while it checks the copy (data map, row 18;
+      [X3](questions.md#transfers-and-regions)).
 - [ ] **Each service's retention:** Supabase's logs, Vercel's logs, Resend, Intercom and
       Customer.io ([D4](questions.md#retention-and-deletion)).
 - [ ] **The processor role:** whether AR LABS accepts it for tenant data, and says so (LR:177;

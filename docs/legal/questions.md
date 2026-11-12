@@ -117,11 +117,14 @@ The groups: [roles](#roles), [transfers and regions](#transfers-and-regions),
   - Why it matters: the 2023 draft kept "critical personal data" in Pakistan and treated CNICs as
     sensitive _(summary)_ (LR:31-35). A move off Mumbai would be large.
   - Also: CNIC images opened through the app may be served through Supabase's content delivery
-    network from outside India (primary), and the encrypted weekly backup, which holds every CNIC
-    and document, is a workflow artefact of a public repository that any signed-in GitHub user can
-    download for 90 days; only the owner's key opens it
-    ([data map](data-map.md#live-now), row 18). Is a public, encrypted copy outside Pakistan
-    acceptable, under PECA s.16 today and the Bill later?
+    network from outside India (primary). The weekly backup copies the whole database, every CNIC
+    included, and every document, unencrypted, to a GitHub-hosted runner, which restores the
+    database into a local copy to check it and then encrypts everything
+    ([`backup.yml`](../../.github/workflows/backup.yml):43, :108-114, :157-169, :173-256). The
+    encrypted file is a workflow artefact of a public repository that any signed-in GitHub user
+    can download for 90 days; only the owner's key opens it
+    ([data map](data-map.md#live-now), row 18). Are the unencrypted copy on GitHub's runner and a
+    public, encrypted copy outside Pakistan acceptable, under PECA s.16 today and the Bill later?
   - The drafts assume: Mumbai stays; no statute in force forbids it (RT §1). The backup stays where
     it is until the owner decides otherwise ([README](README.md#before-the-pack-goes-out)).
   - Sources: LR:87-88, :155-156, :181 ("Should a Pakistani hosting option be planned now?").
@@ -409,9 +412,17 @@ The groups: [roles](#roles), [transfers and regions](#transfers-and-regions),
   - The drafts assume: the notice keeps saying what is kept, and adds what the message can hold.
 
 - **T5. What must the tenant notice and consent form say?**
-  - Why it matters: tenants' data leaves India only in the encrypted backups on GitHub, and, under
-    decision 3, in receipts a landlord e-mails (E2) or details someone writes in a support chat
-    (A8).
+  - Why it matters: tenants' details, CNICs and their images included, already leave India in
+    several ways (X1, X3): files opened in the app may be served through Supabase's content
+    delivery network, from servers that can keep copies; Supabase's support staff, who work from
+    several countries, can reach them; Supabase's logs, kept in the EU, can hold what a search or
+    the duplicate check sends
+    ([data map](data-map.md#gaps-between-the-code-the-live-notice-and-the-plans), gap 22); and the
+    weekly backup is made unencrypted on a GitHub-hosted runner, then encrypted there and kept on
+    GitHub ([data map](data-map.md#live-now), row 18). They also reach each member's device,
+    wherever that member is, an owner abroad included (T7), and whatever the landlord sends through
+    WhatsApp or the share sheet. Under decision 3, they would also reach Customer.io in receipts a
+    landlord e-mails (E2) and Intercom in what someone writes in a support chat (A8).
   - Requested: the form itself is a fixed deliverable (LR:82), for work item 5.
   - Also: the app's checkbox records that the tenant was told what is kept and why ("I told the
     tenant what details are kept and why"), with a note of "What they agreed to"
@@ -424,9 +435,13 @@ The groups: [roles](#roles), [transfers and regions](#transfers-and-regions),
     the tenant page).
 
 - **T7. Full tenant records, CNICs included, are cached on the landlord's device without
-  encryption until sign-out (in the browser's local storage on the web). Must the notice say so,
-  and is it an adequate safeguard?**
-  - Sources: [`swr_cache.dart`](../../app/lib/src/data/cache/swr_cache.dart);
+  encryption until sign-out (in the browser's local storage on the web), and a phone's own backup
+  can copy them. On a phone, camera photos (CNIC photos among them), files picked to upload and
+  documents shared also stay in the app's cache or temporary folder after sign-out and account
+  deletion, until the phone clears them. Must the notice say so, should sign-out and deletion
+  remove them, and is this an adequate safeguard?**
+  - Sources: [data map](data-map.md#live-now), rows 14a to 14e and their sources;
+    [`swr_cache.dart`](../../app/lib/src/data/cache/swr_cache.dart);
     [`tenant.dart`](../../app/lib/src/features/tenants/data/tenant.dart):124.
 
 ## Retention and deletion
