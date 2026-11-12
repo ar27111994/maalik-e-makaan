@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.1.1...v1.2.0) (2026-11-12)
+
+
+### Features
+
+* **ui:** set the e-mails' Urdu in Noto Sans Arabic, with Nastaliq only for the wordmark ([#65](https://github.com/ar27111994/maalik-e-makaan/issues/65)) ([ae0112c](https://github.com/ar27111994/maalik-e-makaan/commit/ae0112cca8b8b3ed647975e9cebbbc31a1f4e01f))
+
+
+### Documentation
+
+* **repo:** generate the facts the docs repeat from their sources, with make docs-check in CI ([#63](https://github.com/ar27111994/maalik-e-makaan/issues/63)) ([87462e1](https://github.com/ar27111994/maalik-e-makaan/commit/87462e18a5412e2bbb2affb925a668f817cb511d))
+
 ## [1.1.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.1.0...v1.1.1) (2026-11-12)
 
 
