@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { LOCALE_INFO } from "../../src/i18n/locales.ts";
+import { URDU_UNIT_SPLIT } from "../../src/i18n/units.ts";
 import {
   escapeRegExp,
   fontManifest,
@@ -360,6 +361,24 @@ for (const site of pages) {
           return found;
         });
         expect(latinCommas).toEqual([]);
+      });
+
+      test("a figure and its unit stay on one line", async ({ page }) => {
+        await page.goto(site.path);
+        // "30 یونٹس", "10 فیصد", "48 گھنٹے", "5 نومبر": a plain space lets a line end on the
+        // figure and start the next with its unit, so the two are joined by U+00A0.
+        const parted = await page.evaluate((source) => {
+          const pattern = new RegExp(source, "u");
+          const found: string[] = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+            if (node.parentElement?.closest("noscript") !== null) continue;
+            const match = pattern.exec(node.textContent ?? "");
+            if (match !== null) found.push(match[0]);
+          }
+          return found;
+        }, URDU_UNIT_SPLIT.source);
+        expect(parted).toEqual([]);
       });
     }
 

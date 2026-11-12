@@ -4,6 +4,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
+import { URDU_UNIT_SPLIT } from "../../src/i18n/units.ts";
 import { guideSchema, textPageSchema, toolSchema } from "../../src/lib/content/schemas.ts";
 
 const collections = [
@@ -172,5 +173,9 @@ describe("amounts never break from their currency or unit", () => {
     const text = readFileSync(new URL(`../../src/content/${path}`, import.meta.url), "utf8");
     const line = text.split("\n").find((candidate) => SPLIT.test(candidate));
     expect(line).toBeUndefined();
+    // In Urdu, a figure and the unit or month after it too ("30 یونٹس", "10 فیصد", "5 نومبر").
+    if (path.includes("/ur/") || path.endsWith("/ur.yaml")) {
+      expect(text.split("\n").find((candidate) => URDU_UNIT_SPLIT.test(candidate))).toBeUndefined();
+    }
   });
 });

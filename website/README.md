@@ -202,7 +202,11 @@ and `FC_NUM_RUNS=100000 npm test` searches longer.
 
 As in the app's `MoneyFormat`, "Rs", "روپے", "lakh" and "کروڑ" are joined to the figures by a
 no-break space (U+00A0), so an amount never breaks across lines. The copy in `src/content/` does the
-same, and `tests/unit/content-markdown.test.ts` fails on an ordinary space there.
+same, and `tests/unit/content-markdown.test.ts` fails on an ordinary space there. In Urdu a figure
+is joined the same way to the unit or month after it ("30 یونٹس", "10 فیصد", "48 گھنٹے", "5 نومبر";
+the words are in `src/i18n/units.ts`): the content test checks the copy, and the e2e suite every
+Urdu page as built, with its dates (`formatDate` joins a day to its month in both languages) and
+the calculators' worked examples.
 
 ## Content and translations
 

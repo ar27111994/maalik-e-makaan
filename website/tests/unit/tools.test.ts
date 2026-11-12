@@ -279,11 +279,11 @@ describe("the first-month rent calculator", () => {
       "en",
     );
     expect(view.summary).toBe(
-      "Rent from 20 December to 31 December 2026: Rs\u00A019,355, for 12 of 31 days.",
+      "Rent from 20\u00A0December to 31\u00A0December 2026: Rs\u00A019,355, for 12 of 31 days.",
     );
     expect(view.steps.map(text)).toEqual([
       "December 2026 has 31 days.",
-      "From 20 December to 31 December 2026, counting both days, is 31 − 20 + 1 = 12 days.",
+      "From 20\u00A0December to 31\u00A0December 2026, counting both days, is 31 − 20 + 1 = 12 days.",
       "The rent for those days is 50,000 × 12 ÷ 31 ≈ 19,354.84.",
       "Rounded to the nearest rupee (a half rounds up): 19,355.",
     ]);

@@ -133,7 +133,7 @@ test("the first-month calculator works out February in a leap year", async ({ pa
   await page.locator("#proration-form button[type='submit']").click();
   const summary = await statusAfter(page, "proration", before);
   expect(summary).toBe(
-    "Rent from 15 February to 29 February 2028: Rs\u00A015,517, for 15 of 29 days.",
+    "Rent from 15\u00A0February to 29\u00A0February 2028: Rs\u00A015,517, for 15 of 29 days.",
   );
   await expect(page.locator("#proration-result-body .result__steps li").nth(2)).toHaveText(
     "The rent for those days is 30,000 × 15 ÷ 29 ≈ 15,517.24.",

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { formatDayMonth, formatMonth } from "../../src/i18n/dates.ts";
 import { formatDate, UI } from "../../src/i18n/ui.ts";
 
 /** Every string in a nested object, with its dotted key. */
@@ -39,10 +40,14 @@ describe("UI strings", () => {
 });
 
 describe("formatDate", () => {
-  test("writes dates out in each language, in UTC", () => {
-    expect(formatDate("2026-11-05", "en")).toBe("5 November 2026");
-    expect(formatDate("2026-11-05", "ur")).toBe("5 نومبر، 2026");
-    expect(formatDate("2027-06-30", "en")).toBe("30 June 2027");
+  test("writes dates out in each language, in UTC, the day joined to its month", () => {
+    expect(formatDate("2026-11-05", "en")).toBe("5\u00A0November 2026");
+    expect(formatDate("2026-11-05", "ur")).toBe("5\u00A0نومبر، 2026");
+    expect(formatDate("2027-06-30", "en")).toBe("30\u00A0June 2027");
+    expect(formatDayMonth("2026-11-15", "ur")).toBe("15\u00A0نومبر");
+    expect(formatDayMonth("2026-11-15", "en")).toBe("15\u00A0November");
+    // A month and its year may part, as they do in print.
+    expect(formatMonth("2026-11-15", "ur")).toBe("نومبر 2026");
   });
 
   test("rejects a value that is not a date", () => {
