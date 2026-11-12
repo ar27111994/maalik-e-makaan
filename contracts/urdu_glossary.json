@@ -180,7 +180,7 @@
       "avoid": "برائے",
       "prefer": "کے لیے؛ کا؛ 'کس مہینے کا'؛ 'کس لیے'",
       "english": "for",
-      "note": "Found: app 3, website 3. chargeMonthLabel → 'کس مہینے کا'; billMonthLabel → 'کس مہینے کا بل'; receiptForLabel ('what the payment is for') → 'کس لیے', which works on a receipt for rent, a bill or a deposit; 'سرکلر نمبر 2 برائے مالی سال 2026 تا 2027' → 'مالی سال 2026-27 کا سرکلر نمبر 2'.",
+      "note": "Found: app 3, website 3. chargeMonthLabel → 'کس مہینے کا'; billMonthLabel → 'کس مہینے کا بل'; receiptForLabel ('what the payment is for') → 'کس لیے', which works on a receipt for rent, a bill or a deposit; 'سرکلر نمبر 2 برائے مالی سال 2026 تا 2027' → 'مالی سال 2026-27 کا سرکلر نمبر 2', the official one-year citation, with 2026-27 in a left-to-right run (website/AGENTS.md), not 'مالی سال 2026 سے 2027 تک', which reads as a range of years.",
       "match": ["برائے"]
     },
     {
@@ -936,7 +936,7 @@
       "avoid": "آئندہ منصوبہ؛ منصوبہ، منصوبے",
       "prefer": "the roadmap page: 'روڈ میپ (آگے کیا آ رہا ہے)'؛ اگلے؛ پروجیکٹ",
       "english": "roadmap; plan; project",
-      "note": "Found: website 27, counting every آئندہ; judge each. آئندہ on its own is everyday ('آئندہ ہفتے') and stays. Not 'آگے کا پلان': on the pricing page پلان is a paid plan ('ادا شدہ پلان'), so a reader could take the roadmap for upcoming prices. Features 'آئندہ ورژنز' → 'اگلے ورژن'; company 'فری لانس منصوبے' → 'فری لانس پروجیکٹ'.",
+      "note": "Found: website 27, counting every آئندہ; judge each. آئندہ on its own is everyday ('آئندہ ہفتے') and stays. Not 'آگے کا پلان': on the pricing page پلان is a paid plan ('پیسوں والا پلان'; not 'ادا شدہ پلان', which reads as a plan already paid for), so a reader could take the roadmap for upcoming prices. Features 'آئندہ ورژنز' → 'اگلے ورژن'; company 'فری لانس منصوبے' → 'فری لانس پروجیکٹ'.",
       "match": ["منصوبہ", "منصوبے", "منصوبوں"]
     },
     {

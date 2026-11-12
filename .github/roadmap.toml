@@ -157,7 +157,7 @@ Waits on: the owner's choice of mark, and a Mac for the iOS icon.
 [[milestones.issues]]
 id = "billing"
 title = "Paid plans, with early-access users told first"
-title_ur = "ادا شدہ پلان، ابھی مفت استعمال کرنے والوں کو پہلے بتا کر"
+title_ur = "پیسوں والے پلان، ابھی مفت استعمال کرنے والوں کو پہلے بتا کر"
 body = """
 Turn on the plans on the pricing page and keep the promises made to early-access landlords: at least 60 days' notice, no plan they did not choose, and half price for their first year. Plans attach to portfolios, not to store accounts, and Postgres enforces the limits; over a limit there are 14 days of grace, then the extra units become read-only, and nothing is deleted. Payment is through Google Play and StoreKit 2, verified on the server, and a rupee checkout on the website through one licensed payment provider.
 

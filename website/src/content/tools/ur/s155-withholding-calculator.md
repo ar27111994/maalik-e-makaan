@@ -19,15 +19,15 @@ sources:
     publisher: "فیڈرل بورڈ آف ریونیو"
     url: "https://download1.fbr.gov.pk/Docs/20258181281745641WHT-RateCard.pdf"
     accessed: 2026-11-05
-  - title: "کتابچہ: ذریعے پر ٹیکس کی وصولی اور کٹوتی"
+  - title: "کتابچہ: ادائیگی کے وقت ہی ٹیکس کی وصولی اور کٹوتی"
     publisher: "فیڈرل بورڈ آف ریونیو"
     url: "https://download1.fbr.gov.pk/Docs/20186291463931170Brochure_Collectionanddeductionoftaxatsource.pdf"
     accessed: 2026-11-05
-  - title: "مالی سال 2026 سے 2027 تک کا سرکلر نمبر 2 (فنانس ایکٹ 2026)"
+  - title: "مالی سال 2026-27 کا سرکلر نمبر 2 (فنانس ایکٹ 2026)"
     publisher: "فیڈرل بورڈ آف ریونیو"
     url: "https://download1.fbr.gov.pk/Docs/202698139527880CircularNo.2of2026-27.pdf"
     accessed: 2026-11-05
-  - title: "فعال ٹیکس دہندگان کی فہرست: تلاش"
+  - title: "فعال ٹیکس دہندگان کی فہرست (اے ٹی ایل): تلاش"
     publisher: "فیڈرل بورڈ آف ریونیو"
     url: "https://e.fbr.gov.pk/ATLSearchUtilityIT.aspx"
     accessed: 2026-11-05
