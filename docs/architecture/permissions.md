@@ -263,7 +263,13 @@ order) and can end in a deadlock, which PostgreSQL detects and aborts one side
 of, never in a caretaker who is not a manager: deleting a caretaker directly in
 Auth (as the existing `ON DELETE SET NULL` of `portfolios.created_by` does; run
 `admin_delete_account_data` first) and service-role SQL that changes a role
-directly (use `update_member_role`).
+directly (use `update_member_role`). `admin_delete_account_data` clears the
+person's residence row last and without a filter on its values, so a person's
+`UPDATE` in flight is waited for and cleared, and one that arrives later waits
+and is refused. Scenario 31 of `tool/db/concurrency_test.sh` races each of
+these paths, in both orders where both exist, and fails without the trigger's
+`FOR SHARE` read, either second role check, the answer's lock or the
+unfiltered clear.
 
 A document and its file are serialised on the file's `storage.objects` row: a
 document insert locks it, and every delete of the file must lock it too and

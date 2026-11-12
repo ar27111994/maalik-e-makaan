@@ -333,16 +333,17 @@ worker, run one after the other):
 | 14 joining or creating while the account is deleted                                                       | `freeze`, `freeze_orphan`; `mut_no_freeze*`                                                                      |
 | 16 a deleted portfolio's id claimed during the deletion                                                   | `id_reuse`, `acct_reuse`; `mut_no_id_registry*`                                                                  |
 | 17 auth user deleted while a co-owner deletes the portfolio                                               | `gotrue_setnull`; `assume_gotrue_leases_first*`                                                                  |
-| 18 (invariants step, now 29) no portfolio without an owner or members                                     | `AtLeastOneOwner`, `NoMemberless` in every configuration                                                         |
+| The invariants step: no portfolio without an owner or members                                             | `AtLeastOneOwner`, `NoMemberless` in every configuration                                                         |
 | 19 M1: deposits changed while the portfolio or the owner's account is deleted                             | `deposit`, `deposit_acct`; `mut_no_client_key*`                                                                  |
 | 22 (inserts) and 26 (inserts): rows of two portfolios; a restored database                                | `insert_rows`, `insert`; `mut_no_insert_key*`                                                                    |
 | 23 notifications marked read while GoTrue deletes the user                                                | `notes`; `mut_no_note_account_key`                                                                               |
 | 20, 21, 22 (updates), 23 (by `admin_delete_account_data`), 26 (updates, deletes), 27: other client writes | not modelled here (one lease per portfolio, no FK parents); 27 is the helper's re-authorisation, `DepoAuth` here |
+| 31 the caretaker and the owner-abroad answer against membership changes                                   | not modelled yet: the extension for the caretaker and the answer is still to do (`.planning/STATE.md`)           |
 
 Scenarios 12, 13, 24 and 25 (documents) are in `../StorageCleanup`.
-Scenarios 1 to 6, 15 and 18 are ledger races, outside this track. Before
-scenario 19, no scenario exercised the deposit trigger against a deletion,
-which is why M1 was not seen.
+Scenarios 1 to 6, 15, 18 and 29 are ledger races, outside this track, and 30
+is in `../Invitations`. Before scenario 19, no scenario exercised the deposit
+trigger against a deletion, which is why M1 was not seen.
 
 ## Not covered
 

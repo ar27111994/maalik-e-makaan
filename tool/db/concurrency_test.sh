@@ -91,10 +91,22 @@
 #      delete-account order (admin_delete_account_data, then the Auth
 #      delete) while an acceptance holds its locks or arrives → no deadlock,
 #      the acceptance lands or answers revoked, nothing stays pending.
-#  31. Invariants: paid_amount = Σ allocations, allocated_amount =
+#  31. Residence (20261112092618_residence.sql), each race in both orders
+#      where both exist, the second session always waiting for the first:
+#      set_caretaker against a service-role demotion or removal of that
+#      manager, update_member_role and remove_member, and the naming owner
+#      removed → the caretaker is a manager or nobody, a removed owner names
+#      no one; set_owner_abroad asked on the next open by two members → the
+#      first answer is kept and audited once, and a demoted manager's answer
+#      is refused; a declared residence written while the account is
+#      deleted → cleared, and every later write refused (account_deleted).
+#  32. Invariants: paid_amount = Σ allocations, allocated_amount =
 #      Σ allocations, nothing overpaid, cash conserved; no portfolio is left
 #      without an owner or without members; no document outlives its entity,
-#      references a missing file, or references a file queued for deletion.
+#      references a missing file, or references a file queued for deletion;
+#      every caretaker is a manager of their portfolio (CaretakerIsManager)
+#      and named with its time; every profile has one residence row, and no
+#      account being deleted keeps a declared residence.
 #
 # Nothing here waits without a limit. PostgreSQL ends every cycle of lock
 # waits it can see, but not a wait on anything else (a session idle in its
@@ -2151,8 +2163,182 @@ for round in 1 2; do
 done
 end_scenario "invitations"
 
-# 31. Invariants --------------------------------------------------------------------------
-scenario 60 30 "31. Invariants"
+# 31. Residence: the caretaker, the owner-abroad answer, a declared residence --------------
+# Each race runs a first session that takes its locks and holds its
+# transaction open in fv.hold, and a second that must wait for one of them:
+# the gate opens only once await_session sees the second waiting on the
+# first, so the order holds on a loaded machine. Without the caretaker
+# trigger's FOR SHARE read of the membership, a service-role role change or
+# removal in flight lets a non-manager become the caretaker; with a filter on
+# the values in admin_delete_account_data's residence clear, a person's UPDATE
+# in flight survives the deletion; without the second authorisation after the
+# portfolio lock, a removed owner names a caretaker and a demoted manager
+# answers the question.
+scenario 60 30 "31. Residence: the caretaker, the owner-abroad answer and a declared residence in races"
+FAILURES=()
+reset_limits
+BEFORE="$(deadlocks)"
+# rs_race LABEL WHO FIRST SECOND ERROR: the first session runs the statements
+# FIRST as WHO (a user's id, or service for the service role) and holds its
+# transaction open at gate rs_LABEL; SECOND (a whole session script) arrives
+# and must wait for it. SECOND must end with the error code ERROR, or with
+# none when ERROR is empty, and the first session with none.
+rs_race() {
+  local label="$1" first second_error
+  first="$3
+select fv.hold('rs_${label}');"
+  if [[ "$2" == service ]]; then
+    first="$(as_service "$first")"
+  else
+    first="$(as_user "$2" "$first")"
+  fi
+  PGAPPNAME="rs_${label}_first" psql_db <<<"$first" >"$WORK/rs_${label}_first.out" \
+    2>"$WORK/rs_${label}_first.err" &
+  await_session holding "rs_${label}_first"
+  PGAPPNAME="rs_${label}_second" psql_db <<<"$4" >"$WORK/rs_${label}_second.out" \
+    2>"$WORK/rs_${label}_second.err" &
+  await_session waiting "rs_${label}_second" "rs_${label}_first"
+  open_gate "rs_${label}"
+  wait
+  check_errors "${label} (first)" "never-allowed" "$WORK/rs_${label}_first.err"
+  second_error="$(grep -m1 -oE 'ERROR:  [a-z_]+' "$WORK/rs_${label}_second.err" | cut -c9- || true)"
+  [[ "$second_error" == "$5" ]] \
+    || fail_case "${label}: the second session ended with '${second_error:-no error}', expected '${5:-no error}'"
+}
+
+# A portfolio with owner RS_O, co-owner RS_C and manager RS_M.
+rs_estate() {
+  RS_O="$(new_user "rs-$1-owner@example.com")"
+  RS_C="$(new_user "rs-$1-coowner@example.com")"
+  RS_M="$(new_user "rs-$1-manager@example.com")"
+  RS_P="$(new_portfolio "$RS_O" "Residence race $1")"
+  add_member "$RS_P" "$RS_C" owner
+  add_member "$RS_P" "$RS_M" manager
+}
+# The caretaker (or none), whether it has a time, and the manager's role.
+rs_caretaker() {
+  psql_db -c "select coalesce(p.caretaker_user_id::text, 'none') || ':' || (p.caretaker_since is not null)
+                     || ':' || coalesce((select m.role::text from public.portfolio_members m
+                                         where m.portfolio_id = p.id and m.user_id = '${RS_M}'), 'gone')
+              from public.portfolios p where p.id = '${RS_P}'"
+}
+
+# The caretaker against changes of the manager's membership, and the naming
+# owner's own removal.
+for c in service_demotes naming_then_service_demotes service_removes naming_then_service_removes \
+  owner_demotes naming_then_owner_demotes owner_removes naming_then_owner_removes namer_removed; do
+  rs_estate "$c"
+  NAME_IT="select public.set_caretaker('${RS_P}', '${RS_M}');"
+  DEMOTE="update public.portfolio_members set role = 'viewer'
+          where portfolio_id = '${RS_P}' and user_id = '${RS_M}';"
+  REMOVE="delete from public.portfolio_members where portfolio_id = '${RS_P}' and user_id = '${RS_M}';"
+  WANT="none:false:viewer"
+  case "$c" in
+    service_demotes)
+      rs_race "$c" service "$DEMOTE" "$(as_user "$RS_O" "$NAME_IT")" caretaker_not_manager
+      ;;
+    naming_then_service_demotes)
+      rs_race "$c" "$RS_O" "$NAME_IT" "$(as_service "$DEMOTE")" ""
+      ;;
+    service_removes)
+      rs_race "$c" service "$REMOVE" "$(as_user "$RS_O" "$NAME_IT")" caretaker_not_manager
+      WANT="none:false:gone"
+      ;;
+    naming_then_service_removes)
+      rs_race "$c" "$RS_O" "$NAME_IT" "$(as_service "$REMOVE")" ""
+      WANT="none:false:gone"
+      ;;
+    owner_demotes)
+      rs_race "$c" "$RS_C" "select public.update_member_role('${RS_P}', '${RS_M}', 'viewer');" \
+        "$(as_user "$RS_O" "$NAME_IT")" caretaker_not_manager
+      ;;
+    naming_then_owner_demotes)
+      rs_race "$c" "$RS_O" "$NAME_IT" \
+        "$(as_user "$RS_C" "select public.update_member_role('${RS_P}', '${RS_M}', 'viewer');")" ""
+      ;;
+    owner_removes)
+      rs_race "$c" "$RS_C" "select public.remove_member('${RS_P}', '${RS_M}');" \
+        "$(as_user "$RS_O" "$NAME_IT")" member_not_found
+      WANT="none:false:gone"
+      ;;
+    naming_then_owner_removes)
+      rs_race "$c" "$RS_O" "$NAME_IT" \
+        "$(as_user "$RS_C" "select public.remove_member('${RS_P}', '${RS_M}');")" ""
+      WANT="none:false:gone"
+      ;;
+    namer_removed)
+      rs_race "$c" "$RS_C" "select public.remove_member('${RS_P}', '${RS_O}');" \
+        "$(as_user "$RS_O" "$NAME_IT")" forbidden
+      WANT="none:false:manager"
+      ;;
+  esac
+  GOT="$(rs_caretaker)"
+  [[ "$GOT" == "$WANT" ]] || fail_case "${c}: caretaker:named:manager's role is ${GOT}, expected ${WANT}"
+done
+
+# The owner-abroad answer asked on the next open (p_if_unanswered) by two
+# members at once, and by a manager demoted meanwhile.
+rs_answer() {
+  psql_db -c "select coalesce(p.owner_abroad::text, 'null') || ':' || coalesce((
+                select string_agg(format('%s by %s', a.changes -> 'owner_abroad', a.actor_id), ', ' order by a.id)
+                from public.audit_logs a
+                where a.portfolio_id = p.id and a.table_name = 'portfolios' and a.action = 'update'), 'none')
+              from public.portfolios p where p.id = '${RS_P}'"
+}
+for c in owner_answers_first manager_answers_first answerer_demoted; do
+  rs_estate "$c"
+  case "$c" in
+    owner_answers_first)
+      rs_race "$c" "$RS_O" "select public.set_owner_abroad('${RS_P}', true, p_if_unanswered => true);" \
+        "$(as_user "$RS_M" "select public.set_owner_abroad('${RS_P}', false, p_if_unanswered => true);")" ""
+      RETURNED=t
+      WANT="true:[null, true] by ${RS_O}"
+      ;;
+    manager_answers_first)
+      rs_race "$c" "$RS_M" "select public.set_owner_abroad('${RS_P}', false, p_if_unanswered => true);" \
+        "$(as_user "$RS_O" "select public.set_owner_abroad('${RS_P}', true, p_if_unanswered => true);")" ""
+      RETURNED=f
+      WANT="false:[null, false] by ${RS_M}"
+      ;;
+    answerer_demoted)
+      rs_race "$c" "$RS_O" "select public.update_member_role('${RS_P}', '${RS_M}', 'viewer');" \
+        "$(as_user "$RS_M" "select public.set_owner_abroad('${RS_P}', true, p_if_unanswered => true);")" forbidden
+      RETURNED=""
+      WANT="null:none"
+      ;;
+  esac
+  [[ "$(cat "$WORK/rs_${c}_second.out")" == "$RETURNED" ]] \
+    || fail_case "${c}: the second answer returned '$(cat "$WORK/rs_${c}_second.out")', expected '${RETURNED}'"
+  GOT="$(rs_answer)"
+  [[ "$GOT" == "$WANT" ]] || fail_case "${c}: answer:audit is ${GOT}, expected ${WANT}"
+done
+
+# A declared residence written while the account's deletion runs, in both
+# orders: the residence ends cleared, and the person's writes after the
+# deletion started are refused.
+for c in residence_then_deletion deletion_then_residence; do
+  RS_U="$(new_user "rs-${c}@example.com")"
+  STATE="update public.profile_residences set residence_country = 'AE', time_zone = 'Asia/Dubai'
+         where user_id = '${RS_U}';"
+  DELETE_ACCOUNT="select public.admin_delete_account_data('${RS_U}') is not null;"
+  if [[ "$c" == residence_then_deletion ]]; then
+    rs_race "$c" "$RS_U" "$STATE" "$(as_service "$DELETE_ACCOUNT")" ""
+  else
+    rs_race "$c" service "$DELETE_ACCOUNT" "$(as_user "$RS_U" "$STATE")" account_deleted
+  fi
+  GOT="$(psql_db -c "select coalesce(r.residence_country, '-') || ':' || coalesce(r.time_zone, '-') || ':'
+                            || (r.stated_at is not null)
+                     from public.profile_residences r where r.user_id = '${RS_U}'")"
+  [[ "$GOT" == "-:-:false" ]] || fail_case "${c}: the residence after the deletion is ${GOT}, expected -:-:false"
+  as_user "$RS_U" "$STATE" | psql_db >/dev/null 2>"$WORK/rs_${c}_later.err" || true
+  grep -q 'ERROR:  account_deleted' "$WORK/rs_${c}_later.err" \
+    || fail_case "${c}: a later write was not refused with account_deleted: $(head -1 "$WORK/rs_${c}_later.err")"
+done
+check_deadlocks "residence races" "$BEFORE"
+end_scenario "residence races"
+
+# 32. Invariants --------------------------------------------------------------------------
+scenario 60 30 "32. Invariants"
 RESULT="$(
   psql_db <<SQL
 select json_build_object(
@@ -2222,6 +2408,26 @@ select json_build_object(
     where p.allocated_amount <> coalesce(a.t, 0)
   ),
   'overpaid', (select count(*) from public.charges where paid_amount + waived_amount > amount),
+  'caretakers_not_managers', (
+    select count(*) from public.portfolios p
+    where p.caretaker_user_id is not null
+      and not exists (
+        select 1 from public.portfolio_members m
+        where m.portfolio_id = p.id and m.user_id = p.caretaker_user_id and m.role = 'manager'
+      )
+  ),
+  'caretaker_since_mismatch', (
+    select count(*) from public.portfolios p where (p.caretaker_user_id is null) <> (p.caretaker_since is null)
+  ),
+  'profiles_without_one_residence', (
+    select count(*) from public.profiles p
+    where (select count(*) from public.profile_residences r where r.user_id = p.id) <> 1
+  ),
+  'residences_of_deleted_accounts', (
+    select count(*) from public.profile_residences r
+    join private.account_deletions d on d.user_id = r.user_id
+    where r.residence_country is not null or r.time_zone is not null or r.stated_at is not null
+  ),
   'cash_in', (select sum(amount) from public.payments),
   'cash_accounted', (select sum(allocated_amount) + sum(unallocated_amount) from public.payments)
 );
@@ -2238,7 +2444,9 @@ if r["receipts_distinct"] != r["payments"]: errors.append("duplicate receipt num
 if r["receipt_gaps"] != 0: errors.append("gaps in receipt numbers")
 for key in ("duplicate_rent_months", "charge_mismatch", "payment_mismatch", "overpaid",
             "ownerless_portfolios", "memberless_portfolios", "orphan_documents",
-            "dangling_documents", "documents_of_queued_files"):
+            "dangling_documents", "documents_of_queued_files", "caretakers_not_managers",
+            "caretaker_since_mismatch", "profiles_without_one_residence",
+            "residences_of_deleted_accounts"):
     if r[key] != 0: errors.append(f"{key} = {r[key]}")
 if abs(float(r["cash_in"]) - float(r["cash_accounted"])) > 0.001: errors.append("cash not conserved")
 if errors:
