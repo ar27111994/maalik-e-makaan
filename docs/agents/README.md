@@ -3,12 +3,12 @@
 Modular context for coding agents. Load the root [`AGENTS.md`](../../AGENTS.md) first, then only
 the file a task needs.
 
-| File                               | Kind      | Load it to                                                                                                      |
-| ---------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------- |
-| [`commands.md`](commands.md)       | Reference | find the `make` target for an area, its gate, its prerequisites and its CI job                                  |
-| [`conventions.md`](conventions.md) | Reference | check a rule: commits, language, money, database, secrets, design, goldens, generated files                     |
-| [`workflows.md`](workflows.md)     | How-to    | make a common change in the right order: migration, money maths, screen, design system, function, website, docs |
-| [`quality-bar.md`](quality-bar.md) | Reference | check what done means for the frontend, testing, CI/CD, the API and database, and docs, and today's gates       |
+| File                               | Kind      | Load it to                                                                                                                                    |
+| ---------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`commands.md`](commands.md)       | Reference | find the `make` target for an area, its gate, its prerequisites and its CI job                                                                |
+| [`conventions.md`](conventions.md) | Reference | check a rule: commits, language, money, database, secrets, design, goldens, generated files                                                   |
+| [`workflows.md`](workflows.md)     | How-to    | make a common change in the right order: migration, money maths, screen, design system, function, website, docs                               |
+| [`quality-bar.md`](quality-bar.md) | Reference | check what done means for the frontend, testing, CI/CD, the API and database, formal verification, agentification and docs, and today's gates |
 
 Per-area context, loaded when you work in that directory:
 
