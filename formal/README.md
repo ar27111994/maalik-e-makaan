@@ -35,9 +35,13 @@ vacuous.
   accept reports the member's actual role. No call fails with an unexpected
   database error (23505, 23503, 23514, 40P01) on the app's own paths.
 - **Membership.** Every portfolio keeps an owner and a member. Nothing
-  commits for an account once its deletion has. Ids are never reused. No
-  wait-for cycle, no deletion defeated by `deadlock_detected`, and every
-  request finishes (liveness).
+  commits for an account once its deletion has. Ids are never reused. A
+  caretaker is always a manager of their portfolio; the caretaker and the
+  owner-abroad answer are set only by those allowed at commit, and the
+  answer asked on the next open never overwrites one already given. A
+  deleted account's declared residence is cleared. No wait-for cycle, no
+  deletion defeated by `deadlock_detected`, and every request finishes
+  (liveness).
 - **StorageCleanup.** No document references a missing or queued file. No
   referenced file is deleted. No document outlives its entity. Deleted
   portfolios' files are queued and eventually cleaned. Cleaners never
@@ -90,6 +94,8 @@ replay on a real PostgreSQL 16 database (the track's `replay/`).
 | Invitations    | F4: deleting an inviter directly in Auth left their invitation pending (still refused).     | Fixed in `20261108082804_invitation_findings.sql` (the membership trigger also revokes invitations without an inviter).                                                                                                                  |
 | RateLimit      | F4: requests that fail after the limiter roll back their hit, so they are never limited.    | Accepted, not fixed: see `docs/architecture/permissions.md`, "Rate limits and failing requests".                                                                                                                                         |
 | Invitations    | F3: deleting an inviter directly in Auth can deadlock with an accept.                       | Open, low. Operational rule in `docs/operations.md`: run `admin_delete_account_data` before an Auth deletion (`Invitations_gotrue_via_delete_account.cfg`); a `BEFORE DELETE` trigger on `auth.users` was evaluated and still deadlocks. |
+| Membership     | D1-D3: a caretaker deleted in Auth, or its membership changed by an operator, can deadlock. | Open, low, outside the app's paths. Operational rules in `docs/operations.md` (`assume_direct_auth_*`, `assume_service_member_write`; `replay/residence.sh`).                                                                            |
+| Membership     | P1: a schema restored from a dump runs GoTrue's FK actions by name, which can deadlock.     | Open, low. `docs/operations.md` restores the schema from the migrations, never from a dump (`assume_restored_*`; `replay/residence.sh`).                                                                                                 |
 
 The models take the fixed code as their baseline. The code before each fix
 is a mutant named for the mechanism the fix added, and it must still fail.
@@ -145,7 +151,8 @@ build in `formal/lean/.lake` (git ignores it) and Bend's kernel, built once
 into `~/.bend/bendtt`. `formal/bend/run.sh all`
 also needs Dart (`make bootstrap`) and a PostgreSQL 16 server
 (`tool/db/env.sh`). The PostgreSQL replays of the findings are separate:
-each track's `replay/run.sh`, and `tla/Invitations/replay_findings.sh`.
+each track's `replay/run.sh`, `tla/Invitations/replay_findings.sh` and
+`tla/Membership/replay/residence.sh`.
 
 ### Timings
 
@@ -157,7 +164,7 @@ runner to be faster. TLA+ tracks run 2 configurations at a time
 | Track              | `ci`                        | `all`                      |
 | ------------------ | --------------------------- | -------------------------- |
 | tla/Invitations    | 55 configurations, 106 s    | 60 configurations, 1,051 s |
-| tla/Membership     | 36 configurations, 110 s    | 51 configurations, 156 s   |
+| tla/Membership     | 53 configurations, 56 s     | 79 configurations, 101 s   |
 | tla/StorageCleanup | 49 configurations, 117 s    | 62 configurations, 151 s   |
 | tla/LedgerPayments | 28 configurations, 63 s     | 72 configurations, 179 s   |
 | tla/LateFees       | 36 configurations, 98 s     | 48 configurations, 193 s   |
@@ -172,12 +179,15 @@ into an empty `~/.bend`; with the kernel built, the verdict takes 6 to
 15 s. A second `make verify`, with both built and lighter load, took
 409 s. The Invitations row was measured again on 2026-11-08 with its
 `run.sh` alone, after `20261108082804_invitation_findings.sql` merged the
-configurations that differed only by the fix switches (the totals are from
-2026-11-07). In `all`, Invitations spends most of its time in four
-exhaustive configurations (`Invitations`, `_pairs`, `_members_large`,
-`_gotrue_direct_large`: 90 to 250 s each) and one random simulation
-(280 s). TLC 2.19 ends a simulation with `num=` without "No error has been
-found"; the runner takes exit 0, "Finished in" and no error as a pass.
+configurations that differed only by the fix switches, and the Membership
+row on 2026-11-12 (`ci` in `make verify`, `all` with its `run.sh` alone and
+3 jobs), after the residence extension and a change that makes every
+configuration faster (the totals are from 2026-11-07). In `all`,
+Invitations spends most of its time in four exhaustive configurations
+(`Invitations`, `_pairs`, `_members_large`, `_gotrue_direct_large`: 90 to
+250 s each) and one random simulation (280 s). TLC 2.19 ends a simulation
+with `num=` without "No error has been found"; the runner takes exit 0,
+"Finished in" and no error as a pass.
 
 The installer took 12 s to download and unpack TLC, z3-solver and Bend,
 and about 7 s to unpack each Lean toolchain.

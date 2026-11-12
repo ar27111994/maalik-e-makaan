@@ -247,7 +247,8 @@ model check covers every run within its bounds, and a proof covers every input. 
 
 Not yet in CI, and so run by hand: `make verify-all` (every mutant, Bend's soundness checks and its
 runs against the real Dart and SQL) and the PostgreSQL replays of the findings (each track's
-`replay/run.sh`, and `formal/tla/Invitations/replay_findings.sh`).
+`replay/run.sh`, `formal/tla/Invitations/replay_findings.sh` and
+`formal/tla/Membership/replay/residence.sh`).
 
 **Still to reach.**
 

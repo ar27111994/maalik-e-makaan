@@ -7,7 +7,11 @@
 (* storage.sql, which redefines the functions of earlier migrations;       *)
 (* "findings" means 20261105170557_concurrency_findings.sql, whose client  *)
 (* UPDATE/DELETE row policies and INSERT WITH CHECKs take the portfolio    *)
-(* key first (finding M1, and client inserts).                             *)
+(* key first (finding M1, and client inserts).  "residence" means          *)
+(* 20261112092618_residence.sql: the caretaker (set_caretaker, its two     *)
+(* triggers and the foreign key's SET NULL), the owner-abroad answer       *)
+(* (set_owner_abroad), a person's declared residence, and the latest       *)
+(* admin_delete_account_data, which clears that residence last.            *)
 (*                                                                         *)
 (* Granularity.  One TLA+ step is one SQL statement, or one row lock taken *)
 (* by a statement that locks rows one by one (lock_portfolios_for_         *)
@@ -43,9 +47,13 @@ CONSTANTS
     MUTANT,        \* "none" = current code; otherwise one mechanism removed
     MAX_POSTS,     \* delete-account POSTs per account-deletion process (client retries)
     CAN_ABORT,     \* any open transaction may fail (timeout, lost connection)
-    GOTRUE_ORDER,  \* GoTrue's FK actions on DELETE FROM auth.users:
-                   \* "portfolios_first" (FK creation order; scenario 17 of
-                   \* tool/db/concurrency_test.sh) or "leases_first" (assumption flip)
+    GOTRUE_ORDER,  \* GoTrue's FK actions on DELETE FROM auth.users (GSeq):
+                   \* "portfolios_first" (FK creation order, a migrated
+                   \* database; scenario 17 of tool/db/concurrency_test.sh),
+                   \* "leases_first" (leases before portfolios: assumption flip),
+                   \* "caretaker_first" (the caretaker's SET NULL first: its
+                   \* trigger name sorts first once the OIDs gain a digit), or
+                   \* "restored" (a pg_dump restore: by constraint name)
     WAKE_FIRST     \* scheduling assumption: after a deletion's savepoint rollback,
                    \* each transaction it was blocking runs one statement before
                    \* the deletion locks again (FALSE: any interleaving)
@@ -69,11 +77,20 @@ Mutants == {"none",
                                   \* (the code M1 was found in)
             "no_insert_key",      \* findings: an INSERT's WITH CHECK takes no portfolio key
                                   \* (its foreign-key checks lock in trigger order)
-            "no_note_account_key"}\* findings: the notification helper skips the account key
+            "no_note_account_key",\* findings: the notification helper skips the account key
+            \* residence (20261112092618_residence.sql)
+            "no_care_share",      \* before_portfolio_caretaker_change reads the membership without FOR SHARE
+            "no_care_trigger",    \* no portfolio_members_after_caretaker_ends trigger
+            "no_care_recheck",    \* set_caretaker without the second require_portfolio_role
+            "care_member_first",  \* set_caretaker reads the membership FOR SHARE before the portfolio
+            "no_abroad_recheck",  \* set_owner_abroad without the second require_portfolio_role
+            "abroad_unlocked_read",\* set_owner_abroad reads the answer without FOR NO KEY UPDATE
+            "residence_filtered", \* the residence clear filtered on its values
+            "no_residence_refusal"}\* the client trigger does not refuse a deleted account
 ASSUME MUTANT \in Mutants
 ASSUME MAX_POSTS \in 1..2
 ASSUME CAN_ABORT \in BOOLEAN
-ASSUME GOTRUE_ORDER \in {"portfolios_first", "leases_first"}
+ASSUME GOTRUE_ORDER \in {"portfolios_first", "leases_first", "caretaker_first", "restored"}
 ASSUME WAKE_FIRST \in BOOLEAN
 
 Mut(m) == MUTANT = m
@@ -114,6 +131,20 @@ Script(t) ==
       [] t = "tenB"      -> Pr("ins",    "B", "P2", NoP, "none")   \* rows of P2, then P1
       [] t = "goB"       -> Pr("gotrue", "B", NoP,  NoP, "none")
       [] t = "noteB"     -> Pr("note",   "B", "P1", NoP, "none")   \* marks n2, then n1 read
+      \* residence (20261112092618_residence.sql)
+      [] t = "careAC"    -> Pr("care",   "A", "P1", "C", "none")   \* set_caretaker(P1, C) by A
+      [] t = "careBC"    -> Pr("care",   "B", "P1", "C", "none")   \* set_caretaker(P1, C) by B
+      [] t = "demoteC"   -> Pr("role",   "B", "P1", "C", "viewer") \* B demotes manager C
+      [] t = "demoteCA"  -> Pr("role",   "A", "P1", "C", "viewer") \* A demotes manager C
+      [] t = "rmAbyB"    -> Pr("remove", "B", "P1", "A", "none")   \* B removes A (the namer)
+      [] t = "rmC"       -> Pr("remove", "A", "P1", "C", "none")   \* A removes manager C
+      [] t = "svcDemC"   -> Pr("svc",    NoP, "P1", "C", "viewer") \* service role: C's role
+      [] t = "svcRmC"    -> Pr("svc",    NoP, "P1", "C", "none")   \* service role: C removed
+      [] t = "delC"      -> Pr("acct",   "C", NoP,  NoP, "none")
+      [] t = "goC"       -> Pr("gotrue", "C", NoP,  NoP, "none")   \* a direct Auth delete of C
+      [] t = "ansA"      -> Pr("abroad", "A", "P1", NoP, "yes")    \* p_if_unanswered => true
+      [] t = "ansC"      -> Pr("abroad", "C", "P1", NoP, "no")     \* p_if_unanswered => true
+      [] t = "resA"      -> Pr("res",    "A", NoP,  NoP, "none")   \* A states a residence
 
 ScenarioProcs(s) ==
     CASE s = "two_deletions"   -> {"delA", "delB"}
@@ -137,6 +168,17 @@ ScenarioProcs(s) ==
       [] s = "mixed"           -> {"delA", "leaveB", "acceptB"}
       [] s = "team"            -> {"delA", "delB", "acceptC", "demoteB"}
       [] s = "notes"           -> {"noteB", "goB"}
+      [] s = "caretaker"       -> {"careAC", "demoteC", "rmAbyB"}
+      [] s = "caretaker_svc"   -> {"careAC", "svcDemC", "svcRmC"}
+      [] s = "caretaker_svc_rpc" -> {"svcDemC", "demoteCA"}
+      [] s = "caretaker_acct"  -> {"delC", "careAC", "demoteC"}
+      [] s = "caretaker_direct" -> {"careAC", "goC"}
+      [] s = "caretaker_direct_rpc" -> {"rmC", "goC"}
+      [] s = "caretaker_direct_dport" -> {"dportA", "goC"}
+      [] s = "answer"          -> {"ansA", "ansC", "demoteCA"}
+      [] s = "residence"       -> {"delA", "resA"}
+      [] s = "residence_team"  -> {"careAC", "demoteC", "delC", "ansA", "resA"}
+      [] s = "inviter"         -> {"delA", "careBC", "demoteC"}
 
 Procs == ScenarioProcs(SCENARIO)
 
@@ -162,8 +204,21 @@ Members(s) ==
       [] s = "team"            ->
             {<<"P1", "A", "owner">>, <<"P1", "B", "owner">>, <<"P1", "C", "manager">>,
              <<"P2", "A", "owner">>, <<"P2", "B", "owner">>}
+      [] s \in {"caretaker", "caretaker_acct", "residence_team", "inviter"} ->
+            {<<"P1", "A", "owner">>, <<"P1", "B", "owner">>, <<"P1", "C", "manager">>}
+      [] s \in {"caretaker_svc", "caretaker_svc_rpc", "caretaker_direct", "caretaker_direct_rpc",
+                "caretaker_direct_dport", "answer"} ->
+            {<<"P1", "A", "owner">>, <<"P1", "C", "manager">>}
+      [] s = "residence"       -> {}
 
 InitPorts == {m[1] : m \in Members(SCENARIO)}
+\* portfolios.caretaker_user_id: C already named in the scenarios where it ends
+InitCare(q) == IF q = "P1" /\ SCENARIO \in {"caretaker_svc_rpc", "caretaker_direct_rpc",
+                                            "caretaker_direct_dport"}
+               THEN "C" ELSE NoP
+\* portfolio_members.invited_by of the initial rows: in "inviter", A created P1
+\* and invited C (InvitedBy below adds the rows accept_invitation inserts)
+InitInvitedBy(q, v) == IF SCENARIO = "inviter" /\ q = "P1" /\ v = "C" THEN "A" ELSE NoP
 InitRole(q, v) ==
     IF \E m \in Members(SCENARIO) : m[1] = q /\ m[2] = v
     THEN (CHOOSE m \in Members(SCENARIO) : m[1] = q /\ m[2] = v)[3]
@@ -208,11 +263,24 @@ VARIABLES
 
 vars == <<db, pc, lv, gh>>
 
-Kind(t) == Script(t).k
-Usr(t)  == Script(t).u
-Prt(t)  == Script(t).q
-Tgt(t)  == Script(t).v
-Rl(t)   == Script(t).r
+\* Each process's script, computed once: TLC evaluates a constant definition
+\* without arguments once, but Script(t) again on every call.
+Scr == [t \in Procs |-> Script(t)]
+Kind(t) == Scr[t].k
+Usr(t)  == Scr[t].u
+Prt(t)  == Scr[t].q
+Tgt(t)  == Scr[t].v
+Rl(t)   == Scr[t].r
+
+(* portfolio_members.invited_by, derived rather than stored: a row of the  *)
+(* invitation's portfolio and invitee that was not there at the start was  *)
+(* inserted by accept_invitation (X_Ins) with the inviter, and no other     *)
+(* process inserts that row (the ASSUME).  GoTrue's SET NULL is not        *)
+(* written back: once an inviter's deletion has committed, no step of that *)
+(* user runs again (G_User answers 404), so the value is never read.       *)
+InvitedBy(q, v) ==
+    IF q = InvP /\ v = Inv.for /\ InitRole(q, v) = "none" THEN InvBy ELSE InitInvitedBy(q, v)
+ASSUME \A s \in Procs : Kind(s) = "create" => ~(Prt(s) = InvP /\ Usr(s) = Inv.for)
 
 ProcsOrNo == Procs \cup {NoP}
 
@@ -223,6 +291,9 @@ OwnersV(t, q) == {v \in Users : MemV(t, q, v) = "owner"}
 OwnersC(q)    == {v \in Users : db.mem[q][v] = "owner"}
 InvV(t)       == IF db.invX = t /\ db.invNew # NoP THEN db.invNew ELSE db.inv
 InvExists     == db.inv \in {"pending", "revoked", "accepted"}
+CareV(t, q)   == IF db.cBy[q] = t THEN db.cNew[q] ELSE db.care[q]
+AbroadV(t, q) == IF db.aBy[q] = t THEN db.aNew[q] ELSE db.abroad[q]
+ResV(t, u)    == IF db.resX[u] = t THEN db.resNew[u] ELSE db.res[u]
 
 (* Blockers: the other transactions holding a conflicting lock. *)
 BX(t, q)      == ({db.pX[q], db.pNKU[q]} \cup db.pKS[q]) \ {t, NoP}
@@ -237,6 +308,9 @@ BL(t, q)      == {db.lX[q]} \ {t, NoP}                   \* lease row: NKU and X
 BLX(t, q)     == BL(t, q) \cup (db.lKS[q] \ {t})         \* lease FOR UPDATE / DELETE: also KS
 BLKS(t, q)    == {db.lDel[q]} \ {t, NoP}                 \* lease KS: only a DELETE holds X
 BM(t, q, v)   == {db.mDirty[q][v]} \ {t, NoP}            \* member row / its primary key
+\* an UPDATE or DELETE of a member row also waits for FOR SHARE holders
+BMW(t, q, v)  == BM(t, q, v) \cup (db.mSh[q][v] \ {t})
+BRes(t, u)    == {db.resX[u]} \ {t, NoP}                 \* profile_residences row
 BInv(t)       == {db.invX} \ {t, NoP}
 BN(t, n)      == {db.nX[n]} \ {t, NoP}                   \* notification row: NKU and X conflict
 
@@ -245,7 +319,13 @@ BN(t, n)      == {db.nX[n]} \ {t, NoP}                   \* notification row: NK
 Rel(f, t)  == [x \in DOMAIN f |-> IF f[x] = t THEN NoP ELSE f[x]]
 RelS(f, t) == [x \in DOMAIN f |-> f[x] \ {t}]
 
-ReleaseAll(d, t) ==
+(* ReleaseAll and CommitDB take the state as a bound variable (Once): TLC  *)
+(* evaluates an operator's argument again at each use, and these refer to  *)
+(* it dozens of times, while a bound variable holds a value.  Same result, *)
+(* a fraction of the time.                                                 *)
+Once(Op(_, _), d0, t) == CHOOSE r \in {Op(d, t) : d \in {d0}} : TRUE
+
+ReleaseBody(d, t) ==
     [d EXCEPT !.frz = Rel(@, t), !.profX = Rel(@, t), !.profKS = RelS(@, t),
               !.uX = Rel(@, t), !.uKS = RelS(@, t),
               !.pX = Rel(@, t), !.pNKU = Rel(@, t), !.pKS = RelS(@, t),
@@ -256,7 +336,14 @@ ReleaseAll(d, t) ==
               !.lX = Rel(@, t), !.lDel = Rel(@, t), !.lKS = RelS(@, t),
               !.invX = IF @ = t THEN NoP ELSE @,
               !.invNew = IF d.invX = t THEN NoP ELSE @,
-              !.nX = Rel(@, t), !.nDel = Rel(@, t)]
+              !.nX = Rel(@, t), !.nDel = Rel(@, t),
+              \* residence: the caretaker's and the answer's uncommitted values,
+              \* FOR SHARE on member rows, the residence row
+              !.cBy = Rel(@, t), !.cNew = [q \in Ports |-> IF d.cBy[q] = t THEN NoP ELSE @[q]],
+              !.mSh = [q \in Ports |-> RelS(@[q], t)],
+              !.aBy = Rel(@, t), !.aNew = [q \in Ports |-> IF d.aBy[q] = t THEN "null" ELSE @[q]],
+              !.resX = Rel(@, t), !.resNew = [u \in Users |-> IF d.resX[u] = t THEN "none" ELSE @[u]]]
+ReleaseAll(d, t) == Once(ReleaseBody, d, t)
 
 (* ROLLBACK TO the savepoint of the lock-and-delete loop (latest:          *)
 (* delete_portfolio and admin_delete_account_data, "exception when         *)
@@ -264,7 +351,7 @@ ReleaseAll(d, t) ==
 (* the account_deletions row written before the loop stay.                 *)
 SubRelease(d, t) == [ReleaseAll(d, t) EXCEPT !.frz = d.frz, !.profX = d.profX]
 
-CommitDB(d, t) ==
+CommitBody(d, t) ==
     LET deleted == {q \in Ports : d.pDel[q] = t}
         created == {q \in Ports : d.pNew[q] = t}
         goneU   == {u \in Users : d.uX[u] = t}    \* only GoTrue's DELETE takes uX
@@ -283,10 +370,16 @@ CommitDB(d, t) ==
             !.frozen    = (@ \cup {u \in Users : d.frz[u] = t}) \ goneU,
             !.lease     = [q \in Ports |-> @[q] /\ d.lDel[q] # t],
             !.notes     = @ \ {n \in Notes : d.nDel[n] = t},
+            \* residence: the caretaker goes with its portfolio
+            !.care      = [q \in Ports |-> IF q \in deleted THEN NoP
+                                           ELSE IF d.cBy[q] = t THEN d.cNew[q] ELSE @[q]],
+            !.abroad    = [q \in Ports |-> IF d.aBy[q] = t THEN d.aNew[q] ELSE @[q]],
+            !.res       = [u \in Users |-> IF d.resX[u] = t THEN d.resNew[u] ELSE @[u]],
             \* portfolio_invitations.portfolio_id on delete cascade
             !.inv       = IF d.inv # "none" /\ InvP \in deleted THEN "gone"
                           ELSE IF d.invX = t /\ d.invNew # NoP THEN d.invNew ELSE @],
         t)
+CommitDB(d, t) == Once(CommitBody, d, t)
 
 (* Ghost bookkeeping shared by every commit of t (from the state before it). *)
 (* d is the state with t's writes, just before its COMMIT.                  *)
@@ -435,7 +528,7 @@ PurgeNeed(t) ==
     LET D == PurgeD(t) IN
     UNION {BX(t, q) : q \in D}
     \cup UNION {BLX(t, q) : q \in {q2 \in D : db.lease[q2]}}
-    \cup UNION {BM(t, r[1], r[2]) : r \in PurgeRows(t)}
+    \cup UNION {BMW(t, r[1], r[2]) : r \in PurgeRows(t)}
     \cup (IF PurgeRevokes(t) \/ CascadeInv(t, D) THEN BInv(t) ELSE {})
 PurgeWrite(t, D, R) ==
     [db EXCEPT
@@ -446,31 +539,97 @@ PurgeWrite(t, D, R) ==
         !.lX     = [q \in Ports |-> IF q \in D /\ db.lease[q] THEN t ELSE @[q]],
         !.lDel   = [q \in Ports |-> IF q \in D /\ db.lease[q] THEN t ELSE @[q]]]
 
+\* residence: portfolio_members_after_caretaker_ends on u's manager rows of the
+\* portfolios that survive clears u as their caretaker (under the portfolio
+\* lock A_Lock took)
+PurgeCare(t) ==
+    IF Mut("no_care_trigger") THEN {}
+    ELSE {q \in lv[t].vids \ PurgeD(t) : MemV(t, q, Usr(t)) = "manager" /\ CareV(t, q) = Usr(t)}
+ClearCare(d, t, Q) == [d EXCEPT !.cBy  = [q \in Ports |-> IF q \in Q THEN t ELSE @[q]],
+                                !.cNew = [q \in Ports |-> IF q \in Q THEN NoP ELSE @[q]]]
+\* residence: is there a client that writes the residence row?  Without one,
+\* the row's UPDATE is uncontended and merged into the deletion's last step.
+ResStep == \E s \in Procs : Kind(s) = "res"
+\* the ghost bookkeeping of the deletion's COMMIT (d: its writes)
+AcctGhost(d, t) ==
+    LET u == Usr(t)
+        D == {q \in Ports : d.pDel[q] = t}
+    IN [GhostCommit(d, t) EXCEPT
+           !.frozenEver = @ \cup {u},
+           !.delBy[u] = @ \cup D,
+           !.sole = @ \/ \E q \in D : OwnersC(q) # {u}]
+\* residence (latest): "update public.profile_residences set ... = null where
+\* user_id = u", unfiltered: it takes the row lock (NO KEY UPDATE)
+ResWrite(d, t) ==
+    IF Usr(t) \in db.users THEN [d EXCEPT !.resX[Usr(t)] = t, !.resNew[Usr(t)] = "none"] ELSE d
+
 A_Purge(t) ==
     /\ IsAcct(t) /\ pc[t] = "a_purge"
     /\ PurgeNeed(t) = {}
-    /\ LET u  == Usr(t)
-           D  == PurgeD(t)
+    /\ LET D  == PurgeD(t)
            d1 == PurgeWrite(t, D, PurgeRows(t))
            d2 == IF PurgeRevokes(t) THEN Revoke(d1, t) ELSE d1
-       IN /\ db' = CommitDB(d2, t)
-          /\ gh' = [GhostCommit(d2, t) EXCEPT
-                      !.frozenEver = @ \cup {u},
-                      !.delBy[u] = @ \cup D,
-                      !.sole = @ \/ \E q \in D : OwnersC(q) # {u}]
-    \* the response can be lost: the client then sees a failure
+           d3 == ClearCare(d2, t, PurgeCare(t))
+       IN IF ResStep
+          THEN /\ db' = d3
+               /\ Goto(t, "a_res")
+               /\ UNCHANGED gh
+          ELSE LET d4 == ResWrite(d3, t) IN
+               /\ db' = CommitDB(d4, t)
+               /\ gh' = AcctGhost(d4, t)
+               \* the response can be lost: the client then sees a failure
+               /\ \E nxt \in {"g_user", "a_failed"} : Goto(t, nxt)
+    /\ UNCHANGED lv
+
+\* residence: the profile_residences UPDATE, after the loop and the
+\* notifications (outside the subtransaction), then COMMIT.  Mutant
+\* "residence_filtered": "... and (residence_country is not null or ...)":
+\* the row it reads is NULL, so it skips it without waiting.
+ResSkips(t) == Mut("residence_filtered") /\ ResV(t, Usr(t)) = "none"
+ResNeed(t) == IF Usr(t) \in db.users /\ ~ResSkips(t) THEN BRes(t, Usr(t)) ELSE {}
+A_Res(t) ==
+    /\ IsAcct(t) /\ pc[t] = "a_res"
+    /\ ResNeed(t) = {}
+    /\ LET d == IF ResSkips(t) THEN db ELSE ResWrite(db, t) IN
+       /\ db' = CommitDB(d, t)
+       /\ gh' = AcctGhost(d, t)
     /\ \E nxt \in {"g_user", "a_failed"} : Goto(t, nxt)
     /\ UNCHANGED lv
 
 (* GoTrue auth.admin.deleteUser(u): DELETE FROM auth.users (row lock X),   *)
-(* then its FK actions in constraint order: profiles (cascade), then       *)
-(* portfolios.created_by (set null), portfolio_members.user_id (cascade),  *)
-(* ..., leases.created_by (set null), ..., account_deletions (cascade).    *)
-(* The same steps serve a raw deleteUser outside the Edge Function ("goB").*)
-\* ..., notifications (cascade, created last: n1, then n2).
-GSeq == IF GOTRUE_ORDER = "portfolios_first"
-        THEN <<"g_prof", "g_port", "g_mem", "g_lease", "g_note1", "g_note2">>
-        ELSE <<"g_prof", "g_lease", "g_port", "g_mem", "g_note1", "g_note2">>
+(* then its FK actions (AFTER triggers RI_ConstraintTrigger_a_<oid>, run   *)
+(* in name order).  On a migrated database that is the constraints'       *)
+(* creation order: profiles (cascade), portfolios.created_by (set null),   *)
+(* portfolio_members.user_id (cascade), portfolio_members.invited_by (set  *)
+(* null, created just after it), ..., leases.created_by (set null), ...,   *)
+(* notifications (cascade: n1, then n2), account_deletions (cascade), and  *)
+(* last residence's portfolios.caretaker_user_id (set null), whose name    *)
+(* sorts first only if its OID has more digits ("caretaker_first").  A     *)
+(* restored database re-creates them by name (pg_dump --section=post-data; *)
+(* pg_trigger on a pg_dump | psql copy, replay/residence.sh): private's    *)
+(* account_deletions, then leases, notifications, portfolio_members.       *)
+(* invited_by and .user_id, portfolios.caretaker_user_id and .created_by,  *)
+(* profiles.  account_deletions' cascade has nothing to wait for and is    *)
+(* merged into g_commit.  The same steps serve a direct Auth delete        *)
+(* outside the Edge Function ("goB", "goC").                               *)
+GOrder == CASE GOTRUE_ORDER = "portfolios_first" ->
+               <<"g_prof", "g_port", "g_mem", "g_inv", "g_lease", "g_note1", "g_note2", "g_care">>
+          [] GOTRUE_ORDER = "leases_first" ->
+               <<"g_prof", "g_lease", "g_port", "g_mem", "g_inv", "g_note1", "g_note2", "g_care">>
+          [] GOTRUE_ORDER = "caretaker_first" ->
+               <<"g_care", "g_prof", "g_port", "g_mem", "g_inv", "g_lease", "g_note1", "g_note2">>
+          [] GOTRUE_ORDER = "restored" ->
+               <<"g_lease", "g_note1", "g_note2", "g_inv", "g_mem", "g_care", "g_port", "g_prof">>
+\* An action on a column no process of the scenario can set (no caretaker is
+\* ever named; no row is invited by anyone) has no row to act on in any
+\* reachable state and takes no lock: it is left out, so the scenarios
+\* without one keep their state space.
+GUsed(l) ==
+    CASE l = "g_care" -> (\E s \in Procs : Kind(s) = "care") \/ (\E q \in Ports : InitCare(q) # NoP)
+      [] l = "g_inv"  -> (\E s \in Procs : Kind(s) = "accept")
+                         \/ (\E q \in Ports, v \in Users : InitInvitedBy(q, v) # NoP)
+      [] OTHER        -> TRUE
+GSeq == SelectSeq(GOrder, GUsed)
 GNext(l) == LET i == CHOOSE j \in 1..Len(GSeq) : GSeq[j] = l IN
             IF i = Len(GSeq) THEN "g_commit" ELSE GSeq[i + 1]
 IsG(t) == Kind(t) \in {"acct", "gotrue"}
@@ -511,7 +670,7 @@ G_Port(t) ==
 
 G_Mem(t) ==
     /\ IsG(t) /\ pc[t] = "g_mem"
-    /\ UNION {BM(t, q, Usr(t)) : q \in GRows(t)} \cup (IF GRevokes(t) THEN BInv(t) ELSE {}) = {}
+    /\ UNION {BMW(t, q, Usr(t)) : q \in GRows(t)} \cup (IF GRevokes(t) THEN BInv(t) ELSE {}) = {}
     /\ LET d1 == [db EXCEPT
                     !.mDirty = [q \in Ports |-> [v \in Users |->
                                    IF v = Usr(t) /\ q \in GRows(t) THEN t ELSE @[q][v]]],
@@ -519,6 +678,24 @@ G_Mem(t) ==
                                    IF v = Usr(t) /\ q \in GRows(t) THEN "none" ELSE @[q][v]]]]
        IN db' = IF GRevokes(t) THEN Revoke(d1, t) ELSE d1
     /\ Goto(t, GNext("g_mem"))
+    /\ UNCHANGED <<lv, gh>>
+
+\* "update portfolio_members set invited_by = null where invited_by = u": a
+\* row lock (NO KEY UPDATE) on each row u invited, the role unchanged.  No
+\* trigger of these rows fires (portfolio_members_after_caretaker_ends is
+\* "after update of role, portfolio_id, user_id"; the audit row takes no
+\* portfolio lock).
+GInvRows(t) == {<<q, v>> \in Ports \X (Users \ {Usr(t)}) :
+                    MemV(t, q, v) # "none" /\ InvitedBy(q, v) = Usr(t) /\ db.mDirty[q][v] # t}
+G_Inv(t) ==
+    /\ IsG(t) /\ pc[t] = "g_inv"
+    /\ UNION {BMW(t, r[1], r[2]) : r \in GInvRows(t)} = {}
+    /\ db' = [db EXCEPT
+                !.mDirty = [q \in Ports |-> [v \in Users |->
+                               IF <<q, v>> \in GInvRows(t) THEN t ELSE @[q][v]]],
+                !.mNew = [q \in Ports |-> [v \in Users |->
+                               IF <<q, v>> \in GInvRows(t) THEN db.mem[q][v] ELSE @[q][v]]]]
+    /\ Goto(t, GNext("g_inv"))
     /\ UNCHANGED <<lv, gh>>
 
 G_Lease(t) ==
@@ -540,9 +717,25 @@ G_Note(t) ==
     /\ Goto(t, GNext(pc[t]))
     /\ UNCHANGED <<lv, gh>>
 
-\* the account_deletions cascade and the COMMIT (no other lock is needed)
+\* residence: "update portfolios set caretaker_user_id = null where
+\* caretaker_user_id = u" (ON DELETE SET NULL; its BEFORE trigger takes no
+\* lock for NULL), merged with portfolio_members_after_caretaker_ends of the
+\* cascaded manager rows, which runs after every first-level action and finds
+\* the column already NULL.  A portfolio row: NO KEY UPDATE.
+GCare(t) == {q \in db.port : CareV(t, q) = Usr(t)}
+G_Care(t) ==
+    /\ IsG(t) /\ pc[t] = "g_care"
+    /\ UNION {BNKU(t, q) : q \in GCare(t)} = {}
+    /\ db' = ClearCare([db EXCEPT !.pNKU = [q \in Ports |-> IF q \in GCare(t) THEN t ELSE @[q]]],
+                       t, GCare(t))
+    /\ Goto(t, GNext("g_care"))
+    /\ UNCHANGED <<lv, gh>>
+
+\* the account_deletions cascade, the profile's profile_residences row
+\* (second-level cascade: its row lock) and the COMMIT
 G_Commit(t) ==
     /\ IsG(t) /\ pc[t] = "g_commit"
+    /\ BRes(t, Usr(t)) = {}
     /\ db' = CommitDB(db, t)
     /\ IF Kind(t) = "acct"
        THEN \E ok \in BOOLEAN :
@@ -585,7 +778,15 @@ MemberOk(t) ==
 MemberRevokes(t) ==
     /\ MemV(t, Prt(t), Tgt(t)) = "owner" /\ NewRole(t) # "owner"
     /\ RevokeFires(t, Prt(t), Tgt(t))
-MemberNeed(t) == BM(t, Prt(t), Tgt(t)) \cup (IF MemberRevokes(t) THEN BInv(t) ELSE {})
+\* residence: portfolio_members_after_caretaker_ends (AFTER UPDATE OF role ...
+\* OR DELETE, WHEN old.role = 'manager'): clears v as the caretaker of q, an
+\* UPDATE of the portfolio row the RPC holds FOR UPDATE already
+MemberClearsCare(t) ==
+    /\ ~Mut("no_care_trigger")
+    /\ MemV(t, Prt(t), Tgt(t)) = "manager" /\ NewRole(t) # "manager"
+    /\ CareV(t, Prt(t)) = Tgt(t)
+MemberNeed(t) == BMW(t, Prt(t), Tgt(t)) \cup (IF MemberRevokes(t) THEN BInv(t) ELSE {})
+                 \cup (IF MemberClearsCare(t) THEN BNKU(t, Prt(t)) ELSE {})
 \* authorisation of the caller in the committed state at commit time
 AuthorisedC(t) ==
     IF AuthRoles(t) = {} THEN db.mem[Prt(t)][Usr(t)] # "none"
@@ -625,8 +826,11 @@ M_Write(t) ==
            d1 == IF MemV(t, q, v) = "none" THEN db
                  ELSE [db EXCEPT !.mDirty[q][v] = t, !.mNew[q][v] = NewRole(t)]
            d2 == IF MemberRevokes(t) THEN Revoke(d1, t) ELSE d1
-       IN /\ db' = CommitDB(d2, t)
-          /\ gh' = [GhostCommit(d2, t) EXCEPT !.stale = @ \/ ~AuthorisedC(t)]
+           d3 == IF MemberClearsCare(t)
+                 THEN ClearCare([d2 EXCEPT !.pNKU[q] = IF db.pX[q] = t THEN @ ELSE t], t, {q})
+                 ELSE d2
+       IN /\ db' = CommitDB(d3, t)
+          /\ gh' = [GhostCommit(d3, t) EXCEPT !.stale = @ \/ ~AuthorisedC(t)]
     /\ Goto(t, "done")
     /\ UNCHANGED lv
 
@@ -777,7 +981,7 @@ DPortRows(t) == {<<Prt(t), v>> : v \in {w \in Users : MemV(t, Prt(t), w) # "none
 DPortNeed(t) ==
     LET q == Prt(t) IN
     BX(t, q) \cup (IF db.lease[q] THEN BLX(t, q) ELSE {})
-    \cup UNION {BM(t, r[1], r[2]) : r \in DPortRows(t)}
+    \cup UNION {BMW(t, r[1], r[2]) : r \in DPortRows(t)}
     \cup (IF CascadeInv(t, {q}) THEN BInv(t) ELSE {})
 
 D_Purge(t) ==
@@ -1018,6 +1222,192 @@ N_Commit(t) ==
     /\ UNCHANGED <<lv, gh>>
 
 -----------------------------------------------------------------------------
+(* Residence (20261112092618_residence.sql).                               *)
+(* "care": set_caretaker(q, x) by u: require_portfolio_role(owner)        *)
+(*   (snapshot) -> the portfolio FOR NO KEY UPDATE -> authorise again ->   *)
+(*   x's role (plain read: member_not_found, caretaker_not_manager) ->     *)
+(*   "update portfolios set caretaker_user_id = x where ... is distinct    *)
+(*   from x": BEFORE trigger private.before_portfolio_caretaker_change     *)
+(*   reads x's manager membership FOR SHARE (caretaker_not_manager) ->     *)
+(*   the FK check of caretaker_user_id (KEY SHARE on auth.users x) ->      *)
+(*   COMMIT.  The audit row's actor FK check (KEY SHARE on the caller's    *)
+(*   auth.users row) is not modelled, as for every audited write here.     *)
+-----------------------------------------------------------------------------
+C_Auth(t) ==
+    /\ Kind(t) = "care" /\ pc[t] = "c_auth"
+    /\ Goto(t, IF HasRole(t, Prt(t), Usr(t), {"owner"})
+               THEN IF Mut("care_member_first") THEN "c_pre" ELSE "c_lock"
+               ELSE "done")
+    /\ UNCHANGED <<db, lv, gh>>
+
+\* mutant "care_member_first": x's membership FOR SHARE before the portfolio
+C_Pre(t) ==
+    /\ Kind(t) = "care" /\ pc[t] = "c_pre"
+    /\ BM(t, Prt(t), Tgt(t)) = {}
+    /\ db' = IF MemV(t, Prt(t), Tgt(t)) = "manager"
+             THEN [db EXCEPT !.mSh[Prt(t)][Tgt(t)] = @ \cup {t}] ELSE db
+    /\ Goto(t, "c_lock")
+    /\ UNCHANGED <<lv, gh>>
+
+C_Lock(t) ==
+    /\ Kind(t) = "care" /\ pc[t] = "c_lock"
+    /\ IF Prt(t) \in db.port
+       THEN /\ BNKU(t, Prt(t)) = {}
+            /\ db' = [db EXCEPT !.pNKU[Prt(t)] = t]
+       ELSE UNCHANGED db
+    /\ Goto(t, "c_do")
+    /\ UNCHANGED <<lv, gh>>
+
+C_Do(t) ==
+    /\ Kind(t) = "care" /\ pc[t] = "c_do"
+    /\ LET q == Prt(t)  x == Tgt(t) IN
+       CASE ~(Mut("no_care_recheck") \/ HasRole(t, q, Usr(t), {"owner"})) ->
+              /\ db' = ReleaseAll(db, t) /\ Goto(t, "done")         \* forbidden
+         [] MemV(t, q, x) # "manager" ->                            \* member_not_found / caretaker_not_manager
+              /\ db' = ReleaseAll(db, t) /\ Goto(t, "done")
+         [] CareV(t, q) = x ->                                      \* already the caretaker: 0 rows
+              /\ db' = CommitDB(db, t) /\ Goto(t, "done")
+         [] OTHER ->
+              /\ Goto(t, "c_trig") /\ UNCHANGED db
+    /\ UNCHANGED <<lv, gh>>
+
+\* the trigger's "perform 1 from portfolio_members ... and role = 'manager'
+\* for share": waits for a writer of the row and reads its newest version;
+\* mutant "no_care_share": a plain read of the committed row, no lock
+C_Trig(t) ==
+    /\ Kind(t) = "care" /\ pc[t] = "c_trig"
+    /\ Mut("no_care_share") \/ BM(t, Prt(t), Tgt(t)) = {}
+    /\ LET q == Prt(t)  x == Tgt(t) IN
+       IF MemV(t, q, x) # "manager"
+       THEN /\ db' = ReleaseAll(db, t) /\ Goto(t, "done")         \* caretaker_not_manager
+       ELSE /\ db' = [db EXCEPT !.mSh[q][x] = IF Mut("no_care_share") THEN @ ELSE @ \cup {t},
+                                !.cBy[q] = t, !.cNew[q] = x]
+            /\ Goto(t, "c_fk")
+    /\ UNCHANGED <<lv, gh>>
+
+\* the FK check of caretaker_user_id: KEY SHARE on auth.users x; COMMIT
+C_FK(t) ==
+    /\ Kind(t) = "care" /\ pc[t] = "c_fk"
+    /\ BUKS(t, Tgt(t)) = {}
+    /\ IF Tgt(t) \notin db.users
+       THEN /\ db' = ReleaseAll(db, t) /\ UNCHANGED gh             \* foreign_key_violation
+       ELSE LET dw == [db EXCEPT !.uKS[Tgt(t)] = @ \cup {t}] IN
+            /\ db' = CommitDB(dw, t)
+            /\ gh' = [GhostCommit(dw, t) EXCEPT
+                        !.careStale = @ \/ db.mem[Prt(t)][Usr(t)] # "owner"]
+    /\ Goto(t, "done")
+    /\ UNCHANGED lv
+
+(* "abroad": set_owner_abroad(q, r, p_if_unanswered => true) by u, as the  *)
+(*   app asks on the next open: authorise (owner, manager) -> the          *)
+(*   portfolio FOR NO KEY UPDATE and the answer (one statement) ->         *)
+(*   authorise again -> an answer already given is returned -> UPDATE ->  *)
+(*   COMMIT.  The steps after the lock are merged: no membership change    *)
+(*   by an RPC or deletion and no other answer can commit while it is     *)
+(*   held (the service role and GoTrue are not in these scenarios).       *)
+(*   Mutant "abroad_unlocked_read": the read takes no lock; the UPDATE     *)
+(*   then waits for the row and overwrites it (READ COMMITTED re-check of  *)
+(*   "where id = q" only).                                                 *)
+AbroadRoles == {"owner", "manager"}
+O_Auth(t) ==
+    /\ Kind(t) = "abroad" /\ pc[t] = "o_auth"
+    /\ Goto(t, IF HasRole(t, Prt(t), Usr(t), AbroadRoles) THEN "o_lock" ELSE "done")
+    /\ UNCHANGED <<db, lv, gh>>
+
+O_Lock(t) ==
+    /\ Kind(t) = "abroad" /\ pc[t] = "o_lock"
+    /\ IF ~Mut("abroad_unlocked_read") /\ Prt(t) \in db.port
+       THEN /\ BNKU(t, Prt(t)) = {}
+            /\ db' = [db EXCEPT !.pNKU[Prt(t)] = t]
+       ELSE UNCHANGED db
+    /\ lv' = [lv EXCEPT ![t].cur = AbroadV(t, Prt(t))]
+    /\ Goto(t, "o_do")
+    /\ UNCHANGED gh
+
+AbroadOk(t)     == Mut("no_abroad_recheck") \/ HasRole(t, Prt(t), Usr(t), AbroadRoles)
+AbroadWrites(t) == AbroadOk(t) /\ lv[t].cur = "null" /\ Prt(t) \in db.port
+AbroadNeed(t)   == IF AbroadWrites(t) THEN BNKU(t, Prt(t)) ELSE {}
+O_Do(t) ==
+    /\ Kind(t) = "abroad" /\ pc[t] = "o_do"
+    /\ AbroadNeed(t) = {}
+    /\ LET q == Prt(t)  u == Usr(t) IN
+       CASE ~AbroadOk(t) ->
+              /\ db' = ReleaseAll(db, t) /\ UNCHANGED gh             \* forbidden
+         [] ~AbroadWrites(t) ->                                     \* answered: returned, kept
+              /\ db' = CommitDB(db, t) /\ UNCHANGED gh
+         [] OTHER ->
+              LET dw == [db EXCEPT !.pNKU[q] = IF db.pX[q] = t THEN @ ELSE t,
+                                   !.aBy[q] = t, !.aNew[q] = Rl(t)]
+              IN /\ db' = CommitDB(dw, t)
+                 /\ gh' = [GhostCommit(dw, t) EXCEPT
+                             !.ansStale = @ \/ db.mem[q][u] \notin
+                                 (IF db.abroad[q] = "null" THEN AbroadRoles ELSE {"owner"}),
+                             !.overwrote = @ \/ db.abroad[q] \notin {"null", Rl(t)}]
+    /\ Goto(t, "done")
+    /\ UNCHANGED lv
+
+(* "res": the person's own "update public.profile_residences set ..."     *)
+(*   (column grants; policy profile_residences_update_own).  The row lock  *)
+(*   (NO KEY UPDATE) is taken before the BEFORE trigger                    *)
+(*   private.before_profile_residence_client_update runs, which reads      *)
+(*   account_deletions with a fresh snapshot (account_deleted) and stamps  *)
+(*   stated_at.  No other lock: user_id does not change (no FK check).     *)
+(*   Mutant "no_residence_refusal": the trigger does not refuse.           *)
+R_Upd(t) ==
+    /\ Kind(t) = "res" /\ pc[t] = "r_upd"
+    /\ LET u == Usr(t) IN
+       IF u \notin db.users
+       THEN /\ db' = CommitDB(db, t) /\ Goto(t, "done")           \* no row: 0 rows
+       ELSE /\ BRes(t, u) = {}
+            /\ IF u \in db.frozen /\ ~Mut("no_residence_refusal")
+               THEN /\ db' = ReleaseAll(db, t) /\ Goto(t, "done")  \* account_deleted
+               ELSE /\ db' = [db EXCEPT !.resX[u] = t, !.resNew[u] = "set"]
+                    /\ Goto(t, "r_commit")
+    /\ UNCHANGED <<lv, gh>>
+
+R_Commit(t) ==
+    /\ Kind(t) = "res" /\ pc[t] = "r_commit"
+    /\ db' = CommitDB(db, t)
+    /\ Goto(t, "done")
+    /\ UNCHANGED <<lv, gh>>
+
+(* "svc": the service role's "update portfolio_members set role = r" or   *)
+(*   "delete from portfolio_members" of (q, v), without a portfolio lock   *)
+(*   (an operator in the SQL editor).  The row lock, then                  *)
+(*   portfolio_members_after_caretaker_ends at the end of the statement:   *)
+(*   "update portfolios set caretaker_user_id = null where id = q and      *)
+(*   caretaker_user_id = v" (a portfolio row lock only when v is the       *)
+(*   caretaker in the row it reads), then COMMIT.                          *)
+S_Row(t) ==
+    /\ Kind(t) = "svc" /\ pc[t] = "s_row"
+    /\ BMW(t, Prt(t), Tgt(t)) = {}
+    /\ LET q == Prt(t)  v == Tgt(t) IN
+       IF MemV(t, q, v) = "none"
+       THEN /\ db' = CommitDB(db, t) /\ Goto(t, "done")           \* 0 rows
+            /\ UNCHANGED lv
+       ELSE /\ db' = [db EXCEPT !.mDirty[q][v] = t, !.mNew[q][v] = Rl(t)]
+            /\ lv' = [lv EXCEPT ![t].cur = MemV(t, q, v)]          \* OLD.role
+            /\ Goto(t, "s_trig")
+    /\ UNCHANGED gh
+
+SvcClears(t) ==
+    /\ ~Mut("no_care_trigger")
+    /\ lv[t].cur = "manager" /\ Rl(t) # "manager"
+    /\ Prt(t) \in db.port /\ CareV(t, Prt(t)) = Tgt(t)
+SvcNeed(t) == IF SvcClears(t) THEN BNKU(t, Prt(t)) ELSE {}
+S_Trig(t) ==
+    /\ Kind(t) = "svc" /\ pc[t] = "s_trig"
+    /\ SvcNeed(t) = {}
+    /\ LET q == Prt(t)
+           dw == IF SvcClears(t)
+                 THEN ClearCare([db EXCEPT !.pNKU[q] = t], t, {q})
+                 ELSE db
+       IN /\ db' = CommitDB(dw, t)
+          /\ gh' = GhostCommit(dw, t)
+    /\ Goto(t, "done")
+    /\ UNCHANGED lv
+
+-----------------------------------------------------------------------------
 (* Waiting, deadlocks, failures *)
 
 (* Need(t): the transactions t waits for at its current statement (empty  *)
@@ -1035,7 +1425,20 @@ Need(t) ==
       [] pc[t] = "g_user"  -> IF u \in db.users THEN BUX(t, u) ELSE {}
       [] pc[t] = "g_prof"  -> BProfX(t, u)
       [] pc[t] = "g_port"  -> UNION {BNKU(t, p) : p \in GPorts(t)}
-      [] pc[t] = "g_mem"   -> UNION {BM(t, p, u) : p \in GRows(t)} \cup (IF GRevokes(t) THEN BInv(t) ELSE {})
+      [] pc[t] = "g_mem"   -> UNION {BMW(t, p, u) : p \in GRows(t)} \cup (IF GRevokes(t) THEN BInv(t) ELSE {})
+      [] pc[t] = "g_care"  -> UNION {BNKU(t, p) : p \in GCare(t)}
+      [] pc[t] = "g_inv"   -> UNION {BMW(t, r[1], r[2]) : r \in GInvRows(t)}
+      [] pc[t] = "g_commit" -> BRes(t, u)
+      [] pc[t] = "a_res"   -> ResNeed(t)
+      [] pc[t] = "c_pre"   -> BM(t, q, Tgt(t))
+      [] pc[t] = "c_lock"  -> IF q \in db.port THEN BNKU(t, q) ELSE {}
+      [] pc[t] = "c_trig"  -> IF Mut("no_care_share") THEN {} ELSE BM(t, q, Tgt(t))
+      [] pc[t] = "c_fk"    -> BUKS(t, Tgt(t))
+      [] pc[t] = "o_lock"  -> IF ~Mut("abroad_unlocked_read") /\ q \in db.port THEN BNKU(t, q) ELSE {}
+      [] pc[t] = "o_do"    -> AbroadNeed(t)
+      [] pc[t] = "r_upd"   -> IF u \in db.users THEN BRes(t, u) ELSE {}
+      [] pc[t] = "s_row"   -> BMW(t, q, Tgt(t))
+      [] pc[t] = "s_trig"  -> SvcNeed(t)
       [] pc[t] = "g_lease" -> UNION {BL(t, p) : p \in GLeases(t)}
       [] pc[t] \in {"g_note1", "g_note2"} -> IF GNoteHit(t) THEN BN(t, GNote(t)) ELSE {}
       [] pc[t] = "n_prof"  ->
@@ -1072,7 +1475,7 @@ OnCycle(t) == t \in ReachN(Need(t), Cardinality(Procs))
 
 InLoop(t) == \/ IsAcct(t) /\ pc[t] \in {"a_lock", "a_purge"}
              \/ Kind(t) = "dport" /\ pc[t] \in {"d_lock", "d_purge"}
-IsDeletion(t) == \/ IsAcct(t) /\ pc[t] \in {"a_prof", "a_frz", "a_lock", "a_purge"}
+IsDeletion(t) == \/ IsAcct(t) /\ pc[t] \in {"a_prof", "a_frz", "a_lock", "a_purge", "a_res"}
                  \/ Kind(t) = "dport"
 
 (* PostgreSQL's deadlock detector aborts one transaction on the cycle.     *)
@@ -1104,6 +1507,8 @@ Holds(t) ==
     \/ \E q \in Ports, v \in Users : db.mDirty[q][v] = t
     \/ db.invX = t
     \/ \E n \in Notes : db.nX[n] = t
+    \/ \E q \in Ports, v \in Users : t \in db.mSh[q][v]
+    \/ \E u \in Users : db.resX[u] = t
 AbortAny(t) ==
     /\ CAN_ABORT
     /\ pc[t] \notin {"done", "a_ok", "a_gaveup", "a_failed"}
@@ -1124,6 +1529,10 @@ StartPC(t) ==
       [] Kind(t) = "depo"   -> IF Mut("no_client_key") THEN "l_upd" ELSE "l_set"
       [] Kind(t) = "ins"    -> IF Mut("no_insert_key") THEN "i_chk" ELSE "i_set"
       [] Kind(t) = "note"   -> "n_prof"
+      [] Kind(t) = "care"   -> "c_auth"
+      [] Kind(t) = "abroad" -> "o_auth"
+      [] Kind(t) = "res"    -> "r_upd"
+      [] Kind(t) = "svc"    -> "s_row"
 
 Init ==
     /\ db = [users |-> Users, frozen |-> {},
@@ -1141,17 +1550,30 @@ Init ==
              lease |-> [q \in Ports |-> HasLease(q)], lX |-> [q \in Ports |-> NoP],
              lDel |-> [q \in Ports |-> NoP], lKS |-> [q \in Ports |-> {}],
              inv |-> IF InvBy = NoP THEN "none" ELSE "pending", invX |-> NoP, invNew |-> NoP,
-             notes |-> InitNotes, nX |-> [n \in Notes |-> NoP], nDel |-> [n \in Notes |-> NoP]]
+             notes |-> InitNotes, nX |-> [n \in Notes |-> NoP], nDel |-> [n \in Notes |-> NoP],
+             care |-> [q \in Ports |-> InitCare(q)], cBy |-> [q \in Ports |-> NoP],
+             cNew |-> [q \in Ports |-> NoP], mSh |-> [q \in Ports |-> [v \in Users |-> {}]],
+             abroad |-> [q \in Ports |-> "null"], aBy |-> [q \in Ports |-> NoP],
+             aNew |-> [q \in Ports |-> "null"],
+             res |-> [u \in Users |-> "none"], resX |-> [u \in Users |-> NoP],
+             resNew |-> [u \in Users |-> "none"]]
     /\ pc = [t \in Procs |-> StartPC(t)]
     /\ lv = [t \in Procs |-> [att |-> 1, dl |-> 0, vids |-> {}, order |-> <<>>, vdel |-> {},
-                              yield |-> {}, chk |-> <<>>]]
+                              yield |-> {}, chk |-> <<>>, cur |-> "null"]]
     /\ gh = [frozenEver |-> {}, late |-> FALSE, everDeleted |-> {}, reused |-> FALSE,
              stale |-> FALSE, sole |-> FALSE, inviter |-> FALSE, dlFail |-> FALSE,
-             delBy |-> [u \in Users |-> {}], succ |-> [u \in Users |-> FALSE]]
+             delBy |-> [u \in Users |-> {}], succ |-> [u \in Users |-> FALSE],
+             careStale |-> FALSE, ansStale |-> FALSE, overwrote |-> FALSE]
 
 Step(t) ==
-    \/ A_Live(t) \/ A_Prof(t) \/ A_Frz(t) \/ A_Mem(t) \/ A_Lock(t) \/ A_Purge(t)
-    \/ G_User(t) \/ G_Prof(t) \/ G_Port(t) \/ G_Mem(t) \/ G_Lease(t) \/ G_Note(t) \/ G_Commit(t)
+    \/ A_Live(t) \/ A_Prof(t) \/ A_Frz(t) \/ A_Mem(t) \/ A_Lock(t) \/ A_Purge(t) \/ A_Res(t)
+    \/ G_User(t) \/ G_Prof(t) \/ G_Port(t) \/ G_Mem(t) \/ G_Inv(t) \/ G_Lease(t) \/ G_Note(t)
+    \/ G_Care(t)
+    \/ G_Commit(t)
+    \/ C_Auth(t) \/ C_Pre(t) \/ C_Lock(t) \/ C_Do(t) \/ C_Trig(t) \/ C_FK(t)
+    \/ O_Auth(t) \/ O_Lock(t) \/ O_Do(t)
+    \/ R_Upd(t) \/ R_Commit(t)
+    \/ S_Row(t) \/ S_Trig(t)
     \/ A_Failed(t)
     \/ M_Auth(t) \/ M_Lock(t) \/ M_Do(t) \/ M_Write(t)
     \/ X_Act(t) \/ X_PLock(t) \/ X_Inv(t) \/ X_Ins(t)
@@ -1184,6 +1606,10 @@ TypeOK ==
     /\ db.mDirty \in [Ports -> [Users -> ProcsOrNo]]
     /\ db.inv \in {"none", "pending", "revoked", "accepted", "gone"}
     /\ db.notes \subseteq Notes /\ db.nX \in [Notes -> ProcsOrNo]
+    /\ db.care \in [Ports -> Users \cup {NoP}] /\ db.cBy \in [Ports -> ProcsOrNo]
+    /\ db.mSh \in [Ports -> [Users -> SUBSET Procs]]
+    /\ db.abroad \in [Ports -> {"null", "yes", "no"}]
+    /\ db.res \in [Users -> {"none", "set"}] /\ db.resX \in [Users -> ProcsOrNo]
     /\ pc \in [Procs -> STRING]
 
 (* Sanity: foreign keys and ON DELETE CASCADE hold in committed rows. *)
@@ -1226,6 +1652,26 @@ CompletedDeletionsClean ==
         /\ u \notin db.users
         /\ \A q \in Ports : db.mem[q][u] = "none"
         /\ gh.delBy[u] \cap db.port = {}
+
+(* Residence.  A portfolio's caretaker is, in committed state, a member  *)
+(* of it with the manager role.                                            *)
+CaretakerIsManager ==
+    \A q \in db.port : db.care[q] # NoP => db.mem[q][db.care[q]] = "manager"
+
+(* set_caretaker commits a caretaker only while its caller is an owner. *)
+CaretakerAuthorisedAtCommit == ~gh.careStale
+
+(* set_owner_abroad changes the answer only while its caller may: an owner *)
+(* or a manager while it is unanswered, an owner once it is answered.      *)
+AnswerAuthorisedAtCommit == ~gh.ansStale
+
+(* The question asked on the next open never overwrites an answer given.  *)
+FirstAnswerKept == ~gh.overwrote
+
+(* Once admin_delete_account_data(u) has committed, u's declared residence *)
+(* is cleared and stays so while the row exists.                           *)
+ResidenceGoneAfterDeletion ==
+    \A u \in gh.frozenEver : u \in db.users => db.res[u] = "none"
 
 (* Liveness: every request finishes (waits end; deadlocks are resolved). *)
 AllFinish == <>Terminated
