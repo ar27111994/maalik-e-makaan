@@ -19,6 +19,23 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   changed: the e-mail templates (`supabase/templates/` and `invite-member`), the gallery's Urdu
   screenshots, and an independent design review of the change (`docs/design-qa.md`). Pilot
   readers confirm the face (`docs/roadmap/urdu-review.md`).
+- Decision 1 of the roadmap (D-16, residence), backend and domain half, on branch
+  `wip/residence` (not pushed, not merged): `20261112092618_residence.sql`
+  (`profile_residences`, `portfolios.owner_abroad` added as NULL with the caretaker columns and
+  their triggers, `create_portfolio` with `p_owner_abroad`, `set_owner_abroad`, `set_caretaker`;
+  the definer allowlist is now 23), pgTAP suites 22 (by hand) and 23 (generated), the upgrade test,
+  the contracts `residence_vectors.json` and `time_zone_vectors.json` from the pinned PyPI
+  `tzdata` 2026.6 (IANA 2026f), `mm_core`'s `CountryCode`, `Residence`, `OwnerAbroad`,
+  `TimeZoneId`, `QuietHours` and `DualTime` with the bundled zone data, and the app's data layer
+  (models, repositories, providers; no screens). Not done in that run: concurrency scenario 31 and
+  the TLA+ Membership extension (to follow `wip/db-concurrency-hang`). `make test-db-stress` ran
+  while another worktree was building (load average up to 15): every check passed except the
+  once-a-day notifications' 15 s budget (25 s), which the base commit 9480e22 missed too (30 s and
+  38 s), so its figures were not compared with "What it costs" in `permissions.md`; re-run it on an
+  idle machine.
+  The UI half (onboarding, the owner-abroad question, settings, ARB strings, goldens, the privacy
+  page, the data export) waits for the Noto Sans Arabic switch, because it re-records goldens. The
+  owner's open questions Q1–Q7 are in `docs/roadmap/README.md`, decision 1.
 - The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
   items are researched and planned, one plan each in `docs/roadmap/`, indexed by
   `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
@@ -103,6 +120,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   to the commits that applied them (764e640, c1c0d7a, 13c5d18, f155413, 67639d8, e853378 and the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
+- `20261112092618_residence.sql` is **not applied** to the hosted project (D-14: the owner applies
+  it, then "After every migration" in `docs/operations.md`, then `tool/db/time_zone_skew.sql` on
+  the hosted project).
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
   was applied on 2026-11-09 by the process in `docs/operations.md`; afterwards no live automatic
@@ -140,6 +160,11 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   `SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io`; the root disk has about 1 GB free, so Docker's
   data lives on a RAM disk (`/mnt/mmdocker`); the edge-runtime container must trust the proxy's
   CA (`docs/uat.md`, Environment). `make test-uat` then runs the browser UAT.
+- Time zones: the local PostgreSQL 16 uses the system's tzdata 2026e, and `pg_timezone_names` has
+  no backward links (`Asia/Calcutta`, `US/Eastern` are absent). The contract generator never reads
+  it: `tool/contracts/time_zones.py` reads the PyPI `tzdata` pinned in `tool/requirements.txt`
+  (`make bootstrap` installs it into `.venv`). `tool/db/time_zone_skew.sql` here returns one row,
+  `America/Havana` on 1 January 2027 (2026f changed Cuba's clock).
 - `*.supabase.co` and `supabase.com` are blocked from the container. Use the Supabase MCP tools
   for the hosted project; `search_docs` reads the documentation.
 - `git ls-remote` against GitHub works, which is how GitHub Actions get pinned to commit SHAs.
