@@ -113,7 +113,7 @@ app/pubspec.lock
 **/linux/flutter/generated_plugins.cmake
 
 # ───────────────────────── Node / web ─────────────────────────
-node_modules/
+node_modules
 .npm/
 .astro/
 dist/
