@@ -62,12 +62,19 @@ by `contracts/`.
    Lucide name to `design/icons/icons.json`, then `make icons` (needs `npm ci`). A change to
    `primary`, `onPrimary` or the light `bg`, or to the mark in `website/src/lib/brand.ts`, also
    changes the app's launcher icons: run `make app-icons` and look at every changed image (and
-   `npm run og` in `website/` for the site's own icons).
+   `npm run og` in `website/` for the site's own icons). A change to `font.family.urdu`,
+   `font.family.urduWordmark` or an Urdu type style also rewrites the e-mails' Urdu type: the
+   three Auth templates in `supabase/templates/` and `email_typography.g.ts`, which the
+   invitation's snapshots embed. Render the changed e-mails and look at their Urdu halves; the
+   owner pastes each changed template into the dashboard after the release that carries it
+   (`docs/operations.md`, Releasing, step 5).
 2. Components: follow `packages/mm_ui/COMPONENTS.md`; keep the API additive, because the app
    depends on it.
 3. Add the component to its family's gallery page in `packages/mm_ui/example/lib/src/pages/`.
 4. Run `make tokens-check icons-check fonts-check app-icons-check test-ui test-gallery test-app`
-   (the app's goldens show whether a change leaks into its screens).
+   (the app's goldens show whether a change leaks into its screens) and `make test-functions`.
+   When the invitation's snapshot changes with the Urdu type, record it again with
+   `cd supabase/functions && deno task test:update-snapshots` and read the diff.
 
 ## Change an Edge Function
 

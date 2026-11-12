@@ -456,7 +456,8 @@ CI fails when a copy drifts.
   generated-files table, the README's release line, the ranges of decisions and proposals, and
   the counts of golden variants, TLA+ models and pgTAP tests, the deck's included).
 - `make roadmap-check` keeps the website's copy of the roadmap in step with `.github/roadmap.toml`.
-- `make tokens-check` keeps `DESIGN.md`'s frontmatter in step with the tokens.
+- `make tokens-check` keeps `DESIGN.md`'s frontmatter, and the Urdu type of the e-mails, in step
+  with the tokens.
 - The Markdown linters and the Unicode and Urdu guards run in `make lint`.
 
 **Still to reach.** The facts still copied by hand, each generated or checked:

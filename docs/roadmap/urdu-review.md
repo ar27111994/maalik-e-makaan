@@ -137,8 +137,8 @@ articles carry the Urdu.
    `make lint` (in place since November 2026).
 7. **M:** the font change of D-19 (Noto Sans Arabic for interface text, Nastaliq for the wordmark,
    new line-height tokens, Urdu goldens re-recorded; in place since November 2026 in the app, the
-   website and the pitch deck, with the e-mail templates still to follow); then a check with pilot
-   readers.
+   website, the pitch deck and the e-mails, whose Urdu type `make tokens` writes from the tokens);
+   then a check with pilot readers.
 
 ## Depends on / Unblocks
 
