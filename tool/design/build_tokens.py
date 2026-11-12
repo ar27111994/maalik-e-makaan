@@ -16,16 +16,27 @@ Outputs (all committed):
   DESIGN.md (frontmatter only)                    the agent-facing design context: its YAML
                                                   tokens are written from the tokens file and
                                                   its markdown body is kept as written
+  supabase/functions/_shared/email_typography.g.ts
+                                                  the e-mails' Urdu type, for the invitation
+  supabase/templates/*.html (Urdu type only)      the Auth e-mails: the font-family and
+                                                  line-height of their Urdu elements are written
+                                                  from the tokens, everything else is kept
 
 DESIGN.md's component recipes are linted here the way the Stitch CLI
 (@google/design.md) lints them: every {reference} must resolve, and every
 component pairing text with a background must reach 4.5:1.
+
+The e-mails' Urdu type follows D-19: Urdu text in the Urdu stack, with installed sans faces
+added for e-mail (EMAIL_URDU_FALLBACKS), and Nastaliq for the brand name only where it stands
+as the wordmark. A template whose Urdu is set in anything else is stale, so `--check` fails.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import sys
+from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +44,9 @@ SOURCE = ROOT / "design" / "tokens" / "maalik.tokens.json"
 DART_OUT = ROOT / "packages" / "mm_ui" / "lib" / "src" / "tokens" / "mm_tokens.g.dart"
 CSS_OUT = ROOT / "design" / "tokens" / "maalik.tokens.css"
 DESIGN_MD = ROOT / "DESIGN.md"
+EMAIL_TS_OUT = ROOT / "supabase" / "functions" / "_shared" / "email_typography.g.ts"
+EMAIL_TEMPLATES = ROOT / "supabase" / "templates"
+URDU_ARB = ROOT / "app" / "lib" / "l10n" / "arb" / "app_ur.arb"
 
 COLOR_MODES = ("light", "dark", "lightHighContrast", "darkHighContrast")
 HIGH_CONTRAST_MODES = {"lightHighContrast", "darkHighContrast"}
@@ -670,11 +684,258 @@ def render_design_md(model: dict, current: str) -> str:
     return render_design_frontmatter(model) + current[end + len("\n---\n") :]
 
 
+# --- e-mail --------------------------------------------------------------------------
+
+# Installed faces with Urdu letters that the e-mails name after the Urdu stack's own faces and
+# before its generic family. Gmail and Outlook load no web font (caniemail.com, @font-face), so
+# an e-mail's Urdu is drawn in a font the reader already has:
+# - Windows: Segoe UI and Tahoma, already in the Urdu stack (Firefox's own Arabic-script
+#   sans-serif on Windows is "Segoe UI, Tahoma, Arial": modules/libpref/init/all.js).
+# - Apple: Geeza Pro, Apple's Arabic-script sans, a system font on iOS and macOS
+#   (developer.apple.com/fonts/system-fonts) and the Arabic-script sans-serif Firefox names on
+#   both. Tahoma is only a download on iOS, and Apple also ships Noto Nastaliq Urdu as a system
+#   font, so a stack that reached only the generic family could be drawn in Nastaliq there.
+# - Android: nothing to name. Its Arabic-script faces (Noto Naskh Arabic and its UI cut) are
+#   fallbacks without a family name (data/fonts/fonts.xml), reached through the generic family.
+EMAIL_URDU_FALLBACKS = ("Geeza Pro",)
+
+# Names of Nastaliq faces, matched in lower case. D-19 keeps Nastaliq for the wordmark only.
+NASTALIQ_MARKERS = ("nastaliq", "nastaleeq", "urdu typesetting", "gulzar")
+
+VOID_ELEMENTS = frozenset(
+    {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
+)
+HEADINGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
+ARABIC_SCRIPT = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]")
+STYLE_ATTRIBUTE = re.compile(r'(\sstyle=")([^"]*)(")')
+ANY_STYLE_ATTRIBUTE = re.compile(r"\sstyle\s*=", re.IGNORECASE)
+FONT_SHORTHAND = re.compile(r"(?<![-\w])font\s*:", re.IGNORECASE)
+
+
+def _declaration(name: str) -> re.Pattern[str]:
+    """A declaration's value in a style attribute (group 2), after its name and colon (group 1)."""
+    return re.compile(rf"(?<![-\w])({name}\s*:\s*)([^;]*?)(\s*(?:;|$))", re.IGNORECASE)
+
+
+FONT_FAMILY = _declaration("font-family")
+LINE_HEIGHT = _declaration("line-height")
+
+
+def is_nastaliq(family: str) -> bool:
+    lowered = family.lower()
+    return any(marker in lowered for marker in NASTALIQ_MARKERS)
+
+
+def _split_generic(stack: list[str], where: str) -> tuple[list[str], list[str]]:
+    """The stack's named faces and its generic family, which must come last."""
+    named = [f for f in stack if f not in CSS_GENERIC_FAMILIES]
+    generic = [f for f in stack if f in CSS_GENERIC_FAMILIES]
+    _require(
+        len(generic) == 1 and stack[-1] == generic[0],
+        f"{where} must end with one generic family",
+    )
+    return named, generic
+
+
+def email_typography(model: dict) -> dict[str, dict]:
+    """The e-mails' Urdu type: the Urdu stack with EMAIL_URDU_FALLBACKS before its generic
+    family, the wordmark's stack as it is, and line heights from the Urdu styles."""
+    families = model["families"]
+    named, generic = _split_generic(families["urdu"], "font.family.urdu")
+    urdu = list(dict.fromkeys([*named, *EMAIL_URDU_FALLBACKS])) + generic
+    nastaliq = [f for f in urdu if is_nastaliq(f)]
+    _require(
+        nastaliq == [],
+        f"the e-mails' Urdu stack names {', '.join(nastaliq)}: Nastaliq is for the wordmark only",
+    )
+    wordmark = families["urduWordmark"]
+    _split_generic(wordmark, "font.family.urduWordmark")
+
+    def line_height(role: str) -> float:
+        return round(model["typography"][("urdu", role)]["height"], 2)
+
+    return {
+        "urdu": {
+            "fontFamily": urdu,
+            "lineHeight": line_height("body"),
+            "headingLineHeight": line_height("headline"),
+        },
+        "urduWordmark": {"fontFamily": wordmark, "lineHeight": line_height("wordmark")},
+    }
+
+
+def email_stack(stack: list[str]) -> str:
+    """A stack for a style attribute in double quotes: names with spaces in single quotes."""
+    return ", ".join(f"'{f}'" if " " in f else f for f in stack)
+
+
+def render_email_ts(email: dict[str, dict]) -> str:
+    urdu, wordmark = email["urdu"], email["urduWordmark"]
+    lines = [
+        "// GENERATED by tool/design/build_tokens.py from design/tokens/maalik.tokens.json.",
+        "// Do not edit by hand: change the tokens and run `make tokens`.",
+        "",
+        "/**",
+        " * Urdu type for e-mail (D-19). An e-mail loads no web font, so the reader's installed",
+        " * fonts draw it: Urdu text takes the tokens' Urdu stack with installed sans faces added",
+        " * before its generic family, and Nastaliq is for the brand name only, where it stands as",
+        " * the wordmark. Line heights are multiples of the font size; names are in single quotes,",
+        " * for a style attribute in double quotes.",
+        " */",
+        "export const EMAIL_TYPOGRAPHY = {",
+        "  /** Urdu text. */",
+        "  urdu: {",
+        f'    fontFamily: "{email_stack(urdu["fontFamily"])}",',
+        f"    lineHeight: {_num(urdu['lineHeight'])},",
+        f"    headingLineHeight: {_num(urdu['headingLineHeight'])},",
+        "  },",
+        "  /** The brand name where it stands as the wordmark, and nothing else. */",
+        "  urduWordmark: {",
+        f'    fontFamily: "{email_stack(wordmark["fontFamily"])}",',
+        f"    lineHeight: {_num(wordmark['lineHeight'])},",
+        "  },",
+        "} as const;",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def wordmark_name(arb: Path | None = None) -> str:
+    """The app's Urdu name (`appName` in app_ur.arb), the only text the wordmark sets."""
+    name = json.loads((arb or URDU_ARB).read_text(encoding="utf-8")).get("appName")
+    _require(isinstance(name, str) and name.strip() != "", "app_ur.arb has no appName")
+    return " ".join(name.split())
+
+
+class _UrduElements(HTMLParser):
+    """Collects every element in Urdu (lang="ur" on it or an ancestor), with where its start
+    tag lies in the source and the text it holds."""
+
+    def __init__(self, source: str, where: str) -> None:
+        super().__init__(convert_charrefs=True)
+        self.source, self.where = source, where
+        self.line_starts = [0] + [match.end() for match in re.finditer("\n", source)]
+        self.open: list[dict] = []
+        self.urdu: list[dict] = []
+
+    def fail(self, message: str) -> None:
+        raise TokenError(f"{self.where}:{self.getpos()[0]}: {message}")
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "style" or (
+            tag == "link" and any(k == "rel" and v == "stylesheet" for k, v in attrs)
+        ):
+            self.fail("e-mail styles are inline; a style sheet would escape this check")
+        line, column = self.getpos()
+        start = self.line_starts[line - 1] + column
+        raw = self.get_starttag_text() or ""
+        lang = next((v for k, v in attrs if k == "lang"), None)
+        inherited = self.open[-1]["urdu"] if self.open else False
+        urdu = inherited if lang is None else lang.lower().split("-")[0] == "ur"
+        element = {
+            "tag": tag,
+            "urdu": urdu,
+            "root": urdu and not inherited,
+            "start": start,
+            "raw": raw,
+            "line": line,
+            "text": [],
+        }
+        if urdu:
+            self.urdu.append(element)
+        if tag not in VOID_ELEMENTS:
+            self.open.append(element)
+
+    def handle_endtag(self, tag: str) -> None:
+        for index in range(len(self.open) - 1, -1, -1):
+            if self.open[index]["tag"] == tag:
+                del self.open[index:]
+                return
+
+    def handle_data(self, data: str) -> None:
+        urdu = ARABIC_SCRIPT.search(data)
+        if urdu and not (self.open and self.open[-1]["urdu"]):
+            line = self.getpos()[0] + data.count("\n", 0, urdu.start())
+            raise TokenError(
+                f'{self.where}:{line}: Urdu text outside a lang="ur" element: {data.strip()!r}'
+            )
+        for element in self.open:
+            element["text"].append(data)
+
+
+def _restyle(element: dict, role: dict, where: str, *, spaced: bool) -> str:
+    """The element's start tag with its font-family and line-height set to [role]'s. An Urdu
+    root must set a font-family, and also a line-height when [spaced]."""
+    raw = element["raw"]
+    found = STYLE_ATTRIBUTE.search(raw)
+    if found is None:
+        _require(
+            ANY_STYLE_ATTRIBUTE.search(raw) is None,
+            f"{where}:{element['line']}: write the style attribute in double quotes",
+        )
+        style = ""
+    else:
+        style = found.group(2)
+    _require(
+        FONT_SHORTHAND.search(style) is None,
+        f"{where}:{element['line']}: set Urdu type with font-family and line-height, "
+        "not the font shorthand",
+    )
+    if element["root"]:
+        _require(
+            FONT_FAMILY.search(style) is not None,
+            f"{where}:{element['line']}: <{element['tag']} lang=\"ur\"> sets no font-family, "
+            "so its Urdu would take the surrounding face",
+        )
+        _require(
+            not spaced or LINE_HEIGHT.search(style) is not None,
+            f"{where}:{element['line']}: <{element['tag']} lang=\"ur\"> sets no line-height, "
+            "so its Urdu lines would be spaced for the surrounding face",
+        )
+    stack, line_height = email_stack(role["fontFamily"]), _num(role["lineHeight"])
+    restyled = FONT_FAMILY.sub(lambda m: m.group(1) + stack + m.group(3), style)
+    restyled = LINE_HEIGHT.sub(lambda m: m.group(1) + line_height + m.group(3), restyled)
+    if found is None:
+        return raw
+    return raw[: found.start(2)] + restyled + raw[found.end(2) :]
+
+
+def render_email_template(email: dict[str, dict], html: str, name: str, where: str) -> str:
+    """[html] with the font-family and line-height of its Urdu elements written from [email]:
+    the Urdu stack for text (a heading's line height for h1 to h6), the wordmark's stack for
+    an element that holds the brand name [name] alone. Everything else is kept as written."""
+    parser = _UrduElements(html, where)
+    parser.feed(html)
+    parser.close()
+    urdu, wordmark = email["urdu"], email["urduWordmark"]
+    heading = {"fontFamily": urdu["fontFamily"], "lineHeight": urdu["headingLineHeight"]}
+    out = html
+    for element in reversed(parser.urdu):
+        is_wordmark = " ".join("".join(element["text"]).split()) == name
+        role = urdu
+        if is_wordmark:
+            role = wordmark
+        elif element["tag"] in HEADINGS:
+            role = heading
+        start, end = element["start"], element["start"] + len(element["raw"])
+        _require(out[start:end] == element["raw"], f"{where}:{element['line']}: unreadable tag")
+        restyled = _restyle(element, role, where, spaced=not is_wordmark)
+        out = out[:start] + restyled + out[end:]
+    return out
+
+
 def outputs(model: dict) -> dict[Path, str]:
+    email = email_typography(model)
+    name = wordmark_name()
+    templates = {
+        path: render_email_template(email, path.read_text(encoding="utf-8"), name, _display(path))
+        for path in sorted(EMAIL_TEMPLATES.glob("*.html"))
+    }
     return {
         DART_OUT: render_dart(model),
         CSS_OUT: render_css(model),
         DESIGN_MD: render_design_md(model, DESIGN_MD.read_text(encoding="utf-8")),
+        EMAIL_TS_OUT: render_email_ts(email),
+        **templates,
     }
 
 

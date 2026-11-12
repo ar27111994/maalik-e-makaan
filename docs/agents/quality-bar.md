@@ -450,7 +450,8 @@ CI fails when a copy drifts.
 **Gates today.**
 
 - `make roadmap-check` keeps the website's copy of the roadmap in step with `.github/roadmap.toml`.
-- `make tokens-check` keeps `DESIGN.md`'s frontmatter in step with the tokens.
+- `make tokens-check` keeps `DESIGN.md`'s frontmatter, and the Urdu type of the e-mails, in step
+  with the tokens.
 - The Markdown linters and the Unicode and Urdu guards run in `make lint`.
 
 **Still to reach.** Generated blocks, with a CI check, for the other repeated facts.

@@ -188,7 +188,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/github -p 'test_*.py'
 
 .PHONY: tokens
-tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)
+tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter, the e-mails' Urdu type)
 	python3 tool/design/build_tokens.py
 
 .PHONY: tokens-check

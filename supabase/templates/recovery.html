@@ -5,7 +5,9 @@
   pasted into the dashboard (docs/operations.md, E-mail); supabase/config.toml
   points the local stack at this file. Colours are the light theme's tokens
   (design/tokens/maalik.tokens.css), written out because e-mail clients ignore
-  CSS variables.
+  CSS variables. The font-family and line-height of the Urdu elements are written
+  by `make tokens` from the type tokens (D-19: Urdu text in installed sans faces,
+  Nastaliq for the wordmark only), and `make tokens-check` fails if they differ.
 -->
 <html lang="en">
   <head>
@@ -21,7 +23,7 @@
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background: #FFFFFF; border: 1px solid #D5DAE0; border-radius: 12px;">
           <tr>
             <td style="padding: 24px 32px 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: bold; color: #1D3F8F;">
-              Maalik-e-Makaan · <span lang="ur" dir="rtl" style="font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', 'Noto Naskh Arabic', serif;">مالکِ مکان</span>
+              Maalik-e-Makaan · <span lang="ur" dir="rtl" style="font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', serif;">مالکِ مکان</span>
             </td>
           </tr>
           <tr>
@@ -38,8 +40,8 @@
           </tr>
           <tr><td style="padding: 0 32px;"><hr style="border: 0; border-top: 1px solid #D5DAE0; margin: 0;"></td></tr>
           <tr>
-            <td lang="ur" dir="rtl" style="padding: 24px 32px; text-align: right; font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', 'Noto Naskh Arabic', serif; color: #1F2328; line-height: 2.2;">
-              <h1 style="margin: 0 0 16px; font-size: 22px; font-weight: bold; line-height: 2.2;">نیا پاس ورڈ بنائیں</h1>
+            <td lang="ur" dir="rtl" style="padding: 24px 32px; text-align: right; font-family: 'Noto Sans Arabic', 'Segoe UI', Tahoma, 'Geeza Pro', sans-serif; color: #1F2328; line-height: 1.65;">
+              <h1 style="margin: 0 0 16px; font-size: 22px; font-weight: bold; line-height: 1.52;">نیا پاس ورڈ بنائیں</h1>
               <p style="margin: 0 0 16px; font-size: 16px;">کسی نے مالکِ مکان ایپ میں اس ای میل والے اکاؤنٹ کا نیا پاس ورڈ بنانے کو کہا ہے۔ اگر یہ آپ تھے تو نیا پاس ورڈ بنائیں۔</p>
               <p style="margin: 24px 0;">
                 <a href="{{ .ConfirmationURL }}" style="display: inline-block; padding: 12px 24px; background: #1D3F8F; color: #FFFFFF; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 8px;">نیا پاس ورڈ بنائیں</a>
