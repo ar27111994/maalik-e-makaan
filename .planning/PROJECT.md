@@ -142,17 +142,20 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     privacy page, FAQ and footer, which promise no analytics in English and Urdu, change to match.
   - The app sends nothing to PostHog or Intercom until the person opts in.
   - Customer.io sends transactional e-mail, and lifecycle e-mail only to people who consented.
-  - The existing accounts stay (12 November 2026): PostHog's US Cloud project, and Customer.io's
-    US workspace, which is on Customer.io's Startup plan. The privacy notice names the US as where
-    these processors handle data, under their standard data-transfer terms. This replaces the
-    research's suggestion of PostHog's EU Cloud.
+  - The existing accounts stay (12 November 2026): PostHog's US Cloud organisation, and
+    Customer.io's US workspace, which is on Customer.io's Startup plan. The privacy notice names
+    the US as where these processors handle data, under their standard data-transfer terms. This
+    replaces the research's suggestion of PostHog's EU Cloud.
+  - Maalik-e-Makaan has its own PostHog project in that organisation (project 730301, created at
+    the owner's request on 12 November 2026), so its data is kept apart from any other product's.
 
   The rest of the research's design is unchanged and still applies: cookieless mode on the
   website; opt-in only in the app; no session replay, autocapture, surveys or feature flags; the
-  objection switch and Do Not Track. The existing PostHog project has session recording, heatmaps,
-  console-log capture and dead-click capture switched on in its project settings. The website and
-  the app must not use them: the SDK configuration turns them off, and those project settings are
-  switched off before any SDK ships, as an owner or set-up step.
+  objection switch and Do Not Track. The project was set up that way: session recording, heatmaps,
+  console-log capture, dead-click capture, autocapture, web-vitals capture and surveys are off;
+  client IP addresses are discarded; cookieless tracking is on; its time zone is Asia/Karachi and
+  its currency the rupee. The SDK configuration on the website and in the app turns the same
+  features off too, so neither depends on the other.
 
   The research recommends an order of work, which is not part of the decision: the new privacy
   text first, reviewed by the lawyer, then consent records, then the SDKs. The design and its work

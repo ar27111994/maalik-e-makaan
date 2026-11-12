@@ -77,8 +77,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
     the `manager` role; amounts in rupees only at launch, with no converted totals and no
     `display_currency`; the owner-abroad question asked with no answer chosen; letterheads per
     portfolio, with an optional Urdu version, A5 or A4 receipts (A5 by default), on every plan;
-    PostHog's US Cloud project and Customer.io's US workspace kept, with the US named in the
-    privacy notice and PostHog's recording, heatmap, console-log and dead-click settings off;
+    PostHog's US Cloud organisation and Customer.io's US workspace kept, with the US named in the
+    privacy notice; a dedicated PostHog project (730301) created that day with recording,
+    heatmaps, console-log and dead-click capture, autocapture and surveys off and cookieless on;
   - D-19 (the owner, 2026-11-11; in place since 2026-11-12): Urdu interface text in Noto Sans
     Arabic, Nastaliq kept for the wordmark.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
