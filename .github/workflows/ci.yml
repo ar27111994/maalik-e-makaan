@@ -351,7 +351,10 @@ jobs:
           sudo -u postgres psql -c "alter role postgres password 'postgres'"
       - name: Migrations and pgTAP suites
         run: make test-db
+      # About 5 minutes. Each scenario has its own watchdog (tool/db/concurrency_test.sh);
+      # this limit ends the step, not the job, so its log can still be read.
       - name: Concurrency scenarios and invariants
+        timeout-minutes: 20
         run: make test-db-concurrency
 
   supabase-stack:

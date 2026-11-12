@@ -96,6 +96,17 @@
 #      without an owner or without members; no document outlives its entity,
 #      references a missing file, or references a file queued for deletion.
 #
+# Nothing here waits without a limit. PostgreSQL ends every cycle of lock
+# waits it can see, but not a wait on anything else (a session idle in its
+# transaction because its client stopped, a wait inside the server, a
+# statement that never ends), and a bare `wait` waits for every background
+# session. So each scenario gives its sessions a lock_timeout, a
+# statement_timeout and an idle_in_transaction_session_timeout well above the
+# waits it causes on purpose, and runs under a watchdog: past its budget, the
+# watchdog prints the scenario's sessions (what each waits for, and on whom)
+# and their locks, terminates them and fails the run. Each scenario prints
+# its duration.
+#
 # Exits non-zero on any violation. Uses the local test server (tool/db/env.sh).
 set -euo pipefail
 
@@ -103,12 +114,220 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=tool/db/env.sh
 source "$ROOT/tool/db/env.sh"
 export MM_TEST_DB="${MM_TEST_DB}_concurrency"
-"$ROOT/tool/db/reset.sh" >/dev/null
+MAIN_DB="$MM_TEST_DB"
+RESTORED_DB="${MAIN_DB}_restored"
+# The caller's session options; each scenario adds its timeouts to them.
+BASE_PGOPTIONS="${PGOPTIONS:-}"
+# A server that stops answering fails a connection instead of holding it.
+export PGCONNECT_TIMEOUT="${PGCONNECT_TIMEOUT:-30}"
 
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
-
 psql_db() { psql -X -q -At -v ON_ERROR_STOP=1 -d "$MM_TEST_DB" "$@"; }
+drop_restored() {
+  PGOPTIONS="-c client_min_messages=warning -c statement_timeout=60s" \
+    psql -X -q -d postgres -c "drop database if exists ${RESTORED_DB} with (force)"
+}
+
+# Scenarios and their watchdog --------------------------------------------------------
+# The watchdog prints to the suite's own output (fd 3), never into the
+# command substitution that starts it.
+exec 3>&1
+SCENARIO=""
+SCENARIO_STARTED=""
+SCENARIO_LOCK_WAIT=30
+WATCHDOG=""
+SUITE_STARTED="${EPOCHREALTIME/[.,]/}"
+SCENARIOS_DONE=0
+# Seconds since the microsecond timestamp $1, as "12.3 s".
+elapsed() {
+  local us=$((${EPOCHREALTIME/[.,]/} - $1))
+  printf '%d.%d s' $((us / 1000000)) $((us % 1000000 / 100000))
+}
+# scenario BUDGET LOCK_WAIT TITLE: ends the scenario before it, then starts
+# this one. BUDGET is how many seconds the whole scenario may take before the
+# watchdog stops it; LOCK_WAIT how long one statement may wait for a lock.
+# A statement may run twice that long in all, and a session may sit idle in
+# a transaction that long (psql sends its statements back to back, so none
+# does on purpose). The waits a scenario causes last a few seconds at most,
+# and a long cascade (12, 14) under a minute on CI.
+scenario() {
+  local options
+  scenario_done
+  SCENARIO="$3"
+  SCENARIO_LOCK_WAIT="$2"
+  echo "▸ $3"
+  options="${BASE_PGOPTIONS} -c lock_timeout=${2}s -c statement_timeout=$((2 * $2))s"
+  export PGOPTIONS="${options} -c idle_in_transaction_session_timeout=${2}s"
+  SCENARIO_STARTED="${EPOCHREALTIME/[.,]/}"
+  # Started from a command substitution, the watchdog is not a job of this
+  # shell, so a bare `wait` does not wait for it.
+  WATCHDOG="$(
+    watchdog "$1" >&3 2>&3 &
+    echo $!
+  )"
+}
+# Stops the watchdog of the scenario that just passed and prints its duration.
+scenario_done() {
+  if [[ -n "$WATCHDOG" ]]; then
+    kill "$WATCHDOG" 2>/dev/null || true
+    WATCHDOG=""
+    SCENARIOS_DONE=$((SCENARIOS_DONE + 1))
+    echo "  done in $(elapsed "$SCENARIO_STARTED")"
+  fi
+}
+# The sessions of this run's databases, what each waits for and on whom, then
+# the locks they hold or wait for (relation names from each session's own
+# database).
+# Runs psql with a client-side deadline of 15 s: statement_timeout needs a
+# server that still answers, and PGCONNECT_TIMEOUT only bounds connecting, so
+# a server that stops replying on an open connection could otherwise hold the
+# report, or the watchdog, for ever. Without timeout(1) (coreutils), psql runs
+# unbounded and the watchdog's own stop timer (below) still ends the run.
+bounded_psql() {
+  if command -v timeout >/dev/null; then
+    PGOPTIONS="-c statement_timeout=10s" timeout --kill-after=5 15 psql "$@"
+  else
+    PGOPTIONS="-c statement_timeout=10s" psql "$@"
+  fi
+}
+report_sessions() {
+  local db
+  bounded_psql -X -P pager=off -d postgres -c "
+    select pid, datname, state, wait_event_type, wait_event, pg_blocking_pids(pid) as blocked_by,
+           date_trunc('second', now() - xact_start) as in_transaction,
+           date_trunc('second', now() - state_change) as in_state,
+           left(regexp_replace(query, '\s+', ' ', 'g'), 160) as query
+    from pg_stat_activity
+    where datname in ('${MAIN_DB}', '${RESTORED_DB}') and pid <> pg_backend_pid()
+    order by datname, pid" || true
+  for db in "$MAIN_DB" "$RESTORED_DB"; do
+    bounded_psql -X -P pager=off -d "$db" -c "
+      select l.pid, l.granted, l.mode, l.locktype,
+             coalesce(l.relation::regclass::text, '') as relation, l.page, l.tuple,
+             l.transactionid, l.virtualxid, l.classid, l.objid, l.objsubid
+      from pg_locks l join pg_stat_activity a on a.pid = l.pid
+      where a.datname = current_database() and a.pid <> pg_backend_pid()
+        and l.locktype <> 'virtualxid'
+      order by l.granted, l.pid, l.locktype" 2>/dev/null || true
+  done
+}
+# Runs in the background for one scenario: returns quietly when the suite has
+# gone; after $1 seconds it reports the scenario's sessions, terminates them
+# (so every psql the suite waits for returns) and stops the suite.
+watchdog() {
+  local deadline=$((SECONDS + $1))
+  trap - EXIT USR1
+  while ((SECONDS < deadline)); do
+    sleep 1
+    kill -0 "$$" 2>/dev/null || exit 0
+  done
+  # The stop does not depend on the database answering: whatever the report
+  # and the terminate below do, the suite is told to stop 60 s from now. The
+  # timer is a program of its own (bash -c), not a subshell: a subshell keeps
+  # bash's saved copies of the suite's output, so a caller reading that output
+  # through a pipe would wait for the timer; a new program drops them.
+  bash -c 'sleep 60; kill -USR1 "$1" 2>/dev/null || exit 0; sleep 15; kill -TERM "$1" 2>/dev/null' \
+    stop-timer "$$" </dev/null >/dev/null 2>&1 3>&- &
+  echo "✗ ${SCENARIO}: still running after $1 s. Its sessions and their locks:"
+  report_sessions
+  echo "✗ ${SCENARIO}: terminating its sessions and stopping the run"
+  bounded_psql -X -q -At -d postgres -c "
+    select count(pg_terminate_backend(pid)) from pg_stat_activity
+    where datname in ('${MAIN_DB}', '${RESTORED_DB}') and backend_type = 'client backend'
+      and pid <> pg_backend_pid()" >/dev/null 2>&1 || true
+  kill -USR1 "$$" 2>/dev/null || exit 0
+  # The suite stops at once if it is in `wait`, or as soon as its current
+  # command returns; if that does not happen, end it.
+  for _ in $(seq 1 15); do
+    sleep 1
+    kill -0 "$$" 2>/dev/null || exit 0
+  done
+  kill -TERM "$$" 2>/dev/null || true
+}
+# Every exit but a passing run's says where the run stopped.
+cleanup() {
+  local status=$?
+  if [[ -n "$WATCHDOG" ]]; then
+    kill "$WATCHDOG" 2>/dev/null || true
+    echo "✗ stopped in ${SCENARIO} after $(elapsed "$SCENARIO_STARTED") (status ${status})"
+  fi
+  rm -rf "$WORK"
+  drop_restored >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+trap 'exit 1' USR1
+
+# Ordering sessions ------------------------------------------------------------------
+# A race needs its sessions in a set order: the first holds its locks, and the
+# second arrives while it does. Sleeps cannot promise that on a loaded machine
+# (a session started 0.3 s earlier may not have connected yet, or may have
+# finished already), so the first session holds its transaction open in
+# fv.hold(gate) instead of pg_sleep, the suite waits until it is there and the
+# second session is waiting for it (await_session), then opens the gate.
+# await_session holding NAME: the session whose application_name is NAME
+#   (PGAPPNAME) has reached fv.hold, so it holds every lock it took before.
+# await_session waiting NAME HOLDER: session NAME waits for a lock (wait
+#   event Lock) that session HOLDER holds (pg_blocking_pids).
+# Either fails the run, with the sessions and their locks, after the
+# scenario's lock wait.
+await_session() {
+  local condition deadline=$((SECONDS + SCENARIO_LOCK_WAIT))
+  case "$1" in
+    holding) condition="a.state = 'active' and a.query like '%fv.hold(%'" ;;
+    waiting)
+      condition="a.wait_event_type = 'Lock' and exists (
+                   select 1 from pg_stat_activity h
+                   where h.datname = a.datname and h.application_name = '$3'
+                     and h.pid = any (pg_blocking_pids(a.pid)))"
+      ;;
+  esac
+  local count
+  # A poll that fails (the query errors, or prints nothing) is not a match: it
+  # is retried until the deadline, so a dropped connection can never open the
+  # gate before the session is really there.
+  while true; do
+    if count="$(psql_db -c "select count(*) from pg_stat_activity a
+                            where a.datname = current_database() and a.application_name = '$2'
+                              and ${condition}")" \
+      && [[ "$count" =~ ^[0-9]+$ ]] && ((count > 0)); then
+      return 0
+    fi
+    if ((SECONDS >= deadline)); then
+      echo "✗ ${SCENARIO}: session $2 was not $1${3:+ on $3} after ${SCENARIO_LOCK_WAIT} s"
+      report_sessions
+      exit 1
+    fi
+    sleep 0.05
+  done
+}
+# Lets the session holding gate $1 commit.
+open_gate() { psql_db -c "insert into fv.gates (name) values ('$1')" >/dev/null; }
+
+scenario 300 60 "0. A fresh database and the fixture"
+# The migrations run as tool/db/reset.sh runs them for everyone, under the
+# watchdog only.
+PGOPTIONS="${BASE_PGOPTIONS:--c client_min_messages=warning}" "$ROOT/tool/db/reset.sh" >/dev/null
+# The gates, in this test database only. fv.hold waits for its gate as long as
+# the scenario's statement_timeout allows; it holds no lock of its own.
+psql_db >/dev/null <<'SQL'
+create schema fv;
+create table fv.gates (name text primary key);
+create function fv.hold(p_gate text)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+begin
+  while not exists (select 1 from fv.gates g where g.name = p_gate) loop
+    perform pg_sleep(0.02);
+  end loop;
+end
+$$;
+grant usage on schema fv to authenticated, service_role;
+grant execute on function fv.hold(text) to authenticated, service_role;
+SQL
 
 # Fixture: one owner, one lease with 24 months of unpaid rent (so payments
 # always have dues to settle).
@@ -139,7 +358,7 @@ select unit.portfolio_id, unit.id, tenant.id, '2024-12-01', 50000 from unit, ten
 returning '00000000-0000-4000-8000-00000000c0de', id, portfolio_id;
 SQL
 )
-echo "▸ Fixture ready (lease ${LEASE})"
+echo "  fixture ready (lease ${LEASE})"
 
 as_owner() {
   cat <<SQL
@@ -157,7 +376,7 @@ SQL
 reset_limits() { psql_db -c "delete from private.rate_limit_buckets" >/dev/null; }
 
 # 1. Distinct payments in parallel ------------------------------------------------
-echo "▸ 40 parallel payments with distinct keys"
+scenario 60 30 "1. 40 parallel payments with distinct keys"
 for i in $(seq 1 40); do
   as_owner "select public.record_payment('${LEASE}', 1234.56, '2026-11-03', 'cash', gen_random_uuid()) -> 'payment' ->> 'receipt_number';" \
     | psql_db >"$WORK/distinct_$i.out" 2>"$WORK/distinct_$i.err" &
@@ -170,7 +389,7 @@ if grep -l . "$WORK"/distinct_*.err >/dev/null 2>&1; then
 fi
 
 # 2. Same idempotency key in parallel ---------------------------------------------
-echo "▸ 25 parallel retries with one idempotency key"
+scenario 60 30 "2. 25 parallel retries with one idempotency key"
 KEY="11111111-2222-4333-8444-555555555555"
 for i in $(seq 1 25); do
   as_owner "select public.record_payment('${LEASE}', 5000, '2026-11-03', 'raast', '${KEY}') -> 'payment' ->> 'receipt_number';" \
@@ -189,7 +408,7 @@ SAME_RECEIPTS="$(cat "$WORK"/same_*.out | sort -u | grep -c .)"
 }
 
 # 3. Billing sync racing payments -----------------------------------------------------
-echo "▸ 10 billing syncs racing 10 payments"
+scenario 60 30 "3. 10 billing syncs racing 10 payments"
 for i in $(seq 1 10); do
   as_owner "select public.sync_portfolio_billing('${PORTFOLIO}');" | psql_db >/dev/null 2>"$WORK/sync_$i.err" &
   as_owner "select public.record_payment('${LEASE}', 999.99, '2026-11-03', 'jazzcash', gen_random_uuid());" \
@@ -210,7 +429,7 @@ fi
 # in this race on real PostgreSQL in 4 of 20 rounds; random lease ids make
 # physical order differ from id order, as offline-created ids do.
 JOB_ROUNDS=12
-echo "▸ Daily job racing billing syncs and payments over 121 leases (${JOB_ROUNDS} rounds)"
+scenario 180 30 "4. The daily job racing billing syncs and payments over 121 leases (${JOB_ROUNDS} rounds)"
 psql_db -v portfolio="$PORTFOLIO" >/dev/null <<'SQL'
 set app.today_override = '2026-11-03';
 select set_config('mm.portfolio', :'portfolio', false);
@@ -291,18 +510,21 @@ if bad:
 PY
 
 # 5. A busy lease is skipped, not waited for --------------------------------------------
-echo "▸ The daily job skips a lease that a user transaction holds"
-psql_db >/dev/null 2>"$WORK/holder.err" <<SQL &
+scenario 60 30 "5. The daily job skips a lease that a user transaction holds"
+PGAPPNAME=mm_holder psql_db >/dev/null 2>"$WORK/holder.err" <<SQL &
 begin;
 select 1 from public.leases where id = '${LEASE}' for update;
-select pg_sleep(4);
+select fv.hold('busy_lease');
 commit;
 SQL
 HOLDER=$!
-sleep 1
+await_session holding mm_holder
 START="$(date +%s%N)"
 BUSY="$(run_job 2026-11-20 1000 "->> 'leases_busy'" | psql_db)"
 ELAPSED_MS=$((($(date +%s%N) - START) / 1000000))
+# The lease stays held until the job has returned, so a job that waited for
+# it would have run into its lock_timeout and counted it failed, not busy.
+open_gate busy_lease
 wait "$HOLDER"
 [[ ! -s "$WORK/holder.err" ]] || {
   echo "✗ the lock holder failed:"
@@ -313,15 +535,11 @@ wait "$HOLDER"
   echo "✗ expected 1 busy lease, got '${BUSY}'"
   exit 1
 }
-((ELAPSED_MS < 2500)) || {
-  echo "✗ the job waited ${ELAPSED_MS} ms for a busy lease"
-  exit 1
-}
 echo "  skipped the busy lease in ${ELAPSED_MS} ms"
 
 # 6. One idempotency key, two leases, in parallel ---------------------------------------
+scenario 60 30 "6. 10 parallel payments sharing one key across two leases"
 reset_limits
-echo "▸ 10 parallel payments sharing one key across two leases"
 OTHER_LEASE="$(psql_db -c "select id from public.leases where id <> '${LEASE}' order by id limit 1")"
 SHARED_KEY="22222222-3333-4444-8555-666666666666"
 for i in $(seq 1 10); do
@@ -397,7 +615,7 @@ only_errors() {
 }
 
 # 7. A removed owner cannot act on a stale authorisation ----------------------------------
-echo "▸ An owner removed mid-request cannot change roles"
+scenario 60 30 "7. An owner removed mid-request cannot change roles"
 reset_limits
 OWNER_A="$(new_user "owner-a@example.com")"
 OWNER_B="$(new_user "owner-b@example.com")"
@@ -429,7 +647,7 @@ ROLE_C="$(psql_db -c "select role from public.portfolio_members where portfolio_
 }
 
 # 8. Co-owners deleting their accounts at once ----------------------------------------------
-echo "▸ Co-owners deleting their accounts at once never orphan their portfolio"
+scenario 60 30 "8. Co-owners deleting their accounts at once never orphan their portfolio"
 OWNER_X="$(new_user "owner-x@example.com")"
 OWNER_Y="$(new_user "owner-y@example.com")"
 ESTATE="$(new_portfolio "$OWNER_X" 'Shared estate')"
@@ -447,7 +665,7 @@ only_errors "never-allowed" "$WORK/delete_x.err" "$WORK/delete_y.err"
 }
 
 # 9. Deleting portfolios while their leases are written ---------------------------------
-echo "▸ Portfolios deleted while payments, a billing sync and the daily job run"
+scenario 120 30 "9. Portfolios deleted while payments, a billing sync and the daily job run"
 for round in 1 2 3; do
   reset_limits
   DOOMED_OWNER="$(new_user "doomed-${round}@example.com")"
@@ -496,7 +714,7 @@ only_errors "never-allowed" "$WORK"/doomed_job_*.err "$WORK"/doomed_delete_*.err
 }
 
 # 10. Accepting an invitation while the portfolio is deleted ----------------------------
-echo "▸ Invitations accepted while their portfolio is deleted"
+scenario 60 30 "10. Invitations accepted while their portfolio is deleted"
 for round in 1 2 3; do
   reset_limits
   HOST="$(new_user "host-${round}@example.com")"
@@ -599,7 +817,7 @@ no_deadlocks() {
 # A child-row insert (foreign keys: portfolio key, then the lease), a lease
 # created with a low client id, and a billing sync, while a slow payment holds
 # the highest lease: the cycles that deadlocked the leases-first deletion.
-echo "▸ Child rows, a new lease and a billing sync racing a portfolio deletion"
+scenario 120 30 "11. Child rows, a new lease and a billing sync racing a portfolio deletion"
 for round in 1 2 3; do
   reset_limits
   RACER="$(new_user "racer-${round}@example.com")"
@@ -640,7 +858,7 @@ only_errors_matching "$LOSER_ERRORS" "$WORK"/track_reminder_*.err "$WORK"/track_
 # The rename locks the document row and then wrote an audit row whose foreign
 # key needed the portfolio key, which the deletion held while its cascade
 # waited for the document row.
-echo "▸ A document renamed while its portfolio's long cascade runs"
+scenario 480 180 "12. A document renamed while its portfolio's long cascade runs"
 reset_limits
 LONG_OWNER="$(new_user "long-owner@example.com")"
 LONG_MANAGER="$(new_user "long-manager@example.com")"
@@ -668,7 +886,7 @@ only_errors "never-allowed" "$WORK"/long_delete.err "$WORK"/long_rename.err
 }
 
 # 13. A document attached while its entity is deleted ------------------------------------
-echo "▸ Documents attached while their tenant is deleted (both orders)"
+scenario 60 30 "13. Documents attached while their tenant is deleted (both orders)"
 reset_limits
 DOC_OWNER="$(new_user "doc-owner@example.com")"
 DOC_MANAGER="$(new_user "doc-manager@example.com")"
@@ -704,7 +922,7 @@ for order in insert_first delete_first; do
 done
 
 # 14. Joining or creating portfolios while the account is being deleted -------------------
-echo "▸ An account being deleted can neither join nor create portfolios"
+scenario 240 90 "14. An account being deleted can neither join nor create portfolios"
 reset_limits
 LEAVER="$(new_user "leaver@example.com")"
 HOST_O="$(new_user "hall-owner@example.com")"
@@ -739,7 +957,7 @@ grep -q "ERROR:  last_owner" "$WORK/hall_leave.err" || {
 # 15. Manual charges and payments on one lease -------------------------------------------
 # A manual charge took its lease only after the insert's foreign-key check had
 # taken it for key share: a lock upgrade that deadlocked with other writers.
-echo "▸ Manual charges and payments on one lease at once (5 rounds)"
+scenario 120 30 "15. Manual charges and payments on one lease at once (5 rounds)"
 reset_limits
 BILLER="$(new_user "biller@example.com")"
 BILLED="$(new_estate "$BILLER" 'Billed' 1)"
@@ -763,7 +981,7 @@ only_errors "never-allowed" "$WORK"/manual_*.err
 }
 
 # 16. Claiming a portfolio's id while it is deleted ---------------------------------------
-echo "▸ Claiming a portfolio's id while it is deleted"
+scenario 60 30 "16. Claiming a portfolio's id while it is deleted"
 reset_limits
 VICTIM="$(new_user "victim@example.com")"
 CLAIMER="$(new_user "claimer@example.com")"
@@ -791,7 +1009,7 @@ done
 # 17. An auth user deleted while a co-owner deletes their portfolio --------------------------
 # GoTrue's deleteUser clears created_by on the user's portfolios, leases and
 # other rows (ON DELETE SET NULL) in its own order.
-echo "▸ An auth user deleted while a co-owner deletes the portfolio they created"
+scenario 60 30 "17. An auth user deleted while a co-owner deletes the portfolio they created"
 reset_limits
 STAYER="$(new_user "stayer@example.com")"
 DEPARTED="$(new_user "departed@example.com")"
@@ -821,8 +1039,8 @@ only_errors "never-allowed" "$WORK"/handed_*.err
 # Deleting a lease must never take a charge someone entered with it: either the
 # charge commits first and the delete is refused, or the delete commits first
 # and the charge's foreign key fails. Odd rounds delete first, even rounds
-# charge first; each holds its transaction open so the other has to wait.
-echo "▸ A tenancy deleted while a charge is added to it (both orders, 6 rounds)"
+# charge first; the first holds its transaction open until the other waits for it.
+scenario 120 30 "18. A tenancy deleted while a charge is added to it (both orders, 6 rounds)"
 reset_limits
 CLERK="$(new_user "clerk@example.com")"
 for round in 1 2 3 4 5 6; do
@@ -831,14 +1049,16 @@ for round in 1 2 3 4 5 6; do
   ADD_CHARGE="insert into public.charges (portfolio_id, lease_id, kind, due_date, amount, description) values ('${ESTATE}', '${MISTAKE}', 'damages', '2026-11-03', 700, 'Round ${round}');"
   DELETE_LEASE="delete from public.leases where id = '${MISTAKE}';"
   if ((round % 2)); then
-    as_user "$CLERK" "${DELETE_LEASE} select pg_sleep(0.5);" | psql_db >/dev/null 2>"$WORK/mistake_del_${round}.err" &
-    sleep 0.2
-    as_user "$CLERK" "${ADD_CHARGE}" | psql_db >/dev/null 2>"$WORK/mistake_chg_${round}.err" &
+    FIRST="$DELETE_LEASE" FIRST_ERR=mistake_del SECOND="$ADD_CHARGE" SECOND_ERR=mistake_chg
   else
-    as_user "$CLERK" "${ADD_CHARGE} select pg_sleep(0.5);" | psql_db >/dev/null 2>"$WORK/mistake_chg_${round}.err" &
-    sleep 0.2
-    as_user "$CLERK" "${DELETE_LEASE}" | psql_db >/dev/null 2>"$WORK/mistake_del_${round}.err" &
+    FIRST="$ADD_CHARGE" FIRST_ERR=mistake_chg SECOND="$DELETE_LEASE" SECOND_ERR=mistake_del
   fi
+  as_user "$CLERK" "${FIRST} select fv.hold('mistake_${round}');" \
+    | PGAPPNAME=mm_first psql_db >/dev/null 2>"$WORK/${FIRST_ERR}_${round}.err" &
+  await_session holding mm_first
+  as_user "$CLERK" "$SECOND" | PGAPPNAME=mm_second psql_db >/dev/null 2>"$WORK/${SECOND_ERR}_${round}.err" &
+  await_session waiting mm_second mm_first
+  open_gate "mistake_${round}"
   wait
   LEASE_LEFT="$(psql_db -c "select count(*) from public.leases where id = '${MISTAKE}'")"
   ENTERED_LEFT="$(psql_db -c "select count(*) from public.charges where lease_id = '${MISTAKE}' and source = 'manual'")"
@@ -951,7 +1171,7 @@ SQL
 # nothing left) or fail with a loser's error, and no deadlock may occur.
 M1_ROUNDS=32
 M1_KINDS=(forced_late client_first plain account)
-echo "▸ M1: lease deposits changed while their portfolio or owner is deleted (${M1_ROUNDS} rounds)"
+scenario 600 30 "19. M1: lease deposits changed while their portfolio or owner is deleted (${M1_ROUNDS} rounds)"
 FAILURES=()
 declare -A M1_DEADLOCKS=([client_first]=0 [plain]=0 [account]=0 [forced_late]=0)
 for round in $(seq 1 "$M1_ROUNDS"); do
@@ -1000,7 +1220,7 @@ end_scenario "M1"
 # the row itself is locked. The deletion deletes properties, units and leases
 # before maintenance requests, expenses and utility accounts, so it can hold
 # the new parent while it waits for the row.
-echo "▸ Updates whose new parent the deletion's cascade has already taken"
+scenario 180 30 "20. Updates whose new parent the deletion's cascade has already taken"
 FAILURES=()
 for case in expense_property request_unit request_lease account_unit; do
   reset_limits
@@ -1053,7 +1273,7 @@ end_scenario "new parents taken by the cascade"
 # A multi-row UPDATE locks its rows in scan order, the deletion's cascade in
 # its own. The client's transaction locks two units one after the other, in
 # both orders: one of them is the opposite of the cascade's.
-echo "▸ Two units written in turn while their portfolio is deleted (both orders)"
+scenario 120 30 "21. Two units written in turn while their portfolio is deleted (both orders)"
 FAILURES=()
 for order in forward backward; do
   reset_limits
@@ -1081,7 +1301,7 @@ end_scenario "multi-row writes"
 # 22. Portfolios updated in turn while a co-owner's account is deleted ---------------------
 # admin_delete_account_data locks all of the account's portfolios in id order;
 # an owner updating two of them locked them in scan order.
-echo "▸ Two portfolios updated in turn (both orders), and inserts spanning two, while an owner's account is deleted"
+scenario 300 30 "22. Two portfolios updated in turn (both orders), and inserts spanning two, while an owner's account is deleted"
 FAILURES=()
 for order in forward backward; do
   reset_limits
@@ -1143,11 +1363,16 @@ for table in tenants documents charges tenants_physical; do
       SP_INSERT="insert into public.tenants (portfolio_id, full_name)
                  values ('${SP_HIGH}', 'Applicant'), ('${SP_LOW}', 'Applicant');"
       if [[ "$table" == tenants_physical ]]; then
-        for _ in $(seq 1 20); do
-          [[ "$(psql_db -c "select (select ctid from public.portfolios where id = '${SP_LOW}')
-                                   > (select ctid from public.portfolios where id = '${SP_HIGH}')")" == "t" ]] && break
-          psql_db -c "update public.portfolios set name = name where id = '${SP_LOW}'" >/dev/null
-        done
+        # The table is rewritten in descending id order (CLUSTER on a scratch
+        # index). Updating the lower id's row until it moved did not always
+        # work: a HOT update takes the page's lowest free line pointer, and
+        # once vacuum or pruning has freed those of deleted portfolios below
+        # the higher id's, every new version lands there again.
+        psql_db >/dev/null <<'SQL'
+create index fv_portfolios_id_desc on public.portfolios (id desc);
+cluster public.portfolios using fv_portfolios_id_desc;
+drop index fv_portfolios_id_desc;
+SQL
         [[ "$(psql_db -c "select (select ctid from public.portfolios where id = '${SP_LOW}')
                                  > (select ctid from public.portfolios where id = '${SP_HIGH}')")" == "t" ]] \
           || fail_case "tenants_physical: could not store the lower id after the higher one"
@@ -1192,7 +1417,7 @@ end_scenario "writes spanning two portfolios"
 # order. Marking two of them read locked them in turn. The notification
 # helper takes the account key (the profile) first, so the cascade waits at
 # the profile instead of at a notification the client holds.
-echo "▸ Notifications marked read while the account is deleted (by the function and by GoTrue, both orders)"
+scenario 180 30 "23. Notifications marked read while the account is deleted (by the function and by GoTrue, both orders)"
 FAILURES=()
 for remover in account gotrue; do
   for order in forward backward; do
@@ -1310,7 +1535,7 @@ SQL
       ;;
   esac
 }
-echo "▸ S1: a file deleted (three Storage API versions, a probe without its lock, the service role) while a document is attached to it"
+scenario 360 30 "24. S1: a file deleted (three Storage API versions, a probe without its lock, the service role) while a document is attached to it"
 FAILURES=()
 S1_OWNER="$(new_user "s1-owner@example.com")"
 S1_ESTATE="$(new_portfolio "$S1_OWNER" 'Attachments')"
@@ -1404,7 +1629,7 @@ end_scenario "S1"
 # The sweep queues files older than a day without a document row; the cleaner
 # then claims the item, lists what it may delete, deletes it through the
 # Storage API (as the service role) and completes the item. Both orders.
-echo "▸ S2: an old file attached while the daily sweep and the cleaner run (both orders)"
+scenario 120 30 "25. S2: an old file attached while the daily sweep and the cleaner run (both orders)"
 FAILURES=()
 S2_OWNER="$(new_user "s2-owner@example.com")"
 S2_ESTATE="$(new_portfolio "$S2_OWNER" 'Old files')"
@@ -1432,25 +1657,29 @@ for order in insert_first sweep_first; do
     # The sweep finds the gate busy: it records no sweep for the day, so the
     # next run of the daily job sweeps again (private.run_daily_jobs).
     psql_db -c "delete from private.job_runs where job_name = 'orphaned_file_sweep'" >/dev/null
-    as_user "$S2_OWNER" "${ATTACH} select pg_sleep(1.5);" | psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
-    sleep 0.3
+    as_user "$S2_OWNER" "${ATTACH} select fv.hold('s2_${order}');" \
+      | PGAPPNAME=mm_attach psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
+    await_session holding mm_attach
     psql_db -c "select private.enqueue_orphaned_storage(now())" >/dev/null 2>"$WORK/s2_${order}_sweep.err"
     [[ "$(psql_db -c "select count(*) from private.job_runs where job_name = 'orphaned_file_sweep'")" == "0" ]] \
       || fail_case "${order}: a sweep that found the gate busy was recorded as done"
     clean_file "$S2_FILE" 2>"$WORK/s2_${order}_clean.err"
+    open_gate "s2_${order}"
     wait
     psql_db -c "select private.sweep_orphaned_files(now())" >/dev/null 2>>"$WORK/s2_${order}_sweep.err"
     [[ "$(psql_db -c "select count(*) from private.job_runs where job_name = 'orphaned_file_sweep'")" == "1" ]] \
       || fail_case "${order}: the sweep after the insert was not recorded"
   else
-    psql_db >/dev/null 2>"$WORK/s2_${order}_sweep.err" <<SQL &
+    PGAPPNAME=mm_sweep psql_db >/dev/null 2>"$WORK/s2_${order}_sweep.err" <<SQL &
 begin;
 select private.enqueue_orphaned_storage(now());
-select pg_sleep(0.8);
+select fv.hold('s2_${order}');
 commit;
 SQL
-    sleep 0.3
-    as_user "$S2_OWNER" "$ATTACH" | psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
+    await_session holding mm_sweep
+    as_user "$S2_OWNER" "$ATTACH" | PGAPPNAME=mm_attach psql_db >/dev/null 2>"$WORK/s2_${order}_attach.err" &
+    await_session waiting mm_attach mm_sweep
+    open_gate "s2_${order}"
     wait
   fi
   # A document row must never reference a file waiting for deletion ...
@@ -1483,17 +1712,11 @@ end_scenario "S2"
 # whose first foreign-key check is a row the cascade deletes later (a session
 # holds an expense for a second, so the cascade, which deletes expenses
 # before those rows, waits meanwhile).
-echo "▸ Writes under a restored database's foreign-key order (pg_dump and restore)"
+scenario 360 30 "26. Writes under a restored database's foreign-key order (pg_dump and restore)"
 FAILURES=()
-MAIN_DB="$MM_TEST_DB"
-RESTORED_DB="${MAIN_DB}_restored"
-drop_restored() {
-  PGOPTIONS="-c client_min_messages=warning" psql -X -q -d postgres -c "drop database if exists ${RESTORED_DB} with (force)"
-}
-trap 'rm -rf "$WORK"; drop_restored >/dev/null 2>&1 || true' EXIT
 drop_restored
 psql -X -q -v ON_ERROR_STOP=1 -d postgres -c "create database ${RESTORED_DB}"
-pg_dump --no-owner -d "$MAIN_DB" >"$WORK/dump.sql"
+pg_dump --no-owner --lock-wait-timeout="${SCENARIO_LOCK_WAIT}s" -d "$MAIN_DB" >"$WORK/dump.sql"
 psql -X -q -v ON_ERROR_STOP=1 -d "$RESTORED_DB" -f "$WORK/dump.sql" >/dev/null
 MM_TEST_DB="$RESTORED_DB"
 trigger_order() {
@@ -1625,7 +1848,7 @@ end_scenario "restored foreign-key order"
 # member's write meanwhile waits in the lock helper, which then authorises
 # again with a fresh snapshot: the portfolio is dropped, so the DELETE finds
 # nothing it may delete and the INSERT is refused.
-echo "▸ A member removed while their delete or insert waits for the portfolio key"
+scenario 120 30 "27. A member removed while their delete or insert waits for the portfolio key"
 FAILURES=()
 for write in delete insert; do
   reset_limits
@@ -1659,7 +1882,7 @@ end_scenario "re-authorisation after the key"
 # trigger did not lock. A definer function's insert (none inserts manual
 # charges yet; this one stands for a future one) runs as the function's
 # owner and waits for the key, as jobs do, even with a signed-in caller.
-echo "▸ A definer function's manual charge waits while a membership change holds the portfolio"
+scenario 60 30 "28. A definer function's manual charge waits while a membership change holds the portfolio"
 FAILURES=()
 reset_limits
 DF_OWNER="$(new_user "df-owner@example.com")"
@@ -1705,7 +1928,7 @@ end_scenario "definer inserts"
 # lease first. Two calls in one transaction stand for the old statement's two
 # rows; the sleep between them holds the lease while the ledger call arrives,
 # the window in which the old statement deadlocked.
-echo "▸ F1: charge edits (update_charge) racing payments and voids on one lease (8 rounds)"
+scenario 360 30 "29. F1: charge edits (update_charge) racing payments and voids on one lease (8 rounds)"
 FAILURES=()
 reset_limits
 CE_OWNER="$(new_user "ce-owner@example.com")"
@@ -1791,23 +2014,27 @@ end_scenario "charge edits under the lease lock"
 # still deadlocks (F3, formal/tla/Invitations/replay_findings.sh): the rule
 # in docs/operations.md is to delete accounts through delete-account, whose
 # order is checked here with the acceptance holding its locks.
-echo "▸ Invitations: concurrent re-invites of one e-mail; inviters deleted in Auth during acceptances"
+scenario 360 30 "30. Invitations: concurrent re-invites of one e-mail; inviters deleted in Auth during acceptances"
 FAILURES=()
 iv_owner1="$(new_user "iv-owner1@example.com")"
 iv_owner2="$(new_user "iv-owner2@example.com")"
 IV_ESTATE="$(new_portfolio "$iv_owner1" "Invites")"
 add_member "$IV_ESTATE" "$iv_owner2" owner
 # $1 tag, $2 e-mail: the two owners re-invite $2, the first holding its
-# transaction open for a moment after its create (the window of F1).
+# transaction open after its create until the second waits for it (the
+# window of F1).
 iv_reinvite() {
   local first="$iv_owner1" second="$iv_owner2" before pending
   [[ "$1" == *b ]] && first="$iv_owner2" second="$iv_owner1"
   before="$(deadlocks)"
-  as_user "$first" "select public.create_invitation('${IV_ESTATE}', '$2', 'manager') ->> 'role'; select pg_sleep(0.8);" \
-    | psql_db >"$WORK/iv_$1_first.out" 2>"$WORK/iv_$1_first.err" &
-  sleep 0.3
+  as_user "$first" "select public.create_invitation('${IV_ESTATE}', '$2', 'manager') ->> 'role';
+                     select fv.hold('iv_$1');" \
+    | PGAPPNAME=mm_first psql_db >"$WORK/iv_$1_first.out" 2>"$WORK/iv_$1_first.err" &
+  await_session holding mm_first
   as_user "$second" "select public.create_invitation('${IV_ESTATE}', '$2', 'viewer') ->> 'role';" \
-    | psql_db >"$WORK/iv_$1_second.out" 2>"$WORK/iv_$1_second.err" &
+    | PGAPPNAME=mm_second psql_db >"$WORK/iv_$1_second.out" 2>"$WORK/iv_$1_second.err" &
+  await_session waiting mm_second mm_first
+  open_gate "iv_$1"
   wait
   check_deadlocks "re-invite $1" "$before"
   check_errors "re-invite $1" "never-allowed" "$WORK/iv_$1_first.err" "$WORK/iv_$1_second.err"
@@ -1839,9 +2066,9 @@ check_errors "re-invite burst" "never-allowed" "$WORK"/iv_burst_*.err
                   from public.portfolio_invitations
                   where portfolio_id = '${IV_ESTATE}' and email = 'iv-burst@example.com'")" == "1/8" ]] \
   || fail_case "re-invite burst: expected 8 invitations with exactly one pending"
-# $1 tag, $2 order: "direct" (GoTrue's DELETE alone, held open 0.8 s; the
-# acceptance arrives during it), "account_arriving" (admin_delete_account_data
-# held open, then the DELETE; the acceptance arrives during it),
+# $1 tag, $2 order: "direct" (GoTrue's DELETE alone, held open until the
+# acceptance waits for it), "account_arriving" (admin_delete_account_data
+# held open likewise, then the DELETE),
 # "account_holding" (the acceptance holds its locks, as accept_invitation
 # takes them, when admin_delete_account_data and the DELETE start).
 iv_inviter_deleted() {
@@ -1860,23 +2087,28 @@ iv_inviter_deleted() {
   before="$(deadlocks)"
   case "$2" in
     direct)
-      psql_db -c "begin" -c "delete from auth.users where id = '${inviter}'" -c "select pg_sleep(0.8)" -c "commit" \
-        >/dev/null 2>"$WORK/iv_$1_delete.err" &
-      sleep 0.3
+      PGAPPNAME=mm_deleter psql_db -c "begin" -c "delete from auth.users where id = '${inviter}'" \
+        -c "select fv.hold('iv_$1')" -c "commit" >/dev/null 2>"$WORK/iv_$1_delete.err" &
+      await_session holding mm_deleter
       as_user "$guest" "select public.accept_invitation('${token}') ->> 'status';" \
-        | psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+        | PGAPPNAME=mm_accept psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+      await_session waiting mm_accept mm_deleter
+      open_gate "iv_$1"
       ;;
     account_arriving)
       {
-        as_service "select public.admin_delete_account_data('${inviter}') is not null; select pg_sleep(0.8);" | psql_db
+        as_service "select public.admin_delete_account_data('${inviter}') is not null;
+                    select fv.hold('iv_$1');" | PGAPPNAME=mm_deleter psql_db
         psql_db -c "delete from auth.users where id = '${inviter}'"
       } >/dev/null 2>"$WORK/iv_$1_delete.err" &
-      sleep 0.3
+      await_session holding mm_deleter
       as_user "$guest" "select public.accept_invitation('${token}') ->> 'status';" \
-        | psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+        | PGAPPNAME=mm_accept psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" &
+      await_session waiting mm_accept mm_deleter
+      open_gate "iv_$1"
       ;;
     account_holding)
-      psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" <<SQL &
+      PGAPPNAME=mm_accept psql_db >"$WORK/iv_$1_accept.out" 2>"$WORK/iv_$1_accept.err" <<SQL &
 set app.today_override = '2026-11-03';
 begin;
 select from public.profiles where id = '${guest}' for key share;
@@ -1884,15 +2116,18 @@ select from public.portfolios where id = '${estate}' for key share;
 select from public.portfolio_invitations where id = '${id}' for update;
 set local "request.jwt.claims" to '{"sub":"${guest}","role":"authenticated"}';
 set local role authenticated;
-select pg_sleep(0.8);
+select fv.hold('iv_$1');
 select public.accept_invitation('${token}') ->> 'status';
 commit;
 SQL
-      sleep 0.3
+      await_session holding mm_accept
       {
-        as_service "select public.admin_delete_account_data('${inviter}') is not null;" | psql_db
+        as_service "select public.admin_delete_account_data('${inviter}') is not null;" \
+          | PGAPPNAME=mm_deleter psql_db
         psql_db -c "delete from auth.users where id = '${inviter}'"
       } >/dev/null 2>"$WORK/iv_$1_delete.err" &
+      await_session waiting mm_deleter mm_accept
+      open_gate "iv_$1"
       ;;
   esac
   wait
@@ -1917,7 +2152,7 @@ done
 end_scenario "invitations"
 
 # 31. Invariants --------------------------------------------------------------------------
-echo "▸ Checking invariants"
+scenario 60 30 "31. Invariants"
 RESULT="$(
   psql_db <<SQL
 select json_build_object(
@@ -2010,3 +2245,5 @@ if errors:
     print("✗ " + "; ".join(errors)); sys.exit(1)
 print("✓ concurrency invariants hold")
 PY
+scenario_done
+echo "✓ ${SCENARIOS_DONE} scenarios in $(elapsed "$SUITE_STARTED")"

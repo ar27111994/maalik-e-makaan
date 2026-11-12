@@ -18,9 +18,12 @@ Facts (targets, rules, generated files) are in [`commands.md`](commands.md) and
 4. Add a pgTAP suite `supabase/tests/database/<next number>_<name>.test.sql` (`\ir _helpers.psql`,
    `select plan(n)`). Rule changes also update `03_rls_matrix.test.sql` and
    `docs/architecture/permissions.md`.
-5. Rows written in parallel: add a scenario to `tool/db/concurrency_test.sh`. Existing rows
-   changed: add `tool/db/upgrade/<version>.before.sql` and `.after.sql` (and `.refused.sql` or
-   `.race.sql` when the migration may refuse to run).
+5. Rows written in parallel: add a scenario to `tool/db/concurrency_test.sh`, opened with
+   `scenario <budget s> <lock wait s> "<n>. <title>"`: past the budget its watchdog prints the
+   sessions and locks and fails the run, and no statement waits for a lock longer than the lock
+   wait. Order racing sessions with `fv.hold` and `await_session`, never with `sleep`: a loaded
+   machine reorders sleeps. Existing rows changed: add `tool/db/upgrade/<version>.before.sql` and `.after.sql` (and
+   `.refused.sql` or `.race.sql` when the migration may refuse to run).
 6. Run `make lint test-db test-db-concurrency`. If the change touches the ledger, locks or money,
    also `make verify` and update the matching `formal/` track.
 7. Do not apply it to the hosted project yourself. The owner applies it as
