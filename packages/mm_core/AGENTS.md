@@ -23,7 +23,9 @@ lives here once and is shared by the app, its tests and the SQL through `contrac
 - No dependency on Flutter or any I/O package; only `characters`, `collection` and `meta`. The tz
   data is generated into `lib/src/time/time_zone_data.g.dart`, not a package.
 - Business dates (rent, ledger, `calendar_date.dart`, `month_period.dart`, `tax_year.dart`,
-  `date_range.dart`) stay on Pakistan time and never import the time-zone code
+  `date_range.dart`) stay on Pakistan time and never reach the time-zone code (`time_zone.dart`
+  and its generated data, `local_date_time.dart`, `quiet_hours.dart`, `dual_time.dart`,
+  `residence/`) through any chain of imports, the barrel `mm_core.dart` included
   (`test/time/pakistan_time_guard_test.dart`); see
   [`docs/architecture/time.md`](../../docs/architecture/time.md).
 - 100% line coverage is a gate (`make test-core`).

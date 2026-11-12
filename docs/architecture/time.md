@@ -30,7 +30,9 @@ from a phone number, the store, an IP address, the app's language or a currency;
 may only pre-fill a suggestion (`TimeZoneId.fromDevice`).
 
 `pakistan_time_guard_test.dart` fails if the rent, ledger or business-date files of `mm_core`
-import the time-zone code.
+reach the time-zone code (a person's zone and its data, local times, quiet hours, the dual time,
+the residence types) through any chain of imports and exports, the package's barrel included; it
+prints the chain.
 
 ## Stored names
 
