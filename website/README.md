@@ -155,11 +155,14 @@ website/
   needs and converts them to WOFF2: the whole Urdu alphabet, Urdu punctuation and the symbols
   Urdu text borrows (©, ·, •) plus every Arabic-script character found in `src/`; the wordmark's
   own letters; and, for the language switch on English pages, the letters of "اردو" ("MM Urdu
-  Label"), so an English page does not load the whole Urdu face. An English page loads about
-  17 KB of Urdu fonts, an Urdu page about 50 KB. The Urdu faces carry `ascent-override` and
-  `descent-override` that put the baseline where the app puts it (Flutter shares a line's
-  leading out by ascent and descent, CSS evenly), so Urdu words sit in the middle of buttons and
-  links. The licence texts are served at
+  Label"), so an English page does not load the whole Urdu face. An Urdu page loads about 50 KB
+  of Urdu fonts. An English page on a phone loads only the label's 1.4 KB: its header shows the
+  Urdu wordmark beside the English name only from 30rem wide, and the wordmark's 15 KB are
+  preloaded from that width only (`media` on the preload in `BaseLayout.astro`). The e2e suite
+  checks, on phones and wide screens, that a page downloads no font it does not draw. The Urdu
+  faces carry `ascent-override` and `descent-override` that put the baseline where the app puts
+  it (Flutter shares a line's leading out by ascent and descent, CSS evenly), so Urdu words sit
+  in the middle of buttons and links. The licence texts are served at
   `/licences/*.txt` and listed on the licences page.
 
 - Stylelint allows logical properties only (so every margin, padding, inset, border and alignment

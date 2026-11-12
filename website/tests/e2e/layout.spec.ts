@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import sharp from "sharp";
-import { sitePages } from "./site.ts";
+import { fontManifest, sitePages } from "./site.ts";
 
 const pages = sitePages();
 const urduTypography = (
@@ -56,6 +56,36 @@ for (const site of pages) {
     });
   });
 }
+
+// A preloaded font is fetched whether or not the page draws it. The English header shows the
+// Urdu wordmark only from 30rem, so a phone must not fetch its font.
+test.describe("a page downloads only the fonts it draws", () => {
+  for (const width of [390, 1280]) {
+    for (const path of ["/", "/ur/", "/pricing/", "/ur/pricing/"]) {
+      test(`${path} at ${width} px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        const fetched: string[] = [];
+        page.on("response", (response) => {
+          const name = new URL(response.url()).pathname.split("/").pop() ?? "";
+          if (name.endsWith(".woff2")) fetched.push(name);
+        });
+        await page.goto(path, { waitUntil: "networkidle" });
+        const drawn = await page.evaluate(async () => {
+          await document.fonts.ready;
+          return [...document.fonts]
+            .filter((face) => face.status === "loaded")
+            .map((face) => face.family.replace(/"/g, ""));
+        });
+        const fonts = fontManifest();
+        // The build names a subset "<file>.<hash>.woff2".
+        const familyOf = (name: string) =>
+          fonts.find((font) => name.startsWith(font.file.replace(/woff2$/, "")))?.family ?? name;
+        expect(fetched.length).toBeGreaterThan(0);
+        expect(fetched.map(familyOf).filter((family) => !drawn.includes(family))).toEqual([]);
+      });
+    }
+  }
+});
 
 test("the Urdu pages mirror: the brand sits at the right edge, the switch at the left", async ({
   page,
