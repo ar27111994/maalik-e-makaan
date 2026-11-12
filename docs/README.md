@@ -45,8 +45,8 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 ## For coding agents
 
 [`../AGENTS.md`](../AGENTS.md) is the entry point. It routes to the per-area `AGENTS.md` files and
-to [`agents/`](agents/README.md): commands, conventions and workflows. [`../llms.txt`](../llms.txt)
-indexes this documentation for AI readers.
+to [`agents/`](agents/README.md): commands, conventions, workflows and the quality bar.
+[`../llms.txt`](../llms.txt) indexes this documentation for AI readers.
 
 ## Changelog
 
