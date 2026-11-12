@@ -284,8 +284,8 @@ describe("the roadmap", () => {
   });
 
   test("English-only text on the Urdu page is marked as English, left to right", () => {
-    expect(localised("Launch.", "اجرا۔", "en")).toEqual({ text: "Launch." });
-    expect(localised("Launch.", "اجرا۔", "ur")).toEqual({ text: "اجرا۔" });
+    expect(localised("Launch.", "ریلیز۔", "en")).toEqual({ text: "Launch." });
+    expect(localised("Launch.", "ریلیز۔", "ur")).toEqual({ text: "ریلیز۔" });
     expect(localised("Launch.", null, "ur")).toEqual({ text: "Launch.", lang: "en", dir: "ltr" });
   });
 

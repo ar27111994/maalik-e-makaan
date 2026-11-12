@@ -65,7 +65,7 @@ const tool = (locale: "en" | "ur"): LlmsTool => ({
 const textPage = (locale: "en" | "ur"): LlmsTextPage => ({
   locale,
   slug: "privacy",
-  title: locale === "en" ? "Privacy" : "رازداری",
+  title: locale === "en" ? "Privacy" : "پرائیویسی",
   description: "How this website and the app treat your data.",
   lastUpdated: "2026-11-07",
   body: "## In short\n\nThis website sets no cookies.",
