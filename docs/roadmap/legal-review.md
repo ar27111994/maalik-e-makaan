@@ -107,15 +107,16 @@ is designed to print on a letterhead.
 
 The owner's decision withdraws the live promise of "no analytics" (D-18 in
 [PROJECT.md](../../.planning/PROJECT.md)). The research recommends that its replacement, in both
-languages, is reviewed here before any analytics SDK ships, and this plan follows it. The new
-notice names every processor with its region and retention: PostHog (the existing US Cloud
-project, cookieless on the website, opt-in in the app), Intercom (opt-in support chat, now owned by
-Salesforce _(summary)_), and Customer.io (transactional e-mail, lifecycle e-mail only with consent,
-on the existing US workspace). The owner decided on 12 November 2026 to keep both US accounts, so
-the notice names the US as where PostHog and Customer.io handle data, under their standard
-data-transfer terms. It says how to object or withdraw. The lawyer also confirms that the 60-day
-notice before billing starts is a contractual service message, sent whatever the marketing consent,
-and weighs the residual risk of cookieless counting for EU visitors, now done in the US.
+languages, is reviewed here before any analytics SDK ships, and this plan follows it. The new notice
+names every processor with its region and retention: PostHog (Maalik-e-Makaan's own project in the
+existing US Cloud organisation, cookieless on the website, opt-in in the app), Intercom (opt-in
+support chat, now owned by Salesforce _(summary)_), and Customer.io (transactional e-mail, lifecycle
+e-mail only with consent, on the existing US workspace). The owner decided on 12 November 2026 to
+keep both US accounts, so the notice names the US as where PostHog and Customer.io handle data,
+under their standard data-transfer terms. It says how to object or withdraw. The lawyer also
+confirms that the 60-day notice before billing starts is a contractual service message, sent
+whatever the marketing consent, and weighs the residual risk of cookieless counting for EU visitors,
+now done in the US.
 
 ## Work
 
