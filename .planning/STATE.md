@@ -192,7 +192,8 @@ The rest, in short:
   guides word every unconfirmed point as unconfirmed until someone checks them.
 - Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
   choice, 2026-11-09), with the bilingual templates in `supabase/templates/`. The sending domain
-  `news.ar27111994.dev` is verified (2026-11-09); its click and open tracking must be off.
+  `news.ar27111994.dev` is verified (2026-11-09); its click and open tracking are off (the owner,
+  reported 2026-11-12).
 - Reported done by the owner on 2026-11-09 (not checkable from the agent's network): the backup
   key, `RELEASE_PLEASE_TOKEN`, Supabase SMTP through Resend with the templates, and the other
   configuration in `docs/release-readiness.md`, Owner actions. Waiting: the pull request to

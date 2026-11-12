@@ -335,9 +335,10 @@ In order. Record each in `.planning/STATE.md` when it is done.
    to end; the agent's network could not download artefacts.
 5. **E-mail** (`docs/operations.md`, E-mail). Already set on 2026-11-05: `RESEND_API_KEY` and
    `MAIL_FROM` for invitations, and Auth's Site URL and redirect. The Resend domain
-   `news.ar27111994.dev` was verified on 2026-11-09 (us-east-1). Still to do: turn off its click
-   and open tracking (both were on: they rewrite the sign-in links through Resend and add a
-   tracking pixel, which the privacy page rules out); check that `MAIL_FROM` uses that domain;
+   `news.ar27111994.dev` was verified on 2026-11-09 (us-east-1). Its click and open tracking,
+   which were on (they rewrite the sign-in links through Resend and add a tracking pixel, which
+   the privacy page rules out), are off: the owner reported on 2026-11-12 that they had switched
+   them off some days before. Still to do: check that `MAIL_FROM` uses that domain;
    turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
    check the "Email sent" rate limit; add the iOS app's redirect URL
    `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` (Authentication,
