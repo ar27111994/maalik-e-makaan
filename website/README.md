@@ -142,8 +142,9 @@ website/
   or edit it here. Light and dark follow `prefers-color-scheme`, high contrast follows
   `prefers-contrast`, and `forced-colors` keeps every control outlined.
 - The type scale (`--mm-type-*`) and the `@font-face` rules are generated at build time from the
-  same tokens file and from the app's fonts in `packages/mm_ui/assets/fonts/`, all three under the
-  SIL Open Font License 1.1:
+  same tokens file and from the app's fonts in `packages/mm_ui/assets/fonts/` (the app's Noto Sans
+  Arabic is already at its normal width, and its Nastaliq holds only the wordmark's letters:
+  `make fonts`), all three under the SIL Open Font License 1.1:
   - Atkinson Hyperlegible Next for English and figures;
   - Noto Sans Arabic for Urdu (decision D-19);
   - Noto Nastaliq Urdu only for the brand name مالکِ مکان where it is the wordmark, in the header.

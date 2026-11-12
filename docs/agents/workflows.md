@@ -50,7 +50,8 @@ by `contracts/`.
 3. Add strings to both ARB files, then `make codegen`. Write the Urdu with the plain-Urdu
    glossary, `contracts/urdu_glossary.json`, and run `python3 tool/check_urdu_words.py` on the
    ARB file. A change to `appName` in `app_en.arb` also renames the web app: run
-   `make app-icons`, which writes it into `app/web/manifest.json`.
+   `make app-icons`, which writes it into `app/web/manifest.json`. A change to `appName` in
+   `app_ur.arb` changes the letters the Nastaliq wordmark font holds: run `make fonts`.
 4. Add widget tests and goldens in the six variants; record them with `make goldens` on Linux and
    review every image.
 5. Run `make format-check analyze design-lint test-app`.
@@ -65,8 +66,8 @@ by `contracts/`.
 2. Components: follow `packages/mm_ui/COMPONENTS.md`; keep the API additive, because the app
    depends on it.
 3. Add the component to its family's gallery page in `packages/mm_ui/example/lib/src/pages/`.
-4. Run `make tokens-check icons-check app-icons-check test-ui test-gallery test-app` (the app's
-   goldens show whether a change leaks into its screens).
+4. Run `make tokens-check icons-check fonts-check app-icons-check test-ui test-gallery test-app`
+   (the app's goldens show whether a change leaks into its screens).
 
 ## Change an Edge Function
 

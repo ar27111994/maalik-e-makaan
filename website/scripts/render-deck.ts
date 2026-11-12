@@ -136,11 +136,11 @@ const slides = await Promise.all(
   deck.order.map((file) => slideHtml(file, { version, releaseDate: date })),
 );
 // Urdu words on the slides are in Noto Sans Arabic; Noto Nastaliq Urdu is only for the
-// wordmark مالکِ مکان on the cover (D-19).
+// wordmark مالکِ مکان on the cover (D-19), and the app's copy holds only its letters.
 const fonts = [
   ["Atkinson Hyperlegible Next", "AtkinsonHyperlegibleNext-Variable.ttf", "200 800"],
   ["Noto Sans Arabic", "NotoSansArabic-Variable.ttf", "100 900"],
-  ["Noto Nastaliq Urdu", "NotoNastaliqUrdu-Variable.ttf", "400 700"],
+  ["Noto Nastaliq Urdu", "NotoNastaliqUrdu-Wordmark.ttf", "400 700"],
 ]
   .map(
     ([family, file, weight]) =>

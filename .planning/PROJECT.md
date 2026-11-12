@@ -177,6 +177,15 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   Nastaliq: the e-mail templates (`supabase/templates/`, `invite-member`) and the gallery's
   screenshots, which predate the change.
 
+  What the app bundles (an engineering choice, 12 November 2026): Flutter on the web downloads
+  every bundled font before the app starts, so the app does not ship the two upstream files
+  whole (845 KB and 690 KB, which would have doubled its fonts). `make fonts` builds its copies
+  from `design/fonts/`: Noto Sans Arabic fixed at its normal width, every glyph and weight kept
+  (495 KB), and Noto Nastaliq Urdu cut to the letters of the Urdu `appName` (54 KB). The app's
+  four fonts come to about 700 KB (375 KB compressed), less than the 838 KB it bundled with
+  Nastaliq alone. Text other than the brand name in the wordmark style would fall back to
+  another face, which is why the wordmark style is for the brand name only.
+
 ## Open Proposals
 
 Changes that roadmap items would make to an earlier decision. Each stays a proposal until the

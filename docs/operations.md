@@ -266,7 +266,9 @@ The Content-Security-Policy, with `<ref>` the Supabase project:
 | `frame-ancestors` | `'none'`                                                                             | The app cannot be framed (clickjacking)                                      |
 
 The bundled fonts cover Latin (Atkinson Hyperlegible Next) and Urdu (Noto Sans Arabic, and Noto
-Nastaliq Urdu for the Urdu wordmark). For any
+Nastaliq Urdu with only the letters of the Urdu wordmark). The engine downloads every bundled font
+before it starts the app; the four of `mm_ui`, the icon font included, come to about 700 KB, 375 KB
+compressed (`make fonts` keeps the two Noto fonts to what the app sets). For any
 other glyph, such as a tenant's name in another script or an emoji, Flutter's engine downloads a
 Noto font from `https://fonts.gstatic.com/s/` (its default `fontFallbackBaseUrl`) with `fetch()`.
 That is why `connect-src` allows exactly that origin and `font-src` stays `'self'`. Bundling every

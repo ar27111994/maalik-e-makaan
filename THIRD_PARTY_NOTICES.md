@@ -106,7 +106,11 @@ The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
 (`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoSansArabic.txt`, `OFL-NotoNastaliqUrdu.txt`,
 `LICENSE-lucide.txt`). Versions come from each font's name table. The app sets Urdu interface
 text in Noto Sans Arabic (the variable font from google/fonts, `ofl/notosansarabic`) and keeps
-Noto Nastaliq Urdu for the Urdu wordmark only. The website serves subsets of
+Noto Nastaliq Urdu for the Urdu wordmark only. The upstream files of the two are in
+`design/fonts/`, and the app bundles copies that `make fonts` (`tool/design/build_fonts.py`) cuts
+from them, with their name tables whole: Noto Sans Arabic without its width axis (fixed at the
+normal width, every glyph and the weight axis kept) and Noto Nastaliq Urdu with only the
+letters of the Urdu wordmark. The website serves subsets of
 the three: Atkinson Hyperlegible Next, Noto Sans Arabic (one subset, for the
 language switch on English pages, renamed "MM Urdu Label") and Noto Nastaliq
 Urdu (the letters of the wordmark only), and publishes the three OFL texts at

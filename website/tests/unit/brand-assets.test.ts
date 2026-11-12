@@ -107,7 +107,7 @@ describe("the faces the site serves", () => {
     });
     expect(servedFamily(tokens, "urduWordmark")).toEqual({
       family: "Noto Nastaliq Urdu",
-      source: "NotoNastaliqUrdu-Variable.ttf",
+      source: "NotoNastaliqUrdu-Wordmark.ttf",
     });
     expect(urduWeight(tokens, "label")).toBe(600);
     expect(urduWeight(tokens, "wordmark")).toBe(600);
@@ -128,7 +128,7 @@ describe("the app's baseline", () => {
       ascent: 1.374,
       descent: 0.738,
     });
-    expect(verticalMetrics(font("NotoNastaliqUrdu-Variable.ttf"))).toEqual({
+    expect(verticalMetrics(font("NotoNastaliqUrdu-Wordmark.ttf"))).toEqual({
       ascent: 1.904,
       descent: 0.596,
     });

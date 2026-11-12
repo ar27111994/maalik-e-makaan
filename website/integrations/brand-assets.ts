@@ -188,8 +188,6 @@ export interface FontJob {
   readonly text: string;
   /** The weight range kept from the variable font, or one weight to pin it to. */
   readonly weight: { readonly min: number; readonly max: number } | number;
-  /** Other axes of the variable font, each pinned to one value. */
-  readonly pin?: Readonly<Record<string, number>>;
   /**
    * A line height, as a multiple of the font size, on which the text's
    * baseline should sit where the app puts it (see appBaselineOverrides).
@@ -285,7 +283,7 @@ export const LABEL_FAMILY = "MM Urdu Label";
 export const FONT_FILES: Readonly<Record<string, string>> = {
   "Atkinson Hyperlegible Next": "AtkinsonHyperlegibleNext-Variable.ttf",
   "Noto Sans Arabic": "NotoSansArabic-Variable.ttf",
-  "Noto Nastaliq Urdu": "NotoNastaliqUrdu-Variable.ttf",
+  "Noto Nastaliq Urdu": "NotoNastaliqUrdu-Wordmark.ttf",
 };
 
 interface FontTokens {
@@ -366,14 +364,14 @@ export async function generateBrandAssets(
       weight: { min: 400, max: 700 },
     },
     {
-      // Urdu text: the weights the Urdu roles use, at the face's normal width.
+      // Urdu text: the weights the Urdu roles use. The app's copy of the face is at its normal
+      // width already (tool/design/build_fonts.py).
       file: "noto-sans-arabic.woff2",
       family: urdu.family,
       role: "urdu",
       source: urdu.source,
       text: urduText,
       weight: { min: 400, max: 700 },
-      pin: { wdth: 100 },
       appLine: urduLine(tokenValues, "body"),
     },
     {
@@ -386,7 +384,6 @@ export async function generateBrandAssets(
       source: urdu.source,
       text: distinct(`${LOCALE_INFO.ur.endonym} `),
       weight: urduWeight(tokenValues, "label"),
-      pin: { wdth: 100 },
       appLine: urduLine(tokenValues, "body"),
     },
     {
@@ -420,7 +417,7 @@ export async function generateBrandAssets(
     const font = await readFile(join(fontsDir, job.source));
     const subset = await subsetFont(font, job.text, {
       targetFormat: "woff2",
-      variationAxes: { wght: job.weight, ...job.pin },
+      variationAxes: { wght: job.weight },
       // Keep the copyright, licence description and licence URL records (OFL 1.1).
       preserveNameIds: [0, 1, 2, 3, 4, 5, 6, 13, 14],
     });

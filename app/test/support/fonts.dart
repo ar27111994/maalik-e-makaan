@@ -9,7 +9,7 @@ const _fonts = {
   'AtkinsonHyperlegibleNext':
       'assets/fonts/AtkinsonHyperlegibleNext-Variable.ttf',
   'NotoSansArabic': 'assets/fonts/NotoSansArabic-Variable.ttf',
-  'NotoNastaliqUrdu': 'assets/fonts/NotoNastaliqUrdu-Variable.ttf',
+  'NotoNastaliqUrdu': 'assets/fonts/NotoNastaliqUrdu-Wordmark.ttf',
   'MmIcons': 'assets/fonts/MmIcons.ttf',
 };
 

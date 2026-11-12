@@ -76,7 +76,7 @@ jobs:
       - name: Repository tooling tests
         run: make test-tools
       - name: Generated files are up to date
-        run: make tokens-check icons-check app-icons-check contracts-check roadmap-check
+        run: make tokens-check icons-check fonts-check app-icons-check contracts-check roadmap-check
       - name: DESIGN.md is valid
         run: npx --yes --package @google/design.md@0.4.0 designmd lint DESIGN.md
 

@@ -35,14 +35,15 @@ flutter:
     - family: AtkinsonHyperlegibleNext
       fonts:
         - asset: assets/fonts/AtkinsonHyperlegibleNext-Variable.ttf
-    # Urdu interface text (MmFontFamily.urdu).
+    # Urdu interface text (MmFontFamily.urdu), at its normal width, and the
+    # Urdu wordmark only (MmFontFamily.urduWordmark), cut to the letters of
+    # the app's Urdu name: both built from design/fonts/ by `make fonts`.
     - family: NotoSansArabic
       fonts:
         - asset: assets/fonts/NotoSansArabic-Variable.ttf
-    # The Urdu wordmark only (MmFontFamily.urduWordmark).
     - family: NotoNastaliqUrdu
       fonts:
-        - asset: assets/fonts/NotoNastaliqUrdu-Variable.ttf
+        - asset: assets/fonts/NotoNastaliqUrdu-Wordmark.ttf
     - family: MmIcons
       fonts:
         - asset: assets/fonts/MmIcons.ttf
