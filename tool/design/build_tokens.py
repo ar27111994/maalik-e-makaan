@@ -706,6 +706,8 @@ VOID_ELEMENTS = frozenset(
     {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "wbr"}
 )
 HEADINGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
+FONT_ELEMENTS = frozenset({"font", "basefont"})
+FONT_ATTRIBUTES = frozenset({"face", "font-family"})
 ARABIC_SCRIPT = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff\ufb50-\ufdff\ufe70-\ufeff]")
 STYLE_ATTRIBUTE = re.compile(r'(\sstyle=")([^"]*)(")')
 ANY_STYLE_ATTRIBUTE = re.compile(r"\sstyle\s*=", re.IGNORECASE)
@@ -821,10 +823,20 @@ class _UrduElements(HTMLParser):
         raise TokenError(f"{self.where}:{self.getpos()[0]}: {message}")
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        # HTMLParser lowers the case of tag and attribute names, not of attribute values, and
+        # rel holds a list of link types ("stylesheet preload").
         if tag == "style" or (
-            tag == "link" and any(k == "rel" and v == "stylesheet" for k, v in attrs)
+            tag == "link"
+            and any(k == "rel" and "stylesheet" in (v or "").lower().split() for k, v in attrs)
         ):
             self.fail("e-mail styles are inline; a style sheet would escape this check")
+        # A font element's face, and SVG's font-family attribute, set a face outside the style
+        # attribute, and e-mail clients honour them.
+        if tag in FONT_ELEMENTS or any(k in FONT_ATTRIBUTES for k, _ in attrs):
+            self.fail(
+                "set e-mail type with font-family in a style attribute, "
+                "not a font element or a face or font-family attribute"
+            )
         line, column = self.getpos()
         start = self.line_starts[line - 1] + column
         raw = self.get_starttag_text() or ""
@@ -879,6 +891,13 @@ def _restyle(element: dict, role: dict, where: str, *, spaced: bool) -> str:
         FONT_SHORTHAND.search(style) is None,
         f"{where}:{element['line']}: set Urdu type with font-family and line-height, "
         "not the font shorthand",
+    )
+    # A CSS comment or escape, or a character reference, can hide a property name from the
+    # patterns here ("font-family/**/:", "font&#45;family:") while a client still applies it.
+    _require(
+        not any(token in style for token in ("/*", "\\", "&")),
+        f"{where}:{element['line']}: write Urdu styles without CSS comments, CSS escapes or "
+        "character references",
     )
     if element["root"]:
         _require(

@@ -466,9 +466,42 @@ class EmailTemplateTest(unittest.TestCase):
         self.assert_refused(
             "<head><style>p { font-family: serif; }</style></head>", "e-mail styles are inline"
         )
-        self.assert_refused(
-            '<head><link rel="stylesheet" href="x.css"></head>', "e-mail styles are inline"
+        for rel in ("stylesheet", "StyleSheet", "stylesheet preload", "alternate STYLESHEET"):
+            with self.subTest(rel=rel):
+                self.assert_refused(
+                    f'<head><link rel="{rel}" href="x.css"></head>', "e-mail styles are inline"
+                )
+        self.assert_refused("<head><STYLE>p { color: red; }</STYLE></head>", "styles are inline")
+        # Other links are not style sheets.
+        self.assertEqual(
+            self.render('<head><link rel="preload" href="x.woff2"></head>'),
+            '<head><link rel="preload" href="x.woff2"></head>',
         )
+
+    def test_type_is_set_only_through_the_style_attribute(self) -> None:
+        for html in (
+            f'<div lang="ur" style="font-family: serif; line-height: 2;"><font face="Noto Nastaliq Urdu">{NAME} ایپ</font></div>',
+            '<p><FONT FACE="Noto Nastaliq Urdu">Hello</FONT></p>',
+            '<basefont face="Noto Nastaliq Urdu">',
+            '<p lang="ur" face="Noto Nastaliq Urdu">خوش آمدید</p>',
+            '<svg><text lang="ur" font-family="Noto Nastaliq Urdu">خوش آمدید</text></svg>',
+        ):
+            with self.subTest(html=html):
+                self.assert_refused(html, "not a font element or a face or font-family attribute")
+
+    def test_urdu_styles_hide_nothing_from_the_check(self) -> None:
+        for style in (
+            "font-family/**/: 'Noto Nastaliq Urdu'; line-height: 2;",
+            "font-family: serif; line-height: 2; /* note */",
+            "font-famil\\79: 'Noto Nastaliq Urdu'; line-height: 2;",
+            "font&#45;family: 'Noto Nastaliq Urdu'; line-height: 2;",
+        ):
+            with self.subTest(style=style):
+                self.assert_refused(
+                    f'<div lang="ur" style="font-family: serif; line-height: 2;">'
+                    f'<p style="{style}">خوش آمدید</p></div>',
+                    "without CSS comments, CSS escapes or character references",
+                )
 
     def test_the_committed_templates_use_the_email_stacks(self) -> None:
         templates = sorted(bt.EMAIL_TEMPLATES.glob("*.html"))
@@ -517,6 +550,31 @@ class EmailTemplateTest(unittest.TestCase):
                 self.assertEqual(bt.main([]), 0)
                 self.assertEqual(template.read_text(encoding="utf-8"), real)
                 self.assertEqual(bt.main(["--check"]), 0)
+
+    def test_check_refuses_a_face_set_outside_the_style_attributes(self) -> None:
+        real = (bt.EMAIL_TEMPLATES / "confirmation.html").read_text(encoding="utf-8")
+        welcome = real.index("<p ", real.index('lang="ur" dir="rtl" style="padding'))
+        end = real.index("</p>", welcome) + len("</p>")
+        mutants = {
+            "a font element": real[:welcome]
+            + '<font face="Noto Nastaliq Urdu">'
+            + real[welcome:end]
+            + "</font>"
+            + real[end:],
+            "a style sheet": real.replace(
+                "</head>", '<link rel="StyleSheet" href="https://example.com/x.css">\n  </head>'
+            ),
+        }
+        for what, html in mutants.items():
+            with self.subTest(what), tempfile.TemporaryDirectory() as folder:
+                (Path(folder) / "confirmation.html").write_text(html, encoding="utf-8")
+                err = io.StringIO()
+                with (
+                    mock.patch.object(bt, "EMAIL_TEMPLATES", Path(folder)),
+                    contextlib.redirect_stderr(err),
+                ):
+                    self.assertEqual(bt.main(["--check"]), 1)
+                self.assertIn("confirmation.html:", err.getvalue())
 
     def test_a_malformed_template_fails_with_its_name(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
