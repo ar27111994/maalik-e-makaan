@@ -397,14 +397,18 @@ for (const site of pages) {
           // Spaces, and invisible format controls such as the bidi isolates U+2066 and
           // U+2069 around a figure in Urdu text, are never drawn, so need no glyph.
           if (/[\s\p{Cf}]/u.test(char)) continue;
+          // A run in an Urdu face is checked whole against that face's subset: the Urdu stacks
+          // have no Latin face, so a "©" or "·" the subset lacks would be drawn in a system
+          // font. In a Latin run, Arabic letters fall back to the Urdu face.
           const arabic = code >= 0x0600 && code <= 0x06ff;
-          const set = !arabic
-            ? latin
-            : primary === labelFamily
+          const set =
+            primary === labelFamily
               ? label
               : primary === wordmarkFamily
                 ? wordmark
-                : urdu;
+                : primary === urduFamily || arabic
+                  ? urdu
+                  : latin;
           if (!set.has(code))
             missing.add(`${char} (U+${code.toString(16).toUpperCase()}) in ${primary}`);
         }

@@ -6,8 +6,10 @@ import {
   charactersOf,
   codePointsOf,
   fontFaceCss,
+  glyphCodePoints,
   isArabicScript,
   LATIN_RANGES,
+  missingGlyphs,
   servedFamily,
   typographyCss,
   unicodeRange,
@@ -16,6 +18,7 @@ import {
   urduWeight,
   verticalMetrics,
 } from "../../integrations/brand-assets.ts";
+import { SITE } from "../../src/config/site.ts";
 
 const tokens = JSON.parse(
   readFileSync(new URL("../../../design/tokens/maalik.tokens.json", import.meta.url), "utf8"),
@@ -32,6 +35,8 @@ describe("character sets", () => {
     for (const digit of "۰۱۲۳۴۵۶۷۸۹0123456789") expect(URDU_REPERTOIRE).toContain(digit);
     // Zero-width non-joiner: Urdu spelling needs it.
     expect(URDU_REPERTOIRE).toContain("‌");
+    // The symbols Urdu pages share with English ones: the footer's ©, the · and • between links.
+    for (const symbol of "©·•") expect(URDU_REPERTOIRE).toContain(symbol);
   });
 
   test("the Latin repertoire covers ASCII, Latin-1 and the rupee sign", () => {
@@ -119,6 +124,32 @@ describe("the faces the site serves", () => {
     expect(() => servedFamily(other, "urdu")).toThrow(/"Gulzar", which the site does not serve/);
     expect(() => servedFamily({}, "urdu")).toThrow(/no font.family.urdu/);
     expect(() => urduWeight({}, "label")).toThrow(/no typography.urdu.label/);
+  });
+});
+
+describe("the glyphs of the app's fonts", () => {
+  test("are read from the cmap: the Urdu face has every character the Urdu repertoire names", () => {
+    const sans = font("NotoSansArabic-Variable.ttf");
+    expect(missingGlyphs(sans, URDU_REPERTOIRE)).toEqual([]);
+    expect(glyphCodePoints(sans).has(0x06a9)).toBe(true); // ک
+    // A character outside the face, and a font without a cmap.
+    expect(missingGlyphs(sans, "اردو 中")).toEqual(["中"]);
+    expect(() => glyphCodePoints(new Uint8Array(12))).toThrow(/no cmap/);
+  });
+
+  test("the app's Nastaliq holds the letters of the wordmark and nothing else", () => {
+    const wordmark = font("NotoNastaliqUrdu-Wordmark.ttf");
+    expect(missingGlyphs(wordmark, SITE.nameUrdu)).toEqual([]);
+    expect([...glyphCodePoints(wordmark)].sort((a, b) => a - b)).toEqual(
+      codePointsOf(`${SITE.nameUrdu} `),
+    );
+    expect(missingGlyphs(wordmark, "کرایہ")).toEqual(["ر", "ی", "ہ"]);
+  });
+
+  test("are read for the Latin face too, which has no Arabic letters", () => {
+    const latin = glyphCodePoints(font("AtkinsonHyperlegibleNext-Variable.ttf"));
+    for (const char of "AZaz09£€–—…") expect(latin.has(char.codePointAt(0) ?? 0)).toBe(true);
+    expect(latin.has(0x0627)).toBe(false);
   });
 });
 

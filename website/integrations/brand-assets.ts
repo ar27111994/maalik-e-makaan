@@ -57,9 +57,12 @@ export const LATIN_RANGES: readonly Range[] = [
  * Every character an Urdu text on this site may need, whether or not today's
  * copy uses it: the Urdu alphabet (with the few Arabic letters that appear in
  * loanwords), the common diacritics and honorifics, Urdu punctuation, both
- * digit sets and the neutral punctuation Urdu borrows. The build adds every
- * Arabic-script character it finds in src/, so new copy is never left without
- * a glyph.
+ * digit sets and the neutral punctuation and symbols Urdu borrows (the
+ * footer's ©, the · and • between links). The build adds every Arabic-script
+ * character it finds in src/, so new copy is never left without a glyph. The
+ * Urdu font stack has no Latin face, so a character missing here would be
+ * drawn in a system font; the e2e suite checks every character of Urdu text
+ * against this subset.
  */
 export const URDU_REPERTOIRE = [
   "ءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنوهيٹپچڈڑژکگںھہۂۃیۓے",
@@ -67,7 +70,7 @@ export const URDU_REPERTOIRE = [
   "ؐؑؒؓؔ",
   "،؛؟۔٪٫٬۝ﷲﷺ﷽",
   "۰۱۲۳۴۵۶۷۸۹0123456789",
-  "  ‌‍‎‏.,:;!?()[]-–—/%+'\"‘’“”…",
+  "  ‌‍‎‏.,:;!?()[]-–—/%+'\"‘’“”…©·•",
 ].join("");
 
 /** Unicode blocks of the Arabic script, which Urdu is written in. */
@@ -195,8 +198,8 @@ export interface FontJob {
   readonly appLine?: number;
 }
 
-/** A font's ascent and descent (both positive), in em, from its hhea table. */
-export function verticalMetrics(font: Uint8Array): { ascent: number; descent: number } {
+/** Where each table of a TrueType font starts, by tag. */
+function tableOffsets(font: Uint8Array): Map<string, number> {
   const view = new DataView(font.buffer, font.byteOffset, font.byteLength);
   const tables = new Map<string, number>();
   for (let index = 0; index < view.getUint16(4); index += 1) {
@@ -204,6 +207,72 @@ export function verticalMetrics(font: Uint8Array): { ascent: number; descent: nu
     const tag = String.fromCharCode(...font.subarray(record, record + 4));
     tables.set(tag, view.getUint32(record + 8));
   }
+  return tables;
+}
+
+/**
+ * The code points a font has glyphs for, from the Unicode subtables of its cmap
+ * (formats 4 and 12, the ones the app's fonts use).
+ */
+export function glyphCodePoints(font: Uint8Array): Set<number> {
+  const view = new DataView(font.buffer, font.byteOffset, font.byteLength);
+  const cmap = tableOffsets(font).get("cmap");
+  if (cmap === undefined) throw new Error("The font has no cmap");
+  const found = new Set<number>();
+  for (let index = 0; index < view.getUint16(cmap + 2); index += 1) {
+    const record = cmap + 4 + 8 * index;
+    const platform = view.getUint16(record);
+    const encoding = view.getUint16(record + 2);
+    if (platform !== 0 && !(platform === 3 && (encoding === 1 || encoding === 10))) continue;
+    const table = cmap + view.getUint32(record + 4);
+    const format = view.getUint16(table);
+    if (format === 4) {
+      const segments = view.getUint16(table + 6) / 2;
+      const ends = table + 14;
+      const starts = ends + 2 * segments + 2;
+      const deltas = starts + 2 * segments;
+      const rangeOffsets = deltas + 2 * segments;
+      for (let segment = 0; segment < segments; segment += 1) {
+        const start = view.getUint16(starts + 2 * segment);
+        const end = view.getUint16(ends + 2 * segment);
+        const delta = view.getUint16(deltas + 2 * segment);
+        const at = rangeOffsets + 2 * segment;
+        const rangeOffset = view.getUint16(at);
+        for (let code = start; code <= end && code !== 0xffff; code += 1) {
+          let glyph = (code + delta) & 0xffff;
+          if (rangeOffset !== 0) {
+            const indexed = view.getUint16(at + rangeOffset + 2 * (code - start));
+            glyph = indexed === 0 ? 0 : (indexed + delta) & 0xffff;
+          }
+          if (glyph !== 0) found.add(code);
+        }
+      }
+    } else if (format === 12) {
+      for (let group = 0; group < view.getUint32(table + 12); group += 1) {
+        const at = table + 16 + 12 * group;
+        const start = view.getUint32(at);
+        const startGlyph = view.getUint32(at + 8);
+        for (let code = start; code <= view.getUint32(at + 4); code += 1) {
+          if (startGlyph + code - start !== 0) found.add(code);
+        }
+      }
+    }
+  }
+  return found;
+}
+
+/** The characters of `text` that `font` has no glyph for, other than spaces and format controls. */
+export function missingGlyphs(font: Uint8Array, text: string): string[] {
+  const glyphs = glyphCodePoints(font);
+  return [...new Set(Array.from(text))].filter(
+    (char) => !/[\s\p{Cf}]/u.test(char) && !glyphs.has(char.codePointAt(0) ?? 0),
+  );
+}
+
+/** A font's ascent and descent (both positive), in em, from its hhea table. */
+export function verticalMetrics(font: Uint8Array): { ascent: number; descent: number } {
+  const view = new DataView(font.buffer, font.byteOffset, font.byteLength);
+  const tables = tableOffsets(font);
   const head = tables.get("head");
   const hhea = tables.get("hhea");
   if (head === undefined || hhea === undefined) throw new Error("The font has no head or hhea");
@@ -415,6 +484,16 @@ export async function generateBrandAssets(
   const manifest: Record<string, { family: string; role: FontRole; unicodeRange: string }> = {};
   for (const job of jobs) {
     const font = await readFile(join(fontsDir, job.source));
+    // An Urdu face must draw every character it is asked for: its unicode-range claims them
+    // all, and the Urdu font stack has no other face, so a missing glyph would fall to a system
+    // font. Atkinson lacks a few characters of the Latin ranges (the arrows, the rupee sign),
+    // which no page uses; the Latin stack leaves those to the system's fonts.
+    if (job.role !== "latin") {
+      const missing = missingGlyphs(font, job.text);
+      if (missing.length > 0) {
+        throw new Error(`${job.source} has no glyph for ${missing.join(" ")} (${job.file})`);
+      }
+    }
     const subset = await subsetFont(font, job.text, {
       targetFormat: "woff2",
       variationAxes: { wght: job.weight },

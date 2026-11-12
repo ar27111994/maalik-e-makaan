@@ -150,14 +150,16 @@ website/
   - Noto Nastaliq Urdu only for the brand name مالکِ مکان where it is the wordmark, in the header.
 
   Each face is the first family of its token (`font.family.latin`, `urdu`, `urduWordmark`), and
-  the build fails if a token names a font the site does not have. The build subsets the fonts to
-  the characters the site needs and converts them to WOFF2: the whole Urdu alphabet plus every
-  Arabic-script character found in `src/`; the wordmark's own letters; and, for the language
-  switch on English pages, the letters of "اردو" ("MM Urdu Label"), so an English page does not
-  load the whole Urdu face. An English page loads about 17 KB of Urdu fonts, an Urdu page about
-  50 KB. The Urdu faces carry `ascent-override` and `descent-override` that put the baseline
-  where the app puts it (Flutter shares a line's leading out by ascent and descent, CSS evenly),
-  so Urdu words sit in the middle of buttons and links. The licence texts are served at
+  the build fails if a token names a font the site does not have, or if an Urdu face lacks a
+  glyph for a character it is asked for. The build subsets the fonts to the characters the site
+  needs and converts them to WOFF2: the whole Urdu alphabet, Urdu punctuation and the symbols
+  Urdu text borrows (©, ·, •) plus every Arabic-script character found in `src/`; the wordmark's
+  own letters; and, for the language switch on English pages, the letters of "اردو" ("MM Urdu
+  Label"), so an English page does not load the whole Urdu face. An English page loads about
+  17 KB of Urdu fonts, an Urdu page about 50 KB. The Urdu faces carry `ascent-override` and
+  `descent-override` that put the baseline where the app puts it (Flutter shares a line's
+  leading out by ascent and descent, CSS evenly), so Urdu words sit in the middle of buttons and
+  links. The licence texts are served at
   `/licences/*.txt` and listed on the licences page.
 
 - Stylelint allows logical properties only (so every margin, padding, inset, border and alignment
