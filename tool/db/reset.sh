@@ -18,6 +18,18 @@ SEED=0
 
 psql_q() { psql -X -q -v ON_ERROR_STOP=1 "$@"; }
 
+# The migrations change rows every database shares (ALTER ROLE ... SET), so
+# two resets on one server at the same moment can fail with "tuple
+# concurrently updated". Resets on this machine take turns (flock, where it
+# exists), each waiting at most 10 minutes for the one before it.
+if command -v flock >/dev/null; then
+  exec {reset_lock}>"${TMPDIR:-/tmp}/mm-db-reset-${PGPORT}.lock"
+  flock -w 600 "$reset_lock" || {
+    echo "✗ another tool/db/reset.sh for port ${PGPORT} held its lock for 10 minutes" >&2
+    exit 1
+  }
+fi
+
 echo "▸ Recreating database ${DB_NAME} on ${PGHOST}:${PGPORT}"
 psql_q -d postgres -c "drop database if exists ${DB_NAME} with (force)"
 psql_q -d postgres -c "create database ${DB_NAME}"
