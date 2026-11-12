@@ -1276,11 +1276,16 @@ for table in tenants documents charges tenants_physical; do
       SP_INSERT="insert into public.tenants (portfolio_id, full_name)
                  values ('${SP_HIGH}', 'Applicant'), ('${SP_LOW}', 'Applicant');"
       if [[ "$table" == tenants_physical ]]; then
-        for _ in $(seq 1 20); do
-          [[ "$(psql_db -c "select (select ctid from public.portfolios where id = '${SP_LOW}')
-                                   > (select ctid from public.portfolios where id = '${SP_HIGH}')")" == "t" ]] && break
-          psql_db -c "update public.portfolios set name = name where id = '${SP_LOW}'" >/dev/null
-        done
+        # The table is rewritten in descending id order (CLUSTER on a scratch
+        # index). Updating the lower id's row until it moved did not always
+        # work: a HOT update takes the page's lowest free line pointer, and
+        # once vacuum or pruning has freed those of deleted portfolios below
+        # the higher id's, every new version lands there again.
+        psql_db >/dev/null <<'SQL'
+create index fv_portfolios_id_desc on public.portfolios (id desc);
+cluster public.portfolios using fv_portfolios_id_desc;
+drop index fv_portfolios_id_desc;
+SQL
         [[ "$(psql_db -c "select (select ctid from public.portfolios where id = '${SP_LOW}')
                                  > (select ctid from public.portfolios where id = '${SP_HIGH}')")" == "t" ]] \
           || fail_case "tenants_physical: could not store the lower id after the higher one"
