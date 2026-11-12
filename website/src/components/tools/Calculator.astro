@@ -32,7 +32,11 @@ const describedBy = (...values: (string | false | undefined)[]) =>
   <noscript>
     <p class="calculator__noscript">{noscript}</p>
   </noscript>
-  <form id={ids.form} class="calculator__form" novalidate>
+  {/* method="dialog": outside a <dialog> a submission goes nowhere, so with
+       JavaScript off the figures never reach the server as a query string
+       (the privacy page promises they never leave the device). The script
+       still gets the submit event and handles it. */}
+  <form id={ids.form} class="calculator__form" method="dialog" novalidate>
     {items.map((item) => {
       if (item.kind === "text") {
         return (
