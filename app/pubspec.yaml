@@ -1,7 +1,7 @@
 name: maalik_e_makaan
 description: "Maalik-e-Makaan: tenant and property management for Pakistani landlords."
 publish_to: none
-version: 1.0.1 # x-release-please-version
+version: 1.1.0 # x-release-please-version
 resolution: workspace
 
 environment:
