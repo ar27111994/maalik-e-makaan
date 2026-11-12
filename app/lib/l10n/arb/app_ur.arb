@@ -439,7 +439,7 @@
   "guardianWifeOf": "زوجہ",
   "guardianLine": "{relation} {name}",
   "addTenantAction": "کرایہ دار شامل کریں",
-  "searchTenantsHint": "نام، فون یا شناختی کارڈ سے تلاش کریں",
+  "searchTenantsHint": "نام، فون یا شناختی کارڈ سے تلاش",
   "tenantsEmptyTitle": "ابھی کوئی کرایہ دار نہیں",
   "tenantsEmptyBody": "وہ لوگ یا کاروبار شامل کریں جو آپ سے کرائے پر لیتے ہیں۔ پھر کسی یونٹ سے ان کی کرایہ داری شروع کریں۔",
   "archivedTenantsEmpty": "آرکائیو میں کوئی کرایہ دار نہیں۔",
