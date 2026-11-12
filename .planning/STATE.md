@@ -17,9 +17,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   of 23,696. The app bundles Noto Sans Arabic at its normal width and Nastaliq cut to the
   wordmark's letters (`make fonts`): its fonts come to about 700 KB, down from 838 KB. The
   e-mails followed (branch `claude/email-urdu-font`): the three Auth templates and the invitation
-  set Urdu text in Noto Sans Arabic or an installed sans, with Nastaliq only for the header's
-  wordmark, written by `make tokens`; the owner pastes the three template bodies again after the
-  release that carries them (`docs/release-readiness.md`, Owner actions, item 5). Not yet
+  set Urdu text in Noto Sans Arabic or an installed sans, a size larger than the English (the
+  Urdu type roles, on lines of whole pixels), with Nastaliq only for the wordmark, written by
+  `make tokens`; the owner pastes the three template bodies again after the release that carries
+  them (`docs/release-readiness.md`, Owner actions, item 5). Not yet
   changed: the gallery's Urdu screenshots, and an independent design review of the change
   (`docs/design-qa.md`). Pilot readers confirm the face (`docs/roadmap/urdu-review.md`).
 - The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
@@ -196,7 +197,9 @@ The rest, in short:
   key, `RELEASE_PLEASE_TOKEN`, Supabase SMTP through Resend with the templates, and the other
   configuration in `docs/release-readiness.md`, Owner actions. Waiting: the pull request to
   `main` (then the first Backup and Deploy runs), an uptime monitor (Better Stack refused
-  sign-ups; Checkly or StatusCake next), and the D-U-N-S number.
+  sign-ups; Checkly or StatusCake next), and the D-U-N-S number. On 2026-11-12 the owner reported
+  the three Auth templates updated in the dashboard (the plain-Urdu copies, still in Nastaliq);
+  they are pasted again after the release that carries the sans Urdu.
 - Answered by the owner on 2026-11-09: the operator named on the privacy page (Ahmed Rehan) is
   right; the repository secrets, variables and environments are set (`RELEASE_PLEASE_TOKEN`
   still to add); Resend's free plan for e-mail. Done by the agent the same day: migration
