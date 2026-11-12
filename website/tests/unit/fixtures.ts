@@ -61,6 +61,10 @@ export const licenceTexts: Record<string, string> = {
     ),
     "utf8",
   ),
+  "ofl-noto-sans-arabic": readFileSync(
+    new URL("../../../packages/mm_ui/assets/fonts/OFL-NotoSansArabic.txt", import.meta.url),
+    "utf8",
+  ),
   "ofl-noto-nastaliq-urdu": readFileSync(
     new URL("../../../packages/mm_ui/assets/fonts/OFL-NotoNastaliqUrdu.txt", import.meta.url),
     "utf8",

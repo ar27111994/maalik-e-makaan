@@ -79,7 +79,7 @@ describe("vercel.json", () => {
 
   test("text files are served as UTF-8 (llms.txt and the licences hold Urdu)", () => {
     expect(headersFor(config, "/llms.txt")["content-type"]).toBe("text/plain; charset=utf-8");
-    expect(headersFor(config, "/licences/ofl-noto-nastaliq-urdu.txt")["content-type"]).toBe(
+    expect(headersFor(config, "/licences/ofl-noto-sans-arabic.txt")["content-type"]).toBe(
       "text/plain; charset=utf-8",
     );
     expect(page["content-type"]).toBeUndefined();

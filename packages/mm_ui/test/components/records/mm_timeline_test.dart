@@ -484,7 +484,7 @@ void main() {
     });
 
     testWidgets('sets Latin data in the Latin face in the Urdu UI and '
-        'Urdu data with Nastaliq in the English UI', (tester) async {
+        'Urdu data in the Urdu face in the English UI', (tester) async {
       await pumpThemed(
         tester,
         _timeline(const [

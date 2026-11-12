@@ -179,8 +179,8 @@ class MmDetailRow extends StatelessWidget {
       shown = userData
           ? MmUserText(value, style: valueStyle, textAlign: TextAlign.end)
           : Text(
-              // Neither face draws the narrow no-break space intl puts
-              // before AM.
+              // The Latin face does not draw the narrow no-break space
+              // intl puts before AM.
               MmSemantics.drawableSpaces(value),
               style: valueStyle,
               textAlign: TextAlign.end,

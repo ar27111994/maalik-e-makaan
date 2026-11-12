@@ -20,8 +20,9 @@ These run in CI and, where fast enough, in the git hooks.
 | Accessibility guidelines in tests | Tap targets under 48 dp (Android) or 44 pt (iOS), unlabelled targets, text contrast, in every theme variant                              | `packages/mm_ui/test/support/harness.dart`           |
 | Golden tests                      | Visual regressions in light, dark, both high-contrast themes, Urdu and large text                                                        | `make test-ui`, `make test-app`                      |
 | Icons                             | Icons that drifted from `design/icons/icons.json`                                                                                        | `make icons-check`                                   |
+| App fonts                         | The app's Urdu fonts drifted from `design/fonts/` or from the Urdu `appName` the wordmark font holds                                     | `make fonts-check`                                   |
 | App icons                         | Launcher icons that are damaged or drifted from the mark or the colour tokens, or a house that leaves the adaptive or maskable safe zone | `make app-icons-check`                               |
-| Website checks                    | WCAG violations (axe), Lighthouse scores under 95, broken links, invalid structured data                                                 | `make test-web`                                      |
+| Website checks                    | WCAG violations (axe), Lighthouse scores under 95, broken links, bad structured data, missing glyphs, Nastaliq beyond the wordmark       | `make test-web`                                      |
 
 ## Review checklist
 
@@ -33,7 +34,7 @@ test output, file and line) and gives a verdict.
    success) and both languages.
 2. **Visual quality**: hierarchy reads at a glance; spacing follows the scale;
    type is legible at the target size in Atkinson Hyperlegible Next and Noto
-   Nastaliq Urdu (whose tall ascenders need more line height); colour carries
+   Sans Arabic (on taller lines, so its dots and marks never touch); colour carries
    meaning, not decoration.
 3. **Accessibility**: AA contrast in every theme; visible focus; targets of at
    least 48 dp; meaning never by colour alone (status pairs an icon or a word
@@ -68,6 +69,15 @@ first).
 | App screens              | 2026-11-08 | PASS WITH NOTES | Two independent reviews of the app stage (PASS WITH NOTES); their 12 findings were fixed or answered: every button that starts deleting, voiding or ending a record is outlined red (a notification's "Delete" stays tertiary: it removes no record and asks nothing); the dashboard's overdue bar holds the four INS-01 buckets in four tones (`MmSegmentTone.overdueOlder`), with no split under it; a message of several lines in the other language, and a prose row, start every line at the start of their own direction (`reminder_other_language` goldens); a sentence whose only letters are isolated runs with the paragraph; badges and the receipt seal no longer lay their unshown words out wrapped, so the money badges and the seal take amounts and numbers as they are; document thumbnails are signed once per photo and again before they expire; the fonts' and icons' licences reach a licence page in Settings; the identity-checks migration locks its tables from its count to its commit. |
 
 ## Follow-ups
+
+Website (from the D-19 change, 2026-11-12, measured but not yet independently reviewed):
+
+- Urdu text moved to Noto Sans Arabic; Nastaliq sets only the header's wordmark. Measured on the
+  built site: no two lines touch in 858 multi-line Urdu blocks at 320 px (713 at 390 px, 465 at
+  1280 px); Urdu words sit within 1.25 px of the middle of buttons, section links, chips and the
+  language switch; icons beside Urdu text are centred on its first line. A reviewer should look
+  at the Urdu pages in both themes and at 200% text, and at the header's wordmark beside the
+  mark.
 
 App screens (from the 2026-11-08 reviews):
 

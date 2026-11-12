@@ -62,7 +62,7 @@ final class GallerySettings {
   final double textScale;
   final DigitGrouping grouping;
 
-  /// The script of [locale]: Nastaliq for Urdu.
+  /// The script of [locale]: Noto Sans Arabic for Urdu.
   MmScript get script => MmScript.of(locale);
 
   /// The money format every amount in the gallery follows.

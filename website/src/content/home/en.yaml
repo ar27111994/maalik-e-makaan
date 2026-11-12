@@ -67,7 +67,7 @@ trust:
     - title: "Private from the start"
       body: "Each portfolio's records are kept apart in the database, CNIC numbers are masked on screen by default and identity documents are held in private storage."
     - title: "English and Urdu as equals"
-      body: "Choose either language when you first open the app. Urdu reads right to left in Nastaliq, and you make each receipt in English or Urdu, whichever your tenant reads. This website is in both languages too."
+      body: "Choose either language when you first open the app. Urdu reads right to left in clear letters that are easy to read on a phone, and you make each receipt in English or Urdu, whichever your tenant reads. This website is in both languages too."
     - title: "Open source"
       body: "The code is public on GitHub under the MIT licence, so anyone can check how it works."
 faq:

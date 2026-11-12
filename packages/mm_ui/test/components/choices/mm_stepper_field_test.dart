@@ -204,7 +204,7 @@ void main() {
       );
     });
 
-    testWidgets('Urdu words stay in Nastaliq; Urdu figures in Atkinson', (
+    testWidgets('Urdu words stay in the Urdu face; Urdu figures in Atkinson', (
       tester,
     ) async {
       await pumpThemed(

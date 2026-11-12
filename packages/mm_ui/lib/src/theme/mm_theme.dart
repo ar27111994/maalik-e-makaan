@@ -237,7 +237,7 @@ abstract final class MmTheme {
         prefixStyle: text.bodyLarge?.copyWith(color: colors.inkMuted),
         suffixStyle: text.bodyLarge?.copyWith(color: colors.inkMuted),
         // Counts are set like badges: the Latin face with tabular figures in
-        // both languages, not in Nastaliq's serif Latin in the Urdu UI.
+        // both languages, not in the Urdu face's own figures in the Urdu UI.
         counterStyle: MmSemantics.withUrduFallback(
           MmSemantics.withTabularFigures(
             MmTypeScale.latinCaption.copyWith(color: colors.inkMuted),
@@ -267,8 +267,8 @@ abstract final class MmTheme {
         ),
         // Muted ink rather than the field outline: a chip's border runs as
         // close to its label as the label's own strokes, and the thin
-        // strokes of Nastaliq must not read fainter than the frame around
-        // them. Selected chips are framed in cobalt.
+        // strokes of its letters must not read fainter than the frame
+        // around them. Selected chips are framed in cobalt.
         side: WidgetStateBorderSide.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
             return BorderSide(color: colors.rule);
@@ -292,9 +292,10 @@ abstract final class MmTheme {
               : chip;
         }),
         padding: const EdgeInsetsDirectional.symmetric(horizontal: MmSpace.s2),
-        // Room above and below the label for the tall strokes of Nastaliq;
-        // the avatar and check mark keep an icon's size however tall the
-        // label is.
+        // Room above and below the label for the marks of Urdu letters
+        // (a zer, a tanween), which reach a little past their line; the
+        // avatar and check mark keep an icon's size however tall the label
+        // is.
         labelPadding: const EdgeInsetsDirectional.symmetric(
           horizontal: MmSpace.s2,
           vertical: MmSpace.s1,
@@ -306,8 +307,8 @@ abstract final class MmTheme {
         checkmarkColor: colors.onPrimaryContainer,
       ),
       // Counts are set like amounts: the Latin face with tabular figures, in
-      // both languages (a Nastaliq line would make the badge taller than
-      // the icon it sits on).
+      // both languages (the taller Urdu line would make the badge taller
+      // than the icon it sits on).
       // A count is how many things wait (requests to read, dues to chase),
       // not a status: ink, like the words it sits among, rather than the
       // overdue red, which would say "overdue" by colour alone. The
@@ -615,13 +616,14 @@ abstract final class MmTheme {
   /// The [TextTheme] of [script] in [colors].
   static TextTheme textTheme(MmScript script, MmColorTokens colors) {
     final urdu = script == MmScript.urdu;
-    // Urdu UI text is set in Nastaliq (with its natural word spacing); user
-    // data written in Latin script goes through MmSemantics.styleFor, which
-    // sets it in Atkinson instead of Nastaliq's serif Latin. Styles in the
-    // Latin face (all of English, and Urdu amounts) fall back to Nastaliq
-    // for Arabic-script letters, such as a name typed in Urdu.
-    TextStyle style(TextStyle latin, TextStyle nastaliq) {
-      final chosen = (urdu ? nastaliq : latin).copyWith(color: colors.ink);
+    // Urdu UI text is set in Noto Sans Arabic (with its natural word
+    // spacing); user data written in Latin script goes through
+    // MmSemantics.styleFor, which sets it in Atkinson instead of the Urdu
+    // face's own Latin letters. Styles in the Latin face (all of English,
+    // and Urdu amounts) fall back to the Urdu face for Arabic-script
+    // letters, such as a name typed in Urdu.
+    TextStyle style(TextStyle latin, TextStyle urduStyle) {
+      final chosen = (urdu ? urduStyle : latin).copyWith(color: colors.ink);
       return chosen.fontFamily == _latinFamily
           ? MmSemantics.withUrduFallback(chosen)
           : chosen;

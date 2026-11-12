@@ -124,7 +124,7 @@ html[lang="ur"] .field__hint {
   background-color: var(--mm-color-surface);
   color: var(--mm-color-ink);
   font: inherit;
-  font-family: var(--mm-font-latin), var(--mm-font-urdu);
+  font-family: var(--mm-font-latin-urdu);
   font-variant-numeric: tabular-nums;
 }
 
@@ -195,8 +195,11 @@ html[lang="ur"] .field__select {
   accent-color: var(--mm-color-primary);
 }
 
+/* Centred on the first line of Urdu text, as the Latin offset is on a Latin line. */
 html[lang="ur"] .choice__input {
-  margin-block-start: 0.5rem;
+  margin-block-start: calc(
+    (var(--mm-type-urdu-body-size) * var(--mm-type-urdu-body-line) - 1.25rem) / 2
+  );
 }
 
 .calculator__actions {
@@ -323,7 +326,7 @@ html[lang="ur"] .result__notes {
 .math {
   display: inline-block;
   max-inline-size: 100%;
-  font-family: var(--mm-font-latin), var(--mm-font-urdu);
+  font-family: var(--mm-font-latin-urdu);
   font-variant-numeric: tabular-nums;
   unicode-bidi: isolate;
 }

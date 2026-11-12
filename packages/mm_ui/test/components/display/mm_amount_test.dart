@@ -85,7 +85,7 @@ void main() {
         expect(style.fontWeight, expected.fontWeight, reason: size.name);
         expect(style.fontFamily, contains(MmFontFamily.latin));
         expect(style.fontFeatures, [const FontFeature.tabularFigures()]);
-        // The Urdu currency word falls back to Nastaliq.
+        // The Urdu currency word falls back to the Urdu face.
         expect(style.fontFamilyFallback, [
           'packages/mm_ui/${MmFontFamily.urdu}',
         ]);

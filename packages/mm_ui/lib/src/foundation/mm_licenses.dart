@@ -5,10 +5,10 @@ import 'package:flutter/services.dart';
 /// page (`showLicensePage`).
 ///
 /// Flutter's own licence collection covers the pub packages, but not the
-/// font files: Atkinson Hyperlegible Next and Noto Nastaliq Urdu are under
-/// the SIL Open Font License, and the icons come from Lucide (ISC), whose
-/// notices must travel with every copy. Call [register] once, before the
-/// app runs:
+/// font files: Atkinson Hyperlegible Next, Noto Sans Arabic and Noto
+/// Nastaliq Urdu are under the SIL Open Font License, and the icons come
+/// from Lucide (ISC), whose notices must travel with every copy. Call
+/// [register] once, before the app runs:
 ///
 /// ```dart
 /// MmLicenses.register();
@@ -18,6 +18,7 @@ abstract final class MmLicenses {
   /// The licence files, by the name the licence page lists them under.
   static const Map<String, String> files = {
     'Atkinson Hyperlegible Next': 'OFL-AtkinsonHyperlegibleNext.txt',
+    'Noto Sans Arabic': 'OFL-NotoSansArabic.txt',
     'Noto Nastaliq Urdu': 'OFL-NotoNastaliqUrdu.txt',
     'Lucide icons': 'LICENSE-lucide.txt',
   };

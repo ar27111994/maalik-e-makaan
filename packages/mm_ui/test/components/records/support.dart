@@ -12,7 +12,7 @@ List<String> latinRunsIn(WidgetTester tester, String text) => [
 ];
 
 /// The runs of the paragraph whose text contains [text] that are set in
-/// Nastaliq, in order.
+/// the Urdu face, in order.
 List<String> urduRunsIn(WidgetTester tester, String text) => [
   for (final run in _runsIn(tester, text))
     if (run.style.fontFamily!.contains(MmFontFamily.urdu)) run.text,
@@ -48,7 +48,7 @@ bool onOneLine(WidgetTester tester, String text, String part) {
   expect(start, isNonNegative, reason: '"$part" is not in "$plain"');
   double lineOf(int offset) =>
       paragraph.getOffsetForCaret(TextPosition(offset: offset), Rect.zero).dy;
-  // Runs in different faces (Latin and Nastaliq) start a few pixels apart
+  // Runs in different faces (Latin and Urdu) start a few pixels apart
   // on one line; a new line starts at least half a line further down.
   final newLine =
       paragraph.textScaler.scale(paragraph.text.style!.fontSize!) / 2;

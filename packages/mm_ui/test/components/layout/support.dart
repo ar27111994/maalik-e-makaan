@@ -3,8 +3,8 @@ import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 /// [rupees] as the app shows an amount: lakh grouping, the amount style
-/// (the Latin face with tabular figures, the Urdu currency word in
-/// Nastaliq), and on one line, scaled down rather than wrapped when it does
+/// (the Latin face with tabular figures, the Urdu currency word in the
+/// Urdu face), and on one line, scaled down rather than wrapped when it does
 /// not fit.
 Widget moneyText(BuildContext context, int rupees, {bool large = false}) {
   final format = MmFormats.moneyOf(context)

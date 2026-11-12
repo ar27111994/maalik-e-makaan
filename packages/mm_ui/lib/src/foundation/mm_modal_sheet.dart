@@ -47,8 +47,8 @@ Future<T?> showMmModalSheet<T>(
 /// ("Close" for screen readers, from `MmLocalizations`) at the end. A long
 /// title wraps beside the button.
 ///
-/// The button is centred on the title's first line, in both scripts (a
-/// Nastaliq line is about twice as tall as a Latin one), and its glyph
+/// The button is centred on the title's first line, in both scripts (an
+/// Urdu line is taller than a Latin one), and its glyph
 /// grows with the text, as every icon beside words in mm_ui does, up to
 /// [MmIconLabel.maxIconScale] times; it stays at least a touch target.
 ///

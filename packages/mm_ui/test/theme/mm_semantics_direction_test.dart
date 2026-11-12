@@ -61,8 +61,8 @@ void main() {
   });
 
   group('MmSemantics.drawableSpaces', () {
-    test('turns the narrow no-break space neither face draws into a '
-        'no-break space', () {
+    test('turns the narrow no-break space the Latin face does not draw '
+        'into a no-break space', () {
       expect(MmSemantics.drawableSpaces('10:42\u202FAM'), '10:42\u00A0AM');
       expect(
         MmSemantics.drawableSpaces('9\u202FAM \u2013 5\u202FPM'),

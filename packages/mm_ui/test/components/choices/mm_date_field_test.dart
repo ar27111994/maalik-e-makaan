@@ -291,16 +291,25 @@ void main() {
         words.where((word) => RegExp(r'^[A-Za-z]$').hasMatch(word)),
         isEmpty,
       );
-      // Each fits its column whole: "جمعرات" never breaks in two, and on a
-      // 360 dp phone the names keep the Urdu UI's smallest text, 14 px.
+      // Each fits its column whole: "جمعرات" never breaks in two, and the
+      // names are set as large as that allows, never larger than the Urdu
+      // UI's smallest text: on a 360 dp phone "جمعرات" ends a pixel short
+      // of its 43 dp column.
       expectWholeWords(tester, within: _picker);
-      expect(
-        tester.widget<Text>(find.text('جمعرات')).style?.fontSize ??
-            DefaultTextStyle.of(tester.element(find.text('جمعرات')))
-                .style
-                .fontSize,
-        14,
-      );
+      final thursday = find.text('جمعرات');
+      final style = DefaultTextStyle.of(tester.element(thursday)).style
+          .merge(tester.widget<Text>(thursday).style);
+      final caption = MmTypeScale.urduCaption.fontSize!;
+      expect(style.fontSize, lessThanOrEqualTo(caption));
+      final painter = TextPainter(
+        text: TextSpan(text: 'جمعرات', style: style),
+        textDirection: TextDirection.rtl,
+      )..layout();
+      addTearDown(painter.dispose);
+      const column = (328 - 2 * 12) / DateTime.daysPerWeek;
+      // Text widths do not scale exactly with the size: within a tenth of a
+      // pixel of the room, never past it.
+      expect(painter.width, inInclusiveRange(column - 1.1, column - 1));
     });
 
     testWidgets('Urdu dates set their figures in the Latin face', (

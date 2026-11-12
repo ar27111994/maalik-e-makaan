@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_field_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 
 /// The anatomy every field of the inputs family shares, around the field
 /// itself ([child], a [TextFormField] decorated with [decoration]):
@@ -83,10 +84,16 @@ class MmFieldFrame extends StatelessWidget {
   }) {
     final theme = Theme.of(context).inputDecorationTheme;
     return InputDecoration(
-      hint: hint == null ? null : Text(hint, style: theme.hintStyle),
+      // Set as MmScriptText sets them, so the figures of an amount in an
+      // Urdu helper ("ذمے باقی: 122,450 روپے") match the same amount typed
+      // in the field above, in the Latin face.
+      hint: hint == null ? null : MmScriptText(hint, style: theme.hintStyle!),
       helper: helper == null
           ? null
-          : atScale(subtextScaler, Text(helper, style: theme.helperStyle)),
+          : atScale(
+              subtextScaler,
+              MmScriptText(helper, style: theme.helperStyle!),
+            ),
       prefixIcon: prefixIcon,
       prefixText: prefixText,
       suffixIcon: suffixIcon,

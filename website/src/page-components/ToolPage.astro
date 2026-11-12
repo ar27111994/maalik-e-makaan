@@ -145,8 +145,11 @@ const examples = calculatorExamples(tool.calculator, locale);
     stroke: currentcolor;
   }
 
+  /* Centred on the first line of Urdu text, as the Latin offset is on a Latin line. */
   :global(html[lang="ur"]) .tool__disclaimer-icon {
-    margin-block-start: 0.5rem;
+    margin-block-start: calc(
+      (var(--mm-type-urdu-body-size) * var(--mm-type-urdu-body-line) - 1.25rem) / 2
+    );
   }
 
   .tool__text {

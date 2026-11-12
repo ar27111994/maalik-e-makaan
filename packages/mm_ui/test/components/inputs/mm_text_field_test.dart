@@ -686,7 +686,7 @@ void main() {
       expect(family(), contains(MmFontFamily.latin));
     });
 
-    testWidgets('switches to Nastaliq on the very first Urdu letter', (
+    testWidgets('switches to the Urdu face on the very first Urdu letter', (
       tester,
     ) async {
       await pumpThemed(

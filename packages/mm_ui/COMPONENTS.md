@@ -80,11 +80,11 @@ first: it is the source of the visual rules this file turns into code convention
     addresses, property names, identifiers and the options a landlord created, and
     `MmScriptText` for the app's own sentences with figures in them. A Latin run takes the
     spaces on either side of it, so the space between an Urdu word and a Latin name is the
-    Latin face's (Nastaliq's is half as wide). Both show the narrow no-break space `intl`
-    puts before AM and PM as a no-break space (`MmSemantics.drawableSpaces`, public, for the
-    app's own `Text`): neither face draws it;
+    Latin face's. Both show the narrow no-break space `intl` puts before AM and PM as a
+    no-break space (`MmSemantics.drawableSpaces`, public, for the app's own `Text`): the
+    Latin face does not draw it;
   - `MmTextMetrics` (how much room a label takes as a `Text` sets it: its size, its widest
-    word, its line count and how far Nastaliq rises and falls past its lines);
+    word, its line count and how far the marks of Urdu letters reach past its lines);
   - `MmTone` and `MmToneChip` (the colour families of statuses and the chip that shows one
     with an icon and a word);
   - `showMmModalSheet` and `MmSheetHeader` (how every sheet opens, and its title row with a
@@ -132,9 +132,12 @@ first: it is the source of the visual rules this file turns into code convention
   The labels of controls (buttons, the floating action button, segments, tabs, chips,
   switch, checkbox and radio rows, navigation destinations, banner, snack bar and section
   actions) go through `MmScriptText` too, so an app word in Latin script in an Urdu label
-  ("English", "100%", "PDF") keeps the Latin face rather than Nastaliq's own Latin glyphs.
-  The other way round needs nothing: every style in the Latin face (the English text theme,
-  Urdu amounts, `context.mm.amount`) falls back to Nastaliq for Arabic-script letters. A style
+  ("English", "100%", "PDF") keeps the Latin face rather than the Urdu face's own Latin
+  glyphs. So do the hints, helper lines and errors of fields and a stepper's value, so an
+  amount in a helper below a money field has the figures of the amount typed in it. The other
+  way round needs nothing: every style in the Latin face (the English text theme, Urdu amounts,
+  `context.mm.amount`) falls back to the Urdu face (Noto Sans Arabic) for Arabic-script
+  letters. A style
   built from `MmTypeScale` directly gets the same fallback from
   `MmSemantics.withUrduFallback(style)`. Figures that count or line up (amounts, counts,
   percentages, receipt numbers, detail-row values) take `MmSemantics.withTabularFigures(style)`.
@@ -162,7 +165,7 @@ first: it is the source of the visual rules this file turns into code convention
 - **Stock widgets.** The theme styles the Material widgets the components build on, so use
   them directly: buttons (above), `SegmentedButton` (paper segments, the selected one
   cobalt-tonal with a check, 48 dp tall), chips (framed in `inkMuted`, cobalt when selected,
-  room for Nastaliq, an icon-sized check), `Badge` (Latin caption with tabular figures in both
+  room for the marks of Urdu letters, an icon-sized check), `Badge` (Latin caption with tabular figures in both
   languages) and `TabBar` (cobalt label and underline over a hairline rule). A theme cannot
   size tabs or limit a badge's text scale: `MmTabs` makes tabs 48 dp targets, and a badge
   should clamp its text scaling as `MmAdaptiveScaffold` does. Material's `Badge` overlaps its
@@ -204,7 +207,7 @@ first: it is the source of the visual rules this file turns into code convention
   `goldens/<name>_<variant>.png`. A golden shows the component's states side by side in one
   compact composition, so each image is reviewable at a glance. The image is the subject on
   its page: the page colour and the 16 dp page gutter around it, on whole pixels, so
-  compositions paint no background of their own and need no rounding of their size; Nastaliq
+  compositions paint no background of their own and need no rounding of their size; Urdu
   overhang and focus rings outside filled controls stay in the picture. A composition that
   outgrows the phone at 200% text gets a taller surface for that variant alone:
   `sizes: {MmVariant.largeText: Size(360, 1000)}`.
@@ -221,9 +224,9 @@ first: it is the source of the visual rules this file turns into code convention
   under a modal barrier. Large text (3:1) is 24 dp, or 18.67 dp bold, at the size the style
   sets. Text a `CustomPainter` draws is not a paragraph: test its colours against the theme
   roles directly.
-- Fonts are real (`test/flutter_test_config.dart` loads Atkinson, Nastaliq, MmIcons and
-  Material's icon font, which stock widgets such as the date picker draw their arrows with),
-  so goldens show the true rendering. Look at every golden you record.
+- Fonts are real (`test/flutter_test_config.dart` loads Atkinson, Noto Sans Arabic, Noto
+  Nastaliq Urdu, MmIcons and Material's icon font, which stock widgets such as the date picker
+  draw their arrows with), so goldens show the true rendering. Look at every golden you record.
 - Run `flutter test --no-pub <paths>` (several packages share the workspace lockfile) and
   `dart analyze --fatal-infos <paths>`.
 - Coverage: every line of `lib/src/components` and `lib/src/foundation` is exercised. Shared

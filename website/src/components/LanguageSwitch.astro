@@ -47,9 +47,11 @@ const target = otherLocale(locale);
     color: var(--mm-color-on-primary-container);
   }
 
-  /* Nastaliq sits low and tall; give it room inside the control. */
+  /*
+   * "اردو" a step larger than the Latin around it, as in the type scale: the size "English"
+   * has on an Urdu page. It sits centred in the control on the switch's own line.
+   */
   .language-switch .ur-label {
-    font-size: 1.125rem;
-    line-height: 1.8;
+    font-size: var(--mm-type-urdu-body-size);
   }
 </style>

@@ -9,7 +9,7 @@ import 'contrast.dart';
 export 'contrast.dart';
 
 /// The ways every component is checked: each theme mode, Urdu (right to
-/// left, Nastaliq), and English at 200% text size.
+/// left, in Noto Sans Arabic), and English at 200% text size.
 enum MmVariant {
   /// Light mode, English.
   light(Brightness.light, Locale('en'), 1),
@@ -23,7 +23,7 @@ enum MmVariant {
   /// Dark high-contrast mode, English.
   darkHighContrast(Brightness.dark, Locale('en'), 1, highContrast: true),
 
-  /// Light mode, Urdu: right to left, Nastaliq.
+  /// Light mode, Urdu: right to left, in Noto Sans Arabic.
   urdu(Brightness.light, Locale('ur'), 1),
 
   /// Light mode, English, text at 200%.
@@ -112,7 +112,7 @@ Widget themedApp(
 /// its page: a [Material] in the page colour with the page's
 /// [MmSpace.s4] gutter around the subject. So a golden shows the subject as
 /// it looks on the page in every mode, along with what it draws past its
-/// own box (Nastaliq glyphs overhang their line; filled controls draw their
+/// own box (Urdu marks overhang their line; filled controls draw their
 /// focus ring outside themselves). Ink the subject draws on its nearest
 /// Material (ink decorations, splashes, focus highlights) lands on that
 /// page, under the subject.

@@ -1373,8 +1373,12 @@
         "$description": "Designed for low vision: 0/O, 1/l/I and 5/S stay distinct in amounts, CNICs and phone numbers."
       },
       "urdu": {
+        "$value": ["Noto Sans Arabic", "Segoe UI", "Tahoma", "sans-serif"],
+        "$description": "Urdu interface text (D-19): a plain sans whose lines never touch from 1.4 times its size up and whose words sit centred in buttons and fields. Each Urdu style keeps a line of a whole, even number of pixels, as the Latin ones do. The fallbacks are system sans faces with Urdu letters."
+      },
+      "urduWordmark": {
         "$value": ["Noto Nastaliq Urdu", "Noto Naskh Arabic", "serif"],
-        "$description": "Nastaliq is how Urdu readers expect Urdu to look; it needs about twice the line height."
+        "$description": "Only the brand name مالکِ مکان where it stands as the wordmark (D-19), never interface text. Nastaliq's letters rise far above its baseline, so it keeps a line twice its size."
       }
     }
   },
@@ -1522,7 +1526,7 @@
         "$value": {
           "fontFamily": "{font.family.urdu}",
           "fontSize": {
-            "value": 26,
+            "value": 25,
             "unit": "px"
           },
           "fontWeight": 700,
@@ -1530,14 +1534,14 @@
             "value": 0,
             "unit": "px"
           },
-          "lineHeight": 2.0
+          "lineHeight": 1.52
         }
       },
       "title": {
         "$value": {
           "fontFamily": "{font.family.urdu}",
           "fontSize": {
-            "value": 22,
+            "value": 21,
             "unit": "px"
           },
           "fontWeight": 600,
@@ -1545,14 +1549,14 @@
             "value": 0,
             "unit": "px"
           },
-          "lineHeight": 2.0
+          "lineHeight": 1.5238095238095237
         }
       },
       "titleSmall": {
         "$value": {
           "fontFamily": "{font.family.urdu}",
           "fontSize": {
-            "value": 18,
+            "value": 17,
             "unit": "px"
           },
           "fontWeight": 600,
@@ -1560,14 +1564,14 @@
             "value": 0,
             "unit": "px"
           },
-          "lineHeight": 2.0
+          "lineHeight": 1.5294117647058822
         }
       },
       "body": {
         "$value": {
           "fontFamily": "{font.family.urdu}",
           "fontSize": {
-            "value": 18,
+            "value": 17,
             "unit": "px"
           },
           "fontWeight": 400,
@@ -1575,14 +1579,14 @@
             "value": 0,
             "unit": "px"
           },
-          "lineHeight": 2.0
+          "lineHeight": 1.6470588235294117
         }
       },
       "bodySmall": {
         "$value": {
           "fontFamily": "{font.family.urdu}",
           "fontSize": {
-            "value": 16,
+            "value": 15,
             "unit": "px"
           },
           "fontWeight": 400,
@@ -1590,14 +1594,14 @@
             "value": 0,
             "unit": "px"
           },
-          "lineHeight": 2.0
+          "lineHeight": 1.6
         }
       },
       "label": {
         "$value": {
           "fontFamily": "{font.family.urdu}",
           "fontSize": {
-            "value": 16,
+            "value": 15,
             "unit": "px"
           },
           "fontWeight": 600,
@@ -1605,17 +1609,32 @@
             "value": 0,
             "unit": "px"
           },
-          "lineHeight": 1.875
+          "lineHeight": 1.4666666666666666
         }
       },
       "caption": {
         "$value": {
           "fontFamily": "{font.family.urdu}",
           "fontSize": {
-            "value": 14,
+            "value": 13,
             "unit": "px"
           },
           "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.5384615384615385
+        }
+      },
+      "wordmark": {
+        "$value": {
+          "fontFamily": "{font.family.urduWordmark}",
+          "fontSize": {
+            "value": 22,
+            "unit": "px"
+          },
+          "fontWeight": 600,
           "letterSpacing": {
             "value": 0,
             "unit": "px"

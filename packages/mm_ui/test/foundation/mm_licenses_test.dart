@@ -47,6 +47,7 @@ void main() {
       ours['Atkinson Hyperlegible Next'],
       contains('SIL OPEN FONT LICENSE'),
     );
+    expect(ours['Noto Sans Arabic'], contains('SIL OPEN FONT LICENSE'));
     expect(ours['Noto Nastaliq Urdu'], contains('SIL OPEN FONT LICENSE'));
     expect(ours['Lucide icons'], contains('ISC License'));
     // Registered once: each file read once.

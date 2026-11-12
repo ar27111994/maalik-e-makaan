@@ -10,8 +10,8 @@ import 'package:mm_ui_gallery/src/settings.dart';
 import '../../../test/support/contrast.dart';
 
 /// The ways every gallery page is checked: each theme mode, Urdu (right to
-/// left, Nastaliq) and English at 200% text, as mm_ui's harness checks each
-/// component, and Urdu at 200% text.
+/// left, in Noto Sans Arabic) and English at 200% text, as mm_ui's harness
+/// checks each component, and Urdu at 200% text.
 enum GalleryVariant {
   light(GallerySettings()),
   dark(GallerySettings(brightness: Brightness.dark)),

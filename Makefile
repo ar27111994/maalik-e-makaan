@@ -176,7 +176,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, web and iOS packaging, Android manifest, roadmap, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
@@ -202,6 +202,14 @@ icons: ## Rebuild the MmIcons font subset and constants (needs npm ci)
 .PHONY: icons-check
 icons-check: ## Fail when the icon font or MmIcons are out of date with design/icons/icons.json
 	python3 tool/design/build_icons.py --check
+
+.PHONY: fonts
+fonts: ## Rebuild the app's Urdu fonts from design/fonts (Noto Sans Arabic at its normal width, the Nastaliq wordmark's letters)
+	python3 tool/design/build_fonts.py
+
+.PHONY: fonts-check
+fonts-check: ## Fail when the app's Urdu fonts are out of date with design/fonts or the app's Urdu name
+	python3 tool/design/build_fonts.py --check
 
 .PHONY: app-icons
 app-icons: ## Rebuild the app's launcher icons (Android, iOS, web) from the brand mark and the colour tokens

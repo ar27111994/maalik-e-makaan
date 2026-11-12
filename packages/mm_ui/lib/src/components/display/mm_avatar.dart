@@ -16,9 +16,9 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// English or Urdu ("Ali Raza" shows AR, "علی رضا" shows ع ر). Pass [icon]
 /// to show an icon instead (a property, an unknown caller); a name with no
 /// letters shows the person icon. The initials are centred on their ink, not
-/// their line: Nastaliq letters hang below the baseline and reach far above
-/// it, and each differently, so Urdu initials sit in the middle of the
-/// circle as Latin capitals do, set a size smaller to match their weight.
+/// their line: Urdu letters sit on the baseline, hang below it or carry
+/// dots and marks above it, each differently (ب, ع, ٹ), so Urdu initials
+/// sit in the middle of the circle as Latin capitals do.
 /// The avatar keeps its [size] at every text size and is hidden from screen
 /// readers: the row or header around it says the name.
 ///
@@ -49,12 +49,10 @@ class MmAvatar extends StatelessWidget {
   /// An icon shown in place of the initials.
   final IconData? icon;
 
-  /// The size of Latin initials, as a share of [size].
-  static const _latinShare = 0.4;
-
-  /// The size of Arabic-script initials, as a share of [size]: Nastaliq is
-  /// taller and heavier than Latin capitals at the same size.
-  static const _arabicShare = 0.3;
+  /// The size of the initials, as a share of [size], in both scripts:
+  /// Noto Sans Arabic's alif stands about as tall as Atkinson's capitals
+  /// (0.73 and 0.68 em), so Urdu initials take the size Latin ones do.
+  static const _share = 0.4;
 
   /// The share of [size] an icon takes.
   static const _iconShare = 0.5;
@@ -67,97 +65,97 @@ class MmAvatar extends StatelessWidget {
   static const _latinInk = (0.68, 0.01);
 
   /// How far each Urdu letter's ink reaches above and below the baseline,
-  /// in ems of the bundled Noto Nastaliq Urdu, standing alone as an initial
-  /// does. Measured from the rendered font; the avatar's tests check the
-  /// centring against the pixels.
-  static const _nastaliqInk = <String, (double, double)>{
-    'ا': (0.93, -0.10),
-    'آ': (1.17, -0.10),
-    'أ': (1.21, -0.10),
-    'إ': (0.93, 0.20),
-    'ب': (0.46, 0.35),
-    'پ': (0.46, 0.50),
-    'ت': (0.70, 0.02),
-    'ٹ': (0.85, 0.02),
-    'ث': (0.84, 0.02),
-    'ج': (0.74, 0.36),
-    'چ': (0.74, 0.36),
-    'ح': (0.74, 0.36),
-    'خ': (1.11, 0.36),
-    'د': (0.51, 0.09),
-    'ڈ': (0.99, 0.09),
-    'ذ': (0.84, 0.09),
-    'ر': (0.46, 0.07),
-    'ڑ': (0.94, 0.07),
-    'ز': (0.78, 0.07),
-    'ژ': (0.92, 0.07),
-    'س': (0.63, 0.36),
-    'ش': (1.09, 0.36),
-    'ص': (0.71, 0.36),
-    'ض': (1.00, 0.36),
-    'ط': (0.78, 0.02),
-    'ظ': (0.78, 0.02),
-    'ع': (0.80, 0.36),
-    'غ': (1.09, 0.36),
-    'ف': (1.00, 0.02),
-    'ق': (0.90, 0.36),
-    'ک': (1.43, 0.02),
-    'ك': (1.43, 0.02),
-    'گ': (1.50, 0.02),
-    'ل': (1.13, 0.36),
-    'م': (0.64, 0.66),
-    'ن': (0.56, 0.36),
-    'ں': (0.56, 0.36),
-    'و': (0.49, 0.09),
-    'ؤ': (0.84, 0.09),
-    'ہ': (0.47, 0.01),
-    'ه': (0.47, 0.01),
-    'ۂ': (0.81, 0.01),
-    'ۃ': (0.78, 0.01),
-    'ھ': (0.40, 0.04),
-    'ء': (0.56, -0.01),
-    'ی': (0.67, 0.36),
-    'ي': (0.67, 0.67),
-    'ئ': (0.73, 0.36),
-    'ے': (0.57, 0.07),
+  /// in ems of the bundled Noto Sans Arabic at the initials' weight (600),
+  /// standing alone as an initial does. Measured from the rendered font;
+  /// the avatar's tests check the centring against the pixels.
+  static const _arabicInk = <String, (double, double)>{
+    'ا': (0.73, 0.00),
+    'آ': (0.86, 0.00),
+    'أ': (0.97, 0.00),
+    'إ': (0.66, 0.31),
+    'ب': (0.43, 0.24),
+    'پ': (0.43, 0.35),
+    'ت': (0.55, 0.02),
+    'ٹ': (0.71, 0.02),
+    'ث': (0.66, 0.02),
+    'ج': (0.47, 0.40),
+    'چ': (0.47, 0.40),
+    'ح': (0.47, 0.40),
+    'خ': (0.70, 0.40),
+    'د': (0.50, 0.01),
+    'ڈ': (0.87, 0.01),
+    'ذ': (0.71, 0.01),
+    'ر': (0.37, 0.23),
+    'ڑ': (0.76, 0.23),
+    'ز': (0.60, 0.23),
+    'ژ': (0.71, 0.23),
+    'س': (0.45, 0.23),
+    'ش': (0.71, 0.23),
+    'ص': (0.42, 0.23),
+    'ض': (0.64, 0.23),
+    'ط': (0.73, 0.01),
+    'ظ': (0.73, 0.01),
+    'ع': (0.54, 0.40),
+    'غ': (0.76, 0.40),
+    'ف': (0.78, 0.02),
+    'ق': (0.66, 0.19),
+    'ک': (0.71, 0.02),
+    'ك': (0.73, 0.02),
+    'گ': (0.85, 0.02),
+    'ل': (0.73, 0.23),
+    'م': (0.42, 0.39),
+    'ن': (0.54, 0.23),
+    'ں': (0.35, 0.23),
+    'و': (0.38, 0.23),
+    'ؤ': (0.68, 0.23),
+    'ہ': (0.52, 0.00),
+    'ه': (0.53, 0.01),
+    'ۂ': (0.81, 0.00),
+    'ۃ': (0.72, 0.00),
+    'ھ': (0.53, 0.01),
+    'ء': (0.41, 0.06),
+    'ی': (0.46, 0.23),
+    'ي': (0.46, 0.45),
+    'ئ': (0.50, 0.23),
+    'ے': (0.49, 0.02),
     // Sindhi, Pashto and Arabic letters that Pakistani names also use.
-    'ٻ': (0.46, 0.51),
-    'ڀ': (0.46, 0.45),
-    'ٺ': (0.83, 0.02),
-    'ٽ': (0.86, 0.02),
-    'ٿ': (0.79, 0.02),
-    'ټ': (0.70, 0.14),
-    'ڃ': (0.74, 0.36),
-    'ڄ': (0.74, 0.36),
-    'ڇ': (0.74, 0.36),
-    'ځ': (1.15, 0.36),
-    'څ': (1.25, 0.36),
-    'ڊ': (0.51, 0.35),
-    'ڌ': (0.84, 0.09),
-    'ڍ': (0.51, 0.37),
-    'ڎ': (0.98, 0.09),
-    'ڏ': (1.00, 0.09),
-    'ډ': (0.51, 0.14),
-    'ڙ': (0.86, 0.07),
-    'ړ': (0.46, 0.12),
-    'ږ': (0.46, 0.13),
-    'ښ': (0.94, 0.36),
-    'ڦ': (1.09, 0.02),
-    'ڪ': (1.20, 0),
-    'ګ': (1.43, 0.02),
-    'ڱ': (1.50, 0.02),
-    'ڳ': (1.50, 0.48),
-    'ڻ': (0.96, 0.36),
-    'ڼ': (0.56, 0.48),
-    'ې': (0.67, 0.81),
-    'ۍ': (0.67, 0.36),
-    'ى': (0.67, 0.36),
-    'ة': (0.78, 0.01),
+    'ٻ': (0.43, 0.39),
+    'ڀ': (0.43, 0.36),
+    'ٺ': (0.70, 0.02),
+    'ٽ': (0.66, 0.02),
+    'ٿ': (0.67, 0.02),
+    'ټ': (0.55, 0.15),
+    'ڃ': (0.47, 0.40),
+    'ڄ': (0.47, 0.40),
+    'ڇ': (0.47, 0.40),
+    'ځ': (0.78, 0.40),
+    'څ': (0.81, 0.40),
+    'ڊ': (0.50, 0.22),
+    'ڌ': (0.71, 0.01),
+    'ڍ': (0.50, 0.22),
+    'ڎ': (0.82, 0.01),
+    'ڏ': (0.82, 0.01),
+    'ډ': (0.50, 0.14),
+    'ڙ': (0.72, 0.23),
+    'ړ': (0.37, 0.23),
+    'ږ': (0.37, 0.43),
+    'ښ': (0.60, 0.23),
+    'ڦ': (0.89, 0.02),
+    'ڪ': (0.61, 0.02),
+    'ګ': (0.71, 0.02),
+    'ڱ': (0.98, 0.02),
+    'ڳ': (0.85, 0.38),
+    'ڻ': (0.69, 0.23),
+    'ڼ': (0.54, 0.38),
+    'ې': (0.46, 0.59),
+    'ۍ': (0.46, 0.23),
+    'ى': (0.46, 0.23),
+    'ة': (0.72, 0.00),
   };
 
-  /// The reach of an Arabic-script letter missing from [_nastaliqInk]: that
+  /// The reach of an Arabic-script letter missing from [_arabicInk]: that
   /// of ع, a letter of middling height with a tail below the baseline.
-  static const _nastaliqDefaultInk = (0.80, 0.36);
+  static const _arabicDefaultInk = (0.54, 0.40);
 
   /// The font size [_inkWidth] measures at, large enough to be exact.
   static const _measureSize = 100.0;
@@ -172,7 +170,7 @@ class MmAvatar extends StatelessWidget {
     for (final grapheme in initials.characters) {
       final letter = String.fromCharCode(grapheme.runes.first);
       final (up, down) = MmSemantics.hasArabicScript(letter)
-          ? _nastaliqInk[letter] ?? _nastaliqDefaultInk
+          ? _arabicInk[letter] ?? _arabicDefaultInk
           : _latinInk;
       above = math.max(above, up);
       below = math.max(below, down);
@@ -244,14 +242,11 @@ class MmAvatar extends StatelessWidget {
         Theme.of(context).textTheme.titleMedium!
             .copyWith(color: color, height: 1),
       );
-      final share = MmSemantics.hasArabicScript(initials)
-          ? _arabicShare
-          : _latinShare;
       final (above, below) = _inkOf(initials);
       final room = size * _fillShare;
       final width = _inkWidth(context, initials, style);
       final fontSize = [
-        size * share,
+        size * _share,
         if (width > 0) room / width,
         room / (above + below),
       ].reduce(math.min);

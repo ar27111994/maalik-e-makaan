@@ -7,20 +7,20 @@ purpose: read the file for the area you are changing, not everything.
 
 ## Layout
 
-| Path                | What it is                                                         | Read next                                                    |
-| ------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `app/`              | Flutter app (Android, iOS, web), Riverpod 3, go_router             | [`app/AGENTS.md`](app/AGENTS.md)                             |
-| `packages/mm_ui/`   | Design system: tokens, themes, icons, components, gallery          | [`packages/mm_ui/AGENTS.md`](packages/mm_ui/AGENTS.md)       |
-| `packages/mm_core/` | Pure-Dart domain: money in paisa, dates, identity, rent maths      | [`packages/mm_core/AGENTS.md`](packages/mm_core/AGENTS.md)   |
-| `supabase/`         | Migrations, pgTAP suites, Deno Edge Functions, `config.toml`       | [`supabase/AGENTS.md`](supabase/AGENTS.md)                   |
-| `website/`          | Astro static site, English and Urdu                                | [`website/AGENTS.md`](website/AGENTS.md)                     |
-| `formal/`           | TLA+, Lean 4, Z3 and Bend models and proofs                        | [`formal/AGENTS.md`](formal/AGENTS.md)                       |
-| `contracts/`        | Test vectors shared by Dart, SQL and TypeScript; the Urdu glossary | [`docs/agents/conventions.md`](docs/agents/conventions.md)   |
-| `design/`           | Design-token and icon sources (`make tokens`, `make icons`)        | [`packages/mm_ui/AGENTS.md`](packages/mm_ui/AGENTS.md)       |
-| `tool/`             | Repository tooling (db, design, coverage, formal, web, guards)     | [`docs/agents/commands.md`](docs/agents/commands.md)         |
-| `docs/`             | Architecture, operations runbook, permissions, design QA           | [`docs/README.md`](docs/README.md)                           |
-| `.planning/`        | Project decisions, requirements, roadmap, current state            | [`.planning/STATE.md`](.planning/STATE.md)                   |
-| `.github/`          | Workflows (CI, Security, Release, Deploy, Backup); issue, PR forms | [`docs/agents/commands.md`](docs/agents/commands.md#ci-jobs) |
+| Path                | What it is                                                                      | Read next                                                    |
+| ------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `app/`              | Flutter app (Android, iOS, web), Riverpod 3, go_router                          | [`app/AGENTS.md`](app/AGENTS.md)                             |
+| `packages/mm_ui/`   | Design system: tokens, themes, icons, components, gallery                       | [`packages/mm_ui/AGENTS.md`](packages/mm_ui/AGENTS.md)       |
+| `packages/mm_core/` | Pure-Dart domain: money in paisa, dates, identity, rent maths                   | [`packages/mm_core/AGENTS.md`](packages/mm_core/AGENTS.md)   |
+| `supabase/`         | Migrations, pgTAP suites, Deno Edge Functions, `config.toml`                    | [`supabase/AGENTS.md`](supabase/AGENTS.md)                   |
+| `website/`          | Astro static site, English and Urdu                                             | [`website/AGENTS.md`](website/AGENTS.md)                     |
+| `formal/`           | TLA+, Lean 4, Z3 and Bend models and proofs                                     | [`formal/AGENTS.md`](formal/AGENTS.md)                       |
+| `contracts/`        | Test vectors shared by Dart, SQL and TypeScript; the Urdu glossary              | [`docs/agents/conventions.md`](docs/agents/conventions.md)   |
+| `design/`           | Design-token, icon and font sources (`make tokens`, `make icons`, `make fonts`) | [`packages/mm_ui/AGENTS.md`](packages/mm_ui/AGENTS.md)       |
+| `tool/`             | Repository tooling (db, design, coverage, formal, web, guards)                  | [`docs/agents/commands.md`](docs/agents/commands.md)         |
+| `docs/`             | Architecture, operations runbook, permissions, design QA                        | [`docs/README.md`](docs/README.md)                           |
+| `.planning/`        | Project decisions, requirements, roadmap, current state                         | [`.planning/STATE.md`](.planning/STATE.md)                   |
+| `.github/`          | Workflows (CI, Security, Release, Deploy, Backup); issue, PR forms              | [`docs/agents/commands.md`](docs/agents/commands.md#ci-jobs) |
 
 ## Commands
 

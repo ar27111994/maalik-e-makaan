@@ -6,10 +6,12 @@
  *   public/favicon.svg, public/favicon.ico (32 × 32), public/apple-touch-icon.png (180 × 180),
  *   public/icon-512.png (the Organization logo in the structured data)
  *
- * The cards are drawn by Chromium (Playwright), which shapes Nastaliq
- * correctly, then compressed with sharp. The outputs are committed, so the
- * build needs neither; run this again after changing the copy, the tokens or
- * the mark:
+ * The cards are drawn by Chromium (Playwright), with the site's own font
+ * subsets and @font-face rules (src/generated/fonts.css): Urdu text in Noto
+ * Sans Arabic and the brand name مالکِ مکان in the Nastaliq wordmark (D-19).
+ * They are then compressed with sharp. The outputs are committed, so the build
+ * needs neither; run this again after changing the copy, the tokens, the fonts
+ * or the mark:
  *
  *   npm run build   # generates the font subsets in src/generated/
  *   npm run og
@@ -54,10 +56,29 @@ interface HomeCopy {
   };
 }
 
-function fontDataUrl(file: string): string {
-  const data = readFileSync(new URL(`src/generated/fonts/${file}`, root));
-  return `data:font/woff2;base64,${data.toString("base64")}`;
+/** The site's @font-face rules, with each font file inlined as a data URL. */
+function fontFacesCss(): string {
+  const css = readFileSync(new URL("src/generated/fonts.css", root), "utf8");
+  return css.replace(/url\("\.\/fonts\/([\w.-]+)"\)/g, (_, file: string) => {
+    const data = readFileSync(new URL(`src/generated/fonts/${file}`, root));
+    return `url(data:font/woff2;base64,${data.toString("base64")})`;
+  });
 }
+
+interface UrduRole {
+  $value: { fontWeight: number; lineHeight: number };
+}
+const urdu = (
+  JSON.parse(readFileSync(new URL("design/tokens/maalik.tokens.json", repo), "utf8")) as {
+    typography: { urdu: Record<string, UrduRole> };
+  }
+).typography.urdu;
+const urduType = (role: string): UrduRole["$value"] => {
+  const value = urdu[role]?.$value;
+  if (value === undefined) throw new Error(`No Urdu type role "${role}"`);
+  return value;
+};
+const urduLine = (role: string): number => urduType(role).lineHeight;
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`);
@@ -75,14 +96,16 @@ function cardHtml(locale: Locale): string {
   const primaryName = locale === "en" ? SITE.name : SITE.nameUrdu;
   const secondaryName = locale === "en" ? SITE.nameUrdu : SITE.name;
   const secondaryLang = locale === "en" ? "ur" : "en";
+  // The Urdu name is the wordmark, in Nastaliq, wherever it stands as the brand.
+  const primaryClass = locale === "ur" ? "brand-name wordmark" : "brand-name";
+  const secondaryClass = locale === "en" ? "brand-secondary wordmark" : "brand-secondary";
   const mark = markSvg({ tile: light("primary"), glyph: light("onPrimary"), size: 72 });
   const r = home.receipt;
   return `<!doctype html>
 <html lang="${info.htmlLang}" dir="${info.dir}" data-theme="light">
 <head><meta charset="utf-8"><style>
 ${tokensCss}
-@font-face { font-family: "Atkinson Hyperlegible Next"; src: url(${fontDataUrl("atkinson-hyperlegible-next-latin.woff2")}) format("woff2"); font-weight: 400 700; }
-@font-face { font-family: "Noto Nastaliq Urdu"; src: url(${fontDataUrl("noto-nastaliq-urdu.woff2")}) format("woff2"); font-weight: 400 700; }
+${fontFacesCss()}
 * { box-sizing: border-box; margin: 0; }
 html, body { width: 1200px; height: 630px; }
 body { background: var(--mm-color-bg); color: var(--mm-color-ink); font-family: var(--mm-font-latin);
@@ -94,9 +117,11 @@ html[lang="ur"] body, [lang="ur"] { font-family: var(--mm-font-urdu); }
 .brand { display: flex; align-items: center; gap: 20px; margin-block-end: 40px; }
 .brand-name { font-size: 40px; font-weight: 700; }
 .brand-secondary { font-size: 30px; color: var(--mm-color-ink-muted); }
-html[lang="ur"] .brand-name { font-size: 44px; line-height: 1.6; }
+html[lang="ur"] .brand-name { font-size: 44px; }
+/* After the brand's own rules: the wordmark's weight is the one weight its subset holds. */
+.wordmark { font-family: var(--mm-font-urdu-wordmark); font-weight: ${urduType("wordmark").fontWeight}; line-height: ${urduLine("wordmark")}; }
 h1 { font-size: 60px; line-height: 1.12; font-weight: 700; }
-html[lang="ur"] h1 { font-size: 50px; line-height: 2.1; font-weight: 700; }
+html[lang="ur"] h1 { font-size: 56px; line-height: ${urduLine("headline")}; font-weight: 700; }
 .receipt { background: var(--mm-color-surface); border: 2px solid var(--mm-color-rule);
   border-block-start: 4px dashed var(--mm-color-outline); padding: 28px; display: grid; gap: 18px; }
 .head { display: flex; justify-content: space-between; align-items: center; }
@@ -107,15 +132,16 @@ html[lang="ur"] h1 { font-size: 50px; line-height: 2.1; font-weight: 700; }
 .seal .n { font-family: var(--mm-font-latin); }
 .label { color: var(--mm-color-ink-muted); font-size: 22px; }
 .value { font-size: 26px; font-weight: 600; }
-.amount { font-family: "Atkinson Hyperlegible Next", "Noto Nastaliq Urdu"; font-size: 46px; font-weight: 700; white-space: nowrap; }
+.amount { font-family: var(--mm-font-latin-urdu); font-size: 46px; font-weight: 700; white-space: nowrap; }
 .chip { justify-self: start; background: var(--mm-color-paid-container); color: var(--mm-color-on-paid-container);
   border-radius: 6px; padding: 4px 14px; font-size: 22px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
-html[lang="ur"] .label, html[lang="ur"] .value, html[lang="ur"] .title, html[lang="ur"] .chip, html[lang="ur"] .seal { line-height: 1.9; }
+html[lang="ur"] .label, html[lang="ur"] .value, html[lang="ur"] .title { line-height: ${urduLine("body")}; }
+html[lang="ur"] .chip, html[lang="ur"] .seal { line-height: ${urduLine("label")}; }
 </style></head>
 <body>
   <div>
-    <div class="brand">${mark}<span class="brand-name">${escapeHtml(primaryName)}</span>
-      <span class="brand-secondary" lang="${secondaryLang}">${escapeHtml(secondaryName)}</span></div>
+    <div class="brand">${mark}<span class="${primaryClass}">${escapeHtml(primaryName)}</span>
+      <span class="${secondaryClass}" lang="${secondaryLang}">${escapeHtml(secondaryName)}</span></div>
     <h1>${escapeHtml(home.hero.heading)}</h1>
   </div>
   <div class="receipt">
@@ -172,7 +198,9 @@ async function writeIcons(): Promise<void> {
 
 async function writeCards(): Promise<void> {
   await mkdir(new URL("og/", publicDir), { recursive: true });
-  const browser = await chromium.launch();
+  // PW_CHROMIUM_PATH picks a Chromium other than Playwright's, as for the deck and the e2e suite.
+  const executablePath = process.env.PW_CHROMIUM_PATH;
+  const browser = await chromium.launch(executablePath === undefined ? {} : { executablePath });
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
     for (const locale of LOCALES) {

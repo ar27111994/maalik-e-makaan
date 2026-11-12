@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_box.dart';
 import 'package:mm_ui/src/components/choices/mm_choice_frame.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/icons/mm_icons.g.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
@@ -150,7 +151,8 @@ class _MmStepperFieldState extends State<MmStepperField> {
     // limit (muted ink) stands apart from the other.
     final buttonStyle = MmChoiceBox.buttonStyle(context, color: colors.ink);
     // Figures are set in the Latin face with tabular figures, like amounts;
-    // words in Urdu stay in Nastaliq.
+    // a value with Urdu words ("3 مہینے") keeps them in the Urdu face and
+    // its figures in the Latin face (MmScriptText).
     final style = MmSemantics.hasArabicScript(shown)
         ? textTheme.titleMedium!.copyWith(color: ink)
         : mm.amount.copyWith(color: ink);
@@ -192,7 +194,7 @@ class _MmStepperFieldState extends State<MmStepperField> {
                   child: ExcludeSemantics(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: MmSpace.s3),
-                      child: Text(
+                      child: MmScriptText(
                         shown,
                         textAlign: TextAlign.center,
                         style: style,

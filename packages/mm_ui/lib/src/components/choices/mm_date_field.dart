@@ -195,10 +195,11 @@ class _MmDateFieldState extends State<MmDateField> {
   /// smallest text (the theme sets the English initials in the figures'
   /// style).
   ///
-  /// Seven columns share the picker's width: 43 dp each on a 360 dp phone,
-  /// but 38 dp on a 320 dp one, where "جمعرات" at 14 px is 44 dp and would
-  /// break inside the word. There the row's text is set only as much
-  /// smaller as the longest name needs to fit its column whole.
+  /// Seven columns share the picker's width: 43 dp each on a 360 dp phone
+  /// and 38 dp on a 320 dp one, and "جمعرات" at 13 px is 43 dp, so it would
+  /// break inside the word. The row's text is set only as much smaller as
+  /// the longest name needs to fit its column whole with a pixel to spare:
+  /// 1% smaller on a 360 dp phone, 13% on a 320 dp one.
   static Widget _withDayNames(BuildContext context, Widget picker) {
     if (context.mm.script != MmScript.urdu) return picker;
     final theme = DatePickerTheme.of(context);

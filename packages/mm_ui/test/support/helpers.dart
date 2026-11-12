@@ -86,8 +86,8 @@ Future<void> expectFitsNarrowLargeText(
 }
 
 /// Pumps [child] as the app shows the Urdu UI at 200% text: the Urdu
-/// variant (Nastaliq, with figures in the Latin face) with the text scaled
-/// twice, on a phone [width] wide, in a scrolling page.
+/// variant (Noto Sans Arabic, with figures in the Latin face) with the text
+/// scaled twice, on a phone [width] wide, in a scrolling page.
 Future<void> pumpUrduAt200(
   WidgetTester tester,
   Widget child, {

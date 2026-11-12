@@ -1594,7 +1594,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get addTenantAction => 'کرایہ دار شامل کریں';
 
   @override
-  String get searchTenantsHint => 'نام، فون یا شناختی کارڈ سے تلاش کریں';
+  String get searchTenantsHint => 'نام، فون یا شناختی کارڈ سے تلاش';
 
   @override
   String get tenantsEmptyTitle => 'ابھی کوئی کرایہ دار نہیں';

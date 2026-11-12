@@ -25,7 +25,7 @@ extension MmChartText on MmSemantics {
   /// [style] in the Latin face with tabular figures, for amounts and
   /// percentages, in both languages, so figures line up and stay
   /// unambiguous. The Urdu currency and unit words ("روپے", "لاکھ") fall
-  /// back to Nastaliq.
+  /// back to the Urdu face.
   TextStyle figures(TextStyle style, Color color) =>
       MmSemantics.withUrduFallback(
         MmSemantics.withTabularFigures(style.copyWith(color: color)),

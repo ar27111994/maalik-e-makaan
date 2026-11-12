@@ -70,13 +70,26 @@ export function codePointsOfRange(range: string): number[] {
   });
 }
 
-/** Each font subset's family and the code points it covers (src/generated/fonts.json). */
-export function fontManifest(): { family: string; codePoints: Set<number> }[] {
+/** What a font subset is for (integrations/brand-assets.ts). */
+export type FontRole = "latin" | "urdu" | "urduLabel" | "urduWordmark";
+
+/**
+ * Each font subset's file (before the build adds its hash), family, role and the code points it
+ * covers (src/generated/fonts.json).
+ */
+export function fontManifest(): {
+  file: string;
+  family: string;
+  role: FontRole;
+  codePoints: Set<number>;
+}[] {
   const manifest = JSON.parse(
     readFileSync(new URL("../../src/generated/fonts.json", import.meta.url), "utf8"),
-  ) as Record<string, { family: string; unicodeRange: string }>;
-  return Object.values(manifest).map((font) => ({
+  ) as Record<string, { family: string; role: FontRole; unicodeRange: string }>;
+  return Object.entries(manifest).map(([file, font]) => ({
+    file,
     family: font.family,
+    role: font.role,
     codePoints: new Set(codePointsOfRange(font.unicodeRange)),
   }));
 }

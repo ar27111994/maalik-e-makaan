@@ -362,8 +362,8 @@ void main() {
         final gap = variant == MmVariant.urdu
             ? icon.left - ink.right
             : ink.left - icon.right;
-        // The row's gap, give or take a line's trailing space or a Nastaliq
-        // stroke that overhangs its advance.
+        // The row's gap, give or take a line's trailing space or a stroke
+        // that overhangs its advance.
         expect(
           gap,
           inInclusiveRange(MmSpace.s2, MmSpace.s3 + 6),

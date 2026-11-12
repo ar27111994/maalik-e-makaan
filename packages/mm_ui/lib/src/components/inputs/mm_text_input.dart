@@ -53,7 +53,7 @@ typedef MmValueLayout = MmValueLine Function(
 ///
 /// The typed text is set in the body style through `context.mm.styleFor`,
 /// so Latin text typed in the Urdu UI (a name in English) is set in
-/// Atkinson while Urdu stays in Nastaliq. Unless [leftToRight], the text
+/// Atkinson while Urdu stays in the Urdu face. Unless [leftToRight], the text
 /// runs in the direction of its first letter (right to left for Urdu typed
 /// in the English UI, left to right for English typed in the Urdu UI), as
 /// `dir="auto"` does on the web; text without letters runs in the UI's

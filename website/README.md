@@ -1,9 +1,10 @@
 # Maalik-e-Makaan website
 
 The public website of Maalik-e-Makaan (مالکِ مکان): a static [Astro](https://astro.build) site in
-English (at `/`) and Urdu (at `/ur/`, right to left, in Nastaliq), hosted on Vercel. It exists for
-people and for search and AI tools (decision D-01 in [`.planning/PROJECT.md`](../.planning/PROJECT.md)),
-so every page is plain, fast, accessible HTML with no tracking.
+English (at `/`) and Urdu (at `/ur/`, right to left, in Noto Sans Arabic), hosted on Vercel. It
+exists for people and for search and AI tools (decision D-01 in
+[`.planning/PROJECT.md`](../.planning/PROJECT.md)), so every page is plain, fast, accessible HTML
+with no tracking.
 
 ## Run it
 
@@ -37,9 +38,10 @@ is not kept in the repository, and the link check fails without it.
 Playwright is pinned to 1.64.1 and uses its own Chromium build (156, build 1248), installed in CI
 by `npx playwright install --with-deps chromium`. The development environment's
 `PLAYWRIGHT_BROWSERS_PATH` holds an older build (1243, from Playwright 1.63.0) until it is
-re-provisioned; run there with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium`. Set `PW_CHROMIUM_PATH` to run the e2e suite on
-another Chromium binary. Lighthouse CI uses the same Chromium (`chromium.executablePath()` from
-Playwright), or `LIGHTHOUSE_CHROME_PATH`, then `PW_CHROMIUM_PATH`, when set; it ignores the generic
+re-provisioned; run there with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium`. Set
+`PW_CHROMIUM_PATH` to run the e2e suite, the deck and the Open Graph images on another Chromium
+binary. Lighthouse CI uses the same Chromium (`chromium.executablePath()` from Playwright), or
+`LIGHTHOUSE_CHROME_PATH`, then `PW_CHROMIUM_PATH`, when set; it ignores the generic
 `CHROME_PATH`, which may name a different system Chrome. Astro's anonymous build telemetry is
 switched off in the scripts.
 
@@ -140,11 +142,29 @@ website/
   or edit it here. Light and dark follow `prefers-color-scheme`, high contrast follows
   `prefers-contrast`, and `forced-colors` keeps every control outlined.
 - The type scale (`--mm-type-*`) and the `@font-face` rules are generated at build time from the
-  same tokens file and from the app's fonts in `packages/mm_ui/assets/fonts/`: Atkinson Hyperlegible
-  Next for English and figures, Noto Nastaliq Urdu for Urdu, both under the SIL Open Font License
-  1.1. The build subsets them to the characters the site needs (the whole Urdu alphabet, plus
-  every Arabic-script character found in `src/`) and converts them to WOFF2; the licence texts are
-  served at `/licences/*.txt` and listed on the licences page.
+  same tokens file and from the app's fonts in `packages/mm_ui/assets/fonts/` (the app's Noto Sans
+  Arabic is already at its normal width, and its Nastaliq holds only the wordmark's letters:
+  `make fonts`), all three under the SIL Open Font License 1.1:
+  - Atkinson Hyperlegible Next for English and figures;
+  - Noto Sans Arabic for Urdu (decision D-19);
+  - Noto Nastaliq Urdu only for the brand name مالکِ مکان where it is the wordmark, in the header.
+
+  Each face is the first family of its token (`font.family.latin`, `urdu`, `urduWordmark`), and
+  the build fails if a token names a font the site does not have, or if an Urdu face lacks a
+  glyph for a character it is asked for. The build subsets the fonts to the characters the site
+  needs and converts them to WOFF2: the whole Urdu alphabet, Urdu punctuation and the symbols
+  Urdu text borrows (©, ·, •) plus every Arabic-script character found in `src/`; the wordmark's
+  own letters; and, for the language switch on English pages, the letters of "اردو" ("MM Urdu
+  Label"), so an English page does not load the whole Urdu face. An Urdu page loads about 50 KB
+  of Urdu fonts. An English page on a phone loads only the label's 1.4 KB: its header shows the
+  Urdu wordmark beside the English name only from 30rem wide, and the wordmark's 15 KB are
+  preloaded from that width only (`media` on the preload in `BaseLayout.astro`). The e2e suite
+  checks, on phones and wide screens, that a page downloads no font it does not draw. The Urdu
+  faces carry `ascent-override` and `descent-override` that put the baseline where the app puts
+  it (Flutter shares a line's leading out by ascent and descent, CSS evenly), so Urdu words sit
+  in the middle of buttons and links. The licence texts are served at
+  `/licences/*.txt` and listed on the licences page.
+
 - Stylelint allows logical properties only (so every margin, padding, inset, border and alignment
   mirrors in Urdu) and colours only from `--mm-color-*` custom properties: no hex, named or
   functional colour literals.
@@ -182,7 +202,11 @@ and `FC_NUM_RUNS=100000 npm test` searches longer.
 
 As in the app's `MoneyFormat`, "Rs", "روپے", "lakh" and "کروڑ" are joined to the figures by a
 no-break space (U+00A0), so an amount never breaks across lines. The copy in `src/content/` does the
-same, and `tests/unit/content-markdown.test.ts` fails on an ordinary space there.
+same, and `tests/unit/content-markdown.test.ts` fails on an ordinary space there. In Urdu a figure
+is joined the same way to the unit or month after it ("30 یونٹس", "10 فیصد", "48 گھنٹے", "5 نومبر";
+the words are in `src/i18n/units.ts`): the content test checks the copy, and the e2e suite every
+Urdu page as built, with its dates (`formatDate` joins a day to its month in both languages) and
+the calculators' worked examples.
 
 ## Content and translations
 

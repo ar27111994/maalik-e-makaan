@@ -312,7 +312,7 @@ class _TypedField extends StatelessWidget {
               style: text.labelLarge!.copyWith(
                 fontWeight: text.bodyMedium!.fontWeight,
               ),
-              // In Urdu every line keeps the Nastaliq line's height and
+              // In Urdu every line keeps the Urdu line's height and
               // baseline, whatever face a run is set in.
               strutStyle: mm.script == MmScript.urdu
                   ? StrutStyle.fromTextStyle(labelStyle, forceStrutHeight: true)

@@ -114,7 +114,7 @@ void main() {
       expect(style.fontSize, semantics.amount.fontSize);
       expect(style.fontWeight, semantics.amount.fontWeight);
       expect(style.color, colorsOf(variant).ink);
-      // The Urdu currency word falls back to Nastaliq.
+      // The Urdu currency word falls back to the Urdu face.
       expect(style.fontFamilyFallback, ['packages/mm_ui/${MmFontFamily.urdu}']);
       expect(styleOf(tester, _label).color, colorsOf(variant).inkMuted);
     });

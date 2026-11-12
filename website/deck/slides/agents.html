@@ -21,6 +21,6 @@
 <p style="font-size:26px;line-height:1.4;color:#57606A">A tenant asks for their own balance and receipts; CNICs and agreements are read with masking and recorded consent.</p>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#57606A">Proposed. Munshi (منشی) is the clerk who once kept a landlord’s books.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#57606A">Proposed. Munshi (<span lang="ur" style="font-family:'Noto Sans Arabic', Tahoma, sans-serif">منشی</span>) is the clerk who once kept a landlord’s books.</p>
 <aside>This is the proposed agent layer, not yet built. The principle: the model drafts, a person confirms, and the database decides what is allowed. Payments drafted from a voice note or a pasted SMS go through the same record_payment function the app uses, with an idempotency key taken from the message, so a resent SMS cannot count twice. The MCP server starts read-only (who owes, statements, the overdue list) and later adds confirmed, additive writes; voids, waivers, deletions and team changes are never exposed to an agent. Urdu speech recognition is good enough for voice notes (published error rates around 3.5% of characters); Punjabi and Saraiki are not yet, so those fall back to tap-to-confirm.</aside>
 </section>

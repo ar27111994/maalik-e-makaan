@@ -11,8 +11,8 @@ import '../support/harness.dart';
 const _cnic = 'CNIC 35202-1234567-1  0O 1lI 5S';
 
 /// A specimen of the type scale, amounts and icons in each variant: the
-/// golden shows at a glance that the bundled fonts, the Nastaliq line
-/// height and right-to-left mirroring all work.
+/// golden shows at a glance that the bundled fonts, the Urdu line height
+/// and right-to-left mirroring all work.
 class _Specimen extends StatelessWidget {
   const new();
 

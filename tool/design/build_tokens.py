@@ -70,6 +70,7 @@ CONTRAST_PAIRS = [
 # Font families as the mm_ui package declares them in pubspec.yaml.
 FLUTTER_FAMILIES = {
     "Atkinson Hyperlegible Next": "AtkinsonHyperlegibleNext",
+    "Noto Sans Arabic": "NotoSansArabic",
     "Noto Nastaliq Urdu": "NotoNastaliqUrdu",
 }
 
@@ -380,7 +381,9 @@ def render_dart(model: dict) -> str:
     out += [
         "}",
         "",
-        "/// Text styles of each script (Latin for English, Nastaliq for Urdu).",
+        "/// Text styles of each script: Atkinson Hyperlegible Next for English,",
+        "/// Noto Sans Arabic for Urdu, and Noto Nastaliq Urdu for the Urdu wordmark",
+        "/// only.",
         "abstract final class MmTypeScale {",
     ]
     styles = []
@@ -409,6 +412,45 @@ def _kebab(name: str) -> str:
     return "".join("-" + c.lower() if c.isupper() else c for c in name)
 
 
+# CSS generic font families (CSS Fonts Level 4). A stack ends with one of them.
+CSS_GENERIC_FAMILIES = frozenset(
+    {
+        "serif",
+        "sans-serif",
+        "monospace",
+        "cursive",
+        "fantasy",
+        "system-ui",
+        "ui-serif",
+        "ui-sans-serif",
+        "ui-monospace",
+        "ui-rounded",
+        "math",
+        "emoji",
+        "fangsong",
+    }
+)
+
+
+def latin_urdu_stack(families: dict) -> list[str]:
+    """The stack for text that mixes Latin figures with Urdu words, such as an amount and روپے.
+
+    Every named face of the Latin stack, then of the Urdu stack, then the Latin stack's generic
+    family. Writing the two stacks one after the other would put the Latin generic family (a
+    system font, which usually has Urdu letters) before the Urdu face, so the Urdu words would
+    be drawn in whatever font the device has.
+    """
+    latin, urdu = families["latin"], families["urdu"]
+    named = [f for f in [*latin, *urdu] if f not in CSS_GENERIC_FAMILIES]
+    generic = [f for f in latin if f in CSS_GENERIC_FAMILIES]
+    _require(generic != [], "font.family.latin must end with a generic family")
+    return list(dict.fromkeys(named)) + generic
+
+
+def _css_stack(stack: list[str]) -> str:
+    return ", ".join(f'"{f}"' if " " in f else f for f in stack)
+
+
 def render_css(model: dict) -> str:
     def colors(mode: str, indent: str) -> list[str]:
         return [
@@ -434,11 +476,10 @@ def render_css(model: dict) -> str:
         for name, value in model["easing"].items()
     ]
     out += [
-        f"  --mm-font-{name}: {', '.join(repr(f) if ' ' in f else f for f in stack)};".replace(
-            "'", '"'
-        )
+        f"  --mm-font-{_kebab(name)}: {_css_stack(stack)};"
         for name, stack in model["families"].items()
     ]
+    out.append(f"  --mm-font-latin-urdu: {_css_stack(latin_urdu_stack(model['families']))};")
     out += [*colors("light", "  "), "}", ""]
     out += [
         "@media (prefers-color-scheme: dark) {",
@@ -544,7 +585,8 @@ DESIGN_COMPONENTS = {
 
 DESIGN_DESCRIPTION = (
     "A raseed book made trustworthy on a phone: carbon-copy cobalt ink on cool white paper, "
-    "a brass nameplate for what deserves honour, Atkinson Hyperlegible Next and Noto Nastaliq Urdu."
+    "a brass nameplate for what deserves honour, Atkinson Hyperlegible Next and Noto Sans Arabic, "
+    "with the Urdu wordmark in Noto Nastaliq Urdu."
 )
 
 

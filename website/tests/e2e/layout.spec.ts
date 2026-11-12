@@ -1,10 +1,19 @@
 // Mobile-first layout and the user's display preferences: no sideways
 // scrolling from 320 px up (WCAG 1.4.10), room for adjusted text spacing
 // (1.4.12), right-to-left mirroring, dark mode, reduced motion and forced colours.
-import { expect, test, type Page } from "@playwright/test";
-import { sitePages } from "./site.ts";
+import { readFileSync } from "node:fs";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import sharp from "sharp";
+import { fontManifest, sitePages } from "./site.ts";
 
 const pages = sitePages();
+const urduTypography = (
+  JSON.parse(
+    readFileSync(new URL("../../../design/tokens/maalik.tokens.json", import.meta.url), "utf8"),
+  ) as {
+    typography: { urdu: Record<string, { $value: { lineHeight: number; fontWeight: number } }> };
+  }
+).typography.urdu;
 
 async function overflow(page: Page): Promise<number> {
   return page.evaluate(
@@ -48,6 +57,36 @@ for (const site of pages) {
   });
 }
 
+// A preloaded font is fetched whether or not the page draws it. The English header shows the
+// Urdu wordmark only from 30rem, so a phone must not fetch its font.
+test.describe("a page downloads only the fonts it draws", () => {
+  for (const width of [390, 1280]) {
+    for (const path of ["/", "/ur/", "/pricing/", "/ur/pricing/"]) {
+      test(`${path} at ${width} px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        const fetched: string[] = [];
+        page.on("response", (response) => {
+          const name = new URL(response.url()).pathname.split("/").pop() ?? "";
+          if (name.endsWith(".woff2")) fetched.push(name);
+        });
+        await page.goto(path, { waitUntil: "networkidle" });
+        const drawn = await page.evaluate(async () => {
+          await document.fonts.ready;
+          return [...document.fonts]
+            .filter((face) => face.status === "loaded")
+            .map((face) => face.family.replace(/"/g, ""));
+        });
+        const fonts = fontManifest();
+        // The build names a subset "<file>.<hash>.woff2".
+        const familyOf = (name: string) =>
+          fonts.find((font) => name.startsWith(font.file.replace(/woff2$/, "")))?.family ?? name;
+        expect(fetched.length).toBeGreaterThan(0);
+        expect(fetched.map(familyOf).filter((family) => !drawn.includes(family))).toEqual([]);
+      });
+    }
+  }
+});
+
 test("the Urdu pages mirror: the brand sits at the right edge, the switch at the left", async ({
   page,
 }) => {
@@ -62,7 +101,7 @@ test("the Urdu pages mirror: the brand sits at the right edge, the switch at the
   }
 });
 
-test("Urdu text is set in Nastaliq with twice the line height; amounts use Latin figures", async ({
+test("Urdu text is set in Noto Sans Arabic on the Urdu body line, the brand name in the Nastaliq wordmark; amounts use Latin figures", async ({
   page,
 }) => {
   await page.goto("/ur/");
@@ -70,8 +109,19 @@ test("Urdu text is set in Nastaliq with twice the line height; amounts use Latin
     const style = getComputedStyle(document.body);
     return { family: style.fontFamily, fontSize: style.fontSize, lineHeight: style.lineHeight };
   });
-  expect(body.family).toMatch(/^"?Noto Nastaliq Urdu"?/);
-  expect(Number.parseFloat(body.lineHeight) / Number.parseFloat(body.fontSize)).toBeCloseTo(2, 5);
+  expect(body.family).toMatch(/^"?Noto Sans Arabic"?/);
+  expect(Number.parseFloat(body.lineHeight) / Number.parseFloat(body.fontSize)).toBeCloseTo(
+    urduTypography.body?.$value.lineHeight ?? 0,
+    2,
+  );
+  const brand = await page.locator(".brand__name").evaluate((element) => ({
+    family: getComputedStyle(element).fontFamily,
+    weight: getComputedStyle(element).fontWeight,
+    text: element.textContent,
+  }));
+  expect(brand.family).toMatch(/^"?Noto Nastaliq Urdu"?/);
+  expect(brand.weight).toBe(String(urduTypography.wordmark?.$value.fontWeight));
+  expect(brand.text).toBe("مالکِ مکان");
   const amount = await page
     .locator(".receipt .amount")
     .first()
@@ -83,6 +133,99 @@ test("Urdu text is set in Nastaliq with twice the line height; amounts use Latin
   expect(amount.family).toMatch(/^"?Atkinson Hyperlegible Next"?/);
   expect(amount.numeric).toBe("tabular-nums");
   expect(amount.text).toBe("45,000\u00A0روپے");
+});
+
+/**
+ * How far the middle of the ink of a control's text lies below the middle of the control, in
+ * CSS pixels (negative: above), from a screenshot: the rows holding pixels unlike the
+ * control's background. `inset` skips the border and rounded corners.
+ */
+async function inkOffset(page: Page, control: Locator, inset: { x: number; y: number }) {
+  const box = await control.boundingBox();
+  if (box === null) throw new Error("control not rendered");
+  const clip = {
+    x: box.x + inset.x,
+    y: box.y + inset.y,
+    width: box.width - 2 * inset.x,
+    height: box.height - 2 * inset.y,
+  };
+  const { data, info } = await sharp(await page.screenshot({ clip }))
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const scale = info.height / clip.height;
+  const pixel = (offset: number) => [
+    data[offset] ?? 0,
+    data[offset + 1] ?? 0,
+    data[offset + 2] ?? 0,
+  ];
+  const counts = new Map<string, number>();
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    const key = pixel(offset).join();
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const background = ([...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "").split(",").map(Number);
+  const rows: number[] = [];
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      const colour = pixel((y * info.width + x) * info.channels);
+      const distance = colour.reduce(
+        (sum, value, index) => sum + Math.abs(value - (background[index] ?? 0)),
+        0,
+      );
+      if (distance > 60) {
+        rows.push(y);
+        break;
+      }
+    }
+  }
+  const top = (rows[0] ?? 0) / scale;
+  const bottom = ((rows.at(-1) ?? 0) + 1) / scale;
+  return (top + bottom) / 2 - clip.height / 2;
+}
+
+test.describe("Urdu words sit in the middle of their controls", () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  // Measured for Noto Sans Arabic with the app's baseline (integrations/brand-assets.ts):
+  // within 1.25 px, against 2.25 px below the middle without it and 3.75 px in Nastaliq.
+  const tolerance = 1.5;
+
+  test("the language switch's اردو on an English page", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    const offset = await inkOffset(page, page.locator("header [data-language-switch]"), {
+      x: 12,
+      y: 3,
+    });
+    expect(Math.abs(offset)).toBeLessThanOrEqual(tolerance);
+  });
+
+  test("buttons, the section links and the receipt's chip on the Urdu home page", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/ur/");
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    const controls: [Locator, { x: number; y: number }][] = [
+      ...(await page.locator(".hero .button").all()).map(
+        (button) => [button, { x: 10, y: 3 }] as [Locator, { x: number; y: number }],
+      ),
+      ...(await page.locator(".site-nav__link").all()).map(
+        (link) => [link, { x: 0, y: 0 }] as [Locator, { x: number; y: number }],
+      ),
+      [page.locator(".receipt .chip").first(), { x: 8, y: 1 }],
+    ];
+    expect(controls.length).toBeGreaterThan(5);
+    for (const [control, inset] of controls) {
+      const offset = await inkOffset(page, control, inset);
+      expect(Math.abs(offset), (await control.textContent()) ?? "").toBeLessThanOrEqual(tolerance);
+    }
+  });
 });
 
 test("dark mode uses the design tokens' dark colours", async ({ page }) => {

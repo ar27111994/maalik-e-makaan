@@ -11,8 +11,9 @@ import Seo from "../components/Seo.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import latinFont from "../generated/fonts/atkinson-hyperlegible-next-latin.woff2?url";
-import labelFont from "../generated/fonts/noto-nastaliq-urdu-label.woff2?url";
-import urduFont from "../generated/fonts/noto-nastaliq-urdu.woff2?url";
+import wordmarkFont from "../generated/fonts/noto-nastaliq-urdu-wordmark.woff2?url";
+import labelFont from "../generated/fonts/noto-sans-arabic-label.woff2?url";
+import urduFont from "../generated/fonts/noto-sans-arabic.woff2?url";
 import {
   absoluteUrl,
   LOCALE_INFO,
@@ -122,7 +123,14 @@ if (!noindex && path !== undefined) {
 }
 
 const colors = tokens.color;
-const fontPreloads = locale === "en" ? [latinFont, labelFont] : [urduFont, latinFont];
+// The page's own face first, then the header's wordmark (مالکِ مکان). An Urdu page shows the
+// wordmark at every width; an English page shows it beside the English name only from 30rem
+// (SiteHeader.astro's .brand__secondary), so a phone does not fetch a font it never draws.
+const wordmarkFrom = "(min-width: 30rem)";
+const fontPreloads: { href: string; media?: string }[] =
+  locale === "en"
+    ? [{ href: latinFont }, { href: labelFont }, { href: wordmarkFont, media: wordmarkFrom }]
+    : [{ href: urduFont }, { href: wordmarkFont }, { href: latinFont }];
 ---
 
 <!doctype html>
@@ -150,8 +158,15 @@ const fontPreloads = locale === "en" ? [latinFont, labelFont] : [urduFont, latin
       noindex={noindex}
       ogType={ogType}
     />
-    {fontPreloads.map((href) => (
-      <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
+    {fontPreloads.map(({ href, media }) => (
+      <link
+        rel="preload"
+        href={href}
+        as="font"
+        type="font/woff2"
+        crossorigin="anonymous"
+        media={media}
+      />
     ))}
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

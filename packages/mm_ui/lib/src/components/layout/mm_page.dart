@@ -27,7 +27,9 @@ import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 /// cut: when it does not fit on one line beside the back button and the
 /// actions (a long name, large text), it moves under them, onto as many
 /// full-width lines as it needs. A title that is user data (a tenant's
-/// name typed in English) keeps its own script's face in the Urdu UI.
+/// name typed in English) keeps its own script's face in the Urdu UI. A
+/// title that is the app's name standing alone ([wordmark]) is set as the
+/// wordmark: مالکِ مکان in Nastaliq in the Urdu UI.
 ///
 /// [bottomBar] (usually an `MmActionBar`) sits below
 /// the content, never covering it; it pads itself for the device's safe
@@ -74,6 +76,7 @@ class MmPage extends StatefulWidget {
     this.onRefresh,
     this.scrollable = true,
     this.leading,
+    this.wordmark = false,
     super.key,
   }) : assert(
          onRefresh == null || scrollable,
@@ -111,6 +114,15 @@ class MmPage extends StatefulWidget {
   /// The widget at the start of the app bar. When null, the app bar shows a
   /// back (or close) button whenever the screen can go back.
   final Widget? leading;
+
+  /// Whether [title] is the app's name standing alone, as on a screen that
+  /// shows nothing but the brand while it waits (signing in, loading the
+  /// portfolios). A title in Urdu letters is then set in
+  /// `MmSemantics.wordmark`: in the Urdu UI, Noto Nastaliq Urdu, the one
+  /// place Nastaliq is used. A title in Latin letters keeps its own face.
+  /// Leave it false for every other title, and for the name inside a
+  /// longer title.
+  final bool wordmark;
 
   @override
   State<MmPage> createState() => _MmPageState();
@@ -187,10 +199,13 @@ class _MmPageState extends State<MmPage> {
   PreferredSizeWidget _appBar(BuildContext context, double pageWidth) {
     final title = widget.title;
     final appBarTheme = AppBarTheme.of(context);
-    final style = context.mm.styleFor(
-      title,
-      appBarTheme.titleTextStyle ?? Theme.of(context).textTheme.titleLarge!,
-    );
+    final style = widget.wordmark && MmSemantics.hasArabicScript(title)
+        ? context.mm.wordmark
+        : context.mm.styleFor(
+            title,
+            appBarTheme.titleTextStyle ??
+                Theme.of(context).textTheme.titleLarge!,
+          );
     final scaler = MediaQuery.textScalerOf(context);
     final safeArea = MediaQuery.paddingOf(context);
     final width = pageWidth - safeArea.horizontal;

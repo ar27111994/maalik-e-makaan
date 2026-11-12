@@ -58,15 +58,13 @@ void main() {
     expect(_images(pdf), 0);
   });
 
-  testWidgets('a receipt in Urdu draws its Nastaliq with Flutter', (
-    tester,
-  ) async {
+  testWidgets('a receipt in Urdu draws its Urdu with Flutter', (tester) async {
     final pdf = (await tester.runAsync(
       () => receiptPdf(detail, setup(DocumentLanguage.urdu)),
     ))!;
-    // Voided, with tax withheld, a certificate and a note, its tall
-    // Nastaliq lines do not fit one A5 page: the rest flows on to a second
-    // page instead of being cut off (the footer was lost).
+    // Voided, with tax withheld, a certificate and a note, its Urdu lines
+    // do not fit one A5 page: the rest flows on to a second page instead of
+    // being cut off (the footer was lost).
     expect(_pages(pdf), 2);
     expect(_images(pdf), greaterThan(10));
   });
@@ -295,7 +293,7 @@ void main() {
     ))!;
     final name = (await tester.runAsync(() => rtl.cell('Ali Raza')))!;
     final english = (await tester.runAsync(() => ltr.cell('Ali Raza')))!;
-    // A name in English is as large beside Nastaliq as the Urdu UI sets
+    // A name in English is as large beside Urdu as the Urdu UI sets
     // it: its baseline (the face's ascent) is further down.
     expect(rtl.latinScale, PdfTextWriter.urduLatinScale);
     expect(ltr.latinScale, 1);

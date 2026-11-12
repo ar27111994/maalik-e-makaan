@@ -92,7 +92,7 @@ Facts marked _(summary)_ were read only through a search engine's summary.
 - **A guardrail.** `tool/check_urdu_words.py`, run by `make lint` and so in CI, fails when a form
   the glossary avoids appears in any tracked file. Words that depend on meaning are left to review,
   and an official name that must keep a formal word is listed as an exception with its reason.
-- **The font is decided; readers confirm it.** D-19 moves interface text to Noto Sans Arabic, with
+- **The font is decided; readers confirm it.** D-19 moved interface text to Noto Sans Arabic, with
   new line-height tokens and every Urdu golden re-recorded; Nastaliq stays for the wordmark. The
   [pilot](pilot.md) asks readers whether the new face reads easily and looks like Urdu to them; a
   clear "no" would reopen D-19.
@@ -136,7 +136,9 @@ articles carry the Urdu.
 6. **S:** the glossary guardrail across every tracked file, `tool/check_urdu_words.py` in
    `make lint` (in place since November 2026).
 7. **M:** the font change of D-19 (Noto Sans Arabic for interface text, Nastaliq for the wordmark,
-   new line-height tokens, Urdu goldens re-recorded); then a check with pilot readers.
+   new line-height tokens, Urdu goldens re-recorded; in place since November 2026 in the app, the
+   website and the pitch deck, with the e-mail templates still to follow); then a check with pilot
+   readers.
 
 ## Depends on / Unblocks
 

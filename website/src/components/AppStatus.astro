@@ -49,7 +49,10 @@ const { locale, variant = "plain" } = Astro.props;
     stroke: currentcolor;
   }
 
+  /* Centred on the first line of Urdu text, as the Latin offset is on a Latin line. */
   :global(html[lang="ur"]) .app-status__icon {
-    margin-block-start: 0.5rem;
+    margin-block-start: calc(
+      (var(--mm-type-urdu-body-size) * var(--mm-type-urdu-body-line) - 1.25rem) / 2
+    );
   }
 </style>

@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { LOCALE_INFO } from "../../src/i18n/locales.ts";
+import { URDU_UNIT_SPLIT } from "../../src/i18n/units.ts";
 import {
   escapeRegExp,
   fontManifest,
@@ -361,18 +362,41 @@ for (const site of pages) {
         });
         expect(latinCommas).toEqual([]);
       });
+
+      test("a figure and its unit stay on one line", async ({ page }) => {
+        await page.goto(site.path);
+        // "30 یونٹس", "10 فیصد", "48 گھنٹے", "5 نومبر": a plain space lets a line end on the
+        // figure and start the next with its unit, so the two are joined by U+00A0.
+        const parted = await page.evaluate((source) => {
+          const pattern = new RegExp(source, "u");
+          const found: string[] = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+            if (node.parentElement?.closest("noscript") !== null) continue;
+            const match = pattern.exec(node.textContent ?? "");
+            if (match !== null) found.push(match[0]);
+          }
+          return found;
+        }, URDU_UNIT_SPLIT.source);
+        expect(parted).toEqual([]);
+      });
     }
 
     test("every character has a glyph in the self-hosted fonts", async ({ page }) => {
       await page.goto(site.path);
       const manifest = fontManifest();
+      const familyOf = (role: string) => manifest.find((font) => font.role === role)?.family ?? "";
       const covered = (family: string) =>
         new Set(
           manifest.filter((font) => font.family === family).flatMap((font) => [...font.codePoints]),
         );
-      const urdu = covered("Noto Nastaliq Urdu");
-      const label = covered("MM Nastaliq Label");
-      const latin = covered("Atkinson Hyperlegible Next");
+      const urduFamily = familyOf("urdu");
+      const labelFamily = familyOf("urduLabel");
+      const wordmarkFamily = familyOf("urduWordmark");
+      const urdu = covered(urduFamily);
+      const label = covered(labelFamily);
+      const wordmark = covered(wordmarkFamily);
+      const latin = covered(familyOf("latin"));
       const text = await page.evaluate(() => {
         const runs: { text: string; family: string }[] = [];
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -392,8 +416,18 @@ for (const site of pages) {
           // Spaces, and invisible format controls such as the bidi isolates U+2066 and
           // U+2069 around a figure in Urdu text, are never drawn, so need no glyph.
           if (/[\s\p{Cf}]/u.test(char)) continue;
+          // A run in an Urdu face is checked whole against that face's subset: the Urdu stacks
+          // have no Latin face, so a "©" or "·" the subset lacks would be drawn in a system
+          // font. In a Latin run, Arabic letters fall back to the Urdu face.
           const arabic = code >= 0x0600 && code <= 0x06ff;
-          const set = arabic ? (primary === "MM Nastaliq Label" ? label : urdu) : latin;
+          const set =
+            primary === labelFamily
+              ? label
+              : primary === wordmarkFamily
+                ? wordmark
+                : primary === urduFamily || arabic
+                  ? urdu
+                  : latin;
           if (!set.has(code))
             missing.add(`${char} (U+${code.toString(16).toUpperCase()}) in ${primary}`);
         }
@@ -406,7 +440,29 @@ for (const site of pages) {
           .map((face) => face.family.replace(/"/g, ""));
       });
       expect(families).toContain("Atkinson Hyperlegible Next");
-      if (site.locale === "ur") expect(families).toContain("Noto Nastaliq Urdu");
+      expect(families).toContain(wordmarkFamily);
+      if (site.locale === "ur") expect(families).toContain(urduFamily);
+    });
+
+    test("Nastaliq sets only the wordmark, the brand name in the header (D-19)", async ({
+      page,
+    }) => {
+      await page.goto(site.path);
+      const wordmarkFamily = fontManifest().find((font) => font.role === "urduWordmark")?.family;
+      const runs = await page.evaluate((family) => {
+        const found: { text: string; inBrand: boolean }[] = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+          const parent = node.parentElement;
+          const text = (node.textContent ?? "").trim();
+          if (parent === null || text === "") continue;
+          const primary = getComputedStyle(parent).fontFamily.split(",")[0]?.replace(/"/g, "");
+          if (primary?.trim() !== family) continue;
+          found.push({ text, inBrand: parent.closest(".site-header .brand") !== null });
+        }
+        return found;
+      }, wordmarkFamily);
+      expect(runs).toEqual([{ text: "مالکِ مکان", inBrand: true }]);
     });
   });
 }

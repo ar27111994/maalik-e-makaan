@@ -242,7 +242,8 @@ means done in code and tests, not released. Items marked ◐ say what remains.
   navigation (bottom bar, rail or drawer).
 - ☑ NFR-02: The design-system package provides:
   - tokens and themes (light, dark, high contrast);
-  - Latin and Urdu Nastaliq typography;
+  - Latin and Urdu typography (Urdu interface text in Noto Sans Arabic, the Nastaliq wordmark;
+    D-19);
   - a component library and gallery, with golden tests.
 
   The UI meets WCAG 2.2 AA: contrast, 48 dp targets, semantics, 200% text scale, reduced motion.

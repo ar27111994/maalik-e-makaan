@@ -59,9 +59,9 @@ class WelcomeScreen extends ConsumerWidget {
   }
 }
 
-/// [child] in [locale]: its localisations, its script's type (Nastaliq for
-/// Urdu, with room for it) and its direction, in the current theme's mode
-/// and contrast.
+/// [child] in [locale]: its localisations, its script's type (Noto Sans
+/// Arabic for Urdu, on its taller lines) and its direction, in the current
+/// theme's mode and contrast.
 class _InLanguage extends StatelessWidget {
   const new({required this.locale, required this.child});
 

@@ -84,7 +84,7 @@ id = "urdu-review"
 title = "A native speaker's review of every Urdu string"
 title_ur = "ساری اردو کسی اردو بولنے والے سے چیک کروانا"
 body = """
-Have a native Urdu editor review every Urdu surface (the app's strings, receipts and statements, the website, the e-mail templates and the store listings) for plain, respectful Urdu that landlords and tenants read easily (NFR-03). A glossary and style sheet, signed off by the owner, come before any editor, and a test keeps rejected terms out. The interface's Urdu moves from Nastaliq to Noto Sans Arabic, with Nastaliq kept for the wordmark (decided by the owner on 11 November 2026, D-19); pilot readers confirm that it reads easily.
+Have a native Urdu editor review every Urdu surface (the app's strings, receipts and statements, the website, the e-mail templates and the store listings) for plain, respectful Urdu that landlords and tenants read easily (NFR-03). A glossary and style sheet, signed off by the owner, come before any editor, and a test keeps rejected terms out. The interface's Urdu has moved from Nastaliq to Noto Sans Arabic, with Nastaliq kept for the wordmark (decided by the owner on 11 November 2026, D-19); pilot readers confirm that it reads easily.
 
 Plan: https://github.com/ar27111994/maalik-e-makaan/blob/main/docs/roadmap/urdu-review.md
 

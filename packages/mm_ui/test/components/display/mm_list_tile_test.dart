@@ -556,7 +556,7 @@ void main() {
       );
     });
 
-    testWidgets('sets Urdu user data in Nastaliq, right to left, in the '
+    testWidgets('sets Urdu user data in the Urdu face, right to left, in the '
         'English UI', (tester) async {
       const address = 'فلیٹ 3، گلبرگ III، لاہور';
       await pumpThemed(
@@ -613,7 +613,7 @@ void main() {
         'III',
         'لاہور',
       ].map(placeOf).toList();
-      // Runs in the Latin face and in Nastaliq start a few pixels apart on
+      // Runs in the Latin face and in the Urdu face start a few pixels apart on
       // one line; lines are a whole line height apart.
       bool sameLine(double a, double b) => (a - b).abs() < 10;
       expect(sameLine(words.last.$1, words.first.$1), isFalse);

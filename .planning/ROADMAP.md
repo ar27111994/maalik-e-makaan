@@ -50,7 +50,7 @@ Dependencies: Phase 2.
 
 - tokens (colour, type, spacing, radius, elevation, motion);
 - light, dark and high-contrast themes for LTR and RTL;
-- Latin and Nastaliq typography;
+- Latin and Urdu typography (Noto Sans Arabic, with a Nastaliq wordmark: D-19);
 - components: buttons, fields, cards, list tiles, chips, badges, money text, stat tiles, charts
   wrappers, empty, error and loading states, sheets, dialogs, snackbars, navigation scaffolds;
 - the gallery app and golden tests (light, dark, RTL, 200% text);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mm_ui/src/foundation/mm_field_error.dart';
 import 'package:mm_ui/src/foundation/mm_field_label.dart';
+import 'package:mm_ui/src/foundation/mm_script_text.dart';
 import 'package:mm_ui/src/theme/mm_semantics.dart';
 import 'package:mm_ui/src/tokens/mm_tokens.g.dart';
 
@@ -92,9 +93,11 @@ class MmChoiceFrame extends StatelessWidget {
             padding: below,
             child: Align(
               alignment: AlignmentDirectional.centerStart,
-              child: Text(
+              // Figures in an Urdu helper in the Latin face, as in the
+              // fields' values.
+              child: MmScriptText(
                 helper,
-                style: text.bodyMedium?.copyWith(color: colors.inkMuted),
+                style: text.bodyMedium!.copyWith(color: colors.inkMuted),
               ),
             ),
           ),

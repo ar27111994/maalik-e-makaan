@@ -443,7 +443,13 @@ void main() {
     });
 
     testWidgets('says the action in Urdu, mirrored', (tester) async {
-      final context = await _page(tester, variant: MmVariant.urdu);
+      // On a 412 dp phone "واپس لیں" is a short action; on a 360 dp one its
+      // button is a pixel over a third of the row (see below).
+      final context = await _page(
+        tester,
+        variant: MmVariant.urdu,
+        size: const Size(412, 740),
+      );
       unawaited(
         showMmSnackbar(
           context,
@@ -467,6 +473,26 @@ void main() {
           epsilon: 1,
         ),
       );
+    });
+
+    testWidgets('in Urdu, an action over a third of the row goes under the '
+        'message at the left end', (tester) async {
+      final context = await _page(tester, variant: MmVariant.urdu);
+      unawaited(
+        showMmSnackbar(
+          context,
+          message: 'علی رضا کی ادائیگی ڈیلیٹ ہو گئی',
+          actionLabel: 'واپس لیں',
+          onAction: tapped,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final message = tester.getRect(
+        find.text('علی رضا کی ادائیگی ڈیلیٹ ہو گئی'),
+      );
+      final action = tester.getRect(find.text('واپس لیں'));
+      expect(action.top, greaterThan(message.bottom));
+      expect(action.center.dx, lessThan(message.center.dx));
     });
 
     testEveryVariant("keyboard focus rings the action in the bar's mode", (

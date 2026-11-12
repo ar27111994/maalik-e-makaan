@@ -69,12 +69,13 @@ test("text files are UTF-8 and the licence texts are served beside the fonts", a
     "/llms.txt",
     "/llms-full.txt",
     "/licences/ofl-atkinson-hyperlegible-next.txt",
+    "/licences/ofl-noto-sans-arabic.txt",
     "/licences/ofl-noto-nastaliq-urdu.txt",
   ]) {
     const response = await request.get(path);
     expect(response.status(), path).toBe(200);
     expect(response.headers()["content-type"]).toBe("text/plain; charset=utf-8");
   }
-  const ofl = await (await request.get("/licences/ofl-noto-nastaliq-urdu.txt")).text();
+  const ofl = await (await request.get("/licences/ofl-noto-sans-arabic.txt")).text();
   expect(ofl).toContain("SIL OPEN FONT LICENSE Version 1.1");
 });

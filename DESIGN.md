@@ -1,6 +1,6 @@
 ---
 name: Maalik-e-Makaan
-description: "A raseed book made trustworthy on a phone: carbon-copy cobalt ink on cool white paper, a brass nameplate for what deserves honour, Atkinson Hyperlegible Next and Noto Nastaliq Urdu."
+description: "A raseed book made trustworthy on a phone: carbon-copy cobalt ink on cool white paper, a brass nameplate for what deserves honour, Atkinson Hyperlegible Next and Noto Sans Arabic, with the Urdu wordmark in Noto Nastaliq Urdu."
 colors:
   bg: "#F4F5F7"
   surface: "#FFFFFF"
@@ -86,45 +86,51 @@ typography:
     lineHeight: 1.25
     letterSpacing: 0px
   urdu-headline:
-    fontFamily: Noto Nastaliq Urdu
-    fontSize: 26px
+    fontFamily: Noto Sans Arabic
+    fontSize: 25px
     fontWeight: 700
-    lineHeight: 2
+    lineHeight: 1.52
     letterSpacing: 0px
   urdu-title:
+    fontFamily: Noto Sans Arabic
+    fontSize: 21px
+    fontWeight: 600
+    lineHeight: 1.5238095238095237
+    letterSpacing: 0px
+  urdu-title-small:
+    fontFamily: Noto Sans Arabic
+    fontSize: 17px
+    fontWeight: 600
+    lineHeight: 1.5294117647058822
+    letterSpacing: 0px
+  urdu-body:
+    fontFamily: Noto Sans Arabic
+    fontSize: 17px
+    fontWeight: 400
+    lineHeight: 1.6470588235294117
+    letterSpacing: 0px
+  urdu-body-small:
+    fontFamily: Noto Sans Arabic
+    fontSize: 15px
+    fontWeight: 400
+    lineHeight: 1.6
+    letterSpacing: 0px
+  urdu-label:
+    fontFamily: Noto Sans Arabic
+    fontSize: 15px
+    fontWeight: 600
+    lineHeight: 1.4666666666666666
+    letterSpacing: 0px
+  urdu-caption:
+    fontFamily: Noto Sans Arabic
+    fontSize: 13px
+    fontWeight: 400
+    lineHeight: 1.5384615384615385
+    letterSpacing: 0px
+  urdu-wordmark:
     fontFamily: Noto Nastaliq Urdu
     fontSize: 22px
     fontWeight: 600
-    lineHeight: 2
-    letterSpacing: 0px
-  urdu-title-small:
-    fontFamily: Noto Nastaliq Urdu
-    fontSize: 18px
-    fontWeight: 600
-    lineHeight: 2
-    letterSpacing: 0px
-  urdu-body:
-    fontFamily: Noto Nastaliq Urdu
-    fontSize: 18px
-    fontWeight: 400
-    lineHeight: 2
-    letterSpacing: 0px
-  urdu-body-small:
-    fontFamily: Noto Nastaliq Urdu
-    fontSize: 16px
-    fontWeight: 400
-    lineHeight: 2
-    letterSpacing: 0px
-  urdu-label:
-    fontFamily: Noto Nastaliq Urdu
-    fontSize: 16px
-    fontWeight: 600
-    lineHeight: 1.875
-    letterSpacing: 0px
-  urdu-caption:
-    fontFamily: Noto Nastaliq Urdu
-    fontSize: 14px
-    fontWeight: 400
     lineHeight: 2
     letterSpacing: 0px
 rounded:
@@ -219,7 +225,7 @@ cobalt ink on cool white paper, every amount in clear, even figures, the counter
 the record. The one ornament is the **brass house nameplate** from the gate of a Pakistani
 home, an engraved, honoured name, used only where a record deserves honour: a property's name,
 a receipt's seal. Everything else is plain paper and ink, legible in sunlight on a ten-thousand-rupee
-Android phone, in Urdu Nastaliq as naturally as in English.
+Android phone, in Urdu as naturally as in English.
 
 ## Colors
 
@@ -249,17 +255,23 @@ the high-contrast modes.
 
 - **Latin: Atkinson Hyperlegible Next.** Designed for low vision: 0 and O, 1, l and I, 5 and S
   stay distinct, which matters for rupee amounts, CNICs and phone numbers read at a glance.
-- **Urdu: Noto Nastaliq Urdu.** Nastaliq is how Urdu readers expect Urdu to look. It needs
-  about twice the line height of Latin and a size step larger; never squeeze it to fit.
+- **Urdu: Noto Sans Arabic.** A plain sans that reads easily on a phone (D-19): its lines never
+  touch from 1.4 times its size up, its words sit centred in buttons and fields, and screens are
+  shorter than in Nastaliq. It is set a size step larger than Latin, on lines about one and a
+  half times its size; never squeeze it to fit.
+- **The wordmark: Noto Nastaliq Urdu.** The brand name مالکِ مکان keeps Nastaliq where it stands
+  alone as the wordmark: in the app, a screen that shows only the app's name (`MmPage.wordmark`);
+  on the website, the header's brand name and the link-preview cards; the pitch deck's cover. It
+  sits on a line twice its size for its tall letters. Nastaliq is never used for interface text,
+  nor for the name inside a sentence.
 - **Amounts** use the Latin face with tabular figures in both languages, so columns of rupees
   line up and a 1 never looks like a 7.
 - **User data keeps its own script's face.** Latin-script data in the Urdu UI (a name typed in
-  English, a CNIC) is set in Atkinson, not Nastaliq's serif Latin; Urdu letters in the English
-  UI (a tenant's name typed in Urdu, the rupee word after an amount) fall back to Nastaliq,
-  never to a platform face or empty boxes. The spaces between Urdu words and a Latin name
-  are the Latin face's: Nastaliq's space is about half as wide and beside Latin letters reads
-  as none. Neither face draws the narrow no-break space `intl` puts before AM and PM; it is
-  shown as a no-break space.
+  English, a CNIC) is set in Atkinson, not in the Urdu face's own Latin letters; Urdu letters in
+  the English UI (a tenant's name typed in Urdu, the rupee word after an amount) fall back to
+  the Urdu face, never to a platform face or empty boxes. The spaces between Urdu words and a
+  Latin name are the Latin face's. The Latin face does not draw the narrow no-break space
+  `intl` puts before AM and PM; it is shown as a no-break space.
 - Roles: `amount` (one large figure per screen), `headline` (screen titles), `title` (section
   and card titles), `titleSmall`, `body` (default), `bodySmall`, `label` (buttons, chips),
   `caption` (dates and metadata; 12 px is the floor).

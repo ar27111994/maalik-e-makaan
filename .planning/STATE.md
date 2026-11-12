@@ -7,8 +7,18 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-11)
+## Current Position (2026-11-12)
 
+- D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
+  is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
+  the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the
+  wordmark مالکِ مکان. Urdu pages download 50,892 bytes of Urdu fonts instead of 196,068; English
+  pages 1,352 on a phone and 16,788 from 30rem wide (where the header shows the wordmark) instead
+  of 23,696. The app bundles Noto Sans Arabic at its normal width and Nastaliq cut to the
+  wordmark's letters (`make fonts`): its fonts come to about 700 KB, down from 838 KB. Not yet
+  changed: the e-mail templates (`supabase/templates/` and `invite-member`), the gallery's Urdu
+  screenshots, and an independent design review of the change (`docs/design-qa.md`). Pilot
+  readers confirm the face (`docs/roadmap/urdu-review.md`).
 - The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
   items are researched and planned, one plan each in `docs/roadmap/`, indexed by
   `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
@@ -69,8 +79,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
     portfolio, with an optional Urdu version, A5 or A4 receipts (A5 by default), on every plan;
     PostHog's US Cloud project and Customer.io's US workspace kept, with the US named in the
     privacy notice and PostHog's recording, heatmap, console-log and dead-click settings off;
-  - D-19 (the owner, 2026-11-11): Urdu interface text in Noto Sans Arabic, Nastaliq kept for the
-    wordmark.
+  - D-19 (the owner, 2026-11-11; in place since 2026-11-12): Urdu interface text in Noto Sans
+    Arabic, Nastaliq kept for the wordmark.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.

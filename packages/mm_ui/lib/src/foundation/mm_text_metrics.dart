@@ -5,9 +5,9 @@ import 'package:flutter/widgets.dart';
 /// How much room a run of text takes as a `Text` would set it: its box,
 /// and how far its glyphs reach past the top and the bottom of its lines.
 ///
-/// Nastaliq's letters rise and fall well past the lines they sit on; a
-/// component sizing itself around a label leaves room for that overhang so
-/// nothing is clipped.
+/// The dots and marks of Urdu letters can reach past the lines they sit
+/// on; a component sizing itself around a label leaves room for that
+/// overhang so nothing is clipped.
 ///
 /// Internal to mm_ui: any component family may use it (the scaffold, the
 /// page and the tabs size their bars by it; the segmented control, the

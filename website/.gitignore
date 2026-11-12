@@ -1,5 +1,5 @@
 # Installed dependencies (restore with `npm ci`).
-node_modules/
+node_modules
 # Build output and Astro's caches.
 dist/
 .astro/
