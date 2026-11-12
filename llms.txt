@@ -54,4 +54,5 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 - [Requirements](.planning/REQUIREMENTS.md): v1.0 requirements and what remains
 - [Roadmap](.planning/ROADMAP.md): the twelve phases of milestone v1.0
 - [Roadmap after v1.0](docs/roadmap/README.md): the milestones and their items, one plan each, the order of work and the owner's decisions
+- [Legal review pack](docs/legal/README.md): draft privacy notice and terms changes for decisions 1 to 3 in English and Urdu, the data map and the questions for the lawyer; not legal advice, and not live
 - [Formal track READMEs](formal/tla/LedgerPayments/README.md): one per track under formal/tla, formal/lean, formal/smt and formal/bend

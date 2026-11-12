@@ -41,6 +41,7 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 | [`../.planning/REQUIREMENTS.md`](../.planning/REQUIREMENTS.md) | The v1.0 requirements and what remains of each                                                           |
 | [`../.planning/ROADMAP.md`](../.planning/ROADMAP.md)           | The twelve phases of milestone v1.0                                                                      |
 | [`roadmap/README.md`](roadmap/README.md)                       | After v1.0: the milestones and their items, a plan for each, the order of work and the owner's decisions |
+| [`legal/README.md`](legal/README.md)                           | The legal review pack for decisions 1 to 3: drafts in English and Urdu, the data map, the questions      |
 
 ## For coding agents
 
