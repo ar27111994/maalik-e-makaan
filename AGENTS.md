@@ -72,3 +72,47 @@ port 54329 and what this container cannot reach).
 
 The full list, with the reasons, is [`docs/agents/conventions.md`](docs/agents/conventions.md);
 how to do common tasks is [`docs/agents/workflows.md`](docs/agents/workflows.md).
+
+## How to work here
+
+- **You own the project.** Work as its engineer and owner: take a change all the way through
+  (code, tests, docs, CI, review, merge), report what you find on the way, and leave each area
+  better than you found it. Grow it with the free tiers and startup credits the owner has (PostHog,
+  Intercom, Customer.io, Higgsfield and others), inside the decisions in
+  [`.planning/PROJECT.md`](.planning/PROJECT.md): analytics, for example, are privacy-first (D-18).
+- **No shortcuts.** No hand-waving, no stub presented as finished, no skipped or loosened test,
+  no claim you have not checked. Spend the time, tool calls and review rounds the work needs:
+  quality comes before speed.
+- **Use the tools you have.** Before a task, look at the skills, MCP servers and tools available
+  and use the ones that fit: among them `release-readiness-audit`, `cli-tool-qa`,
+  `design-systems-engineering`, `project-documentation`, `gsd`, `code-quality-standards`,
+  `seo-audit`, `brand-review`, `code-review` and `llm-context-modular-docs`, browser and computer
+  use, and Context7 or the official documentation for any library or API.
+- **Ask the owner** when a decision is theirs (product, pricing, legal, privacy, and anything
+  that reaches outside the repository: a release, a change to the hosted project, a write to an
+  external service), or when you are blocked. Otherwise decide, and record the decision.
+- **Keep the documentation current.** A pull request updates every document its change makes
+  wrong: the READMEs, the `AGENTS.md` files, `docs/`, `.planning/` and `llms.txt`.
+  `CHANGELOG.md` is written by release-please from the squash commits, so a commit message says
+  what changed for the person reading the changelog. Where one fact appears in several places,
+  generate it from its source, with a check in CI, rather than copying it by hand.
+
+## Quality bar
+
+The owner's definition of done for every area. [`docs/agents/quality-bar.md`](docs/agents/quality-bar.md)
+says what each means here, the gates in force today and what is still to reach.
+
+- **Frontend** (the app, `mm_ui` and the website): high-quality, clean, intuitive, interactive,
+  consistent, fast and responsive to touch, beautiful and tasteful, accessible to WCAG 2.2 AA,
+  optimised for search engines and AI answer engines, mobile-first, responsive and reliable. Every
+  screen and page is built from the shared design system (tokens, type, themes, presets, motion,
+  states and components), not from one-off styles.
+- **Testing**: 100% coverage is the floor. The tests also cover every relevant case: edge cases,
+  failure paths, concurrency, performance and stress, security and input sanitisation, smoke
+  tests and fuzzing, at the unit, integration and end-to-end levels.
+- **CI/CD**: gates for code quality and validation, security, coverage, maintenance (Dependabot)
+  and the release lifecycle, on every pull request or on a schedule.
+- **API and database**: every implicit state machine is found, written down and enforced. The
+  whole stack is hardened: type safety, rate limits, caching, indexes, roles and row-level
+  security, timing-safe comparison of secrets, and search-engine readiness. The aim is a
+  complete, fast and secure production system.

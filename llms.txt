@@ -16,6 +16,7 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 - [Commands](docs/agents/commands.md): every make target by area, its gate, prerequisites and CI job
 - [Conventions](docs/agents/conventions.md): commits and scopes, British English, plain Urdu and its glossary, Unicode guard, money, database, secrets, design lint, goldens, generated files
 - [Workflows](docs/agents/workflows.md): the order of work for a migration, money maths, an app screen, the design system, an Edge Function, the website, docs
+- [Quality bar](docs/agents/quality-bar.md): the owner's definition of done for the frontend, testing, CI/CD, the API and database, and documentation, with today's gates and what is still to reach
 - [App](app/AGENTS.md): Flutter app layout, layering and retry rules, strings, tests
 - [Design system](packages/mm_ui/AGENTS.md): tokens, icons, components, goldens, gallery
 - [Domain library](packages/mm_core/AGENTS.md): money, time, identity, text, rent, ledger
