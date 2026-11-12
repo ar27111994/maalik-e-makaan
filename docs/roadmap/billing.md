@@ -112,9 +112,9 @@ declared residence only suggests a plan and never changes a price.
 
 ### Letterheads (decision 2)
 
-Whether letterheads are included in Free or only in paid plans is open. If gated, the check is
-an entitlement feature read by the database, like any other limit. Subscription receipts are AR
-LABS's own documents, not the landlord's.
+Letterheads, both the builder and uploads, are on every plan, Free included (the owner's
+decision of 12 November 2026, D-17), so no entitlement check gates them. Subscription receipts are
+AR LABS's own documents, not the landlord's.
 
 ### Analytics and e-mail (decision 3)
 
@@ -211,4 +211,3 @@ the store checkout still follows.
 6. A link out on the US storefront, or one rule everywhere?
 7. Web checkout first, then the stores?
 8. A subscription service such as RevenueCat, or store verification built in-house?
-9. Which plans include letterheads?

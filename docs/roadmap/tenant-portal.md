@@ -119,7 +119,9 @@ owner abroad.
 Receipts and statements from the page carry the portfolio's letterhead. Letterheads are
 rasterised on the device, so the app stores the letterheaded receipt (kind `receipt`) when a
 payment is confirmed, and the page serves that file. For payments recorded before letterheads
-existed, the page builds the receipt in the browser from the letterhead's stored raster.
+existed, the page builds the receipt in the browser from the letterhead's stored raster, in the
+portfolio's receipt size (A5 or A4), and on its Urdu letterhead when the receipt is in Urdu and
+the portfolio has one.
 
 ### Analytics (decision 3)
 

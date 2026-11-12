@@ -106,8 +106,9 @@ show both Pakistan time and the owner's own.
 ### Letterheads (decision 2)
 
 The inspection report and the settlement statement print on the portfolio's letterhead, in English
-and Urdu, through the shared page theme. When a caretaker signs, a block reads "for and on behalf
-of the owner, through attorney". Photos make the report large, so it has its own size budget.
+and Urdu, through the shared page theme; the Urdu ones use the portfolio's Urdu letterhead when it
+has one. When a caretaker signs, a block reads "for and on behalf of the owner, through attorney".
+Photos make the report large, so it has its own size budget.
 
 ### Analytics (decision 3)
 

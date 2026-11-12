@@ -120,8 +120,9 @@ This item is decision 1 at work. The rules are on for portfolios marked `owner_a
 owner can switch them on elsewhere. The member in `caretaker_user_id` is the caretaker, though
 every non-owner's cash is watched. Day thresholds count Pakistan dates; the digest and pushes
 follow each owner's declared time zone and quiet hours and show both times ("3:15 pm in Lahore
-(10:15 am in London)"). Amounts stay in rupees, with an indicative total in the owner's currency
-labelled with the rate's date.
+(10:15 am in London)"). Amounts are in rupees only at launch: the owner decided on 12 November
+2026 that owners abroad see no total converted into their own currency until a rate source is
+chosen (D-16).
 
 ### Letterheads (decision 2)
 
