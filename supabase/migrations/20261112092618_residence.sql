@@ -54,10 +54,17 @@
 --                        then the portfolio row they already hold (trigger).
 --   account deletion     unchanged, then the person's residence row last.
 --   a residence UPDATE   that row only.
--- A direct Auth delete of a caretaker reaches the portfolio row after the
--- membership (the trigger, and ON DELETE SET NULL), the reverse order, as the
--- existing SET NULL of portfolios.created_by does: run
--- admin_delete_account_data first (docs/operations.md).
+-- Two writers outside the app reach the portfolio row after the caretaker's
+-- membership, the reverse order. A direct Auth delete of a caretaker: its
+-- cascade takes the membership, then ON DELETE SET NULL of caretaker_user_id
+-- (and the trigger) the portfolio. On a migrated database this is new: the
+-- SET NULL of portfolios.created_by runs before the membership cascade. It
+-- can deadlock with set_caretaker, update_member_role, remove_member
+-- (leaving too) and the deletion of that portfolio (retried): run
+-- admin_delete_account_data first. A service-role UPDATE or DELETE of the
+-- caretaker's membership takes the portfolio in its trigger, and can
+-- deadlock with update_member_role and remove_member: lock the portfolio
+-- first (docs/operations.md; formal/tla/Membership, replay/residence.sh).
 --
 -- pgTAP: 01_schema_security, 03_rls_matrix and 22_residence. Existing rows:
 -- tool/db/upgrade/20261112092618.*.sql.

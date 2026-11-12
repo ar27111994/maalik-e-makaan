@@ -748,7 +748,19 @@ Never delete a user in Auth alone:
   (or with 23503). Step 1 takes the account and then the portfolios `FOR UPDATE`, in the order
   every other writer uses, so in-flight requests finish first and later ones are refused; the
   Auth deletion then has nothing left to wait for (`formal/tla/Invitations/replay_findings.sh`
-  checks both orders).
+  checks both orders), on a database built from the migrations (see the restored database
+  below).
+- A caretaker's deletion reaches the portfolio row after the caretaker's membership, the
+  reverse of the global order: the cascade deletes the membership, then the `ON DELETE SET NULL`
+  of `portfolios.caretaker_user_id` (and the membership's trigger) clears the caretaker. If at
+  the same moment an owner names that person caretaker (`set_caretaker`), changes their role
+  or removes them (`update_member_role`, `remove_member`), they leave, or the portfolio is
+  deleted (`delete_portfolio`, or the account deletion of its only owner), PostgreSQL aborts
+  one side with 40P01. A portfolio deletion retries and usually succeeds; the others fail
+  (`formal/tla/Membership`: `assume_direct_auth_care`, `assume_direct_auth_member`,
+  `assume_direct_auth_dport`; `formal/tla/Membership/replay/residence.sh`, R1, R2 and R4).
+  Step 1 removes the memberships first, under the portfolio locks, so the Auth deletion finds
+  none (R5).
 
 After pushing `20261108082804_invitation_findings.sql`, which revokes once the pending invitations
 direct Auth deletions left behind, this must answer 0 (`tool/db/upgrade_test.sh` checks the same on a
@@ -782,12 +794,46 @@ PostgreSQL has locked the `auth.users` row, so it would lock the account and the
 that row, while every insert that names the user locks that row last (its foreign-key check). On
 PostgreSQL 16.15 and 17.11 such a trigger still deadlocked with an acceptance in the same
 interleaving (`replay_findings.sh` keeps that check). It would also run inside GoTrue's transaction, where any
-error it raised would fail the Auth deletion.
+error it raised would fail the Auth deletion. For a caretaker, a trigger that cleared the caretaker
+first would avoid the deadlock with `update_member_role` and `remove_member`, but not the one with
+`set_caretaker`, whose foreign-key check needs the `auth.users` row last
+(`formal/tla/Membership/replay/residence.sh` checks both).
 
-A direct Auth deletion of a caretaker also clears the caretaker (the membership's trigger and the
-`ON DELETE SET NULL` of `portfolios.caretaker_user_id`), but it reaches the portfolio row after the
-membership, the reverse of the global order: against a `set_caretaker` in flight PostgreSQL may
-abort one side with 40P01. Step 1 first avoids that too.
+### Changing a membership by hand
+
+The app changes memberships through `update_member_role` and `remove_member`, which lock the
+portfolio first. An operator who changes or deletes a `portfolio_members` row in the SQL editor
+does the same, in one transaction:
+
+```sql
+begin;
+select 1 from public.portfolios where id = '<portfolio id>' for update;
+update public.portfolio_members set role = 'viewer'
+where portfolio_id = '<portfolio id>' and user_id = '<user id>';
+commit;
+```
+
+Without the first statement, a change to the caretaker's membership locks the row and then, in
+its trigger (which clears the caretaker), the portfolio row: if an owner's `update_member_role`
+or `remove_member` of that person holds the portfolio at the same moment, PostgreSQL aborts one
+of them with 40P01 (`formal/tla/Membership`, `assume_service_member_write`;
+`formal/tla/Membership/replay/residence.sh`, R3). Concurrency scenario 31 checks the rule
+(`operator_locks_portfolio_first_*`).
+
+### A database restored from a dump
+
+Every order above holds on a database built from the migrations, where the foreign keys'
+actions on `auth.users` run in the order the migrations created them. A schema re-created from
+a dump (`pg_dump`, `supabase db dump`) gets them back in constraint-name order: the
+notifications are deleted before the profile, and the `ON DELETE SET NULL` of
+`portfolio_members.invited_by` runs before that of `portfolios.created_by`. There, even step 1
+first does not keep the Auth deletion of a user who created a portfolio and invited one of its
+members from deadlocking with an owner who names that member caretaker or changes their role at
+the same moment, and a direct Auth deletion can deadlock with the person marking notifications
+read (`formal/tla/Membership`: `assume_restored_inviter`, `assume_restored_notes`;
+`formal/tla/Membership/replay/residence.sh`, R6 and R7, on a `pg_dump | psql` copy). The
+procedure in [Restoring](#restoring) rebuilds the schema from the migrations, which keeps their
+order: never restore the schema from a dump.
 
 ## Time-zone data
 

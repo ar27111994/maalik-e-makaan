@@ -258,18 +258,20 @@ between two role checks: members' key-share writes go on, while membership
 changes and deletions (`FOR UPDATE`) wait, and a second answer waits and then
 reads the first. The caretaker trigger then reads the caretaker's membership
 `FOR SHARE`, after the portfolio, so a role change in flight is waited for and
-read again. Two paths reach the portfolio row after a membership (the reverse
-order) and can end in a deadlock, which PostgreSQL detects and aborts one side
-of, never in a caretaker who is not a manager: deleting a caretaker directly in
-Auth (as the existing `ON DELETE SET NULL` of `portfolios.created_by` does; run
-`admin_delete_account_data` first) and service-role SQL that changes a role
-directly (use `update_member_role`). `admin_delete_account_data` clears the
+read again. Two paths outside the app reach the portfolio row after a
+membership (the reverse order) and can end in a deadlock, which PostgreSQL
+detects and aborts one side of, never in a caretaker who is not a manager:
+deleting a caretaker directly in Auth (run `admin_delete_account_data` first),
+and service-role SQL that changes or deletes the caretaker's membership without
+locking the portfolio first (lock it, or use `update_member_role`); see
+`docs/operations.md`, "Deleting a user account", and the Membership model
+(`formal/tla/Membership`). `admin_delete_account_data` clears the
 person's residence row last and without a filter on its values, so a person's
 `UPDATE` in flight is waited for and cleared, and one that arrives later waits
 and is refused. Scenario 31 of `tool/db/concurrency_test.sh` races each of
-these paths, in both orders where both exist, and fails without the trigger's
-`FOR SHARE` read, either second role check, the answer's lock or the
-unfiltered clear.
+these paths, in both orders where both exist, and the delete-account order and
+the operator's rule against them, and fails without the trigger's `FOR SHARE`
+read, either second role check, the answer's lock or the unfiltered clear.
 
 A document and its file are serialised on the file's `storage.objects` row: a
 document insert locks it, and every delete of the file must lock it too and
