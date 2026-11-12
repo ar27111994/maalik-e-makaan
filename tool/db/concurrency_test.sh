@@ -178,9 +178,21 @@ scenario_done() {
 # The sessions of this run's databases, what each waits for and on whom, then
 # the locks they hold or wait for (relation names from each session's own
 # database).
+# Runs psql with a client-side deadline of 15 s: statement_timeout needs a
+# server that still answers, and PGCONNECT_TIMEOUT only bounds connecting, so
+# a server that stops replying on an open connection could otherwise hold the
+# report, or the watchdog, for ever. Without timeout(1) (coreutils), psql runs
+# unbounded and the watchdog's own stop timer (below) still ends the run.
+bounded_psql() {
+  if command -v timeout >/dev/null; then
+    PGOPTIONS="-c statement_timeout=10s" timeout --kill-after=5 15 psql "$@"
+  else
+    PGOPTIONS="-c statement_timeout=10s" psql "$@"
+  fi
+}
 report_sessions() {
   local db
-  PGOPTIONS="-c statement_timeout=10s" psql -X -P pager=off -d postgres -c "
+  bounded_psql -X -P pager=off -d postgres -c "
     select pid, datname, state, wait_event_type, wait_event, pg_blocking_pids(pid) as blocked_by,
            date_trunc('second', now() - xact_start) as in_transaction,
            date_trunc('second', now() - state_change) as in_state,
@@ -189,7 +201,7 @@ report_sessions() {
     where datname in ('${MAIN_DB}', '${RESTORED_DB}') and pid <> pg_backend_pid()
     order by datname, pid" || true
   for db in "$MAIN_DB" "$RESTORED_DB"; do
-    PGOPTIONS="-c statement_timeout=10s" psql -X -P pager=off -d "$db" -c "
+    bounded_psql -X -P pager=off -d "$db" -c "
       select l.pid, l.granted, l.mode, l.locktype,
              coalesce(l.relation::regclass::text, '') as relation, l.page, l.tuple,
              l.transactionid, l.virtualxid, l.classid, l.objid, l.objsubid
@@ -209,10 +221,18 @@ watchdog() {
     sleep 1
     kill -0 "$$" 2>/dev/null || exit 0
   done
+  # The stop does not depend on the database answering: whatever the report
+  # and the terminate below do, the suite is told to stop 60 s from now.
+  (
+    sleep 60
+    kill -USR1 "$$" 2>/dev/null || exit 0
+    sleep 15
+    kill -TERM "$$" 2>/dev/null || true
+  ) </dev/null >/dev/null 2>&1 &
   echo "✗ ${SCENARIO}: still running after $1 s. Its sessions and their locks:"
   report_sessions
   echo "✗ ${SCENARIO}: terminating its sessions and stopping the run"
-  PGOPTIONS="-c statement_timeout=10s" psql -X -q -At -d postgres -c "
+  bounded_psql -X -q -At -d postgres -c "
     select count(pg_terminate_backend(pid)) from pg_stat_activity
     where datname in ('${MAIN_DB}', '${RESTORED_DB}') and backend_type = 'client backend'
       and pid <> pg_backend_pid()" >/dev/null 2>&1 || true
@@ -262,9 +282,17 @@ await_session() {
                      and h.pid = any (pg_blocking_pids(a.pid)))"
       ;;
   esac
-  until [[ "$(psql_db -c "select count(*) from pg_stat_activity a
-                          where a.datname = current_database() and a.application_name = '$2'
-                            and ${condition}")" != "0" ]]; do
+  local count
+  # A poll that fails (the query errors, or prints nothing) is not a match: it
+  # is retried until the deadline, so a dropped connection can never open the
+  # gate before the session is really there.
+  while true; do
+    if count="$(psql_db -c "select count(*) from pg_stat_activity a
+                            where a.datname = current_database() and a.application_name = '$2'
+                              and ${condition}")" \
+      && [[ "$count" =~ ^[0-9]+$ ]] && ((count > 0)); then
+      return 0
+    fi
     if ((SECONDS >= deadline)); then
       echo "✗ ${SCENARIO}: session $2 was not $1${3:+ on $3} after ${SCENARIO_LOCK_WAIT} s"
       report_sessions
