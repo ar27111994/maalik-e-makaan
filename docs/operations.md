@@ -199,7 +199,11 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    "Confirm signup", "Reset password" and "Change email address", paste the subject from
    `supabase/config.toml` (`[auth.email.template.*]`) and the body from
    `supabase/templates/<name>.html`; the local stack uses the same files, and the UAT checks the
-   sign-up e-mail. The app uses no magic link, invite or reauthentication e-mail.
+   sign-up e-mail. The app uses no magic link, invite or reauthentication e-mail. The hosted
+   project keeps the copy last pasted, and Deploy does not change it (it deploys the invitation
+   e-mail with `invite-member`, but not these), so paste a body again after every release that
+   changes its file (Releasing, step 5). The Urdu `font-family` and `line-height` in the files
+   are written by `make tokens` from the type tokens; edit the tokens, not the files.
 7. **Invitations**: the Edge Function secrets `RESEND_API_KEY` (the second key) and
    `MAIL_FROM="Maalik-e-Makaan <no-reply@mail.<domain>>"` (Edge Function secrets, above).
 8. **Check**: sign up in each language, reset a password, change an address, and invite someone
@@ -539,6 +543,11 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    jobs), which deploys the website again afterwards. A build that keeps failing (the optional
    iOS one after a macOS runner change, say) leaves those links out until a release has them,
    and holds up nothing else. Then run the daily query of Monitoring and alerts.
+5. If the release changed a file in `supabase/templates/` (its changelog says so, or
+   `git diff --stat <previous tag> vX.Y.Z -- supabase/templates/` lists it), paste that body into
+   its Auth template in the dashboard (E-mail, step 6), with the subject from
+   `supabase/config.toml` if that changed too. Then send yourself the e-mail (sign up, reset a
+   password or change an address) and check both halves.
 
 `RELEASE_PLEASE_TOKEN` (repository secret) is needed once `main` requires "CI passed" with no
 bypass. A
