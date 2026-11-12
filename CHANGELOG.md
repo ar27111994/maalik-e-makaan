@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.1.0...v1.1.1) (2026-11-12)
+
+
+### Bug fixes
+
+* **web:** keep calculator figures on the device and describe the reminder log as it is ([#62](https://github.com/ar27111994/maalik-e-makaan/issues/62)) ([fabc088](https://github.com/ar27111994/maalik-e-makaan/commit/fabc088b631a55cee60cac4759ed89abb6094869))
+
+
+### Documentation
+
+* **planning:** record Maalik-e-Makaan's own PostHog project and its privacy settings ([#59](https://github.com/ar27111994/maalik-e-makaan/issues/59)) ([415ce29](https://github.com/ar27111994/maalik-e-makaan/commit/415ce298c58da40318874aafaf7b601c806a0a76))
+
 ## [1.1.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.0.1...v1.1.0) (2026-11-12)
 
 
