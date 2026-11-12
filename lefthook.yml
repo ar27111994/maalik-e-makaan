@@ -42,6 +42,9 @@ pre-commit:
     migrations:
       glob: "supabase/migrations/*.sql"
       run: PATH="$PWD/.venv/bin:$PATH" tool/db/lint_migrations.sh
+    # Checks only, never writes: the facts the docs repeat (make docs rewrites them).
+    docs-facts:
+      run: python3 tool/docs/sync_facts.py --check --paths {staged_files}
 
 commit-msg:
   commands:

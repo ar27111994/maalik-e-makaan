@@ -14,7 +14,7 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 ## Agent context
 
 - [Commands](docs/agents/commands.md): every make target by area, its gate, prerequisites and CI job
-- [Conventions](docs/agents/conventions.md): commits and scopes, British English, plain Urdu and its glossary, Unicode guard, money, database, secrets, design lint, goldens, generated files
+- [Conventions](docs/agents/conventions.md): commits and scopes, British English, plain Urdu and its glossary, Unicode guard, money, database, secrets, design lint, goldens, generated files, dependencies
 - [Workflows](docs/agents/workflows.md): the order of work for a migration, money maths, an app screen, the design system, an Edge Function, the website, docs
 - [Quality bar](docs/agents/quality-bar.md): the owner's definition of done for the frontend, testing, CI/CD, the API and database, formal verification, agentification and documentation, with today's gates and what is still to reach
 - [App](app/AGENTS.md): Flutter app layout, layering and retry rules, strings, tests
@@ -42,7 +42,7 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 
 ## Quality
 
-- [UAT](docs/uat.md): browser acceptance tests of 14 landlord journeys against a local Supabase stack (`make test-uat`), results and defects
+- [UAT](docs/uat.md): browser acceptance tests of the landlord journeys against a local Supabase stack (`make test-uat`), results and defects
 - [Release readiness](docs/release-readiness.md): the v1.0 verdict, the checklist with evidence, the owner's actions
 - [Design QA](docs/design-qa.md): automated design gates, the review checklist, verdicts and follow-ups
 - [Formal verification](formal/README.md): the TLA+, Lean 4, Z3 and Bend tracks, findings and timings
@@ -53,5 +53,5 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 - [Project state](.planning/STATE.md): current position, hosted project, blockers, follow-ups
 - [Requirements](.planning/REQUIREMENTS.md): v1.0 requirements and what remains
 - [Roadmap](.planning/ROADMAP.md): the twelve phases of milestone v1.0
-- [Roadmap after v1.0](docs/roadmap/README.md): three milestones and 25 items, one plan each, the order of work and the owner's decisions
+- [Roadmap after v1.0](docs/roadmap/README.md): the milestones and their items, one plan each, the order of work and the owner's decisions
 - [Formal track READMEs](formal/tla/LedgerPayments/README.md): one per track under formal/tla, formal/lean, formal/smt and formal/bend

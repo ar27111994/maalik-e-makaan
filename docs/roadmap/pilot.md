@@ -33,8 +33,8 @@ shows what to fix before the public launch and what to build next.
   October 2026 inflows came mostly from Saudi Arabia, the UAE, the UK and the US
   ([Business Recorder](https://www.brecorder.com/news/40448227/pakistan-records-39bn-in-remittances-for-october-2026)).
 - **Repository.**
-  - The browser UAT covers 14 journeys from sign-up to account deletion, in English and Urdu
-    ([uat.md](../../docs/uat.md)).
+  - The browser UAT covers the landlord's journeys from sign-up to account deletion, in English
+    and Urdu ([uat.md](../../docs/uat.md)).
   - The app has no feedback entry point, no analytics and no feature flags; bug and feature issue
     forms exist ([ISSUE_TEMPLATE](../../.github/ISSUE_TEMPLATE/)).
   - The privacy notice promises no analytics, and its section on tenants' details tells landlords to

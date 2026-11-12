@@ -34,7 +34,7 @@ defaults:
 env:
   PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
   AGE_RECIPIENTS: ${{ vars.BACKUP_AGE_RECIPIENTS }}
-  # Kept equal to deploy.yml.
+  # Equal to ci.yml's; make docs-check checks it.
   SUPABASE_CLI_VERSION: 2.122.1
 
 jobs:

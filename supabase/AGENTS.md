@@ -14,7 +14,7 @@ D-13 to D-15.
 | Path                      | What                                                                                                                                                         |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `migrations/`             | The chain, `<UTC timestamp>_<name>.sql`, applied in order                                                                                                    |
-| `tests/database/`         | pgTAP suites `NN_<name>.test.sql` and `_helpers.psql`; 10, 12, 13 and 20 are generated                                                                       |
+| `tests/database/`         | pgTAP suites `NN_<name>.test.sql`, `_helpers.psql`; generated ones start `-- GENERATED`                                                                      |
 | `seed.sql`                | Demo data (`tool/db/reset.sh --seed`)                                                                                                                        |
 | `local/supabase_shim.sql` | Emulates the Supabase roles and schemas on a plain PostgreSQL for `tool/db/test.sh`                                                                          |
 | `config.toml`             | Local stack settings; every function has `verify_jwt = false` and checks the token itself                                                                    |
