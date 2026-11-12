@@ -222,13 +222,12 @@ watchdog() {
     kill -0 "$$" 2>/dev/null || exit 0
   done
   # The stop does not depend on the database answering: whatever the report
-  # and the terminate below do, the suite is told to stop 60 s from now.
-  (
-    sleep 60
-    kill -USR1 "$$" 2>/dev/null || exit 0
-    sleep 15
-    kill -TERM "$$" 2>/dev/null || true
-  ) </dev/null >/dev/null 2>&1 &
+  # and the terminate below do, the suite is told to stop 60 s from now. The
+  # timer is a program of its own (bash -c), not a subshell: a subshell keeps
+  # bash's saved copies of the suite's output, so a caller reading that output
+  # through a pipe would wait for the timer; a new program drops them.
+  bash -c 'sleep 60; kill -USR1 "$1" 2>/dev/null || exit 0; sleep 15; kill -TERM "$1" 2>/dev/null' \
+    stop-timer "$$" </dev/null >/dev/null 2>&1 3>&- &
   echo "✗ ${SCENARIO}: still running after $1 s. Its sessions and their locks:"
   report_sessions
   echo "✗ ${SCENARIO}: terminating its sessions and stopping the run"
