@@ -56,6 +56,12 @@ human version; `.planning/PROJECT.md` (D-01 to D-19) records why.
   once and reuses for every retry.
 - Dates without a time are `CalendarDate`; "today" is Pakistan time. The tax year runs 1 July to
   30 June.
+- A person's own time zone is only for their alerts, digests, quiet hours and the second time of
+  a dual time (`Residence.alertZone`, `QuietHours`, `DualTime`); ledger and due dates, deadlines,
+  the tax year and messages to tenants stay on Pakistan time ([time](../architecture/time.md)).
+  Residence is declared by the person, never inferred (not from a +92 number, the store, an IP
+  address, the app's language or a currency), and never answers a portfolio's owner-abroad
+  question. Nationality and immigration status are never stored.
 - Phone numbers, CNICs and IBANs are stored in exactly the form `mm_core` reads back; the
   database CHECKs and `mm_core` share `contracts/identity_vectors.json`. Never infer gender from
   a CNIC, and mask CNICs by default.
@@ -67,7 +73,7 @@ human version; `.planning/PROJECT.md` (D-01 to D-19) records why.
 - Locks are taken in one global order: account, then portfolio, then lease, then other rows.
   Client writes lock their portfolios first through `app.lock_my_portfolio_ids`.
 - Authorisation lives in Postgres: row-level security on every table, explicit column grants,
-  and `SECURITY DEFINER` write RPCs that check the caller's role. The 21 such RPCs are pinned in
+  and `SECURITY DEFINER` write RPCs that check the caller's role. The 23 such RPCs are pinned in
   `supabase/tests/database/01_schema_security.test.sql`; a new one updates that list and
   `docs/architecture/permissions.md`.
 - Every migration comes with pgTAP tests, a concurrency scenario when rows can be written in
@@ -107,16 +113,17 @@ human version; `.planning/PROJECT.md` (D-01 to D-19) records why.
 
 Edit the source and run the generator; the `-check` targets fail CI on a stale output.
 
-| Output                                                                                                       | Source                                                                                    | Command                                     |
-| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `packages/mm_ui/lib/src/tokens/mm_tokens.g.dart`, `design/tokens/maalik.tokens.css`, `DESIGN.md` frontmatter | `design/tokens/maalik.tokens.json`                                                        | `make tokens`                               |
-| `packages/mm_ui/assets/fonts/MmIcons.ttf`, `packages/mm_ui/lib/src/icons/mm_icons.g.dart`                    | `design/icons/icons.json`                                                                 | `make icons`                                |
-| `packages/mm_ui/assets/fonts/NotoSansArabic-Variable.ttf`, `NotoNastaliqUrdu-Wordmark.ttf`                   | `design/fonts/`, `appName` in `app/lib/l10n/arb/app_ur.arb`                               | `make fonts`                                |
-| The app's launcher icons (in `app/android/`, `app/ios/`, `app/web/`; `tool/design/build_app_icons.py`)       | `website/src/lib/brand.ts`, the colour tokens, `appName` in `app/lib/l10n/arb/app_en.arb` | `make app-icons`                            |
-| `contracts/rent_math_vectors.json`, `contracts/identity_vectors.json`, pgTAP suites 10, 12, 13, 20           | `tool/contracts/generate.py`, `contracts/clean_text.json`                                 | `make contracts`                            |
-| `app/lib/l10n/generated/`                                                                                    | `app/lib/l10n/arb/*.arb`                                                                  | `make codegen`                              |
-| `supabase/functions/_shared/database.types.ts`                                                               | the hosted schema                                                                         | `supabase gen types` (`docs/operations.md`) |
-| `CHANGELOG.md`                                                                                               | commit messages                                                                           | release-please                              |
+| Output                                                                                                                                                                      | Source                                                                                           | Command                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------- |
+| `packages/mm_ui/lib/src/tokens/mm_tokens.g.dart`, `design/tokens/maalik.tokens.css`, `DESIGN.md` frontmatter                                                                | `design/tokens/maalik.tokens.json`                                                               | `make tokens`                               |
+| `packages/mm_ui/assets/fonts/MmIcons.ttf`, `packages/mm_ui/lib/src/icons/mm_icons.g.dart`                                                                                   | `design/icons/icons.json`                                                                        | `make icons`                                |
+| `packages/mm_ui/assets/fonts/NotoSansArabic-Variable.ttf`, `NotoNastaliqUrdu-Wordmark.ttf`                                                                                  | `design/fonts/`, `appName` in `app/lib/l10n/arb/app_ur.arb`                                      | `make fonts`                                |
+| The app's launcher icons (in `app/android/`, `app/ios/`, `app/web/`; `tool/design/build_app_icons.py`)                                                                      | `website/src/lib/brand.ts`, the colour tokens, `appName` in `app/lib/l10n/arb/app_en.arb`        | `make app-icons`                            |
+| `contracts/rent_math_vectors.json`, `contracts/identity_vectors.json`, pgTAP suites 10, 12, 13, 20                                                                          | `tool/contracts/generate.py`, `contracts/clean_text.json`                                        | `make contracts`                            |
+| `contracts/residence_vectors.json`, `contracts/time_zone_vectors.json`, `packages/mm_core/lib/src/time/time_zone_data.g.dart`, pgTAP suite 23, `tool/db/time_zone_skew.sql` | `tool/contracts/generate.py` and `time_zones.py`, the `tzdata` pinned in `tool/requirements.txt` | `make contracts`                            |
+| `app/lib/l10n/generated/`                                                                                                                                                   | `app/lib/l10n/arb/*.arb`                                                                         | `make codegen`                              |
+| `supabase/functions/_shared/database.types.ts`                                                                                                                              | the hosted schema                                                                                | `supabase gen types` (`docs/operations.md`) |
+| `CHANGELOG.md`                                                                                                                                                              | commit messages                                                                                  | release-please                              |
 
 ## Dependencies
 
