@@ -44,7 +44,8 @@ port 54329 and what this container cannot reach).
 - **Commits**: Conventional Commits with a scope from `commitlint.config.mjs`: `app`, `core`,
   `ui`, `db`, `functions`, `web`, `ci`, `deps`, `deps-dev`, `docs`, `formal`, `planning`,
   `release`, `repo`, `security`, `test`. Body lines at most 100 characters. Pull requests are
-  squash-merged, so the title follows the same rule.
+  squash-merged, so the title follows the same rule, and with the `(#123)` GitHub adds it
+  stays within the 100-character header.
 - **British English** in prose, comments and UI text (`licence`, `colour`, `organisation`);
   identifiers follow their framework (`MmColorModes`, `MmLicenses`). Every user-facing string
   exists in English and Urdu.

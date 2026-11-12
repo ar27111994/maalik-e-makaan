@@ -37,7 +37,8 @@ CI runs the same targets, so a green `make` means a green pull request.
 - **Commits** follow [Conventional Commits](https://www.conventionalcommits.org)
   with a scope from `commitlint.config.mjs`, for example `fix(db): …`. The
   git hook checks each message. Pull requests are squash-merged, so the title
-  follows the same rule.
+  follows the same rule, and with the `(#123)` GitHub adds it stays within 100
+  characters.
 - **Database changes** are new migrations, never edits to applied ones. Add
   pgTAP tests, and a concurrency scenario when rows can be written in parallel.
   Take locks in the global order (account, then portfolio, then lease, then

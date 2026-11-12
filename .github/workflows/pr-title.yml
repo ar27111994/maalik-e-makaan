@@ -57,3 +57,19 @@ jobs:
           subjectPattern: ^(?![A-Z]).+$
           subjectPatternError: >
             The subject "{subject}" must start with a lower-case letter, like a commit message.
+      # GitHub adds " (#<number>)" to the title when it squash-merges, and commitlint then
+      # checks that header on main against its 100-character limit (header-max-length).
+      # Only lengths are printed: the title is the author's text, never echoed into a
+      # workflow command.
+      - name: Title fits the squash commit's 100-character header
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          header="${TITLE} (#${NUMBER})"
+          length=${#header}
+          if [ "$length" -gt 100 ]; then
+            echo "::error title=Title too long::With (#${NUMBER}) added the squash commit's header is ${length} characters; commitlint allows 100. Shorten the title by $((length - 100))."
+            exit 1
+          fi
+          echo "The squash commit's header will be ${length} characters (limit 100)."
