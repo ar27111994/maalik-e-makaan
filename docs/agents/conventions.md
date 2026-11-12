@@ -26,6 +26,18 @@ human version; `.planning/PROJECT.md` (D-01 to D-19) records why.
   in both languages or the build fails.
 - Screens work right to left: directional geometry only (`EdgeInsetsDirectional`,
   `AlignmentDirectional`); the design lint refuses `left`/`right`.
+- Plain Urdu: the everyday Urdu an ordinary landlord or tenant reads easily on a phone. Where
+  people say an English word, write it in Urdu script (the security deposit is `سیکیورٹی`, a late
+  fee `لیٹ فیس`). Short sentences, active voice, common verbs; amounts, dates, deadlines, warnings
+  and legal effect say exactly what the English says. The owner's glossary,
+  [`contracts/urdu_glossary.json`](../../contracts/urdu_glossary.json), gives each formal word to
+  avoid with the word to write instead (`prefer`), the English and a note, then the sentence rules
+  (`sentenceRules`) and the words that stay (`keep`). `tool/check_urdu_words.py` (`make lint`, the
+  pre-commit hook) fails when a tracked file has one of an entry's `match` forms as a whole word.
+  An entry with an empty `match` depends on meaning (`مکان` is right for a home, not for a shop)
+  and is judged in review. An official name, a quoted law or a table of letters that must keep a
+  formal word goes in the glossary's `exceptions` as `path` (a glob), `avoid` (the form, or a
+  longer phrase containing it, which then allows the form only inside that phrase) and `reason`.
 - Unicode guard: `tool/check_unicode.py` fails on bidi overrides and isolates, zero-width and
   other invisible characters, and C0/C1 controls in any tracked file; the contract is
   `contracts/clean_text.json`. Urdu's ZWNJ/ZWJ and LRM/RLM are allowed. Code that needs a
