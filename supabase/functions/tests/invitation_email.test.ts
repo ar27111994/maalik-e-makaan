@@ -286,7 +286,8 @@ Deno.test('in the Urdu half every Latin value is isolated, so it keeps its order
       urdu,
       ' پر <span dir="auto">&quot;Raza Family Properties&quot;</span> نام',
     );
-    assertStringIncludes(urdu, ' کو <span dir="ltr">5:00 PM</span> (پاکستانی وقت) تک');
+    // The time keeps "5:00" and "PM" on one line: a no-break space joins them.
+    assertStringIncludes(urdu, ' کو <span dir="ltr">5:00\u00a0PM</span> (پاکستانی وقت) تک');
     assertStringIncludes(
       urdu,
       ' صرف <span dir="ltr" style="word-break:break-word;">imran@example.com</span> کے لیے',
@@ -330,8 +331,11 @@ Deno.test('a value is marked by its kind in the pieces, and the text part reads 
   for (const locale of LOCALES) {
     const pieces = expiryPieces(INPUT.expiresAt, locale);
     assertEquals(pieces.filter((piece) => typeof piece !== 'string'), [
-      { kind: 'time', value: locale === 'ur' ? '5:00 PM' : '5:00 pm' },
+      { kind: 'time', value: locale === 'ur' ? '5:00\u00a0PM' : '5:00\u00a0pm' },
     ]);
+    // No space in the time can break a line.
+    const time = pieces.find((piece) => typeof piece !== 'string');
+    assertEquals(/[ \t\n]/u.test(typeof time === 'string' ? time : time?.value ?? ''), false);
     assertEquals(plainText(pieces), formatExpiry(INPUT.expiresAt, locale));
   }
   // An Urdu name sets its own direction (auto), whatever the half.

@@ -135,9 +135,13 @@ const COLORS = {
 /** The parts of a formatted date that make up its time of day. */
 const TIME_PARTS: ReadonlySet<string> = new Set(['hour', 'minute', 'dayPeriod']);
 
+/** A no-break space: "5:00" and "PM" stay on one line. */
+const NO_BREAK_SPACE = String.fromCodePoint(0x00a0);
+
 /**
  * The expiry in Pakistan time, saying so (recipients may be abroad), with the time of day
- * ("5:00 PM") as a value of its own: in an Urdu sentence it must keep its left-to-right order.
+ * ("5:00 PM") as a value of its own: in an Urdu sentence it must keep its left-to-right order,
+ * and its spaces do not break, so the time is never split across two lines.
  */
 export function expiryPieces(date: Date, locale: Locale): Piece[] {
   const parts = new Intl.DateTimeFormat(locale === 'ur' ? 'ur-PK' : 'en-PK', {
@@ -152,7 +156,7 @@ export function expiryPieces(date: Date, locale: Locale): Piece[] {
   const zone = locale === 'ur' ? ' (پاکستانی وقت)' : ' (Pakistan time)';
   return [
     text(0, first),
-    { kind: 'time', value: text(first, last) },
+    { kind: 'time', value: text(first, last).replace(/\s/gu, NO_BREAK_SPACE) },
     text(last, parts.length) + zone,
   ];
 }
