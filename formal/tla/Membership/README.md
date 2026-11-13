@@ -445,8 +445,9 @@ answers with an error; the app's retry runs both steps again
 (`admin_delete_account_data` is idempotent) and they succeed. When it picks
 the deletion, its retry runs; without `WAKE_FIRST` three cycles in a row
 can fail it (`finding_m2_two_deletions_retry`), with it they cannot
-(`two_deletions_wake`, `dport_former_wake`). Every other property holds and
-every request finishes (`two_deletions`, `team`, `dport_former`).
+(`two_deletions_wake`, `dport_former_wake`). Every other property holds
+(`two_deletions`, `team`, `dport_former`), and every request finishes
+(`two_deletions` and `dport_former` check `AllFinish`).
 
 Why it was not seen before: the model took GoTrue's foreign-key actions as
 profiles, `created_by`, the membership cascade, `invited_by`, one lease,
