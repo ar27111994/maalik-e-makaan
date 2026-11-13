@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -134,6 +135,8 @@ class RenderTest(FixtureCase):
             "`.release-please-manifest.json`, `app/pubspec.yaml` and `README.md`",
         )
         self.assertEqual(self.render("golden-variants"), "`light`, `dark` and `largeText`")
+        self.assertEqual(self.render("site-origin"), "<https://example.pk>")
+        self.assertEqual(self.render("app-origin"), "<https://app.example.pk>")
 
     def test_every_commitlint_case_has_a_word(self) -> None:
         self.assertEqual(set(reg._CASE_WORDS), set(fact_sources.COMMIT_CASES))
@@ -302,6 +305,204 @@ class MarkdownHelpersTest(unittest.TestCase):
         self.assertEqual(reg.strip_generated(line), "a  b ")
         wrapped = "a <!-- docs:k -->`x`,\n  90% line<!-- /docs:k --> b\nc"
         self.assertEqual(reg.strip_generated(wrapped), "a \n b\nc")
+
+
+ORIGINS = "contracts/origins.json"
+
+
+class OriginsCheckTest(FixtureCase):
+    """C17: contracts/origins.json, and every address the repository names."""
+
+    def test_c17_the_file_itself(self) -> None:
+        text = docs_fixture.ORIGINS
+        changes = {
+            ORIGINS: text.replace('"https://www.example.pk"', '"http://www.example.pk"')
+            .replace('"https://app.example.pk"', '"https://App.example.pk/"')
+            .replace("example-site.hosting.example", "example.pk")
+        }
+        origin = line(ORIGINS, '"origin": "https://example.pk"')
+        self.assert_problems(
+            check("origins"),
+            changes,
+            [
+                (ORIGINS, origin, "https://example.pk is named twice"),
+                (ORIGINS, origin, "the earlier address https://example.pk is on example.pk"),
+                (ORIGINS, origin + 1, "site.aliases 'http://www.example.pk' is not an https"),
+                (ORIGINS, line(ORIGINS, '"https://app.example.pk"'), "app.origin 'https://App"),
+            ],
+        )
+
+    def test_c17_hosts_on_the_sites_domain(self) -> None:
+        changes = {
+            "docs/extra.md": (
+                "# Extra\n\nThe site <https://example.pk/>, `www.example.pk`, APP.example.pk.\n"
+                "Not apps.example.pk or a.b.example.pk, nor <https://example.pk.evil.example>.\n"
+            ),
+            "website/src/x.ts": 'const old = "https://ap.example.pk";\n',
+            ".planning/STATE.md": "Moved to https://example.pk; the typo examp1e.pk is another.\n",
+        }
+        current = "(app.example.pk, example.pk, www.example.pk)"
+        self.assert_problems(
+            check("origins"),
+            changes,
+            [
+                (
+                    "docs/extra.md",
+                    4,
+                    f"names apps.example.pk, which is not an origin or alias in contracts/origins.json {current}",
+                ),
+                ("docs/extra.md", 4, "names a.b.example.pk"),
+                ("website/src/x.ts", 1, "names ap.example.pk"),
+            ],
+        )
+
+    def test_c17_earlier_addresses_only_where_allowed(self) -> None:
+        old = "example-app.hosting.example"
+        quoted = "`https://example-app.hosting.example`"
+        escaped = '{"value": "example-site\\\\.hosting\\\\.example"}\n'
+        changes = merge(
+            edited("README.md", "The web app is at", f"The web app, once {old}, is at"),
+            edited("docs/operations.md", quoted, f"{quoted} (not `example-ap.hosting.example`)"),
+            {
+                # A regex-escaped host reads as the host: allowed in vercel.json, not elsewhere.
+                "website/vercel.json": escaped,
+                "website/other.json": escaped,
+                "docs/extra.md": (
+                    "# Extra\n\nThe preview `pr-1.hosting.example`; the platform `hosting.example`.\n"
+                ),
+                ".planning/STATE.md": f"Moved from https://{old} and its preview.hosting.example.\n",
+                "CHANGELOG.md": f"# Changelog\n\n* moved from {old}\n",
+            },
+        )
+        allowed = "only app/android/app/src/main/AndroidManifest.xml, contracts/origins.json"
+        self.assert_problems(
+            check("origins"),
+            changes,
+            [
+                (
+                    "README.md",
+                    line("README.md", "The web app is at"),
+                    f"names {old}, an earlier address or its host",
+                ),
+                (
+                    "docs/extra.md",
+                    3,
+                    "names pr-1.hosting.example, an earlier address or its host; name the origin"
+                    f" instead, or read contracts/origins.json ({allowed}",
+                ),
+                (
+                    "docs/operations.md",
+                    line("docs/operations.md", quoted),
+                    "names example-ap.hosting.example, which contracts/origins.json does not list",
+                ),
+                ("website/other.json", 1, "names example-site.hosting.example, an earlier"),
+            ],
+        )
+
+    def test_c17_workflows_read_the_file(self) -> None:
+        deploy = docs_fixture.DEPLOY.replace(
+            "    name: Web app\n",
+            "    name: Web app\n    environment:\n      url: https://app.example.pk\n"
+            "    env:\n      APP_URL: ${{ vars.APP_URL }}\n",
+        )
+        at = deploy.split("\n").index
+        self.assert_problems(
+            check("origins"),
+            {DEPLOY: deploy},
+            [
+                (DEPLOY, at("      url: https://app.example.pk") + 1, "names app.example.pk; a"),
+                (DEPLOY, at("      APP_URL: ${{ vars.APP_URL }}") + 1, "reads vars.APP_URL"),
+            ],
+        )
+
+    def test_c17_no_mailbox_on_the_domain_yet(self) -> None:
+        changes = {
+            "docs/extra.md": "# Extra\n\nWrite to hello@example.pk or ops@mail.example.pk.\n",
+            ".planning/STATE.md": "Zoho: privacy@example.pk, someday. Not hello@example.com.\n",
+        }
+        self.assert_problems(
+            check("origins"),
+            changes,
+            [
+                (
+                    "docs/extra.md",
+                    3,
+                    "names the mailbox hello@example.pk, but no mailbox on example.pk exists yet"
+                    " (D-20)",
+                ),
+                ("docs/extra.md", 3, "names the mailbox ops@mail.example.pk"),
+                # A mailbox's host is a host on the domain too.
+                ("docs/extra.md", 3, "names mail.example.pk, which is not an origin or alias"),
+                (".planning/STATE.md", 1, "names the mailbox privacy@example.pk"),
+            ],
+        )
+        named = ("hello@example.pk", "ops@mail.example.pk", "privacy@example.pk")
+        with unittest.mock.patch.object(reg, "NAMED_MAILBOXES", named):
+            found = self.run_check(check("origins"), changes)
+        self.assertEqual([message for _, _, message in found if "mailbox" in message], [])
+
+    def test_c17_leaves_out_binaries_its_own_tests_and_what_is_not_text(self) -> None:
+        typo = "Not apps.example.pk.\n"
+        repo_changes = {
+            "app/test/goldens/a.png": typo,
+            "tool/docs/test_origins.py": typo,
+            "tool/docs/docs_fixture.py": typo,
+            "CHANGELOG.md": typo,
+        }
+        self.assertEqual(self.run_check(check("origins"), repo_changes), [])
+        repo = self.repo()
+        (repo.root / "docs/latin.md").write_bytes(b"caf\xe9 apps.example.pk\n")
+        gone = [*repo.tracked, "docs/latin.md", "docs/gone.md"]
+        self.assertEqual(check("origins").run(repo, gone), [])
+
+    def test_c17_without_earlier_addresses_only_the_domain_is_read(self) -> None:
+        bare = '{"site": {"origin": "https://www.example.pk"}, "app": {"origin": "https://a.pk"}}'
+        changes = {
+            ORIGINS: bare,
+            "docs/extra.md": "# Extra\n\nOnce example-app.hosting.example; now www.example.pk.\n",
+        }
+        self.assert_problems(
+            check("origins"),
+            changes,
+            [
+                # The fixture's docs name hosts this file no longer lists (its domain is the
+                # same: the site's host without www).
+                (
+                    "README.md",
+                    line("README.md", "The site is at"),
+                    "names example.pk, which is not an origin or alias",
+                ),
+                (
+                    "README.md",
+                    line("README.md", "The web app is at"),
+                    "names app.example.pk, which is not an origin or alias",
+                ),
+                (
+                    "docs/operations.md",
+                    line("docs/operations.md", "The site is"),
+                    "names example.pk, which",
+                ),
+                (
+                    "docs/operations.md",
+                    line("docs/operations.md", "The site is"),
+                    "names app.example.pk, which",
+                ),
+                (
+                    "website/README.md",
+                    line("website/README.md", "It is built for"),
+                    "names example.pk, which",
+                ),
+                (
+                    "website/README.md",
+                    line("website/README.md", "It is built for"),
+                    "names app.example.pk, which",
+                ),
+            ],
+        )
+
+    def test_c17_needs_the_file(self) -> None:
+        with self.assertRaisesRegex(SourceShapeError, "contracts/origins.json: is missing"):
+            self.run_check(check("origins"), {ORIGINS: None})
 
 
 class ConsistentFixtureTest(FixtureCase):
