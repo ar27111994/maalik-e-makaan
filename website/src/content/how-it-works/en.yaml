@@ -16,8 +16,8 @@ steps:
       - "On iPhone, the web app works in the browser. Until the App Store listing is ready, testers can also install the unsigned build from GitHub by signing it with their own Apple Account."
       - "You confirm your email address before you start, and you can reset a forgotten password."
       - "Keep a relative's house, or a plaza with its own accounts, in a portfolio of its own."
-      - "You stay signed in. Signing out removes from your phone or computer the app's copy of your records and your last-chosen portfolio. The Android and iPhone apps also remove the photos and files they copied or made to share; a file shared in the last ten minutes goes at a later start of the app."
-      - "Your language and display choices stay, and so does an invitation you have not answered, so that you can sign in with the address it was sent to; deleting your account removes it too. Files you download, or share with another app, are yours to delete. The privacy page has the details."
+      - "You stay signed in. Signing out removes the app's copy of your records and your last-chosen portfolio from this phone or computer. The Android and iPhone apps also delete their own copies of photos and files, and the files they made to share (one shared in the last ten minutes a little later)."
+      - "Your language and display choices stay, and so does an invitation you have not answered, so that you can sign in with the address it was sent to; deleting your account removes the invitation too. Files you download, or share with another app, are yours to delete. The privacy page has the details."
   - heading: "Add your properties and units"
     body: "A house, a building of portions or flats, a plaza of shops, or a hostel of rooms and beds: add each property with its province, then the units inside it with their asking rent."
     points:

@@ -41,12 +41,15 @@ The app has no advertising, no analytics and no trackers.
 
 ### On your phone or computer
 
-- The app keeps a copy of the records it last loaded on your phone or computer, so that it can show them at once, even without a connection. It also keeps your sign-in, your language and display choices, the portfolio you last chose, and an invitation you opened but have not answered yet.
-- In the Android and iPhone apps, a photo you take or a file you pick is copied into the app's own storage, and the copy is deleted once the app has read it. A receipt, statement or spreadsheet file you share is written there too, for the app you share it with.
-- When you sign out, or your sign-in ends for another reason, the app removes from the phone or computer your sign-in, its copy of your records, the portfolio you last chose, and the copies of photos and files. A file shared in the last ten minutes is kept a little longer, in case the app you shared it with is still reading it, and goes when you next open the app after those ten minutes.
-- Your language and display choices stay, because they belong to the phone or computer. So does an invitation you have not answered, so that you can sign in with the address it was sent to; deleting your account removes it too.
-- Files you download, or share with another app such as WhatsApp, are yours, and so are the copies that app keeps: delete them there. A web browser can also keep its own copy of the pictures and files it opened; clearing the browser's data removes it.
-- If your phone backs up its apps (Google's backup on Android, iCloud or a computer on iPhone), the backup can include your sign-in and the app's copy of your records as they were when it was made.
+- The app keeps a copy of the records it last loaded on your phone or computer, so that it can show them at once, even without a connection. It also keeps your sign-in, your language and display choices, the portfolio you last chose, and an invitation you opened but have not answered yet, until you answer it or delete your account.
+- In the Android and iPhone apps, a photo you take or a file you pick is copied into the app's own storage, and the copy is deleted once the app has read it. Some phones' camera apps also keep the photo in your gallery; if so, delete it there. A receipt, statement or spreadsheet file you share is written to the app's storage too, for the app you share it with.
+- In the Android app, while the camera is open, the app notes which record the photo is for, and the camera and the file picker keep their own note of what is being picked, so that the photo is not lost if Android closes the app meanwhile. The notes go when the photo comes back or you sign out; one left behind goes when the app next starts after a day.
+- When you sign out, or your sign-in ends for another reason (it runs out, or you sign in to another account through an email link), the app removes from this phone or computer your sign-in, its copy of your records, the portfolio you last chose, the camera's notes and its copies of photos and files. A file shared in the last ten minutes is kept a little longer, in case the app you shared it with is still reading it, and goes when you next open or return to the app after those ten minutes.
+- When a portfolio is deleted, or you leave it or are removed from it, the app removes its copy of your records the next time it loads your list of portfolios with an internet connection.
+- Signing out here does not sign you out on your other phones or computers: the app there keeps its copy until your sign-in ends there.
+- Your language and display choices stay, because they belong to the phone or computer. So does an invitation you have not answered, so that you can sign in with the address it was sent to; deleting your account removes it from the phone or computer you delete it on.
+- Files you download, or share with another app such as WhatsApp, are yours, and so are the copies that app keeps: delete them there. On every version of the app, a document's Open and Download buttons hand the file to your browser, which keeps its own copy in its downloads or its cache; a web browser also keeps copies of the pictures and files the app showed or opened. Delete them in the browser, or clear its data. Text you copy from the app, such as a reminder or an invitation link, stays on the clipboard of your phone or computer (and in its clipboard history, if it keeps one).
+- If your phone backs up its apps (Google's backup on Android, iCloud or a computer on iPhone), the backup can include your sign-in and the app's copy of your records as they were when it was made. If signing out could not reach the server (with no internet connection, for example), a sign-in kept in such a backup may still work.
 
 ### Your tenants' details
 
@@ -61,6 +64,8 @@ Once a week an encrypted copy of the database, with the photos and documents, is
 ### Deleting your account
 
 You can delete your account from inside the app, in Settings. Deletion removes your account and every portfolio in which you are the only owner, with its records and files, and removes you from portfolios that others own.
+
+The phone or computer you delete it on signs out and removes what the app kept there for your account, the unanswered invitation included, even if the server's answer does not arrive; if it does not, sign in again to check, and if you can, your account was not deleted. On another phone or computer where you are signed in, the app removes its copy of your records within an hour of being used there with an internet connection, when it next checks your sign-in. Your team members' phones and computers remove their copies of a deleted portfolio's records the next time the app there loads their portfolios with a connection, or when they sign out.
 
 ## Who runs it, and how to reach us
 
