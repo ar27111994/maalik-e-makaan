@@ -8,6 +8,7 @@ import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/config/app_config.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/retry.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
@@ -50,6 +51,15 @@ Future<void> bootstrap() async {
     // the PKCE flow stays the default.
     authOptions: const FlutterAuthClientOptions(detectSessionInUri: false),
   );
+  final settings = PreferencesSettingsStore(preferences);
+  final cache = SwrCache(PreferencesStore(SharedPreferencesAsync()));
+  // Supabase has read the stored session by now; one it refuses later is
+  // wiped as it signs out.
+  tidyDeviceAtStart(
+    cache,
+    settings,
+    signedIn: supabase.client.auth.currentSession != null,
+  );
 
   runApp(
     ProviderScope(
@@ -57,12 +67,8 @@ Future<void> bootstrap() async {
       overrides: [
         appConfigProvider.overrideWithValue(config),
         supabaseClientProvider.overrideWithValue(supabase.client),
-        settingsStoreProvider.overrideWithValue(
-          PreferencesSettingsStore(preferences),
-        ),
-        swrCacheProvider.overrideWithValue(
-          SwrCache(PreferencesStore(SharedPreferencesAsync())),
-        ),
+        settingsStoreProvider.overrideWithValue(settings),
+        swrCacheProvider.overrideWithValue(cache),
       ],
       child: const MaalikApp(),
     ),

@@ -20,7 +20,11 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
 
   /// Deletes the account: signs in again with [password] (the server asks
   /// for a recent sign-in), deletes it with [confirmEmail] as the typed
-  /// confirmation, then signs out of this device, which clears its cache.
+  /// confirmation, then signs out of this device, which wipes what the
+  /// device kept for the account, the invitation it held included
+  /// (`WipeReason.accountDeleted`). When the deletion's answer is lost on
+  /// the way (the connection dropped after the server deleted it), the
+  /// device is wiped when the session is refused, at its next refresh.
   ///
   /// Throws [AppFailure]: `invalid_credentials` for a wrong password,
   /// `does_not_match_account` when [confirmEmail] is not the account's.

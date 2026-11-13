@@ -50,7 +50,8 @@ final class Snapshot<T> {
 }
 
 /// Stale-while-revalidate storage for query results, namespaced per user so
-/// one account never sees another's cached data, and cleared on sign-out.
+/// one account never sees another's cached data, and cleared when a
+/// session ends (`DeviceDataWipe`).
 ///
 /// Entries are JSON with the time they were saved. An entry that cannot be
 /// decoded (an older app version wrote it, or it was tampered with) is
@@ -103,7 +104,7 @@ final class SwrCache {
     return savedAt;
   }
 
-  /// Deletes every cached entry (all users), e.g. on sign-out.
+  /// Deletes every cached entry (all users), when the device is wiped.
   Future<void> clear() async {
     for (final key in await _store.keys()) {
       if (key.startsWith(_prefix)) await _store.delete(key);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/misc.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
@@ -130,7 +131,8 @@ selectedPortfolioProvider =
       SelectedPortfolioController.new,
     );
 
-/// Remembers the chosen portfolio on the device, per user.
+/// Remembers the chosen portfolio on the device, per user, until a session
+/// ends (`DeviceDataWipe`).
 final class SelectedPortfolioController extends Notifier<String?> {
   new(this.userId);
 
@@ -140,6 +142,8 @@ final class SelectedPortfolioController extends Notifier<String?> {
 
   @override
   String? build() {
+    // Read again after a wipe, which forgets it.
+    ref.watch(deviceDataWipesProvider);
     final saved = ref
         .watch(settingsStoreProvider)
         .getString(AppSettings.currentPortfolioKey);

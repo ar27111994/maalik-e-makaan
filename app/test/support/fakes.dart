@@ -6,6 +6,7 @@ import 'package:image/image.dart' as img;
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
@@ -618,6 +619,53 @@ final class MemoryStore implements KeyValueStore {
 
   @override
   Future<Set<String>> keys() async => values.keys.toSet();
+}
+
+/// A [DeviceScratch] that records what it is asked, for a wipe's files.
+final class FakeDeviceScratch implements DeviceScratch {
+  final calls = <Call>[];
+
+  /// The paths [drainLostPicks] hands over.
+  List<String> lostPicks = const [];
+
+  /// Thrown by every method but [discard] while set, as by a plugin that
+  /// fails.
+  Exception? failure;
+
+  /// Holds [sweep] until completed, for a wipe still on its way.
+  Completer<void>? sweeping;
+
+  void _fail() {
+    final failure = this.failure;
+    if (failure != null) throw failure;
+  }
+
+  @override
+  Future<void> discard(Iterable<String> paths) async =>
+      calls.add(('discard', [...paths]));
+
+  @override
+  Future<void> clearPickerCopies() async {
+    calls.add(('clearPickerCopies', const []));
+    _fail();
+  }
+
+  @override
+  Future<List<String>> drainLostPicks() async {
+    calls.add(('drainLostPicks', const []));
+    _fail();
+    return lostPicks;
+  }
+
+  @override
+  Future<void> sweep({
+    required DateTime sharedBefore,
+    DateTime? copiesBefore,
+  }) async {
+    calls.add(('sweep', [sharedBefore, copiesBefore]));
+    await sweeping?.future;
+    _fail();
+  }
 }
 
 /// A house in [gulberg] with three units, and an archived plot.

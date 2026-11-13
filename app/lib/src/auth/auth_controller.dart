@@ -81,9 +81,10 @@ final class AuthController extends Notifier<AuthStatus> {
   }
 
   /// Signs out of this device. It cannot fail: the device forgets the
-  /// session and its cache before the server is told, so when the server
-  /// cannot be reached the user is still signed out here, and the session
-  /// ends on the server when its refresh token expires.
+  /// session, and wipes what it kept for the account (`DeviceDataWipe`),
+  /// before the server is told, so when the server cannot be reached the
+  /// user is still signed out here, and the session ends on the server when
+  /// its refresh token expires.
   Future<void> signOut({SignOutCause cause = SignOutCause.userRequest}) async {
     try {
       await _repository.signOut(cause: cause);

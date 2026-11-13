@@ -426,9 +426,15 @@ void main() {
           path: '/tmp/scaled_1.jpg',
         ),
       );
-      final photo = await PluginDocumentPicker(camera).takePhoto();
+      final discarded = <String>[];
+      final photo = await PluginDocumentPicker(
+        camera: camera,
+        discard: (paths) async => discarded.addAll(paths),
+      ).takePhoto();
       expect(photo!.name, 'scaled_1.jpg');
       expect(photo.bytes, [1, 2, 3]);
+      // The camera's copy is let go once it is read.
+      expect(discarded, ['/tmp/scaled_1.jpg']);
       expect(camera.asked.single, {
         'source': ImageSource.camera,
         'maxWidth': 2048.0,
@@ -437,26 +443,33 @@ void main() {
         'requestFullMetadata': false,
       });
       expect(
-        await PluginDocumentPicker(_Camera(() async => null)).takePhoto(),
+        await PluginDocumentPicker(camera: _Camera(() async => null))
+            .takePhoto(),
         isNull,
       );
     });
 
     test('a camera the app may not use says so', () async {
       final denied = PluginDocumentPicker(
-        _Camera(() => throw PlatformException(code: 'camera_access_denied')),
+        camera: _Camera(
+          () => throw PlatformException(code: 'camera_access_denied'),
+        ),
       );
       await expectLater(denied.takePhoto(), _refused('picker_access_denied'));
       final broken = PluginDocumentPicker(
-        _Camera(() => throw PlatformException(code: 'no_available_camera')),
+        camera: _Camera(
+          () => throw PlatformException(code: 'no_available_camera'),
+        ),
       );
       await expectLater(broken.takePhoto(), throwsA(isA<UnexpectedFailure>()));
     });
 
     test('a photo kept after Android closed the app comes back once', () async {
+      final discarded = <String>[];
       Future<ChosenFile?> recover(LostDataResponse lost) =>
           PluginDocumentPicker(
-            _Camera(() async => null, lost: () async => lost),
+            camera: _Camera(() async => null, lost: () async => lost),
+            discard: (paths) async => discarded.addAll(paths),
           ).recoverLostPhoto();
 
       final photo = await recover(
@@ -470,10 +483,11 @@ void main() {
       );
       expect(photo!.name, 'scaled_2.jpg');
       expect(photo.bytes, [7, 8, 9]);
+      expect(discarded, ['/data/cache/scaled_2.jpg']);
       // Nothing kept.
       expect(await recover(LostDataResponse.empty()), isNull);
       expect(
-        await PluginDocumentPicker(_Camera(() async => null))
+        await PluginDocumentPicker(camera: _Camera(() async => null))
             .recoverLostPhoto(),
         isNull,
       );
@@ -487,13 +501,15 @@ void main() {
         ),
         isNull,
       );
+      // It is let go all the same.
+      expect(discarded.last, '/data/cache/v.mp4');
       expect(await recover(LostDataResponse(type: RetrieveType.image)), isNull);
     });
 
     test("a lost photo's failure is the camera's", () async {
       Future<ChosenFile?> recover(LostDataResponse lost) =>
           PluginDocumentPicker(
-            _Camera(() async => null, lost: () async => lost),
+            camera: _Camera(() async => null, lost: () async => lost),
           ).recoverLostPhoto();
 
       await expectLater(
@@ -531,9 +547,14 @@ void main() {
         () async => _File('lease.pdf', Uint8List.fromList([4, 5])),
       );
       FilePickerPlatform.instance = files;
-      final file = await PluginDocumentPicker().chooseFile();
+      final discarded = <String>[];
+      final file = await PluginDocumentPicker(
+        discard: (paths) async => discarded.addAll(paths),
+      ).chooseFile();
       expect(file!.name, 'lease.pdf');
       expect(file.bytes, [4, 5]);
+      // The picker's copy is let go once it is read.
+      expect(discarded, ['/tmp/lease.pdf']);
       expect(files.asked.single, (FileType.custom, pickableExtensions));
       FilePickerPlatform.instance = _Files(() async => null);
       expect(await PluginDocumentPicker().chooseFile(), isNull);
@@ -547,10 +568,14 @@ void main() {
           knownLength: maxPickedImageBytes + 1,
         ),
       );
+      final discarded = <String>[];
       await expectLater(
-        PluginDocumentPicker().chooseFile(),
+        PluginDocumentPicker(discard: (paths) async => discarded.addAll(paths))
+            .chooseFile(),
         _refused('file_too_large'),
       );
+      // A refused file's copy is let go too.
+      expect(discarded, ['/tmp/video.pdf']);
       FilePickerPlatform.instance = _Files(
         () => throw PlatformException(code: 'read_external_storage_denied'),
       );
