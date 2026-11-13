@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,8 +12,27 @@ import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.d
 import 'package:maalik_e_makaan/src/features/team/application/invitation.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_core/mm_core.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../../support/fakes.dart';
+
+class _MockAuth extends Mock implements sb.GoTrueClient;
+
+/// A store that never answers, as a platform call that hangs.
+final class _HangingStore implements KeyValueStore {
+  @override
+  Future<String?> read(String key) => Completer<String?>().future;
+
+  @override
+  Future<void> write(String key, String value) => Completer<void>().future;
+
+  @override
+  Future<void> delete(String key) => Completer<void>().future;
+
+  @override
+  Future<Set<String>> keys() => Completer<Set<String>>().future;
+}
 
 /// The display settings, which belong to the device and are never wiped.
 const _display = <String, Object>{
@@ -92,9 +112,30 @@ void main() {
       expect(calls(), [
         ['drainLostPicks'],
         ['discard', '/cache/scaled_lost.jpg'],
-        ['clearPickerCopies'],
+        ['clearPickerCopies', _now],
         ['sweep', _now.subtract(sharedFileGrace), _now],
       ]);
+    });
+
+    testWidgets('a store that never answers does not hold the wipe up', (
+      tester,
+    ) async {
+      // Made in the test's fake time, as its timers are.
+      final stuck = DeviceDataWipe(
+        cache: SwrCache(_HangingStore()),
+        settings: settings,
+        scratch: scratch,
+      );
+      var done = 0;
+      unawaited(stuck.wipe(WipeReason.signedOut).then((_) => done++));
+      // A second call shares the stuck step, within the same limit.
+      unawaited(stuck.wipe(WipeReason.signedOut).then((_) => done++));
+      await tester.pump(wipePreferencesLimit - const Duration(seconds: 1));
+      expect(done, 0);
+      // The files did not wait for it.
+      expect(asked(), contains('sweep'));
+      await tester.pump(const Duration(seconds: 1));
+      expect(done, 2);
     });
 
     test('a deleted account takes the invitation too', () async {
@@ -150,7 +191,7 @@ void main() {
   group('start-up', () {
     test('signed out, it forgets what an earlier run left of an account, '
         'but not a photo the camera may still bring back', () async {
-      await wipe.atStart(signedIn: false);
+      await wipe.atStart(signedIn: false, photoMayReturn: true);
       expect(store.values, {'other': '1'});
       expect(settings.values, {
         ..._display,
@@ -160,36 +201,165 @@ void main() {
       expect(wiped, [WipeReason.startedSignedOut]);
       await wipe.settled;
       expect(calls(), [
-        ['clearPickerCopies'],
+        ['clearPickerCopies', _now],
         ['sweep', _now.subtract(sharedFileGrace), null],
       ]);
     });
 
+    test('signed out, with no photo to bring back, the camera goes too '
+        "(an older version's photos, a record nobody came back for)", () async {
+      await wipe.atStart(signedIn: false, photoMayReturn: false);
+      expect(settings.values, {
+        ..._display,
+        AppSettings.pendingInvitationKey: 'invitation.verifier',
+      });
+      await wipe.settled;
+      expect(calls(), [
+        ['drainLostPicks'],
+        ['discard', '/cache/scaled_lost.jpg'],
+        ['clearPickerCopies', _now],
+        ['sweep', _now.subtract(sharedFileGrace), _now],
+      ]);
+    });
+
     test('signed in, it only tidies the old files', () async {
-      await wipe.atStart(signedIn: true);
+      await wipe.atStart(signedIn: true, photoMayReturn: true);
       await wipe.settled;
       expect(settings.values, _everything());
       expect(store.values, hasLength(2));
       expect(wiped, isEmpty);
-      expect(asked(), ['clearPickerCopies', 'sweep']);
-      expect(scratch.calls.last.$2.last, isNull);
+      expect(calls(), [
+        ['clearPickerCopies', _now],
+        ['sweep', _now.subtract(sharedFileGrace), null],
+      ]);
     });
 
-    test('bootstrap starts it without waiting', () async {
-      tidyDeviceAtStart(cache, settings, signedIn: true, scratch: scratch);
-      await pumpEventQueue();
-      expect(settings.values, _everything());
-      expect(asked(), ['clearPickerCopies', 'sweep']);
+    test('signed in, with no photo to bring back, the camera goes', () async {
+      await wipe.atStart(signedIn: true, photoMayReturn: false);
+      await wipe.settled;
+      expect(
+        settings.values,
+        {..._everything()}..remove(AppSettings.cameraTargetKey),
+      );
+      expect(store.values, hasLength(2));
+      expect(wiped, isEmpty);
+      expect(asked(), [
+        'drainLostPicks',
+        'discard',
+        'clearPickerCopies',
+        'sweep',
+      ]);
+      expect(scratch.calls.last.$2.last, _now);
+    });
 
-      tidyDeviceAtStart(cache, settings, signedIn: false, scratch: scratch);
+    test(
+      'bootstrap starts it without waiting, from the session read',
+      () async {
+        final auth = _MockAuth();
+        final asks = <DateTime>[];
+        bool photo(SettingsStore read, DateTime now) {
+          expect(read, same(settings));
+          asks.add(now);
+          return true;
+        }
+
+        when(() => auth.currentSession).thenReturn(
+          sb.Session(
+            accessToken: 'a',
+            tokenType: 'bearer',
+            user: const sb.User(
+              id: testUserId,
+              appMetadata: {},
+              userMetadata: {},
+              aud: 'authenticated',
+              createdAt: '2026-11-01T00:00:00Z',
+            ),
+          ),
+        );
+        tidyDeviceAtStart(
+          cache,
+          settings,
+          auth: auth,
+          photoMayReturn: photo,
+          scratch: scratch,
+          clock: () => _now,
+        );
+        await pumpEventQueue();
+        // Signed in: the account stays.
+        expect(settings.values, _everything());
+        expect(store.values, hasLength(2));
+        expect(asked(), ['clearPickerCopies', 'sweep']);
+        expect(asks, [_now]);
+
+        when(() => auth.currentSession).thenReturn(null);
+        tidyDeviceAtStart(
+          cache,
+          settings,
+          auth: auth,
+          photoMayReturn: photo,
+          scratch: scratch,
+        );
+        await pumpEventQueue();
+        expect(store.values, {'other': '1'});
+        expect(
+          settings.values,
+          isNot(contains(AppSettings.currentPortfolioKey)),
+        );
+        expect(settings.values, contains(AppSettings.cameraTargetKey));
+        // Without a clock, the device's.
+        expect(asks.last, isNot(_now));
+      },
+    );
+
+    test('off a phone, the default scratch touches nothing', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      final auth = _MockAuth();
+      when(() => auth.currentSession).thenReturn(null);
+      tidyDeviceAtStart(
+        cache,
+        settings,
+        auth: auth,
+        photoMayReturn: (_, _) => false,
+      );
       await pumpEventQueue();
       expect(store.values, {'other': '1'});
-      expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
-      expect(settings.values, contains(AppSettings.cameraTargetKey));
+      expect(settings.values, {
+        ..._display,
+        AppSettings.pendingInvitationKey: 'invitation.verifier',
+      });
+    });
+  });
+
+  group('coming back to the foreground', () {
+    test('sweeps only the old shared files', () async {
+      wipe.atResume();
+      await wipe.settled;
+      expect(calls(), [
+        ['sweep', _now.subtract(sharedFileGrace), null],
+      ]);
+      expect(settings.values, _everything());
+      expect(store.values, hasLength(2));
+      expect(wiped, isEmpty);
     });
   });
 
   group('wipes that meet', () {
+    test('a start-up wipe that keeps the camera does not cover one that '
+        'removes it', () async {
+      await Future.wait([
+        wipe.atStart(signedIn: false, photoMayReturn: true),
+        wipe.atStart(signedIn: false, photoMayReturn: false),
+      ]);
+      expect(wiped, [WipeReason.startedSignedOut, WipeReason.startedSignedOut]);
+      expect(settings.values, isNot(contains(AppSettings.cameraTargetKey)));
+      await Future.wait([
+        wipe.atStart(signedIn: false, photoMayReturn: false),
+        wipe.atStart(signedIn: false, photoMayReturn: true),
+      ]);
+      expect(wiped, hasLength(3));
+    });
+
     test('share the preferences while they are being removed', () async {
       await Future.wait([
         wipe.wipe(WipeReason.accountDeleted),
@@ -303,11 +473,36 @@ void main() {
       expect(imageCache.containsKey(key), isTrue);
 
       final app = container();
-      await app.read(deviceDataWipeProvider).atStart(signedIn: false);
+      await app
+          .read(deviceDataWipeProvider)
+          .atStart(signedIn: false, photoMayReturn: true);
       expect(imageCache.containsKey(key), isTrue);
       await app.read(deviceDataWipeProvider).wipe(WipeReason.signedOut);
       expect(imageCache.containsKey(key), isFalse);
       image.dispose();
+    });
+
+    test('sweeps the shared files each time it comes back', () async {
+      final app = container()..listen(deviceTidyOnResumeProvider, (_, _) {});
+      final binding = TestWidgetsFlutterBinding.instance
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      expect(scratch.calls, isEmpty);
+      binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.hidden)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await app.read(deviceDataWipeProvider).settled;
+      expect(asked(), ['sweep']);
+      expect(scratch.calls.single.$2.last, isNull);
+      // Once the app is closed, nothing listens.
+      app.dispose();
+      binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await pumpEventQueue();
+      expect(asked(), ['sweep']);
     });
 
     test('takes the phone from the platform', () {

@@ -11,6 +11,7 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/retry.dart';
+import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,12 +54,12 @@ Future<void> bootstrap() async {
   );
   final settings = PreferencesSettingsStore(preferences);
   final cache = SwrCache(PreferencesStore(SharedPreferencesAsync()));
-  // Supabase has read the stored session by now; one it refuses later is
-  // wiped as it signs out.
+  // Supabase has read the stored session by now.
   tidyDeviceAtStart(
     cache,
     settings,
-    signedIn: supabase.client.auth.currentSession != null,
+    auth: supabase.client.auth,
+    photoMayReturn: lostPhotoMayReturn,
   );
 
   runApp(

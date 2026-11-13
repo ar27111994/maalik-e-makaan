@@ -6,9 +6,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/device/scratch_files_io.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
+import '../../../support/fakes.dart' show MemorySettingsStore, MemoryStore;
 
 /// path_provider, answering [temporary] for the temporary directory.
 final class _Paths extends PathProviderPlatform {
@@ -21,17 +24,13 @@ final class _Paths extends PathProviderPlatform {
 }
 
 /// file_picker on Android, with a pick it kept after Android closed the
-/// app.
+/// app. Its own clearing is never asked: the app sweeps the copies itself.
 final class _AndroidFiles extends FilePickerAndroid {
   new({this.lost, this.fails = false});
 
   final LostFilePickerResult? lost;
   final bool fails;
-  int cleared = 0;
   int drained = 0;
-
-  @override
-  Future<void> clearTemporaryFiles() async => cleared++;
 
   @override
   Future<LostFilePickerResult?> retrieveLostData() async {
@@ -42,12 +41,7 @@ final class _AndroidFiles extends FilePickerAndroid {
 }
 
 /// file_picker elsewhere.
-final class _Files extends FilePickerPlatform {
-  int cleared = 0;
-
-  @override
-  Future<void> clearTemporaryFiles() async => cleared++;
-}
+final class _Files extends FilePickerPlatform;
 
 /// The camera, with what it kept after Android closed the app.
 final class _Camera extends ImagePicker {
@@ -74,6 +68,9 @@ void main() {
   late Directory root;
   late Directory cache;
   late Directory outside;
+
+  /// iOS's `tmp/`, for the tests.
+  late Directory tmp;
   late PathProviderPlatform paths;
   late FilePickerPlatform files;
 
@@ -81,6 +78,7 @@ void main() {
     root = Directory.systemTemp.createTempSync('mm_scratch_');
     cache = Directory('${root.path}/cache')..createSync();
     outside = Directory('${root.path}/outside')..createSync();
+    tmp = Directory('${root.path}/tmp')..createSync();
     paths = PathProviderPlatform.instance;
     files = FilePickerPlatform.instance;
     PathProviderPlatform.instance = _Paths(cache.path);
@@ -99,6 +97,20 @@ void main() {
       ..writeAsStringSync('x');
     if (modified != null) file.setLastModifiedSync(modified);
     return file;
+  }
+
+  /// Sets when [path] (a folder too) last changed: dart:io sets it only for
+  /// files.
+  void touch(String path, DateTime modified) {
+    final stamp =
+        '${modified.year.toString().padLeft(4, '0')}'
+        '${modified.month.toString().padLeft(2, '0')}'
+        '${modified.day.toString().padLeft(2, '0')}'
+        '${modified.hour.toString().padLeft(2, '0')}'
+        '${modified.minute.toString().padLeft(2, '0')}'
+        '.${modified.second.toString().padLeft(2, '0')}';
+    final result = Process.runSync('touch', ['-m', '-t', stamp, path]);
+    expect(result.exitCode, 0, reason: '${result.stderr}');
   }
 
   bool exists(String path) =>
@@ -137,6 +149,16 @@ void main() {
       },
     );
 
+    test('a folder next to the cache, whose name begins the same, is not '
+        'the cache', () async {
+      final sibling = file('${root.path}/cache2/scaled_$_uuidA.jpg');
+      final older = file('${root.path}/cache-old/x.jpg');
+      await PluginDeviceScratch(platform: TargetPlatform.android)
+          .discard([sibling.path, older.path]);
+      expect(exists(sibling.path), isTrue);
+      expect(exists(older.path), isTrue);
+    });
+
     test('a file outside the cache through a linked folder stays', () async {
       final mine = file('${outside.path}/cnic.jpg');
       Link('${cache.path}/through').createSync(outside.path);
@@ -159,14 +181,22 @@ void main() {
     });
 
     test("on iOS the app's tmp folder is its own too", () async {
-      // Tests run with the system's temporary folder as iOS's tmp/.
-      final photo = file('${outside.path}/image_picker_$_uuidA.jpg');
-      await PluginDeviceScratch(platform: TargetPlatform.android)
-          .discard([photo.path]);
+      final photo = file('${tmp.path}/image_picker_$_uuidA.jpg');
+      await PluginDeviceScratch(
+        platform: TargetPlatform.android,
+        tempFolder: () => tmp.path,
+      ).discard([photo.path]);
       expect(exists(photo.path), isTrue);
-      await PluginDeviceScratch(platform: TargetPlatform.iOS)
-          .discard([photo.path]);
+      await PluginDeviceScratch(
+        platform: TargetPlatform.iOS,
+        tempFolder: () => tmp.path,
+      ).discard([photo.path]);
       expect(exists(photo.path), isFalse);
+      // By default, the system's temporary folder (the tests' own here).
+      final mine = file('${outside.path}/image_picker_$_uuidA.jpg');
+      await PluginDeviceScratch(platform: TargetPlatform.iOS)
+          .discard([mine.path]);
+      expect(exists(mine.path), isFalse);
     });
 
     test('a copy that cannot be deleted does not stop the rest', () async {
@@ -279,20 +309,91 @@ void main() {
     });
   });
 
-  group('the plugins', () {
-    test("clears file_picker's copies on a phone", () async {
-      final android = _AndroidFiles();
-      FilePickerPlatform.instance = android;
-      await PluginDeviceScratch(platform: TargetPlatform.android)
-          .clearPickerCopies();
-      expect(android.cleared, 1);
-      final ios = _Files();
-      FilePickerPlatform.instance = ios;
-      await PluginDeviceScratch(platform: TargetPlatform.iOS)
-          .clearPickerCopies();
-      expect(ios.cleared, 1);
+  group("the pickers' copies", () {
+    final now = DateTime.now();
+    final before = now.add(const Duration(hours: 1));
+    final later = now.add(const Duration(hours: 2));
+
+    test(
+      "on Android, file_picker's older than the wipe, nothing else",
+      () async {
+        final old = file('${cache.path}/file_picker/1731488400000/lease.pdf');
+        // Picked by the next user while the wipe ran: its folder is new,
+        // although the copy kept its original's time.
+        final picked = file(
+          '${cache.path}/file_picker/1731488500000/cnic.jpg',
+          modified: now.subtract(const Duration(days: 30)),
+        );
+        touch(picked.parent.path, later);
+        final photo = file('${cache.path}/scaled_$_uuidA.jpg');
+        final share = file('${cache.path}/$_uuidB/receipt.pdf');
+        await PluginDeviceScratch(platform: TargetPlatform.android)
+            .clearPickerCopies(before: before);
+        expect(exists(old.path), isFalse);
+        expect(exists(old.parent.path), isFalse);
+        expect(exists(picked.path), isTrue);
+        expect(exists(photo.path), isTrue);
+        expect(exists(share.path), isTrue);
+        // Without a file_picker folder there is nothing to do.
+        Directory('${cache.path}/file_picker').deleteSync(recursive: true);
+        await expectLater(
+          PluginDeviceScratch(platform: TargetPlatform.android)
+              .clearPickerCopies(before: before),
+          completes,
+        );
+      },
+    );
+
+    test('on iOS, everything in tmp/ older than the wipe', () async {
+      final photo = file('${tmp.path}/image_picker_$_uuidA.jpg');
+      final picked = file('${tmp.path}/$_uuidF/lease.pdf');
+      final inbox = file('${tmp.path}/app-Inbox/agreement.pdf');
+      final fresh = file(
+        '${tmp.path}/image_picker_$_uuidB.jpg',
+        modified: later,
+      );
+      final precious = file('${outside.path}/cnic.jpg');
+      final link = Link('${tmp.path}/link')..createSync(outside.path);
+      final share = file('${cache.path}/$_uuidC/receipt.pdf');
+      await PluginDeviceScratch(
+        platform: TargetPlatform.iOS,
+        tempFolder: () => tmp.path,
+      ).clearPickerCopies(before: before);
+      for (final gone in [photo, picked, inbox]) {
+        expect(exists(gone.path), isFalse, reason: gone.path);
+      }
+      for (final kept in [fresh, precious, share]) {
+        expect(exists(kept.path), isTrue, reason: kept.path);
+      }
+      expect(exists(link.path), isTrue);
+      // Without a tmp/ folder there is nothing to do.
+      await PluginDeviceScratch(
+        platform: TargetPlatform.iOS,
+        tempFolder: () => null,
+      ).clearPickerCopies(before: before);
+      expect(exists(fresh.path), isTrue);
     });
 
+    test('an entry that cannot be deleted does not stop the rest', () async {
+      final stuck = file('${tmp.path}/a/lease.pdf');
+      final other = file('${tmp.path}/b/cnic.jpg');
+      await sweepOlder(
+        tmp.path,
+        before,
+        delete: (entry) async {
+          if (entry.path.endsWith('/a')) {
+            throw FileSystemException('busy', entry.path);
+          }
+          await entry.delete(recursive: true);
+        },
+      );
+      expect(exists(stuck.path), isTrue);
+      expect(exists(other.path), isFalse);
+      await expectLater(sweepOlder('${root.path}/missing', before), completes);
+    });
+  });
+
+  group('the plugins', () {
     test(
       "drains Android's record of a pick the app was closed during",
       () async {
@@ -318,7 +419,13 @@ void main() {
             platform: TargetPlatform.android,
             camera: camera,
           ).drainLostPicks(),
-          [photo.path, '/data/cache/file_picker/1/lease.pdf'],
+          [
+            photo.path,
+            // The camera's full-size original, which image_picker resized
+            // only as it handed the photo over, and left.
+            '${cache.path}/$_uuidA.jpg',
+            '/data/cache/file_picker/1/lease.pdf',
+          ],
         );
         expect((camera.asked, android.drained), (1, 1));
       },
@@ -392,21 +499,19 @@ void main() {
     test('on the web or a computer, nothing is touched', () async {
       final photo = file('${cache.path}/scaled_$_uuidA.jpg');
       final share = file('${cache.path}/$_uuidA/receipt.pdf');
-      final picker = _Files();
-      FilePickerPlatform.instance = picker;
+      final picked = file('${tmp.path}/image_picker_$_uuidC.jpg');
       final none = PluginDeviceScratch(
         camera: _Camera(() => throw StateError('not asked')),
+        tempFolder: () => tmp.path,
       );
-      await none.discard([photo.path]);
-      await none.clearPickerCopies();
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      await none.discard([photo.path, picked.path]);
+      await none.clearPickerCopies(before: tomorrow);
       expect(await none.drainLostPicks(), isEmpty);
-      await none.sweep(
-        sharedBefore: DateTime.now().add(const Duration(days: 1)),
-        copiesBefore: DateTime.now().add(const Duration(days: 1)),
-      );
+      await none.sweep(sharedBefore: tomorrow, copiesBefore: tomorrow);
       expect(exists(photo.path), isTrue);
       expect(exists(share.path), isTrue);
-      expect(picker.cleared, 0);
+      expect(exists(picked.path), isTrue);
     });
 
     test('here() follows the platform the app runs on', () async {
@@ -432,6 +537,48 @@ void main() {
 
     test('the system temporary folder is where tests make theirs', () {
       expect(root.path, startsWith(systemTempPath()));
+    });
+  });
+
+  group('a wipe on the phone', () {
+    // A fixed now, a whole second, so that file times compare exactly.
+    final now = DateTime(2026, 11, 13, 9);
+
+    test('keeps a file shared less than ten minutes ago, for the app it was '
+        'shared with, and takes the older ones', () async {
+      // Pinned here, not read from the constant: the share sheet returns
+      // before WhatsApp or e-mail has read the file.
+      expect(
+        sharedFileGrace,
+        greaterThanOrEqualTo(const Duration(minutes: 10)),
+      );
+      final recent = now.subtract(const Duration(minutes: 5));
+      final old = now.subtract(const Duration(minutes: 11));
+      final share = file('${cache.path}/$_uuidA/receipt.pdf', modified: recent);
+      touch(share.parent.path, recent);
+      final copy = file(
+        '${cache.path}/share_plus/statement.pdf',
+        modified: recent,
+      );
+      final oldShare = file('${cache.path}/$_uuidB/receipt.pdf', modified: old);
+      touch(oldShare.parent.path, old);
+      final oldCopy = file('${cache.path}/share_plus/x.pdf', modified: old);
+
+      final wipe = DeviceDataWipe(
+        cache: SwrCache(MemoryStore()),
+        settings: MemorySettingsStore(),
+        scratch: PluginDeviceScratch(
+          platform: TargetPlatform.android,
+          camera: _Camera(() async => LostDataResponse.empty()),
+        ),
+        clock: () => now,
+      );
+      await wipe.wipe(WipeReason.signedOut);
+      await wipe.settled;
+      expect(exists(share.path), isTrue);
+      expect(exists(copy.path), isTrue);
+      expect(exists(oldShare.path), isFalse);
+      expect(exists(oldCopy.path), isFalse);
     });
   });
 }

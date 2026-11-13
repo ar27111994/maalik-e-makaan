@@ -775,8 +775,8 @@ final class FakeDeviceScratch implements DeviceScratch {
       calls.add(('discard', [...paths]));
 
   @override
-  Future<void> clearPickerCopies() async {
-    calls.add(('clearPickerCopies', const []));
+  Future<void> clearPickerCopies({required DateTime before}) async {
+    calls.add(('clearPickerCopies', [before]));
     _fail();
   }
 

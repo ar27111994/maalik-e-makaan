@@ -17,3 +17,6 @@ Future<void> sweepFolder(
   required DateTime sharedBefore,
   DateTime? copiesBefore,
 }) async {}
+
+/// Nothing to sweep on the web.
+Future<void> sweepOlder(String folder, DateTime before) async {}

@@ -9,6 +9,7 @@ import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
@@ -141,6 +142,9 @@ final class TestApp {
   final MemoryStore store = MemoryStore();
   late final SwrCache cache = SwrCache(store);
 
+  /// The phone's folders and pickers, as the device wipe sees them.
+  final FakeDeviceScratch scratch = FakeDeviceScratch();
+
   /// The links the app asked to open in another app.
   final opened = <Uri>[];
 
@@ -150,6 +154,7 @@ final class TestApp {
   List<Override> get overrides => [
     settingsStoreProvider.overrideWithValue(settings),
     swrCacheProvider.overrideWithValue(cache),
+    deviceScratchProvider.overrideWithValue(scratch),
     authRepositoryProvider.overrideWithValue(auth),
     profileRepositoryProvider.overrideWithValue(profiles),
     residenceRepositoryProvider.overrideWithValue(residences),

@@ -483,7 +483,9 @@ void main() {
       );
       expect(photo!.name, 'scaled_2.jpg');
       expect(photo.bytes, [7, 8, 9]);
-      expect(discarded, ['/data/cache/scaled_2.jpg']);
+      // image_picker resized it only now: the camera's full-size original,
+      // next to it, goes with it.
+      expect(discarded, ['/data/cache/scaled_2.jpg', '/data/cache/2.jpg']);
       // Nothing kept.
       expect(await recover(LostDataResponse.empty()), isNull);
       expect(

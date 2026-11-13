@@ -13,5 +13,6 @@ void main() {
       ),
       completes,
     );
+    await expectLater(sweepOlder('/tmp', DateTime.utc(2026)), completes);
   });
 }

@@ -109,6 +109,33 @@ Future<void> sweepFolder(
   }
 }
 
+/// Deletes each entry of [folder] that, with everything in it, last changed
+/// before [before]: the pickers' copies (file_picker's `<time>/` and
+/// `<uuid>/` folders, the camera's photos on iOS). A copy made since keeps
+/// it: a picker copies a file into a folder it has just made, whose time is
+/// new even when the copy keeps its original's. Links are neither followed
+/// nor deleted; an entry that cannot be read or deleted is left, and the
+/// rest go on; a missing [folder] holds nothing.
+Future<void> sweepOlder(
+  String folder,
+  DateTime before, {
+  Deleter delete = _deleteEntry,
+}) async {
+  final List<FileSystemEntity> entries;
+  try {
+    entries = await Directory(folder).list(followLinks: false).toList();
+  } on FileSystemException {
+    return;
+  }
+  for (final entry in entries) {
+    try {
+      await _deleteIfOlder(entry, before, delete);
+    } on FileSystemException {
+      // Changed or locked while it was looked at: the next sweep tries again.
+    }
+  }
+}
+
 /// Deletes [entry] when it, and everything in it, last changed before
 /// [before]. Links are left.
 Future<void> _deleteIfOlder(

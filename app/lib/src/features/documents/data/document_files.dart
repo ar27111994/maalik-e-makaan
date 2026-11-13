@@ -114,7 +114,9 @@ final class PluginDocumentPicker implements DocumentPicker {
       // The kept photo is gone: Android cleared the app's cache since.
       throw AppFailure.from(error);
     } finally {
-      await _discard([photo.path]);
+      // image_picker resized the photo only now, and left the camera's
+      // full-size original next to the copy it handed over.
+      await _discard([photo.path, ?cameraOriginalOf(photo.path)]);
     }
   });
 
