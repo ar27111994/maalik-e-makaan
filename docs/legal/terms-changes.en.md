@@ -34,8 +34,9 @@ Short names: **PJ**, **RM** and **LR** are [`.planning/PROJECT.md`](../../.plann
 [`docs/roadmap/legal-review.md`](../roadmap/legal-review.md) at commit `ae0112c` on `main`, with LR
 as this pack's pull request leaves it ([README](README.md#sources-and-conventions)); **TEN**
 is the live [terms](../../website/src/content/pages/en/terms.md); **RES** is
-`supabase/migrations/20261112092618_residence.sql` in pull request
-[#61](https://github.com/ar27111994/maalik-e-makaan/pull/61) at commit `6608f1e` (not merged).
+`supabase/migrations/20261112092618_residence.sql` at commit `6608f1e` of pull request
+[#61](https://github.com/ar27111994/maalik-e-makaan/pull/61), since merged into `main` as `7e75b7f`
+but in no release and not applied to the hosted project.
 
 ## Where the clauses go
 

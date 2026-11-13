@@ -31,8 +31,10 @@ corrections of #62, released in 1.1.1; its line numbers are the same as at `415c
 [`docs/roadmap/README.md`](../roadmap/README.md) and
 [`docs/roadmap/legal-review.md`](../roadmap/legal-review.md), at the same commit (LR as this pack's
 pull request leaves it: [README](README.md#sources-and-conventions)); **RES** is
-`supabase/migrations/20261112092618_residence.sql` in pull request
-[#61](https://github.com/ar27111994/maalik-e-makaan/pull/61) at commit `6608f1e` (not merged). The
+`supabase/migrations/20261112092618_residence.sql` at commit `6608f1e` of pull request
+[#61](https://github.com/ar27111994/maalik-e-makaan/pull/61), since merged into `main` as `7e75b7f`
+but in no release and not applied to the hosted project. Release 1.2.0's code is the code at
+`ae0112c`. The
 [data map](data-map.md) has the sources for every data class.
 
 ## The proposed page

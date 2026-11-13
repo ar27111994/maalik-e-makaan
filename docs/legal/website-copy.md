@@ -7,7 +7,9 @@
 
 Part of the [legal review pack](README.md). The privacy page's own text, its meta description
 included, is in [privacy-notice.en.md](privacy-notice.en.md) and
-[privacy-notice.ur.md](privacy-notice.ur.md). Line numbers are at commit `ae0112c` on `main` (which includes #62, released in 1.1.1).
+[privacy-notice.ur.md](privacy-notice.ur.md). Line numbers are at commit `ae0112c` on `main`
+(which includes #62, released in 1.1.1; release 1.2.0's code is the same), checked again after
+merging `main` at `7e75b7f` ([README](README.md#sources-and-conventions)).
 Short names: **PJ** and **RM** are [`.planning/PROJECT.md`](../../.planning/PROJECT.md) and
 [`docs/roadmap/README.md`](../roadmap/README.md).
 
@@ -217,9 +219,10 @@ Proposed Urdu:
 
 > **کیا کوئی اور میری طرف سے کرایہ وصول کر سکتا ہے؟** جی ہاں۔ کسی رشتہ دار، نگران یا اکاؤنٹنٹ کو ان کے اپنے رول کے ساتھ دعوت بھیجیں: مالک، منیجر، اکاؤنٹنٹ، یا صرف دیکھنے والا۔ کوئی مالک کسی ایک منیجر کو پورٹ فولیو کا نگران چن سکتا ہے، اور پورٹ فولیو میں ہر کوئی دیکھ سکتا ہے کہ نگران کون ہے۔ مالک دیکھ سکتا ہے کہ ان میں سے ہر ایک نے کتنی نقدی وصول کی، کتنی آگے دی، اور کتنی ابھی ان کے پاس ہے۔ ریکارڈ میں یہ بھی نظر آتا ہے کہ کس نے کیا درج کیا۔
 
-Why: decision 1 (PJ:102-103; `supabase/migrations/20261112092618_residence.sql`:25-31 in pull
-request [#61](https://github.com/ar27111994/maalik-e-makaan/pull/61), not merged). It stays true
-until then.
+Why: decision 1 (PJ:102-103; `supabase/migrations/20261112092618_residence.sql`:25-31, from pull
+request [#61](https://github.com/ar27111994/maalik-e-makaan/pull/61), merged into `main` as
+`7e75b7f` but in no release and not applied to the hosted project). It stays true until the
+screens ship.
 
 ## 7. Calculators intro
 
