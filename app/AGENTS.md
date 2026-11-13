@@ -37,7 +37,10 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 - Whatever the app keeps on the device for an account (a preference, a file it writes or a plugin
   copies) is removed by `DeviceDataWipe` (`lib/src/data/device/`) when the session ends. A new one
   is added there, to its tests, to `docs/architecture/app.md` (On the device) and to the website's
-  privacy page, in both languages. Display settings belong to the device and stay.
+  privacy page, in both languages. Display settings belong to the device and stay; the pending
+  invitation stays until the account is deleted (see On the device); text the person copies is
+  theirs. A cache write takes the cache's epoch (`SwrCache.write(epoch:)`) from before its fetch,
+  so that nothing lands after a wipe.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

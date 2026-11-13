@@ -298,6 +298,29 @@ node tool/web/browser_check.cjs /tmp/web/.vercel/output --offline-host placehold
 unexpected failed request or an app that does not start. CI's web build runs
 `tool/web/smoke_test.sh` against the same local server on every push.
 
+### Moving the web app to another address
+
+Not done yet: the move to `app.mmakaan.app` (a new `APP_URL`) is the owner's to schedule, since
+it changes DNS, the Vercel project and the hosted Supabase project's Auth settings.
+
+A browser keeps the web app's storage per origin: the session token, the record cache
+(`mm.swr.v1.*`, CNICs included), the last portfolio and a pending invitation live in
+`localStorage` for `https://maalik-e-makaan.vercel.app`. The app on a new origin cannot read or
+delete them, and once the old origin only redirects, no app code runs there again to wipe them,
+so the privacy page's promise that signing out removes them could no longer be kept for those
+browsers. For a transition period (until the old sessions' refresh tokens are no longer used,
+and at least a few months), the old origin should therefore serve, in place of a bare 301:
+
+1. a small page with the header `Clear-Site-Data: "storage"` (browsers that honour it delete the
+   origin's `localStorage`, IndexedDB and service workers; not every browser does, and not on a
+   redirect), and a script that does the same (`localStorage.clear()`, unregister the service
+   worker, delete its caches), then sends the browser to the same path on the new address;
+2. a notice in the app on the old address, before the switch, asking people to sign out there.
+
+Signing in on the new address starts a new session; the old one stays valid on the server until
+it is used or revoked, so a sign-out on the old page, where the network allows, is better still.
+The decision and its date are recorded in `.planning/STATE.md` (Open).
+
 ### The website on Vercel
 
 The website is built in GitHub Actions too, not by Vercel. The Deploy workflow writes the
