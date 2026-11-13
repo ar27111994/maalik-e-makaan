@@ -7,7 +7,9 @@
 Copies the build into OUTPUT/static and writes OUTPUT/config.json, which
 `vercel deploy --prebuilt` uploads as is (no build runs on Vercel). The routes:
 
-1. Security headers on every response, the Content-Security-Policy included.
+1. Security headers on every response, the Content-Security-Policy included,
+   and `X-Robots-Tag: noindex`: the website is what search engines index
+   (decision D-01), and every path here answers 200 with the app's shell.
 2. Cache-Control. A file whose name carries a content hash is immutable for a
    year. Flutter's own output (main.dart.js, canvaskit/, assets/, the entry
    points) keeps the same names from build to build, so everything else,
@@ -82,6 +84,10 @@ STATIC_HEADERS = {
         "microphone=(), payment=(), usb=()"
     ),
     "Cross-Origin-Opener-Policy": "same-origin",
+    # Not a security header: keeps the app's shell, which every path answers, out of search
+    # results, where the website stands for the product (D-01). Crawlers still fetch any path,
+    # assetlinks.json included.
+    "X-Robots-Tag": "noindex",
 }
 
 # Flutter's engine downloads fonts for glyphs that the bundled fonts lack

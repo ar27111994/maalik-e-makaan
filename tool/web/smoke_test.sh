@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test of a deployed web app: the app shell, the SPA fallback, the
-# security headers and the Android App Links file.
+# security headers, noindex and the Android App Links file.
 #
 #   tool/web/smoke_test.sh https://app.mmakaan.app io.github.ar27111994.maalik_e_makaan [SUPABASE_URL]
 #
@@ -64,6 +64,8 @@ for path in / /auth/callback?code=smoke-test "/invite/smoke-test-$RANDOM"; do
   fi
   [[ "$(header strict-transport-security)" == max-age=* ]] || fail "$path lacks HSTS"
   [[ "$(header x-content-type-options)" == nosniff ]] || fail "$path lacks nosniff"
+  # The website is what search engines index (D-01); the app's shell answers every path.
+  [[ "$(header x-robots-tag)" == noindex ]] || fail "$path lacks X-Robots-Tag: noindex"
   # index.html must be revalidated on every load, or a deploy reaches users late.
   cache="$(header cache-control)"
   [[ "$cache" == *no-cache* || "$cache" == *max-age=0* ]] || fail "$path is cached: $cache"

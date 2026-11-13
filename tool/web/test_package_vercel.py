@@ -267,8 +267,10 @@ class BuildConfigTest(unittest.TestCase):
                 "X-Frame-Options",
                 "Permissions-Policy",
                 "Cross-Origin-Opener-Policy",
+                "X-Robots-Tag",
             },
         )
+        self.assertEqual(headers["X-Robots-Tag"], "noindex")
 
 
 class AppOriginsTest(unittest.TestCase):
@@ -511,6 +513,7 @@ class ServeOutputTest(unittest.TestCase):
                     headers["Content-Security-Policy"], pv.content_security_policy(SUPABASE)
                 )
                 self.assertEqual(headers["X-Frame-Options"], "DENY")
+                self.assertEqual(headers["X-Robots-Tag"], "noindex")
 
     def test_files_keep_their_type_and_cache_policy(self):
         status, headers, body = self.get("/.well-known/assetlinks.json")
