@@ -12,6 +12,12 @@
 # inputs.ref, which can be an older tag: a step that runs a script from the
 # checkout must cope with a tag that predates the script.
 #
+# The addresses come from the ref too: the web app's origin (its APP_URL) and
+# the site's are read from inputs.ref's contracts/origins.json (decision D-20),
+# never written here or kept in a repository variable. A site refresh of an
+# older tag therefore builds the addresses that tag was released with, and a
+# move of either reaches production with the release that carries it.
+#
 # It is called rather than started by the "release published" event: a
 # release that release-please creates with the default GITHUB_TOKEN starts no
 # other workflow, so the first release would not have deployed without a
@@ -116,13 +122,11 @@ jobs:
     timeout-minutes: 30
     environment:
       name: production
-      url: https://maalik-e-makaan.vercel.app
+      url: ${{ steps.origins.outputs.app }}
     env:
-      SITE_URL: https://maalik-e-makaan.vercel.app
       ANDROID_PACKAGE: io.github.ar27111994.maalik_e_makaan
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-      APP_URL: ${{ vars.APP_URL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -135,9 +139,54 @@ jobs:
         run: |
           [[ -n "$VERCEL_TOKEN" ]] || {
             echo "::error::Secret VERCEL_TOKEN is not set (docs/operations.md, Deployment)"; exit 1; }
-          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY APP_URL; do
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY; do
             [[ -n "${!name}" ]] || { echo "::error::Repository variable $name is not set"; exit 1; }
           done
+      - name: The web app's origins, from the ref
+        # contracts/origins.json (decision D-20): the origin is the build's APP_URL, and each
+        # earlier address redirects to it (tool/web/package_vercel.py). A ref from before the
+        # file would deploy a build that names the old address on the new one.
+        id: origins
+        run: |
+          file=contracts/origins.json
+          if [[ ! -f "$file" ]]; then
+            echo "::error::This ref predates $file, so its web build names the address before the move (D-20). Deploy a later tag, or promote an earlier deployment in Vercel (docs/operations.md, Rollback and restore)"
+            exit 1
+          fi
+          app="$(jq -er '.app.origin' "$file")"
+          legacy="$(jq -ec '.app.legacy // []' "$file")"
+          echo "app=$app" >> "$GITHUB_OUTPUT"
+          echo "legacy=$legacy" >> "$GITHUB_OUTPUT"
+          echo "The web app's origin: $app; earlier addresses: $legacy"
+      - name: The Edge Functions accept the origin
+        # Browsers call the functions from the web app's origin, and the functions answer only
+        # the origins in the ALLOWED_ORIGINS secret (by default APP_URL's). Checked before the
+        # build, so a missing origin fails the deploy rather than every call in the new app
+        # (docs/operations.md, Domains). An earlier address only warns: it serves just the
+        # e-mail links already sent.
+        env:
+          APP: ${{ steps.origins.outputs.app }}
+          LEGACY: ${{ steps.origins.outputs.legacy }}
+        run: |
+          preflight() {
+            curl -sS -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 5 --retry-all-errors \
+              -X OPTIONS -H "Origin: $1" -H 'Access-Control-Request-Method: GET' \
+              "$SUPABASE_URL/functions/v1/health"
+          }
+          status="$(preflight "$APP")"
+          if [[ "$status" != 204 ]]; then
+            echo "::error::The Edge Functions refuse $APP (preflight answered $status): add it to the ALLOWED_ORIGINS secret (docs/operations.md, Domains)"
+            exit 1
+          fi
+          echo "$APP: preflight 204"
+          while read -r origin; do
+            status="$(preflight "$origin")"
+            if [[ "$status" == 204 ]]; then
+              echo "$origin: preflight 204"
+            else
+              echo "::warning::The Edge Functions refuse the earlier address $origin (preflight answered $status); keep it in ALLOWED_ORIGINS while e-mail links to it are in use (docs/operations.md, Domains)"
+            fi
+          done < <(jq -r '.[]' <<<"$LEGACY")
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
@@ -145,6 +194,8 @@ jobs:
       - run: flutter pub get
       - name: Production configuration
         # Public values only, as in release.yml (the publishable key is meant for clients).
+        env:
+          APP_URL: ${{ steps.origins.outputs.app }}
         run: |
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" --arg app "$APP_URL" \
             '{ENVIRONMENT: "production", SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, APP_URL: $app}' \
@@ -155,6 +206,7 @@ jobs:
           flutter build web --release --no-web-resources-cdn \
             --dart-define-from-file=config/production.json
       - name: Package (Vercel Build Output API)
+        # With the earlier addresses' redirects, from the ref's contracts/origins.json.
         run: >
           python3 tool/web/package_vercel.py --build app/build/web
           --output "$RUNNER_TEMP/vercel/.vercel/output" --supabase-url "$SUPABASE_URL"
@@ -175,7 +227,18 @@ jobs:
           cd "$RUNNER_TEMP/vercel"
           npx --yes "vercel@$VERCEL_CLI_VERSION" deploy --prebuilt --prod --token "$VERCEL_TOKEN"
       - name: Smoke test
-        run: tool/web/smoke_test.sh "$SITE_URL" "$ANDROID_PACKAGE" "$SUPABASE_URL"
+        # The origin, then each earlier address: it redirects, but keeps answering the Android
+        # App Links file (checked by Android without following a redirect) and the e-mail
+        # links' callback.
+        env:
+          APP: ${{ steps.origins.outputs.app }}
+          LEGACY: ${{ steps.origins.outputs.legacy }}
+        run: |
+          tool/web/smoke_test.sh "$APP" "$ANDROID_PACKAGE" "$SUPABASE_URL"
+          while read -r origin; do
+            tool/web/redirect_smoke_test.sh "$origin" "$APP" \
+              --keep '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
+          done < <(jq -r '.[]' <<<"$LEGACY")
 
   site:
     # The marketing site does not use Supabase, so it does not wait for it.
@@ -189,13 +252,11 @@ jobs:
       issues: read
     environment:
       name: production
-      url: https://maalik-e-makaan-site.vercel.app
+      url: ${{ steps.built.outputs.site }}
     env:
-      # The project's production address until a custom domain is attached
-      # (docs/operations.md, Hosting). Canonical URLs, hreflang, the sitemap,
-      # robots.txt and llms.txt are built for it.
-      SITE_URL: https://maalik-e-makaan-site.vercel.app
-      PUBLIC_APP_URL: ${{ vars.APP_URL }}
+      # No SITE_URL or PUBLIC_APP_URL: the build takes the site's and the web app's origins
+      # from the ref (contracts/origins.json, decision D-20; an older tag, from its own
+      # website/src/config/urls.ts), so a site refresh builds the addresses its tag names.
       # Team ar27111994s-projects, project maalik-e-makaan-site (public identifiers).
       VERCEL_ORG_ID: team_APuR5C9ajzlq0OLwjgkjl3hQ
       VERCEL_PROJECT_ID: prj_hGrXXKBhAGxmKrfdwjBegAbyd4E7
@@ -213,8 +274,6 @@ jobs:
         run: |
           [[ -n "$VERCEL_TOKEN" ]] || {
             echo "::error::Secret VERCEL_TOKEN is not set (docs/operations.md, Deployment)"; exit 1; }
-          [[ -n "$PUBLIC_APP_URL" ]] || {
-            echo "::error::Repository variable APP_URL is not set (docs/operations.md, Deployment)"; exit 1; }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
@@ -276,9 +335,24 @@ jobs:
           jq -n --arg tag "$tag" --argjson files "$files" '{tag: $tag, files: $files}' > "$LIST"
           echo "Release $tag has $(jq length <<<"$files") file(s) attached:"
           jq -r '.[]' <<<"$files"
-      - name: Build (Vercel Build Output API, with vercel.json's headers)
+      - name: Build (Vercel Build Output API, with vercel.json's headers and redirects)
         # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
         run: npx --yes "vercel@$VERCEL_CLI_VERSION" build --prod
+      - name: The origin the site was built for
+        # Every page carries it (canonical and hreflang links, the sitemap, robots.txt), so it
+        # is read back from the build, as the e2e suite does, and must be the ref's.
+        id: built
+        run: |
+          site="$(grep -oE '<loc>https://[^/<]+' .vercel/output/static/sitemap-index.xml \
+            | head -n 1 | sed 's/^<loc>//')"
+          [[ -n "$site" ]] || { echo "::error::sitemap-index.xml names no https origin"; exit 1; }
+          if [[ -f contracts/origins.json ]]; then
+            expected="$(jq -er .site.origin contracts/origins.json)"
+            [[ "$site" == "$expected" ]] || {
+              echo "::error::The site was built for $site, but contracts/origins.json names $expected"; exit 1; }
+          fi
+          echo "site=$site" >> "$GITHUB_OUTPUT"
+          echo "Built for $site"
       - name: Every release file the site links to is attached
         # A safety net: the download page links only to the files listed above,
         # so this fails only if a page links to a release file some other way,
@@ -316,4 +390,16 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: npx --yes "vercel@$VERCEL_CLI_VERSION" deploy --prebuilt --prod --token "$VERCEL_TOKEN"
       - name: Smoke test
-        run: tool/web/site_smoke_test.sh "$SITE_URL"
+        # The origin, then each earlier address and alias (www), which must redirect to it with
+        # the path and query. A ref from before contracts/origins.json has neither.
+        env:
+          SITE: ${{ steps.built.outputs.site }}
+        run: |
+          tool/web/site_smoke_test.sh "$SITE"
+          if [[ ! -f contracts/origins.json || ! -f tool/web/redirect_smoke_test.sh ]]; then
+            echo "::notice::This ref predates contracts/origins.json; it has no earlier address to check"
+            exit 0
+          fi
+          while read -r from; do
+            tool/web/redirect_smoke_test.sh "$from" "$SITE"
+          done < <(jq -r '.site.legacy[]?, .site.aliases[]?' contracts/origins.json)

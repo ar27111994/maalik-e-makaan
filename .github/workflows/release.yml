@@ -79,16 +79,18 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
       - run: flutter pub get
       - name: Production configuration
-        # Public values only (the publishable key is meant for clients). They
-        # live in repository variables; the app refuses anything else at start.
+        # Public values only (the publishable key is meant for clients). The
+        # Supabase ones live in repository variables; APP_URL is the web app's
+        # origin in the tag's contracts/origins.json (decision D-20). The app
+        # refuses anything else at start.
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-          APP_URL: ${{ vars.APP_URL }}
         run: |
-          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY APP_URL; do
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY; do
             [[ -n "${!name}" ]] || { echo "::error::Repository variable $name is not set"; exit 1; }
           done
+          APP_URL="$(jq -er .app.origin contracts/origins.json)"
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" --arg app "$APP_URL" \
             '{ENVIRONMENT: "production", SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, APP_URL: $app}' \
             > app/config/production.json
@@ -173,11 +175,11 @@ jobs:
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-          APP_URL: ${{ vars.APP_URL }}
         run: |
-          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY APP_URL; do
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY; do
             [[ -n "${!name}" ]] || { echo "::error::Repository variable $name is not set"; exit 1; }
           done
+          APP_URL="$(jq -er .app.origin contracts/origins.json)"
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" --arg app "$APP_URL" \
             '{ENVIRONMENT: "production", SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, APP_URL: $app}' \
             > app/config/production.json
