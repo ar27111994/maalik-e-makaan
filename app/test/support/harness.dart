@@ -13,6 +13,7 @@ import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence_repository.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
@@ -109,6 +110,7 @@ final class TestApp {
   final FakePortfolioRepository portfolios;
   final FakeAccountRepository account;
   final FakeTeamRepository team = FakeTeamRepository();
+  final FakeResidenceRepository residences = FakeResidenceRepository();
   final FakePropertyRepository properties = FakePropertyRepository();
   final FakeTenantRepository tenants = FakeTenantRepository();
   final FakeLeaseRepository leases = FakeLeaseRepository();
@@ -150,6 +152,7 @@ final class TestApp {
     swrCacheProvider.overrideWithValue(cache),
     authRepositoryProvider.overrideWithValue(auth),
     profileRepositoryProvider.overrideWithValue(profiles),
+    residenceRepositoryProvider.overrideWithValue(residences),
     portfolioRepositoryProvider.overrideWithValue(portfolios),
     accountRepositoryProvider.overrideWithValue(account),
     teamRepositoryProvider.overrideWithValue(team),

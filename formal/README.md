@@ -14,17 +14,17 @@ vacuous.
 
 ## The tracks
 
-| Track                                                | Tool             | What it models                                                                                                                  |
-| ---------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| [`tla/Invitations`](tla/Invitations/README.md)       | TLA+ (TLC 2.19)  | Creating, revoking, accepting and voiding invitations while portfolios, memberships and accounts change.                        |
-| [`tla/Membership`](tla/Membership/README.md)         | TLA+             | Membership changes against portfolio and account deletion: lock order, deadlock retries, freezes.                               |
-| [`tla/StorageCleanup`](tla/StorageCleanup/README.md) | TLA+             | Document rows, uploaded files, every Storage delete path, the cleanup queue and the daily sweep.                                |
-| [`tla/LedgerPayments`](tla/LedgerPayments/README.md) | TLA+             | Payments, idempotency keys, receipts, FIFO allocation, voids, credit and the billing jobs.                                      |
-| [`tla/LateFees`](tla/LateFees/README.md)             | TLA+             | The daily late-fee job against payments, voids, policy changes, charge edits and the end of a tenancy.                          |
-| [`tla/RateLimit`](tla/RateLimit/README.md)           | TLA+             | The fixed-window rate limiter, for requests inside a transaction and for Edge Functions.                                        |
-| [`lean`](lean/README.md)                             | Lean 4.35.0      | Rounding, `Money.allocate`, due dates, proration, billed rent, late fees and FIFO allocation, each equal to the SQL it mirrors. |
-| [`smt`](smt/README.md) (run by `lean/run.sh`)        | Z3 (`z3-solver`) | No overflow in Dart (64-bit and 2^53), `numeric(14,2)` or JSON; PostgreSQL's inexact division never changes a result.           |
-| [`bend`](bend/README.md)                             | Bend 2.0.39      | 35 laws of allocation, splits, rounding, proration, billed rent and daily fees, plus differential runs against Dart and SQL.    |
+| Track                                                | Tool             | What it models                                                                                                                                                     |
+| ---------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`tla/Invitations`](tla/Invitations/README.md)       | TLA+ (TLC 2.19)  | Creating, revoking, accepting and voiding invitations while portfolios, memberships and accounts change.                                                           |
+| [`tla/Membership`](tla/Membership/README.md)         | TLA+             | Membership changes, the caretaker, the owner-abroad answer and a declared residence against portfolio and account deletion: lock order, deadlock retries, freezes. |
+| [`tla/StorageCleanup`](tla/StorageCleanup/README.md) | TLA+             | Document rows, uploaded files, every Storage delete path, the cleanup queue and the daily sweep.                                                                   |
+| [`tla/LedgerPayments`](tla/LedgerPayments/README.md) | TLA+             | Payments, idempotency keys, receipts, FIFO allocation, voids, credit and the billing jobs.                                                                         |
+| [`tla/LateFees`](tla/LateFees/README.md)             | TLA+             | The daily late-fee job against payments, voids, policy changes, charge edits and the end of a tenancy.                                                             |
+| [`tla/RateLimit`](tla/RateLimit/README.md)           | TLA+             | The fixed-window rate limiter, for requests inside a transaction and for Edge Functions.                                                                           |
+| [`lean`](lean/README.md)                             | Lean 4.35.0      | Rounding, `Money.allocate`, due dates, proration, billed rent, late fees and FIFO allocation, each equal to the SQL it mirrors.                                    |
+| [`smt`](smt/README.md) (run by `lean/run.sh`)        | Z3 (`z3-solver`) | No overflow in Dart (64-bit and 2^53), `numeric(14,2)` or JSON; PostgreSQL's inexact division never changes a result.                                              |
+| [`bend`](bend/README.md)                             | Bend 2.0.39      | 35 laws of allocation, splits, rounding, proration, billed rent and daily fees, plus differential runs against Dart and SQL.                                       |
 
 ### What each track proves
 
@@ -35,9 +35,13 @@ vacuous.
   accept reports the member's actual role. No call fails with an unexpected
   database error (23505, 23503, 23514, 40P01) on the app's own paths.
 - **Membership.** Every portfolio keeps an owner and a member. Nothing
-  commits for an account once its deletion has. Ids are never reused. No
-  wait-for cycle, no deletion defeated by `deadlock_detected`, and every
-  request finishes (liveness).
+  commits for an account once its deletion has. Ids are never reused. A
+  caretaker is always a manager of their portfolio; the caretaker and the
+  owner-abroad answer are set only by those allowed at commit, and the
+  answer asked on the next open never overwrites one already given. A
+  deleted account's declared residence is cleared. No wait-for cycle and no
+  deletion defeated by `deadlock_detected` on the app's paths, except
+  finding M2 (open), and every request finishes (liveness).
 - **StorageCleanup.** No document references a missing or queued file. No
   referenced file is deleted. No document outlives its entity. Deleted
   portfolios' files are queued and eventually cleaned. Cleaners never
@@ -69,27 +73,30 @@ vacuous.
 Each finding is kept as a failing configuration or mutant, and most have a
 replay on a real PostgreSQL 16 database (the track's `replay/`).
 
-| Track          | Finding                                                                                     | Status                                                                                                                                                                                                                                   |
-| -------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bend (audit)   | Prorated rent above the rent for a paisa rent; a daily fee above its cap; preview ≠ ledger. | Fixed in `20261104143928_ledger_jobs_hardening.sql` (`least`, round before cap) and in `mm_core` (`RentMath.billedRent`).                                                                                                                |
-| LedgerPayments | A: a key reused on another lease failed with a raw 23505.                                   | Fixed in `20261104143928_ledger_jobs_hardening.sql` (advisory lock on the key).                                                                                                                                                          |
-| LedgerPayments | B: the daily job deadlocked with the dashboard's billing sync.                              | Fixed in `20261104143928_ledger_jobs_hardening.sql` (one lease at a time, `SKIP LOCKED`, id order).                                                                                                                                      |
-| LedgerPayments | C: receipt 100000 rendered like 10000.                                                      | Fixed in `20261104143928_ledger_jobs_hardening.sql` (wider `lpad`).                                                                                                                                                                      |
-| Invitations    | Accept or create against `delete_portfolio`: deadlock, 40P01 or 23503 (earlier model).      | Fixed in `20261105072426_membership_deletion_storage.sql` (portfolio key first).                                                                                                                                                         |
-| Membership     | M1: a deletion could fail with 40P01 against one client write; the retry was no guarantee.  | Fixed in `20261105170557_concurrency_findings.sql` (client policies take the portfolio key first).                                                                                                                                       |
-| StorageCleanup | S1: a document could reference a file deleted at the same moment (three review rounds).     | Fixed in `20261105170557_concurrency_findings.sql` (row lock on insert, `BEFORE DELETE` trigger on `storage.objects`).                                                                                                                   |
-| StorageCleanup | S2: a document could attach to a file the daily sweep was deleting.                         | Fixed in `20261105170557_concurrency_findings.sql` (shared/exclusive sweep gate).                                                                                                                                                        |
-| LedgerPayments | F1: a client's charge edit could deadlock a payment or a void (also LateFees F2).           | Fixed in `20261107181820_ledger_findings.sql` (`update_charge`; no client `UPDATE` on charges).                                                                                                                                          |
-| LedgerPayments | F2: raising a manual charge left credit unapplied.                                          | Fixed in `20261107181820_ledger_findings.sql`.                                                                                                                                                                                           |
-| LedgerPayments | F3: `end_lease` kept later rent that had any allocation (also LateFees F3, its late fees).  | Fixed in `20261107181820_ledger_findings.sql` (release, void, re-apply credit).                                                                                                                                                          |
-| LateFees       | F1: a fee stayed on rent paid within grace but recorded after the job ran.                  | Fixed in `20261107181820_ledger_findings.sql` (`record_payment` voids that fee).                                                                                                                                                         |
-| RateLimit      | F5: an Edge Function's Retry-After could point to the wrong window.                         | Fixed in `20261107181820_ledger_findings.sql` (`admin_rate_limit_hit` returns the database's wait).                                                                                                                                      |
-| SMT            | A1: `payments.applied_amount` (amount + tax) overflowed `numeric(14,2)`.                    | Fixed in `20261107181820_ledger_findings.sql` (`invalid_amount`).                                                                                                                                                                        |
-| Invitations    | F1: concurrent re-invites of one e-mail: the second failed with 23505 (HTTP 409).           | Fixed in `20261108082804_invitation_findings.sql` (advisory lock per portfolio and e-mail; the second re-invite replaces the first).                                                                                                     |
-| Invitations    | F2: a retried accept could report a role the member does not have.                          | Fixed in `20261108082804_invitation_findings.sql` (the retry reports the member's current role; a former member's retry answers `revoked`).                                                                                              |
-| Invitations    | F4: deleting an inviter directly in Auth left their invitation pending (still refused).     | Fixed in `20261108082804_invitation_findings.sql` (the membership trigger also revokes invitations without an inviter).                                                                                                                  |
-| RateLimit      | F4: requests that fail after the limiter roll back their hit, so they are never limited.    | Accepted, not fixed: see `docs/architecture/permissions.md`, "Rate limits and failing requests".                                                                                                                                         |
-| Invitations    | F3: deleting an inviter directly in Auth can deadlock with an accept.                       | Open, low. Operational rule in `docs/operations.md`: run `admin_delete_account_data` before an Auth deletion (`Invitations_gotrue_via_delete_account.cfg`); a `BEFORE DELETE` trigger on `auth.users` was evaluated and still deadlocks. |
+| Track          | Finding                                                                                                                                      | Status                                                                                                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bend (audit)   | Prorated rent above the rent for a paisa rent; a daily fee above its cap; preview ≠ ledger.                                                  | Fixed in `20261104143928_ledger_jobs_hardening.sql` (`least`, round before cap) and in `mm_core` (`RentMath.billedRent`).                                                                                                                |
+| LedgerPayments | A: a key reused on another lease failed with a raw 23505.                                                                                    | Fixed in `20261104143928_ledger_jobs_hardening.sql` (advisory lock on the key).                                                                                                                                                          |
+| LedgerPayments | B: the daily job deadlocked with the dashboard's billing sync.                                                                               | Fixed in `20261104143928_ledger_jobs_hardening.sql` (one lease at a time, `SKIP LOCKED`, id order).                                                                                                                                      |
+| LedgerPayments | C: receipt 100000 rendered like 10000.                                                                                                       | Fixed in `20261104143928_ledger_jobs_hardening.sql` (wider `lpad`).                                                                                                                                                                      |
+| Invitations    | Accept or create against `delete_portfolio`: deadlock, 40P01 or 23503 (earlier model).                                                       | Fixed in `20261105072426_membership_deletion_storage.sql` (portfolio key first).                                                                                                                                                         |
+| Membership     | M1: a deletion could fail with 40P01 against one client write; the retry was no guarantee.                                                   | Fixed in `20261105170557_concurrency_findings.sql` (client policies take the portfolio key first).                                                                                                                                       |
+| StorageCleanup | S1: a document could reference a file deleted at the same moment (three review rounds).                                                      | Fixed in `20261105170557_concurrency_findings.sql` (row lock on insert, `BEFORE DELETE` trigger on `storage.objects`).                                                                                                                   |
+| StorageCleanup | S2: a document could attach to a file the daily sweep was deleting.                                                                          | Fixed in `20261105170557_concurrency_findings.sql` (shared/exclusive sweep gate).                                                                                                                                                        |
+| LedgerPayments | F1: a client's charge edit could deadlock a payment or a void (also LateFees F2).                                                            | Fixed in `20261107181820_ledger_findings.sql` (`update_charge`; no client `UPDATE` on charges).                                                                                                                                          |
+| LedgerPayments | F2: raising a manual charge left credit unapplied.                                                                                           | Fixed in `20261107181820_ledger_findings.sql`.                                                                                                                                                                                           |
+| LedgerPayments | F3: `end_lease` kept later rent that had any allocation (also LateFees F3, its late fees).                                                   | Fixed in `20261107181820_ledger_findings.sql` (release, void, re-apply credit).                                                                                                                                                          |
+| LateFees       | F1: a fee stayed on rent paid within grace but recorded after the job ran.                                                                   | Fixed in `20261107181820_ledger_findings.sql` (`record_payment` voids that fee).                                                                                                                                                         |
+| RateLimit      | F5: an Edge Function's Retry-After could point to the wrong window.                                                                          | Fixed in `20261107181820_ledger_findings.sql` (`admin_rate_limit_hit` returns the database's wait).                                                                                                                                      |
+| SMT            | A1: `payments.applied_amount` (amount + tax) overflowed `numeric(14,2)`.                                                                     | Fixed in `20261107181820_ledger_findings.sql` (`invalid_amount`).                                                                                                                                                                        |
+| Invitations    | F1: concurrent re-invites of one e-mail: the second failed with 23505 (HTTP 409).                                                            | Fixed in `20261108082804_invitation_findings.sql` (advisory lock per portfolio and e-mail; the second re-invite replaces the first).                                                                                                     |
+| Invitations    | F2: a retried accept could report a role the member does not have.                                                                           | Fixed in `20261108082804_invitation_findings.sql` (the retry reports the member's current role; a former member's retry answers `revoked`).                                                                                              |
+| Invitations    | F4: deleting an inviter directly in Auth left their invitation pending (still refused).                                                      | Fixed in `20261108082804_invitation_findings.sql` (the membership trigger also revokes invitations without an inviter).                                                                                                                  |
+| RateLimit      | F4: requests that fail after the limiter roll back their hit, so they are never limited.                                                     | Accepted, not fixed: see `docs/architecture/permissions.md`, "Rate limits and failing requests".                                                                                                                                         |
+| Invitations    | F3: deleting an inviter directly in Auth can deadlock with an accept.                                                                        | Open, low. Operational rule in `docs/operations.md`: run `admin_delete_account_data` before an Auth deletion (`Invitations_gotrue_via_delete_account.cfg`); a `BEFORE DELETE` trigger on `auth.users` was evaluated and still deadlocks. |
+| Membership     | D1-D3: a manager deleted in Auth, or the caretaker's membership changed by an operator, can deadlock.                                        | Open, low, outside the app's paths. Operational rules in `docs/operations.md` (`assume_direct_auth_*`, `assume_service_member_write`; `replay/residence.sh`).                                                                            |
+| Membership     | M2: after `admin_delete_account_data`, GoTrue's `SET NULL` actions can deadlock with a deletion of a portfolio the user created or acted in. | Open, low, on the `delete-account` path; the detector and the retries resolve it. Remedy for the owner in `docs/operations.md` (`finding_m2_*`; `replay/residence.sh`, R9 and R10).                                                      |
+| Membership     | P1: a schema restored from a dump runs GoTrue's FK actions by name, which can deadlock.                                                      | Open, low. `docs/operations.md` restores the schema from the migrations, never from a dump (`assume_restored_*`; `replay/residence.sh`).                                                                                                 |
 
 The models take the fixed code as their baseline. The code before each fix
 is a mutant named for the mechanism the fix added, and it must still fail.
@@ -145,7 +152,8 @@ build in `formal/lean/.lake` (git ignores it) and Bend's kernel, built once
 into `~/.bend/bendtt`. `formal/bend/run.sh all`
 also needs Dart (`make bootstrap`) and a PostgreSQL 16 server
 (`tool/db/env.sh`). The PostgreSQL replays of the findings are separate:
-each track's `replay/run.sh`, and `tla/Invitations/replay_findings.sh`.
+each track's `replay/run.sh`, `tla/Invitations/replay_findings.sh` and
+`tla/Membership/replay/residence.sh`.
 
 ### Timings
 
@@ -157,7 +165,7 @@ runner to be faster. TLA+ tracks run 2 configurations at a time
 | Track              | `ci`                        | `all`                      |
 | ------------------ | --------------------------- | -------------------------- |
 | tla/Invitations    | 55 configurations, 106 s    | 60 configurations, 1,051 s |
-| tla/Membership     | 36 configurations, 110 s    | 51 configurations, 156 s   |
+| tla/Membership     | 71 configurations, 100 s    | 106 configurations, 367 s  |
 | tla/StorageCleanup | 49 configurations, 117 s    | 62 configurations, 151 s   |
 | tla/LedgerPayments | 28 configurations, 63 s     | 72 configurations, 179 s   |
 | tla/LateFees       | 36 configurations, 98 s     | 48 configurations, 193 s   |
@@ -172,12 +180,15 @@ into an empty `~/.bend`; with the kernel built, the verdict takes 6 to
 15 s. A second `make verify`, with both built and lighter load, took
 409 s. The Invitations row was measured again on 2026-11-08 with its
 `run.sh` alone, after `20261108082804_invitation_findings.sql` merged the
-configurations that differed only by the fix switches (the totals are from
-2026-11-07). In `all`, Invitations spends most of its time in four
-exhaustive configurations (`Invitations`, `_pairs`, `_members_large`,
-`_gotrue_direct_large`: 90 to 250 s each) and one random simulation
-(280 s). TLC 2.19 ends a simulation with `num=` without "No error has been
-found"; the runner takes exit 0, "Finished in" and no error as a pass.
+configurations that differed only by the fix switches, and the Membership
+row on 2026-11-13 (`ci` and `all` each with its `run.sh` alone), after the
+residence extension and its review round (the totals are from
+2026-11-07). In `all`,
+Invitations spends most of its time in four exhaustive configurations
+(`Invitations`, `_pairs`, `_members_large`, `_gotrue_direct_large`: 90 to
+250 s each) and one random simulation (280 s). TLC 2.19 ends a simulation
+with `num=` without "No error has been found"; the runner takes exit 0,
+"Finished in" and no error as a pass.
 
 The installer took 12 s to download and unpack TLC, z3-solver and Bend,
 and about 7 s to unpack each Lean toolchain.

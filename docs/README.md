@@ -9,19 +9,20 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | [`architecture/app.md`](architecture/app.md)                         | How the Flutter app reads, writes, caches, retries and fails: layers, models, repositories, uploads, open questions |
 | [`architecture/permissions.md`](architecture/permissions.md)         | Who can do what in a portfolio, how the database enforces it, the global lock order and what it costs               |
+| [`architecture/time.md`](architecture/time.md)                       | Pakistan time for business dates, a person's own zone for their alerts and dual times, the bundled tz data          |
 | [`../.planning/PROJECT.md`](../.planning/PROJECT.md)                 | The product, its users, the stack, the key decisions D-01 to D-19 and the open proposals P-01 and P-02              |
 | [`../DESIGN.md`](../DESIGN.md)                                       | The visual language: tokens, type, colour, components, Urdu and right-to-left rules                                 |
 | [`../packages/mm_ui/COMPONENTS.md`](../packages/mm_ui/COMPONENTS.md) | How the design system's components are built, and the catalogue                                                     |
-| [`../packages/mm_core/README.md`](../packages/mm_core/README.md)     | The domain library's modules: money, time, identity, text, rent, ledger                                             |
+| [`../packages/mm_core/README.md`](../packages/mm_core/README.md)     | The domain library's modules: money, time, time zones, residence, identity, text, rent, ledger                      |
 | [`../website/README.md`](../website/README.md)                       | The website's code, content, calculators, security headers and deployment                                           |
 
 ## Operations
 
-| Document                                                 | What it covers                                                                                                                                                                                                                                   |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`operations.md`](operations.md)                         | Scheduled jobs, storage cleanup set-up, health checks, monitoring and alerts, Edge Function secrets, Vercel hosting, the Deploy workflow, releasing, rollback, backups and restore, account deletion, applying a migration to the hosted project |
-| [`../SECURITY.md`](../SECURITY.md)                       | Reporting a vulnerability                                                                                                                                                                                                                        |
-| [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) | Third-party packages, fonts and icons, their licences and what each asks                                                                                                                                                                         |
+| Document                                                 | What it covers                                                                                                                                                                                                                                                   |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`operations.md`](operations.md)                         | Scheduled jobs, storage cleanup set-up, health checks, monitoring and alerts, Edge Function secrets, Vercel hosting, the Deploy workflow, releasing, rollback, backups and restore, account deletion, time-zone data, applying a migration to the hosted project |
+| [`../SECURITY.md`](../SECURITY.md)                       | Reporting a vulnerability                                                                                                                                                                                                                                        |
+| [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) | Third-party packages, fonts and icons, their licences and what each asks                                                                                                                                                                                         |
 
 ## Quality
 

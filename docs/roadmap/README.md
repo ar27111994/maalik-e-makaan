@@ -137,37 +137,74 @@ system runs on Pakistan time, through `app.today_pkt()`
 ([foundation migration](../../supabase/migrations/20261103192528_foundation.sql)) and a fixed offset
 in [`calendar_date.dart`](../../packages/mm_core/lib/src/time/calendar_date.dart).
 
-The design:
+The design (the backend and domain half is built:
+[`20261112092618_residence.sql`](../../supabase/migrations/20261112092618_residence.sql), the
+`mm_core` types and the app's data layer; [time](../architecture/time.md) explains the two clocks):
 
-- **On `profiles`:** `residence_country` (ISO 3166-1 alpha-2, empty for "not stated") and
-  `time_zone` (an IANA name, checked by a function). The device's time zone may pre-fill a
-  suggestion. A +92 number, the store country, the IP address, the app's language and the payment
-  currency are never read as residence. Nationality and immigration status are never stored, and
-  residence is never shown to tenants. There is no `display_currency` at launch (decided).
-- **On `portfolios`:** `owner_abroad`, always set by an explicit choice when the portfolio is
-  created, with no answer chosen in advance and never filled in from the creator's residence
-  (decided); `caretaker_user_id`, a member with the `manager` role, cleared when that membership
-  ends; and `caretaker_since`. Every change is audited. The caretaker is always someone who uses the
-  app (decided), so there is no caretaker who is only a name and a phone number.
+- **Per person, in `profile_residences`:** `residence_country` (ISO 3166-1 alpha-2, NULL for "not
+  stated"), `time_zone` (a `zone.tab` name; NULL is Pakistan time), both checked against the lists
+  in `contracts/residence_vectors.json`, and `stated_at`, which the server stamps when the person
+  answers, so the app can ask once and tell "never answered" from "chose not to say". A table of its
+  own, not columns on `profiles`, because teammates read `profiles` and column grants are per role,
+  not per row: only the person reads and writes this row, never teammates (the caretaker included)
+  or tenants. The device's time zone may pre-fill a suggestion. A +92 number, the store country, the
+  IP address, the app's language and the payment currency are never read as residence. Nationality
+  and immigration status are never stored. It is not in the audit trail, never sent to analytics or
+  e-mail tools, and cleared when the account's deletion starts. There is no `display_currency` at
+  launch (decided).
+- **On `portfolios`:** `owner_abroad`, set by an explicit choice when the portfolio is created, with
+  no answer chosen in advance and never filled in from the creator's residence (decided);
+  `caretaker_user_id`, a member with the `manager` role; and `caretaker_since`. Every change is
+  audited. The caretaker is always someone who uses the app (decided), so there is no caretaker who
+  is only a name and a phone number.
+- **Existing portfolios** (decided in the review of PR #53): the migration adds `owner_abroad` as
+  NULL, meaning "not yet answered", never with a default. The app asks on the next open by an owner
+  or manager, from a list just read from the server (never a saved copy); a manager only answers an
+  unanswered question, and a second device's late answer gets the first answer back
+  (`set_owner_abroad` with `p_if_unanswered`). Portfolios made by app versions that do not ask are
+  NULL too. The overseas-owner rules run only when the answer is true: NULL counts as no.
+- **The caretaker is enforced by triggers**, for every writer: naming one checks the membership,
+  and demotion, promotion, removal, leaving and account deletion (also directly in Auth) clear it.
+  There is no foreign key from the caretaker to `portfolio_members`: a second relationship between
+  the two tables would make the released apps' unhinted `portfolios!inner` embed ambiguous, and
+  pgTAP pins exactly one. The caretaker does not depend on `owner_abroad`: a portfolio whose owner
+  lives in Pakistan may have one (open question Q2 below).
 - **Time:** ledger dates, due dates, police deadlines, the tax year and every message to tenants
   stay on Pakistan time. An owner's alerts, digests and quiet hours follow their own time zone, and
   an owner abroad sees both times: "3:15 pm in Lahore (10:15 am in London)".
 - **Money** is shown in rupees only at launch (decided): no converted or indicative total in
   another currency.
 
-| Foundation work                                                                                                                                                                        | Size |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| Residence country and time zone on `profiles`, with the validation function, column grants, pgTAP and identity contract vectors                                                        | S    |
-| `owner_abroad`, `caretaker_user_id` with its trigger, and `caretaker_since`; audit triggers, rows in the RLS matrix, an upgrade test and the `mm_core` model                           | M    |
-| A time-zone utility in `mm_core` for owner-local send windows, quiet hours and dual times, with vectors across the UK and US clock changes                                             | M    |
-| Onboarding ("Do you live in Pakistan?"), the owner-abroad question on a new portfolio with no answer chosen, and settings for country and time zone, in English and Urdu, with goldens | M    |
-| Caretaker wording in both ARB files; the plan suggestion, where the store sets the price and declared residence only suggests a plan                                                   | S    |
-| The privacy page and the data export; the caretaker in [`permissions.md`](../architecture/permissions.md)                                                                              | S    |
+| Foundation work                                                                                                                                                                                                                       | Size |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| Done (backend half): residence country and time zone in `profile_residences`, with the validation functions, column grants, pgTAP (suites 22 and 23) and the contract vectors                                                         | S    |
+| Done (backend half): `owner_abroad`, `caretaker_user_id` with its triggers, and `caretaker_since`; audit, rows in the RLS matrix, an upgrade test, the `mm_core` model and the app's data layer                                       | M    |
+| Done: a time-zone utility in `mm_core` (`TimeZoneId`, `QuietHours`, `DualTime`) for owner-local send windows, quiet hours and dual times, with vectors across the UK, US and Australian clock changes, checked against PostgreSQL too | M    |
+| Onboarding ("Do you live in Pakistan?"), the owner-abroad question on a new portfolio with no answer chosen, and settings for country and time zone, in English and Urdu, with goldens                                                | M    |
+| Caretaker wording in both ARB files; the plan suggestion, where the store sets the price and declared residence only suggests a plan                                                                                                  | S    |
+| The privacy page and the data export; the caretaker in [`permissions.md`](../architecture/permissions.md) (done)                                                                                                                      | S    |
 
 **Later, not at launch:** a total in the owner's own currency, for display only, labelled indicative
 with the rate's date and source, and a `display_currency` (ISO 4217) on `profiles` to choose it.
 It waits until the owner chooses a rate source, for the reason above. The work then is the column
 and its setting, the rate's source, a cache and the label (M).
+
+Open questions for the owner from the backend build (none holds it up; the proposed answer is the
+one built):
+
+- **Q1.** Residence is seen only by the person: not teammates (the caretaker included), never
+  tenants. Confirm the move from columns on `profiles` to `profile_residences`.
+- **Q2.** May a portfolio whose owner lives in Pakistan have a caretaker (a munshi)? Proposed: yes;
+  the oversight rules still need `owner_abroad` to be true.
+- **Q3.** Tell owners when a manager answers the owner-abroad question? Proposed: yes, in the UI
+  work, once released apps read the new notification kind.
+- **Q4.** Should a caretaker or teammate ever see the owner's local time? Proposed: not at launch;
+  later only if the owner shares it.
+- **Q5.** Kosovo (`XK`, a user-assigned code outside `iso3166.tab`) is refused. Is that right?
+- **Q6.** The Pakistan side of the dual time: "in Lahore", "Pakistan time" or the property's city?
+  For the UI work.
+- **Q7.** May a caretaker step down without leaving the portfolio? Proposed: no; only owners change
+  the caretaker.
 
 Where it lands: [billing](billing.md) attaches plans to portfolios, not store accounts;
 [push-notifications](push-notifications.md) keeps quiet hours and the digest in each person's zone;
@@ -462,9 +499,10 @@ Settled by the owner on 12 November 2026, and recorded in D-16 to D-18 in
 [`PROJECT.md`](../../.planning/PROJECT.md) and in the decisions above:
 
 - **Decision 1, before onboarding:** `owner_abroad` is never pre-filled; the question is asked with
-  no answer chosen. Every caretaker uses the app, as a member with the `manager` role. Amounts are
-  in rupees only at launch, with no `display_currency`; conversion waits until a rate source is
-  chosen.
+  no answer chosen. Existing portfolios start unanswered (NULL, never a default) and are asked on
+  the next open by an owner or manager; the overseas-owner rules run only when the answer is true.
+  Every caretaker uses the app, as a member with the `manager` role. Amounts are in rupees only at
+  launch, with no `display_currency`; conversion waits until a rate source is chosen.
 - **Decision 2, before letterheads ship:** per portfolio, and one upload can be copied to the
   owner's other portfolios; an optional Urdu letterhead; A5 or A4 receipts per portfolio, A5 by
   default; on every plan, Free included.

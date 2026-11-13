@@ -28,7 +28,7 @@ search-engine summaries.
 - **Four member roles:** owner, manager (the caretaker), accountant and viewer
   ([identity migration](../../supabase/migrations/20261103192722_identity_portfolios.sql)).
 - **Writes are checked in the database.** Payments, memberships and invitations are written only
-  through `SECURITY DEFINER` RPCs that check the caller's role; the 21 are pinned by a pgTAP
+  through `SECURITY DEFINER` RPCs that check the caller's role; each is pinned by a pgTAP
   allowlist ([`01_schema_security.test.sql`](../../supabase/tests/database/01_schema_security.test.sql);
   D-15 in [PROJECT.md](../../.planning/PROJECT.md)). Locks follow one order: account, portfolio,
   lease, then other rows ([permissions.md](../architecture/permissions.md)).
@@ -98,9 +98,10 @@ confirmed, whoever confirms it. Revoking a mandate discards its open drafts. The
   `action_not_allowed`, `lease_not_allowed`, `over_max_amount` and `over_budget`.
 
 **Never for an agent.** Every other definer RPC (`void_payment`, `waive_charge`,
-`delete_portfolio`, `remove_member`, `create_invitation` and the rest of the 21) and every direct
-table write refuse a token with a `client_id`, whatever the mandate. The allowlist test is split
-into "an agent may call" and "an agent never calls", so a new definer RPC must say which it is.
+`delete_portfolio`, `remove_member`, `create_invitation` and the rest of the allowlist) and every
+direct table write refuse a token with a `client_id`, whatever the mandate. The allowlist test is
+split into "an agent may call" and "an agent never calls", so a new definer RPC must say which it
+is.
 
 **Who may grant.** Owners create mandates. A manager's mandate for their own assistant needs an
 owner's approval. Renewal after expiry is a new approval.

@@ -4,9 +4,11 @@ import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
+import 'package:mm_core/mm_core.dart';
 
 import '../../../../support/container.dart';
 import '../../../../support/harness.dart';
@@ -182,9 +184,10 @@ void main() {
           .create(name: 'Khan family', id: 'p-new');
       expect(created.name, 'Khan family');
       expect(created.role, MemberRole.owner);
+      // No answer chosen in advance.
       expect(
         app.portfolios.calls.firstWhere((call) => call.$1 == 'create').$2,
-        ['Khan family', 'p-new'],
+        ['Khan family', 'p-new', OwnerAbroad.notAnswered],
       );
       expect(container.read(currentPortfolioProvider).value, created);
       expect(container.read(portfolioGateProvider), PortfolioGate.some);
@@ -226,6 +229,176 @@ void main() {
             .read(portfoliosProvider(testUserId).notifier)
             .create(name: 'x', id: 'p-new'),
         throwsA(isA<RejectedFailure>()),
+      );
+      expect(container.read(currentPortfolioProvider).value, gulberg);
+    });
+  });
+
+  group('the owner-abroad question', () {
+    test('is answered at creation when the creator answers', () async {
+      final app = TestApp(portfolios: const []);
+      final container = containerFor(app);
+      await _current(container);
+      final created = await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .create(
+            name: 'Khan family',
+            id: 'p-new',
+            ownerAbroad: OwnerAbroad.abroad,
+          );
+      expect(created.ownerAbroad, OwnerAbroad.abroad);
+      expect(container.read(ownerAbroadQuestionProvider), isNull);
+    });
+
+    test("is never filled in from the creator's residence", () async {
+      final app = TestApp(portfolios: const [])
+        ..residences.residence = AccountResidence(
+          residence: Residence(
+            country: CountryCode.parse('GB'),
+            timeZone: TimeZoneId.parse('Europe/London'),
+          ),
+          statedAt: DateTime.utc(2026, 11, 2),
+        );
+      final container = containerFor(app);
+      await _current(container);
+      final created = await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .create(name: 'Khan family', id: 'p-new');
+      expect(created.ownerAbroad, OwnerAbroad.notAnswered);
+      expect(container.read(ownerAbroadQuestionProvider), 'p-new');
+    });
+
+    test(
+      'is asked of owners and managers of an unanswered portfolio',
+      () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, ownerAbroadQuestionProvider);
+        await _current(container);
+        expect(container.read(ownerAbroadQuestionProvider), gulberg.id);
+        await container
+            .read(selectedPortfolioProvider(testUserId).notifier)
+            .select(plaza.id);
+        expect(container.read(ownerAbroadQuestionProvider), plaza.id);
+      },
+    );
+
+    test('is not asked of accountants and viewers, or once answered', () async {
+      for (final membership in [
+        gulbergAsViewer,
+        const PortfolioMembership(
+          id: 'p-accounts',
+          name: 'Accounts',
+          role: MemberRole.accountant,
+        ),
+        gulberg.withOwnerAbroad(OwnerAbroad.inPakistan),
+        gulberg.withOwnerAbroad(OwnerAbroad.abroad),
+      ]) {
+        final container = containerFor(TestApp(portfolios: [membership]));
+        listen(container, ownerAbroadQuestionProvider);
+        await _current(container);
+        expect(
+          container.read(ownerAbroadQuestionProvider),
+          isNull,
+          reason: '$membership',
+        );
+      }
+    });
+
+    test(
+      'is not asked from a saved copy, only once the server answered',
+      () async {
+        final app = TestApp();
+        await app.cache.write(testUserId, PortfoliosController.query, [
+          gulberg.toRow(),
+        ]);
+        app.portfolios.gate.close();
+        final container = containerFor(app);
+        listen(container, ownerAbroadQuestionProvider);
+        await _current(container);
+        expect(container.read(currentPortfolioProvider).value, gulberg);
+        expect(container.read(ownerAbroadQuestionProvider), isNull);
+        app.portfolios.gate.open();
+        await pumpEventQueue();
+        expect(container.read(ownerAbroadQuestionProvider), gulberg.id);
+      },
+    );
+
+    test('is not asked while signed out or without portfolios', () async {
+      final signedOut = containerFor(TestApp(auth: const SignedOut()));
+      expect(signedOut.read(ownerAbroadQuestionProvider), isNull);
+      final none = containerFor(TestApp(portfolios: const []));
+      listen(none, ownerAbroadQuestionProvider);
+      await _current(none);
+      expect(none.read(ownerAbroadQuestionProvider), isNull);
+      final loading = TestApp()..portfolios.gate.close();
+      final whileLoading = containerFor(loading);
+      listen(whileLoading, ownerAbroadQuestionProvider);
+      await pumpEventQueue();
+      expect(whileLoading.read(ownerAbroadQuestionProvider), isNull);
+    });
+
+    test('an answer shows in the list and ends the question', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, ownerAbroadQuestionProvider);
+      await _current(container);
+      final answer = await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .answerOwnerAbroad(gulberg.id, abroad: true);
+      expect(answer, OwnerAbroad.abroad);
+      expect(app.portfolios.calls.last.$2, [gulberg.id, true]);
+      final list = container.read(portfoliosProvider(testUserId)).value!;
+      expect(list.value.first.ownerAbroad, OwnerAbroad.abroad);
+      expect(list.value.last, plaza);
+      expect(container.read(ownerAbroadQuestionProvider), isNull);
+      final saved = await app.cache.read(
+        testUserId,
+        PortfoliosController.query,
+        (json) => json,
+      );
+      expect((saved!.value! as List).first, list.value.first.toRow());
+    });
+
+    test('a stale question gets the answer someone else gave', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await _current(container);
+      // A co-owner answered on another device after this list was read.
+      app.portfolios.memberships[0] = gulberg.withOwnerAbroad(
+        OwnerAbroad.inPakistan,
+      );
+      final answer = await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .answerOwnerAbroad(gulberg.id, abroad: true);
+      expect(answer, OwnerAbroad.inPakistan);
+      expect(
+        container.read(currentPortfolioProvider).value!.ownerAbroad,
+        OwnerAbroad.inPakistan,
+      );
+    });
+
+    test('answering before the list loaded only answers', () async {
+      final app = TestApp()..portfolios.listFailure = const NetworkFailure();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      final answer = await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .answerOwnerAbroad(gulberg.id, abroad: false);
+      expect(answer, OwnerAbroad.inPakistan);
+      expect(container.read(portfoliosProvider(testUserId)).hasError, isTrue);
+    });
+
+    test('a refused answer throws and changes nothing', () async {
+      final app = TestApp()..portfolios.ownerAbroadFailure = const Forbidden();
+      final container = containerFor(app);
+      await _current(container);
+      await expectLater(
+        container
+            .read(portfoliosProvider(testUserId).notifier)
+            .answerOwnerAbroad(gulberg.id, abroad: true),
+        throwsA(isA<Forbidden>()),
       );
       expect(container.read(currentPortfolioProvider).value, gulberg);
     });

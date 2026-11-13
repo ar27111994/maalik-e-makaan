@@ -11,6 +11,8 @@ pubspec.lock
 # Written by tool/contracts/generate.py; `make contracts-check` keeps it current.
 contracts/rent_math_vectors.json
 contracts/identity_vectors.json
+contracts/residence_vectors.json
+contracts/time_zone_vectors.json
 package-lock.json
 **/package-lock.json
 deno.lock
@@ -28,3 +30,5 @@ CHANGELOG.md
 .release-please-manifest.json
 # The pitch deck's slides keep the deck artifact's format (website/deck/README.md).
 website/deck/slides/
+# Written by lake when formal/lean builds (git ignores it: formal/lean/.gitignore).
+formal/lean/lake-manifest.json

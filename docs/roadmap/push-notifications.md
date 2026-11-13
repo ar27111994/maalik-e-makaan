@@ -104,12 +104,19 @@ Screen first and is documented as supported with caveats.
 ### Residence (decision 1)
 
 Quiet hours (default 22:00 to 08:00) and the digest follow the recipient's declared time zone,
-`profiles.time_zone`. A resident owner and their caretaker are on Pakistan time; an owner who
+`profile_residences.time_zone` (`Residence.alertZone` in `mm_core`). A resident owner and their
+caretaker are on Pakistan time; an owner who
 declared Europe/London gets them on London time, across the clock change. Until a person states
 a time zone, Pakistan time applies, and the device's zone may only pre-fill a suggestion in
-Settings. Due dates in the text stay Pakistan dates. On a portfolio marked `owner_abroad`, the
-defaults differ by role: the caretaker gets dues and deadlines, the owner gets handovers to
-confirm and overdue rent. Each person can change their own.
+Settings. Due dates in the text stay Pakistan dates. On a portfolio whose `owner_abroad` is true
+(NULL, not yet answered, counts as no), the defaults differ by role: the caretaker gets dues and
+deadlines, the owner gets handovers to confirm and overdue rent. Each person can change their own.
+
+`mm_core` already has the rules on the app's side: `QuietHours` (with its release at the first
+instant the wall clock leaves them, also across a clock change), `TimeZoneId.nextAt` for a digest's
+send time, and `DualTime`, all checked against `contracts/time_zone_vectors.json`. The planner's
+SQL helpers come in this item, checked against the same vectors (quiet hours and `nextAt`), as
+suite 23 already checks PostgreSQL's conversions ([time](../architecture/time.md)).
 
 ### Analytics (decision 3)
 

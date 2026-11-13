@@ -19,6 +19,9 @@ final Map<String, Object?> _row = {
   'raast_id': '+923001234567',
   'bank_account_title': 'Ayesha Khan',
   'bank_iban': 'PK36SCBL0000001123456702',
+  'owner_abroad': null,
+  'caretaker_user_id': null,
+  'caretaker_since': null,
 };
 
 void main() {
@@ -50,10 +53,40 @@ void main() {
       expect(bare, isNot(details));
     });
 
+    test('reads the owner-abroad answer and the caretaker', () {
+      final details = PortfolioDetails.fromRow({
+        ..._row,
+        'owner_abroad': true,
+        'caretaker_user_id': bilalMember.userId,
+        'caretaker_since': '2026-11-12T10:15:00.123456+00:00',
+      });
+      expect(details.ownerAbroad, OwnerAbroad.abroad);
+      expect(
+        details.caretaker,
+        Caretaker(
+          userId: bilalMember.userId,
+          since: DateTime.utc(2026, 11, 12, 10, 15, 0, 123, 456),
+        ),
+      );
+      expect(details.caretaker.hashCode, details.caretaker.hashCode);
+      expect(PortfolioDetails.fromRow(details.toRow()), details);
+      expect(details, isNot(gulbergDetails));
+      expect(
+        PortfolioDetails.fromRow({..._row, 'owner_abroad': false}).ownerAbroad,
+        OwnerAbroad.inPakistan,
+      );
+    });
+
     test('refuses malformed rows', () {
       for (final row in <Object?>[
         null,
         {..._row}..remove('bank_iban'),
+        // Saved by an app version before the question: read again.
+        {..._row}..remove('owner_abroad'),
+        {..._row}..remove('caretaker_since'),
+        {..._row, 'owner_abroad': 'no'},
+        {..._row, 'caretaker_user_id': bilalMember.userId},
+        {..._row, 'caretaker_since': '2026-11-12T10:15:00Z'},
         {..._row, 'default_due_day': '5'},
         {..._row, 'default_increment_percent': 150},
         {..._row, 'landlord_phone': '0300 1234567'},
@@ -76,6 +109,12 @@ void main() {
         defaultIncrementBasisPoints: 750,
         landlordName: '   ',
         bankAccountTitle: ' Ayesha  Khan ',
+        // Never written by a save: no client may (42501 for the whole row).
+        ownerAbroad: OwnerAbroad.abroad,
+        caretaker: Caretaker(
+          userId: bilalMember.userId,
+          since: DateTime.utc(2026, 11, 12),
+        ),
       ).toUpdate();
       expect(update, {
         'name': 'Gulberg Houses',

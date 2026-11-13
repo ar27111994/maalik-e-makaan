@@ -7,6 +7,7 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
+import 'package:mm_core/mm_core.dart';
 
 /// The settings of the portfolio whose id is the argument: the saved copy
 /// at once, then the server's.
@@ -52,14 +53,30 @@ final class PortfolioDetailsController extends SwrNotifier<PortfolioDetails> {
         .read(portfolioRepositoryProvider)
         .updateDetails(details);
     await show(saved);
-    final userId = ref.read(currentUserIdProvider);
-    if (userId != null) {
-      try {
-        await ref.read(portfoliosProvider(userId).notifier).reload();
-      } on AppFailure {
-        ref.invalidate(portfoliosProvider(userId));
-      }
-    }
+    await _reloadPortfolios();
     return saved;
+  }
+
+  /// Changes the answer to "Does the owner of these properties live
+  /// abroad?" (see [PortfolioRepository.changeOwnerAbroad]) and returns it
+  /// as stored. Throws [AppFailure]. The settings and the portfolio list
+  /// are read again, so the answer shows everywhere.
+  Future<OwnerAbroad> changeOwnerAbroad({required bool abroad}) async {
+    final answer = await ref
+        .read(portfolioRepositoryProvider)
+        .changeOwnerAbroad(portfolioId, abroad: abroad);
+    await reload();
+    await _reloadPortfolios();
+    return answer;
+  }
+
+  Future<void> _reloadPortfolios() async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
+    try {
+      await ref.read(portfoliosProvider(userId).notifier).reload();
+    } on AppFailure {
+      ref.invalidate(portfoliosProvider(userId));
+    }
   }
 }

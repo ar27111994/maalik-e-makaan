@@ -68,3 +68,8 @@ fonttools==4.68.0 \
     --hash=sha256:fde43b9785c7f105aa563b6b5481edabea4ab6be7d9ef14ff4d76225950923e8 \
     --hash=sha256:fe80d05dd85e6ac58d0cd4fa10ddb96252a6f1046ee0fd00cd1d48f0c25921ac \
     --hash=sha256:fedc183bdbc3fdbfbdca26e0e04566d089cbb404712509a4e824608e9304cc77
+# tzdata: the IANA time-zone database read by tool/contracts/time_zones.py (never the system
+# zoneinfo); `make contracts` builds the residence and time-zone vectors and mm_core's zone data
+# from it. A bump is a data change: docs/operations.md, "Time-zone data".
+tzdata==2026.6 \
+    --hash=sha256:0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec

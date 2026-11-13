@@ -3,8 +3,8 @@
 Who can do what in a portfolio. Every rule below is enforced by the database,
 not by the app; the app hides what a role cannot do, but a hand-made request
 gets the same answer. The matrix was read from the hosted project's policies,
-grants and function bodies on 2026-11-05, checked again on 2026-11-08 against
-the policies, grants and role checks of a fresh local build of all 22
+grants and function bodies on 2026-11-05, checked again on 2026-11-12 against
+the policies, grants and role checks of a fresh local build of all 24
 migrations, and is checked by the pgTAP suites
 (`supabase/tests/database/03_rls_matrix.test.sql` and the per-area suites).
 
@@ -37,11 +37,13 @@ A person can belong to many portfolios, with one role in each.
 3. **Functions** perform every money and membership change. They run as the
    table owner (`SECURITY DEFINER`), check the caller's role themselves, and take
    locks in the global order (account, portfolio, lease, other rows). Their
-   names (21 today) are on a pgTAP allowlist in
+   names (23 today) are on a pgTAP allowlist in
    `supabase/tests/database/01_schema_security.test.sql`.
 4. **Triggers** keep invariants a policy cannot express: voided rows are
    frozen, a document's file must exist, a file a document refers to cannot be
-   deleted (whoever deletes it), and a deleted account cannot write.
+   deleted (whoever deletes it), a deleted account cannot write, and a
+   portfolio's caretaker is always one of its managers (checked for every
+   writer, cleared when that stops being true).
 5. **Storage policies** scope files to `<portfolio_id>/…` folders.
 6. **Edge Functions** handle what needs the service key: deleting an account and
    sending invitation e-mails. Each one verifies the caller's token first.
@@ -51,8 +53,11 @@ A person can belong to many portfolios, with one role in each.
    IBANs and Raast IDs must be exactly what mm_core's `PhoneNumber.fromE164`,
    `Cnic.parse` and `Iban.parse` accept (`app.is_valid_phone`,
    `app.is_valid_cnic`, `app.is_valid_iban`). Dart and SQL are tested against
-   the same vectors in `contracts/identity_vectors.json`. Any other value is
-   refused with SQLSTATE 23514.
+   the same vectors in `contracts/identity_vectors.json`. A declared country
+   and time zone must be one mm_core's `CountryCode` and `TimeZoneId` know
+   (`app.is_valid_country_code`, `app.is_valid_time_zone`; the vectors are
+   `contracts/residence_vectors.json`). Any other value is refused with
+   SQLSTATE 23514.
 
 ## The matrix
 
@@ -71,6 +76,10 @@ O = owner, M = manager, A = accountant, V = viewer. "Members" means all four.
 | Change a member's role, remove a member                  | O                            | `update_member_role`, `remove_member`                               |
 | Leave a portfolio                                        | Members                      | `remove_member` on yourself                                         |
 | Sync billing for the whole portfolio                     | O, M, A                      | `sync_portfolio_billing`                                            |
+| Answer "Does the owner live abroad?" while unanswered    | O, M                         | `create_portfolio` (at creation), `set_owner_abroad`                |
+| Change that answer once given                            | O                            | `set_owner_abroad`                                                  |
+| Name or clear the caretaker (always a manager)           | O                            | `set_caretaker`                                                     |
+| See the answer and the caretaker                         | Members                      | RLS                                                                 |
 
 Rules:
 
@@ -90,6 +99,19 @@ Rules:
   role the member holds now, which may differ from the invitation's role if
   they joined another way or their role was changed since. If they are no
   longer a member (removed, or left), it answers `revoked`.
+- `owner_abroad` NULL means not yet answered: every portfolio made before
+  `20261112092618_residence.sql`, and those made by app versions that do not
+  ask. It is never a default and never filled in from anyone's residence. The
+  app asks the first owner or manager who opens such a portfolio; a manager
+  only answers an unanswered question (`owner_abroad_answered` afterwards), and
+  the "ask on next open" call (`p_if_unanswered`) returns an answer someone
+  gave first instead of overwriting it. An answer cannot go back to NULL. The
+  overseas-owner rules run only when it is true.
+- A caretaker is always a manager of the portfolio, and there is no caretaker
+  who is only a name and a phone number. It is cleared when that membership is
+  demoted, promoted, removed, left or deleted with the account (also directly
+  in Auth); every change is audited with its actor. A caretaker does not
+  depend on the answer: a portfolio whose owner lives in Pakistan may have one.
 
 ### Properties, units, tenants and tenancies
 
@@ -201,17 +223,25 @@ minutes) tries again, so a stranded file waits a day and a little longer.
 
 ### Your account
 
-| Action                                     | Who                                            |
-| ------------------------------------------ | ---------------------------------------------- |
-| See your profile and your teammates' names | You                                            |
-| Edit your name, phone and language         | You                                            |
-| Delete your account                        | You, after a recent sign-in (`delete-account`) |
+| Action                                                 | Who                                                        |
+| ------------------------------------------------------ | ---------------------------------------------------------- |
+| See your profile and your teammates' names             | You                                                        |
+| Edit your name, phone and language                     | You                                                        |
+| Declare the country you live in and your own time zone | You (`profile_residences`: RLS on your row, column grants) |
+| Delete your account                                    | You, after a recent sign-in (`delete-account`)             |
+
+Your country and time zone are yours alone: not shown to teammates (the
+caretaker included) or tenants, not in the audit trail, never sent to analytics
+or e-mail tools, and never read from a phone number, the store, an IP address,
+the app's language or a currency. A client may write only the two values; the
+server stamps `stated_at`. Nationality and immigration status are never stored.
 
 Deleting an account removes every portfolio where you are the only owner and
-your memberships elsewhere. From the moment deletion starts, the account can no
-longer write (`account_deleted`). Operators delete accounts the same way
-(`admin_delete_account_data` before the user is deleted in Auth); see
-"Deleting a user account" in `docs/operations.md`.
+your memberships elsewhere, clears your declared country and time zone, and
+clears you as caretaker wherever you were one. From the moment deletion
+starts, the account can no longer write (`account_deleted`). Operators delete
+accounts the same way (`admin_delete_account_data` before the user is deleted
+in Auth); see "Deleting a user account" in `docs/operations.md`.
 
 ## Concurrency
 
@@ -222,6 +252,26 @@ rows. To keep that order, every client write first locks, `FOR KEY SHARE` and
 in id order, every portfolio where the caller has the role the write needs
 (`app.lock_my_portfolio_ids`), before it locks any row. Clients never wait for
 each other on these locks; they wait only for deletions and membership changes.
+
+`set_owner_abroad` and `set_caretaker` lock the portfolio `FOR NO KEY UPDATE`
+between two role checks: members' key-share writes go on, while membership
+changes and deletions (`FOR UPDATE`) wait, and a second answer waits and then
+reads the first. The caretaker trigger then reads the caretaker's membership
+`FOR SHARE`, after the portfolio, so a role change in flight is waited for and
+read again. Two paths outside the app reach the portfolio row after a
+membership (the reverse order) and can end in a deadlock, which PostgreSQL
+detects and aborts one side of, never in a caretaker who is not a manager:
+deleting a caretaker directly in Auth (run `admin_delete_account_data` first),
+and service-role SQL that changes or deletes the caretaker's membership without
+locking the portfolio first (lock it, or use `update_member_role`); see
+`docs/operations.md`, "Deleting a user account", and the Membership model
+(`formal/tla/Membership`). `admin_delete_account_data` clears the
+person's residence row last and without a filter on its values, so a person's
+`UPDATE` in flight is waited for and cleared, and one that arrives later waits
+and is refused. Scenario 31 of `tool/db/concurrency_test.sh` races each of
+these paths, in both orders where both exist, and the delete-account order and
+the operator's rule against them, and fails without the trigger's `FOR SHARE`
+read, either second role check, the answer's lock or the unfiltered clear.
 
 A document and its file are serialised on the file's `storage.objects` row: a
 document insert locks it, and every delete of the file must lock it too and

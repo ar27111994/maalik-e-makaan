@@ -17,6 +17,8 @@ void main() {
     expect(row.optionalString('name'), 'Gulberg');
     expect(row.integer('count'), 2);
     expect(row.boolean('active'), isTrue);
+    expect(row.optionalBoolean('active'), isTrue);
+    expect(row.optionalBoolean('note'), isNull);
     expect(row.object('owner').string('id'), 'u1');
     expect(row.list('items'), [1, 2]);
   });
@@ -40,6 +42,8 @@ void main() {
     expect(() => row.optionalString('count'), throwsFormatException);
     expect(() => row.integer('name'), throwsFormatException);
     expect(() => row.boolean('count'), throwsFormatException);
+    expect(() => row.optionalBoolean('count'), throwsFormatException);
+    expect(() => row.optionalBoolean('missing'), throwsFormatException);
     expect(() => row.object('name'), throwsFormatException);
     expect(() => row.list('owner'), throwsFormatException);
     expect(() => JsonRow.of('x', 'portfolio'), throwsFormatException);

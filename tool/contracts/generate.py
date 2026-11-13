@@ -18,20 +18,30 @@ Outputs (all committed):
   contracts/identity_vectors.json and supabase/tests/database/20_identity_contract.test.sql
     (stored phone numbers, CNICs, IBANs and Raast IDs: what mm_core reads back from a row
     is exactly what the database CHECKs accept)
+  contracts/residence_vectors.json, contracts/time_zone_vectors.json,
+    packages/mm_core/lib/src/time/time_zone_data.g.dart,
+    supabase/tests/database/23_residence_contract.test.sql and tool/db/time_zone_skew.sql
+    (the countries and time zones a person may store, and each zone's offsets from 2020 to
+    2100, from the tzdata package pinned in tool/requirements.txt: tool/contracts/time_zones.py)
 
 Usage:
-  tool/contracts/generate.py           # (re)write every file
-  tool/contracts/generate.py --check   # exit 1 if any file is stale (CI)
+  tool/contracts/generate.py                     # (re)write every file
+  tool/contracts/generate.py --check             # exit 1 if any file is stale (CI)
+  tool/contracts/generate.py --print-sql-lists   # the array literals for a migration that
+                                                 # widens app.supported_time_zones()
 """
 
 from __future__ import annotations
 
 import calendar
 import json
+import re
 import sys
 from datetime import date
 from fractions import Fraction
 from pathlib import Path
+
+import time_zones as tz
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -792,9 +802,757 @@ def render_identity_sql(vectors: dict) -> str:
     return "\n".join(header + lines + footer)
 
 
+# ---------------------------------------------------------------------------
+# Residence and time zones (D-16)
+# ---------------------------------------------------------------------------
+#
+# A person's declared country and the zone of their own alerts are stored as
+# names from the pinned tzdata (tool/contracts/time_zones.py): the database
+# accepts exactly these (app.supported_country_codes, app.supported_time_zones,
+# append-only), mm_core bundles each zone's offsets from 2020 to 2100 for an
+# owner's alerts, quiet hours and dual time, and both are checked against the
+# vectors below. Business dates (rent, ledger, deadlines, the tax year) stay
+# on Pakistan time and are not touched here.
+
+# Stored values; "valid" is membership in the supported list.
+COUNTRY_CASES = [
+    ("PK", "Pakistan"),
+    ("GB", "United Kingdom"),
+    ("AE", "United Arab Emirates"),
+    ("SA", "Saudi Arabia"),
+    ("US", "United States"),
+    ("NO", "Norway"),
+    ("BH", "Bahrain"),
+    ("KW", "Kuwait"),
+    ("pk", "lower case"),
+    ("Gb", "mixed case"),
+    ("UK", "reserved: the United Kingdom is GB"),
+    ("XK", "user-assigned (Kosovo)"),
+    ("XX", "user-assigned"),
+    ("PAK", "alpha-3"),
+    ("586", "numeric"),
+    (" PK", "leading space"),
+    ("PK ", "trailing space"),
+    ("PK\n", "trailing line feed"),
+    ("", "empty"),
+]
+
+# Stored values, and what a device reporting the same name is offered.
+TIME_ZONE_CASES = [
+    ("Europe/London", "the United Kingdom"),
+    ("Asia/Karachi", "Pakistan"),
+    ("Asia/Dubai", "the United Arab Emirates"),
+    ("Asia/Kuwait", "a zone.tab name that tzdata.zi links to Asia/Riyadh"),
+    ("America/Argentina/Buenos_Aires", "three parts"),
+    ("America/Port-au-Prince", "a hyphen"),
+    ("Asia/Calcutta", "an old name of Asia/Kolkata"),
+    ("Europe/Kiev", "an old name of Europe/Kyiv"),
+    ("US/Eastern", "a backward link"),
+    ("America/Buenos_Aires", "a two-part link to a three-part zone"),
+    ("GB", "a link without a slash"),
+    ("UTC", "UTC"),
+    ("Etc/UTC", "Etc/UTC"),
+    ("Etc/GMT+5", "a fixed offset"),
+    ("Factory", "no zone at all"),
+    ("Asia/Lahore", "not a zone"),
+    ("europe/london", "lower case"),
+    ("Europe/london", "mixed case"),
+    (" Europe/London", "leading space"),
+    ("Europe/London\n", "trailing line feed"),
+    ("", "empty"),
+]
+
+# The Dart decoder keeps a well-formed name it does not know (a newer build
+# may store one); this is the shape it accepts.
+ZONE_SHAPE = re.compile(r"^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+){1,2}$")
+
+VECTOR_YEARS = (2026, 2029)  # clock changes in [2026, 2029)
+SAMPLE_YEARS = range(2026, 2031)  # 1 January and 1 July, 12:00 UTC
+
+
+def _schedules() -> tuple[list[tz.Schedule], dict[str, int]]:
+    """The distinct schedules, in order of first use by zone name, and each zone's index."""
+    schedules: list[tz.Schedule] = []
+    index: dict[str, int] = {}
+    for zone in tz.allowed_zones():
+        schedule = tz.schedule(zone)
+        if schedule not in schedules:
+            schedules.append(schedule)
+        index[zone] = schedules.index(schedule)
+    return schedules, index
+
+
+def check_time_zone_data() -> None:
+    """The generator's own assertions; mm_core's tests repeat them on the bundled data."""
+    countries = tz.countries()
+    for zone, country in tz.zone_countries().items():
+        if country not in countries:
+            raise ValueError(f"{zone}: country {country} is not in iso3166.tab")
+        if not ZONE_SHAPE.match(zone) or len(zone) > 64:
+            raise ValueError(f"{zone}: not a name mm_core's TimeZoneId.fromJson accepts")
+        schedule = tz.schedule(zone)
+        previous_at, previous_offset = None, schedule.initial
+        for at, offset in schedule.transitions:
+            if not tz.FROM <= at < tz.UNTIL or offset == previous_offset:
+                raise ValueError(f"{zone}: transition at {tz.utc(at)} changes nothing")
+            if previous_at is not None and at - previous_at < tz.MIN_SPACING:
+                raise ValueError(f"{zone}: clock changes at {tz.utc(at)} less than 2 days apart")
+            previous_at, previous_offset = at, offset
+    allowed = set(tz.zone_countries())
+    for name, target in tz.device_links().items():
+        if target not in allowed or name in allowed:
+            raise ValueError(f"device link {name} -> {target}")
+    pakistan = tz.schedule(tz.PAKISTAN)
+    if pakistan != tz.Schedule(5 * 3600, ()):
+        raise ValueError(
+            "Asia/Karachi is no longer UTC+05:00 all year: see docs/architecture/time.md"
+        )
+
+
+def check_append_only(previous: dict) -> None:
+    """Every country and zone the committed vectors list is still supported."""
+    gone = sorted({z["name"] for z in previous["timeZones"]} - set(tz.zone_countries()))
+    gone += sorted({c["code"] for c in previous["countries"]} - set(tz.countries()))
+    if gone:
+        raise ValueError(
+            "stored names are append-only, but tzdata dropped "
+            + ", ".join(gone)
+            + ": keep each in RETAINED_ZONES or RETAINED_COUNTRIES (tool/contracts/time_zones.py)"
+        )
+
+
+def build_residence() -> dict:
+    check_time_zone_data()
+    committed = ROOT / "contracts" / "residence_vectors.json"
+    if committed.exists():
+        check_append_only(json.loads(committed.read_text(encoding="utf-8")))
+    countries = tz.countries()
+    allowed = tz.zone_countries()
+    links = tz.device_links()
+    return {
+        "$comment": (
+            f"Generated by tool/contracts/generate.py from tzdata {tz.iana_version()} — do not edit "
+            "by hand. The countries and zones a person may store (append-only), each zone's "
+            "country, and the zone a device's other name is offered as (deviceLinks: a stored name "
+            'is offered as itself). "valid" is whether a stored value is accepted; "device" is '
+            "what TimeZoneId.fromDevice suggests for the same name."
+        ),
+        "tzdata": tz.iana_version(),
+        "pakistan": tz.PAKISTAN,
+        "countries": [{"code": code, "zones": zones} for code, zones in tz.country_zones().items()],
+        "timeZones": [{"name": name, "country": country} for name, country in allowed.items()],
+        "retainedZones": dict(sorted(tz.RETAINED_ZONES.items())),
+        "deviceLinks": links,
+        "countryCases": [
+            {"value": value, "valid": value in countries, "name": name}
+            for value, name in COUNTRY_CASES
+        ],
+        "timeZoneCases": [
+            {
+                "value": value,
+                "valid": value in allowed,
+                "device": value if value in allowed else links.get(value),
+                "name": name,
+            }
+            for value, name in TIME_ZONE_CASES
+        ],
+    }
+
+
+def _in_vector_years(at: int) -> bool:
+    return (
+        tz.parse_utc(f"{VECTOR_YEARS[0]}-01-01T00:00:00Z")
+        <= at
+        < tz.parse_utc(f"{VECTOR_YEARS[1]}-01-01T00:00:00Z")
+    )
+
+
+def _offset_vector(name: str, zone: str | None, at: int) -> dict:
+    real = zone or tz.PAKISTAN
+    return {
+        "name": name,
+        "zone": zone,
+        "utc": tz.utc(at),
+        "offsetSeconds": tz.offset_at(real, at),
+        "local": tz.local(real, at),
+        "pg": real in tz.PG_STABLE_ZONES,
+    }
+
+
+def _local_vector(name: str, zone: str, wall: str, expected_kind: str | None = None) -> dict:
+    at, kind = tz.local_to_instant(zone, wall)
+    if expected_kind is not None and kind != expected_kind:
+        raise ValueError(f"{zone} {wall}: expected {expected_kind}, got {kind}")
+    return {
+        "name": name,
+        "zone": zone,
+        "local": wall,
+        "utc": tz.utc(at),
+        "kind": kind,
+        "pg": zone in tz.PG_STABLE_ZONES,
+    }
+
+
+def _wall(seconds: int) -> str:
+    return tz.utc(seconds)[:-1]
+
+
+def build_time_zone_vectors() -> dict:
+    offsets = []
+    local_to_instant = []
+    for zone in tz.VECTOR_ZONES:
+        for year in SAMPLE_YEARS:
+            for month in ("01", "07"):
+                at = tz.parse_utc(f"{year}-{month}-01T12:00:00Z")
+                offsets.append(_offset_vector(f"{zone} on {year}-{month}-01", zone, at))
+        schedule = tz.schedule(zone)
+        before = schedule.initial
+        for at, after in schedule.transitions:
+            if _in_vector_years(at):
+                change = f"{zone} clock change at {tz.utc(at)}"
+                offsets.append(_offset_vector(f"{change}, a second before", zone, at - 1))
+                offsets.append(_offset_vector(f"{change}, at the change", zone, at))
+                # The local times either side of the change, and those it skips
+                # (the clock goes forward: a gap) or repeats (back: an overlap).
+                low, high = sorted((at + before, at + after))
+                kind = "gap" if after > before else "overlap"
+                samples = [
+                    ("a second before the change", low - 1, "normal"),
+                    (f"the first second of the {kind}", low, kind),
+                    (f"the middle of the {kind}", (low + high) // 2, kind),
+                    (f"the last second of the {kind}", high - 1, kind),
+                    (f"the end of the {kind}", high, "normal"),
+                ]
+                for label, wall, expected in samples:
+                    local_to_instant.append(
+                        _local_vector(f"{change}: {label}", zone, _wall(wall), expected)
+                    )
+            before = after
+    for year in SAMPLE_YEARS:
+        at = tz.parse_utc(f"{year}-01-01T00:00:00Z")
+        offsets.append(_offset_vector(f"not stated is Pakistan time on {year}-01-01", None, at))
+    for zone in ("Asia/Karachi", "Asia/Kolkata", "Asia/Kathmandu", "Europe/London"):
+        local_to_instant.append(
+            _local_vector(f"{zone}, an ordinary time", zone, "2026-11-12T15:15:00")
+        )
+
+    def quiet(name, zone, start, end, at):
+        real = zone or tz.PAKISTAN
+        first, last = (int(t[:2]) * 60 + int(t[3:]) for t in (start, end))
+        instant = tz.parse_utc(at)
+        return {
+            "name": name,
+            "zone": zone,
+            "start": start,
+            "end": end,
+            "at": at,
+            "quiet": tz.is_quiet(first, last, real, instant),
+            "releaseAt": tz.utc(tz.release_at(first, last, real, instant)),
+        }
+
+    quiet_hours = [
+        quiet("London, overnight", "Europe/London", "22:00", "07:00", "2026-11-12T23:00:00Z"),
+        quiet("London, at the start", "Europe/London", "22:00", "07:00", "2026-11-12T22:00:00Z"),
+        quiet(
+            "London, a second before the end",
+            "Europe/London",
+            "22:00",
+            "07:00",
+            "2026-11-13T06:59:59Z",
+        ),
+        quiet("London, at the end", "Europe/London", "22:00", "07:00", "2026-11-13T07:00:00Z"),
+        quiet("London, in the day", "Europe/London", "22:00", "07:00", "2026-11-12T12:00:00Z"),
+        quiet(
+            "London, half a minute in", "Europe/London", "22:00", "07:00", "2026-11-12T23:00:30Z"
+        ),
+        quiet(
+            "London, spring: the end (01:30) is skipped, released when the clock goes forward",
+            "Europe/London",
+            "22:00",
+            "01:30",
+            "2027-03-28T00:50:00Z",
+        ),
+        quiet(
+            "London, spring: after the clock went forward",
+            "Europe/London",
+            "22:00",
+            "01:30",
+            "2027-03-28T01:00:00Z",
+        ),
+        quiet(
+            "London, spring: the clock goes forward into quiet hours",
+            "Europe/London",
+            "01:15",
+            "03:00",
+            "2027-03-28T01:00:00Z",
+        ),
+        quiet(
+            "London, autumn: released at the first 01:30",
+            "Europe/London",
+            "22:00",
+            "01:30",
+            "2027-10-31T00:20:00Z",
+        ),
+        quiet(
+            "London, autumn: between the first 01:30 and the clock going back",
+            "Europe/London",
+            "22:00",
+            "01:30",
+            "2027-10-31T00:40:00Z",
+        ),
+        quiet(
+            "London, autumn: quiet again in the repeated hour, released at the second 01:30",
+            "Europe/London",
+            "22:00",
+            "01:30",
+            "2027-10-31T01:05:00Z",
+        ),
+        quiet(
+            "New York, spring: the end (02:30) is skipped",
+            "America/New_York",
+            "01:00",
+            "02:30",
+            "2027-03-14T06:30:00Z",
+        ),
+        quiet(
+            "New York, autumn: released at the first 01:30",
+            "America/New_York",
+            "00:00",
+            "01:30",
+            "2027-11-07T05:20:00Z",
+        ),
+        quiet(
+            "New York, autumn: quiet again in the repeated hour",
+            "America/New_York",
+            "00:00",
+            "01:30",
+            "2027-11-07T06:10:00Z",
+        ),
+        quiet(
+            "Lord Howe, spring: a half-hour change skips the end",
+            "Australia/Lord_Howe",
+            "22:00",
+            "02:15",
+            "2026-10-03T15:20:00Z",
+        ),
+        quiet(
+            "Dubai, a window within the day", "Asia/Dubai", "13:00", "14:00", "2026-11-12T09:30:00Z"
+        ),
+        quiet(
+            "Kathmandu, quarter-hour offset",
+            "Asia/Kathmandu",
+            "22:00",
+            "06:00",
+            "2026-11-12T17:00:00Z",
+        ),
+        quiet("not stated is Pakistan time", None, "22:00", "08:00", "2026-11-12T18:00:00Z"),
+        quiet(
+            "Auckland, overnight across the date",
+            "Pacific/Auckland",
+            "21:00",
+            "06:30",
+            "2026-11-12T09:00:00Z",
+        ),
+    ]
+
+    def next_vector(name, zone, time, weekday, after):
+        real = zone or tz.PAKISTAN
+        minute = int(time[:2]) * 60 + int(time[3:])
+        return {
+            "name": name,
+            "zone": zone,
+            "time": time,
+            "isoWeekday": weekday,
+            "after": after,
+            "utc": tz.utc(tz.next_at(real, minute, weekday, tz.parse_utc(after))),
+        }
+
+    next_at = [
+        next_vector("London, later today", "Europe/London", "18:00", None, "2026-11-12T10:15:00Z"),
+        next_vector("London, tomorrow", "Europe/London", "08:00", None, "2026-11-12T10:15:00Z"),
+        next_vector(
+            "London, a second before", "Europe/London", "08:00", None, "2026-11-12T07:59:59Z"
+        ),
+        next_vector(
+            "London, exactly then: the next day",
+            "Europe/London",
+            "08:00",
+            None,
+            "2026-11-12T08:00:00Z",
+        ),
+        next_vector(
+            "London, a time the clock skips", "Europe/London", "01:30", None, "2027-03-27T12:00:00Z"
+        ),
+        next_vector(
+            "London, a time the clock repeats: the later",
+            "Europe/London",
+            "01:30",
+            None,
+            "2027-10-30T12:00:00Z",
+        ),
+        next_vector("London, Monday", "Europe/London", "09:00", 1, "2026-11-12T10:15:00Z"),
+        next_vector(
+            "London, Thursday, later the same day",
+            "Europe/London",
+            "18:00",
+            4,
+            "2026-11-12T10:15:00Z",
+        ),
+        next_vector(
+            "London, Thursday, already past", "Europe/London", "09:00", 4, "2026-11-12T10:15:00Z"
+        ),
+        next_vector(
+            "New York, Monday across the spring change",
+            "America/New_York",
+            "09:00",
+            1,
+            "2027-03-12T18:00:00Z",
+        ),
+        next_vector("Sydney, Sunday", "Australia/Sydney", "07:00", 7, "2026-11-12T10:15:00Z"),
+        next_vector(
+            "Auckland, the local date is ahead",
+            "Pacific/Auckland",
+            "07:00",
+            None,
+            "2026-11-12T20:00:00Z",
+        ),
+        next_vector(
+            "Lord Howe, a time the clock skips",
+            "Australia/Lord_Howe",
+            "02:15",
+            None,
+            "2026-10-03T00:00:00Z",
+        ),
+        next_vector("Kathmandu, midnight", "Asia/Kathmandu", "00:00", None, "2026-11-12T10:15:00Z"),
+        next_vector(
+            "St John's, half-hour offset", "America/St_Johns", "08:00", None, "2026-11-12T10:15:00Z"
+        ),
+        next_vector("not stated is Pakistan time", None, "09:00", None, "2026-11-12T10:15:00Z"),
+    ]
+
+    def dual(name, zone, at):
+        instant = tz.parse_utc(at)
+        own = zone or tz.PAKISTAN
+        same = tz.offset_at(own, instant) == tz.offset_at(tz.PAKISTAN, instant)
+        return {
+            "name": name,
+            "zone": zone,
+            "utc": at,
+            "pakistan": tz.local(tz.PAKISTAN, instant),
+            "own": None if same else tz.local(own, instant),
+        }
+
+    dual_time = [
+        dual("London in winter (the owner's example)", "Europe/London", "2026-11-12T10:15:00Z"),
+        dual("London in summer", "Europe/London", "2027-07-01T10:15:00Z"),
+        dual("Dubai", "Asia/Dubai", "2026-11-12T10:15:00Z"),
+        dual("Riyadh", "Asia/Riyadh", "2026-11-12T10:15:00Z"),
+        dual("New York in summer", "America/New_York", "2027-07-01T12:00:00Z"),
+        dual("Toronto in winter", "America/Toronto", "2026-12-01T12:00:00Z"),
+        dual("Kolkata, half an hour ahead", "Asia/Kolkata", "2026-11-12T10:15:00Z"),
+        dual("Kathmandu", "Asia/Kathmandu", "2026-11-12T10:15:00Z"),
+        dual("Auckland, a day ahead", "Pacific/Auckland", "2026-11-12T20:00:00Z"),
+        dual("Los Angeles, a day behind", "America/Los_Angeles", "2026-11-12T20:00:00Z"),
+        dual("Karachi: one time only", "Asia/Karachi", "2026-11-12T10:15:00Z"),
+        dual("not stated: one time only", None, "2026-11-12T10:15:00Z"),
+        dual("Tashkent, also UTC+05:00: one time only", "Asia/Tashkent", "2026-11-12T10:15:00Z"),
+    ]
+
+    return {
+        "$comment": (
+            f"Generated by tool/contracts/generate.py from tzdata {tz.iana_version()} — do not edit "
+            'by hand. Instants are UTC; local times are a zone\'s wall clock. "zone": null is not '
+            'stated, which is Pakistan time. Rows with "pg": true are also checked against '
+            "PostgreSQL (suite 23); the others are Dart-only."
+        ),
+        "tzdata": tz.iana_version(),
+        "rule": (
+            "a local time a clock change skips or repeats is read as the later of its two "
+            "instants (PostgreSQL); quiet hours [start, end) end at the first later instant the "
+            "wall clock is outside them"
+        ),
+        "pakistan": tz.PAKISTAN,
+        "offsets": offsets,
+        "localToInstant": local_to_instant,
+        "quietHours": quiet_hours,
+        "nextAt": next_at,
+        "dualTime": dual_time,
+    }
+
+
+def sql_text_array(items: list[str], indent: str = "    ", width: int = 100) -> str:
+    """Quoted, comma-separated, wrapped at [width]: the migration's array literals."""
+    lines, line = [], indent
+    for i, item in enumerate(items):
+        token = sql_literal(item) + ("," if i < len(items) - 1 else "")
+        candidate = token if line == indent else " " + token
+        if len(line) + len(candidate) > width:
+            lines.append(line)
+            line = indent + token
+        else:
+            line += candidate
+    lines.append(line)
+    return "\n".join(lines)
+
+
+def render_sql_lists(residence: dict) -> str:
+    countries = [c["code"] for c in residence["countries"]]
+    zones = [z["name"] for z in residence["timeZones"]]
+    return (
+        f"-- app.supported_country_codes(): {len(countries)} codes\n"
+        f"  select array[\n{sql_text_array(countries)}\n  ]::text[]\n\n"
+        f"-- app.supported_time_zones(): {len(zones)} zones (tzdata {residence['tzdata']})\n"
+        f"  select array[\n{sql_text_array(zones)}\n  ]::text[]\n"
+    )
+
+
+def render_residence_sql(residence: dict, vectors: dict) -> str:
+    """pgTAP suite 23: the stored lists, the CHECKs and PostgreSQL's conversions."""
+
+    def shown(value: str) -> str:
+        return json.dumps(value, ensure_ascii=False)
+
+    countries = [c["code"] for c in residence["countries"]]
+    zones = [z["name"] for z in residence["timeZones"]]
+    lines = [
+        "select is(app.supported_country_codes(), array[\n"
+        + sql_text_array(countries, "  ")
+        + "\n]::text[], 'the stored countries are exactly the contract''s');",
+        "select is(app.supported_time_zones(), array[\n"
+        + sql_text_array(zones, "  ")
+        + "\n]::text[], 'the stored time zones are exactly the contract''s');",
+        "select is((select array_agg(z) from unnest(app.supported_time_zones()) z\n"
+        "           where not exists (select 1 from pg_timezone_names n where n.name = z)), null,\n"
+        "  'the server knows every stored time zone');",
+    ]
+    for v in residence["countryCases"]:
+        what = f"{shown(v['value'])} ({v['name']})"
+        lines.append(
+            f"select is(app.is_valid_country_code({sql_literal(v['value'])}), "
+            f"{str(v['valid']).lower()}, {sql_literal('country ' + what)});"
+        )
+        lines.append(_residence_write("residence_country", v["value"], v["valid"], what))
+    for v in residence["timeZoneCases"]:
+        what = f"{shown(v['value'])} ({v['name']})"
+        lines.append(
+            f"select is(app.is_valid_time_zone({sql_literal(v['value'])}), "
+            f"{str(v['valid']).lower()}, {sql_literal('time zone ' + what)});"
+        )
+        lines.append(_residence_write("time_zone", v["value"], v["valid"], what))
+    lines.append("")
+    lines.append("-- PostgreSQL's conversions agree with mm_core's on the stable zones.")
+    for v in vectors["offsets"]:
+        if not v["pg"]:
+            continue
+        zone = sql_literal(v["zone"] or residence["pakistan"])
+        utc = f"timestamptz {sql_literal(v['utc'])}"
+        lines.append(
+            f"select is(format('%s %s', to_char({utc} at time zone {zone}, "
+            "'YYYY-MM-DD\"T\"HH24:MI:SS'), "
+            f"extract(epoch from ({utc} at time zone {zone}) - ({utc} at time zone 'UTC'))::integer), "
+            f"{sql_literal(v['local'] + ' ' + str(v['offsetSeconds']))}, {sql_literal(v['name'])});"
+        )
+    for v in vectors["localToInstant"]:
+        if not v["pg"]:
+            continue
+        lines.append(
+            f"select is(timestamp {sql_literal(v['local'])} at time zone {sql_literal(v['zone'])}, "
+            f"timestamptz {sql_literal(v['utc'])}, {sql_literal(v['name'] + ' (' + v['kind'] + ')')});"
+        )
+    assertions = sum(1 for line in lines if line.startswith("select "))
+    header = [
+        "-- GENERATED by tool/contracts/generate.py from contracts/residence_vectors.json and",
+        "-- contracts/time_zone_vectors.json. Do not edit by hand. mm_core's Dart tests assert",
+        "-- the same vectors: the countries and zones the database stores are exactly those",
+        "-- the app reads back, and PostgreSQL converts the stable zones' times as mm_core does",
+        "-- (a skipped or repeated local time is the later instant).",
+        "begin;",
+        r"\ir _helpers.psql",
+        f"select plan({assertions});",
+        "",
+        "select tests.create_user('residence-contract@example.com') as person \\gset",
+        "select tests.authenticate_as(:'person');",
+        "",
+    ]
+    footer = ["", "select * from finish();", "rollback;", ""]
+    return "\n".join(header + lines + footer)
+
+
+def _residence_write(column: str, value: str, valid: bool, what: str) -> str:
+    statement = (
+        f"format('update public.profile_residences set {column} = %L where user_id = %L', "
+        f"{sql_literal(value)}, :'person')"
+    )
+    label = sql_literal(f"profile_residences.{column} {'accepts' if valid else 'refuses'} {what}")
+    if valid:
+        return f"select lives_ok({statement}, {label});"
+    return f"select throws_ok({statement}, '23514', null, {label});"
+
+
+def _dart_string(value: str) -> str:
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'").replace("$", "\\$") + "'"
+
+
+def _dart_packed(items: list[str], indent: str, width: int = 80) -> list[str]:
+    """Items separated by ", ", a trailing comma after each line, wrapped at [width]."""
+    lines, line = [], ""
+    for item in items:
+        token = item + ","
+        candidate = token if not line else line + " " + token
+        if line and len(indent) + len(candidate) > width:
+            lines.append(indent + line)
+            line = token
+        else:
+            line = candidate
+    if line:
+        lines.append(indent + line)
+    return lines
+
+
+def _zone_summary(zones: list[str], width: int = 70) -> str:
+    """The first zones of a schedule that fit a comment line, then how many more."""
+    shown: list[str] = []
+    for zone in zones:
+        rest = len(zones) - len(shown) - 1
+        more = f" and {rest} more" if rest else ""
+        if shown and len(", ".join([*shown, zone]) + more) > width:
+            break
+        shown.append(zone)
+    rest = len(zones) - len(shown)
+    return ", ".join(shown) + (f" and {rest} more" if rest else "")
+
+
+def render_time_zone_dart(residence: dict) -> str:
+    schedules, index = _schedules()
+    out = [
+        "// GENERATED by tool/contracts/generate.py from the IANA tz database",
+        f"// {residence['tzdata']} (the PyPI tzdata pinned in tool/requirements.txt). Do not",
+        "// edit by hand: bump tzdata and run `make contracts` (docs/operations.md,",
+        '// "Time-zone data").',
+        "//",
+        "// The stored zones and countries (contracts/residence_vectors.json) and each",
+        "// zone's UTC offsets from 2020 to 2100, read by time_zone.dart and",
+        "// country_code.dart. Not exported.",
+        "",
+        "// dart format off",
+        "",
+        "/// The IANA tz database release these tables come from.",
+        f"const String tzdataVersion = {_dart_string(residence['tzdata'])};",
+        "",
+        "/// The first instant the offsets cover: 2020-01-01T00:00:00Z, in Unix seconds.",
+        f"const int tzdataFrom = {tz.FROM};",
+        "",
+        "/// The end of the offsets: 2100-01-01T00:00:00Z, in Unix seconds. The last",
+        "/// offset of each zone carries on after it.",
+        f"const int tzdataUntil = {tz.UNTIL};",
+        "",
+        "/// Each distinct schedule of offsets: the offset at [tzdataFrom], then each",
+        "/// clock change as its instant and the offset from then on, in seconds.",
+        "const List<List<int>> tzSchedules = [",
+    ]
+    for number, schedule in enumerate(schedules):
+        out.append(f"  // {number}: {_zone_summary([z for z, i in index.items() if i == number])}")
+        if not schedule.transitions:
+            out.append(f"  [{schedule.initial}],")
+            continue
+        # The offset at tzdataFrom, then whole (instant, offset) pairs per line.
+        out += ["  [", f"    {schedule.initial},"]
+        out += _dart_packed([f"{at}, {offset}" for at, offset in schedule.transitions], "    ")
+        out.append("  ],")
+    out += [
+        "];",
+        "",
+        "/// Every stored zone: its schedule in [tzSchedules] and its country.",
+        "const Map<String, (int, String)> tzZones = {",
+    ]
+    for zone in residence["timeZones"]:
+        out.append(
+            f"  {_dart_string(zone['name'])}: ({index[zone['name']]}, {_dart_string(zone['country'])}),"
+        )
+    out += [
+        "};",
+        "",
+        "/// A device's name for a zone that is not stored, to the stored zone it",
+        "/// links to (Asia/Calcutta to Asia/Kolkata).",
+        "const Map<String, String> tzDeviceLinks = {",
+    ]
+    for name, target in residence["deviceLinks"].items():
+        out.append(f"  {_dart_string(name)}: {_dart_string(target)},")
+    out += [
+        "};",
+        "",
+        "/// Every stored country and its zones, in zone.tab's order.",
+        "const Map<String, List<String>> tzCountries = {",
+    ]
+    for country in residence["countries"]:
+        zones = [_dart_string(z) for z in country["zones"]]
+        single = f"  {_dart_string(country['code'])}: [{', '.join(zones)}],"
+        if len(single) <= 80:
+            out.append(single)
+        else:
+            out.append(f"  {_dart_string(country['code'])}: [")
+            out += _dart_packed(zones, "    ")
+            out.append("  ],")
+    out += ["};", "", "// dart format on", ""]
+    return "\n".join(out)
+
+
+def render_skew_sql(residence: dict) -> str:
+    """The operator's read-only check that a server's tzdata agrees with mm_core's."""
+    rows = []
+    for zone in (z["name"] for z in residence["timeZones"]):
+        instants = [
+            tz.parse_utc(f"{year}-{month}-01T12:00:00Z")
+            for year in SAMPLE_YEARS
+            for month in ("01", "07")
+        ]
+        for at, _ in tz.schedule(zone).transitions:
+            if _in_vector_years(at):
+                instants += [at - 1, at]
+        for at in sorted(instants):
+            rows.append(
+                f"  ({sql_literal(zone)}, timestamptz {sql_literal(tz.utc(at))}, {tz.offset_at(zone, at)})"
+            )
+    return "\n".join(
+        [
+            f"-- GENERATED by tool/contracts/generate.py from tzdata {residence['tzdata']}. Do not edit",
+            "-- by hand. Read-only; not run in CI. Run it on the hosted project after each",
+            '-- Supabase Postgres upgrade or tzdata bump (docs/operations.md, "Time-zone data"):',
+            "-- every row it returns is a stored zone and an instant at which the server's UTC",
+            "-- offset differs from the one mm_core bundles (server_seconds is NULL when the",
+            "-- server does not know the zone). Asia/Karachi must never appear: if it does,",
+            '-- stop and follow "The Pakistan tripwire" in docs/architecture/time.md. Any other',
+            f"-- row is expected when the server's tzdata is older or newer than {residence['tzdata']} and a",
+            "-- release between the two changed that zone (IANA's NEWS file names the zones each",
+            "-- release changes); Africa/Casablanca may also differ by decree. Record such rows",
+            "-- with the run. They change nothing while no SQL reads a stored zone (the push",
+            "-- planner's helpers do not exist yet). A NULL server_seconds, or a row no release",
+            "-- explains, needs a look before any SQL relies on that zone. Business dates are",
+            "-- unaffected: they use Asia/Karachi's fixed offset.",
+            "with known as materialized (select n.name from pg_timezone_names n),",
+            "expected (zone, at, bundled_seconds) as (values",
+            ",\n".join(rows),
+            ")",
+            "select e.zone, e.at, e.bundled_seconds, s.server_seconds",
+            "from expected e",
+            "left join known k on k.name = e.zone",
+            "cross join lateral (",
+            "  select case when k.name is not null then",
+            "    extract(epoch from (e.at at time zone e.zone) - (e.at at time zone 'UTC'))::integer",
+            "  end as server_seconds",
+            ") s",
+            "where s.server_seconds is distinct from e.bundled_seconds",
+            "order by e.zone, e.at;",
+            "",
+        ]
+    )
+
+
 def outputs() -> dict[Path, str]:
     vectors = build()
     identity = build_identity()
+    residence = build_residence()
+    time_zones = build_time_zone_vectors()
     database_tests = ROOT / "supabase" / "tests" / "database"
     return {
         ROOT
@@ -810,17 +1568,44 @@ def outputs() -> dict[Path, str]:
         / "identity_vectors.json": json.dumps(identity, indent=2, ensure_ascii=False)
         + "\n",
         database_tests / "20_identity_contract.test.sql": render_identity_sql(identity),
+        ROOT
+        / "contracts"
+        / "residence_vectors.json": json.dumps(residence, indent=2, ensure_ascii=False)
+        + "\n",
+        ROOT
+        / "contracts"
+        / "time_zone_vectors.json": json.dumps(time_zones, indent=2, ensure_ascii=False)
+        + "\n",
+        ROOT
+        / "packages"
+        / "mm_core"
+        / "lib"
+        / "src"
+        / "time"
+        / "time_zone_data.g.dart": render_time_zone_dart(residence),
+        database_tests
+        / "23_residence_contract.test.sql": render_residence_sql(residence, time_zones),
+        ROOT / "tool" / "db" / "time_zone_skew.sql": render_skew_sql(residence),
     }
 
 
 def main(argv: list[str]) -> int:
     check = argv[1:] == ["--check"]
-    if argv[1:] and not check:
-        print("usage: tool/contracts/generate.py [--check]", file=sys.stderr)
+    lists = argv[1:] == ["--print-sql-lists"]
+    if argv[1:] and not (check or lists):
+        print("usage: tool/contracts/generate.py [--check | --print-sql-lists]", file=sys.stderr)
+        return 2
+    try:
+        if lists:
+            print(render_sql_lists(build_residence()), end="")
+            return 0
+        files = outputs()
+    except tz.MissingTzdataError as error:
+        print(error, file=sys.stderr)
         return 2
 
     stale = []
-    for path, content in outputs().items():
+    for path, content in files.items():
         if not check:
             path.write_text(content, encoding="utf-8")
         elif not path.exists() or path.read_text(encoding="utf-8") != content:

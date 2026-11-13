@@ -6,22 +6,32 @@ lives here once and is shared by the app, its tests and the SQL through `contrac
 
 ## Where things are
 
-| Path                | What                                                                                     |
-| ------------------- | ---------------------------------------------------------------------------------------- |
-| `lib/src/money/`    | `Money` (integer paisa, explicit rounding), formatting, input parsing, basis points      |
-| `lib/src/time/`     | `CalendarDate`, `MonthPeriod`, `TaxYear` (1 July to 30 June), `DateRange`; Pakistan time |
-| `lib/src/identity/` | `Cnic`, `PhoneNumber`, `Iban`, `EmailAddress`                                            |
-| `lib/src/text/`     | Sanitiser (the `contracts/clean_text.json` rules) and digit normalisation                |
-| `lib/src/rent/`     | Due dates, proration, increments, late-fee policies                                      |
-| `lib/src/ledger/`   | Oldest-first payment allocation, mirroring `record_payment`                              |
-| `test/contract/`    | The clean-text, identity and rent-maths contract tests against `contracts/*.json`        |
+| Path                 | What                                                                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/src/money/`     | `Money` (integer paisa, explicit rounding), formatting, input parsing, basis points                                                                |
+| `lib/src/time/`      | `CalendarDate`, `MonthPeriod`, `TaxYear` (1 July to 30 June), `DateRange`; Pakistan time                                                           |
+| `lib/src/time/`      | A person's own zone: `TimeZoneId`, `ClockTime`, `LocalDateTime`, `QuietHours`, `DualTime`; `time_zone_data.g.dart` is generated (`make contracts`) |
+| `lib/src/residence/` | `CountryCode`, `Residence` (declared, never inferred), `OwnerAbroad` (NULL is not answered)                                                        |
+| `lib/src/identity/`  | `Cnic`, `PhoneNumber`, `Iban`, `EmailAddress`                                                                                                      |
+| `lib/src/text/`      | Sanitiser (the `contracts/clean_text.json` rules) and digit normalisation                                                                          |
+| `lib/src/rent/`      | Due dates, proration, increments, late-fee policies                                                                                                |
+| `lib/src/ledger/`    | Oldest-first payment allocation, mirroring `record_payment`                                                                                        |
+| `test/contract/`     | The clean-text, identity, rent-maths, residence and time-zone contract tests against `contracts/*.json`                                            |
 
 ## Rules here
 
-- No dependency on Flutter or any I/O package; only `characters`, `collection` and `meta`.
+- No dependency on Flutter or any I/O package; only `characters`, `collection` and `meta`. The tz
+  data is generated into `lib/src/time/time_zone_data.g.dart`, not a package.
+- Business dates (rent, ledger, `calendar_date.dart`, `month_period.dart`, `tax_year.dart`,
+  `date_range.dart`) stay on Pakistan time and never reach the time-zone code (`time_zone.dart`
+  and its generated data, `local_date_time.dart`, `quiet_hours.dart`, `dual_time.dart`,
+  `residence/`) through any chain of imports, the barrel `mm_core.dart` included
+  (`test/time/pakistan_time_guard_test.dart`); see
+  [`docs/architecture/time.md`](../../docs/architecture/time.md).
 - 100% line coverage is a gate (`make test-core`).
 - A change to a rule that SQL also implements (rent maths, allocation, identity forms, text
-  cleaning) changes the SQL in a new migration and the vectors (`make contracts`) in the same
+  cleaning, stored countries and zones) changes the SQL in a new migration and the vectors
+  (`make contracts`) in the same
   pull request; see [`docs/agents/workflows.md`](../../docs/agents/workflows.md#change-money-or-rent-maths).
 - The Lean, Z3 and Bend tracks in `formal/` model this arithmetic; run `make verify` after
   changing it.

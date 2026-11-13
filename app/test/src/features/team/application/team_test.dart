@@ -12,6 +12,7 @@ import 'package:maalik_e_makaan/src/features/team/application/invitation.dart';
 import 'package:maalik_e_makaan/src/features/team/application/team.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
+import 'package:mm_core/mm_core.dart';
 
 import '../../../../support/container.dart';
 import '../../../../support/harness.dart';
@@ -187,6 +188,61 @@ void main() {
       expect(container.read(currentPortfolioProvider).value, plaza);
     });
 
+    group('the caretaker', () {
+      int detailsReads() =>
+          app.portfolios.calls.where((c) => c.$1 == 'details').length;
+
+      setUp(() async {
+        listen(container, portfolioDetailsProvider(gulberg.id));
+        await pumpEventQueue();
+      });
+
+      test('naming a manager reads the settings again', () async {
+        final before = detailsReads();
+        await team().setCaretaker(bilalMember.userId);
+        await pumpEventQueue();
+        expect(app.team.calls.last.$2, [gulberg.id, bilalMember.userId]);
+        expect(app.team.caretakers[gulberg.id], bilalMember.userId);
+        expect(detailsReads(), before + 1);
+        await team().setCaretaker(null);
+        expect(app.team.caretakers[gulberg.id], isNull);
+      });
+
+      test('only a manager may be named', () async {
+        await expectLater(
+          team().setCaretaker(saraMember.userId),
+          throwsA(
+            isA<RejectedFailure>().having(
+              (f) => f.reason,
+              'reason',
+              'caretaker_not_manager',
+            ),
+          ),
+        );
+        await expectLater(
+          team().setCaretaker('someone-else'),
+          throwsA(
+            isA<RejectedFailure>().having(
+              (f) => f.reason,
+              'reason',
+              'member_not_found',
+            ),
+          ),
+        );
+      });
+
+      test('a role change or removal reads the settings again', () async {
+        // The server clears a caretaker who stops being manager.
+        final before = detailsReads();
+        await team().changeRole(bilalMember.userId, MemberRole.viewer);
+        await pumpEventQueue();
+        expect(detailsReads(), before + 1);
+        await team().remove(bilalMember.userId);
+        await pumpEventQueue();
+        expect(detailsReads(), before + 2);
+      });
+    });
+
     test('leaving while signed out is an expired session', () async {
       app.auth.emit(const SignedOut());
       await pumpEventQueue();
@@ -223,6 +279,66 @@ void main() {
       expect(
         container.read(currentPortfolioProvider).value!.name,
         'Gulberg Homes',
+      );
+    });
+
+    test('changing the owner-abroad answer shows it everywhere', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, portfolioDetailsProvider(gulberg.id));
+      listen(container, currentPortfolioProvider);
+      await pumpEventQueue();
+      final answer = await container
+          .read(portfolioDetailsProvider(gulberg.id).notifier)
+          .changeOwnerAbroad(abroad: true);
+      expect(answer, OwnerAbroad.abroad);
+      expect(
+        app.portfolios.calls.firstWhere((c) => c.$1 == 'changeOwnerAbroad').$2,
+        [gulberg.id, true],
+      );
+      expect(
+        container
+            .read(portfolioDetailsProvider(gulberg.id))
+            .value!
+            .value
+            .ownerAbroad,
+        OwnerAbroad.abroad,
+      );
+      expect(
+        container.read(currentPortfolioProvider).value!.ownerAbroad,
+        OwnerAbroad.abroad,
+      );
+      // A save keeps it: no client writes the answer.
+      await container
+          .read(portfolioDetailsProvider(gulberg.id).notifier)
+          .save(gulbergDetails);
+      expect(
+        container
+            .read(portfolioDetailsProvider(gulberg.id))
+            .value!
+            .value
+            .ownerAbroad,
+        OwnerAbroad.abroad,
+      );
+    });
+
+    test('a refused change throws and keeps the answer', () async {
+      final app = TestApp()
+        ..portfolios.ownerAbroadFailure = const RejectedFailure(
+          'owner_abroad_answered',
+        );
+      final container = containerFor(app);
+      listen(container, portfolioDetailsProvider(gulberg.id));
+      await pumpEventQueue();
+      await expectLater(
+        container
+            .read(portfolioDetailsProvider(gulberg.id).notifier)
+            .changeOwnerAbroad(abroad: false),
+        throwsA(isA<RejectedFailure>()),
+      );
+      expect(
+        container.read(portfolioDetailsProvider(gulberg.id)).value!.value,
+        gulbergDetails,
       );
     });
 

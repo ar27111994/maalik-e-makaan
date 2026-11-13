@@ -6,7 +6,7 @@
 -- cross-portfolio references must be rejected by composite foreign keys.
 begin;
 \ir _helpers.psql
-select plan(63);
+select plan(95);
 
 select tests.create_user('owner.a@example.com') as owner \gset
 select tests.create_user('manager.a@example.com') as manager \gset
@@ -284,6 +284,119 @@ select throws_ok(
   format($f$select public.change_rent(%L, '2026-12-01', 50000)$f$, :'la'),
   '42501', 'forbidden', 'accountants cannot change rent'
 );
+
+-- Residence (20261112092618_residence.sql) ------------------------------------
+-- A person's declared country and time zone: their own row only, never a
+-- teammate's (D-16).
+select tests.authenticate_as(:'owner');
+select is((select array_agg(r.user_id) from public.profile_residences r), array[:'owner'::uuid],
+          'owner reads only their own residence');
+select tests.authenticate_as(:'manager');
+select is((select array_agg(r.user_id) from public.profile_residences r), array[:'manager'::uuid],
+          'manager reads only their own residence, not the owner''s');
+select tests.authenticate_as(:'accountant');
+select is((select array_agg(r.user_id) from public.profile_residences r), array[:'accountant'::uuid],
+          'accountant reads only their own residence');
+select tests.authenticate_as(:'viewer');
+select is((select array_agg(r.user_id) from public.profile_residences r), array[:'viewer'::uuid],
+          'viewer reads only their own residence');
+select tests.authenticate_as(:'outsider');
+select is((select array_agg(r.user_id) from public.profile_residences r), array[:'outsider'::uuid],
+          'outsider reads only their own residence');
+select tests.authenticate_as_anon();
+select throws_ok($$select count(*) from public.profile_residences$$, '42501', null,
+                 'anon cannot read residences');
+
+select tests.authenticate_as(:'manager');
+select is_empty(
+  format($f$update public.profile_residences set residence_country = 'GB' where user_id = %L returning user_id$f$,
+         :'owner'),
+  'a teammate cannot state someone else''s residence'
+);
+select throws_ok(format('update public.profile_residences set user_id = %L', :'outsider'), '42501', null,
+                 'a residence row cannot be moved to another person');
+select throws_ok($$update public.profile_residences set stated_at = now()$$, '42501', null,
+                 'stated_at is not writable by clients');
+select throws_ok(format('insert into public.profile_residences (user_id) values (%L)', :'outsider'), '42501', null,
+                 'clients cannot insert residence rows');
+select throws_ok($$delete from public.profile_residences$$, '42501', null, 'clients cannot delete residence rows');
+
+-- The owner-abroad answer: owners and managers answer an unanswered question.
+select tests.authenticate_as(:'outsider');
+select throws_ok(format('select public.set_owner_abroad(%L, true)', :'pa'), '42501', 'forbidden',
+                 'outsiders cannot answer the owner-abroad question');
+select tests.authenticate_as(:'accountant');
+select throws_ok(format('select public.set_owner_abroad(%L, true)', :'pa'), '42501', 'forbidden',
+                 'accountants cannot answer the owner-abroad question');
+select tests.authenticate_as(:'viewer');
+select throws_ok(format('select public.set_owner_abroad(%L, true)', :'pa'), '42501', 'forbidden',
+                 'viewers cannot answer the owner-abroad question');
+select tests.authenticate_as(:'manager');
+select is(public.set_owner_abroad(:'pa', true), true, 'managers answer an unanswered owner-abroad question');
+
+-- The same rule for the app's question on the next open (p_if_unanswered),
+-- on a second portfolio with the same manager, accountant and viewer that is
+-- still unanswered (its own owner, so the owner's deletion scope below stays
+-- portfolio A).
+select tests.clear_authentication();
+select tests.create_user('owner.a2@example.com') as owner_a2 \gset
+select tests.create_portfolio(:'owner_a2', 'Portfolio A2') as pa2 \gset
+select tests.add_member(:'pa2', :'manager', 'manager');
+select tests.add_member(:'pa2', :'accountant', 'accountant');
+select tests.add_member(:'pa2', :'viewer', 'viewer');
+select tests.authenticate_as(:'outsider');
+select throws_ok(format('select public.set_owner_abroad(%L, true, p_if_unanswered => true)', :'pa2'), '42501',
+                 'forbidden', 'outsiders cannot answer the owner-abroad question when asked on the next open');
+select tests.authenticate_as(:'accountant');
+select throws_ok(format('select public.set_owner_abroad(%L, true, p_if_unanswered => true)', :'pa2'), '42501',
+                 'forbidden', 'accountants cannot answer the owner-abroad question when asked on the next open');
+select tests.authenticate_as(:'viewer');
+select throws_ok(format('select public.set_owner_abroad(%L, true, p_if_unanswered => true)', :'pa2'), '42501',
+                 'forbidden', 'viewers cannot answer the owner-abroad question when asked on the next open');
+select tests.authenticate_as(:'manager');
+select is(public.set_owner_abroad(:'pa2', true, p_if_unanswered => true), true,
+          'managers answer an unanswered owner-abroad question when asked on the next open');
+
+-- The caretaker: owners only.
+select throws_ok(format('select public.set_caretaker(%L, %L)', :'pa', :'manager'), '42501', 'forbidden',
+                 'managers cannot name the caretaker');
+select tests.authenticate_as(:'accountant');
+select throws_ok(format('select public.set_caretaker(%L, %L)', :'pa', :'manager'), '42501', 'forbidden',
+                 'accountants cannot name the caretaker');
+select tests.authenticate_as(:'viewer');
+select throws_ok(format('select public.set_caretaker(%L, %L)', :'pa', :'manager'), '42501', 'forbidden',
+                 'viewers cannot name the caretaker');
+select tests.authenticate_as(:'outsider');
+select throws_ok(format('select public.set_caretaker(%L, %L)', :'pa', :'manager'), '42501', 'forbidden',
+                 'outsiders cannot name the caretaker');
+select tests.authenticate_as(:'owner');
+select lives_ok(format('select public.set_caretaker(%L, %L)', :'pa', :'manager'), 'owners name a manager as caretaker');
+select throws_ok(format('update public.portfolios set owner_abroad = false where id = %L', :'pa'), '42501', null,
+                 'even owners cannot write the owner-abroad answer directly');
+select throws_ok(format('update public.portfolios set caretaker_user_id = null where id = %L', :'pa'), '42501', null,
+                 'even owners cannot write the caretaker directly');
+select throws_ok(format('update public.portfolios set caretaker_since = now() where id = %L', :'pa'), '42501', null,
+                 'even owners cannot write caretaker_since');
+
+-- Every member sees the answer and the caretaker; outsiders see neither.
+select is((select format('%s:%s', p.owner_abroad::text, p.caretaker_user_id) from public.portfolios p
+           where p.id = :'pa'),
+          format('true:%s', :'manager'), 'owner sees the answer and the caretaker');
+select tests.authenticate_as(:'manager');
+select is((select format('%s:%s', p.owner_abroad::text, p.caretaker_user_id) from public.portfolios p
+           where p.id = :'pa'),
+          format('true:%s', :'manager'), 'manager sees the answer and the caretaker');
+select tests.authenticate_as(:'accountant');
+select is((select format('%s:%s', p.owner_abroad::text, p.caretaker_user_id) from public.portfolios p
+           where p.id = :'pa'),
+          format('true:%s', :'manager'), 'accountant sees the answer and the caretaker');
+select tests.authenticate_as(:'viewer');
+select is((select format('%s:%s', p.owner_abroad::text, p.caretaker_user_id) from public.portfolios p
+           where p.id = :'pa'),
+          format('true:%s', :'manager'), 'viewer sees the answer and the caretaker');
+select tests.authenticate_as(:'outsider');
+select is((select count(*)::integer from public.portfolios p where p.id = :'pa'), 0,
+          'outsider sees neither (no row of A)');
 
 -- Service role and admin functions ---------------------------------------------
 select tests.authenticate_as(:'owner');

@@ -58,18 +58,20 @@ still removes a deleted account's files itself, within a few seconds' budget.
 
 ## Health checks
 
-| What to watch                                                                                                                        | Query or endpoint                                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Functions are up                                                                                                                     | `GET` or `HEAD /functions/v1/health` → 200                                                                                                                        |
-| Database, storage and auth are reachable                                                                                             | `GET /functions/v1/health?deep=1` with `x-health-token: <HEALTH_CHECK_TOKEN>` → 200 (503 lists the failing check)                                                 |
-| Leases the daily job could not maintain                                                                                              | `select lease_id, maintained_on, failures, last_error from private.lease_maintenance where failures > 0;`                                                         |
-| Days whose once-a-day work ran                                                                                                       | `select * from private.job_runs order by run_on desc limit 7;`                                                                                                    |
-| Multixact use (every client write locks, key share, all the portfolios where the caller has a role)                                  | `select mxid_age(datminmxid) from pg_database where datname = current_database();` stays far below `autovacuum_multixact_freeze_max_age` (400 million by default) |
-| Storage cleanup backlog and failures                                                                                                 | `select reason, count(*), min(enqueued_at), max(attempts) from private.storage_cleanup_queue group by reason;` and `... where last_error is not null`             |
-| The documents bucket keeps versioning off (a versioned delete is an update, which the trigger keeping referenced files does not see) | `select versioning_status from storage.buckets where id = 'documents';` → `DISABLED`                                                                              |
-| The most portfolios one person belongs to (each client write locks all of them)                                                      | `select max(n) from (select count(*) n from public.portfolio_members group by user_id) m;` stays well below 100                                                   |
-| Recent pg_cron runs (kept for two weeks)                                                                                             | `select jobname, status, return_message, start_time from cron.job_run_details join cron.job using (jobid) order by start_time desc limit 20;`                     |
-| pg_net responses of cleanup calls                                                                                                    | `select status_code, content, created from net._http_response order by created desc limit 10;`                                                                    |
+| What to watch                                                                                                                          | Query or endpoint                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Functions are up                                                                                                                       | `GET` or `HEAD /functions/v1/health` → 200                                                                                                                                                                                               |
+| Database, storage and auth are reachable                                                                                               | `GET /functions/v1/health?deep=1` with `x-health-token: <HEALTH_CHECK_TOKEN>` → 200 (503 lists the failing check)                                                                                                                        |
+| Leases the daily job could not maintain                                                                                                | `select lease_id, maintained_on, failures, last_error from private.lease_maintenance where failures > 0;`                                                                                                                                |
+| Days whose once-a-day work ran                                                                                                         | `select * from private.job_runs order by run_on desc limit 7;`                                                                                                                                                                           |
+| Multixact use (every client write locks, key share, all the portfolios where the caller has a role)                                    | `select mxid_age(datminmxid) from pg_database where datname = current_database();` stays far below `autovacuum_multixact_freeze_max_age` (400 million by default)                                                                        |
+| Storage cleanup backlog and failures                                                                                                   | `select reason, count(*), min(enqueued_at), max(attempts) from private.storage_cleanup_queue group by reason;` and `... where last_error is not null`                                                                                    |
+| The documents bucket keeps versioning off (a versioned delete is an update, which the trigger keeping referenced files does not see)   | `select versioning_status from storage.buckets where id = 'documents';` → `DISABLED`                                                                                                                                                     |
+| The most portfolios one person belongs to (each client write locks all of them)                                                        | `select max(n) from (select count(*) n from public.portfolio_members group by user_id) m;` stays well below 100                                                                                                                          |
+| Every caretaker is a manager of their portfolio (`CaretakerIsManager`; see [Deleting a user account](#deleting-a-user-account))        | `select p.id from public.portfolios p where p.caretaker_user_id is not null and not exists (select 1 from public.portfolio_members m where m.portfolio_id = p.id and m.user_id = p.caretaker_user_id and m.role = 'manager');` → no rows |
+| The server's time zones agree with the app's (after a Supabase Postgres upgrade or a `tzdata` bump; [Time-zone data](#time-zone-data)) | Run `tool/db/time_zone_skew.sql` → never an `Asia/Karachi` row; any other row is explained by a `tzdata` release the server and the app do not share, and recorded                                                                       |
+| Recent pg_cron runs (kept for two weeks)                                                                                               | `select jobname, status, return_message, start_time from cron.job_run_details join cron.job using (jobid) order by start_time desc limit 20;`                                                                                            |
+| pg_net responses of cleanup calls                                                                                                      | `select status_code, content, created from net._http_response order by created desc limit 10;`                                                                                                                                           |
 
 A queue item that keeps failing is retried with exponential backoff over its consecutive failed
 claims (1 minute doubling to 6 hours); `last_error` says why. An item handed back unfinished (the
@@ -735,14 +737,29 @@ Users delete their own accounts in the app (the `delete-account` Edge Function).
 delete a user (a support request, abuse), keep that order:
 
 1. In the SQL editor, run the account-data deletion first. It deletes every portfolio where the
-   user is the only owner (with its data and files), removes their other memberships, revokes
-   their pending invitations and stops the account from joining or creating portfolios:
+   user is the only owner (with its data and files), removes their other memberships (which clears
+   them as caretaker wherever they were one; each clearing is in the audit trail with no actor),
+   revokes their pending invitations, clears the country and time zone they declared, and stops
+   the account from joining or creating portfolios or changing its residence:
 
    ```sql
    select public.admin_delete_account_data('<user id>');
    ```
 
 2. Then delete the user in the dashboard (Authentication → Users) or through the Auth admin API.
+
+Known issue (finding M2 of `formal/tla/Membership`, open, low): even in this order, step 2 can
+deadlock with the deletion, at the same moment, of a portfolio the user created or worked in. By
+then the user belongs to no portfolio, but 30 `ON DELETE SET NULL` foreign keys may still name
+them (the portfolios they created, the members they invited, the rows they created, voided or
+uploaded, their audit rows). The Auth deletion sets them to NULL row by row without the
+portfolio's lock, while the portfolio's deletion holds the portfolio and its audit trail.
+PostgreSQL aborts one side with 40P01. If it is the Auth deletion, the user is still in Auth:
+repeat step 2 (in the app, the person's retry of `delete-account` runs both steps again). If it
+is the portfolio's deletion, it retries up to three times
+(`formal/tla/Membership/replay/residence.sh`, R9 and R10). The remedy is the owner's decision:
+`admin_delete_account_data` would set those columns to NULL under portfolio locks taken in id
+order, so that the Auth deletion finds nothing to lock (the model's README, Finding M2).
 
 Never delete a user in Auth alone:
 
@@ -756,7 +773,21 @@ Never delete a user in Auth alone:
   (or with 23503). Step 1 takes the account and then the portfolios `FOR UPDATE`, in the order
   every other writer uses, so in-flight requests finish first and later ones are refused; the
   Auth deletion then has nothing left to wait for (`formal/tla/Invitations/replay_findings.sh`
-  checks both orders).
+  checks both orders), on a database built from the migrations (see the restored database
+  below).
+- A member's deletion can deadlock with a change of their membership or with the portfolio's
+  deletion. The cascade deletes the membership and then, by `ON DELETE SET NULL`, needs their
+  audit rows (`audit_logs.actor_id`; everyone who created a portfolio or accepted an invitation
+  has one) and, for a caretaker, the portfolio row (`portfolios.caretaker_user_id`, the reverse
+  of the global order). PostgreSQL aborts one side with 40P01 if at the same moment they leave
+  the portfolio (caretaker or not: the leave's audit row needs their `auth.users` row), the
+  portfolio is deleted (`delete_portfolio`, or the account deletion of its only owner, which
+  holds the portfolio's audit trail), or, for a caretaker, an owner names them
+  (`set_caretaker`), changes their role or removes them (`update_member_role`,
+  `remove_member`). A portfolio deletion retries and usually succeeds; the others fail
+  (`formal/tla/Membership`: the `assume_direct_auth_*` configurations;
+  `formal/tla/Membership/replay/residence.sh`, R1, R2, R4 and R8). Step 1 removes the
+  memberships first, under the portfolio locks, so the Auth deletion finds none (R5).
 
 After pushing `20261108082804_invitation_findings.sql`, which revokes once the pending invitations
 direct Auth deletions left behind, this must answer 0 (`tool/db/upgrade_test.sh` checks the same on a
@@ -790,7 +821,91 @@ PostgreSQL has locked the `auth.users` row, so it would lock the account and the
 that row, while every insert that names the user locks that row last (its foreign-key check). On
 PostgreSQL 16.15 and 17.11 such a trigger still deadlocked with an acceptance in the same
 interleaving (`replay_findings.sh` keeps that check). It would also run inside GoTrue's transaction, where any
-error it raised would fail the Auth deletion.
+error it raised would fail the Auth deletion. For a caretaker, a trigger that cleared the caretaker
+first would avoid the deadlock with `update_member_role` and `remove_member`, but not the one with
+`set_caretaker`, whose foreign-key check needs the `auth.users` row last
+(`formal/tla/Membership/replay/residence.sh` checks both), nor those with leaving or with the
+portfolio's deletion through the audit row.
+
+### Changing a membership by hand
+
+The app changes memberships through `update_member_role` and `remove_member`, which lock the
+portfolio first. An operator who changes or deletes a `portfolio_members` row in the SQL editor
+does the same, in one transaction:
+
+```sql
+begin;
+select 1 from public.portfolios where id = '<portfolio id>' for update;
+update public.portfolio_members set role = 'viewer'
+where portfolio_id = '<portfolio id>' and user_id = '<user id>';
+commit;
+```
+
+Without the first statement, a change to the caretaker's membership locks the row and then, in
+its trigger (which clears the caretaker), the portfolio row: if an owner's `update_member_role`
+or `remove_member` of that person holds the portfolio at the same moment, PostgreSQL aborts one
+of them with 40P01 (`formal/tla/Membership`, `assume_service_member_write`;
+`formal/tla/Membership/replay/residence.sh`, R3). Concurrency scenario 31 checks the rule
+(`operator_locks_portfolio_first_*`).
+
+### A database restored from a dump
+
+Every order above holds on a database built from the migrations, where the foreign keys'
+actions on `auth.users` run in the order the migrations created them. A schema re-created from
+a dump (`pg_dump`, `supabase db dump`) gets them back in constraint-name order: the
+notifications are deleted before the profile, and the `ON DELETE SET NULL` of
+`portfolio_members.invited_by` runs before that of `portfolios.created_by`. There, even step 1
+first does not keep the Auth deletion of a user who created a portfolio and invited one of its
+members from deadlocking with an owner who names that member caretaker or changes their role at
+the same moment, and a direct Auth deletion can deadlock with the person marking notifications
+read (`formal/tla/Membership`: `assume_restored_inviter`, `assume_restored_notes`;
+`formal/tla/Membership/replay/residence.sh`, R6 and R7, on a `pg_dump | psql` copy). The
+procedure in [Restoring](#restoring) rebuilds the schema from the migrations, which keeps their
+order: never restore the schema from a dump.
+
+## Time-zone data
+
+The app bundles the IANA tz database in `mm_core` for each person's own alerts, quiet hours and
+dual time; business dates stay on Pakistan time ([time](architecture/time.md)). The data comes from
+the PyPI `tzdata` package pinned in `tool/requirements.txt`. When IANA publishes a release
+(Dependabot opens the bump for `/tool`):
+
+1. Bump `tzdata` in `tool/requirements.txt` with its hash from PyPI, and install it
+   (`make bootstrap`).
+2. Run `make contracts`. It rewrites `contracts/residence_vectors.json`,
+   `contracts/time_zone_vectors.json`, `packages/mm_core/lib/src/time/time_zone_data.g.dart`,
+   suite 23 and `tool/db/time_zone_skew.sql`, and fails if the release dropped a stored name or put
+   two clock changes of a zone less than two days apart.
+3. If `zone.tab` or `iso3166.tab` gained a name, write a migration that widens
+   `app.supported_time_zones()` or `app.supported_country_codes()` first, with the lists from
+   `python3 tool/contracts/generate.py --print-sql-lists` (no revalidation is needed: no stored
+   value becomes invalid). Suite 23 fails until it is there. Apply it to the hosted project before
+   the app release.
+4. Run `make test-core test-db`, then release the app.
+5. A name never leaves the lists: one that leaves `zone.tab` goes into `RETAINED_ZONES` in
+   `tool/contracts/time_zones.py` with the zone it now links to (codes into
+   `RETAINED_COUNTRIES`).
+
+The hosted database keeps its own tz data (the Supabase image's). After each Supabase Postgres
+upgrade, and after a `tzdata` bump, run `tool/db/time_zone_skew.sql` on the hosted project (SQL
+editor, read-only). Every row it returns is a stored zone and an instant where the server's offset
+differs from the app's. Rows are normal when the server's `tzdata` and the pinned one are different
+releases; read each one this way:
+
+- `Asia/Karachi`: never expected. Stop and follow "The Pakistan tripwire" in
+  [time](architecture/time.md): Pakistan's clock has changed, and business time needs its own
+  change.
+- A zone that a release between the server's and the pinned one changed (IANA's `NEWS` file names
+  the zones of each release; on PostgreSQL 16 with tzdata 2026e it is `America/Havana`, which
+  2026f changed), or `Africa/Casablanca`, whose changes Morocco sets year by year: expected. Record
+  the rows where the run is recorded (its commit, and `.planning/STATE.md`, Hosted Supabase
+  Project). Nothing reads a stored zone in SQL yet, so they change nothing; once the push
+  planner's SQL helpers exist, a person in that zone may get an alert an hour early or late on the
+  dates listed, until the two releases agree.
+- `server_seconds` NULL (the server does not know the zone), or a row no release explains: look
+  into it before any SQL relies on that zone.
+
+Business dates are unaffected: they use Pakistan's fixed offset.
 
 ## Phone and CNIC checks (`20261108200216`, `20261108200227`)
 
@@ -850,4 +965,21 @@ Then:
    ```
 
 4. Run the database advisors (dashboard → Advisors) and confirm only the reviewed findings remain
-   (the write RPCs pinned in `supabase/tests/database/01_schema_security.test.sql`).
+   (the 23 write RPCs pinned in `supabase/tests/database/01_schema_security.test.sql`).
+5. List the order in which GoTrue's foreign-key actions on `auth.users` run (read-only, SQL
+   editor), and compare it with the migrated order `formal/tla/Membership/replay/residence.sh`
+   prints:
+
+   ```sql
+   select string_agg(c.conrelid::regclass || '.' || a.attname, ', ' order by t.tgname collate "C")
+   from pg_trigger t
+   join pg_constraint c on c.oid = t.tgconstraint
+   join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+   where t.tgrelid = 'auth.users'::regclass and t.tgname like 'RI_ConstraintTrigger_a_%'
+     and t.tgtype & 8 = 8;
+   ```
+
+   `portfolios.caretaker_user_id` comes last while its trigger's OID has as many digits as the
+   others'. If it comes before `portfolio_members.user_id`, record it in `.planning/STATE.md`:
+   the Membership model's `caretaker_first` configurations then describe the hosted project (see
+   its README, What is modelled).
