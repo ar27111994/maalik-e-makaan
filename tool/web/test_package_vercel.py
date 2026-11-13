@@ -6,6 +6,7 @@ python3 -m unittest discover -s tool/web -p 'test_*.py'
 from __future__ import annotations
 
 import contextlib
+import http.client
 import io
 import json
 import re
@@ -13,6 +14,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import unittest.mock
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -38,6 +40,17 @@ ASSETLINKS = [
 ]
 
 INDEX = '<!DOCTYPE html><html><head><base href="/"></head><body>app</body></html>'
+
+# The web app's origins in the tests: the origin and two earlier addresses.
+ORIGIN = "https://app.example.pk"
+OLD_HOSTS = ("old.example.org", "older-app.example.net")
+APP = pv.AppOrigins(ORIGIN, tuple(f"https://{host}" for host in OLD_HOSTS))
+
+
+def write_origins(root: Path, app: object) -> Path:
+    path = root / "origins.json"
+    path.write_text(json.dumps({"site": {"origin": "https://example.pk"}, "app": app}))
+    return path
 
 
 def write_build(root: Path, assetlinks: object = ASSETLINKS, extra: dict | None = None) -> Path:
@@ -198,6 +211,50 @@ class BuildConfigTest(unittest.TestCase):
         self.assertEqual(cache_control(config, "/main.dart.js"), [pv.CACHE_REVALIDATE])
         self.assertEqual(len(config["routes"]), 4)
 
+    def test_without_earlier_addresses_nothing_redirects(self):
+        for app in (None, pv.AppOrigins(ORIGIN)):
+            with self.subTest(app=app):
+                config = pv.build_config(self.FILES, SUPABASE, app)
+                self.assertEqual(config, pv.build_config(self.FILES, SUPABASE))
+                self.assertFalse(any("has" in route for route in config["routes"]))
+
+    def test_earlier_addresses_redirect_around_the_filesystem(self):
+        routes = pv.build_config(self.FILES, SUPABASE, APP)["routes"]
+        handle = routes.index({"handle": "filesystem"})
+        has = [{"type": "host", "value": r"old\.example\.org|older-app\.example\.net"}]
+        self.assertEqual(
+            routes[handle - 1],
+            {
+                "src": r"^/(?:index\.html)?$",
+                "has": has,
+                "headers": {"Location": f"{ORIGIN}/"},
+                "status": 308,
+            },
+        )
+        self.assertEqual(
+            routes[handle + 1],
+            {
+                "src": "^/(?!auth/callback$)(.*)$",
+                "has": has,
+                "headers": {"Location": f"{ORIGIN}/$1"},
+                "status": 308,
+            },
+        )
+        self.assertEqual(routes[-1], {"src": "^/.*$", "dest": "/index.html", "status": 200})
+        # The header routes come first and continue, so the redirects carry them too.
+        for route in routes[: handle - 1]:
+            self.assertTrue(route["continue"])
+        # A host value matches only those hosts, whole (Vercel anchors it, as the server does).
+        value = has[0]["value"]
+        for host, matches in (
+            ("old.example.org", True),
+            ("older-app.example.net", True),
+            ("oldxexample.org", False),
+            ("app.example.pk", False),
+            ("old.example.org.evil.example", False),
+        ):
+            self.assertEqual(bool(re.fullmatch(value, host)), matches, host)
+
     def test_every_security_header_is_set(self):
         headers = pv.build_config(self.FILES, SUPABASE)["routes"][0]["headers"]
         self.assertEqual(
@@ -212,6 +269,52 @@ class BuildConfigTest(unittest.TestCase):
                 "Cross-Origin-Opener-Policy",
             },
         )
+
+
+class AppOriginsTest(unittest.TestCase):
+    def test_reads_contracts_origins_json_by_default(self):
+        app = json.loads((REPO / "contracts/origins.json").read_text(encoding="utf-8"))["app"]
+        self.assertEqual(
+            pv.read_app_origins(), pv.AppOrigins(app["origin"], tuple(app.get("legacy", [])))
+        )
+
+    def test_accepts_origins_with_or_without_earlier_addresses(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_origins(Path(tmp), {"origin": ORIGIN})
+            self.assertEqual(pv.read_app_origins(path), pv.AppOrigins(ORIGIN))
+            path = write_origins(Path(tmp), {"origin": ORIGIN, "legacy": list(APP.legacy)})
+            self.assertEqual(pv.read_app_origins(path), APP)
+            self.assertEqual(APP.legacy_hosts(), OLD_HOSTS)
+
+    def test_refuses_anything_but_https_origins_named_once(self):
+        cases = {
+            "http": {"origin": "http://app.example.pk"},
+            "upper case": {"origin": "https://App.example.pk"},
+            "a trailing slash": {"origin": "https://app.example.pk/"},
+            "a path": {"origin": "https://example.pk/app"},
+            "a port": {"origin": "https://app.example.pk:8443"},
+            "credentials": {"origin": "https://u@app.example.pk"},
+            "a bare host": {"origin": "app.example.pk"},
+            "a regex character": {"origin": "https://app.example.pk|x"},
+            "legacy not a list": {"origin": ORIGIN, "legacy": "https://old.example.org"},
+            "legacy not a string": {"origin": ORIGIN, "legacy": [1]},
+            "a repeat": {"origin": ORIGIN, "legacy": [ORIGIN]},
+            "no origin": {"legacy": []},
+            "not an object": [ORIGIN],
+        }
+        for name, app in cases.items():
+            with (
+                self.subTest(name),
+                tempfile.TemporaryDirectory() as tmp,
+                self.assertRaises(pv.PackagingError),
+            ):
+                pv.read_app_origins(write_origins(Path(tmp), app))
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(pv.PackagingError, "cannot read"):
+                pv.read_app_origins(Path(tmp) / "absent.json")
+            (Path(tmp) / "bad.json").write_text("{", encoding="utf-8")
+            with self.assertRaisesRegex(pv.PackagingError, "cannot read"):
+                pv.read_app_origins(Path(tmp) / "bad.json")
 
 
 class CheckBuildTest(unittest.TestCase):
@@ -302,6 +405,16 @@ class PackageTest(unittest.TestCase):
                 )
             self.assertEqual(code, 0)
             self.assertIn("Packaged 10 files", stdout.getvalue())
+            self.assertIn("redirect to the origin", stdout.getvalue())
+            with (
+                contextlib.redirect_stderr(stderr),
+                unittest.mock.patch.object(pv, "ORIGINS", Path(tmp) / "absent.json"),
+            ):
+                code = pv.main(
+                    ["--build", str(build), "--output", f"{tmp}/o", "--supabase-url", SUPABASE]
+                )
+            self.assertEqual(code, 2)
+            self.assertIn("cannot read the web app's origins", stderr.getvalue())
 
 
 class ServeOutputTest(unittest.TestCase):
@@ -313,7 +426,8 @@ class ServeOutputTest(unittest.TestCase):
         root = Path(cls.tmp.name)
         build = write_build(root, extra={"assets/logo.0123abcd.png": "png"})
         output = root / ".vercel/output"
-        pv.package(build, output, SUPABASE)
+        origins = write_origins(root, {"origin": APP.origin, "legacy": list(APP.legacy)})
+        pv.package(build, output, SUPABASE, origins)
         cls.server = serve_output.serve(output)
         cls.base = "http://{}:{}".format(*cls.server.server_address[:2])
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
@@ -332,6 +446,58 @@ class ServeOutputTest(unittest.TestCase):
                 return response.status, dict(response.headers), response.read().decode()
         except urllib.error.HTTPError as error:
             return error.code, dict(error.headers), error.read().decode()
+
+    def get_as(self, host: str, path: str, method: str = "GET"):
+        """A request with the Host header `host` (redirects are not followed)."""
+        connection = http.client.HTTPConnection(*self.server.server_address[:2], timeout=10)
+        try:
+            connection.request(method, path, headers={"Host": f"{host}:443"})
+            response = connection.getresponse()
+            return response.status, dict(response.getheaders()), response.read().decode()
+        finally:
+            connection.close()
+
+    def test_an_earlier_address_redirects_pages_to_the_origin_with_path_and_query(self):
+        for host in OLD_HOSTS:
+            for path, location in (
+                ("/", f"{ORIGIN}/"),
+                ("/index.html", f"{ORIGIN}/"),
+                ("/?from=mail", f"{ORIGIN}/?from=mail"),
+                ("/invite", f"{ORIGIN}/invite"),
+                ("/invite?x=1", f"{ORIGIN}/invite?x=1"),
+                ("/a/b/?x=1&y=%20", f"{ORIGIN}/a/b/?x=1&y=%20"),
+                ("/auth/callback/extra", f"{ORIGIN}/auth/callback/extra"),
+                ("/auth/callbacks", f"{ORIGIN}/auth/callbacks"),
+            ):
+                with self.subTest(host=host, path=path):
+                    status, headers, body = self.get_as(host, path)
+                    self.assertEqual((status, headers["Location"], body), (308, location, ""))
+                    self.assertEqual(headers["Cache-Control"], pv.CACHE_REVALIDATE)
+                    self.assertEqual(
+                        headers["Content-Security-Policy"], pv.content_security_policy(SUPABASE)
+                    )
+
+    def test_an_earlier_address_keeps_serving_its_files_and_the_callback(self):
+        host = OLD_HOSTS[0]
+        status, headers, body = self.get_as(host, "/.well-known/assetlinks.json")
+        self.assertEqual((status, headers["Content-Type"]), (200, "application/json"))
+        self.assertEqual(json.loads(body), ASSETLINKS)
+        for path in ("/main.dart.js", "/flutter_bootstrap.js", "/canvaskit/canvaskit.wasm"):
+            with self.subTest(path=path):
+                self.assertEqual(self.get_as(host, path, "HEAD")[0], 200)
+        for path in ("/auth/callback", "/auth/callback?code=x", "/AUTH/CALLBACK?code=x"):
+            with self.subTest(path=path):
+                status, headers, body = self.get_as(host, path)
+                self.assertEqual((status, body), (200, INDEX))
+                self.assertNotIn("Location", headers)
+
+    def test_the_origin_and_other_hosts_are_never_redirected(self):
+        for host in ("app.example.pk", "preview-abc.example.org", "xold.example.org", "localhost"):
+            for path in ("/", "/invite?x=1", "/a/b"):
+                with self.subTest(host=host, path=path):
+                    status, headers, body = self.get_as(host, path)
+                    self.assertEqual((status, body), (200, INDEX))
+                    self.assertNotIn("Location", headers)
 
     def test_unknown_paths_fall_back_to_index_with_headers(self):
         for path in ("/", "/auth/callback?code=x", "/invite/abc", "/a/b/c/d"):
@@ -369,6 +535,30 @@ class ServeOutputTest(unittest.TestCase):
             {"version": 3, "routes": [{"handle": "miss"}]},
             {"version": 3, "routes": [{"src": "/a", "dest": "/b"}]},
             {"version": 3, "routes": [{"src": "/a", "headers": {}, "continue": True, "has": []}]},
+            {
+                "version": 3,
+                "routes": [
+                    {
+                        "src": "/a",
+                        "status": 308,
+                        "headers": {"Location": "/b"},
+                        "has": [{"type": "header", "key": "x", "value": "y"}],
+                    }
+                ],
+            },
+            {
+                "version": 3,
+                "routes": [
+                    {"src": "/a", "status": 308, "headers": {"Location": "/b"}, "continue": True}
+                ],
+            },
+            {
+                "version": 3,
+                "routes": [
+                    {"src": "/a", "status": 308, "headers": {"Location": "/b"}, "dest": "/c"}
+                ],
+            },
+            {"version": 3, "routes": [{"src": "/a", "status": 308, "headers": {}}]},
             {"version": 3, "routes": [{"handle": "filesystem"}, {"src": "/a", "headers": {}}]},
             {"version": 3, "routes": [{"handle": "filesystem"}, {"handle": "filesystem"}]},
         ]

@@ -13,12 +13,23 @@ Copies the build into OUTPUT/static and writes OUTPUT/config.json, which
    points) keeps the same names from build to build, so everything else,
    index.html and the paths that fall back to it included, is revalidated on
    every load (`no-cache`; unchanged files answer 304).
-3. `{"handle": "filesystem"}`: existing files are served.
-4. Every other path (/auth/callback?code=..., /invite/...) serves index.html
+3. On an earlier address of the web app (`app.legacy` in
+   contracts/origins.json, decision D-20): `/` and `/index.html` redirect
+   permanently (308) to the origin.
+4. `{"handle": "filesystem"}`: existing files are served, on every host.
+5. On an earlier address: every other path except /auth/callback redirects
+   permanently to the same path and query on the origin (a browser keeps the
+   #fragment of /invite#token=...).
+6. Every other path (/auth/callback?code=..., /invite/...) serves index.html
    with status 200, so the app's router handles it.
 
-`.well-known/assetlinks.json` (Android App Links) is served as
-application/json. The Supabase origin is the only backend the CSP allows.
+So an earlier address keeps answering what was sent before the move: the
+files, among them `.well-known/assetlinks.json`, which Android checks on each
+App Links host without following a redirect, and /auth/callback, which boots
+the app where the sign-in verifier of a link requested there is stored. The
+redirects carry the security headers and `no-cache`, so browsers revalidate
+them. `.well-known/assetlinks.json` is served as application/json. The
+Supabase origin is the only backend the CSP allows.
 """
 
 from __future__ import annotations
@@ -28,9 +39,11 @@ import json
 import re
 import shutil
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
+ORIGINS = Path(__file__).resolve().parents[2] / "contracts/origins.json"
 ASSETLINKS = ".well-known/assetlinks.json"
 ASSETLINKS_RELATION = "delegate_permission/common.handle_all_urls"
 
@@ -77,8 +90,47 @@ STATIC_HEADERS = {
 FONT_FALLBACK_ORIGIN = "https://fonts.gstatic.com"
 
 
+# The path an earlier address keeps serving (route 5), besides the files.
+KEPT_ON_LEGACY = "auth/callback"
+
+
 class PackagingError(Exception):
     """The build or the arguments cannot be packaged."""
+
+
+@dataclass(frozen=True)
+class AppOrigins:
+    """The web app's origin, and the earlier addresses that redirect to it."""
+
+    origin: str
+    legacy: tuple[str, ...] = ()
+
+    def legacy_hosts(self) -> tuple[str, ...]:
+        return tuple(url.removeprefix("https://") for url in self.legacy)
+
+
+_ORIGIN = re.compile(r"https://(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}")
+
+
+def read_app_origins(path: Path | None = None) -> AppOrigins:
+    """The web app's entry of contracts/origins.json: https origins, written as browsers send
+    them (lower case, no port, path or trailing slash), each named once."""
+    path = path or ORIGINS
+    try:
+        app = json.loads(path.read_text(encoding="utf-8"))["app"]
+        origin, legacy = app["origin"], app.get("legacy", [])
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as error:
+        raise PackagingError(f"{path}: cannot read the web app's origins ({error!r})") from error
+    if not isinstance(legacy, list):
+        raise PackagingError(f"{path}: app.legacy must be a list")
+    for url in [origin, *legacy]:
+        if not isinstance(url, str) or not _ORIGIN.fullmatch(url):
+            raise PackagingError(
+                f"{path}: {url!r} is not an https origin in lower case, without a port or path"
+            )
+    if len({origin, *legacy}) != 1 + len(legacy):
+        raise PackagingError(f"{path}: the web app's origins repeat an address")
+    return AppOrigins(origin, tuple(legacy))
 
 
 def supabase_origin(url: str) -> str:
@@ -150,8 +202,34 @@ def _alternation(paths: list[str]) -> str:
     return "|".join(re.escape(path) for path in paths)
 
 
-def build_config(files: list[str], supabase: str) -> dict:
-    """The Build Output API v3 config.json for a build holding `files`."""
+def legacy_routes(app: AppOrigins | None) -> tuple[list[dict], list[dict]]:
+    """The redirects of the earlier addresses: the ones before the filesystem (the root, which
+    would otherwise serve index.html), and the one after it (every other path but the callback).
+    None when there is no earlier address."""
+    if app is None or not app.legacy:
+        return [], []
+    # A host holds only [a-z0-9.-] (read_app_origins), so escaping the dots is enough, as in
+    # Vercel's own example; a backslash before "-" is an error in some regex dialects.
+    hosts = "|".join(host.replace(".", r"\.") for host in app.legacy_hosts())
+    has = [{"type": "host", "value": hosts}]
+    before = {
+        "src": r"^/(?:index\.html)?$",
+        "has": has,
+        "headers": {"Location": f"{app.origin}/"},
+        "status": 308,
+    }
+    after = {
+        "src": f"^/(?!{KEPT_ON_LEGACY}$)(.*)$",
+        "has": has,
+        "headers": {"Location": f"{app.origin}/$1"},
+        "status": 308,
+    }
+    return [before], [after]
+
+
+def build_config(files: list[str], supabase: str, app: AppOrigins | None = None) -> dict:
+    """The Build Output API v3 config.json for a build holding `files`, with the redirects of
+    `app`'s earlier addresses."""
     immutable = [path for path in files if is_immutable(path)]
     routes: list[dict] = [
         {"src": "^/.*$", "headers": security_headers(supabase), "continue": True},
@@ -174,8 +252,11 @@ def build_config(files: list[str], supabase: str) -> dict:
         routes.append(
             {"src": "^/.*$", "headers": {"Cache-Control": CACHE_REVALIDATE}, "continue": True}
         )
+    before, after = legacy_routes(app)
     routes += [
+        *before,
         {"handle": "filesystem"},
+        *after,
         {"src": "^/.*$", "dest": "/index.html", "status": 200},
     ]
     return {
@@ -226,9 +307,11 @@ def prepare_output(output: Path) -> None:
     output.mkdir(parents=True)
 
 
-def package(build: Path, output: Path, supabase_url: str) -> dict:
-    """Writes the Build Output directory and returns its config."""
+def package(build: Path, output: Path, supabase_url: str, origins: Path | None = None) -> dict:
+    """Writes the Build Output directory and returns its config. The web app's origins come
+    from contracts/origins.json unless `origins` names another file."""
     supabase = supabase_origin(supabase_url)
+    app = read_app_origins(origins)
     check_build(build)
     files = site_files(build)
     prepare_output(output)
@@ -237,7 +320,7 @@ def package(build: Path, output: Path, supabase_url: str) -> dict:
         target = static / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(build / relative, target)
-    config = build_config(files, supabase)
+    config = build_config(files, supabase, app)
     (output / "config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     return config
 
@@ -255,6 +338,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     count = sum(1 for path in (args.output / "static").rglob("*") if path.is_file())
     print(f"Packaged {count} files into {args.output} ({len(config['routes'])} routes)")
+    redirects = [route for route in config["routes"] if route.get("status") == 308]
+    if redirects:
+        print(f"Earlier addresses ({redirects[0]['has'][0]['value']}) redirect to the origin")
     return 0
 
 

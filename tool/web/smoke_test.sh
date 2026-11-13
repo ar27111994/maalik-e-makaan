@@ -2,7 +2,7 @@
 # Smoke test of a deployed web app: the app shell, the SPA fallback, the
 # security headers and the Android App Links file.
 #
-#   tool/web/smoke_test.sh https://maalik-e-makaan.vercel.app io.github.ar27111994.maalik_e_makaan [SUPABASE_URL]
+#   tool/web/smoke_test.sh https://app.mmakaan.app io.github.ar27111994.maalik_e_makaan [SUPABASE_URL]
 #
 # With SUPABASE_URL, the Content-Security-Policy must allow that project.
 set -euo pipefail
