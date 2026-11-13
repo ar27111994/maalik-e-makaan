@@ -208,7 +208,9 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    list sends the link to the Site URL instead, where the iOS sign-in cannot finish. Keep the
    earlier address's two beside them, `https://maalik-e-makaan.vercel.app/auth/callback` and
    `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback`, for as long
-   as builds made before the move are in use ([Domains](#domains)).
+   as builds made before the move are in use ([Domains](#domains)). Every deploy checks these
+   settings first (`tool/web/check_auth_urls.py`, in the Deploy workflow's `supabase` job) and
+   stops while one that a build sends is not allowed.
 6. **Templates** (Authentication, Emails, Templates). Each e-mail is in English, then Urdu. For
    "Confirm signup", "Reset password" and "Change email address", paste the subject from
    `supabase/config.toml` (`[auth.email.template.*]`) and the body from
@@ -254,7 +256,9 @@ directory. The routes in `config.json`, in order:
    HSTS (two years), `X-Content-Type-Options: nosniff`,
    `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`,
    `Cross-Origin-Opener-Policy: same-origin`, and a `Permissions-Policy` that turns off the
-   camera, microphone, geolocation, motion sensors, payment and USB.
+   camera, microphone, geolocation, motion sensors, payment and USB. With them,
+   `X-Robots-Tag: noindex`: every path answers with the app's shell, and the website is what
+   search engines index (D-01).
 2. `Cache-Control`. Flutter's file names (`main.dart.js`, `canvaskit/*`, `assets/*`) carry no
    content hash and stay the same from build to build, so every file is revalidated on each load
    (`no-cache`; an unchanged file answers 304). A file whose name does carry a hash
@@ -265,7 +269,8 @@ directory. The routes in `config.json`, in order:
    host): `/` and `/index.html` redirect permanently (308) to the origin.
 4. `{"handle": "filesystem"}`: existing files are served, on every host.
 5. On an earlier address: every other path but `/auth/callback` redirects permanently to the
-   same path and query on the origin; browsers keep the `#token=…` of an invitation link.
+   same path and query on the origin (the route names the path; Vercel adds the query); browsers
+   keep the `#token=…` of an invitation link.
 6. Every other path, such as `/auth/callback?code=…` or `/invite/…`, serves `index.html` with
    status 200, and the app's router takes over.
 
@@ -393,27 +398,50 @@ an address on the domain until one is added to `NAMED_MAILBOXES` in
 | `maalik-e-makaan.vercel.app`      | `maalik-e-makaan`      | `/.well-known/assetlinks.json`, the app's files and `/auth/callback` as before; every other path 308 to `app.mmakaan.app`      |
 
 **One source.** [`contracts/origins.json`](../contracts/origins.json) names each origin once, and
-each earlier address under `legacy` (and `www` under the site's `aliases`). The website's
-defaults, the deck, the Deploy and Release workflows (`APP_URL` for every build), the web app's
-redirects (`tool/web/package_vercel.py`) and the Android App Link hosts read it; the website's
-redirect, the Android manifest and every address in the docs are checked against it
-(`tests/unit/vercel.test.ts`, `tool/android/check_manifest.py`, and C17 of `make docs-check`).
-The addresses travel with the release tag: nothing changes in production until the release that
-carries a change to the file, and a site refresh of an older tag keeps that tag's addresses.
+each earlier address under `legacy` (and `www` under the site's `aliases`). Code reads it: the
+website's defaults, the deck, the Deploy and Release workflows (`APP_URL` for every build, and the
+checks below) and the web app's redirects (`tool/web/package_vercel.py`). Two files spell the
+addresses themselves, and CI checks them against it: the Android manifest's App Link hosts
+(`tool/android/check_manifest.py`) and `website/vercel.json`'s redirect
+(`tests/unit/vercel.test.ts`). The docs name the origins through generated facts, and C17 of
+`make docs-check` checks every other address in the repository. The addresses travel with the
+release tag: nothing changes in production until the release that carries a change to the file, and
+a site refresh of an older tag keeps that tag's addresses.
+
+**Checked before anything is deployed.** The workflows refuse to send people to an address that
+cannot answer for them:
+
+- Release builds nothing until the web app's origin answers over HTTPS with its App Links file
+  (`tool/web/check_live.py app`): every build names the origin, and an Android build lists it in its
+  App Links, where on Android 6 to 11 one host that fails costs every host's links. Deploy's `web`
+  job checks the same before it builds.
+- Deploy's `site` job deploys nothing until the site's origin answers, `www` redirects to it, and
+  the web app the site links to is the deployment built for its origin: the web app's earlier
+  address must already redirect to it (`tool/web/check_live.py site`). Release also deploys the
+  website only after the web app's deploy has succeeded.
+- Deploy's `supabase` job deploys nothing until Auth allows the e-mail links of the release's builds
+  (`tool/web/check_auth_urls.py`, step 4 below), and its `web` job builds nothing until the Edge
+  Functions accept the origin (step 5).
 
 **What the earlier addresses keep answering, and why.**
 
-- `maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, for as long as the address exists:
-  every Android build from the release that carries the move on also lists the old host in its
-  App Links, and Android checks the file on each host without following a redirect. Builds from
-  before the move list only the old host, so their e-mail links keep opening the app.
+- `maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, for as long as the address exists: every
+  Android build from the release that carries the move on also lists the old host in its App Links,
+  and Android checks the file on each host without following a redirect. Builds from before the move
+  list only the old host. Their sign-up, reset and e-mail-change links name the build's own
+  `APP_URL`, the old address, so they keep opening the app. Invitation links do not: the server
+  builds them from the Edge Functions' `APP_URL` secret, so once that names the new address (step
+  8), such a build opens an invitation in the browser, on the web app, where the invitee signs in;
+  installing the new APK brings invitations back into the app.
 - `maalik-e-makaan.vercel.app/auth/callback` and the files it needs, until the release after the
   move (at least 24 hours later): a sign-up, reset or e-mail change requested on the old address
   keeps its sign-in verifier in that origin's storage, so its link must finish there. The next
   release redirects it too, keeping only `assetlinks.json`.
-- Every other path redirects with 308 (permanent, the method kept). An invitation link,
-  `/invite#token=…`, arrives with its token, since browsers keep the fragment across a redirect;
-  on Android the App Link opens the app before any redirect.
+- Every other path redirects with 308 (permanent, the method kept), with the path and the query:
+  Vercel passes the request's query on to a redirect's destination (Vercel's documentation,
+  Redirects), and the redirect smoke tests check it after every deploy. An invitation link,
+  `/invite#token=…`, arrives with its token, since browsers keep the fragment across a redirect; on
+  Android the App Link opens the app before any redirect.
 - Keep the redirects for at least a year, and best for good: links in old e-mails, bookmarks and
   search results use them.
 
@@ -427,61 +455,100 @@ The owner's steps, with the agent's pull request between them; `docs/release-rea
 actions, item 13, tracks them. Each step is safe on its own, and nothing visible changes until
 step 7.
 
-1. _(Optional)_ **Search Console, old property.** Add a URL-prefix property for
-   `https://maalik-e-makaan-site.vercel.app/` and verify it with the HTML file method; the file
-   (`google<16 hex digits>.html`) goes in `website/public/`, which the old address keeps serving.
-   Without it, Search Console's change of address cannot be used (step 11).
+1. _(Optional)_ **Search Console, old property, part one.** Add a URL-prefix property for
+   `https://maalik-e-makaan-site.vercel.app/`, choose the HTML file method and download the file
+   (`google<16 hex digits>.html`). Send its name, so that this pull request, or one merged before
+   the release, adds it to `website/public/`. Do not press Verify yet: the old address serves the
+   release from before the move, which lacks the file, until step 7's website deploy (step 9
+   finishes it). Without the property, Search Console's change of address cannot be used (step 11).
 2. **Dynadot DNS.** Remove the parking records (an `A` record to Dynadot's parking address on the
-   apex, `www`, `app` or a wildcard, any `AAAA`, any URL forwarding). Add, with a short TTL:
-   `A` records for the apex to `216.198.79.1` and `64.29.17.1`, and `CNAME` records for `www` and
-   `app` to the targets Vercel shows for each (Settings, Domains; `cname.vercel-dns.com.` also
-   works). Add no `CAA` record, or one that allows `letsencrypt.org`.
+   apex, `www`, `app` or a wildcard, any `AAAA`, any URL forwarding). Add, with a short TTL: `A`
+   records for the apex to `216.198.79.1` and `64.29.17.1`, and `CNAME` records for `www` and `app`
+   to the targets Vercel shows for each (Settings, Domains; `cname.vercel-dns.com.` also works). Add
+   no `CAA` record, or one that allows `letsencrypt.org`.
 3. **Wait for HTTPS.** Vercel shows "Valid Configuration" and issues the certificates. Check:
    `curl -sI https://mmakaan.app/` answers 200, `https://www.mmakaan.app/x?y=1` answers 308 to
    `https://mmakaan.app/x?y=1`, and `https://app.mmakaan.app/.well-known/assetlinks.json` answers
-   200 with JSON. The new hosts now serve the current deployments; nothing links to them yet.
-4. **Supabase Auth** (Authentication, URL Configuration): add the redirect URLs
-   `https://app.mmakaan.app/auth/callback` and
-   `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback`. Keep both earlier ones,
-   and leave the Site URL as it is for now.
-5. **Edge Function secret** `ALLOWED_ORIGINS=https://app.mmakaan.app,https://maalik-e-makaan.vercel.app`
-   (no redeploy needed). Leave `APP_URL` as it is for now: invitations still go to the web app
-   that is live.
-6. **Merge the pull request** once its checks pass and step 3 holds. Nothing changes in
+   200 with JSON. The new hosts now serve the current deployments. The web app there is still the
+   build from before the move, whose e-mail links name the old address, so do not share or use
+   `https://app.mmakaan.app` until step 7's web deploy. Add uptime monitors on
+   `https://app.mmakaan.app/` and `https://mmakaan.app/` now (200 each, the certificate checked on
+   the same host; Monitoring and alerts). The monitor on `https://maalik-e-makaan.vercel.app/`
+   follows redirects, so it raises no false alarm after step 7; it goes at step 10.
+4. **Supabase Auth** (Authentication, URL Configuration): make sure the redirect URLs list all four
+   callbacks, and add any that is missing: `https://app.mmakaan.app/auth/callback`,
+   `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback`,
+   `https://maalik-e-makaan.vercel.app/auth/callback` and
+   `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback`. The earlier
+   https one may have worked unlisted, only because Auth allows any address on the Site URL's
+   scheme, host and port; step 8 moves the Site URL, and builds from before the move then need it
+   listed. Leave the Site URL as it is for now. Deploy's `supabase` job reads these settings with
+   the Management API and stops while one is missing (only a warning if its token may not read them;
+   check by hand then).
+5. **Edge Function secret**
+   `ALLOWED_ORIGINS=https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no redeploy
+   needed). Leave `APP_URL` as it is for now: invitations still go to the web app that is live.
+6. **Merge the pull request** once its checks pass and step 3 holds, and go on to step 7 in the same
+   sitting: from the merge, the README and `llms.txt` on `main` name `https://app.mmakaan.app`,
+   which serves the build from before the move until step 7's web deploy. Nothing changes in
    production: a site refresh still builds the last tag, with its own addresses.
-7. **Release.** Merge the release pull request and approve the Deploy runs. The backend and the
-   web app go first: the web app's `APP_URL` becomes `https://app.mmakaan.app`, and the old
-   address starts redirecting. The website follows once the builds are attached; until then its
-   links reach the web app through the redirect. Check every smoke test, the redirect ones
-   included.
+7. **Release.** Merge the release pull request and approve the Deploy runs. Release checks that the
+   web app's origin answers before it builds anything. The backend and the web app go first: the
+   `supabase` job checks Auth's redirect URLs (step 4), the `web` job that the origin answers and
+   that the Edge Functions accept it (step 5); then the web app's `APP_URL` becomes
+   `https://app.mmakaan.app`, and the old address starts redirecting. The website follows once the
+   builds are attached and the web app's deploy has succeeded, and checks first that its new
+   addresses answer and that the old web app address redirects. Check every smoke test, the redirect
+   ones included; if one fails on the query or a path, roll forward with a fix rather than back
+   (Rollback and restore).
 8. **Right after the web deploy:** Auth's Site URL to `https://app.mmakaan.app`, and the Edge
-   Function secret `APP_URL=https://app.mmakaan.app`, so invitations link to the new address.
-   Changed earlier, an invitee would land on a build whose e-mail links still name the old
-   address.
+   Function secret `APP_URL=https://app.mmakaan.app`, so invitations link to the new address
+   (changed earlier, an invitee would land on a build whose e-mail links still name the old
+   address). Then delete the `APP_URL` repository variable (Settings, Secrets and variables,
+   Actions, Variables): nothing from this release on reads it, and without it a Deploy run by hand
+   on a tag from before the move stops at "Deployment is configured" instead of putting that tag's
+   web app and website, with the old addresses, back on both hosts (Rollback and restore). The
+   owner's choice (D-20): Android builds from before the move then open invitations in the browser
+   (above); keeping the secret `APP_URL` on the old address until those builds are out of use avoids
+   that, at the cost of invitation e-mails that show the `vercel.app` address. This order takes the
+   new address.
 9. **Check by hand:** on `app.mmakaan.app`, sign up, reset a password and invite someone; open
    `https://maalik-e-makaan.vercel.app/invite#token=x` in a desktop browser and land on
    `https://app.mmakaan.app/invite#token=x`; on a phone with the new APK,
-   `adb shell pm get-app-links io.github.ar27111994.maalik_e_makaan` shows both hosts verified;
-   the Digital Asset Links API says `"linked": true` for both (Android App Links, below).
-10. **Housekeeping:** the uptime monitors to the new addresses (Monitoring and alerts); the
-    repository's homepage to `https://mmakaan.app` (Settings, General); the `roadmap` label's
-    description (the Roadmap workflow rewrites it from `.github/roadmap.toml` when this reaches
-    `main`; check it did); delete the `APP_URL` repository variable, which nothing reads any
-    more; the website on the D-U-N-S record, LinkedIn and the AWS Activate application.
-11. **Search Console:** a Domain property for `mmakaan.app` (a TXT record at Dynadot), the
-    sitemap `https://mmakaan.app/sitemap-index.xml` submitted; then, with the old property
-    verified (step 1), Settings, Change of address, to `https://mmakaan.app/`. Bing Webmaster
-    Tools can import the properties and has a site move of its own. If Search Console rejects the
-    308, `website/vercel.json`'s rule can say `"statusCode": 301` instead.
+   `adb shell pm get-app-links io.github.ar27111994.maalik_e_makaan` shows both hosts verified; the
+   Digital Asset Links API says `"linked": true` for both (Android App Links, below). If step 1 was
+   done: `https://maalik-e-makaan-site.vercel.app/google<16 hex digits>.html` answers 200 (the
+   redirect leaves it out); press Verify on the old property now.
+10. **Housekeeping:** remove the uptime monitor on the old web app address (step 3 added the new
+    ones); the repository's homepage to `https://mmakaan.app` (Settings, General); the `roadmap`
+    label's description (the Roadmap workflow rewrites it from `.github/roadmap.toml` when this
+    reaches `main`; check it did); the website on the D-U-N-S record, LinkedIn and the AWS Activate
+    application. One decision with it: the site's structured data and `llms.txt` give the company's
+    website as `https://ar27111994.dev/` (`company.url` in `website/src/config/site.ts`), while
+    those records will name `https://mmakaan.app`, and Apple checks that an organisation's website
+    is on a domain that belongs to it. If the company's website is to be `https://mmakaan.app/` (or
+    its `/company/` page), say so: the agent then builds `company.url` from the site's origin, so it
+    follows `contracts/origins.json`, and keeps `ar27111994.dev` among the company's other profiles.
+11. **Search Console:** a Domain property for `mmakaan.app` (a TXT record at Dynadot), the sitemap
+    `https://mmakaan.app/sitemap-index.xml` submitted; then, with the old property verified (steps 1
+    and 9), Settings, Change of address, to `https://mmakaan.app/`. Bing Webmaster Tools can import
+    the properties and has a site move of its own. If Search Console rejects the 308,
+    `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web app answers
+    `X-Robots-Tag: noindex` on every path, so the Domain property lists it as excluded, not as an
+    error: the website is what search engines index (D-01).
 12. **The next release, at least 24 hours later:** the agent's pull request redirects the old
-    address's `/auth/callback` too (only `assetlinks.json` stays); after its deploy, the owner
-    sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes it, which means `APP_URL`'s
-    origin).
+    address's `/auth/callback` too (only `assetlinks.json` stays); after its deploy, the owner sets
+    `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes it, which means `APP_URL`'s origin).
 13. **Later, each in its own pull request:** Zoho Mail on the apex (Zoho's verification TXT, then
-    its MX, SPF and DKIM records for the account's data centre, and `_dmarc` with `p=none`);
-    Resend on a sending subdomain of the domain (its records, click and open tracking off), then
-    Auth's SMTP sender and `MAIL_FROM`; Customer.io on another subdomain (D-18); and, once the
-    owner names a mailbox, the privacy pages in both languages, the deck and `MAIL_REPLY_TO`.
+    its MX, SPF and DKIM records for the account's data centre, and `_dmarc` with `p=none`); Resend
+    on a sending subdomain of the domain (its records, click and open tracking off), then Auth's
+    SMTP sender and `MAIL_FROM`; Customer.io on another subdomain (D-18); and, once the owner names
+    a mailbox, the privacy pages in both languages, the deck and `MAIL_REPLY_TO`. Every host on
+    `mmakaan.app` is reached over HTTPS only: the whole `.app` domain is on the browsers' HSTS
+    preload list, and the site sends HSTS with `includeSubDomains`. So a subdomain people open in a
+    browser (a link-tracking domain, a custom webmail address) needs its certificate, through the
+    provider's managed TLS, before its `CNAME` is added; one that carries only mail records (MX,
+    SPF, DKIM, DMARC) needs none.
 
 Auth keeps the earlier redirect URLs, and the Android manifest the earlier host, until the builds
 from before the move are out of use: a date or a lowest version for that is the owner's to set.
@@ -493,66 +560,84 @@ host that the hosting redirects goes under `aliases`), in one pull request that 
 `website/vercel.json`'s redirect, the Android manifest's hosts and the docs; `npm test`,
 `make lint` and `make docs-check` say what is missing. Then follow the order above: DNS and HTTPS,
 Auth's redirect URLs and `ALLOWED_ORIGINS` first, then merge and release, then Auth's Site URL and
-`APP_URL`.
+`APP_URL`. The Release and Deploy workflows stop until the first steps hold (Checked before
+anything is deployed, above).
 
 ## Deployment (GitHub Actions)
 
 The Deploy workflow (`.github/workflows/deploy.yml`) runs when the Release workflow has released a
 tag (Release calls it for that tag), or by hand (Actions, Deploy, Run workflow, for the branch or
 tag chosen there; only once the workflow is on the default branch). Publishing a release by hand
-does not start it. See [Releasing](#releasing). Its `supabase`
-job pushes migrations and Edge Functions to Supabase and calls the `health` function. Its `web`
-job then:
+does not start it. A run by hand runs the `deploy.yml` of the branch or tag chosen, not
+`main`'s. See [Releasing](#releasing). Its `supabase` job first reads Auth's Site URL and redirect
+URLs with the Management API and runs `tool/web/check_auth_urls.py`: the e-mail links of the
+release's builds (the web app's `/auth/callback` and its iOS form) must be allowed, and so must
+those of builds from before a move while the Site URL is still on their host ([Domains](#domains),
+step 4). It stops before deploying anything otherwise; a token that may not read Auth's settings
+only warns. It then pushes migrations and Edge Functions to Supabase and calls the `health`
+function. Its `web` job then:
 
 1. fails at once if the `VERCEL_TOKEN` secret or a repository variable is missing;
 2. reads the web app's origin and earlier addresses from the ref's `contracts/origins.json`
-   ([Domains](#domains)), and fails on a ref that predates the file: its build would name the
-   address from before the move (roll forward, or see Rollback and restore);
-3. checks that the Edge Functions accept the origin: a CORS preflight to `health` must answer
+   ([Domains](#domains)), and fails on a ref that predates the file (only a caller that passes
+   an older ref meets this; a run by hand on an older tag runs that tag's own workflow, see
+   Rollback and restore);
+3. checks that the origin answers over HTTPS with its App Links file
+   (`tool/web/check_live.py app`), and stops before building if it does not: the deploy makes
+   each earlier address redirect to it;
+4. checks that the Edge Functions accept the origin: a CORS preflight to `health` must answer
    204, or the deploy stops before building (an earlier address only warns);
-4. writes `app/config/production.json` from the repository variables and that origin
+5. writes `app/config/production.json` from the repository variables and that origin
    (`APP_URL`), as the Release workflow does, and runs
    `flutter build web --release --no-web-resources-cdn`;
-5. packages the build with `tool/web/package_vercel.py`, which adds the earlier addresses'
+6. packages the build with `tool/web/package_vercel.py`, which adds the earlier addresses'
    redirects (see Hosting);
-6. runs `vercel deploy --prebuilt --prod` with the CLI pinned to an exact version, for the
+7. runs `vercel deploy --prebuilt --prod` with the CLI pinned to an exact version, for the
    project's team and project ids;
-7. runs `tool/web/smoke_test.sh` on the origin. It first waits up to two minutes for `/` to
+8. runs `tool/web/smoke_test.sh` on the origin. It first waits up to two minutes for `/` to
    answer 200, since just after `vercel deploy --prod` the production address can still answer
    from the previous deployment ("waiting for the deployment" in the log). Then, on `/`,
    `/auth/callback?code=…` and an `/invite/…` path, it checks for a 200 with the app's
-   `index.html`, the CSP (it must allow `SUPABASE_URL`), HSTS, `nosniff` and a revalidated
-   `Cache-Control`. It also checks that `/.well-known/assetlinks.json` answers 200 as JSON,
-   delegating to the Android package. Then `tool/web/redirect_smoke_test.sh` on each earlier
-   address: `/` and a deep path with a query answer 308 to the same path and query on the
-   origin, while `/.well-known/assetlinks.json` and `/auth/callback?code=…` still answer 200.
+   `index.html`, the CSP (it must allow `SUPABASE_URL`), HSTS, `nosniff`, `X-Robots-Tag: noindex`
+   and a revalidated `Cache-Control`. It also checks that `/.well-known/assetlinks.json` answers
+   200 as JSON, delegating to the Android package. Then `tool/web/redirect_smoke_test.sh` on
+   each earlier address: `/` and a deep path with a query answer 308 to the same path and query
+   on the origin, while `/.well-known/assetlinks.json` and `/auth/callback?code=…` still
+   answer 200.
 
 Its `site` job deploys the website. It does not wait for Supabase (the site never calls it), so it
 runs alongside the other two when the workflow runs by hand. The Release workflow instead calls
 Deploy twice: once with `skip-site` straight after tagging, for the backend and the web app, and
-once with `site-only` after its `artefacts` and `ios` jobs have finished, so that the download page
-links to the files they attached. If a build fails, the website still goes out, without that
-build's links; re-running the failed job (Re-run failed jobs) runs the website's deploy again
-after it, which adds them. The `site` job:
+once with `site-only` after its `artefacts` and `ios` jobs have finished and the first call has
+succeeded, so that the download page links to the files they attached and to a web app deployed
+for the release. If a build fails, the website still goes out, without that build's links;
+re-running the failed job (Re-run failed jobs) runs the website's deploy again after it, which
+adds them. If the backend's or the web app's deploy fails, the website waits for it the same way.
+The `site` job:
 
 1. fails at once if the `VERCEL_TOKEN` secret is missing;
-2. renders the pitch deck (`npm run deck`, with Playwright's Chromium) and fetches the live
+2. checks, before building, that the site's origin answers over HTTPS, that each alias (`www`)
+   redirects to it, and that the web app it links to answers at its origin and is the deployment
+   built for it: each earlier address of the web app must answer `/` with 308 to the origin
+   (`tool/web/check_live.py site`, [Domains](#domains)). It stops otherwise; a ref from before
+   `contracts/origins.json` skips this;
+3. renders the pitch deck (`npm run deck`, with Playwright's Chromium) and fetches the live
    roadmap (`tool/github/fetch_roadmap.py --from-github`); a tag from before either tool skips
    that step with a warning (see Hosting, The website on Vercel);
-3. writes the names of the files attached to the manifest's release, read from GitHub, to
+4. writes the names of the files attached to the manifest's release, read from GitHub, to
    `website/src/data/release-assets.json`, so the download page links to those alone: a run
    while a release is still building, or after one of its builds failed, publishes fewer links
    rather than dead ones. It fails, before anything is deployed, only if GitHub cannot be read
    or the release is not published yet; run it again later;
-4. writes `.vercel/project.json` and runs `vercel build --prod`, which takes both origins from
+5. writes `.vercel/project.json` and runs `vercel build --prod`, which takes both origins from
    the ref (see Hosting, The website on Vercel) and fails on a page without its twin in the
    other language or with inline code; it then reads the origin back from the built sitemap and
    checks it against the ref's `contracts/origins.json`;
-5. checks, as a safety net, that every release file the built pages link to
+6. checks, as a safety net, that every release file the built pages link to
    (`/releases/download/…`) is attached to its GitHub release, and stops before deploying if one
    is not, leaving the live site as it was;
-6. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
-7. runs `tool/web/site_smoke_test.sh` on that origin, which first waits the same way for `/` to
+7. runs `vercel deploy --prebuilt --prod` with the same pinned CLI;
+8. runs `tool/web/site_smoke_test.sh` on that origin, which first waits the same way for `/` to
    answer 200. Then `/`, `/ur/`, `/robots.txt`, `/sitemap-index.xml` and `/llms.txt` must answer
    200 with the right type, the canonical links, `robots.txt` and the sitemap must name the
    origin, a missing page must answer 404, and every response must carry the
@@ -586,8 +671,10 @@ the web build to the release. The workflows read these repository settings:
 
 The `production` environment should require a reviewer; `release` holds the signing secrets. The
 web app's `APP_URL` is no repository variable: every build takes it from the tag's
-`contracts/origins.json` ([Domains](#domains)). The `APP_URL` variable that releases before
-D-20 read can be deleted once the release that carries D-20 is out.
+`contracts/origins.json` ([Domains](#domains)). Delete the `APP_URL` variable that releases before
+D-20 read right after the web deploy of the release that carries D-20 ([Domains](#domains), step
+8): a Deploy run by hand on an older tag then stops before it deploys that tag's web app or
+website, with their old addresses.
 
 Create the keystore once, on a machine with a JDK (`keytool` ships with it; Android Studio's is
 under `jbr/bin`):
@@ -642,8 +729,10 @@ an iPhone.
 links already sent ([Domains](#domains)); `tool/android/check_manifest.py` (`make lint`, and CI
 on the merged release manifest) fails unless its hosts are exactly the web app's in
 `contracts/origins.json`. Android 12 and later verify each host on its own; Android 6 to 11
-verify all of an app's hosts or none, so both must serve the file. It lists the SHA-256 fingerprint of each certificate that signs the app the user installs. Today
-that is only the upload key, which signs the APKs attached to releases.
+verify all of an app's hosts or none, so both must serve the file (and Release builds nothing
+until the new host does, Domains). The file lists the SHA-256 fingerprint of each certificate that
+signs the app the user installs. Today that is only the upload key, which signs the APKs attached
+to releases.
 
 Once the app is on Google Play, Play re-signs it with the app-signing key. Add that key's
 fingerprint to the list (Play Console, Test and release, App integrity, App signing key
@@ -689,11 +778,13 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    one, and a breaking change (`!` or `BREAKING CHANGE:`) a major one. (v1.0.0 was pinned with
    `"release-as"`, removed straight after it was tagged.)
 3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
-   builds the signed Android app and the web app and attaches them (`artefacts`), builds and
-   attaches the unsigned iOS app (`ios`), and calls the Deploy workflow for the tag twice: at once
-   for the backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
-   finished (`site`), since its download page links to the files they attached. Each deployment
-   waits for a reviewer when the `production` environment requires one.
+   checks that the web app's origin answers (`live`; nothing is built otherwise, Domains), builds
+   the signed Android app and the web app and attaches them (`artefacts`), builds and attaches the
+   unsigned iOS app (`ios`), and calls the Deploy workflow for the tag twice: at once for the
+   backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
+   finished and `deploy` has succeeded (`site`), since its download page links to the files they
+   attached and to the web app. Each deployment waits for a reviewer when the `production`
+   environment requires one.
 4. Watch both Deploy calls: each job ends with its smoke test, and the `supabase` job with a call
    to `health`. If `artefacts` or `ios` failed, the website still describes the new release, but
    its download page has no links to that build's files; re-run the failed job (Re-run failed
@@ -753,13 +844,13 @@ committed icon is stale (`make app-icons-check`).
 Migrations are forward only: a mistake is fixed by a new migration, never by editing or reverting
 an applied one (CONTRIBUTING.md). What can be rolled back, and how:
 
-| What                   | Roll back by                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The web app            | Vercel dashboard, project `maalik-e-makaan`, Deployments: the previous production deployment, Promote to Production (or `vercel rollback <deployment-url> --scope ar27111994s-projects`). Takes effect at once; the database must still suit the older app (migrations add, they do not remove). A deployment from before D-20 has the old `APP_URL` and no redirects, and serves it on both hosts: roll forward instead (Deploy by hand refuses a tag from before `contracts/origins.json`). |
-| The website            | The same, project `maalik-e-makaan-site`.                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Edge Functions         | Run Deploy by hand on the previous tag (Actions, Deploy, Run workflow, choose the tag): its `supabase` job redeploys that tag's functions. Its `db push` finds nothing new to apply.                                                                                                                                                                                                                                                                                                          |
-| A migration            | A new migration that undoes it (forward fix), through the usual process (After every migration). If it destroyed data, restore that data from a backup (below) into a scratch project and copy the rows back.                                                                                                                                                                                                                                                                                 |
-| Data lost or corrupted | Restore from a backup (below).                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| What                   | Roll back by                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The web app            | Vercel dashboard, project `maalik-e-makaan`, Deployments: the previous production deployment, Promote to Production (or `vercel rollback <deployment-url> --scope ar27111994s-projects`). Takes effect at once; the database must still suit the older app (migrations add, they do not remove). Never to a deployment from before D-20: it has the old `APP_URL` and no redirects, and would serve that build on both hosts, so links requested on the new address would go to the old one. Roll forward instead.                                         |
+| The website            | The same, project `maalik-e-makaan-site`, and never to a deployment from before D-20 either: its canonical and hreflang links, sitemap and `robots.txt` name the old address and it has no redirect, which undoes the change of address in Search Console. Roll forward instead.                                                                                                                                                                                                                                                                           |
+| Edge Functions         | Check out the previous tag and deploy its functions with the CLI: `supabase functions deploy --project-ref <project-ref> --use-api` (with `SUPABASE_ACCESS_TOKEN` set; `verify_jwt` comes from that tag's `supabase/config.toml`). Deploy by hand on a tag runs that tag's own `deploy.yml`, which also redeploys its web app and website: on a tag from before D-20, with the old addresses on both hosts. With the `APP_URL` repository variable deleted ([Domains](#domains), step 8), those two jobs of such a tag stop at "Deployment is configured". |
+| A migration            | A new migration that undoes it (forward fix), through the usual process (After every migration). If it destroyed data, restore that data from a backup (below) into a scratch project and copy the rows back.                                                                                                                                                                                                                                                                                                                                              |
+| Data lost or corrupted | Restore from a backup (below).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ### Backups
 

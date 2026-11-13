@@ -13,15 +13,20 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
   the `vercel.app` addresses redirect permanently. Branch `claude/domain-mmakaan`, one pull
   request, not merged: `contracts/origins.json` as the one source of the origins (the website's
-  defaults, the deck, the workflows' `APP_URL`, the web app's redirects, the Android App Link
-  hosts read it; `make docs-check` C17, the website's unit tests and `check_manifest.py` check
-  everything else against it); the redirects in `website/vercel.json` and in the web app's Build
-  Output routes, with the old app host still serving `assetlinks.json` and, until the next
+  defaults, the deck, the workflows' `APP_URL` and the web app's redirects read it; the Android
+  manifest's hosts and `website/vercel.json`'s redirect are checked against it, and every other
+  address by `make docs-check` C17); the redirects in `website/vercel.json` and in the web app's
+  Build Output routes, with the old app host still serving `assetlinks.json` and, until the next
   release, `/auth/callback`; App Links on both hosts; `redirect_smoke_test.sh` in CI and after
-  each deploy. The Vercel domains were added by the agent through the connector; the DNS is not
-  pointed yet. Merge only once the new hosts serve HTTPS: the owner's steps, in order, are
-  `docs/release-readiness.md`, Owner actions, item 13. Zoho Mail is the owner's; no mailbox is
-  named yet, so none appears anywhere.
+  each deploy. Before building or deploying, Release and Deploy check that the new addresses
+  answer (`tool/web/check_live.py`), that Auth allows every build's e-mail links
+  (`tool/web/check_auth_urls.py`) and that the website goes out only after the web app it links
+  to. The web app answers `X-Robots-Tag: noindex`. The Vercel domains were added by the agent
+  through the connector; the DNS is not pointed yet. Merge only once the new hosts serve HTTPS,
+  and release in the same sitting: the owner's steps, in order, are `docs/release-readiness.md`,
+  Owner actions, item 13. Open for the owner: invitations' `APP_URL` after the move (step 8) and
+  whether the company's website in the structured data becomes the new domain (step 10). Zoho
+  Mail is the owner's; no mailbox is named yet, so none appears anywhere.
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the

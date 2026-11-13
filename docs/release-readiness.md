@@ -381,55 +381,73 @@ In order. Record each in `.planning/STATE.md` when it is done.
     guides.
 12. **After the first deploy**, re-run the gates (CI on `main`, the Deploy smoke tests, the first
     scheduled Backup run, the daily check) and update this file's verdict.
-13. **Move to `mmakaan.app`** (D-20, 13 November 2026). The domain is bought and, through the
-    Vercel connector, `mmakaan.app` and `www.mmakaan.app` (308 to the apex) are on the project
+13. **Move to `mmakaan.app`** (D-20, 13 November 2026). The domain is bought and, through the Vercel
+    connector, `mmakaan.app` and `www.mmakaan.app` (308 to the apex) are on the project
     `maalik-e-makaan-site` and `app.mmakaan.app` on `maalik-e-makaan`. The pull request on
-    `claude/domain-mmakaan` does the rest in the repository. `docs/operations.md`, Domains, has
-    each step in full; in order:
+    `claude/domain-mmakaan` does the rest in the repository, and the Release and Deploy workflows
+    stop until steps 3 to 5 hold. `docs/operations.md`, Domains, has each step in full; in order:
     1. _Optional, before the merge:_ a Search Console URL-prefix property for
-       `https://maalik-e-makaan-site.vercel.app/`, verified with the HTML file method. Send the
-       file's name (`google<16 hex digits>.html`) so the pull request adds it to
-       `website/public/`; the old address keeps serving it for the change of address (step 11).
-    2. **Dynadot:** remove the parking records (an `A` record to `185.53.179.149` on the apex,
-       `www` and `app` today, and any wildcard, `AAAA` or URL forwarding). Add, with a short TTL:
-       `A` `216.198.79.1` and `A` `64.29.17.1` for the apex; `CNAME` records for `www` and `app`
-       to the targets Vercel shows for each (Settings, Domains), or `cname.vercel-dns.com.`. No
-       `CAA` record, or one that allows `letsencrypt.org`.
+       `https://maalik-e-makaan-site.vercel.app/`, with the HTML file method. Download the file and
+       send its name (`google<16 hex digits>.html`) so a pull request adds it to `website/public/`
+       before the release, but do not press Verify yet: the old address serves the file only from
+       step 7 (step 9 verifies it).
+    2. **Dynadot:** remove the parking records (an `A` record to `185.53.179.149` on the apex, `www`
+       and `app` today, and any wildcard, `AAAA` or URL forwarding). Add, with a short TTL: `A`
+       `216.198.79.1` and `A` `64.29.17.1` for the apex; `CNAME` records for `www` and `app` to the
+       targets Vercel shows for each (Settings, Domains), or `cname.vercel-dns.com.`. No `CAA`
+       record, or one that allows `letsencrypt.org`.
     3. **Wait for HTTPS:** Vercel says "Valid Configuration" for all three; then
        `https://mmakaan.app/` answers 200, `https://www.mmakaan.app/x?y=1` 308 to
        `https://mmakaan.app/x?y=1`, and `https://app.mmakaan.app/.well-known/assetlinks.json` 200
-       with JSON.
-    4. **Supabase Auth**, URL Configuration: add `https://app.mmakaan.app/auth/callback` and
-       `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback`; keep the two for
-       `maalik-e-makaan.vercel.app`; leave the Site URL for now.
+       with JSON. Do not share or use `https://app.mmakaan.app` yet: until step 7 it serves the web
+       app from before the move, whose e-mail links name the old address. Add uptime monitors on
+       `https://app.mmakaan.app/` and `https://mmakaan.app/`.
+    4. **Supabase Auth**, URL Configuration: make sure the redirect URLs list all four, adding any
+       that is missing: `https://app.mmakaan.app/auth/callback`,
+       `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback`,
+       `https://maalik-e-makaan.vercel.app/auth/callback` and
+       `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` (the earlier
+       https one may work today only because it is on the Site URL's host). Leave the Site URL for
+       now.
     5. **Edge Function secret** `ALLOWED_ORIGINS` =
-       `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no secret holds the
-       website's address); leave `APP_URL` for now.
-    6. **Merge the pull request** once "CI passed" and step 3 holds.
+       `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no secret holds the website's
+       address); leave `APP_URL` for now.
+    6. **Merge the pull request** once "CI passed" and step 3 holds, and go on to step 7 in the same
+       sitting.
     7. **Release:** merge the release pull request, approve the Deploy runs and check every smoke
-       test, the redirect ones included. The web app's deploy stops before building if the
-       functions refuse its origin (step 5).
+       test, the redirect ones included. Nothing is built or deployed while the new addresses do not
+       answer (step 3), Auth lacks a callback (step 4) or the functions refuse the origin (step 5);
+       the website goes out only after the web app's deploy.
     8. **Right after the web deploy:** Auth's Site URL and the Edge Function secret `APP_URL`, both
-       to `https://app.mmakaan.app`.
+       to `https://app.mmakaan.app`; then delete the `APP_URL` repository variable. Owner's choice
+       (D-20): with the secret on the new address, Android builds from before the move open
+       invitations in the browser; keeping it on the old address until those builds are out of use
+       avoids that, with e-mails that show the `vercel.app` address.
     9. **Check:** sign up, reset a password and invite someone on `https://app.mmakaan.app`; an old
        invitation address, `https://maalik-e-makaan.vercel.app/invite#token=x`, lands on
        `https://app.mmakaan.app/invite#token=x`; with the new APK, both hosts read "verified" in
        `adb shell pm get-app-links`, and the Digital Asset Links API says `"linked": true` for both.
-    10. **Housekeeping:** the uptime monitors to `https://app.mmakaan.app/` and
-        `https://mmakaan.app/`; the repository's homepage to `https://mmakaan.app`; check that the
-        `roadmap` label's description names the new address; delete the `APP_URL` repository
-        variable; the website on the D-U-N-S record, LinkedIn and the AWS Activate application.
+       If step 1 was done, the old address answers 200 for the Google file: press Verify.
+    10. **Housekeeping:** remove the old web app address's uptime monitor; the repository's homepage
+        to `https://mmakaan.app`; check that the `roadmap` label's description names the new
+        address; the website on the D-U-N-S record, LinkedIn and the AWS Activate application.
+        Decide whether the company's website in the site's structured data and `llms.txt`,
+        `https://ar27111994.dev/` today, becomes `https://mmakaan.app/` (or `/company/`), to match
+        those records; Apple checks that an organisation's website is on its own domain.
     11. **Search Console:** a Domain property for `mmakaan.app` (a TXT record at Dynadot) and its
         sitemap, `https://mmakaan.app/sitemap-index.xml`; then the change of address from the old
-        property (step 1). Optionally Bing's import and site move.
+        property (steps 1 and 9). Optionally Bing's import and site move.
     12. **The next release, at least 24 hours later:** the agent redirects the old address's
         `/auth/callback` too; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app`
         alone.
     13. **Later:** Zoho Mail's records at Dynadot (verification TXT, MX, SPF, DKIM, and `_dmarc`
         with `p=none`); a Resend sending subdomain, then Auth's SMTP sender and `MAIL_FROM`;
         Customer.io's subdomain (D-18); and the contact mailbox, once named, on both privacy pages,
-        the deck and `MAIL_REPLY_TO`. Also the owner's to set: when Auth drops the old redirect
-        URLs and the Android manifest the old host (a date, or the oldest version still in use).
+        the deck and `MAIL_REPLY_TO`. Every host on the domain is HTTPS-only (`.app` is
+        HSTS-preloaded), so a subdomain opened in a browser, such as a link-tracking or webmail one,
+        needs the provider's TLS before its `CNAME`. Also the owner's to set: when Auth drops the
+        old redirect URLs and the Android manifest the old host (a date, or the oldest version still
+        in use).
 
 Optional hardening: move the `ANDROID_*` secrets into the `release` environment and limit that
 environment to tags `v*`; only the Release workflow reads them. Keep the Supabase and Vercel
@@ -456,10 +474,9 @@ approval.
 ## Follow-ups (not blocking)
 
 - iOS e-mail links (Greptile on PR 1) come back through the app's own URL scheme since
-  2026-11-09 (`docs/operations.md`, iOS e-mail links). Still to do: add
-  `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` and, with the
-  move, `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback` to Auth's redirect
-  URLs, and check it on an iPhone. CI builds the iOS app unsigned from 2026-11-09, and
+  2026-11-09 (`docs/operations.md`, iOS e-mail links). Still to do: the scheme's redirect URLs
+  in Auth (Owner actions, item 13, step 4, which the Deploy workflow's `supabase` job now
+  checks), and a check on an iPhone. CI builds the iOS app unsigned from 2026-11-09, and
   each release attaches the unsigned `.ipa` to sign with an Apple Account (`docs/operations.md`,
   iOS builds).
 - TEAM-05: no screen reads the audit trail.

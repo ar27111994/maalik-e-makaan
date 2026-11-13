@@ -70,6 +70,8 @@ exactly, so previews and the origin itself are never redirected. The rule leaves
 that it can stay on the old host: a Google Search Console verification file at the root
 (`/google<16 hex digits>.html`), which the old address's property needs for Search Console's
 change of address. None is committed yet; when the owner makes the property, it goes in `public/`.
+The old address serves it only once a release that carries it is deployed, so the owner presses
+Verify after that deploy, not before (`docs/operations.md`, Domains, steps 1 and 9).
 `tests/unit/vercel.test.ts` checks the rule against `contracts/origins.json`, and the local server
 (`scripts/serve.ts`) applies it to requests whose `Host` header names an old address, as the e2e
 suite does. `www.mmakaan.app` redirects to the origin by the Vercel project's domain setting.
@@ -83,8 +85,9 @@ root directory `website/` and the Astro framework preset. [`vercel.json`](vercel
 trailing slashes and the response headers.
 
 - The build reads files outside `website/`: the design tokens (`../design/tokens/`), the fonts and
-  their licences (`../packages/mm_ui/assets/fonts/`). Keep the project setting "Include files
-  outside the root directory in the Build Step" switched on (Vercel's default).
+  their licences (`../packages/mm_ui/assets/fonts/`), and the addresses
+  (`../contracts/origins.json`). Keep the project setting "Include files outside the root
+  directory in the Build Step" switched on (Vercel's default).
 - Vercel serves `dist/404.html` for every missing address, in either language, with status 404.
   That page is English and carries a short Urdu note with a link to the Urdu home page; the Urdu
   not-found page (`/ur/404/`) is the same the other way round.
