@@ -10,8 +10,8 @@ import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-/// Where links in Supabase's e-mails land
-/// (`https://maalik-e-makaan.vercel.app/auth/callback?code=…`): it
+/// Where links in Supabase's e-mails land (`APP_URL/auth/callback?code=…`,
+/// on the web app's origin, or its earlier address for links already sent): it
 /// exchanges the link's one-time code for a session (PKCE). On success the
 /// router moves on by itself: to the app after confirming an address, to
 /// "Choose a new password" after a reset link. A link that cannot be used
