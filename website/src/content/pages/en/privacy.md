@@ -1,7 +1,7 @@
 ---
 title: "Privacy"
 description: "How this website and the Maalik-e-Makaan app treat your data: no cookies or trackers on the site, and in the app, your records seen only by the people you invite."
-lastUpdated: 2026-11-12
+lastUpdated: 2026-11-13
 ---
 
 ## In short
@@ -38,6 +38,15 @@ This section describes version 1.0 of the app, released on 9 November 2026, and 
 - WhatsApp reminders open in WhatsApp on your own phone and are sent by you, from your number. The app does not send them for you, and does not read your WhatsApp.
 
 The app has no advertising, no analytics and no trackers.
+
+### On your phone or computer
+
+- The app keeps a copy of the records it last loaded on your phone or computer, so that it can show them at once, even without a connection. It also keeps your sign-in, your language and display choices, the portfolio you last chose, and an invitation you opened but have not answered yet.
+- In the Android and iPhone apps, a photo you take or a file you pick is copied into the app's own storage, and the copy is deleted once the app has read it. A receipt, statement or spreadsheet file you share is written there too, for the app you share it with.
+- When you sign out, or your sign-in ends for another reason, the app removes from the phone or computer your sign-in, its copy of your records, the portfolio you last chose, and the copies of photos and files. A file shared in the last ten minutes is kept a little longer, in case the app you shared it with is still reading it, and goes when you next open the app after those ten minutes.
+- Your language and display choices stay, because they belong to the phone or computer. So does an invitation you have not answered, so that you can sign in with the address it was sent to; deleting your account removes it too.
+- Files you download, or share with another app such as WhatsApp, are yours, and so are the copies that app keeps: delete them there. A web browser can also keep its own copy of the pictures and files it opened; clearing the browser's data removes it.
+- If your phone backs up its apps (Google's backup on Android, iCloud or a computer on iPhone), the backup can include your sign-in and the app's copy of your records as they were when it was made.
 
 ### Your tenants' details
 
