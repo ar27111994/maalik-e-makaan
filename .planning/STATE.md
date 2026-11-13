@@ -9,6 +9,16 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-12)
 
+- The device forgets the account (2026-11-13, branch `claude/signout-device-data`): signing out, a
+  session that ends by itself and account deletion run `DeviceDataWipe`
+  (`docs/architecture/app.md`, On the device). It removes the record cache, the portfolio last
+  chosen and the camera's record, and on phones the pickers' copies, Android's records of a lost
+  pick and the files written to share (once unchanged for ten minutes; younger ones at the next
+  start). The pickers' copies also go as soon as they are read. Display settings stay; an
+  invitation opened and not answered stays until the account is deleted, because "sign out, then
+  sign in with the invited address" needs it. The website's how-it-works step and privacy page
+  say exactly this in both languages; before, they promised more than the app did. The J14
+  browser-storage check in the UAT is written but not run yet.
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the
@@ -221,6 +231,11 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Open
 
+- Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
+  session and the record cache reach the person's Google backup, as the preferences reach iCloud
+  on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
+  owner's decision with the lawyer (legal pack, question T7). The legal pack's data map (rows
+  14a to 14e, PR #66) describes the device before the wipe and needs the same update.
 - Licences: `MmIcons.ttf` has empty copyright fields (`THIRD_PARTY_NOTICES.md`, Gaps). dbus
   0.8.0 (MPL-2.0, Linux desktop only, unmodified): a distributed Linux build must say where its
   source is.
