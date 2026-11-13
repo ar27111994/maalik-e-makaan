@@ -7,14 +7,16 @@
 // <x-connector> elements and data-crop on images. This script turns those into
 // plain HTML: the icons from deck/icons (Lucide), the screens cropped from the
 // app's golden test images (sample data, so they always show the current app),
-// the fonts from packages/mm_ui, and {{version}} and {{releaseDate}} from the
-// release-please manifest and CHANGELOG.md. CI and the Deploy workflow run it
-// before the site is built, so the deck on the site matches each release.
+// the fonts from packages/mm_ui, {{version}} and {{releaseDate}} from the
+// release-please manifest and CHANGELOG.md, and {{siteHost}} and {{appHost}}
+// from contracts/origins.json. CI and the Deploy workflow run it before the
+// site is built, so the deck on the site matches each release.
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
+import { readOrigins } from "./lib/origins.ts";
 
 const website = new URL("../", import.meta.url);
 const repository = new URL("../../", import.meta.url);
@@ -132,8 +134,14 @@ async function slideHtml(file: string, values: Record<string, string>): Promise<
 
 const deck = JSON.parse(text(new URL("deck.json", deckDir))) as { title: string; order: string[] };
 const { version, date } = release();
+// The addresses as a slide shows them: the host alone, as people type it.
+const origins = readOrigins();
+const hosts = {
+  siteHost: new URL(origins.site.origin).host,
+  appHost: new URL(origins.app.origin).host,
+};
 const slides = await Promise.all(
-  deck.order.map((file) => slideHtml(file, { version, releaseDate: date })),
+  deck.order.map((file) => slideHtml(file, { version, releaseDate: date, ...hosts })),
 );
 // Urdu words on the slides are in Noto Sans Arabic; Noto Nastaliq Urdu is only for the
 // wordmark مالکِ مکان on the cover (D-19), and the app's copy holds only its letters.

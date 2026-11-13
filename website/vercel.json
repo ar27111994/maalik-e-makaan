@@ -5,6 +5,14 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "trailingSlash": true,
+  "redirects": [
+    {
+      "source": "/:path((?!google[0-9a-f]{16}\\.html$).*)",
+      "has": [{ "type": "host", "value": "maalik-e-makaan-site\\.vercel\\.app" }],
+      "destination": "https://mmakaan.app/:path",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

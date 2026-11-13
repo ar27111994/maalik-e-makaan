@@ -1,6 +1,7 @@
 /**
  * Serves the built site (dist/) the way Vercel does: the headers of
- * vercel.json, trailing-slash redirects, index.html for directories and
+ * vercel.json, trailing-slash redirects, then its redirects (an earlier
+ * address's, matched on the Host header), index.html for directories and
  * dist/404.html with status 404 for anything missing. The e2e suite and
  * Lighthouse run against it.
  *
@@ -12,7 +13,7 @@ import { createServer } from "node:http";
 import { extname, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { headersFor, readVercelConfig, trailingSlashRedirect } from "./lib/vercel.ts";
+import { headersFor, readVercelConfig, redirectFor, trailingSlashRedirect } from "./lib/vercel.ts";
 
 const { values } = parseArgs({ options: { port: { type: "string", default: "4321" } } });
 const port = Number(values.port);
@@ -57,6 +58,12 @@ const server = createServer((request, response) => {
     const redirect = trailingSlashRedirect(config, pathname);
     if (redirect !== undefined && (await resolveFile(redirect)) !== undefined) {
       response.writeHead(308, { ...headers, location: `${redirect}${url.search}` }).end();
+      return;
+    }
+    // Vercel's order: the trailing slash first (on the same host), then vercel.json's redirects.
+    const moved = redirectFor(config, url.hostname, pathname, url.search);
+    if (moved !== undefined) {
+      response.writeHead(moved.status, { ...headers, location: moved.location }).end();
       return;
     }
     const file = await resolveFile(pathname);

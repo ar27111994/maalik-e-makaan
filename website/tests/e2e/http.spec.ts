@@ -1,10 +1,13 @@
 // What the server sends: the security headers of vercel.json on every
 // response, long-lived caching for hashed assets, redirects and 404s.
+import { request as httpRequest } from "node:http";
 import { expect, test } from "@playwright/test";
+import { readOrigins } from "../../scripts/lib/origins.ts";
 import { headersFor, readVercelConfig } from "../../scripts/lib/vercel.ts";
 import { sitePages } from "./site.ts";
 
 const config = readVercelConfig(new URL("../../vercel.json", import.meta.url));
+const origins = readOrigins();
 
 test("every page is served with the security headers of vercel.json", async ({ request }) => {
   for (const site of sitePages()) {
@@ -48,6 +51,40 @@ test("paths without a trailing slash redirect permanently to the slashed page", 
     expect(response.status()).toBe(308);
     expect(response.headers().location).toBe(to);
   }
+});
+
+/** GET `path` from the local server as if it were `host` (the Host header picks the redirect). */
+function getAs(
+  baseURL: string,
+  host: string,
+  path: string,
+): Promise<{ status: number; location: string | undefined }> {
+  const { hostname, port } = new URL(baseURL);
+  return new Promise((resolve, reject) => {
+    httpRequest({ hostname, port, path, headers: { host } }, (response) => {
+      response.resume();
+      resolve({ status: response.statusCode ?? 0, location: response.headers.location });
+    })
+      .on("error", reject)
+      .end();
+  });
+}
+
+test("each earlier address redirects permanently to the same page on the origin", async ({
+  baseURL,
+}) => {
+  for (const legacy of origins.site.legacy) {
+    const host = new URL(legacy).host;
+    for (const path of ["/", "/ur/pricing/?utm_source=x&a=%20b", "/missing/"]) {
+      expect(await getAs(baseURL ?? "", host, path), `${host}${path}`).toEqual({
+        status: 308,
+        location: `${origins.site.origin}${path}`,
+      });
+    }
+    // Vercel adds the trailing slash on the same host first; the next request moves host.
+    expect(await getAs(baseURL ?? "", host, "/ur")).toEqual({ status: 308, location: "/ur/" });
+  }
+  expect((await getAs(baseURL ?? "", new URL(origins.site.origin).host, "/ur/")).status).toBe(200);
 });
 
 test("missing addresses answer 404 with the not-found page and the same headers", async ({
