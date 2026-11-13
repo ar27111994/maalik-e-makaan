@@ -31,11 +31,14 @@ relying on them.
   - the organisation's website "must be publicly available and functional, and its domain name must
     be associated with your organization", and the work e-mail must be on that domain;
   - the fee is US$99 a year.
-- **The domain is the likeliest blocker after the D-U-N-S.** The website and the web app are on
-  `vercel.app` subdomains ([urls.ts](../../website/src/config/urls.ts)). The company link in
+- **The domain was the likeliest blocker after the D-U-N-S; it is bought.** AR LABS bought
+  `mmakaan.app` on 13 November 2026 (D-20): the website moves to it and the web app to
+  `app.mmakaan.app`, with permanent redirects from their `vercel.app` addresses
+  ([origins.json](../../contracts/origins.json), [operations.md](../operations.md#domains)). Work
+  e-mail on it comes from Zoho Mail, which the owner is setting up. Until then the company link in
   [site.ts](../../website/src/config/site.ts) points to a personal site, and the product mailbox is
   on a sending subdomain of that personal domain, verified with Resend on 9 November 2026
-  ([STATE.md](../../.planning/STATE.md)). AR LABS has no domain of its own.
+  ([STATE.md](../../.planning/STATE.md)).
 - **Build rules**
   ([Apple upcoming requirements](https://developer.apple.com/news/upcoming-requirements/)): since 28
   April 2026 builds need Xcode 26 and the iOS 26 SDK; privacy manifests are enforced for "required
@@ -70,8 +73,8 @@ relying on them.
 
 ## Design
 
-- **Domain and work e-mail first.** Register a domain for AR LABS, or one for the product that AR
-  LABS owns, with work e-mail on it. Move the website and the web app to it, with permanent
+- **Domain and work e-mail first.** The product's domain, `mmakaan.app`, owned by AR LABS (D-20),
+  with work e-mail on it from Zoho Mail. The website and the web app move to it, with permanent
   redirects from the `vercel.app` addresses. The same domain later carries the e-mail sending
   subdomains and Meta's business verification.
 - **Enrolment.** Enrol AR LABS as an organisation once the D-U-N-S number and the domain exist. The
@@ -79,7 +82,8 @@ relying on them.
 - **Signing in CI.** A macOS job in `release.yml` on Xcode 26 that signs with an App Store Connect
   API key held in the `release` environment, and uploads to TestFlight. The unsigned `.ipa` stops
   being attached once the App Store build exists.
-- **Universal links.** `Runner.entitlements` with `applinks:` for the new domain.
+- **Universal links.** `Runner.entitlements` with `applinks:app.mmakaan.app`, the web app's host
+  only: no iOS build names the earlier one, so only this host needs the association file.
   `apple-app-site-association` is served as JSON, with no redirect, from `app/web/.well-known/`
   through [package_vercel.py](../../tool/web/package_vercel.py), which already serves
   `assetlinks.json`. The custom URL scheme stays as a fallback.
@@ -119,9 +123,12 @@ consent table as analytics.
 
 ## Work
 
-1. **Owner:** register the domain and set up work e-mail on it.
+1. **Owner:** register the domain and set up work e-mail on it. The domain is bought
+   (`mmakaan.app`, 13 November 2026); its DNS and Zoho Mail are the owner's to finish.
 2. **S:** move the website and the web app to the domain: Vercel domains, the default URLs in
-   `urls.ts`, Auth's site URL and redirects, and redirects from `vercel.app`.
+   `urls.ts`, Auth's site URL and redirects, and redirects from `vercel.app`. Done in the pull
+   request that records D-20 (one source, `contracts/origins.json`), with the owner's steps in
+   [operations.md](../operations.md#domains).
 3. **Owner:** enrol as an organisation (D-U-N-S, Account Holder, two-factor Apple Account in a legal
    name) and pay the fee.
 4. **M:** certificates, App ID and a signed TestFlight upload job on Xcode 26 in `release.yml`.

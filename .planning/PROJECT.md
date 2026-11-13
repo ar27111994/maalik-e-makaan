@@ -36,8 +36,9 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
 - **Backend:** Supabase (Postgres 17, Auth, Storage, Edge Functions on Deno 2, pg_cron).
   - Project `maalik-e-makaan`, ref `aaifamxzzjspohwksxyr`, region ap-south-1 (Mumbai).
   - Clients use publishable/secret API keys, not the legacy JWT keys.
-- **Website:** Astro static site (English and Urdu) for SEO and AI-SEO, hosted on Vercel. The
-  Flutter web build is hosted on Vercel too.
+- **Website:** Astro static site (English and Urdu) for SEO and AI-SEO, hosted on Vercel at
+  `https://mmakaan.app`. The Flutter web build is hosted on Vercel too, at
+  `https://app.mmakaan.app` (D-20; the origins are written once, in `contracts/origins.json`).
 - **CI/CD:** GitHub Actions with Dependabot, release-please, CodeQL, gitleaks, OSV-Scanner and
   the Supabase CLI stack.
 
@@ -203,6 +204,47 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   four fonts come to about 700 KB (375 KB compressed), less than the 838 KB it bundled with
   Nastaliq alone. Text other than the brand name in the wordmark style would fall back to
   another face, which is why the wordmark style is for the brand name only.
+
+- D-20: **The company's domain is `mmakaan.app`.** (Decided by the owner, 13 November 2026.) AR
+  LABS bought `mmakaan.app`, registered at Dynadot, whose DNS keeps serving it. The website moves
+  to `https://mmakaan.app`, with `www.mmakaan.app` redirecting to it (308), and the web app to
+  `https://app.mmakaan.app`. The earlier addresses, `https://maalik-e-makaan-site.vercel.app` and
+  `https://maalik-e-makaan.vercel.app`, redirect permanently to the new ones, keeping the path and
+  the query. Work e-mail on the domain comes from Zoho Mail, which the owner sets up; the
+  addresses are not chosen yet, so no page names a mailbox on the domain, and the privacy page's
+  contact address stays as it is until the owner names one. Done by the agent through the Vercel
+  connector the same day: `mmakaan.app` and `www.mmakaan.app` (308 to the apex) on the project
+  `maalik-e-makaan-site`, and `app.mmakaan.app` on `maalik-e-makaan`. The owner points the DNS at
+  Dynadot (`A` records `216.198.79.1` and `64.29.17.1` for the apex, `CNAME` records for `www`
+  and `app`), and the pull request that makes the move is merged only once the new hosts serve
+  HTTPS. This settles the domain that the App Store plan and Meta's verification wait on
+  ([app-store](../docs/roadmap/app-store.md)).
+
+  How it is built (engineering choices, 13 November 2026; `docs/operations.md`, Domains):
+  - **One source.** `contracts/origins.json` names the site's and the web app's origins once
+    each, with the earlier addresses under `legacy` and `www` under the site's `aliases`. The
+    website's defaults, the deck, the Deploy and Release workflows (the web app's `APP_URL`), the
+    web app's redirects and the Android App Link hosts read it; the website's redirect, the
+    Android manifest and every address in the docs are checked against it in CI (the website's
+    unit tests, `tool/android/check_manifest.py`, `make docs-check` C17).
+  - **The addresses travel with the release tag.** No workflow writes an origin and no
+    repository variable holds one (the `APP_URL` variable is retired): a site refresh of an older
+    tag builds that tag's addresses, and nothing changes in production before the release that
+    carries the move. A web deploy of a tag from before the file is refused.
+  - **Redirects live in the repository**, reviewed and tested and rolled back with a deployment:
+    `website/vercel.json` (a host condition, every path but a Google verification file) and the
+    web app's Build Output routes (`tool/web/package_vercel.py`). Vercel's domain-level redirect
+    is used only for `www`, because on the old app host it would also redirect
+    `/.well-known/assetlinks.json`, which Android reads without following redirects.
+  - **What the old app host keeps answering:** `/.well-known/assetlinks.json` for good (Android
+    builds list both hosts from the release that carries this, older ones only the old host),
+    and `/auth/callback` with the app's files until the release after the move, since a link
+    requested there has its sign-in verifier in that origin's storage. Everything else redirects
+    with 308; browsers keep an invitation's `#token=` across it.
+  - **Auth and the Edge Functions accept both hosts during the move:** Auth keeps the old
+    redirect URLs (web and iOS) until builds from before the move are out of use, a point the
+    owner sets; `ALLOWED_ORIGINS` names both web app origins until the old callback is retired,
+    and the Deploy workflow refuses to deploy a web app whose origin the functions refuse.
 
 ## Open Proposals
 

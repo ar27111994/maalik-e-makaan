@@ -2,7 +2,7 @@
 
 > Tenant and property management for Pakistani landlords, in English and Urdu. A Flutter app (Android, iOS, web) on a Supabase backend (PostgreSQL 17 with row-level security, an exact-money ledger, pg_cron jobs, Deno Edge Functions), a pure-Dart domain library, a design system, a bilingual Astro website, and TLA+, Lean 4, Z3 and Bend models of the concurrent and money code. MIT licence.
 
-Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are voided, never deleted; authorisation lives in Postgres; locks are taken in the order account, portfolio, lease, other rows. Every check is a `make` target that CI also runs. This file indexes the repository's documentation; the website publishes its own llms.txt for its public content.
+Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are voided, never deleted; authorisation lives in Postgres; locks are taken in the order account, portfolio, lease, other rows. Every check is a `make` target that CI also runs. This file indexes the repository's documentation; the website, https://mmakaan.app, publishes its own llms.txt for its public content, and the web app is at https://app.mmakaan.app.
 
 ## Start here
 
@@ -29,7 +29,7 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 - [App architecture](docs/architecture/app.md): layers, models, repositories, stale-while-revalidate cache, commands, retries, document uploads, open questions
 - [Permissions](docs/architecture/permissions.md): roles, the who-can-do-what matrix, how RLS, grants, RPCs, triggers and CHECKs enforce it, concurrency costs, rate limits
 - [Time](docs/architecture/time.md): Pakistan time for business dates, a person's own zone for their alerts, the later-instant and quiet-hours rules, the bundled tz data and how to update it
-- [Project decisions](.planning/PROJECT.md): vision, users, stack, decisions D-01 to D-19, open proposals P-01 and P-02, constraints
+- [Project decisions](.planning/PROJECT.md): vision, users, stack, decisions D-01 to D-20, open proposals P-01 and P-02, constraints
 - [Design language](DESIGN.md): tokens, typography, colour, components, right-to-left and Urdu rules
 - [Components](packages/mm_ui/COMPONENTS.md): how mm_ui components are built, and the catalogue
 - [Domain library](packages/mm_core/README.md): the mm_core modules

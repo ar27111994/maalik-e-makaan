@@ -9,6 +9,19 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-13)
 
+- D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
+  `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
+  the `vercel.app` addresses redirect permanently. Branch `claude/domain-mmakaan`, one pull
+  request, not merged: `contracts/origins.json` as the one source of the origins (the website's
+  defaults, the deck, the workflows' `APP_URL`, the web app's redirects, the Android App Link
+  hosts read it; `make docs-check` C17, the website's unit tests and `check_manifest.py` check
+  everything else against it); the redirects in `website/vercel.json` and in the web app's Build
+  Output routes, with the old app host still serving `assetlinks.json` and, until the next
+  release, `/auth/callback`; App Links on both hosts; `redirect_smoke_test.sh` in CI and after
+  each deploy. The Vercel domains were added by the agent through the connector; the DNS is not
+  pointed yet. Merge only once the new hosts serve HTTPS: the owner's steps, in order, are
+  `docs/release-readiness.md`, Owner actions, item 13. Zoho Mail is the owner's; no mailbox is
+  named yet, so none appears anywhere.
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the
@@ -128,7 +141,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-19 record the decisions, and P-01 and P-02 the open proposals. The ones that
+- PROJECT.md D-01…D-20 record the decisions, and P-01 and P-02 the open proposals. The ones that
   carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
@@ -148,7 +161,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
     privacy notice; a dedicated PostHog project (730301) created that day with recording,
     heatmaps, console-log and dead-click capture, autocapture and surveys off and cookieless on;
   - D-19 (the owner, 2026-11-11; in place since 2026-11-12): Urdu interface text in Noto Sans
-    Arabic, Nastaliq kept for the wordmark.
+    Arabic, Nastaliq kept for the wordmark;
+  - D-20 (the owner, 2026-11-13): the domain `mmakaan.app`, the website on the apex and the web
+    app on `app.`, the `vercel.app` addresses redirecting, work e-mail from Zoho Mail; the origins
+    written once, in `contracts/origins.json`, and carried by each release tag.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.
@@ -237,9 +253,11 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
   is to comment (`docs/roadmap/open-banking.md`).
 - **The D-U-N-S number** gates Google Play, the App Store and paid plans; Dun & Bradstreet quotes
   up to 30 business days.
-- **A domain of AR LABS's own, with work e-mail:** Apple enrols an organisation only if its
-  website is on a domain associated with it, and both sites are on `vercel.app`. The same domain
-  serves Meta's verification and the e-mail sending subdomains.
+- **The domain's DNS, then work e-mail:** `mmakaan.app` is bought (D-20, 2026-11-13). Waiting on
+  the owner: the records at Dynadot (the move's pull request is merged once the new hosts serve
+  HTTPS; `docs/release-readiness.md`, Owner actions, item 13), then Zoho Mail. Apple enrols an
+  organisation only if its website is on a domain associated with it, with work e-mail there; the
+  same domain serves Meta's verification and the e-mail sending subdomains.
 - **A lawyer:** a fixed-fee request for quotation this month, with a deadline at least six weeks
   before the store submissions. The plans have the lawyer review the privacy text for D-18 before
   any analytics SDK ships, as the research recommends.
@@ -348,10 +366,14 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 
 ## Hosting
 
-- Vercel team `ar27111994s-projects`: project `maalik-e-makaan` (web app, production address
-  `maalik-e-makaan.vercel.app`, a placeholder page until the first web release) and
-  `maalik-e-makaan-site` (the website, deployed by CI). Previews require a Vercel login;
+- Vercel team `ar27111994s-projects`: project `maalik-e-makaan` (the web app) and
+  `maalik-e-makaan-site` (the website), both deployed by CI. Previews require a Vercel login;
   production is public.
+- Domains (D-20, added 2026-11-13 through the Vercel connector): `mmakaan.app` and
+  `www.mmakaan.app` (308 to the apex) on `maalik-e-makaan-site`, `app.mmakaan.app` on
+  `maalik-e-makaan`; each project keeps its `vercel.app` address, which redirects once the
+  release that carries D-20 is deployed. The DNS at Dynadot still points at its parking page
+  (Vercel reports the three as misconfigured); `docs/operations.md`, Domains, has the records.
 
 ## Completed Phases
 
