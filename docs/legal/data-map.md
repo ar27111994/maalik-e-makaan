@@ -500,7 +500,8 @@ Found while building this map. Each is for the owner, and where marked, for the 
     residence design keeps out of analytics. Lawyer: [A11](questions.md#analytics-and-consent).
 22. **Tenants' details can reach Supabase's logs, kept in the EU.** A tenant search puts the name
     or digits typed in the request's address, and the check for a tenant already recorded puts the
-    full CNIC and phone number there
+    full CNIC or phone number entered there, whichever is new or changed
+    ([`tenant_form_screen.dart`](../../app/lib/src/features/tenants/presentation/tenant_form_screen.dart):177-187)
     ([`tenant_repository.dart`](../../app/lib/src/features/tenants/data/tenant_repository.dart):98-106,
     :139-144). A CNIC entered twice fails a unique index (M-tenants:268-270;
     `tenant_repository.dart`:74), and PostgreSQL quotes the values that failed in its error, as the

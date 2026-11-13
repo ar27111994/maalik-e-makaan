@@ -140,7 +140,7 @@ placeholder until each is settled.
 - [ ] **The weekly backup:** keep it as a workflow artefact of the public repository, which any
       signed-in GitHub user can download though only the owner's key opens it, or store it
       elsewhere; and whether it is still made on a GitHub-hosted runner, which holds the data
-      unencrypted while it checks the copy (data map, row 18;
+      unencrypted until it encrypts it, the restore check included (data map, row 18;
       [X3](questions.md#transfers-and-regions)).
 - [ ] **Each service's retention:** Supabase's logs, Vercel's logs, Resend, Intercom and
       Customer.io ([D4](questions.md#retention-and-deletion)).
