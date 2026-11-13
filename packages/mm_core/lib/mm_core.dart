@@ -7,7 +7,12 @@
 ///   (Western or lakh/crore grouping, English or Urdu) and lenient parsing
 ///   of typed amounts.
 /// * **Time** – date-only values, months, Pakistan's July–June tax year and
-///   date ranges, all evaluated in Pakistan Standard Time.
+///   date ranges, all evaluated in Pakistan Standard Time. Business dates
+///   stay in Pakistan time; a person's own zone serves only their alerts,
+///   quiet hours and the dual time (`TimeZoneId`, `QuietHours`, `DualTime`).
+/// * **Residence** – where a person says they live and the zone of their own
+///   alerts (`CountryCode`, `Residence`: declared, never inferred), and a
+///   portfolio's answer to "Does the owner live abroad?" (`OwnerAbroad`).
 /// * **Identity** – CNIC, phone number, IBAN and e-mail value objects.
 /// * **Text** – sanitisation against control/bidi spoofing characters and
 ///   Urdu digit normalisation.
@@ -26,9 +31,17 @@ export 'src/money/money_format.dart';
 export 'src/money/money_parse.dart';
 export 'src/rent/late_fee_policy.dart';
 export 'src/rent/rent_math.dart';
+export 'src/residence/country_code.dart';
+export 'src/residence/owner_abroad.dart';
+export 'src/residence/residence.dart';
 export 'src/text/digits.dart';
 export 'src/text/sanitize.dart';
 export 'src/time/calendar_date.dart';
+export 'src/time/clock_time.dart';
 export 'src/time/date_range.dart';
+export 'src/time/dual_time.dart';
+export 'src/time/local_date_time.dart';
 export 'src/time/month_period.dart';
+export 'src/time/quiet_hours.dart';
 export 'src/time/tax_year.dart';
+export 'src/time/time_zone.dart';

@@ -7,6 +7,7 @@ import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
+import 'package:mm_core/mm_core.dart';
 
 /// The portfolios of the user whose id is the argument: the saved list at
 /// once, then the server's.
@@ -56,12 +57,21 @@ final class PortfoliosController
   /// Creates a portfolio (see [PortfolioRepository.create]; keep [id] for
   /// retries of the same attempt), lists it with the others and makes it the
   /// current one on this device. Throws [AppFailure].
+  ///
+  /// [ownerAbroad] is the creator's answer to "Does the owner of these
+  /// properties live abroad?" (none chosen in advance; never taken from
+  /// their residence).
   Future<PortfolioMembership> create({
     required String name,
     required String id,
+    OwnerAbroad ownerAbroad = OwnerAbroad.notAnswered,
   }) async {
     final repository = ref.read(portfolioRepositoryProvider);
-    final created = await repository.create(name: name, id: id);
+    final created = await repository.create(
+      name: name,
+      id: id,
+      ownerAbroad: ownerAbroad,
+    );
     List<PortfolioMembership> list;
     try {
       list = await repository.listMine(userId);
@@ -99,6 +109,31 @@ final class PortfoliosController
       list = [...?state.value?.value.where((other) => other.id != portfolioId)];
     }
     if (ref.mounted) await _show(list);
+  }
+
+  /// Answers "Does the owner of these properties live abroad?" for
+  /// [portfolioId], when the app asks on opening a portfolio nobody has
+  /// answered for (see [ownerAbroadQuestionProvider]), and shows the answer
+  /// as stored in the list: when someone else answered first, theirs.
+  /// Throws [AppFailure].
+  Future<OwnerAbroad> answerOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+  }) async {
+    final answer = await ref
+        .read(portfolioRepositoryProvider)
+        .answerOwnerAbroad(portfolioId, abroad: abroad);
+    final list = state.value?.value;
+    if (list != null && ref.mounted) {
+      await _show([
+        for (final membership in list)
+          if (membership.id == portfolioId)
+            membership.withOwnerAbroad(answer)
+          else
+            membership,
+      ]);
+    }
+    return answer;
   }
 
   /// Reads the list again, after the user joined, left or renamed a
@@ -190,6 +225,24 @@ PortfolioMembership? pickCurrent(
   }
   return memberships.isEmpty ? null : memberships.first;
 }
+
+/// The id of the current portfolio when the app should ask "Does the owner
+/// of these properties live abroad?": nobody has answered, the user is an
+/// owner or a manager, and the list was just read from the server (a saved
+/// copy may be out of date: someone may have answered since). Otherwise
+/// null. The question starts with no answer chosen; nothing is taken from
+/// the user's residence.
+final ownerAbroadQuestionProvider = Provider<String?>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+  final snapshot = ref.watch(portfoliosProvider(userId)).value;
+  if (snapshot == null || snapshot.fromCache) return null;
+  final current = pickCurrent(
+    snapshot.value,
+    ref.watch(selectedPortfolioProvider(userId)),
+  );
+  return current != null && current.asksOwnerAbroad ? current.id : null;
+});
 
 /// Whether the signed-in user has a portfolio to work in, for the router.
 enum PortfolioGate {

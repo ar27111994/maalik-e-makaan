@@ -1,6 +1,9 @@
 import 'package:flutter/painting.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:maalik_e_makaan/src/core/dates.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/ledger/data/ledger.dart';
 import 'package:maalik_e_makaan/src/features/reminders/application/reminders.dart';
 import 'package:maalik_e_makaan/src/features/reminders/data/reminder.dart';
@@ -237,9 +240,9 @@ void main() {
   test('etiquette: late night, Friday prayers and a recent reminder', () {
     // 11 PM and 6 AM in Pakistan: quiet hours until 8 AM.
     final night = Etiquette.concerns(now: DateTime.utc(2026, 11, 7, 18));
-    expect((night.single as QuietHours).until, DateTime.utc(2026, 11, 8, 8));
+    expect((night.single as LateNight).until, DateTime.utc(2026, 11, 8, 8));
     final dawn = Etiquette.concerns(now: DateTime.utc(2026, 11, 7, 1));
-    expect((dawn.single as QuietHours).until, DateTime.utc(2026, 11, 7, 8));
+    expect((dawn.single as LateNight).until, DateTime.utc(2026, 11, 7, 8));
     // Friday 1 PM: the prayer until 2:30 PM.
     final friday = Etiquette.concerns(now: DateTime.utc(2026, 11, 13, 8));
     expect(
@@ -260,6 +263,41 @@ void main() {
       ),
       isEmpty,
     );
+  });
+
+  test("messages to tenants keep Pakistan time, whatever the owner's zone", () {
+    // An owner in London: their alerts follow their zone, but what a tenant
+    // reads (dates, amounts, when not to send) stays on Pakistan time.
+    final container = ProviderContainer.test(
+      overrides: [
+        ...TestApp().overrides,
+        alertZoneProvider.overrideWithValue(TimeZoneId.parse('Europe/London')),
+      ],
+    );
+    expect(container.read(alertZoneProvider).name, 'Europe/London');
+    // Saturday 7 November 2026 in Pakistan (the harness's today).
+    expect(container.read(todayProvider), CalendarDate(2026, 11, 7));
+    for (final template in ReminderTemplate.values) {
+      for (final language in ReminderLanguage.values) {
+        expect(
+          _message(template, language),
+          reminderMessage(
+            template: template,
+            language: language,
+            facts: _facts,
+            grouping: DigitGrouping.southAsian,
+          ),
+        );
+      }
+    }
+    expect(
+      _message(ReminderTemplate.overdue, ReminderLanguage.english),
+      contains('5 Nov 2026'),
+    );
+    // 11 PM in Pakistan is 6 PM in London: still too late to message a
+    // tenant in Pakistan.
+    final night = Etiquette.concerns(now: DateTime.utc(2026, 11, 7, 18));
+    expect((night.single as LateNight).until, DateTime.utc(2026, 11, 8, 8));
   });
 
   test('logging a reminder shows it in the history', () async {

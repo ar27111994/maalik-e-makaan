@@ -26,7 +26,8 @@ D-13 to D-15.
 
 Database tooling lives in `tool/db/`: `test.sh`, `reset.sh`, `upgrade_test.sh` with
 `upgrade/<version>.*.sql`, `concurrency_test.sh`, `stress_test.sh`, `lint_migrations.sh`,
-`schema_fingerprint.sql` and `fingerprint_diff.py`.
+`schema_fingerprint.sql`, `fingerprint_diff.py` and `time_zone_skew.sql` (generated; run on the
+hosted project after a Postgres or `tzdata` upgrade, `docs/operations.md`).
 
 ## Rules here
 

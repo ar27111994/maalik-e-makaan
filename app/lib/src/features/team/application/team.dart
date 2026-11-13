@@ -5,6 +5,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/swr_notifier.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
@@ -83,7 +84,9 @@ final class TeamController extends SwrNotifier<Team> {
   }
 
   /// Gives [userId] the [role]. When it is the user's own role, the
-  /// portfolio list is read again so every screen follows.
+  /// portfolio list is read again so every screen follows. The portfolio's
+  /// settings are read again too: a caretaker who stops being manager is
+  /// no longer the caretaker.
   Future<void> changeRole(String userId, MemberRole role) async {
     final you = userId == ref.read(currentUserIdProvider);
     await _repository.changeRole(
@@ -91,6 +94,7 @@ final class TeamController extends SwrNotifier<Team> {
       userId: userId,
       role: role,
     );
+    ref.invalidate(portfolioDetailsProvider(portfolio.id));
     if (you) {
       await _reloadPortfolios(userId);
     } else {
@@ -98,10 +102,20 @@ final class TeamController extends SwrNotifier<Team> {
     }
   }
 
-  /// Removes [userId] from the portfolio.
+  /// Removes [userId] from the portfolio (and, the server does that, from
+  /// being its caretaker).
   Future<void> remove(String userId) async {
     await _repository.removeMember(portfolioId: portfolio.id, userId: userId);
+    ref.invalidate(portfolioDetailsProvider(portfolio.id));
     await reload();
+  }
+
+  /// Names [userId], a manager, the portfolio's caretaker, or clears the
+  /// caretaker when null (owners only; see [TeamRepository.setCaretaker]).
+  /// The portfolio's settings, which show the caretaker, are read again.
+  Future<void> setCaretaker(String? userId) async {
+    await _repository.setCaretaker(portfolioId: portfolio.id, userId: userId);
+    ref.invalidate(portfolioDetailsProvider(portfolio.id));
   }
 
   /// Leaves the portfolio. The portfolio list is read again, so the app

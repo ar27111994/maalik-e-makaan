@@ -93,6 +93,17 @@ begin
     (v_pid, v_accountant, 'accountant', v_owner),
     (v_pid, v_viewer, 'viewer', v_owner);
 
+  -- Residence (D-16): Ahmed lives in the United Kingdom and Imran in Lahore,
+  -- as each would declare it; the portfolio's owner lives abroad, and Imran,
+  -- its manager, is the caretaker.
+  update public.profile_residences
+  set residence_country = 'GB', time_zone = 'Europe/London', stated_at = now()
+  where user_id = v_owner;
+  update public.profile_residences
+  set residence_country = 'PK', time_zone = 'Asia/Karachi', stated_at = now()
+  where user_id = v_manager;
+  update public.portfolios set owner_abroad = true, caretaker_user_id = v_manager where id = v_pid;
+
   -- Act as the caretaker for day-to-day records (exercises RLS + RPCs).
   perform set_config('request.jwt.claims',
     json_build_object('sub', v_manager, 'role', 'authenticated')::text, true);

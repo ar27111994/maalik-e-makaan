@@ -298,7 +298,7 @@ sealed class EtiquetteConcern {
 }
 
 /// Late at night in Pakistan, until [until] (Pakistan time).
-final class QuietHours extends EtiquetteConcern {
+final class LateNight extends EtiquetteConcern {
   const new(this.until);
 
   final DateTime until;
@@ -346,9 +346,9 @@ abstract final class Etiquette {
     int of(({int hour, int minute}) time) => time.hour * 60 + time.minute;
     return [
       if (minutes >= of(quietFrom))
-        QuietHours(at(quietUntil, days: 1))
+        LateNight(at(quietUntil, days: 1))
       else if (minutes < of(quietUntil))
-        QuietHours(at(quietUntil)),
+        LateNight(at(quietUntil)),
       if (local.weekday == DateTime.friday &&
           minutes >= of(prayerFrom) &&
           minutes < of(prayerUntil))

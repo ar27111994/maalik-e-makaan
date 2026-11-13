@@ -137,7 +137,7 @@ verify-all: ## Formal verification, everything: all configurations and mutants (
 	tool/formal/verify.sh all
 
 .PHONY: contracts
-contracts: ## Regenerate the rent-maths contract vectors shared by Dart and SQL
+contracts: ## Regenerate the contract vectors shared by Dart and SQL (rent maths, identity, residence and time zones)
 	python3 tool/contracts/generate.py
 
 .PHONY: contracts-check
@@ -186,7 +186,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer, time-zone reference, the command map's rows)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
@@ -197,6 +197,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/ios -p 'test_*.py'
 	python3 -m unittest discover -s tool/android -p 'test_*.py'
 	python3 -m unittest discover -s tool/github -p 'test_*.py'
+	python3 -m unittest discover -s tool/contracts -p 'test_*.py'
 
 .PHONY: tokens
 tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter, the e-mails' Urdu type)
