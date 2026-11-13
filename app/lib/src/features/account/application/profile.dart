@@ -25,18 +25,22 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
 
   ProfileRepository get _repository => ref.read(profileRepositoryProvider);
 
+  /// The cache's epoch when the profile was built: a profile saved after
+  /// the device was wiped since (the session ended) is not kept on it.
+  int _epoch = 0;
+
   @override
   Stream<Snapshot<Profile>> build() {
     final repository = ref.watch(profileRepositoryProvider);
-    return ref
-        .watch(swrCacheProvider)
-        .watch(
-          userId: userId,
-          query: query,
-          fetch: () => repository.fetch(userId),
-          decode: Profile.fromRow,
-          encode: (profile) => profile.toRow(),
-        );
+    final cache = ref.watch(swrCacheProvider);
+    _epoch = cache.epoch;
+    return cache.watch(
+      userId: userId,
+      query: query,
+      fetch: () => repository.fetch(userId),
+      decode: Profile.fromRow,
+      encode: (profile) => profile.toRow(),
+    );
   }
 
   /// Saves the name and phone and shows the profile as the server stored it.
@@ -62,7 +66,7 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   Future<void> _show(Profile profile) async {
     final savedAt = await ref
         .read(swrCacheProvider)
-        .write(userId, query, profile.toRow());
+        .write(userId, query, profile.toRow(), epoch: _epoch);
     if (!ref.mounted) return;
     state = AsyncData(
       Snapshot(profile, savedAt: savedAt, source: SnapshotSource.network),
