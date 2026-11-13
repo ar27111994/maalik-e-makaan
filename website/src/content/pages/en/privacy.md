@@ -1,7 +1,7 @@
 ---
 title: "Privacy"
 description: "How this website and the Maalik-e-Makaan app treat your data: no cookies or trackers on the site, and in the app, your records seen only by the people you invite."
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-12
 ---
 
 ## In short
@@ -24,7 +24,7 @@ This section describes version 1.0 of the app, released on 9 November 2026, and 
 
 - **Your account:** your email address, your name, your phone number if you give one, and your choice of language. The sign-in service, Supabase Auth, also keeps a scrambled (hashed) form of your password and sign-in details such as when you last signed in.
 - **What you enter:** your properties and units; your tenants' details (such as names, CNIC numbers, phone numbers and references); tenancies, rent, payments, receipts, expenses, utility bills and meter readings; and any photos or documents you attach.
-- **Reminders:** a log of each WhatsApp reminder you open from the app: when, to which tenancy, in which language, and a short preview of the message.
+- **Reminders:** a log of each WhatsApp reminder you open from the app: when, to which tenancy, in which language, and the message itself, up to its first 1,000 characters.
 - **Who did what:** an audit trail of changes to the records and the money, with who made each one and when, so that an owner can trust what a caretaker records. CNIC numbers are not written into that trail.
 
 ### Where it is kept, and who can see it

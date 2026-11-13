@@ -3,7 +3,8 @@
  *
  * Both languages are always included because the invitee's preference is
  * unknown; the inviter's language comes first. Every interpolated value is
- * escaped, and the inviter's verified e-mail address is shown next to their
+ * escaped, and in the Urdu half isolated, so that it keeps its own direction in
+ * the sentence. The inviter's verified e-mail address is shown next to their
  * name so a recipient can tell who is really inviting them.
  *
  * Names are chosen by users, so they never reach the subject (which inboxes
@@ -13,6 +14,7 @@
  */
 
 import type { EmailMessage } from '../_shared/email.ts';
+import { EMAIL_TYPOGRAPHY } from '../_shared/email_typography.g.ts';
 import { escapeHtml, singleLine, truncate } from '../_shared/text.ts';
 
 export type InviteRole = 'owner' | 'manager' | 'accountant' | 'viewer';
@@ -92,12 +94,31 @@ export function displayName(name: string, max: number): string {
   return looksLikeLink(clean) ? '' : clean;
 }
 
+/** What a value from outside the copy is, which decides how the HTML sets it apart. */
+type ValueKind = 'name' | 'address' | 'time';
+
+/** A piece of copy: its own text, or a value from outside it. */
+export type Piece = string | { readonly kind: ValueKind; readonly value: string };
+
+/** [pieces] as plain text, for the text part. */
+export function plainText(pieces: readonly Piece[]): string {
+  return pieces.map((piece) => typeof piece === 'string' ? piece : piece.value).join('');
+}
+
 /** "Name (address)" from whichever parts exist; a neutral phrase when neither does. */
-export function inviterLabel(name: string, email: string | null, locale: Locale): string {
+export function inviterPieces(name: string, email: string | null, locale: Locale): Piece[] {
   const shortName = displayName(name, 60);
-  const address = email === null || email === '' ? null : email;
-  if (shortName !== '' && address !== null) return `${shortName} (${address})`;
-  return shortName !== '' ? shortName : address ?? UNNAMED_INVITER[locale];
+  const who: Piece | null = shortName === '' ? null : { kind: 'name', value: shortName };
+  const at: Piece | null = email === null || email === ''
+    ? null
+    : { kind: 'address', value: email };
+  if (who !== null && at !== null) return [who, ' (', at, ')'];
+  return [who ?? at ?? UNNAMED_INVITER[locale]];
+}
+
+/** The inviter as plain text: "Name (address)", either part alone, or a neutral phrase. */
+export function inviterLabel(name: string, email: string | null, locale: Locale): string {
+  return plainText(inviterPieces(name, email, locale));
 }
 
 const COLORS = {
@@ -111,78 +132,206 @@ const COLORS = {
   rule: '#D8DCE1',
 } as const;
 
-/** The expiry in Pakistan time, saying so (recipients may be abroad). */
-export function formatExpiry(date: Date, locale: Locale): string {
-  const formatted = new Intl.DateTimeFormat(locale === 'ur' ? 'ur-PK' : 'en-PK', {
+/** The parts of a formatted date that make up its time of day. */
+const TIME_PARTS: ReadonlySet<string> = new Set(['hour', 'minute', 'dayPeriod']);
+
+/** A no-break space: "5:00" and "PM" stay on one line. */
+const NO_BREAK_SPACE = String.fromCodePoint(0x00a0);
+
+/**
+ * The expiry in Pakistan time, saying so (recipients may be abroad), with the time of day
+ * ("5:00 PM") as a value of its own: in an Urdu sentence it must keep its left-to-right order,
+ * and its spaces do not break, so the time is never split across two lines.
+ */
+export function expiryPieces(date: Date, locale: Locale): Piece[] {
+  const parts = new Intl.DateTimeFormat(locale === 'ur' ? 'ur-PK' : 'en-PK', {
     timeZone: 'Asia/Karachi',
     dateStyle: 'long',
     timeStyle: 'short',
-  }).format(date);
-  return locale === 'ur' ? `${formatted} (پاکستانی وقت)` : `${formatted} (Pakistan time)`;
+  }).formatToParts(date);
+  const first = parts.findIndex((part) => TIME_PARTS.has(part.type));
+  const last = parts.findLastIndex((part) => TIME_PARTS.has(part.type)) + 1;
+  const text = (from: number, to: number) =>
+    parts.slice(from, to).map((part) => part.value).join('');
+  const zone = locale === 'ur' ? ' (پاکستانی وقت)' : ' (Pakistan time)';
+  return [
+    text(0, first),
+    { kind: 'time', value: text(first, last).replace(/\s/gu, NO_BREAK_SPACE) },
+    text(last, parts.length) + zone,
+  ];
+}
+
+/** The expiry in Pakistan time as plain text. */
+export function formatExpiry(date: Date, locale: Locale): string {
+  return plainText(expiryPieces(date, locale));
 }
 
 interface Copy {
   readonly heading: string;
-  readonly intro: string;
+  readonly intro: readonly Piece[];
   readonly button: string;
-  readonly validity: string;
+  readonly validity: readonly Piece[];
   readonly fallback: string;
   readonly ignore: string;
 }
 
-function copy(locale: Locale, input: InvitationEmailInput, inviter: string): Copy {
+function copy(locale: Locale, input: InvitationEmailInput, inviter: readonly Piece[]): Copy {
   const role = ROLE_NAMES[locale][input.role];
-  const expiry = formatExpiry(input.expiresAt, locale);
-  const named = input.portfolioName !== '';
+  const expiry = expiryPieces(input.expiresAt, locale);
+  const recipient: Piece = { kind: 'address', value: input.recipient };
+  // The quotes go with the name, so that they stay round it when the name wraps.
+  const portfolio: Piece | null = input.portfolioName === ''
+    ? null
+    : { kind: 'name', value: `"${input.portfolioName}"` };
   if (locale === 'ur') {
     return {
       heading: 'آپ کو دعوت دی گئی ہے',
-      intro: named
-        ? `${inviter} نے آپ کو مالکِ مکان ایپ پر "${input.portfolioName}" نام کے پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`
-        : `${inviter} نے آپ کو مالکِ مکان ایپ پر ایک پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`,
+      intro: portfolio === null
+        ? [
+          ...inviter,
+          ` نے آپ کو مالکِ مکان ایپ پر ایک پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`,
+        ]
+        : [
+          ...inviter,
+          ' نے آپ کو مالکِ مکان ایپ پر ',
+          portfolio,
+          ` نام کے پورٹ فولیو میں شامل ہونے کی دعوت بھیجی ہے۔ آپ کا رول: ${role}۔`,
+        ],
       button: 'دعوت قبول کریں',
-      validity:
-        `یہ لنک صرف ایک بار، ${expiry} تک، اور صرف ${input.recipient} کے لیے کام کرے گا۔ قبول کرنے کے لیے اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں۔`,
+      validity: [
+        'یہ لنک صرف ایک بار، ',
+        ...expiry,
+        ' تک، اور صرف ',
+        recipient,
+        ' کے لیے کام کرے گا۔ قبول کرنے کے لیے اسی ای میل سے سائن اِن کریں یا اکاؤنٹ بنائیں۔',
+      ],
       fallback: 'اگر بٹن کام نہ کرے تو یہ لنک کھولیں:',
       ignore: 'اگر آپ اس دعوت کی توقع نہیں کر رہے تھے تو اس ای میل کو نظر انداز کر دیں۔',
     };
   }
   return {
     heading: 'You have been invited',
-    intro: named
-      ? `${inviter} invited you to join the portfolio named "${input.portfolioName}" on Maalik-e-Makaan as ${role}.`
-      : `${inviter} invited you to join a portfolio on Maalik-e-Makaan as ${role}.`,
+    intro: portfolio === null
+      ? [...inviter, ` invited you to join a portfolio on Maalik-e-Makaan as ${role}.`]
+      : [
+        ...inviter,
+        ' invited you to join the portfolio named ',
+        portfolio,
+        ` on Maalik-e-Makaan as ${role}.`,
+      ],
     button: 'Accept invitation',
-    validity:
-      `This link works once, until ${expiry}, and only for ${input.recipient}. Sign in or create an account with that address to accept.`,
+    validity: [
+      'This link works once, until ',
+      ...expiry,
+      ', and only for ',
+      recipient,
+      '. Sign in or create an account with that address to accept.',
+    ],
     fallback: 'If the button does not work, open this link:',
     ignore: 'If you were not expecting this invitation, you can ignore this e-mail.',
   };
 }
 
+/**
+ * How each kind of value is set apart in the Urdu half's HTML. Each is isolated (an element
+ * with dir), so that a Latin value keeps its own order in the Urdu sentence: "5:00 PM" does not
+ * become "PM 5:00", and the brackets round an address stay the right way round. A name may be
+ * in either script, so its direction is its own (auto).
+ */
+const URDU_ISOLATE: Readonly<Record<ValueKind, string>> = {
+  name: ' dir="auto"',
+  address: ' dir="ltr"',
+  time: ' dir="ltr"',
+};
+
+/**
+ * [pieces] as HTML, escaped. An address breaks anywhere, so that a long one cannot widen the
+ * e-mail past a phone's screen; in Urdu, every value is isolated (URDU_ISOLATE).
+ */
+function htmlPieces(pieces: readonly Piece[], locale: Locale): string {
+  return pieces.map((piece) => {
+    if (typeof piece === 'string') return escapeHtml(piece);
+    const dir = locale === 'ur' ? URDU_ISOLATE[piece.kind] : '';
+    const style = piece.kind === 'address' ? ' style="word-break:break-word;"' : '';
+    const value = escapeHtml(piece.value);
+    return dir === '' && style === '' ? value : `<span${dir}${style}>${value}</span>`;
+  }).join('');
+}
+
+/** The English half's face, as the English e-mail has always set it. */
+const ENGLISH_FONT =
+  "'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+/** The Urdu type generated from the design tokens. */
+const URDU = EMAIL_TYPOGRAPHY.urdu;
+
+/** An Urdu type role as a style: its size, and its line height (a whole number of pixels). */
+function urduRole(role: { readonly fontSize: number; readonly lineHeight: number }): string {
+  return `font-size:${role.fontSize}px;line-height:${role.lineHeight};`;
+}
+
+/** The type of one language's half: its own, and that of each kind of text in it. */
+interface SectionType {
+  /** The face, and the size and line height that what sets neither inherits. */
+  readonly section: string;
+  readonly heading: string;
+  readonly body: string;
+  readonly small: string;
+  readonly caption: string;
+  /** The fallback link's attributes and type: Latin text, whichever half it is in. */
+  readonly link: { readonly attributes: string; readonly style: string };
+}
+
+/**
+ * Each language's type. Urdu is generated from the design tokens (D-19): Noto Sans Arabic and
+ * installed sans faces, a size larger than the English in each role (its letters are small for
+ * their size), on lines of whole pixels.
+ */
+const TYPE: Readonly<Record<Locale, SectionType>> = {
+  en: {
+    section: `font-family:${ENGLISH_FONT};line-height:1.55;`,
+    heading: 'font-size:22px;',
+    body: 'font-size:16px;',
+    small: 'font-size:14px;',
+    caption: 'font-size:13px;',
+    link: { attributes: '', style: 'font-size:13px;' },
+  },
+  ur: {
+    section: `font-family:${URDU.fontFamily};${urduRole(URDU.body)}`,
+    heading: urduRole(URDU.headline),
+    body: urduRole(URDU.body),
+    small: urduRole(URDU.bodySmall),
+    caption: urduRole(URDU.caption),
+    // In the English face, aligned left, at the size and on the line of the Urdu around it.
+    link: {
+      attributes: ' lang="en"',
+      style: `font-family:${ENGLISH_FONT};${urduRole(URDU.caption)}text-align:left;`,
+    },
+  },
+};
+
 function htmlSection(locale: Locale, text: Copy, url: string): string {
   const dir = locale === 'ur' ? 'rtl' : 'ltr';
-  const font = locale === 'ur'
-    ? "'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', serif"
-    : "'Atkinson Hyperlegible Next', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-  const lineHeight = locale === 'ur' ? '2.1' : '1.55';
+  const type = TYPE[locale];
   const e = escapeHtml;
-  return `<div lang="${locale}" dir="${dir}" style="font-family:${font};line-height:${lineHeight};text-align:${
+  return `<div lang="${locale}" dir="${dir}" style="${type.section}text-align:${
     dir === 'rtl' ? 'right' : 'left'
   };">
-<h1 style="margin:0 0 12px;font-size:22px;color:${COLORS.ink};">${e(text.heading)}</h1>
-<p style="margin:0 0 20px;font-size:16px;color:${COLORS.ink};">${e(text.intro)}</p>
+<h1 style="margin:0 0 12px;${type.heading}color:${COLORS.ink};">${e(text.heading)}</h1>
+<p style="margin:0 0 20px;${type.body}color:${COLORS.ink};">${htmlPieces(text.intro, locale)}</p>
 <p style="margin:0 0 20px;"><a href="${
     e(url)
-  }" style="display:inline-block;padding:12px 22px;background:${COLORS.primary};color:${COLORS.onPrimary};text-decoration:none;border-radius:8px;font-size:16px;font-weight:600;">${
+  }" style="display:inline-block;padding:12px 22px;background:${COLORS.primary};color:${COLORS.onPrimary};text-decoration:none;border-radius:8px;${type.body}font-weight:600;">${
     e(text.button)
   }</a></p>
-<p style="margin:0 0 12px;font-size:14px;color:${COLORS.muted};">${e(text.validity)}</p>
-<p style="margin:0 0 4px;font-size:13px;color:${COLORS.muted};">${e(text.fallback)}</p>
-<p dir="ltr" style="margin:0 0 12px;font-size:13px;word-break:break-all;"><a href="${
+<p style="margin:0 0 12px;${type.small}color:${COLORS.muted};">${
+    htmlPieces(text.validity, locale)
+  }</p>
+<p style="margin:0 0 4px;${type.caption}color:${COLORS.muted};">${e(text.fallback)}</p>
+<p dir="ltr"${type.link.attributes} style="margin:0 0 12px;${type.link.style}word-break:break-all;"><a href="${
     e(url)
   }" style="color:${COLORS.primary};">${e(url)}</a></p>
-<p style="margin:0;font-size:13px;color:${COLORS.muted};">${e(text.ignore)}</p>
+<p style="margin:0;${type.caption}color:${COLORS.muted};">${e(text.ignore)}</p>
 </div>`;
 }
 
@@ -190,9 +339,9 @@ function htmlSection(locale: Locale, text: Copy, url: string): string {
 export function renderInvitationEmail(input: InvitationEmailInput): EmailMessage {
   const portfolioName = displayName(input.portfolioName, 80);
   const safe = { ...input, portfolioName };
-  const label = (locale: Locale) => inviterLabel(input.inviterName, input.inviterEmail, locale);
+  const inviter = (locale: Locale) => inviterPieces(input.inviterName, input.inviterEmail, locale);
   const order: readonly Locale[] = input.locale === 'ur' ? ['ur', 'en'] : ['en', 'ur'];
-  const sections = order.map((locale) => ({ locale, text: copy(locale, safe, label(locale)) }));
+  const sections = order.map((locale) => ({ locale, text: copy(locale, safe, inviter(locale)) }));
   const subject = SUBJECTS[input.locale];
 
   const html = `<!doctype html>
@@ -211,15 +360,24 @@ ${
     )
   }
 </div>
-<p style="max-width:560px;margin:16px auto 0;font-family:Arial,sans-serif;font-size:12px;color:${COLORS.muted};text-align:center;">Maalik-e-Makaan · مالکِ مکان</p>
+<p style="max-width:560px;margin:16px auto 0;font-family:Arial,sans-serif;font-size:12px;color:${COLORS.muted};text-align:center;">Maalik-e-Makaan · <span lang="ur" dir="rtl" style="font-family:${EMAIL_TYPOGRAPHY.urduWordmark.fontFamily};">مالکِ مکان</span></p>
 </body>
 </html>
 `;
 
   const text = sections
     .map(({ text: t }) =>
-      [t.heading, '', t.intro, '', `${t.button}: ${input.inviteUrl}`, '', t.validity, '', t.ignore]
-        .join('\n')
+      [
+        t.heading,
+        '',
+        plainText(t.intro),
+        '',
+        `${t.button}: ${input.inviteUrl}`,
+        '',
+        plainText(t.validity),
+        '',
+        t.ignore,
+      ].join('\n')
     )
     .join('\n\n----------------------------------------\n\n');
 

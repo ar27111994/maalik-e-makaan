@@ -335,15 +335,27 @@ In order. Record each in `.planning/STATE.md` when it is done.
    to end; the agent's network could not download artefacts.
 5. **E-mail** (`docs/operations.md`, E-mail). Already set on 2026-11-05: `RESEND_API_KEY` and
    `MAIL_FROM` for invitations, and Auth's Site URL and redirect. The Resend domain
-   `news.ar27111994.dev` was verified on 2026-11-09 (us-east-1). Still to do: turn off its click
-   and open tracking (both were on: they rewrite the sign-in links through Resend and add a
-   tracking pixel, which the privacy page rules out); check that `MAIL_FROM` uses that domain;
+   `news.ar27111994.dev` was verified on 2026-11-09 (us-east-1). Its click and open tracking,
+   which were on (they rewrite the sign-in links through Resend and add a tracking pixel, which
+   the privacy page rules out), are off: the owner reported on 2026-11-12 that they had switched
+   them off some days before. Still to do: check that `MAIL_FROM` uses that domain;
    turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
    check the "Email sent" rate limit; add the iOS app's redirect URL
    `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` (Authentication,
    URL Configuration); paste the three bilingual templates from
    `supabase/templates/` with their subjects from `supabase/config.toml`. Then sign up in each
-   language, reset a password and send an invitation to someone outside the team.
+   language, reset a password and send an invitation to someone outside the team. The owner
+   reported the templates pasted (2026-11-09) and updated (2026-11-12). Those copies set the Urdu
+   half in Nastaliq; the templates now set it in Noto Sans Arabic or a sans the reader already
+   has, a size larger than the English beside it so that both read the same size, with Nastaliq
+   only for the wordmark (D-19). The Urdu half's fallback link is set like the English one, and
+   long addresses wrap. **After the release that carries this change**, paste the three bodies
+   again: `confirmation.html` into "Confirm signup", `recovery.html` into "Reset password" and
+   `email_change.html` into "Change email address" (the subjects are unchanged). Then send each
+   e-mail once and check its Urdu half: a plain sans face, as large to the eye as the English,
+   the link aligned left, and Nastaliq only in the header's مالکِ مکان (`docs/operations.md`,
+   Releasing, step 5). The invitation e-mail changes with that release's Deploy, with nothing to
+   paste.
 6. **Monitoring** (`docs/operations.md`, Monitoring and alerts): `HEALTH_CHECK_TOKEN` as an Edge
    Function secret (not a GitHub secret), checked with curl, and an uptime monitor whose free
    plan sends a custom header (Better Stack refused sign-ups on 2026-11-09: Checkly's Hobby

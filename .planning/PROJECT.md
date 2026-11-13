@@ -185,10 +185,15 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   What is in place: the type tokens (`font.family.urdu` and `urduWordmark`, Urdu lines of whole
   even pixels), `mm_ui` and the app with every Urdu golden re-recorded, the website (Urdu pages
   load about 50 KB of fonts instead of 196 KB, and most are 10–17% shorter on a phone), its Open
-  Graph cards and the pitch deck. The wordmark appears in the app's e-mail-link sign-in and
-  portfolio-loading screens, the website's header and cards, and the deck's cover. Still on
-  Nastaliq: the e-mail templates (`supabase/templates/`, `invite-member`) and the gallery's
-  screenshots, which predate the change.
+  Graph cards, the pitch deck and the e-mails (the three Auth templates in `supabase/templates/`
+  and the `invite-member` invitation). An e-mail loads no web font, so its Urdu text names
+  Noto Sans Arabic and then sans faces readers already have (Segoe UI and Tahoma on Windows,
+  Geeza Pro on Apple devices, the system's own on Android), at the Urdu type roles' sizes (a
+  size larger than the English) on lines of whole pixels; `make tokens` writes it from the
+  tokens, and `make tokens-check` fails when a template differs. The wordmark appears in the
+  app's e-mail-link sign-in and portfolio-loading screens, the website's header and cards, the
+  deck's cover, the header of the Auth e-mails and the invitation's footer. Still on Nastaliq:
+  the gallery's screenshots, which predate the change.
 
   What the app bundles (an engineering choice, 12 November 2026): Flutter on the web downloads
   every bundled font before the app starts, so the app does not ship the two upstream files

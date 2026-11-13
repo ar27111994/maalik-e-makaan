@@ -70,12 +70,19 @@ says why.
    Lucide name to `design/icons/icons.json`, then `make icons` (needs `npm ci`). A change to
    `primary`, `onPrimary` or the light `bg`, or to the mark in `website/src/lib/brand.ts`, also
    changes the app's launcher icons: run `make app-icons` and look at every changed image (and
-   `npm run og` in `website/` for the site's own icons).
+   `npm run og` in `website/` for the site's own icons). A change to `font.family.urdu`,
+   `font.family.urduWordmark` or an Urdu type style also rewrites the e-mails' Urdu type: the
+   three Auth templates in `supabase/templates/` and `email_typography.g.ts`, which the
+   invitation's snapshots embed. Render the changed e-mails and look at their Urdu halves; the
+   owner pastes each changed template into the dashboard after the release that carries it
+   (`docs/operations.md`, Releasing, step 5).
 2. Components: follow `packages/mm_ui/COMPONENTS.md`; keep the API additive, because the app
    depends on it.
 3. Add the component to its family's gallery page in `packages/mm_ui/example/lib/src/pages/`.
 4. Run `make tokens-check icons-check fonts-check app-icons-check test-ui test-gallery test-app`
-   (the app's goldens show whether a change leaks into its screens).
+   (the app's goldens show whether a change leaks into its screens) and `make test-functions`.
+   When the invitation's snapshot changes with the Urdu type, record it again with
+   `cd supabase/functions && deno task test:update-snapshots` and read the diff.
 
 ## Change an Edge Function
 
@@ -98,4 +105,7 @@ Follow [`website/README.md`](../../website/README.md) ("Add a page", "Add a guid
 1. Update the doc in the same change as the code it describes. The index is
    [`docs/README.md`](../README.md); per-area context is each `AGENTS.md`.
 2. Every command you write is one you ran; every path is one that exists.
-3. Run `make format-check-repo lint` (Prettier and markdownlint cover every `*.md`).
+3. A fact between `<!-- docs:… -->` markers is generated: change its source and run
+   `make docs`. To repeat a fact in a new place, or add a new one, edit
+   `tool/docs/fact_registry.py` (and `fact_sources.py` for a new source) with tests.
+4. Run `make format-check-repo lint docs-check` (Prettier and markdownlint cover every `*.md`).

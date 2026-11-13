@@ -11,17 +11,18 @@ D-13 to D-15.
 
 ## Where things are
 
-| Path                      | What                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------ |
-| `migrations/`             | The chain, `<UTC timestamp>_<name>.sql`, applied in order                                  |
-| `tests/database/`         | pgTAP suites `NN_<name>.test.sql` and `_helpers.psql`; 10, 12, 13, 20 and 23 are generated |
-| `seed.sql`                | Demo data (`tool/db/reset.sh --seed`)                                                      |
-| `local/supabase_shim.sql` | Emulates the Supabase roles and schemas on a plain PostgreSQL for `tool/db/test.sh`        |
-| `config.toml`             | Local stack settings; every function has `verify_jwt = false` and checks the token itself  |
-| `functions/<name>/`       | `delete-account`, `invite-member`, `health`, `storage-cleanup`                             |
-| `functions/_shared/`      | CORS, config, crypto, errors, rate limits, validation, `database.types.ts` (generated)     |
-| `functions/tests/`        | Unit tests (100% gate), snapshots, `e2e/` against a running stack                          |
-| `functions/.env.example`  | The function secrets, for local development                                                |
+| Path                      | What                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `migrations/`             | The chain, `<UTC timestamp>_<name>.sql`, applied in order                                                                                                    |
+| `tests/database/`         | pgTAP suites `NN_<name>.test.sql`, `_helpers.psql`; generated ones start `-- GENERATED`                                                                      |
+| `seed.sql`                | Demo data (`tool/db/reset.sh --seed`)                                                                                                                        |
+| `local/supabase_shim.sql` | Emulates the Supabase roles and schemas on a plain PostgreSQL for `tool/db/test.sh`                                                                          |
+| `config.toml`             | Local stack settings; every function has `verify_jwt = false` and checks the token itself                                                                    |
+| `functions/<name>/`       | `delete-account`, `invite-member`, `health`, `storage-cleanup`                                                                                               |
+| `functions/_shared/`      | CORS, config, crypto, errors, rate limits, validation; generated: `database.types.ts`, `email_typography.g.ts`                                               |
+| `templates/`              | The Auth e-mails, pasted into the dashboard (`docs/operations.md`); `make tokens` sets their Urdu type, at the role each Urdu element names (`data-mm-type`) |
+| `functions/tests/`        | Unit tests (100% gate), snapshots, `e2e/` against a running stack                                                                                            |
+| `functions/.env.example`  | The function secrets, for local development                                                                                                                  |
 
 Database tooling lives in `tool/db/`: `test.sh`, `reset.sh`, `upgrade_test.sh` with
 `upgrade/<version>.*.sql`, `concurrency_test.sh`, `stress_test.sh`, `lint_migrations.sh`,

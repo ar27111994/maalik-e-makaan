@@ -56,7 +56,7 @@ format-check-repo: ## Formatting of Python, shell and docs (no Flutter or Deno n
 	npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
 .PHONY: lint
-lint: ## Lint Python, shell, workflows, migrations, docs, text, Urdu words and the Android manifest
+lint: ## Lint Python, shell, workflows, migrations, docs, text, Urdu words, the Android manifest and the design lint
 	ruff check $(PYTHON_SOURCES)
 	shellcheck $(SHELL_SOURCES)
 	actionlint
@@ -108,7 +108,7 @@ goldens: ## Re-record golden images (review the diff before committing!)
 	cd app && $(FLUTTER) test --update-goldens --tags golden
 
 .PHONY: test-integration
-test-integration: ## Flutter integration tests on the Linux desktop target (needs xvfb)
+test-integration: ## Flutter integration tests in app/integration_test/ on Linux (none yet: the app's end-to-end tests are test-uat)
 	cd app && xvfb-run -a $(FLUTTER) test integration_test -d linux
 
 .PHONY: test-db
@@ -117,7 +117,7 @@ test-db: ## Migrations + pgTAP suite, and the migrations' data changes, on a loc
 	tool/db/upgrade_test.sh
 
 .PHONY: test-db-concurrency
-test-db-concurrency: ## Parallel payments, retries and billing races keep the ledger invariants
+test-db-concurrency: ## Payments, retries, billing, deletions and membership changes racing in parallel keep the invariants
 	tool/db/concurrency_test.sh
 
 .PHONY: test-db-stress
@@ -152,6 +152,16 @@ roadmap: ## Rewrite the website's offline roadmap copy from .github/roadmap.toml
 roadmap-check: ## Fail when the website's offline roadmap copy is stale
 	python3 -m unittest discover -s tool/github -p 'test_roadmap.py' -k committed_copy
 
+.PHONY: docs
+docs: ## Rewrite the facts the docs repeat from their sources (tool/docs/sync_facts.py), then format them
+	python3 tool/docs/sync_facts.py --write
+	files="$$(python3 tool/docs/sync_facts.py --list-files)"; npx --no-install prettier --write --log-level warn $$files
+	python3 tool/docs/sync_facts.py --check
+
+.PHONY: docs-check
+docs-check: ## Fail when a fact the docs repeat disagrees with its source (make docs fixes generated ones)
+	python3 tool/docs/sync_facts.py --check
+
 .PHONY: test-functions
 test-functions: ## Edge Function tests with the 100% coverage gate
 	cd supabase/functions && $(DENO) task test
@@ -181,6 +191,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
 	python3 -m unittest discover -s tool/design -p 'test_*.py'
+	python3 -m unittest discover -s tool/docs -p 'test_*.py'
 	python3 -m unittest discover -s tool/web -p 'test_*.py'
 	python3 -m unittest discover -s tool/formal -p 'test_*.py'
 	python3 -m unittest discover -s tool/ios -p 'test_*.py'
@@ -189,7 +200,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/contracts -p 'test_*.py'
 
 .PHONY: tokens
-tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter)
+tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter, the e-mails' Urdu type)
 	python3 tool/design/build_tokens.py
 
 .PHONY: tokens-check
@@ -213,7 +224,7 @@ fonts-check: ## Fail when the app's Urdu fonts are out of date with design/fonts
 	python3 tool/design/build_fonts.py --check
 
 .PHONY: app-icons
-app-icons: ## Rebuild the app's launcher icons (Android, iOS, web) from the brand mark and the colour tokens
+app-icons: ## Rebuild the app's launcher icons (Android, iOS, web, Google Play) from the brand mark and the colour tokens
 	python3 tool/design/build_app_icons.py
 
 .PHONY: app-icons-check

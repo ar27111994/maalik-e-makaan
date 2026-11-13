@@ -55,8 +55,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Keep equal to ci.yml and release.yml.
+  # Equal to ci.yml's; make docs-check checks them.
   FLUTTER_VERSION: 3.47.9
+  SUPABASE_CLI_VERSION: 2.122.1
+  # The Vercel CLI that builds and deploys the web app and the website (npx runs it from npm).
+  VERCEL_CLI_VERSION: 65.8.0
 
 defaults:
   run:
@@ -88,7 +91,7 @@ jobs:
           done
       - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
-          version: 2.122.1
+          version: ${{ env.SUPABASE_CLI_VERSION }}
       - name: Link the project
         run: supabase link --project-ref "$PROJECT_REF"
       - name: Pending migrations
@@ -170,7 +173,7 @@ jobs:
           VERCEL_TELEMETRY_DISABLED: "1"
         run: |
           cd "$RUNNER_TEMP/vercel"
-          npx --yes vercel@65.8.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+          npx --yes "vercel@$VERCEL_CLI_VERSION" deploy --prebuilt --prod --token "$VERCEL_TOKEN"
       - name: Smoke test
         run: tool/web/smoke_test.sh "$SITE_URL" "$ANDROID_PACKAGE" "$SUPABASE_URL"
 
@@ -275,7 +278,7 @@ jobs:
           jq -r '.[]' <<<"$files"
       - name: Build (Vercel Build Output API, with vercel.json's headers)
         # Runs website/'s `npm ci` and `npm run build` (the build checks twins and inline code).
-        run: npx --yes vercel@65.8.0 build --prod
+        run: npx --yes "vercel@$VERCEL_CLI_VERSION" build --prod
       - name: Every release file the site links to is attached
         # A safety net: the download page links only to the files listed above,
         # so this fails only if a page links to a release file some other way,
@@ -311,6 +314,6 @@ jobs:
         # Uploads .vercel/output as is; nothing is built on Vercel.
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: npx --yes vercel@65.8.0 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+        run: npx --yes "vercel@$VERCEL_CLI_VERSION" deploy --prebuilt --prod --token "$VERCEL_TOKEN"
       - name: Smoke test
         run: tool/web/site_smoke_test.sh "$SITE_URL"

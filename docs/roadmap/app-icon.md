@@ -59,9 +59,9 @@ in the consoles.
   ([issue 657](https://github.com/fluttercommunity/flutter_launcher_icons/issues/657)).
 - **Web maskable icons** keep the logo inside a centred circle of 40% radius
   ([web.dev](https://web.dev/articles/maskable-icon)).
-- **Screenshots.** The browser UAT already drives 14 journeys on a seeded local stack with
-  Playwright ([uat.md](../../docs/uat.md)); there are no Flutter integration tests on Android or iOS
-  (NFR-07, [REQUIREMENTS.md](../../.planning/REQUIREMENTS.md)), and nothing captures store
+- **Screenshots.** The browser UAT already drives the landlord's journeys on a seeded local stack
+  with Playwright ([uat.md](../../docs/uat.md)); there are no Flutter integration tests on Android
+  or iOS (NFR-07, [REQUIREMENTS.md](../../.planning/REQUIREMENTS.md)), and nothing captures store
   screenshots.
 
 ## Design

@@ -26,22 +26,22 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 
 ## Quality
 
-| Document                                                                     | What it covers                                                                                  |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`uat.md`](uat.md)                                                           | Browser UAT: 14 landlord journeys on a local Supabase stack (`make test-uat`), results, defects |
-| [`release-readiness.md`](release-readiness.md)                               | The v1.0 release-readiness verdict, the checklist with evidence, and the owner's actions        |
-| [`design-qa.md`](design-qa.md)                                               | The automated design gates, the review checklist, the verdicts per surface and open follow-ups  |
-| [`../formal/README.md`](../formal/README.md)                                 | The formal verification tracks (TLA+, Lean 4, Z3, Bend), their findings and how to run them     |
-| [`../packages/mm_ui/example/README.md`](../packages/mm_ui/example/README.md) | The design-system gallery and its screenshots, the UAT record                                   |
+| Document                                                                     | What it covers                                                                                   |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [`uat.md`](uat.md)                                                           | Browser UAT: the landlord journeys on a local Supabase stack (`make test-uat`), results, defects |
+| [`release-readiness.md`](release-readiness.md)                               | The v1.0 release-readiness verdict, the checklist with evidence, and the owner's actions         |
+| [`design-qa.md`](design-qa.md)                                               | The automated design gates, the review checklist, the verdicts per surface and open follow-ups   |
+| [`../formal/README.md`](../formal/README.md)                                 | The formal verification tracks (TLA+, Lean 4, Z3, Bend), their findings and how to run them      |
+| [`../packages/mm_ui/example/README.md`](../packages/mm_ui/example/README.md) | The design-system gallery and its screenshots, the UAT record                                    |
 
 ## Planning
 
-| Document                                                       | What it covers                                                                                          |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| [`../.planning/STATE.md`](../.planning/STATE.md)               | Where the project is now: position, hosted project, blockers, follow-ups                                |
-| [`../.planning/REQUIREMENTS.md`](../.planning/REQUIREMENTS.md) | The v1.0 requirements and what remains of each                                                          |
-| [`../.planning/ROADMAP.md`](../.planning/ROADMAP.md)           | The twelve phases of milestone v1.0                                                                     |
-| [`roadmap/README.md`](roadmap/README.md)                       | After v1.0: three milestones and 25 items, a plan for each, the order of work and the owner's decisions |
+| Document                                                       | What it covers                                                                                           |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [`../.planning/STATE.md`](../.planning/STATE.md)               | Where the project is now: position, hosted project, blockers, follow-ups                                 |
+| [`../.planning/REQUIREMENTS.md`](../.planning/REQUIREMENTS.md) | The v1.0 requirements and what remains of each                                                           |
+| [`../.planning/ROADMAP.md`](../.planning/ROADMAP.md)           | The twelve phases of milestone v1.0                                                                      |
+| [`roadmap/README.md`](roadmap/README.md)                       | After v1.0: the milestones and their items, a plan for each, the order of work and the owner's decisions |
 
 ## For coding agents
 
