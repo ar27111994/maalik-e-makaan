@@ -15,6 +15,7 @@ import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repositor
 import 'package:maalik_e_makaan/src/features/properties/data/property_repository.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
 import 'package:maalik_e_makaan/src/features/tenants/data/tenant_repository.dart';
+import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 
 import '../../support/fakes.dart';
 import '../../support/supabase.dart';
@@ -26,6 +27,7 @@ void main() {
       overrides: [
         supabaseClientProvider.overrideWithValue(supabase.client),
         swrCacheProvider.overrideWithValue(SwrCache(MemoryStore())),
+        settingsStoreProvider.overrideWithValue(MemorySettingsStore()),
         appConfigProvider.overrideWithValue(
           AppConfig.parse({
             'SUPABASE_URL': supabaseUrl,

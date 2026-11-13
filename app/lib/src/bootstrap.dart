@@ -8,8 +8,10 @@ import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/config/app_config.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/retry.dart';
+import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,6 +52,15 @@ Future<void> bootstrap() async {
     // the PKCE flow stays the default.
     authOptions: const FlutterAuthClientOptions(detectSessionInUri: false),
   );
+  final settings = PreferencesSettingsStore(preferences);
+  final cache = SwrCache(PreferencesStore(SharedPreferencesAsync()));
+  // Supabase has read the stored session by now.
+  tidyDeviceAtStart(
+    cache,
+    settings,
+    auth: supabase.client.auth,
+    photoMayReturn: lostPhotoMayReturn,
+  );
 
   runApp(
     ProviderScope(
@@ -57,12 +68,8 @@ Future<void> bootstrap() async {
       overrides: [
         appConfigProvider.overrideWithValue(config),
         supabaseClientProvider.overrideWithValue(supabase.client),
-        settingsStoreProvider.overrideWithValue(
-          PreferencesSettingsStore(preferences),
-        ),
-        swrCacheProvider.overrideWithValue(
-          SwrCache(PreferencesStore(SharedPreferencesAsync())),
-        ),
+        settingsStoreProvider.overrideWithValue(settings),
+        swrCacheProvider.overrideWithValue(cache),
       ],
       child: const MaalikApp(),
     ),

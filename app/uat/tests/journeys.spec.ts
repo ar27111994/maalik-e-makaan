@@ -45,6 +45,28 @@ const receipt1 = `MM-${year}-00001`;
 // 10th.
 const lateFees = today.getDate() > 10 ? 3 : 2;
 
+/**
+ * What a browser still holds of an account once its session ended: nothing
+ * (docs/architecture/app.md, On the device). The display settings stay: they
+ * are the device's.
+ */
+async function expectAccountForgotten(page: Page): Promise<void> {
+  const keys = () => page.evaluate(() => Object.keys(localStorage));
+  await expect
+    .poll(async () =>
+      (await keys()).filter(
+        (key) =>
+          key.startsWith("mm.swr.") ||
+          key === "mm.portfolio.current" ||
+          key === "mm.documents.camera_target" ||
+          key === "mm.invitation.pending" ||
+          /^sb-.+-auth-token$/.test(key),
+      ),
+    )
+    .toEqual([]);
+  expect(await keys()).toContain("mm.settings.locale");
+}
+
 /** "September 2026", as the app names a rent month in English. */
 function monthName(year: number, monthIndex: number): string {
   return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(
@@ -599,6 +621,17 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J14 account deletion: the viewer, then the owner", async () => {
+    // A plain sign-out first: the browser forgets the account and keeps the
+    // language; the viewer then signs in again.
+    await openTab(viewerPage, "مزید");
+    await tap(viewerPage, /^سیٹنگز /);
+    await tap(viewerPage, "سائن آؤٹ کریں");
+    await expect(viewerPage).toHaveURL(/\/sign-in$/);
+    await expectAccountForgotten(viewerPage);
+    await fill(viewerPage, "ای میل", viewer.email);
+    await fill(viewerPage, "پاس ورڈ", password);
+    await tap(viewerPage, "سائن اِن کریں");
+    await expect(viewerPage).not.toHaveURL(/\/sign-in$/);
     await openTab(viewerPage, "مزید");
     await tap(viewerPage, /^سیٹنگز /);
     await tap(viewerPage, "اکاؤنٹ ڈیلیٹ کریں");
@@ -613,6 +646,7 @@ test.describe.serial("Landlord journeys", () => {
     await tap(viewerPage, "میرا اکاؤنٹ ڈیلیٹ کریں");
     await see(viewerPage, loose("آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے"), 60_000);
     await expect(viewerPage).toHaveURL(/\/sign-in$/);
+    await expectAccountForgotten(viewerPage);
     expect(sql(`select count(*) from auth.users where email = ${literal(viewer.email)}`)).toEqual([
       ["0"],
     ]);
@@ -641,6 +675,7 @@ test.describe.serial("Landlord journeys", () => {
     await tap(page, "میرا اکاؤنٹ ڈیلیٹ کریں");
     await see(page, loose("آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے"), 60_000);
     await expect(page).toHaveURL(/\/sign-in$/);
+    await expectAccountForgotten(page);
     // The user, the portfolio and everything in it are gone.
     expect(sql(`select count(*) from auth.users where email = ${literal(owner.email)}`)).toEqual([
       ["0"],

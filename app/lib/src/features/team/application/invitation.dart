@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
@@ -10,8 +11,12 @@ import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 /// token, or null.
 ///
 /// It is kept on the device, so it survives signing in or creating an
-/// account (whose confirmation link may open in a new tab), and is
-/// forgotten once the invitation is accepted, refused or set aside.
+/// account (whose confirmation link may open in a new tab), and signing
+/// out: "sign out, then sign in with the address it was sent to" is how a
+/// person signed in with another account takes it up. It is forgotten once
+/// the invitation is accepted, refused or set aside, and when the account
+/// is deleted (`DeviceDataWipe`). The token names nobody, and only the
+/// invited address's verified account can use it.
 final pendingInvitationProvider =
     NotifierProvider<PendingInvitationController, String?>(
       PendingInvitationController.new,
@@ -24,9 +29,13 @@ final class PendingInvitationController extends Notifier<String?> {
   static const maxTokenLength = 200;
 
   @override
-  String? build() => ref
-      .watch(settingsStoreProvider)
-      .getString(AppSettings.pendingInvitationKey);
+  String? build() {
+    // Read again after a wipe, which forgets it when the account is deleted.
+    ref.watch(deviceDataWipesProvider);
+    return ref
+        .watch(settingsStoreProvider)
+        .getString(AppSettings.pendingInvitationKey);
+  }
 
   /// Keeps [token] (from a link's `#token=…`) until it is answered. An empty
   /// or oversized token is not an invitation and is ignored.

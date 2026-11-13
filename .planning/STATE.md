@@ -9,6 +9,23 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-13)
 
+- The device forgets the account (2026-11-13, branch `claude/signout-device-data`): signing out, a
+  session that ends by itself, a session replaced by another account's (an e-mail link) and
+  account deletion run `DeviceDataWipe` (`docs/architecture/app.md`, On the device). It removes
+  the record cache (and drops any list a fetch brings back after it: `SwrCache.epoch`), the
+  portfolio last chosen and the camera's record, and on phones the pickers' copies, Android's
+  records of a lost pick with the camera's full-size original, and the files written to share
+  (once unchanged for ten minutes; younger ones at the next start or return to the app). The
+  pickers' copies, the camera's original included, also go as soon as they are read; at start-up
+  the camera's photos and record stay only while a lost photo may still come back (a day). A
+  deletion whose answer was lost signs out and wipes as a deletion, and says so. A portfolio that
+  leaves the user's list takes the user's other cache entries with it. Display settings stay; an
+  invitation opened and not answered stays until it is answered or the account is deleted on
+  that device, because "sign out, then sign in with the invited address" needs it. The website's
+  how-it-works step and privacy page say this in both languages, with what the app cannot delete
+  (downloads, the browser's copies, the clipboard, other devices, backups). The J14
+  browser-storage checks in the UAT (after a plain sign-out and after each deletion) are written
+  but not run yet: they need the Docker stack.
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the
@@ -301,6 +318,19 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Open
 
+- Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
+  session and the record cache reach the person's Google backup, as the preferences reach iCloud
+  on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
+  owner's decision with the lawyer (legal pack, question T7). The legal pack's data map (rows
+  14a to 14e, PR #66) describes the device before the wipe and needs the same update.
+- Owner: a sign-out that cannot reach the server leaves that session valid on it (refresh tokens
+  do not expire by time; `supabase/config.toml` sets no `[auth.sessions]` time-box or inactivity
+  timeout), so a copy of it in a phone backup can still sign in; the privacy page says so. A
+  session inactivity timeout on the hosted project, or retrying the server sign-out later, is the
+  owner's decision.
+- Owner: moving the web app to `app.mmakaan.app` leaves the old origin's `localStorage` (session,
+  record cache, invitation) in every browser that used it; the old address should clear it
+  before it redirects (`docs/operations.md`, Moving the web app to another address).
 - Licences: `MmIcons.ttf` has empty copyright fields (`THIRD_PARTY_NOTICES.md`, Gaps). dbus
   0.8.0 (MPL-2.0, Linux desktop only, unmodified): a distributed Linux build must say where its
   source is.

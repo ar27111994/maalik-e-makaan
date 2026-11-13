@@ -125,6 +125,63 @@ void main() {
       );
     });
 
+    test('a refused deletion signs nobody out and wipes nothing', () async {
+      final app = TestApp();
+      app.account.gate.failure = const RejectedFailure(
+        'does_not_match_account',
+      );
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      await pumpEventQueue();
+      await expectLater(
+        container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: 'x@y.pk'),
+        throwsA(isA<RejectedFailure>()),
+      );
+      expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+    });
+
+    for (final failure in [
+      const NetworkFailure(),
+      const ServerFailure('function:502'),
+      UnexpectedFailure(StateError('lost')),
+    ]) {
+      test('an answer lost on the way (${failure.runtimeType}) signs out as '
+          'a deletion that may have happened', () async {
+        final app = TestApp();
+        app.account.gate.failure = failure;
+        final container = containerFor(app);
+        listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        await container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+        expect(app.auth.calls.last.$2, [SignOutCause.deletionUnconfirmed]);
+        await pumpEventQueue();
+        expect(
+          container.read(authStatusProvider),
+          const SignedOut(cause: SignOutCause.deletionUnconfirmed),
+        );
+      });
+    }
+
+    test('only an outcome that may have deleted counts as one', () {
+      for (final failure in <AppFailure>[
+        const RejectedFailure('does_not_match_account'),
+        const ReauthenticationRequired(),
+        const SessionExpired(),
+        const Forbidden(),
+        const RateLimited(null),
+        const TemporarilyUnavailable(),
+        const NotFoundFailure(),
+        const ConflictFailure(),
+      ]) {
+        expect(mayHaveDeleted(failure), isFalse, reason: '$failure');
+      }
+    });
+
     test('a wrong password deletes nothing', () async {
       final app = TestApp();
       app.auth.gate.failure = const RejectedFailure('invalid_credentials');

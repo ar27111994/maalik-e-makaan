@@ -30,22 +30,26 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
 
   String? _userId;
 
+  /// The cache's epoch when the query was built: a value shown after the
+  /// device was wiped since (the session ended) is not saved.
+  int _epoch = 0;
+
   @override
   Stream<Snapshot<T>> build() {
     final userId = ref.watch(currentUserIdProvider);
+    final cache = ref.watch(swrCacheProvider);
     _userId = userId;
+    _epoch = cache.epoch;
     if (userId == null) return Stream.error(const SessionExpired());
-    return ref
-        .watch(swrCacheProvider)
-        .watch(
-          userId: userId,
-          query: query,
-          // The cache is read first: by then nobody may show the query
-          // any more, and the fetch must not touch a disposed ref.
-          fetch: () => ref.mounted ? fetch() : Completer<T>().future,
-          decode: decode,
-          encode: encode,
-        );
+    return cache.watch(
+      userId: userId,
+      query: query,
+      // The cache is read first: by then nobody may show the query any
+      // more, and the fetch must not touch a disposed ref.
+      fetch: () => ref.mounted ? fetch() : Completer<T>().future,
+      decode: decode,
+      encode: encode,
+    );
   }
 
   /// Fetches the value again and shows it, after a command changed it.
@@ -62,13 +66,14 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
     }
   }
 
-  /// Shows [value] as the server's latest, and saves it.
+  /// Shows [value] as the server's latest, and saves it, unless the device
+  /// was wiped since the query was built.
   Future<void> show(T value) async {
     final userId = _userId;
     if (userId == null) return;
     final savedAt = await ref
         .read(swrCacheProvider)
-        .write(userId, query, encode(value));
+        .write(userId, query, encode(value), epoch: _epoch);
     if (!ref.mounted) return;
     state = AsyncData(
       Snapshot(value, savedAt: savedAt, source: SnapshotSource.network),

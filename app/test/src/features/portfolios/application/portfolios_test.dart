@@ -78,6 +78,80 @@ void main() {
     });
   });
 
+  group('a portfolio gone from the list', () {
+    Set<String> keys(TestApp app) => app.store.values.keys.toSet();
+
+    test('takes the saved copies of the records with it', () async {
+      // Deleted by its owner, or the user was removed from it.
+      final app = TestApp(portfolios: [gulberg]);
+      await app.cache.write(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+        plaza.toRow(),
+      ]);
+      await app.cache.write(testUserId, 'tenants.${plaza.id}', [1]);
+      await app.cache.write(testUserId, 'tenant.someone', 1);
+      await app.cache.write('another-user', 'tenants.${plaza.id}', [1]);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+        gulberg,
+      ]);
+      expect(keys(app), {
+        'mm.swr.v1.$testUserId.${PortfoliosController.query}',
+        'mm.swr.v1.another-user.tenants.${plaza.id}',
+      });
+    });
+
+    test('a list that only grew keeps them', () async {
+      final app = TestApp();
+      await app.cache.write(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+      ]);
+      await app.cache.write(testUserId, 'tenants.${gulberg.id}', [1]);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(
+        keys(app),
+        contains('mm.swr.v1.$testUserId.tenants.${gulberg.id}'),
+      );
+    });
+
+    test('deleting one takes them too', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      await app.cache.write(testUserId, 'tenants.${plaza.id}', [1]);
+      await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .delete(plaza.id, confirmation: plaza.name);
+      expect(keys(app), {
+        'mm.swr.v1.$testUserId.${PortfoliosController.query}',
+      });
+    });
+
+    test(
+      'a list that comes back after the device was wiped is not kept',
+      () async {
+        final app = TestApp();
+        app.portfolios.gate.close();
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        // The session ends while the list loads.
+        await app.cache.clear();
+        app.portfolios.gate.open();
+        await pumpEventQueue();
+        expect(app.store.values, isEmpty);
+        // Nor one a command shows after it.
+        await container.read(portfoliosProvider(testUserId).notifier).reload();
+        expect(app.store.values, isEmpty);
+      },
+    );
+  });
+
   group('the current portfolio', () {
     test('is the first by name until one is chosen', () async {
       final container = containerFor(TestApp());

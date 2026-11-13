@@ -50,17 +50,27 @@ final class Snapshot<T> {
 }
 
 /// Stale-while-revalidate storage for query results, namespaced per user so
-/// one account never sees another's cached data, and cleared on sign-out.
+/// one account never sees another's cached data, and cleared when a
+/// session ends (`DeviceDataWipe`).
 ///
 /// Entries are JSON with the time they were saved. An entry that cannot be
 /// decoded (an older app version wrote it, or it was tampered with) is
 /// deleted and treated as missing.
+///
+/// A clear starts a new [epoch]. A write made for an earlier epoch is
+/// dropped: its fetch began in a session that has ended since, and what it
+/// brings back must not land on the device after the wipe.
 final class SwrCache {
   new(this._store, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
 
   final KeyValueStore _store;
   final DateTime Function() _clock;
+
+  /// How many times the cache has been cleared. A reader takes it before
+  /// it fetches and hands it to [write].
+  int get epoch => _epoch;
+  int _epoch = 0;
 
   /// Bumped when the stored format changes; older entries are ignored.
   static const _prefix = 'mm.swr.v1.';
@@ -93,9 +103,17 @@ final class SwrCache {
     }
   }
 
-  /// Stores [json] as the latest value of [query] for [userId].
-  Future<DateTime> write(String userId, String query, Object? json) async {
+  /// Stores [json] as the latest value of [query] for [userId], and returns
+  /// when it was saved. With [epoch] (the [SwrCache.epoch] read before the
+  /// value was fetched), nothing is stored when the cache was cleared since.
+  Future<DateTime> write(
+    String userId,
+    String query,
+    Object? json, {
+    int? epoch,
+  }) async {
     final savedAt = _clock().toUtc();
+    if (epoch != null && epoch != _epoch) return savedAt;
     await _store.write(
       _key(userId, query),
       jsonEncode({'saved_at': savedAt.toIso8601String(), 'value': json}),
@@ -103,18 +121,50 @@ final class SwrCache {
     return savedAt;
   }
 
-  /// Deletes every cached entry (all users), e.g. on sign-out.
+  /// Deletes every cached entry (all users), when the device is wiped, and
+  /// starts a new [epoch] before anything else, so that a write still on
+  /// its way is dropped.
   Future<void> clear() async {
+    _epoch++;
     for (final key in await _store.keys()) {
       if (key.startsWith(_prefix)) await _store.delete(key);
     }
   }
 
+  /// Deletes [userId]'s entries but the one of [keep]: when a portfolio
+  /// left their list (deleted, or they left or were removed), the copies of
+  /// its records go. Entries are not kept by portfolio, so every other
+  /// list goes with them, and comes back from the server when it is shown.
+  Future<void> forgetUser(String userId, {required String keep}) async {
+    final prefix = '$_prefix$userId.';
+    final kept = _key(userId, keep);
+    for (final key in await _store.keys()) {
+      if (key.startsWith(prefix) && key != kept) await _store.delete(key);
+    }
+  }
+
   /// The cached value first (when there is one), then the fresh value once
-  /// [fetch] returns, which is also stored. A failing [fetch] ends the stream
+  /// [fetch] returns, which is also stored unless the cache was cleared
+  /// since this was called (see [epoch]). A failing [fetch] ends the stream
   /// with its error after the cached value, so the screen keeps showing the
   /// cached data next to the error.
   Stream<Snapshot<T>> watch<T>({
+    required String userId,
+    required String query,
+    required Future<T> Function() fetch,
+    required T Function(Object? json) decode,
+    required Object? Function(T value) encode,
+  }) => _watch(
+    epoch: _epoch,
+    userId: userId,
+    query: query,
+    fetch: fetch,
+    decode: decode,
+    encode: encode,
+  );
+
+  Stream<Snapshot<T>> _watch<T>({
+    required int epoch,
     required String userId,
     required String query,
     required Future<T> Function() fetch,
@@ -124,7 +174,7 @@ final class SwrCache {
     final cached = await read(userId, query, decode);
     if (cached != null) yield cached;
     final fresh = await fetch();
-    final savedAt = await write(userId, query, encode(fresh));
+    final savedAt = await write(userId, query, encode(fresh), epoch: epoch);
     yield Snapshot(fresh, savedAt: savedAt, source: SnapshotSource.network);
   }
 }

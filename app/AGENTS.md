@@ -7,18 +7,18 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 
 ## Where things are
 
-| Path                                               | What                                                                                        |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `lib/src/bootstrap.dart`, `app.dart`               | Start-up, `MaterialApp`, themes, localisation, `MmLicenses.register()`                      |
-| `lib/src/config/app_config.dart`                   | Configuration from `--dart-define-from-file`; refuses secret keys                           |
-| `lib/src/core/`                                    | `AppFailure` and `failureMessage`, dates, validation, text limits, SWR helper               |
-| `lib/src/data/`                                    | Supabase client providers, `SwrCache`, keyset `paging.dart` (50 rows), ids, retry           |
-| `lib/src/auth/`, `settings/`, `routing/`, `shell/` | Sign-in, settings, routes, adaptive navigation shell                                        |
-| `lib/src/features/<feature>/`                      | `data/` (models, repository), `application/` (providers, notifiers), `presentation/`        |
-| `lib/l10n/arb/`                                    | `app_en.arb` (template) and `app_ur.arb`; `lib/l10n/generated/` is generated                |
-| `config/*.example.json`                            | Local and production configuration templates; the real files are not committed              |
-| `test/support/`                                    | `harness.dart` (`pumpScreen`, `testEveryVariant`, `screenGoldenEveryVariant`), fakes, fonts |
-| `test/src/goldens/`                                | Screen goldens; images in `test/src/goldens/goldens/`                                       |
+| Path                                               | What                                                                                                           |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `lib/src/bootstrap.dart`, `app.dart`               | Start-up, `MaterialApp`, themes, localisation, `MmLicenses.register()`                                         |
+| `lib/src/config/app_config.dart`                   | Configuration from `--dart-define-from-file`; refuses secret keys                                              |
+| `lib/src/core/`                                    | `AppFailure` and `failureMessage`, dates, validation, text limits, SWR helper                                  |
+| `lib/src/data/`                                    | Supabase client providers, `SwrCache`, keyset `paging.dart` (50 rows), ids, retry, `device/` (the device wipe) |
+| `lib/src/auth/`, `settings/`, `routing/`, `shell/` | Sign-in, settings, routes, adaptive navigation shell                                                           |
+| `lib/src/features/<feature>/`                      | `data/` (models, repository), `application/` (providers, notifiers), `presentation/`                           |
+| `lib/l10n/arb/`                                    | `app_en.arb` (template) and `app_ur.arb`; `lib/l10n/generated/` is generated                                   |
+| `config/*.example.json`                            | Local and production configuration templates; the real files are not committed                                 |
+| `test/support/`                                    | `harness.dart` (`pumpScreen`, `testEveryVariant`, `screenGoldenEveryVariant`), fakes, fonts                    |
+| `test/src/goldens/`                                | Screen goldens; images in `test/src/goldens/goldens/`                                                          |
 
 ## Rules here
 
@@ -34,6 +34,13 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 - UI comes from `mm_ui`; no literal colours, sizes, radii or durations (`make design-lint`).
 - The UI hides what a role cannot do, but the database is the authority; do not add client-only
   permission checks as protection.
+- Whatever the app keeps on the device for an account (a preference, a file it writes or a plugin
+  copies) is removed by `DeviceDataWipe` (`lib/src/data/device/`) when the session ends. A new one
+  is added there, to its tests, to `docs/architecture/app.md` (On the device) and to the website's
+  privacy page, in both languages. Display settings belong to the device and stay; the pending
+  invitation stays until the account is deleted (see On the device); text the person copies is
+  theirs. A cache write takes the cache's epoch (`SwrCache.write(epoch:)`) from before its fetch,
+  so that nothing lands after a wipe.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

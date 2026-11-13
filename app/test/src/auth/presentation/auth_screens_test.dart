@@ -180,6 +180,24 @@ void main() {
       expect(find.text('Your account has been deleted'), findsOneWidget);
     });
 
+    testWidgets('says when the deletion could not be confirmed', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        SignInScreen.new,
+        app: TestApp(
+          auth: const SignedOut(cause: SignOutCause.deletionUnconfirmed),
+        ),
+      );
+      expect(find.text('Your account may have been deleted'), findsOneWidget);
+      expect(
+        find.textContaining('delete it again in Settings'),
+        findsOneWidget,
+      );
+      expect(find.text('Your account has been deleted'), findsNothing);
+    });
+
     testWidgets('leads to a new account and to a forgotten password', (
       tester,
     ) async {

@@ -81,9 +81,13 @@ final class AuthController extends Notifier<AuthStatus> {
   }
 
   /// Signs out of this device. It cannot fail: the device forgets the
-  /// session and its cache before the server is told, so when the server
-  /// cannot be reached the user is still signed out here, and the session
-  /// ends on the server when its refresh token expires.
+  /// session, and wipes what it kept for the account (`DeviceDataWipe`),
+  /// before the server is told, so when the server cannot be reached the
+  /// user is still signed out here. The session then stays valid on the
+  /// server: Supabase's refresh tokens do not expire by time, and the
+  /// project sets no session time-box or inactivity timeout
+  /// (`supabase/config.toml`), so a copy of it (in a phone's backup) can
+  /// still be used.
   Future<void> signOut({SignOutCause cause = SignOutCause.userRequest}) async {
     try {
       await _repository.signOut(cause: cause);

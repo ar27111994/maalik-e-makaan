@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -57,6 +58,73 @@ void main() {
     store.values['mm.settings.locale'] = 'ur';
     await cache.clear();
     expect(store.values, {'mm.settings.locale': 'ur'});
+  });
+
+  test('a write for an epoch the cache was cleared since is dropped', () async {
+    final epoch = cache.epoch;
+    await cache.clear();
+    expect(cache.epoch, epoch + 1);
+    expect(await cache.write('u1', 'q', 1, epoch: epoch), saved);
+    expect(store.values, isEmpty);
+    await cache.write('u1', 'q', 2, epoch: cache.epoch);
+    // Without an epoch, a write always lands.
+    await cache.write('u1', 'r', 3);
+    expect(store.values.keys, ['mm.swr.v1.u1.q', 'mm.swr.v1.u1.r']);
+  });
+
+  test('a fetch still on its way when the cache is cleared stores nothing, '
+      'though the screen still gets its value', () async {
+    final fetch = Completer<int>();
+    final snapshots = <Snapshot<int>>[];
+    final done = cache
+        .watch<int>(
+          userId: 'u1',
+          query: 'tenants',
+          fetch: () => fetch.future,
+          decode: decodeInt,
+          encode: (value) => value,
+        )
+        .forEach(snapshots.add);
+    await pumpEventQueue();
+    await cache.clear();
+    fetch.complete(5);
+    await done;
+    expect(store.values, isEmpty);
+    expect(snapshots.single.value, 5);
+  });
+
+  test(
+    'a watch made before a clear but read after it stores nothing',
+    () async {
+      final stream = cache.watch<int>(
+        userId: 'u1',
+        query: 'tenants',
+        fetch: () async => 6,
+        decode: decodeInt,
+        encode: (value) => value,
+      );
+      await cache.clear();
+      expect((await stream.toList()).single.value, 6);
+      expect(store.values, isEmpty);
+    },
+  );
+
+  test("forgetUser deletes the user's entries but one", () async {
+    await cache.write('u1', 'portfolios', 1);
+    await cache.write('u1', 'tenants.p1', 2);
+    await cache.write('u12', 'tenants.p1', 3);
+    await cache.write('u2', 'x', 4);
+    store.values['mm.settings.locale'] = 'ur';
+    final epoch = cache.epoch;
+    await cache.forgetUser('u1', keep: 'portfolios');
+    expect(store.values.keys.toSet(), {
+      'mm.swr.v1.u1.portfolios',
+      'mm.swr.v1.u12.tenants.p1',
+      'mm.swr.v1.u2.x',
+      'mm.settings.locale',
+    });
+    // Not a wipe: what the user's screens fetch next is saved.
+    expect(cache.epoch, epoch);
   });
 
   test(
