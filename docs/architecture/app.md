@@ -64,7 +64,8 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
 Lists and dashboards show the last saved result at once, then the fresh one.
 `SwrCache.watch` emits the cached snapshot (marked with when it was saved),
 then the server's answer; the cache key is the user, the portfolio and the
-query with its parameters. Signing out clears the user's cache. A screen shows
+query with its parameters. When a session ends, the device wipe clears the
+cache (see [On the device](#on-the-device)). A screen shows
 "Offline, showing what was saved at …" when the refresh fails with a
 `NetworkFailure` and data is on screen; otherwise it shows the error with a
 retry.
@@ -211,13 +212,74 @@ it is not lost, and still goes to the right record:
    was archived in the meantime, or the role does not upload, the section lets
    the photo go.
 
-The camera's own copy of the photo stays in the app's cache directory, as it
-does for every camera photo, until Android clears it.
+The picker deletes the camera's copy of a photo, like every copy a picker
+makes, once it has read its bytes (`DeviceScratch.discard`). When a session
+ends, the device wipe drains the camera's record of a lost photo and deletes
+its files; at start-up with nobody signed in it does not, so that signing in
+again within the day can still bring the photo back.
+
+## On the device
+
+`DeviceDataWipe` (`lib/src/data/device/device_data.dart`) removes what the
+app kept on the phone or computer for an account. Everything the app writes
+to the device for an account goes through it; a new preference or file is
+added to it, to its tests and to the website's privacy page.
+
+| On the device                                                                           | Session ends           | Account deleted | App starts, nobody signed in |
+| --------------------------------------------------------------------------------------- | ---------------------- | --------------- | ---------------------------- |
+| `mm.swr.v1.*`: every list the app loaded (CNICs included)                               | removed                | removed         | removed                      |
+| `mm.portfolio.current`: the portfolio last chosen                                       | removed                | removed         | removed                      |
+| `mm.documents.camera_target`: the record a camera photo is for                          | removed                | removed         | kept (a lost photo)          |
+| `mm.invitation.pending`: an invitation opened, not answered                             | kept                   | removed         | kept                         |
+| `mm.settings.*`: language, theme, contrast, digit grouping                              | kept                   | kept            | kept                         |
+| Android: image_picker's and file_picker's record of a lost pick, and its files          | drained, files deleted | the same        | kept (a lost photo)          |
+| Phones: file_picker's copies (Android `cache/file_picker/`, all of iOS `tmp/`)          | deleted                | deleted         | deleted                      |
+| Android: the camera's photos (`<uuid>….jpg`, `scaled_<uuid>….jpg`) older than the wipe  | deleted                | deleted         | kept (a lost photo)          |
+| Phones: share_plus's files (`<uuid>/`, Android `share_plus/`) unchanged for ten minutes | deleted                | deleted         | deleted                      |
+| Supabase's session and gotrue's sign-in-link verifier                                   | removed by the library | the same        | never touched                |
+
+- **Hooks.** `SupabaseAuthRepository` wipes on every `signedOut` event (the
+  Sign out buttons, a refresh the server refused, a session that cannot be
+  read, another tab signing out) and, in `signOut`'s `finally`, when that
+  event never came (gotrue failed before announcing it). Account deletion
+  signs out with `SignOutCause.accountDeleted`, which wipes the invitation
+  too. `bootstrap` runs `atStart` once Supabase has read the stored session:
+  with nobody signed in, the last column of the table; with someone signed
+  in, only file_picker's copies and the old shared files. A deletion whose
+  answer is lost on the way does not sign out; the device is wiped when the
+  next refresh is refused (an access token lives an hour).
+- **Replays.** gotrue's auth stream replays every past event to a new
+  listener, so a `signedOut` is acted on only when no session exists; gotrue
+  removes the session before it announces a sign-out.
+- **Timing.** The preferences go before the signed-out status is shown (a few
+  milliseconds); the files follow, one pass at a time, never holding the user
+  up and given up after thirty seconds (`wipeFilesLimit`). A pass touches no
+  camera photo written after its wipe began. A file written to share is kept
+  until it has not changed for ten minutes (`sharedFileGrace`): Android's
+  share sheet returns before the receiving app has read it. Such a file goes
+  at the next start after that.
+- **The invitation.** It survives signing out because the way to take up an
+  invitation sent to another address is "sign out, then sign in with the
+  address it was sent to" (`invitationEmailMismatchBody`). The token names
+  nobody and only the invited address's verified account can use it.
+- **Copies on read.** On a phone, `PluginDocumentPicker` deletes the picker's
+  copy of a photo or file once it has read it, or refused it.
+- **Only the app's own folders.** path_provider's temporary directory
+  (Android's cache, iOS's `Library/Caches`) and on iOS `tmp/`; never on the
+  web or a computer. Links are neither followed nor deleted. Every step runs
+  on its own, never throws and logs nothing: a statement's file name carries
+  the tenant's name.
+- **Not the app's to delete.** Files the person downloads (the browser's
+  Downloads, the documents' Open and Download buttons on every platform, and
+  on the web a file the browser could not share), files handed to another
+  app, the browser's own cache, and the phone's backup of the app's
+  preferences (Android Auto Backup is on: `allowBackup` is not set).
 
 ## State
 
-- The current portfolio is chosen once and remembered on the device; every
-  feature provider depends on it, so switching portfolios refreshes them all.
+- The current portfolio is chosen once and remembered on the device until a
+  session ends; every feature provider depends on it, so switching portfolios
+  refreshes them all.
 - Providers are scoped to what a screen needs; nothing global holds lists.
 - Roles come from the membership row; the UI hides what a role cannot do, and
   the database enforces it anyway.

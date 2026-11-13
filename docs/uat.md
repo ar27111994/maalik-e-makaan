@@ -282,7 +282,9 @@ Steps: Open the ledger; Use for dues; Rs 100,000; confirm.
 ### J14 Account deletion: the viewer, then the owner (Urdu)
 
 Steps: Settings; Delete account; password and e-mail; Delete my account. First the viewer, then
-the owner.
+the owner. After each, the suite reads the browser's `localStorage`: no `mm.swr.*`,
+`mm.portfolio.current`, `mm.documents.camera_target`, `mm.invitation.pending` or
+`sb-*-auth-token` key may be left, and `mm.settings.locale` must be.
 
 ![Deleting the viewer's account, in Urdu](uat/ur-10-delete-account.png)
 
@@ -292,6 +294,7 @@ the owner.
 | The viewer's user and membership go; the portfolio stays | `auth.users` row gone; the portfolio keeps 1 member                                             |
 | The sole owner's portfolio goes with their account       | User gone; no row left in portfolios, leases, tenants, properties, payments, charges, documents |
 | Both are signed out with a confirmation                  | Sign-in screen with "Your account has been deleted" (in Urdu)                                   |
+| No account key is left in the browser; the language is   | Not run yet: added on 2026-11-13, after this run                                                |
 
 ## Defects
 
