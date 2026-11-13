@@ -748,6 +748,19 @@ delete a user (a support request, abuse), keep that order:
 
 2. Then delete the user in the dashboard (Authentication → Users) or through the Auth admin API.
 
+Known issue (finding M2 of `formal/tla/Membership`, open, low): even in this order, step 2 can
+deadlock with the deletion, at the same moment, of a portfolio the user created or worked in. By
+then the user belongs to no portfolio, but 30 `ON DELETE SET NULL` foreign keys may still name
+them (the portfolios they created, the members they invited, the rows they created, voided or
+uploaded, their audit rows). The Auth deletion sets them to NULL row by row without the
+portfolio's lock, while the portfolio's deletion holds the portfolio and its audit trail.
+PostgreSQL aborts one side with 40P01. If it is the Auth deletion, the user is still in Auth:
+repeat step 2 (in the app, the person's retry of `delete-account` runs both steps again). If it
+is the portfolio's deletion, it retries up to three times
+(`formal/tla/Membership/replay/residence.sh`, R9 and R10). The remedy is the owner's decision:
+`admin_delete_account_data` would set those columns to NULL under portfolio locks taken in id
+order, so that the Auth deletion finds nothing to lock (the model's README, Finding M2).
+
 Never delete a user in Auth alone:
 
 - Portfolios the user owned alone stay behind with no member at all, so no app user can reach or
@@ -762,17 +775,19 @@ Never delete a user in Auth alone:
   Auth deletion then has nothing left to wait for (`formal/tla/Invitations/replay_findings.sh`
   checks both orders), on a database built from the migrations (see the restored database
   below).
-- A caretaker's deletion reaches the portfolio row after the caretaker's membership, the
-  reverse of the global order: the cascade deletes the membership, then the `ON DELETE SET NULL`
-  of `portfolios.caretaker_user_id` (and the membership's trigger) clears the caretaker. If at
-  the same moment an owner names that person caretaker (`set_caretaker`), changes their role
-  or removes them (`update_member_role`, `remove_member`), they leave, or the portfolio is
-  deleted (`delete_portfolio`, or the account deletion of its only owner), PostgreSQL aborts
-  one side with 40P01. A portfolio deletion retries and usually succeeds; the others fail
-  (`formal/tla/Membership`: `assume_direct_auth_care`, `assume_direct_auth_member`,
-  `assume_direct_auth_dport`; `formal/tla/Membership/replay/residence.sh`, R1, R2 and R4).
-  Step 1 removes the memberships first, under the portfolio locks, so the Auth deletion finds
-  none (R5).
+- A member's deletion can deadlock with a change of their membership or with the portfolio's
+  deletion. The cascade deletes the membership and then, by `ON DELETE SET NULL`, needs their
+  audit rows (`audit_logs.actor_id`; everyone who created a portfolio or accepted an invitation
+  has one) and, for a caretaker, the portfolio row (`portfolios.caretaker_user_id`, the reverse
+  of the global order). PostgreSQL aborts one side with 40P01 if at the same moment they leave
+  the portfolio (caretaker or not: the leave's audit row needs their `auth.users` row), the
+  portfolio is deleted (`delete_portfolio`, or the account deletion of its only owner, which
+  holds the portfolio's audit trail), or, for a caretaker, an owner names them
+  (`set_caretaker`), changes their role or removes them (`update_member_role`,
+  `remove_member`). A portfolio deletion retries and usually succeeds; the others fail
+  (`formal/tla/Membership`: the `assume_direct_auth_*` configurations;
+  `formal/tla/Membership/replay/residence.sh`, R1, R2, R4 and R8). Step 1 removes the
+  memberships first, under the portfolio locks, so the Auth deletion finds none (R5).
 
 After pushing `20261108082804_invitation_findings.sql`, which revokes once the pending invitations
 direct Auth deletions left behind, this must answer 0 (`tool/db/upgrade_test.sh` checks the same on a
@@ -809,7 +824,8 @@ interleaving (`replay_findings.sh` keeps that check). It would also run inside G
 error it raised would fail the Auth deletion. For a caretaker, a trigger that cleared the caretaker
 first would avoid the deadlock with `update_member_role` and `remove_member`, but not the one with
 `set_caretaker`, whose foreign-key check needs the `auth.users` row last
-(`formal/tla/Membership/replay/residence.sh` checks both).
+(`formal/tla/Membership/replay/residence.sh` checks both), nor those with leaving or with the
+portfolio's deletion through the audit row.
 
 ### Changing a membership by hand
 
@@ -950,3 +966,20 @@ Then:
 
 4. Run the database advisors (dashboard → Advisors) and confirm only the reviewed findings remain
    (the 23 write RPCs pinned in `supabase/tests/database/01_schema_security.test.sql`).
+5. List the order in which GoTrue's foreign-key actions on `auth.users` run (read-only, SQL
+   editor), and compare it with the migrated order `formal/tla/Membership/replay/residence.sh`
+   prints:
+
+   ```sql
+   select string_agg(c.conrelid::regclass || '.' || a.attname, ', ' order by t.tgname collate "C")
+   from pg_trigger t
+   join pg_constraint c on c.oid = t.tgconstraint
+   join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+   where t.tgrelid = 'auth.users'::regclass and t.tgname like 'RI_ConstraintTrigger_a_%'
+     and t.tgtype & 8 = 8;
+   ```
+
+   `portfolios.caretaker_user_id` comes last while its trigger's OID has as many digits as the
+   others'. If it comes before `portfolio_members.user_id`, record it in `.planning/STATE.md`:
+   the Membership model's `caretaker_first` configurations then describe the hosted project (see
+   its README, What is modelled).
