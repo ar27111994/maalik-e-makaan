@@ -3,7 +3,9 @@
 # publishes a GitHub release. This workflow then builds the signed Android app,
 # the web app and an unsigned iOS app for that tag, attests their provenance and
 # attaches them, and deploys the tag to production (deploy.yml): the backend and
-# the web app at once, the website once those builds have finished.
+# the web app at once, the website once those builds and the web app's deploy
+# have finished. The builds start only once the web app's origin answers
+# (tool/web/check_live.py), since every one of them names it.
 name: Release
 
 on:
@@ -50,9 +52,30 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  live:
+    # Every build names the web app's origin (its APP_URL, from the tag's
+    # contracts/origins.json), and the Android app lists it in its App Links.
+    # An origin that does not answer over HTTPS would break the e-mail links of
+    # every install, and on Android 6 to 11 the App Links of the earlier host
+    # too (all of an app's hosts verify, or none); an APK cannot be recalled. So
+    # nothing is built until it answers (docs/operations.md, Domains). Re-run
+    # the failed jobs once it does.
+    name: The web app's origin answers
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          persist-credentials: false
+      - name: The web app's origin answers over HTTPS
+        run: python3 tool/web/check_live.py app
+
   artefacts:
     name: Build and attach artefacts
-    needs: release-please
+    needs: [release-please, live]
     if: needs.release-please.outputs.created == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -148,7 +171,7 @@ jobs:
     # signs it with their own Apple Account to install it (docs/operations.md,
     # iOS builds).
     name: Build and attach the unsigned iOS app
-    needs: release-please
+    needs: [release-please, live]
     if: needs.release-please.outputs.created == 'true'
     runs-on: macos-26
     timeout-minutes: 45
@@ -227,10 +250,16 @@ jobs:
     # to those attached when the site is built (deploy.yml), so the website
     # waits for both builds to finish. It goes out even if one failed, without
     # that build's files; re-running the failed job runs this one again after
-    # it, and the page then links to them too.
+    # it, and the page then links to them too. It also waits for the backend
+    # and the web app (deploy), and goes out only once they are deployed: the
+    # site links to the web app and to builds that expect this release's
+    # backend, and after a move to a web app built for its new address
+    # (docs/operations.md, Domains). Re-running deploy runs this one after it.
     name: Deploy the website
-    needs: [release-please, artefacts, ios]
-    if: ${{ !cancelled() && needs.release-please.outputs.created == 'true' }}
+    needs: [release-please, artefacts, ios, deploy]
+    if: >-
+      ${{ !cancelled() && needs.release-please.outputs.created == 'true'
+      && needs.deploy.result == 'success' }}
     permissions:
       contents: read
       issues: read # the roadmap page reads the roadmap's milestones and issues

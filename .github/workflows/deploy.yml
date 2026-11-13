@@ -1,11 +1,13 @@
 # Production deployment: the Supabase backend (migrations, then Edge Functions),
-# then the Flutter web app on Vercel, and, independently of both, the website
-# (website/) on Vercel, each followed by a smoke test. The Release workflow
-# calls it twice for the tag it has just released: the backend and the web app
-# at once, and the website once the release's builds have finished, so that the
-# download page links to the files they attached. It also runs by hand
-# (Actions, Deploy, Run workflow), for the branch or tag chosen there. The
-# "production" environment should require a reviewer (repository settings).
+# then the Flutter web app on Vercel, and the website (website/) on Vercel, each
+# followed by a smoke test. The Release workflow calls it twice for the tag it
+# has just released: the backend and the web app at once, and the website once
+# the release's builds and the web app's deploy have finished, so that the
+# download page links to the files the builds attached and to a web app built
+# for the addresses it names. It also runs by hand (Actions, Deploy, Run
+# workflow), for the branch or tag chosen there; GitHub then runs the
+# deploy.yml of that branch or tag, not this one. The "production" environment
+# should require a reviewer (repository settings).
 #
 # When another workflow calls this one, these steps come from the caller's
 # commit (main, for site-refresh.yml) but the files they build come from
@@ -16,7 +18,10 @@
 # the site's are read from inputs.ref's contracts/origins.json (decision D-20),
 # never written here or kept in a repository variable. A site refresh of an
 # older tag therefore builds the addresses that tag was released with, and a
-# move of either reaches production with the release that carries it.
+# move of either reaches production with the release that carries it. Before
+# anything is deployed, each job checks that the addresses it sends people to
+# answer (tool/web/check_live.py) and that Auth sends the e-mail links of the
+# release's builds where they can be finished (tool/web/check_auth_urls.py).
 #
 # It is called rather than started by the "release published" event: a
 # release that release-please creates with the default GITHUB_TOKEN starts no
@@ -95,6 +100,37 @@ jobs:
           for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD PROJECT_REF SUPABASE_URL; do
             [[ -n "${!name}" ]] || { echo "::error::$name is not set (docs/operations.md, Deployment)"; exit 1; }
           done
+      - name: Auth accepts the e-mail links of the release's builds
+        # Each build asks Auth to send its e-mail links to its own callback (the web app's
+        # origin, an earlier address for builds from before a move, and the iOS forms of both),
+        # and Auth sends a link only where its URL Configuration allows (docs/operations.md,
+        # Domains). Read with the Management API before anything is deployed; only the Site URL
+        # and the redirect URLs are kept, since the rest of the answer can hold secrets. A token
+        # that may not read Auth's settings only warns: check them by hand then.
+        run: |
+          if [[ ! -f tool/web/check_auth_urls.py ]]; then
+            echo "::notice::This ref has no tool/web/check_auth_urls.py; Auth's redirect URLs are not checked"
+            exit 0
+          fi
+          raw="$RUNNER_TEMP/auth-config.json"
+          trap 'rm -f "$raw"' EXIT
+          status="$(curl -sS -o "$raw" -w '%{http_code}' --retry 5 --retry-delay 5 --retry-all-errors \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth")"
+          case "$status" in
+            200)
+              jq '{site_url, uri_allow_list}' "$raw" > "$RUNNER_TEMP/auth-urls.json"
+              rm -f "$raw"
+              python3 tool/web/check_auth_urls.py "$RUNNER_TEMP/auth-urls.json"
+              ;;
+            401 | 403)
+              echo "::warning::The access token may not read Auth's settings (HTTP $status), so the redirect URLs are not checked: compare Authentication, URL Configuration with docs/operations.md, Domains, by hand"
+              ;;
+            *)
+              echo "::error::Auth's settings could not be read (HTTP $status); run this again"
+              exit 1
+              ;;
+          esac
       - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}
@@ -144,13 +180,14 @@ jobs:
           done
       - name: The web app's origins, from the ref
         # contracts/origins.json (decision D-20): the origin is the build's APP_URL, and each
-        # earlier address redirects to it (tool/web/package_vercel.py). A ref from before the
-        # file would deploy a build that names the old address on the new one.
+        # earlier address redirects to it (tool/web/package_vercel.py). Only a caller that
+        # passes an older ref reaches the refusal below; a run by hand on an older tag runs that
+        # tag's own deploy.yml instead (docs/operations.md, Rollback and restore).
         id: origins
         run: |
           file=contracts/origins.json
           if [[ ! -f "$file" ]]; then
-            echo "::error::This ref predates $file, so its web build names the address before the move (D-20). Deploy a later tag, or promote an earlier deployment in Vercel (docs/operations.md, Rollback and restore)"
+            echo "::error::This ref predates $file, so this workflow cannot build its web app (D-20); deploy a later tag (docs/operations.md, Rollback and restore)"
             exit 1
           fi
           app="$(jq -er '.app.origin' "$file")"
@@ -158,6 +195,12 @@ jobs:
           echo "app=$app" >> "$GITHUB_OUTPUT"
           echo "legacy=$legacy" >> "$GITHUB_OUTPUT"
           echo "The web app's origin: $app; earlier addresses: $legacy"
+      - name: The web app's origin answers
+        # Over HTTPS, with its App Links file, before anything is built: the deploy makes each
+        # earlier address redirect to it, so an origin whose DNS or certificate is not in place
+        # would take the old address and the new one offline together (docs/operations.md,
+        # Domains, steps 2 and 3).
+        run: python3 tool/web/check_live.py app
       - name: The Edge Functions accept the origin
         # Browsers call the functions from the web app's origin, and the functions answer only
         # the origins in the ALLOWED_ORIGINS secret (by default APP_URL's). Checked before the
@@ -274,6 +317,20 @@ jobs:
         run: |
           [[ -n "$VERCEL_TOKEN" ]] || {
             echo "::error::Secret VERCEL_TOKEN is not set (docs/operations.md, Deployment)"; exit 1; }
+      - name: The addresses answer, and the web app is the one built for them
+        # Before anything is built: the site's origin answers over HTTPS and www redirects to
+        # it, and the web app the site links to answers at its origin and is the deployment
+        # built for it (its earlier address redirects to it, which only the web app's deploy
+        # of the release that carries a move does). Sooner, the site's old address would
+        # redirect to a host that does not answer, or the site would send people to a web app
+        # whose e-mail links name another address (docs/operations.md, Domains). A ref from
+        # before contracts/origins.json has none of this to check.
+        run: |
+          if [[ ! -f contracts/origins.json || ! -f tool/web/check_live.py ]]; then
+            echo "::notice::This ref predates contracts/origins.json; its addresses are not checked"
+            exit 0
+          fi
+          python3 tool/web/check_live.py site
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc

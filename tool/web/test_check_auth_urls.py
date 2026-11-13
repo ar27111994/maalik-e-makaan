@@ -1,0 +1,229 @@
+"""Tests for the pre-deploy check of Auth's redirect URLs (check_auth_urls.py).
+
+python3 -m unittest discover -s tool/web -p 'test_*.py'
+"""
+
+from __future__ import annotations
+
+import contextlib
+import io
+import json
+import plistlib
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import check_auth_urls as ca
+
+SCHEME = "io.example.app"
+APP = "https://app.example.pk"
+OLD = "https://old-app.example.org"
+APP_WEB, APP_IOS = f"{APP}/auth/callback", f"{SCHEME}://app.example.pk/auth/callback"
+OLD_WEB, OLD_IOS = f"{OLD}/auth/callback", f"{SCHEME}://old-app.example.org/auth/callback"
+
+
+def checked(site_url: str, *allow: str):
+    """(errors, warnings, printed) for Auth's settings against APP with the earlier OLD."""
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        errors, warnings = ca.check(ca.AuthUrls(site_url, allow), APP, (OLD,), (SCHEME,))
+    return errors, warnings, out.getvalue()
+
+
+class GlobTest(unittest.TestCase):
+    def matches(self, pattern: str, text: str) -> bool:
+        return bool(ca.glob_regex(pattern).fullmatch(text))
+
+    def test_literal_entries_match_only_themselves(self):
+        self.assertTrue(self.matches(APP_WEB, APP_WEB))
+        self.assertFalse(self.matches(APP_WEB, f"{APP_WEB}x"))
+        self.assertFalse(self.matches(APP_WEB, "https://appxexample.pk/auth/callback"))
+
+    def test_a_star_stops_at_dots_and_slashes(self):
+        pattern = "https://*.example.pk/auth/callback"
+        self.assertTrue(self.matches(pattern, APP_WEB))
+        self.assertFalse(self.matches(pattern, "https://a.b.example.pk/auth/callback"))
+        self.assertTrue(self.matches("https://app.example.pk/*", "https://app.example.pk/x"))
+        self.assertFalse(self.matches("https://app.example.pk/*", APP_WEB))
+
+    def test_a_double_star_crosses_them(self):
+        self.assertTrue(self.matches("https://app.example.pk/**", APP_WEB))
+        self.assertTrue(self.matches("https://**.example.pk/**", "https://a.b.example.pk/x/y"))
+
+    def test_question_marks_classes_and_choices(self):
+        self.assertTrue(self.matches("https://ap?.example.pk", "https://app.example.pk"))
+        self.assertFalse(self.matches("https://ap?.example.pk", "https://ap/.example.pk"))
+        self.assertTrue(self.matches("https://[a-c]pp.example.pk", "https://app.example.pk"))
+        self.assertFalse(self.matches("https://[!a]pp.example.pk", "https://app.example.pk"))
+        self.assertTrue(self.matches("https://[!b]pp.example.pk", "https://app.example.pk"))
+        pattern = "https://{app,old-app}.example.{pk,org}/**"
+        self.assertTrue(self.matches(pattern, APP_WEB))
+        self.assertTrue(self.matches(pattern, "https://old-app.example.org/x"))
+        self.assertFalse(self.matches(pattern, "https://other.example.pk/x"))
+        self.assertTrue(self.matches(r"https://app\*.pk", "https://app*.pk"))
+        self.assertFalse(self.matches(r"https://app\*.pk", "https://appx.pk"))
+        # Outside braces a comma and a closing brace are plain characters.
+        self.assertTrue(self.matches("a,b}", "a,b}"))
+
+    def test_malformed_entries_are_refused(self):
+        for pattern in ("https://[app", "https://{app", "https://{a,b", "x\\", "[]", "[!]"):
+            with self.subTest(pattern=pattern), self.assertRaises(ca.AuthCheckError):
+                ca.glob_regex(pattern)
+
+
+class SiteUrlTest(unittest.TestCase):
+    def test_scheme_host_and_port_must_all_match(self):
+        auth = ca.AuthUrls(f"{APP}/", ())
+        self.assertTrue(auth.by_site_url(APP_WEB))
+        self.assertFalse(auth.by_site_url(APP_IOS))
+        self.assertFalse(auth.by_site_url("https://app.example.pk:8443/auth/callback"))
+        self.assertFalse(auth.by_site_url(OLD_WEB))
+        self.assertFalse(ca.AuthUrls("", ()).by_site_url(APP_WEB))
+        self.assertFalse(ca.AuthUrls("https://app.example.pk:x/", ()).by_site_url(APP_WEB))
+
+    def test_any_port_on_a_loopback_host(self):
+        auth = ca.AuthUrls("http://localhost:3000", ())
+        self.assertTrue(auth.by_site_url("http://localhost:8080/auth/callback"))
+
+
+class CheckTest(unittest.TestCase):
+    def test_during_the_move_every_callback_must_be_listed(self):
+        # Steps 4 to 7: the Site URL is still on the earlier host.
+        errors, warnings, out = checked(OLD, APP_WEB, APP_IOS, OLD_WEB, OLD_IOS)
+        self.assertEqual((errors, warnings), ([], []))
+        for url in (APP_WEB, APP_IOS, OLD_WEB, OLD_IOS):
+            self.assertIn(f"{url}: allowed (redirect URLs)", out)
+
+    def test_the_new_callbacks_missing_stop_the_deploy(self):
+        errors, _, _ = checked(OLD, OLD_WEB, OLD_IOS)
+        self.assertEqual(len(errors), 2)
+        self.assertIn(f"Auth does not allow {APP_WEB}, which this release's builds send", errors[0])
+        self.assertIn(f"the Site URL, {OLD}", errors[0])
+        self.assertIn(APP_IOS, errors[1])
+
+    def test_an_earlier_callback_allowed_by_the_site_url_alone_stops_the_deploy(self):
+        errors, _, _ = checked(OLD, APP_WEB, APP_IOS)
+        self.assertEqual(len(errors), 2)
+        self.assertIn(f"Auth allows {OLD_WEB} only because the Site URL is on its host", errors[0])
+        self.assertIn(f"Auth does not allow {OLD_IOS}, which builds from before", errors[1])
+
+    def test_after_the_move_the_site_url_covers_the_web_callback(self):
+        errors, warnings, out = checked(APP, APP_IOS, OLD_WEB, OLD_IOS)
+        self.assertEqual((errors, warnings), ([], []))
+        self.assertIn(f"{APP_WEB}: allowed (the Site URL's host)", out)
+
+    def test_after_the_move_dropped_earlier_callbacks_only_warn(self):
+        errors, warnings, _ = checked(APP, APP_IOS)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(warnings), 2)
+        self.assertIn(f"Auth does not allow {OLD_WEB}", warnings[0])
+        self.assertIn("out of use", warnings[0])
+
+    def test_wildcards_count_as_listed(self):
+        errors, warnings, _ = checked(
+            OLD, "https://{app.example.pk,old-app.example.org}/**", f"{SCHEME}://**"
+        )
+        self.assertEqual((errors, warnings), ([], []))
+
+    def test_no_site_url_and_no_list(self):
+        errors, warnings, _ = checked("")
+        self.assertEqual(len(errors), 2)
+        self.assertIn("the Site URL, (none)", errors[0])
+        self.assertEqual(len(warnings), 2)
+
+
+class ReadTest(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def write(self, name: str, data: object) -> Path:
+        path = self.tmp / name
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return path
+
+    def test_reads_the_management_api_fields(self):
+        path = self.write(
+            "auth.json", {"site_url": OLD, "uri_allow_list": f" {APP_WEB}, ,{APP_IOS} "}
+        )
+        self.assertEqual(ca.read_auth(path), ca.AuthUrls(OLD, (APP_WEB, APP_IOS)))
+        path = self.write("auth.json", {"site_url": None, "uri_allow_list": None})
+        self.assertEqual(ca.read_auth(path), ca.AuthUrls("", ()))
+
+    def test_refuses_what_it_cannot_read(self):
+        for data in ({}, [], {"site_url": 1}, {"site_url": OLD, "uri_allow_list": ["x"]}):
+            with self.subTest(data=data), self.assertRaises(ca.AuthCheckError):
+                ca.read_auth(self.write("auth.json", data))
+        with self.assertRaises(ca.AuthCheckError):
+            ca.read_auth(self.write("auth.json", {"site_url": OLD, "uri_allow_list": "https://{"}))
+        with self.assertRaises(ca.AuthCheckError):
+            ca.read_auth(self.tmp / "missing.json")
+
+    def test_reads_the_ios_schemes(self):
+        self.assertEqual(ca.read_schemes(), ("io.github.ar27111994.maalikemakaan",))
+        path = self.tmp / "Info.plist"
+        path.write_bytes(plistlib.dumps({"CFBundleURLTypes": []}))
+        with self.assertRaisesRegex(ca.AuthCheckError, "no URL scheme"):
+            ca.read_schemes(path)
+        path.write_bytes(b"not a plist")
+        with self.assertRaisesRegex(ca.AuthCheckError, "cannot read"):
+            ca.read_schemes(path)
+
+    def test_callbacks(self):
+        self.assertEqual(ca.callbacks(APP, (SCHEME,)), [APP_WEB, APP_IOS])
+
+
+class MainTest(unittest.TestCase):
+    def run_main(self, auth: object, origins: object | None = None):
+        out = io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(out):
+            auth_path = Path(tmp) / "auth.json"
+            auth_path.write_text(json.dumps(auth), encoding="utf-8")
+            origins_path = Path(tmp) / "origins.json"
+            origins_path.write_text(
+                json.dumps(
+                    origins
+                    or {
+                        "site": {"origin": "https://example.pk"},
+                        "app": {"origin": APP, "legacy": [OLD]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            plist = Path(tmp) / "Info.plist"
+            plist.write_bytes(
+                plistlib.dumps({"CFBundleURLTypes": [{"CFBundleURLSchemes": [SCHEME]}]})
+            )
+            code = ca.main([str(auth_path), "--origins", str(origins_path), "--plist", str(plist)])
+        return code, out.getvalue()
+
+    def test_passes(self):
+        allow = ",".join((APP_WEB, APP_IOS, OLD_WEB, OLD_IOS))
+        code, out = self.run_main({"site_url": OLD, "uri_allow_list": allow})
+        self.assertEqual(code, 0)
+        self.assertIn("Auth allows the e-mail links of this release's builds", out)
+
+    def test_warnings_alone_pass(self):
+        code, out = self.run_main({"site_url": APP, "uri_allow_list": APP_IOS})
+        self.assertEqual(code, 0)
+        self.assertEqual(out.count("::warning::"), 2)
+
+    def test_errors_fail(self):
+        code, out = self.run_main({"site_url": OLD, "uri_allow_list": ""})
+        self.assertEqual(code, 1)
+        self.assertEqual(out.count("::error::"), 4)
+        self.assertIn("4 e-mail link address(es) not allowed; nothing was deployed", out)
+
+    def test_unreadable_input_is_an_error(self):
+        code, out = self.run_main({"uri_allow_list": ""})
+        self.assertEqual(code, 2)
+        code, out = self.run_main({"site_url": OLD}, origins={"site": {}, "app": {}})
+        self.assertEqual(code, 2)
+        self.assertIn("::error::", out)
+
+
+if __name__ == "__main__":
+    unittest.main()
