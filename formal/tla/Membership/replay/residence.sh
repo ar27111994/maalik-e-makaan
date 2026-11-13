@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Replays on PostgreSQL 16 the residence behaviours that the Membership model
-# documents as outside the app's own paths (README.md, "Documented
-# behaviours"), and checks that the delete-account order has none of them.
-# 20261112092618_residence.sql changes no lock order of the app's own paths;
-# these are an operator's writes (a direct Auth delete, a service-role
-# membership change) and a restored database's foreign-key order.
+# Replays on PostgreSQL 16 the lock-order behaviours that the Membership
+# model documents (README.md, "Residence" and "Finding M2"): an operator's
+# writes (a direct Auth delete, a service-role membership change), a restored
+# database's foreign-key order, and finding M2, where GoTrue's foreign-key
+# actions after admin_delete_account_data meet another deletion on the app's
+# own delete-account path.
 #
 #   R1  set_caretaker(P, M) against a direct Auth delete of M
 #       (assume_direct_auth_care): M's membership FOR SHARE, then M's
@@ -12,7 +12,8 @@
 #   R2  update_member_role, remove_member and leaving of the caretaker M
 #       against a direct Auth delete of M (D1, assume_direct_auth_member):
 #       the delete takes the membership, then P for the caretaker's SET NULL.
-#       Control: M a manager but not the caretaker: no wait, no deadlock.
+#       Control: M a manager but not the caretaker, a co-owner's RPC: no
+#       wait, no deadlock (leaving is R8).
 #       The alternative evaluated, not adopted: a BEFORE DELETE trigger on
 #       auth.users that clears the caretaker first (its portfolios in id
 #       order) removes R2's deadlock but not R1's, and runs in GoTrue's
@@ -21,9 +22,14 @@
 #       RPCs (D2, assume_service_member_write): the membership row, then P in
 #       its trigger. With docs/operations.md's rule (the operator locks P
 #       first): no deadlock.
-#   R4  delete_portfolio(P) against a direct Auth delete of its caretaker
-#       (D3, assume_direct_auth_dport): a cycle that the deletion's retry
-#       absorbs when PostgreSQL picks the deletion.
+#   R4  delete_portfolio(P) against a direct Auth delete of manager M (D3,
+#       assume_direct_auth_dport, assume_direct_auth_dport_audit): M has an
+#       audit row in P, as everyone who accepted an invitation does. The
+#       deletion deletes P's audit trail before the cascade reaches M's
+#       membership; the Auth delete takes the membership, then needs M's
+#       audit row (actor_id SET NULL) and, for the caretaker, P. A cycle
+#       with or without the caretaker; control: no audit row and no
+#       caretaker, no cycle.
 #   R5  the delete-account order (admin_delete_account_data, then the Auth
 #       delete) of M against set_caretaker and update_member_role
 #       (caretaker_acct): no deadlock and no error (scenario 31 runs three of
@@ -36,6 +42,25 @@
 #   R7  scenario 23's direct Auth delete while the person marks two
 #       notifications read (notes, assume_restored_notes): none on the
 #       migrated database, a deadlock in the backward order on the copy (P1).
+#   R8  manager M leaves P (remove_member by M) against a direct Auth delete
+#       of M, M not the caretaker (assume_direct_auth_leave): the RPC holds
+#       M's membership, and its audit row's actor_id check needs M's
+#       auth.users key, which the delete holds while it waits for that
+#       membership. A key-share holder of M's profile (M's own
+#       create_portfolio on another device) stands in for any slower first
+#       step of the delete. Control: a co-owner removes M, no deadlock.
+#   R9  finding M2 (finding_m2_dport_former): the delete-account order of
+#       former manager M, who created a tenant of P (and so has an audit row
+#       there), against the owner's delete_portfolio(P): GoTrue holds the
+#       tenant (created_by SET NULL) and needs M's audit row; the deletion
+#       holds P's audit trail and needs the tenant. A cycle, the current
+#       code. Control: the owner created the tenant, no cycle.
+#   R10 finding M2 (finding_m2_two_deletions): co-owners A and B of P1 and P2,
+#       which A created; set_caretaker on P1 (a non-HOT update: an indexed
+#       column changes) moves P1's index entry behind P2's. A's
+#       delete-account (GoTrue: created_by SET NULL in that order, P2 then
+#       P1) against B's admin_delete_account_data (P1 then P2): a cycle, the
+#       current code. Control: no caretaker named, no cycle.
 #
 # Each race is ordered with a gate (fv.hold), not with sleeps: the first
 # session holds its locks at the gate, the second is seen waiting for it
@@ -46,10 +71,10 @@
 # tool/db/env.sh). Rebuilds its own databases: MM_FV_DB (default
 # mm_fv_residence) with tool/db/reset.sh, and ${MM_FV_DB}_restored from a
 # pg_dump of it. Exits non-zero when a deterministic outcome differs: R1
-# (with the trigger too), R2, R3, R6 and R7 on the copy must deadlock; the R2
-# control, R2 with the trigger, R3 with the rule, R5, and R6 and R7 on the
-# migrated database must not; R4 must form its cycle. ROUNDS (default 1)
-# repeats R1 to R4.
+# (with the trigger too), R2, R3, R4, R6 and R7 on the copy, R8, R9 and R10
+# must deadlock; the R2 control, R2 with the trigger, R3 with the rule, the
+# R4, R8, R9 and R10 controls, R5, and R6 and R7 on the migrated database
+# must not. ROUNDS (default 1) repeats R1 to R4.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -104,6 +129,12 @@ new_portfolio() {
 add_member() {
   psql_db -c "insert into public.portfolio_members (portfolio_id, user_id, role, invited_by)
               values ('$1', '$2', '$3', ${4:-null})" >/dev/null
+}
+# The same, audited with the member as actor, as accept_invitation's insert is.
+add_member_audited() {
+  psql_db -c "begin" -c "set local \"request.jwt.claims\" to '{\"sub\":\"$2\"}'" \
+    -c "insert into public.portfolio_members (portfolio_id, user_id, role) values ('$1', '$2', '$3')" \
+    -c "commit" >/dev/null
 }
 # An estate: owner O, co-owner K, manager M of portfolio P (named $1).
 estate() {
@@ -336,36 +367,42 @@ for svc in demote remove; do
   done
 done
 
-echo "▸ R4 (D3, assume_direct_auth_dport): delete_portfolio against a direct Auth delete of its caretaker"
-for round in $(seq 1 "$ROUNDS"); do
-  O="$(new_user o)"
-  M="$(new_user m)"
-  P="$(new_portfolio "$O" "R4 $round")"
-  add_member "$P" "$M" manager
-  name_caretaker
-  gate
-  before="$(deadlocks)"
-  # A key-share holder of M's membership: the Auth delete's cascade queues
-  # on it first and the deletion (holding P) behind it; when it commits, the
-  # Auth delete takes the membership and needs P.
-  PGAPPNAME=hold psql_db -c "begin" \
-    -c "select from public.portfolio_members where portfolio_id = '$P' and user_id = '$M' for key share" \
-    -c "select fv.hold('$GATE')" -c "commit" >/dev/null 2>"$WORK/hold.err" &
-  await holding hold
-  PGAPPNAME=go psql_db -c "delete from auth.users where id = '$M'" >/dev/null 2>"$WORK/go.err" &
-  await waiting go hold
-  as_user "$O" "select public.delete_portfolio('$P', 'R4 $round');" \
-    | PGAPPNAME=del psql_db >/dev/null 2>"$WORK/del.err" &
-  # It queues behind the Auth delete on the membership's tuple lock, or
-  # behind the holder itself.
-  await waiting del go,hold
-  open_gate "$GATE"
-  wait || true
-  FOUND=$(($(deadlocks) - before))
-  echo "  round ${round}: deadlocks ${FOUND}; $(errors "$WORK/del.err" "$WORK/go.err")" \
-    "portfolio left: $(psql_db -c "select count(*) from public.portfolios where id = '$P'")," \
-    "auth user left: $(psql_db -c "select count(*) from auth.users where id = '$M'")"
-  ((FOUND > 0)) || fail "R4: no cycle formed"
+echo "▸ R4 (D3, assume_direct_auth_dport*): delete_portfolio against a direct Auth delete of a manager"
+for kind in caretaker audit control; do
+  for round in $(seq 1 "$ROUNDS"); do
+    O="$(new_user o)"
+    M="$(new_user m)"
+    P="$(new_portfolio "$O" "R4 $kind $round")"
+    if [[ "$kind" == control ]]; then add_member "$P" "$M" manager; else add_member_audited "$P" "$M" manager; fi
+    [[ "$kind" != caretaker ]] || name_caretaker
+    gate
+    before="$(deadlocks)"
+    # A key-share holder of M's membership: the Auth delete's cascade queues
+    # on it first and the deletion (holding P) behind it; when it commits, the
+    # Auth delete takes the membership and needs P.
+    PGAPPNAME=hold psql_db -c "begin" \
+      -c "select from public.portfolio_members where portfolio_id = '$P' and user_id = '$M' for key share" \
+      -c "select fv.hold('$GATE')" -c "commit" >/dev/null 2>"$WORK/hold.err" &
+    await holding hold
+    PGAPPNAME=go psql_db -c "delete from auth.users where id = '$M'" >/dev/null 2>"$WORK/go.err" &
+    await waiting go hold
+    as_user "$O" "select public.delete_portfolio('$P', 'R4 $kind $round');" \
+      | PGAPPNAME=del psql_db >/dev/null 2>"$WORK/del.err" &
+    # It queues behind the Auth delete on the membership's tuple lock, or
+    # behind the holder itself.
+    await waiting del go,hold
+    open_gate "$GATE"
+    wait || true
+    FOUND=$(($(deadlocks) - before))
+    echo "  ${kind} round ${round}: deadlocks ${FOUND}; $(errors "$WORK/del.err" "$WORK/go.err")" \
+      "portfolio left: $(psql_db -c "select count(*) from public.portfolios where id = '$P'")," \
+      "auth user left: $(psql_db -c "select count(*) from auth.users where id = '$M'")"
+    if [[ "$kind" == control ]]; then
+      ((FOUND == 0)) || fail "R4 control deadlocked"
+    else
+      ((FOUND > 0)) || fail "R4 ${kind}: no cycle formed"
+    fi
+  done
 done
 
 echo "▸ R5 (caretaker_acct): the delete-account order of the manager"
@@ -462,6 +499,130 @@ for db in "$MAIN_DB" "$RESTORED_DB"; do
       ((FOUND > 0)) || fail "R7 backward: not reproduced on the restored copy"
     fi
   done
+done
+
+DB="$MAIN_DB"
+echo "▸ R8 (assume_direct_auth_leave): a manager leaves during a direct Auth delete of them"
+for who in self coowner; do
+  estate "R8 $who"
+  [[ "$who" == self ]] && caller="$M" || caller="$K"
+  gate
+  before="$(deadlocks)"
+  # M's own create_portfolio on another device (require_active_account)
+  # holds M's profile key: the Auth delete, holding M's auth.users row,
+  # waits for it at its first foreign-key action.
+  PGAPPNAME=hold psql_db -c "begin" -c "select from public.profiles where id = '$M' for key share" \
+    -c "select fv.hold('$GATE')" -c "commit" >/dev/null 2>"$WORK/hold.err" &
+  await holding hold
+  PGAPPNAME=go psql_db -c "delete from auth.users where id = '$M'" >/dev/null 2>"$WORK/go.err" &
+  await waiting go hold
+  as_user "$caller" "select public.remove_member('$P', '$M');" \
+    | PGAPPNAME=rpc psql_db >/dev/null 2>"$WORK/rpc.err" &
+  rpc=$!
+  if [[ "$who" == self ]]; then
+    await waiting rpc go
+  else
+    wait "$rpc" || true
+  fi
+  open_gate "$GATE"
+  wait || true
+  FOUND=$(($(deadlocks) - before))
+  echo "  remove_member(P, M) by ${who}: deadlocks ${FOUND}; $(errors "$WORK/rpc.err" "$WORK/go.err")" \
+    "auth user left: $(psql_db -c "select count(*) from auth.users where id = '$M'")"
+  if [[ "$who" == self ]]; then
+    ((FOUND > 0)) || fail "R8: leaving did not deadlock"
+  else
+    ((FOUND == 0)) || fail "R8 control: a co-owner's removal deadlocked"
+  fi
+done
+
+echo "▸ R9 (finding M2, finding_m2_dport_former): a former manager's delete-account against delete_portfolio"
+for creator in manager owner; do
+  O="$(new_user o)"
+  M="$(new_user m)"
+  P="$(new_portfolio "$O" "R9 $creator")"
+  add_member "$P" "$M" manager
+  R="$(psql_db -c "insert into public.properties (portfolio_id, name, city, province, created_by)
+                   values ('$P', 'R9', 'Lahore', 'punjab', '$O') returning id")"
+  [[ "$creator" == manager ]] && sub="$M" || sub="$O"
+  # The tenant's insert is audited with its creator as actor.
+  psql_db -c "begin" -c "set local \"request.jwt.claims\" to '{\"sub\":\"$sub\"}'" \
+    -c "insert into public.tenants (portfolio_id, full_name) values ('$P', 'R9')" -c "commit" >/dev/null
+  # M's delete-account: admin_delete_account_data first (M leaves P) ...
+  as_service "select public.admin_delete_account_data('$M') is not null;" | psql_db >/dev/null
+  rows="$(psql_db -c "select (select count(*) from public.tenants where portfolio_id = '$P' and created_by = '$M')
+                             || ' tenant, ' || (select count(*) from public.audit_logs
+                                                where portfolio_id = '$P' and actor_id = '$M') || ' audit row'")"
+  gate
+  before="$(deadlocks)"
+  # A key-share holder of the property: the deletion's cascade waits for it
+  # after it has deleted P's audit trail, before it reaches the tenants.
+  PGAPPNAME=hold psql_db -c "begin" -c "select from public.properties where id = '$R' for key share" \
+    -c "select fv.hold('$GATE')" -c "commit" >/dev/null 2>"$WORK/hold.err" &
+  await holding hold
+  as_user "$O" "select public.delete_portfolio('$P', 'R9 $creator');" \
+    | PGAPPNAME=del psql_db >/dev/null 2>"$WORK/del.err" &
+  await waiting del hold
+  # ... then GoTrue's delete.
+  PGAPPNAME=go psql_db -c "delete from auth.users where id = '$M'" >/dev/null 2>"$WORK/go.err" &
+  if [[ "$creator" == manager ]]; then await waiting go del; fi
+  open_gate "$GATE"
+  wait || true
+  FOUND=$(($(deadlocks) - before))
+  echo "  the tenant created by the ${creator} (M's rows in P: ${rows}): deadlocks ${FOUND};" \
+    "$(errors "$WORK/del.err" "$WORK/go.err") auth user left: $(psql_db -c "select count(*) from auth.users where id = '$M'")"
+  if [[ "$creator" == manager ]]; then
+    ((FOUND > 0)) || fail "R9: finding M2 not reproduced (if a fix landed, flip this case)"
+  else
+    ((FOUND == 0)) || fail "R9 control deadlocked"
+  fi
+done
+
+echo "▸ R10 (finding M2, finding_m2_two_deletions): two co-owners' delete-account, GoTrue's SET NULL in heap order"
+for named in yes no; do
+  A="$(new_user a)"
+  B="$(new_user b)"
+  C="$(new_user c)"
+  P1="$(psql_db -c "with p as (insert into public.portfolios (id, name, created_by)
+                                values (app.uuid_generate_v7(), 'R10 one', '$A') returning id),
+                         m as (insert into public.portfolio_members (portfolio_id, user_id, role)
+                               select id, '$A', 'owner' from p)
+                    select id from p")"
+  P2="$(psql_db -c "with p as (insert into public.portfolios (id, name, created_by)
+                                values (app.uuid_generate_v7(), 'R10 two', '$A') returning id),
+                         m as (insert into public.portfolio_members (portfolio_id, user_id, role)
+                               select id, '$A', 'owner' from p)
+                    select id from p")"
+  psql_db -c "insert into public.portfolio_members (portfolio_id, user_id, role)
+              values ('$P1', '$B', 'owner'), ('$P2', '$B', 'owner'), ('$P1', '$C', 'manager')" >/dev/null
+  if [[ "$named" == yes ]]; then
+    as_user "$A" "select public.set_caretaker('$P1', '$C');" | psql_db >/dev/null
+  fi
+  as_service "select public.admin_delete_account_data('$A') is not null;" | psql_db >/dev/null
+  scan="$(psql_db -c "select string_agg(case id when '$P1' then 'P1' else 'P2' end, ' ' order by ctid)
+                      from public.portfolios where created_by = '$A'")"
+  gate
+  before="$(deadlocks)"
+  # A key-share holder of P2 stops B's deletion between its two locks.
+  PGAPPNAME=hold psql_db -c "begin" -c "select from public.portfolios where id = '$P2' for key share" \
+    -c "select fv.hold('$GATE')" -c "commit" >/dev/null 2>"$WORK/hold.err" &
+  await holding hold
+  as_service "select public.admin_delete_account_data('$B') is not null;" \
+    | PGAPPNAME=delB psql_db >/dev/null 2>"$WORK/delB.err" &
+  await waiting delB hold
+  PGAPPNAME=goA psql_db -c "delete from auth.users where id = '$A'" >/dev/null 2>"$WORK/goA.err" &
+  if [[ "$named" == yes ]]; then await waiting goA delB; fi
+  open_gate "$GATE"
+  wait || true
+  FOUND=$(($(deadlocks) - before))
+  echo "  caretaker named: ${named}, heap order of A's portfolios: ${scan}: deadlocks ${FOUND};" \
+    "$(errors "$WORK/delB.err" "$WORK/goA.err") auth user A left: $(psql_db -c "select count(*) from auth.users where id = '$A'")"
+  if [[ "$named" == yes ]]; then
+    [[ "$scan" == "P2 P1" ]] || fail "R10: set_caretaker did not move P1 behind P2 (${scan})"
+    ((FOUND > 0)) || fail "R10: finding M2 not reproduced (if a fix landed, flip this case)"
+  else
+    ((FOUND == 0)) || fail "R10 control deadlocked"
+  fi
 done
 
 if ((STATUS == 0)); then
