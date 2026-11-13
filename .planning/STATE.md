@@ -7,7 +7,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-12)
+## Current Position (2026-11-13)
 
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
@@ -24,7 +24,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   changed: the gallery's Urdu screenshots, and an independent design review of the change
   (`docs/design-qa.md`). Pilot readers confirm the face (`docs/roadmap/urdu-review.md`).
 - Decision 1 of the roadmap (D-16, residence), backend and domain half, on branch
-  `wip/residence`, rebased on `main` at 415ce29 (not pushed, not merged):
+  `wip/residence` (pull request #61), rebased on `main` at 415ce29 and since merged with `main` at
+  16c200c (1.2.0; not merged into `main`):
   `20261112092618_residence.sql`
   (`profile_residences`, `portfolios.owner_abroad` added as NULL with the caretaker columns and
   their triggers, `create_portfolio` with `p_owner_abroad`, `set_owner_abroad`, `set_caretaker`;
@@ -45,17 +46,35 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   the generated-file checks, `test-tools`, `test-core`, `test-ui`, `test-app`, `test-gallery`,
   `test-db`, `test-db-concurrency` (three runs, and one under four busy loops),
   `test-functions` and `verify`; no golden changed.
-  The TLA+ Membership model now covers the residence paths (`set_caretaker`, its two triggers
-  and the foreign key's `SET NULL`, `set_owner_abroad`, a declared residence and its clear, and
-  GoTrue's `invited_by` `SET NULL`): five new properties, 28 new configurations (79 in all, 53 in
-  `ci`), every mutant of scenario 31 mirrored. The app's own paths needed no SQL change. Four
-  lock-order behaviours outside them are documented as operator rules in `docs/operations.md`
-  and replayed by `formal/tla/Membership/replay/residence.sh`: a direct Auth delete of a
-  caretaker (D1, D3) and a service-role change of its membership (D2) can deadlock with
-  membership changes, and a schema restored from a dump runs GoTrue's foreign-key actions by name
-  (P1). Scenario 31 gained the delete-account order of the caretaker and the operator's rule. A
-  possible follow-up for P1: `admin_delete_account_data` could null the user's
-  `portfolios.created_by` and `portfolio_members.invited_by` under its portfolio locks.
+  The TLA+ Membership model covers the residence paths (`set_caretaker`, its two triggers and
+  the foreign key's `SET NULL`, `set_owner_abroad` with and without `p_if_unanswered`, a declared
+  residence and its clear): five new properties, every mutant of scenario 31 mirrored. Its review
+  round (2026-11-13) made GoTrue's foreign-key actions lock one row per step in any order, and
+  added the audit rows (GoTrue's `SET NULL` of `actor_id`, the deletions' audit-trail `DELETE`,
+  the audited RPCs' actor check), the second-level timing of GoTrue's revoke, `FOR SHARE` only on
+  a committed manager's row, and the deadlock retry keeping its `KEY SHARE` on `auth.users`. Now
+  106 configurations (71 in `ci`, 100 s; `all` 367 s, `team` 261 s of it), with mutants for every
+  guard the README credits and two expected to pass (redundant guards). The residence paths
+  needed no SQL change. Outside the app's paths, a direct Auth delete of a manager deadlocks with
+  their leaving (with or without the caretaker: the audit row's actor check) and with the
+  portfolio's deletion (their audit row), and for the caretaker with an owner's membership
+  change (D1, D3); a service-role change of the caretaker's membership with the RPCs (D2); a
+  restored schema's foreign-key order with the delete-account order (P1). All are operator rules
+  in `docs/operations.md`, replayed by `formal/tla/Membership/replay/residence.sh` (R1 to R8);
+  scenario 31 runs the delete-account order of the caretaker and the operator's rule. The model
+  found one defect older than this branch, finding M2 (open, low): on the
+  `delete-account` path, GoTrue's `SET NULL` actions after `admin_delete_account_data` can form a
+  wait-for cycle with a deletion of a portfolio the user created or acted in (a former manager's
+  row and audit row against `delete_portfolio`; a creator's portfolios locked in heap order
+  against a co-owner's account deletion). `finding_m2_*` and replays R9 and R10 show it; the
+  detector and the retries resolve it, and every other property holds. Its remedy
+  (`admin_delete_account_data` nulls the user's 29 remaining `SET NULL` columns under id-ordered
+  portfolio locks) is the owner's decision (Blockers); moving the audit-trail `DELETE` after the
+  cascade alone was rejected (one shape only, and a new cycle on a restored schema).
+  After the review round and the merge with `main`, every gate passed (2026-11-13):
+  `make format-check-repo lint docs-check test-tools`, `make verify` (8/8 tracks, 452 s), the
+  Membership `run.sh all` (106/106, 367 s), `replay/residence.sh` (76 s), `make test-db` (23 suites,
+  1,974 tests) and `make test-db-concurrency` (288 s).
   `make test-db-stress` ran
   while another worktree was building (load average up to 15): every check passed except the
   once-a-day notifications' 15 s budget (25 s), which the base commit 9480e22 missed too (30 s and
@@ -229,6 +248,12 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
 
 The rest, in short:
 
+- Finding M2 of `formal/tla/Membership` (open, low; `docs/operations.md`, Deleting a user
+  account): decide whether `admin_delete_account_data` should set the 29 `ON DELETE SET NULL`
+  columns that name the user (`created_by`, `invited_by`, `voided_by`, `actor_id` and the like)
+  to NULL under portfolio locks taken in id order, so that GoTrue's deletion finds nothing to
+  lock. It writes 20 tables (each write audited) and locks more portfolios, including ones the
+  user has left. Until then a rare 40P01 on the delete-account path is resolved by the retries.
 - The first production run of the Deploy workflow: it must be on the default branch to be run by
   hand (or a release published). It deploys the web app to Vercel (`web` job, needs
   `VERCEL_TOKEN`, set) and redeploys the Edge Functions so they send the database's Retry-After
