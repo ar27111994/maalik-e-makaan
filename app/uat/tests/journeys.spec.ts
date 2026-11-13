@@ -621,6 +621,17 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J14 account deletion: the viewer, then the owner", async () => {
+    // A plain sign-out first: the browser forgets the account and keeps the
+    // language; the viewer then signs in again.
+    await openTab(viewerPage, "مزید");
+    await tap(viewerPage, /^سیٹنگز /);
+    await tap(viewerPage, "سائن آؤٹ کریں");
+    await expect(viewerPage).toHaveURL(/\/sign-in$/);
+    await expectAccountForgotten(viewerPage);
+    await fill(viewerPage, "ای میل", viewer.email);
+    await fill(viewerPage, "پاس ورڈ", password);
+    await tap(viewerPage, "سائن اِن کریں");
+    await expect(viewerPage).not.toHaveURL(/\/sign-in$/);
     await openTab(viewerPage, "مزید");
     await tap(viewerPage, /^سیٹنگز /);
     await tap(viewerPage, "اکاؤنٹ ڈیلیٹ کریں");

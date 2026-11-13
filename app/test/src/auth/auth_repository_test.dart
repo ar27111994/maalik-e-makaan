@@ -17,17 +17,42 @@ class _MockAuth extends Mock implements GoTrueClient;
 
 const _userId = '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a90';
 
-User _user({String email = 'ali.raza@example.com'}) => User(
-  id: _userId,
-  appMetadata: const {},
-  userMetadata: const {},
-  aud: 'authenticated',
-  email: email,
-  createdAt: '2026-11-01T00:00:00Z',
+/// Another account, whose e-mail link may be opened while Ali is signed in.
+const _otherId = '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91';
+
+User _user({String id = _userId, String email = 'ali.raza@example.com'}) =>
+    User(
+      id: id,
+      appMetadata: const {},
+      userMetadata: const {},
+      aud: 'authenticated',
+      email: email,
+      createdAt: '2026-11-01T00:00:00Z',
+    );
+
+Session _session({
+  String id = _userId,
+  String email = 'ali.raza@example.com',
+}) => Session(
+  accessToken: 'a',
+  tokenType: 'bearer',
+  user: _user(id: id, email: email),
 );
 
-Session _session() =>
-    Session(accessToken: 'a', tokenType: 'bearer', user: _user());
+/// A store that never answers, as a platform call that hangs.
+final class _HangingStore implements KeyValueStore {
+  @override
+  Future<String?> read(String key) => Completer<String?>().future;
+
+  @override
+  Future<void> write(String key, String value) => Completer<void>().future;
+
+  @override
+  Future<void> delete(String key) => Completer<void>().future;
+
+  @override
+  Future<Set<String>> keys() => Completer<Set<String>>().future;
+}
 
 final _config = AppConfig.parse({
   'SUPABASE_URL': 'https://abcdefgh.supabase.co',
@@ -144,7 +169,7 @@ void main() {
     test(
       'an old sign-out replayed to a signed-in user wipes nothing',
       () async {
-        // gotrue replays every past event to a new listener.
+        // gotrue replays its latest event to a new listener.
         await cache.write(_userId, 'dashboard', 1);
         when(() => auth.currentSession).thenReturn(_session());
         final subscription = repository.watch().listen((_) {});
@@ -157,6 +182,143 @@ void main() {
         expect(settings.values, hasLength(4));
       },
     );
+
+    // gotrue's own shapes: a refresh the server refused, a stored session
+    // it could not read, the user's sign-out, and another tab's.
+    for (final (name, change) in [
+      (
+        'a refused refresh',
+        const AuthState(
+          AuthChangeEvent.signedOut,
+          null,
+          signOutReason: SignOutReason.sessionExpired,
+        ),
+      ),
+      (
+        'a session that cannot be read',
+        const AuthState(
+          AuthChangeEvent.signedOut,
+          null,
+          signOutReason: SignOutReason.sessionMissing,
+        ),
+      ),
+      (
+        'the user',
+        const AuthState(
+          AuthChangeEvent.signedOut,
+          null,
+          signOutReason: SignOutReason.userInitiated,
+        ),
+      ),
+      (
+        'another tab',
+        const AuthState(AuthChangeEvent.signedOut, null, fromBroadcast: true),
+      ),
+    ]) {
+      test('a sign-out by $name wipes the device', () async {
+        await cache.write(_userId, 'tenants', 1);
+        final subscription = repository.watch().listen((_) {});
+        await pumpEventQueue();
+        changes.add(change);
+        await pumpEventQueue();
+        await subscription.cancel();
+        expect(wipes, [WipeReason.signedOut]);
+        expect(store.values, isEmpty);
+        expect(settings.values.keys, {
+          AppSettings.localeKey,
+          AppSettings.pendingInvitationKey,
+        });
+      });
+    }
+
+    test(
+      "another account's session that replaces this one wipes the device",
+      () async {
+        when(() => auth.currentSession).thenReturn(_session());
+        await cache.write(_userId, 'tenants', 1);
+        final statuses = <AuthStatus>[];
+        final subscription = repository.watch().listen(statuses.add);
+        await pumpEventQueue();
+        // The same account again (a refresh, a new sign-in): nothing goes.
+        changes
+          ..add(AuthState(AuthChangeEvent.tokenRefreshed, _session()))
+          ..add(AuthState(AuthChangeEvent.signedIn, _session()));
+        await pumpEventQueue();
+        expect(wipes, isEmpty);
+        expect(store.values, isNotEmpty);
+        // An e-mail link of another account, opened while signed in, swaps
+        // the sessions without a sign-out between them.
+        final other = _session(id: _otherId, email: 'sana.malik@example.com');
+        when(() => auth.currentSession).thenReturn(other);
+        changes.add(AuthState(AuthChangeEvent.passwordRecovery, other));
+        await pumpEventQueue();
+        expect(wipes, [WipeReason.signedOut]);
+        expect(store.values, isEmpty);
+        expect(settings.values.keys, {
+          AppSettings.localeKey,
+          AppSettings.pendingInvitationKey,
+        });
+        expect(statuses.last, const RecoveringPassword(userId: _otherId));
+        // An older event about the first account, replayed, changes nothing.
+        changes.add(AuthState(AuthChangeEvent.signedIn, _session()));
+        await pumpEventQueue();
+        changes.add(AuthState(AuthChangeEvent.userUpdated, other));
+        await pumpEventQueue();
+        await subscription.cancel();
+        expect(wipes, hasLength(1));
+      },
+    );
+
+    test('a link of another account opened as the app starts wipes the '
+        'stored one', () async {
+      when(() => auth.currentSession).thenReturn(_session());
+      final started = SupabaseAuthRepository(
+        auth: auth,
+        wipe: wipe,
+        config: _config,
+      );
+      await cache.write(_userId, 'tenants', 1);
+      // The link is completed before gotrue's first event is delivered.
+      final other = _session(id: _otherId, email: 'sana.malik@example.com');
+      when(() => auth.currentSession).thenReturn(other);
+      final subscription = started.watch().listen((_) {});
+      await pumpEventQueue();
+      changes
+        ..add(AuthState(AuthChangeEvent.initialSession, _session()))
+        ..add(AuthState(AuthChangeEvent.signedIn, other));
+      await pumpEventQueue();
+      await subscription.cancel();
+      expect(wipes, [WipeReason.signedOut]);
+      expect(store.values, isEmpty);
+    });
+
+    test('a store that never answers does not hold up the sign-out', () async {
+      final stuck = SupabaseAuthRepository(
+        auth: auth,
+        wipe: DeviceDataWipe(
+          cache: SwrCache(_HangingStore()),
+          settings: settings,
+          scratch: FakeDeviceScratch(),
+          preferencesLimit: const Duration(milliseconds: 20),
+        ),
+        config: _config,
+      );
+      final statuses = <AuthStatus>[];
+      final subscription = stuck.watch().listen(statuses.add);
+      await pumpEventQueue();
+      changes.add(
+        const AuthState(
+          AuthChangeEvent.signedOut,
+          null,
+          signOutReason: SignOutReason.sessionExpired,
+        ),
+      );
+      await pumpEventQueue();
+      expect(statuses, const [SignedOut()]);
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      expect(statuses, const [SignedOut(), SignedOut()]);
+      await subscription.cancel();
+    });
 
     test('statuses compare by value', () {
       expect(const SignedOut().hashCode, const SignedOut().hashCode);
@@ -370,6 +532,30 @@ void main() {
       expect(scratch.calls.where((call) => call.$1 == 'sweep'), hasLength(1));
     });
 
+    test(
+      'signOut wipes once when gotrue announces it and returns at once',
+      () async {
+        // As gotrue does when it has no server to tell (no access token): the
+        // listeners have the announcement a moment after signOut returned.
+        when(() => auth.signOut()).thenAnswer((_) async {
+          changes.add(
+            const AuthState(
+              AuthChangeEvent.signedOut,
+              null,
+              signOutReason: SignOutReason.userInitiated,
+            ),
+          );
+        });
+        final subscription = repository.watch().listen((_) {});
+        await pumpEventQueue();
+        await repository.signOut();
+        await pumpEventQueue();
+        await subscription.cancel();
+        expect(wipes, [WipeReason.signedOut]);
+        expect(store.values, isEmpty);
+      },
+    );
+
     test('a sign-out that leaves the session in place wipes nothing', () async {
       when(() => auth.currentSession).thenReturn(_session());
       when(() => auth.signOut()).thenThrow(
@@ -413,6 +599,17 @@ void main() {
         expect(wipes.last, WipeReason.signedOut);
       },
     );
+
+    test('an unconfirmed deletion wipes as a deletion does', () async {
+      when(() => auth.signOut()).thenAnswer((_) async {});
+      await repository.signOut(cause: SignOutCause.deletionUnconfirmed);
+      expect(
+        repository.status,
+        const SignedOut(cause: SignOutCause.deletionUnconfirmed),
+      );
+      expect(wipes, [WipeReason.accountDeleted]);
+      expect(settings.values, {AppSettings.localeKey: 'ur'});
+    });
 
     test('a reset link clears the remembered reason', () async {
       when(() => auth.signOut()).thenAnswer((_) async {});

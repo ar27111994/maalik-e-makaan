@@ -21,6 +21,11 @@ enum SignOutCause {
 
   /// The account was deleted.
   accountDeleted,
+
+  /// Deleting the account was asked for, but its answer never came (the
+  /// connection broke, or the server failed part-way): it may be gone. The
+  /// device forgets it as for a deletion; signing in again tells.
+  deletionUnconfirmed,
 }
 
 /// Nobody is signed in.
@@ -132,7 +137,8 @@ final class SupabaseAuthRepository implements AuthRepository {
     bool nativeLinks = false,
   }) : _callbackUrl = config
            .authCallbackUrlFor(nativeScheme: nativeLinks)
-           .toString();
+           .toString(),
+       _userId = _auth.currentSession?.user.id;
 
   final sb.GoTrueClient _auth;
   final DeviceDataWipe _wipe;
@@ -143,6 +149,10 @@ final class SupabaseAuthRepository implements AuthRepository {
   /// Whether the device was wiped since [signOut] began: gotrue's
   /// announcement of the sign-out did it, and [signOut] need not again.
   bool _wiped = false;
+
+  /// The user whose session the device holds: at first the stored one,
+  /// then as the events say.
+  String? _userId;
 
   @override
   AuthStatus get status => _statusOf(_auth.currentSession);
@@ -184,25 +194,47 @@ final class SupabaseAuthRepository implements AuthRepository {
       // a refresh, or signed out in another tab).
       await _forgetAccount();
     }
+    await _forgetReplaced(change.session);
     return _statusOf(change.session);
+  }
+
+  /// Wipes what the device kept for the account whose session [session]
+  /// replaced without a sign-out between them: an e-mail link of another
+  /// account, opened while signed in, swaps one session for the other and
+  /// gotrue announces only the new one. Only an event about the session the
+  /// device holds now counts: gotrue replays its latest event to a new
+  /// listener, and it may be about an earlier one.
+  Future<void> _forgetReplaced(sb.Session? session) async {
+    final current = _auth.currentSession?.user.id;
+    if (current == null) {
+      _userId = null;
+      return;
+    }
+    final user = session?.user.id;
+    if (user != current) return;
+    final previous = _userId;
+    _userId = user;
+    if (previous != null && previous != user) {
+      await _wipe.wipe(WipeReason.signedOut);
+    }
   }
 
   /// Wipes what the device kept for the account that signed out, before
   /// the signed-out status is shown: the preferences at once, the files
   /// after ([DeviceDataWipe.wipe]).
   ///
-  /// Not while a session exists: gotrue replays every earlier event to a
-  /// new listener, an old sign-out included, and the user signed in since
+  /// Not while a session exists: gotrue replays its latest event to a new
+  /// listener, an old sign-out included, and the user signed in since
   /// keeps their data. gotrue drops the session before it announces a
   /// sign-out, so a real one always finds none.
   Future<void> _forgetAccount() async {
     if (_auth.currentSession != null) return;
     _wiped = true;
-    await _wipe.wipe(
-      _signOutCause == SignOutCause.accountDeleted
-          ? WipeReason.accountDeleted
-          : WipeReason.signedOut,
-    );
+    await _wipe.wipe(switch (_signOutCause) {
+      SignOutCause.accountDeleted ||
+      SignOutCause.deletionUnconfirmed => WipeReason.accountDeleted,
+      SignOutCause.userRequest || null => WipeReason.signedOut,
+    });
   }
 
   Future<T> _guard<T>(Future<T> Function() action) async {
@@ -303,7 +335,10 @@ final class SupabaseAuthRepository implements AuthRepository {
         } finally {
           // Even when the server cannot be reached, or gotrue failed before
           // it announced the sign-out (whose wipe is otherwise enough), the
-          // device is wiped.
+          // device is wiped. gotrue's listeners have its announcement one
+          // microtask after it is made, before signOut returns to here; only
+          // when they are still busy with an earlier event does it come
+          // after, and the device is wiped twice, which does no harm.
           if (!_wiped) await _forgetAccount();
         }
       });

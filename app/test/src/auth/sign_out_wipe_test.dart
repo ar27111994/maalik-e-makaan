@@ -13,6 +13,7 @@ import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
 import 'package:maalik_e_makaan/src/features/team/application/invitation.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mocktail/mocktail.dart';
@@ -54,6 +55,7 @@ void main() {
   late MemorySettingsStore settings;
   late FakeDeviceScratch scratch;
   late FakeAccountRepository account;
+  late FakePortfolioRepository portfolios;
   late ProviderContainer container;
 
   setUpAll(() => registerFallbackValue(sb.SignOutScope.local));
@@ -89,6 +91,7 @@ void main() {
     });
     scratch = FakeDeviceScratch();
     account = FakeAccountRepository();
+    portfolios = FakePortfolioRepository([gulberg]);
     container =
         ProviderContainer.test(
             overrides: [
@@ -96,6 +99,7 @@ void main() {
               settingsStoreProvider.overrideWithValue(settings),
               deviceScratchProvider.overrideWithValue(scratch),
               accountRepositoryProvider.overrideWithValue(account),
+              portfolioRepositoryProvider.overrideWithValue(portfolios),
               authRepositoryProvider.overrideWith(
                 (ref) => SupabaseAuthRepository(
                   auth: gotrue,
@@ -173,17 +177,60 @@ void main() {
     expect(container.read(pendingInvitationProvider), isNull);
   });
 
-  test('a deletion that fails wipes nothing', () async {
+  test('a deletion the server refused wipes nothing', () async {
     container.listen(accountDeletionProvider, (_, _) {});
     await pumpEventQueue();
-    account.gate.failure = const NetworkFailure();
+    account.gate.failure = const RejectedFailure('does_not_match_account');
     await expectLater(
       container
           .read(accountDeletionProvider.notifier)
           .deleteAccount(password: 'Secret1234', confirmEmail: testEmail),
-      throwsA(isA<NetworkFailure>()),
+      throwsA(isA<RejectedFailure>()),
     );
+    expect(container.read(authStatusProvider), isA<SignedIn>());
     expect(store.values, isNotEmpty);
     expect(settings.values, hasLength(5));
+  });
+
+  test(
+    'a deletion whose answer was lost wipes as a deletion, at once',
+    () async {
+      container.listen(accountDeletionProvider, (_, _) {});
+      await pumpEventQueue();
+      // The connection broke after the request went: the server may have
+      // deleted the account.
+      account.gate.failure = const NetworkFailure();
+      await container
+          .read(accountDeletionProvider.notifier)
+          .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+      await pumpEventQueue();
+      expect(
+        container.read(authStatusProvider),
+        const SignedOut(cause: SignOutCause.deletionUnconfirmed),
+      );
+      expect(store.values, isEmpty);
+      expect(settings.values, {
+        AppSettings.localeKey: 'ur',
+        AppSettings.themeKey: 'dark',
+      });
+    },
+  );
+
+  test('a list still loading when the user signs out leaves no copy', () async {
+    store.values.clear();
+    portfolios.gate.close();
+    container.listen(portfoliosProvider(testUserId), (_, _) {});
+    await pumpEventQueue();
+    expect(portfolios.calls.map((call) => call.$1), ['listMine']);
+    await container.read(authStatusProvider.notifier).signOut();
+    await pumpEventQueue();
+    // The server answers after the wipe, with a token still valid.
+    portfolios.gate.open();
+    await pumpEventQueue();
+    await container.read(deviceDataWipeProvider).settled;
+    expect(
+      store.values.keys.where((key) => key.startsWith('mm.swr.')),
+      isEmpty,
+    );
   });
 }
