@@ -1429,6 +1429,16 @@ HISTORY = (".planning/**", "CHANGELOG.md")
 C17_TESTS = ("tool/docs/test_*.py", "tool/docs/docs_fixture.py")
 # Mailboxes on the site's domain that exist; none until the owner names one (D-20).
 NAMED_MAILBOXES: tuple[str, ...] = ()
+# The code C17 reads, as globs for the pre-commit hook (sync_facts.py --paths), which skips the
+# check unless a staged file matches one of its reads: code names addresses too (a default, a
+# test, a comment), and the full check reads every tracked text file.
+C17_CODE = tuple(
+    f"**/*.{extension}"
+    for extension in (
+        *("ts", "astro", "mdx", "js", "mjs", "cjs", "css", "svg", "webmanifest"),
+        *("dart", "arb", "kt", "kts", "swift", "plist", "py", "sql", "example"),
+    )
+)
 _BINARY = re.compile(r"\.(?:png|jpe?g|gif|webp|ico|ttf|otf|woff2?|pdf|jks|zip|wasm)$", re.I)
 _HTTPS_ORIGIN = re.compile(r"https://((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,})")
 _HOST_START = r"(?<![A-Za-z0-9.-])"
@@ -1763,6 +1773,7 @@ CHECKS: tuple[Check, ...] = (
             "**/*.xml",
             "**/*.sh",
             "**/*.txt",
+            *C17_CODE,
         ),
         "contracts/origins.json holds https origins, each once; every host on the site's domain"
         " is an origin or alias; earlier addresses only where LEGACY_PATHS allows; no workflow"

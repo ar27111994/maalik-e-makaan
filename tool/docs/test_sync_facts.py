@@ -254,7 +254,7 @@ class PathsTest(CommandLineCase):
     def test_unrelated_paths_return_at_once_without_reading_a_source(self) -> None:
         tracked = self.build({"commitlint.config.mjs": "export default {};\n"})
         code, out, err = self.run_main(
-            "--check", "--paths", "app/lib/main.dart", "website/src/x.ts", tracked=tracked
+            "--check", "--paths", "app/assets/a.png", "formal/lean/A.lean", tracked=tracked
         )
         self.assertEqual((code, out, err), (0, "", ""))
         self.assertEqual(self.run_main("--check", "--paths", tracked=tracked), (0, "", ""))
@@ -275,7 +275,16 @@ class PathsTest(CommandLineCase):
     def test_relevant(self) -> None:
         self.assertTrue(sync_facts.relevant(["Makefile"]))
         self.assertTrue(sync_facts.relevant(["supabase/tests/database/03_x.test.sql"]))
-        self.assertFalse(sync_facts.relevant(["supabase/migrations/1_x.sql", "app/lib/a.dart"]))
+        self.assertFalse(sync_facts.relevant(["app/assets/a.png", "formal/lean/A.lean"]))
+        # C17 reads every text file, so code that could name an address runs the check too.
+        for path in (
+            "website/src/pages/index.astro",
+            "app/lib/main.dart",
+            "website/.env.example",
+            "tool/web/check_live.py",
+            "supabase/migrations/1_x.sql",
+        ):
+            self.assertTrue(sync_facts.relevant([path]), path)
         # A marker can be in any Markdown or YAML file, and llms.txt must hold none (M16).
         for path in ("llms.txt", ".github/ISSUE_TEMPLATE/bug_report.yml", "app/l10n.yaml"):
             self.assertTrue(sync_facts.relevant([path]), path)
