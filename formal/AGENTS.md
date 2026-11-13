@@ -30,5 +30,6 @@ tool/formal/verify.sh ci tla/RateLimit lean  # some tracks
 formal/tla/LateFees/run.sh ci                # one track
 ```
 
-The PostgreSQL replays of the findings are each track's `replay/run.sh` and
-`tla/Invitations/replay_findings.sh`; they need the local PostgreSQL 16 (`tool/db/env.sh`).
+The PostgreSQL replays of the findings are each track's `replay/run.sh`,
+`tla/Invitations/replay_findings.sh` and `tla/Membership/replay/residence.sh`; they need the local
+PostgreSQL 16 (`tool/db/env.sh`).

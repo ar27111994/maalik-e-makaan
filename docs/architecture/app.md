@@ -34,7 +34,12 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
   `Money.fromJson`, which is exact for every value `numeric(14,2)` can hold.
   Never `double` for money.
 - Dates without a time are `CalendarDate` (`CalendarDate.fromJson`);
-  timestamps are UTC `DateTime` shown in Pakistan time.
+  timestamps are UTC `DateTime` shown in Pakistan time. A person's own zone
+  (`alertZoneProvider`) serves only their alerts, quiet hours and the second
+  time an owner abroad sees; see [time](time.md).
+- A stored country or time zone is read leniently (`CountryCode.fromJson`,
+  `TimeZoneId.fromJson`): a well-formed value a newer build stored is kept,
+  not refused, so an older app never fails on it.
 - Enumerations mirror the database enums one to one, with an `unknown` case
   only where a newer server could send a value an older app does not know.
 
@@ -58,6 +63,38 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
     (see `docs/architecture/permissions.md`).
 - Every Supabase error is converted with `AppFailure.from` at the repository
   boundary, so callers only ever see `AppFailure`.
+
+### Residence, the owner-abroad answer and the caretaker
+
+- `AccountResidence` is the signed-in user's own `profile_residences` row:
+  `Residence` (country and time zone) and `statedAt`, which the server stamps.
+  `ResidenceRepository.update` writes only the two values; `residenceProvider`
+  reads it through the cache like the profile, and `alertZoneProvider` gives
+  the zone of the user's alerts, Pakistan's when signed out, loading, failing
+  or not stated. Nothing fills it in from the phone number, the language or the
+  device; the device's zone may only be offered (`TimeZoneId.fromDevice`).
+- `PortfolioMembership.ownerAbroad` is the portfolio's answer to "Does the
+  owner of these properties live abroad?" (`OwnerAbroad`; not yet answered is
+  NULL). The list embeds `portfolios!inner(id,name,owner_abroad)` without a
+  hint, as the released apps do; pgTAP keeps exactly one relationship between
+  the two tables, so the embed stays unambiguous.
+- `PortfolioRepository.create` sends `p_owner_abroad` only when answered, so a
+  portfolio created without an answer is stored as unanswered, and the call is
+  the one older databases know. `answerOwnerAbroad` (`p_if_unanswered: true`)
+  is the "ask on next open" answer, which returns an answer someone gave first
+  instead of overwriting it; `changeOwnerAbroad` is an owner's change.
+- `ownerAbroadQuestionProvider` names the current portfolio when the app should
+  ask: unanswered, the user an owner or a manager, and the list just read from
+  the server, never from a saved copy (someone may have answered since). It is
+  never answered from the user's residence.
+- `PortfolioDetails.ownerAbroad` and `caretaker` (`Caretaker`, always a manager)
+  are read-only and stay out of `toUpdate()`: no client may write those
+  columns, and PostgREST would refuse the whole save. A test pins the keys.
+  `TeamController.setCaretaker`, `changeRole` and `remove` read the settings
+  again, because the server clears a caretaker who stops being a manager.
+- Saved copies written by an older version lack `owner_abroad`: they fail the
+  strict read and the cache drops them once, so an offline first start after
+  the upgrade shows no saved portfolio list once.
 
 ## Reading: stale while revalidate
 

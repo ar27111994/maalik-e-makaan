@@ -11,6 +11,8 @@ import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence_repository.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
@@ -216,6 +218,49 @@ final class FakeProfileRepository implements ProfileRepository {
   }
 }
 
+/// A [ResidenceRepository] over one in-memory residence.
+final class FakeResidenceRepository implements ResidenceRepository {
+  new([this.residence = AccountResidence.notStated]);
+
+  AccountResidence residence;
+  final calls = <Call>[];
+  final gate = Gate();
+
+  /// Fails reads (not writes) with this when set.
+  AppFailure? fetchFailure;
+
+  /// Fails writes with this when set.
+  AppFailure? updateFailure;
+
+  /// The time the server stamps on a saved answer.
+  DateTime now = DateTime.utc(2026, 11, 12, 10, 15);
+
+  @override
+  Future<AccountResidence> fetch(String userId) async {
+    calls.add(('fetch', [userId]));
+    await gate.pass();
+    final failure = fetchFailure;
+    if (failure != null) throw failure;
+    return residence;
+  }
+
+  @override
+  Future<AccountResidence> update(
+    String userId, {
+    required CountryCode? country,
+    required TimeZoneId? timeZone,
+  }) async {
+    calls.add(('update', [userId, country, timeZone]));
+    await gate.pass();
+    final failure = updateFailure;
+    if (failure != null) throw failure;
+    return residence = AccountResidence(
+      residence: Residence(country: country, timeZone: timeZone),
+      statedAt: now,
+    );
+  }
+}
+
 /// A [PortfolioRepository] over an in-memory list.
 final class FakePortfolioRepository implements PortfolioRepository {
   new([List<PortfolioMembership>? memberships])
@@ -241,16 +286,75 @@ final class FakePortfolioRepository implements PortfolioRepository {
   Future<PortfolioMembership> create({
     required String name,
     required String id,
+    OwnerAbroad ownerAbroad = OwnerAbroad.notAnswered,
   }) async {
-    calls.add(('create', [name, id]));
+    calls.add(('create', [name, id, ownerAbroad]));
     await gate.pass();
     final created = PortfolioMembership(
       id: id,
       name: sanitizeSingleLine(name),
       role: MemberRole.owner,
+      ownerAbroad: ownerAbroad,
     );
     memberships.add(created);
     return created;
+  }
+
+  /// Fails answering or changing the owner-abroad question with this when
+  /// set.
+  AppFailure? ownerAbroadFailure;
+
+  @override
+  Future<OwnerAbroad> answerOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+  }) {
+    calls.add(('answerOwnerAbroad', [portfolioId, abroad]));
+    return _setOwnerAbroad(portfolioId, abroad: abroad, ifUnanswered: true);
+  }
+
+  @override
+  Future<OwnerAbroad> changeOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+  }) {
+    calls.add(('changeOwnerAbroad', [portfolioId, abroad]));
+    return _setOwnerAbroad(portfolioId, abroad: abroad, ifUnanswered: false);
+  }
+
+  /// As `set_owner_abroad`: a stale question returns the answer already
+  /// given.
+  Future<OwnerAbroad> _setOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+    required bool ifUnanswered,
+  }) async {
+    await gate.pass();
+    final failure = ownerAbroadFailure;
+    if (failure != null) throw failure;
+    final index = memberships.indexWhere((m) => m.id == portfolioId);
+    final current = memberships[index].ownerAbroad;
+    if (ifUnanswered && !current.needsAnswer) return current;
+    final answer = OwnerAbroad.fromJson(abroad);
+    memberships[index] = memberships[index].withOwnerAbroad(answer);
+    final stored = details_[portfolioId];
+    if (stored != null) {
+      details_[portfolioId] = PortfolioDetails(
+        id: stored.id,
+        name: stored.name,
+        defaultDueDay: stored.defaultDueDay,
+        defaultGraceDays: stored.defaultGraceDays,
+        defaultIncrementBasisPoints: stored.defaultIncrementBasisPoints,
+        landlordName: stored.landlordName,
+        landlordPhone: stored.landlordPhone,
+        raastId: stored.raastId,
+        bankAccountTitle: stored.bankAccountTitle,
+        bankIban: stored.bankIban,
+        ownerAbroad: answer,
+        caretaker: stored.caretaker,
+      );
+    }
+    return answer;
   }
 
   /// Fails reading settings with this when set.
@@ -292,6 +396,9 @@ final class FakePortfolioRepository implements PortfolioRepository {
       raastId: details.raastId,
       bankAccountTitle: sanitizeOptional(details.bankAccountTitle),
       bankIban: details.bankIban,
+      // Not written by a save (no client may): kept as stored.
+      ownerAbroad: details_[details.id]?.ownerAbroad ?? OwnerAbroad.notAnswered,
+      caretaker: details_[details.id]?.caretaker,
     );
     details_[details.id] = saved;
     final index = memberships.indexWhere((m) => m.id == details.id);
@@ -301,6 +408,7 @@ final class FakePortfolioRepository implements PortfolioRepository {
         id: old.id,
         name: saved.name,
         role: old.role,
+        ownerAbroad: old.ownerAbroad,
       );
     }
     return saved;
@@ -516,6 +624,28 @@ final class FakeTeamRepository implements TeamRepository {
     calls.add(('accept', [token]));
     await gate.pass();
     return acceptOutcome;
+  }
+
+  /// Each portfolio's caretaker, by portfolio id.
+  final Map<String, String?> caretakers = {};
+
+  @override
+  Future<void> setCaretaker({
+    required String portfolioId,
+    required String? userId,
+  }) async {
+    calls.add(('setCaretaker', [portfolioId, userId]));
+    await gate.pass();
+    if (userId != null) {
+      final member = people[portfolioId]?.where((m) => m.userId == userId);
+      if (member == null || member.isEmpty) {
+        throw const RejectedFailure('member_not_found');
+      }
+      if (!member.single.role.canBeCaretaker) {
+        throw const RejectedFailure('caretaker_not_manager');
+      }
+    }
+    caretakers[portfolioId] = userId;
   }
 }
 

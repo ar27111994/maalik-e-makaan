@@ -410,6 +410,38 @@ void main() {
       });
     });
 
+    test('set_caretaker names a manager or clears the caretaker', () async {
+      await repository.setCaretaker(portfolioId: gulberg.id, userId: _bilal);
+      expect(supabase.request.url.path, '/rest/v1/rpc/set_caretaker');
+      expect(bodyOf(supabase.request), {
+        'p_portfolio_id': gulberg.id,
+        'p_user_id': _bilal,
+      });
+      await repository.setCaretaker(portfolioId: gulberg.id, userId: null);
+      expect(bodyOf(supabase.requests.last), {
+        'p_portfolio_id': gulberg.id,
+        'p_user_id': null,
+      });
+    });
+
+    test('set_caretaker refusals', () async {
+      for (final reason in ['member_not_found', 'caretaker_not_manager']) {
+        supabase.respond = (_) async =>
+            postgrestError('22023', message: reason);
+        await expectLater(
+          repository.setCaretaker(portfolioId: gulberg.id, userId: _bilal),
+          throwsA(
+            isA<RejectedFailure>().having((f) => f.reason, 'reason', reason),
+          ),
+        );
+      }
+      supabase.respond = (_) async => postgrestError('42501', status: 403);
+      await expectLater(
+        repository.setCaretaker(portfolioId: gulberg.id, userId: _bilal),
+        throwsA(isA<Forbidden>()),
+      );
+    });
+
     test('accept_invitation', () async {
       supabase.respond = (_) async => jsonResponse({'status': 'expired'});
       expect(

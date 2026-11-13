@@ -58,6 +58,12 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   once and reuses for every retry.
 - Dates without a time are `CalendarDate`; "today" is Pakistan time. The tax year runs 1 July to
   30 June.
+- A person's own time zone is only for their alerts, digests, quiet hours and the second time of
+  a dual time (`Residence.alertZone`, `QuietHours`, `DualTime`); ledger and due dates, deadlines,
+  the tax year and messages to tenants stay on Pakistan time ([time](../architecture/time.md)).
+  Residence is declared by the person, never inferred (not from a +92 number, the store, an IP
+  address, the app's language or a currency), and never answers a portfolio's owner-abroad
+  question. Nationality and immigration status are never stored.
 - Phone numbers, CNICs and IBANs are stored in exactly the form `mm_core` reads back; the
   database CHECKs and `mm_core` share `contracts/identity_vectors.json`. Never infer gender from
   a CNIC, and mask CNICs by default.
@@ -69,7 +75,7 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
 - Locks are taken in one global order: account, then portfolio, then lease, then other rows.
   Client writes lock their portfolios first through `app.lock_my_portfolio_ids`.
 - Authorisation lives in Postgres: row-level security on every table, explicit column grants,
-  and `SECURITY DEFINER` write RPCs that check the caller's role. The 21 such RPCs are pinned in
+  and `SECURITY DEFINER` write RPCs that check the caller's role. The 23 such RPCs are pinned in
   `supabase/tests/database/01_schema_security.test.sql`; a new one updates that list and
   `docs/architecture/permissions.md`.
 - Every migration comes with pgTAP tests, a concurrency scenario when rows can be written in
@@ -111,19 +117,19 @@ Edit the source and run the generator; the `-check` targets and `make docs-check
 stale output. `database.types.ts` and `CHANGELOG.md` have no check: their sources are the hosted
 schema and the commits.
 
-| Output                                                                                                                        | Source                                                                                    | Command                                     |
-| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `packages/mm_ui/lib/src/tokens/mm_tokens.g.dart`, `design/tokens/maalik.tokens.css`, `DESIGN.md` frontmatter                  | `design/tokens/maalik.tokens.json`                                                        | `make tokens`                               |
-| `supabase/functions/_shared/email_typography.g.ts`, the Urdu type in `supabase/templates/*.html`                              | `design/tokens/maalik.tokens.json`, `appName` in `app_ur.arb`                             | `make tokens`                               |
-| `packages/mm_ui/assets/fonts/MmIcons.ttf`, `packages/mm_ui/lib/src/icons/mm_icons.g.dart`                                     | `design/icons/icons.json`                                                                 | `make icons`                                |
-| `packages/mm_ui/assets/fonts/NotoSansArabic-Variable.ttf`, `NotoNastaliqUrdu-Wordmark.ttf`                                    | `design/fonts/`, `appName` in `app/lib/l10n/arb/app_ur.arb`                               | `make fonts`                                |
-| The app's launcher icons (in `app/android/`, `app/ios/`, `app/web/`; `tool/design/build_app_icons.py`)                        | `website/src/lib/brand.ts`, the colour tokens, `appName` in `app/lib/l10n/arb/app_en.arb` | `make app-icons`                            |
-| Every file `tool/contracts/generate.py` writes, among them `contracts/*_vectors.json` and the `-- GENERATED` pgTAP suites     | `tool/contracts/generate.py`, `contracts/clean_text.json`                                 | `make contracts`                            |
-| `app/lib/l10n/generated/`                                                                                                     | `app/lib/l10n/arb/*.arb`                                                                  | `make codegen`                              |
-| `website/src/data/roadmap.json`                                                                                               | `.github/roadmap.toml`                                                                    | `make roadmap`                              |
-| The facts the docs repeat, between `<!-- docs:KEY … -->` and `<!-- /docs:KEY -->` (in YAML, `# docs:KEY …` and `# /docs:KEY`) | the source each marker names (`python3 tool/docs/sync_facts.py --list`)                   | `make docs`                                 |
-| `supabase/functions/_shared/database.types.ts`                                                                                | the hosted schema                                                                         | `supabase gen types` (`docs/operations.md`) |
-| `CHANGELOG.md`                                                                                                                | commit messages                                                                           | release-please                              |
+| Output                                                                                                                        | Source                                                                                                                              | Command                                     |
+| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `packages/mm_ui/lib/src/tokens/mm_tokens.g.dart`, `design/tokens/maalik.tokens.css`, `DESIGN.md` frontmatter                  | `design/tokens/maalik.tokens.json`                                                                                                  | `make tokens`                               |
+| `supabase/functions/_shared/email_typography.g.ts`, the Urdu type in `supabase/templates/*.html`                              | `design/tokens/maalik.tokens.json`, `appName` in `app_ur.arb`                                                                       | `make tokens`                               |
+| `packages/mm_ui/assets/fonts/MmIcons.ttf`, `packages/mm_ui/lib/src/icons/mm_icons.g.dart`                                     | `design/icons/icons.json`                                                                                                           | `make icons`                                |
+| `packages/mm_ui/assets/fonts/NotoSansArabic-Variable.ttf`, `NotoNastaliqUrdu-Wordmark.ttf`                                    | `design/fonts/`, `appName` in `app/lib/l10n/arb/app_ur.arb`                                                                         | `make fonts`                                |
+| The app's launcher icons (in `app/android/`, `app/ios/`, `app/web/`; `tool/design/build_app_icons.py`)                        | `website/src/lib/brand.ts`, the colour tokens, `appName` in `app/lib/l10n/arb/app_en.arb`                                           | `make app-icons`                            |
+| Every file `tool/contracts/generate.py` writes, among them `contracts/*_vectors.json` and the `-- GENERATED` pgTAP suites     | `tool/contracts/generate.py` (and its `time_zones.py`), `contracts/clean_text.json`, the `tzdata` pinned in `tool/requirements.txt` | `make contracts`                            |
+| `app/lib/l10n/generated/`                                                                                                     | `app/lib/l10n/arb/*.arb`                                                                                                            | `make codegen`                              |
+| `website/src/data/roadmap.json`                                                                                               | `.github/roadmap.toml`                                                                                                              | `make roadmap`                              |
+| The facts the docs repeat, between `<!-- docs:KEY … -->` and `<!-- /docs:KEY -->` (in YAML, `# docs:KEY …` and `# /docs:KEY`) | the source each marker names (`python3 tool/docs/sync_facts.py --list`)                                                             | `make docs`                                 |
+| `supabase/functions/_shared/database.types.ts`                                                                                | the hosted schema                                                                                                                   | `supabase gen types` (`docs/operations.md`) |
+| `CHANGELOG.md`                                                                                                                | commit messages                                                                                                                     | release-please                              |
 
 **Generated facts in the docs.** A fact the docs repeat (the commit scopes, the coverage gates,
 the test counts, the website's checks) sits between markers that name its source, and

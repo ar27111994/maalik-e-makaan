@@ -350,7 +350,7 @@ class _ReminderComposerState extends ConsumerState<ReminderComposer>
   String _concern(BuildContext context, EtiquetteConcern concern) {
     final l10n = AppLocalizations.of(context);
     return switch (concern) {
-      QuietHours(:final until) => l10n.etiquetteLateNight(
+      LateNight(:final until) => l10n.etiquetteLateNight(
         timeLabel(context, until),
       ),
       FridayPrayers(:final until) => l10n.etiquetteFridayPrayer(

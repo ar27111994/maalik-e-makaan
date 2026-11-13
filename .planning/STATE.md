@@ -7,7 +7,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-12)
+## Current Position (2026-11-13)
 
 - The device forgets the account (2026-11-13, branch `claude/signout-device-data`): signing out, a
   session that ends by itself and account deletion run `DeviceDataWipe`
@@ -26,13 +26,76 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   pages 1,352 on a phone and 16,788 from 30rem wide (where the header shows the wordmark) instead
   of 23,696. The app bundles Noto Sans Arabic at its normal width and Nastaliq cut to the
   wordmark's letters (`make fonts`): its fonts come to about 700 KB, down from 838 KB. The
-  e-mails followed (branch `claude/email-urdu-font`): the three Auth templates and the invitation
-  set Urdu text in Noto Sans Arabic or an installed sans, a size larger than the English (the
-  Urdu type roles, on lines of whole pixels), with Nastaliq only for the wordmark, written by
-  `make tokens`; the owner pastes the three template bodies again after the release that carries
-  them (`docs/release-readiness.md`, Owner actions, item 5). Not yet
+  e-mails followed (#65, released in 1.2.0 on 2026-11-12): the three Auth templates and the
+  invitation set Urdu text in Noto Sans Arabic or an installed sans, a size larger than the
+  English (the Urdu type roles, on lines of whole pixels), with Nastaliq only for the wordmark,
+  written by `make tokens`; the owner pasted the three template bodies into the dashboard on
+  2026-11-13, and a test send of each is still to do (`docs/release-readiness.md`, Owner
+  actions, item 5). Not yet
   changed: the gallery's Urdu screenshots, and an independent design review of the change
   (`docs/design-qa.md`). Pilot readers confirm the face (`docs/roadmap/urdu-review.md`).
+- Decision 1 of the roadmap (D-16, residence), backend and domain half, on branch
+  `wip/residence` (pull request #61), rebased on `main` at 415ce29 and since merged with `main` at
+  16c200c (1.2.0; not merged into `main`):
+  `20261112092618_residence.sql`
+  (`profile_residences`, `portfolios.owner_abroad` added as NULL with the caretaker columns and
+  their triggers, `create_portfolio` with `p_owner_abroad`, `set_owner_abroad`, `set_caretaker`;
+  the definer allowlist is now 23), pgTAP suites 22 (by hand) and 23 (generated), the upgrade test,
+  the contracts `residence_vectors.json` and `time_zone_vectors.json` from the pinned PyPI
+  `tzdata` 2026.6 (IANA 2026f), `mm_core`'s `CountryCode`, `Residence`, `OwnerAbroad`,
+  `TimeZoneId`, `QuietHours` and `DualTime` with the bundled zone data, and the app's data layer
+  (models, repositories, providers; no screens). A review round added concurrency scenario 31
+  (the caretaker, the owner-abroad answer and a declared residence in races; the invariants step
+  is now 32, with `CaretakerIsManager`), pgTAP cases for the app's next-open answer and for
+  memberships moved by the service role, an import-chain Pakistan-time guard in `mm_core`, and
+  checks that `docs/agents/commands.md` names what `make test-tools` and `make contracts` do.
+  In the rebase onto #56's harness, scenario 31 got `scenario 60 30` and orders its sessions with
+  `fv.hold` and `await_session` like the others: about 7 s, at most 12.1 s under four busy loops,
+  and it fails on each of five mutants of the migration (the caretaker trigger without
+  `FOR SHARE`, either second role check, the answer read without its lock, the residence clear
+  filtered on its values). After the rebase every gate passed: `make format-check analyze lint`,
+  the generated-file checks, `test-tools`, `test-core`, `test-ui`, `test-app`, `test-gallery`,
+  `test-db`, `test-db-concurrency` (three runs, and one under four busy loops),
+  `test-functions` and `verify`; no golden changed.
+  The TLA+ Membership model covers the residence paths (`set_caretaker`, its two triggers and
+  the foreign key's `SET NULL`, `set_owner_abroad` with and without `p_if_unanswered`, a declared
+  residence and its clear): five new properties, every mutant of scenario 31 mirrored. Its review
+  round (2026-11-13) made GoTrue's foreign-key actions lock one row per step in any order, and
+  added the audit rows (GoTrue's `SET NULL` of `actor_id`, the deletions' audit-trail `DELETE`,
+  the audited RPCs' actor check), the second-level timing of GoTrue's revoke, `FOR SHARE` only on
+  a committed manager's row, and the deadlock retry keeping its `KEY SHARE` on `auth.users`. Now
+  106 configurations (71 in `ci`, 100 s; `all` 367 s, `team` 261 s of it), with mutants for every
+  guard the README credits and two expected to pass (redundant guards). The residence paths
+  needed no SQL change. Outside the app's paths, a direct Auth delete of a manager deadlocks with
+  their leaving (with or without the caretaker: the audit row's actor check) and with the
+  portfolio's deletion (their audit row), and for the caretaker with an owner's membership
+  change (D1, D3); a service-role change of the caretaker's membership with the RPCs (D2); a
+  restored schema's foreign-key order with the delete-account order (P1). All are operator rules
+  in `docs/operations.md`, replayed by `formal/tla/Membership/replay/residence.sh` (R1 to R8);
+  scenario 31 runs the delete-account order of the caretaker and the operator's rule. The model
+  found one defect older than this branch, finding M2 (open, low): on the
+  `delete-account` path, GoTrue's `SET NULL` actions after `admin_delete_account_data` can form a
+  wait-for cycle with a deletion of a portfolio the user created or acted in (a former manager's
+  row and audit row against `delete_portfolio`; a creator's portfolios locked in heap order
+  against a co-owner's account deletion). `finding_m2_*` and replays R9 and R10 show it; the
+  detector and the retries resolve it, and every other property holds. Its remedy
+  (`admin_delete_account_data` nulls the user's 29 remaining `SET NULL` columns under id-ordered
+  portfolio locks) is the owner's decision (Blockers); moving the audit-trail `DELETE` after the
+  cascade alone was rejected (one shape only, and a new cycle on a restored schema).
+  After the review round and the merge with `main`, every gate passed (2026-11-13):
+  `make format-check-repo lint docs-check test-tools`, `make verify` (8/8 tracks, 452 s), the
+  Membership `run.sh all` (106/106, 367 s), `replay/residence.sh` (76 s), `make test-db` (23 suites,
+  1,974 tests) and `make test-db-concurrency` (288 s).
+  `make test-db-stress` ran
+  while another worktree was building (load average up to 15): every check passed except the
+  once-a-day notifications' 15 s budget (25 s), which the base commit 9480e22 missed too (30 s and
+  38 s), so its figures were not compared with "What it costs" in `permissions.md`; the review
+  round's run (load average 6, no schema change) missed only the same budget (25.5 s). Re-run it
+  on an idle machine.
+  The UI half (onboarding, the owner-abroad question, settings, ARB strings, goldens, the privacy
+  page, the data export) can start: the Noto Sans Arabic switch it waited for, because it
+  re-records goldens, is in place (D-19). The owner's open questions Q1–Q7 are in
+  `docs/roadmap/README.md`, decision 1.
 - The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
   items are researched and planned, one plan each in `docs/roadmap/`, indexed by
   `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open
@@ -117,6 +180,12 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   to the commits that applied them (764e640, c1c0d7a, 13c5d18, f155413, 67639d8, e853378 and the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
+- `20261112092618_residence.sql` is **not applied** to the hosted project yet. The next release
+  the owner approves applies it (the Deploy workflow's `supabase db push`), and then come "After
+  every migration" in `docs/operations.md` and `tool/db/time_zone_skew.sql` on the hosted project.
+  The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and speaker notes) now says
+  23 reviewed write functions and 23 database suites: the deck is rendered from the release tag,
+  the same release that applies the migration.
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
   was applied on 2026-11-09 by the process in `docs/operations.md`; afterwards no live automatic
@@ -154,6 +223,11 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   `SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io`; the root disk has about 1 GB free, so Docker's
   data lives on a RAM disk (`/mnt/mmdocker`); the edge-runtime container must trust the proxy's
   CA (`docs/uat.md`, Environment). `make test-uat` then runs the browser UAT.
+- Time zones: the local PostgreSQL 16 uses the system's tzdata 2026e, and `pg_timezone_names` has
+  no backward links (`Asia/Calcutta`, `US/Eastern` are absent). The contract generator never reads
+  it: `tool/contracts/time_zones.py` reads the PyPI `tzdata` pinned in `tool/requirements.txt`
+  (`make bootstrap` installs it into `.venv`). `tool/db/time_zone_skew.sql` here returns one row,
+  `America/Havana` on 1 January 2027 (2026f changed Cuba's clock).
 - `*.supabase.co` and `supabase.com` are blocked from the container. Use the Supabase MCP tools
   for the hosted project; `search_docs` reads the documentation.
 - `git ls-remote` against GitHub works, which is how GitHub Actions get pinned to commit SHAs.
@@ -185,6 +259,12 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
 
 The rest, in short:
 
+- Finding M2 of `formal/tla/Membership` (open, low; `docs/operations.md`, Deleting a user
+  account): decide whether `admin_delete_account_data` should set the 29 `ON DELETE SET NULL`
+  columns that name the user (`created_by`, `invited_by`, `voided_by`, `actor_id` and the like)
+  to NULL under portfolio locks taken in id order, so that GoTrue's deletion finds nothing to
+  lock. It writes 20 tables (each write audited) and locks more portfolios, including ones the
+  user has left. Until then a rare 40P01 on the delete-account path is resolved by the retries.
 - The first production run of the Deploy workflow: it must be on the default branch to be run by
   hand (or a release published). It deploys the web app to Vercel (`web` job, needs
   `VERCEL_TOKEN`, set) and redeploys the Edge Functions so they send the database's Retry-After
@@ -210,7 +290,7 @@ The rest, in short:
   `main` (then the first Backup and Deploy runs), an uptime monitor (Better Stack refused
   sign-ups; Checkly or StatusCake next), and the D-U-N-S number. On 2026-11-12 the owner reported
   the three Auth templates updated in the dashboard (the plain-Urdu copies, still in Nastaliq);
-  they are pasted again after the release that carries the sans Urdu.
+  on 2026-11-13, after release 1.2.0, they pasted the sans-Urdu copies from `main`.
 - Answered by the owner on 2026-11-09: the operator named on the privacy page (Ahmed Rehan) is
   right; the repository secrets, variables and environments are set (`RELEASE_PLEASE_TOKEN`
   still to add); Resend's free plan for e-mail. Done by the agent the same day: migration

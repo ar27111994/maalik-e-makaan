@@ -109,7 +109,9 @@ release.
 
 ### Residence (decision 1)
 
-Residence is never shown to tenants. On a portfolio marked `owner_abroad`, the owner chooses
+Residence is never shown to tenants. The portal reads through an explicit column list or a definer
+view that leaves out `owner_abroad`, the caretaker and everything in `profile_residences`, and this
+item adds a pgTAP guard for it. On a portfolio whose `owner_abroad` is true, the owner chooses
 whether the page names the caretaker as the contact. Dates on the page are Pakistan dates. In the
 app, "last opened" shows in the landlord's own time zone, with Pakistan time beside it for an
 owner abroad.

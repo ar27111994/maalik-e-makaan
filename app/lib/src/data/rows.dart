@@ -35,6 +35,9 @@ extension type const JsonRow(Map<String, Object?> _fields) {
   /// The boolean [field].
   bool boolean(String field) => _typed<bool>(field);
 
+  /// The boolean [field], which may be null (a question not yet answered).
+  bool? optionalBoolean(String field) => _optional<bool>(field);
+
   /// The whole number [field], which may be null.
   int? optionalInteger(String field) => _optional<int>(field);
 

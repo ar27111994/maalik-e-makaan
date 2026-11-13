@@ -7,6 +7,7 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence_repository.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
 import 'package:maalik_e_makaan/src/features/leases/data/lease_repository.dart';
@@ -43,6 +44,10 @@ void main() {
     expect(
       container.read(profileRepositoryProvider),
       isA<SupabaseProfileRepository>(),
+    );
+    expect(
+      container.read(residenceRepositoryProvider),
+      isA<SupabaseResidenceRepository>(),
     );
     expect(
       container.read(portfolioRepositoryProvider),

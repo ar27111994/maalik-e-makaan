@@ -89,7 +89,7 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   prove that the hosted schema equals the local chain, object by object.
 - D-15: **Write RPCs are SECURITY DEFINER by design; read RPCs are SECURITY INVOKER.** Payments,
   memberships and invitations are written only through RPCs that bypass row-level security, so
-  each must authorise its caller first. The 21 reviewed RPCs are pinned by a pgTAP allowlist, which
+  each must authorise its caller first. The 23 reviewed RPCs are pinned by a pgTAP allowlist, which
   covers Supabase lint 0029 under its option 3.
 - D-16: **Residence is declared per person and recorded per portfolio.** (Decided by the owner,
   11 November 2026; the caretaker, the currency and the owner-abroad question decided by the
@@ -110,6 +110,16 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     "Does the owner of these properties live abroad?" with no answer chosen, and the person must
     choose. It is never filled in from the creator's residence, because the creator is often a
     caretaker or a relative.
+  - **Existing portfolios start unanswered** (from the review of PR #53): the migration adds
+    `owner_abroad` as NULL, meaning "not yet answered", never with a default; the app asks on the
+    next open by an owner or manager, and the overseas-owner rules run only when it is true.
+
+  The backend and domain half is built (`20261112092618_residence.sql`, `mm_core`'s residence and
+  time-zone types, the app's data layer). Residence is stored in a table of its own,
+  `profile_residences`, readable and writable by the person only (not teammates, the caretaker
+  included, never tenants), because teammates read `profiles` and column grants are per role, not
+  per row: a design choice awaiting the owner's confirmation (Q1 in
+  [`docs/roadmap/README.md`](../docs/roadmap/README.md)).
 
   The rest of how the app holds and uses this is the research's proposed design, not a decision:
   the fields, which times stay on Pakistan time and which follow the owner's own zone, and keeping

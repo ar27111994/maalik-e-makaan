@@ -5,6 +5,7 @@ import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/rows.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_details.dart';
+import 'package:mm_core/mm_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Portfolios and memberships. Every method throws [AppFailure].
@@ -19,9 +20,36 @@ abstract interface class PortfolioRepository {
   /// dropped returns the same portfolio instead of creating a second one.
   /// Refusals: `portfolio_limit_reached` (20 owned), `account_deleted`,
   /// `constraint_violation` (an invalid name), and rate limits.
+  ///
+  /// [ownerAbroad] is the creator's answer to "Does the owner of these
+  /// properties live abroad?", sent only when answered, so a portfolio
+  /// created without one is stored as not yet answered. It is never filled
+  /// in from the creator's residence.
   Future<PortfolioMembership> create({
     required String name,
     required String id,
+    OwnerAbroad ownerAbroad = OwnerAbroad.notAnswered,
+  });
+
+  /// Answers the question on [portfolioId] while nobody has (owners and
+  /// managers, when the app asks on opening it), and returns the answer as
+  /// stored: when someone answered first, theirs, unchanged.
+  ///
+  /// Refusals: [Forbidden] (an accountant, a viewer, or no longer a
+  /// member), `invalid_owner_abroad`.
+  Future<OwnerAbroad> answerOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+  });
+
+  /// Changes the answer on [portfolioId] and returns it as stored. Owners
+  /// change it at any time; a manager only while it is unanswered.
+  ///
+  /// Refusals: `owner_abroad_answered` (a manager, once it is answered),
+  /// [Forbidden], `invalid_owner_abroad`.
+  Future<OwnerAbroad> changeOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
   });
 
   /// The settings of [portfolioId]: name, tenancy defaults and payment
@@ -74,6 +102,7 @@ final class SupabasePortfolioRepository implements PortfolioRepository {
   Future<PortfolioMembership> create({
     required String name,
     required String id,
+    OwnerAbroad ownerAbroad = OwnerAbroad.notAnswered,
   }) => _guard(() async {
     final row = JsonRow.of(
       await _client.rpc<Object?>(
@@ -81,6 +110,9 @@ final class SupabasePortfolioRepository implements PortfolioRepository {
         params: {
           'p_name': singleLineWithin(name, PortfolioMembership.maxNameLength),
           'p_id': id,
+          // Only an answer is sent: the call stays the one older databases
+          // and app versions know, and no answer is stored as NULL.
+          'p_owner_abroad': ?ownerAbroad.toJson(),
         },
       ),
       'portfolio',
@@ -89,7 +121,39 @@ final class SupabasePortfolioRepository implements PortfolioRepository {
       id: row.string('id'),
       name: row.string('name'),
       role: MemberRole.owner,
+      ownerAbroad: OwnerAbroad.fromJson(row.optionalBoolean('owner_abroad')),
     );
+  });
+
+  @override
+  Future<OwnerAbroad> answerOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+  }) => _setOwnerAbroad(portfolioId, abroad: abroad, ifUnanswered: true);
+
+  @override
+  Future<OwnerAbroad> changeOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+  }) => _setOwnerAbroad(portfolioId, abroad: abroad, ifUnanswered: false);
+
+  Future<OwnerAbroad> _setOwnerAbroad(
+    String portfolioId, {
+    required bool abroad,
+    required bool ifUnanswered,
+  }) => _guard(() async {
+    final stored = await _client.rpc<Object?>(
+      'set_owner_abroad',
+      params: {
+        'p_portfolio_id': portfolioId,
+        'p_owner_abroad': abroad,
+        'p_if_unanswered': ifUnanswered,
+      },
+    );
+    if (stored is! bool) {
+      throw FormatException('set_owner_abroad answered no answer', stored);
+    }
+    return OwnerAbroad.fromJson(stored);
   });
 
   @override

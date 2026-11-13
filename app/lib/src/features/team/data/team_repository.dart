@@ -53,6 +53,15 @@ abstract interface class TeamRepository {
   /// Accepts the invitation [token] (`<id>.<verifier>`) for the signed-in
   /// user. Most refusals are an [InvitationRefused] answer, not a throw.
   Future<AcceptOutcome> accept(String token);
+
+  /// Names [userId], a manager of [portfolioId], its caretaker, or clears
+  /// the caretaker when [userId] is null (owners only). Naming the current
+  /// caretaker again changes nothing. Refusals: `member_not_found`,
+  /// `caretaker_not_manager`, [Forbidden].
+  Future<void> setCaretaker({
+    required String portfolioId,
+    required String? userId,
+  });
 }
 
 /// [TeamRepository] over `portfolio_members`, `profiles`,
@@ -173,6 +182,17 @@ final class SupabaseTeamRepository implements TeamRepository {
       params: {'p_token': token},
     );
     return AcceptOutcome.fromJson(answer);
+  });
+
+  @override
+  Future<void> setCaretaker({
+    required String portfolioId,
+    required String? userId,
+  }) => _guard(() async {
+    await _client.rpc<void>(
+      'set_caretaker',
+      params: {'p_portfolio_id': portfolioId, 'p_user_id': userId},
+    );
   });
 }
 

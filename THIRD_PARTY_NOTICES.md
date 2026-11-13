@@ -23,12 +23,12 @@ licence.
 
 ## What ships to users
 
-| Surface                        | Third-party code that reaches users                                                                                        |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| App (Android, iOS, web, Linux) | Flutter and the pub packages of `app/`, `packages/mm_ui` and `packages/mm_core`, with their transitive packages; the fonts |
-| Edge Functions                 | Run on Supabase; nothing is distributed to users                                                                           |
-| Website                        | Static HTML, CSS and the subset fonts; the npm packages run only at build time                                             |
-| Tooling (`tool/`, root `npm`)  | Development only; never distributed                                                                                        |
+| Surface                        | Third-party code that reaches users                                                                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App (Android, iOS, web, Linux) | Flutter and the pub packages of `app/`, `packages/mm_ui` and `packages/mm_core`, with their transitive packages; the fonts; data from the IANA time zone database |
+| Edge Functions                 | Run on Supabase; nothing is distributed to users                                                                                                                  |
+| Website                        | Static HTML, CSS and the subset fonts; the npm packages run only at build time                                                                                    |
+| Tooling (`tool/`, root `npm`)  | Development only; never distributed                                                                                                                               |
 
 ## The app
 
@@ -81,6 +81,13 @@ Development only (tests and analysis; not shipped):
 
 Development only: test 1.31.1 (BSD-3-Clause), very_good_analysis 11.0.0
 (MIT).
+
+Bundled data: `packages/mm_core/lib/src/time/time_zone_data.g.dart` holds
+the zone names, their countries and their UTC offsets from 2020 to 2100,
+generated from the IANA time zone database, release 2026f (read from the PyPI
+`tzdata` 2026.6 package, below). The tz database is in the public domain, so
+it asks nothing of us; its `zone.tab` and `iso3166.tab` say so in their
+headers.
 
 ### `packages/mm_ui` dependencies
 
@@ -224,6 +231,7 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 | editorconfig-checker | 3.11.1    | MIT                                                              |
 | actionlint-py        | 1.7.12.25 | MIT                                                              |
 | z3-solver            | 5.3.3.0   | MIT                                                              |
+| tzdata               | 2026.6    | Apache-2.0 (the IANA 2026f data it carries is public domain)     |
 
 Locked transitive Python packages: click 8.5.0 (BSD-3-Clause), mypy-extensions
 1.2.0 (MIT), packaging 26.3 (Apache-2.0 OR BSD-2-Clause), pathspec 1.1.1

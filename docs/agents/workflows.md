@@ -41,6 +41,14 @@ by `contracts/`.
 4. Run `make test-core test-db contracts-check test-web` and `make verify` (the Lean, Z3 and Bend
    tracks prove the arithmetic equal to the SQL).
 
+## Update the time-zone data
+
+When IANA publishes a tz release (Dependabot bumps `tzdata` in `tool/requirements.txt`), follow
+"Time-zone data" in [`operations.md`](../operations.md#time-zone-data): `make contracts`, a
+migration first when a zone or country was added (stored names are append-only), `make test-core
+test-db`, then the app release. Business dates are not affected; [time](../architecture/time.md)
+says why.
+
 ## Add or change an app screen
 
 1. Read [`app/AGENTS.md`](../../app/AGENTS.md) and
