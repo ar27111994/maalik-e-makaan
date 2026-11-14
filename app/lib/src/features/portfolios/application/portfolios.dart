@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,7 +33,10 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 /// ([SwrCache.forgetUser]), and comes back from the server when shown.
 /// They go before the new list is saved: while they are not all gone (the
 /// app was closed in between, or the store failed), the saved list still
-/// names the portfolio, and the next load forgets them again.
+/// names the portfolio, and the next load forgets them again. With no saved
+/// list (a wipe that could not delete everything, or a write that landed
+/// out of order and was deleted), what the device holds of the user is not
+/// known to be of a portfolio still in the list, and goes too.
 final class PortfoliosController
     extends StreamNotifier<Snapshot<List<PortfolioMembership>>> {
   new(this.userId);
@@ -94,31 +98,64 @@ final class PortfoliosController
   /// store finish the older write last, so that the saved list stopped
   /// naming a portfolio whose records stay, and its leaving later would
   /// not forget them.
+  ///
+  /// Each call to the store is waited for at most [SwrCache.callLimit], so
+  /// that one that never answers holds up no later save. The choice made
+  /// then is the safe one: a saved list that could not be read counts as
+  /// unknown, a list not saved because the records could not be forgotten
+  /// leaves the saved one naming the portfolio, and a list whose write has
+  /// not answered may still land, so the next save counts it as saved too
+  /// ([SwrCache.writing]).
   Future<Snapshot<List<PortfolioMembership>>> _save(
     SwrCache cache,
     List<PortfolioMembership> list,
     int epoch,
   ) => cache.serially(userId, query, () async {
-    final saved = await cache.read(userId, query, _decode);
-    final savedAt = await _forgetLeft(cache, saved?.value, list)
-        ? await cache.write(userId, query, _encode(list), epoch: epoch)
-        : cache.now();
+    final limit = cache.callLimit;
+    // Taken before the read: one that lands meanwhile is in either.
+    final landing = [
+      for (final json in cache.writing(userId, query)) ..._decode(json),
+    ];
+    List<PortfolioMembership>? before;
+    try {
+      final saved = await cache.read(userId, query, _decode).timeout(limit);
+      if (saved != null) before = [...saved.value, ...landing];
+    } on Object {
+      // Not read: unknown, as when there is none.
+    }
+    var savedAt = cache.now();
+    if (await _forgetLeft(cache, before, list)) {
+      try {
+        savedAt = await cache
+            .write(userId, query, _encode(list), epoch: epoch)
+            .timeout(limit);
+      } on TimeoutException {
+        // It may still land; the next save counts it as saved.
+      }
+    }
     return Snapshot(list, savedAt: savedAt, source: SnapshotSource.network);
   });
 
   /// Forgets the user's saved records when a portfolio of [before] is not
-  /// in [after]. False when they could not all be forgotten.
+  /// in [after], or, when [before] is unknown (null), whenever the device
+  /// holds any. False when they could not all be forgotten in time
+  /// ([SwrCache.callLimit]).
   Future<bool> _forgetLeft(
     SwrCache cache,
     List<PortfolioMembership>? before,
     List<PortfolioMembership> after,
   ) async {
     final kept = {for (final membership in after) membership.id};
-    if (before == null || before.every((m) => kept.contains(m.id))) {
+    if (before != null && before.every((m) => kept.contains(m.id))) {
       return true;
     }
     try {
-      await cache.forgetUser(userId, keep: query);
+      await Future.sync(() async {
+        if (before == null && !await cache.holdsOthers(userId, keep: query)) {
+          return;
+        }
+        await cache.forgetUser(userId, keep: query);
+      }).timeout(cache.callLimit);
       return true;
     } on Object {
       return false;
@@ -169,7 +206,7 @@ final class PortfoliosController
     await _show(list, listEpoch);
     await ref
         .read(selectedPortfolioProvider(userId).notifier)
-        .select(created.id);
+        .select(created.id, askedIn: epoch);
     return created;
   }
 
@@ -272,8 +309,15 @@ final class SelectedPortfolioController extends Notifier<String?> {
     return saved.substring(_prefix.length);
   }
 
-  /// Makes [portfolioId] the current portfolio on this device.
-  Future<void> select(String portfolioId) async {
+  /// Makes [portfolioId] the current portfolio on this device. A command
+  /// that chooses it after a request passes [askedIn], the
+  /// [SwrCache.epoch] read before the request: when the session ended
+  /// meanwhile, nothing is chosen, and nothing is written on the device
+  /// that its wipe removed.
+  Future<void> select(String portfolioId, {int? askedIn}) async {
+    if (askedIn != null && ref.read(swrCacheProvider).clearedSince(askedIn)) {
+      return;
+    }
     state = portfolioId;
     await ref
         .read(settingsStoreProvider)

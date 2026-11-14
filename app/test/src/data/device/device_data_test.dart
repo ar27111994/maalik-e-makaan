@@ -371,7 +371,7 @@ void main() {
       var done = false;
       unawaited(
         stuck
-            .atStart(signedIn: true, photoMayReturn: false)
+            .atStart(signedInAs: testUserId, photoMayReturn: false)
             .then((_) => done = true),
       );
       await tester.pump();
@@ -475,7 +475,7 @@ void main() {
   group('start-up', () {
     test('signed out, it forgets what an earlier run left of an account, '
         'but not a photo the camera may still bring back', () async {
-      await wipe.atStart(signedIn: false, photoMayReturn: true);
+      await wipe.atStart(signedInAs: null, photoMayReturn: true);
       expect(store.values, {'other': '1'});
       expect(settings.values, {
         ..._display,
@@ -492,7 +492,7 @@ void main() {
 
     test('signed out, with no photo to bring back, the camera goes too '
         "(an older version's photos, a record nobody came back for)", () async {
-      await wipe.atStart(signedIn: false, photoMayReturn: false);
+      await wipe.atStart(signedInAs: null, photoMayReturn: false);
       expect(settings.values, {
         ..._display,
         AppSettings.pendingInvitationKey: 'invitation.verifier',
@@ -508,20 +508,77 @@ void main() {
       ]);
     });
 
-    test('signed in, it only tidies the old files', () async {
-      await wipe.atStart(signedIn: true, photoMayReturn: true);
-      await wipe.settled;
-      expect(settings.values, _everything());
-      expect(store.values, hasLength(2));
-      expect(wiped, isEmpty);
-      expect(calls(), [
-        ['clearPickerCopies', _now],
-        ['sweep', _now.subtract(sharedFileGrace), null],
+    test(
+      "signed in, it keeps the user's own, and tidies the old files",
+      () async {
+        await wipe.atStart(signedInAs: testUserId, photoMayReturn: true);
+        await wipe.settled;
+        expect(settings.values, _everything());
+        expect(store.values, hasLength(2));
+        expect(wiped, isEmpty);
+        expect(calls(), [
+          ['clearPickerCopies', _now],
+          ['sweep', _now.subtract(sharedFileGrace), null],
+        ]);
+      },
+    );
+
+    test("signed in, it removes what another account's wipe could not: its "
+        'records and its chosen portfolio', () async {
+      const other = 'another-user';
+      const key = 'mm.swr.v1.$other.tenants.p1';
+      await cache.seed(other, 'tenants.p1', [
+        {'cnic': '00000-0000000-0'},
       ]);
+      await settings.setString(AppSettings.currentPortfolioKey, '$other/p1');
+      // Its session ended, and its wipe could not delete the records.
+      store.undeletable.add(key);
+      await wipe.wipe(WipeReason.signedOut);
+      expect(store.values.keys, containsAll([key, 'other']));
+      store.undeletable.clear();
+      await settings.setString(AppSettings.currentPortfolioKey, '$other/p1');
+      await cache.seed(testUserId, 'tenants', [1]);
+      // The next start, signed in as the test user.
+      final next = DeviceDataWipe(
+        cache: SwrCache(store),
+        settings: settings,
+        scratch: scratch,
+        clock: () => _now,
+      );
+      await next.atStart(signedInAs: testUserId, photoMayReturn: true);
+      await next.settled;
+      expect(store.values.keys.toSet(), {
+        'mm.swr.v1.$testUserId.tenants',
+        'other',
+      });
+      expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
+    });
+
+    test('signed in, one removal that never answers holds up neither the '
+        'other nor the start', () async {
+      const key = 'mm.swr.v1.another-user.tenants';
+      await cache.seed('another-user', 'tenants', [1]);
+      await settings.setString(
+        AppSettings.currentPortfolioKey,
+        'another-user/p1',
+      );
+      store.silent.add(key);
+      final quick = DeviceDataWipe(
+        cache: cache,
+        settings: settings,
+        scratch: scratch,
+        clock: () => _now,
+        preferencesLimit: const Duration(milliseconds: 20),
+      );
+      await quick
+          .atStart(signedInAs: testUserId, photoMayReturn: true)
+          .timeout(const Duration(seconds: 10));
+      expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
+      expect(store.values.keys, contains('mm.swr.v1.$testUserId.tenants'));
     });
 
     test('signed in, with no photo to bring back, the camera goes', () async {
-      await wipe.atStart(signedIn: true, photoMayReturn: false);
+      await wipe.atStart(signedInAs: testUserId, photoMayReturn: false);
       await wipe.settled;
       expect(
         settings.values,
@@ -634,14 +691,14 @@ void main() {
     test('a start-up wipe that keeps the camera does not cover one that '
         'removes it', () async {
       await Future.wait([
-        wipe.atStart(signedIn: false, photoMayReturn: true),
-        wipe.atStart(signedIn: false, photoMayReturn: false),
+        wipe.atStart(signedInAs: null, photoMayReturn: true),
+        wipe.atStart(signedInAs: null, photoMayReturn: false),
       ]);
       expect(wiped, [WipeReason.startedSignedOut, WipeReason.startedSignedOut]);
       expect(settings.values, isNot(contains(AppSettings.cameraTargetKey)));
       await Future.wait([
-        wipe.atStart(signedIn: false, photoMayReturn: false),
-        wipe.atStart(signedIn: false, photoMayReturn: true),
+        wipe.atStart(signedInAs: null, photoMayReturn: false),
+        wipe.atStart(signedInAs: null, photoMayReturn: true),
       ]);
       expect(wiped, hasLength(3));
     });
@@ -761,7 +818,7 @@ void main() {
       final app = container();
       await app
           .read(deviceDataWipeProvider)
-          .atStart(signedIn: false, photoMayReturn: true);
+          .atStart(signedInAs: null, photoMayReturn: true);
       expect(imageCache.containsKey(key), isTrue);
       await app.read(deviceDataWipeProvider).wipe(WipeReason.signedOut);
       expect(imageCache.containsKey(key), isFalse);

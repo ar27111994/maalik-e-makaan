@@ -415,6 +415,128 @@ void main() {
     });
   });
 
+  group('the writes of an entry the store has not finished', () {
+    test('are told until they land, as written', () async {
+      store.holding.add('mm.swr.v1.u1.q');
+      final first = cache.write('u1', 'q', [1], epoch: cache.epoch);
+      final second = cache.write('u1', 'q', [2], epoch: cache.epoch);
+      expect(cache.writing('u1', 'q'), [
+        [1],
+        [2],
+      ]);
+      expect(cache.writing('u1', 'other'), isEmpty);
+      expect(cache.writing('u2', 'q'), isEmpty);
+      store.finishHeldWritesNewestFirst();
+      await Future.wait([first, second]);
+      expect(cache.writing('u1', 'q'), isEmpty);
+    });
+
+    test('nor one that failed', () async {
+      store.writeFailure = Exception('full');
+      await expectLater(
+        cache.write('u1', 'q', 1, epoch: cache.epoch),
+        throwsException,
+      );
+      expect(cache.writing('u1', 'q'), isEmpty);
+    });
+
+    test('nor, after a clear, those of the ended session', () async {
+      store.holding.add('mm.swr.v1.u1.q');
+      final writing = cache.write('u1', 'q', 1, epoch: cache.epoch);
+      await cache.clear();
+      expect(cache.writing('u1', 'q'), isEmpty);
+      store.finishHeldWritesNewestFirst();
+      await writing;
+      expect(store.values, isEmpty);
+    });
+
+    test('delete the entry when the older lands last: the store would hold '
+        'it over the newer', () async {
+      store.holding.add('mm.swr.v1.u1.q');
+      final older = cache.write('u1', 'q', 1, epoch: cache.epoch);
+      final newer = cache.write('u1', 'q', 2, epoch: cache.epoch);
+      store.finishHeldWritesNewestFirst();
+      await Future.wait([older, newer]);
+      expect(store.values, isEmpty);
+    });
+
+    test('keep the newer when they land in order', () async {
+      store.holding.add('mm.swr.v1.u1.q');
+      final older = cache.write('u1', 'q', 1, epoch: cache.epoch);
+      final newer = cache.write('u1', 'q', 2, epoch: cache.epoch);
+      // The older lands first.
+      store.holding.clear();
+      final held = store.heldWrites;
+      expect(held, 2);
+      store.finishHeldWritesOldestFirst();
+      await Future.wait([older, newer]);
+      expect((await cache.read('u1', 'q', decodeInt))!.value, 2);
+    });
+  });
+
+  test('clearedSince tells a session that has ended', () async {
+    final before = cache.epoch;
+    await cache.forgetUser('u1', keep: 'portfolios');
+    expect(cache.clearedSince(before), isFalse);
+    await cache.clear();
+    expect(cache.clearedSince(before), isTrue);
+    expect(cache.clearedSince(cache.epoch), isFalse);
+  });
+
+  test('waits for the store at most storeCallLimit, but in tests', () {
+    expect(cache.callLimit, storeCallLimit);
+    expect(storeCallLimit, const Duration(seconds: 3));
+  });
+
+  test('holdsOthers tells whether the user has an entry but one', () async {
+    expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
+    await cache.seed('u1', 'portfolios', []);
+    await cache.seed('u2', 'tenants', []);
+    expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
+    await cache.seed('u1', 'tenants', []);
+    expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+  });
+
+  group('forgetOthers', () {
+    test("deletes every user's entries but one's, and nothing else", () async {
+      await cache.seed('u1', 'tenants', [1]);
+      await cache.seed('u2', 'tenants', [2]);
+      await cache.seed('u3', 'profile', 3);
+      await store.write('other', '1');
+      await cache.forgetOthers('u1');
+      expect(store.values.keys.toSet(), {'mm.swr.v1.u1.tenants', 'other'});
+    });
+
+    test("drops another user's write asked for before it, not the kept "
+        "user's, nor one asked for after it", () async {
+      final epoch = cache.epoch;
+      await cache.forgetOthers('u1');
+      await cache.write('u2', 'tenants', 2, epoch: epoch);
+      await cache.write('u1', 'tenants', 1, epoch: epoch);
+      await cache.write('u3', 'tenants', 3, epoch: cache.epoch);
+      expect(store.values.keys.toSet(), {
+        'mm.swr.v1.u1.tenants',
+        'mm.swr.v1.u3.tenants',
+      });
+    });
+
+    test('is forgotten by a clear', () async {
+      await cache.forgetOthers('u1');
+      await cache.clear();
+      final epoch = cache.epoch;
+      await cache.write('u2', 'tenants', 2, epoch: epoch);
+      expect(store.values.keys, ['mm.swr.v1.u2.tenants']);
+    });
+
+    test('fails once the others are gone when one cannot be deleted', () async {
+      await cache.seed('u2', 'tenants', [2]);
+      await cache.seed('u3', 'tenants', [3]);
+      store.undeletable.add('mm.swr.v1.u2.tenants');
+      await expectLater(cache.forgetOthers('u1'), throwsStateError);
+      expect(store.values.keys, ['mm.swr.v1.u2.tenants']);
+    });
+  });
+
   test('a write whose entry was removed since its epoch is never handed to '
       'the store', () async {
     // A store that would never finish it.

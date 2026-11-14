@@ -754,8 +754,14 @@ final class MemoryStore implements KeyValueStore {
   /// a platform call that hangs, or an app closed before it was made.
   final silent = <String>{};
 
+  /// While set, no read answers, as a platform call that hangs.
+  bool hangingReads = false;
+
   @override
-  Future<String?> read(String key) async => values[key];
+  Future<String?> read(String key) async {
+    if (hangingReads) await Completer<void>().future;
+    return values[key];
+  }
 
   /// The keys whose writes are held until [finishHeldWritesNewestFirst],
   /// while they are listed here.
@@ -769,6 +775,16 @@ final class MemoryStore implements KeyValueStore {
   /// writes of one key in either order.
   void finishHeldWritesNewestFirst() {
     final held = [..._held.reversed];
+    _held.clear();
+    for (final (key, value, done) in held) {
+      values[key] = value;
+      done.complete();
+    }
+  }
+
+  /// Finishes the held writes in the order they were asked.
+  void finishHeldWritesOldestFirst() {
+    final held = [..._held];
     _held.clear();
     for (final (key, value, done) in held) {
       values[key] = value;

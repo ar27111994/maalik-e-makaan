@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -398,6 +399,36 @@ void main() {
       expect(app.team.calls.single.$2, ['abc.def']);
       expect(container.read(currentPortfolioProvider).value, plaza);
       expect(container.read(pendingInvitationProvider), isNull);
+    });
+
+    test('accepted after the session ended meanwhile, it chooses no '
+        'portfolio on the device', () async {
+      final app =
+          TestApp(settings: {AppSettings.pendingInvitationKey: 'abc.def'})
+            ..team.acceptOutcome = InvitationAccepted(
+              portfolioId: plaza.id,
+              role: MemberRole.manager,
+            );
+      final container = containerFor(app);
+      listen(container, currentPortfolioProvider);
+      await pumpEventQueue();
+      app.team.gate.close();
+      final accepting = container
+          .read(pendingInvitationProvider.notifier)
+          .accept();
+      await pumpEventQueue();
+      await DeviceDataWipe(
+        cache: app.cache,
+        settings: app.settings,
+        scratch: app.scratch,
+      ).wipe(WipeReason.signedOut);
+      app.team.gate.open();
+      expect(await accepting, isA<InvitationAccepted>());
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(container.read(selectedPortfolioProvider(testUserId)), isNull);
     });
 
     test(

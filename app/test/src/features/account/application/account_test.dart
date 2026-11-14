@@ -60,6 +60,36 @@ void main() {
       );
     });
 
+    for (final from in ['the server', 'saving the details']) {
+      test('a language saved in a session after an earlier one ended saves '
+          'the profile on show, from $from', () async {
+        final app = TestApp();
+        await app.cache.clear();
+        // The first read never answers when the details show the profile.
+        if (from == 'saving the details') app.profiles.gate.close();
+        final container = containerFor(app);
+        listen(container, profileProvider(testUserId));
+        await pumpEventQueue();
+        final notifier = container.read(profileProvider(testUserId).notifier);
+        if (from == 'saving the details') {
+          app.profiles.gate.holdLaterCallsApart();
+          final saving = notifier.saveDetails(
+            fullName: 'Ayesha Khan',
+            phone: null,
+          );
+          app.profiles.gate.open();
+          await saving;
+        }
+        await notifier.saveLanguage(AppLanguage.urdu);
+        final saved = await app.cache.read(
+          testUserId,
+          ProfileController.query,
+          Profile.fromRow,
+        );
+        expect(saved!.value.language, AppLanguage.urdu);
+      });
+    }
+
     test('a profile that comes back after the device was wiped is not '
         'kept, nor one saved after it', () async {
       final app = TestApp();

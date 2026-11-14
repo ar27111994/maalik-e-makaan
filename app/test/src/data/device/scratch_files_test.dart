@@ -236,6 +236,22 @@ void main() {
       expect(exists(photo.path), isFalse);
     });
 
+    test('deletes the copies it was handed, though the caller changes its '
+        'list before the cache folder comes', () async {
+      final photo = file('${cache.path}/scaled_$_uuidA.jpg');
+      final folder = Completer<void>();
+      PathProviderPlatform.instance = _Paths(cache.path, answer: folder.future);
+      final handed = [photo.path];
+      final discarding = PluginDeviceScratch(
+        platform: TargetPlatform.android,
+        callLimit: const Duration(seconds: 10),
+      ).discard(handed);
+      handed.clear();
+      folder.complete();
+      await discarding;
+      expect(exists(photo.path), isFalse);
+    });
+
     test('a copy that cannot be deleted does not stop the rest', () async {
       final first = file('${cache.path}/a.jpg');
       final second = file('${cache.path}/b.jpg');
@@ -319,9 +335,11 @@ void main() {
       expect(exists(photo.path), isTrue);
     });
 
-    test('a cache folder that comes late is still swept', () async {
+    test('a cache folder that comes later than any plugin call may take '
+        'is still swept, and the copies handed to discard still go', () async {
       final share = file('${cache.path}/$_uuidA/receipt.pdf');
       final picked = file('${cache.path}/file_picker/1/lease.pdf');
+      final photo = file('${cache.path}/scaled_$_uuidB.jpg');
       touch(picked.parent.path, now.subtract(const Duration(hours: 1)));
       final folder = Completer<void>();
       PathProviderPlatform.instance = _Paths(cache.path, answer: folder.future);
@@ -331,13 +349,16 @@ void main() {
       );
       final sweeping = scratch.sweep(sharedBefore: cutOff);
       final clearing = scratch.clearPickerCopies(before: cutOff);
-      // Longer than any one plugin call may take in a wipe: the pass over
-      // the files bounds the wait, not the folder.
-      await Future<void>.delayed(limit * 3);
+      await scratch.discard([photo.path]);
+      // Longer than the real limit on a plugin call: the pass over the
+      // files bounds the wait for the folder, nothing else does.
+      await Future<void>.delayed(pluginCallLimit + limit);
       folder.complete();
       await Future.wait([sweeping, clearing]);
+      await waitUntilGone([photo.path]);
       expect(exists(share.path), isFalse);
       expect(exists(picked.path), isFalse);
+      expect(exists(photo.path), isFalse);
     });
 
     test('a folder that does not exist holds nothing', () async {
@@ -514,6 +535,28 @@ void main() {
         expect((camera.asked, android.drained), (1, 1));
       },
     );
+
+    test('asks both plugins at once', () async {
+      final cameraAnswer = Completer<void>();
+      final filesAnswer = Completer<void>();
+      final camera = _Camera(() async {
+        await cameraAnswer.future;
+        return LostDataResponse.empty();
+      });
+      final android = _AndroidFiles(answer: filesAnswer.future);
+      FilePickerPlatform.instance = android;
+      final draining = PluginDeviceScratch(
+        platform: TargetPlatform.android,
+        camera: camera,
+        // Neither runs out while the test looks.
+        callLimit: const Duration(seconds: 10),
+      ).drainLostPicks();
+      await pumpEventQueue();
+      expect((camera.asked, android.drained), (1, 1));
+      cameraAnswer.complete();
+      filesAnswer.complete();
+      expect(await draining, isEmpty);
+    });
 
     test('a plugin that fails or has nothing leaves the other', () async {
       final failing = _Camera(

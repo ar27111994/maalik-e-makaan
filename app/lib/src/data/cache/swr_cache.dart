@@ -32,6 +32,14 @@ final class PreferencesStore implements KeyValueStore {
   Future<Set<String>> keys() => _preferences.getKeys();
 }
 
+/// How long a save of the portfolio list waits for each call to the store
+/// before it goes on without it, keeping the safe choice: a list it could
+/// not read counts as unknown, records it could not forget keep the saved
+/// list as it was, and a write that has not answered may still land
+/// ([SwrCache.writing]). One call that never answers then holds up no
+/// later save.
+const storeCallLimit = Duration(seconds: 3);
+
 /// Where a [Snapshot] came from.
 enum SnapshotSource { cache, network }
 
@@ -64,11 +72,19 @@ final class Snapshot<T> {
 /// a session that has ended, or before a portfolio left the user's list,
 /// and what it brings back must not land on the device after the removal.
 final class SwrCache {
-  new(this._store, {DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  /// `callLimit` is [storeCallLimit] but in tests.
+  new(
+    this._store, {
+    DateTime Function()? clock,
+    this.callLimit = storeCallLimit,
+  }) : _clock = clock ?? DateTime.now;
 
   final KeyValueStore _store;
   final DateTime Function() _clock;
+
+  /// How long an update run by [serially] waits for each call to the store
+  /// ([storeCallLimit]).
+  final Duration callLimit;
 
   /// How many times entries have been removed: the cache cleared, or a
   /// user's entries forgotten. A reader takes it before it fetches and
@@ -83,9 +99,23 @@ final class SwrCache {
   /// by the query it kept.
   final _forgotten = <String, Map<String, int>>{};
 
+  /// The user whose entries alone were kept by [forgetOthers], and the
+  /// epoch it started, since the last clear.
+  (String, int)? _keptOnly;
+
   /// The last update of each entry asked for ([serially]), by key, while
   /// one is on its way: it completes when that update has ended.
   final _updates = <String, Completer<void>>{};
+
+  /// How many writes were asked of the store: each write's number.
+  int _writes = 0;
+
+  /// The entries of the writes the store has not finished, as written, by
+  /// key and by number ([writing]).
+  final _writing = <String, Map<int, String>>{};
+
+  /// The number of the newest write of each key the store has finished.
+  final _landed = <String, int>{};
 
   /// The epoch to hand to [write] with a value asked for now by a reader
   /// made in the epoch [madeIn]: the current one, so that a reader made
@@ -101,12 +131,20 @@ final class SwrCache {
   /// [query] was not the one kept.
   bool _removedSince(int epoch, String userId, String query) {
     if (epoch < _cleared) return true;
+    if (_keptOnly case (final kept, final at) when kept != userId) {
+      if (epoch < at) return true;
+    }
     final forgotten = _forgotten[userId];
     if (forgotten == null) return false;
     return forgotten.entries.any(
       (forgot) => forgot.key != query && epoch < forgot.value,
     );
   }
+
+  /// Whether the cache was cleared since [epoch] (a [SwrCache.epoch] read
+  /// earlier): the session it was read in has ended, and what was asked
+  /// for in it is not kept on the device.
+  bool clearedSince(int epoch) => epoch < _cleared;
 
   /// Now, as the cache stamps what it saves.
   DateTime now() => _clock().toUtc();
@@ -147,9 +185,15 @@ final class SwrCache {
   /// value was asked for: nothing is stored when the entry was removed
   /// since (the cache was cleared, or the user's entries were forgotten and
   /// [query] was not the one kept), also when that happens while the store
-  /// is still writing. What a later write saved for the entry by then goes
-  /// with it (the store may have taken the two in either order), and is
-  /// fetched again.
+  /// is still writing.
+  ///
+  /// The entry is deleted as the write lands when it was removed meanwhile,
+  /// or when a later write of it landed first (the store may finish two
+  /// writes of one key in either order, and would now hold the older
+  /// value). A later, wanted value the store finished first goes with it:
+  /// the entry is then missing, and is fetched again. The saved portfolio
+  /// list counts a missing list as unknown, and forgets the user's other
+  /// entries (`PortfoliosController`).
   Future<DateTime> write(
     String userId,
     String query,
@@ -159,22 +203,48 @@ final class SwrCache {
     final savedAt = now();
     if (_removedSince(epoch, userId, query)) return savedAt;
     final key = _key(userId, query);
-    await _store.write(
-      key,
-      jsonEncode({'saved_at': savedAt.toIso8601String(), 'value': json}),
-    );
+    final entry = jsonEncode({
+      'saved_at': savedAt.toIso8601String(),
+      'value': json,
+    });
+    final number = ++_writes;
+    final writing = _writing[key] ??= {};
+    writing[number] = entry;
+    try {
+      await _store.write(key, entry);
+    } finally {
+      writing.remove(number);
+      if (writing.isEmpty && identical(_writing[key], writing)) {
+        _writing.remove(key);
+      }
+    }
     // Removed while the store was writing: the removal may have listed the
-    // keys before this one was there. Accepted: a later, wanted write of the
-    // entry that the store finished first goes too, and is fetched again.
-    if (_removedSince(epoch, userId, query)) await _store.delete(key);
+    // keys before this one was there.
+    if (_removedSince(epoch, userId, query) || (_landed[key] ?? 0) > number) {
+      await _store.delete(key);
+    } else {
+      _landed[key] = number;
+    }
     return savedAt;
   }
+
+  /// The values of the writes of [query] for [userId] that the store has
+  /// not finished, since the last [clear]: each may still land, also after
+  /// a later one.
+  List<Object?> writing(String userId, String query) => [
+    for (final entry in [...?_writing[_key(userId, query)]?.values])
+      (jsonDecode(entry) as Map<String, Object?>)['value'],
+  ];
 
   /// Runs [update] of the entry of [query] for [userId] once every update
   /// of it asked for before has ended: a read of the entry, a choice made
   /// from it and a write must not meet another's, since the store may
   /// finish two writes of one key in either order, and the older could
-  /// land last. An update that fails holds up no later one.
+  /// land last. An update that fails holds up no later one. An update
+  /// must end: it waits for each call to the store at most [callLimit],
+  /// so that one that never answers holds up no later update, and counts
+  /// a write it stopped waiting for as one that may still land
+  /// ([writing]).
   ///
   /// After a [clear], the next update does not wait for those asked for
   /// before it: they were for a session that has ended, and what they
@@ -209,6 +279,7 @@ final class SwrCache {
     _cleared = ++_epoch;
     _forgotten.clear();
     _updates.clear();
+    _writing.clear();
     await _deleteWhere((key) => key.startsWith(_prefix));
   }
 
@@ -227,6 +298,30 @@ final class SwrCache {
     final prefix = '$_prefix$userId.';
     final kept = _key(userId, keep);
     await _deleteWhere((key) => key.startsWith(prefix) && key != kept);
+  }
+
+  /// Whether the store holds an entry of [userId]'s but the one of [keep].
+  Future<bool> holdsOthers(String userId, {required String keep}) async {
+    final prefix = '$_prefix$userId.';
+    final kept = _key(userId, keep);
+    return (await _store.keys()).any(
+      (key) => key.startsWith(prefix) && key != kept,
+    );
+  }
+
+  /// Deletes every entry but [userId]'s, when the app starts signed in as
+  /// [userId]: what another account's ended session left because its wipe
+  /// could not finish (an entry the store refused or did not answer for,
+  /// or the app closed meanwhile). It starts a new [epoch] before anything
+  /// else, and a write of another user's asked for before is dropped.
+  /// Throws when an entry could not be deleted, once the others are
+  /// ([_deleteWhere]).
+  Future<void> forgetOthers(String userId) async {
+    _keptOnly = (userId, ++_epoch);
+    final mine = '$_prefix$userId.';
+    await _deleteWhere(
+      (key) => key.startsWith(_prefix) && !key.startsWith(mine),
+    );
   }
 
   /// Deletes the stored keys [doomed] picks, each on its own and all asked

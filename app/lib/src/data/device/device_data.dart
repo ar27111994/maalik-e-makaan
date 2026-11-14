@@ -348,9 +348,13 @@ final class DeviceDataWipe {
   }
 
   /// At start-up, once the stored session has been read: when nobody is
-  /// [signedIn], a [WipeReason.startedSignedOut] wipe; otherwise only the
-  /// files an earlier run left (the pickers' copies, the shared files older
-  /// than [sharedFileGrace]).
+  /// signed in, a [WipeReason.startedSignedOut] wipe. When someone is (the
+  /// user [signedInAs]), what another account's ended session left because
+  /// its wipe could not finish: the cache's entries of other users
+  /// ([SwrCache.forgetOthers]) and a portfolio another user chose, each on
+  /// its own and waited for at most [wipePreferencesLimit]; and the files
+  /// an earlier run left (the pickers' copies, the shared files older than
+  /// [sharedFileGrace]).
   ///
   /// Either way, the camera's record, the photos the camera took on Android
   /// and the plugins' records of a pick the app was closed during stay only
@@ -358,13 +362,25 @@ final class DeviceDataWipe {
   /// ([photoMayReturn]: a readable record younger than a day). Otherwise
   /// the photo would be let go anyway, and they go: photos an older version
   /// of the app left, and a record nobody signed in again for, included.
-  Future<void> atStart({required bool signedIn, required bool photoMayReturn}) {
+  Future<void> atStart({
+    required String? signedInAs,
+    required bool photoMayReturn,
+  }) {
     final camera = !photoMayReturn;
-    if (!signedIn) return _wipe(WipeReason.startedSignedOut, camera: camera);
+    if (signedInAs == null) {
+      return _wipe(WipeReason.startedSignedOut, camera: camera);
+    }
     final at = _clock();
-    final preferences = camera
-        ? _bounded(() => _settings.remove(AppSettings.cameraTargetKey))
-        : Future<void>.value();
+    final preferences = Future.wait([
+      _bounded(() => _cache.forgetOthers(signedInAs)),
+      _bounded(() async {
+        final chosen = _settings.getString(AppSettings.currentPortfolioKey);
+        if (chosen != null && !chosen.startsWith('$signedInAs/')) {
+          await _settings.remove(AppSettings.currentPortfolioKey);
+        }
+      }),
+      if (camera) _bounded(() => _settings.remove(AppSettings.cameraTargetKey)),
+    ]);
     _queueFiles(camera: camera, pickers: true, at: at);
     return preferences;
   }
@@ -473,7 +489,7 @@ void tidyDeviceAtStart(
       scratch: scratch ?? PluginDeviceScratch.here(),
       clock: now,
     ).atStart(
-      signedIn: auth.currentSession != null,
+      signedInAs: auth.currentSession?.user.id,
       photoMayReturn: photoMayReturn(settings, now()),
     ),
   );

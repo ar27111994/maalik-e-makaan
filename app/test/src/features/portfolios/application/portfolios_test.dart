@@ -4,6 +4,7 @@ import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
@@ -446,6 +447,276 @@ void main() {
     });
   });
 
+  group('a call to the store that never answers', () {
+    const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
+    final plazaRecords = 'mm.swr.v1.$testUserId.tenants.${plaza.id}';
+
+    /// [app] with a cache that waits a short time for the store.
+    TestApp quick(TestApp app) =>
+        app..cache = SwrCache(app.store, callLimit: _callLimit);
+
+    /// What it returns, or a failure when it has not returned in seconds.
+    Future<T> returns<T>(Future<T> running, String what) => running.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => fail('$what never returns'),
+    );
+
+    for (final (name, command)
+        in <(String, Future<void> Function(PortfoliosController))>[
+          ('reading the list again', (list) => list.reload()),
+          (
+            'creating a portfolio',
+            (list) => list.create(name: 'Khan family', id: 'p-new'),
+          ),
+        ]) {
+      test('holds up no later save of the list: $name after a forget that '
+          'hung, once the store answers again', () async {
+        final app = quick(TestApp(portfolios: const [gulberg]));
+        await app.cache.seed(testUserId, PortfoliosController.query, [
+          gulberg.toRow(),
+          plaza.toRow(),
+        ]);
+        await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+        app.store.silent.add(plazaRecords);
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        // The store answers again; the deletion asked before never will.
+        app.store.silent.clear();
+        await returns(
+          command(container.read(portfoliosProvider(testUserId).notifier)),
+          name,
+        );
+        // The save after it forgot plaza's records again, and saved.
+        expect(app.store.values.keys, isNot(contains(plazaRecords)));
+        expect(await _savedList(app), isNot(contains(plaza.toRow())));
+        if (name == 'creating a portfolio') {
+          expect(container.read(currentPortfolioProvider).value!.id, 'p-new');
+        }
+      });
+    }
+
+    test('a write that hung holds up no later save, and counts as saved '
+        'while it may still land', () async {
+      final app = quick(TestApp());
+      await app.cache.seed(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+      ]);
+      // The list naming plaza is written, and the store does not answer.
+      app.store.holding.add(listKey);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      final list = container.read(portfoliosProvider(testUserId).notifier);
+      await returns(list.reload(), 'the next save');
+      app.store.holding.clear();
+      // plaza's records are saved, and plaza leaves, while the saved list
+      // is still the one without it.
+      await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+      app.portfolios.memberships.remove(plaza);
+      await returns(list.reload(), 'the save after plaza left');
+      expect(app.store.values.keys, isNot(contains(plazaRecords)));
+      // The held writes land last, out of order: the list goes, as unknown.
+      app.store.finishHeldWritesNewestFirst();
+      await pumpEventQueue();
+      expect(app.store.values.keys, isNot(contains(listKey)));
+    });
+
+    test('a saved list that could not be read counts as unknown: the '
+        'records of a portfolio that left go', () async {
+      final app = quick(TestApp());
+      await app.cache.seed(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+        plaza.toRow(),
+      ]);
+      await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.values.keys, contains(plazaRecords));
+      app.store.hangingReads = true;
+      app.portfolios.memberships.remove(plaza);
+      await returns(
+        container.read(portfoliosProvider(testUserId).notifier).reload(),
+        'the save',
+      );
+      expect(app.store.values.keys, isNot(contains(plazaRecords)));
+    });
+  });
+
+  group('without a saved list, what the device holds of the user goes', () {
+    final plazaRecords = 'mm.swr.v1.$testUserId.tenants.${plaza.id}';
+
+    test('when a wipe could not delete it all, and the user signs in '
+        'again', () async {
+      final app = TestApp(portfolios: const [gulberg]);
+      await app.cache.seed(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+        plaza.toRow(),
+      ]);
+      await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+      app.store.undeletable.add(plazaRecords);
+      await DeviceDataWipe(
+        cache: app.cache,
+        settings: app.settings,
+        scratch: app.scratch,
+      ).wipe(WipeReason.signedOut);
+      expect(app.store.values.keys, [plazaRecords]);
+      app.store.undeletable.clear();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+        gulberg,
+      ]);
+      expect(app.store.values.keys, [
+        'mm.swr.v1.$testUserId.${PortfoliosController.query}',
+      ]);
+    });
+
+    test("when the ended session's write of the list landed after the next "
+        "session's and was deleted", () async {
+      const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
+      final app = TestApp();
+      app.store.holding.add(listKey);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.heldWrites, 1, reason: "session 1's write on its way");
+      await app.cache.clear();
+      app.store.holding.clear();
+      // The same account signs in again; its list is saved.
+      container
+        ..invalidate(portfoliosProvider(testUserId))
+        ..read(portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.values.keys, contains(listKey));
+      await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+      // The old write lands, and is deleted with the new list.
+      app.store.finishHeldWritesNewestFirst();
+      await pumpEventQueue();
+      expect(app.store.values.keys, isNot(contains(listKey)));
+      app.portfolios.memberships.remove(plaza);
+      await container.read(portfoliosProvider(testUserId).notifier).reload();
+      expect(app.store.values.keys, [listKey]);
+    });
+
+    test('but nothing is forgotten when it holds nothing else', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await app.cache.seed('another-user', 'tenants.${plaza.id}', [1]);
+      final epoch = app.cache.epoch;
+      await pumpEventQueue();
+      expect(app.cache.epoch, epoch, reason: 'no forget');
+      expect(app.store.values, hasLength(2));
+    });
+  });
+
+  group('the portfolio chosen by a command across the end of the session '
+      'is not kept on the device', () {
+    test('creating', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await _current(container);
+      app.portfolios.gate.close();
+      final creating = container
+          .read(portfoliosProvider(testUserId).notifier)
+          .create(name: 'Khan family', id: 'p-new');
+      await pumpEventQueue();
+      await DeviceDataWipe(
+        cache: app.cache,
+        settings: app.settings,
+        scratch: app.scratch,
+      ).wipe(WipeReason.signedOut);
+      app.portfolios.gate.open();
+      await creating;
+      expect(app.store.values, isEmpty);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(
+        container.read(selectedPortfolioProvider(testUserId)),
+        isNot('p-new'),
+      );
+    });
+
+    test('but a portfolio created in the session is chosen', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await _current(container);
+      await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .create(name: 'Khan family', id: 'p-new');
+      expect(
+        app.settings.values[AppSettings.currentPortfolioKey],
+        '$testUserId/p-new',
+      );
+    });
+  });
+
+  group('a list made from the one on show is saved when that list was asked '
+      'for in this session', () {
+    for (final (name, command, offline)
+        in <(String, Future<void> Function(PortfoliosController), bool)>[
+          (
+            'creating',
+            (list) => list.create(name: 'Khan family', id: 'p-new'),
+            true,
+          ),
+          (
+            'deleting',
+            (list) => list.delete(plaza.id, confirmation: plaza.name),
+            true,
+          ),
+          (
+            'answering the owner-abroad question',
+            (list) => list.answerOwnerAbroad(gulberg.id, abroad: true),
+            false,
+          ),
+        ]) {
+      for (final from in ['the saved list', 'the server', 'a reload']) {
+        test('$name, the list on show from $from', () async {
+          final app = TestApp();
+          // A session ended before this one began: the epoch is not 0.
+          await app.cache.clear();
+          switch (from) {
+            case 'the saved list':
+              await app.cache.seed(testUserId, PortfoliosController.query, [
+                gulberg.toRow(),
+                plaza.toRow(),
+              ]);
+              app.portfolios.listFailure = const NetworkFailure();
+            case 'a reload':
+              // The first read never answers; a reload shows the list.
+              app.portfolios.gate.close();
+          }
+          final container = containerFor(app);
+          listen(container, portfoliosProvider(testUserId));
+          await pumpEventQueue();
+          final list = container.read(portfoliosProvider(testUserId).notifier);
+          if (from == 'a reload') {
+            app.portfolios.gate.holdLaterCallsApart();
+            final reloading = list.reload();
+            app.portfolios.gate.open();
+            await reloading;
+          }
+          expect(
+            container.read(portfoliosProvider(testUserId)).value,
+            isNotNull,
+          );
+          if (offline) app.portfolios.listFailure = const NetworkFailure();
+          final before = await _savedList(app);
+          await command(list);
+          final after = await _savedList(app);
+          expect(after, isNotNull);
+          expect(after, isNot(equals(before)));
+        });
+      }
+    }
+  });
+
   group('a list made from the one on show, after the device was wiped and '
       'while the list built anew has not loaded, is not kept:', () {
     for (final (name, command)
@@ -871,3 +1142,13 @@ void main() {
     expect(container.read(currentUserIdProvider), isNull);
   });
 }
+
+/// The short time the tests' caches wait for each call to the store.
+const _callLimit = Duration(milliseconds: 20);
+
+/// The saved portfolio list of the test user, as stored, or null.
+Future<List<Object?>?> _savedList(TestApp app) async => (await app.cache.read(
+  testUserId,
+  PortfoliosController.query,
+  (json) => json! as List,
+))?.value;
