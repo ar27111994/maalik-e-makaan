@@ -21,8 +21,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   deletion whose answer was lost signs out and wipes as a deletion, and says so. A portfolio that
   leaves the user's list takes the user's other cache entries with it, and any list of theirs
   that was still loading; the list is saved without it only once they are gone, so a prune cut
-  short is done again at the next load. A store that does not answer holds up neither the other removals nor
-  the sign-out (three seconds each), and the next wipe starts afresh. Display settings stay; an
+  short is done again at the next load. A store that does not answer holds up neither the other
+  removals nor the sign-out (three seconds each), and the next wipe starts afresh. Display
+  settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on
   that device, because "sign out, then sign in with the invited address" needs it. The website's
   how-it-works step and privacy page say this in both languages, with what the app cannot delete

@@ -344,7 +344,10 @@ else does then, since a picker may be handing over a copy.
   leaves the others to go. The portfolio list is saved only once the user's
   other entries are gone, so while they are not (the app closed, or the store
   failed), the saved list still names the portfolio that left, and the next
-  load or save forgets them again. `test/src/core/swr_commands_test.dart`
+  load or save forgets them again. Only the device wipe puts a limit on the
+  store: elsewhere the cache waits for it, so a deletion that never answers
+  keeps the portfolio list and its commands waiting too, as a read that
+  never answers always did. `test/src/core/swr_commands_test.dart`
   runs every feature command that shows a value: one that asks the server
   is held while a portfolio leaves, and one made from the value on show
   runs after it, and neither is saved; the portfolio list's commands are
