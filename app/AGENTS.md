@@ -43,7 +43,8 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   theirs. A cache write names the cache's epoch read before its request
   (`SwrCache.write(epoch:)` and `SwrNotifier.show(epoch:)`, required arguments: a command reads
   `requestEpoch()` before its request, or `shownEpoch` with the value on show it builds on), so
-  that nothing lands after a wipe, or after a portfolio left the user's list.
+  that nothing lands after a wipe, or after a portfolio left the user's list. A new command that
+  shows a value gets a case in `test/src/core/swr_commands_test.dart`, which checks when it reads it.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

@@ -344,7 +344,11 @@ else does then, since a picker may be handing over a copy.
   leaves the others to go. The portfolio list is saved only once the user's
   other entries are gone, so while they are not (the app closed, or the store
   failed), the saved list still names the portfolio that left, and the next
-  load or save forgets them again.
+  load or save forgets them again. `test/src/core/swr_commands_test.dart`
+  runs every feature command that shows a value: one that asks the server
+  is held while a portfolio leaves, and one made from the value on show
+  runs after it, and neither is saved; the portfolio list's commands are
+  held across a wipe and the list's rebuild (`portfolios_test.dart`).
 - **Replays.** gotrue's auth stream replays its latest event to a new
   listener, so a `signedOut` is acted on only when no session exists, and a
   session counts as replaced only when the event's session is the current
