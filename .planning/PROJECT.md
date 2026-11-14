@@ -241,15 +241,16 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     before this pull request is merged, would build for the new address without what the move
     needs. It is deleted right after the move's web deploy, and those runs then stop before
     deploying. Rollbacks across the move go forward instead.
-  - **Nothing is deployed to an address that cannot answer for it.** Before anything is built
-    or deployed, the workflows check that the web app's origin answers over HTTPS with its App
-    Links file (Release's builds and Deploy's web app), and that the site's origin and `www`
-    answer and the web app it links to is the deployment built for its origin (Deploy's website;
-    Release also deploys the website only after the web app), both with
-    `tool/web/check_live.py`; that Auth allows the e-mail links of the release's builds
-    (`tool/web/check_auth_urls.py`, from the Management API; a token that may not read Auth's
-    settings only warns); and that the Edge Functions accept the origin (a CORS preflight). None
-    of them reads the `APP_URL` secret or variable.
+  - **Nothing is deployed to an address that cannot answer for it.** Each check gates the jobs
+    that wait for it: that the web app's origin answers over HTTPS with its App Links file
+    (Release's builds, and Deploy's web app), and that the site's origin and `www` answer and the
+    web app it links to is the deployment built for its origin (Deploy's website; Release also
+    deploys the website only after the web app), both with `tool/web/check_live.py`; that Auth
+    allows the e-mail links of the release's builds (`tool/web/check_auth_urls.py`, from the
+    Management API, in Release's `preflight` job before the builds and Deploy's `supabase` job
+    before the backend; a token that may not read Auth's settings only warns); and that the Edge
+    Functions accept the origin (a CORS preflight, Deploy's web app only). None of them reads the
+    `APP_URL` secret or variable.
   - **What sends people on lives in the repository**, reviewed and tested and rolled back with
     a deployment: `website/vercel.json` (a redirect with a host condition, every path but a
     Google verification file) and the web app's Build Output routes

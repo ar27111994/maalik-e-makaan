@@ -383,8 +383,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
 13. **Move to `mmakaan.app`** (D-20, 13 November 2026). The domain is bought and, through the Vercel
     connector, `mmakaan.app` and `www.mmakaan.app` (308 to the apex) are on the project
     `maalik-e-makaan-site` and `app.mmakaan.app` on `maalik-e-makaan`. The pull request on
-    `claude/domain-mmakaan` does the rest in the repository, and the Release and Deploy workflows
-    stop until steps 3 to 5 hold. `docs/operations.md`, Domains, has each step in full, in the same
+    `claude/domain-mmakaan` does the rest in the repository. The Release workflow builds nothing
+    until steps 3 and 4 hold, and Deploy deploys the backend only once step 4 holds and the web app
+    only once steps 3 to 5 do. `docs/operations.md`, Domains, has each step in full, in the same
     order. **On 14 November 2026:** steps 2 to 5 are done, and half of step 8 ahead of its place;
     the merge and the release (steps 6 and 7) are next, before Wednesday 18 November 2026.
 
@@ -416,16 +417,19 @@ In order. Record each in `.planning/STATE.md` when it is done.
        `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback`,
        `https://maalik-e-makaan.vercel.app/auth/callback` and
        `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback`); the Site
-       URL was left as it was.
+       URL was left as it was. Release's builds and Deploy's backend check these first (only a
+       warning if the token may not read them; they then go ahead, so check by hand).
     5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it holds both app
        origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no secret holds the
        website's address).
     6. **Merge the pull request** once "CI passed", before Wednesday 18 November 2026, and go on to
        step 7 in the same sitting.
     7. **Release:** merge the release pull request, approve the Deploy runs and check every smoke
-       test, the ones of the old addresses included. Nothing is built or deployed while the new
-       addresses do not answer (step 3), Auth lacks a callback (step 4) or the functions refuse the
-       origin (step 5); the website goes out only after the web app's deploy. From the web deploy,
+       test, the ones of the old addresses included. Nothing is built or attached while the new web
+       app address does not answer (step 3) or Auth lacks a callback (step 4), and the backend is
+       not deployed while Auth lacks one. If the functions refuse the origin (step 5), only the web
+       app's deploy stops, and the website after it: the builds and the backend may already be out.
+       The website goes out only after the web app's deploy. From the web deploy,
        the old web app address answers with a page that clears what the app kept in the browser
        there and goes to the same address on the new one.
     8. **Right after the web deploy:** Auth's Site URL to `https://app.mmakaan.app`; then delete the

@@ -21,10 +21,14 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   browsers without the header) and goes to the same address on the new one, while it keeps
   serving `assetlinks.json` and, until the next release, `/auth/callback`, neither of which
   clears anything; App Links on both hosts; `redirect_smoke_test.sh` in CI and after each
-  deploy. Before building or deploying, Release and Deploy check that the new addresses answer
-  (`tool/web/check_live.py`), that Auth allows every build's e-mail links
-  (`tool/web/check_auth_urls.py`) and that the website goes out only after the web app it links
-  to. The web app answers `X-Robots-Tag: noindex`.
+  deploy. Release builds and attaches nothing until its `preflight` job has checked that the web
+  app's origin answers (`tool/web/check_live.py`) and that Auth allows every build's e-mail links
+  (`tool/web/check_auth_urls.py`, which Deploy's `supabase` job also runs before the backend);
+  Deploy's web app also waits for the Edge Functions to accept the origin, and the website goes
+  out only after the web app it links to. The web app answers `X-Robots-Tag: noindex`. After
+  CodeRabbit's review of dca00eb (2026-11-14): the Auth check gates the builds too, the Android
+  manifest check works out each intent filter on its own and requires VIEW, DEFAULT and
+  BROWSABLE, and the website's local Vercel emulation passes a redirected path on literally.
 - The move's state on 2026-11-14, from the owner (`docs/release-readiness.md`, Owner actions,
   item 13, has the steps): the Dynadot records are in and Vercel reports the three hosts as
   correctly configured (2026-11-13); the new addresses were checked over HTTPS in a browser,

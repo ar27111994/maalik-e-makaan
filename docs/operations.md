@@ -212,9 +212,10 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    list sends the link to the Site URL instead, where the iOS sign-in cannot finish. Keep the
    earlier address's two beside them, `https://maalik-e-makaan.vercel.app/auth/callback` and
    `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback`, for as long
-   as builds made before the move are in use ([Domains](#domains)). Every deploy checks these
-   settings first (`tool/web/check_auth_urls.py`, in the Deploy workflow's `supabase` job) and
-   stops while one that a build sends is not allowed.
+   as builds made before the move are in use ([Domains](#domains)). Every release checks these
+   settings before its builds, and every deploy before it deploys (`tool/web/check_auth_urls.py`,
+   in the Release workflow's `preflight` job and the Deploy workflow's `supabase` job), and stops
+   while one that a build sends is not allowed.
 6. **Templates** (Authentication, Emails, Templates). Each e-mail is in English, then Urdu. For
    "Confirm signup", "Reset password" and "Change email address", paste the subject from
    `supabase/config.toml` (`[auth.email.template.*]`) and the body from
@@ -441,20 +442,32 @@ addresses travel with the release tag: nothing changes in production until the r
 carries a change to the file, and a site refresh of an older tag keeps that tag's addresses.
 
 **Checked before anything is deployed.** The workflows refuse to send people to an address that
-cannot answer for them:
+cannot answer for them. Each check stops the jobs that wait for it, and only those:
 
-- Release builds nothing until the web app's origin answers over HTTPS with its App Links file
-  (`tool/web/check_live.py app`): every build names the origin, and an Android build lists it in its
-  App Links, where on Android 6 to 11 one host that fails costs every host's links. Deploy's `web`
-  job checks the same before it builds.
+- Release builds and attaches nothing until its `preflight` job has passed, and its `artefacts` and
+  `ios` jobs wait for it. That job checks that the web app's origin answers over HTTPS with its App
+  Links file (`tool/web/check_live.py app`): every build names the origin, and an Android build
+  lists it in its App Links, where on Android 6 to 11 one host that fails costs every host's links.
+  It then checks that Auth allows the e-mail links the builds send (`tool/web/check_auth_urls.py`,
+  step 4 below): a callback Auth does not allow gets its links at the Site URL, where no build
+  finishes the sign-in, and an APK cannot be recalled. Deploy's `web` job checks the origin again
+  before it builds.
 - Deploy's `site` job deploys nothing until the site's origin answers, `www` redirects to it, and
   the web app the site links to is the deployment built for its origin: the web app's earlier
   address must already send people on to it, with its page or a 308
   (`tool/web/check_live.py site`). Release also deploys the website only after the web app's deploy
   has succeeded.
 - Deploy's `supabase` job deploys nothing until Auth allows the e-mail links of the release's builds
-  (`tool/web/check_auth_urls.py`, step 4 below), and its `web` job builds nothing until the Edge
-  Functions accept the origin (step 5).
+  (the same `tool/web/check_auth_urls.py`), and its `web` job, which waits for it, builds nothing
+  until the Edge Functions accept the origin (step 5).
+- Release's `deploy` call runs beside `preflight` and the builds. So when the Edge Functions refuse
+  the origin, only the web app's deploy stops (and the website after it): the builds may already be
+  attached and the backend deployed, which is harmless, since apps send no `Origin` and only a
+  browser's calls are refused. And when the web app's origin does not answer, Deploy's `supabase`
+  job, which does not check it, may already have deployed the backend.
+- A token that may not read Auth's settings (401 or 403) only warns, in both places: the builds
+  and the backend's deploy then go ahead, so compare Authentication, URL Configuration with step 4
+  by hand before approving the Deploy run.
 
 None of these reads the `APP_URL` secret or repository variable, or depends on the address either
 holds: the checks compare what production answers with `contracts/origins.json`, and Auth's
@@ -654,9 +667,10 @@ addresses.
    `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback`, and the Site
    URL was left as it was. The earlier https one may have worked unlisted before, only because
    Auth allows any address on the Site URL's scheme, host and port; step 8 moves the Site URL, and
-   builds from before the move then need it listed. Deploy's `supabase` job reads these settings
-   with the Management API and stops while one is missing (only a warning if its token may not
-   read them; check by hand then).
+   builds from before the move then need it listed. Release's `preflight` job, before the builds,
+   and Deploy's `supabase` job, before the backend, read these settings with the Management API
+   and stop while one is missing (only a warning if the token may not read them; the builds and
+   the deploy then go ahead, so check by hand).
 5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it holds both app
    origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no redeploy needed).
    Deploy's `web` job checks it before it builds.
@@ -666,7 +680,8 @@ addresses.
    deploy. Nothing changes in production: a site refresh then builds the last tag, with its own
    addresses.
 7. **Release.** Merge the release pull request and approve the Deploy runs. Release checks that the
-   web app's origin answers before it builds anything. The backend and the web app go first: the
+   web app's origin answers and that Auth allows the builds' callbacks (step 4) before it builds
+   anything. The backend and the web app go first, beside the builds: the
    `supabase` job checks Auth's redirect URLs (step 4), the `web` job that the origin answers and
    that the Edge Functions accept it (step 5); then the web app's `APP_URL` becomes
    `https://app.mmakaan.app`, and the old address starts answering with the page that clears its
@@ -739,8 +754,10 @@ host that the hosting redirects goes under `aliases`), in one pull request that 
 `make lint` and `make docs-check` say what is missing. The page the web app's earlier addresses
 answer with takes the origin from the file, and each address in `legacy` gets it. Then follow the
 order above: DNS and HTTPS, Auth's redirect URLs and `ALLOWED_ORIGINS` first, then merge and
-release, then Auth's Site URL and `APP_URL` (the secret, and no repository variable). The Release
-and Deploy workflows stop until the first steps hold (Checked before anything is deployed, above).
+release, then Auth's Site URL and `APP_URL` (the secret, and no repository variable). Release
+builds nothing until the new origin answers and Auth allows its callbacks; Deploy deploys the
+backend only once Auth does, and the web app only once all three first steps hold (Checked before
+anything is deployed, above).
 
 ## Deployment (GitHub Actions)
 
@@ -748,8 +765,9 @@ The Deploy workflow (`.github/workflows/deploy.yml`) runs when the Release workf
 tag (Release calls it for that tag), or by hand (Actions, Deploy, Run workflow, for the branch or
 tag chosen there; only once the workflow is on the default branch). Publishing a release by hand
 does not start it. A run by hand runs the `deploy.yml` of the branch or tag chosen, not
-`main`'s. See [Releasing](#releasing). Its `supabase` job first reads Auth's Site URL and redirect
-URLs with the Management API and runs `tool/web/check_auth_urls.py`: the e-mail links of the
+`main`'s. See [Releasing](#releasing). Its `supabase` job first runs `tool/web/check_auth_urls.py`
+(as the Release workflow's `preflight` job does before the builds), which reads Auth's Site URL
+and redirect URLs with the Management API: the e-mail links of the
 release's builds (the web app's `/auth/callback` and its iOS form) must be allowed, and so must
 those of builds from before a move while the Site URL is still on their host ([Domains](#domains),
 step 4). It stops before deploying anything otherwise; a token that may not read Auth's settings
@@ -913,7 +931,9 @@ an iPhone.
 `app.mmakaan.app` and the earlier `maalik-e-makaan.vercel.app`, which keeps serving the file for
 links already sent ([Domains](#domains)); `tool/android/check_manifest.py` (`make lint`, and CI
 on the merged release manifest) fails unless its hosts are exactly the web app's in
-`contracts/origins.json`. Android 12 and later verify each host on its own; Android 6 to 11
+`contracts/origins.json`, and each host opens both paths through a filter Android can launch
+(`VIEW`, `DEFAULT` and `BROWSABLE`). It works out each filter on its own, as Android matches a
+link: one filter's host never combines with another filter's path. Android 12 and later verify each host on its own; Android 6 to 11
 verify all of an app's hosts or none, so both must serve the file (and Release builds nothing
 until the new host does, Domains). The file lists the SHA-256 fingerprint of each certificate that
 signs the app the user installs. Today that is only the upload key, which signs the APKs attached
@@ -963,7 +983,8 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    one, and a breaking change (`!` or `BREAKING CHANGE:`) a major one. (v1.0.0 was pinned with
    `"release-as"`, removed straight after it was tagged.)
 3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
-   checks that the web app's origin answers (`live`; nothing is built otherwise, Domains), builds
+   checks that the web app's origin answers and that Auth allows the builds' callbacks
+   (`preflight`; nothing is built or attached otherwise, Domains), builds
    the signed Android app and the web app and attaches them (`artefacts`), builds and attaches the
    unsigned iOS app (`ios`), and calls the Deploy workflow for the tag twice: at once for the
    backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have

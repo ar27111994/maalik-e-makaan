@@ -129,9 +129,11 @@ consent table as analytics.
    (`mmakaan.app`, 13 November 2026), its DNS points at the hosting, and the mailbox
    `hello@mmakaan.app` exists on Dynadot's e-mail (both reported that day).
 2. **S:** move the website and the web app to the domain: Vercel domains, the default URLs in
-   `urls.ts`, Auth's site URL and redirects, and redirects from `vercel.app`. Done in the pull
-   request that records D-20 (one source, `contracts/origins.json`), with the owner's steps in
-   [operations.md](../operations.md#domains).
+   `urls.ts`, Auth's site URL and redirects, and redirects from `vercel.app`. The repository's
+   part is done in the pull request that records D-20 (one source, `contracts/origins.json`), and
+   the domains, DNS, Auth's redirect URLs and `ALLOWED_ORIGINS` are in place. Open until the
+   owner's steps after the merge are done: the release that deploys the move, then Auth's Site
+   URL and the checks by hand ([operations.md](../operations.md#domains), steps 6 to 9).
 3. **Owner:** enrol as an organisation (D-U-N-S, Account Holder, two-factor Apple Account in a legal
    name) and pay the fee.
 4. **M:** certificates, App ID and a signed TestFlight upload job on Xcode 26 in `release.yml`.
