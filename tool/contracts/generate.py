@@ -23,6 +23,9 @@ Outputs (all committed):
     supabase/tests/database/23_residence_contract.test.sql and tool/db/time_zone_skew.sql
     (the countries and time zones a person may store, and each zone's offsets from 2020 to
     2100, from the tzdata package pinned in tool/requirements.txt: tool/contracts/time_zones.py)
+  packages/mm_core/lib/src/money/amount_lexicon.g.dart (the tables of
+    contracts/amount_lexicon.json, which is written by hand, as contracts/amount_vectors.json
+    is; both are checked here first: tool/contracts/amounts.py)
 
 Usage:
   tool/contracts/generate.py                     # (re)write every file
@@ -41,6 +44,7 @@ from datetime import date
 from fractions import Fraction
 from pathlib import Path
 
+import amounts
 import time_zones as tz
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -1553,6 +1557,8 @@ def outputs() -> dict[Path, str]:
     identity = build_identity()
     residence = build_residence()
     time_zones = build_time_zone_vectors()
+    lexicon = amounts.load(amounts.LEXICON)
+    amounts.check_vectors(amounts.load(amounts.VECTORS), lexicon)
     database_tests = ROOT / "supabase" / "tests" / "database"
     return {
         ROOT
@@ -1586,6 +1592,13 @@ def outputs() -> dict[Path, str]:
         database_tests
         / "23_residence_contract.test.sql": render_residence_sql(residence, time_zones),
         ROOT / "tool" / "db" / "time_zone_skew.sql": render_skew_sql(residence),
+        ROOT
+        / "packages"
+        / "mm_core"
+        / "lib"
+        / "src"
+        / "money"
+        / "amount_lexicon.g.dart": amounts.render_dart(lexicon),
     }
 
 
@@ -1603,6 +1616,9 @@ def main(argv: list[str]) -> int:
     except tz.MissingTzdataError as error:
         print(error, file=sys.stderr)
         return 2
+    except amounts.ContractError as error:
+        print(f"contracts/amount_*.json: {error}", file=sys.stderr)
+        return 1
 
     stale = []
     for path, content in files.items():
