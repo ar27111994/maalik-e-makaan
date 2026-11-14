@@ -159,7 +159,7 @@ Their locked transitive packages are MIT (`@supabase/auth-js`,
 
 | Package          | Version | Licence      |
 | ---------------- | ------- | ------------ |
-| astro            | 7.4.5   | MIT          |
+| astro            | 7.4.12  | MIT          |
 | @astrojs/mdx     | 8.1.2   | MIT          |
 | @astrojs/sitemap | 3.7.4   | MIT          |
 | subset-font      | 2.9.0   | BSD-3-Clause |
