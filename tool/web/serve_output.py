@@ -12,7 +12,9 @@ conditions on the host, and content-type overrides. Anything else is refused
 rather than half-served. The host is the request's Host header without its
 port, so `curl -H 'Host: <an earlier address>'` sees what that address would. The path is the
 request target up to its query, so `//x/y` is the path `//x/y`, as on Vercel, not `/y` on the
-host x; a target that is not a path (absolute-form, `*`) answers 400.
+host x; a target that is not a path (absolute-form, `*`) answers 400. The file lookup takes that
+same path, so one with an empty segment (`//`, `/a//b`) names no file and is left to the routes
+after the filesystem.
 """
 
 from __future__ import annotations
@@ -137,7 +139,13 @@ class Router:
         return cls(output / "static", before, after, config.get("overrides", {}))
 
     def _file(self, path: str) -> Path | None:
-        relative = path.lstrip("/") or "index.html"
+        """The static file `path` names, or None. The path is the one the routes matched, so a
+        path with an empty segment ("//", "//index.html", "/a//b") names no file: collapsing it
+        here would serve, say, index.html for "//" behind the back of a route that did not match
+        "//" and so leave that request to the routes after the filesystem."""
+        if "//" in path:
+            return None
+        relative = path.removeprefix("/") or "index.html"
         candidate = (self.static / relative).resolve()
         root = self.static.resolve()
         if root not in candidate.parents and candidate != root:

@@ -229,8 +229,14 @@ class BuildConfigTest(unittest.TestCase):
             "dest": "/moved.html",
             "status": 200,
         }
-        self.assertEqual(routes[handle - 1], {"src": r"^/(?:index\.html|moved\.html)?$", **moved})
+        self.assertEqual(routes[handle - 1], {"src": r"^/+(?:index\.html|moved\.html)?$", **moved})
         self.assertEqual(routes[handle + 1], {"src": "^/(?!auth/callback$).*$", **moved})
+        # The root and the page with more slashes before them too, and nothing deeper.
+        first = re.compile(routes[handle - 1]["src"], re.IGNORECASE)
+        for path in ("/", "//", "///", "/index.html", "//index.html", "//moved.html"):
+            self.assertTrue(first.search(path), path)
+        for path in ("/x/index.html", "//x/", "/index.htm", "/main.dart.js"):
+            self.assertFalse(first.search(path), path)
         self.assertEqual(routes[-1], {"src": "^/.*$", "dest": "/index.html", "status": 200})
         self.assertEqual(len(routes), handle + 3)
         # The header routes come first and continue, so the page carries them too.
@@ -668,6 +674,35 @@ class ServeOutputTest(unittest.TestCase):
         self.assertEqual((found.status, found.file.name), (200, "moved.html"))
         found = router.resolve("//evil.example/main.dart.js?x=1", "app.example.pk")
         self.assertEqual((found.status, found.file.name), (200, "index.html"))
+
+    def test_an_empty_segment_names_no_file_so_routes_and_files_see_the_same_path(self):
+        # The routes see the target as sent; the file lookup must not collapse "//" behind
+        # their back, or an earlier address answers "//" with the app's shell, not the page
+        # that clears its storage.
+        moved = pv.moved_files(APP)["moved.html"]
+        for host in OLD_HOSTS:
+            for path in ("//", "///", "//index.html", "//moved.html", "///index.html?x=1"):
+                with self.subTest(host=host, path=path):
+                    status, headers, body = self.get_as(host, path)
+                    self.assertEqual((status, body), (200, moved))
+                    self.assertEqual(headers["Clear-Site-Data"], '"storage"')
+            # A file asked for with an empty segment is no file there either.
+            for path in ("//main.dart.js", "/assets//logo.0123abcd.png"):
+                with self.subTest(host=host, path=path):
+                    status, _, body = self.get_as(host, path)
+                    self.assertEqual((status, body), (200, moved))
+        # On the origin such a path falls back to the app's index.html, as any other path does.
+        for path in ("//", "//main.dart.js", "/assets//logo.0123abcd.png"):
+            with self.subTest(host="app.example.pk", path=path):
+                status, headers, body = self.get_as("app.example.pk", path)
+                self.assertEqual((status, body), (200, INDEX))
+                self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        # The router itself, without http.server in front of it.
+        router = serve_output.Router.load(Path(self.server.output))
+        self.assertIsNone(router._file("//index.html"))
+        self.assertIsNone(router._file("/assets//logo.0123abcd.png"))
+        self.assertEqual(router._file("/").name, "index.html")
+        self.assertEqual(router._file("/main.dart.js").name, "main.dart.js")
 
     def test_a_target_that_is_not_a_path_is_a_bad_request(self):
         for target in ("*", "http://evil.example/", "evil.example/x"):

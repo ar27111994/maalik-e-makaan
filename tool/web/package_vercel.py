@@ -16,8 +16,9 @@ Copies the build into OUTPUT/static and writes OUTPUT/config.json, which
    index.html and the paths that fall back to it included, is revalidated on
    every load (`no-cache`; unchanged files answer 304).
 3. On an earlier address of the web app (`app.legacy` in
-   contracts/origins.json, decision D-20): `/` and `/index.html` answer with
-   the page that sends people on to the origin (below), not with the app.
+   contracts/origins.json, decision D-20): `/` and `/index.html`, and the same
+   with more slashes before them (`//`, `//index.html`), answer with the page
+   that sends people on to the origin (below), not with the app.
 4. `{"handle": "filesystem"}`: existing files are served, on every host.
 5. On an earlier address: every other path except /auth/callback answers with
    the same page.
@@ -251,7 +252,10 @@ def legacy_routes(app: AppOrigins | None) -> tuple[list[dict], list[dict]]:
         "status": 200,
     }
     page = re.escape(MOVED_PAGE)
-    before = {"src": rf"^/(?:index\.html|{page})?$", **moved}
+    # "^/+": the root and the page however many slashes lead them ("//", "//index.html"), so
+    # they get the page whether or not Vercel's filesystem step reads "//index.html" as the
+    # file index.html; the routes after it see the request as sent, "//" and all.
+    before = {"src": rf"^/+(?:index\.html|{page})?$", **moved}
     after = {"src": f"^/(?!{KEPT_ON_LEGACY}$).*$", **moved}
     return [before], [after]
 

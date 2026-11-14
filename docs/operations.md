@@ -271,9 +271,9 @@ directory. The routes in `config.json`, in order:
    `flutter_bootstrap.js`, `flutter_service_worker.js`, `version.json`, `manifest.json`) and
    `assetlinks.json` are always `no-cache`.
 3. On an earlier address (`app.legacy` in `contracts/origins.json`, matched on the request's
-   host): `/` and `/index.html` answer 200 with the page that clears what the app kept in the
-   browser there and goes to the origin (`moved.html`, below), with the header
-   `Clear-Site-Data: "storage"`.
+   host): `/` and `/index.html`, also with more slashes before them (`//`, `//index.html`), answer
+   200 with the page that clears what the app kept in the browser there and goes to the origin
+   (`moved.html`, below), with the header `Clear-Site-Data: "storage"`.
 4. `{"handle": "filesystem"}`: existing files are served, on every host.
 5. On an earlier address: every other path but `/auth/callback` answers with the same page and
    header. The page's script goes to the same path, query and `#fragment` on the origin, so an
