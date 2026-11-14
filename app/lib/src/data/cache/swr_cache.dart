@@ -57,9 +57,11 @@ final class Snapshot<T> {
 /// decoded (an older app version wrote it, or it was tampered with) is
 /// deleted and treated as missing.
 ///
-/// A clear starts a new [epoch]. A write made for an earlier epoch is
-/// dropped: its fetch began in a session that has ended since, and what it
-/// brings back must not land on the device after the wipe.
+/// A clear starts a new [epoch], and so does forgetting a user's entries
+/// ([forgetUser]). A write names the epoch its value was asked for in, and
+/// is dropped when what it would save was removed since: its fetch began in
+/// a session that has ended, or before a portfolio left the user's list,
+/// and what it brings back must not land on the device after the removal.
 final class SwrCache {
   new(this._store, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
@@ -67,10 +69,39 @@ final class SwrCache {
   final KeyValueStore _store;
   final DateTime Function() _clock;
 
-  /// How many times the cache has been cleared. A reader takes it before
-  /// it fetches and hands it to [write].
+  /// How many times entries have been removed: the cache cleared, or a
+  /// user's entries forgotten. A reader takes it before it fetches and
+  /// hands it to [write].
   int get epoch => _epoch;
   int _epoch = 0;
+
+  /// The epoch the last [clear] started.
+  int _cleared = 0;
+
+  /// The epoch each [forgetUser] since the last clear started, by user and
+  /// by the query it kept.
+  final _forgotten = <String, Map<String, int>>{};
+
+  /// The epoch to hand to [write] with a value asked for now by a reader
+  /// made in the epoch [madeIn]: the current one, so that a reader made
+  /// before a user's entries were forgotten goes on saving what it asks for
+  /// after. Once the cache was cleared since [madeIn] it is [madeIn]
+  /// itself: the reader was made for a session that has ended, and nothing
+  /// it asks for is stored.
+  int requestEpoch({required int madeIn}) =>
+      madeIn < _cleared ? madeIn : _epoch;
+
+  /// Whether the entry of [query] for [userId] was removed since [epoch]:
+  /// the cache was cleared, or the user's entries were forgotten and
+  /// [query] was not the one kept.
+  bool _removedSince(int epoch, String userId, String query) {
+    if (epoch < _cleared) return true;
+    final forgotten = _forgotten[userId];
+    if (forgotten == null) return false;
+    return forgotten.entries.any(
+      (forgot) => forgot.key != query && epoch < forgot.value,
+    );
+  }
 
   /// Bumped when the stored format changes; older entries are ignored.
   static const _prefix = 'mm.swr.v1.';
@@ -104,20 +135,27 @@ final class SwrCache {
   }
 
   /// Stores [json] as the latest value of [query] for [userId], and returns
-  /// when it was saved. With [epoch] (the [SwrCache.epoch] read before the
-  /// value was fetched), nothing is stored when the cache was cleared since.
+  /// when it was saved. [epoch] is the [SwrCache.epoch] read before the
+  /// value was asked for: nothing is stored when the entry was removed
+  /// since (the cache was cleared, or the user's entries were forgotten and
+  /// [query] was not the one kept), also when that happens while the store
+  /// is still writing.
   Future<DateTime> write(
     String userId,
     String query,
     Object? json, {
-    int? epoch,
+    required int epoch,
   }) async {
     final savedAt = _clock().toUtc();
-    if (epoch != null && epoch != _epoch) return savedAt;
+    if (_removedSince(epoch, userId, query)) return savedAt;
+    final key = _key(userId, query);
     await _store.write(
-      _key(userId, query),
+      key,
       jsonEncode({'saved_at': savedAt.toIso8601String(), 'value': json}),
     );
+    // Removed while the store was writing: the removal may have listed the
+    // keys before this one was there.
+    if (_removedSince(epoch, userId, query)) await _store.delete(key);
     return savedAt;
   }
 
@@ -125,7 +163,8 @@ final class SwrCache {
   /// starts a new [epoch] before anything else, so that a write still on
   /// its way is dropped.
   Future<void> clear() async {
-    _epoch++;
+    _cleared = ++_epoch;
+    _forgotten.clear();
     for (final key in await _store.keys()) {
       if (key.startsWith(_prefix)) await _store.delete(key);
     }
@@ -135,7 +174,12 @@ final class SwrCache {
   /// left their list (deleted, or they left or were removed), the copies of
   /// its records go. Entries are not kept by portfolio, so every other
   /// list goes with them, and comes back from the server when it is shown.
+  ///
+  /// It starts a new [epoch] before anything else: a write of the user's
+  /// that was asked for before (a list still loading for the portfolio that
+  /// left) is dropped, but one of [keep]. Other users' writes are not.
   Future<void> forgetUser(String userId, {required String keep}) async {
+    (_forgotten[userId] ??= {})[keep] = ++_epoch;
     final prefix = '$_prefix$userId.';
     final kept = _key(userId, keep);
     for (final key in await _store.keys()) {
@@ -144,8 +188,8 @@ final class SwrCache {
   }
 
   /// The cached value first (when there is one), then the fresh value once
-  /// [fetch] returns, which is also stored unless the cache was cleared
-  /// since this was called (see [epoch]). A failing [fetch] ends the stream
+  /// [fetch] returns, which is also stored unless its entry was removed
+  /// since this was called (see [write]). A failing [fetch] ends the stream
   /// with its error after the cached value, so the screen keeps showing the
   /// cached data next to the error.
   Stream<Snapshot<T>> watch<T>({

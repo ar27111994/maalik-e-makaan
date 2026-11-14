@@ -7,6 +7,7 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
+import 'package:maalik_e_makaan/src/features/tenants/application/tenants.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_core/mm_core.dart';
 
@@ -23,7 +24,7 @@ void main() {
   group('the list', () {
     test('shows the saved copy first, then the server one', () async {
       final app = TestApp();
-      await app.cache.write(testUserId, PortfoliosController.query, [
+      await app.cache.seed(testUserId, PortfoliosController.query, [
         gulberg.toRow(),
       ]);
       app.portfolios.gate.close();
@@ -52,7 +53,7 @@ void main() {
 
     test('a failed refresh keeps the saved copy next to the error', () async {
       final app = TestApp()..portfolios.listFailure = const NetworkFailure();
-      await app.cache.write(testUserId, PortfoliosController.query, [
+      await app.cache.seed(testUserId, PortfoliosController.query, [
         plaza.toRow(),
       ]);
       final container = containerFor(app);
@@ -65,7 +66,7 @@ void main() {
 
     test('a corrupt saved copy is ignored', () async {
       final app = TestApp();
-      await app.cache.write(testUserId, PortfoliosController.query, {
+      await app.cache.seed(testUserId, PortfoliosController.query, {
         'not': 'a list',
       });
       final container = containerFor(app);
@@ -84,13 +85,13 @@ void main() {
     test('takes the saved copies of the records with it', () async {
       // Deleted by its owner, or the user was removed from it.
       final app = TestApp(portfolios: [gulberg]);
-      await app.cache.write(testUserId, PortfoliosController.query, [
+      await app.cache.seed(testUserId, PortfoliosController.query, [
         gulberg.toRow(),
         plaza.toRow(),
       ]);
-      await app.cache.write(testUserId, 'tenants.${plaza.id}', [1]);
-      await app.cache.write(testUserId, 'tenant.someone', 1);
-      await app.cache.write('another-user', 'tenants.${plaza.id}', [1]);
+      await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+      await app.cache.seed(testUserId, 'tenant.someone', 1);
+      await app.cache.seed('another-user', 'tenants.${plaza.id}', [1]);
       final container = containerFor(app);
       listen(container, portfoliosProvider(testUserId));
       await pumpEventQueue();
@@ -105,10 +106,10 @@ void main() {
 
     test('a list that only grew keeps them', () async {
       final app = TestApp();
-      await app.cache.write(testUserId, PortfoliosController.query, [
+      await app.cache.seed(testUserId, PortfoliosController.query, [
         gulberg.toRow(),
       ]);
-      await app.cache.write(testUserId, 'tenants.${gulberg.id}', [1]);
+      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [1]);
       final container = containerFor(app);
       listen(container, portfoliosProvider(testUserId));
       await pumpEventQueue();
@@ -123,13 +124,111 @@ void main() {
       final container = containerFor(app);
       listen(container, portfoliosProvider(testUserId));
       await pumpEventQueue();
-      await app.cache.write(testUserId, 'tenants.${plaza.id}', [1]);
+      await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
       await container
           .read(portfoliosProvider(testUserId).notifier)
           .delete(plaza.id, confirmation: plaza.name);
       expect(keys(app), {
         'mm.swr.v1.$testUserId.${PortfoliosController.query}',
       });
+    });
+
+    for (final stillShown in [true, false]) {
+      test('a list of its records asked for before, which comes back after, '
+          'is not saved, and the next start finds nothing (its screen '
+          '${stillShown ? 'still' : 'no longer'} shown)', () async {
+        // The server: the user is no longer in plaza.
+        final app = TestApp(portfolios: const [gulberg]);
+        // The tenants were asked for before the removal and answered then
+        // (the fake has no row-level security): the answer carries plaza's.
+        app.tenants.byPortfolio[plaza.id] = [aliRaza];
+        // The device's list from before the removal.
+        await app.cache.seed(testUserId, PortfoliosController.query, [
+          gulberg.toRow(),
+          plaza.toRow(),
+        ]);
+        final tenantsKey = 'mm.swr.v1.$testUserId.tenants.${plaza.id}.active.';
+
+        final container = containerFor(app);
+        app.tenants.gate.close();
+        final shown = listen(
+          container,
+          tenantsProvider((portfolioId: plaza.id, archived: false, search: '')),
+        );
+        await pumpEventQueue();
+        expect(app.tenants.calls, hasLength(1), reason: 'request on its way');
+
+        // The portfolio list refreshes: plaza is gone, its records go.
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+          gulberg,
+        ]);
+        expect(keys(app), isNot(contains(tenantsKey)));
+
+        if (!stillShown) shown.close();
+        await pumpEventQueue();
+        // The tenants' answer arrives.
+        app.tenants.gate.open();
+        await pumpEventQueue();
+        expect(keys(app), isNot(contains(tenantsKey)));
+
+        // The next start: the saved list no longer has plaza, so nothing
+        // would find a copy left behind.
+        container.dispose();
+        listen(containerFor(app), portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        expect(keys(app), {
+          'mm.swr.v1.$testUserId.${PortfoliosController.query}',
+        });
+      });
+    }
+
+    test('the list goes on being saved after it', () async {
+      final app = TestApp(portfolios: const [gulberg]);
+      await app.cache.seed(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+        plaza.toRow(),
+      ]);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(keys(app), {
+        'mm.swr.v1.$testUserId.${PortfoliosController.query}',
+      });
+      await container
+          .read(portfoliosProvider(testUserId).notifier)
+          .create(name: 'Khan family', id: 'p-new');
+      final saved = await app.cache.read(
+        testUserId,
+        PortfoliosController.query,
+        (json) => json,
+      );
+      expect((saved!.value! as List).length, 2);
+    });
+
+    test('a list that comes back after the device was wiped is not kept, '
+        'though a portfolio left it', () async {
+      final app = TestApp(portfolios: const [gulberg]);
+      await app.cache.seed(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+        plaza.toRow(),
+      ]);
+      app.portfolios.gate.close();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      // The session ends while the list loads.
+      await app.cache.clear();
+      app.portfolios.gate.open();
+      await pumpEventQueue();
+      expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+        gulberg,
+      ]);
+      expect(app.store.values, isEmpty);
+      // Nor one a command shows after it.
+      await container.read(portfoliosProvider(testUserId).notifier).reload();
+      expect(app.store.values, isEmpty);
     });
 
     test(
@@ -196,7 +295,7 @@ void main() {
 
     test('stays on the saved copy when the refresh fails', () async {
       final app = TestApp()..portfolios.listFailure = const NetworkFailure();
-      await app.cache.write(testUserId, PortfoliosController.query, [
+      await app.cache.seed(testUserId, PortfoliosController.query, [
         plaza.toRow(),
       ]);
       final container = containerFor(app);
@@ -383,7 +482,7 @@ void main() {
       'is not asked from a saved copy, only once the server answered',
       () async {
         final app = TestApp();
-        await app.cache.write(testUserId, PortfoliosController.query, [
+        await app.cache.seed(testUserId, PortfoliosController.query, [
           gulberg.toRow(),
         ]);
         app.portfolios.gate.close();

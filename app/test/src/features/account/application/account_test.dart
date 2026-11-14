@@ -6,6 +6,7 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
 import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:mm_core/mm_core.dart';
 
 import '../../../../support/container.dart';
@@ -57,6 +58,54 @@ void main() {
         container.read(profileProvider(testUserId)).value!.value.language,
         AppLanguage.urdu,
       );
+    });
+
+    test('a profile that comes back after the device was wiped is not '
+        'kept, nor one saved after it', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      final notifier = container.read(profileProvider(testUserId).notifier);
+      app.profiles.gate.close();
+      final saving = notifier.saveDetails(fullName: 'Ayesha K.', phone: null);
+      await pumpEventQueue();
+      // The session ends while the save is on its way.
+      await app.cache.clear();
+      app.profiles.gate.open();
+      await saving;
+      expect(app.store.values, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).value!.value.fullName,
+        'Ayesha K.',
+      );
+      // Nor what the profile, built for that session, saves after.
+      await notifier.saveLanguage(AppLanguage.urdu);
+      expect(app.store.values, isEmpty);
+    });
+
+    test('a profile asked for before a portfolio left the list is not '
+        'kept, and one saved after it is', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      final notifier = container.read(profileProvider(testUserId).notifier);
+      app.profiles.gate.close();
+      final saving = notifier.saveDetails(fullName: 'Ayesha K.', phone: null);
+      await pumpEventQueue();
+      await app.cache.forgetUser(testUserId, keep: PortfoliosController.query);
+      app.profiles.gate.open();
+      await saving;
+      expect(app.store.values, isEmpty);
+      await notifier.saveLanguage(AppLanguage.urdu);
+      final saved = await app.cache.read(
+        testUserId,
+        ProfileController.query,
+        Profile.fromRow,
+      );
+      expect(saved!.value.language, AppLanguage.urdu);
+      expect(saved.value.fullName, 'Ayesha K.');
     });
 
     test(

@@ -11,7 +11,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../support/fakes.dart'
-    show FakeDeviceScratch, MemorySettingsStore, MemoryStore;
+    show FakeDeviceScratch, MemorySettingsStore, MemoryStore, SeededCache;
 
 class _MockAuth extends Mock implements GoTrueClient;
 
@@ -142,7 +142,7 @@ void main() {
     );
 
     test('a sign-out from anywhere wipes the device', () async {
-      await cache.write(_userId, 'dashboard', 1);
+      await cache.seed(_userId, 'dashboard', 1);
       final statuses = <AuthStatus>[];
       final subscription = repository.watch().listen((status) {
         statuses.add(status);
@@ -170,7 +170,7 @@ void main() {
       'an old sign-out replayed to a signed-in user wipes nothing',
       () async {
         // gotrue replays its latest event to a new listener.
-        await cache.write(_userId, 'dashboard', 1);
+        await cache.seed(_userId, 'dashboard', 1);
         when(() => auth.currentSession).thenReturn(_session());
         final subscription = repository.watch().listen((_) {});
         await pumpEventQueue();
@@ -216,7 +216,7 @@ void main() {
       ),
     ]) {
       test('a sign-out by $name wipes the device', () async {
-        await cache.write(_userId, 'tenants', 1);
+        await cache.seed(_userId, 'tenants', 1);
         final subscription = repository.watch().listen((_) {});
         await pumpEventQueue();
         changes.add(change);
@@ -235,7 +235,7 @@ void main() {
       "another account's session that replaces this one wipes the device",
       () async {
         when(() => auth.currentSession).thenReturn(_session());
-        await cache.write(_userId, 'tenants', 1);
+        await cache.seed(_userId, 'tenants', 1);
         final statuses = <AuthStatus>[];
         final subscription = repository.watch().listen(statuses.add);
         await pumpEventQueue();
@@ -277,7 +277,7 @@ void main() {
         wipe: wipe,
         config: _config,
       );
-      await cache.write(_userId, 'tenants', 1);
+      await cache.seed(_userId, 'tenants', 1);
       // The link is completed before gotrue's first event is delivered.
       final other = _session(id: _otherId, email: 'sana.malik@example.com');
       when(() => auth.currentSession).thenReturn(other);
@@ -488,7 +488,7 @@ void main() {
     test(
       'signOut wipes the device even when the server cannot be reached',
       () async {
-        await cache.write(_userId, 'q', 1);
+        await cache.seed(_userId, 'q', 1);
         when(() => auth.signOut(scope: any(named: 'scope')))
             .thenThrow(AuthRetryableFetchException(message: 'offline'));
         await expectLater(repository.signOut(), throwsA(isA<NetworkFailure>()));

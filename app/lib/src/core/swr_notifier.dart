@@ -30,8 +30,9 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
 
   String? _userId;
 
-  /// The cache's epoch when the query was built: a value shown after the
-  /// device was wiped since (the session ended) is not saved.
+  /// The cache's epoch when the query was built: the earliest a value it
+  /// shows can have been asked for. A value shown after the device was
+  /// wiped since (the session ended) is not saved.
   int _epoch = 0;
 
   @override
@@ -59,21 +60,31 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
   Future<void> reload() async {
     // Nobody shows the query any more: there is nothing to refresh.
     if (!ref.mounted) return;
+    // Read before the fetch: a query built before a portfolio left the
+    // user's list goes on saving what it fetches after.
+    final epoch = ref.read(swrCacheProvider).requestEpoch(madeIn: _epoch);
     try {
-      await show(await fetch());
+      await show(await fetch(), epoch: epoch);
     } on AppFailure {
       if (ref.mounted) ref.invalidateSelf();
     }
   }
 
-  /// Shows [value] as the server's latest, and saves it, unless the device
-  /// was wiped since the query was built.
-  Future<void> show(T value) async {
+  /// Shows [value] as the server's latest, and saves it unless its saved
+  /// copy was removed since it was asked for: the device was wiped, or a
+  /// portfolio left the user's list (`SwrCache.write`).
+  ///
+  /// [epoch] is the cache's epoch read before [value] was asked for
+  /// (`SwrCache.requestEpoch`). Without it the value counts as asked for
+  /// when the query was built, the earliest it can have been: after a
+  /// portfolio left the user's list it is shown but not saved, until the
+  /// query is read again ([reload]) or built anew.
+  Future<void> show(T value, {int? epoch}) async {
     final userId = _userId;
     if (userId == null) return;
     final savedAt = await ref
         .read(swrCacheProvider)
-        .write(userId, query, encode(value), epoch: _epoch);
+        .write(userId, query, encode(value), epoch: epoch ?? _epoch);
     if (!ref.mounted) return;
     state = AsyncData(
       Snapshot(value, savedAt: savedAt, source: SnapshotSource.network),

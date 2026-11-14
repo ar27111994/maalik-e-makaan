@@ -81,7 +81,7 @@ void main() {
     });
     store = MemoryStore();
     final cache = SwrCache(store);
-    await cache.write(testUserId, 'tenants', 1);
+    await cache.seed(testUserId, 'tenants', 1);
     settings = MemorySettingsStore({
       AppSettings.localeKey: 'ur',
       AppSettings.themeKey: 'dark',

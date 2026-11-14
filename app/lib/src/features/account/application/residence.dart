@@ -30,18 +30,22 @@ final class ResidenceController
   /// The cache key of the residence query.
   static const query = 'residence';
 
+  /// The cache's epoch when the residence was built: one saved after the
+  /// device was wiped since (the session ended) is not kept on it.
+  int _epoch = 0;
+
   @override
   Stream<Snapshot<AccountResidence>> build() {
     final repository = ref.watch(residenceRepositoryProvider);
-    return ref
-        .watch(swrCacheProvider)
-        .watch(
-          userId: userId,
-          query: query,
-          fetch: () => repository.fetch(userId),
-          decode: AccountResidence.fromRow,
-          encode: (residence) => residence.toRow(),
-        );
+    final cache = ref.watch(swrCacheProvider);
+    _epoch = cache.epoch;
+    return cache.watch(
+      userId: userId,
+      query: query,
+      fetch: () => repository.fetch(userId),
+      decode: AccountResidence.fromRow,
+      encode: (residence) => residence.toRow(),
+    );
   }
 
   /// Saves the country and zone the user chose and shows them as stored.
@@ -50,11 +54,19 @@ final class ResidenceController
     required TimeZoneId? timeZone,
   }) async {
     final cache = ref.read(swrCacheProvider);
+    // Read before the request: an answer that comes after the device was
+    // wiped (the session ended meanwhile) is not saved.
+    final epoch = cache.requestEpoch(madeIn: _epoch);
     final saved = await ref
         .read(residenceRepositoryProvider)
         .update(userId, country: country, timeZone: timeZone);
     // Kept for next time even when nobody shows it any more.
-    final savedAt = await cache.write(userId, query, saved.toRow());
+    final savedAt = await cache.write(
+      userId,
+      query,
+      saved.toRow(),
+      epoch: epoch,
+    );
     if (!ref.mounted) return;
     state = AsyncData(
       Snapshot(saved, savedAt: savedAt, source: SnapshotSource.network),

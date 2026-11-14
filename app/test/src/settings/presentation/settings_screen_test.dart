@@ -91,7 +91,7 @@ void main() {
       tester,
     ) async {
       final app = TestApp();
-      await app.cache.write(testUserId, 'profile', {
+      await app.cache.seed(testUserId, 'profile', {
         ...ayesha.toRow(),
         'full_name': 'Old name',
       });
@@ -105,7 +105,7 @@ void main() {
 
     testWidgets('offline with a saved copy, it says so', (tester) async {
       final app = TestApp()..profiles.fetchFailure = const NetworkFailure();
-      await app.cache.write(testUserId, 'profile', ayesha.toRow());
+      await app.cache.seed(testUserId, 'profile', ayesha.toRow());
       await pumpScreen(tester, SettingsScreen.new, app: app, size: _tall);
       expect(find.textContaining('You are offline.'), findsOneWidget);
       expect(_valueOf(tester, 'Your name'), 'Ayesha Khan');

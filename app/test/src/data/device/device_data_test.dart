@@ -63,7 +63,7 @@ void main() {
   setUp(() async {
     store = MemoryStore();
     cache = SwrCache(store);
-    await cache.write(testUserId, 'tenants', [
+    await cache.seed(testUserId, 'tenants', [
       {'cnic': '35202-0000000-1'},
     ]);
     // Not the cache's: kept.
@@ -390,7 +390,7 @@ void main() {
       await timed.wipe(WipeReason.signedOut);
       // The next account signs in while the files are still going, and
       // signs out in turn.
-      await cache.write('next-user', 'tenants', 1);
+      await cache.seed('next-user', 'tenants', 1);
       await settings.setString(AppSettings.currentPortfolioKey, 'next/p2');
       time = _now.add(const Duration(minutes: 3));
       await timed.wipe(WipeReason.signedOut);

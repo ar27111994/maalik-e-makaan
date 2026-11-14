@@ -4,6 +4,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:mm_core/mm_core.dart';
 
 import '../../../../support/container.dart';
@@ -94,6 +95,64 @@ void main() {
         AccountResidence.fromRow,
       );
       expect(saved!.value.residence.timeZone, _london);
+    });
+
+    test('a save that comes back after the device was wiped is not kept, '
+        'nor one made after it', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, residenceProvider(testUserId));
+      await pumpEventQueue();
+      final notifier = container.read(residenceProvider(testUserId).notifier);
+      app.residences.gate.close();
+      final saving = notifier.save(
+        country: CountryCode.parse('GB'),
+        timeZone: _london,
+      );
+      await pumpEventQueue();
+      // The session ends while the save is on its way.
+      await app.cache.clear();
+      app.residences.gate.open();
+      await saving;
+      expect(app.store.values, isEmpty);
+      expect(
+        container
+            .read(residenceProvider(testUserId))
+            .value!
+            .value
+            .residence
+            .timeZone,
+        _london,
+      );
+      // Nor what the residence, built for that session, saves after.
+      await notifier.save(country: CountryCode.parse('NO'), timeZone: null);
+      expect(app.store.values, isEmpty);
+    });
+
+    test('a save asked for before a portfolio left the list is not kept, '
+        'and one made after it is', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, residenceProvider(testUserId));
+      await pumpEventQueue();
+      final notifier = container.read(residenceProvider(testUserId).notifier);
+      app.residences.gate.close();
+      final saving = notifier.save(
+        country: CountryCode.parse('GB'),
+        timeZone: _london,
+      );
+      await pumpEventQueue();
+      await app.cache.forgetUser(testUserId, keep: PortfoliosController.query);
+      app.residences.gate.open();
+      await saving;
+      expect(app.store.values, isEmpty);
+      await notifier.save(country: CountryCode.parse('NO'), timeZone: null);
+      final saved = await app.cache.read(
+        testUserId,
+        ResidenceController.query,
+        AccountResidence.fromRow,
+      );
+      expect(saved!.value.residence.country, CountryCode.parse('NO'));
     });
   });
 

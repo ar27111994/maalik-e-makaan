@@ -751,6 +751,15 @@ final class MemoryStore implements KeyValueStore {
   Future<Set<String>> keys() async => values.keys.toSet();
 }
 
+/// What a test puts in the cache before it starts, as an earlier run of the
+/// app saved it.
+extension SeededCache on SwrCache {
+  /// Saves [json] as the value of [query] for [userId], in the cache's
+  /// current epoch.
+  Future<DateTime> seed(String userId, String query, Object? json) =>
+      write(userId, query, json, epoch: epoch);
+}
+
 /// A [DeviceScratch] that records what it is asked, for a wipe's files.
 final class FakeDeviceScratch implements DeviceScratch {
   final calls = <Call>[];

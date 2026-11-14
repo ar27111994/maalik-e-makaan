@@ -50,7 +50,7 @@ void main() {
     test('the saved team shows first, and is kept when offline', () async {
       final app = TestApp()..team.readFailure = const NetworkFailure();
       const saved = Team(members: [], invitations: []);
-      await app.cache.write(testUserId, 'team.${gulberg.id}', saved.toJson());
+      await app.cache.seed(testUserId, 'team.${gulberg.id}', saved.toJson());
       final container = containerFor(app);
       listen(container, teamProvider(gulberg));
       await pumpEventQueue();

@@ -83,6 +83,61 @@ void main() {
     expect(container.read(_count).value!.value, 3);
   });
 
+  test('a reload begun after the wipe, by a query built before it, saves '
+      'nothing', () async {
+    await cache.clear();
+    held.complete(6);
+    await container.read(_count.notifier).reload();
+    expect(saved(), isEmpty);
+    expect(container.read(_count).value!.value, 6);
+  });
+
+  group('when a portfolio left the list', () {
+    test('a reload still on its way saves nothing, and shows what came '
+        'back', () async {
+      final reload = container.read(_count.notifier).reload();
+      await pumpEventQueue();
+      await cache.forgetUser('u1', keep: 'portfolios');
+      expect(saved(), isEmpty);
+      held.complete(2);
+      await reload;
+      expect(saved(), isEmpty);
+      expect(container.read(_count).value!.value, 2);
+    });
+
+    test('a reload begun after it is saved, though the query was built '
+        'before', () async {
+      await cache.forgetUser('u1', keep: 'portfolios');
+      held.complete(3);
+      await container.read(_count.notifier).reload();
+      final entry = await cache.read('u1', 'count', (json) => json! as int);
+      expect(entry!.value, 3);
+    });
+
+    test('a value shown without its epoch is not saved: it may have been '
+        'asked for before', () async {
+      await cache.forgetUser('u1', keep: 'portfolios');
+      await container.read(_count.notifier).show(4);
+      expect(saved(), isEmpty);
+      expect(container.read(_count).value!.value, 4);
+      // With the epoch read before it was asked for, it is.
+      await container.read(_count.notifier).show(5, epoch: cache.epoch);
+      final entry = await cache.read('u1', 'count', (json) => json! as int);
+      expect(entry!.value, 5);
+    });
+
+    test('a query built after it saves what it shows', () async {
+      await cache.forgetUser('u1', keep: 'portfolios');
+      container.invalidate(_count);
+      await pumpEventQueue();
+      held.complete(7);
+      await pumpEventQueue();
+      await container.read(_count.notifier).show(8);
+      final entry = await cache.read('u1', 'count', (json) => json! as int);
+      expect(entry!.value, 8);
+    });
+  });
+
   test('a query built after the wipe saves again', () async {
     await cache.clear();
     container.invalidate(_count);
