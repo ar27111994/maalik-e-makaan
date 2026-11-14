@@ -30,6 +30,12 @@ Facts marked _(summary)_ were read only through a search engine's summary.
   that stay.
   [`tool/check_urdu_words.py`](../../tool/check_urdu_words.py) fails `make lint` when an avoided
   word returns to any tracked file.
+- **The amount lexicon.** [`contracts/amount_lexicon.json`](../../contracts/amount_lexicon.json)
+  lists the number words, fractions, multipliers and rupee words the amount reader takes, in Urdu
+  script and Roman Urdu (14 November 2026). It is marked `"reviewed": false`, and its
+  `review.check_first` lists the entries to look at first: the fractions, the irregular numbers
+  and the spelling variants where the sources disagree ([amount-parser](amount-parser.md), work
+  item 2).
 - **Other surfaces.** The website's Urdu content files hold about 5,800 words
   ([website/src/content](../../website/src/content/)), and there are three bilingual Auth e-mail
   templates ([supabase/templates](../../supabase/templates/)). No store listing text exists yet.
@@ -139,6 +145,8 @@ articles carry the Urdu.
    new line-height tokens, Urdu goldens re-recorded; in place since November 2026 in the app, the
    website, the pitch deck and the e-mails, whose Urdu type `make tokens` writes from the tokens);
    then a check with pilot readers.
+8. **Owner:** review the amount lexicon, starting with its `review.check_first`, then set
+   `"reviewed": true` and run `make contracts` ([amount-parser](amount-parser.md), work item 2).
 
 ## Depends on / Unblocks
 
