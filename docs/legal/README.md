@@ -31,7 +31,7 @@ privacy changes for decisions 1 to 3 in both languages, the data map and the que
 | 1   | This README                                                                              | What the pack is, the status of each decision, how to return the mark-up                                                                                                                                                                                       |
 | 2   | [data-map.md](data-map.md)                                                               | The data map: a one-page summary; every data class, where it is stored, who sees it, whether tenants see it, how long it stays, and the services that handle it, live and planned separately; a first draft of the store forms; and a draft retention schedule |
 | 3   | [privacy-notice.en.md](privacy-notice.en.md)                                             | The whole proposed privacy page in English, then a table of every change from the live page with its reason and the feature it ships with                                                                                                                      |
-| 4   | [website-copy.md](website-copy.md)                                                       | Proposed English and Urdu for every other place that makes a privacy promise: the FAQ, the footer, the page description, the READMEs                                                                                                                           |
+| 4   | [website-copy.md](website-copy.md)                                                       | Proposed English and Urdu for every other place that makes a privacy promise: the FAQ, the footer, the page description, the how-it-works step, the READMEs                                                                                                    |
 | 5   | [terms-changes.en.md](terms-changes.en.md)                                               | Draft terms clauses for decisions 1 to 3: caretakers' authority, the owner's warranty for letterheads, and the messages we send                                                                                                                                |
 | 6   | [questions.md](questions.md)                                                             | The questions for the lawyer, grouped, each with why it matters and what the drafts assume                                                                                                                                                                     |
 | 7   | [privacy-notice.ur.md](privacy-notice.ur.md), [terms-changes.ur.md](terms-changes.ur.md) | The Urdu twins of files 3 and 5, with the words chosen for legal terms. The Urdu of file 4 is in that file                                                                                                                                                     |
@@ -135,15 +135,35 @@ placeholder until each is settled.
       tenant search or the duplicate check, and its database logs the detail of a duplicate-CNIC
       error; or send those searches another way (data map, gap 22;
       [X1](questions.md#transfers-and-regions)).
-- [ ] **The contact mailbox:** who receives mail for the address on the privacy page, in which
-      country, and how long it keeps it (data map, row 20).
+- [ ] **The contact mailbox:** who receives mail for the address the live privacy page gives
+      (`maalik-e-makaan@news.ar27111994.dev`), in which country, and how long it keeps it; and for
+      `hello@mmakaan.app`, which PR #74 makes the contact address and the drafts give, where
+      Dynadot stores it, how long it keeps mail and logs, and whether Dynadot offers a data
+      processing agreement (data map, row 20 and the services table; [R1](questions.md#roles)).
 - [ ] **The weekly backup:** keep it as a workflow artefact of the public repository, which any
       signed-in GitHub user can download though only the owner's key opens it, or store it
       elsewhere; and whether it is still made on a GitHub-hosted runner, which holds the data
       unencrypted until it encrypts it, the restore check included (data map, row 18;
       [X3](questions.md#transfers-and-regions)).
-- [ ] **Each service's retention:** Supabase's logs, Vercel's logs, Resend, Intercom and
-      Customer.io ([D4](questions.md#retention-and-deletion)).
+- [ ] **The device** (data map, rows 14a to 14g, and gap 5): the live how-it-works step says, in
+      both languages, that signing out clears the app's saved records from the phone or computer,
+      which release 1.2.0 does not do ([website copy](website-copy.md), item 17). PR #70 makes it
+      true and rewrites the step and the privacy page; until it is released, the data map gives both
+      behaviours. Whether the pack goes out before or after #70 is released.
+- [ ] **Android's Auto Backup:** `android:allowBackup` is not set, so Google's backup of the phone
+      copies the app's preferences, the session and the record cache with tenants' CNICs included,
+      to the person's Google account; iCloud or a computer backup does the same on the iPhone (data
+      map, row 14g). Turn it off, or leave the preferences out of it
+      ([T7](questions.md#tenants)). A planned task, not yet in the repository's roadmap and not
+      part of PR #70.
+- [ ] **A session timeout on the hosted project:** refresh tokens do not expire by time, and
+      `supabase/config.toml` sets no session time-box or inactivity timeout, so a sign-out that
+      cannot reach the server leaves that session valid, and a phone backup made before it can still
+      sign in (data map, row 14g; PR #70's `.planning/STATE.md`:339-343). The same holds for the
+      session a browser held on the web app's old address, which PR #74's page removes from the
+      browser but does not end on the server.
+- [ ] **Each service's retention:** Supabase's logs, Vercel's logs, Resend, Intercom,
+      Customer.io and Dynadot's mailbox ([D4](questions.md#retention-and-deletion)).
 - [ ] **The processor role:** whether AR LABS accepts it for tenant data, and says so (LR:177;
       [R1](questions.md#roles)).
 - [ ] **Staff access:** the rule for when AR LABS's staff may look at records
@@ -205,6 +225,28 @@ Versions sent: none yet.
   `7e75b7f`, where the file's header comment is nine lines longer: every RES line from :61 on is
   nine more there, and nothing the pack cites changed. `6608f1e` stays reachable through the pull
   request.
+- **The pin is kept after merging `main` at `58a3281`** (14 November 2026): #73 (astro 7.4.12)
+  and #72 (the sub-agent model setting). Neither changes the app or a cited claim; #72 adds eight
+  lines to `.planning/STATE.md` after :228, so a STATE line the pack cites from there on is eight
+  more at `58a3281`.
+- **Which release carries what** (checked on 14 November 2026 against `origin/main` at
+  `58a3281`): release 1.2.0, the latest, is the app and website the pack calls "today". Two pull
+  requests the pack cites are open and in no release:
+  - **The device wipe**, pull request [#70](https://github.com/ar27111994/maalik-e-makaan/pull/70)
+    (open), cited at its head `aac83e9` as "PR #70" (an earlier draft cited `4b84fab`; the privacy
+    page and how-it-works text it adds did not change between the two). Where it changes what the
+    app does, the pack says what release 1.2.0 does today and what PR #70 changes
+    ([data map](data-map.md#on-the-device), rows 14a to 14g).
+  - **The move to `mmakaan.app`**, pull request
+    [#74](https://github.com/ar27111994/maalik-e-makaan/pull/74) (open), cited at its head `dca00eb`
+    as "PR #74". With its release the website moves to `https://mmakaan.app` and the web app to
+    `https://app.mmakaan.app`, the old web app address clears what the app kept in a browser and
+    sends people on, and the privacy page's contact address becomes `hello@mmakaan.app`. Until
+    then the live addresses are `https://maalik-e-makaan-site.vercel.app`,
+    `https://maalik-e-makaan.vercel.app` and `maalik-e-makaan@news.ar27111994.dev`. One part is
+    live early: since 14 November 2026 the Edge Function secret `APP_URL` names
+    `https://app.mmakaan.app`, so invitation e-mails already link there (the owner's decision,
+    since nobody uses the app yet).
 - **Short names:** PJ is [`.planning/PROJECT.md`](../../.planning/PROJECT.md), RM is
   [`docs/roadmap/README.md`](../roadmap/README.md), LR is
   [`docs/roadmap/legal-review.md`](../roadmap/legal-review.md), PEN and TEN are the live privacy page

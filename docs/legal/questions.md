@@ -436,12 +436,32 @@ The groups: [roles](#roles), [transfers and regions](#transfers-and-regions),
     the tenant page).
 
 - **T7. Full tenant records, CNICs included, are cached on the landlord's device without
-  encryption until sign-out (in the browser's local storage on the web), and a phone's own backup
-  can copy them. On a phone, camera photos (CNIC photos among them), files picked to upload and
-  documents shared also stay in the app's cache or temporary folder after sign-out and account
-  deletion, until the phone clears them. Must the notice say so, should sign-out and deletion
-  remove them, and is this an adequate safeguard?**
-  - Sources: [data map](data-map.md#live-now), rows 14a to 14e and their sources;
+  encryption (in the browser's local storage on the web), and a phone's own backup can copy them.
+  Must the notice say so, should sign-out and deletion remove more, and is this an adequate
+  safeguard?**
+  - Today (release 1.2.0): sign-out clears the cache and the session, but not after a deletion
+    whose answer is lost or a session replaced through another account's e-mail link; the
+    settings, the last portfolio and a pending invitation stay; on a phone, camera photos (CNIC
+    photos among them), files picked to upload and documents shared stay in the app's cache or
+    temporary folder until the phone clears them. Yet the live how-it-works step says that
+    "signing out clears the app's saved records from your phone or computer"
+    ([website copy](website-copy.md), item 17).
+  - With PR #70 (open): every end of a session, and account deletion even when its answer is
+    lost, removes the cache, the session, the last portfolio and the app's copies of photos and
+    files; the settings stay, and so does an unanswered invitation until it is answered or the
+    account is deleted on that device. Each removal waits at most three seconds for a store that
+    does not answer. The how-it-works step and the privacy page are rewritten to say what goes and
+    what stays, including what the app cannot delete: downloads, shared copies, the browser's
+    cache, the gallery, the clipboard, other devices and the phone's backup.
+  - Still open with PR #70: Android's Auto Backup is on (`android:allowBackup` is not set), so
+    the session and the cache can be copied to the person's Google account, as iCloud or a
+    computer backup can on the iPhone; and a sign-out that cannot reach the server leaves that
+    session valid, since refresh tokens do not expire by time and the hosted project sets no
+    session timeout. Both are the owner's to decide ([README](README.md#before-the-pack-goes-out)).
+  - Questions: is an unencrypted cache on the device acceptable for CNICs, or should the app keep
+    them out of it or encrypt it; must the backup be turned off; is a session timeout needed; and
+    does the rewritten privacy page say enough?
+  - Sources: [data map](data-map.md#on-the-device), rows 14a to 14g and source 14;
     [`swr_cache.dart`](../../app/lib/src/data/cache/swr_cache.dart);
     [`tenant.dart`](../../app/lib/src/features/tenants/data/tenant.dart):124.
 
@@ -466,7 +486,8 @@ The groups: [roles](#roles), [transfers and regions](#transfers-and-regions),
 
 - **D4. Must each service's own retention be stated?**
   - Why it matters: LR:111 asks for "every processor with its region and retention". Not recorded:
-    Supabase's logs, Vercel's logs, Intercom and Customer.io. Resend keeps e-mail and logs 30 days
+    Supabase's logs, Vercel's logs, Intercom, Customer.io and Dynadot, which hosts the company's
+    mailbox `hello@mmakaan.app` (data map, row 20). Resend keeps e-mail and logs 30 days
     _(summary)_. PostHog: see A9.
   - The drafts assume: yes, with placeholders until each is read from the service's settings or
     terms.
