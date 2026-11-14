@@ -11,9 +11,12 @@ only `site_url` and `uri_allow_list` (the comma-separated redirect URLs): the re
 can hold secrets, and is neither printed nor written anywhere. The Release workflow runs it
 before its builds and the Deploy workflow's supabase job before it deploys. A token that may not
 read Auth's settings (401 or 403) only warns, and what the check gates goes ahead: the owner
-compares Authentication, URL Configuration with docs/operations.md, Domains, by hand. Any other
-answer, or none (after six tries, five seconds apart, for a 5xx or no answer), fails. AUTH_JSON
-is a file holding those two fields, for a check by hand.
+compares Authentication, URL Configuration with docs/operations.md, Domains, by hand. No answer,
+a 5xx, 408 or 429 is tried again, six tries in all (after the seconds of a Retry-After header, at
+most a minute, or else five seconds; check_live.answer), since the Release workflow's preflight
+job and the Deploy workflow's supabase job call the Management API at the same moment. Any other
+answer, or one of those on the last try, fails. AUTH_JSON is a file holding those two fields, for
+a check by hand.
 
 A build asks Auth to send its e-mail links (confirmation, password reset, e-mail change) to
 `APP_URL/auth/callback` (the web app and Android), or, on iOS, to the same address under the
@@ -200,10 +203,18 @@ def fetch_with_token(token: str) -> Callable[[str], Answer]:
         opener = urllib.request.build_opener(_NoRedirect)
         try:
             with opener.open(request, timeout=TIMEOUT_SECONDS) as response:
-                return Answer(response.status, body=response.read(BODY_LIMIT))
+                return Answer(
+                    response.status,
+                    body=response.read(BODY_LIMIT),
+                    retry_after=response.headers.get("Retry-After", ""),
+                )
         except urllib.error.HTTPError as error:
             with error:
-                return Answer(error.code, body=error.read(BODY_LIMIT))
+                return Answer(
+                    error.code,
+                    body=error.read(BODY_LIMIT),
+                    retry_after=error.headers.get("Retry-After", ""),
+                )
         except (urllib.error.URLError, OSError) as error:
             raise UnreachableError(str(getattr(error, "reason", error))) from error
 

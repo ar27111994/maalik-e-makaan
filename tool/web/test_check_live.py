@@ -132,7 +132,7 @@ class AnswerTest(unittest.TestCase):
         return cl.answer("https://x.example.pk/", web, self.pauses.append)
 
     def test_the_first_answer_below_500_is_taken_at_once(self):
-        for status in (200, 308, 404):
+        for status in (200, 308, 400, 401, 403, 404, 409):
             with self.subTest(status=status):
                 web = Web({"https://x.example.pk/": cl.Answer(status)})
                 self.assertEqual(self.answer(web).status, status)
@@ -151,6 +151,63 @@ class AnswerTest(unittest.TestCase):
         )
         self.assertEqual(self.answer(web).status, 200)
         self.assertEqual(self.pauses, [cl.PAUSE_SECONDS] * 2)
+
+    def test_408_and_429_are_tried_again(self):
+        for status in (408, 429):
+            with self.subTest(status=status):
+                self.pauses.clear()
+                web = Web({"https://x.example.pk/": [cl.Answer(status), cl.Answer(200)]})
+                self.assertEqual(self.answer(web).status, 200)
+                self.assertEqual(self.pauses, [cl.PAUSE_SECONDS])
+
+    def test_a_lasting_429_is_returned_after_the_last_try(self):
+        web = Web({"https://x.example.pk/": cl.Answer(429)})
+        self.assertEqual(self.answer(web).status, 429)
+        self.assertEqual(len(web.calls), cl.TRIES)
+        self.assertEqual(self.pauses, [cl.PAUSE_SECONDS] * (cl.TRIES - 1))
+
+    def test_retry_after_sets_the_pause_within_the_cap(self):
+        cases = {
+            "2": 2.0,
+            " 2 ": 2.0,
+            "0": 0.0,
+            "60": cl.MAX_RETRY_AFTER_SECONDS,
+            "61": cl.MAX_RETRY_AFTER_SECONDS,
+            "86400": cl.MAX_RETRY_AFTER_SECONDS,
+            "9" * 5000: cl.MAX_RETRY_AFTER_SECONDS,
+            "": cl.PAUSE_SECONDS,
+            "soon": cl.PAUSE_SECONDS,
+            "-1": cl.PAUSE_SECONDS,
+            "1.5": cl.PAUSE_SECONDS,
+            "\u0662": cl.PAUSE_SECONDS,  # an Arabic-Indic two: not ASCII digits
+            "Wed, 21 Oct 2026 07:28:00 GMT": cl.PAUSE_SECONDS,
+        }
+        for header, pause in cases.items():
+            with self.subTest(header=header[:20]):
+                self.pauses.clear()
+                web = Web(
+                    {
+                        "https://x.example.pk/": [
+                            cl.Answer(429, retry_after=header),
+                            cl.Answer(200),
+                        ]
+                    }
+                )
+                self.assertEqual(self.answer(web).status, 200)
+                self.assertEqual(self.pauses, [pause])
+
+    def test_retry_after_on_a_5xx_counts_and_no_answer_falls_back(self):
+        web = Web(
+            {
+                "https://x.example.pk/": [
+                    cl.Answer(503, retry_after="3"),
+                    cl.UnreachableError("reset"),
+                    cl.Answer(200),
+                ]
+            }
+        )
+        self.assertEqual(self.answer(web).status, 200)
+        self.assertEqual(self.pauses, [3.0, cl.PAUSE_SECONDS])
 
     def test_gives_up_after_the_last_try(self):
         web = Web({"https://x.example.pk/": cl.UnreachableError("certificate verify failed")})
@@ -311,7 +368,12 @@ class MainTest(unittest.TestCase):
 
 class _Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/moved":
+        if self.path == "/busy":
+            self.send_response(429)
+            self.send_header("Retry-After", "7")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+        elif self.path == "/moved":
             self.send_response(308)
             self.send_header("Location", "https://app.example.pk/")
             self.end_headers()
@@ -353,6 +415,7 @@ class FetchTest(unittest.TestCase):
         moved = cl.fetch(f"{self.base}/moved")
         self.assertEqual((moved.status, moved.location), (308, "https://app.example.pk/"))
         self.assertEqual(cl.fetch(f"{self.base}/missing").status, 404)
+        self.assertEqual(cl.fetch(f"{self.base}/busy"), cl.Answer(429, "", b"", "7"))
 
     def test_no_server_is_unreachable(self):
         with socket.socket() as probe:

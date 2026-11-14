@@ -25,8 +25,9 @@ and fails closed:
   app at the origin is the build from before the move, whose e-mail links name the earlier
   address, where the sign-in verifier stored at the origin does not exist.
 
-Redirects are not followed. A request that fails (DNS, connection, certificate, timeout) or
-answers 5xx is tried again, five seconds apart, six tries in all.
+Redirects are not followed. A request that fails (DNS, connection, certificate, timeout), or
+answers 5xx, 408 (Request Timeout) or 429 (Too Many Requests), is tried again, six tries in all:
+after the seconds its Retry-After header gives, at most a minute, or else after five seconds.
 """
 
 from __future__ import annotations
@@ -46,6 +47,10 @@ ORIGINS = Path(__file__).resolve().parents[2] / "contracts/origins.json"
 ASSETLINKS = "/.well-known/assetlinks.json"
 TRIES = 6
 PAUSE_SECONDS = 5.0
+# The answers below 500 that say "not now" rather than "no": tried again like a 5xx.
+RETRY_STATUSES = frozenset({408, 429})
+# The longest wait a Retry-After header can ask for between two tries.
+MAX_RETRY_AFTER_SECONDS = 60.0
 TIMEOUT_SECONDS = 30.0
 # Enough of a body for assetlinks.json; nothing else is read.
 BODY_LIMIT = 1 << 20
@@ -77,11 +82,13 @@ class Origins:
 
 @dataclass(frozen=True)
 class Answer:
-    """An HTTP answer: the status, the Location header (or "") and the start of the body."""
+    """An HTTP answer: the status, the Location header (or ""), the start of the body and the
+    Retry-After header (or "")."""
 
     status: int
     location: str = ""
     body: bytes = b""
+    retry_after: str = ""
 
 
 def _origin(value: object, key: str, path: Path) -> str:
@@ -130,10 +137,20 @@ def fetch(url: str) -> Answer:
     try:
         with opener.open(request, timeout=TIMEOUT_SECONDS) as response:
             body = response.read(BODY_LIMIT)
-            return Answer(response.status, response.headers.get("Location", ""), body)
+            return Answer(
+                response.status,
+                response.headers.get("Location", ""),
+                body,
+                response.headers.get("Retry-After", ""),
+            )
     except urllib.error.HTTPError as error:  # a redirect, 4xx or 5xx: an answer all the same
         with error:
-            return Answer(error.code, error.headers.get("Location", ""), error.read(BODY_LIMIT))
+            return Answer(
+                error.code,
+                error.headers.get("Location", ""),
+                error.read(BODY_LIMIT),
+                error.headers.get("Retry-After", ""),
+            )
     except (urllib.error.URLError, OSError) as error:
         raise UnreachableError(str(getattr(error, "reason", error))) from error
 
@@ -141,20 +158,38 @@ def fetch(url: str) -> Answer:
 Fetch = Callable[[str], Answer]
 
 
+def retried(got: Answer) -> bool:
+    """Whether an answer is worth another try: a 5xx, 408 or 429."""
+    return got.status >= 500 or got.status in RETRY_STATUSES
+
+
+def pause_after(got: Answer | None) -> float:
+    """The wait before the next try: the whole seconds of the answer's Retry-After header, at
+    most MAX_RETRY_AFTER_SECONDS, or PAUSE_SECONDS without an answer, without the header, or
+    with one that is not a whole number of seconds (an HTTP date, say)."""
+    value = got.retry_after.strip() if got is not None else ""
+    if not re.fullmatch(r"[0-9]+", value, re.ASCII):
+        return PAUSE_SECONDS
+    # Seven digits are already far beyond the cap; int() of a very long string would raise.
+    return MAX_RETRY_AFTER_SECONDS if len(value) > 6 else min(float(value), MAX_RETRY_AFTER_SECONDS)
+
+
 def answer(url: str, get: Fetch = fetch, sleep: Callable[[float], None] = time.sleep) -> Answer:
-    """`get(url)`, tried again while it gets no answer or a 5xx; raises UnreachableError when no
-    try got an answer, and returns the last 5xx when every try got one."""
+    """`get(url)`, tried again while it gets no answer, a 5xx, 408 or 429 (pause_after says how
+    long to wait); raises UnreachableError when no try got an answer, and returns the last
+    answer when every try got one worth another try."""
     last: Answer | None = None
+    got: Answer | None = None  # the answer of the latest try, None when it got none
     reason: UnreachableError | None = None
     for attempt in range(TRIES):
         if attempt:
-            sleep(PAUSE_SECONDS)
+            sleep(pause_after(got))
         try:
-            last = get(url)
+            got = last = get(url)
         except UnreachableError as error:
-            reason = error
+            reason, got = error, None
             continue
-        if last.status < 500:
+        if not retried(last):
             return last
     if last is None:
         raise reason or UnreachableError("no answer")

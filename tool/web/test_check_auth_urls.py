@@ -6,6 +6,7 @@ python3 -m unittest discover -s tool/web -p 'test_*.py'
 from __future__ import annotations
 
 import contextlib
+import email.message
 import io
 import json
 import plistlib
@@ -17,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import check_auth_urls as ca
+import check_live as cl
 
 SCHEME = "io.example.app"
 APP = "https://app.example.pk"
@@ -227,6 +229,47 @@ class FetchTest(unittest.TestCase):
         self.assertEqual(self.fetch(api), ca.AuthUrls(APP, ()))
         self.assertEqual(api.pauses, [5.0, 5.0])
 
+    def test_408_and_429_are_tried_again_then_read(self):
+        # The Release workflow's preflight job and Deploy's supabase job ask at the same moment.
+        for status in (408, 429):
+            with self.subTest(status=status):
+                api = FakeApi(ca.Answer(status), settings(site_url=APP, uri_allow_list=""))
+                self.assertEqual(self.fetch(api), ca.AuthUrls(APP, ()))
+                self.assertEqual(api.pauses, [cl.PAUSE_SECONDS])
+                self.assertEqual(len(api.urls), 2)
+
+    def test_a_retry_after_header_sets_the_pause_up_to_a_minute(self):
+        cases = {
+            "2": 2.0,
+            "3600": cl.MAX_RETRY_AFTER_SECONDS,
+            "9" * 5000: cl.MAX_RETRY_AFTER_SECONDS,
+            "in a while": cl.PAUSE_SECONDS,
+            "-5": cl.PAUSE_SECONDS,
+            "Sat, 14 Nov 2026 23:59:59 GMT": cl.PAUSE_SECONDS,
+        }
+        for header, pause in cases.items():
+            with self.subTest(header=header[:20]):
+                api = FakeApi(
+                    ca.Answer(429, retry_after=header), settings(site_url=APP, uri_allow_list="")
+                )
+                self.assertEqual(self.fetch(api), ca.AuthUrls(APP, ()))
+                self.assertEqual(api.pauses, [pause])
+
+    def test_a_lasting_429_stops_after_the_last_try(self):
+        api = FakeApi(*[ca.Answer(429, retry_after="2")] * cl.TRIES)
+        with self.assertRaisesRegex(ca.AuthCheckError, r"could not be read \(HTTP 429\)"):
+            self.fetch(api)
+        self.assertEqual(len(api.urls), cl.TRIES)
+        self.assertEqual(api.pauses, [2.0] * (cl.TRIES - 1))
+
+    def test_other_4xx_stop_at_once(self):
+        for status in (400, 404, 405, 409, 422):
+            with self.subTest(status=status):
+                api = FakeApi(ca.Answer(status, retry_after="1"))
+                with self.assertRaisesRegex(ca.AuthCheckError, f"HTTP {status}"):
+                    self.fetch(api)
+                self.assertEqual((len(api.urls), api.pauses), (1, []))
+
     def test_any_other_failure_stops(self):
         cases = {
             "404": FakeApi(ca.Answer(404)),
@@ -266,6 +309,40 @@ class FetchTest(unittest.TestCase):
         self.assertEqual(seen, {"auth": f"Bearer {TOKEN}", "timeout": ca.TIMEOUT_SECONDS})
         self.assertIs(build.call_args.args[0], ca._NoRedirect)
         self.assertIsNone(ca._NoRedirect().redirect_request())
+
+    def test_the_answer_keeps_its_status_body_and_retry_after(self):
+        url = "https://api.supabase.com/x"
+        headers = email.message.Message()
+        headers["Retry-After"] = "7"
+
+        class Response(io.BytesIO):
+            status = 200
+
+            def __init__(self):
+                super().__init__(b"{}")
+                self.headers = headers
+
+        class Opener:
+            def __init__(self, outcome):
+                self.outcome = outcome
+
+            def open(self, request, timeout):
+                if isinstance(self.outcome, Exception):
+                    raise self.outcome
+                return self.outcome
+
+        busy = ca.urllib.error.HTTPError(url, 429, "Too Many Requests", headers, io.BytesIO(b"x"))
+        for outcome, expected in (
+            (Response(), ca.Answer(200, body=b"{}", retry_after="7")),
+            (busy, ca.Answer(429, body=b"x", retry_after="7")),
+        ):
+            with (
+                self.subTest(expected.status),
+                unittest.mock.patch.object(
+                    ca.urllib.request, "build_opener", return_value=Opener(outcome)
+                ),
+            ):
+                self.assertEqual(ca.fetch_with_token(TOKEN)(url), expected)
 
 
 class MainTest(unittest.TestCase):
@@ -314,6 +391,11 @@ class MainTest(unittest.TestCase):
         code, out = self.run_api(FakeApi(*[ca.Answer(500)] * 6))
         self.assertEqual(code, 2)
         self.assertIn("::error::Auth's settings could not be read (HTTP 500)", out)
+        api = FakeApi(*[ca.Answer(429, retry_after="1")] * cl.TRIES)
+        code, out = self.run_api(api)
+        self.assertEqual(code, 2)
+        self.assertIn("::error::Auth's settings could not be read (HTTP 429); run this again", out)
+        self.assertEqual(api.pauses, [1.0] * (cl.TRIES - 1))
         code, out = self.run_api(FakeApi(), environ={})
         self.assertEqual(code, 2)
         self.assertIn("::error::SUPABASE_ACCESS_TOKEN is not set", out)
