@@ -46,6 +46,16 @@ enum AmountWordKind {
   connector,
 }
 
+/// The cues after which a word refused in free text is read there too.
+enum AmountCue {
+  /// A fraction word just before it ('sawa do lakh').
+  fraction,
+
+  /// One of [amountCurrencyMarkers] just before it and a multiplier
+  /// somewhere after it ('Rs do hazar').
+  marker,
+}
+
 /// Code points removed before matching, as inclusive ranges.
 const List<(int, int)> amountRemoved = [
   // zero-width non-joiner and joiner
@@ -60,6 +70,18 @@ const List<(int, int)> amountRemoved = [
   (0x064B, 0x0652),
   // superscript alef
   (0x0670, 0x0670),
+  // soft hyphen
+  (0x00AD, 0x00AD),
+  // zero-width space
+  (0x200B, 0x200B),
+  // bidi embeddings and overrides
+  (0x202A, 0x202E),
+  // word joiner
+  (0x2060, 0x2060),
+  // bidi isolates
+  (0x2066, 0x2069),
+  // byte-order mark
+  (0xFEFF, 0xFEFF),
 ];
 
 /// Letters an Arabic keyboard types, to the Urdu letters they stand for.
@@ -78,6 +100,10 @@ const Map<int, String> amountFolds = {
   0x06C2: '\u{06C1}',
   // yeh barree with hamza to yeh with hamza and yeh barree
   0x06D3: '\u{0626}\u{06D2}',
+  // full-width comma to comma
+  0xFF0C: '\u{002C}',
+  // full-width full stop to full stop
+  0xFF0E: '\u{002E}',
 };
 
 /// Characters read as a space.
@@ -119,8 +145,11 @@ const Set<int> amountDecimalSeparators = {
 const Map<String, (AmountWordKind, int, bool)> amountWords = {
   r'$': (AmountWordKind.foreignCurrency, 0, false),
   '/-': (AmountWordKind.currency, 0, false),
+  '/=': (AmountWordKind.currency, 0, false),
   'aat': (AmountWordKind.number, 8, false),
   'aath': (AmountWordKind.number, 8, false),
+  'adhaai': (AmountWordKind.fraction, 1, false),
+  'adhai': (AmountWordKind.fraction, 1, false),
   'adsath': (AmountWordKind.number, 68, false),
   'adtalees': (AmountWordKind.number, 48, false),
   'adtalis': (AmountWordKind.number, 48, false),
@@ -131,6 +160,8 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'and': (AmountWordKind.connector, 0, true),
   'arab': (AmountWordKind.multiplier, 9, false),
   'arb': (AmountWordKind.multiplier, 9, false),
+  'arhaai': (AmountWordKind.fraction, 1, false),
+  'arhai': (AmountWordKind.fraction, 1, false),
   'arsaath': (AmountWordKind.number, 68, false),
   'arsath': (AmountWordKind.number, 68, false),
   'artalees': (AmountWordKind.number, 48, false),
@@ -200,6 +231,8 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'bn': (AmountWordKind.multiplier, 9, true),
   'byasi': (AmountWordKind.number, 82, false),
   'cad': (AmountWordKind.foreignCurrency, 0, false),
+  'caror': (AmountWordKind.multiplier, 7, false),
+  'carore': (AmountWordKind.multiplier, 7, false),
   'chaalees': (AmountWordKind.number, 40, false),
   'chaalis': (AmountWordKind.number, 40, false),
   'chaar': (AmountWordKind.number, 4, false),
@@ -235,6 +268,7 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'chay': (AmountWordKind.number, 6, false),
   'che': (AmountWordKind.number, 6, false),
   'cheh': (AmountWordKind.number, 6, false),
+  'chey': (AmountWordKind.number, 6, false),
   'chhabbees': (AmountWordKind.number, 26, false),
   'chhabbis': (AmountWordKind.number, 26, false),
   'chhabis': (AmountWordKind.number, 26, false),
@@ -244,6 +278,7 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'chhattis': (AmountWordKind.number, 36, false),
   'chhay': (AmountWordKind.number, 6, false),
   'chhe': (AmountWordKind.number, 6, false),
+  'chhey': (AmountWordKind.number, 6, false),
   'chhihattar': (AmountWordKind.number, 76, false),
   'chhiyaasath': (AmountWordKind.number, 66, false),
   'chhiyaasi': (AmountWordKind.number, 86, false),
@@ -268,12 +303,23 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'chontis': (AmountWordKind.number, 34, false),
   'choranwe': (AmountWordKind.number, 94, false),
   'chorasi': (AmountWordKind.number, 84, false),
+  'choubees': (AmountWordKind.number, 24, false),
+  'choubis': (AmountWordKind.number, 24, false),
+  'chouda': (AmountWordKind.number, 14, false),
+  'choudah': (AmountWordKind.number, 14, false),
+  'chouhattar': (AmountWordKind.number, 74, false),
+  'chounsath': (AmountWordKind.number, 64, false),
+  'chountees': (AmountWordKind.number, 34, false),
+  'chouranwe': (AmountWordKind.number, 94, false),
+  'chourasi': (AmountWordKind.number, 84, false),
+  'chouwalees': (AmountWordKind.number, 44, false),
   'chowan': (AmountWordKind.number, 54, false),
   'cr': (AmountWordKind.multiplier, 7, true),
   'crore': (AmountWordKind.multiplier, 7, true),
   'crores': (AmountWordKind.plural, 7, false),
   'dairh': (AmountWordKind.fraction, 0, false),
   'das': (AmountWordKind.number, 10, false),
+  'dass': (AmountWordKind.number, 10, false),
   'dedh': (AmountWordKind.fraction, 0, false),
   'deedh': (AmountWordKind.fraction, 0, false),
   'derh': (AmountWordKind.fraction, 0, false),
@@ -281,6 +327,8 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'dhaee': (AmountWordKind.fraction, 1, false),
   'dhai': (AmountWordKind.fraction, 1, false),
   'dhayi': (AmountWordKind.fraction, 1, false),
+  'dhed': (AmountWordKind.fraction, 0, false),
+  'dhedh': (AmountWordKind.fraction, 0, false),
   'dhs': (AmountWordKind.foreignCurrency, 0, false),
   'dinar': (AmountWordKind.foreignCurrency, 0, false),
   'dinars': (AmountWordKind.foreignCurrency, 0, false),
@@ -375,6 +423,7 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'karod': (AmountWordKind.multiplier, 7, false),
   'karor': (AmountWordKind.multiplier, 7, false),
   'karore': (AmountWordKind.multiplier, 7, false),
+  'kror': (AmountWordKind.multiplier, 7, false),
   'krore': (AmountWordKind.multiplier, 7, false),
   'kwd': (AmountWordKind.foreignCurrency, 0, false),
   'laakh': (AmountWordKind.multiplier, 5, false),
@@ -416,6 +465,8 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'one': (AmountWordKind.number, 1, true),
   'only': (AmountWordKind.filler, 0, true),
   'paanch': (AmountWordKind.number, 5, false),
+  'pacchees': (AmountWordKind.number, 25, false),
+  'pacchis': (AmountWordKind.number, 25, false),
   'pachaas': (AmountWordKind.number, 50, false),
   'pachaasi': (AmountWordKind.number, 85, false),
   'pachanve': (AmountWordKind.number, 95, false),
@@ -451,6 +502,7 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'pentees': (AmountWordKind.number, 35, false),
   'pentis': (AmountWordKind.number, 35, false),
   'pese': (AmountWordKind.paisa, 0, false),
+  'pichattar': (AmountWordKind.number, 75, false),
   'pkr': (AmountWordKind.currency, 0, true),
   'ponay': (AmountWordKind.fraction, 2, false),
   'pone': (AmountWordKind.fraction, 2, false),
@@ -652,6 +704,7 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'اڑتالیس': (AmountWordKind.number, 48, false),
   'اڑتیس': (AmountWordKind.number, 38, false),
   'اڑسٹھ': (AmountWordKind.number, 68, false),
+  'اڑھائی': (AmountWordKind.fraction, 1, false),
   'اکاسی': (AmountWordKind.number, 81, false),
   'اکانوے': (AmountWordKind.number, 91, false),
   'اکاون': (AmountWordKind.number, 51, false),
@@ -703,6 +756,7 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'سات': (AmountWordKind.number, 7, false),
   'ساٹھ': (AmountWordKind.number, 60, false),
   'ساڑھے': (AmountWordKind.fraction, 3, false),
+  'ساڑے': (AmountWordKind.fraction, 3, false),
   'ستائیس': (AmountWordKind.number, 27, false),
   'ستاسی': (AmountWordKind.number, 87, false),
   'ستانوے': (AmountWordKind.number, 97, false),
@@ -767,6 +821,7 @@ const Map<String, (AmountWordKind, int, bool)> amountWords = {
   'چھے': (AmountWordKind.number, 6, false),
   'ڈالر': (AmountWordKind.foreignCurrency, 0, false),
   'ڈھائی': (AmountWordKind.fraction, 1, false),
+  'ڈیڑ': (AmountWordKind.fraction, 0, false),
   'ڈیڑھ': (AmountWordKind.fraction, 0, false),
   'کروڑ': (AmountWordKind.multiplier, 7, false),
   'کھرب': (AmountWordKind.multiplier, 11, false),
@@ -828,14 +883,17 @@ const Set<String> amountRefused = {
 };
 
 /// Tokens read in a single amount field but refused in free text, unless
-/// the token before them is of one of the listed kinds.
-const Map<String, List<AmountWordKind>> amountFreeText = {
+/// one of the listed cues comes before them.
+const Map<String, List<AmountCue>> amountFreeText = {
   'and': [],
   'arab': [],
   'bara': [],
   'cr': [],
-  'do': [AmountWordKind.fraction, AmountWordKind.currency],
+  'do': [AmountCue.fraction, AmountCue.marker],
   'hajar': [],
+  'nawasi': [],
+  'navasi': [],
+  'nawaasi': [],
   'm': [],
   'saath': [],
   'sat': [],
@@ -847,14 +905,25 @@ const Map<String, List<AmountWordKind>> amountFreeText = {
   'اسی': [],
   'انیس': [],
   'بہتر': [],
-  'دو': [AmountWordKind.fraction, AmountWordKind.currency],
-  'سوا': [],
+  'نواسی': [],
+  'دو': [AmountCue.fraction, AmountCue.marker],
+  'سوا': [AmountCue.marker],
 };
 
 /// Tokens read in free text only when joined to the digits before them
 /// ('50k'), and anywhere in a single amount field.
 const Set<String> amountSpaced = {
   'k',
+  'mn',
+  'bn',
+};
+
+/// The rupee signs written before an amount (the cue AmountCue.marker).
+const Set<String> amountCurrencyMarkers = {
+  'rs',
+  'rs.',
+  'pkr',
+  '₨',
 };
 
 /// The fraction words: a quantity (num/den on its own) or a prefix (num/den

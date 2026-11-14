@@ -92,6 +92,10 @@ class LexiconTest(unittest.TestCase):
         self.broken(lambda x: x["currency"]["write"]["roman"].update(one="rupaiya"), "spellings")
         self.broken(lambda x: x["paisa"]["write"].pop("en"), "missing")
 
+    def test_markers_are_signs_of_the_section(self) -> None:
+        self.broken(lambda x: x["currency"]["markers"].append("rupay"), "currency.markers")
+        self.broken(lambda x: x["currency"].pop("markers"), "missing")
+
     def test_symbols_are_one_character(self) -> None:
         self.broken(lambda x: x["foreign_currency"]["symbols"].append("US$"), "one character")
 
@@ -104,6 +108,10 @@ class LexiconTest(unittest.TestCase):
         )
         self.broken(
             lambda x: entry(x, "ambiguous", token="do").update(read_after=["number"]),
+            "read_after",
+        )
+        self.broken(
+            lambda x: entry(x, "ambiguous", token="do").update(read_after=["currency"]),
             "read_after",
         )
         self.broken(
@@ -137,8 +145,14 @@ class LexiconTest(unittest.TestCase):
         self.broken(lambda x: x.update(extra=1), "unexpected")
 
     def test_a_forbidden_character_fails(self) -> None:
-        # Word joiner (U+2060): the Unicode guard forbids it, and normalise keeps it.
-        self.broken(lambda x: x["numbers"][1]["roman"].append("e" + chr(0x2060) + "k"), "forbids")
+        # Function application (U+2061): the Unicode guard forbids it, and normalise keeps it.
+        self.broken(lambda x: x["numbers"][1]["roman"].append("e" + chr(0x2061) + "k"), "forbids")
+
+    def test_a_removed_character_is_not_in_normal_form(self) -> None:
+        # Word joiner (U+2060): normalise removes it, as copying from chat apps carries it.
+        self.broken(
+            lambda x: x["numbers"][1]["roman"].append("e" + chr(0x2060) + "k"), "normal form"
+        )
 
 
 class VectorsTest(unittest.TestCase):
@@ -150,8 +164,8 @@ class VectorsTest(unittest.TestCase):
 
     def test_the_committed_vectors_pass(self) -> None:
         parse, words = amounts.check_vectors(vectors(), LEXICON)
-        self.assertGreater(parse, 200)
-        self.assertEqual(words, 30)
+        self.assertGreater(parse, 300)
+        self.assertEqual(words, 33)
 
     def test_every_promised_example_is_required(self) -> None:
         def drop(v: dict) -> None:
@@ -210,8 +224,10 @@ class DartTest(unittest.TestCase):
         self.assertIn("NOT YET REVIEWED", dart)
         self.assertIn("  'lakh': (AmountWordKind.multiplier, 5, true),", dart)
         self.assertIn("  r'$': (AmountWordKind.foreignCurrency, 0, false),", dart)
-        self.assertIn("  'do': [AmountWordKind.fraction, AmountWordKind.currency],", dart)
-        self.assertIn("const Set<String> amountSpaced = {\n  'k',\n};", dart)
+        self.assertIn("  'do': [AmountCue.fraction, AmountCue.marker],", dart)
+        self.assertIn("  'سوا': [AmountCue.marker],", dart)
+        self.assertIn("const Set<String> amountSpaced = {\n  'k',\n  'mn',\n  'bn',\n};", dart)
+        self.assertIn("const Set<String> amountCurrencyMarkers = {\n  'rs',\n  'rs.',", dart)
         for line in dart.splitlines():
             self.assertLessEqual(len(line), 80, line)
 

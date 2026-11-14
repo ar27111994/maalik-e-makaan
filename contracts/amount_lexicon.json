@@ -1,5 +1,5 @@
 {
-  "$comment": "The words an amount is written or said with, in Urdu script, Roman Urdu and English, for the amount grammar (docs/roadmap/amount-parser.md): mm_core's parseAmount and formatAmountWords, and later its findAmounts and the TypeScript ports. Written by hand and NOT YET REVIEWED by a native speaker (reviewed: false; the review is work item 2, through docs/roadmap/urdu-review.md; review.check_first lists what to look at first). In every list the first spelling is the one to write; the others are only read. A spelling, after normalise, belongs to one entry only: a number, a fraction, a multiplier, a currency marker, a paisa word, a foreign currency, a filler or a connector. A 'write' object names the spelling formatAmountWords writes for one and for any other count. ambiguous lists tokens with a second everyday meaning: 'free_text' tokens are read in a single amount field and make an amount in free text ambiguous; 'spaced' tokens are also read in free text when joined to digits; 'always' tokens are never read and make any amount they touch ambiguous, because ignoring them would misread it. A free_text token with read_after is read in free text too when the token before it is of one of those kinds ('sawa do lakh', 'Rs do hazar'), where its other meaning cannot be meant. homographs lists other meanings the grammar's other rules already keep apart, for the review. A multiplier's plural forms are read only after a number ('5 lakhs'); on their own ('lakhs of rupees') they are vague and ambiguous. not_included lists spellings left out on purpose. Every addition needs a vector in contracts/amount_vectors.json.",
+  "$comment": "The words an amount is written or said with, in Urdu script, Roman Urdu and English, for the amount grammar (docs/roadmap/amount-parser.md): mm_core's parseAmount and formatAmountWords, and later its findAmounts and the TypeScript ports. Written by hand and NOT YET REVIEWED by a native speaker (reviewed: false; the review is work item 2, through docs/roadmap/urdu-review.md; review.check_first lists what to look at first). In every list the first spelling is the one to write; the others are only read. A spelling, after normalise, belongs to one entry only: a number, a fraction, a multiplier, a currency marker, a paisa word, a foreign currency, a filler or a connector. A 'write' object names the spelling formatAmountWords writes for one and for any other count. ambiguous lists tokens with a second everyday meaning: 'free_text' tokens are read in a single amount field and make an amount in free text ambiguous; 'spaced' tokens are also read in free text when joined to digits ('50k', '5mn'); 'always' tokens are never read and make any amount they touch ambiguous, because ignoring them would misread it. A free_text token with read_after is read in free text too after one of those cues, where its other meaning cannot be meant: 'fraction', a fraction word just before it ('sawa do lakh'); 'marker', one of currency.markers just before it (a sign written before an amount: Rs, Rs., PKR, the rupee sign) and a multiplier somewhere after it ('Rs do hazar', but not 'rs do' or 'rupay do', 'give the money'). homographs lists other meanings the grammar's other rules already keep apart, for the review. A multiplier's plural forms are read only after a number ('5 lakhs'); on their own ('lakhs of rupees') they are vague and ambiguous. not_included lists spellings left out on purpose. Every addition needs a vector in contracts/amount_vectors.json.",
   "version": 1,
   "reviewed": false,
   "review": {
@@ -28,7 +28,7 @@
       },
       {
         "what": "collisions",
-        "why": "do and دو, سوا, اسی, بہتر, انیس, sattar, saath, sath, bara, tera, sat, so, arab, hajar: refused in free text; confirm the other meaning is common enough."
+        "why": "do and دو, سوا, اسی, بہتر, انیس, نواسی and nawasi (also 'granddaughter'), sattar, saath, sath, bara, tera, sat, so, arab, hajar, mn and bn spaced (Roman main or mein, and ban or bana): refused in free text; confirm the other meaning is common enough. 'do hazar rupay' at the start of a message is refused too, on purpose: parseAmount also reads spans cut out of a longer message, where 'bhej' may come before."
       },
       {
         "what": "multipliers",
@@ -44,7 +44,19 @@
       },
       {
         "what": "do and دو after a fraction word or a currency marker",
-        "why": "read in free text there (read_after), since 'give' cannot follow sawa, paune or Rs; confirm no common phrase breaks this."
+        "why": "read in free text there (read_after), since 'give' cannot follow sawa, paune or Rs; after Rs, PKR or the rupee sign only when a multiplier follows ('Rs do hazar'), so 'rs do' and 'rupay do' ('give the money') are refused. Confirm no common phrase breaks this. سوا after Rs is read the same way."
+      },
+      {
+        "what": "a dropped lower unit",
+        "why": "'ek lakh bees', '5 lakh 50', '1 crore 20', 'das lakh pachas': people often leave out the next unit down (1,20,000; 5.5 lakh; 1.2 crore), so a lakh, million, crore, arab or kharab followed only by a number that would fit that unit is refused (elidedMultiplier). A rupee word straight after the number pins it as rupees ('ek lakh bees rupay' is 100,020), which is how the read-back writes it: confirm that people who drop the unit also drop the rupee word. Also say whether hazar needs the same rule: is 'do hazar paanch' 2,005 or 2,500?"
+      },
+      {
+        "what": "spellings added from chat",
+        "why": "اڑھائی, arhai, arhaai, adhai, adhaai (dhai); dhed, dhedh, ڈیڑ (derh); ساڑے (sarhe); the ou spellings chouda, choudah, choubees, choubis, chountees, chouwalees, chounsath, chouhattar, chourasi, chouranwe; pacchees, pacchis, dass, chey, chhey, pichattar; kror, caror, carore. Confirm each is a spelling people use. ik and panj are left out: say whether the pilot should add them."
+      },
+      {
+        "what": "near pairs the read-back must show in digits",
+        "why": "teis (23) and tees (30), chaubis (24) and chhabbis (26), tera (13) and terah: one letter apart, so a typo reads as another number rather than being refused. The read-back must show the digits beside the words."
       }
     ]
   },
@@ -149,7 +161,7 @@
     }
   ],
   "normalise": {
-    "$comment": "Applied to the text, and to every spelling here, before matching. It extends the plan's normalisation (digits, direction marks, lower case) with the Arabic keyboard's letters and with marks that never tell two number words apart. Each fold is one code point for one or two, so a span can be mapped back to the original text.",
+    "$comment": "Applied to the text, and to every spelling here, before matching. It extends the plan's normalisation (digits, direction marks, lower case) with the Arabic keyboard's letters, the full-width comma and full stop, the invisible characters that copying from chat apps and right-to-left text carries, and marks that never tell two number words apart. Each fold is one code point for one or two, so a span can be mapped back to the original text.",
     "digits": "As normalizeDigits (packages/mm_core/lib/src/text/digits.dart): Arabic-Indic, Extended Arabic-Indic (Urdu) and full-width digits become ASCII.",
     "lower_case": "ASCII letters only.",
     "remove": [
@@ -158,7 +170,13 @@
       { "from": "U+061C", "to": "U+061C", "label": "Arabic letter mark" },
       { "from": "U+0640", "to": "U+0640", "label": "tatweel" },
       { "from": "U+064B", "to": "U+0652", "label": "short vowels, tanween, shadda, sukun" },
-      { "from": "U+0670", "to": "U+0670", "label": "superscript alef" }
+      { "from": "U+0670", "to": "U+0670", "label": "superscript alef" },
+      { "from": "U+00AD", "to": "U+00AD", "label": "soft hyphen" },
+      { "from": "U+200B", "to": "U+200B", "label": "zero-width space" },
+      { "from": "U+202A", "to": "U+202E", "label": "bidi embeddings and overrides" },
+      { "from": "U+2060", "to": "U+2060", "label": "word joiner" },
+      { "from": "U+2066", "to": "U+2069", "label": "bidi isolates" },
+      { "from": "U+FEFF", "to": "U+FEFF", "label": "byte-order mark" }
     ],
     "fold": [
       { "from": "U+0643", "to": "U+06A9", "label": "Arabic kaf to keheh" },
@@ -171,7 +189,9 @@
         "from": "U+06D3",
         "to": "U+0626 U+06D2",
         "label": "yeh barree with hamza to yeh with hamza and yeh barree"
-      }
+      },
+      { "from": "U+FF0C", "to": "U+002C", "label": "full-width comma to comma" },
+      { "from": "U+FF0E", "to": "U+002E", "label": "full-width full stop to full stop" }
     ],
     "spaces": [
       { "code_point": "U+0009", "label": "tab" },
@@ -207,7 +227,7 @@
     {
       "value": 6,
       "ur": ["چھ", "چھے", "چھہ"],
-      "roman": ["chhe", "chhay", "chay", "che", "cheh"],
+      "roman": ["chhe", "chhay", "chay", "che", "cheh", "chey", "chhey"],
       "en": ["six"],
       "note": "چھ: cldr-ur-rbnf; چھہ: tl-ur-cardinal; چھے: general knowledge."
     },
@@ -220,7 +240,7 @@
       "en": ["nine"],
       "note": "'no' is not read as nine; see ambiguous."
     },
-    { "value": 10, "ur": ["دس"], "roman": ["das", "dus"], "en": ["ten"] },
+    { "value": 10, "ur": ["دس"], "roman": ["das", "dus", "dass"], "en": ["ten"] },
     {
       "value": 11,
       "ur": ["گیارہ"],
@@ -234,7 +254,12 @@
       "en": ["twelve"]
     },
     { "value": 13, "ur": ["تیرہ"], "roman": ["terah", "tehra", "tera"], "en": ["thirteen"] },
-    { "value": 14, "ur": ["چودہ"], "roman": ["chaudah", "chauda", "chodah"], "en": ["fourteen"] },
+    {
+      "value": 14,
+      "ur": ["چودہ"],
+      "roman": ["chaudah", "chauda", "chodah", "chouda", "choudah"],
+      "en": ["fourteen"]
+    },
     { "value": 15, "ur": ["پندرہ"], "roman": ["pandrah", "pandra", "pundra"], "en": ["fifteen"] },
     { "value": 16, "ur": ["سولہ"], "roman": ["solah", "sola"], "en": ["sixteen"] },
     {
@@ -279,14 +304,14 @@
     {
       "value": 24,
       "ur": ["چوبیس"],
-      "roman": ["chaubees", "chaubis", "chobees", "chobis"],
+      "roman": ["chaubees", "chaubis", "chobees", "chobis", "choubees", "choubis"],
       "en": ["twenty-four"],
       "note": "Roman 24 (chaubis) and 26 (chhabbis) are close; no spelling is shared."
     },
     {
       "value": 25,
       "ur": ["پچیس"],
-      "roman": ["pachees", "pachchees", "pachis", "pachchis"],
+      "roman": ["pachees", "pachchees", "pachis", "pachchis", "pacchees", "pacchis"],
       "en": ["twenty-five"]
     },
     {
@@ -335,7 +360,7 @@
     {
       "value": 34,
       "ur": ["چونتیس"],
-      "roman": ["chauntees", "chauntis", "chontees", "chontis"],
+      "roman": ["chauntees", "chauntis", "chontees", "chontis", "chountees"],
       "en": ["thirty-four"]
     },
     {
@@ -390,7 +415,7 @@
     {
       "value": 44,
       "ur": ["چوالیس"],
-      "roman": ["chawalees", "chawalis", "chauwalees", "chauwalis"],
+      "roman": ["chawalees", "chawalis", "chauwalees", "chauwalis", "chouwalees"],
       "en": ["forty-four"]
     },
     {
@@ -480,7 +505,7 @@
     {
       "value": 64,
       "ur": ["چونسٹھ", "چوسٹھ"],
-      "roman": ["chaunsath", "chausath", "chonsath"],
+      "roman": ["chaunsath", "chausath", "chonsath", "chounsath"],
       "en": ["sixty-four"],
       "note": "چونسٹھ: cldr-ur-rbnf; چوسٹھ: tl-ur-cardinal, npm-urdu-number-words."
     },
@@ -534,14 +559,14 @@
     {
       "value": 74,
       "ur": ["چوہتر", "چوھتر"],
-      "roman": ["chauhattar", "chohattar", "chauhatar"],
+      "roman": ["chauhattar", "chohattar", "chauhatar", "chouhattar"],
       "en": ["seventy-four"],
       "note": "چوہتر: cldr-ur-rbnf, npm-urdu-number-words; چوھتر: tl-ur-cardinal."
     },
     {
       "value": 75,
       "ur": ["پچہتر", "پچھتر"],
-      "roman": ["pachhattar", "pachattar", "pachhatar"],
+      "roman": ["pachhattar", "pachattar", "pachhatar", "pichattar"],
       "en": ["seventy-five"],
       "note": "پچہتر: cldr-ur-rbnf, tl-ur-cardinal; پچھتر: npm-urdu-number-words and general knowledge."
     },
@@ -591,7 +616,7 @@
     {
       "value": 84,
       "ur": ["چوراسی"],
-      "roman": ["chaurasi", "chauraasi", "chorasi"],
+      "roman": ["chaurasi", "chauraasi", "chorasi", "chourasi"],
       "en": ["eighty-four"]
     },
     { "value": 85, "ur": ["پچاسی"], "roman": ["pachasi", "pachaasi"], "en": ["eighty-five"] },
@@ -647,7 +672,7 @@
     {
       "value": 94,
       "ur": ["چورانوے"],
-      "roman": ["chauranwe", "chauranve", "choranwe"],
+      "roman": ["chauranwe", "chauranve", "choranwe", "chouranwe"],
       "en": ["ninety-four"]
     },
     {
@@ -687,8 +712,8 @@
       "kind": "quantity",
       "num": 3,
       "den": 2,
-      "ur": ["ڈیڑھ"],
-      "roman": ["derh", "dedh", "deedh", "dairh"],
+      "ur": ["ڈیڑھ", "ڈیڑ"],
+      "roman": ["derh", "dedh", "deedh", "dairh", "dhed", "dhedh"],
       "en": [],
       "note": "One and a half, on its own or before a multiplier: ڈیڑھ لاکھ 150,000; derh sau 150. Takes no number after it. dedh is the roadmap's spelling."
     },
@@ -697,10 +722,10 @@
       "kind": "quantity",
       "num": 5,
       "den": 2,
-      "ur": ["ڈھائی"],
-      "roman": ["dhai", "dhaai", "dhayi", "dhaee"],
+      "ur": ["ڈھائی", "اڑھائی"],
+      "roman": ["dhai", "dhaai", "dhayi", "dhaee", "arhai", "arhaai", "adhai", "adhaai"],
       "en": [],
-      "note": "Two and a half, on its own or before a multiplier: dhai lakh 250,000. Takes no number after it."
+      "note": "Two and a half, on its own or before a multiplier: dhai lakh 250,000. Takes no number after it. اڑھائی (arhai, adhai) is the Punjab-influenced form, as common in Pakistan; both are read, and ڈھائی is written."
     },
     {
       "id": "paune",
@@ -721,7 +746,7 @@
       "den": 2,
       "min_number": 3,
       "alone": false,
-      "ur": ["ساڑھے"],
+      "ur": ["ساڑھے", "ساڑے"],
       "roman": ["sarhe", "saarhe", "sadhe", "saadhe", "sarhay", "sarhey"],
       "en": [],
       "note": "A half more than the number after it: sarhe teen hazar 3,500. From three upwards; 1 1/2 and 2 1/2 are derh and dhai. Never alone. Roman sare, saray and saare (also 'all') are refused; see ambiguous."
@@ -768,7 +793,7 @@
     {
       "power": 7,
       "ur": ["کروڑ"],
-      "roman": ["crore", "karor", "karod", "karore", "krore"],
+      "roman": ["crore", "karor", "karod", "karore", "krore", "kror", "caror", "carore"],
       "en": ["crore", "cr"],
       "plural": ["crores"],
       "note": "cr: cldr-en, parseMoneyInput; refused in free text, where bank messages use Cr for 'credit'; see ambiguous."
@@ -795,8 +820,9 @@
     "roman": ["rupay", "rupaye", "rupey", "rupye", "rupiya", "rupaya", "rupya"],
     "en": ["rupees", "rupee", "rs", "rs.", "pkr"],
     "symbols": ["₨"],
-    "suffixes": ["/-"],
-    "note": "Every marker parseMoneyInput reads is here (Rs, Rs., PKR, ₨, rupee, rupees, روپے, روپیہ, روپیے, a trailing /-). cldr-ur gives پاکستانی روپیہ and the symbol Rs; cldr-en gives PKR.",
+    "suffixes": ["/-", "/="],
+    "markers": ["rs", "rs.", "pkr", "₨"],
+    "note": "Every marker parseMoneyInput reads is here (Rs, Rs., PKR, ₨, rupee, rupees, روپے, روپیہ, روپیے, a trailing /-); receipts also write /=. markers are the signs written before an amount, the cue read_after names. cldr-ur gives پاکستانی روپیہ and the symbol Rs; cldr-en gives PKR.",
     "write": {
       "ur": { "one": "روپیہ", "other": "روپے" },
       "roman": { "one": "rupaya", "other": "rupay" },
@@ -886,7 +912,7 @@
     {
       "token": "cr",
       "refuse": "free_text",
-      "why": "crore, or 'credit' on bank statements and messages ('Rs 5,000.00 Cr')."
+      "why": "crore, or 'credit' on bank statements and messages ('Rs 5,000.00 Cr'). In a single amount field it is refused too after a number with two decimal places, or when a rupee marker comes first, as a pasted statement line has it ('Rs 25,000.00 Cr'); '2.5 cr' is read."
     },
     {
       "token": "dai",
@@ -901,8 +927,8 @@
     {
       "token": "do",
       "refuse": "free_text",
-      "why": "two, or the verb 'give' after another verb: 'bhej do hazar rupay' can mean 1,000 or 2,000. Only two after a fraction word ('sawa do') or a currency marker, which findAmounts (work item 5) may use.",
-      "read_after": ["fraction", "currency"]
+      "why": "two, or the verb 'give' after another verb or its object: 'bhej do hazar rupay' can mean 1,000 or 2,000, and 'rupay do' is 'give the money'. Only two after a fraction word ('sawa do'), or after Rs, PKR or the rupee sign with a multiplier to follow ('Rs do hazar').",
+      "read_after": ["fraction", "marker"]
     },
     { "token": "hajar", "refuse": "free_text", "why": "thousand, or the given name Hajar." },
     {
@@ -924,6 +950,31 @@
       "why": "Indian English short form of lakh (cldr-en), or litre."
     },
     { "token": "lakhon", "refuse": "always", "why": "'lakhs of', a vague large amount (لاکھوں)." },
+    {
+      "token": "mn",
+      "refuse": "spaced",
+      "why": "million, or the Roman chat spelling of main (I) and mein (in): '50 hazar mn' is not 50 billion. Read joined to digits ('5mn') anywhere; spaced only in a single amount field."
+    },
+    {
+      "token": "bn",
+      "refuse": "spaced",
+      "why": "billion, or the Roman chat spelling of ban and bana ('bn gaya', 'became'). Read joined to digits ('2bn') anywhere; spaced only in a single amount field."
+    },
+    {
+      "token": "nawasi",
+      "refuse": "free_text",
+      "why": "eighty-nine, or 'granddaughter' (نواسی): 'meri nawasi hazar rupay le gayi'."
+    },
+    {
+      "token": "navasi",
+      "refuse": "free_text",
+      "why": "eighty-nine, or 'granddaughter', as nawasi."
+    },
+    {
+      "token": "nawaasi",
+      "refuse": "free_text",
+      "why": "eighty-nine, or 'granddaughter', as nawasi."
+    },
     {
       "token": "m",
       "refuse": "free_text",
@@ -997,15 +1048,21 @@
     { "token": "اور", "refuse": "always", "why": "'and' or 'more', as aur." },
     { "token": "بہتر", "refuse": "free_text", "why": "seventy-two, or 'better' (behtar)." },
     {
+      "token": "نواسی",
+      "refuse": "free_text",
+      "why": "eighty-nine, or 'granddaughter': 'میری نواسی ہزار روپے لے گئی'."
+    },
+    {
       "token": "دو",
       "refuse": "free_text",
-      "why": "two, or the verb 'give' after another verb: 'بھیج دو ہزار روپے' can mean 1,000 or 2,000. Only two after a fraction word ('سوا دو') or a currency marker, as do.",
-      "read_after": ["fraction", "currency"]
+      "why": "two, or the verb 'give' after another verb or its object: 'بھیج دو ہزار روپے' can mean 1,000 or 2,000, and 'روپے دو' is 'give the money'. Only two after a fraction word ('سوا دو'), or after Rs, PKR or the rupee sign with a multiplier to follow, as do.",
+      "read_after": ["fraction", "marker"]
     },
     {
       "token": "سوا",
       "refuse": "free_text",
-      "why": "a quarter more, or 'except' after کے or a possessive: 'اس کے سوا دو لاکھ' is 'apart from this, 2 lakh' or '2.25 lakh'."
+      "why": "a quarter more, or 'except' after کے or a possessive: 'اس کے سوا دو لاکھ' is 'apart from this, 2 lakh' or '2.25 lakh'. Read after Rs, PKR or the rupee sign ('Rs سوا دو لاکھ'), where 'except' cannot be meant.",
+      "read_after": ["marker"]
     },
     { "token": "سینکڑوں", "refuse": "always", "why": "'hundreds of', a vague amount." },
     { "token": "سیکڑوں", "refuse": "always", "why": "'hundreds of', a vague amount." },
@@ -1025,7 +1082,10 @@
   ],
   "homographs": [
     { "token": "bees", "why": "also English 'bees'." },
-    { "token": "char", "why": "also English 'char'." },
+    {
+      "token": "char",
+      "why": "also English 'char'; and 'char sau bees' (420) is the everyday idiom for a cheat, still read as 420 in a single amount field and in free text."
+    },
     { "token": "chay", "why": "also Roman 'tea' (chai, chaye)." },
     { "token": "ek", "why": "also the article 'a'; before a multiplier both readings are one." },
     { "token": "hazar", "why": "also hyperbole ('hazar baar'), as lakh." },
@@ -1041,6 +1101,10 @@
     { "token": "tees", "why": "also English 'tees'." },
     { "token": "trepan", "why": "also an English word, rare." },
     { "token": "ستر", "why": "also 'covering' (سَتر), rare." },
+    {
+      "token": "صفر",
+      "why": "also the month Safar, written beside a day ('10 صفر'): two numbers with no multiplier, already refused; findAmounts (work item 5) should not read a date as an amount."
+    },
     { "token": "سو", "why": "also the verb 'sleep' ('سو گیا') and a literary 'so'." },
     { "token": "لاکھ", "why": "also hyperbole ('لاکھ سمجھایا'), as lakh." },
     { "token": "نو", "why": "also 'new' in phrases such as 'سالِ نو'." },
@@ -1059,6 +1123,10 @@
     },
     { "token": "kharb", "why": "a Roman spelling of کھرب; no source seen." },
     { "token": "nil", "why": "British 'nil' and 'nought' for zero." },
+    {
+      "token": "panj",
+      "why": "the Punjabi spelling of paanch (five); add with a vector if the pilot shows it."
+    },
     { "token": "re", "why": "the singular short form of rupee ('Re. 1'); also an interjection." },
     {
       "token": "taqreeban",

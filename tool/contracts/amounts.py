@@ -26,7 +26,7 @@ MAX_PAISA = 99_999_999_999_999
 
 SCRIPTS = ("ur", "roman", "en")
 POLICIES = ("free_text", "spaced", "always")
-READ_AFTER = ("fraction", "currency")
+READ_AFTER = ("fraction", "marker")
 CONTEXTS = ("field", "text")
 WORD_SCRIPTS = ("urdu", "roman", "english")
 
@@ -288,10 +288,20 @@ def check_lexicon(lexicon: dict) -> dict[str, tuple[str, int, bool]]:
             raise ContractError(f"10^{m['power']}: needs an Urdu spelling")
 
     currency = lexicon["currency"]
-    _keys(currency, "currency", {"ur", "roman", "en", "symbols", "suffixes", "write", "note"})
-    for key in ("ur", "roman", "en", "symbols", "suffixes"):
+    _keys(
+        currency,
+        "currency",
+        {"ur", "roman", "en", "symbols", "suffixes", "markers", "write", "note"},
+    )
+    for key in ("ur", "roman", "en", "symbols", "suffixes", "markers"):
         _strings(currency[key], f"currency.{key}", empty=False)
     _write(currency["write"], "currency.write", currency)
+    for marker in currency["markers"]:
+        if marker not in currency["en"] + currency["symbols"]:
+            raise ContractError(
+                f"currency.markers: {marker!r} is not one of the section's English spellings or "
+                "symbols"
+            )
     paisa = lexicon["paisa"]
     _keys(paisa, "paisa", {*SCRIPTS, "write", "note"})
     for script in SCRIPTS:
@@ -512,6 +522,16 @@ def render_dart(lexicon: dict) -> str:
         "  connector,",
         "}",
         "",
+        "/// The cues after which a word refused in free text is read there too.",
+        "enum AmountCue {",
+        "  /// A fraction word just before it ('sawa do lakh').",
+        "  fraction,",
+        "",
+        "  /// One of [amountCurrencyMarkers] just before it and a multiplier",
+        "  /// somewhere after it ('Rs do hazar').",
+        "  marker,",
+        "}",
+        "",
         "/// Code points removed before matching, as inclusive ranges.",
         "const List<(int, int)> amountRemoved = [",
     ]
@@ -565,12 +585,12 @@ def render_dart(lexicon: dict) -> str:
         "};",
         "",
         "/// Tokens read in a single amount field but refused in free text, unless",
-        "/// the token before them is of one of the listed kinds.",
-        "const Map<String, List<AmountWordKind>> amountFreeText = {",
+        "/// one of the listed cues comes before them.",
+        "const Map<String, List<AmountCue>> amountFreeText = {",
     ]
     for a in lexicon["ambiguous"]:
         if a["refuse"] == "free_text":
-            after = ", ".join(f"AmountWordKind.{KIND[k]}" for k in a.get("read_after", []))
+            after = ", ".join(f"AmountCue.{k}" for k in a.get("read_after", []))
             out.append(f"  {_dart_string(a['token'])}: [{after}],")
     out += [
         "};",
@@ -582,6 +602,14 @@ def render_dart(lexicon: dict) -> str:
     for a in lexicon["ambiguous"]:
         if a["refuse"] == "spaced":
             out.append(f"  {_dart_string(a['token'])},")
+    out += [
+        "};",
+        "",
+        "/// The rupee signs written before an amount (the cue AmountCue.marker).",
+        "const Set<String> amountCurrencyMarkers = {",
+    ]
+    for marker in lexicon["currency"]["markers"]:
+        out.append(f"  {_dart_string(marker)},")
     out += [
         "};",
         "",

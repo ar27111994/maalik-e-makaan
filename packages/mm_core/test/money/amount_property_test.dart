@@ -28,7 +28,28 @@ int _amount(Random random) {
   return paisa;
 }
 
-const _marks = ['\u200E', '\u200F', '\u061C', '\u200C'];
+/// Direction marks, joiners and the invisible characters copying from chat
+/// apps and right-to-left text carries: every one is removed before reading.
+const _marks = [
+  '\u200E',
+  '\u200F',
+  '\u061C',
+  '\u200C',
+  '\u200D',
+  '\u200B',
+  '\u2060',
+  '\uFEFF',
+  '\u00AD',
+  '\u202A',
+  '\u202B',
+  '\u202C',
+  '\u202D',
+  '\u202E',
+  '\u2066',
+  '\u2067',
+  '\u2068',
+  '\u2069',
+];
 const _spaces = [' ', '  ', '\t', '\u00A0', '\u2009', '\u202F', ' \u00A0 '];
 
 /// [text] with each space replaced by a random run of spaces and random

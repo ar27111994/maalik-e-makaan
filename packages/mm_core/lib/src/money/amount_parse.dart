@@ -6,15 +6,21 @@ import 'package:mm_core/src/text/digits.dart';
 /// Where the text [parseAmount] reads comes from.
 enum AmountContext {
   /// A single amount field: the person typed an amount and nothing else.
-  /// Words with a second everyday meaning (`do`, `m`, `cr`, `and`, a spaced
-  /// `k`) are read as numbers and units here.
+  /// Words with a second everyday meaning (`do`, `m`, `and`, a spaced `k`,
+  /// `mn` or `bn`) are read as numbers and units here; `cr` is too, except
+  /// after a rupee marker or two decimal places, as a pasted bank line has it
+  /// for "credit".
   field,
 
   /// Free text: a message, a note or a voice-note transcript, or a span of
   /// one. A word with a second everyday meaning makes the amount ambiguous,
-  /// except where its other meaning cannot be meant (`do` after `sawa` or a
-  /// rupee marker). A bare `m` is never read here (the owner's question 1 in
-  /// `docs/roadmap/amount-parser.md`, as recommended).
+  /// except where its other meaning cannot be meant (`do` after `sawa`, or
+  /// after `Rs` with a multiplier to follow). A bare `m`, and a spaced `k`,
+  /// `mn` or `bn`, are never read here (the owner's question 1 in
+  /// `docs/roadmap/amount-parser.md`, as recommended). Because the text may
+  /// be a span cut out of a longer message, the start of it is not taken as
+  /// the start of a sentence: `do hazar rupay` is ambiguous, since `bhej`
+  /// may have come before it.
   text,
 }
 
@@ -27,7 +33,9 @@ enum AmountAmbiguity {
   refusedWord,
 
   /// In free text, a word with a second everyday meaning (`do` for "give",
-  /// `m` for minutes, `cr` for credit, a spaced `k` for "ke").
+  /// `m` for minutes, `cr` for credit, a spaced `k` for "ke", a spaced `mn`
+  /// for "main"); in a field, `cr` after a rupee marker or two decimal
+  /// places (`Rs 25,000.00 Cr`, a bank's "credit").
   freeTextWord,
 
   /// Another currency (`$`, `AED`, `ڈالر`): never read as rupees.
@@ -64,6 +72,13 @@ enum AmountAmbiguity {
   /// Groups that do not descend (`pachas hazar do lakh`), a multiplier twice
   /// at the same level, a zero inside an amount, or `and` out of place.
   order,
+
+  /// A lakh, million, crore, arab or kharab followed only by a number that
+  /// would fit the next unit down: `ek lakh bees` may be 100,020 or, with
+  /// hazar left out as people often say it, 120,000; `1 crore 20` may be
+  /// 1.2 crore. A rupee word straight after the number pins it as rupees
+  /// (`ek lakh bees rupay` is 100,020), as `formatAmountWords` writes it.
+  elidedMultiplier,
 }
 
 /// Why [parseAmount] found no amount at all.
@@ -188,10 +203,15 @@ AmountReading parseAmount(
     return const AmountNotFound(AmountAbsence.noAmount);
   }
   final sign = tokens.indexWhere((t) => !t.isMarker);
+  // A hyphen joined to the rupee marker before it ('Rs-500') is a separator
+  // or a minus: it is left to _refusal, which finds the amount ambiguous.
   if (sign >= 0 &&
       tokens[sign].kind == _Kind.minus &&
       sign + 1 < tokens.length &&
-      tokens[sign + 1].isQuantity) {
+      tokens[sign + 1].isQuantity &&
+      !(sign > 0 &&
+          tokens[sign].joined &&
+          tokens[sign - 1].kind == _Kind.currency)) {
     return const AmountNotFound(AmountAbsence.negative);
   }
   final refusal = _refusal(tokens, context);
@@ -210,12 +230,20 @@ AmountAmbiguity? _refusal(List<_Token> tokens, AmountContext context) {
     return AmountAmbiguity.unknownWord;
   }
   if (tokens.any((t) => t.badGrouping)) return AmountAmbiguity.grouping;
+  for (var i = 1; i < tokens.length; i++) {
+    // 'Rs 25,000.00 Cr' and '25,000.00 Cr' are a bank's credit, not crore.
+    if (tokens[i].text == _credit &&
+        ((tokens[i - 1].kind == _Kind.number && tokens[i - 1].decimals == 2) ||
+            tokens.take(i).any((t) => t.kind == _Kind.currency))) {
+      return AmountAmbiguity.freeTextWord;
+    }
+  }
   if (context == AmountContext.field) return null;
   if (tokens.any((t) => t.leadingZero)) return AmountAmbiguity.leadingZero;
   for (var i = 0; i < tokens.length; i++) {
     final token = tokens[i];
-    final after = amountFreeText[token.text];
-    if (after != null && (i == 0 || !after.contains(tokens[i - 1].wordKind))) {
+    final cues = amountFreeText[token.text];
+    if (cues != null && !cues.any((cue) => _cued(tokens, i, cue))) {
       return AmountAmbiguity.freeTextWord;
     }
     if (amountSpaced.contains(token.text) &&
@@ -225,6 +253,28 @@ AmountAmbiguity? _refusal(List<_Token> tokens, AmountContext context) {
   }
   return null;
 }
+
+/// The crore abbreviation that bank statements also write for "credit".
+const String _credit = 'cr';
+
+/// Whether [cue] comes before `tokens[i]`, so that its other meaning cannot
+/// be meant there.
+bool _cued(List<_Token> tokens, int i, AmountCue cue) {
+  if (i == 0) return false;
+  final before = tokens[i - 1];
+  return switch (cue) {
+    AmountCue.fraction => before.kind == _Kind.fraction,
+    AmountCue.marker =>
+      amountCurrencyMarkers.contains(before.text) &&
+          tokens.skip(i + 1).any((t) => t.isMultiplier),
+  };
+}
+
+/// The number below which a bare number after a group of this power would
+/// fit the next unit down, so that the unit may have been left out: lakh and
+/// crore take up to 99 of the unit below (hazar, lakh), as do kharab (arab);
+/// million and billion (or arab, which shares its power) up to 999.
+const Map<int, int> _elidedBelow = {5: 100, 6: 1000, 7: 100, 9: 1000, 11: 100};
 
 AmountReading _read(List<_Token> tokens, AmountContext context) {
   var from = 0;
@@ -292,6 +342,17 @@ AmountReading _read(List<_Token> tokens, AmountContext context) {
     }
     final value = _expression(middle, 0, middle.length, rest: false);
     if (value == null) return const AmountAmbiguous(AmountAmbiguity.order);
+    if (middle.length > 1 && last.kind == _Kind.number) {
+      final group = middle[middle.length - 2];
+      final below = _elidedBelow[group.index];
+      final pinned = to < tokens.length && tokens[to].kind == _Kind.currency;
+      if (group.isMultiplier &&
+          below != null &&
+          last.value.compareTo(_Q.integer(below)) < 0 &&
+          !pinned) {
+        return const AmountAmbiguous(AmountAmbiguity.elidedMultiplier);
+      }
+    }
     rupees = value;
   }
   if (hasPaisa && !rupees.isInteger) {
@@ -323,7 +384,13 @@ _Q? _fractionForm(List<_Token> t) {
       quantity = part;
     } else if (t.length > 1 && t[1].kind == _Kind.number) {
       final n = t[1].value;
-      if (!n.isInteger || n.compareTo(_Q.integer(f.minNumber)) < 0) return null;
+      // A digit number of 100 or more after a prefix may be a transcribed
+      // 'sau' or 'do sau' ('sawa 100 hazar' for 'sawa sau hazar', 125,000).
+      if (!n.isInteger ||
+          n.compareTo(_Q.integer(f.minNumber)) < 0 ||
+          n.compareTo(_Q.integer(100)) >= 0) {
+        return null;
+      }
       quantity = n + part;
       next = 2;
     } else if (f.alone) {
@@ -474,7 +541,7 @@ bool _isArabicLetter(int c) =>
         (c >= 0x0750 && c <= 0x077F) ||
         (c >= 0x08A0 && c <= 0x08FF) ||
         (c >= 0xFB50 && c <= 0xFDFF) ||
-        (c >= 0xFE70 && c <= 0xFEFF)) &&
+        (c >= 0xFE70 && c <= 0xFEFC)) &&
     !const {0x060C, 0x061B, 0x061F, 0x066A, 0x066B, 0x066C, 0x06D4}.contains(c);
 
 List<_Token> _tokenize(String text) {
@@ -541,8 +608,11 @@ List<_Token> _tokenize(String text) {
       }
       tokens.add(_Token.lookup(slice(i, j), joined: glued));
       i = j;
-    } else if (rune == 0x2F && i + 1 < c.length && c[i + 1] == 0x2D) {
-      tokens.add(_Token.lookup('/-', joined: glued));
+    } else if (rune == 0x2F &&
+        i + 1 < c.length &&
+        amountWords.containsKey(slice(i, i + 2))) {
+      // A trailing '/-' or '/='.
+      tokens.add(_Token.lookup(slice(i, i + 2), joined: glued));
       i += 2;
     } else if (rune == 0x2D || rune == 0x2212) {
       tokens.add(_Token.word('-', _Kind.minus, 0, joined: glued));
@@ -602,10 +672,7 @@ final class _Token {
       kind = _Kind.number,
       index = -1,
       english = false,
-      value = _Q(
-        BigInt.parse('${groups.join()}$fraction'),
-        BigInt.from(10).pow(fraction.length),
-      ),
+      value = _digitValue(groups.join(), fraction),
       decimals = fraction.length,
       badGrouping = !_groupingOk(groups),
       leadingZero = groups.first.length > 1 && groups.first.startsWith('0');
@@ -660,18 +727,44 @@ final class _Token {
 
   bool get isEnglishTens =>
       english && kind == _Kind.number && index >= 20 && index % 10 == 0;
+}
 
-  /// The lexicon's kind, for `read_after`.
-  AmountWordKind? get wordKind => switch (kind) {
-    _Kind.fraction => AmountWordKind.fraction,
-    _Kind.currency => AmountWordKind.currency,
-    _ => null,
-  };
+/// The most digits of a number's whole part, and of its decimal part after
+/// trailing zeros, that can matter: a whole part of 15 digits is already
+/// above the maximum, and no multiplier makes 15 decimals whole paisa.
+const int _significantDigits = 14;
+
+/// The value of a digit number, without parsing more than
+/// [_significantDigits] digits on either side of the point, so that a long
+/// run of digits costs no more than a short one (BigInt.parse is not linear).
+/// A longer whole part becomes 10^14 (out of range wherever it stands); a
+/// longer decimal part keeps its first 14 digits and gains a 1 after them,
+/// so it is still below the next 14-digit step and is never whole paisa.
+/// Every comparison the grammar makes then comes out as for the real value.
+_Q _digitValue(String whole, String fraction) {
+  var from = 0;
+  while (from < whole.length && whole.codeUnitAt(from) == 0x30) {
+    from++;
+  }
+  var w = whole.substring(from);
+  if (w.length > _significantDigits) w = '1${'0' * _significantDigits}';
+  var to = fraction.length;
+  while (to > 0 && fraction.codeUnitAt(to - 1) == 0x30) {
+    to--;
+  }
+  var f = fraction.substring(0, to);
+  if (f.length > _significantDigits) {
+    f = '${f.substring(0, _significantDigits)}1';
+  }
+  return _Q(BigInt.parse('0$w$f'), BigInt.from(10).pow(f.length));
 }
 
 /// Western (`1,234,567`) or South Asian (`12,34,567`) grouping, or none.
+/// No grouping starts with a zero group: `0,500` is more likely a decimal
+/// comma (0.5) than five hundred.
 bool _groupingOk(List<String> groups) {
   if (groups.length == 1) return true;
+  if (groups.first.startsWith('0')) return false;
   final first = groups.first.length;
   final middle = groups.sublist(1, groups.length - 1).map((g) => g.length);
   if (groups.last.length != 3 || first > 3) return false;

@@ -523,7 +523,12 @@
       "expected": 250000000
     },
     { "name": "mn", "input": "5 mn", "context": "field", "expected": 500000000 },
-    { "name": "mn (free text)", "input": "5 mn", "context": "text", "expected": 500000000 },
+    {
+      "name": "mn spaced, in free text, may be main or mein",
+      "input": "5 mn",
+      "context": "text",
+      "expected": "ambiguous"
+    },
     { "name": "m joined, in a field", "input": "5m", "context": "field", "expected": 500000000 },
     { "name": "m joined, in free text", "input": "5m", "context": "text", "expected": "ambiguous" },
     { "name": "m spaced, in a field", "input": "5 m", "context": "field", "expected": 500000000 },
@@ -897,6 +902,455 @@
       "context": "field",
       "expected": "ambiguous"
     },
+    {
+      "name": "a dropped unit: ek lakh bees may be 1,20,000",
+      "input": "ek lakh bees",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: ek lakh bees (free text)",
+      "input": "ek lakh bees",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: 1 lakh 20",
+      "input": "1 lakh 20",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: 5 lakh 50",
+      "input": "5 lakh 50",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: paanch lakh pachas",
+      "input": "paanch lakh pachas",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: 1 crore 20 may be 1.2 crore",
+      "input": "1 crore 20",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: das lakh pachas",
+      "input": "das lakh pachas",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: after lakh in a longer amount",
+      "input": "1 crore 20 lakh 5",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: after million",
+      "input": "1 million 20",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a dropped unit: after arab",
+      "input": "ek arab 50",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "the lower unit said: do lakh pachas hazar",
+      "input": "do lakh pachas hazar",
+      "context": "field",
+      "expected": 25000000
+    },
+    {
+      "name": "the lower unit said: teen lakh pachas hazar (free text)",
+      "input": "teen lakh pachas hazar",
+      "context": "text",
+      "expected": 35000000
+    },
+    {
+      "name": "a number too big for the unit below is rupees",
+      "input": "ek lakh 500",
+      "context": "field",
+      "expected": 10050000
+    },
+    {
+      "name": "a rupee word pins the number as rupees",
+      "input": "ek lakh bees rupay",
+      "context": "field",
+      "expected": 10002000
+    },
+    {
+      "name": "a rupee word pins the number as rupees (free text)",
+      "input": "ek lakh bees rupay",
+      "context": "text",
+      "expected": 10002000
+    },
+    {
+      "name": "hazar then units, for the review",
+      "input": "das hazar paanch",
+      "context": "field",
+      "expected": 1000500
+    },
+    { "name": "mn joined, in free text", "input": "5mn", "context": "text", "expected": 500000000 },
+    {
+      "name": "mn spaced after hazar, in free text",
+      "input": "50 hazar mn",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "mn spaced after hazar, in a field",
+      "input": "50 hazar mn",
+      "context": "field",
+      "expected": 5000000000000
+    },
+    {
+      "name": "mn spaced after digits, in free text",
+      "input": "5000 mn",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "bn joined, in free text",
+      "input": "2bn",
+      "context": "text",
+      "expected": 200000000000
+    },
+    {
+      "name": "bn spaced, in free text, may be ban",
+      "input": "2 bn",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "bn spaced, in a field",
+      "input": "2 bn",
+      "context": "field",
+      "expected": 200000000000
+    },
+    {
+      "name": "bn spaced after hazar, in free text",
+      "input": "50 hazar bn",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "nawasi may mean granddaughter",
+      "input": "nawasi hazar rupay",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "nawasi in a field",
+      "input": "nawasi hazar rupay",
+      "context": "field",
+      "expected": 8900000
+    },
+    {
+      "name": "نواسی may mean granddaughter",
+      "input": "نواسی ہزار روپے",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "نواسی in a field",
+      "input": "نواسی ہزار روپے",
+      "context": "field",
+      "expected": 8900000
+    },
+    { "name": "arhai lakh", "input": "arhai lakh", "context": "text", "expected": 25000000 },
+    { "name": "adhai hazar", "input": "adhai hazar", "context": "text", "expected": 250000 },
+    { "name": "اڑھائی لاکھ", "input": "اڑھائی لاکھ", "context": "text", "expected": 25000000 },
+    { "name": "arhaai sau", "input": "arhaai sau", "context": "field", "expected": 25000 },
+    { "name": "adhaai lakh", "input": "adhaai lakh", "context": "field", "expected": 25000000 },
+    {
+      "name": "chouda for fourteen",
+      "input": "chouda hazar",
+      "context": "text",
+      "expected": 1400000
+    },
+    {
+      "name": "choudah for fourteen",
+      "input": "choudah hazar",
+      "context": "text",
+      "expected": 1400000
+    },
+    {
+      "name": "choubees for twenty-four",
+      "input": "choubees hazar",
+      "context": "text",
+      "expected": 2400000
+    },
+    {
+      "name": "choubis for twenty-four",
+      "input": "choubis hazar",
+      "context": "text",
+      "expected": 2400000
+    },
+    {
+      "name": "chountees for thirty-four",
+      "input": "chountees hazar",
+      "context": "text",
+      "expected": 3400000
+    },
+    {
+      "name": "chouwalees for forty-four",
+      "input": "chouwalees hazar",
+      "context": "text",
+      "expected": 4400000
+    },
+    {
+      "name": "chounsath for sixty-four",
+      "input": "chounsath hazar",
+      "context": "text",
+      "expected": 6400000
+    },
+    {
+      "name": "chouhattar for seventy-four",
+      "input": "chouhattar hazar",
+      "context": "text",
+      "expected": 7400000
+    },
+    {
+      "name": "chourasi for eighty-four",
+      "input": "chourasi hazar",
+      "context": "text",
+      "expected": 8400000
+    },
+    {
+      "name": "chouranwe for ninety-four",
+      "input": "chouranwe hazar",
+      "context": "text",
+      "expected": 9400000
+    },
+    {
+      "name": "pacchees for twenty-five",
+      "input": "pacchees hazar",
+      "context": "text",
+      "expected": 2500000
+    },
+    {
+      "name": "pacchis for twenty-five",
+      "input": "pacchis hazar",
+      "context": "text",
+      "expected": 2500000
+    },
+    { "name": "dass for ten", "input": "dass hazar", "context": "text", "expected": 1000000 },
+    { "name": "chey for six", "input": "chey hazar", "context": "text", "expected": 600000 },
+    { "name": "chhey for six", "input": "chhey hazar", "context": "text", "expected": 600000 },
+    {
+      "name": "pichattar for seventy-five",
+      "input": "pichattar hazar",
+      "context": "text",
+      "expected": 7500000
+    },
+    { "name": "kror for crore", "input": "ek kror", "context": "text", "expected": 1000000000 },
+    { "name": "caror for crore", "input": "ek caror", "context": "text", "expected": 1000000000 },
+    { "name": "carore for crore", "input": "ek carore", "context": "text", "expected": 1000000000 },
+    { "name": "dhed for derh", "input": "dhed lakh", "context": "text", "expected": 15000000 },
+    { "name": "dhedh for derh", "input": "dhedh lakh", "context": "text", "expected": 15000000 },
+    {
+      "name": "ڈیڑ without do-chashmi he",
+      "input": "ڈیڑ لاکھ",
+      "context": "text",
+      "expected": 15000000
+    },
+    {
+      "name": "ساڑے without do-chashmi he",
+      "input": "ساڑے تین ہزار",
+      "context": "text",
+      "expected": 350000
+    },
+    { "name": "ik is left out", "input": "ik lakh", "context": "field", "expected": "ambiguous" },
+    {
+      "name": "panj is left out",
+      "input": "panj hazar",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "سوا after a rupee marker",
+      "input": "Rs سوا دو لاکھ",
+      "context": "text",
+      "expected": 22500000
+    },
+    {
+      "name": "a bank line's credit in a field",
+      "input": "Rs 25000 Cr",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "two decimal places before cr in a field",
+      "input": "25,000.00 Cr",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a decimal crore in a field",
+      "input": "2.5 cr",
+      "context": "field",
+      "expected": 2500000000
+    },
+    {
+      "name": "char sau bees is still 420",
+      "input": "char sau bees",
+      "context": "field",
+      "expected": 42000
+    },
+    {
+      "name": "char sau bees is still 420 (free text)",
+      "input": "char sau bees",
+      "context": "text",
+      "expected": 42000
+    },
+    { "name": "a date in Safar", "input": "10 صفر", "context": "text", "expected": "ambiguous" },
+    {
+      "name": "روپے دو may be give the money",
+      "input": "روپے دو",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "rupay do may be give the money",
+      "input": "rupay do",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "rs do with no multiplier",
+      "input": "rs do",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "PKR do with no multiplier",
+      "input": "PKR do",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a rupee word is not a marker before do",
+      "input": "روپے دو ہزار",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "do after PKR with a multiplier",
+      "input": "PKR do lakh",
+      "context": "text",
+      "expected": 20000000
+    },
+    {
+      "name": "grouping: a zero first group",
+      "input": "0,500",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "grouping: a zero first group (free text)",
+      "input": "0,500",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "grouping: a zero first group before fifty",
+      "input": "0,050",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "grouping: two zeros first",
+      "input": "00,500",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a prefix before 100 may be sau",
+      "input": "sawa 100 hazar",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a prefix before 100 may be sau (free text)",
+      "input": "sawa 100 hazar",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "paune before 100",
+      "input": "paune 100 hazar",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "sarhe before 100",
+      "input": "sarhe 100 hazar",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a prefix before 200 may be do sau",
+      "input": "sawa 200 hazar",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "sarhe before two digits",
+      "input": "sarhe 11 lakh",
+      "context": "field",
+      "expected": 115000000
+    },
+    {
+      "name": "crore then million, summed",
+      "input": "1 crore 1 million",
+      "context": "field",
+      "expected": 1100000000
+    },
+    {
+      "name": "sau then k, in a field",
+      "input": "5 sau k",
+      "context": "field",
+      "expected": 50000000
+    },
+    {
+      "name": "the same amount in both systems",
+      "input": "ek million das lakh",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a decimal before hazar lakh",
+      "input": "5.5 hazar lakh",
+      "context": "field",
+      "expected": 55000000000
+    },
+    {
+      "name": "a hyphen joined to Rs",
+      "input": "Rs-500",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "full-width digits and comma",
+      "input": "５０，０００",
+      "context": "field",
+      "expected": 5000000
+    },
+    { "name": "a trailing /=", "input": "Rs 500/=", "context": "field", "expected": 50000 },
+    {
+      "name": "a trailing full stop",
+      "input": "Rs 500.",
+      "context": "field",
+      "expected": "ambiguous"
+    },
     { "name": "empty", "input": "", "context": "field", "expected": null },
     { "name": "only spaces", "input": "   ", "context": "text", "expected": null },
     { "name": "no amount", "input": "kal milte hain", "context": "text", "expected": null },
@@ -990,6 +1444,9 @@
     { "paisa": 2500000, "script": "urdu", "words": "پچیس ہزار روپے" },
     { "paisa": 2500000, "script": "roman", "words": "pachees hazar rupay" },
     { "paisa": 2500000, "script": "english", "words": "twenty-five thousand rupees" },
+    { "paisa": 10002000, "script": "urdu", "words": "ایک لاکھ بیس روپے" },
+    { "paisa": 10002000, "script": "roman", "words": "ek lakh bees rupay" },
+    { "paisa": 10002000, "script": "english", "words": "one hundred thousand and twenty rupees" },
     { "paisa": 15000000, "script": "urdu", "words": "ایک لاکھ پچاس ہزار روپے" },
     { "paisa": 15000000, "script": "roman", "words": "ek lakh pachas hazar rupay" },
     { "paisa": 15000000, "script": "english", "words": "one hundred and fifty thousand rupees" },

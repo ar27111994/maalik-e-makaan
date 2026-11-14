@@ -43,6 +43,10 @@ void main() {
       expect(text('1.5 lac'), rupees(150000));
       expect(text('0.5 lakh'), rupees(50000));
       expect(text('2.25 crores'), rupees(22500000));
+      expect(text('arhai lakh'), rupees(250000));
+      expect(text('اڑھائی لاکھ'), rupees(250000));
+      expect(text('ساڑے تین ہزار'), rupees(3500));
+      expect(field('sarhe 11 lakh'), rupees(1150000));
     });
 
     test('digits, units and paisa', () {
@@ -54,6 +58,54 @@ void main() {
       expect(text('pachas rupay bees paise'), paisa(5020));
       expect(text('50 rupay 5 paise sirf'), paisa(5005));
       expect(field('0300'), rupees(300));
+      expect(field('Rs 500/='), rupees(500));
+      expect(
+        field(
+          '${String.fromCharCode(0xFF15)}0${String.fromCharCode(0xFF0C)}000',
+        ),
+        rupees(50000),
+      );
+      expect(field('1${String.fromCharCode(0xFF0E)}5 lakh'), rupees(150000));
+      expect(field('2.5 cr'), rupees(25000000));
+    });
+
+    test('a rupee word after a number pins it as rupees', () {
+      expect(text('ek lakh bees rupay'), rupees(100020));
+      expect(text('ایک لاکھ بیس روپے'), rupees(100020));
+      expect(field('1 crore 20/-'), rupees(10000020));
+      expect(field('ek lakh bees rupay pachas paise'), paisa(10002050));
+      expect(field('ek lakh 500'), rupees(100500));
+      expect(field('1 crore 500'), rupees(10000500));
+      expect(field('1 million 1000'), rupees(1001000));
+      expect(field('das hazar paanch'), rupees(10005));
+    });
+
+    test('long digit runs cost no more than short ones', () {
+      final stopwatch = Stopwatch()..start();
+      final nines = '9' * 1000000;
+      expect(field(nines), none(AmountAbsence.outOfRange));
+      expect(field('0.${'0' * 1000000}1 lakh'), none(AmountAbsence.belowPaisa));
+      expect(field('${'0' * 1000000}5'), rupees(5));
+      expect(field('1.5${'0' * 1000000} lakh'), rupees(150000));
+      expect(field('$nines.$nines lakh'), none(AmountAbsence.belowPaisa));
+      expect(field('$nines lakh'), none(AmountAbsence.outOfRange));
+      expect(stopwatch.elapsedMilliseconds, lessThan(5000));
+    });
+
+    test('digits beyond what can matter read as the real value would', () {
+      expect(field('1.000000000000001 lakh'), none(AmountAbsence.belowPaisa));
+      expect(field('1.00000000000001 کھرب'), none(AmountAbsence.belowPaisa));
+      expect(field('0.0000000000001 کھرب'), paisa(1));
+      expect(field('${'0' * 20}500'), rupees(500));
+      expect(field('100000000000000'), none(AmountAbsence.outOfRange));
+      expect(
+        field('ek hazar 99999999999999.5'),
+        ambiguous(AmountAmbiguity.order),
+      );
+      expect(
+        field('ek lakh 20.50'),
+        ambiguous(AmountAmbiguity.elidedMultiplier),
+      );
     });
 
     test('English words', () {
@@ -70,12 +122,19 @@ void main() {
       expect(text('sawa do lakh'), rupees(225000));
       expect(text('paune do lakh'), rupees(175000));
       expect(text('Rs do hazar'), rupees(2000));
+      expect(text('PKR do lakh'), rupees(200000));
+      expect(text('₨ do hazar'), rupees(2000));
+      expect(text('Rs سوا دو لاکھ'), rupees(225000));
+      expect(text('5mn'), rupees(5000000));
+      expect(text('2bn'), rupees(2000000000));
+      expect(field('5 mn'), rupees(5000000));
+      expect(field('nawasi hazar'), rupees(89000));
       expect(text('50k'), rupees(50000));
       expect(field('50 k'), rupees(50000));
       expect(field('5m'), rupees(5000000));
     });
 
-    test('zero only on its own', () {
+    test('zero only as the whole rupee amount', () {
       expect(text('0'), rupees(0));
       expect(text('sifar rupay'), rupees(0));
       expect(text('sifar rupay pachas paise'), paisa(50));
@@ -85,6 +144,19 @@ void main() {
       final rlm = String.fromCharCode(0x200F);
       final alm = String.fromCharCode(0x061C);
       expect(text('$rlmپچاس$alm ہزار'), rupees(50000));
+      String c(int code) => String.fromCharCode(code);
+      // Zero-width space, word joiner, soft hyphen, the byte-order mark, the
+      // bidi embeddings, overrides and isolates: copying carries them.
+      expect(text('5${c(0x200B)}0 hazar'), rupees(50000));
+      expect(text('50${c(0x2068)} hazar${c(0x2069)}'), rupees(50000));
+      expect(text('${c(0x2066)}500${c(0x2069)}'), rupees(500));
+      expect(text('${c(0x2067)}پچاس ہزار${c(0x2069)}'), rupees(50000));
+      expect(text('50 ${c(0x202B)}hazar${c(0x202C)}'), rupees(50000));
+      expect(text('${c(0x202A)}${c(0x202D)}${c(0x202E)}500'), rupees(500));
+      expect(text('50${c(0x00AD)}hazar'), rupees(50000));
+      expect(text('pach${c(0x00AD)}as hazar'), rupees(50000));
+      expect(text('${c(0xFEFF)}500'), rupees(500));
+      expect(text('ek${c(0x2060)} lakh'), rupees(100000));
       expect(text('تین هزار'), rupees(3000));
       expect(
         text('دو ہزار ${String.fromCharCode(0x06D3)}'),
@@ -139,22 +211,34 @@ void main() {
         'twenty-',
         '500 é',
         '5 / 2',
+        'Rs-500',
+        'Rs 500.',
+        '500 /x',
       ]);
     });
 
     test('grouping', () {
-      expectReason(AmountAmbiguity.grouping, [
-        '1,5,000',
-        '15,00',
-        '1,2345',
-        '1234,567',
-        '1.500',
-        '12,345,67,890',
-      ]);
+      expectReason(
+        AmountAmbiguity.grouping,
+        [
+          '1,5,000',
+          '15,00',
+          '1,2345',
+          '1234,567',
+          '1.500',
+          '12,345,67,890',
+          '0,500',
+          '0,050',
+          '0,000,001',
+          '00,500',
+          'Rs 05,000',
+        ],
+        ['0,500', 'Rs 05,000'],
+      );
     });
 
     test('leading zeros in free text', () {
-      expectReason(AmountAmbiguity.leadingZero, [], ['0300', 'Rs 05,000']);
+      expectReason(AmountAmbiguity.leadingZero, [], ['0300', '0500 rupay']);
     });
 
     test('free-text words', () {
@@ -166,7 +250,51 @@ void main() {
         '5 cr',
         'one hundred and fifty',
         'sattar hazar',
+        'rupay do',
+        'روپے دو',
+        'rupees do',
+        'rs do',
+        'pkr do',
+        '/- do',
+        'روپے دو ہزار',
+        'Rs do sawa',
+        '5 mn',
+        '50 hazar mn',
+        '5000 mn',
+        '2 bn',
+        '50 hazar bn',
+        'nawasi hazar rupay',
+        'نواسی ہزار روپے',
       ]);
+      expectReason(AmountAmbiguity.freeTextWord, [
+        'Rs 25000 Cr',
+        '25,000.00 Cr',
+        'Rs 5 cr',
+        'PKR 2.5 cr',
+      ]);
+    });
+
+    test('a lower unit that may have been left out', () {
+      expectReason(
+        AmountAmbiguity.elidedMultiplier,
+        [
+          'ek lakh bees',
+          '1 lakh 20',
+          '5 lakh 50',
+          '1 crore 20',
+          '1 crore 20 lakh 5',
+          '5 lakhs 20',
+          '1 million 20',
+          '1 million 999',
+          'ek arab 50',
+          '1 arab 999',
+          'ایک کھرب ننانوے',
+          '1 lakh 99.5',
+          'ek lakh bees only',
+          'Rs ek lakh bees',
+        ],
+        ['das lakh pachas', 'paanch lakh pachas'],
+      );
     });
 
     test('markers out of place', () {
@@ -201,6 +329,12 @@ void main() {
         'derh lakh hazar',
         '2.5 lakh 30 hazar',
         'ek lakh 1.5 hazar',
+        'sawa 100 hazar',
+        'paune 100 hazar',
+        'sarhe 100 hazar',
+        'sawa 200 hazar',
+        'sawa 150 hazar',
+        'sawa 1000 lakh',
       ]);
     });
 
@@ -242,6 +376,8 @@ void main() {
         'ek lakh 500 hazar',
         'ek hazar 1500',
         'lakh hazar crore',
+        'ek million das lakh',
+        '1 crore 10 million',
       ]);
     });
   });
@@ -263,7 +399,14 @@ void main() {
     });
 
     test('negative', () {
-      for (final input in ['-500', 'Rs -500', '−500', '- lakh', 'only -5']) {
+      for (final input in [
+        '-500',
+        'Rs -500',
+        '−500',
+        '- lakh',
+        'only -5',
+        'Rs - 500',
+      ]) {
         expect(field(input), none(AmountAbsence.negative), reason: input);
       }
     });
