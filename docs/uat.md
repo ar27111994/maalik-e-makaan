@@ -289,7 +289,11 @@ after each deletion, it reads the browser's `localStorage`: no `mm.swr.*`,
 `mm.portfolio.current`, `mm.documents.camera_target` or `sb-*-auth-token` key may be left, and
 `mm.settings.locale` must be. The invitation must still be there, unchanged, after the plain
 sign-out (the person may be signing in with the address it was sent to), and gone after the
-deletion. (A list still loading when the session ends is covered by the app's tests,
+deletion. It is read once more just before the deletion is submitted, and must still be exactly
+what was planted: signing in again does not take it up (the running app read its preferences
+when it started, so it never saw this one; one it had seen would be answered at sign-in and,
+refused as not an invitation, forgotten), so its absence afterwards shows the deletion removed
+it. (A list still loading when the session ends is covered by the app's tests,
 `sign_out_wipe_test.dart`: a browser cannot hold a request open on cue.)
 
 ![Deleting the viewer's account, in Urdu](uat/ur-10-delete-account.png)

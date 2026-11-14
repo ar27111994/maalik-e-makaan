@@ -59,6 +59,11 @@ async function leaveUnansweredInvitation(page: Page): Promise<string> {
   return stored;
 }
 
+/** The invitation the browser's storage holds, as stored, or null. */
+function storedInvitation(page: Page): Promise<string | null> {
+  return page.evaluate((key) => localStorage.getItem(key), invitationKey);
+}
+
 /**
  * What a browser still holds of an account once its session ended
  * (docs/architecture/app.md, On the device): nothing, but an invitation not
@@ -83,8 +88,7 @@ async function expectAccountForgotten(
       ),
     )
     .toEqual([]);
-  const invitation = () => page.evaluate((key) => localStorage.getItem(key), invitationKey);
-  await expect.poll(invitation).toBe(ended.by === "signOut" ? ended.kept : null);
+  await expect.poll(() => storedInvitation(page)).toBe(ended.by === "signOut" ? ended.kept : null);
   expect(await keys()).toContain("mm.settings.locale");
 }
 
@@ -666,6 +670,10 @@ test.describe.serial("Landlord journeys", () => {
     await fill(viewerPage, "پاس ورڈ", password);
     await fill(viewerPage, /^تصدیق کے لیے/, viewer.email);
     await shot(viewerPage, "ur-10-delete-account");
+    // Signing in again left the invitation exactly as planted (the running
+    // app never read it, so it did not take it up): its absence afterwards
+    // is the deletion's doing.
+    expect(await storedInvitation(viewerPage)).toBe(unanswered);
     await tap(viewerPage, "میرا اکاؤنٹ ڈیلیٹ کریں");
     await see(viewerPage, loose("آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے"), 60_000);
     await expect(viewerPage).toHaveURL(/\/sign-in$/);
