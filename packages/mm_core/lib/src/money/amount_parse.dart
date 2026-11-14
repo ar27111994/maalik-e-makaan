@@ -414,6 +414,11 @@ _Q? _fractionForm(List<_Token> t) {
     return null;
   }
   if (next == t.length) return null;
+  // A plural ('lakhs') is read only after a number, and a fraction word on
+  // its own ('sawa lakhs', 'derh crores') is not one.
+  if (first.kind == _Kind.fraction && next == 1 && t[1].kind == _Kind.plural) {
+    return null;
+  }
   var power = -1;
   for (final token in t.skip(next)) {
     if (!token.isMultiplier || token.index <= power) return null;

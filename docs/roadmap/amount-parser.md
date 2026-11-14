@@ -194,7 +194,12 @@ rupay bees paise`); the lexicon's `paisa` section says so, and elsewhere the pai
   the bound a number has at most 59 digits, so `9` repeated a million times is out of range in
   about a tenth of a second, not 40. An earlier version kept the first 14 decimal places and
   stood a 1 in for the rest, which read `0.0000000000000001 sau hazar lakh crore` (Rs 10) as
-  Rs 100; the vectors pin it.
+  Rs 100; the vectors pin it. A number beyond the bound is refused before the grammar runs, so
+  its reason comes first: `5 100000000000000` is out of range, not two numbers side by side,
+  although `5 99999999999999`, with 14 digits, is still the latter.
+- A plural (`lakhs`, `crores`) is read only after a number, in a fraction form too: `sawa teen
+lakhs` and `1.5 lakhs` are read, `sawa lakhs` and `derh lakhs` are not, although `sawa lakh`
+  and `derh lakh` are.
 
 **Shared vectors.** `contracts/amount_vectors.json` holds input, context (`field` or `text`) and
 expected paisa, `ambiguous` or nothing, and the words `formatAmountWords` writes for some

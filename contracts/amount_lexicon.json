@@ -57,6 +57,10 @@
       {
         "what": "near pairs the read-back must show in digits",
         "why": "teis (23) and tees (30), chaubis (24) and chhabbis (26), tera (13) and terah: one letter apart, so a typo reads as another number rather than being refused. The read-back must show the digits beside the words."
+      },
+      {
+        "what": "a plural after a fraction word",
+        "why": "sawa lakhs and derh lakhs are refused, because a plural is read only after a number, while sawa lakh, derh lakh, sawa teen lakhs and 1.5 lakhs are read. Confirm that people do not write sawa lakhs or dedh lakhs for 125,000 or 150,000."
       }
     ]
   },

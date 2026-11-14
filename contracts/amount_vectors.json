@@ -699,6 +699,54 @@
       "expected": "ambiguous"
     },
     {
+      "name": "a plural after a fraction word alone",
+      "input": "sawa lakhs",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a plural after a fraction word alone (free text)",
+      "input": "sawa lakhs",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a plural after a quantity fraction",
+      "input": "derh lakhs",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a plural after a quantity fraction (free text)",
+      "input": "derh lakhs",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a plural after a fraction and a number",
+      "input": "sawa teen lakhs",
+      "context": "field",
+      "expected": 32500000
+    },
+    {
+      "name": "a plural after a fraction and a number (free text)",
+      "input": "sawa teen lakhs",
+      "context": "text",
+      "expected": 32500000
+    },
+    {
+      "name": "a plural after a decimal",
+      "input": "1.5 lakhs",
+      "context": "field",
+      "expected": 15000000
+    },
+    {
+      "name": "a plural after a decimal (free text)",
+      "input": "1.5 lakhs",
+      "context": "text",
+      "expected": 15000000
+    },
+    {
       "name": "or between two amounts",
       "input": "50 or 60 hazar",
       "context": "field",
