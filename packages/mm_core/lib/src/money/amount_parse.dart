@@ -429,7 +429,10 @@ _Q? _fractionForm(List<_Token> t) {
 /// multipliers only), and everything after it is less than one of it.
 /// Because the highest multiplier fixes where the first group ends, there is
 /// at most one reading. [below] bounds the multipliers inside a quantity;
-/// [rest] is true after a group, where a multiplier needs a number before it.
+/// [rest] is true after a group, where the remainder must start with a
+/// number: a multiplier there has no number before it, so the one it would
+/// imply is a guess ('5 hazar sau', and '5 crore sau hazar', which is not
+/// read as 5 crore and 1 lakh). Nested quantities do not lift this.
 _Q? _expression(
   List<_Token> t,
   int from,
@@ -437,6 +440,7 @@ _Q? _expression(
   required bool rest,
   int? below,
 }) {
+  if (rest && t[from].isMultiplier) return null;
   var at = -1;
   var power = -1;
   var count = 0;
@@ -459,7 +463,7 @@ _Q? _expression(
   if (count > 1 || (below != null && power >= below)) return null;
   final _Q quantity;
   if (at == from) {
-    if (rest || t[at].kind == _Kind.plural || t[at].isAbbreviation) return null;
+    if (t[at].kind == _Kind.plural || t[at].isAbbreviation) return null;
     quantity = _Q.one;
   } else {
     final value = _expression(t, from, at, rest: false, below: power);

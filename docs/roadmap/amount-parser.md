@@ -132,6 +132,9 @@ them, or a bare `m` that could be a word all return `ambiguous`, never a number.
   (`ek sau pachas crore`, `one hundred and fifty thousand`); a single group may stand alone
   (`teen hazar crore`, `lakh crore`). `pachas hazar do lakh` and `do hazar do lakh` are
   ambiguous.
+- After a group, the rest must start with a number. A multiplier there would stand for an
+  implied one, so `5 hazar sau` and `5 crore sau hazar` are ambiguous, not 5 crore and 1 lakh;
+  `5 crore ek sau hazar` is read. On its own, `sau hazar` is still 100,000 in a field.
 - A fraction or a decimal quantity must be the whole amount, followed only by multipliers in
   rising order (`sawa do lakh`, `1.5 lac`, `derh sau hazar`); with any other group it is
   ambiguous, since the fraction could cover the rest or not.

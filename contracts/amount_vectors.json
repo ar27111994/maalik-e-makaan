@@ -847,6 +847,36 @@
       "expected": "ambiguous"
     },
     {
+      "name": "a multiplier with no number after a group, field",
+      "input": "5 crore sau hazar",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "multipliers alone after a kharab group, field",
+      "input": "8 کھرب hazar lac",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a multiplier with no number after a group, text",
+      "input": "5 crore sau hazar",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "multipliers alone after a kharab group, text",
+      "input": "8 کھرب hazar lac",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a number before the multipliers after a group",
+      "input": "5 crore ek sau hazar",
+      "context": "field",
+      "expected": 5010000000
+    },
+    {
       "name": "a leading zero in free text",
       "input": "03001234567",
       "context": "text",

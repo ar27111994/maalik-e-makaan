@@ -504,6 +504,18 @@ void main() {
         'ek million das lakh',
         '1 crore 10 million',
       ]);
+      // After a group the rest starts with a number: a multiplier there,
+      // even one inside a nested quantity, would stand for an implied one.
+      const implied = [
+        '5 crore sau hazar',
+        '8 کھرب hazar lac',
+        'Rs 165 arb سو ہزار',
+        'five crore hundred thousand',
+      ];
+      expectReason(AmountAmbiguity.order, implied, implied);
+      expectReason(AmountAmbiguity.order, ['ek lakh sau hazar']);
+      expect(field('5 crore ek sau hazar'), rupees(50100000));
+      expect(text('5 crore ek sau hazar'), rupees(50100000));
     });
   });
 
