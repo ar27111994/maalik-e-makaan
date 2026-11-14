@@ -93,10 +93,14 @@ enum AmountAbsence {
   negative,
 
   /// The amount is above the largest the database stores
-  /// (`numeric(14,2)`: Rs 999,999,999,999.99).
+  /// (`numeric(14,2)`: Rs 999,999,999,999.99), or it has a number whose
+  /// whole part is longer than 14 digits, which is above it wherever it
+  /// stands.
   outOfRange,
 
-  /// The amount is not a whole number of paisa (`1.23456789 lakh`).
+  /// The amount is not a whole number of paisa (`1.23456789 lakh`), or it
+  /// has a number with more decimal places than any multipliers after it
+  /// could make whole paisa (more than 45).
   belowPaisa,
 }
 
@@ -216,6 +220,12 @@ AmountReading parseAmount(
   }
   final refusal = _refusal(tokens, context);
   if (refusal != null) return AmountAmbiguous(refusal);
+  // A number beyond the bound the reader holds exactly (see _digitValue) is
+  // above the maximum, or below a paisa, in every reading of the text; it
+  // has no value to read, so the grammar never sees one.
+  for (final token in tokens) {
+    if (token.excess case final excess?) return AmountNotFound(excess);
+  }
   return _read(_mergeEnglishTens(tokens), context);
 }
 
@@ -662,20 +672,37 @@ final class _Token {
     this.index, {
     required this.joined,
     this.english = false,
-  }) : value = _Q.integer(index),
+  }) : exact = _Q.integer(index),
+       excess = null,
        decimals = 0,
        badGrouping = false,
        leadingZero = false;
 
-  new digits(List<String> groups, String fraction, {required this.joined})
-    : text = groups.join(),
-      kind = _Kind.number,
-      index = -1,
-      english = false,
-      value = _digitValue(groups.join(), fraction),
-      decimals = fraction.length,
-      badGrouping = !_groupingOk(groups),
-      leadingZero = groups.first.length > 1 && groups.first.startsWith('0');
+  factory digits(List<String> groups, String fraction, {required bool joined}) {
+    final whole = groups.join();
+    final (exact, excess) = _digitValue(whole, fraction);
+    return _Token._digits(
+      whole,
+      exact,
+      excess,
+      fraction.length,
+      badGrouping: !_groupingOk(groups),
+      leadingZero: groups.first.length > 1 && groups.first.startsWith('0'),
+      joined: joined,
+    );
+  }
+
+  new _digits(
+    this.text,
+    this.exact,
+    this.excess,
+    this.decimals, {
+    required this.badGrouping,
+    required this.leadingZero,
+    required this.joined,
+  }) : kind = _Kind.number,
+       index = -1,
+       english = false;
 
   factory lookup(String text, {required bool joined}) {
     if (amountRefused.contains(text)) {
@@ -705,8 +732,17 @@ final class _Token {
   /// Whether no space separates this token from the one before.
   final bool joined;
 
-  /// A number's value in rupees.
-  final _Q value;
+  /// A number's value in rupees, exact; `null` for a digit number beyond
+  /// the bound in [_digitValue], which says why in [excess].
+  final _Q? exact;
+
+  /// Why a digit number has no [exact] value: above the maximum or below a
+  /// paisa in every reading.
+  final AmountAbsence? excess;
+
+  /// A number's value in rupees. [parseAmount] stops at a token with an
+  /// [excess] before reading any value, so this never throws.
+  _Q get value => exact!;
 
   /// A digit number's decimal places.
   final int decimals;
@@ -729,34 +765,56 @@ final class _Token {
       english && kind == _Kind.number && index >= 20 && index % 10 == 0;
 }
 
-/// The most digits of a number's whole part, and of its decimal part after
-/// trailing zeros, that can matter: a whole part of 15 digits is already
-/// above the maximum, and no multiplier makes 15 decimals whole paisa.
-const int _significantDigits = 14;
+/// The longest whole part a number inside an amount can have: 15 digits
+/// are at least Rs 10^14, and even as paise (10^14 paisa) that is above the
+/// largest amount, `numeric(14,2)`'s 99,999,999,999,999 paisa.
+const int _wholeDigits = 14;
 
-/// The value of a digit number, without parsing more than
-/// [_significantDigits] digits on either side of the point, so that a long
-/// run of digits costs no more than a short one (BigInt.parse is not linear).
-/// A longer whole part becomes 10^14 (out of range wherever it stands); a
-/// longer decimal part keeps its first 14 digits and gains a 1 after them,
-/// so it is still below the next 14-digit step and is never whole paisa.
-/// Every comparison the grammar makes then comes out as for the real value.
-_Q _digitValue(String whole, String fraction) {
+/// The most decimal places any reading can make whole paisa: two, and the
+/// powers of ten of every multiplier, because a decimal quantity takes each
+/// multiplier power at most once, in rising order (`_fractionForm`), and a
+/// decimal anywhere else must have at most two places. With today's lexicon
+/// that is 2 + 2 + 3 + 5 + 6 + 7 + 9 + 11 = 45:
+/// `0.000…01 sau hazar lakh million crore billion کھرب` with 45 places is
+/// one paisa.
+final int _maxDecimals = amountWords.values
+    .where(
+      (m) => m.$1 == AmountWordKind.multiplier || m.$1 == AmountWordKind.plural,
+    )
+    .map((m) => m.$2)
+    .toSet()
+    .fold(2, (sum, power) => sum + power);
+
+/// The exact value of a digit number in rupees, or why it has none.
+///
+/// Leading zeros of the whole part and trailing zeros of the decimal part
+/// are skipped without parsing, so a long run of them costs no more than a
+/// scan (BigInt.parse is not linear). What is left is parsed in full, never
+/// cut short or stood in for, but only within a bound that keeps it short:
+///
+/// * more than [_maxDecimals] decimal places: no multipliers make the
+///   number whole paisa, so every reading is below a paisa
+///   ([AmountAbsence.belowPaisa]);
+/// * a whole part of more than [_wholeDigits] digits: every reading is
+///   above the maximum ([AmountAbsence.outOfRange]).
+///
+/// Within the bound the number has at most 14 + 45 digits, read exactly,
+/// so every comparison the grammar makes is on the real value.
+(_Q?, AmountAbsence?) _digitValue(String whole, String fraction) {
   var from = 0;
   while (from < whole.length && whole.codeUnitAt(from) == 0x30) {
     from++;
   }
-  var w = whole.substring(from);
-  if (w.length > _significantDigits) w = '1${'0' * _significantDigits}';
   var to = fraction.length;
   while (to > 0 && fraction.codeUnitAt(to - 1) == 0x30) {
     to--;
   }
-  var f = fraction.substring(0, to);
-  if (f.length > _significantDigits) {
-    f = '${f.substring(0, _significantDigits)}1';
+  if (to > _maxDecimals) return (null, AmountAbsence.belowPaisa);
+  if (whole.length - from > _wholeDigits) {
+    return (null, AmountAbsence.outOfRange);
   }
-  return _Q(BigInt.parse('0$w$f'), BigInt.from(10).pow(f.length));
+  final digits = '0${whole.substring(from)}${fraction.substring(0, to)}';
+  return (_Q(BigInt.parse(digits), _tenTo(to)), null);
 }
 
 /// Western (`1,234,567`) or South Asian (`12,34,567`) grouping, or none.

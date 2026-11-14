@@ -181,9 +181,17 @@ rupay bees paise`); the lexicon's `paisa` section says so, and elsewhere the pai
 - A hyphen joined to a rupee marker (`Rs-500`) is ambiguous, not negative, so the amount is shown
   to the person instead of dropped. A trailing full stop (`Rs 500.`) stays ambiguous: in a field
   it may be a decimal still being typed.
-- No digit run costs more than a short one: only the first 14 significant digits on each side of
-  the point are parsed, which is enough for every comparison the grammar makes (`9` repeated a
-  million times is out of range in about a tenth of a second, not 40).
+- Every number is read exactly, and no digit run costs more than a short one. Leading zeros of
+  the whole part and trailing zeros of the decimals are skipped without parsing; what is left is
+  parsed in full, never cut short or stood in for, within a bound that keeps it short. A whole
+  part of more than 14 digits is out of range wherever it stands (even as paise, 10^14 paisa is
+  above the maximum), and a number with more than 45 decimal places is below a paisa, because
+  45 is two plus the powers of every multiplier, and a decimal takes each power at most once
+  (`0.000…01 sau hazar lakh million crore billion کھرب`, with 45 places, is one paisa). Inside
+  the bound a number has at most 59 digits, so `9` repeated a million times is out of range in
+  about a tenth of a second, not 40. An earlier version kept the first 14 decimal places and
+  stood a 1 in for the rest, which read `0.0000000000000001 sau hazar lakh crore` (Rs 10) as
+  Rs 100; the vectors pin it.
 
 **Shared vectors.** `contracts/amount_vectors.json` holds input, context (`field` or `text`) and
 expected paisa, `ambiguous` or nothing, and the words `formatAmountWords` writes for some

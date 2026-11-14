@@ -2,6 +2,7 @@
 // reason. contracts/amount_vectors.json (test/contract/) holds the cases
 // every port must agree on; these pin the Dart reasons and edges.
 import 'package:mm_core/mm_core.dart';
+import 'package:mm_core/src/money/amount_lexicon.g.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -92,7 +93,7 @@ void main() {
       expect(stopwatch.elapsedMilliseconds, lessThan(5000));
     });
 
-    test('digits beyond what can matter read as the real value would', () {
+    test('long digit runs read as their exact value', () {
       expect(field('1.000000000000001 lakh'), none(AmountAbsence.belowPaisa));
       expect(field('1.00000000000001 کھرب'), none(AmountAbsence.belowPaisa));
       expect(field('0.0000000000001 کھرب'), paisa(1));
@@ -107,6 +108,130 @@ void main() {
         ambiguous(AmountAmbiguity.elidedMultiplier),
       );
     });
+
+    // A decimal is read exactly however many places it has, up to the most
+    // any chain of multipliers can make whole paisa; nothing stands in for
+    // its digits. '0.0000000000000001 sau hazar lakh crore' once read as
+    // Rs 100: a stand-in for the 16 places reached the result.
+    group('long decimals under multipliers read exactly', () {
+      // One significant digit after `places` decimal places.
+      String tiny(int places) => '0.${'0' * (places - 1)}1';
+      // Every one of `places` decimal places significant.
+      String full(int places) => '0.${'1' * places}';
+      const one = 'lakh';
+      const two = 'hazar lakh';
+      const four = 'sau hazar lakh crore';
+      const seven = 'sau hazar lakh million crore billion کھرب';
+      void both(String input, AmountReading expected) {
+        expect(field(input), expected, reason: '$input (field)');
+        expect(text(input), expected, reason: '$input (text)');
+      }
+
+      test('the reported inputs', () {
+        both('${tiny(16)} $four', paisa(1000));
+        both('${tiny(15)} $four', paisa(10000));
+      });
+
+      test('14, 15, 16 and 40 places alone', () {
+        for (final places in [14, 15, 16, 40]) {
+          both(tiny(places), ambiguous(AmountAmbiguity.grouping));
+          both(full(places), ambiguous(AmountAmbiguity.grouping));
+        }
+      });
+
+      test('under one, two and four multipliers', () {
+        for (final places in [14, 15, 16, 40]) {
+          both('${tiny(places)} $one', none(AmountAbsence.belowPaisa));
+          both('${tiny(places)} $two', none(AmountAbsence.belowPaisa));
+          both('${full(places)} $one', none(AmountAbsence.belowPaisa));
+          both('${full(places)} $two', none(AmountAbsence.belowPaisa));
+        }
+        both('${tiny(14)} $four', paisa(100000));
+        both('${tiny(40)} $four', none(AmountAbsence.belowPaisa));
+        both('${full(14)} $four', none(AmountAbsence.outOfRange));
+        both('${full(15)} $four', none(AmountAbsence.outOfRange));
+        both('${full(16)} $four', none(AmountAbsence.outOfRange));
+        both('${full(40)} $four', none(AmountAbsence.belowPaisa));
+        both('${full(40)} $seven', none(AmountAbsence.outOfRange));
+      });
+
+      test('significant digits after leading zeros', () {
+        // 19 places, 14 of them significant, times 10^17: whole paisa.
+        both('0.0000012345678901234 $four', paisa(12345678901234));
+        both('0.00000123456789012345 $four', none(AmountAbsence.belowPaisa));
+        both('0.0000123456789012345 $four', none(AmountAbsence.outOfRange));
+        both('0.00001${'0' * 14}1 $four', none(AmountAbsence.belowPaisa));
+        both('0.00001${'0' * 13}1 $four', none(AmountAbsence.outOfRange));
+      });
+
+      test('the most places any multipliers make whole paisa', () {
+        both('${tiny(40)} $seven', paisa(100000));
+        both('${tiny(45)} $seven', paisa(1));
+        both('${tiny(46)} $seven', none(AmountAbsence.belowPaisa));
+        both('${tiny(45)}${'0' * 1000} $seven', paisa(1));
+        both('${tiny(1000)} $seven', none(AmountAbsence.belowPaisa));
+      });
+
+      test('with a currency marker', () {
+        both('Rs ${tiny(16)} $four', paisa(1000));
+        both('${tiny(16)} $four rupay', paisa(1000));
+        both('Rs. ${tiny(16)} $four /-', paisa(1000));
+        both('Rs ${full(40)} $four', none(AmountAbsence.belowPaisa));
+      });
+
+      test('after a fraction, which takes only a whole number', () {
+        for (final places in [14, 15, 16, 40]) {
+          both(
+            'sawa ${tiny(places)} $four',
+            ambiguous(AmountAmbiguity.misplacedFraction),
+          );
+          both(
+            'derh ${tiny(places)} $four',
+            ambiguous(AmountAmbiguity.misplacedFraction),
+          );
+        }
+      });
+
+      test('as the paise or the units of an amount', () {
+        expect(
+          field('ek hazar rupay ${tiny(16)} paise'),
+          ambiguous(AmountAmbiguity.misplacedMarker),
+        );
+        expect(
+          field('ek hazar ${tiny(16)}'),
+          ambiguous(AmountAmbiguity.grouping),
+        );
+      });
+    });
+
+    // A whole part of more than 14 digits is at least Rs 10^14, wherever it
+    // stands (a quantity, the units, the number after a fraction, or even the
+    // paise, at 10^14 paisa): every reading is above the maximum.
+    test(
+      'a whole part beyond 14 digits is out of range wherever it stands',
+      () {
+        final big = '1${'0' * 14}';
+        expect(field(big), none(AmountAbsence.outOfRange));
+        expect(field('$big.5 rupay 50 paise'), none(AmountAbsence.outOfRange));
+        expect(field('Rs 5 $big paise'), none(AmountAbsence.outOfRange));
+        expect(field('5 $big'), none(AmountAbsence.outOfRange));
+        expect(field('ek hazar $big'), none(AmountAbsence.outOfRange));
+        expect(field('sawa $big lakh'), none(AmountAbsence.outOfRange));
+        expect(field('$big.25 lakh'), none(AmountAbsence.outOfRange));
+        expect(text('$big hazar'), none(AmountAbsence.outOfRange));
+        // A word or sign the reader refuses is still the reason given first.
+        expect(field('$big aed'), ambiguous(AmountAmbiguity.foreignCurrency));
+        expect(text('0$big'), ambiguous(AmountAmbiguity.leadingZero));
+        expect(field('-$big'), none(AmountAbsence.negative));
+        // 14 digits are read exactly, as any other number.
+        expect(field('99999999999999'), none(AmountAbsence.outOfRange));
+        expect(field('9999999999.99'), paisa(999999999999));
+        expect(
+          field('ek hazar 99999999999999'),
+          ambiguous(AmountAmbiguity.order),
+        );
+      },
+    );
 
     test('English words', () {
       expect(field('one hundred and fifty thousand'), rupees(150000));
@@ -433,6 +558,19 @@ void main() {
   });
 
   group('results', () {
+    // _elidedBelow has an entry for every multiplier power above hazar, and
+    // _maxDecimals (45) is two plus the sum of these powers: a new power
+    // changes both, and this test, in the same change.
+    test('the multiplier powers the grammar is built for', () {
+      final powers = {
+        for (final m in amountWords.values)
+          if (m.$1 == AmountWordKind.multiplier ||
+              m.$1 == AmountWordKind.plural)
+            m.$2,
+      };
+      expect(powers, {2, 3, 5, 6, 7, 9, 11});
+    });
+
     test('compare by value and describe themselves', () {
       expect(rupees(5), rupees(5));
       expect(rupees(5).hashCode, rupees(5).hashCode);

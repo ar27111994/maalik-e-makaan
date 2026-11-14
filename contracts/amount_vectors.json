@@ -1429,6 +1429,210 @@
       "input": "نو سو ننانوے ارب ننانوے کروڑ ننانوے لاکھ ننانوے ہزار نو سو ننانوے روپے ننانوے پیسے",
       "context": "text",
       "expected": 99999999999999
+    },
+    {
+      "name": "a long decimal under four multipliers: 16 places",
+      "input": "0.0000000000000001 sau hazar lakh crore",
+      "context": "field",
+      "expected": 1000
+    },
+    {
+      "name": "a long decimal under four multipliers: 16 places (free text)",
+      "input": "0.0000000000000001 sau hazar lakh crore",
+      "context": "text",
+      "expected": 1000
+    },
+    {
+      "name": "a long decimal under four multipliers: 15 places",
+      "input": "0.000000000000001 sau hazar lakh crore",
+      "context": "field",
+      "expected": 10000
+    },
+    {
+      "name": "a long decimal under four multipliers: 15 places (free text)",
+      "input": "0.000000000000001 sau hazar lakh crore",
+      "context": "text",
+      "expected": 10000
+    },
+    {
+      "name": "a long decimal under four multipliers: 14 places",
+      "input": "0.00000000000001 sau hazar lakh crore",
+      "context": "field",
+      "expected": 100000
+    },
+    {
+      "name": "a long decimal under four multipliers: 14 places (free text)",
+      "input": "0.00000000000001 sau hazar lakh crore",
+      "context": "text",
+      "expected": 100000
+    },
+    {
+      "name": "a long decimal under four multipliers with a rupee sign",
+      "input": "Rs 0.0000000000000001 sau hazar lakh crore",
+      "context": "field",
+      "expected": 1000
+    },
+    {
+      "name": "a long decimal under four multipliers with a rupee sign (free text)",
+      "input": "Rs 0.0000000000000001 sau hazar lakh crore",
+      "context": "text",
+      "expected": 1000
+    },
+    {
+      "name": "a long decimal under one multiplier: 16 places",
+      "input": "0.0000000000000001 lakh",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "a long decimal under one multiplier: 16 places (free text)",
+      "input": "0.0000000000000001 lakh",
+      "context": "text",
+      "expected": null
+    },
+    {
+      "name": "a long decimal under two multipliers: 40 places",
+      "input": "0.1111111111111111111111111111111111111111 hazar lakh",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "a long decimal under two multipliers: 40 places (free text)",
+      "input": "0.1111111111111111111111111111111111111111 hazar lakh",
+      "context": "text",
+      "expected": null
+    },
+    {
+      "name": "a long decimal alone: 16 places",
+      "input": "0.0000000000000001",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a long decimal alone: 16 places (free text)",
+      "input": "0.0000000000000001",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a long decimal after a fraction",
+      "input": "sawa 0.0000000000000001 sau hazar lakh crore",
+      "context": "field",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "a long decimal after a fraction (free text)",
+      "input": "sawa 0.0000000000000001 sau hazar lakh crore",
+      "context": "text",
+      "expected": "ambiguous"
+    },
+    {
+      "name": "14 significant places after leading zeros",
+      "input": "0.0000012345678901234 sau hazar lakh crore",
+      "context": "field",
+      "expected": 12345678901234
+    },
+    {
+      "name": "14 significant places after leading zeros (free text)",
+      "input": "0.0000012345678901234 sau hazar lakh crore",
+      "context": "text",
+      "expected": 12345678901234
+    },
+    {
+      "name": "15 significant places after leading zeros, whole paisa but too large",
+      "input": "0.0000123456789012345 sau hazar lakh crore",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "15 significant places after leading zeros, whole paisa but too large (free text)",
+      "input": "0.0000123456789012345 sau hazar lakh crore",
+      "context": "text",
+      "expected": null
+    },
+    {
+      "name": "15 significant places after leading zeros, below a paisa",
+      "input": "0.00000123456789012345 sau hazar lakh crore",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "15 significant places after leading zeros, below a paisa (free text)",
+      "input": "0.00000123456789012345 sau hazar lakh crore",
+      "context": "text",
+      "expected": null
+    },
+    {
+      "name": "40 significant places under four multipliers",
+      "input": "0.1111111111111111111111111111111111111111 sau hazar lakh crore",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "40 significant places under four multipliers (free text)",
+      "input": "0.1111111111111111111111111111111111111111 sau hazar lakh crore",
+      "context": "text",
+      "expected": null
+    },
+    {
+      "name": "40 places under every multiplier",
+      "input": "0.0000000000000000000000000000000000000001 sau hazar lakh million crore billion کھرب",
+      "context": "field",
+      "expected": 100000
+    },
+    {
+      "name": "40 places under every multiplier (free text)",
+      "input": "0.0000000000000000000000000000000000000001 sau hazar lakh million crore billion کھرب",
+      "context": "text",
+      "expected": 100000
+    },
+    {
+      "name": "45 places under every multiplier: one paisa",
+      "input": "0.000000000000000000000000000000000000000000001 sau hazar lakh million crore billion کھرب",
+      "context": "field",
+      "expected": 1
+    },
+    {
+      "name": "45 places under every multiplier: one paisa (free text)",
+      "input": "0.000000000000000000000000000000000000000000001 sau hazar lakh million crore billion کھرب",
+      "context": "text",
+      "expected": 1
+    },
+    {
+      "name": "46 places under every multiplier: below a paisa",
+      "input": "0.0000000000000000000000000000000000000000000001 sau hazar lakh million crore billion کھرب",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "46 places under every multiplier: below a paisa (free text)",
+      "input": "0.0000000000000000000000000000000000000000000001 sau hazar lakh million crore billion کھرب",
+      "context": "text",
+      "expected": null
+    },
+    {
+      "name": "a whole part of 15 digits",
+      "input": "100000000000000",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "a whole part of 15 digits (free text)",
+      "input": "100000000000000",
+      "context": "text",
+      "expected": null
+    },
+    {
+      "name": "a whole part of 15 digits as paise",
+      "input": "Rs 5 100000000000000 paise",
+      "context": "field",
+      "expected": null
+    },
+    {
+      "name": "a whole part of 15 digits as paise (free text)",
+      "input": "Rs 5 100000000000000 paise",
+      "context": "text",
+      "expected": null
     }
   ],
   "words": [
