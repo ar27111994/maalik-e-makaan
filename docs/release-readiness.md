@@ -471,10 +471,22 @@ In order. Record each in `.planning/STATE.md` when it is done.
         `CNAME`. Also the owner's to set: when Auth drops the old redirect URLs and the Android
         manifest the old host (a date, or the oldest version still in use).
 
-Optional hardening: move the `ANDROID_*` secrets into the `release` environment and limit that
-environment to tags `v*`; only the Release workflow reads them. Keep the Supabase and Vercel
-secrets at repository level: the weekly Backup reads them without an environment, so it needs no
-approval.
+Optional hardening: move the `ANDROID_*` secrets from the repository into the `release` environment;
+only the Release workflow's `artefacts` job reads them, and it runs in that environment. A
+deployment branch rule can then keep them to `main` (Settings, Environments, `release`, Deployment
+branches and tags: Selected branches and tags, the branch `main` alone). Never a rule for tags
+alone, such as `v*`: the Release workflow runs on a push to `main`, so its `preflight`, `artefacts`
+and `ios` jobs, which all run in `release`, run for the branch `main`, and such a rule would stop
+every release at `preflight`. The rule keeps the signing secrets from a run on any other branch (Run
+workflow on a branch, or a branch pushed with a workflow changed to name the environment); it
+protects nothing merged to `main`, and no secret left at repository level, which a workflow on any
+branch can read. Keep the Supabase and Vercel secrets at repository level: the weekly Backup reads
+the Supabase ones without an environment, so it needs no approval, and the Release and Site refresh
+workflows hand them to Deploy from jobs that have no environment. A branch rule on `production`
+would have to allow `main` (Release and Site refresh run Deploy for it, and Owner actions, item 7,
+runs it there by hand) and every tag Deploy is run on by hand (`docs/operations.md`, Restoring, step
+6, may run one), and adds little to the reviewer that environment should require, who sees every
+run.
 
 ### The first backup and restore (2026-11-09)
 

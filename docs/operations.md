@@ -870,14 +870,18 @@ the web build to the release. The workflows read these repository settings:
 | `SUPABASE_PUBLISHABLE_KEY`  | variable | The project's publishable (client) key                                    |
 | `BACKUP_AGE_RECIPIENTS`     | variable | The public keys the weekly backup is encrypted to, one per line (Backups) |
 
-The `production` environment should require a reviewer; `release` holds the signing secrets. The
-web app's `APP_URL` is no repository variable: every build takes it from the tag's
-`contracts/origins.json` ([Domains](#domains)). The `APP_URL` variable that releases before D-20
-read still exists, and holds `https://app.mmakaan.app` since 14 November 2026. Delete it right
-after the web deploy of the release that carries D-20 ([Domains](#domains), step 8): a Deploy run
-by hand on an older tag then stops before it deploys that tag's web app or website. Until then
-such a run would deploy them built for the new web app address, without what the move needs
-(Rollback and restore), so do not start one.
+The `production` environment, which Deploy's three jobs run in, should require a reviewer. The
+Release workflow's `preflight`, `artefacts` and `ios` jobs run in the `release` environment, which
+may hold the `ANDROID_*` secrets in place of the repository; a deployment branch rule on it must
+allow `main`, the branch every release runs for, and never tags alone
+([`docs/release-readiness.md`](release-readiness.md), Optional hardening). The web app's `APP_URL`
+is no repository variable: every build takes it from the tag's `contracts/origins.json`
+([Domains](#domains)). The `APP_URL` variable that releases before D-20 read still exists, and holds
+`https://app.mmakaan.app` since 14 November 2026. Delete it right after the web deploy of the
+release that carries D-20 ([Domains](#domains), step 8): a Deploy run by hand on an older tag then
+stops before it deploys that tag's web app or website. Until then such a run would deploy them built
+for the new web app address, without what the move needs (Rollback and restore), so do not start
+one.
 
 Create the keystore once, on a machine with a JDK (`keytool` ships with it; Android Studio's is
 under `jbr/bin`):
