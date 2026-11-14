@@ -1,0 +1,1059 @@
+{
+  "$comment": "The words an amount is written or said with, in Urdu script, Roman Urdu and English, for the amount grammar (docs/roadmap/amount-parser.md): mm_core's parseAmount and formatAmountWords, and later its findAmounts and the TypeScript ports. Written by hand and NOT YET REVIEWED by a native speaker (reviewed: false; the review is work item 2, through docs/roadmap/urdu-review.md; review.check_first lists what to look at first). In every list the first spelling is the one to write; the others are only read. A spelling, after normalise, belongs to one entry only: a number, a fraction, a multiplier, a currency marker, a foreign currency, a filler or a connector. ambiguous lists tokens with a second everyday meaning: 'free_text' tokens are read in a single amount field and make an amount in free text ambiguous; 'spaced' tokens are also read in free text when joined to digits; 'always' tokens are never read and make any amount they touch ambiguous, because ignoring them would misread it. homographs lists other meanings the grammar's other rules already keep apart, for the review. A multiplier's plural forms are read only after a number ('5 lakhs'); on their own ('lakhs of rupees') they are vague and ambiguous. not_included lists spellings left out on purpose. Every addition needs a vector in contracts/amount_vectors.json.",
+  "version": 1,
+  "reviewed": false,
+  "review": {
+    "status": "Not reviewed. Drafted on 12 November 2026 from the sources below and general knowledge; the owner's native-speaker review is work item 2.",
+    "process": "docs/roadmap/urdu-review.md",
+    "check_first": [
+      {
+        "what": "fractions",
+        "why": "sawa, sarhe, paune, derh, dhai: their values, min_number (sarhe from 3, paune from 2) and alone (sawa lakh 125,000, paune sau 75); whether aadha, pauna, paun and pao should be read rather than refused; the error in tl-ur-fractional."
+      },
+      {
+        "what": "sarhe misspelt as sare, saray, saare",
+        "why": "refused because they also mean 'all'; confirm, and say whether سارے in Urdu script needs the same."
+      },
+      {
+        "what": "Urdu spelling variants",
+        "why": "6, 22, 23, 51, 53, 54, 63, 64, 67, 74, 75, 77, 78, 79, 81, 91, ھزار: the sources disagree; confirm each variant, and چوون and ستتر, left out."
+      },
+      {
+        "what": "irregular numbers in Roman Urdu",
+        "why": "every Roman spelling after the first is general knowledge; check the first one (it is what the read-back writes) for 6, 23, 51 to 58, 61 to 68, 71 to 79, 90 to 99, and the near pairs 23 teis and 30 tees, 24 chaubis and 26 chhabbis."
+      },
+      {
+        "what": "collisions",
+        "why": "do and دو, سوا, اسی, بہتر, انیس, sattar, saath, sath, bara, tera, sat, so, arab, hajar: refused in free text; confirm the other meaning is common enough."
+      },
+      {
+        "what": "multipliers",
+        "why": "کھرب (kharab is refused), ملین and بلین in Urdu, hajar, karod, krore."
+      },
+      {
+        "what": "currency words",
+        "why": "روپئے, روپوں, rupaya, rupiya; whether 'Re. 1' should be read."
+      },
+      {
+        "what": "aur and اور between groups",
+        "why": "refused: is 'do lakh aur pachas hazar' always 250,000?"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "id": "cldr-ur-rbnf",
+      "title": "Unicode CLDR 49, Urdu number spell-out rules (common/rbnf/ur.xml)",
+      "url": "https://github.com/unicode-org/cldr/blob/release-49/common/rbnf/ur.xml",
+      "reached": "directly, 12 November 2026",
+      "used_for": "the first Urdu spelling of every number 0 to 99; سو, ہزار, لاکھ, کروڑ, ارب, کھرب"
+    },
+    {
+      "id": "cldr-hi-rbnf",
+      "title": "Unicode CLDR 49, Hindi number spell-out rules (common/rbnf/hi.xml)",
+      "url": "https://github.com/unicode-org/cldr/blob/release-49/common/rbnf/hi.xml",
+      "reached": "directly, 12 November 2026",
+      "used_for": "the pronunciation behind each Roman spelling (Hindi and Urdu share the spoken numbers)"
+    },
+    {
+      "id": "cldr-ur",
+      "title": "Unicode CLDR 49, Urdu locale data (common/main/ur.xml)",
+      "url": "https://github.com/unicode-org/cldr/blob/release-49/common/main/ur.xml",
+      "reached": "directly, 12 November 2026",
+      "used_for": "PKR as پاکستانی روپیہ with the symbol Rs; compact units ہزار, لاکھ, کروڑ, ارب, کھرب"
+    },
+    {
+      "id": "cldr-en",
+      "title": "Unicode CLDR 49, English (India) and English locale data (common/main/en_IN.xml, en.xml)",
+      "url": "https://github.com/unicode-org/cldr/blob/release-49/common/main/en_IN.xml",
+      "reached": "directly, 12 November 2026",
+      "used_for": "lakh, crore and the short forms L and Cr; thousand, million, billion and K, M, B; PKR"
+    },
+    {
+      "id": "tl-ur-cardinal",
+      "title": "Transparent Language, Urdu grammar: Cardinal Numerals",
+      "url": "https://tplsites.s3.amazonaws.com/resources/URDpk-ENGus/grammar/Cardinal%20Numeral.htm",
+      "reached": "directly, 12 November 2026",
+      "used_for": "a second Urdu spelling of 0 to 99 with a transliteration; ھزار; compounds such as 'saat laakh baais hazaar paaNc sau tiis'"
+    },
+    {
+      "id": "tl-ur-fractional",
+      "title": "Transparent Language, Urdu grammar: Fractional Numerals",
+      "url": "https://tplsites.s3.amazonaws.com/resources/URDpk-ENGus/grammar/Fractional%20Numeral.htm",
+      "reached": "directly, 12 November 2026",
+      "used_for": "ڈیڑھ, ڈھائی, سوا, ساڑھے, پونے, آدھا, پاؤ; its 'paune aaTh = 7 1/2' is an error"
+    },
+    {
+      "id": "tl-hi-fractional",
+      "title": "Transparent Language, Hindi grammar: Fractional Numerals",
+      "url": "https://tplsites.s3.amazonaws.com/resources/HINin-ENGus/grammar/Fractional_Numerals.htm",
+      "reached": "directly, 12 November 2026",
+      "used_for": "paune aaTh = 7 3/4, correcting tl-ur-fractional"
+    },
+    {
+      "id": "npm-urdu-number-words",
+      "title": "urdu-number-words 1.0.4 (npm), a numbers-to-Urdu-words library",
+      "url": "https://www.npmjs.com/package/urdu-number-words",
+      "reached": "directly (the published package), 12 November 2026; unreviewed third-party code",
+      "used_for": "a third Urdu spelling to compare; its own variants are left out unless another source has them"
+    },
+    {
+      "id": "parse-money-input",
+      "title": "mm_core parseMoneyInput",
+      "url": "packages/mm_core/lib/src/money/money_parse.dart",
+      "reached": "in this repository",
+      "used_for": "every unit word and currency marker it reads, so the lexicon is a superset"
+    },
+    {
+      "id": "wikipedia-hindustani-numerals",
+      "title": "Wikipedia, Hindustani numerals",
+      "url": "https://en.wikipedia.org/wiki/Hindustani_numerals",
+      "reached": "not reached (host blocked); read only through search summaries",
+      "used_for": "(summary) the numbers 1 to 99 are nearly all irregular, so each is listed"
+    },
+    {
+      "id": "web-roman-spellings",
+      "title": "Learner pages: Preply, Ling, UrduPod101, Scribd charts",
+      "url": "https://preply.com/en/blog/urdu-numbers-how-to-count",
+      "reached": "not reached; read only through search summaries",
+      "used_for": "(summary) Roman spellings such as pachees rupay, chabbees, sataees, sattais, untees vary from site to site"
+    },
+    {
+      "id": "web-fractions",
+      "title": "Learner and grammar pages on sawa, saarhe, paune, derh and dhai",
+      "url": "https://www.awalenglish.com/adha-dedh-sawa-fraction-words-in-english/",
+      "reached": "not reached; read only through search summaries",
+      "used_for": "(summary) the same meanings as tl-ur-fractional; sava do lakh 225,000, sawa lakh 125,000"
+    },
+    {
+      "id": "dictionaries",
+      "title": "Rekhta Dictionary, Urdu Lughat (Urdu Dictionary Board), Platts",
+      "url": "https://www.rekhta.org/urdudictionary",
+      "reached": "not reached (hosts blocked from this session)",
+      "used_for": "nothing yet; the native-speaker review should check against one of them"
+    },
+    {
+      "id": "general-knowledge",
+      "title": "General knowledge of Pakistani Roman Urdu, unreviewed",
+      "url": "",
+      "reached": "not a source",
+      "used_for": "every Roman spelling after the first, the collisions and the refusal policies; each needs the review"
+    }
+  ],
+  "normalise": {
+    "$comment": "Applied to the text, and to every spelling here, before matching. It extends the plan's normalisation (digits, direction marks, lower case) with the Arabic keyboard's letters and with marks that never tell two number words apart. Each fold is one code point for one or two, so a span can be mapped back to the original text.",
+    "digits": "As normalizeDigits (packages/mm_core/lib/src/text/digits.dart): Arabic-Indic, Extended Arabic-Indic (Urdu) and full-width digits become ASCII.",
+    "lower_case": "ASCII letters only.",
+    "remove": [
+      { "from": "U+200C", "to": "U+200D", "label": "zero-width non-joiner and joiner" },
+      { "from": "U+200E", "to": "U+200F", "label": "left-to-right and right-to-left marks" },
+      { "from": "U+061C", "to": "U+061C", "label": "Arabic letter mark" },
+      { "from": "U+0640", "to": "U+0640", "label": "tatweel" },
+      { "from": "U+064B", "to": "U+0652", "label": "short vowels, tanween, shadda, sukun" },
+      { "from": "U+0670", "to": "U+0670", "label": "superscript alef" }
+    ],
+    "fold": [
+      { "from": "U+0643", "to": "U+06A9", "label": "Arabic kaf to keheh" },
+      { "from": "U+0647", "to": "U+06C1", "label": "Arabic heh to heh goal" },
+      { "from": "U+0649", "to": "U+06CC", "label": "alef maksura to Farsi yeh" },
+      { "from": "U+064A", "to": "U+06CC", "label": "Arabic yeh to Farsi yeh" },
+      { "from": "U+06C0", "to": "U+06C1", "label": "heh with yeh above to heh goal" },
+      { "from": "U+06C2", "to": "U+06C1", "label": "heh goal with hamza above to heh goal" },
+      {
+        "from": "U+06D3",
+        "to": "U+0626 U+06D2",
+        "label": "yeh barree with hamza to yeh with hamza and yeh barree"
+      }
+    ],
+    "spaces": [
+      { "code_point": "U+0009", "label": "tab" },
+      { "code_point": "U+000A", "label": "line feed" },
+      { "code_point": "U+000D", "label": "carriage return" },
+      { "code_point": "U+0020", "label": "space" },
+      { "code_point": "U+00A0", "label": "no-break space (MoneyFormat writes it)" },
+      { "code_point": "U+2009", "label": "thin space" },
+      { "code_point": "U+202F", "label": "narrow no-break space" }
+    ],
+    "grouping_separators": [
+      { "code_point": "U+002C", "label": "comma" },
+      { "code_point": "U+066C", "label": "Arabic thousands separator" }
+    ],
+    "decimal_separators": [
+      { "code_point": "U+002E", "label": "full stop" },
+      { "code_point": "U+066B", "label": "Arabic decimal separator" }
+    ]
+  },
+  "numbers": [
+    { "value": 0, "ur": ["صفر"], "roman": ["sifar", "sifr"], "en": ["zero"] },
+    { "value": 1, "ur": ["ایک"], "roman": ["ek", "aik"], "en": ["one"] },
+    {
+      "value": 2,
+      "ur": ["دو"],
+      "roman": ["do"],
+      "en": ["two"],
+      "note": "Also the verb 'give' after another verb; see ambiguous."
+    },
+    { "value": 3, "ur": ["تین"], "roman": ["teen"], "en": ["three"] },
+    { "value": 4, "ur": ["چار"], "roman": ["char", "chaar"], "en": ["four"] },
+    { "value": 5, "ur": ["پانچ"], "roman": ["paanch", "panch"], "en": ["five"] },
+    {
+      "value": 6,
+      "ur": ["چھ", "چھے", "چھہ"],
+      "roman": ["chhe", "chhay", "chay", "che", "cheh"],
+      "en": ["six"],
+      "note": "چھ: cldr-ur-rbnf; چھہ: tl-ur-cardinal; چھے: general knowledge."
+    },
+    { "value": 7, "ur": ["سات"], "roman": ["saat", "sat"], "en": ["seven"] },
+    { "value": 8, "ur": ["آٹھ"], "roman": ["aath", "aat", "ath"], "en": ["eight"] },
+    {
+      "value": 9,
+      "ur": ["نو"],
+      "roman": ["nau", "nou"],
+      "en": ["nine"],
+      "note": "'no' is not read as nine; see ambiguous."
+    },
+    { "value": 10, "ur": ["دس"], "roman": ["das", "dus"], "en": ["ten"] },
+    {
+      "value": 11,
+      "ur": ["گیارہ"],
+      "roman": ["gyarah", "gyara", "giyara", "gyaara"],
+      "en": ["eleven"]
+    },
+    {
+      "value": 12,
+      "ur": ["بارہ"],
+      "roman": ["barah", "baara", "baarah", "bara"],
+      "en": ["twelve"]
+    },
+    { "value": 13, "ur": ["تیرہ"], "roman": ["terah", "tehra", "tera"], "en": ["thirteen"] },
+    { "value": 14, "ur": ["چودہ"], "roman": ["chaudah", "chauda", "chodah"], "en": ["fourteen"] },
+    { "value": 15, "ur": ["پندرہ"], "roman": ["pandrah", "pandra", "pundra"], "en": ["fifteen"] },
+    { "value": 16, "ur": ["سولہ"], "roman": ["solah", "sola"], "en": ["sixteen"] },
+    {
+      "value": 17,
+      "ur": ["سترہ"],
+      "roman": ["satrah", "satra", "sattrah", "sattra"],
+      "en": ["seventeen"]
+    },
+    {
+      "value": 18,
+      "ur": ["اٹھارہ"],
+      "roman": ["atharah", "athara", "attharah", "atthara", "athaara"],
+      "en": ["eighteen"]
+    },
+    {
+      "value": 19,
+      "ur": ["انیس"],
+      "roman": ["unees", "unnees", "unis", "unnis"],
+      "en": ["nineteen"]
+    },
+    { "value": 20, "ur": ["بیس"], "roman": ["bees", "bis"], "en": ["twenty"] },
+    {
+      "value": 21,
+      "ur": ["اکیس"],
+      "roman": ["ikkees", "ikees", "ikkis", "ikis"],
+      "en": ["twenty-one"]
+    },
+    {
+      "value": 22,
+      "ur": ["بائیس", "بائس"],
+      "roman": ["bais", "baees", "baais", "bayees"],
+      "en": ["twenty-two"],
+      "note": "بائیس: cldr-ur-rbnf, npm-urdu-number-words; بائس: tl-ur-cardinal."
+    },
+    {
+      "value": 23,
+      "ur": ["تئیس", "تیئیس"],
+      "roman": ["teis", "teyees", "tayees", "taees"],
+      "en": ["twenty-three"],
+      "note": "تئیس: cldr-ur-rbnf; تیئیس: tl-ur-cardinal. Roman 23 (teis) and 30 (tees) differ by one letter."
+    },
+    {
+      "value": 24,
+      "ur": ["چوبیس"],
+      "roman": ["chaubees", "chaubis", "chobees", "chobis"],
+      "en": ["twenty-four"],
+      "note": "Roman 24 (chaubis) and 26 (chhabbis) are close; no spelling is shared."
+    },
+    {
+      "value": 25,
+      "ur": ["پچیس"],
+      "roman": ["pachees", "pachchees", "pachis", "pachchis"],
+      "en": ["twenty-five"]
+    },
+    {
+      "value": 26,
+      "ur": ["چھبیس"],
+      "roman": ["chhabbees", "chabbees", "chhabbis", "chabbis", "chhabis"],
+      "en": ["twenty-six"]
+    },
+    {
+      "value": 27,
+      "ur": ["ستائیس"],
+      "roman": ["sattaees", "sattais", "sataees", "satais"],
+      "en": ["twenty-seven"]
+    },
+    {
+      "value": 28,
+      "ur": ["اٹھائیس"],
+      "roman": ["atthaees", "athaees", "atthais", "athais"],
+      "en": ["twenty-eight"]
+    },
+    {
+      "value": 29,
+      "ur": ["انتیس"],
+      "roman": ["untees", "untis", "unatees"],
+      "en": ["twenty-nine"]
+    },
+    { "value": 30, "ur": ["تیس"], "roman": ["tees", "tis"], "en": ["thirty"] },
+    {
+      "value": 31,
+      "ur": ["اکتیس"],
+      "roman": ["iktees", "iktis", "ikattees", "ikatis"],
+      "en": ["thirty-one"]
+    },
+    {
+      "value": 32,
+      "ur": ["بتیس"],
+      "roman": ["battees", "battis", "batees", "batis"],
+      "en": ["thirty-two"]
+    },
+    {
+      "value": 33,
+      "ur": ["تینتیس"],
+      "roman": ["taintees", "taintis", "tentees", "tentis"],
+      "en": ["thirty-three"]
+    },
+    {
+      "value": 34,
+      "ur": ["چونتیس"],
+      "roman": ["chauntees", "chauntis", "chontees", "chontis"],
+      "en": ["thirty-four"]
+    },
+    {
+      "value": 35,
+      "ur": ["پینتیس"],
+      "roman": ["paintees", "paintis", "pentees", "pentis"],
+      "en": ["thirty-five"]
+    },
+    {
+      "value": 36,
+      "ur": ["چھتیس"],
+      "roman": ["chhattees", "chhattis", "chattees", "chattis"],
+      "en": ["thirty-six"]
+    },
+    {
+      "value": 37,
+      "ur": ["سینتیس"],
+      "roman": ["saintees", "saintis", "sentees", "sentis"],
+      "en": ["thirty-seven"]
+    },
+    {
+      "value": 38,
+      "ur": ["اڑتیس"],
+      "roman": ["artees", "artis", "adtees", "adtis"],
+      "en": ["thirty-eight"]
+    },
+    { "value": 39, "ur": ["انتالیس"], "roman": ["untalees", "untalis"], "en": ["thirty-nine"] },
+    {
+      "value": 40,
+      "ur": ["چالیس"],
+      "roman": ["chalees", "chalis", "chaalees", "chaalis"],
+      "en": ["forty"]
+    },
+    {
+      "value": 41,
+      "ur": ["اکتالیس"],
+      "roman": ["iktalees", "iktalis", "ikatalees", "ikatalis"],
+      "en": ["forty-one"]
+    },
+    {
+      "value": 42,
+      "ur": ["بیالیس"],
+      "roman": ["bayalees", "bayalis", "biyalees", "biyalis"],
+      "en": ["forty-two"]
+    },
+    {
+      "value": 43,
+      "ur": ["تینتالیس"],
+      "roman": ["taintalees", "taintalis", "tentalees", "tentalis"],
+      "en": ["forty-three"]
+    },
+    {
+      "value": 44,
+      "ur": ["چوالیس"],
+      "roman": ["chawalees", "chawalis", "chauwalees", "chauwalis"],
+      "en": ["forty-four"]
+    },
+    {
+      "value": 45,
+      "ur": ["پینتالیس"],
+      "roman": ["paintalees", "paintalis", "pentalees", "pentalis"],
+      "en": ["forty-five"]
+    },
+    {
+      "value": 46,
+      "ur": ["چھیالیس"],
+      "roman": ["chhiyalees", "chhiyalis", "chiyalees", "chiyalis"],
+      "en": ["forty-six"]
+    },
+    {
+      "value": 47,
+      "ur": ["سینتالیس"],
+      "roman": ["saintalees", "saintalis", "sentalees", "sentalis"],
+      "en": ["forty-seven"]
+    },
+    {
+      "value": 48,
+      "ur": ["اڑتالیس"],
+      "roman": ["artalees", "artalis", "adtalees", "adtalis"],
+      "en": ["forty-eight"]
+    },
+    { "value": 49, "ur": ["انچاس"], "roman": ["unchas", "unchaas"], "en": ["forty-nine"] },
+    { "value": 50, "ur": ["پچاس"], "roman": ["pachas", "pachaas"], "en": ["fifty"] },
+    {
+      "value": 51,
+      "ur": ["اکیاون", "اکاون"],
+      "roman": ["ikyawan", "ikkyawan", "ikawan", "ikiyawan"],
+      "en": ["fifty-one"],
+      "note": "اکیاون: cldr-ur-rbnf, npm-urdu-number-words; اکاون: tl-ur-cardinal."
+    },
+    { "value": 52, "ur": ["باون"], "roman": ["bawan", "baawan", "bavan"], "en": ["fifty-two"] },
+    {
+      "value": 53,
+      "ur": ["تریپن", "ترپن"],
+      "roman": ["tirpan", "trepan", "tirepan"],
+      "en": ["fifty-three"],
+      "note": "تریپن: cldr-ur-rbnf, npm-urdu-number-words; ترپن: tl-ur-cardinal."
+    },
+    {
+      "value": 54,
+      "ur": ["چون"],
+      "roman": ["chauwan", "chauvan", "chowan", "chawan"],
+      "en": ["fifty-four"],
+      "note": "چون: cldr-ur-rbnf and tl-ur-cardinal; npm-urdu-number-words writes چوون, left out until a reviewer confirms it."
+    },
+    { "value": 55, "ur": ["پچپن"], "roman": ["pachpan"], "en": ["fifty-five"] },
+    {
+      "value": 56,
+      "ur": ["چھپن"],
+      "roman": ["chhappan", "chappan", "chhapan"],
+      "en": ["fifty-six"]
+    },
+    {
+      "value": 57,
+      "ur": ["ستاون"],
+      "roman": ["sattawan", "sattavan", "satawan"],
+      "en": ["fifty-seven"]
+    },
+    {
+      "value": 58,
+      "ur": ["اٹھاون"],
+      "roman": ["atthawan", "atthavan", "athawan"],
+      "en": ["fifty-eight"]
+    },
+    { "value": 59, "ur": ["انسٹھ"], "roman": ["unsath", "unsaath"], "en": ["fifty-nine"] },
+    {
+      "value": 60,
+      "ur": ["ساٹھ"],
+      "roman": ["saath", "sath"],
+      "en": ["sixty"],
+      "note": "Roman saath and sath also mean 'with'; see ambiguous."
+    },
+    { "value": 61, "ur": ["اکسٹھ"], "roman": ["iksath", "iksaath"], "en": ["sixty-one"] },
+    { "value": 62, "ur": ["باسٹھ"], "roman": ["basath", "baasath"], "en": ["sixty-two"] },
+    {
+      "value": 63,
+      "ur": ["تریسٹھ", "ترسٹھ"],
+      "roman": ["tirsath", "tresath", "tirsaath"],
+      "en": ["sixty-three"],
+      "note": "تریسٹھ: cldr-ur-rbnf, npm-urdu-number-words; ترسٹھ: tl-ur-cardinal."
+    },
+    {
+      "value": 64,
+      "ur": ["چونسٹھ", "چوسٹھ"],
+      "roman": ["chaunsath", "chausath", "chonsath"],
+      "en": ["sixty-four"],
+      "note": "چونسٹھ: cldr-ur-rbnf; چوسٹھ: tl-ur-cardinal, npm-urdu-number-words."
+    },
+    { "value": 65, "ur": ["پینسٹھ"], "roman": ["painsath", "pensath"], "en": ["sixty-five"] },
+    {
+      "value": 66,
+      "ur": ["چھیاسٹھ"],
+      "roman": ["chhiyasath", "chhiyaasath", "chiyasath"],
+      "en": ["sixty-six"]
+    },
+    {
+      "value": 67,
+      "ur": ["سڑسٹھ", "سرسٹھ"],
+      "roman": ["sarsath", "sadsath", "sarsaath"],
+      "en": ["sixty-seven"],
+      "note": "سڑسٹھ: cldr-ur-rbnf, npm-urdu-number-words; سرسٹھ: tl-ur-cardinal."
+    },
+    {
+      "value": 68,
+      "ur": ["اڑسٹھ"],
+      "roman": ["arsath", "adsath", "arsaath"],
+      "en": ["sixty-eight"]
+    },
+    { "value": 69, "ur": ["انہتر"], "roman": ["unhattar", "unhatar"], "en": ["sixty-nine"] },
+    {
+      "value": 70,
+      "ur": ["ستر"],
+      "roman": ["sattar", "satar"],
+      "en": ["seventy"],
+      "note": "Roman sattar is also a given name; see ambiguous."
+    },
+    {
+      "value": 71,
+      "ur": ["اکہتر"],
+      "roman": ["ikhattar", "ikattar", "ikahattar"],
+      "en": ["seventy-one"]
+    },
+    {
+      "value": 72,
+      "ur": ["بہتر"],
+      "roman": ["bahattar", "bahatar", "behattar"],
+      "en": ["seventy-two"],
+      "note": "بہتر is also 'better' (behtar); see ambiguous. Roman behtar is not read as 72."
+    },
+    {
+      "value": 73,
+      "ur": ["تہتر"],
+      "roman": ["tihattar", "tehattar", "tihatar"],
+      "en": ["seventy-three"]
+    },
+    {
+      "value": 74,
+      "ur": ["چوہتر", "چوھتر"],
+      "roman": ["chauhattar", "chohattar", "chauhatar"],
+      "en": ["seventy-four"],
+      "note": "چوہتر: cldr-ur-rbnf, npm-urdu-number-words; چوھتر: tl-ur-cardinal."
+    },
+    {
+      "value": 75,
+      "ur": ["پچہتر", "پچھتر"],
+      "roman": ["pachhattar", "pachattar", "pachhatar"],
+      "en": ["seventy-five"],
+      "note": "پچہتر: cldr-ur-rbnf, tl-ur-cardinal; پچھتر: npm-urdu-number-words and general knowledge."
+    },
+    { "value": 76, "ur": ["چھہتر"], "roman": ["chhihattar", "chihattar"], "en": ["seventy-six"] },
+    {
+      "value": 77,
+      "ur": ["ستہتر"],
+      "roman": ["sathattar", "satattar", "sathatar"],
+      "en": ["seventy-seven"],
+      "note": "ستہتر: cldr-ur-rbnf and tl-ur-cardinal; npm-urdu-number-words writes ستتر, left out until a reviewer confirms it."
+    },
+    {
+      "value": 78,
+      "ur": ["اٹھہتر", "اٹھتر"],
+      "roman": ["athhattar", "athattar", "athatar"],
+      "en": ["seventy-eight"],
+      "note": "اٹھہتر: cldr-ur-rbnf, npm-urdu-number-words; اٹھتر: tl-ur-cardinal."
+    },
+    {
+      "value": 79,
+      "ur": ["انیاسی", "اناسی"],
+      "roman": ["unasi", "unaasi", "unyasi", "uniyasi"],
+      "en": ["seventy-nine"],
+      "note": "انیاسی: cldr-ur-rbnf; اناسی: tl-ur-cardinal, npm-urdu-number-words."
+    },
+    {
+      "value": 80,
+      "ur": ["اسی"],
+      "roman": ["assi", "assee"],
+      "en": ["eighty"],
+      "note": "اسی is also 'that very'; see ambiguous."
+    },
+    {
+      "value": 81,
+      "ur": ["اکیاسی", "اکاسی"],
+      "roman": ["ikyasi", "ikasi", "ikiyasi"],
+      "en": ["eighty-one"],
+      "note": "اکیاسی: cldr-ur-rbnf, npm-urdu-number-words; اکاسی: tl-ur-cardinal."
+    },
+    { "value": 82, "ur": ["بیاسی"], "roman": ["bayasi", "biyasi", "byasi"], "en": ["eighty-two"] },
+    {
+      "value": 83,
+      "ur": ["تراسی"],
+      "roman": ["tirasi", "tiraasi", "terasi"],
+      "en": ["eighty-three"]
+    },
+    {
+      "value": 84,
+      "ur": ["چوراسی"],
+      "roman": ["chaurasi", "chauraasi", "chorasi"],
+      "en": ["eighty-four"]
+    },
+    { "value": 85, "ur": ["پچاسی"], "roman": ["pachasi", "pachaasi"], "en": ["eighty-five"] },
+    {
+      "value": 86,
+      "ur": ["چھیاسی"],
+      "roman": ["chhiyasi", "chhiyaasi", "chiyasi"],
+      "en": ["eighty-six"]
+    },
+    {
+      "value": 87,
+      "ur": ["ستاسی"],
+      "roman": ["sattasi", "sataasi", "satasi"],
+      "en": ["eighty-seven"]
+    },
+    {
+      "value": 88,
+      "ur": ["اٹھاسی"],
+      "roman": ["atthasi", "athasi", "athaasi"],
+      "en": ["eighty-eight"]
+    },
+    {
+      "value": 89,
+      "ur": ["نواسی"],
+      "roman": ["nawasi", "navasi", "nawaasi"],
+      "en": ["eighty-nine"]
+    },
+    {
+      "value": 90,
+      "ur": ["نوے"],
+      "roman": ["nawe", "nawwe", "nawway", "navve", "nabbe"],
+      "en": ["ninety"]
+    },
+    {
+      "value": 91,
+      "ur": ["اکیانوے", "اکانوے"],
+      "roman": ["ikyanwe", "ikyanve", "ikanwe", "ikyanway"],
+      "en": ["ninety-one"],
+      "note": "اکیانوے: cldr-ur-rbnf, npm-urdu-number-words; اکانوے: tl-ur-cardinal."
+    },
+    {
+      "value": 92,
+      "ur": ["بانوے"],
+      "roman": ["banwe", "baanwe", "banve", "banway"],
+      "en": ["ninety-two"]
+    },
+    {
+      "value": 93,
+      "ur": ["ترانوے"],
+      "roman": ["tiranwe", "tiranve", "tiranway"],
+      "en": ["ninety-three"]
+    },
+    {
+      "value": 94,
+      "ur": ["چورانوے"],
+      "roman": ["chauranwe", "chauranve", "choranwe"],
+      "en": ["ninety-four"]
+    },
+    {
+      "value": 95,
+      "ur": ["پچانوے"],
+      "roman": ["pachanwe", "pachanve", "pachanway"],
+      "en": ["ninety-five"]
+    },
+    {
+      "value": 96,
+      "ur": ["چھیانوے"],
+      "roman": ["chhiyanwe", "chhiyanve", "chiyanwe"],
+      "en": ["ninety-six"]
+    },
+    {
+      "value": 97,
+      "ur": ["ستانوے"],
+      "roman": ["sattanwe", "sattanve", "satanwe"],
+      "en": ["ninety-seven"]
+    },
+    {
+      "value": 98,
+      "ur": ["اٹھانوے"],
+      "roman": ["atthanwe", "atthanve", "athanwe"],
+      "en": ["ninety-eight"]
+    },
+    {
+      "value": 99,
+      "ur": ["ننانوے"],
+      "roman": ["ninyanwe", "ninyanve", "ninanwe", "ninnanwe"],
+      "en": ["ninety-nine"]
+    }
+  ],
+  "fractions": [
+    {
+      "id": "derh",
+      "kind": "quantity",
+      "num": 3,
+      "den": 2,
+      "ur": ["ڈیڑھ"],
+      "roman": ["derh", "dedh", "deedh", "dairh"],
+      "en": [],
+      "note": "One and a half, on its own or before a multiplier: ڈیڑھ لاکھ 150,000; derh sau 150. Takes no number after it. dedh is the roadmap's spelling."
+    },
+    {
+      "id": "dhai",
+      "kind": "quantity",
+      "num": 5,
+      "den": 2,
+      "ur": ["ڈھائی"],
+      "roman": ["dhai", "dhaai", "dhayi", "dhaee"],
+      "en": [],
+      "note": "Two and a half, on its own or before a multiplier: dhai lakh 250,000. Takes no number after it."
+    },
+    {
+      "id": "paune",
+      "kind": "prefix",
+      "num": -1,
+      "den": 4,
+      "min_number": 2,
+      "alone": true,
+      "ur": ["پونے"],
+      "roman": ["paune", "paunay", "pone", "ponay", "pauney"],
+      "en": [],
+      "note": "A quarter less than the number after it: paune do lakh 175,000. alone: before a multiplier with no number it takes one (paune sau 75). tl-ur-fractional gives 'paune aaTh' as 7 1/2, an error: a quarter less than eight is 7 3/4, as tl-hi-fractional gives."
+    },
+    {
+      "id": "sarhe",
+      "kind": "prefix",
+      "num": 1,
+      "den": 2,
+      "min_number": 3,
+      "alone": false,
+      "ur": ["ساڑھے"],
+      "roman": ["sarhe", "saarhe", "sadhe", "saadhe", "sarhay", "sarhey"],
+      "en": [],
+      "note": "A half more than the number after it: sarhe teen hazar 3,500. From three upwards; 1 1/2 and 2 1/2 are derh and dhai. Never alone. Roman sare, saray and saare (also 'all') are refused; see ambiguous."
+    },
+    {
+      "id": "sawa",
+      "kind": "prefix",
+      "num": 1,
+      "den": 4,
+      "min_number": 1,
+      "alone": true,
+      "ur": ["سوا"],
+      "roman": ["sawa", "sava", "sawaa"],
+      "en": [],
+      "note": "A quarter more than the number after it: sawa do lakh 225,000. alone: before a multiplier with no number it takes one (sawa lakh 125,000; sawa sau 125). سوا is also 'except' after کے; see ambiguous."
+    }
+  ],
+  "multipliers": [
+    { "power": 2, "ur": ["سو"], "roman": ["sau", "so"], "en": ["hundred"], "plural": ["hundreds"] },
+    {
+      "power": 3,
+      "ur": ["ہزار", "ھزار"],
+      "roman": ["hazar", "hazaar", "hazzar", "hajar"],
+      "en": ["thousand", "k"],
+      "plural": ["thousands"],
+      "note": "ھزار: tl-ur-cardinal. hajar is how hazar is written where z is said as j, and is also a name; k is read joined to digits ('50k'); see ambiguous."
+    },
+    {
+      "power": 5,
+      "ur": ["لاکھ"],
+      "roman": ["lakh", "lac", "laakh"],
+      "en": ["lakh", "lac"],
+      "plural": ["lakhs", "lacs"],
+      "note": "lakh and lac: cldr-en, parseMoneyInput. CLDR's short form L is refused; see ambiguous."
+    },
+    {
+      "power": 6,
+      "ur": ["ملین"],
+      "roman": [],
+      "en": ["million", "mn", "m"],
+      "plural": ["millions"],
+      "note": "Owner question 1, as recommended: million and mn everywhere; a bare m only in a single amount field; see ambiguous. ملین is the English word as Urdu newspapers write it (general knowledge)."
+    },
+    {
+      "power": 7,
+      "ur": ["کروڑ"],
+      "roman": ["crore", "karor", "karod", "karore", "krore"],
+      "en": ["crore", "cr"],
+      "plural": ["crores"],
+      "note": "cr: cldr-en, parseMoneyInput; refused in free text, where bank messages use Cr for 'credit'; see ambiguous."
+    },
+    {
+      "power": 9,
+      "ur": ["ارب", "بلین"],
+      "roman": ["arab", "arb"],
+      "en": ["billion", "bn"],
+      "plural": ["billions"],
+      "note": "Short-scale billion (10^9), as Pakistani English uses it. بلین is the Urdu word as Urdu newspapers write it (general knowledge). Roman arab is also 'Arab'; see ambiguous."
+    },
+    {
+      "power": 11,
+      "ur": ["کھرب"],
+      "roman": [],
+      "en": [],
+      "plural": [],
+      "note": "cldr-ur-rbnf and cldr-ur use کھرب for 10^11. Roman kharab is also 'bad' (خراب) and is refused; see ambiguous. English has no single word."
+    }
+  ],
+  "currency": {
+    "ur": ["روپے", "روپیہ", "روپیے", "روپئے", "روپوں"],
+    "roman": ["rupay", "rupaye", "rupey", "rupye", "rupiya", "rupaya", "rupya"],
+    "en": ["rupees", "rupee", "rs", "rs.", "pkr"],
+    "symbols": ["₨"],
+    "suffixes": ["/-"],
+    "note": "Every marker parseMoneyInput reads is here (Rs, Rs., PKR, ₨, rupee, rupees, روپے, روپیہ, روپیے, a trailing /-). cldr-ur gives پاکستانی روپیہ and the symbol Rs; cldr-en gives PKR."
+  },
+  "foreign_currency": {
+    "ur": ["ڈالر", "پاؤنڈ", "یورو", "درہم", "ریال", "دینار"],
+    "latin": [
+      "usd",
+      "dollar",
+      "dollars",
+      "gbp",
+      "pound",
+      "pounds",
+      "eur",
+      "euro",
+      "euros",
+      "inr",
+      "aed",
+      "dirham",
+      "dirhams",
+      "dhs",
+      "sar",
+      "riyal",
+      "riyals",
+      "qar",
+      "kwd",
+      "omr",
+      "bhd",
+      "dinar",
+      "dinars",
+      "cad",
+      "aud"
+    ],
+    "symbols": ["$", "£", "€", "₹"],
+    "note": "Owners abroad (decision 1) may write amounts in the currency they earn. An amount next to one of these is not in rupees and is never read as rupees. ₹ is the Indian rupee. sar (Saudi riyal) is also Roman 'head' (سر); a refusal there only asks the person to confirm."
+  },
+  "fillers": {
+    "ur": ["صرف"],
+    "roman": ["sirf"],
+    "en": ["only"],
+    "note": "'only', as on cheques and receipts ('Rupees fifty thousand only', 'پچاس ہزار روپے صرف'). Never changes the amount."
+  },
+  "connectors": {
+    "en": ["and"],
+    "note": "British English joins the last group with 'and' ('one hundred and fifty'). Read only in English and only in a single amount field; see ambiguous. Roman aur and Urdu اور are refused."
+  },
+  "ambiguous": [
+    { "token": "aadha", "refuse": "always", "why": "half (آدھا); not in the grammar." },
+    { "token": "aadhe", "refuse": "always", "why": "half (آدھے); not in the grammar." },
+    { "token": "adha", "refuse": "always", "why": "half (آدھا); not in the grammar." },
+    {
+      "token": "and",
+      "refuse": "free_text",
+      "why": "joins groups ('one hundred and fifty'), or joins two amounts in a sentence ('1 lakh and 50 is pending')."
+    },
+    {
+      "token": "arab",
+      "refuse": "free_text",
+      "why": "10^9, or English 'Arab' ('United Arab Emirates')."
+    },
+    { "token": "arbon", "refuse": "always", "why": "'billions of', a vague amount (اربوں)." },
+    {
+      "token": "asi",
+      "refuse": "always",
+      "why": "a misspelt assi (eighty), or aisi (such), or Punjabi 'we'."
+    },
+    {
+      "token": "aur",
+      "refuse": "always",
+      "why": "'and' or 'more': 'do lakh aur pachas hazar' is 250,000, or 200,000 and 50,000 more."
+    },
+    { "token": "b", "refuse": "always", "why": "short form of billion (cldr-en), or a letter." },
+    { "token": "bara", "refuse": "free_text", "why": "twelve, or 'big' (بڑا)." },
+    {
+      "token": "cr",
+      "refuse": "free_text",
+      "why": "crore, or 'credit' on bank statements and messages ('Rs 5,000.00 Cr')."
+    },
+    {
+      "token": "dai",
+      "refuse": "always",
+      "why": "a misspelt dhai, or 'midwife' (دائی): 'dai lakh' may mean 250,000."
+    },
+    {
+      "token": "der",
+      "refuse": "always",
+      "why": "a misspelt derh, or 'late' (دیر): 'der lakh' may mean 150,000."
+    },
+    {
+      "token": "do",
+      "refuse": "free_text",
+      "why": "two, or the verb 'give' after another verb: 'bhej do hazar rupay' can mean 1,000 or 2,000. Only two after a fraction word ('sawa do') or a currency marker, which findAmounts (work item 5) may use."
+    },
+    { "token": "hajar", "refuse": "free_text", "why": "thousand, or the given name Hajar." },
+    {
+      "token": "half",
+      "refuse": "always",
+      "why": "a fraction the grammar does not read; ignoring it would misread the amount beside it."
+    },
+    { "token": "hazaron", "refuse": "always", "why": "'thousands of', a vague amount (ہزاروں)." },
+    {
+      "token": "k",
+      "refuse": "spaced",
+      "why": "thousand, or the Roman chat spelling of ke and ki ('us k pas'). Read joined to digits ('50k') anywhere; spaced ('50 k') only in a single amount field."
+    },
+    { "token": "karoron", "refuse": "always", "why": "'crores of', a vague amount (کروڑوں)." },
+    { "token": "kharab", "refuse": "always", "why": "10^11 (کھرب), or 'bad, broken' (خراب)." },
+    {
+      "token": "l",
+      "refuse": "always",
+      "why": "Indian English short form of lakh (cldr-en), or litre."
+    },
+    { "token": "lakhon", "refuse": "always", "why": "'lakhs of', a vague large amount (لاکھوں)." },
+    {
+      "token": "m",
+      "refuse": "free_text",
+      "why": "million, or minutes, metres, or Roman main (I) and mein (in). Owner question 1: read only in a single amount field."
+    },
+    {
+      "token": "mil",
+      "refuse": "always",
+      "why": "short form of million, or Roman mil (found, received): '50 hazar mil gaye'."
+    },
+    { "token": "no", "refuse": "always", "why": "nine (نو), or 'no'." },
+    {
+      "token": "or",
+      "refuse": "always",
+      "why": "English 'or' ('50 or 60 thousand'), or the Roman spelling of aur (and)."
+    },
+    {
+      "token": "paisa",
+      "refuse": "always",
+      "why": "a paisa (a hundredth of a rupee), or 'money'. Paisa words are not in the grammar: '50 paise' is half a rupee, not 50 rupees."
+    },
+    { "token": "paisay", "refuse": "always", "why": "paise, or 'money'." },
+    { "token": "paise", "refuse": "always", "why": "paise, or 'money' ('paise de do')." },
+    {
+      "token": "pao",
+      "refuse": "always",
+      "why": "a quarter (پاؤ), used for weight; not in the grammar."
+    },
+    {
+      "token": "paun",
+      "refuse": "always",
+      "why": "three quarters (پون), or a misspelt paon (foot)."
+    },
+    { "token": "pauna", "refuse": "always", "why": "three quarters (پونا); not in the grammar." },
+    { "token": "pese", "refuse": "always", "why": "paise, or 'money'." },
+    {
+      "token": "point",
+      "refuse": "always",
+      "why": "a decimal point said in words: ignoring it would read 'do point paanch lakh' (2.5 lakh) as 5 lakh."
+    },
+    { "token": "quarter", "refuse": "always", "why": "a fraction the grammar does not read." },
+    { "token": "saare", "refuse": "always", "why": "'all' (سارے), or a misspelt sarhe." },
+    { "token": "saath", "refuse": "free_text", "why": "sixty, or 'with' (ساتھ)." },
+    { "token": "saikron", "refuse": "always", "why": "'hundreds of', a vague amount (سیکڑوں)." },
+    { "token": "saray", "refuse": "always", "why": "'all' (سارے), or a misspelt sarhe." },
+    {
+      "token": "sare",
+      "refuse": "always",
+      "why": "'all' (سارے), or a misspelt sarhe: 'sare do lakh' is 200,000 or 250,000."
+    },
+    { "token": "sarey", "refuse": "always", "why": "'all' (سارے), or a misspelt sarhe." },
+    { "token": "sat", "refuse": "free_text", "why": "seven, or English 'sat'." },
+    { "token": "satar", "refuse": "free_text", "why": "seventy, or the given name Sattar." },
+    { "token": "sath", "refuse": "free_text", "why": "sixty, or 'with' (ساتھ)." },
+    {
+      "token": "sattar",
+      "refuse": "free_text",
+      "why": "seventy, or the given name Sattar: 'Sattar hazar rupay de gaya'."
+    },
+    {
+      "token": "so",
+      "refuse": "free_text",
+      "why": "hundred, or English 'so', or Roman so (sleep)."
+    },
+    { "token": "tera", "refuse": "free_text", "why": "thirteen, or 'your' (تیرا)." },
+    { "token": "آدھا", "refuse": "always", "why": "half; not in the grammar." },
+    { "token": "آدھے", "refuse": "always", "why": "half; not in the grammar." },
+    { "token": "اربوں", "refuse": "always", "why": "'billions of', a vague amount." },
+    {
+      "token": "اسی",
+      "refuse": "free_text",
+      "why": "eighty, or 'that very': 'اسی ہزار روپے میں سے' is 'out of that same 1,000' or 'out of 80,000'."
+    },
+    {
+      "token": "انیس",
+      "refuse": "free_text",
+      "why": "nineteen, or the given name Anees: 'انیس ہزار روپے دے گیا'."
+    },
+    { "token": "اور", "refuse": "always", "why": "'and' or 'more', as aur." },
+    { "token": "بہتر", "refuse": "free_text", "why": "seventy-two, or 'better' (behtar)." },
+    {
+      "token": "دو",
+      "refuse": "free_text",
+      "why": "two, or the verb 'give' after another verb: 'بھیج دو ہزار روپے' can mean 1,000 or 2,000. Only two after a fraction word ('سوا دو') or a currency marker, as do."
+    },
+    {
+      "token": "سوا",
+      "refuse": "free_text",
+      "why": "a quarter more, or 'except' after کے or a possessive: 'اس کے سوا دو لاکھ' is 'apart from this, 2 lakh' or '2.25 lakh'."
+    },
+    { "token": "سینکڑوں", "refuse": "always", "why": "'hundreds of', a vague amount." },
+    { "token": "سیکڑوں", "refuse": "always", "why": "'hundreds of', a vague amount." },
+    { "token": "لاکھوں", "refuse": "always", "why": "'lakhs of', a vague amount." },
+    {
+      "token": "پاؤ",
+      "refuse": "always",
+      "why": "a quarter, used for weight; not in the grammar."
+    },
+    { "token": "پوائنٹ", "refuse": "always", "why": "a decimal point said in words, as point." },
+    { "token": "پون", "refuse": "always", "why": "three quarters; not in the grammar." },
+    { "token": "پونا", "refuse": "always", "why": "three quarters; not in the grammar." },
+    { "token": "پیسوں", "refuse": "always", "why": "paise, or 'money'." },
+    { "token": "پیسہ", "refuse": "always", "why": "a paisa, or 'money'." },
+    { "token": "پیسے", "refuse": "always", "why": "paise, or 'money'." },
+    { "token": "کروڑوں", "refuse": "always", "why": "'crores of', a vague amount." },
+    { "token": "کھربوں", "refuse": "always", "why": "'hundreds of billions of', a vague amount." },
+    { "token": "ہزاروں", "refuse": "always", "why": "'thousands of', a vague amount." }
+  ],
+  "homographs": [
+    { "token": "bees", "why": "also English 'bees'." },
+    { "token": "char", "why": "also English 'char'." },
+    { "token": "chay", "why": "also Roman 'tea' (chai, chaye)." },
+    { "token": "ek", "why": "also the article 'a'; before a multiplier both readings are one." },
+    { "token": "hazar", "why": "also hyperbole ('hazar baar'), as lakh." },
+    { "token": "lac", "why": "also English 'lac' (resin), rare." },
+    {
+      "token": "lakh",
+      "why": "also hyperbole ('lakh koshish'); findAmounts should not read a bare multiplier without a currency marker or a number beside it."
+    },
+    { "token": "nau", "why": "also 'new' (نو), rare in Roman Urdu." },
+    { "token": "one", "why": "also the English pronoun." },
+    { "token": "pone", "why": "also an English word, rare." },
+    { "token": "teen", "why": "also English 'teen'." },
+    { "token": "tees", "why": "also English 'tees'." },
+    { "token": "trepan", "why": "also an English word, rare." },
+    { "token": "ستر", "why": "also 'covering' (سَتر), rare." },
+    { "token": "سو", "why": "also the verb 'sleep' ('سو گیا') and a literary 'so'." },
+    { "token": "لاکھ", "why": "also hyperbole ('لاکھ سمجھایا'), as lakh." },
+    { "token": "نو", "why": "also 'new' in phrases such as 'سالِ نو'." },
+    { "token": "چون", "why": "also a Persian word for 'why', rare in everyday Urdu." },
+    { "token": "ہزار", "why": "also hyperbole ('ہزار بار'), as lakh." }
+  ],
+  "not_included": [
+    {
+      "token": "chaudha",
+      "why": "close to the surname Chaudhry; 14 is read as chaudah, chauda, chodah."
+    },
+    { "token": "hzr", "why": "a chat short form of hazar; no source seen." },
+    {
+      "token": "ik",
+      "why": "Punjabi and some Urdu chat spelling of ek; add with a vector if the pilot shows it."
+    },
+    { "token": "kharb", "why": "a Roman spelling of کھرب; no source seen." },
+    { "token": "nil", "why": "British 'nil' and 'nought' for zero." },
+    { "token": "re", "why": "the singular short form of rupee ('Re. 1'); also an interjection." },
+    {
+      "token": "taqreeban",
+      "why": "hedges such as taqreeban, lagbhag, about, around: the amount is read and the read-back shows it; findAmounts (work item 5) decides whether to flag them."
+    },
+    { "token": "tin", "why": "a Roman spelling of teen (three), also English 'tin'." },
+    {
+      "token": "سارے",
+      "why": "'all'; a misspelt ساڑھے is rarer in Urdu script than sare in Roman Urdu, and 'سارے دو لاکھ' read as 200,000 is right for 'all two lakh'."
+    },
+    { "token": "ستتر", "why": "77 in npm-urdu-number-words only; one letter from ستر (70)." },
+    { "token": "چوون", "why": "54 in npm-urdu-number-words only." }
+  ]
+}
