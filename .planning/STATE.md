@@ -13,13 +13,16 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   `claude/amount-lexicon` (not merged into `main`): `contracts/amount_lexicon.json` (version 1,
   `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
   `docs/roadmap/urdu-review.md`, starting with its `review.check_first`),
-  `contracts/amount_vectors.json` (217 parse and 30 words vectors, written by hand), their checks
-  in `generate.py --check` (`tool/contracts/amounts.py`, 27 tests), and `mm_core`'s
-  `parseAmount` and `formatAmountWords` with the generated `amount_lexicon.g.dart`, 100% line
-  coverage, and property tests of 10,000 cases each (words in three scripts, digits in any
-  script, random token strings). Owner question 1 (million and m) is built as recommended until
-  the owner answers. Still to do: `findAmounts` (5), the Deno and website ports (6), the
-  read-back widget (7).
+  `contracts/amount_vectors.json` (306 parse and 33 words vectors, written by hand), their checks
+  in `generate.py --check` (`tool/contracts/amounts.py`, 30 tests; the promised examples are
+  pinned to their amounts), and `mm_core`'s `parseAmount` and `formatAmountWords` with the
+  generated `amount_lexicon.g.dart`, 100% line coverage, and property tests of 10,000 cases each
+  (words in three scripts, digits in any script, random token strings). A review round
+  (2026-11-14) made a dropped lower unit ("ek lakh bees", "1 crore 20"), a spaced `mn` or `bn`,
+  "rupay do", `0,500`, "sawa 100 hazar" and a pasted bank line's "Cr" ambiguous rather than a
+  number, and a million-digit input fast. Owner question 1 (million and m) is built as
+  recommended until the owner answers, with `mn` and `bn` read like `k`. Still to do:
+  `findAmounts` (5), the Deno and website ports (6), the read-back widget (7).
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the

@@ -33,11 +33,12 @@ done. External facts marked _(summary)_ were read only through search-engine sum
 --check` refuses a copy in which a spelling has two meanings, a refused token has one, a
   fraction leaves part of a paisa or a spelling is not in normal form.
 - **The vectors exist** ([`contracts/amount_vectors.json`](../../contracts/amount_vectors.json)):
-  217 parse vectors (every example from this plan, the roadmap issue and the deck; digit scripts
-  and separators; spacing and direction marks; spelling variants; each refusal; zero, a paisa,
-  the maximum and one paisa above it) and 30 words vectors (ten amounts in three scripts).
-  `generate.py --check` validates their shape and bounds, that every promised example is there
-  and that every input passes the Unicode guard.
+  306 parse vectors (every example from this plan, the roadmap issue and the deck; digit scripts
+  and separators; spacing and direction marks; spelling variants; each refusal; each attack the
+  review round found; zero, a paisa, the maximum and one paisa above it) and 33 words vectors
+  (eleven amounts in three scripts). `generate.py --check` validates their shape and bounds, that
+  every promised example is a vector in both contexts and reads as the amount promised, and that
+  every input passes the Unicode guard.
 - **`parseAmount` and `formatAmountWords` exist in `mm_core`**
   ([amount_parse.dart](../../packages/mm_core/lib/src/money/amount_parse.dart),
   [amount_words.dart](../../packages/mm_core/lib/src/money/amount_words.dart)), reading the
@@ -45,7 +46,10 @@ done. External facts marked _(summary)_ were read only through search-engine sum
   from JSON at run time. They pass every vector; 10,000 random amounts round-trip through words
   in each of the three scripts, another 10,000 through digits in any script, grouping, spacing
   and direction marks, and 10,000 random token strings never give a negative amount, one above
-  the maximum or an error (about two seconds in all).
+  the maximum or an error, well within the CI budget. A run of a million digits is read in about
+  a tenth of a second.
+- **A review round** (14 November 2026) tried to make the parser give a wrong number. Each
+  attack that worked is now a vector or a unit test that failed before the fix: see "As built".
 - **Still to do:** the native-speaker review (work item 2), `findAmounts` (5), the TypeScript and
   Deno ports (6) and the read-back widget (7).
 
@@ -136,16 +140,57 @@ rupay bees paise`); the lexicon's `paisa` section says so, and elsewhere the pai
   mean "money" and make the amount ambiguous. More than two decimal places with no multiplier
   (`1.500`) is ambiguous, since it may be a thousands separator.
 - A multiplier with no number is read as one only at the start, never for a one- or two-letter
-  abbreviation (`k`, `m`, `cr`), and in free text only beside a rupee marker (`lakh rupay`).
-- In free text, `do` and `دو` are read after a fraction word or a rupee marker (`sawa do lakh`,
-  `Rs do hazar`), where "give" cannot be meant; the lexicon's `read_after` lists the cue.
-- Zero is read only on its own. Leading zeros are ambiguous in free text (`0300`).
+  abbreviation (`k`, `m`, `mn`, `cr`), and in free text only beside a rupee marker
+  (`lakh rupay`).
+- **A dropped lower unit is ambiguous.** People often leave out the next unit down: "ek lakh
+  bees" and "1 lakh 20" usually mean 1,20,000, "1 crore 20" 1.2 crore. So a lakh, million, crore,
+  arab or kharab followed only by a number that would fit the next unit down (below 100 for lakh,
+  crore and kharab; below 1,000 for million and for arab or billion, which share a power) is
+  `ambiguous` (`elidedMultiplier`); "ek lakh 500" is read as 100,500, and "do lakh pachas hazar"
+  as 250,000. A rupee word straight after the number pins it as rupees: "ek lakh bees rupay" is
+  100,020, which is how `formatAmountWords` writes that amount, so its words still read back.
+  The reviewer is asked to confirm this, and whether hazar needs the same rule ("do hazar
+  paanch": 2,005 or 2,500).
+- In free text, `do` and `دو` are read after a fraction word (`sawa do lakh`), or after `Rs`,
+  `PKR` or `₨` when a multiplier follows (`Rs do hazar`), where "give" cannot be meant; `سوا` is
+  read after those signs too. A rupee word does not cue them, and nor does a sign with no
+  multiplier after it: "rupay do", "روپے دو" and "rs do" mean "give the money". The lexicon's
+  `read_after` lists the cue, and its `currency.markers` the signs.
+- At the start of free text, `do`, `دو`, `سوا` and the other words with a second meaning are
+  still refused ("do hazar rupay"), on purpose: `parseAmount` also reads spans cut out of a longer
+  message, where "bhej" may come just before the span. This costs some readings and is safe.
+- `mn` and `bn` are read like `k`: joined to digits anywhere (`5mn`, `2bn`), spaced only in a
+  field, since in chat they also spell main or mein and ban ("50 hazar mn" is not 50 billion).
+  "nawasi" and "نواسی" (also "granddaughter") are refused in free text, as "انیس" is.
+- In a field, `cr` after two decimal places or with a rupee marker before the amount
+  (`Rs 25,000.00 Cr`, a pasted bank line's "credit") is ambiguous; `2.5 cr` is read.
+- A fraction prefix before a digit number of 100 or more is ambiguous: a voice-note transcript
+  writes "sawa sau hazar" (125,000) as "sawa 100 hazar".
+- Western and South Asian multipliers may be combined when the groups descend ("1 million 5
+  lakh" is 1,500,000, "1 crore 1 million" 11,000,000, "5 sau k" in a field 500,000); the vectors
+  pin these sums. The same amount said in both systems ("ek million das lakh", "1 crore 10
+  million") is refused, because the second group is not less than one of the first.
+- Zero is read only as the whole rupee amount: on its own, or as sifar or صفر rupees before
+  paise (`sifar rupay pachas paise`); a zero inside an amount (`ek hazar sifar`) is ambiguous.
+  Leading zeros are ambiguous in free text (`0300`), and a first digit group of zero (`0,500`,
+  more likely a decimal comma) everywhere.
+- The direction marks and joiners, and the invisible characters that copying from chat apps and
+  right-to-left text carries (zero-width space, word joiner, soft hyphen, the byte-order mark,
+  the bidi embeddings, overrides and isolates), are removed before reading; the full-width comma
+  and full stop are read as `,` and `.`; `/=` after an amount is read as `/-` is.
+- A hyphen joined to a rupee marker (`Rs-500`) is ambiguous, not negative, so the amount is shown
+  to the person instead of dropped. A trailing full stop (`Rs 500.`) stays ambiguous: in a field
+  it may be a decimal still being typed.
+- No digit run costs more than a short one: only the first 14 significant digits on each side of
+  the point are parsed, which is enough for every comparison the grammar makes (`9` repeated a
+  million times is out of range in about a tenth of a second, not 40).
 
-**Shared vectors.** `contracts/amount_vectors.json` holds input, locale and expected paisa,
-`ambiguous` or nothing. It is written by hand, as `clean_text.json` is, because the vectors are
-the contract; `generate.py --check` validates their shape and bounds. Dart, a Deno port in
-`supabase/functions/_shared` and the website's TypeScript mirror all run it. SQL needs no parser:
-the database only checks `numeric(14,2)` bounds.
+**Shared vectors.** `contracts/amount_vectors.json` holds input, context (`field` or `text`) and
+expected paisa, `ambiguous` or nothing, and the words `formatAmountWords` writes for some
+amounts. It is written by hand, as `clean_text.json` is, because the vectors are the contract;
+`generate.py --check` validates their shape and bounds. Dart runs it today; the Deno port in
+`supabase/functions/_shared` and the website's TypeScript mirror will run it with work item 6.
+SQL needs no parser: the database only checks `numeric(14,2)` bounds.
 
 **Property tests.** `parse(formatWords(n)) == n` for random amounts up to the `numeric(14,2)`
 maximum; the result does not change with digit script, grouping, spacing or direction marks;
@@ -160,7 +205,9 @@ Owners abroad may type "million" or "m". The recommendation: accept "million" an
 everywhere; accept a bare "m" in a single amount field, as today, but treat it as `ambiguous`
 in free text, where it may be a Roman Urdu word or minutes. **Built as recommended** on
 14 November 2026 (`AmountContext.field` reads `5m` and `5 m`, `AmountContext.text` refuses them;
-`million`, `mn`, `billion` and `bn` are read in both), pending the owner's answer to question 1.
+`million` and `billion` are read in both), pending the owner's answer to question 1. The review
+round found that `mn` and `bn` also have chat meanings (main or mein, and ban), so they are read
+as `k` is: joined to digits in both contexts (`5mn`), spaced only in a field.
 Decisions 2 and 3 do not apply: the parser makes no document and sends nothing anywhere.
 
 ## Work
@@ -178,7 +225,11 @@ Decisions 2 and 3 do not apply: the parser makes no document and sends nothing a
    work item 6.
 4. **M, done 14 November 2026:** the Dart grammar, `parseAmount` and `formatAmountWords`, with
    property tests.
-5. **M:** `findAmounts` with ambiguity handling, tested on synthetic bank and wallet SMS.
+5. **M:** `findAmounts` with ambiguity handling, tested on synthetic bank and wallet SMS. Note:
+   `formatAmountWords` output reads back in a field for every script, but in free text the Roman
+   words with `arab` and the English words with `and` are refused (both have a second meaning),
+   so the read-back words are not free-text input; and a span must keep the words before it, or
+   the start-of-span refusal of `do` stays.
 6. **M:** the TypeScript port for Edge Functions and the website mirror; Deno and website
    contract tests.
 7. **S:** the read-back widget, with goldens in all six variants.
@@ -216,5 +267,6 @@ Decisions 2 and 3 do not apply: the parser makes no document and sends nothing a
 ## Questions for the owner
 
 1. Accept "million" and "m" as recommended above, or refuse them entirely? Built as recommended
-   until you answer.
+   until you answer, with "mn" and "bn" read like "k" (joined to digits anywhere, spaced only in a
+   field), since in chat they also spell main or mein and ban.
 2. Add Punjabi or Saraiki number words later, or keep tap-to-confirm for them?
