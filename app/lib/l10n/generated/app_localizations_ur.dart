@@ -5021,7 +5021,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String insightCashTitle(String amount) {
-    return 'نگرانوں کے پاس $amount نقد';
+    return 'ٹیم کے ممبران کے پاس $amount نقد';
   }
 
   @override
@@ -5652,4 +5652,307 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get validationChooseUnit => 'یونٹ چنیں۔';
+
+  @override
+  String get residenceTitle => 'آپ کہاں رہتے ہیں';
+
+  @override
+  String get residencePrivacy =>
+      'آپ کا جواب صرف آپ دیکھ سکتے ہیں۔ آپ کی ٹیم اور کرایہ دار اسے کبھی نہیں دیکھتے۔';
+
+  @override
+  String get residenceUse =>
+      'ایپ اسے صرف وقت دکھانے کے لیے استعمال کرتی ہے۔ یہ پاکستانی وقت کے ساتھ آپ کا اپنا وقت بھی دکھاتی ہے۔ کرایہ، کرایہ دینے کی تاریخیں اور کرایہ داروں کو جانے والے پیغام ہمیشہ پاکستانی وقت پر رہتے ہیں۔';
+
+  @override
+  String get residencePortfolioNote =>
+      'آپ کے جواب سے کسی پورٹ فولیو میں کچھ نہیں بدلتا۔';
+
+  @override
+  String get residenceQuestion => 'کیا آپ پاکستان میں رہتے ہیں؟';
+
+  @override
+  String get residenceInPakistan => 'جی ہاں، پاکستان میں';
+
+  @override
+  String get residenceAbroad => 'نہیں، کسی اور ملک میں';
+
+  @override
+  String get residenceNotSaying => 'نہیں بتانا چاہتے';
+
+  @override
+  String get chooseAnswerError => 'کوئی ایک جواب چنیں۔';
+
+  @override
+  String get residenceCountryLabel => 'ملک';
+
+  @override
+  String get residenceCountryPlaceholder => 'ملک چنیں';
+
+  @override
+  String get residenceCountryRequired => 'وہ ملک چنیں جہاں آپ رہتے ہیں۔';
+
+  @override
+  String get residenceZoneLabel => 'ٹائم زون';
+
+  @override
+  String get residenceZoneHelper => 'وہ شہر چنیں جس کا وقت آپ کی گھڑی پر ہے۔';
+
+  @override
+  String get residenceZonePlaceholder => 'شہر چنیں';
+
+  @override
+  String get residenceZoneRequired => 'اپنا ٹائم زون چنیں۔';
+
+  @override
+  String get zonePakistanOption => 'پاکستانی وقت';
+
+  @override
+  String get zonePakistanOptionHelp => 'وقت صرف پاکستانی وقت میں دکھائیں';
+
+  @override
+  String zoneCityTime(String city) {
+    return '$city کا وقت';
+  }
+
+  @override
+  String zoneAheadNow(String duration) {
+    return 'ابھی پاکستان سے $duration آگے';
+  }
+
+  @override
+  String zoneBehindNow(String duration) {
+    return 'ابھی پاکستان سے $duration پیچھے';
+  }
+
+  @override
+  String get zoneSameNow => 'ابھی وقت پاکستان جیسا ہی ہے';
+
+  @override
+  String durationHours(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours گھنٹے',
+      one: '1 گھنٹہ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String durationHoursMinutes(int hours, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours گھنٹے $minutes منٹ',
+      one: '1 گھنٹہ $minutes منٹ',
+      zero: '$minutes منٹ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String residenceSuggestion(String city) {
+    return 'آپ کے فون یا کمپیوٹر پر $city کا وقت ہے۔';
+  }
+
+  @override
+  String residenceUseSuggestion(String city) {
+    return '$city کا وقت چنیں';
+  }
+
+  @override
+  String get residencePakistanTimeOnly =>
+      'ایپ وقت صرف پاکستانی وقت میں دکھائے گی۔';
+
+  @override
+  String get residenceSaved =>
+      'محفوظ ہو گیا۔ آپ کہاں رہتے ہیں، یہ صرف آپ دیکھ سکتے ہیں۔';
+
+  @override
+  String get residenceNotSaved =>
+      'سرور ابھی یہ ملک یا ٹائم زون نہیں جانتا۔ کوئی اور چنیں، یا کچھ دیر بعد دوبارہ کوشش کریں۔';
+
+  @override
+  String get loadingResidence => 'آپ کا جواب لوڈ ہو رہا ہے';
+
+  @override
+  String get residenceLoadFailedTitle => 'آپ کا جواب لوڈ نہیں ہو سکا';
+
+  @override
+  String get residenceNotAnswered => 'ابھی جواب نہیں دیا';
+
+  @override
+  String get residenceNotAnsweredHelp =>
+      'جواب دیں تاکہ پاکستانی وقت کے ساتھ آپ کا اپنا وقت بھی نظر آئے۔';
+
+  @override
+  String get residenceNotSaid => 'آپ نے نہیں بتایا';
+
+  @override
+  String get settingsResidenceHelp => 'یہ صرف آپ دیکھتے ہیں۔';
+
+  @override
+  String get ownerAbroadQuestion =>
+      'کیا ان جائیدادوں کے مالک ملک سے باہر رہتے ہیں؟';
+
+  @override
+  String get ownerAbroadYes => 'جی ہاں، مالک ملک سے باہر رہتے ہیں';
+
+  @override
+  String get ownerAbroadNo => 'نہیں، مالک پاکستان میں رہتے ہیں';
+
+  @override
+  String get ownerAbroadNewHelp =>
+      'مالک کے بارے میں جواب دیں، چاہے مالک آپ خود نہ ہوں۔ آپ اسے بعد میں پورٹ فولیو کی تفصیلات میں بدل سکتے ہیں۔';
+
+  @override
+  String get ownerAbroadRequired =>
+      'چنیں کہ مالک ملک سے باہر رہتے ہیں یا نہیں۔';
+
+  @override
+  String ownerAbroadUnanswered(String portfolio) {
+    return '$portfolio کے لیے ابھی کسی نے اس کا جواب نہیں دیا۔';
+  }
+
+  @override
+  String get ownerAbroadManagerNote =>
+      'آپ کے جواب کے بعد اسے صرف کوئی مالک بدل سکتا ہے۔';
+
+  @override
+  String get ownerAbroadOwnerNote =>
+      'آپ اسے بعد میں پورٹ فولیو کی تفصیلات میں بدل سکتے ہیں۔';
+
+  @override
+  String get saveAnswerAction => 'جواب محفوظ کریں';
+
+  @override
+  String get answerSaved => 'جواب محفوظ ہو گیا۔';
+
+  @override
+  String get answeredFirstTitle => 'کسی اور نے پہلے جواب دے دیا';
+
+  @override
+  String get answeredFirstAbroad =>
+      'ایک اور ممبر پہلے ہی جواب دے چکے ہیں۔ ان کے مطابق مالک ملک سے باہر رہتے ہیں۔';
+
+  @override
+  String get answeredFirstPakistan =>
+      'ایک اور ممبر پہلے ہی جواب دے چکے ہیں۔ ان کے مطابق مالک پاکستان میں رہتے ہیں۔';
+
+  @override
+  String portfolioCreatedFirstAnswer(String name, String answer) {
+    return '$name تیار ہے، آپ کی پہلی کوشش کے جواب کے ساتھ: $answer۔ آپ اسے پورٹ فولیو کی تفصیلات میں بدل سکتے ہیں۔';
+  }
+
+  @override
+  String get ownerSection => 'مالک اور نگران';
+
+  @override
+  String get ownerLivesLabel => 'مالک کہاں رہتے ہیں';
+
+  @override
+  String get ownerLivesAbroad => 'ملک سے باہر';
+
+  @override
+  String get ownerLivesInPakistan => 'پاکستان میں';
+
+  @override
+  String get ownerLivesNotAnswered => 'ابھی جواب نہیں دیا گیا';
+
+  @override
+  String get answerQuestionAction => 'سوال کا جواب دیں';
+
+  @override
+  String get changeAnswerAction => 'جواب بدلیں';
+
+  @override
+  String get ownerAbroadOnlyOwners => 'یہ جواب صرف کوئی مالک بدل سکتا ہے۔';
+
+  @override
+  String get answerChanged => 'جواب بدل گیا۔';
+
+  @override
+  String get reasonOwnerAbroadAnswered =>
+      'کوئی پہلے ہی جواب دے چکا ہے۔ جواب صرف کوئی مالک بدل سکتا ہے۔';
+
+  @override
+  String get caretakerLabel => 'نگران';
+
+  @override
+  String get caretakerNone => 'کوئی نگران نہیں';
+
+  @override
+  String get caretakerSinceLabel => 'کب سے نگران ہیں';
+
+  @override
+  String get caretakerExplain =>
+      'نگران وہ منیجر ہوتے ہیں جو مالک کی طرف سے جائیدادوں کی دیکھ بھال کرتے ہیں۔ اگر کوئی مالک ان کا رول بدل دے یا انہیں ٹیم سے نکال دے، یا وہ خود ٹیم چھوڑ دیں، تو وہ نگران نہیں رہتے۔';
+
+  @override
+  String get caretakerOwnersChoose => 'نگران صرف مالک چنتے ہیں۔';
+
+  @override
+  String get caretakerYou =>
+      'آپ نگران ہیں۔ یہ کام چھوڑنے کے لیے کسی مالک سے کہیں، یا ٹیم چھوڑ دیں۔';
+
+  @override
+  String get chooseCaretakerAction => 'نگران چنیں';
+
+  @override
+  String get changeCaretakerAction => 'نگران بدلیں';
+
+  @override
+  String get caretakerQuestion => 'جائیدادوں کی دیکھ بھال کون کرتا ہے؟';
+
+  @override
+  String get caretakerManagersOnly =>
+      'یہاں صرف منیجر نظر آتے ہیں۔ کسی اور کو چننے کے لیے پہلے ٹیم میں انہیں منیجر بنائیں۔';
+
+  @override
+  String get caretakerNoManagers =>
+      'اس ٹیم میں ابھی کوئی منیجر نہیں۔ کسی کو منیجر کے طور پر دعوت بھیجیں، یا ٹیم میں کسی ممبر کو منیجر بنائیں۔';
+
+  @override
+  String get openTeamAction => 'ٹیم کھولیں';
+
+  @override
+  String get saveCaretakerAction => 'نگران محفوظ کریں';
+
+  @override
+  String caretakerNamed(String name) {
+    return '$name اب نگران ہیں۔';
+  }
+
+  @override
+  String get caretakerCleared => 'اب کوئی نگران نہیں۔';
+
+  @override
+  String get caretakerUnknownMember => 'ٹیم کے ایک ممبر';
+
+  @override
+  String memberIsCaretaker(String name) {
+    return '$name نگران ہیں۔ ان کا رول بدلنے یا انہیں ٹیم سے نکالنے پر وہ نگران نہیں رہیں گے۔';
+  }
+
+  @override
+  String get removeCaretakerNote => 'وہ نگران بھی نہیں رہیں گے۔';
+
+  @override
+  String get leaveCaretakerNote =>
+      'آپ نگران ہیں۔ ٹیم چھوڑنے پر آپ نگران بھی نہیں رہیں گے۔';
+
+  @override
+  String get reasonCaretakerNotManager =>
+      'صرف منیجر نگران بن سکتے ہیں۔ ہو سکتا ہے ان کا رول ابھی بدلا ہو۔ ٹیم دیکھ لیں۔';
+
+  @override
+  String dualTime(String pakistan, String own, String city) {
+    return 'پاکستانی وقت $pakistan ($city میں $own)';
+  }
+
+  @override
+  String inPakistanTime(String moment) {
+    return 'پاکستانی وقت $moment';
+  }
 }

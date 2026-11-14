@@ -175,4 +175,30 @@ void main() {
     );
     expect(find.text('Notifications'), findsOneWidget);
   });
+
+  testWidgets("an owner abroad sees their own time beside Pakistan's", (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      NotificationsScreen.new,
+      app: TestApp(residence: residentInLondon),
+      size: const Size(360, 1400),
+    );
+    expect(shown('Pakistan time ('), findsWidgets);
+    expect(shown('London)'), findsWidgets);
+    await _tap(tester, 'Rent overdue');
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.textContaining('London)'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an owner in Pakistan sees Pakistan time alone', (tester) async {
+    await pumpScreen(tester, NotificationsScreen.new);
+    expect(shown('Pakistan time'), findsNothing);
+  });
 }

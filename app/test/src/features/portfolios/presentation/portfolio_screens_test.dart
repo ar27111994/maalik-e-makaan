@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/presentation/create_portfolio_screen.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/presentation/portfolio_switcher.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:maalik_e_makaan/src/shell/more_screen.dart';
+import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../../../../support/harness.dart';
@@ -19,6 +21,18 @@ Future<void> _name(WidgetTester tester, String text) async {
 
 Future<void> _create(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(MmButton, 'Create portfolio'));
+  await tester.pumpAndSettle();
+}
+
+const _question = 'Does the owner of these properties live abroad?';
+const _abroad = 'Yes, the owner lives abroad';
+const _inPakistan = 'No, the owner lives in Pakistan';
+
+/// Answers "Does the owner of these properties live abroad?".
+Future<void> _answer(WidgetTester tester, String label) async {
+  final option = find.text(label);
+  await tester.ensureVisible(option);
+  await tester.tap(option);
   await tester.pumpAndSettle();
 }
 
@@ -64,6 +78,7 @@ void main() {
       );
       app.portfolios.gate.failure = const NetworkFailure();
       await _name(tester, 'Khan family');
+      await _answer(tester, _abroad);
       await _create(tester);
       expect(
         find.text('No connection. Check your internet and try again.'),
@@ -93,6 +108,7 @@ void main() {
       );
       await pumpScreen(tester, CreatePortfolioScreen.new, app: app);
       await _name(tester, 'Khan family');
+      await _answer(tester, _inPakistan);
       await _create(tester);
       expect(
         tester.widget<MmTextField>(find.byType(MmTextField)).errorText,
@@ -113,6 +129,7 @@ void main() {
       await pumpScreen(tester, CreatePortfolioScreen.new, app: app);
       expect(find.text('New portfolio'), findsOneWidget);
       await _name(tester, 'One more');
+      await _answer(tester, _inPakistan);
       await _create(tester);
       expect(find.text('You can own up to 20 portfolios.'), findsOneWidget);
       await tester.tap(find.text('Cancel'));
@@ -123,10 +140,131 @@ void main() {
     testWidgets('submitting from the keyboard creates too', (tester) async {
       final app = TestApp(portfolios: const []);
       await pumpScreen(tester, CreatePortfolioScreen.new, app: app);
+      await _answer(tester, _abroad);
       await _name(tester, 'Khan family');
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       expect(app.portfolios.memberships.single.name, 'Khan family');
+    });
+  });
+
+  group("the new portfolio's owner-abroad question", () {
+    /// Checks that neither answer is chosen, for screen readers too.
+    void expectUnanswered(WidgetTester tester) {
+      expect(
+        tester
+            .widget<MmRadioGroup<OwnerAbroad>>(
+              find.byType(MmRadioGroup<OwnerAbroad>),
+            )
+            .value,
+        isNull,
+      );
+      for (final label in const [_abroad, _inPakistan]) {
+        expect(
+          tester.getSemantics(
+            find.ancestor(
+              of: find.text(label),
+              matching: find.byType(RadioListTile<OwnerAbroad>),
+            ),
+          ),
+          isSemantics(hasCheckedState: true, isChecked: false),
+          reason: label,
+        );
+      }
+    }
+
+    testWidgets("starts unanswered, whatever the creator's residence", (
+      tester,
+    ) async {
+      for (final residence in [
+        residentInLondon,
+        residentInPakistan,
+        AccountResidence.notStated,
+      ]) {
+        await pumpScreen(
+          tester,
+          CreatePortfolioScreen.new,
+          app: TestApp(portfolios: const [], residence: residence),
+        );
+        expect(shown(_question), findsOneWidget);
+        expectUnanswered(tester);
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('cannot be submitted unanswered', (tester) async {
+      final app = TestApp(portfolios: const []);
+      await pumpScreen(tester, CreatePortfolioScreen.new, app: app);
+      await _name(tester, 'Khan family');
+      await _create(tester);
+      expect(shown('Choose whether the owner lives abroad.'), findsOneWidget);
+      expect(app.portfolios.calls.map((c) => c.$1), isNot(contains('create')));
+      // Answering clears the error.
+      await _answer(tester, _inPakistan);
+      expect(shown('Choose whether the owner lives abroad.'), findsNothing);
+    });
+
+    testWidgets('sends the answer chosen', (tester) async {
+      for (final (label, answer) in [
+        (_abroad, OwnerAbroad.abroad),
+        (_inPakistan, OwnerAbroad.inPakistan),
+      ]) {
+        final app = TestApp(portfolios: const []);
+        await pumpScreen(tester, CreatePortfolioScreen.new, app: app);
+        await _name(tester, 'Khan family');
+        await _answer(tester, label);
+        await _create(tester);
+        final call = app.portfolios.calls.firstWhere((c) => c.$1 == 'create');
+        expect(call.$2.first, 'Khan family');
+        expect(call.$2.last, answer);
+        expect(find.text('Khan family is ready.'), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('a retry that kept the first answer says so', (tester) async {
+      final app = TestApp(portfolios: const []);
+      app.portfolios.gate.failure = const NetworkFailure();
+      await pumpScreen(tester, CreatePortfolioScreen.new, app: app);
+      await _name(tester, 'Khan family');
+      await _answer(tester, _abroad);
+      await _create(tester);
+      final attempt =
+          app.portfolios.calls.firstWhere((c) => c.$1 == 'create').$2[1]!
+              as String;
+      // The first attempt reached the server before the connection dropped.
+      app.portfolios.firstAnswers[attempt] = OwnerAbroad.abroad;
+      app.portfolios.gate.failure = null;
+      await _answer(tester, _inPakistan);
+      await _create(tester);
+      expect(
+        find.text(
+          'Khan family is ready, with the answer from your first try: '
+          'Abroad. You can change it in Portfolio details.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('waits while the portfolio is created', (tester) async {
+      final app = TestApp(portfolios: const []);
+      app.portfolios.gate.close();
+      await pumpScreen(tester, CreatePortfolioScreen.new, app: app);
+      await _name(tester, 'Khan family');
+      await _answer(tester, _abroad);
+      await tester.tap(find.widgetWithText(MmButton, 'Create portfolio'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<MmRadioGroup<OwnerAbroad>>(
+              find.byType(MmRadioGroup<OwnerAbroad>),
+            )
+            .onChanged,
+        isNull,
+      );
+      app.portfolios.gate.open();
+      await tester.pumpAndSettle();
+      expect(routeShown(Routes.home), findsOneWidget);
     });
   });
 

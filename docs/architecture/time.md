@@ -20,14 +20,27 @@ second is computed, and how its data is kept current. The owner's decision is D-
 Pakistan time) decides only:
 
 - when their own alerts and digests go out, and their quiet hours;
-- the second time an owner abroad sees beside Pakistan's: "3:15 pm in Lahore (10:15 am in London)"
-  (`DualTime`).
+- the second time an owner abroad sees beside Pakistan's: "3:15 pm Pakistan time (10:15 am
+  London)" (`DualTime`; Q6, the proposed answer built: the Pakistan side says "Pakistan time", the
+  person's side names their zone's city).
+
+In the app (`core/dates.dart`), a time a person reads about their own day uses `dualMomentLabel` or
+`dualTimeLabel`, which add their own time only when their clock differs from Pakistan's: their
+notifications, when their reminders went out and the reminders' "better after" etiquette times, the
+dashboard's and the ledger's "last reminded", and the offline banner's "saved at". A time that
+belongs to Pakistan's clock (an invitation's expiry, when a document was added) uses
+`pakistanMomentLabel`, which says "Pakistan time" to a reader whose clock differs. Dates stay
+unlabelled (`dateLabel`), money stays in rupees, and messages to tenants are Pakistan's alone. The
+widgets read `alertZoneProvider`, so a new residence redraws them; a person on Pakistan time sees
+exactly what they saw before.
 
 `Residence.alertZone` gives the zone to use: the stated one when this build knows it, otherwise
 Pakistan's. The app reads it through `alertZoneProvider`, which falls back to Pakistan time when
 nobody is signed in or the residence is loading, unreadable or not stated. Nothing derives a zone
 from a phone number, the store, an IP address, the app's language or a currency; the device's zone
-may only pre-fill a suggestion (`TimeZoneId.fromDevice`).
+may only be offered as a suggestion the person takes with a button (`TimeZoneId.fromDevice`,
+`suggestedZone` in the app: a browser's exact zone name, or on Android and iOS the chosen country's
+zone whose clock reads the device's now and in six months).
 
 `pakistan_time_guard_test.dart` fails if the rent, ledger or business-date files of `mm_core`
 reach the time-zone code (a person's zone and its data, local times, quiet hours, the dual time,

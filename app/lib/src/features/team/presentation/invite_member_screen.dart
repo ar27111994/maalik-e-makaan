@@ -12,6 +12,7 @@ import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/core/validation.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
@@ -211,7 +212,11 @@ class InvitationReady extends ConsumerWidget {
           const SizedBox(height: MmSpace.s4),
           Text(
             l10n.invitationValidUntil(
-              momentLabel(context, link.expiresAt),
+              pakistanMomentLabel(
+                context,
+                link.expiresAt,
+                ref.watch(alertZoneProvider),
+              ),
               breakableEmail(link.email),
             ),
             style: Theme.of(context).textTheme.bodyLarge,

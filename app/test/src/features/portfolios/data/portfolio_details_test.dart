@@ -19,7 +19,7 @@ final Map<String, Object?> _row = {
   'raast_id': '+923001234567',
   'bank_account_title': 'Ayesha Khan',
   'bank_iban': 'PK36SCBL0000001123456702',
-  'owner_abroad': null,
+  'owner_abroad': false,
   'caretaker_user_id': null,
   'caretaker_since': null,
 };
@@ -72,8 +72,8 @@ void main() {
       expect(PortfolioDetails.fromRow(details.toRow()), details);
       expect(details, isNot(gulbergDetails));
       expect(
-        PortfolioDetails.fromRow({..._row, 'owner_abroad': false}).ownerAbroad,
-        OwnerAbroad.inPakistan,
+        PortfolioDetails.fromRow({..._row, 'owner_abroad': null}).ownerAbroad,
+        OwnerAbroad.notAnswered,
       );
     });
 

@@ -90,8 +90,8 @@ in the consoles.
 ### Residence (decision 1)
 
 The screenshot set tells both stories: a resident landlord recording rent and sending a receipt, and
-an owner abroad confirming the cash their caretaker collected, with the two times ("in Lahore", "in
-London") once residence ships.
+an owner abroad confirming the cash their caretaker collected, with the two times ("Pakistan time",
+"London").
 
 ### Letterheads (decision 2)
 

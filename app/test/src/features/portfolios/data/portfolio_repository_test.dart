@@ -36,9 +36,9 @@ void main() {
       final membership = PortfolioMembership.fromRow(
         _row('owner', gulberg.id, 'Gulberg Houses'),
       );
-      expect(membership, gulberg);
+      expect(membership, gulbergUnanswered);
       expect(PortfolioMembership.fromRow(membership.toRow()), membership);
-      expect(membership.hashCode, gulberg.hashCode);
+      expect(membership.hashCode, gulbergUnanswered.hashCode);
       expect(membership, isNot(plaza));
     });
 
@@ -129,15 +129,22 @@ void main() {
     });
 
     test('the question is asked of owners and managers until answered', () {
-      expect(gulberg.asksOwnerAbroad, isTrue);
-      expect(plaza.asksOwnerAbroad, isTrue);
-      expect(gulbergAsViewer.asksOwnerAbroad, isFalse);
+      expect(gulbergUnanswered.asksOwnerAbroad, isTrue);
+      expect(plazaUnanswered.asksOwnerAbroad, isTrue);
       expect(
-        gulberg.withOwnerAbroad(OwnerAbroad.inPakistan).asksOwnerAbroad,
+        gulbergAsViewer
+            .withOwnerAbroad(OwnerAbroad.notAnswered)
+            .asksOwnerAbroad,
         isFalse,
       );
       expect(
-        gulberg.withOwnerAbroad(OwnerAbroad.abroad).asksOwnerAbroad,
+        gulbergUnanswered
+            .withOwnerAbroad(OwnerAbroad.inPakistan)
+            .asksOwnerAbroad,
+        isFalse,
+      );
+      expect(
+        gulbergUnanswered.withOwnerAbroad(OwnerAbroad.abroad).asksOwnerAbroad,
         isFalse,
       );
     });
@@ -146,7 +153,7 @@ void main() {
   group('listMine', () {
     test('reads the memberships of the user, active portfolios only', () async {
       final list = await repository.listMine(testUserId);
-      expect(list, [gulberg, plaza]);
+      expect(list, [gulbergUnanswered, plazaUnanswered]);
       final request = supabase.request;
       expect(request.method, 'GET');
       expect(request.url.path, '/rest/v1/portfolio_members');
@@ -243,7 +250,7 @@ void main() {
         name: '  Gulberg   Houses ',
         id: gulberg.id,
       );
-      expect(portfolio, gulberg);
+      expect(portfolio, gulbergUnanswered);
       expect(portfolio.ownerAbroad, OwnerAbroad.notAnswered);
       final request = supabase.request;
       expect(request.method, 'POST');

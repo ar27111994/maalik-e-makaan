@@ -57,7 +57,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('1 unit is let below its asking rent'), findsOneWidget);
-    expect(shown('in cash with caretakers'), findsOneWidget);
+    expect(shown('in cash with team members'), findsOneWidget);
     // 65% collected: the figures above say it, with no card.
     expect(shown("of this month's dues collected"), findsNothing);
     await _tap(tester, find.text('Show fewer'));
@@ -526,12 +526,12 @@ void main() {
   ) async {
     final app = await pumpScreen(tester, _dashboard, size: _tall);
     await _showAll(tester);
-    expect(shown('in cash with caretakers'), findsOneWidget);
+    expect(shown('in cash with team members'), findsOneWidget);
     // Read again from the device while the server is away.
     app.insights.failure = const NetworkFailure();
     await pumpScreen(tester, _dashboard, app: app, size: _tall);
     await _showAll(tester);
-    expect(shown('in cash with caretakers'), findsOneWidget);
+    expect(shown('in cash with team members'), findsOneWidget);
     expect(find.text('1 unit is let below its asking rent'), findsOneWidget);
   });
 
@@ -631,5 +631,18 @@ void main() {
       size: const Size(320, 640),
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an owner abroad sees when a tenant was reminded in both times', (
+    tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      DashboardScreen.new,
+      app: TestApp(residence: residentInLondon),
+      size: const Size(360, 3000),
+    );
+    expect(shown('Reminded 1 Nov 2026, 10:30'), findsOneWidget);
+    expect(shown('Pakistan time (5:30\u00a0AM London)'), findsOneWidget);
   });
 }

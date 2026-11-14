@@ -1473,6 +1473,11 @@
   ],
   "exceptions": [
     {
+      "path": "tool/l10n/cldr_places.json",
+      "avoid": "ہیرڈ جزیرہ و میکڈولینڈ جزائر",
+      "reason": "CLDR 49's own Urdu name for HM, kept as imported; app/lib/l10n/place_name_overrides.json replaces it with اور (and a corrected spelling) before the app shows it."
+    },
+    {
       "path": "*",
       "avoid": "رنگ و روغن",
       "reason": "Shop signs say it; the glossary keeps this one Persian و."

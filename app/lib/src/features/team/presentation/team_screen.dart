@@ -5,12 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
+import 'package:maalik_e_makaan/src/core/below_text.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/presentation/portfolio_switcher.dart';
@@ -26,7 +29,8 @@ import 'package:mm_ui/mm_ui.dart';
 /// The people of the current portfolio (TEAM-02 to TEAM-04): every member
 /// with their role, and for owners the invitations waiting for an answer,
 /// with ways to invite, change roles, remove members and withdraw
-/// invitations. Everyone may leave, except the last owner.
+/// invitations. Everyone may leave, except the last owner. The caretaker,
+/// if the portfolio has one, carries a mark that everyone sees.
 class TeamScreen extends ConsumerWidget {
   const new({super.key});
 
@@ -100,6 +104,14 @@ class _TeamBody extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
     final owner = portfolio.role == MemberRole.owner;
     final now = DateTime.now();
+    // The caretaker comes with the portfolio's settings; until they are
+    // read (or if they cannot be), nobody is marked.
+    final caretaker = ref
+        .watch(portfolioDetailsProvider(portfolio.id))
+        .value
+        ?.value
+        .caretaker
+        ?.userId;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -114,11 +126,13 @@ class _TeamBody extends ConsumerWidget {
                 _MemberTile(
                   member: member,
                   you: member.userId == userId,
+                  caretaker: member.userId == caretaker,
                   onTap: owner
                       ? () => _openMember(
                           context,
                           member,
                           you: member.userId == userId,
+                          caretaker: member.userId == caretaker,
                         )
                       : null,
                 ),
@@ -150,7 +164,11 @@ class _TeamBody extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: MmSpace.s8),
-        _Leave(portfolio: portfolio, team: team),
+        _Leave(
+          portfolio: portfolio,
+          team: team,
+          caretaker: caretaker != null && caretaker == userId,
+        ),
       ],
     );
   }
@@ -159,6 +177,7 @@ class _TeamBody extends ConsumerWidget {
     BuildContext context,
     TeamMember member, {
     required bool you,
+    required bool caretaker,
   }) => showMmSheet<void>(
     context,
     title: breakableEmail(memberName(AppLocalizations.of(context), member)),
@@ -170,6 +189,7 @@ class _TeamBody extends ConsumerWidget {
       onlyOwner:
           member.role == MemberRole.owner && team.count(MemberRole.owner) == 1,
       you: you,
+      caretaker: caretaker,
     ),
   );
 
@@ -184,10 +204,18 @@ class _TeamBody extends ConsumerWidget {
 }
 
 class _MemberTile extends StatelessWidget {
-  const new({required this.member, required this.you, required this.onTap});
+  const new({
+    required this.member,
+    required this.you,
+    required this.caretaker,
+    required this.onTap,
+  });
 
   final TeamMember member;
   final bool you;
+
+  /// The member is the portfolio's caretaker.
+  final bool caretaker;
   final VoidCallback? onTap;
 
   @override
@@ -210,6 +238,16 @@ class _MemberTile extends StatelessWidget {
             ),
       // A long address wraps as far as it needs, never cut short.
       subtitleMaxLines: null,
+      // A word and an icon, never colour alone; under the text when tight.
+      trailing: caretaker
+          ? BelowText(
+              child: MmStatusBadge(
+                status: MmStatus.neutral,
+                icon: MmIcons.person,
+                label: l10n.caretakerLabel,
+              ),
+            )
+          : null,
       chevron: onTap != null,
       onTap: onTap,
     );
@@ -254,10 +292,17 @@ class _InvitationTile extends StatelessWidget {
 
 /// Leaving the portfolio, or why the last owner cannot.
 class _Leave extends ConsumerStatefulWidget {
-  const new({required this.portfolio, required this.team});
+  const new({
+    required this.portfolio,
+    required this.team,
+    required this.caretaker,
+  });
 
   final PortfolioMembership portfolio;
   final Team team;
+
+  /// The user is the portfolio's caretaker, which leaving also ends.
+  final bool caretaker;
 
   @override
   ConsumerState<_Leave> createState() => _LeaveState();
@@ -270,7 +315,9 @@ class _LeaveState extends ConsumerState<_Leave> with CommandState {
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.leaveTitle(name),
-      message: l10n.leaveBody,
+      message: widget.caretaker
+          ? '${l10n.leaveBody} ${l10n.leaveCaretakerNote}'
+          : l10n.leaveBody,
       confirmLabel: l10n.leaveAction,
       destructive: true,
     );
@@ -327,6 +374,7 @@ class MemberSheet extends ConsumerStatefulWidget {
     required this.member,
     required this.onlyOwner,
     required this.you,
+    this.caretaker = false,
     super.key,
   });
 
@@ -338,6 +386,10 @@ class MemberSheet extends ConsumerStatefulWidget {
 
   /// The member is the signed-in user.
   final bool you;
+
+  /// The member is the portfolio's caretaker: changing their role or
+  /// removing them ends that.
+  final bool caretaker;
 
   @override
   ConsumerState<MemberSheet> createState() => _MemberSheetState();
@@ -378,7 +430,9 @@ class _MemberSheetState extends ConsumerState<MemberSheet> with CommandState {
     final confirmed = await showMmConfirmDialog(
       context,
       title: l10n.removeMemberTitle(name),
-      message: l10n.removeMemberBody,
+      message: widget.caretaker
+          ? '${l10n.removeMemberBody} ${l10n.removeCaretakerNote}'
+          : l10n.removeMemberBody,
       confirmLabel: l10n.removeMemberAction,
       destructive: true,
     );
@@ -406,6 +460,18 @@ class _MemberSheetState extends ConsumerState<MemberSheet> with CommandState {
         if (failure != null) FailureBanner(failure: failure),
         if (email != null) ...[
           MmDetailRow(label: l10n.emailLabel, value: breakableEmail(email)),
+          const SizedBox(height: MmSpace.s4),
+        ],
+        if (widget.caretaker) ...[
+          MmBanner(
+            tone: MmBannerTone.info,
+            message: l10n.memberIsCaretaker(
+              inSentence(
+                memberName(l10n, widget.member),
+                Directionality.of(context),
+              ),
+            ),
+          ),
           const SizedBox(height: MmSpace.s4),
         ],
         if (widget.onlyOwner)
@@ -518,7 +584,11 @@ class _InvitationSheetState extends ConsumerState<InvitationSheet>
           label: l10n.invitationWorksUntil,
           value: invitation.isExpired(DateTime.now())
               ? l10n.invitationExpiredBadge
-              : momentLabel(context, invitation.expiresAt),
+              : pakistanMomentLabel(
+                  context,
+                  invitation.expiresAt,
+                  ref.watch(alertZoneProvider),
+                ),
           userData: false,
         ),
         const SizedBox(height: MmSpace.s4),

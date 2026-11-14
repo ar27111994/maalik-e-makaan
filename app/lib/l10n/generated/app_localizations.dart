@@ -944,7 +944,7 @@ abstract class AppLocalizations {
   /// **'Owner'**
   String get roleOwner;
 
-  /// Member role: manager (caretaker).
+  /// Member role: manager (an owner may name one manager the caretaker).
   ///
   /// In en, this message translates to:
   /// **'Manager'**
@@ -1292,7 +1292,7 @@ abstract class AppLocalizations {
   /// **'Everything, including the team and the payment details.'**
   String get roleOwnerHelp;
 
-  /// What a manager (caretaker) can do.
+  /// What a manager can do (an owner may name one manager the caretaker).
   ///
   /// In en, this message translates to:
   /// **'Runs properties, tenants and tenancies, and records money.'**
@@ -8321,7 +8321,7 @@ abstract class AppLocalizations {
   /// Insight: cash held by members who are not owners.
   ///
   /// In en, this message translates to:
-  /// **'{amount} in cash with caretakers'**
+  /// **'{amount} in cash with team members'**
   String insightCashTitle(String amount);
 
   /// Insight: the member holding the most cash.
@@ -9331,6 +9331,492 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose the unit.'**
   String get validationChooseUnit;
+
+  /// Title of the residence screen and of its section in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Where you live'**
+  String get residenceTitle;
+
+  /// Privacy note at the top of the residence screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you see your answer. Your team and your tenants never do.'**
+  String get residencePrivacy;
+
+  /// What the person's answer is used for, on the residence screen.
+  ///
+  /// In en, this message translates to:
+  /// **'The app uses it only to show times. It shows your own time beside Pakistan time. Rent, due dates and messages to tenants always stay on Pakistan time.'**
+  String get residenceUse;
+
+  /// The person's residence never answers a portfolio's question whether its owner lives abroad.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer does not change any portfolio.'**
+  String get residencePortfolioNote;
+
+  /// The residence question, the label of its answers.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you live in Pakistan?'**
+  String get residenceQuestion;
+
+  /// Answer to the residence question: lives in Pakistan.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, in Pakistan'**
+  String get residenceInPakistan;
+
+  /// Answer to the residence question: lives abroad.
+  ///
+  /// In en, this message translates to:
+  /// **'No, in another country'**
+  String get residenceAbroad;
+
+  /// Answer to the residence question: prefers not to say (the answer is saved with nothing stated).
+  ///
+  /// In en, this message translates to:
+  /// **'I prefer not to say'**
+  String get residenceNotSaying;
+
+  /// Error when a question is saved with no answer chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an answer.'**
+  String get chooseAnswerError;
+
+  /// Label of the country field on the residence screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get residenceCountryLabel;
+
+  /// The country field before a country is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the country'**
+  String get residenceCountryPlaceholder;
+
+  /// Error: lives abroad, but no country chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the country you live in.'**
+  String get residenceCountryRequired;
+
+  /// Label of the time-zone field on the residence screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Time zone'**
+  String get residenceZoneLabel;
+
+  /// Helper under the time-zone field.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the city whose time your clock shows.'**
+  String get residenceZoneHelper;
+
+  /// The time-zone field before a zone is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a city'**
+  String get residenceZonePlaceholder;
+
+  /// Error: lives abroad, but no time zone chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your time zone.'**
+  String get residenceZoneRequired;
+
+  /// The Pakistan-time choice of the time-zone field, and what Settings shows when no other zone is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pakistan time'**
+  String get zonePakistanOption;
+
+  /// Description of the Pakistan-time choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Show times in Pakistan time only'**
+  String get zonePakistanOptionHelp;
+
+  /// A time zone named by its city.
+  ///
+  /// In en, this message translates to:
+  /// **'{city} time'**
+  String zoneCityTime(String city);
+
+  /// How far a zone's clocks are ahead of Pakistan's today; duration is durationHours or durationHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Now {duration} ahead of Pakistan'**
+  String zoneAheadNow(String duration);
+
+  /// How far a zone's clocks are behind Pakistan's today; duration is durationHours or durationHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Now {duration} behind Pakistan'**
+  String zoneBehindNow(String duration);
+
+  /// A zone whose clocks read the same as Pakistan's today.
+  ///
+  /// In en, this message translates to:
+  /// **'Now the same time as Pakistan'**
+  String get zoneSameNow;
+
+  /// A whole number of hours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours, plural, =1{1 hour} other{{hours} hours}}'**
+  String durationHours(int hours);
+
+  /// Hours and 15, 30 or 45 minutes (a time zone's difference from Pakistan).
+  ///
+  /// In en, this message translates to:
+  /// **'{hours, plural, =0{{minutes} minutes} =1{1 hour {minutes} minutes} other{{hours} hours {minutes} minutes}}'**
+  String durationHoursMinutes(int hours, int minutes);
+
+  /// The device's time zone, offered only as a suggestion the person confirms.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone or computer is set to {city} time.'**
+  String residenceSuggestion(String city);
+
+  /// Button that chooses the suggested time zone.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {city} time'**
+  String residenceUseSuggestion(String city);
+
+  /// Note under the residence question for 'in Pakistan' and 'prefer not to say'.
+  ///
+  /// In en, this message translates to:
+  /// **'The app will show times in Pakistan time only.'**
+  String get residencePakistanTimeOnly;
+
+  /// Snackbar after saving the residence.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved. Only you can see where you live.'**
+  String get residenceSaved;
+
+  /// A residence the database refused (constraint_violation).
+  ///
+  /// In en, this message translates to:
+  /// **'The server does not know this country or time zone yet. Choose another, or try again later.'**
+  String get residenceNotSaved;
+
+  /// Read by screen readers while the residence loads.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your answer'**
+  String get loadingResidence;
+
+  /// Title of the error when the residence cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer could not be loaded'**
+  String get residenceLoadFailedTitle;
+
+  /// Settings: the residence question was never answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Not answered yet'**
+  String get residenceNotAnswered;
+
+  /// Settings: subtitle while the residence question is not answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer to see your own time beside Pakistan time.'**
+  String get residenceNotAnsweredHelp;
+
+  /// Settings: the person chose not to say where they live.
+  ///
+  /// In en, this message translates to:
+  /// **'You chose not to say'**
+  String get residenceNotSaid;
+
+  /// Subtitle of the 'Where you live' section in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you see this.'**
+  String get settingsResidenceHelp;
+
+  /// The owner-abroad question, in the owner's own words (D-16).
+  ///
+  /// In en, this message translates to:
+  /// **'Does the owner of these properties live abroad?'**
+  String get ownerAbroadQuestion;
+
+  /// Answer: the owner lives abroad.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, the owner lives abroad'**
+  String get ownerAbroadYes;
+
+  /// Answer: the owner lives in Pakistan.
+  ///
+  /// In en, this message translates to:
+  /// **'No, the owner lives in Pakistan'**
+  String get ownerAbroadNo;
+
+  /// Helper of the owner-abroad question on a new portfolio.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer for the owner, who may not be you. You can change it later in Portfolio details.'**
+  String get ownerAbroadNewHelp;
+
+  /// Error: the owner-abroad question has no answer (also the refusal invalid_owner_abroad).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose whether the owner lives abroad.'**
+  String get ownerAbroadRequired;
+
+  /// Opening line of the owner-abroad question for a portfolio nobody has answered for.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody has answered this for {portfolio} yet.'**
+  String ownerAbroadUnanswered(String portfolio);
+
+  /// Helper of the owner-abroad question for a manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Once you answer, only an owner can change it.'**
+  String get ownerAbroadManagerNote;
+
+  /// Helper of the owner-abroad question for an owner.
+  ///
+  /// In en, this message translates to:
+  /// **'You can change it later in Portfolio details.'**
+  String get ownerAbroadOwnerNote;
+
+  /// Button that saves an answer to a question.
+  ///
+  /// In en, this message translates to:
+  /// **'Save answer'**
+  String get saveAnswerAction;
+
+  /// Snackbar after answering the owner-abroad question.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer saved.'**
+  String get answerSaved;
+
+  /// Title when another member answered the owner-abroad question first.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone answered first'**
+  String get answeredFirstTitle;
+
+  /// The answer that won: abroad.
+  ///
+  /// In en, this message translates to:
+  /// **'Another member already answered. They said the owner lives abroad.'**
+  String get answeredFirstAbroad;
+
+  /// The answer that won: in Pakistan.
+  ///
+  /// In en, this message translates to:
+  /// **'Another member already answered. They said the owner lives in Pakistan.'**
+  String get answeredFirstPakistan;
+
+  /// After a retried creation, when the server kept the first attempt's answer; answer is ownerLivesAbroad or ownerLivesInPakistan.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is ready, with the answer from your first try: {answer}. You can change it in Portfolio details.'**
+  String portfolioCreatedFirstAnswer(String name, String answer);
+
+  /// Section of Portfolio details: where the owner lives and who looks after the properties.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner and caretaker'**
+  String get ownerSection;
+
+  /// Label of the owner-abroad answer on Portfolio details.
+  ///
+  /// In en, this message translates to:
+  /// **'Where the owner lives'**
+  String get ownerLivesLabel;
+
+  /// The owner lives abroad.
+  ///
+  /// In en, this message translates to:
+  /// **'Abroad'**
+  String get ownerLivesAbroad;
+
+  /// The owner lives in Pakistan.
+  ///
+  /// In en, this message translates to:
+  /// **'In Pakistan'**
+  String get ownerLivesInPakistan;
+
+  /// Nobody has answered the owner-abroad question.
+  ///
+  /// In en, this message translates to:
+  /// **'Not answered yet'**
+  String get ownerLivesNotAnswered;
+
+  /// Button that opens the owner-abroad question.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer the question'**
+  String get answerQuestionAction;
+
+  /// Button (owners only) that changes the owner-abroad answer, and the title of its sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the answer'**
+  String get changeAnswerAction;
+
+  /// Shown to managers and others once the owner-abroad question is answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Only an owner can change this answer.'**
+  String get ownerAbroadOnlyOwners;
+
+  /// Snackbar after an owner changes the owner-abroad answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer changed.'**
+  String get answerChanged;
+
+  /// Refusal owner_abroad_answered.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone has already answered. Only an owner can change the answer.'**
+  String get reasonOwnerAbroadAnswered;
+
+  /// The caretaker: a label on Portfolio details, the title of the caretaker sheet and the badge in the team.
+  ///
+  /// In en, this message translates to:
+  /// **'Caretaker'**
+  String get caretakerLabel;
+
+  /// No caretaker is named.
+  ///
+  /// In en, this message translates to:
+  /// **'No caretaker'**
+  String get caretakerNone;
+
+  /// Label of the date the caretaker was named.
+  ///
+  /// In en, this message translates to:
+  /// **'Caretaker since'**
+  String get caretakerSinceLabel;
+
+  /// What a caretaker is, on Portfolio details.
+  ///
+  /// In en, this message translates to:
+  /// **'A caretaker is a manager who looks after the properties for the owner. If an owner changes their role or removes them, or they leave the team, they stop being the caretaker.'**
+  String get caretakerExplain;
+
+  /// Shown to members who are not owners.
+  ///
+  /// In en, this message translates to:
+  /// **'Only owners choose the caretaker.'**
+  String get caretakerOwnersChoose;
+
+  /// Shown to the caretaker, who cannot step down without leaving (Q7).
+  ///
+  /// In en, this message translates to:
+  /// **'You are the caretaker. To stop, ask an owner, or leave the team.'**
+  String get caretakerYou;
+
+  /// Button (owners) while no caretaker is named.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the caretaker'**
+  String get chooseCaretakerAction;
+
+  /// Button (owners) once a caretaker is named.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the caretaker'**
+  String get changeCaretakerAction;
+
+  /// Label of the caretaker choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Who looks after the properties?'**
+  String get caretakerQuestion;
+
+  /// Helper of the caretaker choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Only managers are listed. To choose someone else, make them a manager in Team first.'**
+  String get caretakerManagersOnly;
+
+  /// The caretaker sheet when nobody can be named.
+  ///
+  /// In en, this message translates to:
+  /// **'This team has no manager yet. Invite someone as a manager, or make a member a manager in Team.'**
+  String get caretakerNoManagers;
+
+  /// Button that goes to the team.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the team'**
+  String get openTeamAction;
+
+  /// Button that saves the caretaker choice.
+  ///
+  /// In en, this message translates to:
+  /// **'Save caretaker'**
+  String get saveCaretakerAction;
+
+  /// Snackbar after naming the caretaker.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now the caretaker.'**
+  String caretakerNamed(String name);
+
+  /// Snackbar after clearing the caretaker.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no caretaker now.'**
+  String get caretakerCleared;
+
+  /// The caretaker when their name is not in the team as read (a stale copy).
+  ///
+  /// In en, this message translates to:
+  /// **'A team member'**
+  String get caretakerUnknownMember;
+
+  /// Note in the member sheet of the caretaker.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is the caretaker. Changing their role or removing them also ends that.'**
+  String memberIsCaretaker(String name);
+
+  /// Added to removeMemberBody when the member is the caretaker.
+  ///
+  /// In en, this message translates to:
+  /// **'They also stop being the caretaker.'**
+  String get removeCaretakerNote;
+
+  /// Added to leaveBody when the person leaving is the caretaker.
+  ///
+  /// In en, this message translates to:
+  /// **'You are the caretaker. Leaving also ends that.'**
+  String get leaveCaretakerNote;
+
+  /// Refusal caretaker_not_manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Only a manager can be the caretaker. Their role may have just changed, so check the team.'**
+  String get reasonCaretakerNotManager;
+
+  /// A time shown in Pakistan time first, then in the reader's own time zone, named by its city (Q6).
+  ///
+  /// In en, this message translates to:
+  /// **'{pakistan} Pakistan time ({own} {city})'**
+  String dualTime(String pakistan, String own, String city);
+
+  /// A time that belongs to Pakistan's clock (a deadline), for a reader whose own clock differs.
+  ///
+  /// In en, this message translates to:
+  /// **'{moment} Pakistan time'**
+  String inPakistanTime(String moment);
 }
 
 class _AppLocalizationsDelegate

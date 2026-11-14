@@ -2,7 +2,8 @@ import 'package:meta/meta.dart';
 import 'package:mm_core/src/time/time_zone.dart';
 
 /// An instant shown to an owner abroad in both times: Pakistan's, where the
-/// properties are, and their own ("3:15 pm in Lahore (10:15 am in London)").
+/// properties are, and their own ("3:15 pm Pakistan time (10:15 am London)",
+/// as the app writes it).
 ///
 /// [own] is `null` when the owner's clock reads the same as Pakistan's at
 /// that instant (an owner in Pakistan, or in another UTC+05:00 zone), so the

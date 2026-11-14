@@ -280,8 +280,12 @@ final class FakeLedgerRepository implements LedgerRepository {
       oldestOverdueDueDate: oldest,
       daysOverdue: oldest == null ? null : today.differenceInDays(oldest),
       lastPaidOn: paid.isEmpty ? null : paid.reduce(CalendarDate.max),
+      lastRemindedAt: remindedAt[leaseId],
     );
   }
+
+  /// When each tenancy was last reminded, by lease id.
+  final Map<String, DateTime> remindedAt = {};
 
   DepositPosition _deposit(String leaseId) {
     final lease = _lease(leaseId);

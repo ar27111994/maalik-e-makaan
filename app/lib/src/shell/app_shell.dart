@@ -8,6 +8,7 @@ import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/features/documents/presentation/lost_photo_recovery.dart';
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
+import 'package:maalik_e_makaan/src/shell/shell_questions.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 /// The signed-in frame: the five sections in a bottom bar on phones, a
@@ -21,7 +22,9 @@ import 'package:mm_ui/mm_ui.dart';
 /// When the app comes back to the foreground, the unread count on More is
 /// read again: notifications may have arrived while it was away. A camera
 /// photo Android kept after closing the app is brought back to its record
-/// ([LostPhotoRecovery]).
+/// ([LostPhotoRecovery]). The app's questions to the user ("Do you live in
+/// Pakistan?", and whether a portfolio's owner lives abroad) are asked
+/// over it, one at a time ([ShellQuestions]).
 class AppShell extends ConsumerStatefulWidget {
   const new({required this.shell, super.key});
 
@@ -60,24 +63,26 @@ class _AppShellState extends ConsumerState<AppShell> {
     final unread = ref.watch(unreadCountProvider).value;
     // A camera photo Android kept after closing the app comes back here.
     return LostPhotoRecovery(
-      child: MmAdaptiveScaffold(
-        destinations: [
-          MmDestination(icon: MmIcons.home, label: l10n.navDashboard),
-          MmDestination(icon: MmIcons.property, label: l10n.navProperties),
-          MmDestination(icon: MmIcons.tenants, label: l10n.navTenants),
-          MmDestination(icon: MmIcons.ledger, label: l10n.navMoney),
-          MmDestination(
-            icon: MmIcons.more,
-            label: l10n.navMore,
-            // Unread notifications wait under More.
-            badgeCount: unread,
-          ),
-        ],
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: _select,
-        body: portfolio.hasValue
-            ? shell
-            : _PortfolioPending(error: portfolio.error),
+      child: ShellQuestions(
+        child: MmAdaptiveScaffold(
+          destinations: [
+            MmDestination(icon: MmIcons.home, label: l10n.navDashboard),
+            MmDestination(icon: MmIcons.property, label: l10n.navProperties),
+            MmDestination(icon: MmIcons.tenants, label: l10n.navTenants),
+            MmDestination(icon: MmIcons.ledger, label: l10n.navMoney),
+            MmDestination(
+              icon: MmIcons.more,
+              label: l10n.navMore,
+              // Unread notifications wait under More.
+              badgeCount: unread,
+            ),
+          ],
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: _select,
+          body: portfolio.hasValue
+              ? shell
+              : _PortfolioPending(error: portfolio.error),
+        ),
       ),
     );
   }

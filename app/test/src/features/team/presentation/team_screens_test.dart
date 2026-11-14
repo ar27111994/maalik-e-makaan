@@ -245,6 +245,8 @@ void main() {
       await _tap(tester, breakableEmail('kamran@example.com'));
       expect(find.byType(InvitationSheet), findsOneWidget);
       expect(find.text('Works until'), findsOneWidget);
+      // A deadline on Pakistan's clock, said plainly to an owner here.
+      expect(find.textContaining('Pakistan time'), findsNothing);
       await _tap(tester, 'Cancel invitation');
       expect(
         find.text('Cancel the invitation to kamran@\u200bexample.com?'),
@@ -339,6 +341,176 @@ void main() {
       expect(find.bySemanticsLabel('Loading the team'), findsOneWidget);
       app.portfolios.gate.open();
       await tester.pumpAndSettle();
+    });
+  });
+
+  group('the caretaker in the team', () {
+    /// [app] whose [portfolioId] has [userId] as its caretaker.
+    TestApp withCaretaker(TestApp app, String portfolioId, String userId) {
+      app.portfolios.setCaretakerOf(
+        portfolioId,
+        userId,
+        DateTime.utc(2026, 11, 3, 6),
+      );
+      app.team.caretakers[portfolioId] = userId;
+      return app;
+    }
+
+    Finder badge() => find.descendant(
+      of: find.byType(MmStatusBadge),
+      matching: find.textContaining('Caretaker', findRichText: true),
+    );
+
+    testWidgets('marks the caretaker, and only them', (tester) async {
+      await pumpScreen(
+        tester,
+        TeamScreen.new,
+        app: withCaretaker(TestApp(), gulberg.id, bilalMember.userId),
+        size: const Size(360, 1400),
+      );
+      expect(badge(), findsOneWidget);
+      final row = find.ancestor(of: badge(), matching: find.byType(MmListTile));
+      expect(
+        find.descendant(of: row, matching: find.textContaining('Bilal')),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('marks nobody when there is none, or the settings fail', (
+      tester,
+    ) async {
+      await pumpScreen(tester, TeamScreen.new, size: const Size(360, 1400));
+      expect(badge(), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      final failing = withCaretaker(TestApp(), gulberg.id, bilalMember.userId)
+        ..portfolios.detailsFailure = const ServerFailure('XX000');
+      await pumpScreen(
+        tester,
+        TeamScreen.new,
+        app: failing,
+        size: const Size(360, 1400),
+      );
+      expect(badge(), findsNothing);
+      expect(find.text('Ayesha Khan (you)'), findsOneWidget);
+    });
+
+    testWidgets('managers and viewers see the mark too', (tester) async {
+      final app = withCaretaker(_inPlaza(), plaza.id, testUserId);
+      await pumpScreen(
+        tester,
+        TeamScreen.new,
+        app: app,
+        size: const Size(360, 1400),
+      );
+      expect(badge(), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      final viewing = withCaretaker(
+        TestApp(portfolios: const [gulbergAsViewer]),
+        gulberg.id,
+        bilalMember.userId,
+      );
+      await pumpScreen(
+        tester,
+        TeamScreen.new,
+        app: viewing,
+        size: const Size(360, 1400),
+      );
+      expect(badge(), findsOneWidget);
+    });
+
+    testWidgets("the caretaker's sheet says what a change of role ends", (
+      tester,
+    ) async {
+      final app = withCaretaker(TestApp(), gulberg.id, bilalMember.userId);
+      await pumpScreen(
+        tester,
+        TeamScreen.new,
+        app: app,
+        size: const Size(360, 1400),
+      );
+      await _tap(tester, 'Bilal Ahmed');
+      expect(
+        find.text(
+          'Bilal Ahmed is the caretaker. Changing their role or removing them '
+          'also ends that.',
+        ),
+        findsOneWidget,
+      );
+      await _tap(tester, 'Remove from portfolio');
+      expect(
+        find.text(
+          'They lose access to this portfolio at once. Everything they '
+          'recorded stays. They also stop being the caretaker.',
+        ),
+        findsOneWidget,
+      );
+      await _confirm(tester, 'Remove from portfolio');
+      // The settings follow: nobody is the caretaker now.
+      expect(app.portfolios.details_[gulberg.id]!.caretaker, isNull);
+      expect(badge(), findsNothing);
+    });
+
+    testWidgets('a member who is not the caretaker has no note', (
+      tester,
+    ) async {
+      await pumpScreen(tester, TeamScreen.new, size: const Size(360, 1400));
+      await _tap(tester, 'Bilal Ahmed');
+      expect(find.textContaining('is the caretaker'), findsNothing);
+      await _tap(tester, 'Remove from portfolio');
+      expect(find.textContaining('stop being the caretaker'), findsNothing);
+    });
+
+    testWidgets('the caretaker leaving is told it ends that', (tester) async {
+      final app = withCaretaker(_inPlaza(), plaza.id, testUserId);
+      await pumpScreen(
+        tester,
+        TeamScreen.new,
+        app: app,
+        size: const Size(360, 1400),
+      );
+      await _tap(tester, 'Leave portfolio');
+      expect(
+        find.text(
+          'You lose access at once. Only an owner can invite you back. You '
+          'are the caretaker. Leaving also ends that.',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('deadlines for an owner abroad', () {
+    testWidgets('an invitation works until a time said to be Pakistan time', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        TeamScreen.new,
+        app: TestApp(residence: residentInLondon),
+        size: const Size(360, 1400),
+      );
+      await _tap(tester, breakableEmail('kamran@example.com'));
+      expect(
+        find.text('14 Nov 2099, 10:00\u00a0AM Pakistan time'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a new invitation says its link works until Pakistan time', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        InviteMemberScreen.new,
+        app: TestApp(residence: residentInLondon),
+        size: const Size(360, 1400),
+      );
+      await tester.enterText(find.byType(TextField), 'kamran@example.com');
+      await _tap(tester, 'Send invitation');
+      expect(
+        find.textContaining('until 14 Nov 2099, 10:00\u00a0AM Pakistan time'),
+        findsOneWidget,
+      );
     });
   });
 

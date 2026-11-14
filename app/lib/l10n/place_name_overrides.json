@@ -1,0 +1,104 @@
+{
+  "$comment": "Plain-Urdu and short-form corrections to the CLDR place names the app shows, the extra words a country is found by, and the zones suggested first when a phone gives only its clock's offset. tool/l10n/place_names.py applies them to tool/l10n/cldr_places.json and writes app/lib/src/core/place_names.g.dart (make place-names). Every entry says why; a code or zone the app does not store is refused.",
+  "countries": {
+    "US": {
+      "ur": "امریکا",
+      "reason": "CLDR's own short Urdu form; the formal ریاست ہائے متحدہ امریکہ is office Urdu."
+    },
+    "ES": {
+      "ur": "اسپین",
+      "reason": "What people say; CLDR's ہسپانیہ is literary."
+    },
+    "HM": {
+      "ur": "ہیرڈ جزیرہ اور میکڈونلڈ جزائر",
+      "reason": "CLDR joins the two names with the Persian conjunction (a lone waw) where Urdu says اور, and misspells McDonald (میکڈولینڈ)."
+    },
+    "UM": {
+      "ur": "امریکا کے چھوٹے دور کے جزیرے",
+      "reason": "CLDR misspells جزائز; this says plainly what the islands are."
+    },
+    "HK": {
+      "en": "Hong Kong",
+      "ur": "ہانگ کانگ",
+      "reason": "CLDR's short forms, so both languages say the same thing (its long form has a Latin SAR in the Urdu)."
+    },
+    "MO": {
+      "en": "Macao",
+      "ur": "مکاؤ",
+      "reason": "CLDR's short forms, so both languages say the same thing (its long form has a Latin SAR in the Urdu)."
+    },
+    "PS": {
+      "en": "Palestine",
+      "ur": "فلسطین",
+      "reason": "CLDR's short forms, so both languages say the same thing."
+    }
+  },
+  "cities": {},
+  "suggestedZones": {
+    "AU": {
+      "zones": [
+        "Australia/Sydney",
+        "Australia/Melbourne",
+        "Australia/Brisbane",
+        "Australia/Perth",
+        "Australia/Adelaide"
+      ],
+      "reason": "zone.tab lists Lord Howe Island, Macquarie Island, Hobart and Broken Hill before the big cities that share their clocks; a phone gives only its offset, so the big city is suggested first."
+    },
+    "BR": {
+      "zones": ["America/Sao_Paulo"],
+      "reason": "zone.tab lists Belem and other cities before Sao Paulo, whose clock most of Brazil's people share."
+    }
+  },
+  "searchTerms": {
+    "GB": {
+      "terms": [
+        "UK",
+        "Britain",
+        "Great Britain",
+        "England",
+        "Scotland",
+        "Wales",
+        "Northern Ireland",
+        "انگلینڈ",
+        "انگلستان",
+        "یو کے"
+      ],
+      "reason": "How people name the United Kingdom, in either language."
+    },
+    "US": {
+      "terms": ["USA", "America", "امریکہ"],
+      "reason": "How people name the United States, and the other common Urdu spelling."
+    },
+    "AE": {
+      "terms": [
+        "UAE",
+        "Emirates",
+        "Dubai",
+        "Abu Dhabi",
+        "Sharjah",
+        "دبئی",
+        "ابوظہبی",
+        "شارجہ",
+        "امارات"
+      ],
+      "reason": "People name the Emirates by its short form or its cities."
+    },
+    "SA": {
+      "terms": ["KSA", "Saudi", "سعودیہ"],
+      "reason": "Short forms people use for Saudi Arabia."
+    },
+    "NL": {
+      "terms": ["Holland", "ہالینڈ"],
+      "reason": "The name most people use for the Netherlands."
+    },
+    "QA": {
+      "terms": ["Doha", "دوحہ"],
+      "reason": "Qatar is often named by its capital."
+    },
+    "OM": {
+      "terms": ["Muscat", "مسقط"],
+      "reason": "Oman is often named by its capital."
+    }
+  }
+}

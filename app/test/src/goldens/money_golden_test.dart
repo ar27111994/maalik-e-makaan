@@ -304,6 +304,27 @@ void main() {
     },
   );
 
+  // An owner in London: their own time beside Pakistan's (Q6).
+  screenGoldenEveryVariant(
+    'notifications_dual_time',
+    NotificationsScreen.new,
+    app: () => TestApp(residence: residentInLondon),
+    size: const Size(360, 1100),
+    sizes: {MmVariant.largeText: const Size(360, 2600)},
+  );
+
+  // Late at night in Pakistan, for an owner in London.
+  screenGoldenEveryVariant(
+    'reminder_etiquette_dual_time',
+    () => TenancyLedgerScreen(leaseId: aliLease.id),
+    app: () => TestApp(residence: residentInLondon)
+      // Saturday 7 November 2026, 11 PM in Pakistan, 6 PM in London.
+      ..now = DateTime.utc(2026, 11, 7, 18),
+    size: const Size(360, 1500),
+    sizes: {MmVariant.largeText: const Size(360, 3200)},
+    act: (tester) => _tapIcon(tester, MmIcons.reminder),
+  );
+
   screenGoldenEveryVariant(
     'reminder_etiquette',
     () => TenancyLedgerScreen(leaseId: aliLease.id),

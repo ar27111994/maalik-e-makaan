@@ -1,0 +1,3912 @@
+{
+  "$comment": "An extract of CLDR 49.0.0 (unicode-org/cldr-json, Unicode License v3), written by tool/l10n/import_cldr.py from six hash-checked files. Do not edit by hand: tool/l10n/place_names.py reads it, with app/lib/l10n/place_name_overrides.json, to generate app/lib/src/core/place_names.g.dart (make place-names).",
+  "cldr": "49.0.0",
+  "licence": "UNICODE LICENSE V3\n\nCOPYRIGHT AND PERMISSION NOTICE\n\nCopyright © 2015-2024 Unicode, Inc.\n\nNOTICE TO USER: Carefully read the following legal agreement. BY\nDOWNLOADING, INSTALLING, COPYING OR OTHERWISE USING DATA FILES, AND/OR\nSOFTWARE, YOU UNEQUIVOCALLY ACCEPT, AND AGREE TO BE BOUND BY, ALL OF THE\nTERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE, DO NOT\nDOWNLOAD, INSTALL, COPY, DISTRIBUTE OR USE THE DATA FILES OR SOFTWARE.\n\nPermission is hereby granted, free of charge, to any person obtaining a\ncopy of data files and any associated documentation (the \"Data Files\") or\nsoftware and any associated documentation (the \"Software\") to deal in the\nData Files or Software without restriction, including without limitation\nthe rights to use, copy, modify, merge, publish, distribute, and/or sell\ncopies of the Data Files or Software, and to permit persons to whom the\nData Files or Software are furnished to do so, provided that either (a)\nthis copyright and permission notice appear with all copies of the Data\nFiles or Software, or (b) this copyright and permission notice appear in\nassociated Documentation.\n\nTHE DATA FILES AND SOFTWARE ARE PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY\nKIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF\nTHIRD PARTY RIGHTS.\n\nIN NO EVENT SHALL THE COPYRIGHT HOLDER OR HOLDERS INCLUDED IN THIS NOTICE\nBE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES,\nOR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,\nWHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,\nARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THE DATA\nFILES OR SOFTWARE.\n\nExcept as contained in this notice, the name of a copyright holder shall\nnot be used in advertising or otherwise to promote the sale, use or other\ndealings in these Data Files or Software without prior written\nauthorization of the copyright holder.\n\nSPDX-License-Identifier: Unicode-3.0\n",
+  "countries": {
+    "AC": {
+      "en": "Ascension Island",
+      "ur": "اسینشن آئلینڈ"
+    },
+    "AD": {
+      "en": "Andorra",
+      "ur": "انڈورا"
+    },
+    "AE": {
+      "en": "United Arab Emirates",
+      "ur": "متحدہ عرب امارات"
+    },
+    "AF": {
+      "en": "Afghanistan",
+      "ur": "افغانستان"
+    },
+    "AG": {
+      "en": "Antigua & Barbuda",
+      "ur": "انٹیگوا اور باربودا"
+    },
+    "AI": {
+      "en": "Anguilla",
+      "ur": "انگوئیلا"
+    },
+    "AL": {
+      "en": "Albania",
+      "ur": "البانیہ"
+    },
+    "AM": {
+      "en": "Armenia",
+      "ur": "آرمینیا"
+    },
+    "AO": {
+      "en": "Angola",
+      "ur": "انگولا"
+    },
+    "AQ": {
+      "en": "Antarctica",
+      "ur": "انٹارکٹیکا"
+    },
+    "AR": {
+      "en": "Argentina",
+      "ur": "ارجنٹینا"
+    },
+    "AS": {
+      "en": "American Samoa",
+      "ur": "امریکی ساموآ"
+    },
+    "AT": {
+      "en": "Austria",
+      "ur": "آسٹریا"
+    },
+    "AU": {
+      "en": "Australia",
+      "ur": "آسٹریلیا"
+    },
+    "AW": {
+      "en": "Aruba",
+      "ur": "اروبا"
+    },
+    "AX": {
+      "en": "Åland Islands",
+      "ur": "آلینڈ آئلینڈز"
+    },
+    "AZ": {
+      "en": "Azerbaijan",
+      "ur": "آذربائیجان"
+    },
+    "BA": {
+      "en": "Bosnia & Herzegovina",
+      "enAlternatives": {
+        "short": "Bosnia"
+      },
+      "ur": "بوسنیا اور ہرزیگووینا"
+    },
+    "BB": {
+      "en": "Barbados",
+      "ur": "بارباڈوس"
+    },
+    "BD": {
+      "en": "Bangladesh",
+      "ur": "بنگلہ دیش"
+    },
+    "BE": {
+      "en": "Belgium",
+      "ur": "بیلجیم"
+    },
+    "BF": {
+      "en": "Burkina Faso",
+      "ur": "برکینا فاسو"
+    },
+    "BG": {
+      "en": "Bulgaria",
+      "ur": "بلغاریہ"
+    },
+    "BH": {
+      "en": "Bahrain",
+      "ur": "بحرین"
+    },
+    "BI": {
+      "en": "Burundi",
+      "ur": "برونڈی"
+    },
+    "BJ": {
+      "en": "Benin",
+      "ur": "بینن"
+    },
+    "BL": {
+      "en": "St Barthélemy",
+      "ur": "سینٹ برتھلیمی"
+    },
+    "BM": {
+      "en": "Bermuda",
+      "ur": "برمودا"
+    },
+    "BN": {
+      "en": "Brunei",
+      "ur": "برونائی"
+    },
+    "BO": {
+      "en": "Bolivia",
+      "ur": "بولیویا"
+    },
+    "BQ": {
+      "en": "Caribbean Netherlands",
+      "ur": "کریبیائی نیدرلینڈز"
+    },
+    "BR": {
+      "en": "Brazil",
+      "ur": "برازیل"
+    },
+    "BS": {
+      "en": "Bahamas",
+      "ur": "بہاماس"
+    },
+    "BT": {
+      "en": "Bhutan",
+      "ur": "بھوٹان"
+    },
+    "BV": {
+      "en": "Bouvet Island",
+      "ur": "بؤویٹ آئلینڈ"
+    },
+    "BW": {
+      "en": "Botswana",
+      "ur": "بوتسوانا"
+    },
+    "BY": {
+      "en": "Belarus",
+      "ur": "بیلاروس"
+    },
+    "BZ": {
+      "en": "Belize",
+      "ur": "بیلائز"
+    },
+    "CA": {
+      "en": "Canada",
+      "ur": "کینیڈا"
+    },
+    "CC": {
+      "en": "Cocos (Keeling) Islands",
+      "enAlternatives": {
+        "short": "Cocos Islands"
+      },
+      "ur": "کوکوس (کیلنگ) جزائر"
+    },
+    "CD": {
+      "en": "Congo - Kinshasa",
+      "enAlternatives": {
+        "variant": "Congo (DRC)"
+      },
+      "ur": "کانگو - کنشاسا",
+      "urAlternatives": {
+        "variant": "کانگو (DRC)"
+      }
+    },
+    "CF": {
+      "en": "Central African Republic",
+      "ur": "وسط افریقی جمہوریہ"
+    },
+    "CG": {
+      "en": "Congo - Brazzaville",
+      "enAlternatives": {
+        "variant": "Congo (Republic)"
+      },
+      "ur": "کانگو - برازاویلے",
+      "urAlternatives": {
+        "variant": "کانگو (جمہوریہ)"
+      }
+    },
+    "CH": {
+      "en": "Switzerland",
+      "ur": "سوئٹزر لینڈ"
+    },
+    "CI": {
+      "en": "Côte d’Ivoire",
+      "enAlternatives": {
+        "variant": "Ivory Coast"
+      },
+      "ur": "کوٹ ڈی آئیوری",
+      "urAlternatives": {
+        "variant": "آئیوری کوسٹ"
+      }
+    },
+    "CK": {
+      "en": "Cook Islands",
+      "ur": "کک آئلینڈز"
+    },
+    "CL": {
+      "en": "Chile",
+      "ur": "چلی"
+    },
+    "CM": {
+      "en": "Cameroon",
+      "ur": "کیمرون"
+    },
+    "CN": {
+      "en": "China",
+      "ur": "چین"
+    },
+    "CO": {
+      "en": "Colombia",
+      "ur": "کولمبیا"
+    },
+    "CP": {
+      "en": "Clipperton Island",
+      "ur": "کلپرٹن آئلینڈ"
+    },
+    "CQ": {
+      "en": "Sark",
+      "ur": "سارک"
+    },
+    "CR": {
+      "en": "Costa Rica",
+      "ur": "کوسٹا ریکا"
+    },
+    "CU": {
+      "en": "Cuba",
+      "ur": "کیوبا"
+    },
+    "CV": {
+      "en": "Cape Verde",
+      "enAlternatives": {
+        "variant": "Cabo Verde"
+      },
+      "ur": "کیپ ورڈی"
+    },
+    "CW": {
+      "en": "Curaçao",
+      "ur": "کیوراکاؤ"
+    },
+    "CX": {
+      "en": "Christmas Island",
+      "ur": "جزیرہ کرسمس"
+    },
+    "CY": {
+      "en": "Cyprus",
+      "ur": "قبرص"
+    },
+    "CZ": {
+      "en": "Czechia",
+      "enAlternatives": {
+        "variant": "Czech Republic"
+      },
+      "ur": "چیکیا",
+      "urAlternatives": {
+        "variant": "چیک جمہوریہ"
+      }
+    },
+    "DE": {
+      "en": "Germany",
+      "ur": "جرمنی"
+    },
+    "DG": {
+      "en": "Diego Garcia",
+      "ur": "ڈائجو گارسیا"
+    },
+    "DJ": {
+      "en": "Djibouti",
+      "ur": "جبوتی"
+    },
+    "DK": {
+      "en": "Denmark",
+      "ur": "ڈنمارک"
+    },
+    "DM": {
+      "en": "Dominica",
+      "ur": "ڈومنیکا"
+    },
+    "DO": {
+      "en": "Dominican Republic",
+      "ur": "جمہوریہ ڈومينيکن"
+    },
+    "DZ": {
+      "en": "Algeria",
+      "ur": "الجیریا"
+    },
+    "EA": {
+      "en": "Ceuta & Melilla",
+      "ur": "سیئوٹا اور میلیلا"
+    },
+    "EC": {
+      "en": "Ecuador",
+      "ur": "ایکواڈور"
+    },
+    "EE": {
+      "en": "Estonia",
+      "ur": "اسٹونیا"
+    },
+    "EG": {
+      "en": "Egypt",
+      "ur": "مصر"
+    },
+    "EH": {
+      "en": "Western Sahara",
+      "ur": "مغربی صحارا"
+    },
+    "ER": {
+      "en": "Eritrea",
+      "ur": "اریٹیریا"
+    },
+    "ES": {
+      "en": "Spain",
+      "ur": "ہسپانیہ"
+    },
+    "ET": {
+      "en": "Ethiopia",
+      "ur": "ایتھوپیا"
+    },
+    "EU": {
+      "en": "European Union",
+      "ur": "یوروپی یونین"
+    },
+    "EZ": {
+      "en": "Eurozone",
+      "ur": "یوروزون"
+    },
+    "FI": {
+      "en": "Finland",
+      "ur": "فن لینڈ"
+    },
+    "FJ": {
+      "en": "Fiji",
+      "ur": "فجی"
+    },
+    "FK": {
+      "en": "Falkland Islands",
+      "enAlternatives": {
+        "variant": "Falkland Islands (Islas Malvinas)"
+      },
+      "ur": "فاکلینڈ جزائر",
+      "urAlternatives": {
+        "variant": "فاکلینڈ جزائر (مالویناس)"
+      }
+    },
+    "FM": {
+      "en": "Micronesia",
+      "ur": "مائکرونیشیا"
+    },
+    "FO": {
+      "en": "Faroe Islands",
+      "ur": "جزائر فارو"
+    },
+    "FR": {
+      "en": "France",
+      "ur": "فرانس"
+    },
+    "GA": {
+      "en": "Gabon",
+      "ur": "گیبون"
+    },
+    "GB": {
+      "en": "United Kingdom",
+      "enAlternatives": {
+        "short": "UK"
+      },
+      "ur": "برطانیہ"
+    },
+    "GD": {
+      "en": "Grenada",
+      "ur": "گریناڈا"
+    },
+    "GE": {
+      "en": "Georgia",
+      "ur": "جارجیا"
+    },
+    "GF": {
+      "en": "French Guiana",
+      "ur": "فرینچ گیانا"
+    },
+    "GG": {
+      "en": "Guernsey",
+      "ur": "گوئرنسی"
+    },
+    "GH": {
+      "en": "Ghana",
+      "ur": "گھانا"
+    },
+    "GI": {
+      "en": "Gibraltar",
+      "ur": "جبل الطارق"
+    },
+    "GL": {
+      "en": "Greenland",
+      "ur": "گرین لینڈ"
+    },
+    "GM": {
+      "en": "Gambia",
+      "ur": "گیمبیا"
+    },
+    "GN": {
+      "en": "Guinea",
+      "ur": "گنی"
+    },
+    "GP": {
+      "en": "Guadeloupe",
+      "ur": "گواڈیلوپ"
+    },
+    "GQ": {
+      "en": "Equatorial Guinea",
+      "ur": "استوائی گیانا"
+    },
+    "GR": {
+      "en": "Greece",
+      "ur": "یونان"
+    },
+    "GS": {
+      "en": "South Georgia & South Sandwich Islands",
+      "ur": "جنوبی جارجیا اور جنوبی سینڈوچ جزائر"
+    },
+    "GT": {
+      "en": "Guatemala",
+      "ur": "گواٹے مالا"
+    },
+    "GU": {
+      "en": "Guam",
+      "ur": "گوام"
+    },
+    "GW": {
+      "en": "Guinea-Bissau",
+      "ur": "گنی بساؤ"
+    },
+    "GY": {
+      "en": "Guyana",
+      "ur": "گیانا"
+    },
+    "HK": {
+      "en": "Hong Kong SAR China",
+      "enAlternatives": {
+        "short": "Hong Kong"
+      },
+      "ur": "ہانگ کانگ SAR چین",
+      "urAlternatives": {
+        "short": "ہانگ کانگ"
+      }
+    },
+    "HM": {
+      "en": "Heard Island & McDonald Islands",
+      "enAlternatives": {
+        "short": "Heard & McDonald Islands"
+      },
+      "ur": "ہیرڈ جزیرہ و میکڈولینڈ جزائر"
+    },
+    "HN": {
+      "en": "Honduras",
+      "ur": "ہونڈوراس"
+    },
+    "HR": {
+      "en": "Croatia",
+      "ur": "کروشیا"
+    },
+    "HT": {
+      "en": "Haiti",
+      "ur": "ہیٹی"
+    },
+    "HU": {
+      "en": "Hungary",
+      "ur": "ہنگری"
+    },
+    "IC": {
+      "en": "Canary Islands",
+      "ur": "کینری آئلینڈز"
+    },
+    "ID": {
+      "en": "Indonesia",
+      "ur": "انڈونیشیا"
+    },
+    "IE": {
+      "en": "Ireland",
+      "ur": "آئرلینڈ"
+    },
+    "IL": {
+      "en": "Israel",
+      "ur": "اسرائیل"
+    },
+    "IM": {
+      "en": "Isle of Man",
+      "ur": "آئل آف مین"
+    },
+    "IN": {
+      "en": "India",
+      "ur": "بھارت"
+    },
+    "IO": {
+      "en": "British Indian Ocean Territory",
+      "enAlternatives": {
+        "chagos": "Chagos Archipelago"
+      },
+      "ur": "برطانوی بحر ہند کا علاقہ",
+      "urAlternatives": {
+        "chagos": "جزائر چاگوس"
+      }
+    },
+    "IQ": {
+      "en": "Iraq",
+      "ur": "عراق"
+    },
+    "IR": {
+      "en": "Iran",
+      "ur": "ایران"
+    },
+    "IS": {
+      "en": "Iceland",
+      "ur": "آئس لینڈ"
+    },
+    "IT": {
+      "en": "Italy",
+      "ur": "اٹلی"
+    },
+    "JE": {
+      "en": "Jersey",
+      "ur": "جرسی"
+    },
+    "JM": {
+      "en": "Jamaica",
+      "ur": "جمائیکا"
+    },
+    "JO": {
+      "en": "Jordan",
+      "ur": "اردن"
+    },
+    "JP": {
+      "en": "Japan",
+      "ur": "جاپان"
+    },
+    "KE": {
+      "en": "Kenya",
+      "ur": "کینیا"
+    },
+    "KG": {
+      "en": "Kyrgyzstan",
+      "ur": "کرغزستان"
+    },
+    "KH": {
+      "en": "Cambodia",
+      "ur": "کمبوڈیا"
+    },
+    "KI": {
+      "en": "Kiribati",
+      "ur": "کریباتی"
+    },
+    "KM": {
+      "en": "Comoros",
+      "ur": "کوموروس"
+    },
+    "KN": {
+      "en": "St Kitts & Nevis",
+      "ur": "سینٹ کٹس اور نیویس"
+    },
+    "KP": {
+      "en": "North Korea",
+      "ur": "شمالی کوریا"
+    },
+    "KR": {
+      "en": "South Korea",
+      "ur": "جنوبی کوریا"
+    },
+    "KW": {
+      "en": "Kuwait",
+      "ur": "کویت"
+    },
+    "KY": {
+      "en": "Cayman Islands",
+      "ur": "کیمین آئلینڈز"
+    },
+    "KZ": {
+      "en": "Kazakhstan",
+      "ur": "قزاخستان"
+    },
+    "LA": {
+      "en": "Laos",
+      "ur": "لاؤس"
+    },
+    "LB": {
+      "en": "Lebanon",
+      "ur": "لبنان"
+    },
+    "LC": {
+      "en": "St Lucia",
+      "ur": "سینٹ لوسیا"
+    },
+    "LI": {
+      "en": "Liechtenstein",
+      "ur": "لیشٹنسٹائن"
+    },
+    "LK": {
+      "en": "Sri Lanka",
+      "ur": "سری لنکا"
+    },
+    "LR": {
+      "en": "Liberia",
+      "ur": "لائبیریا"
+    },
+    "LS": {
+      "en": "Lesotho",
+      "ur": "لیسوتھو"
+    },
+    "LT": {
+      "en": "Lithuania",
+      "ur": "لیتھونیا"
+    },
+    "LU": {
+      "en": "Luxembourg",
+      "ur": "لکسمبرگ"
+    },
+    "LV": {
+      "en": "Latvia",
+      "ur": "لٹویا"
+    },
+    "LY": {
+      "en": "Libya",
+      "ur": "لیبیا"
+    },
+    "MA": {
+      "en": "Morocco",
+      "ur": "مراکش"
+    },
+    "MC": {
+      "en": "Monaco",
+      "ur": "موناکو"
+    },
+    "MD": {
+      "en": "Moldova",
+      "ur": "مالدووا"
+    },
+    "ME": {
+      "en": "Montenegro",
+      "ur": "مونٹے نیگرو"
+    },
+    "MF": {
+      "en": "St Martin",
+      "ur": "سینٹ مارٹن"
+    },
+    "MG": {
+      "en": "Madagascar",
+      "ur": "مڈغاسکر"
+    },
+    "MH": {
+      "en": "Marshall Islands",
+      "ur": "مارشل آئلینڈز"
+    },
+    "MK": {
+      "en": "North Macedonia",
+      "ur": "شمالی مقدونیہ"
+    },
+    "ML": {
+      "en": "Mali",
+      "ur": "مالی"
+    },
+    "MM": {
+      "en": "Myanmar (Burma)",
+      "enAlternatives": {
+        "short": "Myanmar"
+      },
+      "ur": "میانمار (برما)"
+    },
+    "MN": {
+      "en": "Mongolia",
+      "ur": "منگولیا"
+    },
+    "MO": {
+      "en": "Macao SAR China",
+      "enAlternatives": {
+        "short": "Macao"
+      },
+      "ur": "مکاؤ SAR چین",
+      "urAlternatives": {
+        "short": "مکاؤ"
+      }
+    },
+    "MP": {
+      "en": "Northern Mariana Islands",
+      "ur": "شمالی ماریانا آئلینڈز"
+    },
+    "MQ": {
+      "en": "Martinique",
+      "ur": "مارٹینک"
+    },
+    "MR": {
+      "en": "Mauritania",
+      "ur": "موریطانیہ"
+    },
+    "MS": {
+      "en": "Montserrat",
+      "ur": "مونٹسیراٹ"
+    },
+    "MT": {
+      "en": "Malta",
+      "ur": "مالٹا"
+    },
+    "MU": {
+      "en": "Mauritius",
+      "ur": "ماریشس"
+    },
+    "MV": {
+      "en": "Maldives",
+      "ur": "مالدیپ"
+    },
+    "MW": {
+      "en": "Malawi",
+      "ur": "ملاوی"
+    },
+    "MX": {
+      "en": "Mexico",
+      "ur": "میکسیکو"
+    },
+    "MY": {
+      "en": "Malaysia",
+      "ur": "ملائشیا"
+    },
+    "MZ": {
+      "en": "Mozambique",
+      "ur": "موزمبیق"
+    },
+    "NA": {
+      "en": "Namibia",
+      "ur": "نامیبیا"
+    },
+    "NC": {
+      "en": "New Caledonia",
+      "ur": "نیو کلیڈونیا"
+    },
+    "NE": {
+      "en": "Niger",
+      "ur": "نائجر"
+    },
+    "NF": {
+      "en": "Norfolk Island",
+      "ur": "نارفوک آئلینڈ"
+    },
+    "NG": {
+      "en": "Nigeria",
+      "ur": "نائجیریا"
+    },
+    "NI": {
+      "en": "Nicaragua",
+      "ur": "نکاراگووا"
+    },
+    "NL": {
+      "en": "Netherlands",
+      "ur": "نیدر لینڈز"
+    },
+    "NO": {
+      "en": "Norway",
+      "ur": "ناروے"
+    },
+    "NP": {
+      "en": "Nepal",
+      "ur": "نیپال"
+    },
+    "NR": {
+      "en": "Nauru",
+      "enAlternatives": {
+        "variant": "Naoero"
+      },
+      "ur": "نؤرو"
+    },
+    "NU": {
+      "en": "Niue",
+      "ur": "نیئو"
+    },
+    "NZ": {
+      "en": "New Zealand",
+      "enAlternatives": {
+        "variant": "Aotearoa New Zealand"
+      },
+      "ur": "نیوزی لینڈ",
+      "urAlternatives": {
+        "variant": "آؤتیارورا نیوزی لینڈ"
+      }
+    },
+    "OM": {
+      "en": "Oman",
+      "ur": "عمان"
+    },
+    "PA": {
+      "en": "Panama",
+      "ur": "پانامہ"
+    },
+    "PE": {
+      "en": "Peru",
+      "ur": "پیرو"
+    },
+    "PF": {
+      "en": "French Polynesia",
+      "ur": "فرانسیسی پولینیشیا"
+    },
+    "PG": {
+      "en": "Papua New Guinea",
+      "ur": "پاپوآ نیو گنی"
+    },
+    "PH": {
+      "en": "Philippines",
+      "ur": "فلپائن"
+    },
+    "PK": {
+      "en": "Pakistan",
+      "ur": "پاکستان"
+    },
+    "PL": {
+      "en": "Poland",
+      "ur": "پولینڈ"
+    },
+    "PM": {
+      "en": "St Pierre & Miquelon",
+      "ur": "سینٹ پیئر اور میکلیئون"
+    },
+    "PN": {
+      "en": "Pitcairn Islands",
+      "enAlternatives": {
+        "short": "Pitcairn"
+      },
+      "ur": "پٹکائرن جزائر"
+    },
+    "PR": {
+      "en": "Puerto Rico",
+      "ur": "پیورٹو ریکو"
+    },
+    "PS": {
+      "en": "Palestinian Territories",
+      "enAlternatives": {
+        "short": "Palestine"
+      },
+      "ur": "فلسطینی خطے",
+      "urAlternatives": {
+        "short": "فلسطین"
+      }
+    },
+    "PT": {
+      "en": "Portugal",
+      "ur": "پرتگال"
+    },
+    "PW": {
+      "en": "Palau",
+      "ur": "پلاؤ"
+    },
+    "PY": {
+      "en": "Paraguay",
+      "ur": "پیراگوئے"
+    },
+    "QA": {
+      "en": "Qatar",
+      "ur": "قطر"
+    },
+    "QO": {
+      "en": "Outlying Oceania",
+      "ur": "بیرونی اوشیانیا"
+    },
+    "RE": {
+      "en": "Réunion",
+      "ur": "ری یونین"
+    },
+    "RO": {
+      "en": "Romania",
+      "ur": "رومانیہ"
+    },
+    "RS": {
+      "en": "Serbia",
+      "ur": "سربیا"
+    },
+    "RU": {
+      "en": "Russia",
+      "ur": "روس"
+    },
+    "RW": {
+      "en": "Rwanda",
+      "ur": "روانڈا"
+    },
+    "SA": {
+      "en": "Saudi Arabia",
+      "ur": "سعودی عرب"
+    },
+    "SB": {
+      "en": "Solomon Islands",
+      "ur": "سولومن آئلینڈز"
+    },
+    "SC": {
+      "en": "Seychelles",
+      "ur": "سشلیز"
+    },
+    "SD": {
+      "en": "Sudan",
+      "ur": "سوڈان"
+    },
+    "SE": {
+      "en": "Sweden",
+      "ur": "سویڈن"
+    },
+    "SG": {
+      "en": "Singapore",
+      "ur": "سنگاپور"
+    },
+    "SH": {
+      "en": "St Helena, Ascension & Tristan da Cunha",
+      "enAlternatives": {
+        "short": "St Helena"
+      },
+      "ur": "سینٹ ہیلینا"
+    },
+    "SI": {
+      "en": "Slovenia",
+      "ur": "سلووینیا"
+    },
+    "SJ": {
+      "en": "Svalbard & Jan Mayen",
+      "ur": "سوالبرڈ اور جان ماین"
+    },
+    "SK": {
+      "en": "Slovakia",
+      "ur": "سلوواکیہ"
+    },
+    "SL": {
+      "en": "Sierra Leone",
+      "ur": "سیرالیون"
+    },
+    "SM": {
+      "en": "San Marino",
+      "ur": "سان مارینو"
+    },
+    "SN": {
+      "en": "Senegal",
+      "ur": "سینیگل"
+    },
+    "SO": {
+      "en": "Somalia",
+      "ur": "صومالیہ"
+    },
+    "SR": {
+      "en": "Suriname",
+      "ur": "سورینام"
+    },
+    "SS": {
+      "en": "South Sudan",
+      "ur": "جنوبی سوڈان"
+    },
+    "ST": {
+      "en": "São Tomé & Príncipe",
+      "ur": "ساؤ ٹومے اور پرنسپے"
+    },
+    "SV": {
+      "en": "El Salvador",
+      "ur": "ال سلواڈور"
+    },
+    "SX": {
+      "en": "Sint Maarten",
+      "ur": "سنٹ مارٹن"
+    },
+    "SY": {
+      "en": "Syria",
+      "ur": "شام"
+    },
+    "SZ": {
+      "en": "Eswatini",
+      "enAlternatives": {
+        "variant": "Swaziland"
+      },
+      "ur": "سواتنی",
+      "urAlternatives": {
+        "variant": "سوازی لینڈ"
+      }
+    },
+    "TA": {
+      "en": "Tristan da Cunha",
+      "ur": "ٹرسٹن ڈا کیونہا"
+    },
+    "TC": {
+      "en": "Turks & Caicos Islands",
+      "ur": "ٹرکس اور کیکوس جزائر"
+    },
+    "TD": {
+      "en": "Chad",
+      "ur": "چاڈ"
+    },
+    "TF": {
+      "en": "French Southern and Antarctic Lands",
+      "enAlternatives": {
+        "short": "French Southern Territories"
+      },
+      "ur": "فرانسیسی جنوبی خطے"
+    },
+    "TG": {
+      "en": "Togo",
+      "ur": "ٹوگو"
+    },
+    "TH": {
+      "en": "Thailand",
+      "ur": "تھائی لینڈ"
+    },
+    "TJ": {
+      "en": "Tajikistan",
+      "ur": "تاجکستان"
+    },
+    "TK": {
+      "en": "Tokelau",
+      "ur": "ٹوکیلاؤ"
+    },
+    "TL": {
+      "en": "Timor-Leste",
+      "enAlternatives": {
+        "variant": "East Timor"
+      },
+      "ur": "تیمور لیسٹ",
+      "urAlternatives": {
+        "variant": "مشرقی تیمور"
+      }
+    },
+    "TM": {
+      "en": "Turkmenistan",
+      "ur": "ترکمانستان"
+    },
+    "TN": {
+      "en": "Tunisia",
+      "ur": "تونس"
+    },
+    "TO": {
+      "en": "Tonga",
+      "ur": "ٹونگا"
+    },
+    "TR": {
+      "en": "Türkiye",
+      "enAlternatives": {
+        "variant": "Turkey"
+      },
+      "ur": "ترکیہ"
+    },
+    "TT": {
+      "en": "Trinidad & Tobago",
+      "ur": "ترینیداد اور ٹوباگو"
+    },
+    "TV": {
+      "en": "Tuvalu",
+      "ur": "ٹووالو"
+    },
+    "TW": {
+      "en": "Taiwan",
+      "ur": "تائیوان"
+    },
+    "TZ": {
+      "en": "Tanzania",
+      "ur": "تنزانیہ"
+    },
+    "UA": {
+      "en": "Ukraine",
+      "ur": "یوکرین"
+    },
+    "UG": {
+      "en": "Uganda",
+      "ur": "یوگنڈا"
+    },
+    "UM": {
+      "en": "US Outlying Islands",
+      "ur": "امریکہ سے باہر کے چھوٹے جزائز"
+    },
+    "UN": {
+      "en": "United Nations",
+      "enAlternatives": {
+        "short": "UN"
+      },
+      "ur": "اقوام متحدہ"
+    },
+    "US": {
+      "en": "United States",
+      "enAlternatives": {
+        "short": "US"
+      },
+      "ur": "ریاست ہائے متحدہ امریکہ",
+      "urAlternatives": {
+        "short": "امریکا"
+      }
+    },
+    "UY": {
+      "en": "Uruguay",
+      "ur": "یوروگوئے"
+    },
+    "UZ": {
+      "en": "Uzbekistan",
+      "ur": "ازبکستان"
+    },
+    "VA": {
+      "en": "Vatican City",
+      "ur": "ویٹیکن سٹی"
+    },
+    "VC": {
+      "en": "St Vincent & the Grenadines",
+      "ur": "سینٹ ونسنٹ اور گرینیڈائنز"
+    },
+    "VE": {
+      "en": "Venezuela",
+      "ur": "وینزوئیلا"
+    },
+    "VG": {
+      "en": "British Virgin Islands",
+      "ur": "برٹش ورجن آئلینڈز"
+    },
+    "VI": {
+      "en": "US Virgin Islands",
+      "ur": "امریکی ورجن آئلینڈز"
+    },
+    "VN": {
+      "en": "Vietnam",
+      "ur": "ویتنام"
+    },
+    "VU": {
+      "en": "Vanuatu",
+      "ur": "وینوآٹو"
+    },
+    "WF": {
+      "en": "Wallis & Futuna",
+      "ur": "ویلیز اور فیوٹیونا"
+    },
+    "WS": {
+      "en": "Samoa",
+      "ur": "ساموآ"
+    },
+    "XA": {
+      "en": "Pseudo-Accents",
+      "ur": "بناوٹی لہجے"
+    },
+    "XB": {
+      "en": "Pseudo-Bidi",
+      "ur": "بناوٹی دو سمتی"
+    },
+    "XK": {
+      "en": "Kosovo",
+      "ur": "کوسووو"
+    },
+    "YE": {
+      "en": "Yemen",
+      "ur": "یمن"
+    },
+    "YT": {
+      "en": "Mayotte",
+      "ur": "مایوٹ"
+    },
+    "ZA": {
+      "en": "South Africa",
+      "ur": "جنوبی افریقہ"
+    },
+    "ZM": {
+      "en": "Zambia",
+      "ur": "زامبیا"
+    },
+    "ZW": {
+      "en": "Zimbabwe",
+      "ur": "زمبابوے"
+    }
+  },
+  "zones": [
+    {
+      "ids": [
+        "Europe/Andorra"
+      ],
+      "ur": "انڈورا"
+    },
+    {
+      "ids": [
+        "Asia/Dubai"
+      ],
+      "ur": "دبئی"
+    },
+    {
+      "ids": [
+        "Asia/Kabul"
+      ],
+      "ur": "کابل"
+    },
+    {
+      "ids": [
+        "America/Antigua"
+      ],
+      "ur": "انٹیگوا"
+    },
+    {
+      "ids": [
+        "America/Anguilla"
+      ],
+      "ur": "انگویلا"
+    },
+    {
+      "ids": [
+        "Europe/Tirane"
+      ],
+      "en": "Tirana",
+      "ur": "ٹیرانی"
+    },
+    {
+      "ids": [
+        "Asia/Yerevan"
+      ],
+      "ur": "یریوان"
+    },
+    {
+      "ids": [
+        "America/Curacao"
+      ],
+      "en": "Curaçao",
+      "ur": "کیوراکاؤ"
+    },
+    {
+      "ids": [
+        "Africa/Luanda"
+      ],
+      "ur": "لوانڈا"
+    },
+    {
+      "ids": [
+        "Antarctica/Casey"
+      ],
+      "en": "Casey Station",
+      "ur": "کیسی"
+    },
+    {
+      "ids": [
+        "Antarctica/Davis"
+      ],
+      "ur": "ڈیوس"
+    },
+    {
+      "ids": [
+        "Antarctica/DumontDUrville"
+      ],
+      "en": "Dumont d’Urville Station",
+      "ur": "ڈومونٹ ڈی ارویلے"
+    },
+    {
+      "ids": [
+        "Antarctica/Mawson"
+      ],
+      "en": "Mawson Station",
+      "ur": "ماؤسن"
+    },
+    {
+      "ids": [
+        "Antarctica/McMurdo",
+        "Antarctica/South_Pole"
+      ],
+      "en": "McMurdo Station",
+      "ur": "میک مرڈو"
+    },
+    {
+      "ids": [
+        "Antarctica/Palmer"
+      ],
+      "en": "Palmer Land",
+      "ur": "پلمیر"
+    },
+    {
+      "ids": [
+        "Antarctica/Rothera"
+      ],
+      "en": "Rothera Station",
+      "ur": "روتھیرا"
+    },
+    {
+      "ids": [
+        "Antarctica/Syowa"
+      ],
+      "en": "Showa Station",
+      "ur": "سیووا"
+    },
+    {
+      "ids": [
+        "Antarctica/Troll"
+      ],
+      "en": "Troll Station",
+      "ur": "ٹرول"
+    },
+    {
+      "ids": [
+        "Antarctica/Vostok"
+      ],
+      "en": "Vostok Station",
+      "ur": "ووستوک"
+    },
+    {
+      "ids": [
+        "America/Buenos_Aires",
+        "America/Argentina/Buenos_Aires"
+      ],
+      "ur": "بیونس آئرس"
+    },
+    {
+      "ids": [
+        "America/Cordoba",
+        "America/Argentina/Cordoba",
+        "America/Rosario"
+      ],
+      "en": "Córdoba",
+      "ur": "کورڈوبا"
+    },
+    {
+      "ids": [
+        "America/Catamarca",
+        "America/Argentina/Catamarca",
+        "America/Argentina/ComodRivadavia"
+      ],
+      "ur": "کیٹامارکا"
+    },
+    {
+      "ids": [
+        "America/Argentina/La_Rioja"
+      ],
+      "ur": "لا ریئوجا"
+    },
+    {
+      "ids": [
+        "America/Jujuy",
+        "America/Argentina/Jujuy"
+      ],
+      "ur": "جوجوئی"
+    },
+    {
+      "ids": [
+        "America/Argentina/San_Luis"
+      ],
+      "ur": "سان لوئس"
+    },
+    {
+      "ids": [
+        "America/Mendoza",
+        "America/Argentina/Mendoza"
+      ],
+      "ur": "مینڈوزا"
+    },
+    {
+      "ids": [
+        "America/Argentina/Rio_Gallegos"
+      ],
+      "en": "Río Gallegos",
+      "ur": "ریو گالیگوس"
+    },
+    {
+      "ids": [
+        "America/Argentina/Salta"
+      ],
+      "ur": "سالٹا"
+    },
+    {
+      "ids": [
+        "America/Argentina/Tucuman"
+      ],
+      "en": "Tucumán",
+      "ur": "ٹوکومین"
+    },
+    {
+      "ids": [
+        "America/Argentina/San_Juan"
+      ],
+      "ur": "سان جوآن"
+    },
+    {
+      "ids": [
+        "America/Argentina/Ushuaia"
+      ],
+      "ur": "اوشوآئیا"
+    },
+    {
+      "ids": [
+        "Pacific/Pago_Pago",
+        "Pacific/Samoa",
+        "US/Samoa"
+      ],
+      "ur": "پاگو پاگو"
+    },
+    {
+      "ids": [
+        "Europe/Vienna"
+      ],
+      "ur": "ویانا"
+    },
+    {
+      "ids": [
+        "Australia/Adelaide",
+        "Australia/South"
+      ],
+      "ur": "ایڈیلیڈ"
+    },
+    {
+      "ids": [
+        "Australia/Broken_Hill",
+        "Australia/Yancowinna"
+      ],
+      "ur": "بروکن ہِل"
+    },
+    {
+      "ids": [
+        "Australia/Brisbane",
+        "Australia/Queensland"
+      ],
+      "ur": "برسبین"
+    },
+    {
+      "ids": [
+        "Australia/Darwin",
+        "Australia/North"
+      ],
+      "ur": "ڈارون"
+    },
+    {
+      "ids": [
+        "Australia/Eucla"
+      ],
+      "ur": "ایوکلا"
+    },
+    {
+      "ids": [
+        "Australia/Hobart",
+        "Australia/Tasmania",
+        "Australia/Currie"
+      ],
+      "ur": "ہوبارٹ"
+    },
+    {
+      "ids": [
+        "Australia/Lindeman"
+      ],
+      "ur": "لِنڈمین"
+    },
+    {
+      "ids": [
+        "Australia/Lord_Howe",
+        "Australia/LHI"
+      ],
+      "en": "Lord Howe Island",
+      "ur": "لارڈ ہووے"
+    },
+    {
+      "ids": [
+        "Australia/Melbourne",
+        "Australia/Victoria"
+      ],
+      "ur": "ملبورن"
+    },
+    {
+      "ids": [
+        "Antarctica/Macquarie"
+      ],
+      "en": "Macquarie Island",
+      "ur": "میکواری"
+    },
+    {
+      "ids": [
+        "Australia/Perth",
+        "Australia/West"
+      ],
+      "ur": "پرتھ"
+    },
+    {
+      "ids": [
+        "Australia/Sydney",
+        "Australia/ACT",
+        "Australia/Canberra",
+        "Australia/NSW"
+      ],
+      "ur": "سڈنی"
+    },
+    {
+      "ids": [
+        "America/Aruba"
+      ],
+      "ur": "اروبا"
+    },
+    {
+      "ids": [
+        "Asia/Baku"
+      ],
+      "ur": "باکو"
+    },
+    {
+      "ids": [
+        "Europe/Sarajevo"
+      ],
+      "ur": "سراجیوو"
+    },
+    {
+      "ids": [
+        "America/Barbados"
+      ],
+      "ur": "بارباڈوس"
+    },
+    {
+      "ids": [
+        "Asia/Dhaka",
+        "Asia/Dacca"
+      ],
+      "ur": "ڈھاکہ"
+    },
+    {
+      "ids": [
+        "Europe/Brussels",
+        "CET",
+        "MET"
+      ],
+      "ur": "برسلز"
+    },
+    {
+      "ids": [
+        "Africa/Ouagadougou"
+      ],
+      "ur": "اؤگاڈؤگوو"
+    },
+    {
+      "ids": [
+        "Europe/Sofia"
+      ],
+      "ur": "صوفیہ"
+    },
+    {
+      "ids": [
+        "Asia/Bahrain"
+      ],
+      "ur": "بحرین"
+    },
+    {
+      "ids": [
+        "Africa/Bujumbura"
+      ],
+      "ur": "بجمبرا"
+    },
+    {
+      "ids": [
+        "Africa/Porto-Novo"
+      ],
+      "ur": "پورٹو نووو"
+    },
+    {
+      "ids": [
+        "Atlantic/Bermuda"
+      ],
+      "ur": "برمودا"
+    },
+    {
+      "ids": [
+        "Asia/Brunei"
+      ],
+      "ur": "برونئی"
+    },
+    {
+      "ids": [
+        "America/La_Paz"
+      ],
+      "ur": "لا پاز"
+    },
+    {
+      "ids": [
+        "America/Kralendijk"
+      ],
+      "ur": "کرالینڈیجک"
+    },
+    {
+      "ids": [
+        "America/Araguaina"
+      ],
+      "en": "Araguaína",
+      "ur": "اراگویانا"
+    },
+    {
+      "ids": [
+        "America/Belem"
+      ],
+      "en": "Belém",
+      "ur": "بیلیم"
+    },
+    {
+      "ids": [
+        "America/Boa_Vista"
+      ],
+      "ur": "بوآ وسٹا"
+    },
+    {
+      "ids": [
+        "America/Cuiaba"
+      ],
+      "en": "Cuiabá",
+      "ur": "کوئیابا"
+    },
+    {
+      "ids": [
+        "America/Campo_Grande"
+      ],
+      "ur": "کیمپو گرینڈ"
+    },
+    {
+      "ids": [
+        "America/Eirunepe"
+      ],
+      "en": "Eirunepé",
+      "ur": "ایرونیپ"
+    },
+    {
+      "ids": [
+        "America/Noronha",
+        "Brazil/DeNoronha"
+      ],
+      "en": "Fernando de Noronha",
+      "ur": "نورونہا"
+    },
+    {
+      "ids": [
+        "America/Fortaleza"
+      ],
+      "ur": "فورٹالیزا"
+    },
+    {
+      "ids": [
+        "America/Manaus",
+        "Brazil/West"
+      ],
+      "ur": "مناؤس"
+    },
+    {
+      "ids": [
+        "America/Maceio"
+      ],
+      "en": "Maceió",
+      "ur": "میسیئو"
+    },
+    {
+      "ids": [
+        "America/Porto_Velho"
+      ],
+      "ur": "پورٹو ویلہو"
+    },
+    {
+      "ids": [
+        "America/Rio_Branco",
+        "America/Porto_Acre",
+        "Brazil/Acre"
+      ],
+      "ur": "ریئو برینکو"
+    },
+    {
+      "ids": [
+        "America/Recife"
+      ],
+      "ur": "ریسائف"
+    },
+    {
+      "ids": [
+        "America/Sao_Paulo",
+        "Brazil/East"
+      ],
+      "en": "São Paulo",
+      "ur": "ساؤ پالو"
+    },
+    {
+      "ids": [
+        "America/Bahia"
+      ],
+      "ur": "باہیا"
+    },
+    {
+      "ids": [
+        "America/Santarem"
+      ],
+      "en": "Santarém",
+      "ur": "سنٹارین"
+    },
+    {
+      "ids": [
+        "America/Nassau"
+      ],
+      "ur": "نساؤ"
+    },
+    {
+      "ids": [
+        "Asia/Thimphu",
+        "Asia/Thimbu"
+      ],
+      "ur": "تھمپو"
+    },
+    {
+      "ids": [
+        "Africa/Gaborone"
+      ],
+      "ur": "گبرون"
+    },
+    {
+      "ids": [
+        "Europe/Minsk"
+      ],
+      "ur": "مِنسک"
+    },
+    {
+      "ids": [
+        "America/Belize"
+      ],
+      "ur": "بیلائز"
+    },
+    {
+      "ids": [
+        "America/Creston"
+      ],
+      "ur": "کریسٹون"
+    },
+    {
+      "ids": [
+        "America/Edmonton",
+        "Canada/Mountain",
+        "America/Yellowknife"
+      ],
+      "ur": "ایڈمونٹن"
+    },
+    {
+      "ids": [
+        "America/Fort_Nelson"
+      ],
+      "ur": "فورٹ نیلسن"
+    },
+    {
+      "ids": [
+        "America/Glace_Bay"
+      ],
+      "ur": "گلیس کی کھاڑی"
+    },
+    {
+      "ids": [
+        "America/Goose_Bay"
+      ],
+      "ur": "گوس کی کھاڑی"
+    },
+    {
+      "ids": [
+        "America/Halifax",
+        "Canada/Atlantic"
+      ],
+      "ur": "ہیلیفیکس"
+    },
+    {
+      "ids": [
+        "America/Iqaluit",
+        "America/Pangnirtung"
+      ],
+      "ur": "ایکالوئٹ"
+    },
+    {
+      "ids": [
+        "America/Moncton"
+      ],
+      "ur": "مونکٹن"
+    },
+    {
+      "ids": [
+        "America/Resolute"
+      ],
+      "ur": "ریزولیوٹ"
+    },
+    {
+      "ids": [
+        "America/Regina",
+        "Canada/East-Saskatchewan",
+        "Canada/Saskatchewan"
+      ],
+      "ur": "ریجینا"
+    },
+    {
+      "ids": [
+        "America/St_Johns",
+        "Canada/Newfoundland"
+      ],
+      "en": "St. John’s",
+      "ur": "سینٹ جانز"
+    },
+    {
+      "ids": [
+        "America/Toronto",
+        "America/Montreal",
+        "Canada/Eastern",
+        "America/Nipigon",
+        "America/Thunder_Bay"
+      ],
+      "ur": "ٹورنٹو"
+    },
+    {
+      "ids": [
+        "America/Vancouver",
+        "Canada/Pacific"
+      ],
+      "ur": "وینکوور"
+    },
+    {
+      "ids": [
+        "America/Winnipeg",
+        "Canada/Central",
+        "America/Rainy_River"
+      ],
+      "ur": "ونّیپیگ"
+    },
+    {
+      "ids": [
+        "America/Blanc-Sablon"
+      ],
+      "ur": "بلانک سبلون"
+    },
+    {
+      "ids": [
+        "America/Cambridge_Bay"
+      ],
+      "ur": "کیمبرج کی کھاڑی"
+    },
+    {
+      "ids": [
+        "America/Dawson"
+      ],
+      "ur": "ڈاؤسن"
+    },
+    {
+      "ids": [
+        "America/Dawson_Creek"
+      ],
+      "ur": "ڈاؤسن کریک"
+    },
+    {
+      "ids": [
+        "America/Rankin_Inlet"
+      ],
+      "ur": "رینکن انلیٹ"
+    },
+    {
+      "ids": [
+        "America/Inuvik"
+      ],
+      "ur": "انووِک"
+    },
+    {
+      "ids": [
+        "America/Whitehorse",
+        "Canada/Yukon"
+      ],
+      "ur": "وہائٹ ہارس"
+    },
+    {
+      "ids": [
+        "America/Swift_Current"
+      ],
+      "ur": "سوِفٹ کرنٹ"
+    },
+    {
+      "ids": [
+        "America/Coral_Harbour",
+        "America/Atikokan"
+      ],
+      "en": "Atikokan",
+      "ur": "اٹیکوکن"
+    },
+    {
+      "ids": [
+        "Indian/Cocos"
+      ],
+      "en": "Cocos Islands",
+      "ur": "کوکوس"
+    },
+    {
+      "ids": [
+        "Africa/Lubumbashi"
+      ],
+      "ur": "لوبمباشی"
+    },
+    {
+      "ids": [
+        "Africa/Kinshasa"
+      ],
+      "ur": "کنشاسا"
+    },
+    {
+      "ids": [
+        "Africa/Bangui"
+      ],
+      "ur": "بنگوئی"
+    },
+    {
+      "ids": [
+        "Africa/Brazzaville"
+      ],
+      "ur": "برازاویلے"
+    },
+    {
+      "ids": [
+        "Europe/Zurich"
+      ],
+      "ur": "زیورخ"
+    },
+    {
+      "ids": [
+        "Africa/Abidjan"
+      ],
+      "ur": "عابدجان"
+    },
+    {
+      "ids": [
+        "Pacific/Rarotonga"
+      ],
+      "ur": "راروٹونگا"
+    },
+    {
+      "ids": [
+        "America/Coyhaique"
+      ],
+      "ur": "کویائیکے"
+    },
+    {
+      "ids": [
+        "Pacific/Easter",
+        "Chile/EasterIsland"
+      ],
+      "en": "Easter Island",
+      "ur": "ایسٹر"
+    },
+    {
+      "ids": [
+        "America/Punta_Arenas"
+      ],
+      "ur": "پنٹا اریناس"
+    },
+    {
+      "ids": [
+        "America/Santiago",
+        "Chile/Continental"
+      ],
+      "ur": "سنٹیاگو"
+    },
+    {
+      "ids": [
+        "Africa/Douala"
+      ],
+      "ur": "ڈوآلا"
+    },
+    {
+      "ids": [
+        "Asia/Shanghai",
+        "Asia/Chongqing",
+        "Asia/Chungking",
+        "Asia/Harbin",
+        "PRC"
+      ],
+      "ur": "شنگھائی"
+    },
+    {
+      "ids": [
+        "Asia/Urumqi",
+        "Asia/Kashgar"
+      ],
+      "en": "Ürümqi",
+      "ur": "یورومکی"
+    },
+    {
+      "ids": [
+        "America/Bogota"
+      ],
+      "en": "Bogotá",
+      "ur": "بگوٹا"
+    },
+    {
+      "ids": [
+        "America/Costa_Rica"
+      ],
+      "ur": "کوسٹا ریکا"
+    },
+    {
+      "ids": [
+        "America/Havana",
+        "Cuba"
+      ],
+      "ur": "ہوانا"
+    },
+    {
+      "ids": [
+        "Atlantic/Cape_Verde"
+      ],
+      "ur": "کیپ ورڈی"
+    },
+    {
+      "ids": [
+        "Indian/Christmas"
+      ],
+      "en": "Christmas Island",
+      "ur": "کرسمس"
+    },
+    {
+      "ids": [
+        "Asia/Famagusta"
+      ],
+      "ur": "فاماگوسٹا"
+    },
+    {
+      "ids": [
+        "Asia/Nicosia",
+        "Europe/Nicosia"
+      ],
+      "ur": "نکوسیا"
+    },
+    {
+      "ids": [
+        "Europe/Prague"
+      ],
+      "ur": "پراگ"
+    },
+    {
+      "ids": [
+        "Europe/Berlin"
+      ],
+      "ur": "برلن"
+    },
+    {
+      "ids": [
+        "Europe/Busingen"
+      ],
+      "en": "Büsingen",
+      "ur": "بزنجن"
+    },
+    {
+      "ids": [
+        "Africa/Djibouti"
+      ],
+      "ur": "جبوتی"
+    },
+    {
+      "ids": [
+        "Europe/Copenhagen"
+      ],
+      "ur": "کوپن ہیگن"
+    },
+    {
+      "ids": [
+        "America/Dominica"
+      ],
+      "ur": "ڈومنیکا"
+    },
+    {
+      "ids": [
+        "America/Santo_Domingo"
+      ],
+      "ur": "سانتو ڈومنگو"
+    },
+    {
+      "ids": [
+        "Africa/Algiers"
+      ],
+      "ur": "الجیئرس"
+    },
+    {
+      "ids": [
+        "Pacific/Galapagos"
+      ],
+      "en": "Galápagos Islands",
+      "ur": "گیلاپیگوس"
+    },
+    {
+      "ids": [
+        "America/Guayaquil"
+      ],
+      "ur": "گوآیاکوئل"
+    },
+    {
+      "ids": [
+        "Europe/Tallinn"
+      ],
+      "ur": "ٹالن"
+    },
+    {
+      "ids": [
+        "Africa/Cairo",
+        "Egypt"
+      ],
+      "ur": "قاہرہ"
+    },
+    {
+      "ids": [
+        "Africa/El_Aaiun"
+      ],
+      "en": "El Aaiún",
+      "ur": "العیون"
+    },
+    {
+      "ids": [
+        "Africa/Asmera",
+        "Africa/Asmara"
+      ],
+      "en": "Asmara",
+      "ur": "اسمارا"
+    },
+    {
+      "ids": [
+        "Africa/Ceuta"
+      ],
+      "ur": "سیوٹا"
+    },
+    {
+      "ids": [
+        "Atlantic/Canary"
+      ],
+      "en": "Canaries",
+      "ur": "کینری"
+    },
+    {
+      "ids": [
+        "Europe/Madrid"
+      ],
+      "ur": "میڈرڈ"
+    },
+    {
+      "ids": [
+        "Africa/Addis_Ababa"
+      ],
+      "ur": "عدیس ابابا"
+    },
+    {
+      "ids": [
+        "Europe/Helsinki"
+      ],
+      "ur": "ہیلسنکی"
+    },
+    {
+      "ids": [
+        "Europe/Mariehamn"
+      ],
+      "ur": "میریہام"
+    },
+    {
+      "ids": [
+        "Pacific/Fiji"
+      ],
+      "ur": "فجی"
+    },
+    {
+      "ids": [
+        "Atlantic/Stanley"
+      ],
+      "ur": "اسٹینلے"
+    },
+    {
+      "ids": [
+        "Pacific/Kosrae"
+      ],
+      "ur": "کوسرائی"
+    },
+    {
+      "ids": [
+        "Pacific/Ponape",
+        "Pacific/Pohnpei"
+      ],
+      "en": "Pohnpei",
+      "ur": "پونپیئی"
+    },
+    {
+      "ids": [
+        "Pacific/Truk",
+        "Pacific/Chuuk",
+        "Pacific/Yap"
+      ],
+      "en": "Chuuk",
+      "ur": "چیوک"
+    },
+    {
+      "ids": [
+        "Atlantic/Faeroe",
+        "Atlantic/Faroe"
+      ],
+      "en": "Faroes",
+      "ur": "فارو"
+    },
+    {
+      "ids": [
+        "Europe/Paris"
+      ],
+      "ur": "پیرس"
+    },
+    {
+      "ids": [
+        "Africa/Libreville"
+      ],
+      "ur": "لبرے ویلے"
+    },
+    {
+      "ids": [
+        "Asia/Gaza"
+      ],
+      "ur": "غزہ"
+    },
+    {
+      "ids": [
+        "Europe/London",
+        "Europe/Belfast",
+        "GB",
+        "GB-Eire"
+      ],
+      "ur": "لندن"
+    },
+    {
+      "ids": [
+        "America/Grenada"
+      ],
+      "ur": "غرناطہ"
+    },
+    {
+      "ids": [
+        "Asia/Tbilisi"
+      ],
+      "ur": "طبلیسی"
+    },
+    {
+      "ids": [
+        "America/Cayenne"
+      ],
+      "ur": "کائین"
+    },
+    {
+      "ids": [
+        "Europe/Guernsey"
+      ],
+      "ur": "گرنزی"
+    },
+    {
+      "ids": [
+        "Africa/Accra"
+      ],
+      "ur": "اکّرا"
+    },
+    {
+      "ids": [
+        "Europe/Gibraltar"
+      ],
+      "ur": "جبل الطارق"
+    },
+    {
+      "ids": [
+        "America/Danmarkshavn"
+      ],
+      "ur": "ڈنمارک شاون"
+    },
+    {
+      "ids": [
+        "America/Godthab",
+        "America/Nuuk"
+      ],
+      "en": "Nuuk",
+      "ur": "نوک"
+    },
+    {
+      "ids": [
+        "America/Scoresbysund"
+      ],
+      "en": "Ittoqqortoormiit",
+      "ur": "اسکورز بائی سنڈ"
+    },
+    {
+      "ids": [
+        "America/Thule"
+      ],
+      "ur": "تھولو"
+    },
+    {
+      "ids": [
+        "Africa/Banjul"
+      ],
+      "ur": "بنجول"
+    },
+    {
+      "ids": [
+        "Africa/Conakry"
+      ],
+      "ur": "کونکری"
+    },
+    {
+      "ids": [
+        "America/Guadeloupe"
+      ],
+      "ur": "گواڈیلوپ"
+    },
+    {
+      "ids": [
+        "America/Marigot"
+      ],
+      "ur": "میریگوٹ"
+    },
+    {
+      "ids": [
+        "America/St_Barthelemy"
+      ],
+      "en": "St. Barthélemy",
+      "ur": "سینٹ برتھیلمی"
+    },
+    {
+      "ids": [
+        "Africa/Malabo"
+      ],
+      "ur": "ملابو"
+    },
+    {
+      "ids": [
+        "Europe/Athens",
+        "EET"
+      ],
+      "ur": "ایتھنز"
+    },
+    {
+      "ids": [
+        "Atlantic/South_Georgia"
+      ],
+      "ur": "جنوبی جارجیا"
+    },
+    {
+      "ids": [
+        "America/Guatemala"
+      ],
+      "ur": "گواٹے مالا"
+    },
+    {
+      "ids": [
+        "Pacific/Guam"
+      ],
+      "ur": "گوآم"
+    },
+    {
+      "ids": [
+        "Africa/Bissau"
+      ],
+      "ur": "بِساؤ"
+    },
+    {
+      "ids": [
+        "America/Guyana"
+      ],
+      "ur": "گیانا"
+    },
+    {
+      "ids": [
+        "Asia/Hebron"
+      ],
+      "ur": "ہیبرون"
+    },
+    {
+      "ids": [
+        "Asia/Hong_Kong",
+        "Hongkong"
+      ],
+      "ur": "ہانگ کانگ"
+    },
+    {
+      "ids": [
+        "America/Tegucigalpa"
+      ],
+      "ur": "ٹیگوسیگالپے"
+    },
+    {
+      "ids": [
+        "Europe/Zagreb"
+      ],
+      "ur": "زیگریب"
+    },
+    {
+      "ids": [
+        "America/Port-au-Prince"
+      ],
+      "ur": "پورٹ او پرنس"
+    },
+    {
+      "ids": [
+        "Europe/Budapest"
+      ],
+      "ur": "بڈاپسٹ"
+    },
+    {
+      "ids": [
+        "Asia/Jayapura"
+      ],
+      "ur": "جے پورہ"
+    },
+    {
+      "ids": [
+        "Asia/Jakarta"
+      ],
+      "ur": "جکارتہ"
+    },
+    {
+      "ids": [
+        "Asia/Makassar",
+        "Asia/Ujung_Pandang"
+      ],
+      "ur": "مکاسر"
+    },
+    {
+      "ids": [
+        "Asia/Pontianak"
+      ],
+      "ur": "پونٹیانک"
+    },
+    {
+      "ids": [
+        "Europe/Dublin",
+        "Eire"
+      ],
+      "ur": "ڈبلن"
+    },
+    {
+      "ids": [
+        "Europe/Isle_of_Man"
+      ],
+      "ur": "آئل آف مین"
+    },
+    {
+      "ids": [
+        "Asia/Calcutta",
+        "Asia/Kolkata"
+      ],
+      "en": "Kolkata",
+      "ur": "کولکاتا"
+    },
+    {
+      "ids": [
+        "Indian/Chagos"
+      ],
+      "en": "Chagos Archipelago",
+      "ur": "چاگوس"
+    },
+    {
+      "ids": [
+        "Asia/Baghdad"
+      ],
+      "ur": "بغداد"
+    },
+    {
+      "ids": [
+        "Asia/Tehran",
+        "Iran"
+      ],
+      "ur": "تہران"
+    },
+    {
+      "ids": [
+        "Atlantic/Reykjavik",
+        "Iceland"
+      ],
+      "ur": "ریکجاوک"
+    },
+    {
+      "ids": [
+        "Europe/Rome"
+      ],
+      "ur": "روم"
+    },
+    {
+      "ids": [
+        "Asia/Jerusalem",
+        "Asia/Tel_Aviv",
+        "Israel"
+      ],
+      "ur": "یروشلم"
+    },
+    {
+      "ids": [
+        "Europe/Jersey"
+      ],
+      "ur": "جرسی"
+    },
+    {
+      "ids": [
+        "America/Jamaica",
+        "Jamaica"
+      ],
+      "ur": "جمائیکا"
+    },
+    {
+      "ids": [
+        "Asia/Amman"
+      ],
+      "ur": "امّان"
+    },
+    {
+      "ids": [
+        "Asia/Tokyo",
+        "Japan"
+      ],
+      "ur": "ٹوکیو"
+    },
+    {
+      "ids": [
+        "Africa/Nairobi"
+      ],
+      "ur": "نیروبی"
+    },
+    {
+      "ids": [
+        "Asia/Bishkek"
+      ],
+      "ur": "بشکیک"
+    },
+    {
+      "ids": [
+        "Asia/Phnom_Penh"
+      ],
+      "ur": "پنوم پن"
+    },
+    {
+      "ids": [
+        "Pacific/Kiritimati"
+      ],
+      "ur": "کریتیماٹی"
+    },
+    {
+      "ids": [
+        "Pacific/Enderbury",
+        "Pacific/Kanton"
+      ],
+      "en": "Canton Island",
+      "ur": "کانٹن"
+    },
+    {
+      "ids": [
+        "Pacific/Tarawa"
+      ],
+      "ur": "ٹراوا"
+    },
+    {
+      "ids": [
+        "Indian/Comoro"
+      ],
+      "en": "Comoros",
+      "ur": "کومورو"
+    },
+    {
+      "ids": [
+        "America/St_Kitts"
+      ],
+      "en": "St. Kitts",
+      "ur": "سینٹ کٹس"
+    },
+    {
+      "ids": [
+        "Asia/Pyongyang"
+      ],
+      "ur": "پیونگ یانگ"
+    },
+    {
+      "ids": [
+        "Asia/Seoul",
+        "ROK"
+      ],
+      "ur": "سیئول"
+    },
+    {
+      "ids": [
+        "Asia/Kuwait"
+      ],
+      "ur": "کویت"
+    },
+    {
+      "ids": [
+        "America/Cayman"
+      ],
+      "ur": "کیمین"
+    },
+    {
+      "ids": [
+        "Asia/Aqtau"
+      ],
+      "en": "Aktau",
+      "ur": "اکتاؤ"
+    },
+    {
+      "ids": [
+        "Asia/Aqtobe"
+      ],
+      "ur": "اکٹوب"
+    },
+    {
+      "ids": [
+        "Asia/Almaty"
+      ],
+      "ur": "الماٹی"
+    },
+    {
+      "ids": [
+        "Asia/Atyrau"
+      ],
+      "ur": "آتیراؤ"
+    },
+    {
+      "ids": [
+        "Asia/Qostanay"
+      ],
+      "en": "Kostanay",
+      "ur": "کوستانے"
+    },
+    {
+      "ids": [
+        "Asia/Qyzylorda"
+      ],
+      "en": "Kyzylorda",
+      "ur": "کیزیلورڈا"
+    },
+    {
+      "ids": [
+        "Asia/Oral"
+      ],
+      "ur": "اورال"
+    },
+    {
+      "ids": [
+        "Asia/Vientiane"
+      ],
+      "ur": "وینٹیانا"
+    },
+    {
+      "ids": [
+        "Asia/Beirut"
+      ],
+      "ur": "بیروت"
+    },
+    {
+      "ids": [
+        "America/St_Lucia"
+      ],
+      "en": "St. Lucia",
+      "ur": "سینٹ لوسیا"
+    },
+    {
+      "ids": [
+        "Europe/Vaduz"
+      ],
+      "ur": "ویڈوز"
+    },
+    {
+      "ids": [
+        "Asia/Colombo"
+      ],
+      "ur": "کولمبو"
+    },
+    {
+      "ids": [
+        "Africa/Monrovia"
+      ],
+      "ur": "مونروویا"
+    },
+    {
+      "ids": [
+        "Africa/Maseru"
+      ],
+      "ur": "مسیرو"
+    },
+    {
+      "ids": [
+        "Europe/Vilnius"
+      ],
+      "ur": "وِلنیئس"
+    },
+    {
+      "ids": [
+        "Europe/Luxembourg"
+      ],
+      "ur": "لگژمبرگ"
+    },
+    {
+      "ids": [
+        "Europe/Riga"
+      ],
+      "ur": "ریگا"
+    },
+    {
+      "ids": [
+        "Africa/Tripoli",
+        "Libya"
+      ],
+      "ur": "ٹریپولی"
+    },
+    {
+      "ids": [
+        "Africa/Casablanca"
+      ],
+      "ur": "کیسا بلانکا"
+    },
+    {
+      "ids": [
+        "Europe/Monaco"
+      ],
+      "ur": "موناکو"
+    },
+    {
+      "ids": [
+        "Europe/Chisinau",
+        "Europe/Tiraspol"
+      ],
+      "en": "Chișinău",
+      "ur": "چیسیناؤ"
+    },
+    {
+      "ids": [
+        "Europe/Podgorica"
+      ],
+      "ur": "پوڈگورسیا"
+    },
+    {
+      "ids": [
+        "Indian/Antananarivo"
+      ],
+      "ur": "انٹاناناریوو"
+    },
+    {
+      "ids": [
+        "Pacific/Kwajalein",
+        "Kwajalein"
+      ],
+      "en": "Kwajalein Atoll",
+      "ur": "کواجیلین"
+    },
+    {
+      "ids": [
+        "Pacific/Majuro"
+      ],
+      "ur": "مجورو"
+    },
+    {
+      "ids": [
+        "Europe/Skopje"
+      ],
+      "ur": "اسکوپجے"
+    },
+    {
+      "ids": [
+        "Africa/Bamako",
+        "Africa/Timbuktu"
+      ],
+      "ur": "بماکو"
+    },
+    {
+      "ids": [
+        "Asia/Rangoon",
+        "Asia/Yangon"
+      ],
+      "en": "Yangon",
+      "ur": "رنگون"
+    },
+    {
+      "ids": [
+        "Asia/Hovd"
+      ],
+      "en": "Khovd",
+      "ur": "ہووارڈ"
+    },
+    {
+      "ids": [
+        "Asia/Ulaanbaatar",
+        "Asia/Ulan_Bator",
+        "Asia/Choibalsan"
+      ],
+      "ur": "اولان باتار"
+    },
+    {
+      "ids": [
+        "Asia/Macau",
+        "Asia/Macao"
+      ],
+      "en": "Macao",
+      "ur": "مکاؤ"
+    },
+    {
+      "ids": [
+        "Pacific/Saipan"
+      ],
+      "ur": "سائپین"
+    },
+    {
+      "ids": [
+        "America/Martinique"
+      ],
+      "ur": "مارٹینک"
+    },
+    {
+      "ids": [
+        "Africa/Nouakchott"
+      ],
+      "ur": "نواکشوط"
+    },
+    {
+      "ids": [
+        "America/Montserrat"
+      ],
+      "ur": "مونٹسیراٹ"
+    },
+    {
+      "ids": [
+        "Europe/Malta"
+      ],
+      "ur": "مالٹا"
+    },
+    {
+      "ids": [
+        "Indian/Mauritius"
+      ],
+      "ur": "ماریشس"
+    },
+    {
+      "ids": [
+        "Indian/Maldives"
+      ],
+      "ur": "مالدیپ"
+    },
+    {
+      "ids": [
+        "Africa/Blantyre"
+      ],
+      "ur": "بلینٹائر"
+    },
+    {
+      "ids": [
+        "America/Chihuahua"
+      ],
+      "ur": "چیہوآہوآ"
+    },
+    {
+      "ids": [
+        "America/Ciudad_Juarez"
+      ],
+      "en": "Ciudad Juárez",
+      "ur": "سیوداد جیوریز"
+    },
+    {
+      "ids": [
+        "America/Cancun"
+      ],
+      "en": "Cancún",
+      "ur": "کنکیون"
+    },
+    {
+      "ids": [
+        "America/Hermosillo"
+      ],
+      "ur": "ہرموسیلو"
+    },
+    {
+      "ids": [
+        "America/Matamoros"
+      ],
+      "ur": "میٹاموروس"
+    },
+    {
+      "ids": [
+        "America/Mexico_City",
+        "Mexico/General"
+      ],
+      "en": "Mexico City",
+      "ur": "میکسیکو سٹی"
+    },
+    {
+      "ids": [
+        "America/Merida"
+      ],
+      "en": "Mérida",
+      "ur": "میریڈا"
+    },
+    {
+      "ids": [
+        "America/Monterrey"
+      ],
+      "ur": "مونٹیری"
+    },
+    {
+      "ids": [
+        "America/Mazatlan",
+        "Mexico/BajaSur"
+      ],
+      "en": "Mazatlán",
+      "ur": "میزٹلان"
+    },
+    {
+      "ids": [
+        "America/Ojinaga"
+      ],
+      "ur": "اوجیناگا"
+    },
+    {
+      "ids": [
+        "America/Bahia_Banderas"
+      ],
+      "en": "Bahía de Banderas",
+      "ur": "بہیا بندراز"
+    },
+    {
+      "ids": [
+        "America/Tijuana",
+        "America/Ensenada",
+        "Mexico/BajaNorte",
+        "America/Santa_Isabel"
+      ],
+      "ur": "تیجوآنا"
+    },
+    {
+      "ids": [
+        "Asia/Kuching"
+      ],
+      "ur": "کیوچنگ"
+    },
+    {
+      "ids": [
+        "Asia/Kuala_Lumpur"
+      ],
+      "ur": "کوالا لمپور"
+    },
+    {
+      "ids": [
+        "Africa/Maputo"
+      ],
+      "ur": "مپوٹو"
+    },
+    {
+      "ids": [
+        "Africa/Windhoek"
+      ],
+      "ur": "ونڈہوک"
+    },
+    {
+      "ids": [
+        "Pacific/Noumea"
+      ],
+      "en": "Nouméa",
+      "ur": "نؤمیا"
+    },
+    {
+      "ids": [
+        "Africa/Niamey"
+      ],
+      "ur": "نیامی"
+    },
+    {
+      "ids": [
+        "Pacific/Norfolk"
+      ],
+      "en": "Norfolk Island",
+      "ur": "نورفوک"
+    },
+    {
+      "ids": [
+        "Africa/Lagos"
+      ],
+      "ur": "لاگوس"
+    },
+    {
+      "ids": [
+        "America/Managua"
+      ],
+      "ur": "مناگوآ"
+    },
+    {
+      "ids": [
+        "Europe/Amsterdam"
+      ],
+      "ur": "ایمسٹرڈم"
+    },
+    {
+      "ids": [
+        "Europe/Oslo"
+      ],
+      "ur": "اوسلو"
+    },
+    {
+      "ids": [
+        "Asia/Katmandu",
+        "Asia/Kathmandu"
+      ],
+      "en": "Kathmandu",
+      "ur": "کاٹھمنڈو"
+    },
+    {
+      "ids": [
+        "Pacific/Nauru"
+      ],
+      "ur": "ناؤرو"
+    },
+    {
+      "ids": [
+        "Pacific/Niue"
+      ],
+      "ur": "نیئو"
+    },
+    {
+      "ids": [
+        "Pacific/Auckland",
+        "NZ"
+      ],
+      "ur": "آکلینڈ"
+    },
+    {
+      "ids": [
+        "Pacific/Chatham",
+        "NZ-CHAT"
+      ],
+      "en": "Chatham Islands",
+      "ur": "چیتھم"
+    },
+    {
+      "ids": [
+        "Asia/Muscat"
+      ],
+      "ur": "مسقط"
+    },
+    {
+      "ids": [
+        "America/Panama",
+        "EST"
+      ],
+      "ur": "پنامہ"
+    },
+    {
+      "ids": [
+        "America/Lima"
+      ],
+      "ur": "لیما"
+    },
+    {
+      "ids": [
+        "Pacific/Gambier"
+      ],
+      "ur": "گامبیئر"
+    },
+    {
+      "ids": [
+        "Pacific/Marquesas"
+      ],
+      "en": "Marquesas Islands",
+      "ur": "مارکیساس"
+    },
+    {
+      "ids": [
+        "Pacific/Tahiti"
+      ],
+      "ur": "تاہیتی"
+    },
+    {
+      "ids": [
+        "Pacific/Port_Moresby"
+      ],
+      "ur": "پورٹ موریسبی"
+    },
+    {
+      "ids": [
+        "Pacific/Bougainville"
+      ],
+      "ur": "بوگینولے"
+    },
+    {
+      "ids": [
+        "Asia/Manila"
+      ],
+      "ur": "منیلا"
+    },
+    {
+      "ids": [
+        "Asia/Karachi"
+      ],
+      "ur": "کراچی"
+    },
+    {
+      "ids": [
+        "Europe/Warsaw",
+        "Poland"
+      ],
+      "ur": "وارسا"
+    },
+    {
+      "ids": [
+        "America/Miquelon"
+      ],
+      "en": "Saint-Pierre",
+      "ur": "میکلیئون"
+    },
+    {
+      "ids": [
+        "Pacific/Pitcairn"
+      ],
+      "en": "Pitcairn Islands",
+      "ur": "پٹکائرن"
+    },
+    {
+      "ids": [
+        "America/Puerto_Rico"
+      ],
+      "ur": "پیورٹو ریکو"
+    },
+    {
+      "ids": [
+        "Atlantic/Madeira"
+      ],
+      "ur": "مڈیئرا"
+    },
+    {
+      "ids": [
+        "Europe/Lisbon",
+        "Portugal",
+        "WET"
+      ],
+      "ur": "لسبن"
+    },
+    {
+      "ids": [
+        "Atlantic/Azores"
+      ],
+      "ur": "ازوریس"
+    },
+    {
+      "ids": [
+        "Pacific/Palau"
+      ],
+      "ur": "پلاؤ"
+    },
+    {
+      "ids": [
+        "America/Asuncion"
+      ],
+      "en": "Asunción",
+      "ur": "اسنسیئن"
+    },
+    {
+      "ids": [
+        "Asia/Qatar"
+      ],
+      "ur": "قطر"
+    },
+    {
+      "ids": [
+        "Indian/Reunion"
+      ],
+      "en": "Réunion",
+      "ur": "ری یونین"
+    },
+    {
+      "ids": [
+        "Europe/Bucharest"
+      ],
+      "ur": "بخارسٹ"
+    },
+    {
+      "ids": [
+        "Europe/Belgrade"
+      ],
+      "ur": "بلغراد"
+    },
+    {
+      "ids": [
+        "Europe/Astrakhan"
+      ],
+      "ur": "استراخان"
+    },
+    {
+      "ids": [
+        "Asia/Barnaul"
+      ],
+      "ur": "برنال"
+    },
+    {
+      "ids": [
+        "Asia/Chita"
+      ],
+      "ur": "چیتا"
+    },
+    {
+      "ids": [
+        "Asia/Anadyr"
+      ],
+      "ur": "انیدر"
+    },
+    {
+      "ids": [
+        "Asia/Magadan"
+      ],
+      "ur": "میگیدن"
+    },
+    {
+      "ids": [
+        "Asia/Irkutsk"
+      ],
+      "ur": "ارکتسک"
+    },
+    {
+      "ids": [
+        "Europe/Kaliningrad"
+      ],
+      "ur": "کالينينغراد"
+    },
+    {
+      "ids": [
+        "Asia/Khandyga"
+      ],
+      "ur": "خندیگا"
+    },
+    {
+      "ids": [
+        "Asia/Krasnoyarsk"
+      ],
+      "ur": "کریسنویارسک"
+    },
+    {
+      "ids": [
+        "Europe/Samara"
+      ],
+      "ur": "سمارا"
+    },
+    {
+      "ids": [
+        "Europe/Kirov"
+      ],
+      "ur": "کیروف"
+    },
+    {
+      "ids": [
+        "Europe/Moscow",
+        "W-SU"
+      ],
+      "ur": "ماسکو"
+    },
+    {
+      "ids": [
+        "Asia/Novokuznetsk"
+      ],
+      "ur": "نوووکیوزنیسک"
+    },
+    {
+      "ids": [
+        "Asia/Omsk"
+      ],
+      "ur": "اومسک"
+    },
+    {
+      "ids": [
+        "Asia/Novosibirsk"
+      ],
+      "ur": "نوووسِبِرسک"
+    },
+    {
+      "ids": [
+        "Asia/Kamchatka"
+      ],
+      "ur": "کیمچٹکا"
+    },
+    {
+      "ids": [
+        "Europe/Saratov"
+      ],
+      "ur": "سیراٹو"
+    },
+    {
+      "ids": [
+        "Asia/Srednekolymsk"
+      ],
+      "ur": "سرہدنیکولیمسک"
+    },
+    {
+      "ids": [
+        "Asia/Tomsk"
+      ],
+      "ur": "ٹامسک"
+    },
+    {
+      "ids": [
+        "Europe/Ulyanovsk"
+      ],
+      "ur": "الیانوسک"
+    },
+    {
+      "ids": [
+        "Asia/Ust-Nera"
+      ],
+      "ur": "اوست-نیرا"
+    },
+    {
+      "ids": [
+        "Asia/Sakhalin"
+      ],
+      "ur": "سخالین"
+    },
+    {
+      "ids": [
+        "Europe/Volgograd"
+      ],
+      "ur": "وولگوگراد"
+    },
+    {
+      "ids": [
+        "Asia/Vladivostok"
+      ],
+      "ur": "ولادی ووستک"
+    },
+    {
+      "ids": [
+        "Asia/Yekaterinburg"
+      ],
+      "ur": "یکاٹیرِنبرگ"
+    },
+    {
+      "ids": [
+        "Asia/Yakutsk"
+      ],
+      "ur": "یکوتسک"
+    },
+    {
+      "ids": [
+        "Africa/Kigali"
+      ],
+      "ur": "کگالی"
+    },
+    {
+      "ids": [
+        "Asia/Riyadh"
+      ],
+      "ur": "ریاض"
+    },
+    {
+      "ids": [
+        "Pacific/Guadalcanal"
+      ],
+      "ur": "گواڈل کینال"
+    },
+    {
+      "ids": [
+        "Indian/Mahe"
+      ],
+      "en": "Mahé",
+      "ur": "ماہی"
+    },
+    {
+      "ids": [
+        "Africa/Khartoum"
+      ],
+      "ur": "خرطوم"
+    },
+    {
+      "ids": [
+        "Europe/Stockholm"
+      ],
+      "ur": "اسٹاک ہوم"
+    },
+    {
+      "ids": [
+        "Asia/Singapore",
+        "Singapore"
+      ],
+      "ur": "سنگاپور"
+    },
+    {
+      "ids": [
+        "Atlantic/St_Helena"
+      ],
+      "en": "St. Helena",
+      "ur": "سینٹ ہیلینا"
+    },
+    {
+      "ids": [
+        "Europe/Ljubljana"
+      ],
+      "ur": "لیوبلیانا"
+    },
+    {
+      "ids": [
+        "Arctic/Longyearbyen",
+        "Atlantic/Jan_Mayen"
+      ],
+      "ur": "لانگ ایئر بین"
+    },
+    {
+      "ids": [
+        "Europe/Bratislava"
+      ],
+      "ur": "بریٹِسلاوا"
+    },
+    {
+      "ids": [
+        "Africa/Freetown"
+      ],
+      "ur": "فری ٹاؤن"
+    },
+    {
+      "ids": [
+        "Europe/San_Marino"
+      ],
+      "ur": "سان ماریانو"
+    },
+    {
+      "ids": [
+        "Africa/Dakar"
+      ],
+      "ur": "ڈکار"
+    },
+    {
+      "ids": [
+        "Africa/Mogadishu"
+      ],
+      "ur": "موگادیشو"
+    },
+    {
+      "ids": [
+        "America/Paramaribo"
+      ],
+      "ur": "پراماریبو"
+    },
+    {
+      "ids": [
+        "Africa/Juba"
+      ],
+      "ur": "جوبا"
+    },
+    {
+      "ids": [
+        "Africa/Sao_Tome"
+      ],
+      "en": "São Tomé",
+      "ur": "ساؤ ٹوم"
+    },
+    {
+      "ids": [
+        "America/El_Salvador"
+      ],
+      "ur": "ال سلواڈور"
+    },
+    {
+      "ids": [
+        "America/Lower_Princes"
+      ],
+      "en": "Lower Prince’s Quarter",
+      "ur": "لوور پرنسس کوارٹر"
+    },
+    {
+      "ids": [
+        "Asia/Damascus"
+      ],
+      "ur": "دمشق"
+    },
+    {
+      "ids": [
+        "Africa/Mbabane"
+      ],
+      "ur": "مبابین"
+    },
+    {
+      "ids": [
+        "America/Grand_Turk"
+      ],
+      "ur": "عظیم ترک"
+    },
+    {
+      "ids": [
+        "Africa/Ndjamena"
+      ],
+      "en": "N’Djamena",
+      "ur": "اینجامینا"
+    },
+    {
+      "ids": [
+        "Indian/Kerguelen"
+      ],
+      "en": "Kerguelen Islands",
+      "ur": "کرگیولین"
+    },
+    {
+      "ids": [
+        "Africa/Lome"
+      ],
+      "en": "Lomé",
+      "ur": "لوم"
+    },
+    {
+      "ids": [
+        "Asia/Bangkok"
+      ],
+      "ur": "بنکاک"
+    },
+    {
+      "ids": [
+        "Asia/Dushanbe"
+      ],
+      "ur": "دوشانبے"
+    },
+    {
+      "ids": [
+        "Pacific/Fakaofo"
+      ],
+      "ur": "فکاؤفو"
+    },
+    {
+      "ids": [
+        "Asia/Dili"
+      ],
+      "ur": "ڈلی"
+    },
+    {
+      "ids": [
+        "Asia/Ashgabat",
+        "Asia/Ashkhabad"
+      ],
+      "ur": "اشغبت"
+    },
+    {
+      "ids": [
+        "Africa/Tunis"
+      ],
+      "ur": "تیونس"
+    },
+    {
+      "ids": [
+        "Pacific/Tongatapu"
+      ],
+      "ur": "ٹونگاٹاپو"
+    },
+    {
+      "ids": [
+        "Europe/Istanbul",
+        "Asia/Istanbul",
+        "Turkey"
+      ],
+      "ur": "استنبول"
+    },
+    {
+      "ids": [
+        "America/Port_of_Spain"
+      ],
+      "ur": "پورٹ آف اسپین"
+    },
+    {
+      "ids": [
+        "Pacific/Funafuti"
+      ],
+      "ur": "فیونافیوٹی"
+    },
+    {
+      "ids": [
+        "Asia/Taipei",
+        "ROC"
+      ],
+      "ur": "تائپے"
+    },
+    {
+      "ids": [
+        "Africa/Dar_es_Salaam"
+      ],
+      "ur": "دار السلام"
+    },
+    {
+      "ids": [
+        "Europe/Kiev",
+        "Europe/Kyiv",
+        "Europe/Zaporozhye",
+        "Europe/Uzhgorod"
+      ],
+      "en": "Kyiv",
+      "ur": "کیو"
+    },
+    {
+      "ids": [
+        "Europe/Simferopol"
+      ],
+      "ur": "سمفروپول"
+    },
+    {
+      "ids": [
+        "Africa/Kampala"
+      ],
+      "ur": "کیمپالا"
+    },
+    {
+      "ids": [
+        "Pacific/Wake"
+      ],
+      "en": "Wake Island",
+      "ur": "ویک"
+    },
+    {
+      "ids": [
+        "Pacific/Midway"
+      ],
+      "en": "Midway Atoll",
+      "ur": "مڈوے"
+    },
+    {
+      "ids": [
+        "America/Adak",
+        "America/Atka",
+        "US/Aleutian"
+      ],
+      "ur": "اداک"
+    },
+    {
+      "ids": [
+        "America/Indiana/Marengo"
+      ],
+      "en": "Marengo, Indiana",
+      "ur": "مرینگو، انڈیانا"
+    },
+    {
+      "ids": [
+        "America/Anchorage",
+        "US/Alaska"
+      ],
+      "ur": "اینکریج"
+    },
+    {
+      "ids": [
+        "America/Boise"
+      ],
+      "ur": "بوائس"
+    },
+    {
+      "ids": [
+        "America/Chicago",
+        "US/Central"
+      ],
+      "ur": "شکاگو"
+    },
+    {
+      "ids": [
+        "America/Denver",
+        "America/Shiprock",
+        "Navajo",
+        "US/Mountain"
+      ],
+      "ur": "ڈینور"
+    },
+    {
+      "ids": [
+        "America/Detroit",
+        "US/Michigan"
+      ],
+      "ur": "ڈیٹرائٹ"
+    },
+    {
+      "ids": [
+        "Pacific/Honolulu",
+        "US/Hawaii",
+        "Pacific/Johnston",
+        "HST"
+      ],
+      "ur": "ہونولولو"
+    },
+    {
+      "ids": [
+        "America/Indianapolis",
+        "America/Fort_Wayne",
+        "America/Indiana/Indianapolis",
+        "US/East-Indiana"
+      ],
+      "ur": "انڈیاناپولس"
+    },
+    {
+      "ids": [
+        "America/Indiana/Vevay"
+      ],
+      "en": "Vevay, Indiana",
+      "ur": "ویوے، انڈیانا"
+    },
+    {
+      "ids": [
+        "America/Juneau"
+      ],
+      "ur": "جونیئو"
+    },
+    {
+      "ids": [
+        "America/Indiana/Knox",
+        "America/Knox_IN",
+        "US/Indiana-Starke"
+      ],
+      "en": "Knox, Indiana",
+      "ur": "کنوکس، انڈیانا"
+    },
+    {
+      "ids": [
+        "America/Los_Angeles",
+        "US/Pacific",
+        "US/Pacific-New"
+      ],
+      "ur": "لاس اینجلس"
+    },
+    {
+      "ids": [
+        "America/Louisville",
+        "America/Kentucky/Louisville"
+      ],
+      "ur": "لوئس ویلے"
+    },
+    {
+      "ids": [
+        "America/Menominee"
+      ],
+      "ur": "مینومینی"
+    },
+    {
+      "ids": [
+        "America/Kentucky/Monticello"
+      ],
+      "en": "Monticello, Kentucky",
+      "ur": "مونٹیسیلو، کینٹوکی"
+    },
+    {
+      "ids": [
+        "America/Metlakatla"
+      ],
+      "ur": "میٹلا کاٹلا"
+    },
+    {
+      "ids": [
+        "America/North_Dakota/Center"
+      ],
+      "en": "Center, North Dakota",
+      "ur": "وسط، شمالی ڈکوٹا"
+    },
+    {
+      "ids": [
+        "America/North_Dakota/New_Salem"
+      ],
+      "en": "New Salem, North Dakota",
+      "ur": "نیو سلیم، شمالی ڈکوٹا"
+    },
+    {
+      "ids": [
+        "America/New_York",
+        "US/Eastern"
+      ],
+      "ur": "نیو یارک"
+    },
+    {
+      "ids": [
+        "America/Indiana/Vincennes"
+      ],
+      "en": "Vincennes, Indiana",
+      "ur": "ونسینیز، انڈیانا"
+    },
+    {
+      "ids": [
+        "America/Nome"
+      ],
+      "ur": "نوم"
+    },
+    {
+      "ids": [
+        "America/Phoenix",
+        "US/Arizona",
+        "MST"
+      ],
+      "ur": "فینکس"
+    },
+    {
+      "ids": [
+        "America/Sitka"
+      ],
+      "ur": "سیٹکا"
+    },
+    {
+      "ids": [
+        "America/Indiana/Tell_City"
+      ],
+      "en": "Tell City, Indiana",
+      "ur": "ٹیل سٹی، انڈیانا"
+    },
+    {
+      "ids": [
+        "America/Indiana/Winamac"
+      ],
+      "en": "Winamac, Indiana",
+      "ur": "وینامیک، انڈیانا"
+    },
+    {
+      "ids": [
+        "America/Indiana/Petersburg"
+      ],
+      "en": "Petersburg, Indiana",
+      "ur": "پیٹرزبرگ، انڈیانا"
+    },
+    {
+      "ids": [
+        "America/North_Dakota/Beulah"
+      ],
+      "en": "Beulah, North Dakota",
+      "ur": "بیولاہ، شمالی ڈکوٹا"
+    },
+    {
+      "ids": [
+        "America/Yakutat"
+      ],
+      "ur": "یکوٹیٹ"
+    },
+    {
+      "ids": [
+        "America/Montevideo"
+      ],
+      "ur": "مونٹی ویڈیو"
+    },
+    {
+      "ids": [
+        "Asia/Samarkand"
+      ],
+      "ur": "سمرقند"
+    },
+    {
+      "ids": [
+        "Asia/Tashkent"
+      ],
+      "ur": "تاشقند"
+    },
+    {
+      "ids": [
+        "Europe/Vatican"
+      ],
+      "ur": "واٹیکن"
+    },
+    {
+      "ids": [
+        "America/St_Vincent"
+      ],
+      "en": "St. Vincent",
+      "ur": "سینٹ ونسنٹ"
+    },
+    {
+      "ids": [
+        "America/Caracas"
+      ],
+      "ur": "کراکاس"
+    },
+    {
+      "ids": [
+        "America/Tortola"
+      ],
+      "ur": "ٹورٹولا"
+    },
+    {
+      "ids": [
+        "America/St_Thomas",
+        "America/Virgin"
+      ],
+      "en": "St. Thomas",
+      "ur": "سینٹ تھامس"
+    },
+    {
+      "ids": [
+        "Asia/Saigon",
+        "Asia/Ho_Chi_Minh"
+      ],
+      "en": "Ho Chi Minh City",
+      "ur": "ہو چی منہ سٹی"
+    },
+    {
+      "ids": [
+        "Pacific/Efate"
+      ],
+      "ur": "ایفیٹ"
+    },
+    {
+      "ids": [
+        "Pacific/Wallis"
+      ],
+      "en": "Wallis & Futuna",
+      "ur": "ولّیس"
+    },
+    {
+      "ids": [
+        "Pacific/Apia"
+      ],
+      "ur": "اپیا"
+    },
+    {
+      "ids": [
+        "Asia/Aden"
+      ],
+      "ur": "عدن"
+    },
+    {
+      "ids": [
+        "Indian/Mayotte"
+      ],
+      "ur": "مایوٹ"
+    },
+    {
+      "ids": [
+        "Africa/Johannesburg"
+      ],
+      "ur": "جوہانسبرگ"
+    },
+    {
+      "ids": [
+        "Africa/Lusaka"
+      ],
+      "ur": "لیوساکا"
+    },
+    {
+      "ids": [
+        "Africa/Harare"
+      ],
+      "ur": "ہرارے"
+    }
+  ]
+}

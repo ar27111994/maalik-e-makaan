@@ -6,6 +6,7 @@ import 'package:maalik_e_makaan/src/core/below_text.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/insights/application/insight_rules.dart';
 import 'package:maalik_e_makaan/src/features/insights/application/insights.dart';
 import 'package:maalik_e_makaan/src/features/insights/data/dashboard.dart';
@@ -409,14 +410,14 @@ class _Owed extends StatelessWidget {
 /// A tenancy owing rent, with one tap to remind the tenant on WhatsApp or
 /// record what they paid (INS-02). The tenancy's ledger opens from its
 /// row.
-class ArrearCard extends StatelessWidget {
+class ArrearCard extends ConsumerWidget {
   const new({required this.arrear, required this.role, super.key});
 
   final Arrear arrear;
   final MemberRole role;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final direction = Directionality.of(context);
     final money = MmFormats.moneyOf(context);
@@ -439,11 +440,18 @@ class ArrearCard extends StatelessWidget {
                 if (paidOn != null)
                   l10n.lastPaidOn(dateInLine(context, paidOn)),
                 if (reminded != null)
-                  l10n.lastRemindedOn(momentLabel(context, reminded)),
+                  l10n.lastRemindedOn(
+                    dualMomentLabel(
+                      context,
+                      reminded,
+                      ref.watch(alertZoneProvider),
+                    ),
+                  ),
               ]),
               direction,
             ),
-            subtitleMaxLines: 6,
+            // "Reminded" may come in two clocks: never cut, even at 200%.
+            subtitleMaxLines: null,
             trailing: BelowText(
               child: MmStatusBadge(
                 status: MmStatus.overdue,

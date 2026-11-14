@@ -13,7 +13,7 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 | `lib/src/config/app_config.dart`                   | Configuration from `--dart-define-from-file`; refuses secret keys                           |
 | `lib/src/core/`                                    | `AppFailure` and `failureMessage`, dates, validation, text limits, SWR helper               |
 | `lib/src/data/`                                    | Supabase client providers, `SwrCache`, keyset `paging.dart` (50 rows), ids, retry           |
-| `lib/src/auth/`, `settings/`, `routing/`, `shell/` | Sign-in, settings, routes, adaptive navigation shell                                        |
+| `lib/src/auth/`, `settings/`, `routing/`, `shell/` | Sign-in, settings, routes, adaptive navigation shell and the questions it asks              |
 | `lib/src/features/<feature>/`                      | `data/` (models, repository), `application/` (providers, notifiers), `presentation/`        |
 | `lib/l10n/arb/`                                    | `app_en.arb` (template) and `app_ur.arb`; `lib/l10n/generated/` is generated                |
 | `config/*.example.json`                            | Local and production configuration templates; the real files are not committed              |
@@ -34,6 +34,11 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 - UI comes from `mm_ui`; no literal colours, sizes, radii or durations (`make design-lint`).
 - The UI hides what a role cannot do, but the database is the authority; do not add client-only
   permission checks as protection.
+- A time a person reads about their own alerts and actions uses `dualMomentLabel` or
+  `dualTimeLabel` (their own time beside Pakistan's); a time on Pakistan's clock shown to them
+  uses `pakistanMomentLabel`; dates stay `dateLabel`. Money stays in rupees.
+- Country and city names come from `lib/src/core/place_names.g.dart` (`make place-names`, from
+  CLDR and `lib/l10n/place_name_overrides.json`), never typed into an ARB file.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

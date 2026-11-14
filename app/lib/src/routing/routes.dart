@@ -13,6 +13,11 @@ abstract final class Routes {
 
   static const createPortfolio = '/portfolios/new';
 
+  /// "Where you live": the person's country and time zone, asked once
+  /// after signing in and changed from Settings. Pushed above the shell,
+  /// so closing it returns where the person was.
+  static const residence = '/residence';
+
   /// Where invitation e-mails lead (`invite-member`'s link), with the token
   /// in the fragment: `/invite#token=…`.
   static const invite = '/invite';
@@ -110,8 +115,9 @@ abstract final class Routes {
 /// 4. signed-in users skip the sign-in screens;
 /// 5. a signed-in user who opened an invitation answers it first (it may
 ///    give them their first portfolio);
-/// 6. a signed-in user without a portfolio creates one first (Settings stay
-///    open, to change the language or sign out).
+/// 6. a signed-in user without a portfolio creates one first (Settings and
+///    Where you live stay open, to change the language, say where they
+///    live or sign out).
 String? redirectFor({
   required Uri location,
   required bool languageChosen,
@@ -144,7 +150,9 @@ String? redirectFor({
       if (path == Routes.updatePassword) return Routes.home;
       final settings =
           path == Routes.settings || path.startsWith('${Routes.settings}/');
-      if (path == Routes.invite || settings) return null;
+      if (path == Routes.invite || settings || path == Routes.residence) {
+        return null;
+      }
       if (invitationPending) return Routes.invite;
       if (portfolios == PortfolioGate.none && path != Routes.createPortfolio) {
         return Routes.createPortfolio;

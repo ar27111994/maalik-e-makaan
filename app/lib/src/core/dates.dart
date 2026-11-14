@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/core/place_names.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
@@ -32,9 +33,8 @@ String dateInLine(BuildContext context, CalendarDate date) =>
 /// "14 Nov 2026, 10:42 AM".
 String momentLabel(BuildContext context, DateTime at) {
   final local = at.toUtc().add(pakistanUtcOffset);
-  final urdu = Localizations.localeOf(context).languageCode == 'ur';
   return '${DateFormat.yMMMd(_dateLocale(context)).format(local)}'
-      '${urdu ? '، ' : ', '}${timeLabel(context, local)}';
+      '${_comma(context)}${timeLabel(context, local)}';
 }
 
 /// The time of day of [local], a time already in Pakistan: "10:42 AM" in
@@ -63,6 +63,86 @@ String timeLabel(BuildContext context, DateTime local) {
   return AppLocalizations.of(context)
       .timeOfDay('$hour:$minute', dayPeriodOf(local.hour));
 }
+
+/// [date] with its day and month only, day first, in the app's language:
+/// "6 Nov" ("6 نومبر").
+String shortDateLabel(BuildContext context, CalendarDate date) =>
+    DateFormat.MMMd(_dateLocale(context)).format(date.toDateTimeUtc());
+
+/// What [zone]'s clocks read at [at], when they read differently from
+/// Pakistan's; else null (Pakistan itself, another UTC+05:00 zone such as
+/// Tashkent, or a zone this build does not know).
+LocalDateTime? _ownClock(DateTime at, TimeZoneId zone) {
+  if (!zone.isKnown) return null;
+  return DualTime.at(at, own: zone).own?.local;
+}
+
+/// [local] as a [DateTime] whose fields read the same, for the formatters.
+DateTime _wall(LocalDateTime local) => DateTime.utc(
+  local.date.year,
+  local.date.month,
+  local.date.day,
+  local.hour,
+  local.minute,
+  local.second,
+);
+
+/// The moment [at] for its reader, whose own clocks follow [zone]: in
+/// Pakistan time, and in [zone] beside it when the two clocks differ, the
+/// Pakistan side first and the reader's named by its city (Q6): "7 Nov
+/// 2026, 10:00 AM Pakistan time (5:00 AM London)". The reader's side
+/// carries its date when it falls on another day ("6 Nov, 11:00 PM"). For
+/// a reader whose clocks read Pakistan's, exactly [momentLabel].
+///
+/// For the reader's own times: their notifications, when their reminders
+/// were sent, when this device last read the data.
+String dualMomentLabel(BuildContext context, DateTime at, TimeZoneId zone) =>
+    withOwnTime(context, momentLabel(context, at), at, zone);
+
+/// [pakistan], the moment [at] as Pakistan's clocks read it, with [zone]'s
+/// time beside it when that zone's clocks read differently (see
+/// [dualMomentLabel]); else [pakistan] itself.
+String withOwnTime(
+  BuildContext context,
+  String pakistan,
+  DateTime at,
+  TimeZoneId zone,
+) {
+  final own = _ownClock(at, zone);
+  if (own == null) return pakistan;
+  final time = timeLabel(context, _wall(own));
+  final text = own.date == pakistanDate(at)
+      ? time
+      : '${shortDateLabel(context, own.date)}${_comma(context)}$time';
+  return AppLocalizations.of(context)
+      .dualTime(pakistan, text, cityName(context, zone));
+}
+
+/// The time of day of [at] for its reader, as [dualMomentLabel] writes it
+/// but without dates: "8:00 AM Pakistan time (3:00 AM London)".
+String dualTimeLabel(BuildContext context, DateTime at, TimeZoneId zone) {
+  final pakistan = timeLabel(context, at.toUtc().add(pakistanUtcOffset));
+  final own = _ownClock(at, zone);
+  if (own == null) return pakistan;
+  return AppLocalizations.of(
+    context,
+  ).dualTime(pakistan, timeLabel(context, _wall(own)), cityName(context, zone));
+}
+
+/// A moment that belongs to Pakistan's clock (a deadline, when a record
+/// was made), said to be Pakistan time for a reader whose own clocks
+/// ([zone]) read differently: "14 Nov 2026, 10:42 AM Pakistan time". For
+/// anyone else, exactly [momentLabel].
+String pakistanMomentLabel(BuildContext context, DateTime at, TimeZoneId zone) {
+  final moment = momentLabel(context, at);
+  return _ownClock(at, zone) == null
+      ? moment
+      : AppLocalizations.of(context).inPakistanTime(moment);
+}
+
+/// The comma between a date and a time in the app's language.
+String _comma(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'ur' ? '، ' : ', ';
 
 /// The part of the day ([AppLocalizations.timeOfDay]'s `period`) the hour
 /// [hour] (0 to 23) of the 24-hour clock falls in, after CLDR's day periods

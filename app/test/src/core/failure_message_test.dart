@@ -73,6 +73,9 @@ void main() {
       'still_in_use',
       'duplicate_cnic',
       'lease_overlap',
+      'owner_abroad_answered',
+      'invalid_owner_abroad',
+      'caretaker_not_manager',
       'something_new',
     ])
       RejectedFailure(reason),
@@ -97,6 +100,22 @@ void main() {
     expect(
       failureMessage(l10n, const RateLimited(Duration(seconds: 30))),
       contains('30 seconds'),
+    );
+  });
+
+  test('the residence refusals say what happened', () async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(
+      failureMessage(l10n, const RejectedFailure('owner_abroad_answered')),
+      'Someone has already answered. Only an owner can change the answer.',
+    );
+    expect(
+      failureMessage(l10n, const RejectedFailure('invalid_owner_abroad')),
+      'Choose whether the owner lives abroad.',
+    );
+    expect(
+      failureMessage(l10n, const RejectedFailure('caretaker_not_manager')),
+      startsWith('Only a manager can be the caretaker.'),
     );
   });
 }

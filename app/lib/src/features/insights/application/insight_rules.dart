@@ -158,8 +158,9 @@ final class UnderpricedInsight extends Insight {
       Money.sum([for (final u in units) u.askingRent! - u.monthlyRent]);
 }
 
-/// Cash held by caretakers (members who are not owners), and how much of
-/// this month's money came in cash.
+/// Cash held by team members who are not owners (the caretaker among
+/// them, if there is one), and how much of this month's money came in
+/// cash.
 final class CashInsight extends Insight {
   const new(
     super.level, {
@@ -223,8 +224,8 @@ abstract final class InsightThresholds {
 }
 
 /// The insight cards for [dashboard] (INS-04), the most pressing first.
-/// [positions] and [rentRoll], read beside it, add the caretakers' cash
-/// and underpriced units when they are known.
+/// [positions] and [rentRoll], read beside it, add the cash with members
+/// who are not owners and underpriced units when they are known.
 List<Insight> insightsFor(
   Dashboard dashboard, {
   List<CashPosition>? positions,

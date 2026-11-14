@@ -93,4 +93,11 @@ void main() {
     final container = ProviderContainer.test();
     expect(() => container.read(settingsProvider), throwsA(anything));
   });
+
+  test('the device keeps when the residence question may come back', () {
+    expect(
+      PreferencesSettingsStore.keys,
+      contains(AppSettings.residenceSnoozeKey),
+    );
+  });
 }

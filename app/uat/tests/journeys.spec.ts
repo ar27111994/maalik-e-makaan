@@ -112,9 +112,29 @@ test.describe.serial("Landlord journeys", () => {
     await open(page, verifyLink(mail));
     await expect(page).toHaveURL(/\/portfolios\/new/);
     await fill(page, "Portfolio name", "UAT Rentals");
+    // D-16: the question has no answer chosen, and is never taken from the
+    // owner's own residence.
+    await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
+    await activate(page.getByRole("radio", { name: /^No, the owner lives in Pakistan/ }));
     await tap(page, "Create portfolio");
-    await see(page, "UAT Rentals is ready.");
+    // Once in the app, the owner is asked where they live, once, with
+    // nothing chosen either.
+    await see(page, "Do you live in Pakistan?");
+    await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
+    await shot(page, "en-02-residence-question");
+    await activate(page.getByRole("radio", { name: /^Yes, in Pakistan/ }));
+    await tap(page, "Save");
     await see(page, "No properties yet");
+    expect(
+      sql(`select p.owner_abroad from public.portfolios p join public.portfolio_members m
+        on m.portfolio_id = p.id join auth.users u on u.id = m.user_id
+        where u.email = ${literal(owner.email)}`),
+    ).toEqual([["f"]]);
+    expect(
+      sql(`select r.residence_country, coalesce(r.time_zone, '-'), r.stated_at is not null
+        from public.profile_residences r join auth.users u on u.id = r.user_id
+        where u.email = ${literal(owner.email)}`),
+    ).toEqual([["PK", "-", "t"]]);
   });
 
   test("J2 add a property and a unit", async () => {
@@ -331,6 +351,16 @@ test.describe.serial("Landlord journeys", () => {
 
   test("J8 role limits: a viewer cannot record payments", async () => {
     await tap(viewerPage, "پورٹ فولیو کھولیں");
+    // Asked where they live, once: they prefer not to say, which answers
+    // the question with nothing stated.
+    await see(viewerPage, "کیا آپ پاکستان میں رہتے ہیں؟");
+    await activate(viewerPage.getByRole("radio", { name: /^نہیں بتانا چاہتے/ }));
+    await tap(viewerPage, "محفوظ کریں");
+    expect(
+      sql(`select coalesce(r.residence_country, '-'), coalesce(r.time_zone, '-'),
+        r.stated_at is not null from public.profile_residences r
+        join auth.users u on u.id = r.user_id where u.email = ${literal(viewer.email)}`),
+    ).toEqual([["-", "-", "t"]]);
     await openTab(viewerPage, "حساب");
     // The viewer sees the same figures as the owner, in Urdu.
     await see(viewerPage, loose(`باقی رقم ${130000 + 1000 * lateFees} روپے`));
@@ -660,5 +690,155 @@ test.describe.serial("Landlord journeys", () => {
         table,
       ).toEqual([["0"]]);
     }
+  });
+});
+
+// D-16: an owner who lives abroad, their caretaker, and a portfolio whose
+// owner-abroad question nobody has answered. Their own users and portfolio,
+// so they do not depend on the journeys above.
+test.describe.serial("An owner abroad and their caretaker", () => {
+  const abroad = { name: "Abroad Uat", email: emailFor("abroad") };
+  const caretaker = { name: "Caretaker Uat", email: emailFor("caretaker") };
+  const portfolioName = "Abroad Rentals";
+  let ownerPage: Page;
+  let managerPage: Page;
+
+  /** Signs up [who] in English in [page] and confirms the address. */
+  async function signUp(page: Page, who: { name: string; email: string }): Promise<void> {
+    await tap(page, "Continue in English");
+    await tap(page, "Create account");
+    await fill(page, "Your name", who.name);
+    await fill(page, "E-mail", who.email);
+    await fill(page, "Password", password);
+    await tap(page, "Create account");
+    await see(page, "Check your e-mail");
+    await open(page, verifyLink(await latestMailTo(who.email)));
+  }
+
+  function portfolioId(): string {
+    return sql(`select id from public.portfolios where name = ${literal(portfolioName)}
+      and id in (select m.portfolio_id from public.portfolio_members m
+        join auth.users u on u.id = m.user_id where u.email = ${literal(abroad.email)})`)[0][0];
+  }
+
+  test("J15 an owner in London names a caretaker and sees both times", async ({ browser }) => {
+    // A browser in London: its zone is offered once a country is chosen,
+    // never chosen for the owner.
+    const london = await browser.newContext({ timezoneId: "Europe/London" });
+    ownerPage = await london.newPage();
+    await open(ownerPage, "/");
+    await signUp(ownerPage, abroad);
+    await expect(ownerPage).toHaveURL(/\/portfolios\/new/);
+    await fill(ownerPage, "Portfolio name", portfolioName);
+    await activate(ownerPage.getByRole("radio", { name: /^Yes, the owner lives abroad/ }));
+    await tap(ownerPage, "Create portfolio");
+
+    await see(ownerPage, "Do you live in Pakistan?");
+    await activate(ownerPage.getByRole("radio", { name: /^No, in another country/ }));
+    await activate(ownerPage.getByRole("button", { name: /^Country/ }));
+    await fill(ownerPage, "Search", "UK");
+    await tap(ownerPage, "United Kingdom");
+    await see(ownerPage, "Your phone or computer is set to London time.");
+    await shot(ownerPage, "en-20-residence-abroad");
+    await tap(ownerPage, "Use London time");
+    await tap(ownerPage, "Save");
+    await see(ownerPage, "No properties yet");
+    expect(
+      sql(`select r.residence_country, r.time_zone, r.stated_at is not null
+        from public.profile_residences r join auth.users u on u.id = r.user_id
+        where u.email = ${literal(abroad.email)}`),
+    ).toEqual([["GB", "Europe/London", "t"]]);
+    expect(
+      sql(`select owner_abroad from public.portfolios where id = ${literal(portfolioId())}`),
+    ).toEqual([["t"]]);
+
+    // A manager, in Pakistan, joins.
+    await openTab(ownerPage, "More");
+    await tap(ownerPage, /^Team /);
+    await tap(ownerPage, "Invite someone");
+    await fill(ownerPage, "Their e-mail", caretaker.email);
+    await activate(ownerPage.getByRole("radio", { name: /^Manager / }));
+    await tap(ownerPage, "Send invitation");
+    await see(ownerPage, "Invitation ready", 60_000);
+    await london.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await tap(ownerPage, "Copy link");
+    const inviteUrl = await ownerPage.evaluate(() => navigator.clipboard.readText());
+    await tap(ownerPage, "Done");
+    const karachi = await browser.newContext({ timezoneId: "Asia/Karachi" });
+    managerPage = await karachi.newPage();
+    await open(managerPage, inviteUrl);
+    await signUp(managerPage, caretaker);
+    await see(managerPage, loose(`Welcome to ${portfolioName}`));
+    await tap(managerPage, "Open the portfolio");
+    await see(managerPage, "Do you live in Pakistan?");
+    await activate(managerPage.getByRole("radio", { name: /^Yes, in Pakistan/ }));
+    await tap(managerPage, "Save");
+
+    // The owner's notification of the joining, in both clocks; the
+    // manager's times are Pakistan's alone.
+    await reload(ownerPage);
+    await openTab(ownerPage, "More");
+    await tap(ownerPage, /^Notifications/);
+    await see(ownerPage, /Pakistan time \(\d{1,2}:\d{2}\s(AM|PM) London\)/);
+    await shot(ownerPage, "en-21-notifications-dual-time");
+    await openTab(managerPage, "More");
+    await tap(managerPage, /^Notifications/);
+    await expect(managerPage.getByText(/London/)).toHaveCount(0);
+
+    // The owner names the manager caretaker.
+    await openTab(ownerPage, "More");
+    await tap(ownerPage, /^Portfolio details/);
+    await tap(ownerPage, "Choose the caretaker");
+    await activate(ownerPage.getByRole("radio", { name: new RegExp(`^${caretaker.name}`) }));
+    await tap(ownerPage, "Save caretaker");
+    await see(ownerPage, `${caretaker.name} is now the caretaker.`);
+    expect(
+      sql(`select u.email, p.caretaker_since is not null from public.portfolios p
+        join auth.users u on u.id = p.caretaker_user_id where p.id = ${literal(portfolioId())}`),
+    ).toEqual([[caretaker.email, "t"]]);
+    await shot(ownerPage, "en-22-caretaker");
+    await openTab(ownerPage, "More");
+    await tap(ownerPage, /^Team /);
+    await see(ownerPage, "Caretaker");
+
+    // The caretaker sees it is them, with no way to step down but leaving,
+    // and the answer read-only.
+    await reload(managerPage);
+    await openTab(managerPage, "More");
+    await tap(managerPage, /^Portfolio details/);
+    await see(managerPage, "You are the caretaker. To stop, ask an owner, or leave the team.");
+    await see(managerPage, "Only an owner can change this answer.");
+    await expect(managerPage.getByRole("button", { name: "Change the answer" })).toHaveCount(0);
+    await expect(managerPage.getByRole("button", { name: "Change the caretaker" })).toHaveCount(0);
+  });
+
+  test("J16 a portfolio nobody has answered for is asked on the next open", async () => {
+    // As an app version from before the question would leave it.
+    const id = portfolioId();
+    sql(`update public.portfolios set owner_abroad = null where id = ${literal(id)}`);
+    await reload(ownerPage);
+    await see(ownerPage, `Nobody has answered this for ${portfolioName} yet.`);
+    await expect(ownerPage.getByRole("radio", { checked: true })).toHaveCount(0);
+    await activate(ownerPage.getByRole("radio", { name: /^No, the owner lives in Pakistan/ }));
+    await tap(ownerPage, "Save answer");
+    await see(ownerPage, "Answer saved.");
+    expect(sql(`select owner_abroad from public.portfolios where id = ${literal(id)}`)).toEqual([
+      ["f"],
+    ]);
+
+    // Asked again; another member answers first while the sheet is open.
+    sql(`update public.portfolios set owner_abroad = null where id = ${literal(id)}`);
+    await reload(ownerPage);
+    await see(ownerPage, `Nobody has answered this for ${portfolioName} yet.`);
+    sql(`update public.portfolios set owner_abroad = true where id = ${literal(id)}`);
+    await activate(ownerPage.getByRole("radio", { name: /^No, the owner lives in Pakistan/ }));
+    await tap(ownerPage, "Save answer");
+    await see(ownerPage, "Someone answered first");
+    await see(ownerPage, "Another member already answered. They said the owner lives abroad.");
+    await shot(ownerPage, "en-23-answered-first");
+    await tap(ownerPage, "Done");
+    expect(sql(`select owner_abroad from public.portfolios where id = ${literal(id)}`)).toEqual([
+      ["t"],
+    ]);
   });
 });

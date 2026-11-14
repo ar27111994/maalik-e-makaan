@@ -5,20 +5,22 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/core/saved_at.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 /// Says why the data on screen may be stale, when a refresh failed while a
 /// saved copy is shown: "You are offline. Showing what was saved at …"
-/// for a lost connection, otherwise the failure with a retry. Nothing when
-/// the data is fresh or still loading.
-class RefreshNotice<T> extends StatelessWidget {
+/// for a lost connection (in the reader's own time beside Pakistan's when
+/// they differ), otherwise the failure with a retry. Nothing when the data
+/// is fresh or still loading.
+class RefreshNotice<T> extends ConsumerWidget {
   const new({required this.state, required this.onRetry, super.key});
 
   final AsyncValue<Snapshot<T>> state;
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final snapshot = state.value;
     final error = state.error;
     if (snapshot == null || error == null) return const SizedBox.shrink();
@@ -30,7 +32,11 @@ class RefreshNotice<T> extends StatelessWidget {
           ? MmBanner(
               tone: MmBannerTone.warning,
               message: l10n.offlineShowingSaved(
-                savedAtLabel(context, snapshot.savedAt),
+                savedAtLabel(
+                  context,
+                  snapshot.savedAt,
+                  zone: ref.watch(alertZoneProvider),
+                ),
               ),
               actionLabel: l10n.retryAction,
               onAction: onRetry,

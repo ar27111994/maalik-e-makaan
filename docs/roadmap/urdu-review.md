@@ -103,7 +103,9 @@ Facts marked _(summary)_ were read only through a search engine's summary.
 New strings for the caretaker context ("Your caretaker recorded…", "Confirm the cash you received
 from…", "while you are abroad"), the onboarding question about where the person lives, the
 question asked when a portfolio is created ("Does the owner of these properties live abroad?"),
-country and time-zone names and the dual time ("3:15 pm in Lahore (10:15 am in London)"). They
+country and time-zone names (CLDR 49, through `tool/l10n/place_names.py`, with the overrides in
+`app/lib/l10n/place_name_overrides.json`; CLDR's `جزائر` names and `چیکیا` especially) and the dual
+time ("پاکستانی وقت 3:15 دوپہر (لندن میں 10:15 صبح)"). They
 keep the respectful forms. Amounts stay in rupees at launch, so no label for a converted total is
 needed (D-16).
 

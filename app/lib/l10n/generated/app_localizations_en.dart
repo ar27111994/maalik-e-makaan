@@ -5024,7 +5024,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String insightCashTitle(String amount) {
-    return '$amount in cash with caretakers';
+    return '$amount in cash with team members';
   }
 
   @override
@@ -5657,4 +5657,306 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validationChooseUnit => 'Choose the unit.';
+
+  @override
+  String get residenceTitle => 'Where you live';
+
+  @override
+  String get residencePrivacy =>
+      'Only you see your answer. Your team and your tenants never do.';
+
+  @override
+  String get residenceUse =>
+      'The app uses it only to show times. It shows your own time beside Pakistan time. Rent, due dates and messages to tenants always stay on Pakistan time.';
+
+  @override
+  String get residencePortfolioNote =>
+      'Your answer does not change any portfolio.';
+
+  @override
+  String get residenceQuestion => 'Do you live in Pakistan?';
+
+  @override
+  String get residenceInPakistan => 'Yes, in Pakistan';
+
+  @override
+  String get residenceAbroad => 'No, in another country';
+
+  @override
+  String get residenceNotSaying => 'I prefer not to say';
+
+  @override
+  String get chooseAnswerError => 'Choose an answer.';
+
+  @override
+  String get residenceCountryLabel => 'Country';
+
+  @override
+  String get residenceCountryPlaceholder => 'Choose the country';
+
+  @override
+  String get residenceCountryRequired => 'Choose the country you live in.';
+
+  @override
+  String get residenceZoneLabel => 'Time zone';
+
+  @override
+  String get residenceZoneHelper =>
+      'Choose the city whose time your clock shows.';
+
+  @override
+  String get residenceZonePlaceholder => 'Choose a city';
+
+  @override
+  String get residenceZoneRequired => 'Choose your time zone.';
+
+  @override
+  String get zonePakistanOption => 'Pakistan time';
+
+  @override
+  String get zonePakistanOptionHelp => 'Show times in Pakistan time only';
+
+  @override
+  String zoneCityTime(String city) {
+    return '$city time';
+  }
+
+  @override
+  String zoneAheadNow(String duration) {
+    return 'Now $duration ahead of Pakistan';
+  }
+
+  @override
+  String zoneBehindNow(String duration) {
+    return 'Now $duration behind Pakistan';
+  }
+
+  @override
+  String get zoneSameNow => 'Now the same time as Pakistan';
+
+  @override
+  String durationHours(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours',
+      one: '1 hour',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String durationHoursMinutes(int hours, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours $minutes minutes',
+      one: '1 hour $minutes minutes',
+      zero: '$minutes minutes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String residenceSuggestion(String city) {
+    return 'Your phone or computer is set to $city time.';
+  }
+
+  @override
+  String residenceUseSuggestion(String city) {
+    return 'Use $city time';
+  }
+
+  @override
+  String get residencePakistanTimeOnly =>
+      'The app will show times in Pakistan time only.';
+
+  @override
+  String get residenceSaved => 'Saved. Only you can see where you live.';
+
+  @override
+  String get residenceNotSaved =>
+      'The server does not know this country or time zone yet. Choose another, or try again later.';
+
+  @override
+  String get loadingResidence => 'Loading your answer';
+
+  @override
+  String get residenceLoadFailedTitle => 'Your answer could not be loaded';
+
+  @override
+  String get residenceNotAnswered => 'Not answered yet';
+
+  @override
+  String get residenceNotAnsweredHelp =>
+      'Answer to see your own time beside Pakistan time.';
+
+  @override
+  String get residenceNotSaid => 'You chose not to say';
+
+  @override
+  String get settingsResidenceHelp => 'Only you see this.';
+
+  @override
+  String get ownerAbroadQuestion =>
+      'Does the owner of these properties live abroad?';
+
+  @override
+  String get ownerAbroadYes => 'Yes, the owner lives abroad';
+
+  @override
+  String get ownerAbroadNo => 'No, the owner lives in Pakistan';
+
+  @override
+  String get ownerAbroadNewHelp =>
+      'Answer for the owner, who may not be you. You can change it later in Portfolio details.';
+
+  @override
+  String get ownerAbroadRequired => 'Choose whether the owner lives abroad.';
+
+  @override
+  String ownerAbroadUnanswered(String portfolio) {
+    return 'Nobody has answered this for $portfolio yet.';
+  }
+
+  @override
+  String get ownerAbroadManagerNote =>
+      'Once you answer, only an owner can change it.';
+
+  @override
+  String get ownerAbroadOwnerNote =>
+      'You can change it later in Portfolio details.';
+
+  @override
+  String get saveAnswerAction => 'Save answer';
+
+  @override
+  String get answerSaved => 'Answer saved.';
+
+  @override
+  String get answeredFirstTitle => 'Someone answered first';
+
+  @override
+  String get answeredFirstAbroad =>
+      'Another member already answered. They said the owner lives abroad.';
+
+  @override
+  String get answeredFirstPakistan =>
+      'Another member already answered. They said the owner lives in Pakistan.';
+
+  @override
+  String portfolioCreatedFirstAnswer(String name, String answer) {
+    return '$name is ready, with the answer from your first try: $answer. You can change it in Portfolio details.';
+  }
+
+  @override
+  String get ownerSection => 'Owner and caretaker';
+
+  @override
+  String get ownerLivesLabel => 'Where the owner lives';
+
+  @override
+  String get ownerLivesAbroad => 'Abroad';
+
+  @override
+  String get ownerLivesInPakistan => 'In Pakistan';
+
+  @override
+  String get ownerLivesNotAnswered => 'Not answered yet';
+
+  @override
+  String get answerQuestionAction => 'Answer the question';
+
+  @override
+  String get changeAnswerAction => 'Change the answer';
+
+  @override
+  String get ownerAbroadOnlyOwners => 'Only an owner can change this answer.';
+
+  @override
+  String get answerChanged => 'Answer changed.';
+
+  @override
+  String get reasonOwnerAbroadAnswered =>
+      'Someone has already answered. Only an owner can change the answer.';
+
+  @override
+  String get caretakerLabel => 'Caretaker';
+
+  @override
+  String get caretakerNone => 'No caretaker';
+
+  @override
+  String get caretakerSinceLabel => 'Caretaker since';
+
+  @override
+  String get caretakerExplain =>
+      'A caretaker is a manager who looks after the properties for the owner. If an owner changes their role or removes them, or they leave the team, they stop being the caretaker.';
+
+  @override
+  String get caretakerOwnersChoose => 'Only owners choose the caretaker.';
+
+  @override
+  String get caretakerYou =>
+      'You are the caretaker. To stop, ask an owner, or leave the team.';
+
+  @override
+  String get chooseCaretakerAction => 'Choose the caretaker';
+
+  @override
+  String get changeCaretakerAction => 'Change the caretaker';
+
+  @override
+  String get caretakerQuestion => 'Who looks after the properties?';
+
+  @override
+  String get caretakerManagersOnly =>
+      'Only managers are listed. To choose someone else, make them a manager in Team first.';
+
+  @override
+  String get caretakerNoManagers =>
+      'This team has no manager yet. Invite someone as a manager, or make a member a manager in Team.';
+
+  @override
+  String get openTeamAction => 'Open the team';
+
+  @override
+  String get saveCaretakerAction => 'Save caretaker';
+
+  @override
+  String caretakerNamed(String name) {
+    return '$name is now the caretaker.';
+  }
+
+  @override
+  String get caretakerCleared => 'There is no caretaker now.';
+
+  @override
+  String get caretakerUnknownMember => 'A team member';
+
+  @override
+  String memberIsCaretaker(String name) {
+    return '$name is the caretaker. Changing their role or removing them also ends that.';
+  }
+
+  @override
+  String get removeCaretakerNote => 'They also stop being the caretaker.';
+
+  @override
+  String get leaveCaretakerNote =>
+      'You are the caretaker. Leaving also ends that.';
+
+  @override
+  String get reasonCaretakerNotManager =>
+      'Only a manager can be the caretaker. Their role may have just changed, so check the team.';
+
+  @override
+  String dualTime(String pakistan, String own, String city) {
+    return '$pakistan Pakistan time ($own $city)';
+  }
+
+  @override
+  String inPakistanTime(String moment) {
+    return '$moment Pakistan time';
+  }
 }

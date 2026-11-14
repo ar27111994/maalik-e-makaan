@@ -12,6 +12,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/notifications/data/notification.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -109,10 +110,18 @@ class _NotificationTile extends ConsumerWidget {
       leading: Icon(notificationIcon(notification.kind)),
       title: words.title,
       subtitle: appText(
-        detailLine([words.body, momentLabel(context, notification.created)]),
+        detailLine([
+          words.body,
+          dualMomentLabel(
+            context,
+            notification.created,
+            ref.watch(alertZoneProvider),
+          ),
+        ]),
         Directionality.of(context),
       ),
-      subtitleMaxLines: 6,
+      // Its time may come in two clocks: never cut, even at 200%.
+      subtitleMaxLines: null,
       trailing: notification.unread
           ? BelowText(
               child: MmStatusBadge(
@@ -186,7 +195,11 @@ class _NotificationSheetState extends ConsumerState<NotificationSheet>
         Text(words.body, style: Theme.of(context).textTheme.bodyLarge),
         const SizedBox(height: MmSpace.s2),
         Text(
-          momentLabel(context, notification.created),
+          dualMomentLabel(
+            context,
+            notification.created,
+            ref.watch(alertZoneProvider),
+          ),
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: MmSpace.s4),

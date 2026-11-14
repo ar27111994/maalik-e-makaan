@@ -96,6 +96,45 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
   strict read and the cache drops them once, so an offline first start after
   the upgrade shows no saved portfolio list once.
 
+### The residence screens and the questions the app asks
+
+- `ResidenceScreen` (`/residence`, a route above the shell, open wherever
+  Settings is) asks "Do you live in Pakistan?" with nothing chosen: in
+  Pakistan, abroad (a country and a time zone, both required), or prefer not
+  to say. Settings' "Where you live" opens it to change or clear the answer.
+  The device's zone (`deviceTimeZoneProvider`, `suggestedZone`) is read only
+  once a country is chosen and only offered, with a "Use London time" button:
+  a browser gives its exact zone name (`device_time_zone_web.dart`); a phone,
+  only offsets, matched against the country's zones now and in six months.
+- `ShellQuestions` (`shell/shell_questions.dart`) wraps the shell and asks
+  one question at a time, never while a screen, sheet or dialog is open above
+  it: the residence question while `residenceQuestionProvider` says so (a
+  fresh read, never answered, not set aside: "Not now" sets it aside for seven
+  days on the device, `residenceSnoozeProvider`), then the owner-abroad
+  question for the current portfolio (`ownerAbroadQuestionProvider`; "Not now"
+  sets it aside for the run, `ownerAbroadDismissedProvider`).
+- The owner-abroad answer is a radio group and "Save answer", never two
+  answer buttons, so a stray tap saves nothing. Answering always takes the
+  unanswered-only path, and when someone answered first the sheet shows the
+  answer that won; only an owner's "Change the answer" overwrites. A new
+  portfolio's form cannot be submitted unanswered and never reads the
+  creator's residence; a retried creation that got the first attempt's answer
+  says so.
+- Portfolio details' "Owner and caretaker" section is outside the form: its
+  answer and caretaker sheets are their own commands. Owners choose the
+  caretaker among the managers, or none (`CaretakerSheet`); others read who it
+  is, and the caretaker reads that only leaving ends it (Q7). The team marks
+  the caretaker with a badge, and its member sheet and the remove and leave
+  dialogs say what ends it.
+- Country and city names come from CLDR 49 (`core/place_names.g.dart`, `make
+place-names`), never from ARB, with `countryName`, `cityName`,
+  `countriesInOrder` (Urdu by the Urdu alphabet) and the search words of
+  `MmOption.searchTerms` ("UK", "یو کے", "Dubai").
+- A person's own times use `dualMomentLabel` and `dualTimeLabel` (Pakistan
+  time first, then their city's: "3:15 pm Pakistan time (10:15 am London)");
+  a time on Pakistan's clock shown to them uses `pakistanMomentLabel`
+  ([time](time.md) lists where each applies).
+
 ## Reading: stale while revalidate
 
 Lists and dashboards show the last saved result at once, then the fresh one.

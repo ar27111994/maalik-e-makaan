@@ -81,5 +81,8 @@ String _reason(AppLocalizations l10n, String reason) => switch (reason) {
   'duplicate_utility_reference' => l10n.reasonDuplicateUtilityReference,
   'duplicate_bill_month' => l10n.reasonDuplicateBillMonth,
   'request_has_expenses' => l10n.reasonRequestHasExpenses,
+  'owner_abroad_answered' => l10n.reasonOwnerAbroadAnswered,
+  'invalid_owner_abroad' => l10n.ownerAbroadRequired,
+  'caretaker_not_manager' => l10n.reasonCaretakerNotManager,
   _ => l10n.failureRejected,
 };

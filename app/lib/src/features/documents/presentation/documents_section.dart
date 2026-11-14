@@ -15,6 +15,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/documents.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
@@ -487,7 +488,11 @@ class _DocumentSheetState extends ConsumerState<DocumentSheet>
         ),
         MmDetailRow(
           label: l10n.documentAddedOnLabel,
-          value: momentLabel(context, document.uploadedAt),
+          value: pakistanMomentLabel(
+            context,
+            document.uploadedAt,
+            ref.watch(alertZoneProvider),
+          ),
           userData: false,
         ),
         const SizedBox(height: MmSpace.s4),

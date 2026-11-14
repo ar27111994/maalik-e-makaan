@@ -70,6 +70,21 @@ final class PortfolioDetailsController extends SwrNotifier<PortfolioDetails> {
     return answer;
   }
 
+  /// Answers the question for [portfolioId] while nobody has (see
+  /// [PortfoliosController.answerOwnerAbroad]: owners and managers), and
+  /// returns the answer as stored: when someone answered first, theirs.
+  /// Throws [AppFailure]; [SessionExpired] when nobody is signed in. The
+  /// settings are read again, so they show the stored answer.
+  Future<OwnerAbroad> answerOwnerAbroad({required bool abroad}) async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) throw const SessionExpired();
+    final answer = await ref
+        .read(portfoliosProvider(userId).notifier)
+        .answerOwnerAbroad(portfolioId, abroad: abroad);
+    await reload();
+    return answer;
+  }
+
   Future<void> _reloadPortfolios() async {
     final userId = ref.read(currentUserIdProvider);
     if (userId == null) return;

@@ -15,11 +15,15 @@ import 'package:maalik_e_makaan/src/auth/presentation/sign_up_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/update_password_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/welcome_screen.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/presentation/delete_account_screen.dart';
+import 'package:maalik_e_makaan/src/features/account/presentation/residence_screen.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/presentation/create_portfolio_screen.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:maalik_e_makaan/src/settings/presentation/settings_screen.dart';
 import 'package:maalik_e_makaan/src/shell/more_screen.dart';
+import 'package:mm_core/mm_core.dart';
+import 'package:mm_ui/mm_ui.dart';
 
 import '../../support/harness.dart';
 
@@ -103,7 +107,18 @@ void main() {
     'create_portfolio_first',
     CreatePortfolioScreen.new,
     app: () => TestApp(portfolios: const []),
-    sizes: _large(1300),
+    size: const Size(360, 900),
+    sizes: _large(1900),
+  );
+
+  // Created empty: the name and the owner-abroad question ask for answers.
+  screenGoldenEveryVariant(
+    'create_portfolio_errors',
+    CreatePortfolioScreen.new,
+    app: () => TestApp(portfolios: const []),
+    size: const Size(360, 900),
+    sizes: _large(2000),
+    act: (tester) => _tapFirst(tester, find.byType(FilledButton)),
   );
 
   screenGoldenEveryVariant(
@@ -129,8 +144,65 @@ void main() {
   screenGoldenEveryVariant(
     'settings',
     SettingsScreen.new,
-    size: const Size(360, 1600),
-    sizes: {..._large(3300), MmVariant.urdu: const Size(360, 2000)},
+    size: const Size(360, 1800),
+    sizes: {..._large(3700), MmVariant.urdu: const Size(360, 2250)},
+  );
+
+  // Where the user lives (D-16): only theirs, in Settings.
+  screenGoldenEveryVariant(
+    'settings_residence_abroad',
+    SettingsScreen.new,
+    app: () => TestApp(residence: residentInLondon),
+    size: const Size(360, 900),
+    sizes: _large(1900),
+  );
+
+  // "Do you live in Pakistan?", asked once, with nothing chosen.
+  screenGoldenEveryVariant(
+    'residence_question',
+    ResidenceScreen.new,
+    app: () => TestApp(residence: AccountResidence.notStated),
+    size: const Size(360, 800),
+    sizes: _large(1500),
+  );
+
+  // Abroad, the United Kingdom chosen: the device's London is offered,
+  // never chosen for the person.
+  screenGoldenEveryVariant(
+    'residence_abroad',
+    ResidenceScreen.new,
+    app: () => TestApp(
+      residence: AccountResidence.notStated,
+      device: const FakeDeviceTimeZone(
+        ianaName: 'Europe/London',
+        offset: Duration.zero,
+      ),
+    ),
+    size: const Size(360, 1100),
+    sizes: _large(2200),
+    act: _chooseAbroadInTheUk,
+  );
+
+  // Abroad, saved at once: the country and the zone ask to be chosen.
+  screenGoldenEveryVariant(
+    'residence_errors',
+    ResidenceScreen.new,
+    app: () => TestApp(residence: AccountResidence.notStated),
+    size: const Size(360, 1100),
+    sizes: _large(2200),
+    act: (tester) async {
+      await _tapFirst(
+        tester,
+        find.byType(RadioListTile<ResidenceAnswer>).at(1),
+      );
+      await _tapFirst(tester, find.byType(FilledButton));
+      await tester.scrollUntilVisible(
+        find.byType(MmSelectField<TimeZoneId>),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+    },
   );
 
   screenGoldenEveryVariant(
@@ -191,4 +263,33 @@ Future<void> _pumpShell(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<void> _tapFirst(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder.first);
+  await tester.pumpAndSettle();
+  await tester.tap(finder.first);
+  await tester.pumpAndSettle();
+}
+
+/// Answers "No, in another country" and chooses the United Kingdom, in
+/// either language (it is found by its code).
+Future<void> _chooseAbroadInTheUk(WidgetTester tester) async {
+  await _tapFirst(tester, find.byType(RadioListTile<ResidenceAnswer>).at(1));
+  await _tapFirst(tester, find.byType(MmSelectField<CountryCode>));
+  final sheet = find.byType(BottomSheet);
+  await tester.enterText(
+    find.descendant(of: sheet, matching: find.byType(TextField)),
+    'GB',
+  );
+  await tester.pumpAndSettle();
+  await _tapFirst(
+    tester,
+    find.descendant(
+      of: sheet,
+      matching: find.byWidgetPredicate(
+        (w) => w is Text && (w.data == 'United Kingdom' || w.data == 'برطانیہ'),
+      ),
+    ),
+  );
 }

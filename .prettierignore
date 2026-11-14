@@ -13,6 +13,8 @@ contracts/rent_math_vectors.json
 contracts/identity_vectors.json
 contracts/residence_vectors.json
 contracts/time_zone_vectors.json
+# Written by tool/l10n/import_cldr.py from the pinned CLDR files; `make place-names-check` reads it.
+tool/l10n/cldr_places.json
 package-lock.json
 **/package-lock.json
 deno.lock

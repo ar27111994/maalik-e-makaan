@@ -244,6 +244,28 @@ final ownerAbroadQuestionProvider = Provider<String?>((ref) {
   return current != null && current.asksOwnerAbroad ? current.id : null;
 });
 
+/// The portfolios whose owner-abroad question the signed-in user closed
+/// without answering in this run of the app: the app does not ask again for
+/// them until the next run (Portfolio details still offers it). It starts
+/// empty for each user.
+final NotifierProvider<OwnerAbroadDismissed, Set<String>>
+ownerAbroadDismissedProvider =
+    NotifierProvider<OwnerAbroadDismissed, Set<String>>(
+      OwnerAbroadDismissed.new,
+    );
+
+/// Remembers, for this run only, the owner-abroad questions set aside.
+final class OwnerAbroadDismissed extends Notifier<Set<String>> {
+  @override
+  Set<String> build() {
+    ref.watch(currentUserIdProvider);
+    return const {};
+  }
+
+  /// Sets the question of [portfolioId] aside for this run.
+  void dismiss(String portfolioId) => state = {...state, portfolioId};
+}
+
 /// Whether the signed-in user has a portfolio to work in, for the router.
 enum PortfolioGate {
   /// Not known yet (loading, failed without a saved copy, or signed out).

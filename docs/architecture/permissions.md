@@ -235,6 +235,10 @@ caretaker included) or tenants, not in the audit trail, never sent to analytics
 or e-mail tools, and never read from a phone number, the store, an IP address,
 the app's language or a currency. A client may write only the two values; the
 server stamps `stated_at`. Nationality and immigration status are never stored.
+The app shows your country and time zone only in your own Settings ("Where you
+live") and on the question that asks them, and uses your zone only for your own
+times (your time beside Pakistan's); teammates see a portfolio's owner-abroad
+answer and its caretaker (the rows above), never your residence.
 
 Deleting an account removes every portfolio where you are the only owner and
 your memberships elsewhere, clears your declared country and time zone, and

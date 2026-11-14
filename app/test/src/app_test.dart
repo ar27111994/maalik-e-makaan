@@ -15,6 +15,7 @@ import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
+import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
 import '../support/harness.dart';
@@ -287,9 +288,16 @@ void main() {
     expect(find.text('Create your portfolio'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'Khan family');
+    final answer = find.text('No, the owner lives in Pakistan');
+    await tester.ensureVisible(answer);
+    await tester.tap(answer);
     await tester.tap(find.widgetWithText(FilledButton, 'Create portfolio'));
     await tester.pumpAndSettle();
     expect(app.portfolios.memberships.single.name, 'Khan family');
+    expect(
+      app.portfolios.memberships.single.ownerAbroad,
+      OwnerAbroad.inPakistan,
+    );
     expect(find.text('What needs attention'), findsOneWidget);
     expect(find.text('Khan family is ready.'), findsOneWidget);
   });

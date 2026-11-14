@@ -5,10 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/core/below_text.dart';
-import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
+import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/ledger/application/ledger.dart';
 import 'package:maalik_e_makaan/src/features/ledger/data/ledger.dart';
 import 'package:maalik_e_makaan/src/features/ledger/presentation/charge_sheets.dart';
@@ -200,7 +201,11 @@ class _Balance extends ConsumerWidget {
               if (remindedAt != null)
                 MmDetailRow(
                   label: l10n.lastRemindedLabel,
-                  value: momentLabel(context, remindedAt),
+                  value: dualMomentLabel(
+                    context,
+                    remindedAt,
+                    ref.watch(alertZoneProvider),
+                  ),
                   userData: false,
                 ),
             ],

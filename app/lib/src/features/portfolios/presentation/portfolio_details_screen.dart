@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
+import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
@@ -17,13 +18,18 @@ import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_de
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_details.dart';
+import 'package:maalik_e_makaan/src/features/portfolios/presentation/owner_abroad_question.dart';
+import 'package:maalik_e_makaan/src/features/team/application/team.dart';
+import 'package:maalik_e_makaan/src/features/team/presentation/caretaker_sheet.dart';
+import 'package:maalik_e_makaan/src/features/team/presentation/roles.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/shell/refresh_notice.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-/// The current portfolio's settings, which owners change: its name, what a
-/// new tenancy starts with (due day, grace days, yearly increase) and the
+/// The current portfolio's settings, which owners change: its name, where
+/// its owner lives and who looks after the properties (the caretaker), what
+/// a new tenancy starts with (due day, grace days, yearly increase) and the
 /// payment details tenants see on receipts and reminders.
 class PortfolioDetailsScreen extends ConsumerWidget {
   const new({super.key});
@@ -42,6 +48,7 @@ class PortfolioDetailsScreen extends ConsumerWidget {
       return _DetailsForm(
         key: ValueKey(details.id),
         details: details,
+        membership: portfolio,
         editable: portfolio.role == MemberRole.owner,
         notice: RefreshNotice(state: state, onRetry: retry),
       );
@@ -73,12 +80,16 @@ class _Loading extends StatelessWidget {
 class _DetailsForm extends ConsumerStatefulWidget {
   const new({
     required this.details,
+    required this.membership,
     required this.editable,
     required this.notice,
     super.key,
   });
 
   final PortfolioDetails details;
+
+  /// The portfolio with the user's role in it.
+  final PortfolioMembership membership;
 
   /// Only owners may change the details.
   final bool editable;
@@ -253,6 +264,13 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
               onChanged: _changed,
             ),
             const SizedBox(height: MmSpace.s8),
+            // Not part of the form: each answer is saved by its own sheet,
+            // never by Save.
+            _OwnerAndCaretaker(
+              membership: widget.membership,
+              details: widget.details,
+            ),
+            const SizedBox(height: MmSpace.s8),
             MmFormSection(
               title: l10n.tenancyDefaultsSection,
               description: l10n.tenancyDefaultsHelp,
@@ -423,6 +441,151 @@ class _DetailsFormState extends ConsumerState<_DetailsForm> with CommandState {
               ),
             )
           : null,
+    );
+  }
+}
+
+/// Where the owner lives and who looks after the properties for them. The
+/// database decides who may change what; the screen shows each role only
+/// what it can do: owners answer, change and choose; a manager answers a
+/// question nobody has answered; everyone else reads.
+class _OwnerAndCaretaker extends ConsumerWidget {
+  const new({required this.membership, required this.details});
+
+  final PortfolioMembership membership;
+  final PortfolioDetails details;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final role = membership.role;
+    final answer = details.ownerAbroad;
+    final muted = Theme.of(context).textTheme.bodyMedium
+        ?.copyWith(color: context.mm.colors.inkMuted);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MmSectionHeader(title: l10n.ownerSection),
+        const SizedBox(height: MmSpace.s2),
+        MmCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              MmDetailRow(
+                label: l10n.ownerLivesLabel,
+                value: ownerLivesLabel(l10n, answer),
+                userData: false,
+              ),
+              if (answer.needsAnswer && role.answersOwnerAbroad)
+                MmButton(
+                  label: l10n.answerQuestionAction,
+                  variant: MmButtonVariant.link,
+                  onPressed: () => showOwnerAbroadQuestion(context, membership),
+                )
+              else if (!answer.needsAnswer && role.changesOwnerAbroad)
+                MmButton(
+                  label: l10n.changeAnswerAction,
+                  variant: MmButtonVariant.link,
+                  onPressed: () => showOwnerAbroadChange(
+                    context,
+                    portfolioId: details.id,
+                    current: answer,
+                  ),
+                )
+              else if (!answer.needsAnswer) ...[
+                const SizedBox(height: MmSpace.s2),
+                Text(l10n.ownerAbroadOnlyOwners, style: muted),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: MmSpace.s3),
+        _Caretaker(membership: membership, caretaker: details.caretaker),
+      ],
+    );
+  }
+}
+
+/// The caretaker, when they were named, and for owners the way to choose
+/// one. The caretaker cannot step down but by leaving the team (Q7).
+class _Caretaker extends ConsumerWidget {
+  const new({required this.membership, required this.caretaker});
+
+  final PortfolioMembership membership;
+  final Caretaker? caretaker;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final caretaker = this.caretaker;
+    final userId = ref.watch(currentUserIdProvider);
+    final muted = Theme.of(context).textTheme.bodyMedium
+        ?.copyWith(color: context.mm.colors.inkMuted);
+    // Members' names are visible to members: the caretaker's comes from
+    // the team.
+    final team = caretaker == null
+        ? null
+        : ref.watch(teamProvider(membership)).value?.value;
+    final name = switch ((caretaker, team)) {
+      (null, _) => l10n.caretakerNone,
+      (_, null) => null,
+      (final caretaker?, final team?) => switch (team.members.where(
+        (m) => m.userId == caretaker.userId,
+      )) {
+        final found when found.isNotEmpty => memberName(l10n, found.first),
+        _ => l10n.caretakerUnknownMember,
+      },
+    };
+    return MmCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.caretakerExplain,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: MmSpace.s3),
+          if (name == null)
+            Semantics(
+              container: true,
+              label: l10n.loadingTeam,
+              child: const MmSkeleton.text(),
+            )
+          else
+            MmDetailRow(
+              label: l10n.caretakerLabel,
+              value: name,
+              userData: caretaker != null,
+            ),
+          if (caretaker != null)
+            MmDetailRow(
+              label: l10n.caretakerSinceLabel,
+              value: dateLabel(context, pakistanDate(caretaker.since)),
+              userData: false,
+            ),
+          if (membership.role.namesCaretaker)
+            MmButton(
+              label: caretaker == null
+                  ? l10n.chooseCaretakerAction
+                  : l10n.changeCaretakerAction,
+              variant: MmButtonVariant.link,
+              onPressed: () => showCaretakerSheet(
+                context,
+                portfolio: membership,
+                current: caretaker?.userId,
+              ),
+            )
+          else ...[
+            const SizedBox(height: MmSpace.s2),
+            Text(
+              caretaker != null && caretaker.userId == userId
+                  ? l10n.caretakerYou
+                  : l10n.caretakerOwnersChoose,
+              style: muted,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -1,14 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
+import 'package:maalik_e_makaan/src/core/place_names.dart';
+import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/presentation/profile_form.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
@@ -17,10 +24,10 @@ import 'package:maalik_e_makaan/src/shell/refresh_notice.dart';
 import 'package:mm_core/mm_core.dart';
 import 'package:mm_ui/mm_ui.dart';
 
-/// The landlord's settings: their details, the language, how the app looks
-/// (theme, contrast, text size) and shows amounts, and the account (sign
-/// out, delete). Display settings belong to the device and apply at once;
-/// the language is saved to the profile too.
+/// The landlord's settings: their details, where they live (theirs alone),
+/// the language, how the app looks (theme, contrast, text size) and shows
+/// amounts, and the account (sign out, delete). Display settings belong to
+/// the device and apply at once; the language is saved to the profile too.
 class SettingsScreen extends ConsumerWidget {
   const new({super.key});
 
@@ -35,6 +42,8 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           if (userId != null) ...[
             _Details(userId: userId),
+            const SizedBox(height: MmSpace.s8),
+            _Residence(userId: userId),
             const SizedBox(height: MmSpace.s8),
           ],
           _Language(userId: userId),
@@ -87,6 +96,84 @@ class _Details extends ConsumerWidget {
             label: l10n.loadingProfile,
             child: const MmSkeleton.text(lines: 4),
           ),
+      ],
+    );
+  }
+}
+
+/// Where the person lives, which only they see: the country and the zone
+/// of their own times, or that they have not said. It opens the residence
+/// screen to answer, change or clear it; with no zone, times are
+/// Pakistan's.
+class _Residence extends ConsumerWidget {
+  const new({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final state = ref.watch(residenceProvider(userId));
+    void retry() => ref.invalidate(residenceProvider(userId));
+    final stored = state.value?.value;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MmSectionHeader(
+          title: l10n.residenceTitle,
+          subtitle: l10n.settingsResidenceHelp,
+        ),
+        const SizedBox(height: MmSpace.s3),
+        RefreshNotice(state: state, onRetry: retry),
+        if (stored != null)
+          _residenceRow(context, ref, stored)
+        else if (state.error case final error?)
+          MmErrorState(
+            title: l10n.residenceLoadFailedTitle,
+            message: failureMessage(l10n, AppFailure.from(error)),
+            onRetry: retry,
+          )
+        else
+          Semantics(
+            label: l10n.loadingResidence,
+            child: const MmSkeleton.text(lines: 2),
+          ),
+      ],
+    );
+  }
+
+  Widget _residenceRow(
+    BuildContext context,
+    WidgetRef ref,
+    AccountResidence stored,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final country = stored.residence.country;
+    final zone = stored.residence.timeZone;
+    final (title, subtitle) = switch ((stored.stated, country)) {
+      (false, _) => (l10n.residenceNotAnswered, l10n.residenceNotAnsweredHelp),
+      (true, null) => (l10n.residenceNotSaid, l10n.zonePakistanOption),
+      // No zone, or one this build does not know: times are Pakistan's.
+      (true, final country?)
+          when zone == null || zone.isPakistan || !zone.isKnown =>
+        (countryName(context, country), l10n.zonePakistanOption),
+      (true, final country?) => (
+        countryName(context, country),
+        '${zoneLabel(context, zone)}\n'
+            '${zoneDifference(context, zone!, ref.read(nowProvider)())}',
+      ),
+    };
+    return ListCard(
+      children: [
+        MmListTile(
+          leading: const Icon(MmIcons.location),
+          title: title,
+          subtitle: subtitle,
+          subtitleMaxLines: null,
+          userData: false,
+          chevron: true,
+          onTap: () => unawaited(context.push<bool>(Routes.residence)),
+        ),
       ],
     );
   }

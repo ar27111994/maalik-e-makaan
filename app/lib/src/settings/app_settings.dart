@@ -26,6 +26,7 @@ final class PreferencesSettingsStore implements SettingsStore {
     AppSettings.currentPortfolioKey,
     AppSettings.pendingInvitationKey,
     AppSettings.cameraTargetKey,
+    AppSettings.residenceSnoozeKey,
   };
 
   final SharedPreferencesWithCache _preferences;
@@ -92,6 +93,12 @@ final class AppSettings {
   /// is open in case Android closes the app behind it; the documents
   /// feature reads and writes it (`CameraTargetStore`).
   static const cameraTargetKey = 'mm.documents.camera_target';
+
+  /// When the question "Do you live in Pakistan?", closed without an
+  /// answer on this device, may be asked again: the user's id, a slash and
+  /// the moment (ISO 8601, UTC). A time, never an answer; the account
+  /// feature reads and writes it (`residenceSnoozeProvider`).
+  static const residenceSnoozeKey = 'mm.residence.not_now';
 
   /// The chosen language; null until it is picked on first launch.
   final Locale? locale;

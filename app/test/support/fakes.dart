@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
+import 'package:maalik_e_makaan/src/core/device_time_zone.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
@@ -35,10 +36,12 @@ const testUserId = '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a90';
 const testEmail = 'ayesha.khan@example.com';
 const signedIn = SignedIn(userId: testUserId, email: testEmail);
 
+/// A portfolio the user owns, whose owner lives in Pakistan.
 const gulberg = PortfolioMembership(
   id: '0192d0c4-0000-7000-8000-000000000001',
   name: 'Gulberg Houses',
   role: MemberRole.owner,
+  ownerAbroad: OwnerAbroad.inPakistan,
 );
 
 /// [gulberg], where the user is only a viewer.
@@ -46,12 +49,71 @@ const gulbergAsViewer = PortfolioMembership(
   id: '0192d0c4-0000-7000-8000-000000000001',
   name: 'Gulberg Houses',
   role: MemberRole.viewer,
+  ownerAbroad: OwnerAbroad.inPakistan,
 );
+
+/// A portfolio the user manages, whose owner lives abroad.
 const plaza = PortfolioMembership(
   id: '0192d0c4-0000-7000-8000-000000000002',
   name: 'Saddar Plaza',
   role: MemberRole.manager,
+  ownerAbroad: OwnerAbroad.abroad,
 );
+
+/// [gulberg] before anyone answered whether its owner lives abroad (as a
+/// portfolio made before the question existed): the app asks.
+const gulbergUnanswered = PortfolioMembership(
+  id: '0192d0c4-0000-7000-8000-000000000001',
+  name: 'Gulberg Houses',
+  role: MemberRole.owner,
+);
+
+/// [plaza] before anyone answered whether its owner lives abroad.
+const plazaUnanswered = PortfolioMembership(
+  id: '0192d0c4-0000-7000-8000-000000000002',
+  name: 'Saddar Plaza',
+  role: MemberRole.manager,
+);
+
+/// The test user, who said they live in Pakistan.
+final residentInPakistan = AccountResidence(
+  residence: const Residence(country: CountryCode.pakistan),
+  statedAt: DateTime.utc(2026, 11, 2, 9),
+);
+
+/// The test user, who said they live in the United Kingdom, on London
+/// time.
+final residentInLondon = AccountResidence(
+  residence: Residence(
+    country: CountryCode.parse('GB'),
+    timeZone: TimeZoneId.parse('Europe/London'),
+  ),
+  statedAt: DateTime.utc(2026, 11, 2, 9),
+);
+
+/// The device's clock as a test sets it: by default a phone (no zone name)
+/// on Pakistan time.
+final class FakeDeviceTimeZone implements DeviceTimeZone {
+  const new({
+    this.ianaName,
+    this.offset = const Duration(hours: 5),
+    this.clock,
+  });
+
+  @override
+  final String? ianaName;
+
+  /// The device's offset from UTC, whatever the moment, unless [clock] is
+  /// set.
+  final Duration offset;
+
+  /// The zone whose rules the device's clock follows (its offset changes
+  /// with the seasons), when set.
+  final TimeZoneId? clock;
+
+  @override
+  Duration offsetAt(DateTime now) => clock?.offsetAt(now) ?? offset;
+}
 
 final ayesha = Profile(
   id: testUserId,
@@ -272,6 +334,11 @@ final class FakePortfolioRepository implements PortfolioRepository {
   /// Fails reads (not creation) with this when set.
   AppFailure? listFailure;
 
+  /// The answers earlier attempts stored, by attempt id: `create` with one
+  /// of these ids returns that attempt's portfolio, as `create_portfolio`
+  /// does when a retry reaches the server after the first attempt.
+  final Map<String, OwnerAbroad> firstAnswers = {};
+
   @override
   Future<List<PortfolioMembership>> listMine(String userId) async {
     calls.add(('listMine', [userId]));
@@ -293,7 +360,7 @@ final class FakePortfolioRepository implements PortfolioRepository {
       id: id,
       name: sanitizeSingleLine(name),
       role: MemberRole.owner,
-      ownerAbroad: ownerAbroad,
+      ownerAbroad: firstAnswers[id] ?? ownerAbroad,
     );
     memberships.add(created);
     return created;
@@ -338,22 +405,26 @@ final class FakePortfolioRepository implements PortfolioRepository {
     memberships[index] = memberships[index].withOwnerAbroad(answer);
     final stored = details_[portfolioId];
     if (stored != null) {
-      details_[portfolioId] = PortfolioDetails(
-        id: stored.id,
-        name: stored.name,
-        defaultDueDay: stored.defaultDueDay,
-        defaultGraceDays: stored.defaultGraceDays,
-        defaultIncrementBasisPoints: stored.defaultIncrementBasisPoints,
-        landlordName: stored.landlordName,
-        landlordPhone: stored.landlordPhone,
-        raastId: stored.raastId,
-        bankAccountTitle: stored.bankAccountTitle,
-        bankIban: stored.bankIban,
-        ownerAbroad: answer,
-        caretaker: stored.caretaker,
-      );
+      details_[portfolioId] = withSettings(stored, ownerAbroad: answer);
     }
     return answer;
+  }
+
+  /// Names [userId] the caretaker of [portfolioId] since [since], or
+  /// clears it when [userId] is null, in the settings it reads (as the
+  /// database's triggers keep `portfolios` in step).
+  void setCaretakerOf(String portfolioId, String? userId, DateTime since) {
+    final stored = details_[portfolioId];
+    if (stored == null) return;
+    details_[portfolioId] = withSettings(
+      stored,
+      caretaker: userId == null
+          ? null
+          : (stored.caretaker?.userId == userId
+                ? stored.caretaker
+                : Caretaker(userId: userId, since: since)),
+      clearCaretaker: userId == null,
+    );
   }
 
   /// Fails reading settings with this when set.
@@ -368,6 +439,7 @@ final class FakePortfolioRepository implements PortfolioRepository {
       defaultDueDay: 1,
       defaultGraceDays: 3,
       defaultIncrementBasisPoints: 1000,
+      ownerAbroad: OwnerAbroad.abroad,
     ),
   };
 
@@ -446,6 +518,28 @@ final gulbergDetails = PortfolioDetails(
   raastId: PhoneNumber.fromE164('+923001234567'),
   bankAccountTitle: 'Ayesha Khan',
   bankIban: Iban.parse('PK36SCBL0000001123456702'),
+  ownerAbroad: OwnerAbroad.inPakistan,
+);
+
+/// [details] with the owner-abroad answer or the caretaker replaced.
+PortfolioDetails withSettings(
+  PortfolioDetails details, {
+  OwnerAbroad? ownerAbroad,
+  Caretaker? caretaker,
+  bool clearCaretaker = false,
+}) => PortfolioDetails(
+  id: details.id,
+  name: details.name,
+  defaultDueDay: details.defaultDueDay,
+  defaultGraceDays: details.defaultGraceDays,
+  defaultIncrementBasisPoints: details.defaultIncrementBasisPoints,
+  landlordName: details.landlordName,
+  landlordPhone: details.landlordPhone,
+  raastId: details.raastId,
+  bankAccountTitle: details.bankAccountTitle,
+  bankIban: details.bankIban,
+  ownerAbroad: ownerAbroad ?? details.ownerAbroad,
+  caretaker: clearCaretaker ? null : (caretaker ?? details.caretaker),
 );
 
 /// Members of [gulberg]: the test user (owner), a manager and a viewer.
@@ -606,6 +700,7 @@ final class FakeTeamRepository implements TeamRepository {
       email: old.email,
       joinedAt: old.joinedAt,
     );
+    if (!role.canBeCaretaker) _clearCaretakerIf(portfolioId, userId);
   }
 
   @override
@@ -616,6 +711,7 @@ final class FakeTeamRepository implements TeamRepository {
     calls.add(('removeMember', [portfolioId, userId]));
     await gate.pass();
     people[portfolioId]?.removeWhere((m) => m.userId == userId);
+    _clearCaretakerIf(portfolioId, userId);
   }
 
   @override
@@ -627,6 +723,21 @@ final class FakeTeamRepository implements TeamRepository {
 
   /// Each portfolio's caretaker, by portfolio id.
   final Map<String, String?> caretakers = {};
+
+  /// When a caretaker named now was named.
+  DateTime now = DateTime.utc(2026, 11, 3, 6);
+
+  /// Told of every change of a portfolio's caretaker (named, cleared, or
+  /// cleared because they stopped being a manager or left), so the
+  /// portfolio's settings follow, as the database's triggers keep them.
+  void Function(String portfolioId, String? userId, DateTime since)?
+  onCaretaker;
+
+  void _clearCaretakerIf(String portfolioId, String userId) {
+    if (caretakers[portfolioId] != userId) return;
+    caretakers[portfolioId] = null;
+    onCaretaker?.call(portfolioId, null, now);
+  }
 
   @override
   Future<void> setCaretaker({
@@ -645,6 +756,7 @@ final class FakeTeamRepository implements TeamRepository {
       }
     }
     caretakers[portfolioId] = userId;
+    onCaretaker?.call(portfolioId, userId, now);
   }
 }
 

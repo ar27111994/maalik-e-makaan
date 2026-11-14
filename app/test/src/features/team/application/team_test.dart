@@ -267,6 +267,8 @@ void main() {
         defaultDueDay: 10,
         defaultGraceDays: 3,
         defaultIncrementBasisPoints: 500,
+        // A save never writes the answer: it comes back as stored.
+        ownerAbroad: OwnerAbroad.inPakistan,
       );
       final saved = await container
           .read(portfolioDetailsProvider(gulberg.id).notifier)

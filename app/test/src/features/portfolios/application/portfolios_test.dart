@@ -271,7 +271,9 @@ void main() {
     test(
       'is asked of owners and managers of an unanswered portfolio',
       () async {
-        final app = TestApp();
+        final app = TestApp(
+          portfolios: const [gulbergUnanswered, plazaUnanswered],
+        );
         final container = containerFor(app);
         listen(container, ownerAbroadQuestionProvider);
         await _current(container);
@@ -308,15 +310,20 @@ void main() {
     test(
       'is not asked from a saved copy, only once the server answered',
       () async {
-        final app = TestApp();
+        final app = TestApp(
+          portfolios: const [gulbergUnanswered, plazaUnanswered],
+        );
         await app.cache.write(testUserId, PortfoliosController.query, [
-          gulberg.toRow(),
+          gulbergUnanswered.toRow(),
         ]);
         app.portfolios.gate.close();
         final container = containerFor(app);
         listen(container, ownerAbroadQuestionProvider);
         await _current(container);
-        expect(container.read(currentPortfolioProvider).value, gulberg);
+        expect(
+          container.read(currentPortfolioProvider).value,
+          gulbergUnanswered,
+        );
         expect(container.read(ownerAbroadQuestionProvider), isNull);
         app.portfolios.gate.open();
         await pumpEventQueue();
@@ -339,7 +346,9 @@ void main() {
     });
 
     test('an answer shows in the list and ends the question', () async {
-      final app = TestApp();
+      final app = TestApp(
+        portfolios: const [gulbergUnanswered, plazaUnanswered],
+      );
       final container = containerFor(app);
       listen(container, ownerAbroadQuestionProvider);
       await _current(container);
@@ -350,7 +359,7 @@ void main() {
       expect(app.portfolios.calls.last.$2, [gulberg.id, true]);
       final list = container.read(portfoliosProvider(testUserId)).value!;
       expect(list.value.first.ownerAbroad, OwnerAbroad.abroad);
-      expect(list.value.last, plaza);
+      expect(list.value.last, plazaUnanswered);
       expect(container.read(ownerAbroadQuestionProvider), isNull);
       final saved = await app.cache.read(
         testUserId,

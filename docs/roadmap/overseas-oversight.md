@@ -120,8 +120,8 @@ This item is decision 1 at work. The rules are on for portfolios whose `owner_ab
 (`OwnerAbroad.overseasRulesApply` in `mm_core`; NULL, not yet answered, counts as off), and any
 owner can switch them on elsewhere. The member in `caretaker_user_id` is the caretaker, though
 every non-owner's cash is watched. Day thresholds count Pakistan dates; the digest and pushes
-follow each owner's declared time zone and quiet hours and show both times ("3:15 pm in Lahore
-(10:15 am in London)"). Amounts are in rupees only at launch: the owner decided on 12 November
+follow each owner's declared time zone and quiet hours and show both times ("3:15 pm Pakistan time
+(10:15 am London)", the app's `dualMomentLabel`). Amounts are in rupees only at launch: the owner decided on 12 November
 2026 that owners abroad see no total converted into their own currency until a rate source is
 chosen (D-16).
 

@@ -12,6 +12,7 @@ import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
 import 'package:maalik_e_makaan/src/data/ids.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/ledger/application/ledger.dart';
 import 'package:maalik_e_makaan/src/features/ledger/data/ledger.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
@@ -347,17 +348,19 @@ class _ReminderComposerState extends ConsumerState<ReminderComposer>
     );
   }
 
+  /// [concern] in words. Its times are the person's own (when they may
+  /// send), so a person abroad sees their own time beside Pakistan's.
   String _concern(BuildContext context, EtiquetteConcern concern) {
     final l10n = AppLocalizations.of(context);
+    final zone = ref.watch(alertZoneProvider);
+    // `until` reads Pakistan's clock; the instant is five hours earlier.
+    String time(DateTime wall) =>
+        dualTimeLabel(context, wall.subtract(pakistanUtcOffset), zone);
     return switch (concern) {
-      LateNight(:final until) => l10n.etiquetteLateNight(
-        timeLabel(context, until),
-      ),
-      FridayPrayers(:final until) => l10n.etiquetteFridayPrayer(
-        timeLabel(context, until),
-      ),
+      LateNight(:final until) => l10n.etiquetteLateNight(time(until)),
+      FridayPrayers(:final until) => l10n.etiquetteFridayPrayer(time(until)),
       RecentlyReminded(:final at) => l10n.etiquetteRecent(
-        momentLabel(context, at),
+        dualMomentLabel(context, at, zone),
       ),
     };
   }
@@ -416,10 +419,15 @@ class ReminderHistory extends ConsumerWidget {
                         leading: const Icon(MmIcons.reminder),
                         title: templateLabel(l10n, log.template),
                         subtitle: detailLine([
-                          momentLabel(context, log.sentAt),
+                          dualMomentLabel(
+                            context,
+                            log.sentAt,
+                            ref.watch(alertZoneProvider),
+                          ),
                           reminderLanguageLabel(l10n, log.language),
                         ]),
-                        subtitleMaxLines: 4,
+                        // A time abroad comes with Pakistan's: never cut.
+                        subtitleMaxLines: null,
                       ),
                   ],
                 ),

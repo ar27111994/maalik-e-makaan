@@ -7,12 +7,14 @@ import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
+import 'package:maalik_e_makaan/src/core/device_time_zone.dart';
 import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/data/residence_repository.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
@@ -87,6 +89,11 @@ const screenKey = ValueKey<String>('mm-screen');
 
 /// What a screen under test talks to: fakes for every repository, the
 /// device's settings and cache in memory, and who is signed in.
+///
+/// The user said they live in Pakistan ([residences]) and every portfolio's
+/// owner-abroad question is answered, so the app asks nothing; a test of
+/// the questions passes [AccountResidence.notStated] or an unanswered
+/// portfolio ([gulbergUnanswered]).
 final class TestApp {
   new({
     AuthStatus auth = signedIn,
@@ -94,22 +101,33 @@ final class TestApp {
     List<PortfolioMembership>? portfolios = const [gulberg, plaza],
     Profile? profile,
     DeletionPreview? preview,
+    AccountResidence? residence,
+    this.device = const FakeDeviceTimeZone(),
     Map<String, Object> settings = const {},
   }) : auth = FakeAuthRepository(auth),
        profiles = FakeProfileRepository(profile ?? ayesha),
        portfolios = FakePortfolioRepository(portfolios),
        account = FakeAccountRepository(preview),
+       residences = FakeResidenceRepository(residence ?? residentInPakistan),
        settings = MemorySettingsStore({
          AppSettings.localeKey: ?language,
          ...settings,
-       });
+       }) {
+    // The portfolio's settings follow its caretaker, as the database's
+    // triggers keep them.
+    team.onCaretaker = this.portfolios.setCaretakerOf;
+  }
 
   final FakeAuthRepository auth;
   final FakeProfileRepository profiles;
   final FakePortfolioRepository portfolios;
   final FakeAccountRepository account;
   final FakeTeamRepository team = FakeTeamRepository();
-  final FakeResidenceRepository residences = FakeResidenceRepository();
+  final FakeResidenceRepository residences;
+
+  /// The device's clock, which the residence screen may suggest a zone
+  /// from.
+  FakeDeviceTimeZone device;
   final FakePropertyRepository properties = FakePropertyRepository();
   final FakeTenantRepository tenants = FakeTenantRepository();
   final FakeLeaseRepository leases = FakeLeaseRepository();
@@ -152,6 +170,7 @@ final class TestApp {
     authRepositoryProvider.overrideWithValue(auth),
     profileRepositoryProvider.overrideWithValue(profiles),
     residenceRepositoryProvider.overrideWithValue(residences),
+    deviceTimeZoneProvider.overrideWithValue(device),
     portfolioRepositoryProvider.overrideWithValue(portfolios),
     accountRepositoryProvider.overrideWithValue(account),
     teamRepositoryProvider.overrideWithValue(team),
@@ -216,6 +235,7 @@ GoRouter testRouter(Widget Function() screen, {Object? extra}) => GoRouter(
       Routes.checkEmail,
       Routes.updatePassword,
       Routes.createPortfolio,
+      Routes.residence,
       Routes.invite,
       Routes.home,
       Routes.search,

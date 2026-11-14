@@ -85,6 +85,28 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   page, the data export) can start: the Noto Sans Arabic switch it waited for, because it
   re-records goldens, is in place (D-19). The owner's open questions Q1–Q7 are in
   `docs/roadmap/README.md`, decision 1.
+- Decision 1 (D-16), the app's UI half, on branch `claude/residence-ui` (from `wip/residence`
+  at d93bddd; not pushed): "Do you live in Pakistan?" at `/residence`, asked once after sign-in by
+  the shell's question host with nothing chosen ("Not now" sets it aside for seven days on the
+  device) and changed or cleared in Settings, "Where you live"; the owner-abroad question on a new
+  portfolio (cannot be submitted unanswered) and on opening one nobody answered for (owners and
+  managers, from a fresh list; the answer that won is shown; only owners change it); "Owner and
+  caretaker" on Portfolio details, where owners choose the caretaker among the managers, the team
+  marks them, and the caretaker cannot step down but by leaving (Q7); the person's own time beside
+  Pakistan's, "3:15 pm Pakistan time (10:15 am London)" (Q6, the proposed answer built); country
+  and city names in both languages from CLDR 49 (`tool/l10n/`, `make place-names`, hash-pinned,
+  with reviewed plain-Urdu overrides and the Unicode licence on the licence page); an additive
+  `MmOption.searchTerms` in `mm_ui`. Gates on 2026-11-13: format-check, analyze, lint,
+  design-lint, test-tools, place-names-check, contracts-check and docs-check pass; test-app runs
+  2,066 tests at 98.75% of lines (no new line uncovered); test-ui 2,639 tests at 100%;
+  test-gallery 84; goldens: 72 new images (12 goldens in six variants) and 24 changed
+  (`create_portfolio_first`, `settings`, `portfolio_details`, `dashboard_insights`), each looked
+  at. Not run: the browser UAT (J1 and J8 changed, J15 and J16 added; no Docker daemon or
+  Supabase images here; `docs/uat.md` says "not run"), and the browser test of the web zone
+  reader (`flutter test --platform chrome` hung in this container; the file compiles to
+  JavaScript and reads the zone under Node). Follow-ups are in the roadmap row: Q3's
+  notification, quiet hours and digests, a native reader for the strings and the CLDR names, the
+  CLDR bump procedure, the plan suggestion.
 - The roadmap after v1.0 (planned 2026-11-11; v1.0 itself is still in progress, below): its 25
   items are researched and planned, one plan each in `docs/roadmap/`, indexed by
   `docs/roadmap/README.md` (milestones, sizes, the order of work in waves, the owner's open

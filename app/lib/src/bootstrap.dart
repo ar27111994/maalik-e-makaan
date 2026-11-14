@@ -7,6 +7,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/config/app_config.dart';
+import 'package:maalik_e_makaan/src/core/place_names.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/data/retry.dart';
@@ -21,8 +22,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   _reportErrors();
-  // The fonts' and icons' licences, for the licence page in Settings.
+  // The fonts', icons' and place names' licences, for the licence page in
+  // Settings.
   MmLicenses.register();
+  registerPlaceNameLicence();
   // Paths without a `#` on the web, so e-mail links to /auth/callback open
   // that route (the host serves index.html for every path). The fragment is
   // kept: an invitation link carries its token there (/invite#token=…),

@@ -68,6 +68,21 @@ Development only (tests and analysis; not shipped):
 | shared_preferences_platform_interface | 2.4.2   | BSD-3-Clause |
 | very_good_analysis                    | 11.0.0  | MIT          |
 
+Bundled data: `app/lib/src/core/place_names.g.dart` holds the English and Urdu
+names of the countries a person may say they live in and of each time zone's city,
+generated from the Unicode Common Locale Data Repository (CLDR) 49.0.0, under the
+Unicode License v3 (SPDX `Unicode-3.0`). The files are `cldr-json` at tag 49.0.0:
+`cldr-localenames-full/main/en-GB/territories.json`,
+`cldr-localenames-full/main/ur/territories.json`,
+`cldr-dates-full/main/en/timeZoneNames.json`, `cldr-dates-full/main/ur/timeZoneNames.json`,
+`cldr-bcp47/bcp47/timezone.json` and the repository's `LICENSE`, each checked against a
+pinned SHA-256 by `tool/l10n/import_cldr.py`, which keeps a trimmed extract in
+`tool/l10n/cldr_places.json`. A few names are changed to plainer Urdu or a short form
+(`app/lib/l10n/place_name_overrides.json`, each with its reason). The licence asks that
+its copyright and permission notice go with every copy: the generated file carries its
+text, and `registerPlaceNameLicence()` (called from `app/lib/src/bootstrap.dart`) adds it
+to the app's licence page as "Unicode CLDR 49.0.0".
+
 ### `packages/mm_core` dependencies
 
 | Package    | Version | Licence      |

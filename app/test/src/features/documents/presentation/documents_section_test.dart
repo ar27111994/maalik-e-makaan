@@ -281,6 +281,18 @@ void main() {
   });
 
   group('a document', () {
+    testWidgets('an owner abroad sees when it was added in Pakistan time', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        _tenant,
+        app: TestApp(residence: residentInLondon),
+      );
+      await _tap(tester, 'CNIC front');
+      expect(shown('1 Nov 2026, 11:30\u00a0AM Pakistan time'), findsOneWidget);
+    });
+
     testWidgets('opens and downloads through short-lived links', (
       tester,
     ) async {

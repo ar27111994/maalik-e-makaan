@@ -605,7 +605,7 @@
   },
   "roleManager": "Manager",
   "@roleManager": {
-    "description": "Member role: manager (caretaker)."
+    "description": "Member role: manager (an owner may name one manager the caretaker)."
   },
   "roleAccountant": "Accountant",
   "@roleAccountant": {
@@ -880,7 +880,7 @@
   },
   "roleManagerHelp": "Runs properties, tenants and tenancies, and records money.",
   "@roleManagerHelp": {
-    "description": "What a manager (caretaker) can do."
+    "description": "What a manager can do (an owner may name one manager the caretaker)."
   },
   "roleAccountantHelp": "Records payments and expenses, and sees everything else.",
   "@roleAccountantHelp": {
@@ -6868,7 +6868,7 @@
       }
     }
   },
-  "insightCashTitle": "{amount} in cash with caretakers",
+  "insightCashTitle": "{amount} in cash with team members",
   "@insightCashTitle": {
     "description": "Insight: cash held by members who are not owners.",
     "placeholders": {
@@ -7792,5 +7792,420 @@
   "validationChooseUnit": "Choose the unit.",
   "@validationChooseUnit": {
     "description": "Error when a new tenancy is started without a unit."
+  },
+  "residenceTitle": "Where you live",
+  "@residenceTitle": {
+    "description": "Title of the residence screen and of its section in Settings."
+  },
+  "residencePrivacy": "Only you see your answer. Your team and your tenants never do.",
+  "@residencePrivacy": {
+    "description": "Privacy note at the top of the residence screen."
+  },
+  "residenceUse": "The app uses it only to show times. It shows your own time beside Pakistan time. Rent, due dates and messages to tenants always stay on Pakistan time.",
+  "@residenceUse": {
+    "description": "What the person's answer is used for, on the residence screen."
+  },
+  "residencePortfolioNote": "Your answer does not change any portfolio.",
+  "@residencePortfolioNote": {
+    "description": "The person's residence never answers a portfolio's question whether its owner lives abroad."
+  },
+  "residenceQuestion": "Do you live in Pakistan?",
+  "@residenceQuestion": {
+    "description": "The residence question, the label of its answers."
+  },
+  "residenceInPakistan": "Yes, in Pakistan",
+  "@residenceInPakistan": {
+    "description": "Answer to the residence question: lives in Pakistan."
+  },
+  "residenceAbroad": "No, in another country",
+  "@residenceAbroad": {
+    "description": "Answer to the residence question: lives abroad."
+  },
+  "residenceNotSaying": "I prefer not to say",
+  "@residenceNotSaying": {
+    "description": "Answer to the residence question: prefers not to say (the answer is saved with nothing stated)."
+  },
+  "chooseAnswerError": "Choose an answer.",
+  "@chooseAnswerError": {
+    "description": "Error when a question is saved with no answer chosen."
+  },
+  "residenceCountryLabel": "Country",
+  "@residenceCountryLabel": {
+    "description": "Label of the country field on the residence screen."
+  },
+  "residenceCountryPlaceholder": "Choose the country",
+  "@residenceCountryPlaceholder": {
+    "description": "The country field before a country is chosen."
+  },
+  "residenceCountryRequired": "Choose the country you live in.",
+  "@residenceCountryRequired": {
+    "description": "Error: lives abroad, but no country chosen."
+  },
+  "residenceZoneLabel": "Time zone",
+  "@residenceZoneLabel": {
+    "description": "Label of the time-zone field on the residence screen."
+  },
+  "residenceZoneHelper": "Choose the city whose time your clock shows.",
+  "@residenceZoneHelper": {
+    "description": "Helper under the time-zone field."
+  },
+  "residenceZonePlaceholder": "Choose a city",
+  "@residenceZonePlaceholder": {
+    "description": "The time-zone field before a zone is chosen."
+  },
+  "residenceZoneRequired": "Choose your time zone.",
+  "@residenceZoneRequired": {
+    "description": "Error: lives abroad, but no time zone chosen."
+  },
+  "zonePakistanOption": "Pakistan time",
+  "@zonePakistanOption": {
+    "description": "The Pakistan-time choice of the time-zone field, and what Settings shows when no other zone is chosen."
+  },
+  "zonePakistanOptionHelp": "Show times in Pakistan time only",
+  "@zonePakistanOptionHelp": {
+    "description": "Description of the Pakistan-time choice."
+  },
+  "zoneCityTime": "{city} time",
+  "@zoneCityTime": {
+    "description": "A time zone named by its city.",
+    "placeholders": {
+      "city": {
+        "type": "String",
+        "example": "London"
+      }
+    }
+  },
+  "zoneAheadNow": "Now {duration} ahead of Pakistan",
+  "@zoneAheadNow": {
+    "description": "How far a zone's clocks are ahead of Pakistan's today; duration is durationHours or durationHoursMinutes.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "example": "5 hours"
+      }
+    }
+  },
+  "zoneBehindNow": "Now {duration} behind Pakistan",
+  "@zoneBehindNow": {
+    "description": "How far a zone's clocks are behind Pakistan's today; duration is durationHours or durationHoursMinutes.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "example": "5 hours"
+      }
+    }
+  },
+  "zoneSameNow": "Now the same time as Pakistan",
+  "@zoneSameNow": {
+    "description": "A zone whose clocks read the same as Pakistan's today."
+  },
+  "durationHours": "{hours, plural, =1{1 hour} other{{hours} hours}}",
+  "@durationHours": {
+    "description": "A whole number of hours.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHoursMinutes": "{hours, plural, =0{{minutes} minutes} =1{1 hour {minutes} minutes} other{{hours} hours {minutes} minutes}}",
+  "@durationHoursMinutes": {
+    "description": "Hours and 15, 30 or 45 minutes (a time zone's difference from Pakistan).",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "residenceSuggestion": "Your phone or computer is set to {city} time.",
+  "@residenceSuggestion": {
+    "description": "The device's time zone, offered only as a suggestion the person confirms.",
+    "placeholders": {
+      "city": {
+        "type": "String",
+        "example": "London"
+      }
+    }
+  },
+  "residenceUseSuggestion": "Use {city} time",
+  "@residenceUseSuggestion": {
+    "description": "Button that chooses the suggested time zone.",
+    "placeholders": {
+      "city": {
+        "type": "String",
+        "example": "London"
+      }
+    }
+  },
+  "residencePakistanTimeOnly": "The app will show times in Pakistan time only.",
+  "@residencePakistanTimeOnly": {
+    "description": "Note under the residence question for 'in Pakistan' and 'prefer not to say'."
+  },
+  "residenceSaved": "Saved. Only you can see where you live.",
+  "@residenceSaved": {
+    "description": "Snackbar after saving the residence."
+  },
+  "residenceNotSaved": "The server does not know this country or time zone yet. Choose another, or try again later.",
+  "@residenceNotSaved": {
+    "description": "A residence the database refused (constraint_violation)."
+  },
+  "loadingResidence": "Loading your answer",
+  "@loadingResidence": {
+    "description": "Read by screen readers while the residence loads."
+  },
+  "residenceLoadFailedTitle": "Your answer could not be loaded",
+  "@residenceLoadFailedTitle": {
+    "description": "Title of the error when the residence cannot be read."
+  },
+  "residenceNotAnswered": "Not answered yet",
+  "@residenceNotAnswered": {
+    "description": "Settings: the residence question was never answered."
+  },
+  "residenceNotAnsweredHelp": "Answer to see your own time beside Pakistan time.",
+  "@residenceNotAnsweredHelp": {
+    "description": "Settings: subtitle while the residence question is not answered."
+  },
+  "residenceNotSaid": "You chose not to say",
+  "@residenceNotSaid": {
+    "description": "Settings: the person chose not to say where they live."
+  },
+  "settingsResidenceHelp": "Only you see this.",
+  "@settingsResidenceHelp": {
+    "description": "Subtitle of the 'Where you live' section in Settings."
+  },
+  "ownerAbroadQuestion": "Does the owner of these properties live abroad?",
+  "@ownerAbroadQuestion": {
+    "description": "The owner-abroad question, in the owner's own words (D-16)."
+  },
+  "ownerAbroadYes": "Yes, the owner lives abroad",
+  "@ownerAbroadYes": {
+    "description": "Answer: the owner lives abroad."
+  },
+  "ownerAbroadNo": "No, the owner lives in Pakistan",
+  "@ownerAbroadNo": {
+    "description": "Answer: the owner lives in Pakistan."
+  },
+  "ownerAbroadNewHelp": "Answer for the owner, who may not be you. You can change it later in Portfolio details.",
+  "@ownerAbroadNewHelp": {
+    "description": "Helper of the owner-abroad question on a new portfolio."
+  },
+  "ownerAbroadRequired": "Choose whether the owner lives abroad.",
+  "@ownerAbroadRequired": {
+    "description": "Error: the owner-abroad question has no answer (also the refusal invalid_owner_abroad)."
+  },
+  "ownerAbroadUnanswered": "Nobody has answered this for {portfolio} yet.",
+  "@ownerAbroadUnanswered": {
+    "description": "Opening line of the owner-abroad question for a portfolio nobody has answered for.",
+    "placeholders": {
+      "portfolio": {
+        "type": "String",
+        "example": "Gulberg Houses"
+      }
+    }
+  },
+  "ownerAbroadManagerNote": "Once you answer, only an owner can change it.",
+  "@ownerAbroadManagerNote": {
+    "description": "Helper of the owner-abroad question for a manager."
+  },
+  "ownerAbroadOwnerNote": "You can change it later in Portfolio details.",
+  "@ownerAbroadOwnerNote": {
+    "description": "Helper of the owner-abroad question for an owner."
+  },
+  "saveAnswerAction": "Save answer",
+  "@saveAnswerAction": {
+    "description": "Button that saves an answer to a question."
+  },
+  "answerSaved": "Answer saved.",
+  "@answerSaved": {
+    "description": "Snackbar after answering the owner-abroad question."
+  },
+  "answeredFirstTitle": "Someone answered first",
+  "@answeredFirstTitle": {
+    "description": "Title when another member answered the owner-abroad question first."
+  },
+  "answeredFirstAbroad": "Another member already answered. They said the owner lives abroad.",
+  "@answeredFirstAbroad": {
+    "description": "The answer that won: abroad."
+  },
+  "answeredFirstPakistan": "Another member already answered. They said the owner lives in Pakistan.",
+  "@answeredFirstPakistan": {
+    "description": "The answer that won: in Pakistan."
+  },
+  "portfolioCreatedFirstAnswer": "{name} is ready, with the answer from your first try: {answer}. You can change it in Portfolio details.",
+  "@portfolioCreatedFirstAnswer": {
+    "description": "After a retried creation, when the server kept the first attempt's answer; answer is ownerLivesAbroad or ownerLivesInPakistan.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Gulberg Houses"
+      },
+      "answer": {
+        "type": "String",
+        "example": "Abroad"
+      }
+    }
+  },
+  "ownerSection": "Owner and caretaker",
+  "@ownerSection": {
+    "description": "Section of Portfolio details: where the owner lives and who looks after the properties."
+  },
+  "ownerLivesLabel": "Where the owner lives",
+  "@ownerLivesLabel": {
+    "description": "Label of the owner-abroad answer on Portfolio details."
+  },
+  "ownerLivesAbroad": "Abroad",
+  "@ownerLivesAbroad": {
+    "description": "The owner lives abroad."
+  },
+  "ownerLivesInPakistan": "In Pakistan",
+  "@ownerLivesInPakistan": {
+    "description": "The owner lives in Pakistan."
+  },
+  "ownerLivesNotAnswered": "Not answered yet",
+  "@ownerLivesNotAnswered": {
+    "description": "Nobody has answered the owner-abroad question."
+  },
+  "answerQuestionAction": "Answer the question",
+  "@answerQuestionAction": {
+    "description": "Button that opens the owner-abroad question."
+  },
+  "changeAnswerAction": "Change the answer",
+  "@changeAnswerAction": {
+    "description": "Button (owners only) that changes the owner-abroad answer, and the title of its sheet."
+  },
+  "ownerAbroadOnlyOwners": "Only an owner can change this answer.",
+  "@ownerAbroadOnlyOwners": {
+    "description": "Shown to managers and others once the owner-abroad question is answered."
+  },
+  "answerChanged": "Answer changed.",
+  "@answerChanged": {
+    "description": "Snackbar after an owner changes the owner-abroad answer."
+  },
+  "reasonOwnerAbroadAnswered": "Someone has already answered. Only an owner can change the answer.",
+  "@reasonOwnerAbroadAnswered": {
+    "description": "Refusal owner_abroad_answered."
+  },
+  "caretakerLabel": "Caretaker",
+  "@caretakerLabel": {
+    "description": "The caretaker: a label on Portfolio details, the title of the caretaker sheet and the badge in the team."
+  },
+  "caretakerNone": "No caretaker",
+  "@caretakerNone": {
+    "description": "No caretaker is named."
+  },
+  "caretakerSinceLabel": "Caretaker since",
+  "@caretakerSinceLabel": {
+    "description": "Label of the date the caretaker was named."
+  },
+  "caretakerExplain": "A caretaker is a manager who looks after the properties for the owner. If an owner changes their role or removes them, or they leave the team, they stop being the caretaker.",
+  "@caretakerExplain": {
+    "description": "What a caretaker is, on Portfolio details."
+  },
+  "caretakerOwnersChoose": "Only owners choose the caretaker.",
+  "@caretakerOwnersChoose": {
+    "description": "Shown to members who are not owners."
+  },
+  "caretakerYou": "You are the caretaker. To stop, ask an owner, or leave the team.",
+  "@caretakerYou": {
+    "description": "Shown to the caretaker, who cannot step down without leaving (Q7)."
+  },
+  "chooseCaretakerAction": "Choose the caretaker",
+  "@chooseCaretakerAction": {
+    "description": "Button (owners) while no caretaker is named."
+  },
+  "changeCaretakerAction": "Change the caretaker",
+  "@changeCaretakerAction": {
+    "description": "Button (owners) once a caretaker is named."
+  },
+  "caretakerQuestion": "Who looks after the properties?",
+  "@caretakerQuestion": {
+    "description": "Label of the caretaker choices."
+  },
+  "caretakerManagersOnly": "Only managers are listed. To choose someone else, make them a manager in Team first.",
+  "@caretakerManagersOnly": {
+    "description": "Helper of the caretaker choices."
+  },
+  "caretakerNoManagers": "This team has no manager yet. Invite someone as a manager, or make a member a manager in Team.",
+  "@caretakerNoManagers": {
+    "description": "The caretaker sheet when nobody can be named."
+  },
+  "openTeamAction": "Open the team",
+  "@openTeamAction": {
+    "description": "Button that goes to the team."
+  },
+  "saveCaretakerAction": "Save caretaker",
+  "@saveCaretakerAction": {
+    "description": "Button that saves the caretaker choice."
+  },
+  "caretakerNamed": "{name} is now the caretaker.",
+  "@caretakerNamed": {
+    "description": "Snackbar after naming the caretaker.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Bilal Ahmed"
+      }
+    }
+  },
+  "caretakerCleared": "There is no caretaker now.",
+  "@caretakerCleared": {
+    "description": "Snackbar after clearing the caretaker."
+  },
+  "caretakerUnknownMember": "A team member",
+  "@caretakerUnknownMember": {
+    "description": "The caretaker when their name is not in the team as read (a stale copy)."
+  },
+  "memberIsCaretaker": "{name} is the caretaker. Changing their role or removing them also ends that.",
+  "@memberIsCaretaker": {
+    "description": "Note in the member sheet of the caretaker.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Bilal Ahmed"
+      }
+    }
+  },
+  "removeCaretakerNote": "They also stop being the caretaker.",
+  "@removeCaretakerNote": {
+    "description": "Added to removeMemberBody when the member is the caretaker."
+  },
+  "leaveCaretakerNote": "You are the caretaker. Leaving also ends that.",
+  "@leaveCaretakerNote": {
+    "description": "Added to leaveBody when the person leaving is the caretaker."
+  },
+  "reasonCaretakerNotManager": "Only a manager can be the caretaker. Their role may have just changed, so check the team.",
+  "@reasonCaretakerNotManager": {
+    "description": "Refusal caretaker_not_manager."
+  },
+  "dualTime": "{pakistan} Pakistan time ({own} {city})",
+  "@dualTime": {
+    "description": "A time shown in Pakistan time first, then in the reader's own time zone, named by its city (Q6).",
+    "placeholders": {
+      "pakistan": {
+        "type": "String",
+        "example": "7 Nov 2026, 10:00 AM"
+      },
+      "own": {
+        "type": "String",
+        "example": "5:00 AM"
+      },
+      "city": {
+        "type": "String",
+        "example": "London"
+      }
+    }
+  },
+  "inPakistanTime": "{moment} Pakistan time",
+  "@inPakistanTime": {
+    "description": "A time that belongs to Pakistan's clock (a deadline), for a reader whose own clock differs.",
+    "placeholders": {
+      "moment": {
+        "type": "String",
+        "example": "14 Nov 2026, 10:42 AM"
+      }
+    }
   }
 }

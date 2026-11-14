@@ -7,6 +7,7 @@ import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
+import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:maalik_e_makaan/src/settings/presentation/settings_screen.dart';
@@ -109,6 +110,23 @@ void main() {
       await pumpScreen(tester, SettingsScreen.new, app: app, size: _tall);
       expect(find.textContaining('You are offline.'), findsOneWidget);
       expect(_valueOf(tester, 'Your name'), 'Ayesha Khan');
+      expect(
+        find.textContaining(RegExp('You are offline.*Pakistan time')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('offline, an owner abroad sees the saved time in theirs too', (
+      tester,
+    ) async {
+      final app = TestApp(residence: residentInLondon)
+        ..profiles.fetchFailure = const NetworkFailure();
+      await app.cache.write(testUserId, 'profile', ayesha.toRow());
+      await pumpScreen(tester, SettingsScreen.new, app: app, size: _tall);
+      expect(
+        find.textContaining(RegExp(r'Pakistan time \(.*London\)\.$')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('without a saved copy, a failure offers a retry', (
@@ -230,6 +248,131 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     await expectAccessible(tester);
+  });
+
+  group('where you live', () {
+    Finder row() => find.ancestor(
+      of: find.byIcon(MmIcons.location),
+      matching: find.byType(MmListTile),
+    );
+
+    String textOf(WidgetTester tester) => [
+      for (final text in tester.widgetList<Text>(
+        find.descendant(of: row(), matching: find.byType(Text)),
+      ))
+        text.data ?? '',
+    ].join(' | ');
+
+    testWidgets('shows each kind of answer, only to the person', (
+      tester,
+    ) async {
+      for (final (residence, expected) in [
+        (
+          AccountResidence.notStated,
+          'Not answered yet | Answer to see your own time beside Pakistan '
+              'time.',
+        ),
+        (
+          AccountResidence(
+            residence: Residence.notStated,
+            statedAt: DateTime.utc(2026, 11, 2),
+          ),
+          'You chose not to say | Pakistan time',
+        ),
+        (residentInPakistan, 'Pakistan | Pakistan time'),
+        (
+          residentInLondon,
+          'United Kingdom | London time\nNow 5 hours behind Pakistan',
+        ),
+        (
+          AccountResidence(
+            residence: Residence(country: CountryCode.parse('GB')),
+            statedAt: DateTime.utc(2026, 11, 2),
+          ),
+          'United Kingdom | Pakistan time',
+        ),
+        (
+          AccountResidence.fromRow(const {
+            'residence_country': 'GB',
+            'time_zone': 'Europe/Atlantis',
+            'stated_at': '2026-11-02T09:00:00Z',
+          }),
+          'United Kingdom | Pakistan time',
+        ),
+      ]) {
+        await pumpScreen(
+          tester,
+          SettingsScreen.new,
+          app: TestApp(residence: residence),
+          size: _tall,
+        );
+        expect(find.text('Where you live'), findsOneWidget);
+        expect(find.text('Only you see this.'), findsOneWidget);
+        expect(textOf(tester), expected);
+        // A fresh app for the next answer.
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('opens the question to answer or change it', (tester) async {
+      await pumpScreen(tester, SettingsScreen.new, size: _tall);
+      await _tap(tester, row());
+      expect(routeShown(Routes.residence), findsOneWidget);
+    });
+
+    testWidgets('shows a skeleton while it loads', (tester) async {
+      final app = TestApp()..residences.gate.close();
+      await pumpScreen(
+        tester,
+        SettingsScreen.new,
+        app: app,
+        size: _tall,
+        settle: false,
+      );
+      expect(find.bySemanticsLabel('Loading your answer'), findsOneWidget);
+      app.residences.gate.open();
+      await tester.pumpAndSettle();
+      expect(row(), findsOneWidget);
+    });
+
+    testWidgets('a failed read offers a retry', (tester) async {
+      final failing = TestApp()
+        ..residences.fetchFailure = const ServerFailure('XX000');
+      await pumpScreen(tester, SettingsScreen.new, app: failing, size: _tall);
+      expect(find.text('Your answer could not be loaded'), findsOneWidget);
+      failing.residences.fetchFailure = null;
+      await _tap(
+        tester,
+        find.descendant(
+          of: find.byType(MmErrorState),
+          matching: find.text('Try again'),
+        ),
+      );
+      expect(row(), findsOneWidget);
+    });
+
+    testWidgets('a stale copy says so', (tester) async {
+      final offline = TestApp()
+        ..residences.fetchFailure = const NetworkFailure();
+      await offline.cache.write(
+        testUserId,
+        'residence',
+        residentInPakistan.toRow(),
+      );
+      await pumpScreen(tester, SettingsScreen.new, app: offline, size: _tall);
+      expect(find.textContaining('You are offline.'), findsOneWidget);
+      expect(row(), findsOneWidget);
+    });
+
+    testWidgets('is not shown while signed out', (tester) async {
+      await pumpScreen(
+        tester,
+        SettingsScreen.new,
+        app: TestApp(auth: const SignedOut()),
+        size: _tall,
+      );
+      expect(find.text('Where you live'), findsNothing);
+    });
   });
 }
 

@@ -119,6 +119,19 @@ void main() {
     );
   });
 
+  test('Where you live opens wherever Settings does', () {
+    for (final gate in PortfolioGate.values) {
+      expect(_go('/residence', _signedIn, portfolios: gate), isNull);
+    }
+    expect(_go('/residence', _signedIn, invitationPending: true), isNull);
+    // Signed out, it waits for signing in, remembered.
+    expect(_go('/residence', _signedOut), '/sign-in?from=%2Fresidence');
+    expect(
+      _go('/residencex', _signedIn, portfolios: PortfolioGate.none),
+      '/portfolios/new',
+    );
+  });
+
   test('while portfolios load, and with one, nothing is forced', () {
     for (final gate in [PortfolioGate.unknown, PortfolioGate.some]) {
       expect(_go('/', _signedIn, portfolios: gate), isNull);

@@ -216,4 +216,56 @@ void main() {
     );
     expect(find.text('The reminders could not be loaded'), findsOneWidget);
   });
+
+  testWidgets('an owner abroad sees when to send in their own time too', (
+    tester,
+  ) async {
+    // 11 PM in Pakistan, 6 PM in London.
+    final app = TestApp(residence: residentInLondon)
+      ..now = DateTime.utc(2026, 11, 7, 18);
+    await pumpScreen(tester, _ledger, app: app, size: _size);
+    // The history says when each reminder went, in both times.
+    expect(
+      shown('15 Oct 2026, 11:00\u00a0AM Pakistan time (7:00\u00a0AM London)'),
+      findsOneWidget,
+    );
+    await _open(tester);
+    expect(
+      shown('after 8:00\u00a0AM Pakistan time (3:00\u00a0AM London)'),
+      findsOneWidget,
+    );
+    // The tenant's message is Pakistan's alone.
+    expect(_message(tester), isNot(contains('London')));
+    expect(_message(tester), isNot(contains('Pakistan time')));
+  });
+
+  testWidgets('a reminder sent recently is dated in both times', (
+    tester,
+  ) async {
+    final app = TestApp(residence: residentInLondon)
+      ..now = DateTime.utc(2026, 10, 15, 8);
+    await pumpScreen(tester, _ledger, app: app, size: _size);
+    await _open(tester);
+    expect(
+      shown(
+        'on 15 Oct 2026, 11:00\u00a0AM Pakistan time (7:00\u00a0AM London)',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the ledger says when the tenant was last reminded', (
+    tester,
+  ) async {
+    final app = TestApp(residence: residentInLondon);
+    app.ledger.remindedAt[aliLease.id] = DateTime.utc(2026, 11, 1, 5, 30);
+    await pumpScreen(tester, _ledger, app: app, size: _size);
+    expect(find.text('Last reminded'), findsOneWidget);
+    expect(
+      find.text(
+        '1 Nov 2026, 10:30\u00a0AM Pakistan time (5:30\u00a0AM London)',
+      ),
+      findsOneWidget,
+    );
+  });
 }

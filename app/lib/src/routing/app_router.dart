@@ -12,6 +12,7 @@ import 'package:maalik_e_makaan/src/auth/presentation/sign_up_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/update_password_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/welcome_screen.dart';
 import 'package:maalik_e_makaan/src/features/account/presentation/delete_account_screen.dart';
+import 'package:maalik_e_makaan/src/features/account/presentation/residence_screen.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/presentation/documents_section.dart';
 import 'package:maalik_e_makaan/src/features/handovers/presentation/cash_book_screen.dart';
@@ -142,6 +143,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.createPortfolio,
         builder: (context, state) => const CreatePortfolioScreen(),
+      ),
+      GoRoute(
+        path: Routes.residence,
+        builder: (context, state) => const ResidenceScreen(),
       ),
       GoRoute(
         path: Routes.invite,

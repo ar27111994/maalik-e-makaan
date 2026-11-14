@@ -144,6 +144,14 @@ contracts: ## Regenerate the contract vectors shared by Dart and SQL (rent maths
 contracts-check: ## Fail when the committed contract vectors are stale
 	python3 tool/contracts/generate.py --check
 
+.PHONY: place-names
+place-names: ## Regenerate the app's country and city names (English, Urdu) from the CLDR extract and its overrides
+	python3 tool/l10n/place_names.py
+
+.PHONY: place-names-check
+place-names-check: ## Fail when the app's country and city names are stale with the CLDR extract and its overrides
+	python3 tool/l10n/place_names.py --check
+
 .PHONY: roadmap
 roadmap: ## Rewrite the website's offline roadmap copy from .github/roadmap.toml
 	python3 tool/github/fetch_roadmap.py --from-file
@@ -186,7 +194,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer, time-zone reference, the command map's rows)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer, time-zone reference, the command map's rows, the place names)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
@@ -198,6 +206,7 @@ test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, 
 	python3 -m unittest discover -s tool/android -p 'test_*.py'
 	python3 -m unittest discover -s tool/github -p 'test_*.py'
 	python3 -m unittest discover -s tool/contracts -p 'test_*.py'
+	python3 -m unittest discover -s tool/l10n -p 'test_*.py'
 
 .PHONY: tokens
 tokens: ## Rebuild the design-token outputs (Dart, CSS, DESIGN.md frontmatter, the e-mails' Urdu type)
