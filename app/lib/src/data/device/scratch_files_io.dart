@@ -96,7 +96,11 @@ Future<void> sweepFolder(
         await _deleteIfOlder(entry, sharedBefore, delete);
       } else if (entry is Directory && name == _shareCopies) {
         await for (final copy in entry.list(followLinks: false)) {
-          await _deleteIfOlder(copy, sharedBefore, delete);
+          try {
+            await _deleteIfOlder(copy, sharedBefore, delete);
+          } on FileSystemException {
+            // This copy stays for the next sweep; the others still go.
+          }
         }
       } else if (entry is File &&
           copiesBefore != null &&

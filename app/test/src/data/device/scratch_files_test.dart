@@ -307,6 +307,32 @@ void main() {
       expect(exists(other.path), isFalse);
       expect(exists(copy.path), isFalse);
     });
+
+    test("one of share_plus's copies that cannot be deleted does not stop "
+        'the others', () async {
+      final copies = [
+        for (final name in ['a.pdf', 'b.pdf', 'c.pdf', 'd.pdf'])
+          file('${cache.path}/share_plus/$name'),
+      ];
+      // Whatever the order the folder lists them in, the first one met is
+      // the one that cannot be deleted.
+      String? stuck;
+      await sweepFolder(
+        cache.path,
+        sharedBefore: cutOff,
+        delete: (entry) async {
+          stuck ??= entry.path;
+          if (entry.path == stuck) {
+            throw FileSystemException('busy', entry.path);
+          }
+          await entry.delete(recursive: true);
+        },
+      );
+      expect(stuck, isNotNull);
+      for (final copy in copies) {
+        expect(exists(copy.path), copy.path == stuck, reason: copy.path);
+      }
+    });
   });
 
   group("the pickers' copies", () {
