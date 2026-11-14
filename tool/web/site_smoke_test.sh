@@ -30,8 +30,11 @@ fetch() {
     -D "$work/headers" -o "$work/body" -w '%{http_code}' "$base$1"
 }
 
+# header NAME: the value of that response header, or nothing when the response has none (a
+# header that is missing is a finding to report, not an error to stop on).
 header() {
-  grep -i "^$1:" "$work/headers" | tail -n 1 | cut -d: -f2- | tr -d '\r' | sed 's/^ *//'
+  { grep -i "^$1:" "$work/headers" || true; } | tail -n 1 | cut -d: -f2- | tr -d '\r' \
+    | sed 's/^ *//'
 }
 
 # Just after `vercel deploy --prod`, the production address can still answer

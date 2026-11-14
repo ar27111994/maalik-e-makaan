@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import check_live as cl
+import package_vercel as pv
 
 REPO = Path(__file__).resolve().parents[2]
 SITE = "https://example.pk"
@@ -29,12 +30,20 @@ OLD_APP = "https://old-app.example.org"
 ORIGINS = cl.Origins(SITE, (WWW,), APP, (OLD_APP,))
 STATEMENTS = json.dumps([{"relation": ["x"], "target": {"package_name": "a.b"}}]).encode()
 
+
+def moved_page(origin: str) -> bytes:
+    """The page an earlier address of the web app answers with, as package_vercel.py writes it
+    for `origin`."""
+    app = pv.AppOrigins(origin, (OLD_APP,))
+    return pv.moved_files(app)[pv.MOVED_PAGE].encode()
+
+
 # Every address answering as it does once the move is live.
 LIVE = {
     f"{SITE}/": cl.Answer(200),
     f"{WWW}/": cl.Answer(308, f"{SITE}/"),
     f"{APP}{cl.ASSETLINKS}": cl.Answer(200, body=STATEMENTS),
-    f"{OLD_APP}/": cl.Answer(308, f"{APP}/"),
+    f"{OLD_APP}/": cl.Answer(200, body=moved_page(APP)),
 }
 
 
@@ -190,28 +199,68 @@ class SiteCheckTest(unittest.TestCase):
         self.assertEqual(problems, 0, out)
         self.assertIn(f"{SITE}/: 200", out)
         self.assertIn(f"{WWW}/: 308 to {SITE}/", out)
+        self.assertIn(f"{OLD_APP}/: 200, the page that sends people on to {APP}", out)
+
+    def test_an_earlier_address_that_redirects_to_the_origin_passes_too(self):
+        # What a deployment that carries a move may also do, when it has no storage to clear.
+        problems, out = run("site", {**LIVE, f"{OLD_APP}/": cl.Answer(308, f"{APP}/")})
+        self.assertEqual(problems, 0, out)
         self.assertIn(f"{OLD_APP}/: 308 to {APP}/", out)
 
     def test_fails_when_the_web_app_of_the_move_is_not_deployed_yet(self):
         # Before the web app's deploy, the earlier address serves the app itself.
-        problems, out = run("site", {**LIVE, f"{OLD_APP}/": cl.Answer(200)})
-        self.assertEqual(problems, 1)
-        self.assertIn(f"::error::{OLD_APP}/ answered 200, not 308", out)
-        self.assertIn("deploy the web app of this release first", out)
+        app = b'<!DOCTYPE html><html><body><script src="flutter_bootstrap.js"></script></body>'
+        for body in (b"", app):
+            with self.subTest(body=body):
+                problems, out = run("site", {**LIVE, f"{OLD_APP}/": cl.Answer(200, body=body)})
+                self.assertEqual(problems, 1)
+                self.assertIn(
+                    f"::error::{OLD_APP}/ answered 200 without sending people on to {APP}", out
+                )
+                self.assertIn("deploy the web app of this release first", out)
 
-    def test_fails_when_a_redirect_goes_elsewhere(self):
-        answers = {
-            **LIVE,
-            f"{WWW}/": cl.Answer(308, "https://elsewhere.example.org/"),
-            f"{OLD_APP}/": cl.Answer(308),
-        }
+    def test_fails_when_an_earlier_address_sends_people_elsewhere(self):
+        for answer, message in (
+            (
+                cl.Answer(200, body=moved_page("https://elsewhere.example.org")),
+                f"{OLD_APP}/ sends people on to https://elsewhere.example.org, not {APP}",
+            ),
+            (
+                cl.Answer(200, body=b'<meta name="mm-moved-to" content="">'),
+                f"{OLD_APP}/ sends people on to nowhere, not {APP}",
+            ),
+            (
+                # The origin with a path is not the origin: the script would refuse it.
+                cl.Answer(200, body=moved_page(APP).replace(APP.encode(), f"{APP}/x".encode())),
+                f"{OLD_APP}/ sends people on to {APP}/x, not {APP}",
+            ),
+            (
+                cl.Answer(308, "https://elsewhere.example.org/"),
+                f"{OLD_APP}/ redirects to https://elsewhere.example.org/, not {APP}/",
+            ),
+            (cl.Answer(308, APP), f"{OLD_APP}/ redirects to {APP}, not {APP}/"),
+            (cl.Answer(308), f"{OLD_APP}/ redirects to nowhere, not {APP}/"),
+            (cl.Answer(301, f"{APP}/"), f"{OLD_APP}/ answered 301, and does not send people on"),
+            (cl.Answer(404), f"{OLD_APP}/ answered 404, and does not send people on"),
+            (cl.UnreachableError("timed out"), f"{OLD_APP}/ does not answer over HTTPS"),
+        ):
+            with self.subTest(message=message):
+                problems, out = run("site", {**LIVE, f"{OLD_APP}/": answer})
+                self.assertEqual(problems, 1, out)
+                self.assertIn(f"::error::{message}", out)
+
+    def test_fails_when_an_alias_redirects_elsewhere(self):
+        answers = {**LIVE, f"{WWW}/": cl.Answer(308, "https://elsewhere.example.org/")}
         problems, out = run("site", answers)
-        self.assertEqual(problems, 2)
+        self.assertEqual(problems, 1)
         self.assertIn(f"{WWW}/ redirects to https://elsewhere.example.org/, not {SITE}/", out)
-        self.assertIn(f"{OLD_APP}/ redirects to nowhere, not {APP}/", out)
+        # An alias redirects by the hosting's own setting: a page there is not one.
+        problems, out = run("site", {**LIVE, f"{WWW}/": cl.Answer(200, body=moved_page(SITE))})
+        self.assertEqual(problems, 1)
+        self.assertIn(f"::error::{WWW}/ answered 200, not 308", out)
 
     def test_fails_when_the_new_hosts_do_not_answer(self):
-        problems, out = run("site", {f"{OLD_APP}/": cl.Answer(308, f"{APP}/")})
+        problems, out = run("site", {f"{OLD_APP}/": LIVE[f"{OLD_APP}/"]})
         self.assertEqual(problems, 3)
         for url in (f"{SITE}/", f"{WWW}/", f"{APP}{cl.ASSETLINKS}"):
             self.assertIn(f"::error::{url} does not answer over HTTPS", out)
@@ -220,6 +269,7 @@ class SiteCheckTest(unittest.TestCase):
         problems, out = run("site", LIVE, cl.Origins(SITE, (), APP, ()))
         self.assertEqual(problems, 0)
         self.assertNotIn("308", out)
+        self.assertNotIn("sends people on", out)
 
 
 class MainTest(unittest.TestCase):

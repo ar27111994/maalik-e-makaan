@@ -184,10 +184,12 @@ jobs:
         run: >
           python3 tool/web/package_vercel.py --build app/build/web
           --output "$RUNNER_TEMP/vercel/.vercel/output" --supabase-url "$PLACEHOLDER_SUPABASE"
-      - name: Headers, fallback, App Links and the earlier addresses' redirects of the package
+      - name: Headers, fallback, App Links and the earlier addresses' page of the package
         # The same smoke tests as after a deploy, against a local server that
         # applies the package's config.json the way Vercel does; each earlier
-        # address of contracts/origins.json is reached with its Host header.
+        # address of contracts/origins.json is reached with its Host header, and
+        # must answer with the page that clears its storage and goes to the
+        # origin, except for the callback and the App Links file.
         run: |
           python3 tool/web/serve_output.py "$RUNNER_TEMP/vercel/.vercel/output" --port 8080 &
           for _ in {1..20}; do curl -fs -o /dev/null http://127.0.0.1:8080/ && break; sleep 0.5; done
@@ -195,7 +197,8 @@ jobs:
             "$PLACEHOLDER_SUPABASE"
           app="$(jq -er .app.origin contracts/origins.json)"
           while read -r legacy; do
-            tool/web/redirect_smoke_test.sh http://127.0.0.1:8080 "$app" --host "${legacy#https://}" \
+            tool/web/redirect_smoke_test.sh http://127.0.0.1:8080 "$app" --page \
+              --host "${legacy#https://}" \
               --keep '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
           done < <(jq -r '.app.legacy[]?' contracts/origins.json)
 

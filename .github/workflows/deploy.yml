@@ -180,7 +180,7 @@ jobs:
           done
       - name: The web app's origins, from the ref
         # contracts/origins.json (decision D-20): the origin is the build's APP_URL, and each
-        # earlier address redirects to it (tool/web/package_vercel.py). Only a caller that
+        # earlier address sends people on to it (tool/web/package_vercel.py). Only a caller that
         # passes an older ref reaches the refusal below; a run by hand on an older tag runs that
         # tag's own deploy.yml instead (docs/operations.md, Rollback and restore).
         id: origins
@@ -197,8 +197,8 @@ jobs:
           echo "The web app's origin: $app; earlier addresses: $legacy"
       - name: The web app's origin answers
         # Over HTTPS, with its App Links file, before anything is built: the deploy makes each
-        # earlier address redirect to it, so an origin whose DNS or certificate is not in place
-        # would take the old address and the new one offline together (docs/operations.md,
+        # earlier address send people on to it, so an origin whose DNS or certificate is not in
+        # place would take the old address and the new one offline together (docs/operations.md,
         # Domains, steps 2 and 3).
         run: python3 tool/web/check_live.py app
       - name: The Edge Functions accept the origin
@@ -249,7 +249,8 @@ jobs:
           flutter build web --release --no-web-resources-cdn \
             --dart-define-from-file=config/production.json
       - name: Package (Vercel Build Output API)
-        # With the earlier addresses' redirects, from the ref's contracts/origins.json.
+        # With the page the earlier addresses answer with, which clears what the app kept in
+        # the browser there and goes to the origin, from the ref's contracts/origins.json.
         run: >
           python3 tool/web/package_vercel.py --build app/build/web
           --output "$RUNNER_TEMP/vercel/.vercel/output" --supabase-url "$SUPABASE_URL"
@@ -270,16 +271,18 @@ jobs:
           cd "$RUNNER_TEMP/vercel"
           npx --yes "vercel@$VERCEL_CLI_VERSION" deploy --prebuilt --prod --token "$VERCEL_TOKEN"
       - name: Smoke test
-        # The origin, then each earlier address: it redirects, but keeps answering the Android
-        # App Links file (checked by Android without following a redirect) and the e-mail
-        # links' callback.
+        # The origin, which never tells a browser to clear its storage. Then each earlier
+        # address: every page answers with the one that clears that address's storage and goes
+        # to the origin (--page), but it keeps answering the Android App Links file (checked by
+        # Android without following a redirect) and the e-mail links' callback, and clears
+        # nothing there.
         env:
           APP: ${{ steps.origins.outputs.app }}
           LEGACY: ${{ steps.origins.outputs.legacy }}
         run: |
           tool/web/smoke_test.sh "$APP" "$ANDROID_PACKAGE" "$SUPABASE_URL"
           while read -r origin; do
-            tool/web/redirect_smoke_test.sh "$origin" "$APP" \
+            tool/web/redirect_smoke_test.sh "$origin" "$APP" --page \
               --keep '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
           done < <(jq -r '.[]' <<<"$LEGACY")
 
@@ -320,8 +323,8 @@ jobs:
       - name: The addresses answer, and the web app is the one built for them
         # Before anything is built: the site's origin answers over HTTPS and www redirects to
         # it, and the web app the site links to answers at its origin and is the deployment
-        # built for it (its earlier address redirects to it, which only the web app's deploy
-        # of the release that carries a move does). Sooner, the site's old address would
+        # built for it (its earlier address sends people on to it, which only the web app's
+        # deploy of the release that carries a move does). Sooner, the site's old address would
         # redirect to a host that does not answer, or the site would send people to a web app
         # whose e-mail links name another address (docs/operations.md, Domains). A ref from
         # before contracts/origins.json has none of this to check.

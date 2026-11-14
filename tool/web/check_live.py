@@ -19,10 +19,11 @@ and fails closed:
   certificate are in place (docs/operations.md, Domains, steps 2 and 3).
 - site: the site's origin answers / with 200, and each alias (www) answers / with 308 to it.
   Then the web app the site links to: the app check, and each earlier address of the web app
-  answers / with 308 to the web app's origin, which only a deployment that carries the move
-  does (tool/web/package_vercel.py). Before that, the web app at the origin is the build from
-  before the move, whose e-mail links name the earlier address, where the sign-in verifier
-  stored at the origin does not exist.
+  sends people on to the web app's origin, which only a deployment that carries the move does:
+  it answers / with the page that clears that address's storage and names the origin as its
+  destination (tool/web/package_vercel.py), or with 308 to the origin. Before that, the web
+  app at the origin is the build from before the move, whose e-mail links name the earlier
+  address, where the sign-in verifier stored at the origin does not exist.
 
 Redirects are not followed. A request that fails (DNS, connection, certificate, timeout) or
 answers 5xx is tried again, five seconds apart, six tries in all.
@@ -52,6 +53,8 @@ HELP = "docs/operations.md, Domains"
 DNS = f"point its DNS at Vercel and wait for the certificate ({HELP}, steps 2 and 3)"
 
 _ORIGIN = re.compile(r"https://(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}")
+# The destination the page of an earlier address names (tool/web/moved/moved.html).
+_MOVED_TO = re.compile(rb'<meta name="mm-moved-to" content="([^"]*)">')
 
 
 class OriginsError(Exception):
@@ -195,6 +198,31 @@ class Checker:
             return
         print(f"{url}: 308 to {target}")
 
+    def sends_on(self, url: str, origin: str, what: str) -> None:
+        """`url` sends people on to `origin`: with the page an earlier address of the web app
+        answers, which names the origin as its destination, or with a permanent redirect."""
+        got = self._answer(url, what)
+        if got is None:
+            return
+        if got.status == 308:
+            if got.location != f"{origin}/":
+                where = got.location or "nowhere"
+                self.fail(f"{url} redirects to {where}, not {origin}/: {what}")
+                return
+            print(f"{url}: 308 to {origin}/")
+            return
+        if got.status != 200:
+            self.fail(f"{url} answered {got.status}, and does not send people on: {what}")
+            return
+        named = _MOVED_TO.search(got.body)
+        if named is None:
+            self.fail(f"{url} answered 200 without sending people on to {origin}: {what}")
+        elif named[1] != origin.encode():
+            destination = named[1].decode("utf-8", "replace")
+            self.fail(f"{url} sends people on to {destination or 'nowhere'}, not {origin}: {what}")
+        else:
+            print(f"{url}: 200, the page that sends people on to {origin}")
+
     def app(self, origins: Origins) -> None:
         url = f"{origins.app}{ASSETLINKS}"
         got = self.status(
@@ -224,9 +252,9 @@ class Checker:
             )
         self.app(origins)
         for legacy in origins.app_legacy:
-            self.redirect(
+            self.sends_on(
                 f"{legacy}/",
-                f"{origins.app}/",
+                origins.app,
                 "the web app the site links to is not yet the deployment built for its origin;"
                 " deploy the web app of this release first (the Release workflow does), or the"
                 f" site sends people to a build whose e-mail links name another address ({HELP})",
