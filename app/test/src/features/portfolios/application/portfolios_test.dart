@@ -358,20 +358,27 @@ void main() {
         listen(container, portfoliosProvider(testUserId));
         await pumpEventQueue();
         final list = container.read(portfoliosProvider(testUserId).notifier);
-        // The command's request is on its way...
+        // The command's request is on its way, and stays there...
+        final gate = app.portfolios.gate..close();
         final running = command(list);
-        // ...when the session ends.
+        await pumpEventQueue();
+        // ...while the session ends.
         await app.cache.clear();
         // The same account signs in again and the list is built anew, by a
-        // read that brings nothing: it fails, or does not answer yet.
+        // read that brings nothing: it fails, or does not answer.
+        final void Function() answerCommand;
         if (offline) {
           app.portfolios.listFailure = const NetworkFailure();
+          answerCommand = gate.open;
         } else {
-          app.portfolios.gate.close();
+          answerCommand = gate.holdLaterCallsApart();
         }
         container
           ..invalidate(portfoliosProvider(testUserId))
           ..read(portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        // Only then does the command's answer come.
+        answerCommand();
         await running;
         await pumpEventQueue();
         expect(app.store.values, isEmpty);

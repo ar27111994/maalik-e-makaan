@@ -80,6 +80,14 @@ final class Gate {
     _completer = null;
   }
 
+  /// Holds the calls made from now on apart from those already held, until
+  /// [open]; the function it returns lets only those already held continue.
+  void Function() holdLaterCallsApart() {
+    final held = _completer;
+    _completer = Completer<void>();
+    return () => held?.complete();
+  }
+
   Future<void> pass() async {
     final completer = _completer;
     if (completer != null) await completer.future;
