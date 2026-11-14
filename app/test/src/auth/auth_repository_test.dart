@@ -321,10 +321,15 @@ void main() {
         ),
       );
       // Whatever the runner's speed: the signed-out status comes once the
-      // preferences step has given up on the store (a timer never fires
-      // early), and it does come.
+      // preferences step has given up on the store, and it does come. A
+      // timer may fire a millisecond or so early on some platforms, so the
+      // stopwatch is allowed 5 ms of the limit: far less than the limit
+      // itself, so the status still waited for the store's limit.
       final after = await signedOut.future.timeout(const Duration(seconds: 10));
-      expect(after, greaterThanOrEqualTo(limit));
+      expect(
+        after,
+        greaterThanOrEqualTo(limit - const Duration(milliseconds: 5)),
+      );
       expect(statuses, const [SignedOut(), SignedOut()]);
       await subscription.cancel();
     });
