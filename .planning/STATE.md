@@ -19,13 +19,16 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   pickers' copies, the camera's original included, also go as soon as they are read; at start-up
   the camera's photos and record stay only while a lost photo may still come back (a day). A
   deletion whose answer was lost signs out and wipes as a deletion, and says so. A portfolio that
-  leaves the user's list takes the user's other cache entries with it. Display settings stay; an
+  leaves the user's list takes the user's other cache entries with it, and any list of theirs
+  that was still loading. A store that does not answer holds up neither the other removals nor
+  the sign-out (three seconds each), and the next wipe starts afresh. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on
   that device, because "sign out, then sign in with the invited address" needs it. The website's
   how-it-works step and privacy page say this in both languages, with what the app cannot delete
   (downloads, the browser's copies, the clipboard, other devices, backups). The J14
-  browser-storage checks in the UAT (after a plain sign-out and after each deletion) are written
-  but not run yet: they need the Docker stack.
+  browser-storage checks in the UAT (after a plain sign-out, which keeps an unanswered
+  invitation, and after each deletion, which removes it) are written but not run here yet: they
+  need the Docker stack.
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the
