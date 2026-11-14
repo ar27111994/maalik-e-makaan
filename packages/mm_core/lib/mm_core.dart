@@ -25,6 +25,10 @@ export 'src/identity/email_address.dart';
 export 'src/identity/iban.dart';
 export 'src/identity/phone_number.dart';
 export 'src/ledger/allocation.dart';
+export 'src/money/amount_lexicon.g.dart'
+    show amountLexiconReviewed, amountLexiconVersion;
+export 'src/money/amount_parse.dart';
+export 'src/money/amount_words.dart';
 export 'src/money/basis_points.dart';
 export 'src/money/money.dart' hide divideRounded;
 export 'src/money/money_format.dart';
