@@ -29,6 +29,10 @@ feature, not before. Each item says when it ships:
 - **With the app's switches:** when the app's privacy switches, PostHog in the app, Intercom or
   Customer.io ship (decision 3).
 - **With residence:** when decision 1's screens ship.
+- **With PR #70:** with the release that carries pull request
+  [#70](https://github.com/ar27111994/maalik-e-makaan/pull/70) (open; "PR #70", at `aac83e9`), the
+  device wipe, which already contains the new text. Item 17 is the only one: it is wrong today,
+  whatever happens to decisions 1 to 3.
 
 ## Summary
 
@@ -50,6 +54,7 @@ feature, not before. Each item says when it ships:
 | 14  | Licences page, `licences/en.yaml`:5                                | `licences/ur.yaml`:6                             | Incomplete once posthog-js is bundled  | With website counting   |
 | 15  | Other pages that stay true                                         | Listed in the item                               | Kept                                   | —                       |
 | 16  | Planning documents that describe today                             | The glossary's analytics entry changes with them | Kept until the features ship           | With each feature       |
+| 17  | How it works, signing out, `how-it-works/en.yaml`:19               | `how-it-works/ur.yaml`:16                        | **Inaccurate today**                   | With PR #70             |
 
 ## 1. Privacy page meta description
 
@@ -462,3 +467,55 @@ FAQ (its own `$comment`: "change the copy it governs in the same change"). Propo
   read as nationality.
 - **The one-word-per-thing rule** (`sentenceRules`) adds: "A portfolio's caretaker: نگران (the
   role it holds stays منیجر)."
+
+## 17. How it works: signing out
+
+`website/src/content/how-it-works/en.yaml`:19, a point under the first step of the live
+how-it-works page. **Inaccurate today**, in both languages: release 1.2.0 clears the record cache
+and the session at sign-out, but keeps the settings, the last portfolio and a pending invitation;
+on a phone it keeps every camera photo (CNIC photos among them), picked file and shared document
+in the app's own folders until the phone clears them; and it keeps the cache after a deletion
+whose answer is lost, or a session replaced through another account's e-mail link
+([data map](data-map.md#on-the-device), rows 14a to 14e, and gap 5).
+
+Current:
+
+> You stay signed in, and signing out clears the app's saved records from your phone or computer.
+
+Proposed, as PR #70 already writes it (two points in place of one, `how-it-works/en.yaml`:19-20
+at `aac83e9`):
+
+> You stay signed in. Signing out removes the app's copy of your records and your last-chosen
+> portfolio from this phone or computer. The Android and iPhone apps also delete their own copies
+> of photos and files, and the files they made to share (one shared in the last ten minutes a
+> little later).
+>
+> Your language and display choices stay, and so does an invitation you have not answered, so that
+> you can sign in with the address it was sent to; deleting your account removes the invitation
+> too. Files you download, or share with another app, are yours to delete. The privacy page has the
+> details.
+
+Current Urdu, `website/src/content/how-it-works/ur.yaml`:16:
+
+> آپ سائن اِن رہتے ہیں۔ سائن آؤٹ کریں تو ایپ نے جو ریکارڈ آپ کے فون یا کمپیوٹر پر رکھا تھا، وہ صاف ہو جاتا ہے۔
+
+Proposed Urdu, as PR #70 already writes it (`how-it-works/ur.yaml`:16-17 at `aac83e9`):
+
+> آپ سائن اِن رہتے ہیں۔ سائن آؤٹ کریں تو ایپ اس فون یا کمپیوٹر سے ریکارڈ کی اپنی کاپی اور آخری بار چنا ہوا پورٹ فولیو ہٹا دیتی ہے۔ اینڈرائیڈ اور آئی فون ایپ تصویروں اور فائلوں کی اپنی کاپیاں، اور بھیجنے کے لیے بنائی فائلیں بھی ہٹا دیتی ہے (پچھلے دس منٹ میں بھیجی فائل تھوڑی دیر بعد)۔
+>
+> آپ کی زبان اور اسکرین کا انداز رہتا ہے، اور وہ دعوت بھی جس کا ابھی جواب نہیں دیا، تاکہ آپ اسی ای میل سے سائن اِن کر سکیں جس پر وہ آئی۔ اکاؤنٹ ڈیلیٹ کرنے سے یہ دعوت بھی ہٹ جاتی ہے۔ جو فائلیں آپ ڈاؤن لوڈ کریں یا کسی اور ایپ کو بھیجیں، انہیں آپ ہی ڈیلیٹ کر سکتے ہیں۔ تفصیل پرائیویسی کے صفحے پر ہے۔
+
+Ships: **with PR #70**, in the same release as the wipe it describes, never before; the privacy
+page's new section "On your phone or computer" goes with it (the draft notice's changes table,
+rows 42 and 43).
+
+Why: the new text claims only what PR #70's wipe does, and names what stays. It does not mention
+the phone's backup or a sign-out that cannot reach the server; the privacy page does
+([data map](data-map.md#on-the-device), row 14g).
+
+[Owner: until PR #70 is released, the live line overstates what the app does. Either release
+PR #70 soon, or change the line now to say only what release 1.2.0 does, for example "You stay
+signed in, and signing out removes your sign-in and the app's copy of your records from this
+phone or computer.", with its Urdu: "آپ سائن اِن رہتے ہیں۔ سائن آؤٹ کریں تو ایپ اس فون یا
+کمپیوٹر سے آپ کا سائن اِن اور ریکارڈ کی اپنی کاپی ہٹا دیتی ہے۔" That stopgap is still not true
+after a deletion whose answer is lost or a session replaced through an e-mail link (row 14a).]
