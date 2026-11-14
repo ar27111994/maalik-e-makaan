@@ -41,8 +41,9 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   privacy page, in both languages. Display settings belong to the device and stay; the pending
   invitation stays until the account is deleted (see On the device); text the person copies is
   theirs. A cache write names the cache's epoch read before its request
-  (`SwrCache.write(epoch:)`, a required argument; `SwrCache.requestEpoch` in a notifier's
-  command), so that nothing lands after a wipe, or after a portfolio left the user's list.
+  (`SwrCache.write(epoch:)` and `SwrNotifier.show(epoch:)`, required arguments: a command reads
+  `requestEpoch()` before its request, or `shownEpoch` with the value on show it builds on), so
+  that nothing lands after a wipe, or after a portfolio left the user's list.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

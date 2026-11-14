@@ -320,9 +320,12 @@ else does then, since a picker may be handing over a copy.
   epoch read before its value was asked for (`SwrCache.write(epoch:)`, a
   required argument). `SwrCache.watch` takes it when it is called.
   `SwrNotifier`, `PortfoliosController`, `ProfileController` and
-  `ResidenceController` note it when they are built, and `SwrNotifier.reload`
-  and the profile's and the residence's commands read it again before their
-  request (`SwrCache.requestEpoch`). A write is dropped when the cache was
+  `ResidenceController` note it when they are built, and every command reads
+  it again before its request (`SwrCache.requestEpoch`; `SwrNotifier.reload`
+  and `requestEpoch`). `SwrNotifier.show` requires it: a command hands over
+  the epoch it read before its request, or, for a value made from the one on
+  show ("load more", a notification marked read), `shownEpoch`, the epoch
+  that value was asked for in. A write is dropped when the cache was
   cleared since its epoch: a fetch that was on its way when the session ended
   (its token is still valid for up to an hour) cannot put the account back on
   the device, and neither can anything a notifier built for that session asks
@@ -331,10 +334,17 @@ else does then, since a picker may be handing over a copy.
   asked for before and answered after, is not saved again (no later refresh
   would find it, since the saved portfolio list no longer names that
   portfolio). A write the store had not finished when either happened is
-  deleted as it lands. A value a notifier shows without an epoch of its own
-  (`SwrNotifier.show`, after "load more" or a save) counts as asked for when
-  the notifier was built: after a portfolio left the list it is shown but not
-  saved, until the query is read again (`reload`) or built anew.
+  deleted as it lands; that delete also takes a later, wanted write of the
+  same entry if the store finished that one first, and the entry is fetched
+  again (accepted: nothing of a removed portfolio stays). A screen opened
+  before a portfolio left goes on saving what its commands ask for after,
+  and a value made from one shown before is shown but not saved, until the
+  query is read again (`reload`) or built anew. Both a clear and a forget
+  ask for each entry's deletion on its own: one that fails or never answers
+  leaves the others to go. The portfolio list is saved only once the user's
+  other entries are gone, so while they are not (the app closed, or the store
+  failed), the saved list still names the portfolio that left, and the next
+  load or save forgets them again.
 - **Replays.** gotrue's auth stream replays its latest event to a new
   listener, so a `signedOut` is acted on only when no session exists, and a
   session counts as replaced only when the event's session is the current
@@ -347,7 +357,11 @@ else does then, since a picker may be handing over a copy.
   asked and no more: no preference is asked for after the start, when someone
   else may have signed in. While that step runs, a wipe that removes no more
   shares it; once it has ended, in time or not, the next wipe is a wipe of its
-  own, with its own pass over the files. The files follow, one pass
+  own, with its own pass over the files. So a session that begins while a
+  store has not answered (a link signs another account in) and ends within
+  those three seconds removes nothing of its own: accepted, since it needs a
+  store that hangs and a session of under three seconds, and the next wipe
+  removes it. The files follow, one pass
   at a time, never holding the user up and given up after thirty seconds
   (`wipeFilesLimit`). A pass touches no camera photo or picker copy written
   after its wipe began: a picker copies into a folder it has just made, whose

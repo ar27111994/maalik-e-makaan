@@ -287,6 +287,9 @@ final class DeviceDataWipe {
 
   Future<void> _wipe(WipeReason reason, {required bool camera}) {
     final current = _current;
+    // Accepted: a session that began while this step waits for a store
+    // that does not answer, and ends before the step does, shares it and
+    // removes nothing of its own; the next wipe does.
     if (current != null && current.covers(reason, camera: camera)) {
       return current.preferences;
     }
