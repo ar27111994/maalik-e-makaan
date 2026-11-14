@@ -75,7 +75,18 @@ test("each earlier address redirects permanently to the same page on the origin"
 }) => {
   for (const legacy of origins.site.legacy) {
     const host = new URL(legacy).host;
-    for (const path of ["/", "/ur/pricing/?utm_source=x&a=%20b", "/missing/"]) {
+    // The replacement patterns of String.prototype.replace ($&, $1, $$, $`) stay as they are; a
+    // backtick is percent-encoded in a path, as browsers send it.
+    for (const path of [
+      "/",
+      "/ur/pricing/?utm_source=x&a=%20b",
+      "/missing/",
+      "/$&/",
+      "/$1/",
+      "/$$/",
+      "/$%60/",
+      "/$'/",
+    ]) {
       expect(await getAs(baseURL ?? "", host, path), `${host}${path}`).toEqual({
         status: 308,
         location: `${origins.site.origin}${path}`,

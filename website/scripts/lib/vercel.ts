@@ -180,10 +180,14 @@ export function redirectFor(
     const { regex, names } = compileRedirectSource(rule.source);
     const match = regex.exec(pathname);
     if (match === null || !hostMatches(rule, hostname)) continue;
+    // One pass, with a function: each :name takes its capture as it is, never read as a
+    // replacement pattern ($&, $1, $$...) nor searched again for another parameter's name.
+    const captures = new Map(names.map((name, index) => [name, match[index + 1] ?? ""]));
     let location = rule.destination;
-    names.forEach((name, index) => {
-      location = location.replace(new RegExp(`:${name}(?!\\w)`, "g"), match[index + 1] ?? "");
-    });
+    if (names.length > 0) {
+      const parameter = new RegExp(`:(${names.join("|")})(?!\\w)`, "g");
+      location = location.replace(parameter, (_, name: string) => captures.get(name) ?? "");
+    }
     if (!location.includes("?")) location += search;
     return { status: rule.statusCode ?? (rule.permanent === true ? 308 : 307), location };
   }

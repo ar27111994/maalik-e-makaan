@@ -143,6 +143,19 @@ describe("the earlier addresses redirect to the site's origin (contracts/origins
   );
 
   test.each(legacyHosts)(
+    "%s: a path holding String.prototype.replace's replacement patterns is passed on as it is",
+    (host) => {
+      // String.prototype.replace reads these in a replacement string; Vercel copies the path.
+      for (const path of ["/$&/", "/$1/", "/$$/", "/$`/", "/$'/", "/a/$&$1$$/b/"]) {
+        expect(redirectFor(config, host, path, "?q=$&")).toEqual({
+          status: 308,
+          location: `${origins.site.origin}${path}?q=$&`,
+        });
+      }
+    },
+  );
+
+  test.each(legacyHosts)(
     "%s keeps answering Google's verification file and /.well-known/ itself",
     (host) => {
       expect(redirectFor(config, host, "/google0123456789abcdef.html")).toBeUndefined();
@@ -208,6 +221,17 @@ describe("the redirect emulation refuses what it cannot apply as Vercel does", (
       status: 307,
       location: "https://b.example/c/b/c?y",
     });
+  });
+
+  test("each parameter is filled in once, from its own capture, never from another's", () => {
+    const two: VercelConfig = {
+      redirects: [
+        { source: "/:a([^/]*)/:b(.*)", destination: "https://b.example/:b/:a", permanent: true },
+      ],
+    };
+    // The first capture holds the name of the second parameter: it must stay as it is.
+    expect(redirectFor(two, "any", "/:b/x")?.location).toBe("https://b.example/x/:b");
+    expect(redirectFor(two, "any", "/$&/$'")?.location).toBe("https://b.example/$'/$&");
   });
 
   test("the trailing slash is not added under /.well-known/, as on Vercel", () => {
