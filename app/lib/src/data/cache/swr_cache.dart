@@ -103,6 +103,9 @@ final class SwrCache {
     );
   }
 
+  /// Now, as the cache stamps what it saves.
+  DateTime now() => _clock().toUtc();
+
   /// Bumped when the stored format changes; older entries are ignored.
   static const _prefix = 'mm.swr.v1.';
 
@@ -139,14 +142,16 @@ final class SwrCache {
   /// value was asked for: nothing is stored when the entry was removed
   /// since (the cache was cleared, or the user's entries were forgotten and
   /// [query] was not the one kept), also when that happens while the store
-  /// is still writing.
+  /// is still writing. What a later write saved for the entry by then goes
+  /// with it (the store may have taken the two in either order), and is
+  /// fetched again.
   Future<DateTime> write(
     String userId,
     String query,
     Object? json, {
     required int epoch,
   }) async {
-    final savedAt = _clock().toUtc();
+    final savedAt = now();
     if (_removedSince(epoch, userId, query)) return savedAt;
     final key = _key(userId, query);
     await _store.write(
@@ -154,20 +159,20 @@ final class SwrCache {
       jsonEncode({'saved_at': savedAt.toIso8601String(), 'value': json}),
     );
     // Removed while the store was writing: the removal may have listed the
-    // keys before this one was there.
+    // keys before this one was there. Accepted: a later, wanted write of the
+    // entry that the store finished first goes too, and is fetched again.
     if (_removedSince(epoch, userId, query)) await _store.delete(key);
     return savedAt;
   }
 
   /// Deletes every cached entry (all users), when the device is wiped, and
   /// starts a new [epoch] before anything else, so that a write still on
-  /// its way is dropped.
+  /// its way is dropped. Throws when an entry could not be deleted, once
+  /// the others are ([_deleteWhere]).
   Future<void> clear() async {
     _cleared = ++_epoch;
     _forgotten.clear();
-    for (final key in await _store.keys()) {
-      if (key.startsWith(_prefix)) await _store.delete(key);
-    }
+    await _deleteWhere((key) => key.startsWith(_prefix));
   }
 
   /// Deletes [userId]'s entries but the one of [keep]: when a portfolio
@@ -178,13 +183,25 @@ final class SwrCache {
   /// It starts a new [epoch] before anything else: a write of the user's
   /// that was asked for before (a list still loading for the portfolio that
   /// left) is dropped, but one of [keep]. Other users' writes are not.
+  /// Throws when an entry could not be deleted, once the others are
+  /// ([_deleteWhere]).
   Future<void> forgetUser(String userId, {required String keep}) async {
     (_forgotten[userId] ??= {})[keep] = ++_epoch;
     final prefix = '$_prefix$userId.';
     final kept = _key(userId, keep);
-    for (final key in await _store.keys()) {
-      if (key.startsWith(prefix) && key != kept) await _store.delete(key);
-    }
+    await _deleteWhere((key) => key.startsWith(prefix) && key != kept);
+  }
+
+  /// Deletes the stored keys [doomed] picks, each on its own and all asked
+  /// for at once: one that cannot be deleted, or whose deletion never
+  /// answers, holds up no other. It ends when they all have, with the
+  /// first failure if there was one.
+  Future<void> _deleteWhere(bool Function(String key) doomed) async {
+    final keys = await _store.keys();
+    await Future.wait([
+      for (final key in keys)
+        if (doomed(key)) Future.sync(() => _store.delete(key)),
+    ]);
   }
 
   /// The cached value first (when there is one), then the fresh value once

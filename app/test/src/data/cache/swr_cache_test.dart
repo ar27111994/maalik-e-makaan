@@ -12,17 +12,43 @@ final class _SlowStore implements KeyValueStore {
   final inner = MemoryStore();
   Completer<void>? held;
 
+  /// How many writes the cache asked for.
+  int writes = 0;
+
   @override
   Future<String?> read(String key) => inner.read(key);
 
   @override
   Future<void> write(String key, String value) async {
+    writes++;
     await held?.future;
     await inner.write(key, value);
   }
 
   @override
   Future<void> delete(String key) => inner.delete(key);
+
+  @override
+  Future<Set<String>> keys() => inner.keys();
+}
+
+/// A store whose deletion of [stuck] throws as it is asked for, not in the
+/// future it returns.
+final class _ThrowingStore implements KeyValueStore {
+  new(this.stuck);
+
+  final inner = MemoryStore();
+  final String stuck;
+
+  @override
+  Future<String?> read(String key) => inner.read(key);
+
+  @override
+  Future<void> write(String key, String value) => inner.write(key, value);
+
+  @override
+  Future<void> delete(String key) =>
+      key == stuck ? throw StateError('cannot delete') : inner.delete(key);
 
   @override
   Future<Set<String>> keys() => inner.keys();
@@ -50,6 +76,13 @@ void main() {
     expect(snapshot!.value, {'due': 45000});
     expect(snapshot.savedAt, saved);
     expect(snapshot.fromCache, isTrue);
+  });
+
+  test("its time is the clock's, in UTC", () {
+    expect(cache.now(), saved);
+    final local = SwrCache(store, clock: saved.toLocal);
+    expect(local.now().isUtc, isTrue);
+    expect(local.now(), saved);
   });
 
   test('entries are per user', () async {
@@ -80,6 +113,55 @@ void main() {
     store.values['mm.settings.locale'] = 'ur';
     await cache.clear();
     expect(store.values, {'mm.settings.locale': 'ur'});
+  });
+
+  group('an entry that cannot be deleted', () {
+    setUp(() async {
+      // The first one listed is the one that stays.
+      await cache.seed('u1', 'a', 1);
+      await cache.seed('u1', 'b', 2);
+      await cache.seed('u1', 'portfolios', 3);
+      await cache.seed('u2', 'c', 4);
+    });
+
+    test('leaves a clear to delete the others, and then fails it', () async {
+      store.undeletable.add('mm.swr.v1.u1.a');
+      await expectLater(cache.clear(), throwsStateError);
+      expect(store.values.keys, ['mm.swr.v1.u1.a']);
+    });
+
+    test("leaves forgetUser to delete the user's others, and then fails "
+        'it', () async {
+      store.undeletable.add('mm.swr.v1.u1.a');
+      await expectLater(
+        cache.forgetUser('u1', keep: 'portfolios'),
+        throwsStateError,
+      );
+      expect(store.values.keys, [
+        'mm.swr.v1.u1.a',
+        'mm.swr.v1.u1.portfolios',
+        'mm.swr.v1.u2.c',
+      ]);
+    });
+
+    test('because its deletion never answers holds up no other', () async {
+      store.silent.add('mm.swr.v1.u1.a');
+      var ended = false;
+      unawaited(cache.clear().whenComplete(() => ended = true));
+      await pumpEventQueue();
+      expect(store.values.keys, ['mm.swr.v1.u1.a']);
+      expect(ended, isFalse);
+    });
+
+    test('because the store throws as it is asked leaves the others to '
+        'go', () async {
+      final throwing = _ThrowingStore('mm.swr.v1.u1.a');
+      final over = SwrCache(throwing);
+      await over.seed('u1', 'a', 1);
+      await over.seed('u1', 'b', 2);
+      await expectLater(over.clear(), throwsStateError);
+      expect(throwing.inner.values.keys, ['mm.swr.v1.u1.a']);
+    });
   });
 
   test('a write for an epoch the cache was cleared since is dropped', () async {
@@ -267,6 +349,31 @@ void main() {
       await writing;
       expect(slow.inner.values.keys, ['mm.swr.v1.u1.q']);
     });
+
+    test('never stays where a later write saved the entry meanwhile, which '
+        'may go with it: the store takes the two in either order', () async {
+      final late = slowCache.write('u1', 'q', 1, epoch: slowCache.epoch);
+      await slowCache.forgetUser('u1', keep: 'portfolios');
+      final wanted = slowCache.write('u1', 'q', 2, epoch: slowCache.epoch);
+      slow.held!.complete();
+      await Future.wait([late, wanted]);
+      final left = await slowCache.read('u1', 'q', decodeInt);
+      expect(left?.value, isNot(1));
+    });
+  });
+
+  test('a write whose entry was removed since its epoch is never handed to '
+      'the store', () async {
+    // A store that would never finish it.
+    final slow = _SlowStore()..held = Completer();
+    final slowCache = SwrCache(slow, clock: () => saved);
+    final before = slowCache.epoch;
+    await slowCache.clear();
+    expect(await slowCache.write('u1', 'q', 1, epoch: before), saved);
+    final between = slowCache.epoch;
+    await slowCache.forgetUser('u1', keep: 'portfolios');
+    expect(await slowCache.write('u1', 'tenants.p1', 1, epoch: between), saved);
+    expect(slow.writes, 0);
   });
 
   test(

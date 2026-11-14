@@ -738,6 +738,14 @@ final class MemorySettingsStore implements SettingsStore {
 final class MemoryStore implements KeyValueStore {
   final Map<String, String> values = {};
 
+  /// The keys whose deletion fails while they are listed here, as on a
+  /// store that refuses.
+  final undeletable = <String>{};
+
+  /// The keys whose deletion never answers while they are listed here, as
+  /// a platform call that hangs, or an app closed before it was made.
+  final silent = <String>{};
+
   @override
   Future<String?> read(String key) async => values[key];
 
@@ -745,7 +753,12 @@ final class MemoryStore implements KeyValueStore {
   Future<void> write(String key, String value) async => values[key] = value;
 
   @override
-  Future<void> delete(String key) async => values.remove(key);
+  Future<void> delete(String key) async {
+    // Never answers: what follows is not reached.
+    if (silent.contains(key)) await Completer<void>().future;
+    if (undeletable.contains(key)) throw StateError('cannot delete $key');
+    values.remove(key);
+  }
 
   @override
   Future<Set<String>> keys() async => values.keys.toSet();
