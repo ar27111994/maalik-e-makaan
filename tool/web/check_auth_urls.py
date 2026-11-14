@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""Check, before a deploy, that Supabase Auth sends the e-mail links of every build where that
-build can finish them.
+"""Check, before a release's builds or a deploy, that Supabase Auth sends the e-mail links of
+every build where that build can finish them.
 
+    python3 tool/web/check_auth_urls.py --project-ref REF [--origins FILE] [--plist FILE]
     python3 tool/web/check_auth_urls.py AUTH_JSON [--origins FILE] [--plist FILE]
 
-AUTH_JSON holds the hosted project's `site_url` and `uri_allow_list` (the comma-separated
-redirect URLs), as the Management API answers GET /v1/projects/{ref}/config/auth; the Deploy
-workflow's supabase job reads it with SUPABASE_ACCESS_TOKEN and keeps those two fields only.
+With --project-ref it reads the hosted project's settings itself, with the Management API
+(GET /v1/projects/{ref}/config/auth) and the access token in SUPABASE_ACCESS_TOKEN, and keeps
+only `site_url` and `uri_allow_list` (the comma-separated redirect URLs): the rest of the answer
+can hold secrets, and is neither printed nor written anywhere. The Release workflow runs it
+before its builds and the Deploy workflow's supabase job before it deploys. A token that may not
+read Auth's settings (401 or 403) only warns, and what the check gates goes ahead: the owner
+compares Authentication, URL Configuration with docs/operations.md, Domains, by hand. Any other
+answer, or none (after six tries, five seconds apart, for a 5xx or no answer), fails. AUTH_JSON
+is a file holding those two fields, for a check by hand.
 
 A build asks Auth to send its e-mail links (confirmation, password reset, e-mail change) to
 `APP_URL/auth/callback` (the web app and Android), or, on iOS, to the same address under the
@@ -30,15 +37,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import plistlib
 import re
 import sys
+import time
+import urllib.error
+import urllib.request
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).parent))
-from check_live import OriginsError, read_origins
+from check_live import Answer, OriginsError, UnreachableError, answer, read_origins
 
 REPO = Path(__file__).resolve().parents[2]
 PLIST = REPO / "app/ios/Runner/Info.plist"
@@ -46,6 +58,13 @@ CALLBACK = "/auth/callback"
 HELP = "docs/operations.md, Domains"
 _SEPARATORS = "./"
 _LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+MANAGEMENT_API = "https://api.supabase.com"
+ACCESS_ENV = "SUPABASE_ACCESS_TOKEN"
+# A Supabase project's reference: twenty lower-case letters.
+_PROJECT_REF = re.compile(r"[a-z]{20}")
+# Auth's settings are a few kilobytes; nothing beyond this is read.
+BODY_LIMIT = 1 << 20
+TIMEOUT_SECONDS = 30.0
 
 
 class AuthCheckError(Exception):
@@ -140,18 +159,95 @@ class AuthUrls:
         return any(glob_regex(entry).fullmatch(url) for entry in self.allow_list)
 
 
-def read_auth(path: Path) -> AuthUrls:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        site_url, allow = data["site_url"] or "", data.get("uri_allow_list") or ""
-    except (OSError, json.JSONDecodeError, KeyError, TypeError, AttributeError) as error:
-        raise AuthCheckError(f"{path}: cannot read Auth's site_url ({error!r})") from error
+def auth_urls(data: object, source: str) -> AuthUrls:
+    """The Site URL and redirect URLs of Auth's settings `data`, read from `source`."""
+    if not isinstance(data, dict) or "site_url" not in data:
+        raise AuthCheckError(f"{source}: cannot read Auth's site_url")
+    site_url, allow = data["site_url"] or "", data.get("uri_allow_list") or ""
     if not isinstance(site_url, str) or not isinstance(allow, str):
-        raise AuthCheckError(f"{path}: site_url and uri_allow_list must be strings")
+        raise AuthCheckError(f"{source}: site_url and uri_allow_list must be strings")
     entries = tuple(entry.strip() for entry in allow.split(",") if entry.strip())
     for entry in entries:
         glob_regex(entry)
     return AuthUrls(site_url, entries)
+
+
+def read_auth(path: Path) -> AuthUrls:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise AuthCheckError(f"{path}: cannot read Auth's site_url ({error!r})") from error
+    return auth_urls(data, str(path))
+
+
+class TokenCannotReadError(Exception):
+    """The access token may not read Auth's settings (401 or 403)."""
+
+
+def fetch_with_token(token: str) -> Callable[[str], Answer]:
+    """A GET for check_live.answer() that sends `token` and follows no redirect."""
+
+    def get(url: str) -> Answer:
+        # The URL is MANAGEMENT_API's, with a project reference checked against _PROJECT_REF.
+        request = urllib.request.Request(  # noqa: S310
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "User-Agent": "maalik-e-makaan-deploy-check",
+            },
+        )
+        opener = urllib.request.build_opener(_NoRedirect)
+        try:
+            with opener.open(request, timeout=TIMEOUT_SECONDS) as response:
+                return Answer(response.status, body=response.read(BODY_LIMIT))
+        except urllib.error.HTTPError as error:
+            with error:
+                return Answer(error.code, body=error.read(BODY_LIMIT))
+        except (urllib.error.URLError, OSError) as error:
+            raise UnreachableError(str(getattr(error, "reason", error))) from error
+
+    return get
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Hands a redirect back as an answer, so the token never goes to another address."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def fetch_auth(
+    project_ref: str,
+    token: str,
+    get: Callable[[str], Answer] | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> AuthUrls:
+    """Auth's Site URL and redirect URLs, read with the Management API; raises
+    TokenCannotReadError on 401 or 403, and AuthCheckError on any other failure."""
+    if not _PROJECT_REF.fullmatch(project_ref):
+        raise AuthCheckError(f"{project_ref!r} is not a Supabase project reference")
+    if not token:
+        raise AuthCheckError(f"{ACCESS_ENV} is not set")
+    url = f"{MANAGEMENT_API}/v1/projects/{project_ref}/config/auth"
+    try:
+        got = answer(url, get or fetch_with_token(token), sleep)
+    except UnreachableError as error:
+        raise AuthCheckError(
+            f"Auth's settings could not be read ({error}); run this again"
+        ) from error
+    if got.status in (401, 403):
+        raise TokenCannotReadError(got.status)
+    if got.status != 200:
+        raise AuthCheckError(
+            f"Auth's settings could not be read (HTTP {got.status}); run this again"
+        )
+    try:
+        data = json.loads(got.body)
+    except (ValueError, UnicodeDecodeError) as error:
+        raise AuthCheckError("the Management API's answer is not JSON") from error
+    # Only these two fields are kept: the rest of the answer can hold secrets.
+    return auth_urls(data, "the Management API's answer")
 
 
 def read_schemes(path: Path = PLIST) -> tuple[str, ...]:
@@ -214,16 +310,36 @@ def check(
     return errors, warnings
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    environ: Mapping[str, str] = os.environ,
+    get: Callable[[str], Answer] | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("auth", type=Path, help="site_url and uri_allow_list, as JSON")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("auth", type=Path, nargs="?", help="site_url and uri_allow_list, as JSON")
+    source.add_argument(
+        "--project-ref",
+        help=f"read the hosted project's settings with the Management API ({ACCESS_ENV})",
+    )
     parser.add_argument("--origins", type=Path, help="default: contracts/origins.json")
     parser.add_argument("--plist", type=Path, default=PLIST, help="the iOS app's Info.plist")
     args = parser.parse_args(argv)
     try:
-        auth = read_auth(args.auth)
         origins = read_origins(args.origins)
         schemes = read_schemes(args.plist)
+        if args.project_ref is None:
+            auth = read_auth(args.auth)
+        else:
+            auth = fetch_auth(args.project_ref, environ.get(ACCESS_ENV, ""), get, sleep)
+    except TokenCannotReadError as status:
+        print(
+            f"::warning::The access token may not read Auth's settings (HTTP {status}), so the"
+            " redirect URLs are not checked and what this check gates goes ahead: compare"
+            f" Authentication, URL Configuration with {HELP}, step 4, by hand"
+        )
+        return 0
     except (AuthCheckError, OriginsError) as error:
         print(f"::error::{error}")
         return 2
@@ -233,7 +349,10 @@ def main(argv: list[str] | None = None) -> int:
     for error in errors:
         print(f"::error::{error}")
     if errors:
-        print(f"{len(errors)} e-mail link address(es) not allowed; nothing was deployed")
+        print(
+            f"{len(errors)} e-mail link address(es) not allowed; nothing that sends them is built"
+            " or deployed"
+        )
         return 1
     print("Auth allows the e-mail links of this release's builds")
     return 0

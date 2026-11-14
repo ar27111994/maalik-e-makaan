@@ -19,9 +19,11 @@
 # never written here or kept in a repository variable. A site refresh of an
 # older tag therefore builds the addresses that tag was released with, and a
 # move of either reaches production with the release that carries it. Before
-# anything is deployed, each job checks that the addresses it sends people to
-# answer (tool/web/check_live.py) and that Auth sends the e-mail links of the
-# release's builds where they can be finished (tool/web/check_auth_urls.py).
+# anything is deployed, the supabase job checks that Auth sends the e-mail links
+# of the release's builds where they can be finished (tool/web/check_auth_urls.py,
+# which the Release workflow also runs before its builds), and the web and site
+# jobs that the addresses they send people to answer (tool/web/check_live.py);
+# the web job also checks that the Edge Functions accept the web app's origin.
 #
 # It is called rather than started by the "release published" event: a
 # release that release-please creates with the default GITHUB_TOKEN starts no
@@ -104,33 +106,16 @@ jobs:
         # Each build asks Auth to send its e-mail links to its own callback (the web app's
         # origin, an earlier address for builds from before a move, and the iOS forms of both),
         # and Auth sends a link only where its URL Configuration allows (docs/operations.md,
-        # Domains). Read with the Management API before anything is deployed; only the Site URL
-        # and the redirect URLs are kept, since the rest of the answer can hold secrets. A token
-        # that may not read Auth's settings only warns: check them by hand then.
+        # Domains). Read with the Management API before anything is deployed, by the script the
+        # Release workflow also runs before its builds; it keeps only the Site URL and the
+        # redirect URLs, since the rest of the answer can hold secrets. A token that may not read
+        # Auth's settings only warns: check them by hand then.
         run: |
           if [[ ! -f tool/web/check_auth_urls.py ]]; then
             echo "::notice::This ref has no tool/web/check_auth_urls.py; Auth's redirect URLs are not checked"
             exit 0
           fi
-          raw="$RUNNER_TEMP/auth-config.json"
-          trap 'rm -f "$raw"' EXIT
-          status="$(curl -sS -o "$raw" -w '%{http_code}' --retry 5 --retry-delay 5 --retry-all-errors \
-            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            "https://api.supabase.com/v1/projects/$PROJECT_REF/config/auth")"
-          case "$status" in
-            200)
-              jq '{site_url, uri_allow_list}' "$raw" > "$RUNNER_TEMP/auth-urls.json"
-              rm -f "$raw"
-              python3 tool/web/check_auth_urls.py "$RUNNER_TEMP/auth-urls.json"
-              ;;
-            401 | 403)
-              echo "::warning::The access token may not read Auth's settings (HTTP $status), so the redirect URLs are not checked: compare Authentication, URL Configuration with docs/operations.md, Domains, by hand"
-              ;;
-            *)
-              echo "::error::Auth's settings could not be read (HTTP $status); run this again"
-              exit 1
-              ;;
-          esac
+          python3 tool/web/check_auth_urls.py --project-ref "$PROJECT_REF"
       - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with:
           version: ${{ env.SUPABASE_CLI_VERSION }}

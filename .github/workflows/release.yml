@@ -5,7 +5,8 @@
 # attaches them, and deploys the tag to production (deploy.yml): the backend and
 # the web app at once, the website once those builds and the web app's deploy
 # have finished. The builds start only once the web app's origin answers
-# (tool/web/check_live.py), since every one of them names it.
+# (tool/web/check_live.py), since every one of them names it, and Auth allows
+# the e-mail link callbacks they send (tool/web/check_auth_urls.py).
 name: Release
 
 on:
@@ -52,19 +53,27 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  live:
+  preflight:
     # Every build names the web app's origin (its APP_URL, from the tag's
     # contracts/origins.json), and the Android app lists it in its App Links.
     # An origin that does not answer over HTTPS would break the e-mail links of
     # every install, and on Android 6 to 11 the App Links of the earlier host
-    # too (all of an app's hosts verify, or none); an APK cannot be recalled. So
-    # nothing is built until it answers (docs/operations.md, Domains). Re-run
-    # the failed jobs once it does.
-    name: The web app's origin answers
+    # too (all of an app's hosts verify, or none). And each build asks Auth to
+    # send its e-mail links to its own callback (the origin's, and on iOS the
+    # same under the app's URL scheme): one Auth does not allow sends them to the
+    # Site URL, where no build can finish the sign-in. An APK cannot be recalled,
+    # so nothing is built or attached until both hold (docs/operations.md,
+    # Domains). A token that may not read Auth's settings only warns, and the
+    # builds go ahead; check them by hand then. Re-run the failed jobs once the
+    # origin answers or Auth allows the callbacks. Deploy's supabase job runs the
+    # same Auth check before it deploys.
+    name: The web app's origin answers and Auth allows its callbacks
     needs: release-please
     if: needs.release-please.outputs.created == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # The environment of the builds it gates: the access token is read only there.
+    environment: release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -72,10 +81,16 @@ jobs:
           persist-credentials: false
       - name: The web app's origin answers over HTTPS
         run: python3 tool/web/check_live.py app
+      - name: Auth accepts the e-mail links of the release's builds
+        # Read with the Management API; only the Site URL and the redirect URLs are kept.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: python3 tool/web/check_auth_urls.py --project-ref "$PROJECT_REF"
 
   artefacts:
     name: Build and attach artefacts
-    needs: [release-please, live]
+    needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -171,7 +186,7 @@ jobs:
     # signs it with their own Apple Account to install it (docs/operations.md,
     # iOS builds).
     name: Build and attach the unsigned iOS app
-    needs: [release-please, live]
+    needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
     runs-on: macos-26
     timeout-minutes: 45
@@ -229,7 +244,9 @@ jobs:
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
 
   deploy:
-    # The backend and the web app, without waiting for the builds above.
+    # The backend and the web app, without waiting for the builds above: its
+    # supabase job runs the same Auth check, and its web job the same origin
+    # check, before either deploys anything.
     name: Deploy the release
     needs: release-please
     if: needs.release-please.outputs.created == 'true'

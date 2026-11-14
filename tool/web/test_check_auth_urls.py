@@ -12,6 +12,7 @@ import plistlib
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -176,7 +177,153 @@ class ReadTest(unittest.TestCase):
         self.assertEqual(ca.callbacks(APP, (SCHEME,)), [APP_WEB, APP_IOS])
 
 
+REF = "abcdefghijklmnopqrst"
+TOKEN = "test-value-not-a-real-token"  # a value the output must never show
+EVERY = ",".join((APP_WEB, APP_IOS, OLD_WEB, OLD_IOS))
+
+
+class FakeApi:
+    """Answers check_live.answer()'s GETs from a list, recording each URL."""
+
+    def __init__(self, *answers: object):
+        self.answers = list(answers)
+        self.urls: list[str] = []
+        self.pauses: list[float] = []
+
+    def get(self, url: str) -> ca.Answer:
+        self.urls.append(url)
+        got = self.answers.pop(0)
+        if isinstance(got, Exception):
+            raise got
+        assert isinstance(got, ca.Answer)
+        return got
+
+
+def settings(**fields: object) -> ca.Answer:
+    """A 200 holding Auth's settings: `fields`, and a secret the check must not keep."""
+    return ca.Answer(200, body=json.dumps({"smtp_pass": "hunter2", **fields}).encode())
+
+
+class FetchTest(unittest.TestCase):
+    def fetch(self, api: FakeApi, ref: str = REF, token: str = TOKEN) -> ca.AuthUrls:
+        return ca.fetch_auth(ref, token, api.get, api.pauses.append)
+
+    def test_reads_the_two_fields_from_the_management_api(self):
+        api = FakeApi(settings(site_url=OLD, uri_allow_list=EVERY))
+        auth = self.fetch(api)
+        self.assertEqual(auth, ca.AuthUrls(OLD, (APP_WEB, APP_IOS, OLD_WEB, OLD_IOS)))
+        self.assertEqual(api.urls, [f"https://api.supabase.com/v1/projects/{REF}/config/auth"])
+        self.assertNotIn("hunter2", repr(auth))
+
+    def test_a_token_that_may_not_read_the_settings(self):
+        for status in (401, 403):
+            with self.subTest(status=status), self.assertRaises(ca.TokenCannotReadError):
+                self.fetch(FakeApi(ca.Answer(status)))
+
+    def test_tries_again_on_5xx_and_no_answer_then_reads(self):
+        api = FakeApi(
+            ca.Answer(502), ca.UnreachableError("reset"), settings(site_url=APP, uri_allow_list="")
+        )
+        self.assertEqual(self.fetch(api), ca.AuthUrls(APP, ()))
+        self.assertEqual(api.pauses, [5.0, 5.0])
+
+    def test_any_other_failure_stops(self):
+        cases = {
+            "404": FakeApi(ca.Answer(404)),
+            "a redirect": FakeApi(ca.Answer(302)),
+            "5xx every time": FakeApi(*[ca.Answer(503)] * 6),
+            "no answer": FakeApi(*[ca.UnreachableError("timed out")] * 6),
+            "not JSON": FakeApi(ca.Answer(200, body=b"<html>")),
+            "no site_url": FakeApi(ca.Answer(200, body=b"{}")),
+        }
+        for name, api in cases.items():
+            with self.subTest(name), self.assertRaises(ca.AuthCheckError):
+                self.fetch(api)
+
+    def test_refuses_a_bad_reference_or_no_token_before_any_request(self):
+        for ref, token in (("abc/../x", TOKEN), ("ABCDEFGHIJKLMNOPQRST", TOKEN), (REF, "")):
+            api = FakeApi()
+            with self.subTest(ref=ref, token=bool(token)), self.assertRaises(ca.AuthCheckError):
+                self.fetch(api, ref, token)
+            self.assertEqual(api.urls, [])
+
+    def test_the_request_carries_the_token_and_follows_no_redirect(self):
+        seen: dict[str, object] = {}
+
+        class Opener:
+            def open(self, request, timeout):
+                seen["auth"] = request.get_header("Authorization")
+                seen["timeout"] = timeout
+                raise ca.urllib.error.URLError("offline")
+
+        with (
+            unittest.mock.patch.object(
+                ca.urllib.request, "build_opener", return_value=Opener()
+            ) as build,
+            self.assertRaises(ca.UnreachableError),
+        ):
+            ca.fetch_with_token(TOKEN)("https://api.supabase.com/x")
+        self.assertEqual(seen, {"auth": f"Bearer {TOKEN}", "timeout": ca.TIMEOUT_SECONDS})
+        self.assertIs(build.call_args.args[0], ca._NoRedirect)
+        self.assertIsNone(ca._NoRedirect().redirect_request())
+
+
 class MainTest(unittest.TestCase):
+    def run_api(self, api: FakeApi, environ: dict[str, str] | None = None):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = ca.main(
+                ["--project-ref", REF],
+                {"SUPABASE_ACCESS_TOKEN": TOKEN} if environ is None else environ,
+                api.get,
+                api.pauses.append,
+            )
+        self.assertNotIn(TOKEN, out.getvalue())
+        self.assertNotIn("hunter2", out.getvalue())
+        return code, out.getvalue()
+
+    def test_from_the_api_passes_against_the_repository_files(self):
+        # The repository's contracts/origins.json and Info.plist, during the move.
+        origins = ca.read_origins()
+        schemes = ca.read_schemes()
+        allow = ",".join(
+            url
+            for origin in (origins.app, *origins.app_legacy)
+            for url in ca.callbacks(origin, schemes)
+        )
+        site = origins.app_legacy[0] if origins.app_legacy else origins.app
+        code, out = self.run_api(FakeApi(settings(site_url=site, uri_allow_list=allow)))
+        self.assertEqual(code, 0, out)
+        self.assertIn("Auth allows the e-mail links of this release's builds", out)
+
+    def test_from_the_api_fails_on_a_missing_callback(self):
+        code, out = self.run_api(
+            FakeApi(settings(site_url="https://elsewhere.example", uri_allow_list=""))
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("nothing that sends them is built or deployed", out)
+
+    def test_a_token_that_may_not_read_only_warns(self):
+        code, out = self.run_api(FakeApi(ca.Answer(403)))
+        self.assertEqual(code, 0)
+        self.assertIn("::warning::The access token may not read Auth's settings (HTTP 403)", out)
+        self.assertIn("goes ahead", out)
+        self.assertNotIn("::error::", out)
+
+    def test_unreadable_settings_or_no_token_fail(self):
+        code, out = self.run_api(FakeApi(*[ca.Answer(500)] * 6))
+        self.assertEqual(code, 2)
+        self.assertIn("::error::Auth's settings could not be read (HTTP 500)", out)
+        code, out = self.run_api(FakeApi(), environ={})
+        self.assertEqual(code, 2)
+        self.assertIn("::error::SUPABASE_ACCESS_TOKEN is not set", out)
+
+    def test_a_file_or_the_api_not_both(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            ca.main(["auth.json", "--project-ref", REF], {}, FakeApi().get)
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            ca.main([], {}, FakeApi().get)
+
     def run_main(self, auth: object, origins: object | None = None):
         out = io.StringIO()
         with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(out):
@@ -215,7 +362,10 @@ class MainTest(unittest.TestCase):
         code, out = self.run_main({"site_url": OLD, "uri_allow_list": ""})
         self.assertEqual(code, 1)
         self.assertEqual(out.count("::error::"), 4)
-        self.assertIn("4 e-mail link address(es) not allowed; nothing was deployed", out)
+        self.assertIn(
+            "4 e-mail link address(es) not allowed; nothing that sends them is built or deployed",
+            out,
+        )
 
     def test_unreadable_input_is_an_error(self):
         code, out = self.run_main({"uri_allow_list": ""})
