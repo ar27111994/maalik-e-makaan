@@ -228,8 +228,8 @@ Versions sent: none yet.
   request.
 - **The pin is kept after merging `main` at `58a3281`** (14 November 2026): #73 (astro 7.4.12)
   and #72 (the sub-agent model setting). Neither changes the app or a cited claim; #72 adds eight
-  lines to `.planning/STATE.md` after :228, so a STATE line the pack cites from there on is eight
-  more at `58a3281`.
+  lines to `.planning/STATE.md` after :228 at `7e75b7f`, so a STATE line at `7e75b7f` from :229
+  on is eight more at `58a3281`; the lines the pack cites stay pinned to `ae0112c`.
 - **Which release carries what** (checked on 14 November 2026 against `origin/main` at
   `58a3281`): release 1.2.0, the latest, is the app and website the pack calls "today". Two pull
   requests the pack cites are open and in no release:
