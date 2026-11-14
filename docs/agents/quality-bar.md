@@ -368,8 +368,10 @@ the database decides what is allowed.
 **Gates today.** In the repository, the agent context is layered: the root
 [`AGENTS.md`](../../AGENTS.md), six area `AGENTS.md` files and [`docs/agents/`](README.md), with a
 `CLAUDE.md` beside each `AGENTS.md` that points to it.
-[`.claude/settings.json`](../../.claude/settings.json) pre-approves one command (`bend`) and sets
-no other rule. What checks an agent's work:
+[`.claude/settings.json`](../../.claude/settings.json) pre-approves one command (`bend`) and fixes
+the model every sub-agent runs on (`CLAUDE_CODE_SUBAGENT_MODEL`, with
+`CLAUDE_CODE_SUBAGENT_MODEL_FORCE` so that a workflow or an agent definition cannot choose another).
+It sets no other rule. What checks an agent's work:
 
 | Gate                                                                                                        | Where                                                                                                                          |
 | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
