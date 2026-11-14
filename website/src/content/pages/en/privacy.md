@@ -1,7 +1,7 @@
 ---
 title: "Privacy"
 description: "How this website and the Maalik-e-Makaan app treat your data: no cookies or trackers on the site, and in the app, your records seen only by the people you invite."
-lastUpdated: 2026-11-13
+lastUpdated: 2026-11-14
 ---
 
 ## In short
@@ -43,7 +43,7 @@ The app has no advertising, no analytics and no trackers.
 
 - The app keeps a copy of the records it last loaded on your phone or computer, so that it can show them at once, even without a connection. It also keeps your sign-in, your language and display choices, the portfolio you last chose, and an invitation you opened but have not answered yet, until you answer it or delete your account.
 - In the Android and iPhone apps, a photo you take or a file you pick is copied into the app's own storage, and the copy is deleted once the app has read it. Some phones' camera apps also keep the photo in your gallery; if so, delete it there. A receipt, statement or spreadsheet file you share is written to the app's storage too, for the app you share it with.
-- In the Android app, while the camera is open, the app notes which record the photo is for, and the camera and the file picker keep their own note of what is being picked, so that the photo is not lost if Android closes the app meanwhile. The notes go when the photo comes back or you sign out; one left behind goes when the app next starts after a day.
+- In the Android app, while the camera is open, the app notes which record the photo is for, and the camera and the file picker keep their own note of what is being picked, so that the photo is not lost if Android closes the app meanwhile. The app's note goes when the photo comes back. The camera's and the file picker's notes can stay until the next photo or file is picked, and go when you sign out. One left behind goes when the app next starts after a day.
 - When you sign out, or your sign-in ends for another reason (it runs out, or you sign in to another account through an email link), the app removes from this phone or computer your sign-in, its copy of your records, the portfolio you last chose, the camera's notes and its copies of photos and files. A file shared in the last ten minutes is kept a little longer, in case the app you shared it with is still reading it, and goes when you next open or return to the app after those ten minutes.
 - When a portfolio is deleted, or you leave it or are removed from it, the app removes its copy of your records the next time it loads your list of portfolios with an internet connection.
 - Signing out here does not sign you out on your other phones or computers: the app there keeps its copy until your sign-in ends there.
