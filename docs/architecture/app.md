@@ -325,9 +325,14 @@ else does then, since a picker may be handing over a copy.
   and `requestEpoch`). `SwrNotifier.show` requires it: a command hands over
   the epoch it read before its request, or, for a value made from the one on
   show ("load more", a notification marked read), `shownEpoch`, the epoch
-  that value was asked for in. A write is dropped when the cache was
-  cleared since its epoch: a fetch that was on its way when the session ended
-  (its token is still valid for up to an hour) cannot put the account back on
+  that value was asked for in. `ProfileController` and
+  `PortfoliosController` keep that epoch themselves: a language saved, an
+  owner-abroad answer, or a list made from the one on show when the server's
+  cannot be read is saved for the older of the two, so a profile or list
+  shown before its copy was removed is not saved again. A write is dropped
+  when the cache was cleared since its epoch: a fetch that was on its way
+  when the session ended (its token is still valid for up to an hour) cannot
+  put the account back on
   the device, and neither can anything a notifier built for that session asks
   for afterwards. It is dropped as well when the user's entries were forgotten
   since, unless it is the portfolio list: a list of the portfolio that left,
@@ -344,7 +349,14 @@ else does then, since a picker may be handing over a copy.
   leaves the others to go. The portfolio list is saved only once the user's
   other entries are gone, so while they are not (the app closed, or the store
   failed), the saved list still names the portfolio that left, and the next
-  load or save forgets them again. Only the device wipe puts a limit on the
+  load or save forgets them again. The portfolio list's saves (read the saved
+  list, forget what left, write) run one after another for a user
+  (`SwrCache.serially`): two that met would read the same saved list, and
+  the store may finish the older write last, leaving a saved list that no
+  longer names a portfolio whose records stay. One that fails holds up none
+  after it, one that waited is still dropped when its epoch is stale, and
+  after a clear the next save does not wait for those of the ended session.
+  Only the device wipe puts a limit on the
   store: elsewhere the cache waits for it, so a deletion that never answers
   keeps the portfolio list and its commands waiting too, as a read that
   never answers always did. `test/src/core/swr_commands_test.dart`
@@ -370,9 +382,15 @@ else does then, since a picker may be handing over a copy.
   store that hangs and a session of under three seconds, and the next wipe
   removes it. The files follow, one pass
   at a time, never holding the user up and given up after thirty seconds
-  (`wipeFilesLimit`). A pass touches no camera photo or picker copy written
-  after its wipe began: a picker copies into a folder it has just made, whose
-  time is new even when the copy keeps its original's. A file written to
+  (`wipeFilesLimit`). The steps of a pass (the records of a lost pick and
+  their copies, the pickers' copies, the sweep) start together, so one that
+  never answers holds up no other. A plugin's record of a lost pick is
+  waited for at most five seconds (`pluginCallLimit`); one that answers
+  later has the copies it names discarded then, since its record is gone
+  and nothing else would name them. The cache folder is asked for without
+  a limit of its own, so a late answer still lets its step finish. A pass
+  touches no camera photo or picker copy written after its wipe began: a
+  picker copies into a folder it has just made, whose time is new even when the copy keeps its original's. A file written to
   share is kept until it has not changed for ten minutes (`sharedFileGrace`):
   Android's share sheet returns before the receiving app has read it. Such a
   file goes at the next start or return to the foreground after that. A
@@ -385,7 +403,9 @@ else does then, since a picker may be handing over a copy.
   no expiry on the device: it goes when answered, refused or set aside, or
   when the account is deleted on this device.
 - **Copies on read.** On a phone, `PluginDocumentPicker` deletes the picker's
-  copy of a photo or file once it has read it, or refused it.
+  copy of a photo or file once it has read it, or refused it; it waits at
+  most `pluginCallLimit` for that, and the copy goes when the cache folder
+  answers later.
 - **Only the app's own folders.** path_provider's temporary directory
   (Android's cache, iOS's `Library/Caches`) and on iOS `tmp/`; never on the
   web or a computer. The app sweeps file_picker's copies itself rather than
