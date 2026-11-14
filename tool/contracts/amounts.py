@@ -30,25 +30,27 @@ READ_AFTER = ("fraction", "marker")
 CONTEXTS = ("field", "text")
 WORD_SCRIPTS = ("urdu", "roman", "english")
 
-# The examples the plan, the roadmap issue and the investor deck promise, each of which must be
-# an input in the vectors (docs/roadmap/amount-parser.md, "Done when").
-PROMISED_EXAMPLES = (
-    "ek lakh pachas hazar",
-    "2 lakh 50 hazar",
-    "pachees sau",
-    "ڈیڑھ لاکھ",
-    "sawa do lakh",
-    "sarhe teen hazar",
-    "paune do lakh",
-    "ek sau pachas crore",
-    "1.5 lac",
-    "پچاس ہزار",
-    "50k",
-    "Rs. 25,000/-",
-    "dedh lakh",
-    "pachas hazar",
-    "پچیس ہزار روپے",
-)
+# The examples the plan, the roadmap issue and the investor deck promise, and the paisa each must
+# read as (docs/roadmap/amount-parser.md, "Done when"). Each must be an input in the vectors in
+# both contexts, and every vector with that input must expect this number, so a change that makes
+# a promised example ambiguous or wrong fails the check instead of silently editing the promise.
+PROMISED_EXAMPLES = {
+    "ek lakh pachas hazar": 15_000_000,
+    "2 lakh 50 hazar": 25_000_000,
+    "pachees sau": 250_000,
+    "ڈیڑھ لاکھ": 15_000_000,
+    "sawa do lakh": 22_500_000,
+    "sarhe teen hazar": 350_000,
+    "paune do lakh": 17_500_000,
+    "ek sau pachas crore": 150_000_000_000,
+    "1.5 lac": 15_000_000,
+    "پچاس ہزار": 5_000_000,
+    "50k": 5_000_000,
+    "Rs. 25,000/-": 2_500_000,
+    "dedh lakh": 15_000_000,
+    "pachas hazar": 5_000_000,
+    "پچیس ہزار روپے": 2_500_000,
+}
 
 
 class ContractError(ValueError):
@@ -204,13 +206,22 @@ def check_lexicon(lexicon: dict) -> dict[str, tuple[str, int, bool]]:
     _keys(lexicon["review"], "review", {"status", "process", "check_first"})
     if not (ROOT / lexicon["review"]["process"]).is_file():
         raise ContractError("review.process: no such file")
-    if not lexicon["reviewed"] and "Not reviewed" not in lexicon["review"]["status"]:
+    status = lexicon["review"]["status"]
+    if not lexicon["reviewed"] and "Not reviewed" not in status:
         raise ContractError("review.status: an unreviewed lexicon must say 'Not reviewed'")
+    if lexicon["reviewed"] and "Not reviewed" in status:
+        raise ContractError("review.status: a reviewed lexicon must not say 'Not reviewed'")
+    if not isinstance(lexicon["review"]["check_first"], list):
+        raise ContractError("review.check_first: expected a list")
+    if not lexicon["reviewed"] and not lexicon["review"]["check_first"]:
+        raise ContractError(
+            "review.check_first: an unreviewed lexicon must list what to check first"
+        )
     for item in lexicon["review"]["check_first"]:
         _keys(item, "review.check_first", {"what", "why"})
+    for index, source in enumerate(lexicon["sources"]):
+        _keys(source, f"sources[{index}]", {"id", "title", "url", "reached", "used_for"})
     ids = [s["id"] for s in lexicon["sources"]]
-    for source in lexicon["sources"]:
-        _keys(source, "sources", {"id", "title", "url", "reached", "used_for"})
     if len(set(ids)) != len(ids):
         raise ContractError("sources: repeated id")
 
@@ -244,13 +255,23 @@ def check_lexicon(lexicon: dict) -> dict[str, tuple[str, int, bool]]:
         raise ContractError("normalise: a code point is both a space and a separator")
 
     numbers = lexicon["numbers"]
+    for index, n in enumerate(numbers):
+        _keys(n, f"numbers[{index}]", {"value", *SCRIPTS}, {"note"})
     if [n["value"] for n in numbers] != list(range(100)):
         raise ContractError("numbers: must list 0 to 99 once each, in order")
     for n in numbers:
-        _keys(n, f"number {n['value']}", {"value", *SCRIPTS}, {"note"})
         for script in SCRIPTS:
             _strings(n[script], f"number {n['value']}.{script}", empty=False)
 
+    for index, f in enumerate(lexicon["fractions"]):
+        _keys(
+            f,
+            f"fractions[{index}]",
+            {"id", "kind", "num", "den", *SCRIPTS, "note"},
+            {"min_number", "alone"},
+        )
+    for index, m in enumerate(lexicon["multipliers"]):
+        _keys(m, f"multipliers[{index}]", {"power", *SCRIPTS, "plural"}, {"note"})
     fraction_ids = [f["id"] for f in lexicon["fractions"]]
     if len(set(fraction_ids)) != len(fraction_ids):
         raise ContractError("fractions: repeated id")
@@ -281,7 +302,6 @@ def check_lexicon(lexicon: dict) -> dict[str, tuple[str, int, bool]]:
     if powers != sorted(set(powers)) or any(p < 2 for p in powers):
         raise ContractError("multipliers: powers must rise, each from 2")
     for m in lexicon["multipliers"]:
-        _keys(m, f"10^{m['power']}", {"power", *SCRIPTS, "plural"}, {"note"})
         for script in (*SCRIPTS, "plural"):
             _strings(m[script], f"10^{m['power']}.{script}")
         if not m["ur"]:
@@ -332,12 +352,13 @@ def check_lexicon(lexicon: dict) -> dict[str, tuple[str, int, bool]]:
         if any(check_unicode.reason_for(ord(ch), forbidden) for ch in spelling):
             raise ContractError(f"{spelling!r}: has a character the Unicode guard forbids")
 
+    for index, a in enumerate(lexicon["ambiguous"]):
+        _keys(a, f"ambiguous[{index}]", {"token", "refuse", "why"}, {"read_after"})
     tokens = [a["token"] for a in lexicon["ambiguous"]]
     if len(set(tokens)) != len(tokens):
         raise ContractError("ambiguous: repeated token")
     for a in lexicon["ambiguous"]:
         where = f"ambiguous {a['token']!r}"
-        _keys(a, where, {"token", "refuse", "why"}, {"read_after"})
         if normalise(a["token"]) != a["token"]:
             raise ContractError(f"{where}: not in normal form")
         if a["refuse"] not in POLICIES:
@@ -392,11 +413,12 @@ def check_vectors(vectors: dict, lexicon: dict) -> tuple[int, int]:
 
     names: set[str] = set()
     cases: set[tuple[str, str]] = set()
-    for case in vectors["parse"]:
-        where = f"parse {case.get('name')!r}"
+    for index, case in enumerate(vectors["parse"]):
+        where = f"parse[{index}]"
         _keys(case, where, {"name", "input", "context", "expected"})
-        if not isinstance(case["name"], str) or case["name"] in names:
-            raise ContractError(f"{where}: names must be unique strings")
+        where = f"parse {case['name']!r}"
+        if not isinstance(case["name"], str) or not case["name"].strip() or case["name"] in names:
+            raise ContractError(f"{where}: names must be unique, non-empty strings")
         names.add(case["name"])
         if not isinstance(case["input"], str):
             raise ContractError(f"{where}: input must be a string")
@@ -408,10 +430,18 @@ def check_vectors(vectors: dict, lexicon: dict) -> tuple[int, int]:
         cases.add((case["input"], case["context"]))
         if case["expected"] is not None and case["expected"] != "ambiguous":
             paisa(case["expected"], where)
-    inputs = {case["input"] for case in vectors["parse"]}
-    missing = [example for example in PROMISED_EXAMPLES if example not in inputs]
-    if missing:
-        raise ContractError(f"parse: the promised examples {missing} are not vectors")
+    for example, expected in PROMISED_EXAMPLES.items():
+        found = [c for c in vectors["parse"] if c["input"] == example]
+        if {c["context"] for c in found} != set(CONTEXTS):
+            raise ContractError(
+                f"parse: the promised example {example!r} must be a vector in each context"
+            )
+        wrong = [c["name"] for c in found if c["expected"] != expected]
+        if wrong:
+            raise ContractError(
+                f"parse: the promised example {example!r} must read as {expected} paisa, "
+                f"not as {wrong} expect"
+            )
     for context in CONTEXTS:
         outcomes = {
             "number" if isinstance(c["expected"], int) else c["expected"]
@@ -425,9 +455,9 @@ def check_vectors(vectors: dict, lexicon: dict) -> tuple[int, int]:
         raise ContractError("parse: zero, a paisa and the maximum must each be expected")
 
     pairs: set[tuple[int, str]] = set()
-    for case in vectors["words"]:
-        where = f"words {case.get('paisa')!r} {case.get('script')!r}"
-        _keys(case, where, {"paisa", "script", "words"})
+    for index, case in enumerate(vectors["words"]):
+        _keys(case, f"words[{index}]", {"paisa", "script", "words"})
+        where = f"words {case['paisa']!r} {case['script']!r}"
         paisa(case["paisa"], where)
         if case["script"] not in WORD_SCRIPTS:
             raise ContractError(f"{where}: script must be one of {WORD_SCRIPTS}")

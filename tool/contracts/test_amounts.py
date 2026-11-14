@@ -77,9 +77,11 @@ class LexiconTest(unittest.TestCase):
         self.broken(lambda x: entry(x, "fractions", id="derh").update(kind="other"), "kind")
         self.broken(lambda x: entry(x, "fractions", id="derh").update(den=0), "den above 0")
         self.broken(lambda x: x["fractions"].append(x["fractions"][0]), "repeated id")
+        self.broken(lambda x: x["fractions"][0].pop("id"), r"fractions\[0\]: missing \['id'\]")
 
     def test_numbers_must_be_0_to_99(self) -> None:
         self.broken(lambda x: x["numbers"].pop(), "0 to 99")
+        self.broken(lambda x: x["numbers"][3].pop("value"), r"numbers\[3\]: missing \['value'\]")
         self.broken(lambda x: x["numbers"][5]["en"].clear(), "must not be empty")
         self.broken(lambda x: x["numbers"][5]["en"].append("five"), "repeats")
         self.broken(lambda x: x["numbers"][5].update(en="five"), "list of non-empty strings")
@@ -87,6 +89,7 @@ class LexiconTest(unittest.TestCase):
     def test_multipliers_must_rise(self) -> None:
         self.broken(lambda x: x["multipliers"].reverse(), "must rise")
         self.broken(lambda x: x["multipliers"][0]["ur"].clear(), "Urdu spelling")
+        self.broken(lambda x: x["multipliers"][1].pop("power"), r"multipliers\[1\]: missing")
 
     def test_write_forms_must_be_spellings_of_the_section(self) -> None:
         self.broken(lambda x: x["currency"]["write"]["roman"].update(one="rupaiya"), "spellings")
@@ -114,6 +117,7 @@ class LexiconTest(unittest.TestCase):
             lambda x: entry(x, "ambiguous", token="do").update(read_after=["currency"]),
             "read_after",
         )
+        self.broken(lambda x: x["ambiguous"][0].pop("token"), r"ambiguous\[0\]: missing")
         self.broken(
             lambda x: x["ambiguous"].append({"token": "Do", "refuse": "always", "why": "."}),
             "normal form",
@@ -128,6 +132,10 @@ class LexiconTest(unittest.TestCase):
         self.broken(lambda x: x.pop("paisa"), "missing")
         self.broken(lambda x: x["review"].update(process="docs/none.md"), "no such file")
         self.broken(lambda x: x["review"].update(status="Draft."), "Not reviewed")
+        self.broken(lambda x: x["review"].update(check_first=[]), "check first")
+        self.broken(lambda x: x["review"].update(check_first={}), "expected a list")
+        self.broken(lambda x: x.update(reviewed=True), "must not say 'Not reviewed'")
+        self.broken(lambda x: x["sources"][0].pop("id"), r"sources\[0\]: missing")
         self.broken(lambda x: x["sources"].append(x["sources"][0]), "repeated id")
         self.broken(
             lambda x: x["normalise"]["remove"].append(
@@ -171,7 +179,23 @@ class VectorsTest(unittest.TestCase):
         def drop(v: dict) -> None:
             v["parse"] = [c for c in v["parse"] if c["input"] != "1.5 lac"]
 
-        self.broken(drop, "promised examples")
+        self.broken(drop, "promised example '1.5 lac'")
+
+        def drop_text(v: dict) -> None:
+            v["parse"] = [c for c in v["parse"] if (c["input"], c["context"]) != ("50k", "text")]
+
+        self.broken(drop_text, "in each context")
+
+    def test_every_promised_example_reads_as_promised(self) -> None:
+        def change(expected):
+            def apply(v: dict) -> None:
+                next(c for c in v["parse"] if c["input"] == "1.5 lac").update(expected=expected)
+
+            return apply
+
+        self.broken(change("ambiguous"), "must read as 15000000")
+        self.broken(change(None), "must read as 15000000")
+        self.broken(change(1_500_000), "must read as 15000000")
 
     def test_bounds(self) -> None:
         self.broken(lambda v: v["parse"][0].update(expected=amounts.MAX_PAISA + 1), "from 0")
@@ -196,6 +220,11 @@ class VectorsTest(unittest.TestCase):
 
     def test_shape(self) -> None:
         self.broken(lambda v: v["parse"][1].update(name=v["parse"][0]["name"]), "unique")
+        self.broken(lambda v: v["parse"][1].update(name=""), "non-empty")
+        self.broken(lambda v: v["parse"][1].update(name="  "), "non-empty")
+        self.broken(lambda v: v["parse"][1].update(name=5), "non-empty")
+        self.broken(lambda v: v["parse"][1].pop("name"), r"parse\[1\]: missing")
+        self.broken(lambda v: v["words"][1].pop("paisa"), r"words\[1\]: missing")
         self.broken(lambda v: v["parse"][0].update(context="chat"), "context")
         self.broken(lambda v: v["parse"][0].update(input=5), "string")
         self.broken(lambda v: v["parse"][0].pop("expected"), "missing")
