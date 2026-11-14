@@ -140,7 +140,10 @@ final class TestApp {
   /// screen is pumped; otherwise it is kept in [settings], as on a device.
   CameraTargetStore? cameraTargets;
   final MemoryStore store = MemoryStore();
-  late final SwrCache cache = SwrCache(store);
+
+  /// The cache over [store]. A test that starts the app again sets a new
+  /// one over the same store, as a new run of the app has.
+  late SwrCache cache = SwrCache(store);
 
   /// The phone's folders and pickers, as the device wipe sees them.
   final FakeDeviceScratch scratch = FakeDeviceScratch();

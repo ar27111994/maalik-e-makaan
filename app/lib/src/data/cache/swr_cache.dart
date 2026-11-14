@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -82,6 +83,10 @@ final class SwrCache {
   /// by the query it kept.
   final _forgotten = <String, Map<String, int>>{};
 
+  /// The last update of each entry asked for ([serially]), by key, while
+  /// one is on its way: it completes when that update has ended.
+  final _updates = <String, Completer<void>>{};
+
   /// The epoch to hand to [write] with a value asked for now by a reader
   /// made in the epoch [madeIn]: the current one, so that a reader made
   /// before a user's entries were forgotten goes on saving what it asks for
@@ -165,6 +170,37 @@ final class SwrCache {
     return savedAt;
   }
 
+  /// Runs [update] of the entry of [query] for [userId] once every update
+  /// of it asked for before has ended: a read of the entry, a choice made
+  /// from it and a write must not meet another's, since the store may
+  /// finish two writes of one key in either order, and the older could
+  /// land last. An update that fails holds up no later one.
+  ///
+  /// After a [clear], the next update does not wait for those asked for
+  /// before it: they were for a session that has ended, and what they
+  /// write is dropped ([write]), so a store that hangs for one does not
+  /// hold up the next session.
+  Future<T> serially<T>(
+    String userId,
+    String query,
+    Future<T> Function() update,
+  ) async {
+    final key = _key(userId, query);
+    final before = _updates[key]?.future;
+    final turn = Completer<void>();
+    // Taken before anything is awaited, so that the updates keep the order
+    // they were asked in.
+    _updates[key] = turn;
+    try {
+      await before;
+      return await update();
+    } finally {
+      turn.complete();
+      // None asked for since: nothing waits for this one.
+      if (identical(_updates[key], turn)) _updates.remove(key);
+    }
+  }
+
   /// Deletes every cached entry (all users), when the device is wiped, and
   /// starts a new [epoch] before anything else, so that a write still on
   /// its way is dropped. Throws when an entry could not be deleted, once
@@ -172,6 +208,7 @@ final class SwrCache {
   Future<void> clear() async {
     _cleared = ++_epoch;
     _forgotten.clear();
+    _updates.clear();
     await _deleteWhere((key) => key.startsWith(_prefix));
   }
 

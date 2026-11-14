@@ -85,7 +85,7 @@ void main() {
     });
 
     test('a profile asked for before a portfolio left the list is not '
-        'kept, and one saved after it is', () async {
+        'kept, nor one made from it, and one asked for after it is', () async {
       final app = TestApp();
       final container = containerFor(app);
       listen(container, profileProvider(testUserId));
@@ -98,14 +98,53 @@ void main() {
       app.profiles.gate.open();
       await saving;
       expect(app.store.values, isEmpty);
+      // Made from the profile on show, asked for before the removal.
       await notifier.saveLanguage(AppLanguage.urdu);
+      expect(app.store.values, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).value!.value.language,
+        AppLanguage.urdu,
+      );
+      // The server's answer to a request made after it.
+      await notifier.saveDetails(fullName: 'Ayesha Khan', phone: null);
       final saved = await app.cache.read(
         testUserId,
         ProfileController.query,
         Profile.fromRow,
       );
-      expect(saved!.value.language, AppLanguage.urdu);
-      expect(saved.value.fullName, 'Ayesha K.');
+      expect(saved!.value.fullName, 'Ayesha Khan');
+      // And a language saved now, made from that one, is kept with it.
+      await notifier.saveLanguage(AppLanguage.english);
+      final again = await app.cache.read(
+        testUserId,
+        ProfileController.query,
+        Profile.fromRow,
+      );
+      expect(again!.value.language, AppLanguage.english);
+    });
+
+    test('a language saved after a portfolio left the list does not save '
+        'the profile shown before it again', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.values, hasLength(1));
+      // A portfolio leaves: the saved profile goes, the shown one stays.
+      await app.cache.forgetUser(testUserId, keep: PortfoliosController.query);
+      expect(app.store.values, isEmpty);
+      await container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      expect(app.store.values, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).value!.value.language,
+        AppLanguage.urdu,
+      );
+      // Read again, it is saved as the server has it.
+      container.invalidate(profileProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.values, hasLength(1));
     });
 
     for (final (what, remove) in <(String, Future<void> Function(SwrCache))>[

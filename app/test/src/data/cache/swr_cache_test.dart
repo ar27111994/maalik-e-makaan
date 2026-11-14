@@ -308,6 +308,59 @@ void main() {
     });
   });
 
+  group('serially', () {
+    test('runs the updates of one entry one after another, in the order '
+        'asked; other entries do not wait', () async {
+      final cache = SwrCache(MemoryStore());
+      final first = Completer<void>();
+      final log = <String>[];
+      final a = cache.serially('u', 'q', () async {
+        log.add('a starts');
+        await first.future;
+        log.add('a ends');
+        return 1;
+      });
+      final b = cache.serially('u', 'q', () async {
+        log.add('b');
+        return 2;
+      });
+      final other = cache.serially('u', 'other', () async {
+        log.add('other');
+        return 3;
+      });
+      final otherUser = cache.serially('v', 'q', () async {
+        log.add('other user');
+        return 4;
+      });
+      await pumpEventQueue();
+      expect(log, ['a starts', 'other', 'other user']);
+      first.complete();
+      expect(await Future.wait([a, b, other, otherUser]), [1, 2, 3, 4]);
+      expect(log, ['a starts', 'other', 'other user', 'a ends', 'b']);
+    });
+
+    test('an update that fails holds up none after it', () async {
+      final cache = SwrCache(MemoryStore());
+      final failing = cache.serially<int>(
+        'u',
+        'q',
+        () async => throw StateError('store'),
+      );
+      final next = cache.serially('u', 'q', () async => 2);
+      await expectLater(failing, throwsStateError);
+      expect(await next, 2);
+    });
+
+    test('after a clear, the next update does not wait for one asked for '
+        'before it', () async {
+      final cache = SwrCache(MemoryStore());
+      final stuck = cache.serially('u', 'q', () => Completer<int>().future);
+      await cache.clear();
+      expect(await cache.serially('u', 'q', () async => 2), 2);
+      unawaited(stuck);
+    });
+  });
+
   group('a write the store has not finished', () {
     late _SlowStore slow;
     late SwrCache slowCache;

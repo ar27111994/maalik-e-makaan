@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
@@ -43,6 +45,11 @@ final class PortfoliosController
   /// The cache's epoch when the list was built.
   int _epoch = 0;
 
+  /// The cache's epoch the list on show was asked for in: a list made from
+  /// it is saved for that epoch (or an older one), so that one shown
+  /// before the device was wiped is not saved again.
+  int _shown = 0;
+
   @override
   Stream<Snapshot<List<PortfolioMembership>>> build() {
     final repository = ref.watch(portfolioRepositoryProvider);
@@ -61,8 +68,13 @@ final class PortfoliosController
     int epoch,
   ) async* {
     final saved = await cache.read(userId, query, _decode);
-    if (saved != null) yield saved;
-    yield await _save(cache, await repository.listMine(userId), epoch);
+    if (saved != null) {
+      _shown = epoch;
+      yield saved;
+    }
+    final fresh = await _save(cache, await repository.listMine(userId), epoch);
+    _shown = epoch;
+    yield fresh;
   }
 
   /// The epoch of a request made now, read before it: a list that comes
@@ -76,17 +88,23 @@ final class PortfoliosController
   /// in it. While they could not all be forgotten the list is not saved:
   /// the saved one goes on naming that portfolio, for the next save or load
   /// to forget them.
+  ///
+  /// The saves of the list run one after another ([SwrCache.serially]):
+  /// two that met could otherwise both read the same saved list, and the
+  /// store finish the older write last, so that the saved list stopped
+  /// naming a portfolio whose records stay, and its leaving later would
+  /// not forget them.
   Future<Snapshot<List<PortfolioMembership>>> _save(
     SwrCache cache,
     List<PortfolioMembership> list,
     int epoch,
-  ) async {
+  ) => cache.serially(userId, query, () async {
     final saved = await cache.read(userId, query, _decode);
     final savedAt = await _forgetLeft(cache, saved?.value, list)
         ? await cache.write(userId, query, _encode(list), epoch: epoch)
         : cache.now();
     return Snapshot(list, savedAt: savedAt, source: SnapshotSource.network);
-  }
+  });
 
   /// Forgets the user's saved records when a portfolio of [before] is not
   /// in [after]. False when they could not all be forgotten.
@@ -136,6 +154,7 @@ final class PortfoliosController
       ownerAbroad: ownerAbroad,
     );
     List<PortfolioMembership> list;
+    var listEpoch = epoch;
     try {
       list = await repository.listMine(userId);
     } on AppFailure {
@@ -145,8 +164,9 @@ final class PortfoliosController
         ...?state.value?.value.where((other) => other.id != created.id),
         created,
       ]);
+      listEpoch = math.min(epoch, _shown);
     }
-    await _show(list, epoch);
+    await _show(list, listEpoch);
     await ref
         .read(selectedPortfolioProvider(userId).notifier)
         .select(created.id);
@@ -165,14 +185,16 @@ final class PortfoliosController
     final epoch = _requestEpoch();
     await repository.delete(portfolioId, confirmation: confirmation);
     List<PortfolioMembership> list;
+    var listEpoch = epoch;
     try {
       list = await repository.listMine(userId);
     } on AppFailure {
       // It is gone: list the others known, and let the next refresh bring
       // the server's list.
       list = [...?state.value?.value.where((other) => other.id != portfolioId)];
+      listEpoch = math.min(epoch, _shown);
     }
-    if (ref.mounted) await _show(list, epoch);
+    if (ref.mounted) await _show(list, listEpoch);
   }
 
   /// Answers "Does the owner of these properties live abroad?" for
@@ -196,7 +218,7 @@ final class PortfoliosController
             membership.withOwnerAbroad(answer)
           else
             membership,
-      ], epoch);
+      ], math.min(epoch, _shown));
     }
     return answer;
   }
@@ -211,11 +233,14 @@ final class PortfoliosController
     return list;
   }
 
-  /// Shows [list], and saves it for [epoch], the cache's when it was asked
-  /// for ([_save]).
+  /// Shows [list], and saves it for [epoch], the cache's when (all of) it
+  /// was asked for ([_save]): [_requestEpoch] for the server's answer, and
+  /// no later than [_shown] for a list made from the one on show.
   Future<void> _show(List<PortfolioMembership> list, int epoch) async {
     final snapshot = await _save(ref.read(swrCacheProvider), list, epoch);
-    if (ref.mounted) state = AsyncData(snapshot);
+    if (!ref.mounted) return;
+    _shown = epoch;
+    state = AsyncData(snapshot);
   }
 }
 

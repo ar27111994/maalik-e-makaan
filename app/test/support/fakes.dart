@@ -757,8 +757,40 @@ final class MemoryStore implements KeyValueStore {
   @override
   Future<String?> read(String key) async => values[key];
 
+  /// The keys whose writes are held until [finishHeldWritesNewestFirst],
+  /// while they are listed here.
+  final holding = <String>{};
+  final _held = <(String, String, Completer<void>)>[];
+
+  /// How many writes are held.
+  int get heldWrites => _held.length;
+
+  /// Finishes the held writes, the newest first: a store may finish two
+  /// writes of one key in either order.
+  void finishHeldWritesNewestFirst() {
+    final held = [..._held.reversed];
+    _held.clear();
+    for (final (key, value, done) in held) {
+      values[key] = value;
+      done.complete();
+    }
+  }
+
+  /// Thrown by every write while set, as by a store that is full.
+  Exception? writeFailure;
+
   @override
-  Future<void> write(String key, String value) async => values[key] = value;
+  Future<void> write(String key, String value) async {
+    final failure = writeFailure;
+    if (failure != null) throw failure;
+    if (holding.contains(key)) {
+      final done = Completer<void>();
+      _held.add((key, value, done));
+      await done.future;
+      return;
+    }
+    values[key] = value;
+  }
 
   @override
   Future<void> delete(String key) async {
