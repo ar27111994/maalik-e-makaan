@@ -1,7 +1,7 @@
 ---
 title: "Privacy"
 description: "How this website and the Maalik-e-Makaan app treat your data: no cookies or trackers on the site, and in the app, your records seen only by the people you invite."
-lastUpdated: 2026-11-12
+lastUpdated: 2026-11-14
 ---
 
 ## In short
@@ -55,7 +55,7 @@ You can delete your account from inside the app, in Settings. Deletion removes y
 
 ## Who runs it, and how to reach us
 
-The website and the app are run by **AR LABS (SMC-PRIVATE) LIMITED**, a company registered with the Securities and Exchange Commission of Pakistan (CUIN 0361950), which decides how this data is used. Write to us at [maalik-e-makaan@news.ar27111994.dev](mailto:maalik-e-makaan@news.ar27111994.dev) about your data, to correct it or to have it deleted.
+The website and the app are run by **AR LABS (SMC-PRIVATE) LIMITED**, a company registered with the Securities and Exchange Commission of Pakistan (CUIN 0361950), which decides how this data is used. Write to us at [hello@mmakaan.app](mailto:hello@mmakaan.app) about your data, to correct it or to have it deleted.
 
 ## Questions
 

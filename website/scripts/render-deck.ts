@@ -8,14 +8,16 @@
 // plain HTML: the icons from deck/icons (Lucide), the screens cropped from the
 // app's golden test images (sample data, so they always show the current app),
 // the fonts from packages/mm_ui, {{version}} and {{releaseDate}} from the
-// release-please manifest and CHANGELOG.md, and {{siteHost}} and {{appHost}}
-// from contracts/origins.json. CI and the Deploy workflow run it before the
-// site is built, so the deck on the site matches each release.
+// release-please manifest and CHANGELOG.md, {{siteHost}} and {{appHost}} from
+// contracts/origins.json, and {{contactEmail}} from src/config/site.ts. CI and
+// the Deploy workflow run it before the site is built, so the deck on the site
+// matches each release.
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
+import { SITE } from "../src/config/site.ts";
 import { readOrigins } from "./lib/origins.ts";
 
 const website = new URL("../", import.meta.url);
@@ -141,7 +143,9 @@ const hosts = {
   appHost: new URL(origins.app.origin).host,
 };
 const slides = await Promise.all(
-  deck.order.map((file) => slideHtml(file, { version, releaseDate: date, ...hosts })),
+  deck.order.map((file) =>
+    slideHtml(file, { version, releaseDate: date, ...hosts, contactEmail: SITE.contactEmail }),
+  ),
 );
 // Urdu words on the slides are in Noto Sans Arabic; Noto Nastaliq Urdu is only for the
 // wordmark مالکِ مکان on the cover (D-19), and the app's copy holds only its letters.

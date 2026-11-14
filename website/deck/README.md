@@ -14,8 +14,9 @@ Deploy workflow render it before every build, so the PDF is not committed.
   sample data. The crop of each screen is in `scripts/render-deck.ts`.
 - `{{version}}` and `{{releaseDate}}` are replaced with the current release, from
   `.release-please-manifest.json` and `CHANGELOG.md`; `{{siteHost}}` and `{{appHost}}` with the
-  website's and the web app's host names, from `contracts/origins.json` (decision D-20). A slide
-  names an address only through these, so the deck follows a move of either.
+  website's and the web app's host names, from `contracts/origins.json` (decision D-20); and
+  `{{contactEmail}}` with the company's mailbox, `contactEmail` in `src/config/site.ts`. A slide
+  names an address or the mailbox only through these, so the deck follows a change of any.
 - The fonts are the app's own (`packages/mm_ui/assets/fonts/`). An Urdu word sits in an element
   with `lang="ur"` and `font-family: 'Noto Sans Arabic'`; Noto Nastaliq Urdu is only for the
   wordmark مالکِ مکان on the cover (decision D-19).
