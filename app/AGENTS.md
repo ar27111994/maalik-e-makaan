@@ -29,8 +29,9 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 - Reads filter by the current portfolio and page by `created_at, id`. Writes are pessimistic and
   safe to retry: client-chosen ids, idempotency keys for payments and deposit applications,
   status-only updates. The rules and their exceptions are in `docs/architecture/app.md`.
-- Every visible string is an ARB key in both files with an `@key` description; run
-  `make codegen` after editing them.
+- Every visible string is an ARB key in both files, with its `@key` description in
+  `app_en.arb` (the template: the generator reads descriptions from it alone, so `app_ur.arb`
+  carries none); run `make codegen` after editing them.
 - UI comes from `mm_ui`; no literal colours, sizes, radii or durations (`make design-lint`).
 - The UI hides what a role cannot do, but the database is the authority; do not add client-only
   permission checks as protection.
@@ -39,8 +40,9 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   is added there, to its tests, to `docs/architecture/app.md` (On the device) and to the website's
   privacy page, in both languages. Display settings belong to the device and stay; the pending
   invitation stays until the account is deleted (see On the device); text the person copies is
-  theirs. A cache write takes the cache's epoch (`SwrCache.write(epoch:)`) from before its fetch,
-  so that nothing lands after a wipe.
+  theirs. A cache write names the cache's epoch read before its request
+  (`SwrCache.write(epoch:)`, a required argument; `SwrCache.requestEpoch` in a notifier's
+  command), so that nothing lands after a wipe, or after a portfolio left the user's list.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

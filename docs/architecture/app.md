@@ -106,7 +106,9 @@ device wipe clears the cache and starts a new `SwrCache.epoch`: a value
 fetched for the ended session is not saved, even when it arrives after the
 wipe (see [On the device](#on-the-device)). When a portfolio leaves the
 user's list, `PortfoliosController` deletes the user's other entries
-(`SwrCache.forgetUser`), since entries are not kept by portfolio. A screen shows
+(`SwrCache.forgetUser`), since entries are not kept by portfolio; that starts
+a new epoch too, so a list of the user's that was still loading is not saved
+after it (the portfolio list itself is). A screen shows
 "Offline, showing what was saved at …" when the refresh fails with a
 `NetworkFailure` and data is on screen; otherwise it shows the error with a
 retry.
@@ -313,19 +315,39 @@ else does then, since a picker may be handing over a copy.
   of its next use online (an access token lives an hour). That wipe is a plain sign-out, so the invitation it
   holds stays. A member's device prunes a deleted or left portfolio's
   entries when its portfolio list next loads.
-- **Writes after the wipe.** `SwrCache.clear` starts a new epoch before it
-  deletes anything. `SwrCache.watch` takes the epoch when it is called, and
-  `SwrNotifier`, `PortfoliosController` and `ProfileController` when they
-  are built; a write for an older epoch is dropped, so a fetch that was on
-  its way when the session ended (its token is still valid for up to an
-  hour) cannot put the account back on the device.
+- **Writes after a removal.** `SwrCache.clear` starts a new epoch before it
+  deletes anything, and so does `SwrCache.forgetUser`. Every write names the
+  epoch read before its value was asked for (`SwrCache.write(epoch:)`, a
+  required argument). `SwrCache.watch` takes it when it is called.
+  `SwrNotifier`, `PortfoliosController`, `ProfileController` and
+  `ResidenceController` note it when they are built, and `SwrNotifier.reload`
+  and the profile's and the residence's commands read it again before their
+  request (`SwrCache.requestEpoch`). A write is dropped when the cache was
+  cleared since its epoch: a fetch that was on its way when the session ended
+  (its token is still valid for up to an hour) cannot put the account back on
+  the device, and neither can anything a notifier built for that session asks
+  for afterwards. It is dropped as well when the user's entries were forgotten
+  since, unless it is the portfolio list: a list of the portfolio that left,
+  asked for before and answered after, is not saved again (no later refresh
+  would find it, since the saved portfolio list no longer names that
+  portfolio). A write the store had not finished when either happened is
+  deleted as it lands. A value a notifier shows without an epoch of its own
+  (`SwrNotifier.show`, after "load more" or a save) counts as asked for when
+  the notifier was built: after a portfolio left the list it is shown but not
+  saved, until the query is read again (`reload`) or built anew.
 - **Replays.** gotrue's auth stream replays its latest event to a new
   listener, so a `signedOut` is acted on only when no session exists, and a
   session counts as replaced only when the event's session is the current
   one; gotrue removes the session before it announces a sign-out.
 - **Timing.** The preferences go before the signed-out status is shown (a few
-  milliseconds), or after `wipePreferencesLimit` (three seconds) when the
-  store does not answer, the step going on behind; the files follow, one pass
+  milliseconds). The cache and each preference are removed on their own, all
+  asked for at the start, and each waited for at most `wipePreferencesLimit`
+  (three seconds): a store that does not answer holds up neither the other
+  removals nor the sign-out. A removal that answers later finishes what it was
+  asked and no more: no preference is asked for after the start, when someone
+  else may have signed in. While that step runs, a wipe that removes no more
+  shares it; once it has ended, in time or not, the next wipe is a wipe of its
+  own, with its own pass over the files. The files follow, one pass
   at a time, never holding the user up and given up after thirty seconds
   (`wipeFilesLimit`). A pass touches no camera photo or picker copy written
   after its wipe began: a picker copies into a folder it has just made, whose

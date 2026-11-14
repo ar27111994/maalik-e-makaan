@@ -26,7 +26,8 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
 - British English in prose, comments and UI text: licence, colour, organisation, catalogue.
 - Every string a person sees is in English and Urdu. App strings live in
   `app/lib/l10n/arb/app_en.arb` (the template) and `app_ur.arb`; every key needs its `@key`
-  description (`required-resource-attributes: true` in `app/l10n.yaml`). Website pages exist
+  description in the template (`required-resource-attributes: true` in `app/l10n.yaml`; the
+  generator reads descriptions from the template alone, so `app_ur.arb` carries none). Website pages exist
   in both languages or the build fails.
 - Screens work right to left: directional geometry only (`EdgeInsetsDirectional`,
   `AlignmentDirectional`); the design lint refuses `left`/`right`.
