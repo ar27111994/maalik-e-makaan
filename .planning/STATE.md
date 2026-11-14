@@ -226,6 +226,14 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 - The GitHub MCP tools can read workflow runs and job logs (`actions_list`, `get_job_logs`).
 - There is no Xcode here: iOS changes (for example the `InfoPlist.strings` localisations in
   02050c1) are unbuilt until CI or a Mac builds them.
+- The sub-agent model: `.claude/settings.json` names it (`CLAUDE_CODE_SUBAGENT_MODEL`, with
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`), and a session on someone's own computer reads it once they
+  trust the folder. A cloud session did not: on 2026-11-14, restarted with the file in place, it
+  still started a sub-agent and a workflow agent on its own model, and gave another sub-agent the
+  different model that call asked for. Until the owner sets both variables on the cloud
+  environment (its settings, Edit, environment variables; a new session picks them up), name the
+  model on every agent a cloud session starts: `model` on the Agent call or in the workflow
+  script. A fork always runs on its parent conversation's model, with or without the variables.
 
 ## Blockers (need the owner)
 
