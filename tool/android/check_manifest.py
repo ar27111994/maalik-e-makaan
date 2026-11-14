@@ -11,11 +11,13 @@ its round variant included, or launchers that use round icons fall back to a
 default. And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
 contracts/origins.json (decision D-20), each host with both paths in one
-https App Links filter that Android verifies (autoVerify) and can launch (VIEW,
-DEFAULT, BROWSABLE). No web link filter, verified or not, names another host:
-Android 6 to 11 verify every web host of the app's filters, all or none. An earlier address stays
-for the links already sent. This check reads the main manifest, and in CI the
-merged release manifest, and fails on anything missing.
+https App Links filter that Android verifies (autoVerify) and can launch: VIEW,
+DEFAULT and BROWSABLE, no port, under an activity (or activity alias) that is
+neither exported="false" nor enabled="false". No web link filter, verified or
+not, names another host: Android 6 to 11 verify every web host of the app's
+filters, all or none. An earlier address stays for the links already sent. This
+check reads the main manifest, and in CI the merged release manifest, and fails
+on anything missing.
 
     python3 tool/android/check_manifest.py [manifest.xml ...]
 """
@@ -49,6 +51,8 @@ APP_LINK_PATHS = (("pathPrefix", "/auth/callback"), ("path", "/invite"))
 # What an App Links filter needs for Android to open a link with it.
 LAUNCH_ACTIONS = ("android.intent.action.VIEW",)
 LAUNCH_CATEGORIES = ("android.intent.category.DEFAULT", "android.intent.category.BROWSABLE")
+# The components a link can start: a browser hands it to startActivity().
+ACTIVITIES = ("activity", "activity-alias")
 
 
 def app_link_hosts(origins: Path | None = None) -> set[str]:
@@ -62,6 +66,39 @@ def app_link_hosts(origins: Path | None = None) -> set[str]:
             raise ValueError(f"{origins}: {url!r} is not an https origin")
         hosts.add(parts.hostname)
     return hosts
+
+
+def _component_problems(parent: ET.Element | None, application: ET.Element | None) -> list[str]:
+    """Why no link from a browser or another app reaches the component that holds the filter:
+    it is not an activity (a link is an activity intent; a service or receiver never gets one),
+    or it, or the application, is disabled, or it is not exported, which keeps every intent
+    from another app out. An activity with an intent filter is exported unless it says not."""
+    if parent is None:
+        tag = "no component"
+    else:
+        tag = f"{'an' if parent.tag[0] in 'aeiou' else 'a'} <{parent.tag}>"
+    if parent is None or parent.tag not in ACTIVITIES:
+        return [f"is on {tag}, which no link starts: only an <activity> or <activity-alias> is"]
+    found = [
+        f'is on {tag} with android:{name}="false", which no link from another app reaches'
+        for name in ("exported", "enabled")
+        if parent.get(f"{ANDROID}{name}") == "false"
+    ]
+    if application is not None and application.get(f"{ANDROID}enabled") == "false":
+        found.append('is in an <application> with android:enabled="false", which starts nothing')
+    return found
+
+
+def _port_problems(intent_filter: ET.Element) -> list[str]:
+    """A port in the filter: Android then matches only a link that names that port, and the
+    e-mail links name none (not even 443, which a link without a port does not match)."""
+    ports = sorted(
+        {data.get(f"{ANDROID}port", "") for data in intent_filter.findall("data")} - {""}
+    )
+    return [
+        f'names android:port="{port}", so it matches no e-mail link (they name no port)'
+        for port in ports
+    ]
 
 
 def _launch_lacks(intent_filter: ET.Element) -> list[str]:
@@ -107,7 +144,10 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
     Android matches a link against each filter on its own: a filter opens every combination of
     its own schemes, hosts and paths, and never one filter's host with another's path. So the
     links each filter opens are worked out per filter, and only a filter that Android can launch
-    (VIEW, DEFAULT, BROWSABLE), with https among its schemes, counts."""
+    (VIEW, DEFAULT, BROWSABLE, no port, on an activity a link reaches), with https among its
+    schemes, counts."""
+    parents = {child: parent for parent in root.iter() for child in parent}
+    application = root.find("application")
     filters = [
         intent_filter
         for intent_filter in root.iter("intent-filter")
@@ -120,6 +160,9 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
     opened_hosts: set[str] = set()
     for number, intent_filter in enumerate(filters, start=1):
         where = f"{manifest}: App Links filter {number}"
+        unreachable = _component_problems(parents.get(intent_filter), application)
+        unreachable += _port_problems(intent_filter)
+        found += [f"{where} {problem}" for problem in unreachable]
         datas = intent_filter.findall("data")
         schemes = {data.get(f"{ANDROID}scheme") for data in datas} - {None}
         named = {data.get(f"{ANDROID}host") for data in datas} - {None, ""}
@@ -137,7 +180,7 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
             f"{where} names {host}, which contracts/origins.json does not list for the web app"
             for host in sorted(named - hosts)
         ]
-        if not lacks and "https" in schemes:
+        if not lacks and not unreachable and "https" in schemes:
             opened_hosts |= named
             opens |= {(host, path) for host in named for path in paths}
     found += unverified_host_problems(manifest, root, hosts)

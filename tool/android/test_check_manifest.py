@@ -273,7 +273,7 @@ class CheckManifestTest(unittest.TestCase):
             ),
             "a custom scheme": (
                 intent_filter(
-                    '<data android:scheme="pk.example.app"/>' '<data android:host="evil.example"/>',
+                    '<data android:scheme="pk.example.app"/><data android:host="evil.example"/>',
                     verify="",
                 ),
                 [],
@@ -294,6 +294,93 @@ class CheckManifestTest(unittest.TestCase):
                 for fragment, line in zip(expected, found, strict=True):
                     self.assertIn(fragment, line)
                     self.assertIn("web link filter 2", line)
+
+    def component(self, element: str, application: str = f"<application {ICONS}>") -> Path:
+        """A manifest whose one App Links filter sits in `element` (an opening tag)."""
+        tag = element[1:].split(" ", 1)[0].rstrip(">")
+        return self.manifest(
+            INTERNET, application=f"{application}{element}{intent_filter()}</{tag}></application>"
+        )
+
+    def test_a_filter_counts_only_on_an_activity_a_link_reaches(self):
+        # A link reaches only an activity (or an activity alias) that another app may start.
+        missing = ["lack the web app's host app.example.pk", "host old.example.org"]
+        cases = {
+            "an activity that is not exported": (
+                '<activity android:name=".A" android:exported="false">',
+                ['filter 1 is on an <activity> with android:exported="false"', *missing],
+            ),
+            "a disabled activity": (
+                '<activity android:name=".A" android:enabled="false">',
+                ['filter 1 is on an <activity> with android:enabled="false"', *missing],
+            ),
+            "an alias that is neither": (
+                '<activity-alias android:name=".B" android:targetActivity=".A"'
+                ' android:exported="false" android:enabled="false">',
+                [
+                    'filter 1 is on an <activity-alias> with android:exported="false"',
+                    'filter 1 is on an <activity-alias> with android:enabled="false"',
+                    *missing,
+                ],
+            ),
+            "a service": (
+                '<service android:name=".S" android:exported="true">',
+                ["filter 1 is on a <service>, which no link starts", *missing],
+            ),
+            "a receiver": (
+                '<receiver android:name=".R">',
+                ["filter 1 is on a <receiver>, which no link starts", *missing],
+            ),
+        }
+        for name, (element, expected) in cases.items():
+            with self.subTest(name):
+                found = self.problems(self.component(element))
+                self.assertEqual(len(found), len(expected), found)
+                for fragment, line in zip(expected, found, strict=True):
+                    self.assertIn(fragment, line)
+
+    def test_a_disabled_application_starts_nothing(self):
+        found = self.problems(
+            self.component(
+                '<activity android:name=".A">',
+                f'<application {ICONS} android:enabled="false">',
+            )
+        )
+        self.assertEqual(len(found), 3, found)
+        self.assertIn('is in an <application> with android:enabled="false"', found[0])
+
+    def test_a_filter_outside_any_component_opens_nothing(self):
+        path = self.manifest(
+            INTERNET, application=f"<application {ICONS}>{intent_filter()}</application>"
+        )
+        found = self.problems(path)
+        self.assertEqual(len(found), 3, found)
+        self.assertIn("filter 1 is on an <application>, which no link starts", found[0])
+
+    def test_activities_and_aliases_that_links_reach_pass(self):
+        for element in (
+            '<activity android:name=".A">',
+            '<activity android:name=".A" android:exported="true" android:enabled="true">',
+            '<activity-alias android:name=".B" android:targetActivity=".A">',
+            '<activity-alias android:name=".B" android:targetActivity=".A" android:exported="true">',
+        ):
+            with self.subTest(element):
+                self.assertEqual(self.problems(self.component(element)), [])
+
+    def test_a_port_keeps_a_filter_from_the_e_mail_links(self):
+        # With a port, Android matches only links naming that port; the e-mail links name none.
+        for port in ("8443", "443"):
+            with self.subTest(port=port):
+                data = DATA + f'<data android:port="{port}"/>'
+                found = self.problems(self.application(intent_filter(data)))
+                self.assertEqual(len(found), 3, found)
+                self.assertIn(f'filter 1 names android:port="{port}"', found[0])
+                self.assertIn("lack the web app's host app.example.pk", found[1])
+        # Beside a filter without a port, it is still reported.
+        ported = intent_filter(DATA + '<data android:port="8443"/>')
+        found = self.problems(self.application(intent_filter(), ported))
+        self.assertEqual(len(found), 1, found)
+        self.assertIn('filter 2 names android:port="8443"', found[0])
 
     def test_an_unreadable_origins_file_fails(self):
         err = io.StringIO()

@@ -925,21 +925,23 @@ an iPhone.
 
 ### Android App Links
 
-`app/web/.well-known/assetlinks.json` lets Android open the web app's `/auth/callback` and
-`/invite` links in the app (the `autoVerify` intent filter in
-`app/android/app/src/main/AndroidManifest.xml`). The filter names both hosts of the web app,
-`app.mmakaan.app` and the earlier `maalik-e-makaan.vercel.app`, which keeps serving the file for
-links already sent ([Domains](#domains)); `tool/android/check_manifest.py` (`make lint`, and CI
-on the merged release manifest) fails unless its hosts are exactly the web app's in
-`contracts/origins.json`, and each host opens both paths through a filter Android can launch
-(`VIEW`, `DEFAULT` and `BROWSABLE`). It works out each filter on its own, as Android matches a
-link: one filter's host never combines with another filter's path. Android 12 and later verify
-each host on its own; Android 6 to 11 verify every web host of every filter (with `VIEW` and an
-`http` or `https` scheme, `autoVerify` or not) and grant all or none, so the check also fails on
-another host in any such filter, and both hosts must serve the file (and Release builds nothing
-until the new host does, Domains). The file lists the SHA-256 fingerprint of each certificate that
-signs the app the user installs. Today that is only the upload key, which signs the APKs attached
-to releases.
+`app/web/.well-known/assetlinks.json` lets Android open the web app's `/auth/callback` and `/invite`
+links in the app (the `autoVerify` intent filter in `app/android/app/src/main/AndroidManifest.xml`).
+The filter names both hosts of the web app, `app.mmakaan.app` and the earlier
+`maalik-e-makaan.vercel.app`, which keeps serving the file for links already sent
+([Domains](#domains)); `tool/android/check_manifest.py` (`make lint`, and CI on the merged release
+manifest) fails unless its hosts are exactly the web app's in `contracts/origins.json`, and each
+host opens both paths through a filter Android can launch: `VIEW`, `DEFAULT` and `BROWSABLE`, no
+`android:port` (a link without a port matches no filter that names one), on an `<activity>` or
+`<activity-alias>` that is neither `exported="false"` nor `enabled="false"`. A verified filter on
+any other component (a service, say) is reported, as it opens no link. It works out each filter on
+its own, as Android matches a link: one filter's host never combines with another filter's path.
+Android 12 and later verify each host on its own; Android 6 to 11 verify every web host of every
+filter (with `VIEW` and an `http` or `https` scheme, `autoVerify` or not) and grant all or none, so
+the check also fails on another host in any such filter, and both hosts must serve the file (and
+Release builds nothing until the new host does, Domains). The file lists the SHA-256 fingerprint of
+each certificate that signs the app the user installs. Today that is only the upload key, which
+signs the APKs attached to releases.
 
 Once the app is on Google Play, Play re-signs it with the app-signing key. Add that key's
 fingerprint to the list (Play Console, Test and release, App integrity, App signing key
