@@ -384,8 +384,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
     connector, `mmakaan.app` and `www.mmakaan.app` (308 to the apex) are on the project
     `maalik-e-makaan-site` and `app.mmakaan.app` on `maalik-e-makaan`. The pull request on
     `claude/domain-mmakaan` does the rest in the repository. The Release workflow builds nothing
-    until steps 3 and 4 hold, and Deploy deploys the backend only once step 4 holds and the web app
-    only once steps 3 to 5 do. `docs/operations.md`, Domains, has each step in full, in the same
+    until the new web app address answers (step 3) and Auth allows its callbacks (step 4); Deploy
+    deploys the backend only once step 4 holds, the web app only once its address answers and
+    steps 4 and 5 hold, and the website only once the site's addresses answer. `docs/operations.md`, Domains, has each step in full, in the same
     order. **On 14 November 2026:** steps 2 to 5 are done, and half of step 8 ahead of its place;
     the merge and the release (steps 6 and 7) are next, before Wednesday 18 November 2026.
 
