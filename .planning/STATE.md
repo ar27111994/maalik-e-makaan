@@ -11,8 +11,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 - D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
-  the `vercel.app` addresses send people on for good. Branch `claude/domain-mmakaan`, one pull
-  request, not merged: `contracts/origins.json` as the one source of the origins (the website's
+  the `vercel.app` addresses send people on for good. Pull request #74, in no release yet:
+  `contracts/origins.json` as the one source of the origins (the website's
   defaults, the deck, the workflows' `APP_URL` and the page the web app's old address answers
   with read it; the Android manifest's hosts and `website/vercel.json`'s redirect are checked
   against it, and every other address by `make docs-check` C17); the website's old address
@@ -46,6 +46,22 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   deck give it as the contact address in place of the Resend sending address, from which Auth's
   e-mails and the invitations are still sent. It is the one mailbox on the domain that
   `make docs-check` allows (`NAMED_MAILBOXES`).
+- The amount reader's work items 1, 3 and 4 (`docs/roadmap/amount-parser.md`), merged in #75 and
+  in no release yet: `contracts/amount_lexicon.json` (version 1,
+  `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
+  `docs/roadmap/urdu-review.md`, starting with its `review.check_first`),
+  `contracts/amount_vectors.json` (353 parse and 33 words vectors, written by hand), their checks
+  in `generate.py --check` (`tool/contracts/amounts.py`, 30 tests; the promised examples are
+  pinned to their amounts), and `mm_core`'s `parseAmount` and `formatAmountWords` with the
+  generated `amount_lexicon.g.dart`, 100% line coverage, and property tests of 10,000 cases each
+  (words in three scripts, digits in any script, random token strings). A review round
+  (2026-11-14) made a dropped lower unit ("ek lakh bees", "1 crore 20"), a spaced `mn` or `bn`,
+  "rupay do", `0,500`, "sawa 100 hazar" and a pasted bank line's "Cr" ambiguous rather than a
+  number, and a million-digit input fast; a second (the same day) made every number exact or
+  refused, after a long decimal under a chain of multipliers read as a wrong amount. Owner
+  question 1 (million and m) is built as
+  recommended until the owner answers, with `mn` and `bn` read like `k`. Still to do:
+  `findAmounts` (5), the Deno and website ports (6), the read-back widget (7).
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the
@@ -267,6 +283,14 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 - The GitHub MCP tools can read workflow runs and job logs (`actions_list`, `get_job_logs`).
 - There is no Xcode here: iOS changes (for example the `InfoPlist.strings` localisations in
   02050c1) are unbuilt until CI or a Mac builds them.
+- The sub-agent model: `.claude/settings.json` names it (`CLAUDE_CODE_SUBAGENT_MODEL`, with
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`), and a session on someone's own computer reads it once they
+  trust the folder. A cloud session did not: on 2026-11-14, restarted with the file in place, it
+  still started a sub-agent and a workflow agent on its own model, and gave another sub-agent the
+  different model that call asked for. Until the owner sets both variables on the cloud
+  environment (its settings, Edit, environment variables; a new session picks them up), name the
+  model on every agent a cloud session starts: `model` on the Agent call or in the workflow
+  script. A fork always runs on its parent conversation's model, with or without the variables.
 
 ## Blockers (need the owner)
 

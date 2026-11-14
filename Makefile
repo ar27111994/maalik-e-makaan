@@ -137,11 +137,11 @@ verify-all: ## Formal verification, everything: all configurations and mutants (
 	tool/formal/verify.sh all
 
 .PHONY: contracts
-contracts: ## Regenerate the contract vectors shared by Dart and SQL (rent maths, identity, residence and time zones)
+contracts: ## Regenerate the contract vectors shared by Dart and SQL (rent maths, identity, residence and time zones) and the amount lexicon's Dart tables
 	python3 tool/contracts/generate.py
 
 .PHONY: contracts-check
-contracts-check: ## Fail when the committed contract vectors are stale
+contracts-check: ## Fail when the committed contract vectors are stale, or the amount lexicon or vectors break their rules
 	python3 tool/contracts/generate.py --check
 
 .PHONY: roadmap
@@ -186,7 +186,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer, time-zone reference, the command map's rows)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, formal installer, time-zone reference, amount lexicon and vector checks, the command map's rows)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
