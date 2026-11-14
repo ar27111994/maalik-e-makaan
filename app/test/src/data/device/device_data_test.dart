@@ -34,6 +34,51 @@ final class _HangingStore implements KeyValueStore {
   Future<Set<String>> keys() => Completer<Set<String>>().future;
 }
 
+/// A store that lists its keys only once the test lets it, as a platform
+/// call that hangs and answers later.
+final class _LateStore implements KeyValueStore {
+  final inner = MemoryStore();
+  final listing = Completer<void>();
+
+  @override
+  Future<String?> read(String key) => inner.read(key);
+
+  @override
+  Future<void> write(String key, String value) => inner.write(key, value);
+
+  @override
+  Future<void> delete(String key) => inner.delete(key);
+
+  @override
+  Future<Set<String>> keys() => listing.future.then((_) => inner.keys());
+}
+
+/// Settings whose removal of [stuck] never answers.
+final class _StuckSettings implements SettingsStore {
+  new(this.inner, this.stuck);
+
+  final MemorySettingsStore inner;
+  final String stuck;
+
+  @override
+  String? getString(String key) => inner.getString(key);
+
+  @override
+  bool? getBool(String key) => inner.getBool(key);
+
+  @override
+  Future<void> setString(String key, String value) =>
+      inner.setString(key, value);
+
+  @override
+  Future<void> setBool(String key, {required bool value}) =>
+      inner.setBool(key, value: value);
+
+  @override
+  Future<void> remove(String key) =>
+      key == stuck ? Completer<void>().future : inner.remove(key);
+}
+
 /// The display settings, which belong to the device and are never wiped.
 const _display = <String, Object>{
   AppSettings.localeKey: 'ur',
@@ -185,6 +230,128 @@ void main() {
         'sweep',
       ]);
       expect(calls()[1], ['discard']);
+    });
+  });
+
+  group('a store that does not answer', () {
+    /// When each pass over the files began.
+    List<Object?> sweeps() => [
+      for (final call in scratch.calls)
+        if (call.$1 == 'sweep') call.$2.last,
+    ];
+
+    testWidgets('holds up neither the other preferences nor what is kept in '
+        'memory', (tester) async {
+      // Made in the test's fake time, as its timers are.
+      final stuck = DeviceDataWipe(
+        cache: SwrCache(_HangingStore()),
+        settings: settings,
+        scratch: scratch,
+        onWiped: wiped.add,
+        clock: () => _now,
+      );
+      var done = false;
+      unawaited(stuck.wipe(WipeReason.accountDeleted).then((_) => done = true));
+      await tester.pump();
+      // The account's preferences do not wait for the cache: they go at
+      // once.
+      expect(settings.values, _display);
+      expect(done, isFalse);
+      expect(wiped, isEmpty);
+      await tester.pump(wipePreferencesLimit);
+      // The wipe has returned to the sign-out, and what is kept in memory
+      // is told.
+      expect(done, isTrue);
+      expect(wiped, [WipeReason.accountDeleted]);
+    });
+
+    testWidgets('for one preference leaves the others to go', (tester) async {
+      final stuck = DeviceDataWipe(
+        cache: cache,
+        settings: _StuckSettings(settings, AppSettings.currentPortfolioKey),
+        scratch: scratch,
+        onWiped: wiped.add,
+        clock: () => _now,
+      );
+      var done = false;
+      unawaited(stuck.wipe(WipeReason.accountDeleted).then((_) => done = true));
+      await tester.pump();
+      expect(store.values, {'other': '1'});
+      expect(settings.values, {
+        ..._display,
+        AppSettings.currentPortfolioKey: '$testUserId/p1',
+      });
+      expect(done, isFalse);
+      await tester.pump(wipePreferencesLimit);
+      expect(done, isTrue);
+      expect(wiped, [WipeReason.accountDeleted]);
+    });
+
+    testWidgets('leaves a later wipe its own work: someone may have signed '
+        'in', (tester) async {
+      var time = _now;
+      final stuck = DeviceDataWipe(
+        cache: SwrCache(_HangingStore()),
+        settings: settings,
+        scratch: scratch,
+        onWiped: wiped.add,
+        clock: () => time,
+      );
+      unawaited(stuck.wipe(WipeReason.signedOut));
+      await tester.pump(wipePreferencesLimit);
+      expect(sweeps(), [_now]);
+      // The next account signs in once the first wipe has returned,
+      // chooses a portfolio, photographs a document, and signs out.
+      await settings.setString(AppSettings.currentPortfolioKey, 'next/p2');
+      time = _now.add(const Duration(minutes: 3));
+      var done = false;
+      unawaited(stuck.wipe(WipeReason.signedOut).then((_) => done = true));
+      await tester.pump();
+      expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
+      await tester.pump(wipePreferencesLimit);
+      expect(done, isTrue);
+      expect(wiped, [WipeReason.signedOut, WipeReason.signedOut]);
+      // Its own pass over the files, from its own time.
+      expect(sweeps(), [_now, time]);
+    });
+
+    testWidgets('and answers later finishes what it was asked, and touches '
+        'nothing of the account signed in since', (tester) async {
+      final late = _LateStore();
+      final lateCache = SwrCache(late);
+      await lateCache.seed(testUserId, 'tenants', 1);
+      final stuck = DeviceDataWipe(
+        cache: lateCache,
+        settings: settings,
+        scratch: scratch,
+        onWiped: wiped.add,
+        clock: () => _now,
+      );
+      var done = false;
+      unawaited(stuck.wipe(WipeReason.accountDeleted).then((_) => done = true));
+      await tester.pump(wipePreferencesLimit);
+      expect(done, isTrue);
+      expect(wiped, [WipeReason.accountDeleted]);
+      expect(late.inner.values, isNotEmpty);
+      // The next account signs in right after, chooses a portfolio and
+      // opens an invitation.
+      const next = {
+        AppSettings.currentPortfolioKey: 'next/p2',
+        AppSettings.pendingInvitationKey: 'next.invitation',
+      };
+      for (final MapEntry(:key, :value) in next.entries) {
+        await settings.setString(key, value);
+      }
+      // The store answers at last: the first account's copies go.
+      late.listing.complete();
+      await tester.pump();
+      expect(late.inner.values, isEmpty);
+      // The next account's choices stay, and nothing is told twice.
+      expect(settings.values, {..._display, ...next});
+      expect(wiped, [WipeReason.accountDeleted]);
+      // A fetch of the first account that was on its way is still dropped.
+      await lateCache.write(testUserId, 'tenants', 2, epoch: 0);
+      expect(late.inner.values, isEmpty);
     });
   });
 

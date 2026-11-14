@@ -50,9 +50,9 @@ const sharedFileGrace = Duration(minutes: 10);
 /// stops waiting for them.
 const wipeFilesLimit = Duration(seconds: 30);
 
-/// How long [DeviceDataWipe.wipe] waits for the preferences to go before it
-/// returns anyway, so that a store that never answers does not hold up the
-/// sign-out. The step goes on behind it.
+/// How long a wipe waits for each of its preferences to go before it goes
+/// on without it, so that a store that never answers holds up neither the
+/// other removals nor the sign-out. The removal stays asked for.
 const wipePreferencesLimit = Duration(seconds: 3);
 
 /// How long one plugin may take to answer during a wipe.
@@ -198,6 +198,8 @@ final class _Wipe {
   new(this.reason, this.preferences, {required this.camera});
 
   final WipeReason reason;
+
+  /// Completes when the step ends: within [wipePreferencesLimit].
   final Future<void> preferences;
 
   /// Whether it removes the camera's record.
@@ -237,9 +239,10 @@ final class _Wipe {
 /// touched, and on the web there are none: a file the browser downloaded or
 /// shared is the person's own, and so is text copied to the clipboard.
 ///
-/// Every step runs on its own: one that fails leaves the others to run. It
-/// never throws, and logs nothing (a file's name can carry a tenant's). A
-/// second wipe for one sign-out does no harm: each step finds nothing left.
+/// Every step runs on its own: one that fails, or never answers, leaves
+/// the others to run. It never throws, and logs nothing (a file's name can
+/// carry a tenant's). A second wipe for one sign-out does no harm: each
+/// step finds nothing left.
 final class DeviceDataWipe {
   /// `preferencesLimit` is [wipePreferencesLimit] but in tests.
   new({
@@ -255,12 +258,13 @@ final class DeviceDataWipe {
   final SettingsStore _settings;
   final DeviceScratch _scratch;
 
-  /// Called once the preferences are gone, for state kept in memory.
+  /// Called once the preferences step has ended, for state kept in memory.
   final void Function(WipeReason reason)? _onWiped;
   final DateTime Function() _clock;
   final Duration _preferencesLimit;
 
-  /// The preferences step on its way, if any.
+  /// The preferences step on its way, if any: none once it has ended, also
+  /// when a store did not answer in time.
   _Wipe? _current;
 
   /// The last pass over the files, which the next one waits for.
@@ -268,21 +272,23 @@ final class DeviceDataWipe {
 
   /// Wipes the device for [reason]. It returns once the preferences are
   /// gone (a few milliseconds), so that nothing of the account is read
-  /// after the sign-out shows, or after [wipePreferencesLimit] when the
-  /// store does not answer; the files follow without holding anyone up
+  /// after the sign-out shows, or after [wipePreferencesLimit] when a store
+  /// does not answer; the files follow without holding anyone up
   /// ([settled]).
   ///
   /// A call while the preferences of a wipe that removes as much are being
-  /// removed shares that step. Every call has its own pass over the files,
-  /// after the passes before it, which touches nothing written after the
-  /// call: a photo taken by someone who signed in since is theirs.
+  /// removed shares that step, and its pass over the files. A call after
+  /// the step has ended (in time or not) is a wipe of its own: someone may
+  /// have signed in since. Each wipe has its own pass over the files, after
+  /// the passes before it, which touches nothing written after the wipe
+  /// began: a photo taken by someone who signed in since is theirs.
   Future<void> wipe(WipeReason reason) =>
       _wipe(reason, camera: reason.endsSession);
 
   Future<void> _wipe(WipeReason reason, {required bool camera}) {
     final current = _current;
     if (current != null && current.covers(reason, camera: camera)) {
-      return _bounded(current.preferences);
+      return current.preferences;
     }
     final startedAt = _clock();
     final preferences = _forgetPreferences(reason, camera: camera);
@@ -294,7 +300,7 @@ final class DeviceDataWipe {
       }),
     );
     _queueFiles(camera: camera, pickers: true, at: startedAt);
-    return _bounded(preferences);
+    return preferences;
   }
 
   /// At start-up, once the stored session has been read: when nobody is
@@ -313,15 +319,16 @@ final class DeviceDataWipe {
     if (!signedIn) return _wipe(WipeReason.startedSignedOut, camera: camera);
     final at = _clock();
     final preferences = camera
-        ? _quietly(() => _settings.remove(AppSettings.cameraTargetKey))
+        ? _bounded(() => _settings.remove(AppSettings.cameraTargetKey))
         : Future<void>.value();
     _queueFiles(camera: camera, pickers: true, at: at);
-    return _bounded(preferences);
+    return preferences;
   }
 
-  /// [preferences], or nothing once the limit has passed.
-  Future<void> _bounded(Future<void> preferences) =>
-      preferences.timeout(_preferencesLimit, onTimeout: () {});
+  /// Runs [removal], and goes on without it when it fails, or once the
+  /// limit has passed: it stays asked for, and nothing waits for it.
+  Future<void> _bounded(Future<void> Function() removal) =>
+      _quietly(removal).timeout(_preferencesLimit, onTimeout: () {});
 
   /// When the app comes back to the foreground: the files written to share
   /// that have not changed for [sharedFileGrace]. Nothing else: a picker
@@ -346,18 +353,21 @@ final class DeviceDataWipe {
     );
   }
 
+  /// Removes the account's preferences, each on its own and all asked for
+  /// at once: one that never answers holds up no other, and none is asked
+  /// for later, when someone else may have signed in. It ends within
+  /// [wipePreferencesLimit].
   Future<void> _forgetPreferences(
     WipeReason reason, {
     required bool camera,
   }) async {
-    await _quietly(_cache.clear);
-    await _quietly(() => _settings.remove(AppSettings.currentPortfolioKey));
-    if (camera) {
-      await _quietly(() => _settings.remove(AppSettings.cameraTargetKey));
-    }
-    if (reason == WipeReason.accountDeleted) {
-      await _quietly(() => _settings.remove(AppSettings.pendingInvitationKey));
-    }
+    await Future.wait([
+      _bounded(_cache.clear),
+      _bounded(() => _settings.remove(AppSettings.currentPortfolioKey)),
+      if (camera) _bounded(() => _settings.remove(AppSettings.cameraTargetKey)),
+      if (reason == WipeReason.accountDeleted)
+        _bounded(() => _settings.remove(AppSettings.pendingInvitationKey)),
+    ]);
     await _quietly(() async => _onWiped?.call(reason));
   }
 
