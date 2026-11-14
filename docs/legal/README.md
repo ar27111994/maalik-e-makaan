@@ -31,7 +31,7 @@ privacy changes for decisions 1 to 3 in both languages, the data map and the que
 | 1   | This README                                                                              | What the pack is, the status of each decision, how to return the mark-up                                                                                                                                                                                       |
 | 2   | [data-map.md](data-map.md)                                                               | The data map: a one-page summary; every data class, where it is stored, who sees it, whether tenants see it, how long it stays, and the services that handle it, live and planned separately; a first draft of the store forms; and a draft retention schedule |
 | 3   | [privacy-notice.en.md](privacy-notice.en.md)                                             | The whole proposed privacy page in English, then a table of every change from the live page with its reason and the feature it ships with                                                                                                                      |
-| 4   | [website-copy.md](website-copy.md)                                                       | Proposed English and Urdu for every other place that makes a privacy promise: the FAQ, the footer, the page description, the READMEs                                                                                                                           |
+| 4   | [website-copy.md](website-copy.md)                                                       | Proposed English and Urdu for every other place that makes a privacy promise: the FAQ, the footer, the page description, the how-it-works step, the READMEs                                                                                                                           |
 | 5   | [terms-changes.en.md](terms-changes.en.md)                                               | Draft terms clauses for decisions 1 to 3: caretakers' authority, the owner's warranty for letterheads, and the messages we send                                                                                                                                |
 | 6   | [questions.md](questions.md)                                                             | The questions for the lawyer, grouped, each with why it matters and what the drafts assume                                                                                                                                                                     |
 | 7   | [privacy-notice.ur.md](privacy-notice.ur.md), [terms-changes.ur.md](terms-changes.ur.md) | The Urdu twins of files 3 and 5, with the words chosen for legal terms. The Urdu of file 4 is in that file                                                                                                                                                     |
@@ -142,6 +142,25 @@ placeholder until each is settled.
       elsewhere; and whether it is still made on a GitHub-hosted runner, which holds the data
       unencrypted until it encrypts it, the restore check included (data map, row 18;
       [X3](questions.md#transfers-and-regions)).
+- [ ] **The device** (data map, rows 14a to 14g, and gap 5): the live how-it-works step says, in
+      both languages, that signing out clears the app's saved records from the phone or computer,
+      which release 1.2.0 does not do ([website copy](website-copy.md), item 17). Pull request #70
+      makes it true and rewrites the step and the privacy page; until it merges, the data map gives
+      both behaviours. Whether the pack goes out before or after #70 merges.
+- [ ] **Android's Auto Backup:** `android:allowBackup` is not set, so Google's backup of the phone
+      copies the app's preferences, the session and the record cache with tenants' CNICs included,
+      to the person's Google account; iCloud or a computer backup does the same on the iPhone (data
+      map, row 14g). Turn it off, or leave the preferences out of it
+      ([T7](questions.md#tenants)).
+- [ ] **A session timeout on the hosted project:** refresh tokens do not expire by time, and
+      `supabase/config.toml` sets no session time-box or inactivity timeout, so a sign-out that
+      cannot reach the server leaves that session valid, and a phone backup made before it can still
+      sign in (data map, row 14g; PR #70's `.planning/STATE.md`:326-330).
+- [ ] **The web app's old address:** when the web app moves to `https://app.mmakaan.app`, every
+      browser that used `https://maalik-e-makaan.vercel.app` keeps that address's storage (the
+      session, the record cache with CNICs, the invitation), which the app on the new address cannot
+      reach. Have the old address clear it before it redirects (data map, row 14a; PR #70's
+      `docs/operations.md`:301-322).
 - [ ] **Each service's retention:** Supabase's logs, Vercel's logs, Resend, Intercom and
       Customer.io ([D4](questions.md#retention-and-deletion)).
 - [ ] **The processor role:** whether AR LABS accepts it for tenant data, and says so (LR:177;
@@ -205,6 +224,10 @@ Versions sent: none yet.
   `7e75b7f`, where the file's header comment is nine lines longer: every RES line from :61 on is
   nine more there, and nothing the pack cites changed. `6608f1e` stays reachable through the pull
   request.
+- **The device wipe** is cited in pull request
+  [#70](https://github.com/ar27111994/maalik-e-makaan/pull/70), not merged, at its head `4b84fab`,
+  as "PR #70". Where it changes what the app does, the pack says what release 1.2.0 does today and
+  what PR #70 changes ([data map](data-map.md#on-the-device), rows 14a to 14g).
 - **Short names:** PJ is [`.planning/PROJECT.md`](../../.planning/PROJECT.md), RM is
   [`docs/roadmap/README.md`](../roadmap/README.md), LR is
   [`docs/roadmap/legal-review.md`](../roadmap/legal-review.md), PEN and TEN are the live privacy page
