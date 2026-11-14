@@ -238,7 +238,7 @@ class FetchTest(unittest.TestCase):
                 self.assertEqual(api.pauses, [cl.PAUSE_SECONDS])
                 self.assertEqual(len(api.urls), 2)
 
-    def test_a_retry_after_header_sets_the_pause_up_to_a_minute(self):
+    def test_a_retry_after_header_sets_the_pause_up_to_the_cap(self):
         cases = {
             "2": 2.0,
             "3600": cl.MAX_RETRY_AFTER_SECONDS,

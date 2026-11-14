@@ -27,7 +27,11 @@ and fails closed:
 
 Redirects are not followed. A request that fails (DNS, connection, certificate, timeout), or
 answers 5xx, 408 (Request Timeout) or 429 (Too Many Requests), is tried again, six tries in all:
-after the seconds its Retry-After header gives, at most a minute, or else after five seconds.
+after the seconds its Retry-After header gives, at most fifteen, or else after five seconds. A
+request gives up after twenty seconds without a reply. With these, the longest a check can take
+fits the timeout-minutes of every job that runs it, so a check that keeps failing ends the job
+with its own error rather than GitHub's timeout (tool/web/test_check_time.py works it out from
+the workflows and fails when it no longer fits).
 """
 
 from __future__ import annotations
@@ -49,9 +53,12 @@ TRIES = 6
 PAUSE_SECONDS = 5.0
 # The answers below 500 that say "not now" rather than "no": tried again like a 5xx.
 RETRY_STATUSES = frozenset({408, 429})
-# The longest wait a Retry-After header can ask for between two tries.
-MAX_RETRY_AFTER_SECONDS = 60.0
-TIMEOUT_SECONDS = 30.0
+# The longest wait a Retry-After header can ask for between two tries. This, TRIES and
+# TIMEOUT_SECONDS bound how long a check takes; tool/web/test_check_time.py checks that bound
+# against the timeout-minutes of each job that runs one.
+MAX_RETRY_AFTER_SECONDS = 15.0
+# How long a request waits to connect, and then for each read of the answer.
+TIMEOUT_SECONDS = 20.0
 # Enough of a body for assetlinks.json; nothing else is read.
 BODY_LIMIT = 1 << 20
 HELP = "docs/operations.md, Domains"
@@ -294,7 +301,11 @@ class Checker:
             )
 
 
-def main(argv: list[str] | None = None, get: Fetch = fetch) -> int:
+def main(
+    argv: list[str] | None = None,
+    get: Fetch = fetch,
+    sleep: Callable[[float], None] = time.sleep,
+) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("part", choices=("app", "site"), help="what is about to be deployed")
     parser.add_argument("--origins", type=Path, help="default: contracts/origins.json")
@@ -304,7 +315,7 @@ def main(argv: list[str] | None = None, get: Fetch = fetch) -> int:
     except OriginsError as error:
         print(f"::error::{error}")
         return 2
-    checker = Checker(get)
+    checker = Checker(get, sleep)
     if args.part == "app":
         checker.app(origins)
     else:

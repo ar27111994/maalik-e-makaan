@@ -13,9 +13,9 @@ before its builds and the Deploy workflow's supabase job before it deploys. A to
 read Auth's settings (401 or 403) only warns, and what the check gates goes ahead: the owner
 compares Authentication, URL Configuration with docs/operations.md, Domains, by hand. No answer,
 a 5xx, 408 or 429 is tried again, six tries in all (after the seconds of a Retry-After header, at
-most a minute, or else five seconds; check_live.answer), since the Release workflow's preflight
-job and the Deploy workflow's supabase job call the Management API at the same moment. Any other
-answer, or one of those on the last try, fails. AUTH_JSON is a file holding those two fields, for
+most fifteen, or else five seconds; check_live.answer, with its request timeout), since the
+Release workflow's preflight job and the Deploy workflow's supabase job call the Management API
+at the same moment. Any other answer, or one of those on the last try, fails. AUTH_JSON is a file holding those two fields, for
 a check by hand.
 
 A build asks Auth to send its e-mail links (confirmation, password reset, e-mail change) to
@@ -53,7 +53,14 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 sys.path.insert(0, str(Path(__file__).parent))
-from check_live import Answer, OriginsError, UnreachableError, answer, read_origins
+from check_live import (
+    TIMEOUT_SECONDS,
+    Answer,
+    OriginsError,
+    UnreachableError,
+    answer,
+    read_origins,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 PLIST = REPO / "app/ios/Runner/Info.plist"
@@ -67,7 +74,6 @@ ACCESS_ENV = "SUPABASE_ACCESS_TOKEN"
 _PROJECT_REF = re.compile(r"[a-z]{20}")
 # Auth's settings are a few kilobytes; nothing beyond this is read.
 BODY_LIMIT = 1 << 20
-TIMEOUT_SECONDS = 30.0
 
 
 class AuthCheckError(Exception):
