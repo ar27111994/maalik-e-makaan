@@ -99,8 +99,10 @@ final class SwrCache {
   /// by the query it kept.
   final _forgotten = <String, Map<String, int>>{};
 
-  /// The user whose entries alone were kept by [forgetOthers], and the
-  /// epoch it started, since the last clear.
+  /// The user whose entries alone were kept by the last [forgetOthers], and
+  /// the epoch it started. A [clear] leaves it as it is: that epoch is then
+  /// before [_cleared], which already counts everything asked for before
+  /// it as removed ([_removedSince]).
   (String, int)? _keptOnly;
 
   /// The last update of each entry asked for ([serially]), by key, while
