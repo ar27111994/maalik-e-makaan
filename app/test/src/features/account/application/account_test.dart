@@ -108,6 +108,37 @@ void main() {
       expect(saved.value.fullName, 'Ayesha K.');
     });
 
+    for (final (what, remove) in <(String, Future<void> Function(SwrCache))>[
+      ('the device was wiped', (cache) => cache.clear()),
+      (
+        'a portfolio left the list',
+        (cache) =>
+            cache.forgetUser(testUserId, keep: PortfoliosController.query),
+      ),
+    ]) {
+      test('a language whose save was on its way when $what is shown and '
+          'not kept', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, profileProvider(testUserId));
+        await pumpEventQueue();
+        app.profiles.gate.close();
+        final saving = container
+            .read(profileProvider(testUserId).notifier)
+            .saveLanguage(AppLanguage.urdu);
+        await pumpEventQueue();
+        // Removed, all of it, while the request is on its way.
+        await remove(app.cache);
+        app.profiles.gate.open();
+        await saving;
+        expect(app.store.values, isEmpty);
+        expect(
+          container.read(profileProvider(testUserId)).value!.value.language,
+          AppLanguage.urdu,
+        );
+      });
+    }
+
     test(
       'saving the language before the profile loaded saves it only',
       () async {

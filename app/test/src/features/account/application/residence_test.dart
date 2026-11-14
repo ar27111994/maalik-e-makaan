@@ -129,6 +129,26 @@ void main() {
       expect(app.store.values, isEmpty);
     });
 
+    test('a residence built after an earlier session ended saves what it '
+        'is given', () async {
+      final app = TestApp();
+      // Someone signed out earlier in this run of the app, or its start
+      // found nobody signed in and cleared the cache.
+      await app.cache.clear();
+      final container = containerFor(app);
+      listen(container, residenceProvider(testUserId));
+      await pumpEventQueue();
+      await container
+          .read(residenceProvider(testUserId).notifier)
+          .save(country: CountryCode.parse('NO'), timeZone: null);
+      final saved = await app.cache.read(
+        testUserId,
+        ResidenceController.query,
+        AccountResidence.fromRow,
+      );
+      expect(saved!.value.residence.country, CountryCode.parse('NO'));
+    });
+
     test('a save asked for before a portfolio left the list is not kept, '
         'and one made after it is', () async {
       final app = TestApp();

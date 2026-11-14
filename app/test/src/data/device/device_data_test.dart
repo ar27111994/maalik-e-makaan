@@ -209,6 +209,20 @@ void main() {
       expect(settled, isTrue);
     });
 
+    test('a cache entry that cannot be deleted leaves the others to '
+        'go', () async {
+      await cache.seed(testUserId, 'leases', [1]);
+      await cache.seed('another-user', 'tenants', [1]);
+      store.undeletable.add('mm.swr.v1.$testUserId.tenants');
+      await wipe.wipe(WipeReason.signedOut);
+      expect(store.values.keys, ['mm.swr.v1.$testUserId.tenants', 'other']);
+      expect(settings.values, {
+        ..._display,
+        AppSettings.pendingInvitationKey: 'invitation.verifier',
+      });
+      expect(wiped, [WipeReason.signedOut]);
+    });
+
     test('a step that fails leaves the others to run', () async {
       settings.writeFailure = Exception('read-only');
       scratch.failure = Exception('no activity');
@@ -265,26 +279,78 @@ void main() {
       expect(wiped, [WipeReason.accountDeleted]);
     });
 
-    testWidgets('for one preference leaves the others to go', (tester) async {
+    for (final key in [
+      AppSettings.currentPortfolioKey,
+      AppSettings.cameraTargetKey,
+      AppSettings.pendingInvitationKey,
+    ]) {
+      testWidgets('for $key leaves the others to go, and the wipe to '
+          'end', (tester) async {
+        final stuck = DeviceDataWipe(
+          cache: cache,
+          settings: _StuckSettings(settings, key),
+          scratch: scratch,
+          onWiped: wiped.add,
+          clock: () => _now,
+        );
+        var done = false;
+        unawaited(
+          stuck.wipe(WipeReason.accountDeleted).then((_) => done = true),
+        );
+        await tester.pump();
+        expect(store.values, {'other': '1'});
+        expect(settings.values, {..._display, key: _everything()[key]});
+        expect(done, isFalse);
+        expect(wiped, isEmpty);
+        await tester.pump(wipePreferencesLimit);
+        expect(done, isTrue);
+        expect(wiped, [WipeReason.accountDeleted]);
+      });
+    }
+
+    testWidgets('for the camera at a signed-in start does not hold the '
+        'start up', (tester) async {
       final stuck = DeviceDataWipe(
         cache: cache,
-        settings: _StuckSettings(settings, AppSettings.currentPortfolioKey),
+        settings: _StuckSettings(settings, AppSettings.cameraTargetKey),
         scratch: scratch,
         onWiped: wiped.add,
         clock: () => _now,
       );
       var done = false;
-      unawaited(stuck.wipe(WipeReason.accountDeleted).then((_) => done = true));
+      unawaited(
+        stuck
+            .atStart(signedIn: true, photoMayReturn: false)
+            .then((_) => done = true),
+      );
       await tester.pump();
-      expect(store.values, {'other': '1'});
-      expect(settings.values, {
-        ..._display,
-        AppSettings.currentPortfolioKey: '$testUserId/p1',
-      });
       expect(done, isFalse);
       await tester.pump(wipePreferencesLimit);
       expect(done, isTrue);
-      expect(wiped, [WipeReason.accountDeleted]);
+      // The signed-in account's own stay.
+      expect(settings.values, _everything());
+      expect(store.values, hasLength(2));
+      expect(wiped, isEmpty);
+    });
+
+    testWidgets('for one cache entry leaves the other entries and the '
+        'preferences to go', (tester) async {
+      await cache.seed('another-user', 'tenants', [1]);
+      store.silent.add('mm.swr.v1.$testUserId.tenants');
+      var done = false;
+      unawaited(wipe.wipe(WipeReason.signedOut).then((_) => done = true));
+      await tester.pump();
+      expect(store.values.keys, ['mm.swr.v1.$testUserId.tenants', 'other']);
+      expect(
+        settings.values,
+        {..._everything()}
+          ..remove(AppSettings.currentPortfolioKey)
+          ..remove(AppSettings.cameraTargetKey),
+      );
+      expect(done, isFalse);
+      await tester.pump(wipePreferencesLimit);
+      expect(done, isTrue);
+      expect(wiped, [WipeReason.signedOut]);
     });
 
     testWidgets('leaves a later wipe its own work: someone may have signed '
