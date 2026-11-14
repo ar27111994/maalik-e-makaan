@@ -34,11 +34,12 @@ relying on them.
 - **The domain was the likeliest blocker after the D-U-N-S; it is bought.** AR LABS bought
   `mmakaan.app` on 13 November 2026 (D-20): the website moves to it and the web app to
   `app.mmakaan.app`, with permanent redirects from their `vercel.app` addresses
-  ([origins.json](../../contracts/origins.json), [operations.md](../operations.md#domains)). Work
-  e-mail on it comes from Zoho Mail, which the owner is setting up. Until then the company link in
-  [site.ts](../../website/src/config/site.ts) points to a personal site, and the product mailbox is
-  on a sending subdomain of that personal domain, verified with Resend on 9 November 2026
-  ([STATE.md](../../.planning/STATE.md)).
+  ([origins.json](../../contracts/origins.json), [operations.md](../operations.md#domains)). The
+  company's mailbox on it is `hello@mmakaan.app`, on Dynadot's e-mail (13 November 2026), and the
+  website gives it as the contact address. The company link in
+  [site.ts](../../website/src/config/site.ts) still points to a personal site (the owner's to
+  decide), and the app's e-mails are still sent from a subdomain of that personal domain, verified
+  with Resend on 9 November 2026 ([STATE.md](../../.planning/STATE.md)).
 - **Build rules**
   ([Apple upcoming requirements](https://developer.apple.com/news/upcoming-requirements/)): since 28
   April 2026 builds need Xcode 26 and the iOS 26 SDK; privacy manifests are enforced for "required
@@ -66,17 +67,18 @@ relying on them.
   - CI and each release build the app with `--no-codesign` and attach an unsigned `.ipa`
     ([release.yml](../../.github/workflows/release.yml));
   - e-mail links come back through the app's own URL scheme, because there is no associated domain
-    ([operations.md](../../docs/operations.md), "iOS e-mail links"); that redirect URL is still to
-    be added to Auth ([release-readiness.md](../../docs/release-readiness.md)).
+    ([operations.md](../../docs/operations.md), "iOS e-mail links"); Auth lists that redirect URL,
+    for the old address and the new, since 14 November 2026
+    ([release-readiness.md](../../docs/release-readiness.md)).
 - The project's earlier research concluded that "iOS matters mainly for overseas owners"
   ([market-painpoints.md](../../.planning/research/market-painpoints.md)).
 
 ## Design
 
 - **Domain and work e-mail first.** The product's domain, `mmakaan.app`, owned by AR LABS (D-20),
-  with work e-mail on it from Zoho Mail. The website and the web app move to it, with permanent
-  redirects from the `vercel.app` addresses. The same domain later carries the e-mail sending
-  subdomains and Meta's business verification.
+  with work e-mail on it: the mailbox `hello@mmakaan.app`, on Dynadot's e-mail. The website and the
+  web app move to it, and their `vercel.app` addresses send people on for good. The same domain
+  later carries the e-mail sending subdomains and Meta's business verification.
 - **Enrolment.** Enrol AR LABS as an organisation once the D-U-N-S number and the domain exist. The
   Account Holder is a person with authority to bind the company.
 - **Signing in CI.** A macOS job in `release.yml` on Xcode 26 that signs with an App Store Connect
@@ -123,8 +125,9 @@ consent table as analytics.
 
 ## Work
 
-1. **Owner:** register the domain and set up work e-mail on it. The domain is bought
-   (`mmakaan.app`, 13 November 2026); its DNS and Zoho Mail are the owner's to finish.
+1. **Owner:** register the domain and set up work e-mail on it. Done: the domain is bought
+   (`mmakaan.app`, 13 November 2026), its DNS points at the hosting, and the mailbox
+   `hello@mmakaan.app` exists on Dynadot's e-mail (both reported that day).
 2. **S:** move the website and the web app to the domain: Vercel domains, the default URLs in
    `urls.ts`, Auth's site URL and redirects, and redirects from `vercel.app`. Done in the pull
    request that records D-20 (one source, `contracts/origins.json`), with the owner's steps in

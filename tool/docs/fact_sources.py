@@ -644,7 +644,7 @@ def parse_decisions(text: str) -> Decisions:
 
 @dataclass(frozen=True)
 class Origins:
-    """The website's and the web app's production origins, and the addresses that redirect."""
+    """The website's and the web app's production origins, and the addresses that lead to them."""
 
     site: str
     site_aliases: tuple[str, ...]

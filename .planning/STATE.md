@@ -7,26 +7,43 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-13)
+## Current Position (2026-11-14)
 
 - D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
-  the `vercel.app` addresses redirect permanently. Branch `claude/domain-mmakaan`, one pull
+  the `vercel.app` addresses send people on for good. Branch `claude/domain-mmakaan`, one pull
   request, not merged: `contracts/origins.json` as the one source of the origins (the website's
-  defaults, the deck, the workflows' `APP_URL` and the web app's redirects read it; the Android
-  manifest's hosts and `website/vercel.json`'s redirect are checked against it, and every other
-  address by `make docs-check` C17); the redirects in `website/vercel.json` and in the web app's
-  Build Output routes, with the old app host still serving `assetlinks.json` and, until the next
-  release, `/auth/callback`; App Links on both hosts; `redirect_smoke_test.sh` in CI and after
-  each deploy. Before building or deploying, Release and Deploy check that the new addresses
-  answer (`tool/web/check_live.py`), that Auth allows every build's e-mail links
+  defaults, the deck, the workflows' `APP_URL` and the page the web app's old address answers
+  with read it; the Android manifest's hosts and `website/vercel.json`'s redirect are checked
+  against it, and every other address by `make docs-check` C17); the website's old address
+  redirects (`website/vercel.json`); the web app's old address answers every page with one that
+  clears what the app kept in the browser there (`Clear-Site-Data: "storage"`, and a script for
+  browsers without the header) and goes to the same address on the new one, while it keeps
+  serving `assetlinks.json` and, until the next release, `/auth/callback`, neither of which
+  clears anything; App Links on both hosts; `redirect_smoke_test.sh` in CI and after each
+  deploy. Before building or deploying, Release and Deploy check that the new addresses answer
+  (`tool/web/check_live.py`), that Auth allows every build's e-mail links
   (`tool/web/check_auth_urls.py`) and that the website goes out only after the web app it links
-  to. The web app answers `X-Robots-Tag: noindex`. The Vercel domains were added by the agent
-  through the connector; the DNS is not pointed yet. Merge only once the new hosts serve HTTPS,
-  and release in the same sitting: the owner's steps, in order, are `docs/release-readiness.md`,
-  Owner actions, item 13. Open for the owner: invitations' `APP_URL` after the move (step 8) and
-  whether the company's website in the structured data becomes the new domain (step 10). Zoho
-  Mail is the owner's; no mailbox is named yet, so none appears anywhere.
+  to. The web app answers `X-Robots-Tag: noindex`.
+- The move's state on 2026-11-14, from the owner (`docs/release-readiness.md`, Owner actions,
+  item 13, has the steps): the Dynadot records are in and Vercel reports the three hosts as
+  correctly configured (2026-11-13); the new addresses were checked over HTTPS in a browser,
+  Auth's redirect URLs list all four callbacks with the Site URL left as it was, and the Edge
+  Function secret `ALLOWED_ORIGINS` holds both app origins (reported 2026-11-14). The owner also
+  set `APP_URL` to `https://app.mmakaan.app` that day, ahead of the order, in the Edge Function
+  secret and in the GitHub repository variable. So invitation e-mails already link to the new
+  address, which serves the web app from before the move until the release (a sign-up started
+  there cannot finish its e-mail link), and the workflows on `main` would build for the new
+  address until this pull request is merged; the weekly site refresh is next due on Wednesday
+  2026-11-18. Next: merge and release before then, then Auth's Site URL, then delete the
+  `APP_URL` repository variable. Open for the owner: whether the company's website in the
+  structured data becomes the new domain (step 10), and uptime monitors for the new addresses.
+- The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho
+  (the owner, 2026-11-13); a test message to Gmail passed SPF and DKIM for `mmakaan.app`, and the
+  `_dmarc` record (`p=none`) was being added. The website, both privacy pages, `llms.txt` and the
+  deck give it as the contact address in place of the Resend sending address, from which Auth's
+  e-mails and the invitations are still sent. It is the one mailbox on the domain that
+  `make docs-check` allows (`NAMED_MAILBOXES`).
 - D-19 is in place (2026-11-12, branch `wip/urdu-sans-2`, one pull request): Urdu interface text
   is Noto Sans Arabic in the tokens, `mm_ui`, the app (250 goldens re-recorded and looked at),
   the website (its Open Graph cards redrawn) and the pitch deck; Nastaliq is left for the
@@ -168,8 +185,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   - D-19 (the owner, 2026-11-11; in place since 2026-11-12): Urdu interface text in Noto Sans
     Arabic, Nastaliq kept for the wordmark;
   - D-20 (the owner, 2026-11-13): the domain `mmakaan.app`, the website on the apex and the web
-    app on `app.`, the `vercel.app` addresses redirecting, work e-mail from Zoho Mail; the origins
-    written once, in `contracts/origins.json`, and carried by each release tag.
+    app on `app.`, the `vercel.app` addresses sending people on (the web app's clears its storage
+    first), the company's mailbox `hello@mmakaan.app` on Dynadot's e-mail; the origins written
+    once, in `contracts/origins.json`, and carried by each release tag.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.
@@ -258,9 +276,10 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
   is to comment (`docs/roadmap/open-banking.md`).
 - **The D-U-N-S number** gates Google Play, the App Store and paid plans; Dun & Bradstreet quotes
   up to 30 business days.
-- **The domain's DNS, then work e-mail:** `mmakaan.app` is bought (D-20, 2026-11-13). Waiting on
-  the owner: the records at Dynadot (the move's pull request is merged once the new hosts serve
-  HTTPS; `docs/release-readiness.md`, Owner actions, item 13), then Zoho Mail. Apple enrols an
+- **The move to the domain:** `mmakaan.app` is bought (D-20, 2026-11-13), its DNS points at the
+  hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). Waiting on the owner:
+  the merge of the move's pull request and the release, before Wednesday 2026-11-18, then the
+  steps after it (`docs/release-readiness.md`, Owner actions, item 13). Apple enrols an
   organisation only if its website is on a domain associated with it, with work e-mail there; the
   same domain serves Meta's verification and the e-mail sending subdomains.
 - **A lawyer:** a fixed-fee request for quotation this month, with a deadline at least six weeks
@@ -376,9 +395,10 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
   production is public.
 - Domains (D-20, added 2026-11-13 through the Vercel connector): `mmakaan.app` and
   `www.mmakaan.app` (308 to the apex) on `maalik-e-makaan-site`, `app.mmakaan.app` on
-  `maalik-e-makaan`; each project keeps its `vercel.app` address, which redirects once the
-  release that carries D-20 is deployed. The DNS at Dynadot still points at its parking page
-  (Vercel reports the three as misconfigured); `docs/operations.md`, Domains, has the records.
+  `maalik-e-makaan`; each project keeps its `vercel.app` address, which sends people on once the
+  release that carries D-20 is deployed. The DNS at Dynadot points at Vercel since 2026-11-13
+  (the owner: Vercel reports the three hosts as correctly configured); `docs/operations.md`,
+  Domains, has the records.
 
 ## Completed Phases
 

@@ -85,17 +85,19 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
 
 ## Addresses
 
-- The website's and the web app's production origins, and the earlier addresses that redirect to
-  them, are written once: [`contracts/origins.json`](../../contracts/origins.json) (decision
+- The website's and the web app's production origins, and the earlier addresses that send people
+  on to them, are written once: [`contracts/origins.json`](../../contracts/origins.json) (decision
   D-20). Code reads it (the website's defaults, the deck, the workflows' `APP_URL` and their
-  checks that the addresses answer, the web app's redirects). Two files spell the addresses
-  themselves and are checked against it: the Android manifest's App Link hosts
-  (`tool/android/check_manifest.py`) and `website/vercel.json`'s redirect (the website's unit
-  tests). Docs name the origins through the `site-origin` and `app-origin` facts where they can,
-  and `make docs-check` (C17) checks every other address: a host on the domain must be an origin
-  or alias, an earlier address appears only in the files `LEGACY_PATHS` lists (in
-  `tool/docs/fact_registry.py`), no workflow names an origin, and no page gives a mailbox on the
-  domain until the owner names one. The pre-commit hook runs C17 for code too (`C17_CODE`).
+  checks that the addresses answer, the page the web app's earlier address answers with). Two
+  files spell the addresses themselves and are checked against it: the Android manifest's App Link
+  hosts (`tool/android/check_manifest.py`) and `website/vercel.json`'s redirect (the website's
+  unit tests). Docs name the origins through the `site-origin` and `app-origin` facts where they
+  can, and `make docs-check` (C17) checks every other address: a host on the domain must be an
+  origin or alias, an earlier address appears only in the files `LEGACY_PATHS` lists (in
+  `tool/docs/fact_registry.py`), no workflow names an origin, and the only mailbox on the domain
+  that a file may name is one the owner made: `NAMED_MAILBOXES` in the same file, today the
+  company's `hello@mmakaan.app`, which the website gives as its contact address (`contactEmail` in
+  `website/src/config/site.ts`). The pre-commit hook runs C17 for code too (`C17_CODE`).
 - A test that needs an address uses `example.pk` or `example.org`, or reads the production ones
   from the file; none writes one.
 
