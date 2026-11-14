@@ -401,6 +401,34 @@ void main() {
     }
   });
 
+  group('a command started after a portfolio left the list saves its '
+      'answer, with no reload in between:', () {
+    for (final command in _answering) {
+      test(command.name, () async {
+        final app = TestApp();
+        // For the ledger, the refund's answer is lost again (setUp).
+        command.setUp?.call(app);
+        final container = containerFor(app);
+        // The portfolio list is on show and saved, as in the app: a list
+        // read again by the command (a portfolio's settings) then finds
+        // nothing more has left it, and forgets nothing.
+        listen(container, portfoliosProvider(testUserId));
+        listen(container, command.provider);
+        await pumpEventQueue();
+        final query = command.notifier(container).query;
+        expect(await _saved(app, query), isNotNull);
+        // The value on show was asked for before the portfolio left...
+        await _portfolioLeft(app);
+        expect(await _saved(app, query), isNull);
+        // ...and the command asks the server after it: its answer is saved
+        // with the epoch read before its own request, not the shown one.
+        await command.run(container);
+        await pumpEventQueue();
+        expect(await _saved(app, query), isNotNull);
+      });
+    }
+  });
+
   group('a value made from one shown before a portfolio left the list is '
       'not saved, and one made after a reload is:', () {
     for (final command in _building) {
