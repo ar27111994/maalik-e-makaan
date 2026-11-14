@@ -415,31 +415,56 @@ class OriginsCheckTest(FixtureCase):
             ],
         )
 
-    def test_c17_no_mailbox_on_the_domain_yet(self) -> None:
+    def test_c17_only_the_mailboxes_the_owner_named(self) -> None:
         changes = {
             "docs/extra.md": "# Extra\n\nWrite to hello@example.pk or ops@mail.example.pk.\n",
-            ".planning/STATE.md": "Zoho: privacy@example.pk, someday. Not hello@example.com.\n",
+            ".planning/STATE.md": "Later: privacy@example.pk. Not hello@example.com.\n",
+            "website/src/x.ts": 'export const contact = "Hello@Example.PK";\n',
         }
-        self.assert_problems(
-            check("origins"),
-            changes,
-            [
-                (
-                    "docs/extra.md",
-                    3,
-                    "names the mailbox hello@example.pk, but no mailbox on example.pk exists yet"
-                    " (D-20)",
-                ),
-                ("docs/extra.md", 3, "names the mailbox ops@mail.example.pk"),
-                # A mailbox's host is a host on the domain too.
-                ("docs/extra.md", 3, "names mail.example.pk, which is not an origin or alias"),
-                (".planning/STATE.md", 1, "names the mailbox privacy@example.pk"),
-            ],
-        )
-        named = ("hello@example.pk", "ops@mail.example.pk", "privacy@example.pk")
-        with unittest.mock.patch.object(reg, "NAMED_MAILBOXES", named):
-            found = self.run_check(check("origins"), changes)
-        self.assertEqual([message for _, _, message in found if "mailbox" in message], [])
+        # None of the fixture's domain is named: every mailbox there is refused, history included.
+        with unittest.mock.patch.object(reg, "NAMED_MAILBOXES", ()):
+            self.assert_problems(
+                check("origins"),
+                changes,
+                [
+                    (
+                        "docs/extra.md",
+                        3,
+                        "names the mailbox hello@example.pk, which the owner has not named on"
+                        " example.pk (D-20): the mailboxes there are NAMED_MAILBOXES in"
+                        " tool/docs/fact_registry.py (none yet)",
+                    ),
+                    ("docs/extra.md", 3, "names the mailbox ops@mail.example.pk"),
+                    # A mailbox's host is a host on the domain too.
+                    ("docs/extra.md", 3, "names mail.example.pk, which is not an origin or alias"),
+                    (".planning/STATE.md", 1, "names the mailbox privacy@example.pk"),
+                    ("website/src/x.ts", 1, "names the mailbox Hello@Example.PK"),
+                ],
+            )
+        # One is named: it is allowed in any case of letters, and every other one stays refused.
+        with unittest.mock.patch.object(reg, "NAMED_MAILBOXES", ("hello@example.pk",)):
+            self.assert_problems(
+                check("origins"),
+                changes,
+                [
+                    (
+                        "docs/extra.md",
+                        3,
+                        "names the mailbox ops@mail.example.pk, which the owner has not named on"
+                        " example.pk (D-20): the mailboxes there are NAMED_MAILBOXES in"
+                        " tool/docs/fact_registry.py (hello@example.pk)",
+                    ),
+                    ("docs/extra.md", 3, "names mail.example.pk, which is not an origin or alias"),
+                    (".planning/STATE.md", 1, "names the mailbox privacy@example.pk"),
+                ],
+            )
+
+    def test_c17_named_mailboxes_are_written_as_the_check_compares_them(self) -> None:
+        # The check lowers what a file names before it looks here, so an entry in another case
+        # would never match; one mailbox is named so far (D-20).
+        self.assertEqual(len(reg.NAMED_MAILBOXES), 1)
+        for mailbox in reg.NAMED_MAILBOXES:
+            self.assertRegex(mailbox, r"^[a-z0-9._%+-]+@(?:[a-z0-9-]+\.)+[a-z]{2,}$")
 
     def test_c17_leaves_out_binaries_its_own_tests_and_what_is_not_text(self) -> None:
         typo = "Not apps.example.pk.\n"

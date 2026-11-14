@@ -1427,8 +1427,12 @@ LEGACY_PATHS = {
 HISTORY = (".planning/**", "CHANGELOG.md")
 # The check's own tests, which name wrong addresses on purpose.
 C17_TESTS = ("tool/docs/test_*.py", "tool/docs/docs_fixture.py")
-# Mailboxes on the site's domain that exist; none until the owner names one (D-20).
-NAMED_MAILBOXES: tuple[str, ...] = ()
+# The mailboxes on the site's domain that exist, in lower case: the company's one, which the
+# owner named on 13 November 2026 (D-20) and the website gives as its contact address
+# (contactEmail in website/src/config/site.ts; the website's unit tests hold it to the domain).
+# Any other address on the domain is refused, so that no page sends people to a mailbox nobody
+# reads; a new one is added here once the owner has made it.
+NAMED_MAILBOXES: tuple[str, ...] = ("hello@mmakaan.app",)
 # The code C17 reads, as globs for the pre-commit hook (sync_facts.py --paths), which skips the
 # check unless a staged file matches one of its reads: code names addresses too (a default, a
 # test, a comment), and the full check reads every tracked text file.
@@ -1540,11 +1544,12 @@ def _origin_findings(
                     " release carries its own addresses",
                 )
             )
+    named = ", ".join(NAMED_MAILBOXES) or "none yet"
     found += [
         (
             match.start(),
-            f"names the mailbox {match[0]}, but no mailbox on {domain} exists yet (D-20); add it"
-            " to NAMED_MAILBOXES in tool/docs/fact_registry.py once the owner names it",
+            f"names the mailbox {match[0]}, which the owner has not named on {domain} (D-20):"
+            f" the mailboxes there are NAMED_MAILBOXES in tool/docs/fact_registry.py ({named})",
         )
         for match in mailbox.finditer(text)
         if match[0].lower() not in NAMED_MAILBOXES
@@ -1777,7 +1782,8 @@ CHECKS: tuple[Check, ...] = (
         ),
         "contracts/origins.json holds https origins, each once; every host on the site's domain"
         " is an origin or alias; earlier addresses only where LEGACY_PATHS allows; no workflow"
-        " names an origin or reads vars.APP_URL; no mailbox on the domain yet",
+        " names an origin or reads vars.APP_URL; no mailbox on the domain but the ones the owner"
+        " named",
         check_origins,
     ),
 )
