@@ -16,22 +16,38 @@ Copies the build into OUTPUT/static and writes OUTPUT/config.json, which
    index.html and the paths that fall back to it included, is revalidated on
    every load (`no-cache`; unchanged files answer 304).
 3. On an earlier address of the web app (`app.legacy` in
-   contracts/origins.json, decision D-20): `/` and `/index.html` redirect
-   permanently (308) to the origin.
+   contracts/origins.json, decision D-20): `/` and `/index.html` answer with
+   the page that sends people on to the origin (below), not with the app.
 4. `{"handle": "filesystem"}`: existing files are served, on every host.
-5. On an earlier address: every other path except /auth/callback redirects
-   permanently to the same path and query on the origin (a browser keeps the
-   #fragment of /invite#token=...).
+5. On an earlier address: every other path except /auth/callback answers with
+   the same page.
 6. Every other path (/auth/callback?code=..., /invite/...) serves index.html
    with status 200, so the app's router handles it.
+
+The page that sends people on (tool/web/moved/, copied to moved.html and
+moved.js) is a 200, not a redirect, because the earlier address has to clear
+what the app kept in the browser there: the session, the lists the app loaded
+(CNICs among them), the settings and an invitation not yet answered. A
+browser keeps them for each address apart, and once that address only sends
+people on, no app runs there to remove them. The page's response carries
+`Clear-Site-Data: "storage"` and nothing else: not "cache" (seconds-long
+stalls in Chromium) or "executionContexts" (reloads the page), and not
+"cookies" (the app sets none). Its script removes the app's own localStorage
+keys, for the browsers that do not know the header (Safari before 17) or do
+not act on it here, and replaces the address with the same path, query and
+#fragment on the origin; without scripts a meta refresh goes to the origin's
+first page. A redirect that carried the header would not do: Chromium and
+Firefox act on it for a redirect, WebKit only for the response a navigation
+ends on (docs/operations.md, Domains, has the sources).
 
 So an earlier address keeps answering what was sent before the move: the
 files, among them `.well-known/assetlinks.json`, which Android checks on each
 App Links host without following a redirect, and /auth/callback, which boots
-the app where the sign-in verifier of a link requested there is stored. The
-redirects carry the security headers and `no-cache`, so browsers revalidate
-them. `.well-known/assetlinks.json` is served as application/json. The
-Supabase origin is the only backend the CSP allows.
+the app where the sign-in verifier of a link requested there is stored.
+Neither carries Clear-Site-Data: the header is only on the routes of 3 and 5.
+Every response carries the security headers and `no-cache`, so browsers ask
+again each time. `.well-known/assetlinks.json` is served as application/json.
+The Supabase origin is the only backend the CSP allows.
 """
 
 from __future__ import annotations
@@ -98,6 +114,16 @@ FONT_FALLBACK_ORIGIN = "https://fonts.gstatic.com"
 
 # The path an earlier address keeps serving (route 5), besides the files.
 KEPT_ON_LEGACY = "auth/callback"
+
+# The page an earlier address answers instead (routes 3 and 5), and its script: the sources,
+# and their names in the package.
+MOVED_SOURCES = Path(__file__).resolve().parent / "moved"
+MOVED_PAGE = "moved.html"
+MOVED_SCRIPT = "moved.js"
+# What that page's response asks the browser to clear for the earlier address: its storage
+# (localStorage, sessionStorage, IndexedDB, service workers), and nothing that would stall or
+# reload the page.
+CLEAR_SITE_DATA = '"storage"'
 
 
 class PackagingError(Exception):
@@ -209,28 +235,38 @@ def _alternation(paths: list[str]) -> str:
 
 
 def legacy_routes(app: AppOrigins | None) -> tuple[list[dict], list[dict]]:
-    """The redirects of the earlier addresses: the ones before the filesystem (the root, which
-    would otherwise serve index.html), and the one after it (every other path but the callback).
-    None when there is no earlier address."""
+    """The routes of the earlier addresses, which answer with the page that clears their storage
+    and sends people on: the ones before the filesystem (the root and the page itself, which
+    would otherwise be served as files), and the one after it (every other path but the
+    callback). None when there is no earlier address."""
     if app is None or not app.legacy:
         return [], []
     # A host holds only [a-z0-9.-] (read_app_origins), so escaping the dots is enough, as in
     # Vercel's own example; a backslash before "-" is an error in some regex dialects.
     hosts = "|".join(host.replace(".", r"\.") for host in app.legacy_hosts())
-    has = [{"type": "host", "value": hosts}]
-    before = {
-        "src": r"^/(?:index\.html)?$",
-        "has": has,
-        "headers": {"Location": f"{app.origin}/"},
-        "status": 308,
+    moved = {
+        "has": [{"type": "host", "value": hosts}],
+        "headers": {"Clear-Site-Data": CLEAR_SITE_DATA},
+        "dest": f"/{MOVED_PAGE}",
+        "status": 200,
     }
-    after = {
-        "src": f"^/(?!{KEPT_ON_LEGACY}$)(.*)$",
-        "has": has,
-        "headers": {"Location": f"{app.origin}/$1"},
-        "status": 308,
-    }
+    page = re.escape(MOVED_PAGE)
+    before = {"src": rf"^/(?:index\.html|{page})?$", **moved}
+    after = {"src": f"^/(?!{KEPT_ON_LEGACY}$).*$", **moved}
     return [before], [after]
+
+
+def moved_files(app: AppOrigins) -> dict[str, str]:
+    """The page an earlier address answers with and its script, by their names in the package,
+    with the page's destination filled in: the web app's origin."""
+    page = (MOVED_SOURCES / MOVED_PAGE).read_text(encoding="utf-8")
+    script = (MOVED_SOURCES / MOVED_SCRIPT).read_text(encoding="utf-8")
+    page = page.replace("{{origin}}", app.origin).replace(
+        "{{host}}", app.origin.removeprefix("https://")
+    )
+    if "{{" in page:
+        raise PackagingError(f"{MOVED_SOURCES / MOVED_PAGE} has a placeholder with no value")
+    return {MOVED_PAGE: page, MOVED_SCRIPT: script}
 
 
 def build_config(files: list[str], supabase: str, app: AppOrigins | None = None) -> dict:
@@ -320,13 +356,23 @@ def package(build: Path, output: Path, supabase_url: str, origins: Path | None =
     app = read_app_origins(origins)
     check_build(build)
     files = site_files(build)
+    taken = sorted({MOVED_PAGE, MOVED_SCRIPT} & set(files)) if app.legacy else []
+    if taken:
+        raise PackagingError(
+            f"{build} already holds {', '.join(taken)}, the name of the page an earlier address"
+            " answers with"
+        )
     prepare_output(output)
     static = output / "static"
     for relative in files:
         target = static / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(build / relative, target)
-    config = build_config(files, supabase, app)
+    if app.legacy:
+        for name, text in moved_files(app).items():
+            (static / name).write_text(text, encoding="utf-8")
+            files.append(name)
+    config = build_config(sorted(files), supabase, app)
     (output / "config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     return config
 
@@ -344,9 +390,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     count = sum(1 for path in (args.output / "static").rglob("*") if path.is_file())
     print(f"Packaged {count} files into {args.output} ({len(config['routes'])} routes)")
-    redirects = [route for route in config["routes"] if route.get("status") == 308]
-    if redirects:
-        print(f"Earlier addresses ({redirects[0]['has'][0]['value']}) redirect to the origin")
+    earlier = [route for route in config["routes"] if "has" in route]
+    if earlier:
+        hosts = earlier[0]["has"][0]["value"]
+        print(f"Earlier addresses ({hosts}) clear their storage and send people to the origin")
     return 0
 
 

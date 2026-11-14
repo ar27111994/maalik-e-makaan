@@ -4,13 +4,13 @@
     python3 tool/web/serve_output.py OUTPUT_DIR [--port 8080]
 
 Reads OUTPUT_DIR/config.json and applies its routes to OUTPUT_DIR/static, so a
-browser test exercises the exact headers, CSP, redirects and fallback that
+browser test exercises the exact headers, CSP, pages and fallback that
 production serves. Only the route features package_vercel.py emits are
-understood (header routes that continue, the filesystem handle, rewrites after
-it, permanent redirects before or after it, `has` conditions on the host,
-content-type overrides); anything else is refused rather than half-served. The
-host is the request's Host header without its port, so
-`curl -H 'Host: <an earlier address>'` sees what that address would.
+understood: header routes that continue, rewrites to a static file before or
+after the filesystem handle (with their own headers and status), `has`
+conditions on the host, and content-type overrides. Anything else is refused
+rather than half-served. The host is the request's Host header without its
+port, so `curl -H 'Host: <an earlier address>'` sees what that address would.
 """
 
 from __future__ import annotations
@@ -27,7 +27,6 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 SUPPORTED_KEYS = frozenset({"src", "headers", "continue", "dest", "status", "caseSensitive", "has"})
-REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
@@ -55,8 +54,21 @@ class Response:
     headers: dict[str, str] = field(default_factory=dict)
 
 
-def _is_redirect(route: dict) -> bool:
-    return route.get("status") in REDIRECT_STATUSES and "Location" in route.get("headers", {})
+def _check_rewrite(route: dict) -> None:
+    """A rewrite names a static file and ends the routing: no pattern groups, query, other
+    origin or status but 200, none of which package_vercel.py writes."""
+    dest = route["dest"]
+    if (
+        not isinstance(dest, str)
+        or not dest.startswith("/")
+        or dest.startswith("//")
+        or any(char in dest for char in "$?#")
+    ):
+        raise UnsupportedConfigError(f"a rewrite goes to a static file, got {dest!r}")
+    if route.get("continue"):
+        raise UnsupportedConfigError("a rewrite does not continue")
+    if route.get("status", HTTPStatus.OK) != HTTPStatus.OK:
+        raise UnsupportedConfigError(f"a rewrite answers 200, got {route['status']!r}")
 
 
 def _check_has(route: dict) -> None:
@@ -80,14 +92,6 @@ def _check_has(route: dict) -> None:
 def _host_matches(route: dict, host: str) -> bool:
     """Every `has` host condition matches the whole host name (a regex, as on Vercel)."""
     return all(re.fullmatch(c["value"], host) for c in route.get("has", []))
-
-
-def _location(route: dict, match: re.Match[str], query: str) -> str:
-    """The route's Location with $1… filled in, and the request's query passed through."""
-    location = re.sub(
-        r"\$(\d+)", lambda m: match.group(int(m[1])) or "", route["headers"]["Location"]
-    )
-    return f"{location}?{query}" if query and "?" not in location else location
 
 
 @dataclass
@@ -117,15 +121,14 @@ class Router:
             if unknown:
                 raise UnsupportedConfigError(f"unsupported route keys {sorted(unknown)}")
             _check_has(route)
-            if _is_redirect(route):
-                if "dest" in route or route.get("continue"):
-                    raise UnsupportedConfigError("a redirect neither rewrites nor continues")
-            elif current is before and not (route.get("continue") and "dest" not in route):
+            if "dest" in route:
+                _check_rewrite(route)
+            elif current is after:
+                raise UnsupportedConfigError("routes after the filesystem must rewrite")
+            elif not route.get("continue") or "status" in route:
                 raise UnsupportedConfigError(
-                    "routes before the filesystem must only add headers, or redirect"
+                    "routes before the filesystem must add headers and continue, or rewrite"
                 )
-            elif current is after and "dest" not in route:
-                raise UnsupportedConfigError("routes after the filesystem must rewrite or redirect")
             # Vercel matches paths case-insensitively unless told otherwise.
             flags = 0 if route.get("caseSensitive") else re.IGNORECASE
             current.append((re.compile(route["src"], flags), route))
@@ -141,31 +144,28 @@ class Router:
             candidate = candidate / "index.html"
         return candidate if candidate.is_file() else None
 
+    def _rewritten(self, route: dict, headers: dict[str, str]) -> Response:
+        """The file a rewrite names, with the headers gathered so far and the route's own."""
+        headers = {**headers, **route.get("headers", {})}
+        file = self._file(route["dest"])
+        return Response(HTTPStatus.OK if file else HTTPStatus.NOT_FOUND, file, headers)
+
     def resolve(self, raw_path: str, host: str = "localhost") -> Response:
         """The response to a request for `raw_path` (with its query) on `host`."""
-        parts = urlsplit(raw_path)
-        path = unquote(parts.path) or "/"
+        path = unquote(urlsplit(raw_path).path) or "/"
         headers: dict[str, str] = {}
         for pattern, route in self.before:
-            match = pattern.search(path) if _host_matches(route, host) else None
-            if match and _is_redirect(route):
-                location = _location(route, match, parts.query)
-                return Response(route["status"], None, {**headers, "Location": location})
-            if match:
-                headers.update(route.get("headers", {}))
+            if not (_host_matches(route, host) and pattern.search(path)):
+                continue
+            if "dest" in route:
+                return self._rewritten(route, headers)
+            headers.update(route.get("headers", {}))
         file = self._file(path)
         if file:
             return Response(HTTPStatus.OK, file, headers)
         for pattern, route in self.after:
-            match = pattern.search(path) if _host_matches(route, host) else None
-            if match and _is_redirect(route):
-                location = _location(route, match, parts.query)
-                return Response(route["status"], None, {**headers, "Location": location})
-            if match:
-                headers.update(route.get("headers", {}))
-                return Response(
-                    route.get("status", HTTPStatus.OK), self._file(route["dest"]), headers
-                )
+            if _host_matches(route, host) and pattern.search(path):
+                return self._rewritten(route, headers)
         return Response(HTTPStatus.NOT_FOUND, None, headers)
 
     def content_type(self, file: Path) -> str:
@@ -186,16 +186,12 @@ def handler_for(router: Router) -> type[BaseHTTPRequestHandler]:
             # The Host header without its port ("[::1]:8080" keeps its brackets).
             host = re.sub(r":\d+$", "", self.headers.get("Host", "localhost")).lower()
             response = router.resolve(self.path, host)
-            if response.status in REDIRECT_STATUSES:
-                payload = b""
-            else:
-                payload = response.file.read_bytes() if response.file else b"Not found\n"
+            payload = response.file.read_bytes() if response.file else b"Not found\n"
             self.send_response(response.status)
             for name, value in response.headers.items():
                 self.send_header(name, value)
             content_type = router.content_type(response.file) if response.file else "text/plain"
-            if payload:
-                self.send_header("Content-Type", content_type)
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             if body:

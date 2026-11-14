@@ -45,6 +45,7 @@ INDEX = '<!DOCTYPE html><html><head><base href="/"></head><body>app</body></html
 ORIGIN = "https://app.example.pk"
 OLD_HOSTS = ("old.example.org", "older-app.example.net")
 APP = pv.AppOrigins(ORIGIN, tuple(f"https://{host}" for host in OLD_HOSTS))
+MOVED_SCRIPT_TAG = '<script src="/moved.js"></script>'
 
 
 def write_origins(root: Path, app: object) -> Path:
@@ -211,41 +212,32 @@ class BuildConfigTest(unittest.TestCase):
         self.assertEqual(cache_control(config, "/main.dart.js"), [pv.CACHE_REVALIDATE])
         self.assertEqual(len(config["routes"]), 4)
 
-    def test_without_earlier_addresses_nothing_redirects(self):
+    def test_without_earlier_addresses_no_route_depends_on_the_host(self):
         for app in (None, pv.AppOrigins(ORIGIN)):
             with self.subTest(app=app):
                 config = pv.build_config(self.FILES, SUPABASE, app)
                 self.assertEqual(config, pv.build_config(self.FILES, SUPABASE))
                 self.assertFalse(any("has" in route for route in config["routes"]))
+                self.assertNotIn("Clear-Site-Data", json.dumps(config))
 
-    def test_earlier_addresses_redirect_around_the_filesystem(self):
+    def test_earlier_addresses_answer_with_the_page_around_the_filesystem(self):
         routes = pv.build_config(self.FILES, SUPABASE, APP)["routes"]
         handle = routes.index({"handle": "filesystem"})
-        has = [{"type": "host", "value": r"old\.example\.org|older-app\.example\.net"}]
-        self.assertEqual(
-            routes[handle - 1],
-            {
-                "src": r"^/(?:index\.html)?$",
-                "has": has,
-                "headers": {"Location": f"{ORIGIN}/"},
-                "status": 308,
-            },
-        )
-        self.assertEqual(
-            routes[handle + 1],
-            {
-                "src": "^/(?!auth/callback$)(.*)$",
-                "has": has,
-                "headers": {"Location": f"{ORIGIN}/$1"},
-                "status": 308,
-            },
-        )
+        moved = {
+            "has": [{"type": "host", "value": r"old\.example\.org|older-app\.example\.net"}],
+            "headers": {"Clear-Site-Data": '"storage"'},
+            "dest": "/moved.html",
+            "status": 200,
+        }
+        self.assertEqual(routes[handle - 1], {"src": r"^/(?:index\.html|moved\.html)?$", **moved})
+        self.assertEqual(routes[handle + 1], {"src": "^/(?!auth/callback$).*$", **moved})
         self.assertEqual(routes[-1], {"src": "^/.*$", "dest": "/index.html", "status": 200})
-        # The header routes come first and continue, so the redirects carry them too.
+        self.assertEqual(len(routes), handle + 3)
+        # The header routes come first and continue, so the page carries them too.
         for route in routes[: handle - 1]:
             self.assertTrue(route["continue"])
         # A host value matches only those hosts, whole (Vercel anchors it, as the server does).
-        value = has[0]["value"]
+        value = moved["has"][0]["value"]
         for host, matches in (
             ("old.example.org", True),
             ("older-app.example.net", True),
@@ -254,6 +246,43 @@ class BuildConfigTest(unittest.TestCase):
             ("old.example.org.evil.example", False),
         ):
             self.assertEqual(bool(re.fullmatch(value, host)), matches, host)
+
+    def test_only_an_earlier_address_ever_clears_storage_and_only_storage(self):
+        routes = pv.build_config(self.FILES, SUPABASE, APP)["routes"]
+        clearing = [route for route in routes if "Clear-Site-Data" in route.get("headers", {})]
+        self.assertEqual(len(clearing), 2)
+        for route in clearing:
+            # Never without the host condition: the origin's storage is the app's own.
+            self.assertEqual([c["type"] for c in route["has"]], ["host"])
+            self.assertNotIn(ORIGIN.removeprefix("https://"), route["has"][0]["value"])
+            # "cache" stalls Chromium, "executionContexts" reloads the page, the app sets no
+            # cookies, and "*" means all of them.
+            self.assertEqual(route["headers"], {"Clear-Site-Data": '"storage"'})
+            self.assertNotIn("continue", route)
+        before, after = (re.compile(route["src"], re.IGNORECASE) for route in clearing)
+        # Before the filesystem only the pages that are files; the rest of the files are served.
+        for path, matches in (
+            ("/", True),
+            ("/index.html", True),
+            ("/moved.html", True),
+            ("/moved.js", False),
+            ("/main.dart.js", False),
+            ("/.well-known/assetlinks.json", False),
+            ("/auth/callback", False),
+            ("/invite", False),
+        ):
+            self.assertEqual(bool(before.search(path)), matches, path)
+        # After it every path but the callback, whose sign-in verifier is in that storage.
+        for path, matches in (
+            ("/invite", True),
+            ("/a/b/", True),
+            ("/auth/callback/extra", True),
+            ("/auth/callbacks", True),
+            ("/auth", True),
+            ("/auth/callback", False),
+            ("/AUTH/Callback", False),
+        ):
+            self.assertEqual(bool(after.search(path)), matches, path)
 
     def test_every_security_header_is_set(self):
         headers = pv.build_config(self.FILES, SUPABASE)["routes"][0]["headers"]
@@ -374,6 +403,63 @@ class PackageTest(unittest.TestCase):
             written = json.loads((output / "config.json").read_text(encoding="utf-8"))
             self.assertEqual(written, config)
 
+    def test_writes_the_page_of_the_earlier_addresses_and_its_script(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build = write_build(root)
+            origins = write_origins(root, {"origin": APP.origin, "legacy": list(APP.legacy)})
+            pv.package(build, root / "out", SUPABASE, origins)
+            page = (root / "out/static/moved.html").read_text(encoding="utf-8")
+            script = (root / "out/static/moved.js").read_text(encoding="utf-8")
+        self.assertEqual(script, (pv.MOVED_SOURCES / "moved.js").read_text(encoding="utf-8"))
+        self.assertNotIn("{{", page)
+        # The destination the script and the redirect smoke test read, once.
+        self.assertEqual(page.count(f'<meta name="mm-moved-to" content="{ORIGIN}">'), 1)
+        # Same-origin script, no inline one: the app's Content-Security-Policy allows no other.
+        self.assertEqual(re.findall(r"<script[^>]*>[^<]*</script>", page), [MOVED_SCRIPT_TAG])
+        self.assertNotRegex(page, r"\son[a-z]+=|javascript:")
+        # Without scripts: straight to the origin's first page, and a link in each language.
+        self.assertIn(
+            f'<noscript><meta http-equiv="refresh" content="0; url={ORIGIN}/"></noscript>', page
+        )
+        self.assertEqual(page.count(f'<a href="{ORIGIN}/"'), 2)
+        self.assertEqual(page.count(">app.example.pk</a>"), 2)
+        self.assertIn('<p lang="ur" dir="rtl">', page)
+        self.assertIn('<meta name="robots" content="noindex">', page)
+        # No earlier address is written into either file: the page is the same on each.
+        for host in OLD_HOSTS:
+            self.assertNotIn(host, page + script)
+
+    def test_without_earlier_addresses_there_is_no_such_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build = write_build(root, extra={"moved.html": "the app's own"})
+            pv.package(build, root / "out", SUPABASE, write_origins(root, {"origin": ORIGIN}))
+            page = (root / "out/static/moved.html").read_text(encoding="utf-8")
+            self.assertEqual(page, "the app's own")
+            self.assertFalse((root / "out/static/moved.js").exists())
+
+    def test_refuses_a_build_that_holds_the_pages_names(self):
+        for name in ("moved.html", "moved.js"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                build = write_build(root, extra={name: "the app's own"})
+                origins = write_origins(root, {"origin": APP.origin, "legacy": list(APP.legacy)})
+                with self.assertRaisesRegex(pv.PackagingError, f"already holds {name}"):
+                    pv.package(build, root / "out", SUPABASE, origins)
+                self.assertFalse((root / "out").exists())
+
+    def test_a_placeholder_without_a_value_stops_the_packaging(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp)
+            (sources / "moved.html").write_text("<p>{{origin}} {{other}}</p>", encoding="utf-8")
+            (sources / "moved.js").write_text("// script", encoding="utf-8")
+            with (
+                unittest.mock.patch.object(pv, "MOVED_SOURCES", sources),
+                self.assertRaisesRegex(pv.PackagingError, "placeholder with no value"),
+            ):
+                pv.moved_files(APP)
+
     def test_replaces_a_previous_output_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             build = write_build(Path(tmp))
@@ -406,8 +492,9 @@ class PackageTest(unittest.TestCase):
                     ["--build", str(build), "--output", f"{tmp}/o", "--supabase-url", SUPABASE]
                 )
             self.assertEqual(code, 0)
-            self.assertIn("Packaged 10 files", stdout.getvalue())
-            self.assertIn("redirect to the origin", stdout.getvalue())
+            # The build's ten files, and the page of the earlier addresses with its script.
+            self.assertIn("Packaged 12 files", stdout.getvalue())
+            self.assertIn("clear their storage and send people to the origin", stdout.getvalue())
             with (
                 contextlib.redirect_stderr(stderr),
                 unittest.mock.patch.object(pv, "ORIGINS", Path(tmp) / "absent.json"),
@@ -459,47 +546,75 @@ class ServeOutputTest(unittest.TestCase):
         finally:
             connection.close()
 
-    def test_an_earlier_address_redirects_pages_to_the_origin_with_path_and_query(self):
+    def test_an_earlier_address_answers_every_page_with_the_one_that_clears_and_sends_on(self):
+        moved = pv.moved_files(APP)["moved.html"]
         for host in OLD_HOSTS:
-            for path, location in (
-                ("/", f"{ORIGIN}/"),
-                ("/index.html", f"{ORIGIN}/"),
-                ("/?from=mail", f"{ORIGIN}/?from=mail"),
-                ("/invite", f"{ORIGIN}/invite"),
-                ("/invite?x=1", f"{ORIGIN}/invite?x=1"),
-                ("/a/b/?x=1&y=%20", f"{ORIGIN}/a/b/?x=1&y=%20"),
-                ("/auth/callback/extra", f"{ORIGIN}/auth/callback/extra"),
-                ("/auth/callbacks", f"{ORIGIN}/auth/callbacks"),
+            for path in (
+                "/",
+                "/index.html",
+                "/moved.html",
+                "/?from=mail",
+                "/invite",
+                "/invite?x=1",
+                "/a/b/?x=1&y=%20",
+                "/auth/callback/extra",
+                "/auth/callbacks",
+                "/auth",
+                "/.well-known/other.json",
             ):
                 with self.subTest(host=host, path=path):
                     status, headers, body = self.get_as(host, path)
-                    self.assertEqual((status, headers["Location"], body), (308, location, ""))
+                    self.assertEqual((status, body), (200, moved))
+                    self.assertEqual(headers["Clear-Site-Data"], '"storage"')
+                    self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+                    self.assertNotIn("Location", headers)
                     self.assertEqual(headers["Cache-Control"], pv.CACHE_REVALIDATE)
                     self.assertEqual(
                         headers["Content-Security-Policy"], pv.content_security_policy(SUPABASE)
                     )
+                    self.assertEqual(headers["X-Robots-Tag"], "noindex")
+        status, headers, body = self.get_as(OLD_HOSTS[0], "/invite?x=1", "HEAD")
+        self.assertEqual((status, body, headers["Clear-Site-Data"]), (200, "", '"storage"'))
 
-    def test_an_earlier_address_keeps_serving_its_files_and_the_callback(self):
+    def test_an_earlier_address_keeps_serving_its_files_and_the_callback_and_clears_nothing(self):
         host = OLD_HOSTS[0]
         status, headers, body = self.get_as(host, "/.well-known/assetlinks.json")
         self.assertEqual((status, headers["Content-Type"]), (200, "application/json"))
         self.assertEqual(json.loads(body), ASSETLINKS)
-        for path in ("/main.dart.js", "/flutter_bootstrap.js", "/canvaskit/canvaskit.wasm"):
+        self.assertNotIn("Clear-Site-Data", headers)
+        for path in (
+            "/main.dart.js",
+            "/flutter_bootstrap.js",
+            "/canvaskit/canvaskit.wasm",
+            "/manifest.json",
+            "/moved.js",
+        ):
             with self.subTest(path=path):
-                self.assertEqual(self.get_as(host, path, "HEAD")[0], 200)
+                status, headers, _ = self.get_as(host, path, "HEAD")
+                self.assertEqual(status, 200)
+                self.assertNotIn("Clear-Site-Data", headers)
+        status, headers, body = self.get_as(host, "/moved.js")
+        self.assertEqual(headers["Content-Type"], "text/javascript; charset=utf-8")
+        self.assertEqual(body, pv.moved_files(APP)["moved.js"])
         for path in ("/auth/callback", "/auth/callback?code=x", "/AUTH/CALLBACK?code=x"):
             with self.subTest(path=path):
                 status, headers, body = self.get_as(host, path)
                 self.assertEqual((status, body), (200, INDEX))
-                self.assertNotIn("Location", headers)
+                self.assertNotIn("Clear-Site-Data", headers)
 
-    def test_the_origin_and_other_hosts_are_never_redirected(self):
+    def test_the_origin_and_other_hosts_serve_the_app_and_never_clear(self):
         for host in ("app.example.pk", "preview-abc.example.org", "xold.example.org", "localhost"):
-            for path in ("/", "/invite?x=1", "/a/b"):
+            for path in ("/", "/index.html", "/invite?x=1", "/a/b", "/auth/callback?code=x"):
                 with self.subTest(host=host, path=path):
                     status, headers, body = self.get_as(host, path)
                     self.assertEqual((status, body), (200, INDEX))
-                    self.assertNotIn("Location", headers)
+                    self.assertNotIn("Clear-Site-Data", headers)
+            # The page's own files are files there too, and its script does nothing on the origin.
+            for path in ("/moved.html", "/moved.js", "/.well-known/assetlinks.json"):
+                with self.subTest(host=host, path=path):
+                    status, headers, _ = self.get_as(host, path)
+                    self.assertEqual(status, 200)
+                    self.assertNotIn("Clear-Site-Data", headers)
 
     def test_unknown_paths_fall_back_to_index_with_headers(self):
         for path in ("/", "/auth/callback?code=x", "/invite/abc", "/a/b/c/d"):
@@ -533,35 +648,34 @@ class ServeOutputTest(unittest.TestCase):
         self.assertEqual(body, INDEX)
 
     def test_refuses_routes_it_does_not_implement(self):
+        redirect = {"src": "/a", "status": 308, "headers": {"Location": "/b"}}
         cases = [
             {"version": 2},
             {"version": 3, "routes": [{"handle": "miss"}]},
-            {"version": 3, "routes": [{"src": "/a", "dest": "/b"}]},
             {"version": 3, "routes": [{"src": "/a", "headers": {}, "continue": True, "has": []}]},
             {
                 "version": 3,
                 "routes": [
                     {
                         "src": "/a",
-                        "status": 308,
-                        "headers": {"Location": "/b"},
+                        "dest": "/b",
                         "has": [{"type": "header", "key": "x", "value": "y"}],
                     }
                 ],
             },
-            {
-                "version": 3,
-                "routes": [
-                    {"src": "/a", "status": 308, "headers": {"Location": "/b"}, "continue": True}
-                ],
-            },
-            {
-                "version": 3,
-                "routes": [
-                    {"src": "/a", "status": 308, "headers": {"Location": "/b"}, "dest": "/c"}
-                ],
-            },
-            {"version": 3, "routes": [{"src": "/a", "status": 308, "headers": {}}]},
+            # A redirect: the package sends people on with a page, so the server has none.
+            {"version": 3, "routes": [redirect]},
+            {"version": 3, "routes": [{"handle": "filesystem"}, redirect]},
+            {"version": 3, "routes": [{"src": "/a", "headers": {}}]},
+            {"version": 3, "routes": [{"src": "/a", "dest": "/b", "continue": True}]},
+            {"version": 3, "routes": [{"src": "/a", "dest": "/b", "status": 404}]},
+            {"version": 3, "routes": [{"src": "/a", "dest": "/b", "locale": {}}]},
+            # A rewrite names a static file: no groups, query or other origin.
+            {"version": 3, "routes": [{"src": "/(.*)", "dest": "/$1"}]},
+            {"version": 3, "routes": [{"src": "/a", "dest": "/b?c=1"}]},
+            {"version": 3, "routes": [{"src": "/a", "dest": "https://example.org/b"}]},
+            {"version": 3, "routes": [{"src": "/a", "dest": "//example.org/b"}]},
+            {"version": 3, "routes": [{"src": "/a", "dest": 1}]},
             {"version": 3, "routes": [{"handle": "filesystem"}, {"src": "/a", "headers": {}}]},
             {"version": 3, "routes": [{"handle": "filesystem"}, {"handle": "filesystem"}]},
         ]
@@ -570,6 +684,33 @@ class ServeOutputTest(unittest.TestCase):
                 (Path(tmp) / "config.json").write_text(json.dumps(config), encoding="utf-8")
                 with self.assertRaises(serve_output.UnsupportedConfigError):
                     serve_output.Router.load(Path(tmp))
+
+    def test_a_rewrite_to_a_missing_file_is_not_found(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            (output / "static").mkdir()
+            (output / "static/here.html").write_text("here", encoding="utf-8")
+            config = {
+                "version": 3,
+                "routes": [
+                    {"src": "^/.*$", "headers": {"X-A": "1", "X-B": "1"}, "continue": True},
+                    {"src": "^/before$", "dest": "/here.html", "headers": {"X-B": "2"}},
+                    {"src": "^/gone$", "dest": "/absent.html"},
+                    {"handle": "filesystem"},
+                    {"src": "^/after$", "dest": "/absent.html", "status": 200},
+                ],
+            }
+            (output / "config.json").write_text(json.dumps(config), encoding="utf-8")
+            router = serve_output.Router.load(output)
+            found = router.resolve("/before?x=1")
+            self.assertEqual((found.status, found.file.name), (200, "here.html"))
+            # A rewrite's own headers come after the ones gathered, and replace them.
+            self.assertEqual(found.headers, {"X-A": "1", "X-B": "2"})
+            for path in ("/gone", "/after", "/nowhere"):
+                with self.subTest(path=path):
+                    missing = router.resolve(path)
+                    self.assertEqual((missing.status, missing.file), (404, None))
+                    self.assertEqual(missing.headers, {"X-A": "1", "X-B": "1"})
 
     def test_main_reports_a_bad_directory(self):
         stderr = io.StringIO()
