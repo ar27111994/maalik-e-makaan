@@ -618,9 +618,11 @@ them after the web deploy. Until the release that means:
   would build Android apps for it whose App Links list only the old host. Once this pull request is
   merged, a site refresh of the last tag builds that tag's own addresses again.
 
-So merge, and release, before 18 November 2026. If the release has to wait longer than that, merge
-the pull request before that Wednesday all the same, and set the secret back to
-`https://maalik-e-makaan.vercel.app` until step 7.
+So merge, and release, before 18 November 2026. **The owner's decision (14 November 2026):**
+`APP_URL` stays at `https://app.mmakaan.app` in both places and is not set back before the
+release, because nobody uses the app yet. If the release has to wait longer than that Wednesday,
+merge the pull request before it all the same, so that the site refresh builds the last tag's own
+addresses.
 
 1. _(Optional, open)_ **Search Console, old property, part one.** Add a URL-prefix property for
    `https://maalik-e-makaan-site.vercel.app/`, choose the HTML file method and download the file
@@ -679,10 +681,9 @@ the pull request before that Wednesday all the same, and set the secret back to
    stops at "Deployment is configured" instead of deploying that tag's web app and website
    (Rollback and restore). **Done ahead of this step, on 14 November 2026:** the Edge Function
    secret `APP_URL=https://app.mmakaan.app`, so invitations already link to the new address
-   (above). The owner's choice (D-20) stays open to change: Android builds from before the move
-   open such invitations in the browser; setting the secret back to the old address until those
-   builds are out of use avoids that, at the cost of invitation e-mails that show the `vercel.app`
-   address.
+   (above), and by the owner's decision of that day it stays there. What that costs: Android
+   builds from before the move open such invitations in the browser until the new APK is
+   installed.
 9. **Check by hand:** on `app.mmakaan.app`, sign up, reset a password and invite someone; open
    `https://maalik-e-makaan.vercel.app/invite#token=x` in a desktop browser and land on
    `https://app.mmakaan.app/invite#token=x`; in a browser that was signed in on the old address,

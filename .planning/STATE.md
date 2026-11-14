@@ -35,7 +35,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   address, which serves the web app from before the move until the release (a sign-up started
   there cannot finish its e-mail link), and the workflows on `main` would build for the new
   address until this pull request is merged; the weekly site refresh is next due on Wednesday
-  2026-11-18. Next: merge and release before then, then Auth's Site URL, then delete the
+  2026-11-18. `APP_URL` stays at the new address in both places and is not set back before the
+  release, because nobody uses the app yet (the owner, 2026-11-14). Next: merge and release
+  before then, then Auth's Site URL, then delete the
   `APP_URL` repository variable. Open for the owner: whether the company's website in the
   structured data becomes the new domain (step 10), and uptime monitors for the new addresses.
 - The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho

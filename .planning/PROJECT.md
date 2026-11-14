@@ -281,9 +281,10 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     14 November 2026, before the release: until the release, an invitation opens the web app
     from before the move on the new address, where a sign-up cannot finish its e-mail link.
     Android builds from before the move list only the old host, so they open such an invitation
-    in the browser, on the web app, until the new APK is installed. The other way, setting the
-    secret back to the old address until those builds are out of use, opens invitations in
-    every build with e-mails that show the `vercel.app` address, and stays open to the owner.
+    in the browser, on the web app, until the new APK is installed. The owner decided on
+    14 November 2026 to leave it there and not set it back before the release, because nobody
+    uses the app yet. (Setting it back to the old address would open invitations in every
+    build, with e-mails that show the `vercel.app` address.)
   - **Auth and the Edge Functions accept both hosts during the move** (set by the owner,
     reported on 14 November 2026): Auth keeps the old redirect URLs (web and iOS) until builds
     from before the move are out of use, a point the owner sets; `ALLOWED_ORIGINS` names both

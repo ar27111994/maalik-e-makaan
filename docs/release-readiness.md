@@ -396,9 +396,10 @@ In order. Record each in `.planning/STATE.md` when it is done.
     builds open such invitations in the browser). And the workflows on `main` read the variable
     until this pull request is merged: the Wednesday site refresh (the next is 18 November 2026), a
     Deploy by hand or a release from `main` would build for the new address with nothing on the old
-    one that sends people on. So merge and release before then; if the release must wait longer,
-    merge before that Wednesday all the same and set the secret back to the old address until
-    step 7.
+    one that sends people on. So merge and release before then. The owner's decision (14 November
+    2026): `APP_URL` stays at the new address in both places and is not set back before the
+    release, because nobody uses the app yet. If the release must wait longer, merge before that
+    Wednesday all the same, so that the site refresh builds the last tag's own addresses.
     1. _Optional, open, before the release:_ a Search Console URL-prefix property for
        `https://maalik-e-makaan-site.vercel.app/`, with the HTML file method. Download the file and
        send its name (`google<16 hex digits>.html`) so a pull request adds it to `website/public/`
@@ -429,10 +430,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
        there and goes to the same address on the new one.
     8. **Right after the web deploy:** Auth's Site URL to `https://app.mmakaan.app`; then delete the
        `APP_URL` repository variable. **Done ahead, on 14 November 2026:** the Edge Function secret
-       `APP_URL`, on the new address. Owner's choice (D-20), open to change: with the secret on the
-       new address, Android builds from before the move open invitations in the browser; setting it
-       back to the old address until those builds are out of use avoids that, with e-mails that
-       show the `vercel.app` address. Until the variable is deleted, do not run Deploy by hand on a
+       `APP_URL`, on the new address, where it stays (the owner's decision of that day, above).
+       With it there, Android builds from before the move open invitations in the browser until
+       the new APK is installed. Until the variable is deleted, do not run Deploy by hand on a
        tag from before the move: it would deploy that tag's web app, built for the new address but
        with nothing on the old host that sends people on, and its website with the old address in
        its links (`docs/operations.md`, Rollback and restore).
