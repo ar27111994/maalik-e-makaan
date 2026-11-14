@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io';
 
 import 'package:android_file_picker/android_file_picker.dart';
@@ -13,28 +15,37 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 
 import '../../../support/fakes.dart' show MemorySettingsStore, MemoryStore;
 
-/// path_provider, answering [temporary] for the temporary directory.
+/// path_provider, answering [temporary] for the temporary directory, once
+/// [answer] completes when it is given (a platform call that answers late).
 final class _Paths extends PathProviderPlatform {
-  new(this.temporary);
+  new(this.temporary, {this.answer});
 
   final String? temporary;
+  final Future<void>? answer;
 
   @override
-  Future<String?> getTemporaryPath() async => temporary;
+  Future<String?> getTemporaryPath() async {
+    await answer;
+    return temporary;
+  }
 }
 
 /// file_picker on Android, with a pick it kept after Android closed the
 /// app. Its own clearing is never asked: the app sweeps the copies itself.
 final class _AndroidFiles extends FilePickerAndroid {
-  new({this.lost, this.fails = false});
+  new({this.lost, this.fails = false, this.answer});
 
   final LostFilePickerResult? lost;
   final bool fails;
+
+  /// When given, the record comes only once it completes.
+  final Future<void>? answer;
   int drained = 0;
 
   @override
   Future<LostFilePickerResult?> retrieveLostData() async {
     drained++;
+    await answer;
     if (fails) throw PlatformException(code: 'no_activity');
     return lost;
   }
@@ -116,6 +127,17 @@ void main() {
   bool exists(String path) =>
       FileSystemEntity.typeSync(path, followLinks: false) !=
       FileSystemEntityType.notFound;
+
+  /// Waits, at most a generous five seconds, for [paths] to be gone: what
+  /// a late answer sets off is not awaited by anyone.
+  Future<void> waitUntilGone(List<String> paths) async {
+    for (var i = 0; i < 500 && paths.any(exists); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  }
+
+  /// A limit on each plugin call short enough for a test to pass it.
+  const limit = Duration(milliseconds: 20);
 
   group('discard', () {
     test(
@@ -199,6 +221,21 @@ void main() {
       expect(exists(mine.path), isFalse);
     });
 
+    test('returns once the call limit has passed, and deletes the copies '
+        'when the cache folder comes later', () async {
+      final photo = file('${cache.path}/scaled_$_uuidA.jpg');
+      final folder = Completer<void>();
+      PathProviderPlatform.instance = _Paths(cache.path, answer: folder.future);
+      await PluginDeviceScratch(
+        platform: TargetPlatform.android,
+        callLimit: limit,
+      ).discard([photo.path]);
+      expect(exists(photo.path), isTrue);
+      folder.complete();
+      await waitUntilGone([photo.path]);
+      expect(exists(photo.path), isFalse);
+    });
+
     test('a copy that cannot be deleted does not stop the rest', () async {
       final first = file('${cache.path}/a.jpg');
       final second = file('${cache.path}/b.jpg');
@@ -280,6 +317,27 @@ void main() {
           .sweep(sharedBefore: now.subtract(const Duration(hours: 1)));
       expect(exists(share.path), isTrue);
       expect(exists(photo.path), isTrue);
+    });
+
+    test('a cache folder that comes late is still swept', () async {
+      final share = file('${cache.path}/$_uuidA/receipt.pdf');
+      final picked = file('${cache.path}/file_picker/1/lease.pdf');
+      touch(picked.parent.path, now.subtract(const Duration(hours: 1)));
+      final folder = Completer<void>();
+      PathProviderPlatform.instance = _Paths(cache.path, answer: folder.future);
+      final scratch = PluginDeviceScratch(
+        platform: TargetPlatform.android,
+        callLimit: limit,
+      );
+      final sweeping = scratch.sweep(sharedBefore: cutOff);
+      final clearing = scratch.clearPickerCopies(before: cutOff);
+      // Longer than any one plugin call may take in a wipe: the pass over
+      // the files bounds the wait, not the folder.
+      await Future<void>.delayed(limit * 3);
+      folder.complete();
+      await Future.wait([sweeping, clearing]);
+      expect(exists(share.path), isFalse);
+      expect(exists(picked.path), isFalse);
     });
 
     test('a folder that does not exist holds nothing', () async {
@@ -504,6 +562,68 @@ void main() {
         isEmpty,
       );
       expect(empty.asked, 3);
+    });
+
+    test('a record that comes after the call limit is not waited for, and '
+        'the copies it names go when it comes', () async {
+      final photo = file('${cache.path}/scaled_$_uuidA.jpg');
+      final original = file('${cache.path}/$_uuidA.jpg');
+      final picked = file('${cache.path}/file_picker/3/lease.pdf');
+      final cameraAnswer = Completer<void>();
+      final camera = _Camera(() async {
+        await cameraAnswer.future;
+        return LostDataResponse(
+          file: XFile(photo.path),
+          type: RetrieveType.image,
+        );
+      });
+      final filesAnswer = Completer<void>();
+      FilePickerPlatform.instance = _AndroidFiles(
+        answer: filesAnswer.future,
+        lost: LostFilePickerResult(
+          files: [
+            AndroidPlatformFile.fromMap({'path': picked.path}),
+          ],
+        ),
+      );
+      final scratch = PluginDeviceScratch(
+        platform: TargetPlatform.android,
+        camera: camera,
+        callLimit: limit,
+      );
+      expect(await scratch.drainLostPicks(), isEmpty);
+      expect([photo, original, picked].map((f) => exists(f.path)), [
+        true,
+        true,
+        true,
+      ]);
+      cameraAnswer.complete();
+      await waitUntilGone([photo.path, original.path]);
+      expect(exists(photo.path), isFalse);
+      // The camera's full-size original goes with its resized copy.
+      expect(exists(original.path), isFalse);
+      expect(exists(picked.path), isTrue);
+      filesAnswer.complete();
+      await waitUntilGone([picked.path]);
+      expect(exists(picked.path), isFalse);
+    });
+
+    test('a record that fails after the call limit discards nothing', () async {
+      final answer = Completer<void>();
+      final photo = file('${cache.path}/scaled_$_uuidA.jpg');
+      FilePickerPlatform.instance = _AndroidFiles(
+        answer: answer.future,
+        fails: true,
+      );
+      final scratch = PluginDeviceScratch(
+        platform: TargetPlatform.android,
+        camera: _Camera(() async => LostDataResponse.empty()),
+        callLimit: limit,
+      );
+      expect(await scratch.drainLostPicks(), isEmpty);
+      answer.complete();
+      await pumpEventQueue();
+      expect(exists(photo.path), isTrue);
     });
 
     test('only Android loses picks', () async {

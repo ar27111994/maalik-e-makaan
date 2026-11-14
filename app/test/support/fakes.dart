@@ -795,6 +795,12 @@ final class FakeDeviceScratch implements DeviceScratch {
   /// Holds [sweep] until completed, for a wipe still on its way.
   Completer<void>? sweeping;
 
+  /// Holds [clearPickerCopies] until completed, as a plugin that hangs.
+  Completer<void>? clearing;
+
+  /// Holds [drainLostPicks] until completed, as a plugin that hangs.
+  Completer<void>? draining;
+
   void _fail() {
     final failure = this.failure;
     if (failure != null) throw failure;
@@ -807,12 +813,14 @@ final class FakeDeviceScratch implements DeviceScratch {
   @override
   Future<void> clearPickerCopies({required DateTime before}) async {
     calls.add(('clearPickerCopies', [before]));
+    await clearing?.future;
     _fail();
   }
 
   @override
   Future<List<String>> drainLostPicks() async {
     calls.add(('drainLostPicks', const []));
+    await draining?.future;
     _fail();
     return lostPicks;
   }

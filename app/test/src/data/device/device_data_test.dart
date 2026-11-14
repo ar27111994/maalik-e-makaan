@@ -155,10 +155,12 @@ void main() {
       expect(wiped, [WipeReason.signedOut]);
       await wipe.settled;
       expect(calls(), [
+        // The steps start together; the lost picks' copies go once the
+        // record is drained.
         ['drainLostPicks'],
-        ['discard', '/cache/scaled_lost.jpg'],
         ['clearPickerCopies', _now],
         ['sweep', _now.subtract(sharedFileGrace), _now],
+        ['discard', '/cache/scaled_lost.jpg'],
       ]);
     });
 
@@ -190,9 +192,9 @@ void main() {
       await wipe.settled;
       expect(asked(), [
         'drainLostPicks',
-        'discard',
         'clearPickerCopies',
         'sweep',
+        'discard',
       ]);
     });
 
@@ -239,11 +241,60 @@ void main() {
       expect(store.values, {'other': '1'});
       expect(asked(), [
         'drainLostPicks',
-        'discard',
         'clearPickerCopies',
         'sweep',
+        'discard',
       ]);
-      expect(calls()[1], ['discard']);
+      expect(calls().last, ['discard']);
+    });
+  });
+
+  group('a file step that never answers', () {
+    test('picker copies that never go hold up neither the lost picks nor '
+        'the sweep', () async {
+      scratch.clearing = Completer();
+      await wipe.wipe(WipeReason.signedOut);
+      await pumpEventQueue();
+      expect(calls(), [
+        ['drainLostPicks'],
+        ['clearPickerCopies', _now],
+        ['sweep', _now.subtract(sharedFileGrace), _now],
+        ['discard', '/cache/scaled_lost.jpg'],
+      ]);
+    });
+
+    test('a record of lost picks that never comes holds up neither the '
+        'picker copies nor the sweep', () async {
+      scratch.draining = Completer();
+      await wipe.wipe(WipeReason.signedOut);
+      await pumpEventQueue();
+      expect(calls(), [
+        ['drainLostPicks'],
+        ['clearPickerCopies', _now],
+        ['sweep', _now.subtract(sharedFileGrace), _now],
+      ]);
+      // When it comes, its copies go.
+      scratch.draining!.complete();
+      await wipe.settled;
+      expect(calls().last, ['discard', '/cache/scaled_lost.jpg']);
+    });
+
+    testWidgets('the next pass waits for it at most the files limit', (
+      tester,
+    ) async {
+      // Made in the test's fake time, as its timers are.
+      final slow = DeviceDataWipe(
+        cache: cache,
+        settings: settings,
+        scratch: scratch..clearing = Completer(),
+        clock: () => _now,
+      );
+      await slow.wipe(WipeReason.signedOut);
+      slow.atResume();
+      await tester.pump(wipeFilesLimit - const Duration(seconds: 1));
+      expect(asked().where((name) => name == 'sweep'), hasLength(1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(asked().where((name) => name == 'sweep'), hasLength(2));
     });
   });
 
@@ -448,10 +499,12 @@ void main() {
       });
       await wipe.settled;
       expect(calls(), [
+        // The steps start together; the lost picks' copies go once the
+        // record is drained.
         ['drainLostPicks'],
-        ['discard', '/cache/scaled_lost.jpg'],
         ['clearPickerCopies', _now],
         ['sweep', _now.subtract(sharedFileGrace), _now],
+        ['discard', '/cache/scaled_lost.jpg'],
       ]);
     });
 
@@ -478,11 +531,11 @@ void main() {
       expect(wiped, isEmpty);
       expect(asked(), [
         'drainLostPicks',
-        'discard',
         'clearPickerCopies',
         'sweep',
+        'discard',
       ]);
-      expect(scratch.calls.last.$2.last, _now);
+      expect(calls()[2], ['sweep', _now.subtract(sharedFileGrace), _now]);
     });
 
     test(

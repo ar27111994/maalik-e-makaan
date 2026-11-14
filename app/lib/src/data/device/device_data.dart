@@ -55,7 +55,10 @@ const wipeFilesLimit = Duration(seconds: 30);
 /// other removals nor the sign-out. The removal stays asked for.
 const wipePreferencesLimit = Duration(seconds: 3);
 
-/// How long one plugin may take to answer during a wipe.
+/// How long a wipe waits for a plugin's record of a lost pick, and a
+/// picker that hands back its copy waits for the copy to go, before going
+/// on without it. A later answer is still acted on: the copies a record
+/// names, and the copy the picker handed back, go when it comes.
 const pluginCallLimit = Duration(seconds: 5);
 
 /// The files the app's plugins write on the phone, and the plugins' own
@@ -64,7 +67,9 @@ const pluginCallLimit = Duration(seconds: 5);
 /// [discard].
 abstract interface class DeviceScratch {
   /// Deletes each of [paths] that is a copy in the app's own folders (the
-  /// cache folder, and iOS's `tmp/`), and nothing else. Never throws.
+  /// cache folder, and iOS's `tmp/`), and nothing else. Never throws, and
+  /// returns within [pluginCallLimit]: when path_provider answers later,
+  /// the copies go then.
   Future<void> discard(Iterable<String> paths);
 
   /// Deletes the pickers' copies that last changed before [before]: on
@@ -75,7 +80,9 @@ abstract interface class DeviceScratch {
 
   /// On Android, hands over the camera's and the file picker's record of a
   /// pick the app was closed during (so neither stays in the plugins'
-  /// preferences) and returns the paths of its files; elsewhere, none.
+  /// preferences) and returns the paths of its files; elsewhere, none. A
+  /// plugin that has not answered within [pluginCallLimit] is not waited
+  /// for: the files its record names are discarded when it answers.
   Future<List<String>> drainLostPicks();
 
   /// Deletes, in the app's cache folder, the files written to share that
@@ -89,9 +96,15 @@ abstract interface class DeviceScratch {
 /// the web and on a computer (where the system's temporary folder is
 /// everyone's) nothing is touched. `tempFolder` is iOS's `tmp/` (the
 /// system's temporary folder there); tests give their own.
+///
+/// `callLimit` is [pluginCallLimit] but in tests.
 final class PluginDeviceScratch implements DeviceScratch {
-  new({this._platform, ImagePicker? camera, this._tempFolder = systemTempPath})
-    : _camera = camera ?? ImagePicker();
+  new({
+    this._platform,
+    ImagePicker? camera,
+    this._tempFolder = systemTempPath,
+    this._callLimit = pluginCallLimit,
+  }) : _camera = camera ?? ImagePicker();
 
   /// The scratch of the platform the app runs on.
   factory here() => PluginDeviceScratch(
@@ -107,24 +120,34 @@ final class PluginDeviceScratch implements DeviceScratch {
   final TargetPlatform? _platform;
   final ImagePicker _camera;
   final String? Function() _tempFolder;
+  final Duration _callLimit;
 
   /// The app's cache folder (path_provider's temporary directory: Android's
-  /// cache, iOS's `Library/Caches`).
-  Future<String> _cacheFolder() async =>
-      (await getTemporaryDirectory().timeout(pluginCallLimit)).path;
+  /// cache, iOS's `Library/Caches`). Not bounded here: a wipe bounds its
+  /// pass over the files ([wipeFilesLimit]), and a late answer still lets a
+  /// step finish what it was asked.
+  Future<String> _cacheFolder() async => (await getTemporaryDirectory()).path;
+
+  /// Waits for [step] at most [pluginCallLimit], and goes on without it:
+  /// it is not stopped, and finishes what it was asked when its plugin
+  /// answers.
+  Future<void> _bounded(Future<void> step) =>
+      step.timeout(_callLimit, onTimeout: () {});
 
   @override
   Future<void> discard(Iterable<String> paths) async {
     if (_platform == null) return;
-    try {
-      final temp = _tempFolder();
-      await deleteCopies([
-        await _cacheFolder(),
-        if (_platform == TargetPlatform.iOS && temp != null) temp,
-      ], paths);
-    } on Object {
-      // Without the cache folder nothing is known to be the app's.
-    }
+    // Read now: the caller may change what it handed over.
+    final copies = [...paths];
+    await _bounded(
+      _quietly(() async {
+        final temp = _tempFolder();
+        await deleteCopies([
+          await _cacheFolder(),
+          if (_platform == TargetPlatform.iOS && temp != null) temp,
+        ], copies);
+      }),
+    );
   }
 
   @override
@@ -143,27 +166,45 @@ final class PluginDeviceScratch implements DeviceScratch {
   @override
   Future<List<String>> drainLostPicks() async {
     if (_platform != TargetPlatform.android) return const [];
-    final paths = <String>{};
-    try {
-      final lost = await _camera.retrieveLostData().timeout(pluginCallLimit);
-      for (final path in {
-        ...?lost.files?.map((file) => file.path),
-        ?lost.file?.path,
-      }) {
-        paths.addAll([path, ?cameraOriginalOf(path)]);
-      }
-    } on Object {
-      // Nothing kept, or no activity to ask: nothing to drain.
-    }
-    try {
-      if (FilePickerPlatform.instance case final FilePickerAndroid files) {
-        final lost = await files.retrieveLostData().timeout(pluginCallLimit);
-        paths.addAll([...?lost?.files.map((file) => file.path).nonNulls]);
-      }
-    } on Object {
-      // As above.
-    }
-    return paths.toList();
+    // Both asked at once: one that is slow holds up neither the other nor
+    // the wipe for longer than one plugin may take.
+    final found = await Future.wait([
+      _drain(() async {
+        final lost = await _camera.retrieveLostData();
+        return [
+          for (final path in {
+            ...?lost.files?.map((file) => file.path),
+            ?lost.file?.path,
+          }) ...[path, ?cameraOriginalOf(path)],
+        ];
+      }),
+      _drain(() async {
+        if (FilePickerPlatform.instance case final FilePickerAndroid files) {
+          final lost = await files.retrieveLostData();
+          return [...?lost?.files.map((file) => file.path).nonNulls];
+        }
+        return const <String>[];
+      }),
+    ]);
+    return {for (final paths in found) ...paths}.toList();
+  }
+
+  /// The paths of the copies a plugin's record of a lost pick names
+  /// ([ask]), once it answers within [pluginCallLimit]; otherwise none.
+  /// The plugin's own record went as it was asked, so a later answer is
+  /// the only word of those copies: they are discarded when it comes.
+  /// None, too, when the plugin fails (nothing kept, or no activity to
+  /// ask).
+  Future<List<String>> _drain(Future<List<String>> Function() ask) async {
+    final answer = _quietly(ask);
+    return await answer.timeout(
+          _callLimit,
+          onTimeout: () {
+            unawaited(answer.then((late) => discard(late ?? const [])));
+            return const [];
+          },
+        ) ??
+        const [];
   }
 
   @override
@@ -374,26 +415,34 @@ final class DeviceDataWipe {
     await _quietly(() async => _onWiped?.call(reason));
   }
 
+  /// The steps of a pass over the files, each on its own and all started
+  /// at once: one that fails or never answers holds up no other. The pass
+  /// ends when they all have, or when [wipeFilesLimit] runs out
+  /// ([_queueFiles]).
   Future<void> _forgetFiles({
     required bool camera,
     required bool pickers,
     required DateTime at,
   }) async {
-    if (camera) {
-      final lost = await _quietly(_scratch.drainLostPicks);
-      await _quietly(() => _scratch.discard(lost ?? const []));
-    }
-    if (pickers) {
-      await _quietly(() => _scratch.clearPickerCopies(before: at));
-    }
-    await _quietly(
-      () => _scratch.sweep(
-        sharedBefore: at.subtract(sharedFileGrace),
-        // Only what was there before the wipe began: a photo taken by
-        // someone who signed in meanwhile is theirs.
-        copiesBefore: camera ? at : null,
+    await Future.wait([
+      if (camera) _forgetLostPicks(),
+      if (pickers) _quietly(() => _scratch.clearPickerCopies(before: at)),
+      _quietly(
+        () => _scratch.sweep(
+          sharedBefore: at.subtract(sharedFileGrace),
+          // Only what was there before the wipe began: a photo taken by
+          // someone who signed in meanwhile is theirs.
+          copiesBefore: camera ? at : null,
+        ),
       ),
-    );
+    ]);
+  }
+
+  /// Drains the plugins' records of a lost pick, then discards the copies
+  /// they name. Never throws.
+  Future<void> _forgetLostPicks() async {
+    final lost = await _quietly(_scratch.drainLostPicks);
+    await _quietly(() => _scratch.discard(lost ?? const []));
   }
 }
 
