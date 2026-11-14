@@ -518,6 +518,7 @@ class ServeOutputTest(unittest.TestCase):
         origins = write_origins(root, {"origin": APP.origin, "legacy": list(APP.legacy)})
         pv.package(build, output, SUPABASE, origins)
         cls.server = serve_output.serve(output)
+        cls.server.output = output
         cls.base = "http://{}:{}".format(*cls.server.server_address[:2])
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -641,6 +642,38 @@ class ServeOutputTest(unittest.TestCase):
         self.assertEqual(headers["Content-Type"], "text/javascript; charset=utf-8")
         _, headers, _ = self.get("/assets/logo.0123abcd.png", method="HEAD")
         self.assertEqual(headers["Cache-Control"], pv.CACHE_IMMUTABLE)
+
+    def test_a_target_that_starts_with_two_slashes_is_a_path_on_the_host_asked(self):
+        # urlsplit("//evil.example/x") reads evil.example as a host and /x as the path; Vercel
+        # routes the whole target as the path, on the Host header's host.
+        moved = pv.moved_files(APP)["moved.html"]
+        for host in OLD_HOSTS:
+            for path in (
+                "//evil.example/",
+                "//evil.example/x/",
+                "//evil.example/.well-known/assetlinks.json",
+                "//evil.example/auth/callback?code=x",
+            ):
+                with self.subTest(host=host, path=path):
+                    status, headers, body = self.get_as(host, path)
+                    self.assertEqual((status, body), (200, moved))
+                    self.assertEqual(headers["Clear-Site-Data"], '"storage"')
+        # On the origin it is no file: the app's index.html, not main.dart.js.
+        status, headers, body = self.get_as("app.example.pk", "//evil.example/main.dart.js")
+        self.assertEqual((status, body), (200, INDEX))
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
+        # The router itself, which http.server's own reduction of // to / does not shield.
+        router = serve_output.Router.load(Path(self.server.output))
+        found = router.resolve("//evil.example/.well-known/assetlinks.json", OLD_HOSTS[0])
+        self.assertEqual((found.status, found.file.name), (200, "moved.html"))
+        found = router.resolve("//evil.example/main.dart.js?x=1", "app.example.pk")
+        self.assertEqual((found.status, found.file.name), (200, "index.html"))
+
+    def test_a_target_that_is_not_a_path_is_a_bad_request(self):
+        for target in ("*", "http://evil.example/", "evil.example/x"):
+            with self.subTest(target=target):
+                status, _, body = self.get_as("app.example.pk", target)
+                self.assertEqual((status, body), (400, "Bad Request\n"))
 
     def test_paths_cannot_escape_the_static_directory(self):
         status, _, body = self.get("/%2e%2e/config.json")

@@ -8,6 +8,7 @@ import {
   headersFor,
   readVercelConfig,
   redirectFor,
+  requestUrl,
   sourceMatches,
   trailingSlashRedirect,
   type VercelConfig,
@@ -109,6 +110,41 @@ describe("the Vercel emulation used by the local server", () => {
   });
 });
 
+describe("the request's URL, as Vercel reads it", () => {
+  test("the host comes from the Host header and the whole target is the path", () => {
+    const url = requestUrl("/ur/pricing/?a=1", "mmakaan.app:4321");
+    expect([url?.hostname, url?.pathname, url?.search]).toEqual([
+      "mmakaan.app",
+      "/ur/pricing/",
+      "?a=1",
+    ]);
+    expect(requestUrl("/", undefined)?.hostname).toBe("localhost");
+    expect(requestUrl("/", "[::1]:4321")?.hostname).toBe("[::1]");
+    expect(requestUrl("/", "127.0.0.1")?.hostname).toBe("127.0.0.1");
+    for (const target of ["//evil.example/", "//evil.example/x/", "/\\evil.example/"]) {
+      const parsed = requestUrl(target, "mmakaan.app");
+      expect(parsed?.hostname, target).toBe("mmakaan.app");
+      expect(parsed?.pathname.startsWith("//evil.example/"), target).toBe(true);
+    }
+  });
+
+  test("a target that is not a path, or a Host header that is not a host, is refused", () => {
+    for (const target of ["*", "http://evil.example/", "evil.example/", ""]) {
+      expect(requestUrl(target, "mmakaan.app"), target).toBeUndefined();
+    }
+    for (const host of [
+      "",
+      "evil.example/x",
+      "a@evil.example",
+      "mmakaan.app:",
+      "a b",
+      "x:99999999",
+    ]) {
+      expect(requestUrl("/", host), host).toBeUndefined();
+    }
+  });
+});
+
 describe("the earlier addresses redirect to the site's origin (contracts/origins.json, D-20)", () => {
   const legacyHosts = origins.site.legacy.map((url) => new URL(url).hostname);
   const siteHost = new URL(origins.site.origin).hostname;
@@ -150,6 +186,27 @@ describe("the earlier addresses redirect to the site's origin (contracts/origins
         expect(redirectFor(config, host, path, "?q=$&")).toEqual({
           status: 308,
           location: `${origins.site.origin}${path}?q=$&`,
+        });
+      }
+    },
+  );
+
+  test.each(legacyHosts)(
+    "%s: a path that starts with // stays a path on that host and moves to the origin",
+    (host) => {
+      // new URL("//evil.example/", base) would read evil.example as the host and answer it
+      // locally; Vercel keeps the whole target as the path and redirects it like any other.
+      for (const [target, path] of [
+        ["//evil.example/", "//evil.example/"],
+        ["//evil.example/x/", "//evil.example/x/"],
+        ["//evil.example/x/?q=1", "//evil.example/x/"],
+      ] as const) {
+        const url = requestUrl(target, `${host}:443`);
+        expect(url?.hostname, target).toBe(host);
+        expect(url?.pathname, target).toBe(path);
+        expect(redirectFor(config, url?.hostname ?? "", url?.pathname ?? "", url?.search)).toEqual({
+          status: 308,
+          location: `${origins.site.origin}${target}`,
         });
       }
     },

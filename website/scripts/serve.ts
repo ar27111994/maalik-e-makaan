@@ -2,7 +2,8 @@
  * Serves the built site (dist/) the way Vercel does: the headers of
  * vercel.json, trailing-slash redirects, then its redirects (an earlier
  * address's, matched on the Host header), index.html for directories and
- * dist/404.html with status 404 for anything missing. The e2e suite and
+ * dist/404.html with status 404 for anything missing. The path is the raw
+ * request target, so `//x/` is a path, as on Vercel, not the host x. The e2e suite and
  * Lighthouse run against it.
  *
  *   node scripts/serve.ts [--port 4321]
@@ -13,7 +14,13 @@ import { createServer } from "node:http";
 import { extname, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { headersFor, readVercelConfig, redirectFor, trailingSlashRedirect } from "./lib/vercel.ts";
+import {
+  headersFor,
+  readVercelConfig,
+  redirectFor,
+  requestUrl,
+  trailingSlashRedirect,
+} from "./lib/vercel.ts";
 
 const { values } = parseArgs({ options: { port: { type: "string", default: "4321" } } });
 const port = Number(values.port);
@@ -52,7 +59,12 @@ async function resolveFile(pathname: string): Promise<string | undefined> {
 
 const server = createServer((request, response) => {
   void (async () => {
-    const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+    // The Host header and the raw target: a target that starts with // stays a path, as on Vercel.
+    const url = requestUrl(request.url ?? "/", request.headers.host);
+    if (url === undefined) {
+      response.writeHead(400).end();
+      return;
+    }
     const pathname = url.pathname;
     const headers = headersFor(config, pathname);
     const redirect = trailingSlashRedirect(config, pathname);

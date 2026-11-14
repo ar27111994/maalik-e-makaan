@@ -10,7 +10,9 @@ understood: header routes that continue, rewrites to a static file before or
 after the filesystem handle (with their own headers and status), `has`
 conditions on the host, and content-type overrides. Anything else is refused
 rather than half-served. The host is the request's Host header without its
-port, so `curl -H 'Host: <an earlier address>'` sees what that address would.
+port, so `curl -H 'Host: <an earlier address>'` sees what that address would. The path is the
+request target up to its query, so `//x/y` is the path `//x/y`, as on Vercel, not `/y` on the
+host x; a target that is not a path (absolute-form, `*`) answers 400.
 """
 
 from __future__ import annotations
@@ -24,7 +26,7 @@ from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote
 
 SUPPORTED_KEYS = frozenset({"src", "headers", "continue", "dest", "status", "caseSensitive", "has"})
 
@@ -152,7 +154,11 @@ class Router:
 
     def resolve(self, raw_path: str, host: str = "localhost") -> Response:
         """The response to a request for `raw_path` (with its query) on `host`."""
-        path = unquote(urlsplit(raw_path).path) or "/"
+        if not raw_path.startswith("/"):
+            return Response(HTTPStatus.BAD_REQUEST, None)
+        # Up to the query (or a fragment, which a client should not send): urlsplit would read
+        # a target that starts with // as a host and the rest as the path.
+        path = unquote(re.split(r"[?#]", raw_path, maxsplit=1)[0])
         headers: dict[str, str] = {}
         for pattern, route in self.before:
             if not (_host_matches(route, host) and pattern.search(path)):
@@ -185,8 +191,14 @@ def handler_for(router: Router) -> type[BaseHTTPRequestHandler]:
         def _respond(self, body: bool) -> None:
             # The Host header without its port ("[::1]:8080" keeps its brackets).
             host = re.sub(r":\d+$", "", self.headers.get("Host", "localhost")).lower()
-            response = router.resolve(self.path, host)
-            payload = response.file.read_bytes() if response.file else b"Not found\n"
+            # The target as the client sent it: http.server reduces a leading // in self.path
+            # to one /, and Vercel does not.
+            words = self.requestline.split()
+            response = router.resolve(words[1] if len(words) > 1 else self.path, host)
+            if response.file:
+                payload = response.file.read_bytes()
+            else:
+                payload = HTTPStatus(response.status).phrase.encode() + b"\n"
             self.send_response(response.status)
             for name, value in response.headers.items():
                 self.send_header(name, value)

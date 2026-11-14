@@ -63,6 +63,29 @@ export function sourceMatches(source: string, pathname: string): boolean {
   return new RegExp(`^${source}$`).test(pathname);
 }
 
+// A Host header: a DNS name or an IPv4 address, or an IPv6 address in brackets, with a port or not.
+const HOST_HEADER =
+  /^(?:[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?|\[[0-9A-Fa-f:.]+\])(?::\d{1,5})?$/;
+
+/**
+ * The URL of a request as Vercel reads it: the host of the Host header (or
+ * localhost without one) and the request target, which is a path, as the path.
+ * `new URL(target, base)` would instead read a target that starts with `//` as
+ * another host (`//evil.example/` as evil.example's `/`), where Vercel keeps
+ * `//evil.example/` as the path. Undefined for a target that is not a path
+ * (absolute-form or `*`) or a Host header that is not a host: a 400.
+ */
+export function requestUrl(target: string, host: string | undefined): URL | undefined {
+  if (!target.startsWith("/")) return undefined;
+  const authority = host ?? "localhost";
+  if (!HOST_HEADER.test(authority)) return undefined;
+  try {
+    return new URL(`http://${authority}${target}`);
+  } catch {
+    return undefined;
+  }
+}
+
 /** The response headers for `pathname`: later rules override earlier ones, as on Vercel. */
 export function headersFor(config: VercelConfig, pathname: string): Record<string, string> {
   const result: Record<string, string> = {};

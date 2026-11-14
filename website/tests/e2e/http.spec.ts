@@ -92,10 +92,28 @@ test("each earlier address redirects permanently to the same page on the origin"
         location: `${origins.site.origin}${path}`,
       });
     }
+    // A target that starts with // is a path on this host, as on Vercel, not another host.
+    for (const path of ["//evil.example/", "//evil.example/x/"]) {
+      expect(await getAs(baseURL ?? "", host, path), `${host}${path}`).toEqual({
+        status: 308,
+        location: `${origins.site.origin}${path}`,
+      });
+    }
     // Vercel adds the trailing slash on the same host first; the next request moves host.
     expect(await getAs(baseURL ?? "", host, "/ur")).toEqual({ status: 308, location: "/ur/" });
   }
-  expect((await getAs(baseURL ?? "", new URL(origins.site.origin).host, "/ur/")).status).toBe(200);
+  const site = new URL(origins.site.origin).host;
+  expect((await getAs(baseURL ?? "", site, "/ur/")).status).toBe(200);
+  // On the origin such a path is no page (it is not the home page of the host it names).
+  for (const path of ["//evil.example/", "//evil.example/x/"]) {
+    expect(await getAs(baseURL ?? "", site, path), `${site}${path}`).toEqual({
+      status: 404,
+      location: undefined,
+    });
+  }
+  // What is not a path, and a Host header that is not a host, are refused.
+  expect((await getAs(baseURL ?? "", site, "*")).status).toBe(400);
+  expect((await getAs(baseURL ?? "", "evil.example/x", "/")).status).toBe(400);
 });
 
 test("missing addresses answer 404 with the not-found page and the same headers", async ({
