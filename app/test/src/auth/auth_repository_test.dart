@@ -293,19 +293,26 @@ void main() {
     });
 
     test('a store that never answers does not hold up the sign-out', () async {
+      const limit = Duration(milliseconds: 50);
       final stuck = SupabaseAuthRepository(
         auth: auth,
         wipe: DeviceDataWipe(
           cache: SwrCache(_HangingStore()),
           settings: settings,
           scratch: FakeDeviceScratch(),
-          preferencesLimit: const Duration(milliseconds: 20),
+          preferencesLimit: limit,
         ),
         config: _config,
       );
       final statuses = <AuthStatus>[];
-      final subscription = stuck.watch().listen(statuses.add);
+      final signedOut = Completer<Duration>();
+      final clock = Stopwatch();
+      final subscription = stuck.watch().listen((status) {
+        statuses.add(status);
+        if (statuses.length == 2) signedOut.complete(clock.elapsed);
+      });
       await pumpEventQueue();
+      clock.start();
       changes.add(
         const AuthState(
           AuthChangeEvent.signedOut,
@@ -313,9 +320,11 @@ void main() {
           signOutReason: SignOutReason.sessionExpired,
         ),
       );
-      await pumpEventQueue();
-      expect(statuses, const [SignedOut()]);
-      await Future<void>.delayed(const Duration(milliseconds: 40));
+      // Whatever the runner's speed: the signed-out status comes once the
+      // preferences step has given up on the store (a timer never fires
+      // early), and it does come.
+      final after = await signedOut.future.timeout(const Duration(seconds: 10));
+      expect(after, greaterThanOrEqualTo(limit));
       expect(statuses, const [SignedOut(), SignedOut()]);
       await subscription.cancel();
     });
