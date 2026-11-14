@@ -62,12 +62,13 @@ final class UtilityAccountsController
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.utilityAccounts(
       list.portfolioId,
       archived: list.archived,
       after: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Adds a connection ([id] names this attempt: keep it for retries).
@@ -170,16 +171,24 @@ final class UtilityAccountController extends SwrNotifier<UtilityAccountDetail> {
     final current = state.value?.value;
     final next = current?.bills.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.bills(accountId, before: next);
-    await show(current.copyWith(bills: current.bills.followedBy(more)));
+    await show(
+      current.copyWith(bills: current.bills.followedBy(more)),
+      epoch: epoch,
+    );
   }
 
   Future<void> loadMoreReadings() async {
     final current = state.value?.value;
     final next = current?.readings.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.readings(accountId, before: next);
-    await show(current.copyWith(readings: current.readings.followedBy(more)));
+    await show(
+      current.copyWith(readings: current.readings.followedBy(more)),
+      epoch: epoch,
+    );
   }
 
   /// The lists that name the connection, and its bills, read again.
@@ -293,17 +302,19 @@ final class UtilityBillController extends SwrNotifier<UtilityBill> {
 
   /// Saves the bill's details; whether it is paid is left as stored.
   Future<UtilityBill> save(BillDraft draft) async {
+    final epoch = requestEpoch();
     final saved = await _repository.updateBill(billId, draft);
     _listsChanged(saved.connection.id);
-    await show(saved);
+    await show(saved, epoch: epoch);
     return saved;
   }
 
   /// Marks the bill paid or unpaid, and changes nothing else.
   Future<UtilityBill> setPayment(BillPayment payment) async {
+    final epoch = requestEpoch();
     final saved = await _repository.setBillPayment(billId, payment);
     _listsChanged(saved.connection.id);
-    await show(saved);
+    await show(saved, epoch: epoch);
     return saved;
   }
 

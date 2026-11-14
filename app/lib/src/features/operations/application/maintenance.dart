@@ -63,12 +63,13 @@ final class MaintenanceListController
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.maintenanceRequests(
       list.portfolioId,
       pending: list.pending,
       before: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Adds a request ([id] names this attempt: keep it for retries).
@@ -127,20 +128,22 @@ final class MaintenanceRequestController
   /// Saves [draft]; the lists, and the expenses that name the request,
   /// are read again.
   Future<MaintenanceRequest> save(MaintenanceDraft draft) async {
+    final epoch = requestEpoch();
     final saved = await _repository.updateMaintenanceRequest(requestId, draft);
     ref
       ..invalidate(maintenanceListProvider)
       ..invalidate(expensesProvider);
-    await show(saved);
+    await show(saved, epoch: epoch);
     return saved;
   }
 
   /// Moves the request along its workflow ([move]), changing nothing else;
   /// the lists are read again.
   Future<MaintenanceRequest> move(MaintenanceMove move) async {
+    final epoch = requestEpoch();
     final saved = await _repository.moveMaintenanceRequest(requestId, move);
     ref.invalidate(maintenanceListProvider);
-    await show(saved);
+    await show(saved, epoch: epoch);
     return saved;
   }
 

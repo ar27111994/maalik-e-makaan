@@ -131,8 +131,12 @@ final class TenancyLedgerController extends SwrNotifier<TenancyLedger> {
     final current = state.value?.value;
     final next = current?.charges.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.charges(leaseId, before: next);
-    await show(current.copyWith(charges: current.charges.followedBy(more)));
+    await show(
+      current.copyWith(charges: current.charges.followedBy(more)),
+      epoch: epoch,
+    );
   }
 
   /// Reads the next page of payments.
@@ -140,8 +144,12 @@ final class TenancyLedgerController extends SwrNotifier<TenancyLedger> {
     final current = state.value?.value;
     final next = current?.payments.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.payments(leaseId, before: next);
-    await show(current.copyWith(payments: current.payments.followedBy(more)));
+    await show(
+      current.copyWith(payments: current.payments.followedBy(more)),
+      epoch: epoch,
+    );
   }
 
   Future<void> _changed() async {
@@ -281,9 +289,10 @@ final class TenancyLedgerController extends SwrNotifier<TenancyLedger> {
   /// The ledger as the server now holds it, shown; null when it cannot be
   /// read (the query then starts over).
   Future<TenancyLedger?> _readAgain() async {
+    final epoch = requestEpoch();
     try {
       final fresh = await fetch();
-      await show(fresh);
+      await show(fresh, epoch: epoch);
       return fresh;
     } on AppFailure {
       if (ref.mounted) ref.invalidateSelf();

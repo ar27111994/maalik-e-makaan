@@ -102,12 +102,13 @@ final class DocumentsController extends SwrNotifier<Paged<Document>> {
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.documents(
       list.portfolioId,
       list.owner,
       after: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Stores [attempt]'s file and records its document, named [name] and of

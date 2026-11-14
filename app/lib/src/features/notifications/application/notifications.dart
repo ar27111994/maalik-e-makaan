@@ -99,8 +99,9 @@ final class NotificationsController
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.notifications(portfolioId, before: next);
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Marks [notification] read. The list shows it read at once: this
@@ -116,6 +117,7 @@ final class NotificationsController
           for (final n in current.items)
             if (n.id == notification.id) n.read(now) else n,
         ], next: current.next),
+        epoch: shownEpoch,
       );
     }
     ref.invalidate(unreadCountProvider);

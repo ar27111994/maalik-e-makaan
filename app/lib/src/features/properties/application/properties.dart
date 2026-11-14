@@ -57,12 +57,13 @@ final class PropertiesController extends SwrNotifier<Paged<Property>> {
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.properties(
       list.portfolioId,
       archived: list.archived,
       after: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Adds [property] (its id names this attempt: keep it for retries).
@@ -114,24 +115,28 @@ final class PropertyController extends SwrNotifier<Property> {
   @override
   Object? encode(Property value) => value.toRow();
 
-  Future<void> _saved(Property property) async {
+  /// Shows [property] as the server stored it, asked for in [epoch]
+  /// ([requestEpoch], read before the request); the lists are read again.
+  Future<void> _saved(Property property, int epoch) async {
     ref.invalidate(propertiesProvider);
-    await show(property);
+    await show(property, epoch: epoch);
   }
 
   Future<Property> save(Property property) async {
+    final epoch = requestEpoch();
     final saved = await _repository.updateProperty(property);
-    await _saved(saved);
+    await _saved(saved, epoch);
     return saved;
   }
 
   /// Archives the property, or puts it back in use.
   Future<Property> archive({required bool archived}) async {
+    final epoch = requestEpoch();
     final saved = await _repository.archiveProperty(
       propertyId,
       archived: archived,
     );
-    await _saved(saved);
+    await _saved(saved, epoch);
     return saved;
   }
 
@@ -185,8 +190,9 @@ final class UnitsController extends SwrNotifier<Paged<UnitSummary>> {
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.units(propertyId, after: next);
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Adds [unit] to the property in [portfolioId].

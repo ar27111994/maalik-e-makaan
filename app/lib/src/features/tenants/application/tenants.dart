@@ -59,13 +59,14 @@ final class TenantsController extends SwrNotifier<Paged<Tenant>> {
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.tenants(
       list.portfolioId,
       archived: list.archived,
       search: list.search,
       after: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Other tenants in use with [cnic] or [phone], to warn before saving.
@@ -119,18 +120,26 @@ final class TenantController extends SwrNotifier<Tenant> {
   @override
   Object? encode(Tenant value) => value.toRow();
 
-  Future<Tenant> _saved(Tenant tenant) async {
+  /// Shows [tenant] as the server stored them, asked for in [epoch]
+  /// ([requestEpoch], read before the request); the lists are read again.
+  Future<Tenant> _saved(Tenant tenant, int epoch) async {
     ref.invalidate(tenantsProvider);
-    await show(tenant);
+    await show(tenant, epoch: epoch);
     return tenant;
   }
 
-  Future<Tenant> save(Tenant tenant) async =>
-      await _saved(await _repository.updateTenant(tenant));
+  Future<Tenant> save(Tenant tenant) async {
+    final epoch = requestEpoch();
+    return await _saved(await _repository.updateTenant(tenant), epoch);
+  }
 
-  Future<Tenant> archive({required bool archived}) async => await _saved(
-    await _repository.archiveTenant(tenantId, archived: archived),
-  );
+  Future<Tenant> archive({required bool archived}) async {
+    final epoch = requestEpoch();
+    return await _saved(
+      await _repository.archiveTenant(tenantId, archived: archived),
+      epoch,
+    );
+  }
 
   Future<void> delete() async {
     await _repository.deleteTenant(tenantId);

@@ -66,12 +66,13 @@ final class ExpensesController extends SwrNotifier<Paged<Expense>> {
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.expenses(
       list.portfolioId,
       maintenanceRequestId: list.requestId,
       before: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Adds [draft] ([id] names this attempt: keep it for retries).
@@ -121,9 +122,10 @@ final class ExpenseController extends SwrNotifier<Expense> {
   Object? encode(Expense value) => value.toRow();
 
   Future<Expense> save(ExpenseDraft draft) async {
+    final epoch = requestEpoch();
     final saved = await _repository.updateExpense(expenseId, draft);
     _expensesChanged(ref);
-    await show(saved);
+    await show(saved, epoch: epoch);
     return saved;
   }
 
