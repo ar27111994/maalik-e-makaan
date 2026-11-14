@@ -933,8 +933,10 @@ links already sent ([Domains](#domains)); `tool/android/check_manifest.py` (`mak
 on the merged release manifest) fails unless its hosts are exactly the web app's in
 `contracts/origins.json`, and each host opens both paths through a filter Android can launch
 (`VIEW`, `DEFAULT` and `BROWSABLE`). It works out each filter on its own, as Android matches a
-link: one filter's host never combines with another filter's path. Android 12 and later verify each host on its own; Android 6 to 11
-verify all of an app's hosts or none, so both must serve the file (and Release builds nothing
+link: one filter's host never combines with another filter's path. Android 12 and later verify
+each host on its own; Android 6 to 11 verify every web host of every filter (with `VIEW` and an
+`http` or `https` scheme, `autoVerify` or not) and grant all or none, so the check also fails on
+another host in any such filter, and both hosts must serve the file (and Release builds nothing
 until the new host does, Domains). The file lists the SHA-256 fingerprint of each certificate that
 signs the app the user installs. Today that is only the upload key, which signs the APKs attached
 to releases.

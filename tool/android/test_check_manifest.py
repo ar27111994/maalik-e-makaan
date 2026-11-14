@@ -244,6 +244,57 @@ class CheckManifestTest(unittest.TestCase):
         self.assertEqual(len(found), 1, found)
         self.assertIn("lacks android.intent.category.DEFAULT", found[0])
 
+    def test_an_unverified_web_filter_may_name_only_the_web_apps_hosts(self):
+        # On Android 6 to 11, once any filter has autoVerify, the system verifies every web host
+        # of every filter in the app, and all or none: another host would stop the App Links.
+        launch = LAUNCH.replace('<category android:name="android.intent.category.DEFAULT"/>', "")
+        cases = {
+            "https, VIEW and BROWSABLE": (
+                intent_filter(
+                    '<data android:scheme="https"/><data android:host="evil.example"/>', verify=""
+                ),
+                ["names evil.example"],
+            ),
+            "http, VIEW only": (
+                intent_filter(
+                    '<data android:scheme="http"/><data android:host="evil.example"/>',
+                    verify="",
+                    launch='<action android:name="android.intent.action.VIEW"/>',
+                ),
+                ["names evil.example"],
+            ),
+            "a listed host": (
+                intent_filter(
+                    '<data android:scheme="https"/><data android:host="app.example.pk"/>',
+                    verify="",
+                    launch=launch,
+                ),
+                [],
+            ),
+            "a custom scheme": (
+                intent_filter(
+                    '<data android:scheme="pk.example.app"/>' '<data android:host="evil.example"/>',
+                    verify="",
+                ),
+                [],
+            ),
+            "no VIEW action": (
+                intent_filter(
+                    '<data android:scheme="https"/><data android:host="evil.example"/>',
+                    verify="",
+                    launch=launch.replace("action.VIEW", "action.SEND"),
+                ),
+                [],
+            ),
+        }
+        for name, (extra, expected) in cases.items():
+            with self.subTest(name):
+                found = self.problems(self.application(intent_filter(), extra))
+                self.assertEqual(len(found), len(expected), found)
+                for fragment, line in zip(expected, found, strict=True):
+                    self.assertIn(fragment, line)
+                    self.assertIn("web link filter 2", line)
+
     def test_an_unreadable_origins_file_fails(self):
         err = io.StringIO()
         with (

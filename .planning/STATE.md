@@ -29,6 +29,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   CodeRabbit's review of dca00eb (2026-11-14): the Auth check gates the builds too, the Android
   manifest check works out each intent filter on its own and requires VIEW, DEFAULT and
   BROWSABLE, and the website's local Vercel emulation passes a redirected path on literally.
+  A verification pass after it: the manifest check also refuses another host in an unverified
+  web link filter (Android 6 to 11 verify every web host of the app, all or none).
 - The move's state on 2026-11-14, from the owner (`docs/release-readiness.md`, Owner actions,
   item 13, has the steps): the Dynadot records are in and Vercel reports the three hosts as
   correctly configured (2026-11-13); the new addresses were checked over HTTPS in a browser,

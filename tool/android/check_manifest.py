@@ -12,7 +12,8 @@ default. And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
 contracts/origins.json (decision D-20), each host with both paths in one
 https App Links filter that Android verifies (autoVerify) and can launch (VIEW,
-DEFAULT, BROWSABLE), and on no other host. An earlier address stays
+DEFAULT, BROWSABLE). No web link filter, verified or not, names another host:
+Android 6 to 11 verify every web host of the app's filters, all or none. An earlier address stays
 for the links already sent. This check reads the main manifest, and in CI the
 merged release manifest, and fails on anything missing.
 
@@ -74,6 +75,32 @@ def _launch_lacks(intent_filter: ET.Element) -> list[str]:
     ]
 
 
+def unverified_host_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list[str]:
+    """The hosts outside the web app's that a web link filter without autoVerify names.
+
+    On Android 6 to 11, once one filter of the app has autoVerify, the system verifies every
+    host of every filter with a VIEW action and an http or https scheme, and grants App Links
+    for all of them or none. A host that does not serve the web app's assetlinks.json would
+    therefore stop the e-mail links opening the app on the web app's own hosts. The verified
+    filters' hosts are reported by app_link_problems."""
+    found = []
+    for number, intent_filter in enumerate(root.iter("intent-filter"), start=1):
+        if intent_filter.get(f"{ANDROID}autoVerify") == "true":
+            continue
+        actions = {element.get(f"{ANDROID}name") for element in intent_filter.findall("action")}
+        datas = intent_filter.findall("data")
+        schemes = {data.get(f"{ANDROID}scheme") for data in datas}
+        if "android.intent.action.VIEW" not in actions or not schemes & {"http", "https"}:
+            continue
+        named = {data.get(f"{ANDROID}host") for data in datas} - {None, ""}
+        found += [
+            f"{manifest}: web link filter {number} names {host}, which contracts/origins.json"
+            " does not list for the web app, so Android 6 to 11 would verify no App Links host"
+            for host in sorted(named - hosts)
+        ]
+    return found
+
+
 def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list[str]:
     """What the verified App Links filters lack, or have beyond the web app's hosts.
 
@@ -113,6 +140,7 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
         if not lacks and "https" in schemes:
             opened_hosts |= named
             opens |= {(host, path) for host in named for path in paths}
+    found += unverified_host_problems(manifest, root, hosts)
     found += [
         f"{manifest}: the App Links lack the web app's host {host}"
         for host in sorted(hosts - opened_hosts)
