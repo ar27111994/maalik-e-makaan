@@ -368,10 +368,13 @@ the database decides what is allowed.
 **Gates today.** In the repository, the agent context is layered: the root
 [`AGENTS.md`](../../AGENTS.md), six area `AGENTS.md` files and [`docs/agents/`](README.md), with a
 `CLAUDE.md` beside each `AGENTS.md` that points to it.
-[`.claude/settings.json`](../../.claude/settings.json) pre-approves one command (`bend`) and fixes
-the model every sub-agent runs on (`CLAUDE_CODE_SUBAGENT_MODEL`, with
-`CLAUDE_CODE_SUBAGENT_MODEL_FORCE` so that a workflow or an agent definition cannot choose another).
-It sets no other rule. What checks an agent's work:
+[`.claude/settings.json`](../../.claude/settings.json) pre-approves one command (`bend`) and names
+the one model that sub-agents, teammates and workflow agents run on (`CLAUDE_CODE_SUBAGENT_MODEL`,
+with `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` so that the caller, a workflow or an agent definition
+cannot choose another). A fork is the exception: it runs on its parent conversation's model. A
+cloud session does not take the two variables from this file; they are set on the cloud
+environment ([`.planning/STATE.md`](../../.planning/STATE.md), Environment Notes). The file sets no
+other rule. What checks an agent's work:
 
 | Gate                                                                                                        | Where                                                                                                                          |
 | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
