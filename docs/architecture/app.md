@@ -352,7 +352,13 @@ else does then, since a picker may be handing over a copy.
   missing saved list counts as unknown: its next save forgets the user's
   other entries, if the device holds any, so a list deleted this way, or one
   a wipe deleted while it could not delete everything else, leaves nothing
-  of a removed portfolio behind. A screen opened
+  of a removed portfolio behind. Before the session's first save of the
+  list (after a sign-in or a wipe, or when the app starts), what the cache
+  saved in this session is not counted (`SwrCache.holdsOthers`): no record
+  of a portfolio can be asked for before that save shows the list, and the
+  profile loading beside it is then kept, and saved again when it changes.
+  Once a list was saved, or the user's entries forgotten, everything
+  counts, and so does an entry whose write has not finished. A screen opened
   before a portfolio left goes on saving what its commands ask for after,
   and a value made from one shown before is shown but not saved, until the
   query is read again (`reload`) or built anew. Both a clear and a forget

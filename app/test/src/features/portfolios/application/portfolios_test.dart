@@ -5,6 +5,8 @@ import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
+import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
+import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
@@ -545,6 +547,7 @@ void main() {
   });
 
   group('without a saved list, what the device holds of the user goes', () {
+    const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
     final plazaRecords = 'mm.swr.v1.$testUserId.tenants.${plaza.id}';
 
     test('when a wipe could not delete it all, and the user signs in '
@@ -576,7 +579,6 @@ void main() {
 
     test("when the ended session's write of the list landed after the next "
         "session's and was deleted", () async {
-      const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
       final app = TestApp();
       app.store.holding.add(listKey);
       final container = containerFor(app);
@@ -600,6 +602,74 @@ void main() {
       await container.read(portfoliosProvider(testUserId).notifier).reload();
       expect(app.store.values.keys, [listKey]);
     });
+
+    test('but what this session saved before its first list save stays, and '
+        'the profile it loads alongside is still saved after', () async {
+      const profileKey = 'mm.swr.v1.$testUserId.${ProfileController.query}';
+      final app = TestApp();
+      app.portfolios.gate.close();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.values.keys, [profileKey]);
+      final epoch = app.cache.epoch;
+      app.portfolios.gate.open();
+      await pumpEventQueue();
+      expect(app.cache.epoch, epoch, reason: 'no forget');
+      expect(app.store.values.keys, {profileKey, listKey});
+      await container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      final saved = await app.cache.read(
+        testUserId,
+        ProfileController.query,
+        Profile.fromRow,
+      );
+      expect(saved!.value.language, AppLanguage.urdu);
+    });
+
+    test(
+      'and what it saved before, once a list was saved, is not spared',
+      () async {
+        // A list was saved this run, then deleted (a write that landed out of
+        // order): the records saved since may be of a portfolio that left.
+        final app = TestApp(portfolios: const [gulberg]);
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+        await app.store.delete(listKey);
+        await container.read(portfoliosProvider(testUserId).notifier).reload();
+        expect(app.store.values.keys, [listKey]);
+      },
+    );
+
+    test('nor what an earlier run left', () async {
+      final app = TestApp(portfolios: const [gulberg]);
+      await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+      // The app starts again over the same store.
+      app.cache = SwrCache(app.store);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.values.keys, [listKey]);
+    });
+
+    test(
+      'nor what a session saved before a wipe that could not delete it',
+      () async {
+        final app = TestApp(portfolios: const [gulberg]);
+        await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+        app.store.undeletable.add(plazaRecords);
+        await app.cache.clear().catchError((_) {});
+        app.store.undeletable.clear();
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        expect(app.store.values.keys, [listKey]);
+      },
+    );
 
     test('but nothing is forgotten when it holds nothing else', () async {
       final app = TestApp();

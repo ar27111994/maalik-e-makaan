@@ -117,6 +117,14 @@ final class SwrCache {
   /// The number of the newest write of each key the store has finished.
   final _landed = <String, int>{};
 
+  /// The epoch the value of each key's newest finished write was asked
+  /// for in, while the store holds that value ([holdsOthers]).
+  final _landedIn = <String, int>{};
+
+  /// The epoch in which the newest write of each key was asked of the
+  /// store ([holdsOthers]).
+  final _askedIn = <String, int>{};
+
   /// The epoch to hand to [write] with a value asked for now by a reader
   /// made in the epoch [madeIn]: the current one, so that a reader made
   /// before a user's entries were forgotten goes on saving what it asks for
@@ -193,7 +201,7 @@ final class SwrCache {
   /// value). A later, wanted value the store finished first goes with it:
   /// the entry is then missing, and is fetched again. The saved portfolio
   /// list counts a missing list as unknown, and forgets the user's other
-  /// entries (`PortfoliosController`).
+  /// entries that may be left over ([holdsOthers], `PortfoliosController`).
   Future<DateTime> write(
     String userId,
     String query,
@@ -208,6 +216,7 @@ final class SwrCache {
       'value': json,
     });
     final number = ++_writes;
+    _askedIn[key] = _epoch;
     final writing = _writing[key] ??= {};
     writing[number] = entry;
     try {
@@ -221,9 +230,12 @@ final class SwrCache {
     // Removed while the store was writing: the removal may have listed the
     // keys before this one was there.
     if (_removedSince(epoch, userId, query) || (_landed[key] ?? 0) > number) {
+      // Whatever the deletion leaves is not known to be this session's.
+      _landedIn.remove(key);
       await _store.delete(key);
     } else {
       _landed[key] = number;
+      _landedIn[key] = epoch;
     }
     return savedAt;
   }
@@ -300,12 +312,24 @@ final class SwrCache {
     await _deleteWhere((key) => key.startsWith(prefix) && key != kept);
   }
 
-  /// Whether the store holds an entry of [userId]'s but the one of [keep].
+  /// Whether the store holds an entry of [userId]'s but the one of [keep]
+  /// that may be left over from before: from an earlier run of the app, a
+  /// session that ended, or a time the entry of [keep] was saved.
+  ///
+  /// Until the entry of [keep] is first written since the last [clear] (or
+  /// since the app started), and while none of the user's entries were
+  /// forgotten since ([forgetUser]), an entry this cache wrote in that time
+  /// is not counted: it was asked for in the session on show, alongside
+  /// the first load of [keep] (the profile, beside the portfolio list). One
+  /// whose write has not finished is counted.
   Future<bool> holdsOthers(String userId, {required String keep}) async {
     final prefix = '$_prefix$userId.';
     final kept = _key(userId, keep);
+    final first =
+        _forgotten[userId] == null && (_askedIn[kept] ?? -1) < _cleared;
+    bool fresh(String key) => first && (_landedIn[key] ?? -1) >= _cleared;
     return (await _store.keys()).any(
-      (key) => key.startsWith(prefix) && key != kept,
+      (key) => key.startsWith(prefix) && key != kept && !fresh(key),
     );
   }
 

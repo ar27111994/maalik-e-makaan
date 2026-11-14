@@ -36,7 +36,9 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 /// names the portfolio, and the next load forgets them again. With no saved
 /// list (a wipe that could not delete everything, or a write that landed
 /// out of order and was deleted), what the device holds of the user is not
-/// known to be of a portfolio still in the list, and goes too.
+/// known to be of a portfolio still in the list, and goes too, but what
+/// this session saved before its first save of the list
+/// ([SwrCache.holdsOthers]).
 final class PortfoliosController
     extends StreamNotifier<Snapshot<List<PortfolioMembership>>> {
   new(this.userId);

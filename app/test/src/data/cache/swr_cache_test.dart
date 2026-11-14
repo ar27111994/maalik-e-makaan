@@ -497,6 +497,55 @@ void main() {
     expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
   });
 
+  group('holdsOthers does not count what the session on show saved before '
+      'the first write of the one kept', () {
+    const tenants = 'mm.swr.v1.u1.tenants';
+
+    test('until that write is asked for', () async {
+      await cache.seed('u1', 'tenants', []);
+      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
+      await cache.seed('u1', 'portfolios', []);
+      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+    });
+
+    test('and again after a clear, but not what came before it', () async {
+      await cache.seed('u1', 'portfolios', []);
+      await cache.clear();
+      await cache.seed('u1', 'tenants', []);
+      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
+      store.undeletable.add(tenants);
+      await expectLater(cache.clear(), throwsStateError);
+      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+    });
+
+    test("but counts all once the user's entries were forgotten", () async {
+      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.seed('u1', 'tenants', []);
+      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+    });
+
+    test(
+      'nor an entry a write of the ended session put back over it',
+      () async {
+        store.holding.add(tenants);
+        final ended = cache.seed('u1', 'tenants', ['ended']);
+        await cache.clear();
+        final current = cache.seed('u1', 'tenants', ['current']);
+        store.undeletable.add(tenants);
+        // The current write lands first; the ended session's lands over it,
+        // and its deletion fails.
+        store.finishHeldWritesNewestFirst();
+        await expectLater(current, completes);
+        await expectLater(ended, throwsStateError);
+        expect(
+          jsonDecode(store.values[tenants]!),
+          containsPair('value', ['ended']),
+        );
+        expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+      },
+    );
+  });
+
   group('forgetOthers', () {
     test("deletes every user's entries but one's, and nothing else", () async {
       await cache.seed('u1', 'tenants', [1]);
