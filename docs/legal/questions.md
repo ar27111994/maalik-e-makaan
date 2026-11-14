@@ -448,7 +448,9 @@ The groups: [roles](#roles), [transfers and regions](#transfers-and-regions),
     ([website copy](website-copy.md), item 17).
   - With PR #70 (open): every end of a session, and account deletion even when its answer is
     lost, removes the cache, the session, the last portfolio and the app's copies of photos and
-    files; the settings stay, and so does an unanswered invitation until it is answered or the
+    files (except a session of under three seconds while a store hangs, which the next wipe
+    removes, and a file shared in the last ten minutes, which goes at the next start or return to
+    the app; data map, rows 14a and 14e); the settings stay, and so does an unanswered invitation until it is answered or the
     account is deleted on that device. Each removal waits at most three seconds for a store that
     does not answer. The how-it-works step and the privacy page are rewritten to say what goes and
     what stays, including what the app cannot delete: downloads, shared copies, the browser's
@@ -456,8 +458,9 @@ The groups: [roles](#roles), [transfers and regions](#transfers-and-regions),
   - Still open with PR #70: Android's Auto Backup is on (`android:allowBackup` is not set), so
     the session and the cache can be copied to the person's Google account, as iCloud or a
     computer backup can on the iPhone; and a sign-out that cannot reach the server leaves that
-    session valid, since refresh tokens do not expire by time and the hosted project sets no
-    session timeout. Both are the owner's to decide ([README](README.md#before-the-pack-goes-out)).
+    session valid, since refresh tokens do not expire by time, `supabase/config.toml` sets no
+    session timeout, and the hosted project's setting is not recorded. Both are the owner's to
+    decide ([README](README.md#before-the-pack-goes-out)).
   - Questions: is an unencrypted cache on the device acceptable for CNICs, or should the app keep
     them out of it or encrypt it; must the backup be turned off; is a session timeout needed; and
     does the rewritten privacy page say enough?

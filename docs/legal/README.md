@@ -147,9 +147,10 @@ placeholder until each is settled.
       [X3](questions.md#transfers-and-regions)).
 - [ ] **The device** (data map, rows 14a to 14g, and gap 5): the live how-it-works step says, in
       both languages, that signing out clears the app's saved records from the phone or computer,
-      which release 1.2.0 does not do ([website copy](website-copy.md), item 17). PR #70 makes it
-      true and rewrites the step and the privacy page; until it is released, the data map gives both
-      behaviours. Whether the pack goes out before or after #70 is released.
+      which release 1.2.0 does not do ([website copy](website-copy.md), item 17). PR #70 removes
+      most of it, and rewrites the step and the privacy page to say what goes and what stays; until
+      it is released, the data map gives both behaviours. Whether the pack goes out before or after
+      #70 is released.
 - [ ] **Android's Auto Backup:** `android:allowBackup` is not set, so Google's backup of the phone
       copies the app's preferences, the session and the record cache with tenants' CNICs included,
       to the person's Google account; iCloud or a computer backup does the same on the iPhone (data
