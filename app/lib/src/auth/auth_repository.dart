@@ -202,8 +202,8 @@ final class SupabaseAuthRepository implements AuthRepository {
   /// replaced without a sign-out between them: an e-mail link of another
   /// account, opened while signed in, swaps one session for the other and
   /// gotrue announces only the new one. Only an event about the session the
-  /// device holds now counts: gotrue replays its latest event to a new
-  /// listener, and it may be about an earlier one.
+  /// device holds now counts: gotrue replays every earlier event to a new
+  /// listener, and those may be about an earlier one.
   Future<void> _forgetReplaced(sb.Session? session) async {
     final current = _auth.currentSession?.user.id;
     if (current == null) {
@@ -223,8 +223,8 @@ final class SupabaseAuthRepository implements AuthRepository {
   /// the signed-out status is shown: the preferences at once, the files
   /// after ([DeviceDataWipe.wipe]).
   ///
-  /// Not while a session exists: gotrue replays its latest event to a new
-  /// listener, an old sign-out included, and the user signed in since
+  /// Not while a session exists: gotrue replays every earlier event to a
+  /// new listener, an old sign-out included, and the user signed in since
   /// keeps their data. gotrue drops the session before it announces a
   /// sign-out, so a real one always finds none.
   Future<void> _forgetAccount() async {

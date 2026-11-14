@@ -25,9 +25,12 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   removals nor the sign-out (three seconds each), and the next wipe starts afresh; the steps of
   a pass over the files start together, and a plugin's record of a lost pick that answers after
   five seconds has its copies discarded when it does. The portfolio list's saves run one after
-  another (`SwrCache.serially`), and a profile or list made from the one on show is saved for
-  the epoch it was asked for in (CodeRabbit's second review of PR #70). Display
-  settings stay; an
+  another (`SwrCache.serially`), each call to the store waited for at most three seconds, and a
+  missing saved list counts as unknown, so the next save forgets the user's other entries; a
+  profile or list made from the one on show is saved for the epoch it was asked for in
+  (CodeRabbit's second review of PR #70). A command that chooses the current portfolio after a
+  request chooses nothing when the session ended meanwhile, and a start signed in removes what
+  other accounts left in the cache and their chosen portfolio. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on
   that device, because "sign out, then sign in with the invited address" needs it. The website's
   how-it-works step and privacy page say this in both languages, with what the app cannot delete

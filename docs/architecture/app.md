@@ -264,6 +264,12 @@ deletes its files. At start-up it keeps them only while a photo may still
 come back to its record (`lostPhotoMayReturn`: a readable target younger than
 `lostPhotoMaxAge`), so that signing in again within the day still brings it
 back; otherwise they go, with the photos versions before the wipe left.
+image_picker (`image_picker_android` 0.8.13) writes its own note of a camera
+pick (the pending file's path and the size asked for) each time the app goes
+to the background while the camera is open, and does not clear it when the
+photo comes back normally: it goes at the next pick, when the record is
+drained, or at the wipe's drain. It names only a file `discard` has already
+deleted, so no account data stays with it.
 
 ## On the device
 
@@ -276,8 +282,8 @@ clipboard is theirs.
 
 | On the device                                                                      | Session ends           | Account deleted | App starts, nobody signed in                      | App starts, signed in                             |
 | ---------------------------------------------------------------------------------- | ---------------------- | --------------- | ------------------------------------------------- | ------------------------------------------------- |
-| `mm.swr.v1.*`: every list the app loaded (CNICs included)                          | removed                | removed         | removed                                           | kept                                              |
-| `mm.portfolio.current`: the portfolio last chosen                                  | removed                | removed         | removed                                           | kept                                              |
+| `mm.swr.v1.*`: every list the app loaded (CNICs included)                          | removed                | removed         | removed                                           | the user's kept, other accounts' removed          |
+| `mm.portfolio.current`: the portfolio last chosen                                  | removed                | removed         | removed                                           | kept if the user's, otherwise removed             |
 | `mm.documents.camera_target`: the record a camera photo is for                     | removed                | removed         | kept while a photo may come back                  | kept while a photo may come back                  |
 | `mm.invitation.pending`: an invitation opened, not answered                        | kept                   | removed         | kept                                              | kept                                              |
 | `mm.settings.*`: language, theme, contrast, digit grouping                         | kept                   | kept            | kept                                              | kept                                              |
@@ -339,9 +345,14 @@ else does then, since a picker may be handing over a copy.
   asked for before and answered after, is not saved again (no later refresh
   would find it, since the saved portfolio list no longer names that
   portfolio). A write the store had not finished when either happened is
-  deleted as it lands; that delete also takes a later, wanted write of the
-  same entry if the store finished that one first, and the entry is fetched
-  again (accepted: nothing of a removed portfolio stays). A screen opened
+  deleted as it lands, and so is one that lands after a later write of the
+  same entry (the store may finish the two in either order, and would hold
+  the older value); that delete also takes a later, wanted write the store
+  finished first, and the entry is fetched again. For the portfolio list a
+  missing saved list counts as unknown: its next save forgets the user's
+  other entries, if the device holds any, so a list deleted this way, or one
+  a wipe deleted while it could not delete everything else, leaves nothing
+  of a removed portfolio behind. A screen opened
   before a portfolio left goes on saving what its commands ask for after,
   and a value made from one shown before is shown but not saved, until the
   query is read again (`reload`) or built anew. Both a clear and a forget
@@ -356,18 +367,39 @@ else does then, since a picker may be handing over a copy.
   longer names a portfolio whose records stay. One that fails holds up none
   after it, one that waited is still dropped when its epoch is stale, and
   after a clear the next save does not wait for those of the ended session.
-  Only the device wipe puts a limit on the
-  store: elsewhere the cache waits for it, so a deletion that never answers
-  keeps the portfolio list and its commands waiting too, as a read that
-  never answers always did. `test/src/core/swr_commands_test.dart`
+  A save waits for each call to the store at most `storeCallLimit` (three
+  seconds), so one that never answers holds up no later save, and it then
+  keeps the safe choice: a saved list it could not read counts as unknown,
+  records it could not forget keep the saved list as it was, and a write it
+  stopped waiting for counts as saved by the next save while it may still
+  land (`SwrCache.writing`). Accepted: when such a write lands after a later
+  one and the app is closed before the delete that follows it, the saved
+  list can stop naming a portfolio whose records were saved meanwhile.
+  Elsewhere only the device wipe puts a limit on the store: a read or write
+  of another query that never answers keeps its screen or command waiting.
+  A command that chooses the current portfolio after a request (creating a
+  portfolio, accepting an invitation) passes the epoch it read before it
+  (`select(askedIn:)`), and chooses nothing when the session ended
+  meanwhile. When a portfolio leaves the list, `mm.portfolio.current` may
+  still name it until the user picks another or the session ends; it is two
+  ids, and `pickCurrent` falls back to the first portfolio.
+  `test/src/core/swr_commands_test.dart`
   runs every feature command that shows a value: one that asks the server
   is held while a portfolio leaves, and one made from the value on show
   runs after it, and neither is saved; the portfolio list's commands are
   held across a wipe and the list's rebuild (`portfolios_test.dart`).
-- **Replays.** gotrue's auth stream replays its latest event to a new
-  listener, so a `signedOut` is acted on only when no session exists, and a
-  session counts as replaced only when the event's session is the current
-  one; gotrue removes the session before it announces a sign-out.
+- **Replays.** gotrue's auth stream replays every earlier event to a new
+  listener (an unbounded `ReplaySubject`), so a `signedOut` is acted on only
+  when no session exists, and a session counts as replaced only when the
+  event's session is the current one; gotrue removes the session before it
+  announces a sign-out.
+- **A start signed in.** A wipe whose cache deletions failed, never answered
+  or were cut off by the app closing is not retried by a session that
+  begins later (an e-mail link of account B opened while A was signed in
+  wipes A only once B's session exists). So a start signed in removes what
+  any other account left (`SwrCache.forgetOthers`) and a current portfolio
+  chosen by another user, each on its own and waited for at most
+  `wipePreferencesLimit`.
 - **Timing.** The preferences go before the signed-out status is shown (a few
   milliseconds). The cache and each preference are removed on their own, all
   asked for at the start, and each waited for at most `wipePreferencesLimit`
