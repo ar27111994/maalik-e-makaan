@@ -135,13 +135,11 @@ def fetch(url: str) -> Answer:
     headers = {"User-Agent": "maalik-e-makaan-deploy-check"}
     request = urllib.request.Request(url, headers=headers)  # noqa: S310
     try:
+        # Only a 2xx comes back here (_NoRedirect turns a redirect into an HTTPError), and a 2xx
+        # is never tried again, so its Retry-After header is not read.
         with opener.open(request, timeout=TIMEOUT_SECONDS) as response:
-            body = response.read(BODY_LIMIT)
             return Answer(
-                response.status,
-                response.headers.get("Location", ""),
-                body,
-                response.headers.get("Retry-After", ""),
+                response.status, response.headers.get("Location", ""), response.read(BODY_LIMIT)
             )
     except urllib.error.HTTPError as error:  # a redirect, 4xx or 5xx: an answer all the same
         with error:
@@ -166,12 +164,12 @@ def retried(got: Answer) -> bool:
 def pause_after(got: Answer | None) -> float:
     """The wait before the next try: the whole seconds of the answer's Retry-After header, at
     most MAX_RETRY_AFTER_SECONDS, or PAUSE_SECONDS without an answer, without the header, or
-    with one that is not a whole number of seconds (an HTTP date, say)."""
+    with one that is not a whole number of seconds in ASCII digits (an HTTP date, say)."""
     value = got.retry_after.strip() if got is not None else ""
-    if not re.fullmatch(r"[0-9]+", value, re.ASCII):
+    if not re.fullmatch(r"[0-9]+", value):
         return PAUSE_SECONDS
-    # Seven digits are already far beyond the cap; int() of a very long string would raise.
-    return MAX_RETRY_AFTER_SECONDS if len(value) > 6 else min(float(value), MAX_RETRY_AFTER_SECONDS)
+    # float() reads any run of digits, a very long one as inf, which the cap then bounds.
+    return min(float(value), MAX_RETRY_AFTER_SECONDS)
 
 
 def answer(url: str, get: Fetch = fetch, sleep: Callable[[float], None] = time.sleep) -> Answer:
