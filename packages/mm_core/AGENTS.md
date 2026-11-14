@@ -6,22 +6,27 @@ lives here once and is shared by the app, its tests and the SQL through `contrac
 
 ## Where things are
 
-| Path                 | What                                                                                                                                               |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/src/money/`     | `Money` (integer paisa, explicit rounding), formatting, input parsing, basis points                                                                |
-| `lib/src/time/`      | `CalendarDate`, `MonthPeriod`, `TaxYear` (1 July to 30 June), `DateRange`; Pakistan time                                                           |
-| `lib/src/time/`      | A person's own zone: `TimeZoneId`, `ClockTime`, `LocalDateTime`, `QuietHours`, `DualTime`; `time_zone_data.g.dart` is generated (`make contracts`) |
-| `lib/src/residence/` | `CountryCode`, `Residence` (declared, never inferred), `OwnerAbroad` (NULL is not answered)                                                        |
-| `lib/src/identity/`  | `Cnic`, `PhoneNumber`, `Iban`, `EmailAddress`                                                                                                      |
-| `lib/src/text/`      | Sanitiser (the `contracts/clean_text.json` rules) and digit normalisation                                                                          |
-| `lib/src/rent/`      | Due dates, proration, increments, late-fee policies                                                                                                |
-| `lib/src/ledger/`    | Oldest-first payment allocation, mirroring `record_payment`                                                                                        |
-| `test/contract/`     | The clean-text, identity, rent-maths, residence and time-zone contract tests against `contracts/*.json`                                            |
+| Path                 | What                                                                                                                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/src/money/`     | `Money` (integer paisa, explicit rounding), formatting, input parsing, basis points; `parseAmount` and `formatAmountWords`, whose `amount_lexicon.g.dart` is generated from `contracts/amount_lexicon.json` (`make contracts`) |
+| `lib/src/time/`      | `CalendarDate`, `MonthPeriod`, `TaxYear` (1 July to 30 June), `DateRange`; Pakistan time                                                                                                                                       |
+| `lib/src/time/`      | A person's own zone: `TimeZoneId`, `ClockTime`, `LocalDateTime`, `QuietHours`, `DualTime`; `time_zone_data.g.dart` is generated (`make contracts`)                                                                             |
+| `lib/src/residence/` | `CountryCode`, `Residence` (declared, never inferred), `OwnerAbroad` (NULL is not answered)                                                                                                                                    |
+| `lib/src/identity/`  | `Cnic`, `PhoneNumber`, `Iban`, `EmailAddress`                                                                                                                                                                                  |
+| `lib/src/text/`      | Sanitiser (the `contracts/clean_text.json` rules) and digit normalisation                                                                                                                                                      |
+| `lib/src/rent/`      | Due dates, proration, increments, late-fee policies                                                                                                                                                                            |
+| `lib/src/ledger/`    | Oldest-first payment allocation, mirroring `record_payment`                                                                                                                                                                    |
+| `test/contract/`     | The clean-text, identity, rent-maths, residence, time-zone and amount contract tests against `contracts/*.json`                                                                                                                |
 
 ## Rules here
 
 - No dependency on Flutter or any I/O package; only `characters`, `collection` and `meta`. The tz
-  data is generated into `lib/src/time/time_zone_data.g.dart`, not a package.
+  data is generated into `lib/src/time/time_zone_data.g.dart`, not a package, and the amount
+  lexicon into `lib/src/money/amount_lexicon.g.dart`: nothing reads JSON at run time.
+- The amount parser refuses rather than guesses: a reading with two interpretations is
+  `AmountAmbiguous`, never a number, and it never uses a floating-point type. A new spelling goes
+  into `contracts/amount_lexicon.json` with a vector in `contracts/amount_vectors.json`
+  (`docs/roadmap/amount-parser.md`).
 - Business dates (rent, ledger, `calendar_date.dart`, `month_period.dart`, `tax_year.dart`,
   `date_range.dart`) stay on Pakistan time and never reach the time-zone code (`time_zone.dart`
   and its generated data, `local_date_time.dart`, `quiet_hours.dart`, `dual_time.dart`,
