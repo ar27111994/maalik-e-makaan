@@ -24,13 +24,25 @@ DATA = (
 )
 
 
-def app_links(data: str = DATA, verify: str = 'android:autoVerify="true"') -> str:
+# What Android needs to launch an activity for a link the browser or another app hands it.
+LAUNCH = (
+    '<action android:name="android.intent.action.VIEW"/>'
+    '<category android:name="android.intent.category.DEFAULT"/>'
+    '<category android:name="android.intent.category.BROWSABLE"/>'
+)
+
+
+def intent_filter(
+    data: str = DATA, verify: str = 'android:autoVerify="true"', launch: str = LAUNCH
+) -> str:
+    """An App Links filter holding `data`."""
+    return f"<intent-filter {verify}>{launch}{data}</intent-filter>"
+
+
+def app_links(data: str = DATA, verify: str = 'android:autoVerify="true"', **kwargs) -> str:
     """An activity with an App Links filter holding `data`."""
     return (
-        f'<activity android:name=".MainActivity"><intent-filter {verify}>'
-        '<action android:name="android.intent.action.VIEW"/>'
-        '<category android:name="android.intent.category.BROWSABLE"/>'
-        f"{data}</intent-filter></activity>"
+        f'<activity android:name=".MainActivity">{intent_filter(data, verify, **kwargs)}</activity>'
     )
 
 
@@ -125,23 +137,23 @@ class CheckManifestTest(unittest.TestCase):
             "no verified filter": (app_links(verify=""), ["no <intent-filter"]),
             "an http scheme too": (
                 app_links(DATA + '<data android:scheme="http"/>'),
-                ["schemes are ['http', 'https']"],
+                ["filter 1's schemes are ['http', 'https']"],
             ),
             "the earlier host missing": (
                 app_links(DATA.replace("old.example.org", "app.example.pk")),
-                ["lacks the web app's host old.example.org"],
+                ["lack the web app's host old.example.org"],
             ),
             "a host the file does not list": (
                 app_links(DATA + '<data android:host="typo.example.pk"/>'),
-                ["names typo.example.pk, which contracts/origins.json does not list"],
+                ["filter 1 names typo.example.pk, which contracts/origins.json does not list"],
             ),
             "no invitation path": (
                 app_links(DATA.replace('<data android:path="/invite"/>', "")),
-                ['lacks android:path="/invite"'],
+                ['lack android:path="/invite" on app.example.pk, old.example.org'],
             ),
             "the callback as an exact path": (
                 app_links(DATA.replace("pathPrefix", "path")),
-                ['lacks android:pathPrefix="/auth/callback"'],
+                ['lack android:pathPrefix="/auth/callback" on app.example.pk, old.example.org'],
             ),
         }
         for name, (activity, expected) in cases.items():
@@ -153,6 +165,84 @@ class CheckManifestTest(unittest.TestCase):
                 self.assertEqual(len(found), len(expected), found)
                 for fragment, line in zip(expected, found, strict=True):
                     self.assertIn(fragment, line)
+
+    def application(self, *filters: str) -> Path:
+        activity = f'<activity android:name=".MainActivity">{"".join(filters)}</activity>'
+        return self.manifest(INTERNET, application=f"<application {ICONS}>{activity}</application>")
+
+    def test_hosts_and_paths_combine_within_a_filter_not_across_filters(self):
+        # Android takes the cross product of a filter's schemes, hosts and paths, and never
+        # mixes one filter's <data> with another's: here neither host opens both paths.
+        split = self.application(
+            intent_filter(
+                '<data android:scheme="https"/><data android:host="app.example.pk"/>'
+                '<data android:pathPrefix="/auth/callback"/>'
+            ),
+            intent_filter(
+                '<data android:scheme="https"/><data android:host="old.example.org"/>'
+                '<data android:path="/invite"/>'
+            ),
+        )
+        found = self.problems(split)
+        self.assertEqual(len(found), 2, found)
+        self.assertIn('lack android:pathPrefix="/auth/callback" on old.example.org', found[0])
+        self.assertIn('lack android:path="/invite" on app.example.pk', found[1])
+
+    def test_one_filter_per_host_with_both_paths_passes(self):
+        per_host = [
+            intent_filter(
+                f'<data android:scheme="https"/><data android:host="{host}"/>'
+                '<data android:pathPrefix="/auth/callback"/><data android:path="/invite"/>'
+            )
+            for host in sorted(HOSTS)
+        ]
+        self.assertEqual(self.problems(self.application(*per_host)), [])
+
+    def test_a_host_named_without_the_paths_lacks_them(self):
+        hosts_only = self.application(
+            intent_filter(
+                '<data android:scheme="https"/><data android:host="app.example.pk"/>'
+                '<data android:host="old.example.org"/>'
+            )
+        )
+        found = self.problems(hosts_only)
+        self.assertEqual(len(found), 2, found)
+        self.assertIn('pathPrefix="/auth/callback" on app.example.pk, old.example.org', found[0])
+        self.assertIn('path="/invite" on app.example.pk, old.example.org', found[1])
+
+    def test_a_filter_without_a_scheme_opens_no_link(self):
+        # Without a scheme Android ignores the filter's hosts and paths.
+        schemeless = self.application(
+            intent_filter(DATA.replace('<data android:scheme="https"/>', ""))
+        )
+        found = self.problems(schemeless)
+        self.assertTrue(any("schemes are [], not https" in line for line in found), found)
+
+    def test_a_verified_filter_must_be_launchable(self):
+        view = '<action android:name="android.intent.action.VIEW"/>'
+        default = '<category android:name="android.intent.category.DEFAULT"/>'
+        browsable = '<category android:name="android.intent.category.BROWSABLE"/>'
+        cases = {
+            "no VIEW action": (LAUNCH.replace(view, ""), "android.intent.action.VIEW"),
+            "no DEFAULT category": (LAUNCH.replace(default, ""), "android.intent.category.DEFAULT"),
+            "no BROWSABLE category": (
+                LAUNCH.replace(browsable, ""),
+                "android.intent.category.BROWSABLE",
+            ),
+        }
+        for name, (launch, missing) in cases.items():
+            with self.subTest(name):
+                found = self.problems(self.application(intent_filter(launch=launch)))
+                self.assertTrue(found, f"{name} passed")
+                self.assertIn(f"lacks {missing}", found[0])
+                # Such a filter opens nothing, so its hosts count as missing too.
+                self.assertTrue(any("lack the web app's host" in line for line in found))
+
+    def test_a_launchable_filter_beside_an_unlaunchable_one_still_reports_it(self):
+        broken = intent_filter(launch=LAUNCH.replace("DEFAULT", "OTHER"))
+        found = self.problems(self.application(intent_filter(), broken))
+        self.assertEqual(len(found), 1, found)
+        self.assertIn("lacks android.intent.category.DEFAULT", found[0])
 
     def test_an_unreadable_origins_file_fails(self):
         err = io.StringIO()

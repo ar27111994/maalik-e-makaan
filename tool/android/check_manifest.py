@@ -10,8 +10,9 @@ launcher icons that `make app-icons` writes (tool/design/build_app_icons.py),
 its round variant included, or launchers that use round icons fall back to a
 default. And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
-contracts/origins.json (decision D-20), in an https App Links filter that
-Android verifies (autoVerify), and on no other host. An earlier address stays
+contracts/origins.json (decision D-20), each host with both paths in one
+https App Links filter that Android verifies (autoVerify) and can launch (VIEW,
+DEFAULT, BROWSABLE), and on no other host. An earlier address stays
 for the links already sent. This check reads the main manifest, and in CI the
 merged release manifest, and fails on anything missing.
 
@@ -44,6 +45,10 @@ REQUIRED_APPLICATION_ATTRIBUTES = {
 # ?code=…) and invite-member's /invite#token=….
 APP_LINK_PATHS = (("pathPrefix", "/auth/callback"), ("path", "/invite"))
 
+# What an App Links filter needs for Android to open a link with it.
+LAUNCH_ACTIONS = ("android.intent.action.VIEW",)
+LAUNCH_CATEGORIES = ("android.intent.category.DEFAULT", "android.intent.category.BROWSABLE")
+
 
 def app_link_hosts(origins: Path | None = None) -> set[str]:
     """The web app's hosts in contracts/origins.json: its origin and earlier addresses."""
@@ -58,11 +63,24 @@ def app_link_hosts(origins: Path | None = None) -> set[str]:
     return hosts
 
 
+def _launch_lacks(intent_filter: ET.Element) -> list[str]:
+    """The actions and categories Android needs to launch the activity for a link, which the
+    filter lacks: a link reaches an activity as an implicit VIEW intent with BROWSABLE, and
+    startActivity() adds DEFAULT to every implicit intent."""
+    actions = {element.get(f"{ANDROID}name") for element in intent_filter.findall("action")}
+    categories = {element.get(f"{ANDROID}name") for element in intent_filter.findall("category")}
+    return [name for name in LAUNCH_ACTIONS if name not in actions] + [
+        name for name in LAUNCH_CATEGORIES if name not in categories
+    ]
+
+
 def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list[str]:
-    """What the verified App Links filters lack, or have beyond the web app's hosts."""
-    schemes: set[str] = set()
-    found_hosts: set[str] = set()
-    paths: set[tuple[str, str]] = set()
+    """What the verified App Links filters lack, or have beyond the web app's hosts.
+
+    Android matches a link against each filter on its own: a filter opens every combination of
+    its own schemes, hosts and paths, and never one filter's host with another's path. So the
+    links each filter opens are worked out per filter, and only a filter that Android can launch
+    (VIEW, DEFAULT, BROWSABLE), with https among its schemes, counts."""
     filters = [
         intent_filter
         for intent_filter in root.iter("intent-filter")
@@ -70,28 +88,41 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
     ]
     if not filters:
         return [f'{manifest}: no <intent-filter android:autoVerify="true"> for the e-mail links']
-    for intent_filter in filters:
-        for data in intent_filter.findall("data"):
-            if data.get(f"{ANDROID}scheme"):
-                schemes.add(data.get(f"{ANDROID}scheme", ""))
-            if data.get(f"{ANDROID}host"):
-                found_hosts.add(data.get(f"{ANDROID}host", ""))
-            for kind, _ in APP_LINK_PATHS:
-                if data.get(f"{ANDROID}{kind}"):
-                    paths.add((kind, data.get(f"{ANDROID}{kind}", "")))
-    found = []
-    if schemes != {"https"}:
-        found.append(f"{manifest}: the App Links filter's schemes are {sorted(schemes)}, not https")
-    for host in sorted(hosts - found_hosts):
-        found.append(f"{manifest}: the App Links filter lacks the web app's host {host}")
-    for host in sorted(found_hosts - hosts):
-        found.append(
-            f"{manifest}: the App Links filter names {host}, which contracts/origins.json does"
-            " not list for the web app"
-        )
+    found: list[str] = []
+    opens: set[tuple[str, tuple[str, str]]] = set()
+    opened_hosts: set[str] = set()
+    for number, intent_filter in enumerate(filters, start=1):
+        where = f"{manifest}: App Links filter {number}"
+        datas = intent_filter.findall("data")
+        schemes = {data.get(f"{ANDROID}scheme") for data in datas} - {None}
+        named = {data.get(f"{ANDROID}host") for data in datas} - {None, ""}
+        paths = {
+            (kind, data.get(f"{ANDROID}{kind}", ""))
+            for data in datas
+            for kind, _ in APP_LINK_PATHS
+            if data.get(f"{ANDROID}{kind}")
+        }
+        lacks = _launch_lacks(intent_filter)
+        found += [f"{where} lacks {name}, so Android cannot open a link with it" for name in lacks]
+        if schemes != {"https"}:
+            found.append(f"{where}'s schemes are {sorted(schemes)}, not https")
+        found += [
+            f"{where} names {host}, which contracts/origins.json does not list for the web app"
+            for host in sorted(named - hosts)
+        ]
+        if not lacks and "https" in schemes:
+            opened_hosts |= named
+            opens |= {(host, path) for host in named for path in paths}
+    found += [
+        f"{manifest}: the App Links lack the web app's host {host}"
+        for host in sorted(hosts - opened_hosts)
+    ]
     for kind, path in APP_LINK_PATHS:
-        if (kind, path) not in paths:
-            found.append(f'{manifest}: the App Links filter lacks android:{kind}="{path}"')
+        missing = sorted(host for host in hosts & opened_hosts if (host, (kind, path)) not in opens)
+        if missing:
+            found.append(
+                f'{manifest}: the App Links lack android:{kind}="{path}" on {", ".join(missing)}'
+            )
     return found
 
 
