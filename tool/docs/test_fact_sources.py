@@ -751,6 +751,31 @@ class ZizmorPinTest(unittest.TestCase):
         with self.assertRaisesRegex(SourceShapeError, "line 9: zizmorcore/zizmor-action has no"):
             fs.parse_action_input("s.yml", unset, action, "version")
 
+    def test_only_the_steps_with_mapping_holds_its_inputs(self) -> None:
+        action = "zizmorcore/zizmor-action"
+        with_line = "        with:\n"
+        self.assertEqual(docs_fixture.SECURITY.count(with_line), 1)
+        # A version: under env:, before or after with:, is not the action's input.
+        env = "        env:\n          version: 1.31.0\n"
+        for text in (
+            docs_fixture.SECURITY.replace(with_line, env + with_line),
+            docs_fixture.SECURITY.replace(
+                "          version: 1.32.0\n", "          version: 1.32.0\n" + env
+            ),
+        ):
+            pin = fs.parse_action_input("s.yml", text, action, "version")
+            self.assertEqual(pin.value, "1.32.0")
+            self.assertEqual(text.split("\n")[pin.line - 1].strip(), "version: 1.32.0")
+        # Nor is one nested deeper inside with:, or one under env: when with: has none.
+        nested = docs_fixture.SECURITY.replace(
+            "          version: 1.32.0\n", "          config:\n            version: 1.32.0\n"
+        )
+        only_env = docs_fixture.SECURITY.replace("          version: 1.32.0\n", "") + ""
+        only_env = only_env.replace(with_line, env + with_line)
+        for text in (nested, only_env):
+            with self.assertRaisesRegex(SourceShapeError, "zizmorcore/zizmor-action has no"):
+                fs.parse_action_input("s.yml", text, action, "version")
+
 
 class GlobTest(unittest.TestCase):
     def test_glob_match(self) -> None:

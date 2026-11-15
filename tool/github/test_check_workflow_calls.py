@@ -215,6 +215,27 @@ class InputsTest(Fixture):
         # label is required with a default; fast and count are optional.
         self.assertEqual(self.messages(GOOD_CALL), [])
 
+    def test_input_and_secret_names_are_compared_without_regard_to_case(self):
+        # As GitHub and actionlint compare them: REF passes ref, and token passes TOKEN.
+        call = (
+            "uses: $/.github/workflows/called.yml\n"
+            "with:\n  REF: v1.0.0\n  Fast: true\n"
+            "secrets:\n  token: ${{ secrets.TOKEN }}\n  Optional: x\n"
+        )
+        self.assertEqual(self.messages(call), [])
+        # The type is still the declared one, and a message keeps the name as written.
+        problem = self.assert_one(call.replace("Fast: true", "Fast: 1"), "Fast")
+        self.assertIn("boolean", problem.message)
+        # What is not declared, or required and missing, is still reported, as written.
+        undeclared = self.assert_one(call.replace("REF: v1.0.0", "REF: v1\n  Reff: v1"), "'Reff'")
+        self.assertIn("its inputs: count, fast, label, ref", undeclared.message)
+        self.assert_one(call.replace("  REF: v1.0.0\n", ""), "requires the input 'ref'")
+        self.assert_one(call.replace("  token: ${{ secrets.TOKEN }}\n", ""), "'TOKEN'")
+        secret = self.assert_one(
+            call.replace("Optional: x", "Optional: x\n  Tokens: y"), "'Tokens'"
+        )
+        self.assertIn("its secrets: OPTIONAL, TOKEN", secret.message)
+
     def test_literal_values_must_have_the_declared_type(self):
         cases = {
             "fast: true": None,

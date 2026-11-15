@@ -1074,10 +1074,20 @@ def parse_action_input(path: str, text: str, action: str, name: str) -> Pin:
     index, uses = steps[0]
     key_column = len(uses[1]) + (2 if uses[2] else 0)
     j = index + 1
+    # The column of the keys of the step's `with:` mapping while inside it: None outside it (in
+    # `env:`, say, whose `version:` is not the action's input), -1 until its first key is seen.
+    inputs: int | None = None
     while j < len(lines) and (not lines[j].strip() or _indent(lines[j]) >= key_column):
-        found = re.match(rf"^ *{re.escape(name)}: *(.+?) *(?:#.*)?$", lines[j])
-        if found and _indent(lines[j]) > key_column:
-            return Pin(name, _unquote(found[1]), j + 1)
+        line = lines[j]
+        if line.strip() and not line.lstrip().startswith("#"):
+            column = _indent(line)
+            if column == key_column:
+                inputs = -1 if re.match(r"^ *with: *(?:#.*)?$", line) else None
+            elif inputs is not None:
+                inputs = column if inputs == -1 else inputs
+                found = re.match(rf"^ *{re.escape(name)}: *(.+?) *(?:#.*)?$", line)
+                if found and column == inputs:
+                    return Pin(name, _unquote(found[1]), j + 1)
         j += 1
     raise SourceShapeError(path, f"line {index + 1}: {action} has no {name} input")
 

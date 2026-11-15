@@ -287,10 +287,13 @@ class Checker:
     ) -> list[Problem]:
         found = []
         given = items(get(job, "with"))
-        names = {key.value for key, _ in given}
+        # GitHub, and actionlint after it, compare input and secret names without regard to
+        # case; the messages keep each name as it is written.
+        names = {key.value.lower() for key, _ in given}
+        declared = {name.lower(): definition for name, definition in called.inputs.items()}
         declared_names = ", ".join(sorted(called.inputs)) or "none"
         for key, given_value in given:
-            definition = called.inputs.get(key.value)
+            definition = declared.get(key.value.lower())
             if definition is None:
                 found.append(
                     Problem(
@@ -305,7 +308,7 @@ class Checker:
                 found.append(Problem(path, line_of(given_value), f'"{value}": {wrong}'))
         for name, definition in sorted(called.inputs.items()):
             required = is_true(get(definition, "required"))
-            if required and get(definition, "default") is None and name not in names:
+            if required and get(definition, "default") is None and name.lower() not in names:
                 found.append(
                     Problem(
                         path, line, f'"{value}" requires the input {name!r}, which is not passed'
@@ -329,10 +332,11 @@ class Checker:
             ]
         found = []
         given = items(secrets)
-        names = {key.value for key, _ in given}
+        names = {key.value.lower() for key, _ in given}
+        declared = {name.lower() for name in called.secrets}
         declared_names = ", ".join(sorted(called.secrets)) or "none"
         for key, _ in given:
-            if key.value not in called.secrets:
+            if key.value.lower() not in declared:
                 found.append(
                     Problem(
                         path,
@@ -341,7 +345,7 @@ class Checker:
                     )
                 )
         for name, definition in sorted(called.secrets.items()):
-            if is_true(get(definition, "required")) and name not in names:
+            if is_true(get(definition, "required")) and name.lower() not in names:
                 found.append(
                     Problem(
                         path, line, f'"{value}" requires the secret {name!r}, which is not passed'
