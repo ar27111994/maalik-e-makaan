@@ -43,22 +43,20 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   theirs. A cache write names the cache's epoch read before its request
   (`SwrCache.write(epoch:)` and `SwrNotifier.show(epoch:)`, required arguments: a command reads
   `requestEpoch()` before its request, or `shownEpoch` with the value on show it builds on), so
-  that nothing lands after a wipe, or after a portfolio left the user's list; a notifier that is
-  not an `SwrNotifier` (`ProfileController`, `PortfoliosController`) keeps the epoch of the value
-  on show itself. A write that reads the saved entry to decide what to do runs through
-  `SwrCache.serially`, so that two never meet, and waits for each call to the store at most
-  `SwrCache.callLimit`, keeping the safe choice when one does not answer: it counts an entry
-  whose write failed as unknown while `SwrCache.unsettled` says so (the portfolio list also while
-  `SwrCache.strayed` tells an entry the store kept after its deletion failed), and a server answer
-  that may overlap another read of the same entry is numbered before its request (`SwrCache.ask`)
-  and dropped when a later one was handled first (`SwrCache.claim`). A command that chooses the
-  current portfolio after a request passes `select(askedIn:)`. A new command that shows a value
-  gets a case in `test/src/core/swr_commands_test.dart`, which checks when it reads it. Every
-  cached query but those in `PortfoliosController.kept` (the list, the profile, the residence)
-  counts as a portfolio's records, and goes when a portfolio leaves or the saved list is missing;
-  a query joins that set only when it holds nothing of any portfolio. Each step
-  of the wipe runs on its own and is bounded; a plugin that answers after its limit still has its
-  answer acted on.
+  that nothing lands after a wipe; a notifier that is not an `SwrNotifier` (`ProfileController`,
+  `PortfoliosController`) keeps the epoch of the value on show itself. Every saved entry names
+  its portfolio in its key: each `SwrNotifier` declares its `scope` (`InPortfolio` when its
+  request filters by a portfolio it names, `FromValue` when its rows carry `portfolio_id`, or
+  `UnknownPortfolio`, kept only until the session's first list of portfolios); only the list,
+  the profile and the residence are the user's own (`OwnScope`). A new query picks the scope its
+  fetch guarantees, its model reads `portfolio_id` when it is `FromValue`, and it gets a row in
+  `test/src/data/cache/cache_scopes_test.dart`. A list answer of the server is numbered before
+  its request (`SwrCache.ask`) and applied with `SwrCache.applyPortfolios`, which removes what
+  the list does not name; a list the controller builds itself never takes a number. A command
+  that chooses the current portfolio after a request passes `select(askedIn:)`. A new command
+  that shows a value gets a case in `test/src/core/swr_commands_test.dart`, which checks when it
+  reads it. Each step of the wipe runs on its own and is bounded; a plugin that answers after its
+  limit still has its answer acted on.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

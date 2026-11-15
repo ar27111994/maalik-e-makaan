@@ -100,17 +100,26 @@ checks) lives in `packages/mm_core` and is shared with the tests and contracts.
 
 Lists and dashboards show the last saved result at once, then the fresh one.
 `SwrCache.watch` emits the cached snapshot (marked with when it was saved),
-then the server's answer; the cache key is the user and the query with its
-parameters (a list's portfolio, or a record's id). When a session ends, the
+then the server's answer. Each saved entry's key names the user, what the
+entry holds and the query with its parameters:
+`mm.swr.v2.<user>.<tag>.<query>`, where the tag is `own` (the portfolio
+list, the profile and the residence, which hold nothing of a portfolio
+beyond the list itself), `p:<portfolio id>`, or `unknown`. Every query says
+which (`CacheScope`, `lib/src/data/cache/cache_scope.dart`): an
+`SwrNotifier` declares a `RecordScope`, either `InPortfolio` (its request
+filters by a portfolio it names, as every list does) or `FromValue` (a
+record or a parent's list found by an id, whose portfolio comes back with
+its rows: the ten models behind them read `portfolio_id`), or
+`UnknownPortfolio`; only `OwnScope.portfolioList`, `.profile` and
+`.residence` make the user's own. An empty list names no portfolio and is
+`unknown`. A query found by its value is read under whatever tag it has:
+while the portfolios the user is in are known, by reading `p:<id>.<query>`
+for each; before, by listing the store's keys. When a session ends, the
 device wipe clears the cache and starts a new `SwrCache.epoch`: a value
 fetched for the ended session is not saved, even when it arrives after the
-wipe (see [On the device](#on-the-device)). When a portfolio leaves the
-user's list, `PortfoliosController` deletes the user's other entries
-(`SwrCache.forgetUser`), since entries are not kept by portfolio, but their
-own profile and residence, which hold nothing of a portfolio
-(`PortfoliosController.kept`); that starts a new epoch too, so a list of the
-user's that was still loading is not saved after it (the portfolio list,
-profile and residence are). A screen shows
+wipe (see [On the device](#on-the-device)). How a portfolio that leaves the
+user's list loses its saved entries is in On the device, Writes after a
+removal. A screen shows
 "Offline, showing what was saved at …" when the refresh fails with a
 `NetworkFailure` and data is on screen; otherwise it shows the error with a
 retry.
@@ -282,18 +291,18 @@ added to it, to its tests and to the website's privacy page. The pending
 invitation is kept on purpose (below), and text the person copies to the
 clipboard is theirs.
 
-| On the device                                                                      | Session ends           | Account deleted | App starts, nobody signed in                      | App starts, signed in                             |
-| ---------------------------------------------------------------------------------- | ---------------------- | --------------- | ------------------------------------------------- | ------------------------------------------------- |
-| `mm.swr.v1.*`: every list the app loaded (CNICs included)                          | removed                | removed         | removed                                           | the user's kept, other accounts' removed          |
-| `mm.portfolio.current`: the portfolio last chosen                                  | removed                | removed         | removed                                           | kept if the user's, otherwise removed             |
-| `mm.documents.camera_target`: the record a camera photo is for                     | removed                | removed         | kept while a photo may come back                  | kept while a photo may come back                  |
-| `mm.invitation.pending`: an invitation opened, not answered                        | kept                   | removed         | kept                                              | kept                                              |
-| `mm.settings.*`: language, theme, contrast, digit grouping                         | kept                   | kept            | kept                                              | kept                                              |
-| Android: image_picker's and file_picker's record of a lost pick, and its files     | drained, files deleted | the same        | drained and deleted, unless a photo may come back | drained and deleted, unless a photo may come back |
-| Android: the camera's photos (`<uuid>….jpg`, `scaled_<uuid>….jpg`)                 | deleted                | deleted         | deleted, unless a photo may come back             | deleted, unless a photo may come back             |
-| Phones: the pickers' copies (Android `cache/file_picker/<time>/`, iOS `tmp/`)      | deleted                | deleted         | deleted                                           | deleted                                           |
-| Phones: share_plus's files (`<uuid>/`, Android `share_plus/`) unchanged for 10 min | deleted                | deleted         | deleted                                           | deleted                                           |
-| Supabase's session and gotrue's sign-in-link verifier                              | removed by the library | the same        | never touched                                     | never touched                                     |
+| On the device                                                                         | Session ends           | Account deleted | App starts, nobody signed in                      | App starts, signed in                                        |
+| ------------------------------------------------------------------------------------- | ---------------------- | --------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| `mm.swr.v2.*` (and the old `mm.swr.v1.*`): every list the app loaded (CNICs included) | removed                | removed         | removed                                           | the user's `v2` kept, other accounts' and every `v1` removed |
+| `mm.portfolio.current`: the portfolio last chosen                                     | removed                | removed         | removed                                           | kept if the user's, otherwise removed                        |
+| `mm.documents.camera_target`: the record a camera photo is for                        | removed                | removed         | kept while a photo may come back                  | kept while a photo may come back                             |
+| `mm.invitation.pending`: an invitation opened, not answered                           | kept                   | removed         | kept                                              | kept                                                         |
+| `mm.settings.*`: language, theme, contrast, digit grouping                            | kept                   | kept            | kept                                              | kept                                                         |
+| Android: image_picker's and file_picker's record of a lost pick, and its files        | drained, files deleted | the same        | drained and deleted, unless a photo may come back | drained and deleted, unless a photo may come back            |
+| Android: the camera's photos (`<uuid>….jpg`, `scaled_<uuid>….jpg`)                    | deleted                | deleted         | deleted, unless a photo may come back             | deleted, unless a photo may come back                        |
+| Phones: the pickers' copies (Android `cache/file_picker/<time>/`, iOS `tmp/`)         | deleted                | deleted         | deleted                                           | deleted                                                      |
+| Phones: share_plus's files (`<uuid>/`, Android `share_plus/`) unchanged for 10 min    | deleted                | deleted         | deleted                                           | deleted                                                      |
+| Supabase's session and gotrue's sign-in-link verifier                                 | removed by the library | the same        | never touched                                     | never touched                                                |
 
 Files touched by a pass are the ones that last changed before it began
 ("older than the wipe"). Each time the app comes back to the foreground,
@@ -321,140 +330,106 @@ else does then, since a picker may be handing over a copy.
   phone or browser keeps its copy until its own session ends there, which
   for a deleted account is when its next refresh is refused, within an hour
   of its next use online (an access token lives an hour). That wipe is a plain sign-out, so the invitation it
-  holds stays. A member's device prunes a deleted or left portfolio's
-  entries when its portfolio list next loads, but in the cases Writes after
-  a removal names (Accepted, Not yet closed), and at the latest when its
-  session ends.
-- **Writes after a removal.** `SwrCache.clear` starts a new epoch before it
-  deletes anything, and so does `SwrCache.forgetUser`. Every write names the
-  epoch read before its value was asked for (`SwrCache.write(epoch:)`, a
-  required argument). `SwrCache.watch` takes it when it is called.
-  `SwrNotifier`, `PortfoliosController`, `ProfileController` and
-  `ResidenceController` note it when they are built, and every command reads
-  it again before its request (`SwrCache.requestEpoch`; `SwrNotifier.reload`
-  and `requestEpoch`). `SwrNotifier.show` requires it: a command hands over
-  the epoch it read before its request, or, for a value made from the one on
-  show ("load more", a notification marked read), `shownEpoch`, the epoch
-  that value was asked for in. `ProfileController` and
-  `PortfoliosController` keep that epoch themselves: a language saved, an
-  owner-abroad answer, or a list made from the one on show when the server's
-  cannot be read is saved for the older of the two, so a profile or list
-  shown before its copy was removed is not saved again. A write is dropped
-  when the cache was cleared since its epoch: a fetch that was on its way
-  when the session ended (its token is still valid for up to an hour) cannot
-  put the account back on
-  the device, and neither can anything a notifier built for that session asks
-  for afterwards. It is dropped as well when the user's entries were forgotten
-  since, unless it is the portfolio list, the profile or the residence
-  (`PortfoliosController.kept`): a list of the portfolio that left,
-  asked for before and answered after, is not saved again (no later refresh
-  would find it, since the saved portfolio list no longer names that
-  portfolio). A write the store had not finished when either happened is
-  deleted as it lands, and so is one that lands after a later write of the
-  same entry (the store may finish the two in either order, and would hold
-  the older value); that delete also takes a later, wanted write the store
-  finished first, and the entry is fetched again. For the portfolio list a
-  missing saved list counts as unknown: its next save always forgets the
-  user's other entries but the profile and residence, so a list deleted
-  this way, one a wipe deleted while it could not delete everything else,
-  or none yet in a new session, leaves nothing of a removed portfolio
-  behind. The save does not first look at what the store lists: a write
-  the store has been asked for but does not list yet, or a fetch whose
-  answer is still on its way, would not be there to see. A record opened
-  by its link (`/tenants/:tenantId` after a web reload or a sign-in's
-  redirect) is asked for before the list, its portfolio may have left by
-  the time the list comes, and its answer may come after the list: the
-  forget starts a new epoch, so that answer is dropped as it lands (kept,
-  nothing later would find it, since the saved list does not name that
-  portfolio). What that costs: in a session with no saved list, a record
-  saved before the first list save, or still on its way, goes with it,
-  and its screen, still shown, saves a value made from the one on show only
-  once the record is read again. The profile and residence, the user's own,
-  are never forgotten for a portfolio, so the profile loading beside the
-  first list save stays, also while the store is still writing it, and a
-  language saved after is kept; a copy of them that an ended session of the
-  same account left (a wipe that could not finish) stays too, as a start
-  signed in keeps that account's entries, until it is read again. A screen opened
-  before a portfolio left goes on saving what its commands ask for after,
-  and a value made from one shown before is shown but not saved, until the
-  query is read again (`reload`) or built anew. Both a clear and a forget
-  ask for each entry's deletion on its own: one that fails or never answers
-  leaves the others to go. The portfolio list is saved only once the user's
-  other entries are gone, so while they are not (the app closed, or the store
-  failed), the saved list still names the portfolio that left, and the next
-  load or save forgets them again. The portfolio list's saves (read the saved
-  list, forget what left, write) run one after another for a user
-  (`SwrCache.serially`): two that met would read the same saved list, and
-  the store may finish the older write last, leaving a saved list that no
-  longer names a portfolio whose records stay. One that fails holds up none
-  after it, one that waited is still dropped when its epoch is stale, and
-  after a clear the next save does not wait for those of the ended session.
-  A save waits for each call to the store at most `storeCallLimit` (three
-  seconds), so one that never answers holds up no later save, and it then
-  keeps the safe choice: a saved list it could not read counts as unknown,
-  records it could not forget keep the saved list as it was, and a write it
-  stopped waiting for counts as saved by the next save while it may still
-  land (`SwrCache.writing`). A write the store fails leaves it holding
-  any value written of that entry, or none: the cache asks for the entry's
-  deletion as it sees the failure (so that a later start of the app finds
-  no list), and counts the entry as unsettled (`SwrCache.unsettled`) until
-  a write asked after the failure lands. The list's next save counts an
-  unsettled saved list as unknown: a portfolio that joined while its list
-  could not be written, whose records were saved and which then left,
-  takes them. Two reads of the list may answer in either order (the first
-  load and a reload, or two reloads): each is numbered before it is asked
-  (`SwrCache.ask`), and an answer is saved and shown only when no answer to
-  a later read was saved first (`SwrCache.claim`), so an out-of-date answer
-  neither names a portfolio that left again nor forgets the records of one
-  that joined. A write that lands where it is to go (a removal covered it,
-  or a later write of its entry landed first) is deleted as it lands; while
-  that deletion has not ended (the store refused it, or has not answered),
-  the store holds a stray (`SwrCache.strayed`): a record of a portfolio that
-  left, or an older list without a portfolio that joined. The list's next
-  save counts the saved list as unknown while the user has a stray of any
-  query but the profile and residence, and forgets; a stray stops being one
-  when a later write of its entry lands, or a deletion of it ends, or the
-  store no longer lists it. A list made from the one on show (an
-  owner-abroad answer, or a created or deleted portfolio when the server's
-  list cannot be read) carries no number and is saved as before. Accepted:
-  such a list made while a server answer that drops a portfolio is being
-  saved, and saved after it, names that portfolio again (its name, role and
-  owner-abroad answer, not its records, which the server no longer gives)
-  until the next list load. Accepted too: when an out-of-order write lands
-  after a later one and the app is closed before the delete that follows
-  it, the saved list can stop naming a portfolio whose records were saved
-  meanwhile; so can a failed write of the list, or a stray, whose deletion
-  the store also refuses or never answers, when the app is closed before the
-  next list save, since what the cache knows of failures does not outlive
-  the app. Both need the store to fail, and the records go when the session
-  ends.
-  Not yet closed: the prune knows a portfolio only from a saved list, and
-  entries do not say which portfolio they are of. A portfolio the user
-  joins after this device last loaded the list (on another device), whose
-  record is opened here by its link before the list loads again, and that
-  the user leaves before it does, is never in a saved list: its leaving
-  forgets nothing, and the record stays until the session ends. Closing it
-  needs entries that name their portfolio, or a save that forgets on every
-  load (no saved copy would then outlive a load of the list online).
-  Elsewhere only the device wipe puts a limit on the store: a read or write
-  of another query that never answers keeps its screen or command waiting.
-  A command that chooses the current portfolio after a request (creating a
-  portfolio, accepting an invitation) passes the epoch it read before it
-  (`select(askedIn:)`), and chooses nothing when the session ended
-  meanwhile. When a portfolio leaves the list, `mm.portfolio.current` may
-  still name it until the user picks another or the session ends; it is two
-  ids, and `pickCurrent` falls back to the first portfolio.
-  `test/src/core/swr_commands_test.dart`
-  runs every feature command that shows a value: one that asks the server
-  is held while a portfolio leaves, and one made from the value on show
-  runs after it, and neither is saved; the portfolio list's commands are
-  held across a wipe and the list's rebuild (`portfolios_test.dart`).
-  `test/src/data/cache/swr_cache_model_test.dart` and
-  `swr_cache_ref_model_test.dart` compare `SwrCache` with two models written
-  apart (3,000 and 2,000 random sequences, fixed seeds) of what each removal,
-  out-of-order landing and failed write leaves on the store, and of
-  `writing` and `unsettled`; the second also checks that every stray the
-  store holds is told by `strayed`.
+  holds stays. A member's device removes a deleted or left portfolio's
+  entries the next time it loads the list of portfolios online, and at the
+  latest when its session ends; only a store that fails can leave one longer
+  (Writes after a removal).
+- **Writes after a removal.** Two things remove saved entries: the wipe and
+  the portfolio list.
+  - _The wipe._ `SwrCache.clear` starts a new epoch before it deletes
+    anything (every `mm.swr.` key, of every version and user). Every write
+    names the epoch read before its value was asked for
+    (`SwrCache.write(epoch:)`, a required argument): `SwrCache.watch` takes
+    it when it is called; `SwrNotifier`, `PortfoliosController`,
+    `ProfileController` and `ResidenceController` note it when they are
+    built, and a command hands over that epoch (`SwrNotifier.requestEpoch`)
+    or, for a value made from the one on show ("load more", a notification
+    marked read, a language saved, an owner-abroad answer),
+    `SwrNotifier.shownEpoch` or the controller's own, the epoch that value
+    was asked for in. A write is dropped when the cache was cleared since its
+    epoch, and one the store had not finished then is deleted as it lands:
+    a fetch on its way when the session ended (its token is still valid for
+    up to an hour) cannot put the account back on the device, nor can a
+    notifier built for that session.
+  - _The portfolio list._ Each list the server answers is numbered before
+    it is asked (`SwrCache.ask`), and only the newest-asked answer of the
+    session applies (`SwrCache.applyPortfolios`; one asked before a wipe is
+    refused, and the numbers count up across wipes). It sets, in memory, the
+    portfolios the user is in (S), then removes, from the store's keys alone
+    and reading no value (`SwrCache.prune`), every entry of the user's that S
+    does not keep (a `p:` tag outside S, every `unknown` one, a key that does
+    not parse), every key of another user, and every `mm.swr.v1.` key. The
+    user's own are never removed. The list is shown at once and saved without
+    waiting for the store, so a store that never answers holds up neither
+    the screens nor the commands that reload it. A list the controller
+    builds itself (an owner-abroad answer; a created or deleted portfolio
+    when the server's list cannot be read) takes no number and sets nothing:
+    creating adds the new portfolio to S and deleting removes it (and its
+    entries) once the server has confirmed, when S is known, and the list
+    shown and saved is cut to S.
+  - _A write as it lands._ A write is kept only when, once the store has
+    written it, the cache was not cleared since its epoch and S keeps its
+    tag, or no list was applied yet in this session (then the first list
+    removes it when it does not name its portfolio); otherwise it is
+    deleted as it lands, and when it is already not kept as it is asked, it
+    is not written. A later write of the same entry that landed first wins
+    (the store may finish two in either order): the older is deleted as it
+    lands, and so, then, is the newer value it overwrote. When a write of a
+    query found by its value lands, the same query's copies under another tag
+    go, so an empty list does not leave an older copy with rows behind; one
+    the rule does not keep removes them all. A read never shows an entry S
+    does not keep, and asks for its deletion.
+  - _What is lost._ Every `mm.swr.v1.*` entry goes once, after the upgrade
+    (a start signed in, the first list, or the wipe): an offline first
+    start after it shows nothing saved, the portfolio list included. An
+    entry of unknown portfolio (an empty list of units, tenancies, leases
+    or reminders) does not outlive a list load: before the session's first
+    list it is saved, that list removes it, and after it it is not saved.
+    A record of a portfolio the user joined on another device since this
+    session's last list is shown but not saved until the list loads again
+    (pull to refresh, accepting an invitation here, or the next start). Two
+    writes of one entry landing in reverse leave no entry; a write from
+    before a wipe landing after a newer one deletes the newer; a write the
+    store fails deletes its entry; an answer asked before the newest is
+    neither shown nor saved; an answer asked before a create that drops the
+    created portfolio costs that portfolio's saves until the next list.
+  - _Offline starts._ Until the session's first list, S is unknown and every
+    saved entry is shown, also one of a portfolio left on another device
+    since this device last loaded the list: it goes the next time the list
+    loads online, as the privacy page says.
+  - _What only a failing store can leave._ A deletion the store refuses or
+    never answers, a listing of the keys that fails or hangs, a write that
+    never answers although the store keeps it, or the app closing before a
+    removal ends leaves an entry until a later list the store lets delete it,
+    or the session's end. While S is known such an entry is never shown; an
+    offline start can show it. A failed write of the list whose deletion is
+    also refused can leave an older saved list (names, roles, owner-abroad
+    answers) until the next list or sign-out. After a delete whose follow-up
+    read of the list fails, a list answer asked before the delete and
+    arriving after it names the deleted portfolio again, and a record of it
+    fetched before the delete and landing after that answer stays until the
+    next list (three races, and the portfolio no longer exists). A key
+    listing that fails while a record opened by its link is read before the
+    first list shows no saved copy.
+  - _Commands._ A command that chooses the current portfolio after a request
+    (creating a portfolio, accepting an invitation) passes the epoch it read
+    before it (`select(askedIn:)`), and chooses nothing when the session
+    ended meanwhile. When a portfolio leaves the list, `mm.portfolio.current`
+    may still name it until the user picks another or the session ends; it
+    is two ids, and `pickCurrent` falls back to the first portfolio. Apart
+    from the wipe nothing puts a limit on the store: a read or write of a
+    record query that never answers keeps its screen or command waiting.
+  - _Tests._ `test/src/core/swr_commands_test.dart` runs every feature
+    command that shows a value: held while its portfolio leaves it is not
+    saved, held while another leaves it is, and neither is saved across a
+    wipe. `test/src/data/cache/cache_scopes_test.dart` builds all 34 cached
+    queries over the fakes and checks each one's key names the portfolio of
+    what it fetched. `portfolio_prune_test.dart` keeps the probes of earlier
+    reviews (P1 to P9, N1 to N10) as tests. `swr_cache_model_test.dart`
+    (operational) and `swr_cache_ref_model_test.dart` (declarative, with a
+    key-format fuzz) compare `SwrCache` with two models written apart from
+    its code and from each other (500 and 400 random sequences by default,
+    fixed seeds, `--dart-define=MODEL_SEQ=` and `REF_SEQ=` for more).
 - **Replays.** gotrue's auth stream replays every earlier event to a new
   listener (an unbounded `ReplaySubject`), so a `signedOut` is acted on only
   when no session exists, and a session counts as replaced only when the
@@ -464,7 +439,8 @@ else does then, since a picker may be handing over a copy.
   or were cut off by the app closing is not retried by a session that
   begins later (an e-mail link of account B opened while A was signed in
   wipes A only once B's session exists). So a start signed in removes what
-  any other account left (`SwrCache.forgetOthers`) and a current portfolio
+  any other account left and every entry of the old format, which names no
+  portfolio (`SwrCache.forgetOthers`), and a current portfolio
   chosen by another user, each on its own and waited for at most
   `wipePreferencesLimit`.
 - **Timing.** The preferences go before the signed-out status is shown (a few
