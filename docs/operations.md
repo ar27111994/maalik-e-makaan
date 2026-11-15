@@ -420,7 +420,8 @@ Three things on the site update themselves, so a release needs no copy edits for
   `artefacts` and `ios` jobs have attached them. So the `site` job lists the files attached when
   it runs (`website/src/data/release-assets.json`) and the page links to those alone, and Release
   deploys the site after both builds have finished (Deployment, below). A build that fails, even
-  on every re-run, then costs the page that build's links only, never the deploy.
+  on every re-run, then costs the page that build's links only (all but any to files that an
+  upload cut off part-way left on the release), never the deploy.
 - **The roadmap.** `/roadmap/` shows the GitHub milestones and the issues labelled `roadmap`, as
   they are when the site is built: the `site` job runs `tool/github/fetch_roadmap.py
 --from-github` before the build (falling back, with a warning, to the copy in
