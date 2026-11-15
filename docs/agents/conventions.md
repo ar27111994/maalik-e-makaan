@@ -135,6 +135,45 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   what actionlint does not cover. actionlint also refuses a step-level `$/` action (its
   `[action]` rule, not ignored): the repository has no action of its own today, and the first
   one needs that ignore and the check of its inputs added together.
+- Every job that starts the local stack (`supabase start` or `supabase db start`, with any CLI
+  options, or `make test-uat` and `tool/uat/run.sh`, which start it when it is not running) runs
+  the step "Reserve the local stack's host ports", in one spelling, as its first step, before
+  any step that connects out:
+
+  ```yaml
+  - name: Reserve the local stack's host ports
+    run: |
+      reserved="$(cat /proc/sys/net/ipv4/ip_local_reserved_ports)"
+      echo "${reserved:+$reserved,}54320-54329" | sudo tee /proc/sys/net/ipv4/ip_local_reserved_ports
+  ```
+
+  Linux gives an outgoing connection a local port from `net.ipv4.ip_local_port_range` (32768 to
+  60999 by default), and while that socket lives, or lingers in `TIME_WAIT`, a bind of the
+  wildcard address to the same port fails with `EADDRINUSE`. The stack's host ports lie in that
+  range, and a job binds them straight after pulling the images over many connections: CI run
+  43740334888 (UAT, 15 November 2026) stopped so on `0.0.0.0:54322`. A port in
+  `net.ipv4.ip_local_reserved_ports` is never given out automatically, while an explicit bind of
+  it works as before; a reservation does not free a port a socket already holds, hence the first
+  step. The range is literal, so the step needs no checkout and runs first; it is the Supabase
+  CLI's whole default block (shadow database 54320 to pooler 54329), so a service turned on
+  later is covered. The write keeps any ports already reserved, and `tee` fails the step when
+  the kernel refuses it, where `sysctl -w` prints "ignoring" and exits 0. The backup's restore
+  check is allowed to fail, so there the step has `continue-on-error` and the stack starts only
+  when it succeeded: `steps.reserve.outcome == 'success'` is one of the `&&`-joined terms of the
+  start's `if:`. An `||` outside brackets or the term inside brackets would let the start run
+  after a failed reservation, and so would anything before or after a `${{ }}` around the
+  condition, even the newline that ends a `|` or `>` block: GitHub then reads the whole as text,
+  which is true. Both `continue-on-error` are a plain `true`, not an expression.
+  `tool/github/check_stack_ports.py` (`make lint`, the pre-commit hook) requires all of this,
+  the step once and first in each such job, run by bash (not a `background:` step, which the
+  next step does not wait for, and not inside a `parallel:` group, whose steps run beside it),
+  and a range that covers every port `supabase/config.toml` names inside 32768 to 60999 (a port
+  below it is never given out). It finds a start written in a step's `run:`, steps of a
+  `parallel:` group included. It does not see a stack started by an action, a reusable
+  workflow, another script, or a command put together from an expression or a variable, and
+  the first step cannot come before a job's `services:` or an action's `pre:` step: whoever adds
+  one of those reserves the ports by hand, and a reviewer reads it.
+
 - zizmor findings fail the gate, at every severity, unless an inline ignore suppresses them.
   `make lint` (so the Repository hygiene job) runs the zizmor that `tool/requirements-lint.txt`
   installs offline, with `--strict-collection`, on the whole repository; the Security workflow's

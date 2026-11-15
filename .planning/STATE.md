@@ -108,6 +108,11 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   a release; attaching provenance to v1.0.0 to v1.3.1 is the owner's optional step
   (`docs/operations.md`, Release provenance). zizmor's auditor persona (not the
   gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
+- CI (2026-11-15, branch `claude/reserve-stack-ports`): the UAT job of run 43740334888 (pull
+  request #82) stopped before any test because `supabase start` could not bind `0.0.0.0:54322`,
+  a port inside the kernel's automatic range that an outgoing connection can hold, so every job
+  that starts the local stack now first reserves 54320-54329 (`net.ipv4.ip_local_reserved_ports`)
+  and `tool/github/check_stack_ports.py` in `make lint` requires it.
 - D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
   the `vercel.app` addresses send people on for good. Pull request #74, released in 1.3.0:
