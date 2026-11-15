@@ -257,6 +257,61 @@ MUTANTS = {
         ),
         ['job "artefacts": the provenance step must fail when a check fails'],
     ),
+    "set +eo pipefail in the provenance step": (
+        in_job(
+            "ios",
+            "          gh --version\n",
+            "          set +eo pipefail\n          gh --version\n",
+        ),
+        ['job "ios": the provenance step must fail when a check fails'],
+    ),
+    "a failed verify turned into a success with !": (
+        in_job(
+            "artefacts", "            gh attestation verify", "            ! gh attestation verify"
+        ),
+        ['job "artefacts": the provenance step must fail when a check fails'],
+    ),
+    "exit 0 before the loop": (
+        in_job(
+            "artefacts",
+            "          for file in dist/*; do\n",
+            "          exit 0\n          for file in dist/*; do\n",
+        ),
+        [
+            'job "artefacts": the provenance step\'s run must be exactly these lines, so that no file is skipped and no failure is lost; it runs `exit 0`'
+        ],
+    ),
+    "break as the first line of the loop": (
+        in_job("ios", '            [[ "$file"', '            break\n            [[ "$file"'),
+        [
+            'job "ios": the provenance step\'s run must be exactly these lines, so that no file is skipped and no failure is lost; it runs `break`'
+        ],
+    ),
+    "the skip line skipping every file in dist/": (
+        in_job("artefacts", '[[ "$file" == "$PROVENANCE" ]]', '[[ "$file" == dist/* ]]'),
+        [
+            'job "artefacts": the provenance step\'s run must be exactly these lines, so that no file is skipped and no failure is lost; it runs'
+            ' `[[ "$file" == dist/* ]] && continue`'
+        ],
+    ),
+    "the skip line skipping all but SHA256SUMS-ios": (
+        in_job("ios", '[[ "$file" == "$PROVENANCE" ]]', '[[ "$file" != dist/SHA256SUMS-ios ]]'),
+        ['job "ios": the provenance step\'s run must be exactly these lines'],
+    ),
+    "the skip line removed": (
+        in_job("ios", '            [[ "$file" == "$PROVENANCE" ]] && continue\n', ""),
+        [
+            'job "ios": the provenance step\'s run must be exactly these lines, so that no file is skipped and no failure is lost; it lacks'
+        ],
+    ),
+    "the provenance step's lines reordered": (
+        in_job(
+            "artefacts",
+            '          gh --version\n          cp -- "$BUNDLE" "$PROVENANCE"\n',
+            '          cp -- "$BUNDLE" "$PROVENANCE"\n          gh --version\n',
+        ),
+        ["its lines are out of order or repeated"],
+    ),
     "the source ref taken from the run": (
         in_job("ios", "--source-ref refs/heads/main", '--source-ref "$GITHUB_REF"'),
         ['job "ios": the provenance step must run, on a line that is not a comment'],
@@ -320,6 +375,56 @@ MUTANTS = {
             "    runs-on: macos-26\n    continue-on-error: true\n",
         ),
         ['job "ios" uploads release files, so it may not set continue-on-error'],
+    ),
+    # The shell, which must keep -e so that every file's verify counts.
+    "shell: bash {0} on the provenance step": (
+        in_job(
+            "artefacts",
+            "        env:\n          BUNDLE:",
+            "        shell: bash {0}\n        env:\n          BUNDLE:",
+        ),
+        [
+            'job "artefacts": the attest, provenance and upload steps run in the default `bash`'
+            " (-e, pipefail), so none may have `shell:` (this one is 'bash {0}')"
+        ],
+    ),
+    "shell: on the upload step": (
+        in_job("ios", UPLOAD, UPLOAD.replace("        run:", "        shell: sh\n        run:")),
+        ["so none may have `shell:` (this one is 'sh')"],
+    ),
+    "the workflow's default shell bash {0}": (
+        lambda t: once(
+            t, "defaults:\n  run:\n    shell: bash\n", "defaults:\n  run:\n    shell: bash {0}\n"
+        ),
+        [
+            'job "artefacts" uploads release files, but the workflow sets'
+            " `defaults.run.shell: bash {0}`",
+            'job "ios" uploads release files, but the workflow sets `defaults.run.shell: bash {0}`',
+        ],
+    ),
+    "a job's default shell bash {0}": (
+        lambda t: once(
+            t,
+            "    runs-on: macos-26\n",
+            "    runs-on: macos-26\n    defaults:\n      run:\n        shell: bash {0}\n",
+        ),
+        ['job "ios" uploads release files, but job "ios" sets `defaults.run.shell: bash {0}`'],
+    ),
+    "a job's default shell bash over the workflow's bash {0}": (
+        lambda t: once(
+            once(
+                t,
+                "defaults:\n  run:\n    shell: bash\n",
+                "defaults:\n  run:\n    shell: bash {0}\n",
+            ),
+            "    runs-on: macos-26\n",
+            "    runs-on: macos-26\n    defaults:\n      run:\n        shell: bash\n",
+        ),
+        ['job "artefacts" uploads release files, but the workflow sets'],
+    ),
+    "no default shell anywhere": (
+        lambda t: once(t, "defaults:\n  run:\n    shell: bash\n\n", ""),
+        [],
     ),
     # Pins and permissions.
     "the attest action unpinned": (

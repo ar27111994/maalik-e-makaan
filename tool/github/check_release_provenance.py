@@ -21,9 +21,14 @@ Checking a download). This check keeps that so, for every tracked workflow in
   copies the one to the other (`cp -- "$BUNDLE" "$PROVENANCE"`) and loops over `dist/*`, running
   `gh attestation verify "$file" --bundle "$PROVENANCE"` with `--signer-workflow` naming this
   workflow file and `--source-ref refs/heads/main`, the options SECURITY.md tells people to use.
-  Those lines must not be comments, and the run must not swallow a failure (`||`, `set +e`);
-- none of the three steps has an `if:` or `continue-on-error`, and the job has no
-  `continue-on-error`;
+  Once comments are dropped and continuation lines joined, the run is exactly the six lines
+  release.yml has (`RUN_LINES`), so nothing in it can stop the loop early, skip a file, or
+  swallow a failure (`||`, `!`, `set +e`, `exit 0`, `break`);
+- none of the three steps has an `if:`, `continue-on-error` or `shell:`, the job has no
+  `continue-on-error`, and the job's and the workflow's `defaults.run.shell`, where set, is
+  `bash`: the runner runs that as `bash --noprofile --norc -e -o pipefail {0}`, and a step without
+  a shell as `bash -e {0}`, so a failed verify ends the step; a custom shell such as `bash {0}`
+  drops `-e`, and then only the last file's verify would count;
 - the job grants `attestations: write` and `id-token: write`.
 
 No two jobs may name the same provenance file (the two `--clobber` uploads would replace each
@@ -75,7 +80,24 @@ UPLOAD_ACTIONS = (
     "svenstaro/upload-release-action",
     "actions/upload-release-asset",
 )
-SWALLOWS = re.compile(r"\|\||\bset\s+\+e\b|\bset\s+\+o\s+errexit\b")
+# `set +e`, `set +eo pipefail`, `set +xe`, `set +o errexit`, `set +o pipefail`, and a `!` that
+# turns a failed command into a success.
+SWALLOWS = re.compile(
+    r"\|\||\bset\s+\+[a-z]*e|\bset\s+\+o\s+(?:errexit|pipefail)\b|(?:^|[;&|(]\s*)!\s"
+)
+# The provenance step's run, line by line once comments are dropped and continuation lines joined
+# (with runs of white space read as one space); {workflow} is the workflow file's path.
+RUN_LINES = (
+    "gh --version",
+    'cp -- "$BUNDLE" "$PROVENANCE"',
+    "for file in dist/*; do",
+    '[[ "$file" == "$PROVENANCE" ]] && continue',
+    'gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY"'
+    ' --signer-workflow "$GITHUB_REPOSITORY/{workflow}" --source-ref ' + SOURCE_REF,
+    "done",
+)
+# The one shell a workflow or a job may set as its default for these steps.
+SHELL = "bash"
 
 
 def commands(run: str) -> list[str]:
@@ -125,6 +147,7 @@ class Checker:
                     continue
                 uploading_jobs += 1
                 job_problems, name = self.check_job(path, job_name, job, steps.value, uploads)
+                job_problems += self.check_shell(path, job_name.value, document, job)
                 found += job_problems
                 if name is not None:
                     text, line = name
@@ -232,7 +255,40 @@ class Checker:
                             f" always and must succeed, so none may have `{key}:`",
                         )
                     )
+            shell = get(step, "shell")
+            if shell is not None:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(shell),
+                        f'job "{name}": the attest, provenance and upload steps run in the'
+                        f" default `{SHELL}` (-e, pipefail), so none may have `shell:`"
+                        f" (this one is {scalar(shell)!r})",
+                    )
+                )
         return found, provenance_name
+
+    def check_shell(
+        self, path: str, name: str, document: yaml.Node, job: yaml.Node
+    ) -> list[Problem]:
+        """The default shell the job's steps run in: the job's `defaults.run.shell`, or else the
+        workflow's (the job's overrides the workflow's)."""
+        for owner, node in ((f'job "{name}"', job), ("the workflow", document)):
+            shell = get(get(get(node, "defaults"), "run"), "shell")
+            if shell is None:
+                continue
+            if scalar(shell) == SHELL:
+                return []
+            return [
+                Problem(
+                    path,
+                    line_of(shell),
+                    f'job "{name}" uploads release files, but {owner} sets'
+                    f" `defaults.run.shell: {scalar(shell)}`; set `{SHELL}` (the runner adds"
+                    " -e and pipefail) or nothing, so a failed verify ends the provenance step",
+                )
+            ]
+        return []
 
     def check_permissions(
         self, path: str, name: str, job: yaml.Node, job_name: yaml.ScalarNode
@@ -392,7 +448,7 @@ class Checker:
                     path,
                     where,
                     f'job "{name}": the provenance step must fail when a check fails; remove'
-                    " `||` and `set +e`",
+                    " `||`, `!` and `set +e`",
                 )
             )
         if 'cp -- "$BUNDLE" "$PROVENANCE"' not in lines:
@@ -427,6 +483,31 @@ class Checker:
                     f'job "{name}": the provenance step must run, on a line that is not a'
                     " comment, " + " ".join(f"`{part}`" for part in required) + " (SECURITY.md"
                     " tells people to check a download with the same options)",
+                )
+            )
+        expected = [line.format(workflow=workflow) for line in RUN_LINES]
+        actual = [re.sub(r"\s+", " ", line) for line in lines]
+        if not found and actual != expected:
+            extra = next((line for line in actual if line not in expected), None)
+            missing = next((line for line in expected if line not in actual), None)
+            what = (
+                f"it runs `{extra}`"
+                if extra is not None
+                else (
+                    f"it lacks `{missing}`"
+                    if missing is not None
+                    else "its lines are out of order or repeated"
+                )
+            )
+            found.append(
+                Problem(
+                    path,
+                    where,
+                    f'job "{name}": the provenance step\'s run must be exactly these lines, so that'
+                    " no file is skipped and no failure is lost; "
+                    + what
+                    + ": "
+                    + " / ".join(f"`{line}`" for line in expected),
                 )
             )
         return found

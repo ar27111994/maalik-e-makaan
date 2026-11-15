@@ -147,7 +147,9 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   the attest step (`actions/attest-build-provenance`, `subject-path: dist/*`), then a step that
   copies its Sigstore bundle into `dist/` as a `.intoto.jsonl` file and checks it with
   `gh attestation verify --bundle` against every file, with `--source-ref refs/heads/main`, then
-  one `gh release upload` of `dist/*` with `--clobber`, back to back and none of them skippable.
+  one `gh release upload` of `dist/*` with `--clobber`, back to back, with no `if:`,
+  `continue-on-error` or `shell:` (a default shell, where set, is `bash`, which keeps `-e`). The
+  check step's run is exactly its six lines, so it cannot skip a file or lose a failure.
   `tool/github/check_release_provenance.py` (`make lint`, the pre-commit hook) enforces it, and
   refuses other ways of uploading. Why, and what Scorecard counts: `docs/operations.md`, Release
   provenance.
