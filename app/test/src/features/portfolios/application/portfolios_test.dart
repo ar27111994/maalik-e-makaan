@@ -6,6 +6,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -105,6 +106,30 @@ void main() {
         'mm.swr.v1.$testUserId.${PortfoliosController.query}',
         'mm.swr.v1.another-user.tenants.${plaza.id}',
       });
+    });
+
+    test("but not the user's profile and residence, which hold nothing of a "
+        'portfolio, whether the list was saved or not', () async {
+      for (final saved in [true, false]) {
+        final app = TestApp(portfolios: [gulberg]);
+        if (saved) {
+          await app.cache.seed(testUserId, PortfoliosController.query, [
+            gulberg.toRow(),
+            plaza.toRow(),
+          ]);
+        }
+        await app.cache.seed(testUserId, 'tenants.${plaza.id}', [1]);
+        await app.cache.seed(testUserId, ProfileController.query, {});
+        await app.cache.seed(testUserId, ResidenceController.query, {});
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        expect(keys(app), {
+          'mm.swr.v1.$testUserId.${PortfoliosController.query}',
+          'mm.swr.v1.$testUserId.${ProfileController.query}',
+          'mm.swr.v1.$testUserId.${ResidenceController.query}',
+        }, reason: saved ? 'a saved list' : 'no saved list');
+      }
     });
 
     test('a list that only grew keeps them', () async {
@@ -603,8 +628,8 @@ void main() {
       expect(app.store.values.keys, [listKey]);
     });
 
-    test('but what this session saved before its first list save stays, and '
-        'the profile it loads alongside is still saved after', () async {
+    test('but the profile loading beside the first list save stays, and is '
+        'still saved after', () async {
       const profileKey = 'mm.swr.v1.$testUserId.${ProfileController.query}';
       final app = TestApp();
       app.portfolios.gate.close();
@@ -670,6 +695,114 @@ void main() {
         expect(app.store.values.keys, [listKey]);
       },
     );
+
+    for (final (what, fail, mend)
+        in <(String, void Function(MemoryStore), void Function(MemoryStore))>[
+          (
+            'fails',
+            (store) => store.keysFailure = Exception('store failed'),
+            (store) => store.keysFailure = null,
+          ),
+          (
+            'never answers',
+            (store) => store.hangingKeys = true,
+            (store) => store.hangingKeys = false,
+          ),
+        ]) {
+      test('nor, when the first save could not look at the store (it $what) '
+          'and saved no list, the records of a portfolio opened after it '
+          'that then leaves', () async {
+        final gulbergTenants = 'mm.swr.v1.$testUserId.tenants.${gulberg.id}';
+        final app = TestApp();
+        app.cache = SwrCache(
+          app.store,
+          callLimit: const Duration(milliseconds: 20),
+        );
+        fail(app.store);
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        await pumpEventQueue();
+        expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+          gulberg,
+          plaza,
+        ]);
+        expect(app.store.values.keys, isEmpty, reason: 'no list saved');
+        mend(app.store);
+        await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [1]);
+        expect(app.store.values.keys, [gulbergTenants]);
+        app.portfolios.memberships.remove(gulberg);
+        await container.read(portfoliosProvider(testUserId).notifier).reload();
+        expect(app.store.values.keys, [listKey]);
+      });
+    }
+
+    test('nor a record opened by its link before the first list save, of a '
+        'portfolio the user left before the list came', () async {
+      final app = TestApp();
+      app.portfolios.gate.close();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      // A reload of /tenants/:tenantId, let through while the list loads.
+      listen(container, tenantProvider(aliRaza.id));
+      await pumpEventQueue();
+      final tenantKey = 'mm.swr.v1.$testUserId.tenant.${aliRaza.id}';
+      expect(app.store.values.keys, [tenantKey]);
+      app.portfolios.memberships.remove(gulberg);
+      app.portfolios.gate.open();
+      await pumpEventQueue();
+      expect(app.store.values.keys, [listKey]);
+    });
+
+    test("nor a portfolio's records when it leaves while the first list "
+        "save's write has not answered", () async {
+      final app = TestApp();
+      app.cache = SwrCache(
+        app.store,
+        callLimit: const Duration(milliseconds: 20),
+      );
+      app.store.holding.add(listKey);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      await pumpEventQueue();
+      expect(app.store.heldWrites, 1, reason: 'the first write on its way');
+      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [1]);
+      app.store.holding.clear();
+      app.portfolios.memberships.remove(gulberg);
+      await container.read(portfoliosProvider(testUserId).notifier).reload();
+      expect(app.store.values.keys, [listKey]);
+    });
+
+    test('but the profile stays, also when the store was still writing it '
+        'at the first list save, and a language saved after is kept', () async {
+      const profileKey = 'mm.swr.v1.$testUserId.${ProfileController.query}';
+      final app = TestApp();
+      await app.cache.seed(testUserId, ProfileController.query, ayesha.toRow());
+      // The app starts again over the same store; its write of the profile
+      // is held while the list is saved.
+      app.cache = SwrCache(app.store);
+      app.store.holding.add(profileKey);
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.store.heldWrites, 1);
+      expect(app.store.values.keys, {profileKey, listKey});
+      app.store
+        ..holding.clear()
+        ..finishHeldWritesNewestFirst();
+      await pumpEventQueue();
+      await container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      final saved = await app.cache.read(
+        testUserId,
+        ProfileController.query,
+        Profile.fromRow,
+      );
+      expect(saved!.value.language, AppLanguage.urdu);
+    });
 
     test('but nothing is forgotten when it holds nothing else', () async {
       final app = TestApp();

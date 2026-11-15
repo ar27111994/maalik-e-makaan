@@ -26,8 +26,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   a pass over the files start together, and a plugin's record of a lost pick that answers after
   five seconds has its copies discarded when it does. The portfolio list's saves run one after
   another (`SwrCache.serially`), each call to the store waited for at most three seconds, and a
-  missing saved list counts as unknown, so the next save forgets the user's other entries, but
-  not, before the session's first list save, what the session itself saved (the profile); a
+  missing saved list counts as unknown, so the next save forgets the user's other entries, a
+  record saved before the session's first list save included; a portfolio leaving or a missing
+  list never forgets the user's own profile and residence (`PortfoliosController.kept`); a
   profile or list made from the one on show is saved for the epoch it was asked for in
   (CodeRabbit's second review of PR #70). A command that chooses the current portfolio after a
   request chooses nothing when the session ended meanwhile, and a start signed in removes what

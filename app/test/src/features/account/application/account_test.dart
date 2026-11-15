@@ -114,8 +114,8 @@ void main() {
       expect(app.store.values, isEmpty);
     });
 
-    test('a profile asked for before a portfolio left the list is not '
-        'kept, nor one made from it, and one asked for after it is', () async {
+    test('a portfolio leaving the list keeps the profile: one asked for '
+        'before is kept, and so is a language saved after', () async {
       final app = TestApp();
       final container = containerFor(app);
       listen(container, profileProvider(testUserId));
@@ -124,44 +124,65 @@ void main() {
       app.profiles.gate.close();
       final saving = notifier.saveDetails(fullName: 'Ayesha K.', phone: null);
       await pumpEventQueue();
-      await app.cache.forgetUser(testUserId, keep: PortfoliosController.query);
+      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [1]);
+      await app.cache.forgetUser(testUserId, keep: PortfoliosController.kept);
+      expect(app.store.values.keys, [
+        'mm.swr.v1.$testUserId.${ProfileController.query}',
+      ]);
       app.profiles.gate.open();
       await saving;
-      expect(app.store.values, isEmpty);
-      // Made from the profile on show, asked for before the removal.
-      await notifier.saveLanguage(AppLanguage.urdu);
-      expect(app.store.values, isEmpty);
-      expect(
-        container.read(profileProvider(testUserId)).value!.value.language,
-        AppLanguage.urdu,
-      );
-      // The server's answer to a request made after it.
-      await notifier.saveDetails(fullName: 'Ayesha Khan', phone: null);
       final saved = await app.cache.read(
         testUserId,
         ProfileController.query,
         Profile.fromRow,
       );
-      expect(saved!.value.fullName, 'Ayesha Khan');
-      // And a language saved now, made from that one, is kept with it.
-      await notifier.saveLanguage(AppLanguage.english);
+      expect(saved!.value.fullName, 'Ayesha K.');
+      // Made from the profile on show, asked for before the removal.
+      await notifier.saveLanguage(AppLanguage.urdu);
       final again = await app.cache.read(
         testUserId,
         ProfileController.query,
         Profile.fromRow,
       );
-      expect(again!.value.language, AppLanguage.english);
+      expect(again!.value.language, AppLanguage.urdu);
     });
 
-    test('a language saved after a portfolio left the list does not save '
-        'the profile shown before it again', () async {
+    test('a language whose save was on its way when the device was wiped is '
+        'shown and not kept', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      app.profiles.gate.close();
+      final saving = container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      await pumpEventQueue();
+      // Removed, all of it, while the request is on its way.
+      await app.cache.clear();
+      app.profiles.gate.open();
+      await saving;
+      expect(app.store.values, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).value!.value.language,
+        AppLanguage.urdu,
+      );
+    });
+
+    test('a profile forgotten with the rest is not saved again by a language '
+        'saved after, until it is read again', () async {
+      // Not done by the app, whose forget keeps the profile
+      // (PortfoliosController.kept): the profile's own epoch rule, which a
+      // wipe also relies on.
       final app = TestApp();
       final container = containerFor(app);
       listen(container, profileProvider(testUserId));
       await pumpEventQueue();
       expect(app.store.values, hasLength(1));
-      // A portfolio leaves: the saved profile goes, the shown one stays.
-      await app.cache.forgetUser(testUserId, keep: PortfoliosController.query);
+      await app.cache.forgetUser(
+        testUserId,
+        keep: {PortfoliosController.query},
+      );
       expect(app.store.values, isEmpty);
       await container
           .read(profileProvider(testUserId).notifier)
@@ -176,37 +197,6 @@ void main() {
       await pumpEventQueue();
       expect(app.store.values, hasLength(1));
     });
-
-    for (final (what, remove) in <(String, Future<void> Function(SwrCache))>[
-      ('the device was wiped', (cache) => cache.clear()),
-      (
-        'a portfolio left the list',
-        (cache) =>
-            cache.forgetUser(testUserId, keep: PortfoliosController.query),
-      ),
-    ]) {
-      test('a language whose save was on its way when $what is shown and '
-          'not kept', () async {
-        final app = TestApp();
-        final container = containerFor(app);
-        listen(container, profileProvider(testUserId));
-        await pumpEventQueue();
-        app.profiles.gate.close();
-        final saving = container
-            .read(profileProvider(testUserId).notifier)
-            .saveLanguage(AppLanguage.urdu);
-        await pumpEventQueue();
-        // Removed, all of it, while the request is on its way.
-        await remove(app.cache);
-        app.profiles.gate.open();
-        await saving;
-        expect(app.store.values, isEmpty);
-        expect(
-          container.read(profileProvider(testUserId)).value!.value.language,
-          AppLanguage.urdu,
-        );
-      });
-    }
 
     test(
       'saving the language before the profile loaded saves it only',

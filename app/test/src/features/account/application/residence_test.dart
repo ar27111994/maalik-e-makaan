@@ -149,8 +149,8 @@ void main() {
       expect(saved!.value.residence.country, CountryCode.parse('NO'));
     });
 
-    test('a save asked for before a portfolio left the list is not kept, '
-        'and one made after it is', () async {
+    test('a save asked for before a portfolio left the list is kept, as '
+        'is one made after it', () async {
       final app = TestApp();
       final container = containerFor(app);
       listen(container, residenceProvider(testUserId));
@@ -162,10 +162,15 @@ void main() {
         timeZone: _london,
       );
       await pumpEventQueue();
-      await app.cache.forgetUser(testUserId, keep: PortfoliosController.query);
+      await app.cache.forgetUser(testUserId, keep: PortfoliosController.kept);
       app.residences.gate.open();
       await saving;
-      expect(app.store.values, isEmpty);
+      final kept = await app.cache.read(
+        testUserId,
+        ResidenceController.query,
+        AccountResidence.fromRow,
+      );
+      expect(kept!.value.residence.country, CountryCode.parse('GB'));
       await notifier.save(country: CountryCode.parse('NO'), timeZone: null);
       final saved = await app.cache.read(
         testUserId,

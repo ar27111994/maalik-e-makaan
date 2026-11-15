@@ -134,7 +134,7 @@ void main() {
         'it', () async {
       store.undeletable.add('mm.swr.v1.u1.a');
       await expectLater(
-        cache.forgetUser('u1', keep: 'portfolios'),
+        cache.forgetUser('u1', keep: {'portfolios'}),
         throwsStateError,
       );
       expect(store.values.keys, [
@@ -178,7 +178,7 @@ void main() {
       "one made before a forget the cache's", () async {
     final made = cache.epoch;
     expect(cache.requestEpoch(madeIn: made), made);
-    await cache.forgetUser('u1', keep: 'portfolios');
+    await cache.forgetUser('u1', keep: {'portfolios'});
     expect(cache.epoch, made + 1);
     expect(cache.requestEpoch(madeIn: made), cache.epoch);
     await cache.clear();
@@ -231,7 +231,7 @@ void main() {
       await cache.seed('u12', 'tenants.p1', 3);
       await cache.seed('u2', 'x', 4);
       store.values['mm.settings.locale'] = 'ur';
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       expect(store.values.keys.toSet(), {
         'mm.swr.v1.u1.portfolios',
         'mm.swr.v1.u12.tenants.p1',
@@ -243,7 +243,7 @@ void main() {
     test("drops what the user's screens asked for before it, and nothing "
         'else', () async {
       final before = cache.epoch;
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       await cache.write('u1', 'tenants.p2', 1, epoch: before);
       expect(store.values, isEmpty);
       // The list that was kept, and another user's, are not its to drop.
@@ -273,7 +273,7 @@ void main() {
           .forEach(snapshots.add);
       await pumpEventQueue();
       // The portfolio p2 left u1's list while the request was on its way.
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       fetch.complete(5);
       await done;
       expect(store.values, isEmpty);
@@ -283,9 +283,9 @@ void main() {
     test('twice, keeping another query each time, drops what either '
         'forgot', () async {
       final first = cache.epoch;
-      await cache.forgetUser('u1', keep: 'a');
+      await cache.forgetUser('u1', keep: {'a'});
       final second = cache.epoch;
-      await cache.forgetUser('u1', keep: 'b');
+      await cache.forgetUser('u1', keep: {'b'});
       // Asked for before both: each was forgotten by the one that kept
       // the other.
       await cache.write('u1', 'a', 1, epoch: first);
@@ -297,9 +297,48 @@ void main() {
       expect(store.values.keys, ['mm.swr.v1.u1.b']);
     });
 
+    test('keeps every query of the set, and drops what it did not '
+        'keep', () async {
+      final before = cache.epoch;
+      await cache.seed('u1', 'portfolios', 1);
+      await cache.seed('u1', 'profile', 2);
+      await cache.seed('u1', 'tenants.p1', 3);
+      await cache.forgetUser('u1', keep: {'portfolios', 'profile'});
+      expect(store.values.keys.toSet(), {
+        'mm.swr.v1.u1.portfolios',
+        'mm.swr.v1.u1.profile',
+      });
+      await cache.write('u1', 'profile', 4, epoch: before);
+      await cache.write('u1', 'tenants.p1', 5, epoch: before);
+      expect((await cache.read('u1', 'profile', decodeInt))!.value, 4);
+      expect(store.values.keys, isNot(contains('mm.swr.v1.u1.tenants.p1')));
+    });
+
+    test('a later one that keeps more does not undo an earlier one', () async {
+      final first = cache.epoch;
+      await cache.forgetUser('u1', keep: {'portfolios'});
+      final second = cache.epoch;
+      await cache.forgetUser('u1', keep: {'portfolios', 'profile'});
+      await cache.write('u1', 'profile', 1, epoch: first);
+      expect(store.values, isEmpty);
+      await cache.write('u1', 'profile', 2, epoch: second);
+      expect((await cache.read('u1', 'profile', decodeInt))!.value, 2);
+    });
+
+    test('a later one that keeps less drops all an earlier one did', () async {
+      final first = cache.epoch;
+      await cache.forgetUser('u1', keep: {'portfolios', 'profile'});
+      await cache.forgetUser('u1', keep: {'portfolios'});
+      await cache.write('u1', 'tenants.p1', 1, epoch: first);
+      await cache.write('u1', 'profile', 2, epoch: first);
+      expect(store.values, isEmpty);
+      await cache.write('u1', 'portfolios', 3, epoch: first);
+      expect(store.values.keys, ['mm.swr.v1.u1.portfolios']);
+    });
+
     test('a clear after it drops the kept query too', () async {
       final before = cache.epoch;
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       await cache.clear();
       await cache.write('u1', 'portfolios', 1, epoch: before);
       expect(store.values, isEmpty);
@@ -387,7 +426,7 @@ void main() {
         slowCache.write('u1', 'portfolios', 2, epoch: epoch),
         slowCache.write('u2', 'tenants.p2', 3, epoch: epoch),
       ];
-      await slowCache.forgetUser('u1', keep: 'portfolios');
+      await slowCache.forgetUser('u1', keep: {'portfolios'});
       slow.held!.complete();
       await Future.wait(writes);
       expect(slow.inner.values.keys.toSet(), {
@@ -406,7 +445,7 @@ void main() {
     test('never stays where a later write saved the entry meanwhile, which '
         'may go with it: the store takes the two in either order', () async {
       final late = slowCache.write('u1', 'q', 1, epoch: slowCache.epoch);
-      await slowCache.forgetUser('u1', keep: 'portfolios');
+      await slowCache.forgetUser('u1', keep: {'portfolios'});
       final wanted = slowCache.write('u1', 'q', 2, epoch: slowCache.epoch);
       slow.held!.complete();
       await Future.wait([late, wanted]);
@@ -476,7 +515,7 @@ void main() {
 
   test('clearedSince tells a session that has ended', () async {
     final before = cache.epoch;
-    await cache.forgetUser('u1', keep: 'portfolios');
+    await cache.forgetUser('u1', keep: {'portfolios'});
     expect(cache.clearedSince(before), isFalse);
     await cache.clear();
     expect(cache.clearedSince(before), isTrue);
@@ -488,62 +527,37 @@ void main() {
     expect(storeCallLimit, const Duration(seconds: 3));
   });
 
-  test('holdsOthers tells whether the user has an entry but one', () async {
-    expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
-    await cache.seed('u1', 'portfolios', []);
-    await cache.seed('u2', 'tenants', []);
-    expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
-    await cache.seed('u1', 'tenants', []);
-    expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
-  });
-
-  group('holdsOthers does not count what the session on show saved before '
-      'the first write of the one kept', () {
-    const tenants = 'mm.swr.v1.u1.tenants';
-
-    test('until that write is asked for', () async {
-      await cache.seed('u1', 'tenants', []);
-      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
+  group('holdsOthers', () {
+    test('tells whether the user has an entry of a query not kept', () async {
+      const kept = {'portfolios', 'profile'};
+      expect(await cache.holdsOthers('u1', keep: kept), isFalse);
       await cache.seed('u1', 'portfolios', []);
-      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+      await cache.seed('u1', 'profile', {});
+      await cache.seed('u12', 'tenants', []);
+      await cache.seed('u2', 'tenants', []);
+      expect(await cache.holdsOthers('u1', keep: kept), isFalse);
+      await cache.seed('u1', 'tenants', []);
+      expect(await cache.holdsOthers('u1', keep: kept), isTrue);
     });
 
-    test('and again after a clear, but not what came before it', () async {
-      await cache.seed('u1', 'portfolios', []);
+    test('counts what this run saved, also before the kept entry was first '
+        'written, and after a clear', () async {
+      await cache.seed('u1', 'tenants', []);
+      expect(await cache.holdsOthers('u1', keep: {'portfolios'}), isTrue);
       await cache.clear();
-      await cache.seed('u1', 'tenants', []);
-      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isFalse);
-      store.undeletable.add(tenants);
-      await expectLater(cache.clear(), throwsStateError);
-      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+      await cache.seed('u1', 'tenant.t1', {});
+      expect(await cache.holdsOthers('u1', keep: {'portfolios'}), isTrue);
     });
 
-    test("but counts all once the user's entries were forgotten", () async {
-      await cache.forgetUser('u1', keep: 'portfolios');
-      await cache.seed('u1', 'tenants', []);
-      expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
+    test('counts an entry whose write has not finished', () async {
+      const tenants = 'mm.swr.v1.u1.tenants';
+      store.values[tenants] = '{}';
+      store.holding.add(tenants);
+      unawaited(cache.seed('u1', 'tenants', [1]));
+      await pumpEventQueue();
+      expect(store.heldWrites, 1);
+      expect(await cache.holdsOthers('u1', keep: {'portfolios'}), isTrue);
     });
-
-    test(
-      'nor an entry a write of the ended session put back over it',
-      () async {
-        store.holding.add(tenants);
-        final ended = cache.seed('u1', 'tenants', ['ended']);
-        await cache.clear();
-        final current = cache.seed('u1', 'tenants', ['current']);
-        store.undeletable.add(tenants);
-        // The current write lands first; the ended session's lands over it,
-        // and its deletion fails.
-        store.finishHeldWritesNewestFirst();
-        await expectLater(current, completes);
-        await expectLater(ended, throwsStateError);
-        expect(
-          jsonDecode(store.values[tenants]!),
-          containsPair('value', ['ended']),
-        );
-        expect(await cache.holdsOthers('u1', keep: 'portfolios'), isTrue);
-      },
-    );
   });
 
   group('forgetOthers', () {
@@ -595,7 +609,7 @@ void main() {
     await slowCache.clear();
     expect(await slowCache.write('u1', 'q', 1, epoch: before), saved);
     final between = slowCache.epoch;
-    await slowCache.forgetUser('u1', keep: 'portfolios');
+    await slowCache.forgetUser('u1', keep: {'portfolios'});
     expect(await slowCache.write('u1', 'tenants.p1', 1, epoch: between), saved);
     expect(slow.writes, 0);
   });

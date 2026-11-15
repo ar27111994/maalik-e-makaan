@@ -816,8 +816,21 @@ final class MemoryStore implements KeyValueStore {
     values.remove(key);
   }
 
+  /// Thrown by every listing of the keys while set, as by a store that
+  /// fails.
+  Exception? keysFailure;
+
+  /// While set, no listing of the keys answers, as a platform call that
+  /// hangs.
+  bool hangingKeys = false;
+
   @override
-  Future<Set<String>> keys() async => values.keys.toSet();
+  Future<Set<String>> keys() async {
+    if (hangingKeys) await Completer<void>().future;
+    final failure = keysFailure;
+    if (failure != null) throw failure;
+    return values.keys.toSet();
+  }
 }
 
 /// What a test puts in the cache before it starts, as an earlier run of the

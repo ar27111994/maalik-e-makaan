@@ -106,9 +106,11 @@ device wipe clears the cache and starts a new `SwrCache.epoch`: a value
 fetched for the ended session is not saved, even when it arrives after the
 wipe (see [On the device](#on-the-device)). When a portfolio leaves the
 user's list, `PortfoliosController` deletes the user's other entries
-(`SwrCache.forgetUser`), since entries are not kept by portfolio; that starts
-a new epoch too, so a list of the user's that was still loading is not saved
-after it (the portfolio list itself is). A screen shows
+(`SwrCache.forgetUser`), since entries are not kept by portfolio, but their
+own profile and residence, which hold nothing of a portfolio
+(`PortfoliosController.kept`); that starts a new epoch too, so a list of the
+user's that was still loading is not saved after it (the portfolio list,
+profile and residence are). A screen shows
 "Offline, showing what was saved at …" when the refresh fails with a
 `NetworkFailure` and data is on screen; otherwise it shows the error with a
 retry.
@@ -341,7 +343,8 @@ else does then, since a picker may be handing over a copy.
   put the account back on
   the device, and neither can anything a notifier built for that session asks
   for afterwards. It is dropped as well when the user's entries were forgotten
-  since, unless it is the portfolio list: a list of the portfolio that left,
+  since, unless it is the portfolio list, the profile or the residence
+  (`PortfoliosController.kept`): a list of the portfolio that left,
   asked for before and answered after, is not saved again (no later refresh
   would find it, since the saved portfolio list no longer names that
   portfolio). A write the store had not finished when either happened is
@@ -350,15 +353,22 @@ else does then, since a picker may be handing over a copy.
   the older value); that delete also takes a later, wanted write the store
   finished first, and the entry is fetched again. For the portfolio list a
   missing saved list counts as unknown: its next save forgets the user's
-  other entries, if the device holds any, so a list deleted this way, or one
-  a wipe deleted while it could not delete everything else, leaves nothing
-  of a removed portfolio behind. Before the session's first save of the
-  list (after a sign-in or a wipe, or when the app starts), what the cache
-  saved in this session is not counted (`SwrCache.holdsOthers`): no record
-  of a portfolio can be asked for before that save shows the list, and the
-  profile loading beside it is then kept, and saved again when it changes.
-  Once a list was saved, or the user's entries forgotten, everything
-  counts, and so does an entry whose write has not finished. A screen opened
+  other entries but the profile and residence, if the device holds any
+  (`SwrCache.holdsOthers`), so a list deleted this way, one a wipe deleted
+  while it could not delete everything else, or none yet in a new session,
+  leaves nothing of a removed portfolio behind. Every such entry counts,
+  whenever it was saved and whether or not its write has finished: a record
+  opened by its link (`/tenants/:tenantId` after a web reload or a
+  sign-in's redirect) is asked for before the list, and its portfolio may
+  have left by the time the list comes. What that costs: in a session with
+  no saved list, a record saved before the first list save goes with it,
+  and its screen, still shown, saves a value made from the one on show only
+  once the record is read again. The profile and residence, the user's own,
+  are never forgotten for a portfolio, so the profile loading beside the
+  first list save stays, also while the store is still writing it, and a
+  language saved after is kept; a copy of them that an ended session of the
+  same account left (a wipe that could not finish) stays too, as a start
+  signed in keeps that account's entries, until it is read again. A screen opened
   before a portfolio left goes on saving what its commands ask for after,
   and a value made from one shown before is shown but not saved, until the
   query is read again (`reload`) or built anew. Both a clear and a forget

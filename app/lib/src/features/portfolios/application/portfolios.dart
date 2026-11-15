@@ -8,6 +8,8 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
+import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
+import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
@@ -30,15 +32,16 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 /// When a portfolio the device knew is no longer in the list (it was
 /// deleted, or the user left it or was removed), the saved copies of its
 /// records go: every other list the user's cache holds goes with them
-/// ([SwrCache.forgetUser]), and comes back from the server when shown.
-/// They go before the new list is saved: while they are not all gone (the
-/// app was closed in between, or the store failed), the saved list still
-/// names the portfolio, and the next load forgets them again. With no saved
-/// list (a wipe that could not delete everything, or a write that landed
-/// out of order and was deleted), what the device holds of the user is not
-/// known to be of a portfolio still in the list, and goes too, but what
-/// this session saved before its first save of the list
-/// ([SwrCache.holdsOthers]).
+/// ([SwrCache.forgetUser]), and comes back from the server when shown, but
+/// the user's own profile and residence, which hold nothing of a portfolio
+/// ([kept]). They go before the new list is saved: while they are not all
+/// gone (the app was closed in between, or the store failed), the saved
+/// list still names the portfolio, and the next load forgets them again.
+/// With no saved list (a wipe that could not delete everything, a write
+/// that landed out of order and was deleted, or the session's first list
+/// save), what the device holds of the user is not known to be of a
+/// portfolio still in the list, and goes too, whenever and however it was
+/// saved ([SwrCache.holdsOthers]).
 final class PortfoliosController
     extends StreamNotifier<Snapshot<List<PortfolioMembership>>> {
   new(this.userId);
@@ -47,6 +50,16 @@ final class PortfoliosController
 
   /// The cache key of the portfolio list.
   static const query = 'portfolios';
+
+  /// The queries a portfolio leaving, or a missing saved list, never
+  /// forgets: the list itself, and the user's own profile and residence,
+  /// which hold nothing of any portfolio. Every other query of the app
+  /// reads records of a portfolio, whatever its key names.
+  static const Set<String> kept = {
+    query,
+    ProfileController.query,
+    ResidenceController.query,
+  };
 
   /// The cache's epoch when the list was built.
   int _epoch = 0;
@@ -147,16 +160,16 @@ final class PortfoliosController
     List<PortfolioMembership>? before,
     List<PortfolioMembership> after,
   ) async {
-    final kept = {for (final membership in after) membership.id};
-    if (before != null && before.every((m) => kept.contains(m.id))) {
+    final staying = {for (final membership in after) membership.id};
+    if (before != null && before.every((m) => staying.contains(m.id))) {
       return true;
     }
     try {
       await Future.sync(() async {
-        if (before == null && !await cache.holdsOthers(userId, keep: query)) {
+        if (before == null && !await cache.holdsOthers(userId, keep: kept)) {
           return;
         }
-        await cache.forgetUser(userId, keep: query);
+        await cache.forgetUser(userId, keep: kept);
       }).timeout(cache.callLimit);
       return true;
     } on Object {

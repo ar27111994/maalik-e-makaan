@@ -115,7 +115,7 @@ void main() {
         'back', () async {
       final reload = container.read(_count.notifier).reload();
       await pumpEventQueue();
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       expect(saved(), isEmpty);
       held.complete(2);
       await reload;
@@ -125,7 +125,7 @@ void main() {
 
     test('a reload begun after it is saved, though the query was built '
         'before', () async {
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       held.complete(3);
       await container.read(_count.notifier).reload();
       expect(await savedCount(), 3);
@@ -134,7 +134,7 @@ void main() {
     test('an answer asked for before it is shown and not saved', () async {
       final notifier = container.read(_count.notifier);
       final asked = notifier.requestEpoch();
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       await notifier.show(4, epoch: asked);
       expect(saved(), isEmpty);
       expect(container.read(_count).value!.value, 4);
@@ -144,7 +144,7 @@ void main() {
         'was built again before it came', () async {
       final notifier = container.read(_count.notifier);
       final asked = notifier.requestEpoch();
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       // The query starts over (a failed reload, a list that changed): the
       // same notifier, built in the new epoch.
       container.invalidate(_count);
@@ -156,7 +156,7 @@ void main() {
 
     test('an answer asked for after it is saved, though the query was built '
         'before, and so is what is then made from it', () async {
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       final notifier = container.read(_count.notifier);
       await notifier.show(4, epoch: notifier.requestEpoch());
       expect(await savedCount(), 4);
@@ -167,7 +167,7 @@ void main() {
 
     test('a value made from the one on show since before it is shown and '
         'not saved', () async {
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       final notifier = container.read(_count.notifier);
       // A page asked for now, added to rows whose saved copy was removed.
       await notifier.show(
@@ -183,7 +183,7 @@ void main() {
 
     test('nor is it once the query was built again and could not be read: '
         'the value on show is still the old one', () async {
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       container.invalidate(_count);
       await pumpEventQueue();
       held.completeError(const NetworkFailure());
@@ -198,7 +198,7 @@ void main() {
 
     test('a value made from the one a reload brought after it is '
         'saved', () async {
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       held.complete(3);
       final notifier = container.read(_count.notifier);
       await notifier.reload();
@@ -208,7 +208,7 @@ void main() {
 
     test('a query built after it saves what it shows, and what is made from '
         'that', () async {
-      await cache.forgetUser('u1', keep: 'portfolios');
+      await cache.forgetUser('u1', keep: {'portfolios'});
       container.invalidate(_count);
       await pumpEventQueue();
       held.complete(7);

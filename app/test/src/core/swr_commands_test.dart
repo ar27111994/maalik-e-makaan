@@ -33,7 +33,7 @@ Future<Snapshot<Object?>?> _saved(TestApp app, String query) =>
 /// A portfolio leaves the user's list: every saved record of theirs goes
 /// but the list itself.
 Future<void> _portfolioLeft(TestApp app) =>
-    app.cache.forgetUser(testUserId, keep: PortfoliosController.query);
+    app.cache.forgetUser(testUserId, keep: PortfoliosController.kept);
 
 /// A feature's command over one query.
 final class _Command {
@@ -411,8 +411,11 @@ void main() {
         final container = containerFor(app);
         // The portfolio list is on show and saved, as in the app: a list
         // read again by the command (a portfolio's settings) then finds
-        // nothing more has left it, and forgets nothing.
+        // nothing more has left it, and forgets nothing. The screen opens
+        // once the list is saved: the first save of a session, finding no
+        // saved list, forgets every record saved before it.
         listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
         listen(container, command.provider);
         await pumpEventQueue();
         final query = command.notifier(container).query;

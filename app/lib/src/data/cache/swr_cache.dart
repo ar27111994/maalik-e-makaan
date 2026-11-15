@@ -95,9 +95,10 @@ final class SwrCache {
   /// The epoch the last [clear] started.
   int _cleared = 0;
 
-  /// The epoch each [forgetUser] since the last clear started, by user and
-  /// by the query it kept.
-  final _forgotten = <String, Map<String, int>>{};
+  /// Each [forgetUser] since the last clear, by user: the queries it kept,
+  /// and the epoch it started. One that kept all a later one kept, and
+  /// maybe more, is left out: the later one removed all it did, and later.
+  final _forgotten = <String, List<(Set<String>, int)>>{};
 
   /// The user whose entries alone were kept by the last [forgetOthers], and
   /// the epoch it started. A [clear] leaves it as it is: that epoch is then
@@ -119,14 +120,6 @@ final class SwrCache {
   /// The number of the newest write of each key the store has finished.
   final _landed = <String, int>{};
 
-  /// The epoch the value of each key's newest finished write was asked
-  /// for in, while the store holds that value ([holdsOthers]).
-  final _landedIn = <String, int>{};
-
-  /// The epoch in which the newest write of each key was asked of the
-  /// store ([holdsOthers]).
-  final _askedIn = <String, int>{};
-
   /// The epoch to hand to [write] with a value asked for now by a reader
   /// made in the epoch [madeIn]: the current one, so that a reader made
   /// before a user's entries were forgotten goes on saving what it asks for
@@ -138,7 +131,7 @@ final class SwrCache {
 
   /// Whether the entry of [query] for [userId] was removed since [epoch]:
   /// the cache was cleared, or the user's entries were forgotten and
-  /// [query] was not the one kept.
+  /// [query] was not one of those kept.
   bool _removedSince(int epoch, String userId, String query) {
     if (epoch < _cleared) return true;
     if (_keptOnly case (final kept, final at) when kept != userId) {
@@ -146,8 +139,8 @@ final class SwrCache {
     }
     final forgotten = _forgotten[userId];
     if (forgotten == null) return false;
-    return forgotten.entries.any(
-      (forgot) => forgot.key != query && epoch < forgot.value,
+    return forgotten.any(
+      (forgot) => !forgot.$1.contains(query) && epoch < forgot.$2,
     );
   }
 
@@ -194,7 +187,7 @@ final class SwrCache {
   /// when it was saved. [epoch] is the [SwrCache.epoch] read before the
   /// value was asked for: nothing is stored when the entry was removed
   /// since (the cache was cleared, or the user's entries were forgotten and
-  /// [query] was not the one kept), also when that happens while the store
+  /// [query] was not one of those kept), also when that happens while the store
   /// is still writing.
   ///
   /// The entry is deleted as the write lands when it was removed meanwhile,
@@ -202,8 +195,8 @@ final class SwrCache {
   /// writes of one key in either order, and would now hold the older
   /// value). A later, wanted value the store finished first goes with it:
   /// the entry is then missing, and is fetched again. The saved portfolio
-  /// list counts a missing list as unknown, and forgets the user's other
-  /// entries that may be left over ([holdsOthers], `PortfoliosController`).
+  /// list counts a missing list as unknown, and forgets the user's entries
+  /// that may be of a portfolio ([holdsOthers], `PortfoliosController`).
   Future<DateTime> write(
     String userId,
     String query,
@@ -218,7 +211,6 @@ final class SwrCache {
       'value': json,
     });
     final number = ++_writes;
-    _askedIn[key] = _epoch;
     final writing = _writing[key] ??= {};
     writing[number] = entry;
     try {
@@ -232,12 +224,9 @@ final class SwrCache {
     // Removed while the store was writing: the removal may have listed the
     // keys before this one was there.
     if (_removedSince(epoch, userId, query) || (_landed[key] ?? 0) > number) {
-      // Whatever the deletion leaves is not known to be this session's.
-      _landedIn.remove(key);
       await _store.delete(key);
     } else {
       _landed[key] = number;
-      _landedIn[key] = epoch;
     }
     return savedAt;
   }
@@ -297,42 +286,36 @@ final class SwrCache {
     await _deleteWhere((key) => key.startsWith(_prefix));
   }
 
-  /// Deletes [userId]'s entries but the one of [keep]: when a portfolio
-  /// left their list (deleted, or they left or were removed), the copies of
-  /// its records go. Entries are not kept by portfolio, so every other
-  /// list goes with them, and comes back from the server when it is shown.
+  /// Deletes [userId]'s entries but those of the queries in [keep]: when a
+  /// portfolio left their list (deleted, or they left or were removed),
+  /// the copies of its records go. Entries are not kept by portfolio, so
+  /// every other list goes with them, and comes back from the server when
+  /// it is shown.
   ///
   /// It starts a new [epoch] before anything else: a write of the user's
   /// that was asked for before (a list still loading for the portfolio that
-  /// left) is dropped, but one of [keep]. Other users' writes are not.
-  /// Throws when an entry could not be deleted, once the others are
-  /// ([_deleteWhere]).
-  Future<void> forgetUser(String userId, {required String keep}) async {
-    (_forgotten[userId] ??= {})[keep] = ++_epoch;
-    final prefix = '$_prefix$userId.';
-    final kept = _key(userId, keep);
-    await _deleteWhere((key) => key.startsWith(prefix) && key != kept);
+  /// left) is dropped, but one of a query in [keep]. Other users' writes
+  /// are not. Throws when an entry could not be deleted, once the others
+  /// are ([_deleteWhere]).
+  Future<void> forgetUser(String userId, {required Set<String> keep}) async {
+    final kept = {...keep};
+    (_forgotten[userId] ??= [])
+      ..removeWhere((earlier) => earlier.$1.containsAll(kept))
+      ..add((kept, ++_epoch));
+    await _deleteWhere((key) => _isOther(key, userId, kept));
   }
 
-  /// Whether the store holds an entry of [userId]'s but the one of [keep]
-  /// that may be left over from before: from an earlier run of the app, a
-  /// session that ended, or a time the entry of [keep] was saved.
-  ///
-  /// Until the entry of [keep] is first written since the last [clear] (or
-  /// since the app started), and while none of the user's entries were
-  /// forgotten since ([forgetUser]), an entry this cache wrote in that time
-  /// is not counted: it was asked for in the session on show, alongside
-  /// the first load of [keep] (the profile, beside the portfolio list). One
-  /// whose write has not finished is counted.
-  Future<bool> holdsOthers(String userId, {required String keep}) async {
+  /// Whether the store holds an entry of [userId]'s but those of the
+  /// queries in [keep]: whatever wrote it, and whether or not its write
+  /// has finished.
+  Future<bool> holdsOthers(String userId, {required Set<String> keep}) async =>
+      (await _store.keys()).any((key) => _isOther(key, userId, keep));
+
+  /// Whether [key] is the entry of [userId]'s of a query not in [keep].
+  static bool _isOther(String key, String userId, Set<String> keep) {
     final prefix = '$_prefix$userId.';
-    final kept = _key(userId, keep);
-    final first =
-        _forgotten[userId] == null && (_askedIn[kept] ?? -1) < _cleared;
-    bool fresh(String key) => first && (_landedIn[key] ?? -1) >= _cleared;
-    return (await _store.keys()).any(
-      (key) => key.startsWith(prefix) && key != kept && !fresh(key),
-    );
+    return key.startsWith(prefix) &&
+        !keep.contains(key.substring(prefix.length));
   }
 
   /// Deletes every entry but [userId]'s, when the app starts signed in as
