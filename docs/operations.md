@@ -374,7 +374,9 @@ To move the site to a custom domain later:
 The Deploy workflow (`.github/workflows/deploy.yml`) runs when the Release workflow has released a
 tag (Release calls it for that tag), or by hand (Actions, Deploy, Run workflow, for the branch or
 tag chosen there; only once the workflow is on the default branch). Publishing a release by hand
-does not start it. See [Releasing](#releasing). Its `supabase`
+does not start it. See [Releasing](#releasing). Release and Site refresh call it as
+`uses: $/.github/workflows/deploy.yml`, GitHub's self-repository syntax, so the called workflow is
+always the one in the caller's commit (`docs/agents/conventions.md`, Workflows and actions). Its `supabase`
 job pushes migrations and Edge Functions to Supabase and calls the `health` function. Its `web`
 job then:
 
@@ -595,6 +597,51 @@ committed icon is stale (`make app-icons-check`).
   `app/ios/Runner/Assets.xcassets/AppIcon.appiconset/` ships in the build, and App Store Connect
   takes the store icon from it. The dark and tinted versions beside it are what iOS 18 and later
   show on a home screen set to those looks.
+
+## Code scanning and branch rules
+
+The Security workflow (`security.yml`) uploads CodeQL, OSV-Scanner and zizmor results to code
+scanning. Its "Workflow security (zizmor)" job runs the zizmor version that
+`tool/requirements-lint.in` pins, with its online audits, and fails on any finding after the
+upload; `make lint` runs the same version offline, which leaves out the four audits that need
+the GitHub API (`impostor-commit`, `known-vulnerable-actions`, `ref-confusion` and
+`stale-action-refs`). Until 15 November 2026 the job ran the newest zizmor and never failed on a
+finding, so the `self-repository` audit added in zizmor 1.30.0 left three notes on `main` (the
+calls of `deploy.yml`, now written with `$/`) without failing a pull request.
+
+**As read from GitHub on 15 November 2026** (a record of that day; the settings live on GitHub and
+may have changed since):
+
+- **The ruleset on `main`.** Pull requests are required, with 1 approving review; stale reviews
+  are dismissed, the last push must be approved by someone else, and review threads must be
+  resolved. Commits must be signed; force pushes and deletion are blocked. 18 status checks are
+  required, among them "Workflow security (zizmor)", "Repository hygiene" and "CI passed"; the
+  branch need not be up to date with `main` before merging (strict checks are off). A code
+  scanning rule covers CodeQL only. The repository admin role may bypass the ruleset at any
+  time.
+- **OpenSSF Scorecard** v5.6.0 on `d24acdc` (from the Scorecard job's log): 7.8 overall.
+  Maintained 0: the repository was created on 3 November 2026, and Scorecard scores any
+  repository younger than 90 days 0, so it clears itself from 1 February 2027 as long as there is
+  a commit each week. Code-Review 9: 28 of 29 recent changesets had an approving review; the one
+  without is pull request #64, and the score reaches 10 once it leaves that window.
+  Branch-Protection 5, with four warnings: the rules do not apply to administrators (the
+  bypass), 1 required approval where Scorecard wants 2, code-owner review is not required, and
+  "up-to-date branches" is off. Signed-Releases 0: release files carry no signature or
+  provenance file (the provenance that `release.yml` attests is kept by GitHub, not attached to
+  the release). Contributors 3 (one organisation), CII-Best-Practices 5 (the passing badge), and
+  Packaging not detected. Every other check scored 10.
+
+**Who can change what.**
+
+- In the repository: Signed-Releases, since `release.yml` could attach signature or provenance
+  files to each release; whether to sign them is an open decision for the owner.
+- With time and steady reviewed work: Maintained and Code-Review.
+- The owner's settings: the admin bypass and "up-to-date branches". Removing the bypass and
+  turning on "up-to-date branches" are open decisions; neither has been made.
+- A second person: two required approvals and code-owner review need someone besides the owner
+  who can review, and Contributors needs people from other organisations.
+- Packaging looks for a workflow that publishes a package to a registry, which this project does
+  not have.
 
 ## Rollback and restore
 

@@ -51,8 +51,9 @@ accounts you own, and gives us reasonable time to fix before disclosure.
 - Edge Functions authenticate every caller, rate-limit, validate input and
   compare tokens in constant time.
 - CI runs CodeQL, secret scanning over the full history, OSV dependency
-  scanning, dependency review, workflow auditing (zizmor) and OpenSSF
-  Scorecard. Actions are pinned to commit hashes.
+  scanning, dependency review, workflow auditing (zizmor, which fails a pull
+  request on any finding) and OpenSSF Scorecard. Actions are pinned to commit
+  hashes.
 - Concurrency and money logic are formally checked (`formal/`), and the website's money
   calculators have property-based tests (fast-check).
 

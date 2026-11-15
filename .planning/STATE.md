@@ -7,8 +7,20 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-14)
+## Current Position (2026-11-15)
 
+- Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
+  zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
+  `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
+  refuses `$/`, so `.github/actionlint.yaml` ignores exactly that message and
+  `tool/github/check_workflow_calls.py` (`make lint`, with a canary test that fails once
+  actionlint accepts `$/`) checks the calls instead. zizmor 1.32.0 is pinned in
+  `tool/requirements-lint.in`, runs offline in `make lint`, and the Security workflow's zizmor job
+  now runs that version and fails on any finding (`make docs-check` C17 keeps the two equal).
+  `docs/operations.md`, Code scanning and branch rules, records the ruleset on `main` and the
+  Scorecard result of that day; turning on "up-to-date branches", removing the admin bypass and
+  signing release files are open decisions for the owner. zizmor's auditor persona (not the
+  gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
 - The amount reader's work items 1, 3 and 4 (`docs/roadmap/amount-parser.md`), on branch
   `claude/amount-lexicon` (not merged into `main`): `contracts/amount_lexicon.json` (version 1,
   `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
