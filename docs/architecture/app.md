@@ -391,7 +391,10 @@ else does then, since a picker may be handing over a copy.
     A record of a portfolio the user joined on another device since this
     session's last list is shown but not saved until the list loads again
     (pull to refresh, accepting an invitation here, or the next start). Two
-    writes of one entry landing in reverse leave no entry; a write from
+    writes of one entry landing in reverse leave no entry; so does a write
+    of a query found by its value whose removal of its other copies lists
+    the keys after the store has finished a newer write under another tag
+    but before the cache has heard that it landed; a write from
     before a wipe landing after a newer one deletes the newer; a write the
     store fails deletes its entry; an answer asked before the newest is
     neither shown nor saved; an answer asked before a create that drops the
