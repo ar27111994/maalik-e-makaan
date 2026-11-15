@@ -640,4 +640,62 @@ void main() {
       expect(await cache.read('u1', 'count', decodeInt), isNotNull);
     },
   );
+
+  group('a write the store fails', () {
+    test('deletes the entry and leaves it unsettled until a write asked '
+        'after the failure lands', () async {
+      await cache.seed('u1', 'count', 1);
+      expect(cache.unsettled('u1', 'count'), isFalse);
+      store.writeFailure = Exception('full');
+      await expectLater(cache.seed('u1', 'count', 2), throwsException);
+      store.writeFailure = null;
+      await pumpEventQueue();
+      expect(await cache.read('u1', 'count', decodeInt), isNull);
+      expect(cache.unsettled('u1', 'count'), isTrue);
+      expect(cache.unsettled('u1', 'other'), isFalse);
+      expect(cache.unsettled('u2', 'count'), isFalse);
+      await cache.seed('u1', 'count', 3);
+      expect(cache.unsettled('u1', 'count'), isFalse);
+      expect((await cache.read('u1', 'count', decodeInt))!.value, 3);
+    });
+
+    test('a write asked before the failure that lands after it does not '
+        'settle the entry', () async {
+      store.holding.add('mm.swr.v1.u1.count');
+      final early = cache.seed('u1', 'count', 1);
+      await pumpEventQueue();
+      store.writeFailure = Exception('full');
+      await expectLater(cache.seed('u1', 'count', 2), throwsException);
+      store
+        ..writeFailure = null
+        ..holding.clear()
+        ..finishHeldWritesOldestFirst();
+      await early;
+      expect((await cache.read('u1', 'count', decodeInt))!.value, 1);
+      expect(cache.unsettled('u1', 'count'), isTrue);
+    });
+
+    test('whose deletion fails or never answers still throws its own '
+        'error', () async {
+      store.writeFailure = Exception('full');
+      store.undeletable.add('mm.swr.v1.u1.a');
+      store.silent.add('mm.swr.v1.u1.b');
+      await expectLater(cache.seed('u1', 'a', 1), throwsException);
+      await expectLater(cache.seed('u1', 'b', 1), throwsException);
+      expect(cache.unsettled('u1', 'a'), isTrue);
+      expect(cache.unsettled('u1', 'b'), isTrue);
+    });
+  });
+
+  test('claim takes the answer to the newest request of an entry, whatever '
+      'the order the answers come in', () {
+    final first = cache.ask();
+    final second = cache.ask();
+    expect(second, greaterThan(first));
+    expect(cache.claim('u1', 'portfolios', second), isTrue);
+    expect(cache.claim('u1', 'portfolios', first), isFalse);
+    expect(cache.claim('u1', 'portfolios', second), isTrue);
+    expect(cache.claim('u2', 'portfolios', first), isTrue);
+    expect(cache.claim('u1', 'other', first), isTrue);
+  });
 }

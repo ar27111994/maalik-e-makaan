@@ -7,7 +7,9 @@
 // or u's entries were forgotten with q not kept, or another user's entries
 // alone were kept (forgetOthers). An entry no removal covers must be there,
 // unless a write of the same key with a higher number landed first (the
-// documented out-of-order delete), or its key's deletion failed or hung.
+// documented out-of-order delete), or its key's deletion failed or hung. A
+// write the store fails deletes its key, which is unsettled until a write
+// asked after the failure lands and is kept.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -157,6 +159,12 @@ Future<String?> _run(List<_Op> ops) async {
   var nextId = 0;
   // The id of each key's writes in the order they landed.
   final landedOrder = <String, List<int>>{};
+  // Keys whose last write to end failed: the cache deleted them.
+  final failedLast = <String>{};
+  // The newest id asked when a write of each key last failed, and the
+  // newest id of each key that landed and was kept ([SwrCache.unsettled]).
+  final failedAt = <String, int>{};
+  final kept = <String, int>{};
 
   bool covered(_W w) => removals.any((r) => r.covers(w));
 
@@ -203,8 +211,12 @@ Future<String?> _run(List<_Op> ops) async {
           store.dirty.remove(key);
           writes[id]!.landed = true;
           (landedOrder[key] ??= []).add(id);
+          failedLast.remove(key);
+          if (!covered(writes[id]!) && id > (kept[key] ?? -1)) kept[key] = id;
           done.complete();
         } else {
+          failedLast.add(key);
+          failedAt[key] = nextId - 1;
           done.completeError(StateError('write failed'));
         }
       case 3 || 4 || 5:
@@ -249,9 +261,29 @@ Future<String?> _run(List<_Op> ops) async {
             'which a removal covers';
       }
     }
+    // A failed write deletes its key, and leaves it unsettled until one
+    // asked after the failure lands and is kept.
+    for (final u in _users) {
+      for (final q in _queries) {
+        final key = _key(u, q);
+        final unsettled =
+            failedAt.containsKey(key) && (kept[key] ?? -1) <= failedAt[key]!;
+        if (cache.unsettled(u, q) != unsettled) {
+          return 'step $step: unsettled($u, $q) is ${!unsettled}, model '
+              '$unsettled';
+        }
+        if (failedLast.contains(key) &&
+            store.values.containsKey(key) &&
+            !store.dirty.contains(key)) {
+          return 'step $step: $key stays after its write failed';
+        }
+      }
+    }
     // Loss: the last write landed of each key is there when nothing covers
-    // it and no write with a higher number landed before it.
+    // it and no write with a higher number landed before it, nor failed
+    // after it.
     for (final MapEntry(:key, value: order) in landedOrder.entries) {
+      if (failedLast.contains(key)) continue;
       final last = writes[order.last]!;
       if (covered(last)) continue;
       if (order.any((id) => id > last.id)) continue;

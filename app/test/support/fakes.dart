@@ -281,9 +281,19 @@ final class FakePortfolioRepository implements PortfolioRepository {
   /// Fails reads (not creation) with this when set.
   AppFailure? listFailure;
 
+  /// While set, each read waits until the test answers it, with a list of
+  /// its choice and in any order: [answers] holds one per read.
+  bool scripted = false;
+  final answers = <Completer<List<PortfolioMembership>>>[];
+
   @override
   Future<List<PortfolioMembership>> listMine(String userId) async {
     calls.add(('listMine', [userId]));
+    if (scripted) {
+      final answer = Completer<List<PortfolioMembership>>();
+      answers.add(answer);
+      return await answer.future;
+    }
     await gate.pass();
     final failure = listFailure;
     if (failure != null) throw failure;
@@ -792,6 +802,16 @@ final class MemoryStore implements KeyValueStore {
     for (final (key, value, done) in held) {
       values[key] = value;
       done.complete();
+    }
+  }
+
+  /// Fails the held writes with [error], as a store that answers late that
+  /// it could not write.
+  void failHeldWrites(Object error) {
+    final held = [..._held];
+    _held.clear();
+    for (final (_, _, done) in held) {
+      done.completeError(error);
     }
   }
 

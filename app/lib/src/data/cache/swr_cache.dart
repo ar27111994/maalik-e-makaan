@@ -120,6 +120,16 @@ final class SwrCache {
   /// The number of the newest write of each key the store has finished.
   final _landed = <String, int>{};
 
+  /// For each key a write of which failed: how many writes had been asked
+  /// when the last such failure was seen ([unsettled]).
+  final _failed = <String, int>{};
+
+  /// How many requests were numbered ([ask]).
+  int _asked = 0;
+
+  /// The newest request of each key that claimed it ([claim]).
+  final _claimed = <String, int>{};
+
   /// The epoch to hand to [write] with a value asked for now by a reader
   /// made in the epoch [madeIn]: the current one, so that a reader made
   /// before a user's entries were forgotten goes on saving what it asks for
@@ -197,6 +207,8 @@ final class SwrCache {
   /// the entry is then missing, and is fetched again. The saved portfolio
   /// list counts a missing list as unknown, and forgets the user's entries
   /// that may be of a portfolio ([forgetUser], `PortfoliosController`).
+  /// A write the store fails throws, and leaves the entry [unsettled]; its
+  /// deletion is asked for then.
   Future<DateTime> write(
     String userId,
     String query,
@@ -215,6 +227,16 @@ final class SwrCache {
     writing[number] = entry;
     try {
       await _store.write(key, entry);
+    } on Object {
+      // The store may hold any value written, or none: it is unsettled
+      // until a write asked after this lands, and the entry goes, also for
+      // a later start of the app. Not waited for: one that never answers
+      // must not hide this failure.
+      _failed[key] = _writes;
+      unawaited(
+        Future.sync(() => _store.delete(key)).then((_) {}, onError: (_) {}),
+      );
+      rethrow;
     } finally {
       writing.remove(number);
       if (writing.isEmpty && identical(_writing[key], writing)) {
@@ -229,6 +251,33 @@ final class SwrCache {
       _landed[key] = number;
     }
     return savedAt;
+  }
+
+  /// Whether a write of [query] for [userId] failed and none asked after
+  /// the failure was seen has landed since: the store may hold any value
+  /// written of it, or none, also when it seems to answer for one. Its
+  /// deletion was asked for as the failure was seen, but may not have been
+  /// done.
+  bool unsettled(String userId, String query) {
+    final key = _key(userId, query);
+    final failed = _failed[key];
+    return failed != null && (_landed[key] ?? 0) <= failed;
+  }
+
+  /// A number for a request of a value made now: later requests have
+  /// higher numbers ([claim]).
+  int ask() => ++_asked;
+
+  /// Whether the answer to request [asked] ([ask]) is the newest of [query]
+  /// for [userId] that was claimed: false when one asked later claimed it
+  /// first. Two requests may answer in either order, and the older answer
+  /// is then out of date. Call it where the answers are handled one after
+  /// another ([serially]).
+  bool claim(String userId, String query, int asked) {
+    final key = _key(userId, query);
+    if ((_claimed[key] ?? 0) > asked) return false;
+    _claimed[key] = asked;
+    return true;
   }
 
   /// The values of the writes of [query] for [userId] that the store has

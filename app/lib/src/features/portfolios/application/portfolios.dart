@@ -38,11 +38,12 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 /// gone (the app was closed in between, or the store failed), the saved
 /// list still names the portfolio, and the next load forgets them again.
 /// With no saved list (a wipe that could not delete everything, a write
-/// that landed out of order and was deleted, or the session's first list
-/// save), what the device holds of the user is not known to be of a
-/// portfolio still in the list, and the save forgets it all the same:
-/// whatever the store holds, and, as the forget starts a new epoch, every
-/// write asked for before it, also one whose answer is still on its way.
+/// that landed out of order and was deleted, a write that failed, or the
+/// session's first list save), what the device holds of the user is not
+/// known to be of a portfolio still in the list, and the save forgets it
+/// all the same: whatever the store holds, and, as the forget starts a new
+/// epoch, every write asked for before it, also one whose answer is still
+/// on its way. So does a saved list a failed write left unsettled.
 final class PortfoliosController
     extends StreamNotifier<Snapshot<List<PortfolioMembership>>> {
   new(this.userId);
@@ -92,7 +93,11 @@ final class PortfoliosController
       _shown = epoch;
       yield saved;
     }
-    final fresh = await _save(cache, await repository.listMine(userId), epoch);
+    final asked = cache.ask();
+    final list = await repository.listMine(userId);
+    final fresh = await _save(cache, list, epoch, asked: asked);
+    // Out of date: a list asked later is on show.
+    if (fresh == null) return;
     _shown = epoch;
     yield fresh;
   }
@@ -121,12 +126,22 @@ final class PortfoliosController
   /// unknown, a list not saved because the records could not be forgotten
   /// leaves the saved one naming the portfolio, and a list whose write has
   /// not answered may still land, so the next save counts it as saved too
-  /// ([SwrCache.writing]).
-  Future<Snapshot<List<PortfolioMembership>>> _save(
+  /// ([SwrCache.writing]). After a write of the list failed, the saved list
+  /// counts as unknown until a later one lands ([SwrCache.unsettled]): the
+  /// store may hold an older list, without a portfolio whose records were
+  /// saved since.
+  ///
+  /// A server's answer comes with [asked], the number of its request
+  /// ([SwrCache.ask]). It is neither saved nor shown (null) when the answer
+  /// to a request asked later was saved first ([SwrCache.claim]): it is out
+  /// of date, and could name a portfolio that has left again.
+  Future<Snapshot<List<PortfolioMembership>>?> _save(
     SwrCache cache,
     List<PortfolioMembership> list,
-    int epoch,
-  ) => cache.serially(userId, query, () async {
+    int epoch, {
+    int? asked,
+  }) => cache.serially(userId, query, () async {
+    if (asked != null && !cache.claim(userId, query, asked)) return null;
     final limit = cache.callLimit;
     // Taken before the read: one that lands meanwhile is in either.
     final landing = [
@@ -135,7 +150,11 @@ final class PortfoliosController
     List<PortfolioMembership>? before;
     try {
       final saved = await cache.read(userId, query, _decode).timeout(limit);
-      if (saved != null) before = [...saved.value, ...landing];
+      // Taken after the read: a write that failed before it ended may have
+      // left an older list.
+      if (saved != null && !cache.unsettled(userId, query)) {
+        before = [...saved.value, ...landing];
+      }
     } on Object {
       // Not read: unknown, as when there is none.
     }
@@ -200,11 +219,14 @@ final class PortfoliosController
       id: id,
       ownerAbroad: ownerAbroad,
     );
+    final cache = ref.read(swrCacheProvider);
     List<PortfolioMembership> list;
     var listEpoch = epoch;
+    int? asked = cache.ask();
     try {
       list = await repository.listMine(userId);
     } on AppFailure {
+      asked = null;
       // It exists: show it with the ones already known, and let the next
       // refresh bring the server's list.
       list = sortByName([
@@ -213,7 +235,7 @@ final class PortfoliosController
       ]);
       listEpoch = math.min(epoch, _shown);
     }
-    await _show(list, listEpoch);
+    await _show(list, listEpoch, asked: asked);
     await ref
         .read(selectedPortfolioProvider(userId).notifier)
         .select(created.id, askedIn: epoch);
@@ -231,17 +253,20 @@ final class PortfoliosController
     final repository = ref.read(portfolioRepositoryProvider);
     final epoch = _requestEpoch();
     await repository.delete(portfolioId, confirmation: confirmation);
+    final cache = ref.read(swrCacheProvider);
     List<PortfolioMembership> list;
     var listEpoch = epoch;
+    int? asked = cache.ask();
     try {
       list = await repository.listMine(userId);
     } on AppFailure {
+      asked = null;
       // It is gone: list the others known, and let the next refresh bring
       // the server's list.
       list = [...?state.value?.value.where((other) => other.id != portfolioId)];
       listEpoch = math.min(epoch, _shown);
     }
-    if (ref.mounted) await _show(list, listEpoch);
+    if (ref.mounted) await _show(list, listEpoch, asked: asked);
   }
 
   /// Answers "Does the owner of these properties live abroad?" for
@@ -275,17 +300,28 @@ final class PortfoliosController
   /// the list on screen then stays as it was.
   Future<List<PortfolioMembership>> reload() async {
     final epoch = _requestEpoch();
+    final asked = ref.read(swrCacheProvider).ask();
     final list = await ref.read(portfolioRepositoryProvider).listMine(userId);
-    if (ref.mounted) await _show(list, epoch);
+    if (ref.mounted) await _show(list, epoch, asked: asked);
     return list;
   }
 
   /// Shows [list], and saves it for [epoch], the cache's when (all of) it
   /// was asked for ([_save]): [_requestEpoch] for the server's answer, and
-  /// no later than [_shown] for a list made from the one on show.
-  Future<void> _show(List<PortfolioMembership> list, int epoch) async {
-    final snapshot = await _save(ref.read(swrCacheProvider), list, epoch);
-    if (!ref.mounted) return;
+  /// no later than [_shown] for a list made from the one on show. A
+  /// server's answer comes with [asked], and is not shown when out of date.
+  Future<void> _show(
+    List<PortfolioMembership> list,
+    int epoch, {
+    int? asked,
+  }) async {
+    final snapshot = await _save(
+      ref.read(swrCacheProvider),
+      list,
+      epoch,
+      asked: asked,
+    );
+    if (snapshot == null || !ref.mounted) return;
     _shown = epoch;
     state = AsyncData(snapshot);
   }

@@ -474,6 +474,183 @@ void main() {
     });
   });
 
+  group('a list answer that comes after a later one', () {
+    const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
+    final gulbergTenants = 'mm.swr.v1.$testUserId.tenants.${gulberg.id}';
+
+    test('is neither saved nor shown, so a portfolio that left is not named '
+        'again', () async {
+      final app = TestApp(portfolios: const []);
+      await app.cache.seed(testUserId, PortfoliosController.query, [
+        gulberg.toRow(),
+        plaza.toRow(),
+      ]);
+      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [1]);
+      app.portfolios.scripted = true;
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      app.portfolios.answers[0].complete([gulberg, plaza]);
+      await pumpEventQueue();
+      final list = container.read(portfoliosProvider(testUserId).notifier);
+      // Read before Gulberg left, answered after the next read.
+      final earlier = list.reload();
+      final later = list.reload();
+      await pumpEventQueue();
+      app.portfolios.answers[2].complete([plaza]);
+      await later;
+      expect(app.store.values.keys, [listKey]);
+      app.portfolios.answers[1].complete([gulberg, plaza]);
+      await earlier;
+      expect(await _savedList(app), [plaza.toRow()]);
+      expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+        plaza,
+      ]);
+    });
+
+    test('nor forgets the records of a portfolio the later one names, and '
+        "the first load's late answer is not shown either", () async {
+      final app = TestApp(portfolios: const []);
+      await app.cache.seed(testUserId, PortfoliosController.query, [
+        plaza.toRow(),
+      ]);
+      app.portfolios.scripted = true;
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      // The first load's read is on its way when the user joins Gulberg
+      // and the list is read again.
+      final list = container.read(portfoliosProvider(testUserId).notifier);
+      final later = list.reload();
+      await pumpEventQueue();
+      app.portfolios.answers[1].complete([gulberg, plaza]);
+      await later;
+      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [1]);
+      app.portfolios.answers[0].complete([plaza]);
+      await pumpEventQueue();
+      expect(app.store.values.keys, containsAll([listKey, gulbergTenants]));
+      expect(await _savedList(app), [gulberg.toRow(), plaza.toRow()]);
+      expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+        gulberg,
+        plaza,
+      ]);
+    });
+  });
+
+  group('after a write of the list failed', () {
+    const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
+    final gulbergList = (portfolioId: gulberg.id, archived: false, search: '');
+
+    /// Opens Gulberg's tenants, so that they are saved on the device.
+    Future<void> openGulberg(ProviderContainer container, TestApp app) async {
+      listen(container, tenantsProvider(gulbergList));
+      await pumpEventQueue();
+      expect(
+        app.store.values.keys,
+        contains('mm.swr.v1.$testUserId.tenants.${gulberg.id}.active.'),
+      );
+    }
+
+    for (final restart in [false, true]) {
+      test('the saved list counts as unknown, so a portfolio that joined '
+          'meanwhile and left takes its records${restart ? ', also after '
+                    'the app started again' : ''}', () async {
+        final app = TestApp(portfolios: const [plaza]);
+        var container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        expect(app.store.values.keys, [listKey]);
+        // Gulberg joins; the list cannot be written.
+        app.portfolios.memberships.add(gulberg);
+        app.store.writeFailure = Exception('full');
+        await expectLater(
+          container.read(portfoliosProvider(testUserId).notifier).reload(),
+          throwsException,
+        );
+        app.store.writeFailure = null;
+        await pumpEventQueue();
+        // Its key went with the failure: the store may hold any list.
+        expect(app.store.values.keys, isNot(contains(listKey)));
+        await openGulberg(container, app);
+        if (restart) {
+          container.dispose();
+          app.cache = SwrCache(app.store);
+          container = containerFor(app);
+          listen(container, portfoliosProvider(testUserId));
+          await pumpEventQueue();
+        }
+        app.portfolios.memberships.remove(gulberg);
+        await container.read(portfoliosProvider(testUserId).notifier).reload();
+        expect(app.store.values.keys, [listKey]);
+      });
+    }
+
+    test(
+      'also when its deletion was refused, until a later list lands',
+      () async {
+        final app = TestApp(portfolios: const [plaza]);
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        await pumpEventQueue();
+        final list = container.read(portfoliosProvider(testUserId).notifier);
+        app.portfolios.memberships.add(gulberg);
+        app.store
+          ..writeFailure = Exception('full')
+          ..undeletable.add(listKey);
+        await expectLater(list.reload(), throwsException);
+        app.store.writeFailure = null;
+        await pumpEventQueue();
+        // The older list stays, without Gulberg.
+        expect(await _savedList(app), [plaza.toRow()]);
+        await openGulberg(container, app);
+        app.portfolios.memberships.remove(gulberg);
+        await list.reload();
+        expect(app.store.values.keys, [listKey]);
+        // Settled again: a list that only grew keeps the records.
+        app.portfolios.memberships.add(gulberg);
+        await list.reload();
+        await app.cache.seed(testUserId, 'tenants.${gulberg.id}.active.', [1]);
+        app.portfolios.memberships.add(
+          const PortfolioMembership(
+            id: 'p-new',
+            name: 'Khan family',
+            role: MemberRole.owner,
+          ),
+        );
+        await list.reload();
+        expect(
+          app.store.values.keys,
+          contains('mm.swr.v1.$testUserId.tenants.${gulberg.id}.active.'),
+        );
+      },
+    );
+
+    test('also when it failed after the save stopped waiting for it, and the '
+        'list was shown', () async {
+      final app = TestApp(portfolios: const [plaza]);
+      app.cache = SwrCache(app.store, callLimit: _callLimit);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      final list = container.read(portfoliosProvider(testUserId).notifier);
+      app.portfolios.memberships.add(gulberg);
+      app.store.holding.add(listKey);
+      await list.reload();
+      expect(container.read(portfoliosProvider(testUserId)).value!.value, [
+        gulberg,
+        plaza,
+      ]);
+      app.store
+        ..holding.clear()
+        ..failHeldWrites(StateError('full'));
+      await pumpEventQueue();
+      await openGulberg(container, app);
+      app.portfolios.memberships.remove(gulberg);
+      await list.reload();
+      expect(app.store.values.keys, [listKey]);
+    });
+  });
+
   group('a call to the store that never answers', () {
     const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
     final plazaRecords = 'mm.swr.v1.$testUserId.tenants.${plaza.id}';
