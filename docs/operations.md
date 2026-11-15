@@ -1171,7 +1171,10 @@ the provenance file itself, the bundle they are checked against, which the uploa
 with them) with `gh attestation verify --bundle`, with the options `SECURITY.md` gives, and logs
 `gh --version`. The source ref is `refs/heads/main`, written literally, so a run started by hand
 (Run workflow) from another branch fails there and attaches nothing in that run: start Release
-by hand from `main` only.
+by hand from `main` only. That holds exactly with `gh` 2.102.0 or later on the runner: an older
+`gh` compares the branch name without regard to case, so look at the version the step logs, and
+if it is older, say so in the release's notes and do not rely on the check for a branch whose
+name differs from `main` only in case.
 `tool/github/check_release_provenance.py` (`make lint`) keeps the attest step, that check and the
 one upload together, with no `if:`, `continue-on-error`, `shell:` or `working-directory:` on
 them, and no `defaults.run.working-directory` on the job or the workflow (either would move
@@ -1202,8 +1205,9 @@ No two jobs may name provenance files that can be the same file on the release, 
 GitHub, the text's too), but it cannot know the expressions' values: another expression with
 the same value (`${{ env.TAG }}`, `v${{ needs.release-please.outputs.version }}`) or an empty
 one could make two names one. So two names pass only if they hold the same expressions, each
-with one value in every job of the run (an output of a job both list in `needs`, `vars`,
-`inputs`, `github.repository`, `github.sha` and the like), and differ in the text around them
+with one value in every job of the run (an output of a job both list in `needs`, `inputs`,
+`github.repository`, `github.sha` and the like, but not `vars`, which a job's `environment:` can
+set apart), and differ in the text around them
 in a way no value can make up, as release.yml's do (`-ios` added after the tag); or if the text
 of one before its first expression, or after its last, neither starts nor ends the other's. An
 uploading job may not set a `strategy`, since each leg of a matrix would give its provenance
@@ -1215,9 +1219,11 @@ gh and curl take `-XDELETE` and `--method delete`, the client libraries' delete 
 would leave a release without its provenance file; and a gh alias or extension, which could
 upload under another name. It looks for them in every value of every step (so also in an
 `actions/github-script` script and an `env` value), and in a run once its quoting is read
-(`gh release $'upload'` counts), after a word that may run gh (`gh`, `"$GH"`, or any variable
-or expression, such as `"$tool"`), so a summary line such as `echo "the release upload
-finished"` is not taken for a command. Each `${{ }}`
+(`gh release $'upload'` counts, and so does `gh re$'\0'lease`, since a NUL ends such a string
+where it stands), after a word that may run gh (`gh`, `"$GH"`, or any variable or expression,
+such as `"$tool"`), so a summary line such as `echo "the release upload finished"` is not taken
+for a command. A redirection, which bash takes out before gh sees its words, is skipped wherever
+it stands among them (`gh </dev/null release upload`, `gh release > log delete`). Each `${{ }}`
 expression is first filled in as Actions could fill it: a string literal as its text
 (`gh release ${{ 'upload' }}` counts), any other expression as a word that could be any
 subcommand, except as the value of `-R` or `--repo`, which always take one

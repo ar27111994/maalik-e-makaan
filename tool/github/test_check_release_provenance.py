@@ -750,6 +750,40 @@ MUTANTS = {
         later_step("ios", 'command "$GH" release -R "$GITHUB_REPOSITORY" upload "$TAG" dist/late'),
         ['job "ios" runs `gh release upload` in 2 steps'],
     ),
+    # bash takes a redirection out before gh sees its words, wherever it stands among them
+    # (#81's fourth review).
+    "a second upload step with gh's input redirected before release": (
+        later_step(
+            "artefacts",
+            'gh </dev/null release upload "$TAG" dist/late --clobber --repo "$GITHUB_REPOSITORY"',
+        ),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a second upload step with a redirection and its target between release and upload": (
+        later_step("ios", 'gh release 2> errors.log upload "$TAG" dist/late'),
+        ['job "ios" runs `gh release upload` in 2 steps'],
+    ),
+    "the release deleted, its output redirected between release and delete": (
+        later_step("artefacts", 'gh release > log delete "$TAG" --yes'),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a release created after a here-string": (
+        later_step("ios", 'gh <<<"" release create v9 dist/late'),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    # A NUL ends a $'...' string where it stands, so bash joins what is left around it.
+    "a second upload step that spells release around a NUL": (
+        later_step("artefacts", "gh re$'\\0'lease upload \"$TAG\" dist/late"),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "the release deleted, the verb spelt around a NUL": (
+        later_step("ios", "gh release de$'\\x00'lete \"$TAG\" --yes"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a summary written to a file, with the words in it (still passes)": (
+        later_step("artefacts", 'echo "The release upload finished" >> "$GITHUB_STEP_SUMMARY"'),
+        [],
+    ),
     # A variable under any name, or an expression, may hold gh's name.
     "a second upload step that runs gh through a variable of another name": (
         later_step("artefacts", 'tool=gh; "$tool" release upload "$TAG" dist/late'),
@@ -1650,6 +1684,10 @@ WORDS = (
     ("gh $'\\q' $'\\x' $'\\u' $'\\c' $'\\?'", ["gh", "\\q", "\\x", "\\u", "\\c", "?"]),
     ("gh $'\\cA\\e\\E\\a\\b\\f\\v'", ["gh", "\x01\x1b\x1b\x07\x08\x0c\x0b"]),
     ("gh 'release' \"upload\" re\\lease", ["gh", "release", "upload", "release"]),
+    # A NUL ends a $'...' string where it stands (#81's fourth review).
+    ("gh re$'\\0'lease up$'\\x00'load", ["gh", "release", "upload"]),
+    ("gh re$'l\\0junk'ease de$'\\u0000'lete cre$'\\c@'ate", ["gh", "release", "delete", "create"]),
+    ("gh $'upload\\0x' $'a\\0b'c", ["gh", "upload", "ac"]),
 )
 
 
@@ -1701,6 +1739,13 @@ class WordsTest(unittest.TestCase):
             crp.filled("gh ${{ 'release' }} delete v1"),
             crp.filled("gh release ${{ env.VERB }} v1"),
             crp.filled("gh ${{ env.COMMAND }} set up 'release upload'"),
+            # A redirection is not one of gh's words, wherever it stands.
+            "gh </dev/null release create v1",
+            "gh 2>&1 release delete v1 --yes",
+            "gh release > log delete-asset v1 x",
+            "gh &>/dev/null alias set up 'release view'",
+            "gh {fd}>/dev/null extension install o/gh-x",
+            "gh re$'\\0'lease cre$'\\0'ate v1",
             # A word whose text is only known at run time may be gh.
             '"$tool" release -R o/r delete v1 --yes',
             "$(command -v hub) release create v1",
@@ -1730,6 +1775,8 @@ class WordsTest(unittest.TestCase):
             "echo 'Never delete a release; see release -- delete policy'",
             "echo 'Enough said: release new notes'",
             'echo "Uploaded $TAG to the release"',
+            'gh release view "$TAG" > release.json',
+            "gh release list 2>/dev/null | grep -c create",
             'echo "$TAG" is the release to view, create nothing',
             'echo "$TAG release created"',
         ):
@@ -1760,6 +1807,16 @@ class WordsTest(unittest.TestCase):
             (["-R", crp.ANY_WORD, "view"], False),
             (["--repo", crp.ANY_WORD + "/x", "upload"], True),
             (["--some-flag", crp.ANY_WORD, "view"], True),
+            # A redirection is skipped like a flag, and the word after it may be its target.
+            (["</dev/null", "upload"], True),
+            (["<", "/dev/null", "upload"], True),
+            (["2>&1", "upload"], True),
+            ([">>", "log", "-R", "o/r", "upload"], True),
+            (["&>/dev/null", "upload"], True),
+            (["{fd}>log", "upload"], True),
+            (["<<<", "upload"], True),
+            ([">", "log", "view", "upload"], False),
+            (["2>/dev/null", "view", "upload"], True),
         ):
             with self.subTest(words=words):
                 self.assertEqual(crp._verb_after(words, upload), expected)
@@ -1783,6 +1840,9 @@ class WordsTest(unittest.TestCase):
             ((release, other), "gh release -R upload view"),
             ((release, other), "gh release --repo o/r delete-asset v1 x"),
             ((release, other), "gh release new v1 x"),
+            ((release, other), "gh </dev/null release upload v1 x"),
+            ((release, other), "gh 2> /dev/null release > 'a log' delete v1"),
+            ((release, other), 'gh <<<"" release create v1'),
             ((release, other), "gh release\u00a0upload v1 x"),
             ((release, other), "/usr/bin/gh release upload v1 x"),
             ((release, other), "${GH:-gh} release upload v1 x"),
@@ -1875,6 +1935,22 @@ class ProvenanceNameTest(unittest.TestCase):
         ):
             with self.subTest(name=other):
                 self.assertFalse(self.same(other, name))
+
+    def test_a_variable_is_not_the_same_in_every_job(self):
+        # A job's `environment:` can give `vars` another value, so two names built on one
+        # variable can be the same file (`v1` and `v1-ios`); an input is fixed for the run.
+        self.assertTrue(
+            self.same(
+                "dist/m-${{ vars.SUFFIX }}.intoto.jsonl",
+                "dist/m-${{ vars.SUFFIX }}-ios.intoto.jsonl",
+            )
+        )
+        self.assertFalse(
+            self.same(
+                "dist/m-${{ inputs.suffix }}.intoto.jsonl",
+                "dist/m-${{ inputs.suffix }}-ios.intoto.jsonl",
+            )
+        )
 
     def test_names_whose_values_are_not_known_differ_only_at_their_ends(self):
         name = f"dist/m-{TAG}.intoto.jsonl"
@@ -1977,6 +2053,25 @@ class BashTest(unittest.TestCase):
                     self.bash(shown + line + "\n"),
                     "0\n" + "".join(f"<{word}>" for word in expected) + "\n",
                 )
+
+    def test_bash_takes_a_redirection_out_of_the_words_it_gives_gh(self):
+        # Why a redirection is skipped in the search (#81's fourth review). The words go to a
+        # file, since some of these lines send gh's own output elsewhere.
+        shown = "gh() { printf '<%s>' gh \"$@\" >| words; }\n"
+        for line in (
+            "gh </dev/null release upload x",
+            "gh < /dev/null release upload x",
+            "gh 2>/dev/null release upload x",
+            "gh release 2>&1 upload x",
+            "gh release > log upload x",
+            'gh <<<"" release upload x',
+            "gh {fd}>/dev/null release upload x",
+        ):
+            with self.subTest(line=line):
+                self.assertEqual(
+                    self.bash(shown + line + "\ncat words\n"), "0\n<gh><release><upload><x>"
+                )
+                self.assertTrue(crp._holds_pair(line, crp.RELEASE, crp.UPLOAD))
 
 
 class DocsTest(unittest.TestCase):

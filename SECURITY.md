@@ -60,8 +60,10 @@ public-good instance (used because the repository is public), and the signing is
 Sigstore's public transparency log. The workflow checks each file against its provenance, as
 below, before it attaches anything.
 
-Check it with GitHub's command-line tool, `gh`, version 2.68.0 or later (the first with
-`--source-ref`). The `.intoto.jsonl` name is the one OpenSSF Scorecard counts, but the file is
+Check it with GitHub's command-line tool, `gh`, version 2.102.0 or later. `--source-ref` came
+with 2.68.0, but until 2.102.0 `gh` compared the branch name without regard to case, so a build
+from a branch named `Main` would pass as `main`. The `.intoto.jsonl` name is the one OpenSSF
+Scorecard counts, but the file is
 not output of slsa-github-generator, so `slsa-verifier` does not apply: its
 `verify-github-attestation` command accepts only a few named builders, and this workflow is not
 one of them.
@@ -76,6 +78,12 @@ gh attestation verify maalik-e-makaan-vX.Y.Z-arm64-v8a.apk \
   --signer-workflow ar27111994/maalik-e-makaan/.github/workflows/release.yml \
   --source-ref refs/heads/main
 ```
+
+This shows that the file was built by this repository's Release workflow from `main`. It does
+not show which release it was built for: a file from an older release, with that release's
+provenance file, passes under any name. To check the release as well, add `--source-digest` and
+the full id of the commit that the tag `vX.Y.Z` points to (on the release's page, the commit
+link beside the tag opens it).
 
 For the iPhone file or `SHA256SUMS-ios`, use `--bundle maalik-e-makaan-vX.Y.Z-ios.intoto.jsonl`.
 With `--bundle`, `gh` needs no sign-in, but it still fetches Sigstore's trusted root over the

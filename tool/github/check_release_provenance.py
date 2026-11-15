@@ -77,7 +77,9 @@ upload under another name. It looks for these in every value of every step, so a
 `${{ }}` expression is filled in as Actions could (`filled`: a string literal as its text, any
 other expression as a word that may be any word gh reads, except as the value of `-R` or
 `--repo`); in a run, it looks once the run's quoting is read (`_words`: `gh release $'upload'`,
-`gh release ${x:-upload}` and the words of a quoted `bash -c` or `eval` string count), after a
+`gh re$'\0'lease`, where the NUL ends the string as in bash, `gh release ${x:-upload}` and the
+words of a quoted `bash -c` or `eval` string count), with a redirection skipped wherever it
+stands among gh's words (`gh </dev/null release upload`), after a
 word that may run gh (`_may_run_gh`: one holding `gh`, such as `"$GH"` or `${x:-gh}`, or one
 whose text is only known at run time, such as `"$tool"` or `${{ env.TOOL }}`), so that prose
 (`echo "the release upload finished"`) is not read as a command. Both readings find the subcommand as gh does
@@ -446,6 +448,12 @@ ANSI_C_LETTERS = {
 }
 
 
+# A redirection as bash reads one in a simple command, where it may stand anywhere among the
+# words and is not handed to the command: an optional file descriptor (`2`, `{fd}`), an
+# operator, and its target, glued to it (`</dev/null`, `2>&1`) or in the next word (`> log`).
+REDIRECTION = re.compile(r"(?:\d+|\{[A-Za-z_]\w*\})?(?:&>>?|<<<|<<-?|<>|>>|>\||[<>]&?)")
+
+
 def _ansi_c(match: re.Match[str]) -> str:
     """One escape of a $'...' string, decoded as bash decodes it."""
     escape = match[1]
@@ -460,12 +468,15 @@ def _ansi_c(match: re.Match[str]) -> str:
 
 def _plain_quotes(line: str) -> str:
     """`line` with each $'...' string turned into a single-quoted one holding what bash decodes
-    it to, and each `$"` into `"`, so that `shlex` reads the words bash runs. It does not tell
+    it to (up to its first NUL, where bash ends it), and each `$"` into `"`, so that `shlex`
+    reads the words bash runs. It does not tell
     whether the string is itself inside double quotes, where bash keeps it as written: reading
     more words than bash does only makes the search for a command wider."""
 
     def single(match: re.Match[str]) -> str:
-        return "'" + ANSI_C_ESCAPE.sub(_ansi_c, match[1]).replace("'", "'\\''") + "'"
+        # A NUL ends the string there, as in bash: `re$'\\0'lease` is `release`.
+        decoded = ANSI_C_ESCAPE.sub(_ansi_c, match[1]).split("\0", 1)[0]
+        return "'" + decoded.replace("'", "'\\''") + "'"
 
     return re.sub(r"""\$'((?:[^'\\]|\\.)*)'""", single, line, flags=re.S).replace('$"', '"')
 
@@ -509,13 +520,15 @@ def _subcommand(words: list[str], names: tuple[str, ...]) -> int | None:
     the search wider than gh's (`gh release -R upload view` runs `view`, yet counts as an
     upload), never narrower. The one exception is an expression after `-R` or `--repo`, which
     always take a value: it is that value (`gh release -R ${{ github.repository }} view` runs
-    `view`)."""
+    `view`). A redirection (`REDIRECTION`), which bash takes out before gh sees its words, is
+    skipped like a flag, and the word after it like a flag's value, since it may be its target
+    (`gh </dev/null release upload`, `gh release > log delete`)."""
     flag = None
     for index, word in enumerate(words):
         repository = flag in REPO_FLAGS and ANY_WORD in word
         if not repository and (ANY_WORD in word or _holds(word, names)):
             return index
-        if word.startswith("-"):
+        if word.startswith("-") or REDIRECTION.match(word):
             flag = word
         elif flag is not None:
             flag = None
@@ -594,12 +607,25 @@ def _text_subcommand(text: str, pos: int, names: tuple[str, ...]) -> int | None:
     """`_subcommand` for text not read as words (an action's script, an env value, a run as
     text), from `pos`: where the word gh runs as its subcommand ends, if it is one of `names`
     (or holds an expression); None otherwise. Words are what lies between the gaps (`_GAP`),
-    so the quoted words of an array count (`'release', '-R', repo, 'upload'`), and a flag's
-    value is read by `_value_end`."""
+    so the quoted words of an array count (`'release', '-R', repo, 'upload'`), a flag's value
+    is read by `_value_end`, and a redirection is skipped with its target."""
     flag, after_flag = None, pos
     while True:
         while pos < len(text) and _gap(text[pos]):
             pos += 1
+        redirection = REDIRECTION.match(text, pos)
+        if redirection is not None:
+            # Not one of gh's words: skipped with its target, a quoted string or a word.
+            pos = redirection.end()
+            while pos < len(text) and text[pos] in " \t":
+                pos += 1
+            if text[pos : pos + 1] in ("'", '"'):
+                close = text.find(text[pos], pos + 1)
+                pos = len(text) if close < 0 else close + 1
+            else:
+                while pos < len(text) and not text[pos].isspace():
+                    pos += 1
+            continue
         end = pos
         while end < len(text) and not _word_end(text[end]):
             end += 1
@@ -1204,10 +1230,11 @@ def _unreadable(path: str, where: int, name: str, step: str, unclear: UnclearRun
 # jobs (`provenance_parts`).
 ProvenanceParts = tuple[tuple[str, ...], tuple[str | None, ...]]
 # Context properties whose value is the same in every job of one run that reads them: a job's
-# output (in a job that lists it in `needs`), a variable, an input, and these of `github`. Any
-# other (`env`, `steps`, `matrix`, `github.job`) may differ between jobs, or be empty in one.
+# output (in a job that lists it in `needs`), an input, and these of `github`. Any other (`env`,
+# `steps`, `matrix`, `github.job`, and `vars`, which a job's `environment:` can set apart) may
+# differ between jobs, or be empty in one.
 SHARED_PROPERTY = re.compile(
-    r"needs\.([a-z0-9_-]+)\.outputs\.[a-z0-9_-]+|(?:vars|inputs)\.[a-z0-9_-]+"
+    r"needs\.([a-z0-9_-]+)\.outputs\.[a-z0-9_-]+|inputs\.[a-z0-9_-]+"
     r"|github\.(?:repository|repository_owner|sha|ref|ref_name|run_id|run_number|run_attempt)"
 )
 
