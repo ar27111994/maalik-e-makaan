@@ -322,7 +322,9 @@ else does then, since a picker may be handing over a copy.
   for a deleted account is when its next refresh is refused, within an hour
   of its next use online (an access token lives an hour). That wipe is a plain sign-out, so the invitation it
   holds stays. A member's device prunes a deleted or left portfolio's
-  entries when its portfolio list next loads.
+  entries when its portfolio list next loads, but in the cases Writes after
+  a removal names (Accepted, Not yet closed), and at the latest when its
+  session ends.
 - **Writes after a removal.** `SwrCache.clear` starts a new epoch before it
   deletes anything, and so does `SwrCache.forgetUser`. Every write names the
   epoch read before its value was asked for (`SwrCache.write(epoch:)`, a
@@ -392,9 +394,25 @@ else does then, since a picker may be handing over a copy.
   keeps the safe choice: a saved list it could not read counts as unknown,
   records it could not forget keep the saved list as it was, and a write it
   stopped waiting for counts as saved by the next save while it may still
-  land (`SwrCache.writing`). Accepted: when such a write lands after a later
-  one and the app is closed before the delete that follows it, the saved
-  list can stop naming a portfolio whose records were saved meanwhile.
+  land (`SwrCache.writing`). A write the store fails leaves it holding
+  any value written of that entry, or none: the cache asks for the entry's
+  deletion as it sees the failure (so that a later start of the app finds
+  no list), and counts the entry as unsettled (`SwrCache.unsettled`) until
+  a write asked after the failure lands. The list's next save counts an
+  unsettled saved list as unknown: a portfolio that joined while its list
+  could not be written, whose records were saved and which then left,
+  takes them. Two reads of the list may answer in either order (the first
+  load and a reload, or two reloads): each is numbered before it is asked
+  (`SwrCache.ask`), and an answer is saved and shown only when no answer to
+  a later read was saved first (`SwrCache.claim`), so an out-of-date answer
+  neither names a portfolio that left again nor forgets the records of one
+  that joined. A list made from the one on show carries no number and is
+  saved as before. Accepted: when such a write lands after a later one and
+  the app is closed before the delete that follows it, the saved list can
+  stop naming a portfolio whose records were saved meanwhile; so can a
+  failed write of the list whose deletion the store also refuses or never
+  answers, when the app is closed before the next list save. Both need the
+  store to fail, and the records go when the session ends.
   Not yet closed: the prune knows a portfolio only from a saved list, and
   entries do not say which portfolio they are of. A portfolio the user
   joins after this device last loaded the list (on another device), whose
@@ -416,6 +434,11 @@ else does then, since a picker may be handing over a copy.
   is held while a portfolio leaves, and one made from the value on show
   runs after it, and neither is saved; the portfolio list's commands are
   held across a wipe and the list's rebuild (`portfolios_test.dart`).
+  `test/src/data/cache/swr_cache_model_test.dart` and
+  `swr_cache_ref_model_test.dart` compare `SwrCache` with two models written
+  apart (3,000 and 2,000 random sequences, fixed seeds) of what each removal,
+  out-of-order landing and failed write leaves on the store, and of
+  `writing` and `unsettled`.
 - **Replays.** gotrue's auth stream replays every earlier event to a new
   listener (an unbounded `ReplaySubject`), so a `signedOut` is acted on only
   when no session exists, and a session counts as replaced only when the
