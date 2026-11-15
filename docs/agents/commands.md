@@ -101,7 +101,8 @@ tool/formal/verify.sh ci tla/RateLimit lean                    # some formal tra
 
 Other workflows: `security.yml` (CodeQL, gitleaks, OSV-Scanner, dependency review, zizmor at
 the version `tool/requirements-lint.txt` installs, uploading to code scanning and failing on any
-finding, outdated function dependencies), `scorecard.yml`, `pr-title.yml` (the squash title), `release.yml`
+finding without an inline ignore, outdated function dependencies), `scorecard.yml`,
+`pr-title.yml` (the squash title), `release.yml`
 (release-please and the release artefacts), `deploy.yml` (Supabase, web app and website; see
 [`docs/operations.md`](../operations.md#deployment-github-actions)), `backup.yml` (the weekly
 encrypted backup, restored and checked on a local stack before it is kept; see
