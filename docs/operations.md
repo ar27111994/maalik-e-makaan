@@ -395,9 +395,11 @@ origin, since a browser ignores `Clear-Site-Data` over plain http) and fails unl
 header, everything that address kept is gone and the browser is at the same path, query and
 fragment on the origin; with the header taken off, the script alone removes the app's keys and
 goes to the same address; without scripts, the browser reaches the origin's first page; the App
-Links file and the app's files clear nothing; an e-mail link to `/auth/callback?code=…` clears
-everything the address kept, the sign-in verifier included, with the header and with the script
-alone, and arrives at the same path and query on the origin; and nothing breaks the CSP.
+Links file and the app's files clear nothing; an e-mail link to `/auth/callback?code=…` is cleared
+like any other path, so the sign-in verifier goes with the header (as part of everything the
+address kept) and with the script alone (as one of the app's keys, any other key and IndexedDB
+staying), and the browser arrives at the same path and query on the origin; and nothing breaks
+the CSP.
 
 ### The website on Vercel
 
@@ -855,9 +857,12 @@ variable at all (Moving again).
     which means `APP_URL`'s origin), and checks it by hand: open
     `https://maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, add a key `flutter.x` in the
     developer tools (Application, Local storage), then open
-    `https://maalik-e-makaan.vercel.app/auth/callback?code=x`. The browser lands on
-    `https://app.mmakaan.app/auth/callback?code=x`, and the key is gone when the old address's
-    file is opened again.
+    `https://maalik-e-makaan.vercel.app/auth/callback?code=x`. The browser goes on to
+    `https://app.mmakaan.app/auth/callback?code=x`, where the app says "This link did not work";
+    in a browser that has not chosen a language on the new address the app moves on to the
+    language choice at once, so read that request in the developer tools' Network tab (with
+    "Preserve log" ticked) rather than in the address bar. Either way the key is gone when the
+    old address's file is opened again.
 13. **The mail. Done on 15 November 2026, except the e-mail checks (DMARC "PASS", the reset and the
     invitation).** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM, and its own
     `_dmarc` record, `p=none`); leave the mailbox's own SPF record as Dynadot wrote it, and add no

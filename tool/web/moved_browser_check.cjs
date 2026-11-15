@@ -11,9 +11,10 @@
 // 3. Without scripts: the browser goes to the origin's first page.
 // 4. The App Links file and the app's files clear nothing.
 // 5. Nothing breaks the app's Content-Security-Policy.
-// 6. A late e-mail link (docs/operations.md, Domains, step 12): /auth/callback?code=... clears
-//    everything the earlier address kept, the sign-in verifier included, with the header and
-//    with the script alone, and arrives at the same path and query on the origin.
+// 6. A late e-mail link (docs/operations.md, Domains, step 12): /auth/callback?code=... is
+//    cleared like any other path, so the sign-in verifier goes with the header (as part of
+//    everything the earlier address kept) and with the script alone (as one of the app's own
+//    keys), and the browser arrives at the same path and query on the origin.
 //
 //   node tool/web/moved_browser_check.cjs OUTPUT_DIR
 //
