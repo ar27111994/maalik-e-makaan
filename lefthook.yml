@@ -38,6 +38,7 @@ pre-commit:
       run: >-
         PATH="$PWD/.venv/bin:$PATH" actionlint {staged_files}
         && PATH="$PWD/.venv/bin:$PATH" python3 tool/github/check_workflow_calls.py
+        && PATH="$PWD/.venv/bin:$PATH" python3 tool/github/check_release_provenance.py
         && PATH="$PWD/.venv/bin:$PATH" python3 tool/github/check_stack_ports.py
         && PATH="$PWD/.venv/bin:$PATH" zizmor --offline --no-progress {staged_files}
     # supabase/config.toml's ports must stay inside the range the stack's jobs reserve.

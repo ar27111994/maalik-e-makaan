@@ -528,6 +528,13 @@ In order. Record each in `.planning/STATE.md` when it is done.
         `CNAME`. Also the owner's to set: when Auth drops the old redirect URLs and the Android
         manifest the old host (a date, or the oldest version still in use).
 
+Optional, now that the first release with its own provenance files, 1.4.0, is out (15 November
+2026; the agent read both files against the release's checksums, and running `SECURITY.md`'s
+command on a download, Checking a download, is still to be done by a person): attach
+provenance files to v1.0.0 to v1.3.1 with the
+procedure in `docs/operations.md`, Release provenance. It only adds files, after they verify, and
+raises Scorecard's Signed-Releases to 10 at once instead of over five releases.
+
 Optional hardening: move the `ANDROID_*` secrets from the repository into the `release` environment;
 only the Release workflow's `artefacts` job reads them, and it runs in that environment. A
 deployment branch rule can then keep them to `main` (Settings, Environments, `release`, Deployment

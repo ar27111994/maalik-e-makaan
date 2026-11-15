@@ -1,13 +1,15 @@
 # Releases. release-please keeps a release pull request open from the
 # conventional commits on main; merging it tags vX.Y.Z, writes CHANGELOG.md and
 # publishes a GitHub release. This workflow then builds the signed Android app,
-# the web app and an unsigned iOS app for that tag, attests their provenance and
-# attaches them, and deploys the tag to production (deploy.yml): the backend and
-# the web app at once, the website once those builds and the web app's deploy
-# have finished. The builds start only once the web app's origin answers
-# (tool/web/check_live.py), since every one of them names it, and Auth allows
-# the e-mail link callbacks they send (tool/web/check_auth_urls.py; a token
-# that may not read Auth's settings only warns there, and the builds go ahead).
+# the web app and an unsigned iOS app for that tag, attests their provenance,
+# attaches them with that provenance beside them as a .intoto.jsonl file
+# (SECURITY.md, Checking a download), and deploys the tag to production
+# (deploy.yml): the backend and the web app at once, the website once those
+# builds and the web app's deploy have finished. The builds start only once the
+# web app's origin answers (tool/web/check_live.py), since every one of them
+# names it, and Auth allows the e-mail link callbacks they send
+# (tool/web/check_auth_urls.py; a token that may not read Auth's settings only
+# warns there, and the builds go ahead).
 name: Release
 
 on:
@@ -176,9 +178,29 @@ jobs:
           (cd app/build && zip -qr "../../dist/maalik-e-makaan-$TAG-debug-symbols.zip" symbols)
           (cd dist && sha256sum -- * > SHA256SUMS)
           rm -f "$RUNNER_TEMP/release.jks"
-      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+      - id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/*
+      - name: Provenance file, checked against every file it covers
+        # The attestation is a Sigstore bundle naming every file in dist/ (SHA256SUMS
+        # included). It goes beside them as a .intoto.jsonl file, the provenance file Scorecard's
+        # Signed-Releases check counts, and is checked here against each of them, with the
+        # options SECURITY.md gives, before anything is attached. The source ref is main's
+        # literally: a run started by hand from another branch fails here and attaches nothing.
+        # tool/github/check_release_provenance.py (make lint) keeps these three steps together.
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          PROVENANCE: dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}.intoto.jsonl
+        run: |
+          gh --version
+          cp -- "$BUNDLE" "$PROVENANCE"
+          for file in dist/*; do
+            [[ "$file" == "$PROVENANCE" ]] && continue
+            gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+              --source-ref refs/heads/main
+          done
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -238,9 +260,29 @@ jobs:
           tool/ios/package_unsigned_ipa.sh app/build/ios/iphoneos/Runner.app \
             "dist/maalik-e-makaan-$TAG-ios-unsigned.ipa"
           (cd dist && shasum -a 256 -- * > SHA256SUMS-ios)
-      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+      - id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: dist/*.ipa
+          subject-path: dist/*
+      - name: Provenance file, checked against every file it covers
+        # The attestation is a Sigstore bundle naming every file in dist/ (SHA256SUMS-ios
+        # included). It goes beside them as a .intoto.jsonl file, the provenance file Scorecard's
+        # Signed-Releases check counts, and is checked here against each of them, with the
+        # options SECURITY.md gives, before anything is attached. The source ref is main's
+        # literally: a run started by hand from another branch fails here and attaches nothing.
+        # tool/github/check_release_provenance.py (make lint) keeps these three steps together.
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          PROVENANCE: dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}-ios.intoto.jsonl
+        run: |
+          gh --version
+          cp -- "$BUNDLE" "$PROVENANCE"
+          for file in dist/*; do
+            [[ "$file" == "$PROVENANCE" ]] && continue
+            gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+              --source-ref refs/heads/main
+          done
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -269,7 +311,8 @@ jobs:
     # The download page links to the files artefacts and ios attach, and only
     # to those attached when the site is built (deploy.yml), so the website
     # waits for both builds to finish. It goes out even if one failed, without
-    # that build's files; re-running the failed job runs this one again after
+    # that build's files (or with the part an upload cut off part-way left on
+    # the release); re-running the failed job runs this one again after
     # it, and the page then links to them too. It also waits for the backend
     # and the web app (deploy), and goes out only once they are deployed: the
     # site links to the web app and to builds that expect this release's

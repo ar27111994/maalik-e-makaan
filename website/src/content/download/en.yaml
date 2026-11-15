@@ -5,7 +5,11 @@
 # manifest (src/lib/release.ts); its files are the ones the Release workflow
 # attaches to each release, as many as were attached when the site was built
 # (SHA256SUMS covers the Android and web files; the iPhone file's sum is in
-# SHA256SUMS-ios). Google Play and the App Store have no listing yet: when they
+# SHA256SUMS-ios). Each release also carries the files' build provenance
+# (.intoto.jsonl), which the page does not list: release.verify says it exists
+# and links to SECURITY.md's "Checking a download" (in English), without calling
+# it a signature, since the iPhone file itself is unsigned. Google Play and the
+# App Store have no listing yet: when they
 # do, add their links here, and promise no dates before then. British English.
 title: "Get the app"
 description: "Get Maalik-e-Makaan: the web app in any browser, installable files for Android phones, and a build for iPhone testers. Free during early access."
@@ -55,6 +59,9 @@ release:
     checksums:
       label: "Checksums (SHA-256)"
       note: "SHA-256 sums of the Android and web files, to check that a download arrived whole and unchanged."
+  verify:
+    body: "Each release also carries a record from GitHub of where and how its files were built, which you can check with GitHub's command-line tool."
+    label: "How to check a download"
   allReleases:
     label: "Every release and its notes"
     href: "/releases/"

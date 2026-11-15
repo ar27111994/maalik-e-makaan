@@ -7,7 +7,8 @@
  *
  * The release's files are another matter: the tag exists minutes before the
  * Release workflow has built and attached them, and a build that fails
- * attaches nothing until it is re-run. So the Deploy workflow lists the files
+ * before its upload attaches nothing until it is re-run (one cut off during
+ * its upload can leave part of its files). So the Deploy workflow lists the files
  * attached when the site is built (src/data/release-assets.json), and the
  * download page links to those alone; a deploy is never held up by a missing
  * file, and never publishes a link to one.
@@ -136,7 +137,11 @@ export const ATTACHED_ASSETS: AttachedAssets = attachedAssetsSchema.parse(attach
  * addresses, keeping those `attached` names when it has looked them up: the
  * site then links only to files that exist, whether or not the release's
  * builds have attached the rest yet. Keep it in step with release.yml's file
- * names; deploy.yml checks every link before it publishes the site.
+ * names; deploy.yml checks every link before it publishes the site. The app
+ * bundle, the debug symbols, SHA256SUMS-ios and the two provenance files
+ * (.intoto.jsonl) are left off on purpose: they are for Google Play,
+ * developers and checking, and the page links to the release on GitHub and to
+ * SECURITY.md's "Checking a download" instead.
  */
 export function releaseAssets(
   release: Pick<Release, "tag">,

@@ -91,8 +91,11 @@ how to do common tasks is [`docs/agents/workflows.md`](docs/agents/workflows.md)
   `seo-audit`, `brand-review`, `code-review` and `llm-context-modular-docs`, browser and computer
   use, and Context7 or the official documentation for any library or API.
 - **Ask the owner** when a decision is theirs (product, pricing, legal, privacy, and anything
-  that reaches outside the repository: a release, a change to the hosted project, a write to an
-  external service), or when you are blocked. Otherwise decide, and record the decision.
+  that reaches outside the repository: a change to the hosted project, a write to an external
+  service), or when you are blocked. Otherwise decide, and record the decision. A release is
+  the exception: the owner's standing word (15 November 2026) is to release whenever
+  everything meant for it is merged and green, without asking each time
+  ([`docs/operations.md`](docs/operations.md#releasing)).
 - **Keep the documentation current.** A pull request updates every document its change makes
   wrong: the READMEs, the `AGENTS.md` files, `docs/`, `.planning/` and `llms.txt`.
   `CHANGELOG.md` is written by release-please from the squash commits, so a commit message says

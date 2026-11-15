@@ -219,6 +219,28 @@ describe("the release's files on the download page", () => {
     ]);
   });
 
+  test("the provenance files and the other extra files on a release add no links", () => {
+    const attached = {
+      tag: "v1.0.1",
+      files: [
+        "maalik-e-makaan-v1.0.1-arm64-v8a.apk",
+        "maalik-e-makaan-v1.0.1-armeabi-v7a.apk",
+        "maalik-e-makaan-v1.0.1-x86_64.apk",
+        "maalik-e-makaan-v1.0.1-ios-unsigned.ipa",
+        "maalik-e-makaan-v1.0.1-web.zip",
+        "SHA256SUMS",
+        "SHA256SUMS-ios",
+        "maalik-e-makaan-v1.0.1.aab",
+        "maalik-e-makaan-v1.0.1-debug-symbols.zip",
+        "maalik-e-makaan-v1.0.1.intoto.jsonl",
+        "maalik-e-makaan-v1.0.1-ios.intoto.jsonl",
+      ],
+    };
+    expect(releaseAssets({ tag: "v1.0.1" }, repo, attached)).toEqual(
+      releaseAssets({ tag: "v1.0.1" }, repo, NOT_LOOKED_UP),
+    );
+  });
+
   test("a release whose builds have attached nothing yet gets no links", () => {
     expect(releaseAssets({ tag: "v1.0.1" }, repo, { tag: "v1.0.1", files: [] })).toEqual([]);
   });
