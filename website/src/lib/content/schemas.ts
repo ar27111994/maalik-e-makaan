@@ -331,6 +331,12 @@ export const downloadSchema = z.strictObject({
       web: releaseFile,
       checksums: releaseFile,
     }),
+    /**
+     * Under the files: each release also carries their build provenance
+     * (.intoto.jsonl files, left off the list), with a link to SECURITY.md's
+     * "Checking a download", which is in English.
+     */
+    verify: z.strictObject({ body: text(20, 300), label: text(3, 60) }),
     allReleases: link,
     github: text(5, 80),
   }),

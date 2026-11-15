@@ -107,9 +107,25 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   workflow's zizmor job now runs that version and fails on any finding without an inline ignore
   (`make docs-check`'s `zizmor-pin` check keeps the three equal).
   `docs/operations.md`, Code scanning and branch rules, records the ruleset on `main` and the
-  Scorecard result of that day; turning on "up-to-date branches", removing the admin bypass and
-  signing release files are open decisions for the owner. zizmor's auditor persona (not the
+  Scorecard result of that day; turning on "up-to-date branches" and removing the admin bypass
+  are open decisions for the owner. Signed release files (the owner chose this work on
+  2026-11-15): in a pull request from `claude/signed-release-files`, in no release yet and
+  meant for v1.4.0, each Release build copies its
+  attestation's Sigstore bundle into `dist/` as `maalik-e-makaan-vX.Y.Z.intoto.jsonl` (and
+  `-ios.intoto.jsonl`), checks it against every build file there with `gh attestation verify
+--bundle`, and attaches it with them; `tool/github/check_release_provenance.py` (`make lint`)
+  keeps the workflow so, within the limits `docs/operations.md` (Release provenance) names (a
+  script or program a step runs, a gh alias or extension already on the runner, text built at
+  run time), and
+  `SECURITY.md`, Checking a download, tells people how to check. Signed-Releases then rises by 2
+  a release; attaching provenance to v1.0.0 to v1.3.1 is the owner's optional step
+  (`docs/operations.md`, Release provenance). zizmor's auditor persona (not the
   gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
+- CI (2026-11-15, branch `claude/reserve-stack-ports`): the UAT job of run 43740334888 (pull
+  request #82) stopped before any test because `supabase start` could not bind `0.0.0.0:54322`,
+  a port inside the kernel's automatic range that an outgoing connection can hold, so every job
+  that starts the local stack now first reserves 54320-54329 (`net.ipv4.ip_local_reserved_ports`)
+  and `tool/github/check_stack_ports.py` in `make lint` requires it.
 - D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
   the `vercel.app` addresses send people on for good. Pull request #74, released in 1.3.0:

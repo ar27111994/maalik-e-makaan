@@ -47,6 +47,19 @@ jobs:
       # The local stack's database (supabase/config.toml, [db] port).
       LOCAL_DB: postgresql://postgres:postgres@127.0.0.1:54322/postgres
     steps:
+      # First, before anything connects out: take the stack's host ports out of the kernel's
+      # automatic choice of local ports, or a connection made while the images are pulled can
+      # hold one when the stack binds it (run 43740334888). tee, because sysctl -w exits 0 when
+      # the write is refused (docs/agents/conventions.md, Workflows and actions).
+      # The restore check alone needs it, so a failure here does not stop the backup: the
+      # check is skipped and the last step fails the run.
+      - name: Reserve the local stack's host ports
+        id: reserve
+        continue-on-error: true
+        run: |
+          reserved="$(cat /proc/sys/net/ipv4/ip_local_reserved_ports)"
+          echo "${reserved:+$reserved,}54320-54329" | sudo tee /proc/sys/net/ipv4/ip_local_reserved_ports
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -172,7 +185,7 @@ jobs:
       # is kept, because an unchecked backup is better than none.
       - name: Start a local stack from the applied chain
         id: stack
-        if: env.CHAIN_MATCHES == 'true'
+        if: env.CHAIN_MATCHES == 'true' && steps.reserve.outcome == 'success'
         continue-on-error: true
         run: |
           supabase start -x studio,imgproxy,logflare,vector,supavisor,postgres-meta,edge-runtime,mailpit
