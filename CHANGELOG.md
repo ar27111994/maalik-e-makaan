@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.3.1...v1.4.0) (2026-11-15)
+
+
+### Features
+
+* **security:** attach each release's signed build provenance, and say how to check it ([#81](https://github.com/ar27111994/maalik-e-makaan/issues/81)) ([00750cc](https://github.com/ar27111994/maalik-e-makaan/commit/00750cc1682c09c5f461dfa9b80d26f42b027fb6))
+
+
+### Documentation
+
+* **docs:** record release 1.3.1, the e-mail on mmakaan.app and Search Console ([#82](https://github.com/ar27111994/maalik-e-makaan/issues/82)) ([4bf7d1e](https://github.com/ar27111994/maalik-e-makaan/commit/4bf7d1e12be9a8c8b0d243257293c873b6fc89cf))
+
 ## [1.3.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.3.0...v1.3.1) (2026-11-15)
 
 
