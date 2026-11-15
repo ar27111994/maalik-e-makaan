@@ -86,6 +86,18 @@ export function requestUrl(target: string, host: string | undefined): URL | unde
   }
 }
 
+/**
+ * `pathname` with its percent-encoding decoded, or undefined when it is not valid percent-encoding
+ * (`/%zz`, or bytes that are not UTF-8, such as `/%ff`): the server answers that with 400.
+ */
+export function decodedPath(pathname: string): string | undefined {
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return undefined;
+  }
+}
+
 /** The response headers for `pathname`: later rules override earlier ones, as on Vercel. */
 export function headersFor(config: VercelConfig, pathname: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -105,9 +117,19 @@ function isWellKnown(pathname: string): boolean {
   return /^\/\.well-known(?:\/.*)?$/.test(pathname);
 }
 
-/** With `trailingSlash: true`, a path without a file extension gains a slash (308). */
+/**
+ * With `trailingSlash: true`, a path without a file extension gains a slash (308). Not a path
+ * that starts with `//`: its Location (`//ur/` for `//ur`) would start with `//` too, which a
+ * browser reads as another host (`ur`). Such a path goes on to vercel.json's redirects and the
+ * files instead.
+ */
 export function trailingSlashRedirect(config: VercelConfig, pathname: string): string | undefined {
-  if (config.trailingSlash !== true || pathname.endsWith("/") || isWellKnown(pathname)) {
+  if (
+    config.trailingSlash !== true ||
+    pathname.endsWith("/") ||
+    pathname.startsWith("//") ||
+    isWellKnown(pathname)
+  ) {
     return undefined;
   }
   const last = pathname.slice(pathname.lastIndexOf("/") + 1);

@@ -101,6 +101,20 @@ test("each earlier address redirects permanently to the same page on the origin"
     }
     // Vercel adds the trailing slash on the same host first; the next request moves host.
     expect(await getAs(baseURL ?? "", host, "/ur")).toEqual({ status: 308, location: "/ur/" });
+    // But not to a path that starts with //: a Location of //ur/ would name the host ur.
+    for (const path of ["//ur", "//ur/licences"]) {
+      expect(await getAs(baseURL ?? "", host, path), `${host}${path}`).toEqual({
+        status: 308,
+        location: `${origins.site.origin}${path}`,
+      });
+    }
+    // A path that is not valid percent-encoding is refused.
+    for (const path of ["/%zz", "/ur/%ff/"]) {
+      expect(await getAs(baseURL ?? "", host, path), `${host}${path}`).toEqual({
+        status: 400,
+        location: undefined,
+      });
+    }
   }
   const site = new URL(origins.site.origin).host;
   expect((await getAs(baseURL ?? "", site, "/ur/")).status).toBe(200);
@@ -111,7 +125,18 @@ test("each earlier address redirects permanently to the same page on the origin"
       location: undefined,
     });
   }
-  // What is not a path, and a Host header that is not a host, are refused.
+  // Nor does a path that starts with // gain a slash there, though /ur/ is a page.
+  for (const path of ["//ur", "//ur/licences"]) {
+    expect(await getAs(baseURL ?? "", site, path), `${site}${path}`).toEqual({
+      status: 404,
+      location: undefined,
+    });
+  }
+  // What is not a path, a path that is not valid percent-encoding, and a Host header that is
+  // not a host, are refused.
+  for (const path of ["/%zz", "/ur/%ff/"]) {
+    expect((await getAs(baseURL ?? "", site, path)).status, path).toBe(400);
+  }
   expect((await getAs(baseURL ?? "", site, "*")).status).toBe(400);
   expect((await getAs(baseURL ?? "", "evil.example/x", "/")).status).toBe(400);
 });

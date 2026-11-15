@@ -3,8 +3,9 @@
  * vercel.json, trailing-slash redirects, then its redirects (an earlier
  * address's, matched on the Host header), index.html for directories and
  * dist/404.html with status 404 for anything missing. The path is the raw
- * request target, so `//x/` is a path, as on Vercel, not the host x. The e2e suite and
- * Lighthouse run against it.
+ * request target, so `//x/` is a path, as on Vercel, not the host x, and never gains a
+ * trailing slash (a Location of `//x/` would name the host x). A path that is not valid
+ * percent-encoding answers 400. The e2e suite and Lighthouse run against it.
  *
  *   node scripts/serve.ts [--port 4321]
  */
@@ -15,6 +16,7 @@ import { extname, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import {
+  decodedPath,
   headersFor,
   readVercelConfig,
   redirectFor,
@@ -51,8 +53,9 @@ async function isFile(path: string): Promise<boolean> {
 
 /** The file in dist/ for a URL path, or undefined. Paths cannot escape dist/. */
 async function resolveFile(pathname: string): Promise<string | undefined> {
-  const relative = pathname.endsWith("/") ? `${pathname}index.html` : pathname;
-  const path = normalize(`${dist}${decodeURIComponent(relative)}`);
+  const relative = decodedPath(pathname.endsWith("/") ? `${pathname}index.html` : pathname);
+  if (relative === undefined) return undefined;
+  const path = normalize(`${dist}${relative}`);
   if (!path.startsWith(dist) || path.includes(`${sep}..${sep}`)) return undefined;
   return (await isFile(path)) ? path : undefined;
 }
@@ -61,7 +64,7 @@ const server = createServer((request, response) => {
   void (async () => {
     // The Host header and the raw target: a target that starts with // stays a path, as on Vercel.
     const url = requestUrl(request.url ?? "/", request.headers.host);
-    if (url === undefined) {
+    if (url === undefined || decodedPath(url.pathname) === undefined) {
       response.writeHead(400).end();
       return;
     }

@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { describe, expect, test } from "vitest";
 import origins from "../../../contracts/origins.json";
 import {
+  decodedPath,
   headersFor,
   readVercelConfig,
   redirectFor,
@@ -107,6 +108,22 @@ describe("the Vercel emulation used by the local server", () => {
     expect(trailingSlashRedirect(config, "/ur/licences")).toBe("/ur/licences/");
     expect(trailingSlashRedirect(config, "/ur/")).toBeUndefined();
     expect(trailingSlashRedirect(config, "/robots.txt")).toBeUndefined();
+  });
+
+  test("adds no trailing slash to a path that starts with //, whose Location names a host", () => {
+    for (const path of ["//ur", "//ur/licences", "///ur", "//"]) {
+      expect(trailingSlashRedirect(config, path), path).toBeUndefined();
+    }
+    // An empty segment further on keeps the Location a path on this host.
+    expect(trailingSlashRedirect(config, "/ur//licences")).toBe("/ur//licences/");
+  });
+
+  test("decodes a path, and refuses one that is not valid percent-encoding", () => {
+    expect(decodedPath("/caf%C3%A9/")).toBe("/café/");
+    expect(decodedPath("/a%20b/")).toBe("/a b/");
+    for (const path of ["/%zz", "/%", "/%2", "/%ff", "/a%E0%A4%A/"]) {
+      expect(decodedPath(path), path).toBeUndefined();
+    }
   });
 });
 
