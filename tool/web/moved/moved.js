@@ -17,8 +17,10 @@
   // Supabase's session (sb-<project>-auth-token) and gotrue's sign-in-link verifier, which
   // shared_preferences' older interface writes under flutter.*.
   var OWN_KEYS = /^(?:mm\.|flutter\.|sb-.+-auth-token)/;
-  // The paths that mean the app's first page: the root, the app's shell and this page itself.
-  var FIRST_PAGE = /^\/(?:index\.html|moved\.html)?$/;
+  // The paths that mean the app's first page: the root, the app's shell and this page itself,
+  // with however many slashes before them, as the route that answers them reads them
+  // (tool/web/package_vercel.py).
+  var FIRST_PAGE = /^\/+(?:index\.html|moved\.html)?$/;
 
   var meta = document.querySelector('meta[name="mm-moved-to"]');
   var origin = meta ? meta.getAttribute('content') : null;

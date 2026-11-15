@@ -144,13 +144,24 @@ class MovedScriptTest(unittest.TestCase):
                 self.assertEqual(did["replaced"], [f"{ORIGIN}{path}{search}{fragment}"])
 
     def test_the_first_page_in_any_spelling_is_the_origins_first_page(self):
-        for path in ("/", "/index.html", "/moved.html"):
+        # With more slashes before them too: the earlier address's route answers those with
+        # this page as well (package_vercel.legacy_routes).
+        for path in (
+            "/",
+            "/index.html",
+            "/moved.html",
+            "//",
+            "///",
+            "//index.html",
+            "///moved.html",
+        ):
             with self.subTest(path=path):
                 did = run(at(path, "?from=mail", "#top"))
                 self.assertEqual(did["replaced"], [f"{ORIGIN}/?from=mail#top"])
         self.assertEqual(run(at("/"))["replaced"], [f"{ORIGIN}/"])
         # Only those: a deeper page with such a name is a page of the app.
         self.assertEqual(run(at("/x/index.html"))["replaced"], [f"{ORIGIN}/x/index.html"])
+        self.assertEqual(run(at("//x/index.html"))["replaced"], [f"{ORIGIN}//x/index.html"])
 
     def test_a_path_cannot_send_people_to_another_origin(self):
         for path in ("//evil.example/x", "/\\evil.example", "/@evil.example"):
