@@ -165,13 +165,14 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   condition, even the newline that ends a `|` or `>` block: GitHub then reads the whole as text,
   which is true. Both `continue-on-error` are a plain `true`, not an expression.
   `tool/github/check_stack_ports.py` (`make lint`, the pre-commit hook) requires all of this,
-  the step once and first in each such job (not a `background:` step and not inside a
-  `parallel:` group, where the next step would not wait for it), and a range that covers every
-  port `supabase/config.toml` names inside 32768 to 60999 (a port below it is never given out).
-  It finds a start written in a step's `run:`, steps of a `parallel:` group included. It does
-  not see a stack started by an action, a reusable workflow, another script, or a command put
-  together from an expression or a variable: whoever adds one reserves the ports by hand, and a
-  reviewer reads it.
+  the step once and first in each such job, run by bash (not a `background:` step, which the
+  next step does not wait for, and not inside a `parallel:` group, whose steps run beside it),
+  and a range that covers every port `supabase/config.toml` names inside 32768 to 60999 (a port
+  below it is never given out). It finds a start written in a step's `run:`, steps of a
+  `parallel:` group included. It does not see a stack started by an action, a reusable
+  workflow, another script, or a command put together from an expression or a variable, and
+  the first step cannot come before a job's `services:` or an action's `pre:` step: whoever adds
+  one of those reserves the ports by hand, and a reviewer reads it.
 
 - zizmor findings fail the gate, at every severity, unless an inline ignore suppresses them.
   `make lint` (so the Repository hygiene job) runs the zizmor that `tool/requirements-lint.txt`

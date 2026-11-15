@@ -540,8 +540,8 @@ class StepKeysTest(Repo):
                     + after,
                 )
                 self.assert_problems(f'"{csp.NAME}": write continue-on-error as a plain true')
-        # Read as true, so the guard is still asked for: the backup's start has it, and
-        # without it each is refused.
+        # The check reads each as true, so the guard is still asked for: the backup's start has
+        # it, and without it each is refused. (GitHub's runner refuses the quoted, tagged one.)
         for value in ("True", "TRUE", "true # as the restore check may fail", '!!bool "true"'):
             with self.subTest(value):
                 self.setUp()
@@ -554,6 +554,74 @@ class StepKeysTest(Repo):
                 self.assert_problems()
                 self.replace(BACKUP, BACKUP_IF, "if: env.CHAIN_MATCHES == 'true'")
                 self.assert_problems("this start can run when")
+
+    def test_groups_inside_groups_and_groups_that_are_not_lists(self):
+        text = self.text(CI)
+        a, b = step_span(text, "supabase-stack", "Start the stack")
+        start = text[a:b]
+        nested = "      - parallel:\n          - parallel:\n" + textwrap.indent(start, "        ")
+        self.write(CI, text[:a] + nested + text[b:])
+        self.assert_problems()
+        c, d = step_span(text, "supabase-stack", csp.NAME)
+        self.write(CI, text[:c] + text[d:a] + nested + text[b:])
+        self.assert_problems("job 'supabase-stack' starts the local stack with no")
+        # GitHub's schema takes only a list there, so anything else is a step like any other.
+        for value in ("{}", "supabase start", "~"):
+            with self.subTest(value):
+                self.setUp()
+                self.write(CI, text[:a] + f"      - parallel: {value}\n" + start + text[b:])
+                self.assert_problems()
+
+    def test_a_group_that_holds_itself_is_read_once(self):
+        text = self.text(CI)
+        a, _ = step_span(text, "supabase-stack", "Start the stack")
+        for group in (
+            "      - &again\n        parallel: [*again]\n",
+            "      - parallel: &again\n          - parallel: *again\n",
+        ):
+            with self.subTest(group):
+                self.setUp()
+                self.write(CI, text[:a] + group + text[a:])
+                self.assert_problems()
+
+    def test_a_file_nested_too_deeply_to_read_is_reported(self):
+        self.write(".github/workflows/deep.yml", "jobs: " + "[" * 5000 + "]" * 5000 + "\n")
+        self.assert_problems(".github/workflows/deep.yml:1: cannot read it")
+
+    def test_the_reservation_runs_under_bash(self):
+        for shell in ("sh", "true {0}", "python", "pwsh", "${{ matrix.shell }}", "1"):
+            with self.subTest(step=shell):
+                self.setUp()
+                self.replace(CI, NAME_LINE, NAME_LINE + f"        shell: {shell}\n", count=2)
+                self.assert_problems(*[f'"{csp.NAME}" would run under shell'] * 2)
+        self.setUp()
+        self.replace(CI, NAME_LINE, NAME_LINE + "        shell: bash\n", count=2)
+        self.assert_problems()
+        # The workflow's default, and a job's, which comes before it.
+        defaults = "defaults:\n  run:\n    shell: bash\n"
+        for workflow, count in ((CI, 2), (BACKUP, 1)):
+            with self.subTest(workflow=workflow):
+                self.setUp()
+                self.replace(workflow, defaults, defaults.replace("bash", "sh"))
+                self.assert_problems(*[f"\"{csp.NAME}\" would run under shell 'sh'"] * count)
+                self.setUp()
+                self.replace(workflow, defaults, "")
+                self.assert_problems()
+        self.setUp()
+        text = self.text(CI)
+        a, _ = job_span(text, "uat")
+        head = text[a:].split("\n", 1)[0] + "\n"
+        self.write(
+            CI,
+            text[:a]
+            + head
+            + "    defaults:\n      run:\n        shell: sh\n"
+            + text[a + len(head) :],
+        )
+        self.assert_problems(f"\"{csp.NAME}\" would run under shell 'sh'")
+        # A step's own shell comes before both.
+        self.replace(CI, NAME_LINE, NAME_LINE + "        shell: bash\n", count=2)
+        self.assert_problems()
 
 
 class ConditionTest(unittest.TestCase):
@@ -635,6 +703,17 @@ class StartsStackTest(unittest.TestCase):
             "npx supabase start",
             "npx supabase@2.122.1 start -x studio",
             "pnpm dlx supabase@latest --workdir . db start",
+            "npx supabase@^2 start",
+            "npx supabase@~2.1 start",
+            "npx supabase@* start",
+            "npx supabase@2.1.0+build start",
+            "npx 'supabase@>=2' start",
+            "npm exec supabase -- start",
+            '"supabase" start',
+            "supabase 'start' -x studio",
+            'sup"a"base --workdir "$WORKDIR" "start"',
+            "supabase st\\\nart",
+            '"make" test-uat',
             "supabase \\\n  start -x studio",
             "supabase \\\n  --workdir . \\\n  db start",
             "make test-uat",
@@ -658,14 +737,20 @@ class StartsStackTest(unittest.TestCase):
             "# make test-uat",
             "cat tool/uat/run.shx",
             "supabase stop \\\n  # start",
+            "supabase@2 status",
+            "supabase -- status",
+            "supabase --\\\nstart",
+            "supabase\\\nstart",
         ):
             self.assertFalse(csp.starts_stack(run), run)
 
     def test_a_long_line_is_quick(self):
-        # The pattern has no nested ambiguity: a long line that does not start the stack fails
-        # to match at once instead of backtracking.
-        run = "supabase" + " --flag value" * 5000 + " status"
-        self.assertFalse(csp.starts_stack(run))
+        # The pattern has no nested ambiguity: from one `supabase`, a long run of options that
+        # does not end in `start` fails without backtracking, with a version after the name too.
+        # (A line that repeats `supabase` thousands of times is searched from each of them.)
+        for name in ("supabase", "supabase@^2.1"):
+            run = name + " --flag value" * 5000 + " status"
+            self.assertFalse(csp.starts_stack(run))
 
     def test_the_uat_runner_still_starts_the_stack(self):
         # csp.UAT_STARTS treats make test-uat and tool/uat/run.sh as starts: keep that true.

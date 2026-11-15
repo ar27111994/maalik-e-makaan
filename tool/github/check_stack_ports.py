@@ -19,14 +19,16 @@ The write keeps any ports already reserved; tee fails the step when the kernel r
 `sysctl -w` would print "ignoring" and exit 0. This check requires, for every such job in
 .github/workflows:
 
-- the step, by that name and in that spelling, once, as the job's first step, and not as a
-  `background:` step or inside a `parallel:` group, where the next step would not wait for it;
+- the step, by that name and in that spelling, once, as the job's first step, run by bash (no
+  other `shell:` on it or in the job's or the workflow's `defaults`), and not as a `background:`
+  step, which the next step does not wait for, or inside a `parallel:` group, whose steps run
+  beside it;
 - a range that covers every port supabase/config.toml names (a key `port` or ending in `_port`)
   inside the kernel's default automatic range, since a port below it is never given out;
 - no `if:` on the step, and `continue-on-error` only where the start it guards has it too and
   runs only when the step succeeded (the backup's restore check, whose last step then fails the
-  run), so a failed reservation cannot pass in silence. Both are written as a plain `true`: an
-  expression there is refused, because the check cannot tell what it comes to. That start's
+  run), so a failed reservation cannot pass in silence. Both are written as a plain `true` or
+  `false`: an expression there is refused, because the check cannot tell what it comes to. That start's
   `if:` must be terms joined by `&&`, one of them exactly `steps.<its id>.outcome == 'success'`,
   where the id is the reservation's own. A condition the check cannot read so is refused: an
   `||` outside brackets, which lets the step run without the term, the term inside brackets or a
@@ -37,18 +39,20 @@ How GitHub reads these values is taken from its own readers, which agree: templa
 actions/languageservices (workflow-parser) and TemplateReader.cs in actions/runner. Both refuse a
 key written twice ("is already defined") and a key the schema does not know, such as a YAML
 merge key `<<` ("Unexpected value"), so this check does not look for either; actionlint, in the
-same `make lint`, names both. The step keys (`background`, `parallel`) are those of
-workflow-v1.0.json in actions/languageservices.
+same `make lint`, names both, and two step ids that differ only in case. The step keys
+(`background`, `parallel`) are those of workflow-v1.0.json in actions/languageservices.
 
-A step starts the stack when its `run:` (backslash-continued lines joined, comment lines left
-out) runs `supabase start` or `supabase db start`, with or without CLI options before `start`
-(`supabase --workdir . start`) or a version after the name (`npx supabase@2 start`), or runs
-`make test-uat` or tool/uat/run.sh, which starts the stack itself when it is not running. Steps
-inside a `parallel:` group are read too.
+A step starts the stack when its `run:` (backslash-continued lines joined, quotes taken off,
+comment lines left out) runs `supabase start` or `supabase db start`, with or without CLI
+options before `start` (`supabase --workdir . start`) or a version after the name
+(`npx supabase@^2 start`), or runs `make test-uat` or tool/uat/run.sh, which starts the stack
+itself when it is not running. Steps inside a `parallel:` group are read too.
 
 What it does not see: a stack started by an action (a composite one included), a reusable
-workflow, another script, or a command put together from an expression or a variable. Whoever
-adds one of those reserves the ports by hand, and a reviewer reads it.
+workflow, another script, or a command put together from an expression or a variable. Nor can
+the first step come before what GitHub runs ahead of it, which is the job's `services:` and an
+action's `pre:` step: one that connects out can still hold a port. Whoever adds one of those
+reserves the ports by hand, and a reviewer reads it.
 
     python3 tool/github/check_stack_ports.py [repository root]
 """
@@ -83,11 +87,13 @@ SPELLING = (
     f'reserved="$(cat {SYSCTL})" then '
     f'echo "${{reserved:+$reserved,}}<first>-<last>" | sudo tee {SYSCTL}'
 )
-# CLI options between `supabase` and `start`: `-x`, `--debug`, `--workdir=.`, `--workdir .`. A
-# value is a word that is not an option, `db` or `start`; option and value each have one way to
-# match, so a long line that does not start the stack fails at once.
-_OPTIONS = r"(?:\s+-{1,2}\w[\w-]*(?:=\S*|\s+(?!-|(?:db|start)\b)\S+)?)*"
-START = re.compile(rf"\bsupabase(?:@[\w.-]+)?{_OPTIONS}\s+(?:db{_OPTIONS}\s+)?start\b")
+# CLI options between `supabase` and `start`: `-x`, `--debug`, `--workdir=.`, `--workdir .`, and
+# a bare `--` (`npm exec supabase -- start`). A value is a word that is not an option, `db` or
+# `start`; option and value each have one way to match, so from any one `supabase` a long run of
+# options that does not end in `start` fails without backtracking. After the name may come a
+# version in any of npm's forms (`@2`, `@^2`, `@>=2.1`, `@latest`).
+_OPTIONS = r"(?:\s+(?:--(?=\s)|-{1,2}\w[\w-]*(?:=\S*|\s+(?!-|(?:db|start)\b)\S+)?))*"
+START = re.compile(rf"\bsupabase(?:@\S+)?{_OPTIONS}\s+(?:db{_OPTIONS}\s+)?start\b")
 # tool/uat/run.sh runs `"${SUPABASE[@]}" start` when the stack is not running, and the Makefile's
 # test-uat runs it (test_check_stack_ports.py keeps both true).
 UAT_STARTS = re.compile(r"\bmake\b[^\n;&|#]*\stest-uat(?![\w-])|\btool/uat/run\.sh(?![\w.-])")
@@ -116,11 +122,14 @@ def config_ports(config: dict, table: str = "") -> Iterator[Port]:
 
 
 def starts_stack(run: str) -> bool:
-    """Whether a `run:` script starts the stack, outside a comment line."""
-    joined = re.sub(r"\\\n", " ", run)
+    """Whether a `run:` script starts the stack, outside a comment line. A backslash at a line's
+    end joins it to the next as bash does, with nothing between, and quotes are taken off, so
+    that `"supabase" start` and `supabase 'start'` count; a line that only prints the words
+    counts too, which errs on the side of asking for the reservation."""
+    joined = run.replace("\\\n", "")
     return any(
         START.search(line) or UAT_STARTS.search(line)
-        for line in joined.splitlines()
+        for line in (text.replace('"', "").replace("'", "") for text in joined.splitlines())
         if not line.lstrip().startswith("#")
     )
 
@@ -183,6 +192,11 @@ def waits_for(condition: str, guard: str) -> bool:
     return found is not None and guard in found
 
 
+def default_shell(node: yaml.Node | None) -> yaml.Node | None:
+    """The `defaults.run.shell` of a workflow or a job."""
+    return get(get(get(node, "defaults"), "run"), "shell")
+
+
 def plain_boolean(node: yaml.Node | None) -> bool:
     """Whether a `continue-on-error` or `background` is absent or a boolean written out."""
     return node is None or (kind_of(node) == "boolean" and node.value in BOOLEANS)
@@ -195,13 +209,16 @@ class Placed:
     grouped: bool  # inside a `parallel:` group, whose steps run at once, in the background
 
 
-def placed_steps(steps: list[yaml.Node], inside: int | None = None) -> Iterator[Placed]:
-    """Every step of a job, those of `parallel:` groups included, in the order written."""
+def placed_steps(
+    steps: list[yaml.Node], inside: int | None = None, groups: tuple[int, ...] = ()
+) -> Iterator[Placed]:
+    """Every step of a job, those of `parallel:` groups included, in the order written. A group
+    that holds itself through an alias (which GitHub and actionlint refuse) is read once."""
     for index, step in enumerate(steps):
         place = index if inside is None else inside
         group = get(step, "parallel")
-        if isinstance(group, yaml.SequenceNode):
-            yield from placed_steps(group.value, place)
+        if isinstance(group, yaml.SequenceNode) and id(group) not in groups:
+            yield from placed_steps(group.value, place, (*groups, id(group)))
         else:
             yield Placed(step, place, inside is not None)
 
@@ -217,20 +234,23 @@ class Checker:
         for path in files:
             try:
                 document = compose((self.root / path).read_text(encoding="utf-8"))
-            except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
-                found.append(Problem(path, 1, f"cannot read it ({error})"))
+            except (OSError, UnicodeDecodeError, yaml.YAMLError, RecursionError) as error:
+                found.append(Problem(path, 1, f"cannot read it ({error or type(error).__name__})"))
                 continue
+            shell = default_shell(document)
             for name, job in items(get(document, "jobs")):
-                found += self.check_job(path, name.value, job)
+                found += self.check_job(path, name.value, job, default_shell(job) or shell)
         return found
 
-    def check_job(self, path: str, job_name: str, job: yaml.Node) -> list[Problem]:
+    def check_job(
+        self, path: str, job_name: str, job: yaml.Node, shell: yaml.Node | None = None
+    ) -> list[Problem]:
         steps = get(job, "steps")
         placed = list(placed_steps(steps.value if isinstance(steps, yaml.SequenceNode) else []))
         named = [at for at in placed if scalar(get(at.step, "name")) == NAME]
         found: list[Problem] = []
         for count, at in enumerate(named):
-            found += self.check_reserve(path, at.step, scalar(get(at.step, "run")) or "")
+            found += self.check_reserve(path, at.step, scalar(get(at.step, "run")) or "", shell)
             if at.grouped:
                 found.append(
                     Problem(
@@ -287,7 +307,9 @@ class Checker:
             )
         return found
 
-    def check_reserve(self, path: str, step: yaml.Node, run: str) -> list[Problem]:
+    def check_reserve(
+        self, path: str, step: yaml.Node, run: str, shell: yaml.Node | None = None
+    ) -> list[Problem]:
         line = line_of(step)
         match = RUN.fullmatch(run)
         if match is None:
@@ -315,8 +337,18 @@ class Checker:
                 Problem(
                     path,
                     line,
-                    f'"{NAME}": write continue-on-error as a plain true, or leave it out; this'
-                    " check cannot tell what an expression or a text comes to",
+                    f'"{NAME}": write continue-on-error as a plain true or false, or leave it'
+                    " out; this check cannot tell what an expression or a text comes to",
+                )
+            )
+        shell = get(step, "shell") or shell
+        if shell is not None and (kind_of(shell) != "string" or shell.value != "bash"):
+            found.append(
+                Problem(
+                    path,
+                    line_of(shell),
+                    f'"{NAME}" would run under shell {scalar(shell)!r}, which may not run it as'
+                    " written; let bash run it (shell: bash, here and in defaults.run)",
                 )
             )
         if get(step, "background") is not None:
@@ -342,7 +374,7 @@ class Checker:
                 Problem(
                     path,
                     line,
-                    "write this start's continue-on-error as a plain true; this check cannot"
+                    "write this start's continue-on-error as a plain true or false; this check cannot"
                     " tell what an expression or a text comes to",
                 )
             ]
