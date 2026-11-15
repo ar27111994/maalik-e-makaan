@@ -13,7 +13,7 @@
 </div>
 <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
 <div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border:1px solid #D5DAE0;border-radius:20px">
-<p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">1,755</p>
+<p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">1,854</p>
 <p style="font-size:24px;line-height:1.35;color:#57606A">app tests, all passing</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border:1px solid #D5DAE0;border-radius:20px">
@@ -21,11 +21,11 @@
 <p style="font-size:24px;line-height:1.35;color:#57606A">database tests in 23 suites</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border:1px solid #D5DAE0;border-radius:20px">
-<p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">30</p>
+<p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">31</p>
 <p style="font-size:24px;line-height:1.35;color:#57606A">race scenarios run in parallel</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border:1px solid #D5DAE0;border-radius:20px">
-<p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">98.6%</p>
+<p style="font-size:60px;font-weight:700;line-height:1.1;color:#1D3F8F">98.7%</p>
 <p style="font-size:24px;line-height:1.35;color:#57606A">app line coverage</p>
 </div>
 <div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border:1px solid #D5DAE0;border-radius:20px">
@@ -38,6 +38,6 @@
 </div>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#57606A">App tests run on 11 Nov 2026; coverage and the other suites as recorded on 8 Nov 2026. Z3 and Bend checks too.</p>
-<aside>This is the moat for the agentic era. The rules live in Postgres, not in the app: row-level security on every table, explicit grants, and 23 SECURITY DEFINER write functions pinned by a test allowlist, each checking the caller’s role. Payments need an idempotency key, so the same payment sent twice is recorded once. The formal models cover payment retries, receipts, late fees and the order locks are taken in; Z3 checks for overflow and rounding, and Bend checks the laws against deliberately broken versions. 1,755 app tests passed on 11 November 2026.</aside>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#57606A">App tests and coverage run on 15 Nov 2026; the database suites as recorded on 13 Nov 2026. Z3 and Bend checks too.</p>
+<aside>This is the moat for the agentic era. The rules live in Postgres, not in the app: row-level security on every table, explicit grants, and 23 SECURITY DEFINER write functions pinned by a test allowlist, each checking the caller’s role. Payments need an idempotency key, so the same payment sent twice is recorded once. The formal models cover payment retries, receipts, late fees and the order locks are taken in; Z3 checks for overflow and rounding, and Bend checks the laws against deliberately broken versions. 1,854 app tests passed on 15 November 2026 (release 1.3.0), with 98.67% line coverage; the 1,974 database tests in 23 suites passed on 13 November 2026.</aside>
 </section>
