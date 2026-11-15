@@ -38,6 +38,9 @@ APP_PUBSPEC = "app/pubspec.yaml"
 PYPROJECT = "pyproject.toml"
 FORMAL_INSTALL = "tool/formal/install.sh"
 FORMAL_REQUIREMENTS = "tool/formal/requirements.txt"
+LINT_REQUIREMENTS = "tool/requirements-lint.in"
+LINT_LOCK = "tool/requirements-lint.txt"
+SECURITY = ".github/workflows/security.yml"
 LEAN_TOOLCHAIN = "formal/lean/lean-toolchain"
 SUPABASE_CONFIG = "supabase/config.toml"
 MM_VARIANTS = "packages/mm_ui/test/support/harness.dart"
@@ -1047,6 +1050,48 @@ def parse_formal_pins(install: str, requirements: str, toolchain: str) -> Formal
     )
 
 
+# ── zizmor ─────────────────────────────────────────────────────────────────────────────────
+
+
+def parse_requirement(path: str, text: str, package: str) -> tuple[str, int]:
+    """The version `package==X` pins in a requirements file, and its line."""
+    match = re.search(rf"^{re.escape(package)}==(\S+)", text, re.M)
+    if not match:
+        raise SourceShapeError(path, f"does not pin {package}==X")
+    return match[1], _line(text, match.start())
+
+
+def parse_action_input(path: str, text: str, action: str, name: str) -> Pin:
+    """The `with:` input `name` of the one step that uses `action@…` in a workflow."""
+    lines = text.split("\n")
+    steps = [
+        (index, match)
+        for index, line in enumerate(lines)
+        if (match := re.match(rf"^( *)(- )?uses: {re.escape(action)}@", line))
+    ]
+    if len(steps) != 1:
+        raise SourceShapeError(path, f"has {len(steps)} steps that use {action}; expected one")
+    index, uses = steps[0]
+    key_column = len(uses[1]) + (2 if uses[2] else 0)
+    j = index + 1
+    # The column of the keys of the step's `with:` mapping while inside it: None outside it (in
+    # `env:`, say, whose `version:` is not the action's input), -1 until its first key is seen.
+    inputs: int | None = None
+    while j < len(lines) and (not lines[j].strip() or _indent(lines[j]) >= key_column):
+        line = lines[j]
+        if line.strip() and not line.lstrip().startswith("#"):
+            column = _indent(line)
+            if column == key_column:
+                inputs = -1 if re.match(r"^ *with: *(?:#.*)?$", line) else None
+            elif inputs is not None:
+                inputs = column if inputs == -1 else inputs
+                found = re.match(rf"^ *{re.escape(name)}: *(.+?) *(?:#.*)?$", line)
+                if found and column == inputs:
+                    return Pin(name, _unquote(found[1]), j + 1)
+        j += 1
+    raise SourceShapeError(path, f"line {index + 1}: {action} has no {name} input")
+
+
 # ── The repository ─────────────────────────────────────────────────────────────────────────
 
 
@@ -1236,5 +1281,20 @@ class Repo:
             "formal",
             lambda: parse_formal_pins(
                 self.text(FORMAL_INSTALL), self.text(FORMAL_REQUIREMENTS), self.text(LEAN_TOOLCHAIN)
+            ),
+        )
+
+    def zizmor_requirement(self, path: str) -> tuple[str, int]:
+        """zizmor's pin in `path`: LINT_REQUIREMENTS, or LINT_LOCK, which CI installs."""
+        return self._cached(
+            f"zizmor-requirement:{path}",
+            lambda: parse_requirement(path, self.text(path), "zizmor"),
+        )
+
+    def zizmor_action_version(self) -> Pin:
+        return self._cached(
+            "zizmor-action",
+            lambda: parse_action_input(
+                SECURITY, self.text(SECURITY), "zizmorcore/zizmor-action", "version"
             ),
         )

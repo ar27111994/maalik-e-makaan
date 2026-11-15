@@ -7,8 +7,21 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-14)
+## Current Position (2026-11-15)
 
+- Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
+  zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
+  `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
+  refuses `$/`, so `.github/actionlint.yaml` ignores exactly that message and
+  `tool/github/check_workflow_calls.py` (`make lint`, with a canary test that fails once
+  actionlint accepts `$/`) checks the calls instead. zizmor 1.32.0 is pinned in
+  `tool/requirements-lint.txt` (and `.in`), runs offline in `make lint`, and the Security
+  workflow's zizmor job now runs that version and fails on any finding without an inline ignore
+  (`make docs-check`'s `zizmor-pin` check keeps the three equal).
+  `docs/operations.md`, Code scanning and branch rules, records the ruleset on `main` and the
+  Scorecard result of that day; turning on "up-to-date branches", removing the admin bypass and
+  signing release files are open decisions for the owner. zizmor's auditor persona (not the
+  gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
 - D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
   the `vercel.app` addresses send people on for good. Pull request #74, in no release yet:

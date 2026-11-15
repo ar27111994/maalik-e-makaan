@@ -720,6 +720,63 @@ class ToolchainTest(unittest.TestCase):
             fs.parse_formal_pins(docs_fixture.INSTALL, z3, "stable\n")
 
 
+class ZizmorPinTest(unittest.TestCase):
+    def test_the_requirement_and_its_line(self) -> None:
+        text = "# tools\nzizmor-extra==9\nzizmor==1.32.0 \\\n    --hash=sha256:00\n"
+        self.assertEqual(fs.parse_requirement("r.in", text, "zizmor"), ("1.32.0", 3))
+        with self.assertRaisesRegex(SourceShapeError, "r.in: does not pin zizmor==X"):
+            fs.parse_requirement("r.in", "zizmor>=1\n", "zizmor")
+
+    def test_the_action_input(self) -> None:
+        pin = fs.parse_action_input(
+            "s.yml", docs_fixture.SECURITY, "zizmorcore/zizmor-action", "version"
+        )
+        self.assertEqual((pin.name, pin.value, pin.line), ("version", "1.32.0", 13))
+        quoted = docs_fixture.SECURITY.replace("version: 1.32.0", 'version: "1.31.0" # old')
+        self.assertEqual(
+            fs.parse_action_input("s.yml", quoted, "zizmorcore/zizmor-action", "version").value,
+            "1.31.0",
+        )
+
+    def test_action_input_errors(self) -> None:
+        action = "zizmorcore/zizmor-action"
+        with self.assertRaisesRegex(SourceShapeError, "has 0 steps that use zizmorcore"):
+            fs.parse_action_input("s.yml", "jobs: {}\n", action, "version")
+        twice = docs_fixture.SECURITY + "      - uses: zizmorcore/zizmor-action@00\n"
+        with self.assertRaisesRegex(SourceShapeError, "has 2 steps that use zizmorcore"):
+            fs.parse_action_input("s.yml", twice, action, "version")
+        # A version: in the next step, or one level up, is not the action's input.
+        unset = docs_fixture.SECURITY.replace("          version: 1.32.0\n", "")
+        unset += "      - uses: other/action@00\n        with:\n          version: 9\n"
+        with self.assertRaisesRegex(SourceShapeError, "line 9: zizmorcore/zizmor-action has no"):
+            fs.parse_action_input("s.yml", unset, action, "version")
+
+    def test_only_the_steps_with_mapping_holds_its_inputs(self) -> None:
+        action = "zizmorcore/zizmor-action"
+        with_line = "        with:\n"
+        self.assertEqual(docs_fixture.SECURITY.count(with_line), 1)
+        # A version: under env:, before or after with:, is not the action's input.
+        env = "        env:\n          version: 1.31.0\n"
+        for text in (
+            docs_fixture.SECURITY.replace(with_line, env + with_line),
+            docs_fixture.SECURITY.replace(
+                "          version: 1.32.0\n", "          version: 1.32.0\n" + env
+            ),
+        ):
+            pin = fs.parse_action_input("s.yml", text, action, "version")
+            self.assertEqual(pin.value, "1.32.0")
+            self.assertEqual(text.split("\n")[pin.line - 1].strip(), "version: 1.32.0")
+        # Nor is one nested deeper inside with:, or one under env: when with: has none.
+        nested = docs_fixture.SECURITY.replace(
+            "          version: 1.32.0\n", "          config:\n            version: 1.32.0\n"
+        )
+        only_env = docs_fixture.SECURITY.replace("          version: 1.32.0\n", "") + ""
+        only_env = only_env.replace(with_line, env + with_line)
+        for text in (nested, only_env):
+            with self.assertRaisesRegex(SourceShapeError, "zizmorcore/zizmor-action has no"):
+                fs.parse_action_input("s.yml", text, action, "version")
+
+
 class GlobTest(unittest.TestCase):
     def test_glob_match(self) -> None:
         cases = (
@@ -767,6 +824,7 @@ class RepoTest(unittest.TestCase):
                     ".github/workflows/ci.yml",
                     ".github/workflows/deploy.yml",
                     ".github/workflows/pr-title.yml",
+                    ".github/workflows/security.yml",
                 ],
             )
             self.assertEqual(

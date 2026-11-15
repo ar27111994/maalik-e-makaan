@@ -113,7 +113,30 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Runs zizmor, with its online audits, and uploads the findings to code scanning. With
+      # that upload on (advanced-security, the default) zizmor writes SARIF and exits 0 whatever
+      # it finds, so the next step fails the job on a finding that no inline ignore suppresses:
+      # a pull request is stopped, not main warned afterwards. make lint runs the same zizmor
+      # offline.
       - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+        id: zizmor
+        with:
+          # Equal to zizmor's pin in tool/requirements-lint.txt; make docs-check checks it.
+          version: 1.32.0
+      - name: Fail on any zizmor finding
+        env:
+          SARIF: ${{ steps.zizmor.outputs.output-file }}
+        run: |
+          jq -r '.runs[].results[] | select((.suppressions // []) == [])
+            | .locations[0].physicalLocation as $where
+            | "\($where.artifactLocation.uri):\($where.region.startLine): \(.ruleId)"
+              + " (\(.properties["zizmor/severity"])): \(.message.text)"' \
+            "$SARIF" > "$RUNNER_TEMP/zizmor-findings.txt"
+          if [[ -s "$RUNNER_TEMP/zizmor-findings.txt" ]]; then
+            cat "$RUNNER_TEMP/zizmor-findings.txt"
+            echo "::error::zizmor reported $(wc -l < "$RUNNER_TEMP/zizmor-findings.txt") finding(s); fix them (make lint runs zizmor offline)"
+            exit 1
+          fi
 
   outdated-functions:
     # Dependabot cannot update Deno imports, so the weekly run lists them.

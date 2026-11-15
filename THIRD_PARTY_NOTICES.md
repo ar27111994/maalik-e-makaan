@@ -220,6 +220,7 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 | Package              | Version   | Licence                                                          |
 | -------------------- | --------- | ---------------------------------------------------------------- |
 | fonttools            | 4.68.0    | MIT                                                              |
+| PyYAML               | 6.0.3     | MIT                                                              |
 | black                | 26.10.1   | MIT                                                              |
 | ruff                 | 0.17.3    | MIT                                                              |
 | shellcheck-py        | 0.11.0.1  | MIT wrapper; the ShellCheck 0.11.0 binary it installs is GPL-3.0 |
@@ -227,6 +228,7 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 | squawk-cli           | 2.71.0    | Apache-2.0 OR MIT                                                |
 | editorconfig-checker | 3.11.1    | MIT                                                              |
 | actionlint-py        | 1.7.12.25 | MIT                                                              |
+| zizmor               | 1.32.0    | MIT                                                              |
 | z3-solver            | 5.3.3.0   | MIT                                                              |
 | tzdata               | 2026.6    | Apache-2.0 (the IANA 2026f data it carries is public domain)     |
 
