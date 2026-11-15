@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.2.0...v1.3.0) (2026-11-15)
+
+
+### Features
+
+* **core:** read amounts written in words, lakh and crore, from a shared lexicon ([#75](https://github.com/ar27111994/maalik-e-makaan/issues/75)) ([d24acdc](https://github.com/ar27111994/maalik-e-makaan/commit/d24acdc3a009aa10c777c3d568607e3cf815b88a))
+* **db:** record where owners live, the owner-abroad answer and each portfolio's caretaker ([#61](https://github.com/ar27111994/maalik-e-makaan/issues/61)) ([7e75b7f](https://github.com/ar27111994/maalik-e-makaan/commit/7e75b7f5217ca844a4633d4d054ee8a4563e0fff))
+* **web:** move the site to mmakaan.app and the web app to app.mmakaan.app ([#74](https://github.com/ar27111994/maalik-e-makaan/issues/74)) ([8cd3c15](https://github.com/ar27111994/maalik-e-makaan/commit/8cd3c15f297e98d935ddfdd2a8fd28ca740c4130))
+
+
+### Documentation
+
+* **planning:** record the Auth templates pasted again after 1.2.0 ([#67](https://github.com/ar27111994/maalik-e-makaan/issues/67)) ([3504cc8](https://github.com/ar27111994/maalik-e-makaan/commit/3504cc89902130f244909e7fadef8e709c774824))
+
 ## [1.2.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.1.1...v1.2.0) (2026-11-12)
 
 
