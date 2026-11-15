@@ -12,8 +12,9 @@ default. And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
 contracts/origins.json (decision D-20), each host with both paths in one
 https App Links filter that Android verifies (autoVerify) and can launch: VIEW,
-DEFAULT and BROWSABLE, no port, under an activity (or activity alias) that is
-neither exported="false" nor enabled="false". No web link filter, verified or
+DEFAULT and BROWSABLE, no port, under an activity (or activity alias) that a link
+reaches (_component_problems: exported and enabled, with an enabled target and
+application, and no permission a browser would need). No web link filter, verified or
 not, names another host: Android 6 to 11 verify every web host of the app's
 filters, all or none. An earlier address stays for the links already sent. This
 check reads the main manifest, and in CI the merged release manifest, and fails
@@ -53,6 +54,9 @@ LAUNCH_ACTIONS = ("android.intent.action.VIEW",)
 LAUNCH_CATEGORIES = ("android.intent.category.DEFAULT", "android.intent.category.BROWSABLE")
 # The components a link can start: a browser hands it to startActivity().
 ACTIVITIES = ("activity", "activity-alias")
+# The ways aapt2 writes a boolean attribute (ResourceUtils::ParseBool), around any spaces.
+_TRUE = frozenset({"true", "True", "TRUE"})
+_FALSE = frozenset({"false", "False", "FALSE"})
 
 
 def app_link_hosts(origins: Path | None = None) -> set[str]:
@@ -68,30 +72,86 @@ def app_link_hosts(origins: Path | None = None) -> set[str]:
     return hosts
 
 
-def _component_problems(parent: ET.Element | None, application: ET.Element | None) -> list[str]:
+def _flag_problems(element: ET.Element, name: str, where: str, why: str) -> list[str]:
+    """What keeps a boolean attribute of `element` from being "true", as aapt2 reads it: absent
+    or true (in the cases aapt2 accepts, around any spaces) is nothing; false is `where` with
+    `why`; anything else, a resource such as @bool/... above all, is a value this check cannot
+    resolve, so it fails closed and asks for the literal."""
+    raw = element.get(f"{ANDROID}{name}")
+    if raw is None or raw.strip() in _TRUE:
+        return []
+    if raw.strip() in _FALSE:
+        return [f'{where} with android:{name}="{raw}", {why}']
+    return [
+        f'{where} with android:{name}="{raw}", which this check cannot read: write "true" or'
+        ' "false" there (a resource such as @bool/... is not resolved here)'
+    ]
+
+
+def _qualified(name: str, package: str) -> str:
+    """A component's class name as Android reads it: a leading dot, or no dot at all, puts the
+    manifest's package in front."""
+    if package and (name.startswith(".") or "." not in name):
+        return f"{package}{'' if name.startswith('.') else '.'}{name}"
+    return name
+
+
+def _component_problems(
+    parent: ET.Element | None, application: ET.Element | None, root: ET.Element
+) -> list[str]:
     """Why no link from a browser or another app reaches the component that holds the filter:
     it is not an activity (a link is an activity intent; a service or receiver never gets one),
     or it, or the application, is disabled, or it is not exported, which keeps every intent
-    from another app out. An activity with an intent filter is exported unless it says not."""
+    from another app out; an alias also needs its target activity enabled. An activity with an
+    intent filter is exported unless it says not. A permission keeps a link out too: a browser
+    holds none, so startActivity() fails. This refuses one on the component, on an alias's
+    target, or on the application (which applies to every component that sets none), so it
+    fails closed whichever of them Android applies to an alias. An alias whose target this
+    manifest does not declare is left to Android, which refuses to install it."""
     if parent is None:
         tag = "no component"
     else:
         tag = f"{'an' if parent.tag[0] in 'aeiou' else 'a'} <{parent.tag}>"
     if parent is None or parent.tag not in ACTIVITIES:
         return [f"is on {tag}, which no link starts: only an <activity> or <activity-alias> is"]
+    unreached = "which no link from another app reaches"
     found = [
-        f'is on {tag} with android:{name}="false", which no link from another app reaches'
+        problem
         for name in ("exported", "enabled")
-        if parent.get(f"{ANDROID}{name}") == "false"
+        for problem in _flag_problems(parent, name, f"is on {tag}", unreached)
     ]
-    if application is not None and application.get(f"{ANDROID}enabled") == "false":
-        found.append('is in an <application> with android:enabled="false", which starts nothing')
+    holders = [(parent, f"is on {tag}")]
+    if parent.tag == "activity-alias":
+        package = root.get("package", "")
+        target = _qualified(parent.get(f"{ANDROID}targetActivity", ""), package)
+        for activity in root.iter("activity"):
+            if _qualified(activity.get(f"{ANDROID}name", ""), package) == target:
+                where = "is on an <activity-alias> whose target <activity>"
+                found += _flag_problems(activity, "enabled", where, "so the alias starts nothing")
+                holders.append((activity, where))
+                break
+    if application is not None:
+        found += _flag_problems(
+            application, "enabled", "is in an <application>", "which starts nothing"
+        )
+        holders.append((application, "is in an <application>"))
+    found += [
+        f'{where} with android:permission="{element.get(f"{ANDROID}permission")}", which a'
+        " browser does not hold, so no link starts it"
+        for element, where in holders
+        if element.get(f"{ANDROID}permission", "").strip()
+    ]
     return found
 
 
 def _port_problems(intent_filter: ET.Element) -> list[str]:
     """A port in the filter: Android then matches only a link that names that port, and the
-    e-mail links name none (not even 443, which a link without a port does not match)."""
+    e-mail links name none (not even 443, which a link without a port does not match).
+
+    This is stricter than Android on purpose: Android pairs each port with a host, so a filter
+    that also names its host without a port would still open the links, and a port on a <data>
+    without a host means nothing. Any port refuses the filter, so the check fails closed rather
+    than read a filter's authorities one by one."""
     ports = sorted(
         {data.get(f"{ANDROID}port", "") for data in intent_filter.findall("data")} - {""}
     )
@@ -160,7 +220,7 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
     opened_hosts: set[str] = set()
     for number, intent_filter in enumerate(filters, start=1):
         where = f"{manifest}: App Links filter {number}"
-        unreachable = _component_problems(parents.get(intent_filter), application)
+        unreachable = _component_problems(parents.get(intent_filter), application, root)
         unreachable += _port_problems(intent_filter)
         found += [f"{where} {problem}" for problem in unreachable]
         datas = intent_filter.findall("data")
