@@ -116,6 +116,27 @@ def later_step(job: str, run: str) -> callable:
     return in_job(job, UPLOAD, UPLOAD + f"      - run: {run}\n")
 
 
+def later_raw(job: str, step: str) -> callable:
+    """A mutant that adds `step` (a step's YAML) right after `job`'s upload step."""
+    return in_job(job, UPLOAD, UPLOAD + step)
+
+
+def script_step(script: str) -> str:
+    """An actions/github-script step that runs `script`."""
+    return (
+        "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+        f"        with:\n          script: {script}\n"
+    )
+
+
+def env_step(value: str) -> str:
+    """A step of some action whose env holds `value`."""
+    return (
+        "      - uses: some/action@0123456789abcdef0123456789abcdef01234567\n"
+        f"        env:\n          COMMAND: {value}\n"
+    )
+
+
 def in_job_header(job: str, old: str, new: str) -> callable:
     """A mutant that changes `old` in `job`'s keys before its steps (the jobs share the text)."""
 
@@ -372,11 +393,10 @@ MUTANTS = {
         [
             (
                 'job "ios" names the provenance file'
-                " dist/maalik-e-makaan-${{needs.release-please.outputs.tag  }}.intoto.jsonl, as"
-                f" {RELEASE}:",
-                " does (dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}"
-                ".intoto.jsonl, the same file once GitHub reads its expressions); the two uploads"
-                " would replace each other's file",
+                " dist/maalik-e-makaan-${{needs.release-please.outputs.tag  }}.intoto.jsonl, and"
+                f" {RELEASE}:194 names dist/maalik-e-makaan-${{{{ needs.release-please.outputs.tag"
+                " }}.intoto.jsonl: the same file, once GitHub reads its expressions, and the two"
+                " `--clobber` uploads would replace each other's file",
             )
         ],
     ),
@@ -390,9 +410,52 @@ MUTANTS = {
             (
                 'job "ios" names the provenance file'
                 " dist/maalik-e-makaan-${{ needs.Release-Please.outputs.TAG }}.intoto.jsonl",
-                "the same file once GitHub reads its expressions",
+                "the same file, once GitHub reads its expressions",
             )
         ],
+    ),
+    # GitHub, and gh when it looks for the file --clobber replaces, fold a run of dots into one
+    # (#81's third review).
+    "two dots before the suffix of the provenance file's name": (
+        in_job("ios", "}}-ios.intoto.jsonl", "}}..intoto.jsonl"),
+        [('job "ios": PROVENANCE is', "a name with two dots in a row")],
+    ),
+    # Another expression with the same value names the artefacts job's file: the check does not
+    # know the values, so the names must differ around them.
+    **{
+        f"the iOS provenance file named by {how}": (
+            in_job("ios", "${{ needs.release-please.outputs.tag }}-ios", name),
+            [
+                (
+                    f'job "ios" names the provenance file dist/maalik-e-makaan-{name}.intoto.jsonl',
+                    "names that can be the same file once Actions fills in their expressions",
+                )
+            ],
+        )
+        for how, name in (
+            ("env.TAG", "${{ env.TAG }}"),
+            ("v and the version", "v${{ needs.release-please.outputs.version }}"),
+            (
+                "the tag and an empty env value",
+                "${{ needs.release-please.outputs.tag }}${{ env.UNSET }}",
+            ),
+        )
+    },
+    "the iOS provenance file with -ios before the tag (still passes)": (
+        in_job(
+            "ios",
+            "maalik-e-makaan-${{ needs.release-please.outputs.tag }}-ios",
+            "maalik-e-makaan-ios-${{ needs.release-please.outputs.tag }}",
+        ),
+        [],
+    ),
+    "the iOS job as a matrix of two legs": (
+        in_job_header(
+            "ios",
+            "    runs-on: macos-26\n",
+            "    strategy:\n      matrix:\n        leg: [a, b]\n    runs-on: macos-26\n",
+        ),
+        ['job "ios" uploads release files, so it may not set a strategy'],
     ),
     "BUNDLE reading attestation-id": (
         in_job("artefacts", "outputs.bundle-path", "outputs.attestation-id"),
@@ -628,8 +691,6 @@ MUTANTS = {
         [
             "this step puts files on a release without the provenance check, takes them off it,"
             " or defines a gh alias or extension that could",
-            # The alias's text holds the upload's words, so the step counts as an upload too.
-            'job "artefacts" runs `gh release upload` in 2 steps',
         ],
     ),
     "a gh alias with its words quoted in a later step": (
@@ -667,7 +728,9 @@ MUTANTS = {
         for how, flags in (
             ("-R before the subcommand", '-R "$GITHUB_REPOSITORY"'),
             ("--repo= before the subcommand", '--repo="$GITHUB_REPOSITORY"'),
-            ("a flag of its own before the subcommand", "--some-flag"),
+            # gh reads `upload` as the value of a flag it does not know, and then fails; the
+            # check counts it as the subcommand (the wider reading, `_subcommand`).
+            ("a flag gh does not know before the subcommand", "--some-flag"),
         )
     },
     **{
@@ -693,11 +756,13 @@ MUTANTS = {
         later_step("artefacts", 'gh release -R upload view "$TAG"'),
         ['job "artefacts" runs `gh release upload` in 2 steps'],
     ),
-    "a gh alias set with a flag before set, gh's name in a variable": (
+    # gh reads `set` and `install` as the values of `--clobber` and `--force`, which `alias` and
+    # `extension` do not have; counted all the same (the wider reading).
+    "a gh alias set with a flag gh does not know before set, gh's name in a variable": (
         later_step("ios", "${GH:-gh} alias --clobber set up 'release view'"),
         ["this step puts files on a release without the provenance check"],
     ),
-    "a gh extension installed with a flag before install, gh's name in a variable": (
+    "a gh extension installed with a flag gh does not know before install, gh's name in a variable": (
         later_step("artefacts", 'command "$GH" extension --force install someone/gh-attach'),
         ["this step puts files on a release without the provenance check"],
     ),
@@ -710,6 +775,146 @@ MUTANTS = {
             "artefacts",
             'gh release -R "$GITHUB_REPOSITORY" edit "$TAG" --draft=false'
             ' && gh release --repo "$GITHUB_REPOSITORY" download "$TAG" -p "*.apk"',
+        ),
+        [],
+    ),
+    # An Actions expression is filled in before the step runs (#81's third review): as the
+    # value of `-R` or `--repo`, as a string literal in place of a word, or as any other value.
+    **{
+        f"a second upload step in {job} with -R ${{{{ github.repository }}}}": (
+            later_step(
+                job, 'gh release -R ${{ github.repository }} upload "$TAG" dist/late --clobber'
+            ),
+            [f'job "{job}" runs `gh release upload` in 2 steps'],
+        )
+        for job in ("artefacts", "ios")
+    },
+    **{
+        f"{what} with --repo ${{{{ github.repository }}}} before the subcommand": (
+            later_step("artefacts", f"gh release --repo ${{{{ github.repository }}}} {command}"),
+            ["this step puts files on a release without the provenance check"],
+        )
+        for what, command in (
+            ("a release created", "create v9 dist/late"),
+            ("the release deleted", 'delete "$TAG" --yes'),
+            ("the provenance file deleted", 'delete-asset "$TAG" x.intoto.jsonl --yes'),
+        )
+    },
+    "a release created by an env value with -R ${{ github.repository }}": (
+        later_raw("ios", env_step("gh release -R ${{ github.repository }} create v9 x")),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "an upload in an action's script with --repo ${{ github.repository }}": (
+        later_raw(
+            "ios",
+            script_step("exec.exec('gh release --repo ${{ github.repository }} upload v9 x')"),
+        ),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a second upload step with the subcommand as a literal expression": (
+        later_step("artefacts", "gh release ${{ 'upload' }} \"$TAG\" dist/late --clobber"),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a second upload step with release as a literal expression": (
+        later_step("ios", "gh ${{ 'release' }} upload \"$TAG\" dist/late --clobber"),
+        ['job "ios" runs `gh release upload` in 2 steps'],
+    ),
+    "the release deleted, the subcommand a literal expression": (
+        later_step("artefacts", "gh release ${{ 'delete' }} \"$TAG\" --yes"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a release created, the subcommand a literal expression": (
+        later_step("ios", "gh release ${{ 'create' }} v9 dist/late"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a release changed by a subcommand from an env expression": (
+        later_step("ios", 'gh release ${{ env.VERB }} "$TAG" dist/late'),
+        # It could be `upload` as well as `create` or `delete`.
+        [
+            "this step puts files on a release without the provenance check",
+            'job "ios" runs `gh release upload` in 2 steps',
+        ],
+    ),
+    "a release viewed, with -R ${{ github.repository }} (still passes)": (
+        later_step("artefacts", 'gh release -R ${{ github.repository }} view "$TAG" --json assets'),
+        [],
+    ),
+    # `gh release new` is `gh release create` under its alias in gh.
+    **{
+        f"a release created with new, {how}": (
+            later,
+            ["this step puts files on a release without the provenance check"],
+        )
+        for how, later in (
+            ("alone", later_step("artefacts", "gh release new v9 dist/late")),
+            (
+                "after -R",
+                later_step("ios", 'gh release -R "$GITHUB_REPOSITORY" new v9 dist/late --notes x'),
+            ),
+            ("in bash -c", later_step("artefacts", "bash -c 'gh release new v9 dist/late'")),
+            (
+                "in an action's script",
+                later_raw(
+                    "ios", script_step("exec.exec('gh', ['release', 'new', 'v9', 'dist/late'])")
+                ),
+            ),
+        )
+    },
+    # A DELETE is taken in any case and glued to its flag, by gh api and by curl.
+    **{
+        f"a release file deleted by {command.split(' ', 1)[0]} {how}": (
+            later_step("artefacts", command),
+            ["this step puts files on a release without the provenance check"],
+        )
+        for how, command in (
+            ("with -XDELETE", 'gh api -XDELETE "repos/$GITHUB_REPOSITORY/releases/assets/1"'),
+            ("with -X delete", "gh api -X delete repos/x/y/releases/assets/1"),
+            ("with --method delete", "gh api --method delete repos/x/y/releases/assets/1"),
+            ("with -XDELETE", "curl -XDELETE https://api.github.com/repos/x/y/releases/assets/1"),
+            ("with -XDELETE last", "gh api repos/x/y/releases/assets/1 -XDELETE"),
+        )
+    },
+    # A flag's value an action's script computes is read whole.
+    **{
+        f"an upload in an action's script, -R {how}": (
+            later_raw(
+                "ios",
+                script_step(
+                    f"exec.exec('gh', ['release', '-R', {value}, 'upload', tag, 'dist/late'])"
+                ),
+            ),
+            ["this step puts files on a release without the provenance check"],
+        )
+        for how, value in (
+            ("joined with +", "owner + '/' + name"),
+            ("from a call", "String(repo)"),
+            ("a template literal", "`${owner}/${name}`"),
+        )
+    },
+    "a release viewed in an action's script, -R joined with + (still passes)": (
+        later_raw(
+            "ios", script_step("exec.exec('gh', ['release', '-R', owner + '/' + name, 'view'])")
+        ),
+        [],
+    ),
+    # Prose that names a release and an upload runs no gh (still passes).
+    **{
+        f"a summary line that says {words} (still passes)": (
+            later_step("artefacts", f'echo "{line}" >> "$GITHUB_STEP_SUMMARY"'),
+            [],
+        )
+        for words, line in (
+            ("release upload", "The release upload finished"),
+            ("release - upload", "Checked the release - upload next"),
+            ("release --clobber upload", "release --clobber upload used"),
+            ("release -- delete", "Never delete a release; see release -- delete policy"),
+        )
+    },
+    "gh release view, download, list, ls, verify-asset and edit (still passes)": (
+        later_step(
+            "ios",
+            "gh release view x; gh release download x; gh release list; gh release ls;"
+            " gh release verify-asset x y; gh release edit x --draft=false",
         ),
         [],
     ),
@@ -1472,6 +1677,17 @@ class WordsTest(unittest.TestCase):
             '"$GH" extension --force install o/gh-x',
             # A flag's value that is itself a verb counts too (wider than gh, which runs view).
             "command gh release -R create view v1",
+            # `new` is `create`'s alias; a DELETE in any case, glued to its flag.
+            "gh release new v1 x",
+            "gh release -R o/r new v1",
+            "gh api -XDELETE repos/o/r/releases/assets/1",
+            "gh api --method=delete repos/o/r/releases/assets/1",
+            # An expression, filled in as Actions would (`filled`).
+            crp.filled("gh release -R ${{ github.repository }} delete v1"),
+            crp.filled("gh release ${{ 'create' }} v1"),
+            crp.filled("gh ${{ 'release' }} delete v1"),
+            crp.filled("gh release ${{ env.VERB }} v1"),
+            crp.filled("gh ${{ env.COMMAND }} set up 'release upload'"),
         ):
             with self.subTest(line=line):
                 self.assertTrue(crp.refused_line(line))
@@ -1487,6 +1703,13 @@ class WordsTest(unittest.TestCase):
             '"$GH" release --repo o/r list --limit 1 --exclude-drafts delete',
             '"$GH" release -R o/r edit v1 --draft=false --tag create',
             '"$GH" release download v1 -R o/r -p delete',
+            crp.filled('gh release -R ${{ github.repository }} view "$TAG"'),
+            crp.filled("gh -R ${{ github.repository }} release list"),
+            # Prose runs no gh: a line needs a word gh is run by before `release`.
+            "echo 'The release upload finished'",
+            "echo 'Checked the release - upload next'",
+            "echo 'Never delete a release; see release -- delete policy'",
+            "echo 'Enough said: release new notes'",
         ):
             with self.subTest(line=line):
                 self.assertFalse(crp.refused_line(line))
@@ -1507,67 +1730,167 @@ class WordsTest(unittest.TestCase):
             (["--repo=o/r", "view", "upload"], True),
             (["-R"], False),
             ([], False),
+            # A whole word: `uploads` is not `upload`; `${x:-upload}` holds it.
+            (["uploads"], False),
+            (["${x:-upload}"], True),
+            # An expression could be any word, except as the value of -R or --repo.
+            ([crp.ANY_WORD], True),
+            (["-R", crp.ANY_WORD, "view"], False),
+            (["--repo", crp.ANY_WORD + "/x", "upload"], True),
+            (["--some-flag", crp.ANY_WORD, "view"], True),
         ):
             with self.subTest(words=words):
                 self.assertEqual(crp._verb_after(words, upload), expected)
-        self.assertTrue(
-            crp._says('gh release -R "$GITHUB_REPOSITORY" upload "$TAG" x', crp.UPLOAD, "upload")
-        )
-        self.assertFalse(crp._says("gh release view -R o/r upload", crp.UPLOAD, "upload"))
+        self.assertTrue(crp._says('gh release -R "$GITHUB_REPOSITORY" upload "$TAG" x', upload))
+        self.assertFalse(crp._says("gh release view -R o/r upload", upload))
+        # A word gh is run by must come first: prose holds none.
+        self.assertTrue(crp._holds_pair('"$GH" release upload', crp.RELEASE, upload))
+        self.assertTrue(crp._holds_pair("env GH_TOKEN=x gh release upload", crp.RELEASE, upload))
+        self.assertFalse(crp._holds_pair("the release upload", crp.RELEASE, upload))
+        self.assertFalse(crp._holds_pair("enough release upload", crp.RELEASE, upload))
+        self.assertFalse(crp._holds_pair("gh pr view release upload", crp.RELEASE, upload))
 
-    def test_the_text_patterns_skip_flags_as_gh_does(self):
-        for pattern, text in (
-            (crp.UPLOAD, 'gh release -R "$GITHUB_REPOSITORY" upload "$TAG" x'),
-            (crp.UPLOAD, "gh --repo=o/r release --some-flag upload v1 x"),
-            (crp.GH_RELEASE_TEXT, "exec.exec('gh', ['release', '-R', repo, 'upload', 'v1'])"),
-            (crp.GH_RELEASE_TEXT, "exec.exec('gh', ['release', '--repo', 'o/r', 'delete'])"),
-            (crp.GH_RELEASE_TEXT, "gh release -R 'o r' create v1"),
-            (crp.GH_RELEASE_TEXT, "gh release -R upload view"),
-            (crp.OTHER_UPLOAD, "gh release --repo o/r delete-asset v1 x"),
-            (crp.GH_COMMANDS_TEXT, "gh -R o/r extension install o/gh-x"),
-            (crp.GH_COMMANDS_TEXT, "exec.exec('gh', ['--repo', 'o/r', 'alias', 'set'])"),
+    def test_text_is_read_past_flags_as_gh_reads_it(self):
+        release, upload, other = crp.RELEASE, crp.UPLOAD, crp.UPLOAD + crp.CREATE_OR_DELETE
+        for levels, text in (
+            ((release, upload), 'gh release -R "$GITHUB_REPOSITORY" upload "$TAG" x'),
+            ((release, upload), "gh --repo=o/r release --some-flag upload v1 x"),
+            ((release, other), "exec.exec('gh', ['release', '-R', repo, 'upload', 'v1'])"),
+            ((release, other), "exec.exec('gh', ['release', '--repo', 'o/r', 'delete'])"),
+            ((release, other), "gh release -R 'o r' create v1"),
+            ((release, other), "gh release -R upload view"),
+            ((release, other), "gh release --repo o/r delete-asset v1 x"),
+            ((release, other), "gh release new v1 x"),
+            ((release, other), "gh release\u00a0upload v1 x"),
+            ((release, other), "/usr/bin/gh release upload v1 x"),
+            ((release, other), "${GH:-gh} release upload v1 x"),
+            # A value an action's script computes is read whole.
+            ((release, other), "exec.exec('gh', ['release', '-R', owner + '/' + name, 'upload'])"),
+            ((release, other), "exec.exec('gh', ['release', '-R', String(repo), 'upload'])"),
+            ((release, other), "exec.exec('gh', ['release', '-R', f(a, g(b)), 'upload'])"),
+            ((release, other), "exec.exec('gh', ['release', '-R', `${o}/${r}`, 'upload'])"),
+            ((release, other), "exec.exec('gh', ['-R', a + 'x', 'release', 'upload'])"),
+            # An expression, filled in as Actions would.
+            ((release, other), crp.filled("gh release -R ${{ github.repository }} upload v1")),
+            ((release, other), crp.filled("gh release ${{ 'delete' }} v1")),
+            ((release, other), crp.filled("gh release ${{ env.VERB }} v1")),
+            ((crp.GH_COMMANDS,), "gh -R o/r extension install o/gh-x"),
+            ((crp.GH_COMMANDS,), "exec.exec('gh', ['--repo', 'o/r', 'alias', 'set'])"),
+            ((crp.GH_COMMANDS,), crp.filled("gh ${{ env.COMMAND }} set x y")),
         ):
             with self.subTest(text=text):
-                self.assertIsNotNone(pattern.search(text))
-        for pattern, text in (
-            (crp.GH_RELEASE_TEXT, "gh release view upload"),
-            (crp.GH_RELEASE_TEXT, "gh release -R o/r view upload"),
-            (crp.GH_RELEASE_TEXT, "gh release download v1 -p delete"),
-            (crp.GH_RELEASE_TEXT, "gh release edit v1 --tag create"),
+                self.assertTrue(crp._gh_runs(text, *levels))
+        for levels, text in (
+            ((release, other), "gh release view upload"),
+            ((release, other), "gh release -R o/r view upload"),
+            ((release, other), "gh release download v1 -p delete"),
+            ((release, other), "gh release edit v1 --tag create"),
             (
-                crp.GH_RELEASE_TEXT,
+                (release, other),
                 "uses: googleapis/release-please-action, gh release-please -x upload",
             ),
-            (crp.OTHER_UPLOAD, "gh release list --limit 1"),
+            ((release, other), "gh release list --limit 1"),
+            ((release, other), "gh pr view release upload"),
+            ((release, other), "gh release; upload"),
+            ((release, other), "const gh = github; gh.release.upload()"),
+            ((release, other), "exec.exec('gh', ['release', '-R', owner + '/' + name, 'view'])"),
+            ((release, other), crp.filled("gh release -R ${{ github.repository }} view v1")),
+            ((release, other), crp.filled("gh --repo ${{ github.repository }} pr list")),
+            ((release, other), "the release upload finished"),
+            ((crp.GH_COMMANDS,), "gh release view alias"),
         ):
             with self.subTest(text=text):
-                self.assertIsNone(pattern.search(text))
+                self.assertFalse(crp._gh_runs(text, *levels))
+
+    def test_expressions_are_filled_in_as_actions_could(self):
+        for text, expected in (
+            ("gh release ${{ 'upload' }} x", "gh release upload x"),
+            ("gh ${{'release'}} ${{ 'it''s' }}", "gh release it's"),
+            ("gh -R ${{ github.repository }} x", f"gh -R {crp.ANY_WORD} x"),
+            ("${{ format('{0}', 'upload') }}", crp.ANY_WORD),
+            ("no expression", "no expression"),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(crp.filled(text), expected)
 
     def test_a_long_line_of_flags_is_read_quickly(self):
-        # Each flag may or may not take a value; the patterns must not try every combination.
+        # Each flag may or may not take a value; the search must not try every combination.
         text = "gh release " + "-a b " * 5000 + "view"
-        for pattern in (crp.UPLOAD, crp.GH_RELEASE_TEXT, crp.OTHER_UPLOAD):
-            self.assertIsNone(pattern.search(text))
+        self.assertFalse(crp._gh_runs(text, crp.RELEASE, crp.UPLOAD + crp.CREATE_OR_DELETE))
+        self.assertIsNone(crp.OTHER_UPLOAD.search(text))
         self.assertFalse(crp.refused_line(text))
+        self.assertFalse(crp.refused_text(text))
 
 
-class ProvenanceKeyTest(unittest.TestCase):
+TAG = "${{ needs.release-please.outputs.tag }}"
+
+
+class ProvenanceNameTest(unittest.TestCase):
+    def same(
+        self, one: str, other: str, *, workflow: bool = True, needs: str = "release-please"
+    ) -> bool:
+        """Whether two jobs, each listing `needs`, can name the same file."""
+        one_parts, other_parts = (crp.provenance_parts(name, {needs}) for name in (one, other))
+        return crp.same_file(one_parts, other_parts, workflow) is not None
+
     def test_names_are_compared_as_github_reads_them(self):
-        name = "dist/m-${{ needs.release-please.outputs.tag }}.intoto.jsonl"
+        name = f"dist/m-{TAG}.intoto.jsonl"
         for same in (
             "dist/m-${{needs.release-please.outputs.tag}}.intoto.jsonl",
             "dist/m-${{\tneeds.release-please.outputs.tag  }}.intoto.jsonl",
             "dist/m-${{ Needs.Release-Please.Outputs.TAG }}.intoto.jsonl",
+            # The case of the text is kept by GitHub; the check reads it more widely.
+            f"dist/M-{TAG}.intoto.jsonl",
         ):
             with self.subTest(name=same):
-                self.assertEqual(crp.provenance_key(same), crp.provenance_key(name))
-        # The text outside the braces is kept as written.
+                self.assertTrue(self.same(same, name))
+        # With the same expressions, the texts around them differ in length or in place.
         for other in (
-            "dist/M-${{ needs.release-please.outputs.tag }}.intoto.jsonl",
-            "dist/m-${{ needs.release-please.outputs.tag }}-ios.intoto.jsonl",
+            f"dist/m-{TAG}-ios.intoto.jsonl",
+            f"dist/m-ios-{TAG}.intoto.jsonl",
+            f"dist/n-{TAG}.intoto.jsonl",
+            f"dist/m-{TAG}.intoto.jsonm",
         ):
             with self.subTest(name=other):
-                self.assertNotEqual(crp.provenance_key(other), crp.provenance_key(name))
+                self.assertFalse(self.same(other, name))
+
+    def test_names_whose_values_are_not_known_differ_only_at_their_ends(self):
+        name = f"dist/m-{TAG}.intoto.jsonl"
+        for same in (
+            # Another expression with the same value, or an empty one.
+            "dist/m-${{ env.TAG }}.intoto.jsonl",
+            "dist/m-v${{ needs.release-please.outputs.version }}.intoto.jsonl",
+            f"dist/m-{TAG}${{{{ env.UNSET }}}}.intoto.jsonl",
+            "dist/m-${{ steps.x.outputs.tag }}.intoto.jsonl",
+            "dist/m-${{ github.job }}.intoto.jsonl",
+            "dist/m-v1.intoto.jsonl",
+            # Texts the same length but out of place, around the same expression: a value can
+            # make up the difference (`a` + `bb` + `b` is `ab` + `bb`).
+            f"dist/m{TAG}-.intoto.jsonl",
+        ):
+            with self.subTest(name=same):
+                self.assertTrue(self.same(same, name))
+        for other in (
+            "dist/n-${{ env.TAG }}.intoto.jsonl",
+            "dist/m-${{ env.TAG }}.sig.intoto.jsonm",
+            "dist/n.intoto.jsonl",
+        ):
+            with self.subTest(name=other):
+                self.assertFalse(self.same(other, name))
+        # A job output is the same in two jobs only if both need its job, and an expression in
+        # two workflows (two runs) need not be the same.
+        self.assertTrue(self.same(f"dist/m-{TAG}-ios.intoto.jsonl", name, needs="other"))
+        self.assertTrue(self.same(f"dist/m-{TAG}-ios.intoto.jsonl", name, workflow=False))
+        self.assertFalse(self.same(f"dist/m-{TAG}-ios.intoto.jsonl", name))
+
+    def test_needs_are_read_as_a_name_or_a_list(self):
+        for needs, expected in (
+            ("needs: Release-Please\n", {"release-please"}),
+            ("needs: [a, B]\n", {"a", "b"}),
+            ("x: 1\n", set()),
+        ):
+            with self.subTest(needs=needs):
+                self.assertEqual(crp.needs_of(crp.compose(needs)), expected)
 
 
 class CommandsTest(unittest.TestCase):

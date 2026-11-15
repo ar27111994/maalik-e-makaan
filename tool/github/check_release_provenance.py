@@ -55,24 +55,39 @@ or zero-width space). In each job that runs `gh release upload`:
   `BASH_FUNC_*`), merges variables in with `<<`, or comes from an expression;
 - the job grants `attestations: write` and `id-token: write`.
 
-No two jobs may name the same provenance file, as GitHub reads the names (`provenance_key`: white
-space inside `${{ }}` dropped and the expression case-folded), since the two `--clobber` uploads
-would replace each other's; no job may upload release files another way (`gh release create`, an
+No uploading job may set a `strategy` (each leg of a matrix would give its provenance file the
+same name), and no two jobs may name provenance files that can be the same file on the release
+(`same_file`), since the two `--clobber` uploads would replace each other's: the names are
+compared as GitHub reads them (white space inside `${{ }}` dropped, the expressions and, more
+widely than GitHub, the text case-folded), and since the check does not know the expressions'
+values, two names differ only if they have the same expressions, each with one value in every
+job of the run (a needed job's output, `vars`, `inputs`, some of `github`), and texts around them
+that differ without a value being able to make up the difference, or else if one's text before
+the first expression, or after the last, neither starts nor ends the other's. A name may not hold
+two dots in a row (GitHub, and gh's `--clobber`, fold them into one).
+
+No job may upload release files another way (`gh release create`, or `new`, its alias in gh, an
 upload to uploads.github.com or by the client libraries' `uploadReleaseAsset` and
-`upload_release_asset`, or a release-upload action), take them off a release (`gh release delete` or
-`delete-asset`, a `DELETE` on a release URL, the client libraries' `deleteRelease`,
-`deleteReleaseAsset`, `delete_release` and `delete_asset`), or define a gh alias or extension (`gh
-alias`, `gh extension`), which could upload under another name. It looks for these in every value of
-every step, so also in an `actions/github-script` step's `with.script`, along with `gh release
-upload` there; in a run, it looks once the run's quoting is read (`_words`: `gh release $'upload'`,
-`gh release ${x:-upload}` and the words of a quoted `bash -c` or `eval` string count). Both readings
-find the subcommand as gh does (`_verb_after`, `_gh_text`): flags, and a value after a flag, are
-skipped first, so `gh release -R "$GITHUB_REPOSITORY" upload` and `gh release --repo=x delete`
-count; since only gh knows which flags take a value, a word after a flag counts as the subcommand
-too (`gh release -R upload view` counts as an upload, which is wider than gh). `gh release view`,
-`list`, `download` and `edit` (which can retarget or rename a release, or make it a draft, but
-attaches and deletes nothing) are left alone. At least one job must upload, so that a renamed upload
-command cannot pass this check by matching nothing.
+`upload_release_asset`, or a release-upload action), take them off a release (`gh release delete`
+or `delete-asset`, a `DELETE` on a release URL in any case and glued to its flag, as in
+`-XDELETE`, the client libraries' `deleteRelease`, `deleteReleaseAsset`, `delete_release` and
+`delete_asset`), or define a gh alias or extension (`gh alias`, `gh extension`), which could
+upload under another name. It looks for these in every value of every step, so also in an
+`actions/github-script` step's `with.script`, along with `gh release upload` there, once each
+`${{ }}` expression is filled in as Actions could (`filled`: a string literal as its text, any
+other expression as a word that may be any word gh reads, except as the value of `-R` or
+`--repo`); in a run, it looks once the run's quoting is read (`_words`: `gh release $'upload'`,
+`gh release ${x:-upload}` and the words of a quoted `bash -c` or `eval` string count), after a
+word gh is run by (`gh`, `"$GH"`, `${x:-gh}`), so that prose (`echo "the release upload
+finished"`) is not read as a command. Both readings find the subcommand as gh does
+(`_subcommand`, `_gh_runs`): flags, and a value after a flag, are skipped first, so
+`gh release -R "$GITHUB_REPOSITORY" upload`, `gh release -R ${{ github.repository }} upload` and
+`gh release --repo=x delete` count; in text a flag's value may be quoted or joined with `+` and
+calls (`owner + '/' + name`, `String(repo)`). Since only gh knows which flags take a value, a
+word after a flag counts as the subcommand too (`gh release -R upload view` counts as an upload,
+which is wider than gh). `gh release view`, `list`, `download` and `edit` (which can retarget or
+rename a release, or make it a draft, but attaches and deletes nothing) are left alone. At least
+one job must upload, so that a renamed upload command cannot pass this check by matching nothing.
 
 Limits. It reads the workflow's structure, the text of these three steps' commands and the text of
 every step's values; it does not run the shell or any script, and it reads only the workflow files,
@@ -80,17 +95,20 @@ as PyYAML parses them: YAML folds a `run: >` and a plain scalar over several lin
 reads a CR or a CRLF in the file as a line feed. GitHub's parser is not PyYAML; where the two
 differ, this check sees PyYAML's value. Where it cannot read some other step's run as bash does, it
 looks for an upload in every line of it, comments included. It cannot know a context property's
-value, so one in the provenance file's name could still hold a `/`, a `#` or a space. An upload made
+value, so one in the provenance file's name could still hold a `/`, a `#`, a space or a dot at
+either end, which GitHub would change; it takes the tag's `vX.Y.Z` to hold none. An upload made
 by a script or program a step runs (`./attach.sh`, `node attach.js`, a built binary), by an action
 not named here, by a gh alias or extension already configured on the runner or read from a
-configuration directory in the repository (`GH_CONFIG_DIR`), or through text built at run time
-(`$(printf upload)`, a shell variable or function) is not seen; nor is a variable an earlier step
-writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload elsewhere, a `BASH_ENV` or
-`BASH_FUNC_*` for every later step). A reviewer reads those paths by hand (docs/operations.md,
-Release provenance, What the check cannot see). It checks the action as named here: a move to
-`actions/attest` (which the wrapper's README recommends for new work) must update this check in the
-same change, keeping build provenance (no predicate inputs). Scorecard's extension lists are as of
-v5.6.0; the docs name that version.
+configuration directory in the repository (`GH_CONFIG_DIR`), by a reusable workflow that uploads
+and is called twice, or through text built at run time (`$(printf upload)`, a shell variable or
+function, positional parameters, `xargs`, a glob such as `upl[o]ad`, or a value an action's script
+computes in another way than with `+`, a call or a template literal) is not seen; nor is a
+variable an earlier step writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload
+elsewhere, a `BASH_ENV` or `BASH_FUNC_*` for every later step). A reviewer reads those paths by
+hand (docs/operations.md, Release provenance, What the check cannot see). It checks the action as
+named here: a move to `actions/attest` (which the wrapper's README recommends for new work) must
+update this check in the same change, keeping build provenance (no predicate inputs). Scorecard's
+extension lists are as of v5.6.0; the docs name that version.
 
     python3 tool/github/check_release_provenance.py [repository root]
 """
@@ -121,28 +139,41 @@ from check_workflow_calls import (
 ROOT = Path(__file__).resolve().parents[2]
 ATTEST_ACTION = "actions/attest-build-provenance"
 ATTEST = re.compile(rf"^{re.escape(ATTEST_ACTION)}@[0-9a-f]{{40}}$")
-# How gh (cobra) finds a subcommand in text that is not read as words (an action's script, an
-# env value, or a run as plain text): it skips flags, and the value after a flag, before it takes
-# the next word as the subcommand (`gh release -R o/r upload`, `gh --repo=o/r release upload`).
-# Each flag may take a value or not, so both readings are tried: a word after a flag is the
-# subcommand when it is one, and its value otherwise. GAP is what lies between two words: the
-# closing quote of one, spaces, tabs, line ends, commas or `[(`, and the opening quote of the
-# next (`'release', '-R', 'x', 'upload'`). A flag needs a gap before it, so `release-please`
-# holds no flag.
-_GAP = r"""['"]?[\s,\[(]*['"]?"""
-_GAP_BEFORE = r"""['"]?[\s,\[(]+['"]?"""
-_FLAG = r"""-[^\s,'"\])]*"""
-_VALUE = r"""(?:'[^'\n]*'|"[^"\n]*"|[^\s,'"\[\]()-][^\s,'"\])]*)"""
-_FLAGS = rf"(?:{_GAP_BEFORE}{_FLAG}(?:{_GAP_BEFORE}{_VALUE})?)*"
+# The words gh may run, by level: `gh release`, then what each puts on a release or takes off it
+# (`new` is `create`'s alias in gh), and gh's alias and extension commands, any of which is
+# refused (`gh alias set attach 'release upload'` uploads under another name).
+RELEASE = ("release",)
+UPLOAD = ("upload",)
+CREATE_OR_DELETE = ("create", "new", "delete", "delete-asset")
+GH_COMMANDS = ("alias", "ext", "extension", "extensions")
+# The flags of `gh release` (and gh's own) that always take a value: an Actions expression right
+# after one is read as its value, not as the subcommand.
+REPO_FLAGS = ("-R", "--repo")
+# A `${{ }}` expression outside the provenance and upload steps' runs, as the search for other
+# uploads reads it: Actions puts its value in place before the step runs, so a string literal
+# (`${{ 'upload' }}`) is read as its text, and any other expression as this word, which stands
+# for any word gh may read (`gh release ${{ env.VERB }}` counts as an upload).
+ANY_WORD = "__expression__"
+LITERAL = re.compile(r"\$\{\{\s*'((?:[^']|'')*)'\s*\}\}")
+# A word gh is run by (`gh`, `/usr/bin/gh`, `"$GH"`, `${x:-gh}`), in a line read as words.
+GH_WORD = re.compile(r"(?<![A-Za-z0-9])gh(?![A-Za-z0-9])", re.I)
+# `gh` in text that is not read as words (an action's script, an env value, a run as text).
+GH_TEXT = re.compile(r"(?<![\w.])gh(?![\w.])")
+# In such text: what lies between two words (white space, commas, braces, `[(` and quotes), and
+# what ends a word. Any character Python reads as white space counts, a no-break space included:
+# wider than bash, which splits words at spaces and tabs only.
+_GAP = ",[({}'\"`"
+_WORD_END = ",[](){}'\"`;&|<>"
 
 
-def _gh_text(*commands: str) -> re.Pattern[str]:
-    """`gh`, then each of `commands` in turn (each a regex of the words gh may read there), with
-    the flags gh skips before each, read as text."""
-    return re.compile(r"\bgh\b" + "".join(rf"{_FLAGS}{_GAP}(?:{c})\b" for c in commands))
+def _gap(char: str) -> bool:
+    return char in _GAP or char.isspace()
 
 
-UPLOAD = _gh_text("release", "upload")
+def _word_end(char: str) -> bool:
+    return char in _WORD_END or char.isspace()
+
+
 # The upload step's run, once read as RUN_LINES are: dist/* alone, to this release of this
 # repository, replacing a file of the same name.
 UPLOAD_RUN = 'gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"'
@@ -176,31 +207,24 @@ MERGE_KEY = "<<"
 # Keys none of the attest, provenance and upload steps may have.
 STEP_KEYS = ("if", "continue-on-error", "shell", "working-directory")
 SOURCE_REF = "refs/heads/main"
-# Other ways of putting files on a release or taking them off it, refused so that the check
-# cannot be sidestepped: looked for in every value of every step (a `run`, an action's
-# `with.script`, an `env`). `gh release create`, `delete` and `delete-asset`; the REST upload by
-# its URL and by the names Octokit (`uploadReleaseAsset`) and PyGithub (`upload_release_asset`)
-# give it; the deletes by Octokit's and PyGithub's names; and a `DELETE` on a release URL.
+# Other ways of putting files on a release or taking them off it, besides gh's commands, refused
+# so that the check cannot be sidestepped: looked for in every value of every step (a `run`, an
+# action's `with.script`, an `env`). The REST upload by its URL and by the names Octokit
+# (`uploadReleaseAsset`) and PyGithub (`upload_release_asset`) give it; the deletes by Octokit's
+# and PyGithub's names; and a `DELETE` on a release URL, in any case and glued to its flag
+# (`-XDELETE`, `--method delete`), as gh and curl take it.
 OTHER_UPLOAD = re.compile(
-    _gh_text("release", "create|delete").pattern + r"|uploads\.github\.com|\buploadReleaseAsset\b"
+    r"uploads\.github\.com|\buploadReleaseAsset\b"
     r"|\bupload_release_asset\b|\bdeleteRelease(?:Asset)?\b|\bdelete_(?:release|asset)\b"
-    r"|(?s:\bDELETE\b.*\breleases/|\breleases/.*\bDELETE\b)"
+    r"|(?is:delete\b.*\breleases/|\breleases/.*delete\b)"
 )
-# `gh release upload`, `create` or `delete` outside a `run`, where it is not read as a command:
-# in an action's script, also as separate quoted words
-# (`exec.exec('gh', ['release', '-R', repo, 'upload'])`).
-GH_RELEASE_TEXT = _gh_text("release", "upload|create|delete")
-# `gh alias` and `gh extension` (or `ext`, `extensions`): an alias (`gh alias set attach 'release
-# upload'`) or an installed extension can run an upload under another name. Refused in every
-# value of every step, as text and as separate quoted words.
-GH_COMMANDS_TEXT = _gh_text("alias|ext|extensions?")
-# Pairs of words that a run may not hold once its quoting is read (`_words`): a word holding the
-# first text, then, as gh finds its subcommand (`_verb_after`), one holding one of the second.
-# They need no `gh` before them, so that `"$GH" release create` and `${x:-gh} alias set` count too.
+# Pairs of words that a run may not hold once its quoting is read (`_words`): after a word gh is
+# run by (`gh`, `"$GH"`, `${x:-gh}`), a subcommand holding the first text, then, as gh finds its
+# subcommand (`_verb_after`), one holding one of the second.
 REFUSED_PAIRS = (
-    ("release", ("create", "delete")),
-    ("alias", ("set", "import")),
-    ("ext", ("install",)),
+    (RELEASE, CREATE_OR_DELETE),
+    (("alias",), ("set", "import")),
+    (("ext", "extension", "extensions"), ("install",)),
 )
 UPLOAD_ACTIONS = (
     "softprops/action-gh-release",
@@ -463,48 +487,160 @@ def _words(line: str, depth: int = 2) -> list[str]:
     return found
 
 
-def _verb_after(words: list[str], verbs: tuple[str, ...]) -> bool:
-    """Whether gh, given `words` after a command such as `release`, could run one of `verbs`.
-    gh (cobra) skips flags, and the value after a flag, before it takes the next word as the
-    subcommand, and which flags take a value it alone knows: so a flag (a word that starts with
-    `-`) is skipped, the word after it is the subcommand if it holds a verb and is skipped as the
-    flag's value if not, and the first other word is the subcommand, which ends the search
-    (`gh release view upload` runs `view`). Reading a flag's value as the subcommand too makes
-    the search wider than gh's (`gh release -R upload view` runs `view`, yet counts as an upload),
-    never narrower."""
-    after_flag = False
-    for word in words:
-        if any(verb in word for verb in verbs):
-            return True
-        if word.startswith("-"):
-            after_flag = True
-        elif after_flag:
-            after_flag = False
-        else:
-            return False
-    return False
-
-
-def _holds_pair(line: str, first: str, seconds: tuple[str, ...]) -> bool:
-    """Whether a word of `line` that holds `first` is followed, as gh finds its subcommand
-    (`_verb_after`), by one that holds any of `seconds`, once its quoting is read:
-    `gh 'release' upload`, `gh release $'\\x75pload'`, `gh release ${x:-upload}` and
-    `gh release -R "$GITHUB_REPOSITORY" upload` all hold `release` and then `upload`."""
-    words = _words(line)
+def _holds(word: str, names: tuple[str, ...]) -> bool:
+    """Whether `word`, read as a word gh is given, holds one of `names` as a whole word
+    (`${x:-upload}`, `delete-asset` and `up$'load'` once read hold one; `uploads` does not)."""
     return any(
-        first in word and _verb_after(words[i + 1 :], seconds) for i, word in enumerate(words)
+        re.search(rf"(?<![A-Za-z0-9]){re.escape(name)}(?![A-Za-z0-9])", word) for name in names
     )
 
 
-def _says(line: str, pattern: re.Pattern[str], verb: str) -> bool:
-    """Whether `line` runs `gh release <verb>`: as plain text, or once its shell quoting is read
-    (so `gh 'release' upload`, `"gh" release upload` and `gh release $'upload'` count too)."""
-    return pattern.search(line) is not None or _holds_pair(line, "release", (verb,))
+def _subcommand(words: list[str], names: tuple[str, ...]) -> int | None:
+    """The index in `words` of the word gh, given `words` after a command such as `release`,
+    could run as its subcommand, if that word holds one of `names` (or is an Actions expression,
+    `ANY_WORD`, which could be any of them); None if gh runs another subcommand or none. gh
+    (cobra) skips flags, and the value after a flag, before it takes the next word as the
+    subcommand, and which flags take a value it alone knows: so a flag (a word that starts with
+    `-`) is skipped, the word after it is the subcommand if it holds a name and is skipped as the
+    flag's value if not, and the first other word is the subcommand, which ends the search
+    (`gh release view upload` runs `view`). Reading a flag's value as the subcommand too makes
+    the search wider than gh's (`gh release -R upload view` runs `view`, yet counts as an
+    upload), never narrower. The one exception is an expression after `-R` or `--repo`, which
+    always take a value: it is that value (`gh release -R ${{ github.repository }} view` runs
+    `view`)."""
+    flag = None
+    for index, word in enumerate(words):
+        repository = flag in REPO_FLAGS and ANY_WORD in word
+        if not repository and (ANY_WORD in word or _holds(word, names)):
+            return index
+        if word.startswith("-"):
+            flag = word
+        elif flag is not None:
+            flag = None
+        else:
+            return None
+    return None
+
+
+def _verb_after(words: list[str], verbs: tuple[str, ...]) -> bool:
+    """Whether gh, given `words` after a command such as `release`, could run one of `verbs`
+    (`_subcommand`)."""
+    return _subcommand(words, verbs) is not None
+
+
+def _holds_pair(line: str, firsts: tuple[str, ...], seconds: tuple[str, ...]) -> bool:
+    """Whether, once the quoting of `line` is read, a word gh is run by (`GH_WORD`: `gh`,
+    `"$GH"`, `${x:-gh}`) is followed, as gh finds its subcommands (`_subcommand`), by a word
+    holding one of `firsts` and then by one holding one of `seconds`: `gh 'release' upload`,
+    `gh release $'\\x75pload'`, `gh release ${x:-upload}` and
+    `gh release -R "$GITHUB_REPOSITORY" upload` all hold `release` and then `upload`. A line
+    with no such word runs no gh, so prose (`echo "the release upload finished"`) holds none."""
+    words = _words(line)
+    for start, word in enumerate(words):
+        if not GH_WORD.search(word):
+            continue
+        rest = words[start + 1 :]
+        command = _subcommand(rest, firsts)
+        if command is not None and _verb_after(rest[command + 1 :], seconds):
+            return True
+    return False
+
+
+def _value_end(text: str, pos: int) -> int:
+    """Where a flag's value that starts at or after `pos` ends, in text read as text: one word
+    or quoted string (a closing quote right at `pos`, and the spaces, commas and `[(` after it,
+    skipped first), and then any more joined to it with `+`, with a call's parentheses
+    (`String(repo)`), so that a value an action's script computes (`owner + '/' + name`,
+    `` `${owner}/${name}` ``) is read whole."""
+    if text[pos : pos + 1] in ("'", '"', "`"):
+        pos += 1
+    while True:
+        while pos < len(text) and (text[pos] in ",[(" or text[pos].isspace()):
+            pos += 1
+        if pos < len(text) and text[pos] in "'\"`":
+            close = text.find(text[pos], pos + 1)
+            pos = len(text) if close < 0 else close + 1
+        else:
+            while pos < len(text) and not _word_end(text[pos]):
+                pos += 1
+            if text[pos : pos + 1] == "(":
+                depth = 0
+                while pos < len(text):
+                    depth += {"(": 1, ")": -1}.get(text[pos], 0)
+                    pos += 1
+                    if depth == 0:
+                        break
+        after = pos
+        while after < len(text) and text[after].isspace():
+            after += 1
+        if text[after : after + 1] != "+":
+            return pos
+        pos = after + 1
+
+
+def _text_subcommand(text: str, pos: int, names: tuple[str, ...]) -> int | None:
+    """`_subcommand` for text not read as words (an action's script, an env value, a run as
+    text), from `pos`: where the word gh runs as its subcommand ends, if it is one of `names`
+    (or holds an expression); None otherwise. Words are what lies between the gaps (`_GAP`),
+    so the quoted words of an array count (`'release', '-R', repo, 'upload'`), and a flag's
+    value is read by `_value_end`."""
+    flag, after_flag = None, pos
+    while True:
+        while pos < len(text) and _gap(text[pos]):
+            pos += 1
+        end = pos
+        while end < len(text) and not _word_end(text[end]):
+            end += 1
+        word = text[pos:end]
+        if not word:
+            return None
+        repository = flag in REPO_FLAGS and ANY_WORD in word
+        if not repository and (ANY_WORD in word or word in names):
+            return end
+        if word.startswith("-"):
+            flag, pos, after_flag = word, end, end
+        elif flag is not None:
+            flag, pos = None, _value_end(text, after_flag)
+        else:
+            return None
+
+
+def _gh_runs(text: str, *levels: tuple[str, ...]) -> bool:
+    """Whether `text`, read as text, runs `gh` and then, as gh finds its subcommands, one of
+    `levels[0]`, then one of `levels[1]`, and so on (`gh --repo=o/r release -R x upload`,
+    `exec.exec('gh', ['release', '-R', owner + '/' + name, 'upload'])`)."""
+    for match in GH_TEXT.finditer(text):
+        pos: int | None = match.end()
+        for names in levels:
+            pos = _text_subcommand(text, pos, names)
+            if pos is None:
+                break
+        if pos is not None:
+            return True
+    return False
+
+
+def filled(text: str) -> str:
+    """`text` with each `${{ }}` expression in it as Actions could fill it in: a string literal
+    as its text, any other expression as `ANY_WORD`."""
+
+    def fill(match: re.Match[str]) -> str:
+        literal = LITERAL.fullmatch(match[0])
+        return literal[1].replace("''", "'") if literal else ANY_WORD
+
+    return EXPRESSION.sub(fill, text)
+
+
+def _says(line: str, verbs: tuple[str, ...]) -> bool:
+    """Whether `line` runs `gh release` and one of `verbs`: as plain text, or once its shell
+    quoting is read (so `gh 'release' upload`, `"gh" release upload` and `gh release $'upload'`
+    count too)."""
+    return _gh_runs(line, RELEASE, verbs) or _holds_pair(line, RELEASE, verbs)
 
 
 def is_upload(step: yaml.Node) -> bool:
     run = run_of(step)
-    return run is not None and any(_says(line, UPLOAD, "upload") for line in command_lines(run))
+    return run is not None and any(_says(line, UPLOAD) for line in command_lines(filled(run)))
 
 
 def refused_line(line: str) -> bool:
@@ -512,16 +648,19 @@ def refused_line(line: str) -> bool:
     or defines a gh alias or extension (which could upload under another name)."""
     return (
         OTHER_UPLOAD.search(line) is not None
-        or GH_COMMANDS_TEXT.search(line) is not None
-        or any(_holds_pair(line, first, seconds) for first, seconds in REFUSED_PAIRS)
+        or _gh_runs(line, RELEASE, CREATE_OR_DELETE)
+        or _gh_runs(line, GH_COMMANDS)
+        or any(_holds_pair(line, firsts, seconds) for firsts, seconds in REFUSED_PAIRS)
     )
 
 
 def refused_text(text: str) -> bool:
-    """The same, for a step's other values (an action's script, an `env` value), read as text."""
-    return any(
-        pattern.search(text) is not None
-        for pattern in (OTHER_UPLOAD, GH_RELEASE_TEXT, GH_COMMANDS_TEXT)
+    """The same, for a step's other values (an action's script, an `env` value), read as text,
+    where `gh release upload` is refused too."""
+    return (
+        OTHER_UPLOAD.search(text) is not None
+        or _gh_runs(text, RELEASE, UPLOAD + CREATE_OR_DELETE)
+        or _gh_runs(text, GH_COMMANDS)
     )
 
 
@@ -531,7 +670,7 @@ class Checker:
 
     def problems(self, files: list[str]) -> list[Problem]:
         found: list[Problem] = []
-        provenance_names: dict[str, tuple[str, str, int]] = {}
+        provenance_names: list[tuple[str, str, int, ProvenanceParts]] = []
         uploading_jobs = 0
         for path in files:
             try:
@@ -552,28 +691,26 @@ class Checker:
                 job_problems += self.check_shell(path, job_name.value, document, job)
                 job_problems += self.check_env(path, job_name.value, document, job)
                 found += job_problems
-                if name is not None:
-                    text, line = name
-                    key = provenance_key(text)
-                    if key in provenance_names:
-                        other_text, other_path, other_line = provenance_names[key]
-                        same = (
-                            ""
-                            if other_text == text
-                            else f" ({other_text}, the same file once GitHub reads its"
-                            " expressions)"
-                        )
+                if name is None:
+                    continue
+                text, line = name
+                parts = provenance_parts(text, needs_of(job))
+                for other_text, other_path, other_line, other_parts in provenance_names:
+                    if (why := same_file(parts, other_parts, path == other_path)) is not None:
                         found.append(
                             Problem(
                                 path,
                                 line,
-                                f'job "{job_name.value}" names the provenance file {text}, as'
-                                f" {other_path}:{other_line} does{same}; the two uploads would"
-                                " replace each other's file: give each job its own name",
+                                f'job "{job_name.value}" names the provenance file {text}, and'
+                                f" {other_path}:{other_line} names {other_text}: {why}, and the"
+                                " two `--clobber` uploads would replace each other's file; give"
+                                " each job a name that differs from the other's in its text"
+                                " before the first expression or after the last",
                             )
                         )
-                    else:
-                        provenance_names[key] = (text, path, line)
+                        break
+                else:
+                    provenance_names.append((text, path, line, parts))
         if uploading_jobs == 0:
             found.append(
                 Problem(
@@ -593,8 +730,8 @@ class Checker:
             others = [text for node, text in strings(step) if node is not run]
             if (
                 uses in UPLOAD_ACTIONS
-                or any(refused_line(line) for line in command_lines(scalar(run) or ""))
-                or any(refused_text(text) for text in others)
+                or any(refused_line(line) for line in command_lines(filled(scalar(run) or "")))
+                or any(refused_text(filled(text)) for text in others)
             ):
                 found.append(
                     Problem(
@@ -635,6 +772,16 @@ class Checker:
                     path,
                     line_of(get(job, "continue-on-error")),
                     f'job "{name}" uploads release files, so it may not set continue-on-error',
+                )
+            )
+        if get(job, "strategy") is not None:
+            found.append(
+                Problem(
+                    path,
+                    line_of(get(job, "strategy")),
+                    f'job "{name}" uploads release files, so it may not set a strategy: each leg'
+                    " of a matrix would give its provenance file the same name, and each leg's"
+                    " `--clobber` upload would replace the others' files",
                 )
             )
         index = uploads[0]
@@ -949,7 +1096,8 @@ class Checker:
                 Problem(path, line_of(provenance), f'job "{name}": PROVENANCE is {text!r}; {why}')
             )
         found += self.check_provenance_run(path, name, step)
-        return found, (text, line_of(provenance))
+        # A name refused on its own is not compared with the others'.
+        return found, (text, line_of(provenance)) if why is None else None
 
     def check_provenance_run(self, path: str, name: str, step: yaml.Node) -> list[Problem]:
         run = run_of(step) or ""
@@ -1039,14 +1187,67 @@ def _unreadable(path: str, where: int, name: str, step: str, unclear: UnclearRun
     )
 
 
-def provenance_key(text: str) -> str:
-    """A provenance file's name as GitHub reads it, to tell whether two jobs name the same file:
-    in each `${{ }}` expression, white space dropped and the text case-folded (GitHub ignores
-    the white space inside the braces, and context and property names are not case-sensitive),
-    the text outside left as written. An expression that is not a plain context property (a
-    literal, whose white space and case count) is refused by `provenance_name_problem` on its
-    own; reading it so here can only find more names alike, never fewer."""
-    return EXPRESSION.sub(lambda match: re.sub(r"\s+", "", match[0]).casefold(), text)
+# A provenance file's name split at its expressions: the text around them, case-folded, and each
+# expression, white space dropped and case-folded, or None where its value may differ between
+# jobs (`provenance_parts`).
+ProvenanceParts = tuple[tuple[str, ...], tuple[str | None, ...]]
+# Context properties whose value is the same in every job of one run that reads them: a job's
+# output (in a job that lists it in `needs`), a variable, an input, and these of `github`. Any
+# other (`env`, `steps`, `matrix`, `github.job`) may differ between jobs, or be empty in one.
+SHARED_PROPERTY = re.compile(
+    r"needs\.([a-z0-9_-]+)\.outputs\.[a-z0-9_-]+|(?:vars|inputs)\.[a-z0-9_-]+"
+    r"|github\.(?:repository|repository_owner|sha|ref|ref_name|run_id|run_number|run_attempt)"
+)
+
+
+def needs_of(job: yaml.Node) -> set[str]:
+    """The jobs `job` lists in `needs`, case-folded."""
+    needs = get(job, "needs")
+    nodes = needs.value if isinstance(needs, yaml.SequenceNode) else [needs]
+    return {(scalar(node) or "").casefold() for node in nodes if scalar(node)}
+
+
+def provenance_parts(text: str, needs: set[str]) -> ProvenanceParts:
+    """A provenance file's name as GitHub reads it, to tell whether two jobs can name the same
+    file: the text around its `${{ }}` expressions, case-folded (wider than GitHub, which keeps
+    the case), and each expression with its white space dropped and case-folded (GitHub ignores
+    the one and context and property names are not case-sensitive), or None where its value may
+    differ between jobs (not a `SHARED_PROPERTY`, or a job output the job does not need)."""
+    expressions: list[str | None] = []
+    for expression in EXPRESSION.findall(text):
+        key = re.sub(r"\s+", "", expression[3:-2]).casefold()
+        shared = SHARED_PROPERTY.fullmatch(key)
+        expressions.append(
+            key if shared is not None and (shared[1] is None or shared[1] in needs) else None
+        )
+    return tuple(part.casefold() for part in EXPRESSION.split(text)), tuple(expressions)
+
+
+def same_file(one: ProvenanceParts, other: ProvenanceParts, same_workflow: bool) -> str | None:
+    """Why two provenance files' names can be the same file on the release, or None when they
+    cannot, whatever the expressions' values. Two names with the same shared expressions (in one
+    workflow, which is one run) differ when their texts around them differ, as long as the texts
+    are not both longer and shorter in places (then a value could make up the difference): the
+    expressions add the same characters to both. Otherwise the check does not know the values,
+    so two names differ only when the text before the first expression (or after the last) of
+    neither starts (or ends) the other's. It takes each value to hold no character GitHub
+    changes in a name, as the tag release-please makes does not (`vX.Y.Z`)."""
+    (texts, expressions), (other_texts, other_expressions) = one, other
+    if same_workflow and expressions == other_expressions and None not in expressions:
+        if texts == other_texts:
+            return "the same file, once GitHub reads its expressions"
+        lengths = [len(text) for text in texts]
+        other_lengths = [len(text) for text in other_texts]
+        if lengths == other_lengths or sum(lengths) != sum(other_lengths):
+            return None
+    elif not (texts[0].startswith(other_texts[0]) or other_texts[0].startswith(texts[0])) or not (
+        texts[-1].endswith(other_texts[-1]) or other_texts[-1].endswith(texts[-1])
+    ):
+        return None
+    return (
+        "names that can be the same file once Actions fills in their expressions, whose values"
+        " the check does not know"
+    )
 
 
 def provenance_name_problem(text: str) -> str | None:
@@ -1084,6 +1285,13 @@ def provenance_name_problem(text: str) -> str | None:
             " digits, `.`, `_` and `-`, and `${{ }}` expressions after the first character: gh"
             " reads a `#` as the start of the file's label, and GitHub renames a file whose name"
             " has other characters, so the release would not carry the name SECURITY.md gives"
+        )
+    if ".." in re.sub(EXPRESSION, "", file):
+        return (
+            "a name with two dots in a row, or only expressions between two dots: GitHub, and gh"
+            " when it looks for the file `--clobber` replaces, fold a run of dots into one, so"
+            " the name could be another job's file on the release; put a letter, a digit, `_` or"
+            " `-` between them"
         )
     return None
 
