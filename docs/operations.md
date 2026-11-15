@@ -595,16 +595,16 @@ answers 308, so a client that runs no script and follows no meta refresh (`curl`
 stays on the page. Search engines are not among them (the web app answers `X-Robots-Tag: noindex`),
 and Android opens an App Link in the app before any request.
 
-Where it never clears: `/.well-known/assetlinks.json` and the app's other files, which are served
-as files, and `/auth/callback` until the release after the move. A link requested on the earlier
-address before the move has its verifier in that address's storage, and Auth's links live an hour
-(`otp_expiry = 3600` in `supabase/config.toml`; the hosted project is assumed to keep that
-default, and the dashboard allows up to a day, which is why step 12 waits at least 24 hours). One
-case is lost: a link requested on the earlier address in its last hour, when the same browser
-opens another page of that address after the release and before the link. That visit removes the
-verifier, the app says to request the link again, and on the new address that works. The session
-a browser held on the earlier address is removed from the browser, not ended on the server, where
-it stays until it is revoked; nothing else holds its token.
+Where it never clears: `/.well-known/assetlinks.json` and the app's other files, which are served as
+files, and `/auth/callback` until a release at least 24 hours after the move's (step 12). A link
+requested on the earlier address before the move has its verifier in that address's storage, and
+Auth's links live an hour (`otp_expiry = 3600` in `supabase/config.toml`; the hosted project is
+assumed to keep that default, and the dashboard allows up to a day, which is why step 12 waits at
+least 24 hours). One case is lost: a link requested on the earlier address in its last hour, when
+the same browser opens another page of that address after the release and before the link. That
+visit removes the verifier, the app says to request the link again, and on the new address that
+works. The session a browser held on the earlier address is removed from the browser, not ended on
+the server, where it stays until it is revoked; nothing else holds its token.
 
 The checks: `tool/web/test_package_vercel.py` (the routes: the header on the earlier addresses'
 pages alone, never without the host condition, and the local server's answers for every route and
@@ -645,10 +645,13 @@ variable at all (Moving again).
    (`google<16 hex digits>.html`). **The file is in the repository since 15 November 2026:** the
    owner sent `google17fd3f30f3354533.html`, and `website/public/` holds it byte for byte. Do not
    press Verify yet: an address serves the file only once a release that has it is deployed
-   (the redirect from the old address leaves that one path out; step 9 finishes it). Google
-   ties the file to the account, not to one address, so the same file should also verify a
-   URL-prefix property for `https://mmakaan.app/`. Without the old address's property, Search
-   Console's change of address cannot be used (step 11).
+   (the redirect from the old address leaves that one path out; step 9 finishes it). Without the
+   old address's property, Search Console's change of address cannot be used (step 11). A
+   URL-prefix property for `https://mmakaan.app/` is optional: step 11's Domain property,
+   verified by DNS, covers that address. If it is wanted anyway, Search Console usually offers
+   the same file for every URL-prefix property of one account (not confirmed from Google's help
+   pages here); if it offers a different file, send that one too, and the unit test in
+   `website/tests/unit/vercel.test.ts` that lists the files in `public/` then needs its name.
 2. **Dynadot DNS. Done on 13 November 2026:** the records are in, and Vercel reports `mmakaan.app`
    (`A` `216.198.79.1` and `64.29.17.1`), `www.mmakaan.app` and `app.mmakaan.app` (`CNAME` records)
    as correctly configured. What it took: the parking records removed (an `A` record to Dynadot's

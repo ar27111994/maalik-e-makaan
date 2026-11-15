@@ -415,8 +415,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
        `website/public/` holds it byte for byte. Do not press Verify yet: an address serves the
        file only once a release with it is deployed (step 9 verifies it). For the change of
        address the property has to be the old site address,
-       `https://maalik-e-makaan-site.vercel.app/`; the same file should also verify one for
-       `https://mmakaan.app/`.
+       `https://maalik-e-makaan-site.vercel.app/`. One for `https://mmakaan.app/` is optional,
+       since step 11's Domain property covers it; if Search Console offers it a different file,
+       send that one too.
     2. **Dynadot. Done on 13 November 2026:** the records are in, and Vercel reports `mmakaan.app`
        (`A` `216.198.79.1` and `64.29.17.1`), `www.mmakaan.app` and `app.mmakaan.app` (`CNAME`
        records) as correctly configured.

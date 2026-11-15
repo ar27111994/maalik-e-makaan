@@ -21,7 +21,9 @@ const port = 4323;
 const dist = join(__dirname, "dist");
 const NOT_FOUND = ["/404.html", "/ur/404/"];
 // A search engine's ownership file at the root (public/) is not a page: the same rule as
-// VERIFICATION_FILE in scripts/lib/vercel.ts, which the e2e suite checks this list against.
+// VERIFICATION_FILE in scripts/lib/vercel.ts, with the path's leading slash. It is exported
+// beside `ci` (which is all Lighthouse CI reads), and tests/e2e/http.spec.ts checks that it
+// is that rule, character for character, and that the page list below equals the suite's.
 const VERIFICATION_FILE = /^\/google[0-9a-f]{16}\.html$/;
 
 /** @param {string} directory @returns {string[]} */
@@ -54,6 +56,7 @@ const scores = (seo) => {
 };
 
 module.exports = {
+  verificationFile: VERIFICATION_FILE,
   ci: {
     collect: {
       startServerCommand: `node scripts/serve.ts --port ${port}`,

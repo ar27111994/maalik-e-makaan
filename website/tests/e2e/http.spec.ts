@@ -123,9 +123,15 @@ test("an ownership file is not a page: not in the suite's page list, nor in Ligh
   expect(pages.filter((path) => VERIFICATION_FILE.test(path.slice(1)))).toEqual([]);
   // lighthouserc.cjs walks dist/ by itself; it must come to the same pages.
   const lighthouse = createRequire(import.meta.url)("../../lighthouserc.cjs") as {
+    verificationFile: RegExp;
     ci: { collect: { url: string[] } };
   };
   expect(lighthouse.ci.collect.url.map((url) => new URL(url).pathname)).toEqual(pages);
+  // Equal pages today do not make equal rules: a copy that also took capitals, or lost its ^
+  // or $, would agree on this build and part ways on a file that tells them apart. So its copy
+  // of the rule must be VERIFICATION_FILE's, with the path's leading slash after the ^.
+  expect(lighthouse.verificationFile.source).toBe(`^\\/${VERIFICATION_FILE.source.slice(1)}`);
+  expect(lighthouse.verificationFile.flags).toBe(VERIFICATION_FILE.flags);
 });
 
 test("each earlier address redirects permanently to the same page on the origin", async ({
