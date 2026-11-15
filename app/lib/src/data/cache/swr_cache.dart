@@ -470,11 +470,19 @@ final class SwrCache {
   /// left because its wipe could not finish (an entry the store refused or
   /// did not answer for, or the app closed meanwhile), and every entry of
   /// an older version, which names no portfolio. It runs before any query
-  /// is read. Throws when an entry could not be deleted, once the others
-  /// are ([_deleteWhere]).
+  /// is read, and deletes nothing once the cache was cleared since it
+  /// began: the clear deleted it all, and what the store lists by then the
+  /// next session saved. Throws when an entry could not be deleted, once
+  /// the others are ([_deleteWhere]).
   Future<void> forgetOthers(String userId) async {
+    final epoch = _epoch;
     final mine = '$_prefix$userId.';
-    await _deleteWhere((key) => key.startsWith(_root) && !key.startsWith(mine));
+    await _deleteWhere(
+      (key) =>
+          !clearedSince(epoch) &&
+          key.startsWith(_root) &&
+          !key.startsWith(mine),
+    );
   }
 
   /// Deletes the stored keys [doomed] picks, each on its own and all asked

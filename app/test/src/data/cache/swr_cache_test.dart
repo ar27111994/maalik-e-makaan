@@ -311,6 +311,25 @@ void main() {
       expect(cache.portfoliosOf(_user), isNull);
     });
 
+    test('a clear whose listing answers late deletes what was saved since '
+        'too: nothing of the ended session may stay', () async {
+      await put('a', 1);
+      // The store is slow to list its keys: the clear waits for it.
+      final listing = store.keysHeld = Completer();
+      final clearing = cache.clear();
+      await pumpEventQueue();
+      expect(store.values, hasLength(1));
+      // The wipe gives up waiting; another account signs in and saves.
+      store.keysHeld = null;
+      await put('a', 1, user: 'u2');
+      // The listing answers: it cannot tell what was there when it was
+      // asked, so everything it names goes, and the new entry is fetched
+      // again.
+      listing.complete();
+      await clearing;
+      expect(store.values, isEmpty);
+    });
+
     test(
       'a write for an epoch the cache was cleared since is dropped',
       () async {
@@ -427,6 +446,35 @@ void main() {
       store.undeletable.add(key(const PortfolioTag(_a), 'a', user: 'u2'));
       await expectLater(cache.forgetOthers(_user), throwsStateError);
       expect(store.values, hasLength(1));
+    });
+
+    test('one begun before a clear deletes nothing the next account saved '
+        'since', () async {
+      await put('a', 1);
+      // The listing is slow: the start's removal waits for it.
+      final listing = store.keysHeld = Completer();
+      final forgetting = cache.forgetOthers(_user);
+      await pumpEventQueue();
+      // The session ends; another account signs in and saves two entries.
+      store.keysHeld = null;
+      await cache.clear();
+      await cache.write(
+        'u2',
+        'profile',
+        OwnScope.profile<int>(),
+        1,
+        _same,
+        epoch: cache.epoch,
+      );
+      await put('a', 1, user: 'u2');
+      // The old removal's listing answers now, and names the new entries.
+      listing.complete();
+      await forgetting;
+      await pumpEventQueue();
+      expect(store.values.keys.toSet(), {
+        key(const OwnTag(), 'profile', user: 'u2'),
+        key(const PortfolioTag(_a), 'a', user: 'u2'),
+      });
     });
   });
 

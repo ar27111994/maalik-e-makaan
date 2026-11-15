@@ -369,9 +369,10 @@ else does then, since a picker may be handing over a copy.
     does not keep (a `p:` tag outside S, every `unknown` one, a key that does
     not parse), every key of another user, and every `mm.swr.v1.` key. The
     user's own are never removed. A removal begun before a wipe deletes
-    nothing after it: the wipe deleted it all, and the keys the store lists
-    by then are the next session's, another account's among them. The list
-    is shown at once and saved without
+    nothing after it, and nor does the start's removal of other accounts'
+    entries (`SwrCache.forgetOthers`): the wipe deleted it all, and the keys
+    the store lists by then are the next session's, another account's among
+    them. The list is shown at once and saved without
     waiting for the store, so a store that never answers holds up neither
     the screens nor the commands that reload it. A list the controller
     builds itself (an owner-abroad answer; a created or deleted portfolio
@@ -404,7 +405,11 @@ else does then, since a picker may be handing over a copy.
     of a query found by its value whose removal of its other copies lists
     the keys after the store has finished a newer write under another tag
     but before the cache has heard that it landed; a write from
-    before a wipe landing after a newer one deletes the newer; a write the
+    before a wipe landing after a newer one deletes the newer; a wipe whose
+    listing of the keys answers after its three seconds, when the next
+    account has signed in, deletes what that account saved meanwhile (it
+    cannot tell which keys were there when it asked, and nothing of the
+    ended session may stay); a write the
     store fails deletes its entry; an answer asked before the newest is
     neither shown nor saved; an answer asked before a create that drops the
     created portfolio costs that portfolio's saves until the next list.
@@ -464,7 +469,9 @@ else does then, since a picker may be handing over a copy.
   (three seconds): a store that does not answer holds up neither the other
   removals nor the sign-out. A removal that answers later finishes what it was
   asked and no more: no preference is asked for after the start, when someone
-  else may have signed in. While that step runs, a wipe that removes no more
+  else may have signed in (the cache's entries are the exception: its
+  listing names the keys there are when it answers; see What is lost). While
+  that step runs, a wipe that removes no more
   shares it; once it has ended, in time or not, the next wipe is a wipe of its
   own, with its own pass over the files. So a session that begins while a
   store has not answered (a link signs another account in) and ends within
