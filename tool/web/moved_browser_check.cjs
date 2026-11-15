@@ -9,8 +9,11 @@
 // 2. Without the header, as in a browser that does not know it: the script alone removes the
 //    app's own keys, leaves any other, and goes to the same address.
 // 3. Without scripts: the browser goes to the origin's first page.
-// 4. The App Links file, the callback and the app's files clear nothing.
+// 4. The App Links file and the app's files clear nothing.
 // 5. Nothing breaks the app's Content-Security-Policy.
+// 6. A late e-mail link (docs/operations.md, Domains, step 12): /auth/callback?code=... clears
+//    everything the earlier address kept, the sign-in verifier included, with the header and
+//    with the script alone, and arrives at the same path and query on the origin.
 //
 //   node tool/web/moved_browser_check.cjs OUTPUT_DIR
 //
@@ -131,6 +134,7 @@ async function main() {
     if (!same) problems.push(`${what}: got ${JSON.stringify(got)}, not ${JSON.stringify(wanted)}`);
   };
   const deep = "/invite?x=1&y=%20#token=abc";
+  const callback = "/auth/callback?code=late-link";
   try {
     // 1. The header and the script, as in a browser that knows the header.
     let page = await newPage(browser, problems);
@@ -138,6 +142,15 @@ async function main() {
     await arrive(page, old + deep, origins.origin + deep);
     expect("with the header: the same page on the origin", page.url(), origins.origin + deep);
     expect("with the header: nothing is kept", await kept(page, old), { keys: [], databases: [] });
+
+    // 6. A late e-mail link, with the header.
+    await seed(page, old);
+    await arrive(page, old + callback, origins.origin + callback);
+    expect("a late link, with the header: on the origin", page.url(), origins.origin + callback);
+    expect("a late link, with the header: nothing is kept", await kept(page, old), {
+      keys: [],
+      databases: [],
+    });
 
     // 4. What the earlier address keeps answering clears nothing, however it is requested.
     await seed(page, old);
@@ -150,9 +163,9 @@ async function main() {
             return response.status;
           }),
         ),
-      [NEUTRAL, "/auth/callback?code=x", "/main.dart.js", "/moved.js"],
+      [NEUTRAL, "/main.dart.js", "/moved.js"],
     );
-    expect("the kept paths answer", statuses, [200, 200, 200, 200]);
+    expect("the kept paths answer", statuses, [200, 200, 200]);
     expect("the kept paths clear nothing", await kept(page, old), {
       keys: [...APP_KEYS, OTHER_KEY].sort(),
       databases: ["kept"],
@@ -177,6 +190,14 @@ async function main() {
     await arrive(page, old + deep, origins.origin + deep);
     expect("without the header: the same page on the origin", page.url(), origins.origin + deep);
     expect("without the header: only the app's keys are gone", await kept(page, old), {
+      keys: [OTHER_KEY],
+      databases: ["kept"],
+    });
+    // 6. A late e-mail link, with the script alone: the verifier and the session go too.
+    await seed(page, old);
+    await arrive(page, old + callback, origins.origin + callback);
+    expect("a late link, without the header: on the origin", page.url(), origins.origin + callback);
+    expect("a late link, without the header: only the app's keys are gone", await kept(page, old), {
       keys: [OTHER_KEY],
       databases: ["kept"],
     });
