@@ -252,15 +252,24 @@ jobs:
         # to the origin (--page), the e-mail links' callback included (--moved, which the check
         # also waits for, since the deployment before kept it), but it keeps answering the
         # Android App Links file (checked by Android without following a redirect), and clears
-        # nothing there.
+        # nothing there. A ref from before the callback answered with the page (releases 1.3.0
+        # to 1.4.0) has a check that does not know --moved and a callback that still runs the
+        # app, so the callback is checked only when the ref's own check can (only a caller that
+        # passes such a ref gets there: a run by hand on an older tag runs that tag's deploy.yml).
         env:
           APP: ${{ steps.origins.outputs.app }}
           LEGACY: ${{ steps.origins.outputs.legacy }}
         run: |
           tool/web/smoke_test.sh "$APP" "$ANDROID_PACKAGE" "$SUPABASE_URL"
+          moved=()
+          if grep -q -e '--moved' tool/web/redirect_smoke_test.sh; then
+            moved=(--moved '/auth/callback?code=smoke-test')
+          else
+            echo "::notice::This ref's check predates --moved; its earlier address's callback is not checked"
+          fi
           while read -r origin; do
             tool/web/redirect_smoke_test.sh "$origin" "$APP" --page \
-              --moved '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
+              "${moved[@]}" --keep /.well-known/assetlinks.json
           done < <(jq -r '.[]' <<<"$LEGACY")
 
   site:
