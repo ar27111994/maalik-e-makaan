@@ -44,8 +44,9 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   (`SwrCache.write(epoch:)` and `SwrNotifier.show(epoch:)`, required arguments: a command reads
   `requestEpoch()` before its request, or `shownEpoch` with the value on show it builds on), so
   that nothing lands after a wipe; a notifier that is not an `SwrNotifier` (`ProfileController`,
-  `PortfoliosController`) keeps the epoch of the value on show itself. Every saved entry names
-  its portfolio in its key: each `SwrNotifier` declares its `scope` (`InPortfolio` when its
+  `PortfoliosController`) keeps the epoch of the value on show itself; `PortfoliosController`
+  watches the signed-in user, as `SwrNotifier` does, so each session's lists are applied. Every
+  saved entry names its portfolio in its key: each `SwrNotifier` declares its `scope` (`InPortfolio` when its
   request filters by a portfolio it names, `FromValue` when its rows carry `portfolio_id`, or
   `UnknownPortfolio`, kept only until the session's first list of portfolios); only the list,
   the profile and the residence are the user's own (`OwnScope`). A new query picks the scope its

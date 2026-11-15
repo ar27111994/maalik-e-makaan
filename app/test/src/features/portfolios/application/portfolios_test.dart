@@ -23,6 +23,10 @@ Future<AsyncValue<PortfolioMembership?>> _current(ProviderContainer container) {
   return pumpEventQueue().then((_) => container.read(currentPortfolioProvider));
 }
 
+/// The keys of Gulberg's saved records.
+Iterable<String> _ofGulberg(TestApp app) =>
+    app.store.values.keys.where((key) => key.contains('.p:${gulberg.id}.'));
+
 void main() {
   group('the list', () {
     test('shows the saved copy first, then the server one', () async {
@@ -256,6 +260,37 @@ void main() {
       // Nor one a command shows after it.
       await container.read(portfoliosProvider(testUserId).notifier).reload();
       expect(app.store.values, isEmpty);
+    });
+
+    test('a list kept alive across a sign-out reads nothing while signed '
+        'out, and applies the lists of the next session', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      // Held by a listener that outlives the session.
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.cache.portfoliosOf(testUserId), isNotNull);
+      // The session ends: the wipe, then the signed-out status.
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      expect(
+        container.read(portfoliosProvider(testUserId)).error,
+        isA<SessionExpired>(),
+      );
+      expect(app.store.values, isEmpty);
+      // The same account signs in again; a record of Gulberg is opened.
+      app.auth.emit(signedIn);
+      listen(container, tenantProvider(aliRaza.id));
+      await pumpEventQueue();
+      expect(app.cache.portfoliosOf(testUserId), {gulberg.id, plaza.id});
+      expect(_ofGulberg(app), isNotEmpty);
+      // The user leaves Gulberg, and the list is read again.
+      app.portfolios.memberships.removeWhere((m) => m.id == gulberg.id);
+      await container.read(portfoliosProvider(testUserId).notifier).reload();
+      await pumpEventQueue();
+      expect(app.cache.portfoliosOf(testUserId), {plaza.id});
+      expect(_ofGulberg(app), isEmpty);
     });
 
     test(

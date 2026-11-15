@@ -350,7 +350,10 @@ else does then, since a picker may be handing over a copy.
     epoch, and one the store had not finished then is deleted as it lands:
     a fetch on its way when the session ended (its token is still valid for
     up to an hour) cannot put the account back on the device, nor can a
-    notifier built for that session.
+    notifier built for that session. Every `SwrNotifier`, and
+    `PortfoliosController`, is built again when the signed-in user changes
+    (every wipe ends a session): a portfolio list held across a sign-out
+    reads nothing while signed out, and applies the next session's lists.
   - _The portfolio list._ Each list the server answers is numbered before
     it is asked (`SwrCache.ask`), and only the newest-asked answer of the
     session applies (`SwrCache.applyPortfolios`; one asked before a wipe is

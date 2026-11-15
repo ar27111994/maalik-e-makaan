@@ -48,7 +48,9 @@ final class PortfoliosController
       OwnScope.portfolioList((list) => [for (final m in list) m.id]);
 
   /// The cache's epoch when the list was built: a list asked for after the
-  /// device was wiped since (the session ended) is not kept on it.
+  /// device was wiped since (the session ended) is not kept on it. The
+  /// list is built again whenever the signed-in user changes, so each
+  /// session's lists are asked for in its own epoch, and applied.
   int _epoch = 0;
 
   /// The cache's epoch the list on show was asked for in: a list made from
@@ -62,6 +64,11 @@ final class PortfoliosController
     final cache = ref.watch(swrCacheProvider);
     final epoch = cache.epoch;
     _epoch = epoch;
+    // Built again when the session ends and when the next begins (every
+    // wipe ends one); while it is not this user's, nothing is read.
+    if (ref.watch(currentUserIdProvider) != userId) {
+      return Stream.error(const SessionExpired());
+    }
     return _watch(cache, repository, epoch);
   }
 
