@@ -538,6 +538,87 @@ class CheckManifestTest(unittest.TestCase):
         self.assertEqual(len(found), 1, found)
         self.assertIn('filter 2 names android:port="8443"', found[0])
 
+    def test_a_mime_type_keeps_a_filter_from_the_e_mail_links(self):
+        # A link from a browser or a mail app carries an https URI and no MIME type, and Android
+        # matches a filter that names types only to an intent of one of those types. A MIME group
+        # is filled at run time, so it is refused too.
+        for name, value in (
+            ("mimeType", "text/html"),
+            ("mimeType", "*/*"),
+            ("mimeGroup", "links"),
+        ):
+            with self.subTest(name=name, value=value):
+                data = DATA + f'<data android:{name}="{value}"/>'
+                found = self.problems(self.application(intent_filter(data)))
+                self.assertEqual(len(found), 3, found)
+                self.assertIn(
+                    f'filter 1 names android:{name}="{value}", so it matches no', found[0]
+                )
+                self.assertIn("lack the web app's host app.example.pk", found[1])
+        # On the same <data> as the host, too, and beside a filter without one it is reported.
+        typed = intent_filter(
+            DATA.replace(
+                '<data android:host="app.example.pk"/>',
+                '<data android:host="app.example.pk" android:mimeType="text/html"/>',
+            )
+        )
+        found = self.problems(self.application(intent_filter(), typed))
+        self.assertEqual(len(found), 1, found)
+        self.assertIn('filter 2 names android:mimeType="text/html"', found[0])
+
+    def test_other_data_attributes_do_not_stop_the_two_paths_counting(self):
+        # Android opens a link whose path matches any path of the filter, so more paths, more
+        # schemes' specific parts and relative-reference groups only widen the filter, and
+        # android:query and android:fragment mean nothing outside such a group.
+        for extra in (
+            '<data android:pathPattern="/x.*"/>',
+            '<data android:pathAdvancedPattern="/x[0-9]+"/>',
+            '<data android:pathSuffix="/y"/>',
+            '<data android:pathPrefix="/other"/>',
+            '<data android:ssp="//app.example.pk/z"/>',
+            '<data android:sspPattern="//.*"/>',
+            '<data android:query="a=1" android:fragment="f"/>',
+            '<uri-relative-filter-group android:allow="false"><data android:path="/invite"/>'
+            "</uri-relative-filter-group>",
+        ):
+            with self.subTest(extra):
+                self.assertEqual(self.problems(self.application(intent_filter(DATA + extra))), [])
+        # A path only inside a group is not counted: this check reads the filter's own <data>.
+        grouped = DATA.replace('<data android:path="/invite"/>', "") + (
+            '<uri-relative-filter-group><data android:path="/invite"/></uri-relative-filter-group>'
+        )
+        found = self.problems(self.application(intent_filter(grouped)))
+        self.assertEqual(len(found), 1, found)
+        self.assertIn('lack android:path="/invite"', found[0])
+
+    def test_a_feature_flag_keeps_a_filter_from_counting(self):
+        # Android drops an element whose feature flag is off on the device, so the check cannot
+        # count on a flagged filter, <data> or component.
+        flag = 'android:featureFlag="pk.example.links"'
+        for name, (element, data) in {
+            "on the activity": (f'<activity android:name=".A" {flag}>', DATA),
+            "on a <data>": (
+                '<activity android:name=".A">',
+                DATA.replace(
+                    '<data android:path="/invite"/>', f'<data android:path="/invite" {flag}/>'
+                ),
+            ),
+        }.items():
+            with self.subTest(name):
+                activity = f"{element}{intent_filter(data)}</activity>"
+                path = self.manifest(
+                    INTERNET, application=f"<application {ICONS}>{activity}</application>"
+                )
+                found = self.problems(path)
+                self.assertEqual(len(found), 3, found)
+                self.assertIn(
+                    'android:featureFlag="pk.example.links">, which Android drops', found[0]
+                )
+        flagged = intent_filter(verify=f'android:autoVerify="true" {flag}')
+        found = self.problems(self.application(flagged))
+        self.assertEqual(len(found), 3, found)
+        self.assertIn("has <intent-filter android:featureFlag=", found[0])
+
     def test_an_unreadable_origins_file_fails(self):
         err = io.StringIO()
         with (

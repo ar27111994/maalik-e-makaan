@@ -12,7 +12,7 @@ default. And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
 contracts/origins.json (decision D-20), each host with both paths in one
 https App Links filter that Android verifies (autoVerify) and can launch: VIEW,
-DEFAULT and BROWSABLE, no port, under an activity (or activity
+DEFAULT and BROWSABLE, no port and no MIME type, under an activity (or activity
 alias) that a link reaches (_component_problems: exported and enabled, in an enabled
 application, and no permission a browser would need). No web link filter, verified or
 not, names another host: Android 6 to 11 verify every web host of the app's
@@ -153,6 +153,37 @@ def _port_problems(intent_filter: ET.Element) -> list[str]:
     ]
 
 
+def _type_problems(intent_filter: ET.Element) -> list[str]:
+    """A MIME type in the filter: a link from a browser or a mail app is a VIEW intent with an
+    https URI and no type (Intent.resolveType() asks for one only for a content: URI), and
+    IntentFilter.matchData() matches a filter with types only to an intent whose type is one of
+    them, so such a filter opens no e-mail link.
+
+    android:mimeGroup is refused as well, which is stricter than Android on purpose: the group's
+    types are set by the app at run time (PackageManager.setMimeGroup), and the filter matches a
+    link only while the group is empty, which this check cannot see."""
+    return [
+        f'names android:{name}="{value}", so it matches no e-mail link (they carry no MIME type)'
+        for data in intent_filter.findall("data")
+        for name in ("mimeType", "mimeGroup")
+        if (value := data.get(f"{ANDROID}{name}")) is not None
+    ]
+
+
+def _flagged_problems(parent: ET.Element | None, intent_filter: ET.Element) -> list[str]:
+    """An android:featureFlag on the filter, anything in it, or its component: where the
+    platform reads it (AconfigFlags.skipCurrentElement, behind manifest flagging), Android drops
+    the element when the flag is off or unknown to the device, so a <data>, or the filter itself,
+    may not be there at all. The check cannot know a device's flags, so it refuses the filter."""
+    elements = [*([parent] if parent is not None else []), *intent_filter.iter()]
+    return [
+        f'has <{element.tag} android:featureFlag="{value}">, which Android drops where that'
+        " flag is off"
+        for element in elements
+        if (value := element.get(f"{ANDROID}featureFlag")) is not None
+    ]
+
+
 def _launch_lacks(intent_filter: ET.Element) -> list[str]:
     """The actions and categories Android needs to launch the activity for a link, which the
     filter lacks: a link reaches an activity as an implicit VIEW intent with BROWSABLE, and
@@ -196,8 +227,16 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
     Android matches a link against each filter on its own: a filter opens every combination of
     its own schemes, hosts and paths, and never one filter's host with another's path. So the
     links each filter opens are worked out per filter, and only a filter that Android can launch
-    (VIEW, DEFAULT, BROWSABLE, no port, on an activity a link reaches), with https among its
-    schemes, counts."""
+    (VIEW, DEFAULT, BROWSABLE, no port, no MIME type, on an activity a link reaches), with https
+    among its schemes, counts.
+
+    Only the filter's own <data> paths count, and only the two literal ones: Android matches a
+    link whose path matches any path of the filter, so other path attributes (pathPattern,
+    pathAdvancedPattern, pathSuffix, another pathPrefix), scheme-specific parts (ssp,
+    sspPattern and the like), more schemes and <uri-relative-filter-group> paths only widen
+    what the filter opens and never stop it opening the two. android:query and
+    android:fragment mean something only inside a <uri-relative-filter-group>, whose <data>
+    this check does not read."""
     parents = {child: parent for parent in root.iter() for child in parent}
     application = root.find("application")
     filters = [
@@ -215,6 +254,8 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
         parent = parents.get(intent_filter)
         unreachable = _component_problems(parent, application)
         unreachable += _port_problems(intent_filter)
+        unreachable += _type_problems(intent_filter)
+        unreachable += _flagged_problems(parent, intent_filter)
         found += [f"{where} {problem}" for problem in unreachable]
         datas = intent_filter.findall("data")
         schemes = {data.get(f"{ANDROID}scheme") for data in datas} - {None}
