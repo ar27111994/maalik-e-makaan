@@ -375,6 +375,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      # First, before anything connects out: take the stack's host ports out of the kernel's
+      # automatic choice of local ports, or a connection made while the images are pulled can
+      # hold one when the stack binds it (run 43740334888). tee, because sysctl -w exits 0 when
+      # the write is refused (docs/agents/conventions.md, Workflows and actions).
+      - name: Reserve the local stack's host ports
+        run: |
+          reserved="$(cat /proc/sys/net/ipv4/ip_local_reserved_ports)"
+          echo "${reserved:+$reserved,}54320-54329" | sudo tee /proc/sys/net/ipv4/ip_local_reserved_ports
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -418,6 +426,14 @@ jobs:
     # the journeys 2.
     timeout-minutes: 25
     steps:
+      # First, before anything connects out: take the stack's host ports out of the kernel's
+      # automatic choice of local ports, or a connection made while the images are pulled can
+      # hold one when the stack binds it (run 43740334888). tee, because sysctl -w exits 0 when
+      # the write is refused (docs/agents/conventions.md, Workflows and actions).
+      - name: Reserve the local stack's host ports
+        run: |
+          reserved="$(cat /proc/sys/net/ipv4/ip_local_reserved_ports)"
+          echo "${reserved:+$reserved,}54320-54329" | sudo tee /proc/sys/net/ipv4/ip_local_reserved_ports
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
