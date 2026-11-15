@@ -46,6 +46,12 @@ files, among them `.well-known/assetlinks.json`, which Android checks on each
 App Links host without following a redirect, and /auth/callback, which boots
 the app where the sign-in verifier of a link requested there is stored.
 Neither carries Clear-Site-Data: the header is only on the routes of 3 and 5.
+Only those paths as written are kept, the only forms Android and the e-mail
+links request: one with a slash more (`//auth/callback`, `/auth//callback`,
+`/auth/callback/`, `/.well-known//assetlinks.json`) is another path, which
+gets the page of 5 in tool/web/serve_output.py (test_package_vercel pins it);
+whether Vercel's filesystem step reads `//.well-known/assetlinks.json` as the
+file is not documented, so that one may get either answer there.
 Every response carries the security headers and `no-cache`, so browsers ask
 again each time. `.well-known/assetlinks.json` is served as application/json.
 The Supabase origin is the only backend the CSP allows.

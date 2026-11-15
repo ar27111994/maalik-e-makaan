@@ -284,6 +284,13 @@ directory. The routes in `config.json`, in order:
 `/.well-known/assetlinks.json` comes from `app/web/.well-known/` (the Flutter build copies it) and
 is served as `application/json`, on the earlier address too ([Domains](#domains)).
 
+On the earlier address only `/auth/callback` and `/.well-known/assetlinks.json` as written are
+kept, the only forms Android and the e-mail links request. A form with a slash more
+(`//auth/callback`, `/auth//callback`, `/auth/callback/`, `/.well-known//assetlinks.json`) is
+another path and gets the page and its header, in `tool/web/serve_output.py` and in the tests that
+pin it. Whether Vercel's filesystem step reads `//.well-known/assetlinks.json` as the file is not
+in its documentation, so that form may get either answer there.
+
 `moved.html` and `moved.js` are not part of the Flutter build: `package_vercel.py` copies them
 from `tool/web/moved/` into the package when the web app has an earlier address, with the origin
 written into the page, and refuses a build that already holds a file of either name. They are
@@ -940,8 +947,8 @@ host opens both paths through a filter Android can launch: `VIEW`, `DEFAULT` and
 filter, which is stricter than Android on purpose), on an `<activity>` or `<activity-alias>` that
 a link reaches: not `exported="false"` or `enabled="false"` (in any case aapt2 accepts, such as
 `FALSE`), in an application that is not disabled, an alias's target activity enabled, and no
-`android:permission` on the component, an alias's target or the application, since a browser holds
-none. An `exported` or `enabled` the check cannot read, a resource such as `@bool/…` above all, is
+`android:permission` on the component, an alias's target or the application (any value but an
+empty one, spaces included, as Android reads it), since a browser holds none. An `exported` or `enabled` the check cannot read, a resource such as `@bool/…` above all, is
 refused with a request to write the literal. A verified filter on any other component (a service,
 say) is reported, as it opens no link. It works out each filter on
 its own, as Android matches a link: one filter's host never combines with another filter's path.

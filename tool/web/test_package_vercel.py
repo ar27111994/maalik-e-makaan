@@ -704,6 +704,31 @@ class ServeOutputTest(unittest.TestCase):
         self.assertEqual(router._file("/").name, "index.html")
         self.assertEqual(router._file("/main.dart.js").name, "main.dart.js")
 
+    def test_only_the_single_slash_forms_of_the_kept_paths_are_kept_on_an_earlier_address(self):
+        # Android asks for /.well-known/assetlinks.json and the e-mail links name
+        # /auth/callback, as written, so only those are kept; a form with an extra slash is
+        # another path, and gets the page that clears and sends on, as any other path does.
+        moved = pv.moved_files(APP)["moved.html"]
+        for host in OLD_HOSTS:
+            for path in (
+                "//auth/callback",
+                "//auth/callback?code=x",
+                "/auth//callback",
+                "/auth/callback/",
+                "//.well-known/assetlinks.json",
+                "/.well-known//assetlinks.json",
+            ):
+                with self.subTest(host=host, path=path):
+                    status, headers, body = self.get_as(host, path)
+                    self.assertEqual((status, body), (200, moved))
+                    self.assertEqual(headers["Clear-Site-Data"], '"storage"')
+        # On the origin each is the app's shell, as any other path is, and clears nothing.
+        for path in ("//auth/callback?code=x", "//.well-known/assetlinks.json"):
+            with self.subTest(host="app.example.pk", path=path):
+                status, headers, body = self.get_as("app.example.pk", path)
+                self.assertEqual((status, body), (200, INDEX))
+                self.assertNotIn("Clear-Site-Data", headers)
+
     def test_a_nul_in_the_path_names_no_file_and_still_gets_an_answer(self):
         # unquote turns %00 into a NUL, which Path.resolve() refuses with ValueError; the
         # server must answer as for any other path, not drop the connection.
