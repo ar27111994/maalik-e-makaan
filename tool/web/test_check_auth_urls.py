@@ -322,13 +322,14 @@ class FetchTest(unittest.TestCase):
                 raise ca.urllib.error.URLError("too late")
 
         with (
-            unittest.mock.patch.object(ca, "TIMEOUT_SECONDS", 0.2),
+            unittest.mock.patch.object(ca, "TIMEOUT_SECONDS", 0.5),
             unittest.mock.patch.object(ca.urllib.request, "build_opener", return_value=Opener()),
         ):
             started = time.monotonic()
-            with self.assertRaisesRegex(ca.UnreachableError, "within 0.2 seconds"):
+            with self.assertRaisesRegex(ca.UnreachableError, "within 0.5 seconds"):
                 ca.fetch_with_token(TOKEN)("https://api.supabase.com/x")
-            self.assertLess(time.monotonic() - started, 2.0)
+            # The limit and a margin for a loaded machine, less than the limit again.
+            self.assertLess(time.monotonic() - started, 0.5 + 0.4)
 
     def test_the_answer_keeps_its_status_body_and_retry_after(self):
         url = "https://api.supabase.com/x"

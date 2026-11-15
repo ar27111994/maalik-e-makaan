@@ -421,9 +421,29 @@ class WithinTest(unittest.TestCase):
             return cl.Answer(200)
 
         started = time.monotonic()
-        with self.assertRaisesRegex(cl.UnreachableError, "no whole answer within 0.2 seconds"):
-            cl.within(0.2, hangs)
-        self.assertLess(time.monotonic() - started, 2.0)
+        with self.assertRaisesRegex(cl.UnreachableError, "no whole answer within 0.5 seconds"):
+            cl.within(0.5, hangs)
+        # The limit and a margin for a loaded machine, less than the limit again.
+        self.assertLess(time.monotonic() - started, 0.5 + 0.4)
+
+    def test_it_waits_for_the_call_exactly_the_limit(self):
+        # deploy.yml's job timeouts are worked out from this limit, so a wait of any more
+        # (a multiple of it, say) must fail here, not only by the clock.
+        waits: list[float | None] = []
+        join = threading.Thread.join
+
+        def recorded(thread: threading.Thread, timeout: float | None = None) -> None:
+            if thread.name.startswith("Thread-") and timeout is not None:
+                waits.append(timeout)
+            join(thread, timeout)
+
+        release = threading.Event()
+        self.addCleanup(release.set)
+        with unittest.mock.patch.object(threading.Thread, "join", recorded):
+            self.assertEqual(cl.within(7, lambda: cl.Answer(200)), cl.Answer(200))
+            with self.assertRaises(cl.UnreachableError):
+                cl.within(0.05, lambda: (release.wait(30), cl.Answer(200))[1])
+        self.assertEqual(waits, [7, 0.05])
 
 
 class FetchTest(unittest.TestCase):
@@ -458,7 +478,7 @@ class FetchTest(unittest.TestCase):
             started = time.monotonic()
             with self.assertRaisesRegex(cl.UnreachableError, "within 0.5 seconds"):
                 cl.fetch(f"{self.base}/trickle")
-            self.assertLess(time.monotonic() - started, 2.0)
+            self.assertLess(time.monotonic() - started, 0.5 + 0.4)
 
     def test_no_server_is_unreachable(self):
         with socket.socket() as probe:
