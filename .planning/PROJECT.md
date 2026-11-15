@@ -273,10 +273,27 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     the new one.
   - **What the old app host keeps answering:** `/.well-known/assetlinks.json` for good (Android
     builds list both hosts from the release that carries this, older ones only the old host),
-    and `/auth/callback` with the app's files until a release at least 24 hours after the
-    move's, since a link requested there has its sign-in verifier in that origin's storage.
-    Neither response clears anything. That later release answers the callback with the page too;
-    a release before then leaves it as it is.
+    and the app's files, which no page there loads but a tab still open there may fetch; neither
+    clears anything. `/auth/callback` was kept too, booting the app, from the move's release
+    until the first release at least 24 hours after it (step 12, not before 14:00 UTC on 16
+    November 2026), and from that release answers with the page. What that costs (promised in
+    the review of #80): a tab left open on the old address keeps running the app it loaded, and
+    until that release the old callback booted the app, so a sign-up, reset or e-mail-change link
+    could be asked for there at any time before the release, not only before the move, and from
+    a tab still open even after it. Each link is good for an hour. Opened after the release, the
+    old `/auth/callback` answers with the page, which clears the storage holding the sign-in
+    verifier before the code can be exchanged, and goes on to the same callback on the new
+    address. There the app exchanges nothing and says the link did not work (an e-mail being
+    confirmed is confirmed), or, in a browser that has not yet chosen a language on the new
+    address, shows the sign-in page; a password reset needs a new link, asked for on the new
+    address, which works. Weighed and kept (`docs/operations.md`, Domains, Where it never
+    clears): finishing the exchange on the page would carry a session across addresses in a URL;
+    booting the app on the old callback only while a verifier is stored would keep the old
+    address running the full app, with the session and the CNICs it loads, for anyone with a
+    link pending (for good, if that link is never used), which is the exception this ends, and
+    would give up the header, the only clearing that reaches IndexedDB and service workers;
+    dropping the old callback from Auth's redirect URLs would also break the links of Android
+    builds from before the move; a later release does not shorten the hour.
   - **The web app is not indexed:** it answers `X-Robots-Tag: noindex` on every path, since every
     path answers with the app's shell and the website is what search engines index (D-01).
   - **Invitations after the move (the owner's choice):** the Edge Functions' `APP_URL` secret
@@ -291,8 +308,9 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   - **Auth and the Edge Functions accept both hosts during the move** (set by the owner,
     reported on 14 November 2026): Auth keeps the old redirect URLs (web and iOS) until builds
     from before the move are out of use, a point the owner sets; `ALLOWED_ORIGINS` names both
-    web app origins until the old callback is retired, and the Deploy workflow refuses to deploy
-    a web app whose origin the functions refuse.
+    web app origins until step 12's release, after whose deploy the owner sets it to the new
+    origin alone, and the Deploy workflow refuses to deploy a web app whose origin the functions
+    refuse (it checks only the origin).
 
 ## Open Proposals
 

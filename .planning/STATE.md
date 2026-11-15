@@ -14,7 +14,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   project with `supabase db push` and redeployed the four Edge Functions through the CLI; every
   job passed. The web app is at `https://app.mmakaan.app`, and its earlier address
   (`https://maalik-e-makaan.vercel.app`) answers with the page that clears its storage and goes
-  on to the same path there, while `/auth/callback` and `assetlinks.json` are kept as they were;
+  on to the same path there, while `/auth/callback` (until step 12's release) and
+  `assetlinks.json` are kept as they were;
   the website is at `https://mmakaan.app`, and `www` and the site's earlier address answer 308 to
   it. The Deploy run's smoke tests showed each of these. "After every migration" was done the
   same day (branch `claude/post-release-1-3-0`; Hosted Supabase Project has the results).
@@ -41,8 +42,18 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Resend to `mmakaan.app` itself and not to set the sender back: remove the old domain, add the
   new one and its three DNS records at Dynadot, two new API keys, tracking off
   (`docs/operations.md`, Domains, step 13, has the order). It is the owner's to finish; until
-  then the sign-up, reset and invitation checks of step 9 fail. The release that carries step 12
-  (the old address's callback) is not before 14:00 UTC on 16 November 2026.
+  then the sign-up, reset and invitation checks of step 9 fail.
+- **Step 12, 15 November 2026 (branch `claude/old-callback-clears`, not merged yet):** the old
+  address's `/auth/callback` answers with the page that clears its storage and goes on, like
+  every other path; the old address serves only files (`assetlinks.json`, and the app's other
+  files for tabs still open there). `redirect_smoke_test.sh --moved` checks the callback in CI and
+  after each deploy, and its wait covers it (`tool/web/test_redirect_smoke_test.py`); the Deploy
+  workflow's Edge Functions preflight checks only the origin. The release that carries it is not
+  before 14:00 UTC on 16 November 2026, and every release from `main` carries it once merged.
+  After its deploy the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone and does
+  the check by hand of `docs/operations.md`, Domains, step 12. A late link (asked for on the old
+  address, opened after that release) cannot finish; D-20 and Where it never clears say why the
+  window stays. Two app follow-ups came out of it (Follow-ups, Open).
 - Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
   zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
   `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
@@ -466,6 +477,14 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 - App: the browser UAT does not reach the operations screens, reports or search (NFR-07).
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
+- App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
+  public path), so an e-mail link opened first in a fresh browser lands on sign-in with no word
+  on what happened to the link. Keep the callback when it carries a `code` or an `error`, so its
+  screen explains (step 12 of the move, 2026-11-15; goldens, l10n tests and the Urdu glossary
+  check with it).
+- App: `reasonLinkOtherDevice` tells a password reset to open the link where it was asked for,
+  which cannot work once that browser's storage is gone; add "If you were resetting your
+  password, ask for a new link here" in English and Urdu (the same source).
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed in e853378
