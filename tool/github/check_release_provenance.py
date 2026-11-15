@@ -39,14 +39,20 @@ Checking a download). This check keeps that so, for every tracked workflow in
 
 No two jobs may name the same provenance file (the two `--clobber` uploads would replace each
 other's), no job may upload release files another way (`gh release create`, an upload to
-uploads.github.com, or a release-upload action), and at least one job must upload, so that a
-renamed upload command cannot pass this check by matching nothing.
+uploads.github.com or by the client libraries' `uploadReleaseAsset` and `upload_release_asset`,
+or a release-upload action; looked for in every value of every step, so also in an
+`actions/github-script` step's `with.script`, along with `gh release upload` there), and at least
+one job must upload, so that a renamed upload command cannot pass this check by matching nothing.
 
-Limits. It reads the workflow's structure and the text of these three steps' commands; it does
-not run the shell. It checks the action as named here: a move to `actions/attest` (which the
-wrapper's README recommends for new work) must update this check in the same change, keeping
-build provenance (no predicate inputs). Scorecard's extension lists are as of v5.6.0; the docs
-name that version.
+Limits. It reads the workflow's structure, the text of these three steps' commands and the text
+of every step's values; it does not run the shell or any script, and it reads only the workflow
+files. An upload made by a script file a step runs (`./attach.sh`, `node attach.js`), by an
+action not named here, or through text built at run time is not seen; nor is a variable an
+earlier step writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload elsewhere), or a
+`BASH_ENV` file that bash reads before every step. Such changes to a workflow need a reviewer's
+eye. It checks the action as named here: a move to `actions/attest` (which the wrapper's README
+recommends for new work) must update this check in the same change, keeping build provenance (no
+predicate inputs). Scorecard's extension lists are as of v5.6.0; the docs name that version.
 
     python3 tool/github/check_release_provenance.py [repository root]
 """
@@ -86,8 +92,19 @@ UPLOAD_ENV = ("GH_TOKEN",)
 # Keys none of the attest, provenance and upload steps may have.
 STEP_KEYS = ("if", "continue-on-error", "shell", "working-directory")
 SOURCE_REF = "refs/heads/main"
-# Other ways of putting files on a release, refused so that the check cannot be sidestepped.
-OTHER_UPLOAD = re.compile(r"\bgh\s+release\s+create\b|uploads\.github\.com")
+# Other ways of putting files on a release, refused so that the check cannot be sidestepped:
+# looked for in every value of every step (a `run`, an action's `with.script`, an `env`). The
+# REST call by its URL and by the names Octokit (`uploadReleaseAsset`) and PyGithub
+# (`upload_release_asset`) give it.
+OTHER_UPLOAD = re.compile(
+    r"\bgh\s+release\s+create\b|uploads\.github\.com|\buploadReleaseAsset\b"
+    r"|\bupload_release_asset\b"
+)
+# `gh release upload` or `create` outside a `run`, where it is not read as a command: in an
+# action's script, also as separate quoted words (`exec.exec('gh', ['release', 'upload'])`).
+GH_RELEASE_TEXT = re.compile(
+    r"""\bgh\b['"]?[\s,\[(]*['"]?release['"]?[\s,]*['"]?(?:upload|create)\b"""
+)
 UPLOAD_ACTIONS = (
     "softprops/action-gh-release",
     "ncipollo/release-action",
@@ -122,6 +139,17 @@ def commands(run: str) -> list[str]:
         for line in joined.split("\n")
         if line.strip() and not line.strip().startswith("#")
     ]
+
+
+def strings(node: yaml.Node | None) -> list[tuple[yaml.ScalarNode, str]]:
+    """Every scalar value under `node` (mapping keys left out), with its text."""
+    if isinstance(node, yaml.ScalarNode):
+        return [(node, node.value)]
+    if isinstance(node, yaml.SequenceNode):
+        return [found for item in node.value for found in strings(item)]
+    if isinstance(node, yaml.MappingNode):
+        return [found for _, value in node.value for found in strings(value)]
+    return []
 
 
 def run_of(step: yaml.Node) -> str | None:
@@ -205,13 +233,15 @@ class Checker:
         found = []
         for step in steps:
             uses = uses_of(step).split("@", 1)[0]
-            run = run_of(step)
-            if uses in UPLOAD_ACTIONS or (
-                run is not None
-                and any(
+            run = get(step, "run")
+            others = [text for node, text in strings(step) if node is not run]
+            if (
+                uses in UPLOAD_ACTIONS
+                or any(
                     OTHER_UPLOAD.search(line) or _says(line, OTHER_UPLOAD, "create")
-                    for line in commands(run)
+                    for line in commands(scalar(run) or "")
                 )
+                or any(OTHER_UPLOAD.search(text) or GH_RELEASE_TEXT.search(text) for text in others)
             ):
                 found.append(
                     Problem(

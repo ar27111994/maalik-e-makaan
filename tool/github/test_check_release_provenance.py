@@ -722,6 +722,25 @@ class FixtureTest(Fixture):
             "      - uses: softprops/action-gh-release@0123456789abcdef0123456789abcdef01234567\n",
             "      - run: gh release create v2 app.apk\n",
             '      - run: curl -X POST "https://uploads.github.com/repos/o/r/releases/1/assets"\n',
+            # Text an action runs, in any of the step's values, not only in `run`.
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: |\n"
+            "            const r = context.repo;\n"
+            "            await github.rest.repos.uploadReleaseAsset({...r, release_id: 1,"
+            " name: 'x', data: 'y'});\n",
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: await exec.exec('gh', ['release', 'upload', 'v2', 'app.apk'])\n",
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: await exec.exec('gh release upload v2 app.apk')\n",
+            "      - uses: some/python-action@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          args: [release.upload_release_asset]\n",
+            "      - uses: some/action@0123456789abcdef0123456789abcdef01234567\n"
+            "        env:\n"
+            "          URL: https://uploads.github.com/repos/o/r/releases/1/assets\n",
         )
         for step in steps:
             with self.subTest(step=step):
