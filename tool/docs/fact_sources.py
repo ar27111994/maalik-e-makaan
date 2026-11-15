@@ -38,6 +38,8 @@ APP_PUBSPEC = "app/pubspec.yaml"
 PYPROJECT = "pyproject.toml"
 FORMAL_INSTALL = "tool/formal/install.sh"
 FORMAL_REQUIREMENTS = "tool/formal/requirements.txt"
+LINT_REQUIREMENTS = "tool/requirements-lint.in"
+SECURITY = ".github/workflows/security.yml"
 LEAN_TOOLCHAIN = "formal/lean/lean-toolchain"
 SUPABASE_CONFIG = "supabase/config.toml"
 MM_VARIANTS = "packages/mm_ui/test/support/harness.dart"
@@ -985,6 +987,38 @@ def parse_formal_pins(install: str, requirements: str, toolchain: str) -> Formal
     )
 
 
+# ── zizmor ─────────────────────────────────────────────────────────────────────────────────
+
+
+def parse_requirement(path: str, text: str, package: str) -> tuple[str, int]:
+    """The version `package==X` pins in a requirements file, and its line."""
+    match = re.search(rf"^{re.escape(package)}==(\S+)", text, re.M)
+    if not match:
+        raise SourceShapeError(path, f"does not pin {package}==X")
+    return match[1], _line(text, match.start())
+
+
+def parse_action_input(path: str, text: str, action: str, name: str) -> Pin:
+    """The `with:` input `name` of the one step that uses `action@…` in a workflow."""
+    lines = text.split("\n")
+    steps = [
+        (index, match)
+        for index, line in enumerate(lines)
+        if (match := re.match(rf"^( *)(- )?uses: {re.escape(action)}@", line))
+    ]
+    if len(steps) != 1:
+        raise SourceShapeError(path, f"has {len(steps)} steps that use {action}; expected one")
+    index, uses = steps[0]
+    key_column = len(uses[1]) + (2 if uses[2] else 0)
+    j = index + 1
+    while j < len(lines) and (not lines[j].strip() or _indent(lines[j]) >= key_column):
+        found = re.match(rf"^ *{re.escape(name)}: *(.+?) *(?:#.*)?$", lines[j])
+        if found and _indent(lines[j]) > key_column:
+            return Pin(name, _unquote(found[1]), j + 1)
+        j += 1
+    raise SourceShapeError(path, f"line {index + 1}: {action} has no {name} input")
+
+
 # ── The repository ─────────────────────────────────────────────────────────────────────────
 
 
@@ -1171,5 +1205,19 @@ class Repo:
             "formal",
             lambda: parse_formal_pins(
                 self.text(FORMAL_INSTALL), self.text(FORMAL_REQUIREMENTS), self.text(LEAN_TOOLCHAIN)
+            ),
+        )
+
+    def zizmor_requirement(self) -> tuple[str, int]:
+        return self._cached(
+            "zizmor-requirement",
+            lambda: parse_requirement(LINT_REQUIREMENTS, self.text(LINT_REQUIREMENTS), "zizmor"),
+        )
+
+    def zizmor_action_version(self) -> Pin:
+        return self._cached(
+            "zizmor-action",
+            lambda: parse_action_input(
+                SECURITY, self.text(SECURITY), "zizmorcore/zizmor-action", "version"
             ),
         )

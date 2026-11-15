@@ -56,11 +56,12 @@ format-check-repo: ## Formatting of Python, shell and docs (no Flutter or Deno n
 	npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
 .PHONY: lint
-lint: ## Lint Python, shell, workflows (and their same-repository calls), migrations, docs, text, Urdu words, the Android manifest and the design lint
+lint: ## Lint Python, shell, workflows (actionlint, their same-repository calls, zizmor), migrations, docs, text, Urdu words, the Android manifest and the design lint
 	ruff check $(PYTHON_SOURCES)
 	shellcheck $(SHELL_SOURCES)
 	actionlint
 	python3 tool/github/check_workflow_calls.py
+	zizmor --offline --strict-collection --no-progress .
 	tool/db/lint_migrations.sh
 	ec
 	npx --no-install markdownlint-cli2 "**/*.md"

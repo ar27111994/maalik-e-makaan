@@ -28,6 +28,7 @@ from fact_sources import (
     FORMAL_REQUIREMENTS,
     JOURNEYS,
     LEAN_TOOLCHAIN,
+    LINT_REQUIREMENTS,
     MAKEFILE,
     MANIFEST,
     MM_VARIANTS,
@@ -38,6 +39,7 @@ from fact_sources import (
     PUBSPEC,
     PYPROJECT,
     RELEASE_PLEASE,
+    SECURITY,
     SUPABASE_CONFIG,
     TLA_DIR,
     Repo,
@@ -1383,6 +1385,22 @@ def check_counts(repo: Repo, tracked: Tracked) -> list[Problem]:
     return problems
 
 
+def check_zizmor_pin(repo: Repo, tracked: Tracked) -> list[Problem]:
+    """make lint's zizmor (tool/requirements-lint.in) and the Security workflow's are one."""
+    pinned, _ = repo.zizmor_requirement()
+    action = repo.zizmor_action_version()
+    if action.value == pinned:
+        return []
+    return [
+        Problem(
+            SECURITY,
+            action.line,
+            f"zizmor-action runs zizmor {action.value}; {LINT_REQUIREMENTS} pins zizmor=={pinned}"
+            " (make lint's); make them equal",
+        )
+    ]
+
+
 _MARKDOWN = "**/*.md"
 _WORKFLOWS = ".github/workflows/*.yml"
 
@@ -1525,6 +1543,14 @@ CHECKS: tuple[Check, ...] = (
         'the golden variants, TLA+ models and "N database tests in M suites" the docs and the'
         " deck's slides count match MmVariant, formal/tla and the pgTAP plans",
         check_counts,
+    ),
+    Check(
+        "C17",
+        "zizmor-pin",
+        (LINT_REQUIREMENTS, SECURITY),
+        "the zizmor the Security workflow's zizmor-action runs is the one tool/requirements-lint.in"
+        " pins for make lint",
+        check_zizmor_pin,
     ),
 )
 

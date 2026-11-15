@@ -68,7 +68,7 @@ class WriteAndCheckTest(CommandLineCase):
         self.assertIn("2 suites, 1,974 tests", self.read("README.md"))
         code, out, err = self.run_main("--check", tracked=tracked)
         self.assertEqual((code, err), (0, ""))
-        self.assertIn("16 generated facts and 16 checks agree with their sources", out)
+        self.assertIn("16 generated facts and 17 checks agree with their sources", out)
 
     def test_a_second_write_changes_no_file(self) -> None:
         tracked = self.build()

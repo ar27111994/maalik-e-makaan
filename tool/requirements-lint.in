@@ -8,3 +8,4 @@ shfmt-py==4.2.0
 squawk-cli==2.71.0
 editorconfig-checker==3.11.1
 actionlint-py==1.7.12.25
+zizmor==1.32.0

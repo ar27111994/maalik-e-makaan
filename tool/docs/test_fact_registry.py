@@ -784,6 +784,37 @@ class WorkflowChecksTest(FixtureCase):
         )
 
 
+class ZizmorPinCheckTest(FixtureCase):
+    SECURITY = ".github/workflows/security.yml"
+
+    def test_c17_the_workflow_runs_the_pinned_zizmor(self) -> None:
+        self.assert_problems(
+            check("zizmor-pin"),
+            edited(self.SECURITY, "version: 1.32.0", "version: 1.31.0"),
+            [
+                (
+                    self.SECURITY,
+                    line(self.SECURITY, "version: 1.32.0"),
+                    "zizmor-action runs zizmor 1.31.0; tool/requirements-lint.in pins"
+                    " zizmor==1.32.0 (make lint's); make them equal",
+                )
+            ],
+        )
+        self.assert_problems(
+            check("zizmor-pin"),
+            edited("tool/requirements-lint.in", "zizmor==1.32.0", "zizmor==1.33.0"),
+            [(self.SECURITY, line(self.SECURITY, "version: 1.32.0"), "pins zizmor==1.33.0")],
+        )
+
+    def test_c17_needs_both_pins(self) -> None:
+        repo = self.repo(edited(self.SECURITY, "          version: 1.32.0\n", ""))
+        with self.assertRaisesRegex(SourceShapeError, "zizmor-action has no version input"):
+            check("zizmor-pin").run(repo, repo.tracked)
+        repo = self.repo(edited("tool/requirements-lint.in", "zizmor==1.32.0\n", ""))
+        with self.assertRaisesRegex(SourceShapeError, "does not pin zizmor==X"):
+            check("zizmor-pin").run(repo, repo.tracked)
+
+
 class VersionMentionsTest(FixtureCase):
     def mention(self, words: str) -> list[tuple[str, int, str]]:
         return self.run_check(check("version-mentions"), {"docs/extra.md": f"# Extra\n\n{words}\n"})

@@ -44,8 +44,8 @@ jobs:
     name: Website
     needs: latest
     permissions:
-      contents: read
-      issues: read
+      contents: read # deploy.yml checks out the tag and reads its release's files
+      issues: read # deploy.yml's roadmap page reads the milestones and issues
     uses: $/.github/workflows/deploy.yml
     with:
       ref: ${{ needs.latest.outputs.tag }}

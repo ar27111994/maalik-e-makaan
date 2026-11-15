@@ -184,9 +184,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
-      contents: read
-      # The roadmap page reads the roadmap's milestones and issues.
-      issues: read
+      contents: read # check out the tag and read its release's files
+      issues: read # the roadmap page reads the roadmap's milestones and issues
     environment:
       name: production
       url: https://maalik-e-makaan-site.vercel.app
