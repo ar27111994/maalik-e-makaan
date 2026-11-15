@@ -12,8 +12,8 @@ default. And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
 contracts/origins.json (decision D-20), each host with both paths in one
 https App Links filter that Android verifies (autoVerify) and can launch: VIEW,
-DEFAULT and BROWSABLE, no port, under an activity (or activity alias) that a link
-reaches (_component_problems: exported and enabled, with an enabled target and
+DEFAULT and BROWSABLE, no port, under an activity (or activity
+alias) that a link reaches (_component_problems: exported and enabled, in an enabled
 application, and no permission a browser would need). No web link filter, verified or
 not, names another host: Android 6 to 11 verify every web host of the app's
 filters, all or none. An earlier address stays for the links already sent. This
@@ -88,30 +88,24 @@ def _flag_problems(element: ET.Element, name: str, where: str, why: str) -> list
     ]
 
 
-def _qualified(name: str, package: str) -> str:
-    """A component's class name as Android reads it: a leading dot, or no dot at all, puts the
-    manifest's package in front. A manifest without a package attribute (the app's own: its
-    namespace is in Gradle) leaves such a name as written, so there an alias whose target is
-    written in full matches no activity written with a leading dot, and the alias counts as one
-    with no declared target; the merged manifest, which CI checks, carries the package."""
-    if package and (name.startswith(".") or "." not in name):
-        return f"{package}{'' if name.startswith('.') else '.'}{name}"
-    return name
+def _component_problems(parent: ET.Element | None, application: ET.Element | None) -> list[str]:
+    """Why no link from a browser or another app reaches the component that holds the filter, as
+    Android decides it (platform_frameworks_base: ParsedActivityUtils, PackageUserStateUtils,
+    ActivityTaskSupervisor): it is not an activity (a link is an activity intent; a service or
+    receiver never gets one), or it, or the application, is disabled, or it is not exported,
+    which keeps every intent from another app out. An activity with an intent filter is exported
+    unless it says not. A permission keeps a link out too: a browser holds none, so
+    startActivity() fails.
 
-
-def _component_problems(
-    parent: ET.Element | None, application: ET.Element | None, root: ET.Element
-) -> list[str]:
-    """Why no link from a browser or another app reaches the component that holds the filter:
-    it is not an activity (a link is an activity intent; a service or receiver never gets one),
-    or it, or the application, is disabled, or it is not exported, which keeps every intent
-    from another app out; an alias also needs its target activity enabled. An activity with an
-    intent filter is exported unless it says not. A permission keeps a link out too: a browser
-    holds none, so startActivity() fails. This refuses one on the component, on an alias's
-    target, or on the application (which applies to every component that sets none), so it
-    fails closed whichever of them Android applies to an alias, and any value but an empty
-    one, since Android keeps one of spaces as a name too. An alias whose target this
-    manifest does not declare is left to Android, which refuses to install it."""
+    An alias is a component of its own. Android reads its enabled, exported and permission from
+    the alias alone, not from its target activity: resolution checks the alias's own enabled
+    state, the start checks the alias's own permission and exported, and the parser does not
+    copy the target's (makeAlias: "alias.enabled = target.enabled" and the like are left out on
+    purpose). So the target's attributes are not read here. The application's permission is the
+    default for an activity that writes no android:permission at all; an empty one on the
+    activity means none, and an alias never takes the application's ("If an alias needs the
+    same permission, it must be re-declared"). Android keeps any other value, one of spaces
+    included, as the permission's name."""
     if parent is None:
         tag = "no component"
     else:
@@ -124,28 +118,21 @@ def _component_problems(
         for name in ("exported", "enabled")
         for problem in _flag_problems(parent, name, f"is on {tag}", unreached)
     ]
-    holders = [(parent, f"is on {tag}")]
-    if parent.tag == "activity-alias":
-        package = root.get("package", "")
-        target = _qualified(parent.get(f"{ANDROID}targetActivity", ""), package)
-        for activity in root.iter("activity"):
-            if _qualified(activity.get(f"{ANDROID}name", ""), package) == target:
-                where = "is on an <activity-alias> whose target <activity>"
-                found += _flag_problems(activity, "enabled", where, "so the alias starts nothing")
-                holders.append((activity, where))
-                break
     if application is not None:
         found += _flag_problems(
             application, "enabled", "is in an <application>", "which starts nothing"
         )
-        holders.append((application, "is in an <application>"))
-    found += [
-        f'{where} with android:permission="{element.get(f"{ANDROID}permission")}", which a'
-        " browser does not hold, so no link starts it"
-        for element, where in holders
-        # As written, not stripped: Android keeps any value that is not empty, spaces and all.
-        if element.get(f"{ANDROID}permission", "")
-    ]
+    # As written, not stripped: Android keeps any value that is not empty, spaces and all.
+    permission = parent.get(f"{ANDROID}permission")
+    where = f"is on {tag} with"
+    if permission is None and parent.tag == "activity" and application is not None:
+        permission = application.get(f"{ANDROID}permission")
+        where = f"is on {tag} without its own permission, in an <application> with"
+    if permission:
+        found.append(
+            f'{where} android:permission="{permission}", which a browser does not hold, so no'
+            " link starts it"
+        )
     return found
 
 
@@ -225,7 +212,8 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
     opened_hosts: set[str] = set()
     for number, intent_filter in enumerate(filters, start=1):
         where = f"{manifest}: App Links filter {number}"
-        unreachable = _component_problems(parents.get(intent_filter), application, root)
+        parent = parents.get(intent_filter)
+        unreachable = _component_problems(parent, application)
         unreachable += _port_problems(intent_filter)
         found += [f"{where} {problem}" for problem in unreachable]
         datas = intent_filter.findall("data")

@@ -946,12 +946,15 @@ host opens both paths through a filter Android can launch: `VIEW`, `DEFAULT` and
 `android:port` (a link without a port matches no filter that names one; any port refuses the
 filter, which is stricter than Android on purpose), on an `<activity>` or `<activity-alias>` that
 a link reaches: not `exported="false"` or `enabled="false"` (in any case aapt2 accepts, such as
-`FALSE`), in an application that is not disabled, an alias's target activity enabled, and no
-`android:permission` on the component, an alias's target or the application (any value but an
-empty one, spaces included, as Android reads it), since a browser holds none. An `exported` or `enabled` the check cannot read, a resource such as `@bool/…` above all, is
-refused with a request to write the literal. A verified filter on any other component (a service,
-say) is reported, as it opens no link. It works out each filter on
-its own, as Android matches a link: one filter's host never combines with another filter's path.
+`FALSE`), in an application that is not disabled, and with no permission a browser would need.
+Android reads an alias's `enabled`, `exported` and `android:permission` from the alias alone, never
+from its target activity, so a disabled or protected target does not matter; an activity that
+writes no `android:permission` takes the application's, and an alias never does. Any value but an
+empty one counts, spaces included, as Android reads it. An `exported` or `enabled` the check cannot
+read, a resource such as `@bool/…` above all, is refused with a request to write the literal. A
+verified filter on any other component (a service, say) is reported, as it opens no link. It works
+out each filter on its own, as Android matches a link: one filter's host never combines with
+another filter's path.
 Android 12 and later verify each host on its own; Android 6 to 11 verify every web host of every
 filter (with `VIEW` and an `http` or `https` scheme, `autoVerify` or not) and grant all or none, so
 the check also fails on another host in any such filter, and both hosts must serve the file (and

@@ -339,8 +339,10 @@ class CheckManifestTest(unittest.TestCase):
                 for fragment, line in zip(expected, found, strict=True):
                     self.assertIn(fragment, line)
 
-    def test_an_alias_needs_its_target_enabled(self):
-        missing = ["lack the web app's host app.example.pk", "host old.example.org"]
+    def test_an_alias_does_not_need_its_target_enabled(self):
+        # Android reads an alias's enabled from the alias alone (makeAlias copies no enabled from
+        # the target, and resolution checks the alias's own state), so a link starts a disabled
+        # activity through an enabled alias.
         alias = '<activity-alias android:name=".B" android:targetActivity="{target}">'
         cases = {
             # The target named as the alias names it, with the package in front, or without it.
@@ -355,8 +357,8 @@ class CheckManifestTest(unittest.TestCase):
                 ".A",
                 ' package="pk.example"',
             ),
-            "an upper-case false": (
-                '<activity android:name=".A" android:enabled="FALSE"/>',
+            "a target that is not exported either": (
+                '<activity android:name=".A" android:enabled="false" android:exported="false"/>',
                 ".A",
                 "",
             ),
@@ -370,60 +372,50 @@ class CheckManifestTest(unittest.TestCase):
                     "</application></manifest>"
                 )
                 path.write_text(body, encoding="utf-8")
+                self.assertEqual(self.problems(path), [])
+        # The alias's own enabled, and the application's, still count.
+        for element, application, expected in (
+            (
+                '<activity-alias android:name=".B" android:targetActivity=".A"'
+                ' android:enabled="false">',
+                f"<application {ICONS}>",
+                'is on an <activity-alias> with android:enabled="false"',
+            ),
+            (
+                '<activity-alias android:name=".B" android:targetActivity=".A">',
+                f'<application {ICONS} android:enabled="false">',
+                'is in an <application> with android:enabled="false"',
+            ),
+        ):
+            with self.subTest(expected):
+                path = self.component(element, application + '<activity android:name=".A"/>')
                 found = self.problems(path)
                 self.assertEqual(len(found), 3, found)
-                self.assertIn(
-                    "filter 1 is on an <activity-alias> whose target <activity> with"
-                    " android:enabled=",
-                    found[0],
-                )
-                for fragment, line in zip(missing, found[1:], strict=True):
-                    self.assertIn(fragment, line)
-        # An enabled target, or another activity disabled, passes.
-        for target in (
-            '<activity android:name=".A"/>',
-            '<activity android:name=".A" android:enabled="True"/><activity'
-            ' android:name=".C" android:enabled="false"/>',
-        ):
-            with self.subTest(target):
-                path = self.manifest(
-                    INTERNET,
-                    application=f"<application {ICONS}>{target}{alias.format(target='.A')}"
-                    f"{intent_filter()}</activity-alias></application>",
-                )
-                self.assertEqual(self.problems(path), [])
+                self.assertIn(expected, found[0])
 
     def test_a_permission_keeps_every_link_out(self):
         permission = 'android:permission="pk.example.PRIVATE"'
+        target = '<activity android:name=".A"/>'
         cases = {
             "on the activity": (
                 f'<activity android:name=".A" {permission}>',
                 f"<application {ICONS}>",
-                "",
                 "is on an <activity> with",
             ),
             "on the alias": (
                 f'<activity-alias android:name=".B" android:targetActivity=".A" {permission}>',
-                f"<application {ICONS}>",
-                '<activity android:name=".A"/>',
+                f"<application {ICONS}>{target}",
                 "is on an <activity-alias> with",
             ),
-            "on the alias's target": (
-                '<activity-alias android:name=".B" android:targetActivity=".A">',
-                f"<application {ICONS}>",
-                f'<activity android:name=".A" {permission}/>',
-                "is on an <activity-alias> whose target <activity> with",
-            ),
-            "on the application": (
+            "on the application, for an activity that sets none": (
                 '<activity android:name=".A">',
                 f"<application {ICONS} {permission}>",
-                "",
-                "is in an <application> with",
+                "is on an <activity> without its own permission, in an <application> with",
             ),
         }
-        for name, (element, application, before, where) in cases.items():
+        for name, (element, application, where) in cases.items():
             with self.subTest(name):
-                found = self.problems(self.component(element, application + before))
+                found = self.problems(self.component(element, application))
                 self.assertEqual(len(found), 3, found)
                 self.assertIn(
                     f'filter 1 {where} android:permission="pk.example.PRIVATE", which a browser'
@@ -440,6 +432,34 @@ class CheckManifestTest(unittest.TestCase):
                 self.assertIn(f'with android:permission="{value}", which a browser', found[0])
         found = self.problems(self.component('<activity android:name=".A" android:permission="">'))
         self.assertEqual(found, [])
+
+    def test_only_the_permission_android_applies_counts(self):
+        # An alias's permission is its own alone: neither its target's nor the application's
+        # applies ("If an alias needs the same permission, it must be re-declared"). An activity
+        # takes the application's only when it writes none; an empty one means none.
+        permission = 'android:permission="pk.example.PRIVATE"'
+        alias = '<activity-alias android:name=".B" android:targetActivity=".A"{extra}>'
+        cases = {
+            "on the alias's target": (
+                alias.format(extra=""),
+                f'<application {ICONS}><activity android:name=".A" {permission}/>',
+            ),
+            "on the application, for an alias": (
+                alias.format(extra=""),
+                f'<application {ICONS} {permission}><activity android:name=".A"/>',
+            ),
+            "on the target, with an empty one on the alias": (
+                alias.format(extra=' android:permission=""'),
+                f'<application {ICONS}><activity android:name=".A" {permission}/>',
+            ),
+            "on the application, with an empty one on the activity": (
+                '<activity android:name=".A" android:permission="">',
+                f"<application {ICONS} {permission}>",
+            ),
+        }
+        for name, (element, application) in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.problems(self.component(element, application)), [])
 
     def test_exported_and_enabled_read_as_aapt2_reads_them(self):
         missing = ["lack the web app's host app.example.pk", "host old.example.org"]
