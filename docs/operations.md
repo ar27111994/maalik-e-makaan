@@ -1160,28 +1160,41 @@ but GitHub still holds their builds' attestations, so the online check already w
 files (except `SHA256SUMS-ios`, which those runs did not attest). Attaching the files to them
 would only raise the Scorecard score at once instead of release by release, and let their files
 be checked offline. It is not part of releasing and nothing runs it; if the owner chooses to,
-with their own `gh` login and in a new, empty folder, for each tag:
+with their own `gh` login and in a new, empty folder, for each tag: set the tag on the third
+line, then paste the whole block into the terminal.
 
 ```sh
-repo=ar27111994/maalik-e-makaan tag=v1.3.0
-gh release download "$tag" --repo "$repo"
-gh attestation download SHA256SUMS --repo "$repo"
-mv -- sha256:*.jsonl "maalik-e-makaan-$tag.intoto.jsonl"
-for f in SHA256SUMS *.aab *.apk *-web.zip *-debug-symbols.zip; do
-  gh attestation verify "$f" --bundle "maalik-e-makaan-$tag.intoto.jsonl" --repo "$repo" \
+(
+  set -euo pipefail
+  repo=ar27111994/maalik-e-makaan tag=v1.3.0
+  # 1. Download the release's files and the attestation of the Android and web build.
+  gh release download "$tag" --repo "$repo"
+  gh attestation download SHA256SUMS --repo "$repo"
+  mv -- sha256:*.jsonl "maalik-e-makaan-$tag.intoto.jsonl"
+  # 2. Check it against every file of that build.
+  for f in SHA256SUMS *.aab *.apk *-web.zip *-debug-symbols.zip; do
+    gh attestation verify "$f" --bundle "maalik-e-makaan-$tag.intoto.jsonl" --repo "$repo" \
+      --signer-workflow "$repo/.github/workflows/release.yml" --source-ref refs/heads/main
+  done
+  # 3. The same for the iOS build.
+  gh attestation download "maalik-e-makaan-$tag-ios-unsigned.ipa" --repo "$repo"
+  mv -- sha256:*.jsonl "maalik-e-makaan-$tag-ios.intoto.jsonl"
+  gh attestation verify "maalik-e-makaan-$tag-ios-unsigned.ipa" \
+    --bundle "maalik-e-makaan-$tag-ios.intoto.jsonl" --repo "$repo" \
     --signer-workflow "$repo/.github/workflows/release.yml" --source-ref refs/heads/main
-done
-gh attestation download "maalik-e-makaan-$tag-ios-unsigned.ipa" --repo "$repo"
-mv -- sha256:*.jsonl "maalik-e-makaan-$tag-ios.intoto.jsonl"
-gh attestation verify "maalik-e-makaan-$tag-ios-unsigned.ipa" \
-  --bundle "maalik-e-makaan-$tag-ios.intoto.jsonl" --repo "$repo" \
-  --signer-workflow "$repo/.github/workflows/release.yml" --source-ref refs/heads/main
-# Only when every check above passed; without --clobber, so nothing is replaced:
-gh release upload "$tag" maalik-e-makaan-"$tag"*.intoto.jsonl --repo "$repo"
+  # 4. Reached only when every step above worked; without --clobber, so nothing is replaced.
+  gh release upload "$tag" maalik-e-makaan-"$tag"*.intoto.jsonl --repo "$repo"
+  echo "Attached the two provenance files to $tag."
+)
 ```
 
+The parentheses keep the block apart from the terminal, and `set -euo pipefail` stops it at the
+first command that fails. A stop means an error message is the last thing shown instead of
+"Attached the two provenance files", nothing after the failed command has run (so a failed
+download, rename or check attaches nothing), and the terminal stays open. A rename fails when the
+download before it gave no `sha256:` file, or more than one (in a folder that was not empty).
 `gh attestation download` writes the bundles for a file's digest to `sha256:<digest>.jsonl`; a
-job re-run on the same files would give two lines, both valid. If any check fails, leave that
+job re-run on the same files would give two lines, both valid. If the block stops, leave that
 release as it is. Do it once v1.4.0's own provenance files have checked out.
 
 ### Store icons
