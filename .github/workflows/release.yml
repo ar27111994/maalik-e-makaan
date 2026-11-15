@@ -3,7 +3,11 @@
 # publishes a GitHub release. This workflow then builds the signed Android app,
 # the web app and an unsigned iOS app for that tag, attests their provenance and
 # attaches them, and deploys the tag to production (deploy.yml): the backend and
-# the web app at once, the website once those builds have finished.
+# the web app at once, the website once those builds and the web app's deploy
+# have finished. The builds start only once the web app's origin answers
+# (tool/web/check_live.py), since every one of them names it, and Auth allows
+# the e-mail link callbacks they send (tool/web/check_auth_urls.py; a token
+# that may not read Auth's settings only warns there, and the builds go ahead).
 name: Release
 
 on:
@@ -50,9 +54,46 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  preflight:
+    # Every build names the web app's origin (its APP_URL, from the tag's
+    # contracts/origins.json), and the Android app lists it in its App Links.
+    # An origin that does not answer over HTTPS would break the e-mail links of
+    # every install, and on Android 6 to 11 the App Links of the earlier host
+    # too (all of an app's hosts verify, or none). And each build asks Auth to
+    # send its e-mail links to its own callback (the origin's, and on iOS the
+    # same under the app's URL scheme): one Auth does not allow sends them to the
+    # Site URL, where no build can finish the sign-in. An APK cannot be recalled,
+    # so nothing is built or attached until both hold (docs/operations.md,
+    # Domains). A token that may not read Auth's settings only warns, and the
+    # builds go ahead; check them by hand then. Re-run the failed jobs once the
+    # origin answers or Auth allows the callbacks. Deploy's supabase job runs the
+    # same Auth check before it deploys.
+    name: The web app's origin answers and Auth allows its callbacks
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The environment of the builds it gates, so a reviewer or branch rule on it holds this job
+    # too. A push to main runs it, so such a rule must allow main, never tags alone
+    # (docs/release-readiness.md, Optional hardening).
+    environment: release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+          persist-credentials: false
+      - name: The web app's origin answers over HTTPS
+        run: python3 tool/web/check_live.py app
+      - name: Auth accepts the e-mail links of the release's builds
+        # Read with the Management API; only the Site URL and the redirect URLs are kept.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: python3 tool/web/check_auth_urls.py --project-ref "$PROJECT_REF"
+
   artefacts:
     name: Build and attach artefacts
-    needs: release-please
+    needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -79,16 +120,18 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
       - run: flutter pub get
       - name: Production configuration
-        # Public values only (the publishable key is meant for clients). They
-        # live in repository variables; the app refuses anything else at start.
+        # Public values only (the publishable key is meant for clients). The
+        # Supabase ones live in repository variables; APP_URL is the web app's
+        # origin in the tag's contracts/origins.json (decision D-20). The app
+        # refuses anything else at start.
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-          APP_URL: ${{ vars.APP_URL }}
         run: |
-          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY APP_URL; do
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY; do
             [[ -n "${!name}" ]] || { echo "::error::Repository variable $name is not set"; exit 1; }
           done
+          APP_URL="$(jq -er .app.origin contracts/origins.json)"
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" --arg app "$APP_URL" \
             '{ENVIRONMENT: "production", SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, APP_URL: $app}' \
             > app/config/production.json
@@ -146,7 +189,7 @@ jobs:
     # signs it with their own Apple Account to install it (docs/operations.md,
     # iOS builds).
     name: Build and attach the unsigned iOS app
-    needs: release-please
+    needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
     runs-on: macos-26
     timeout-minutes: 45
@@ -173,11 +216,11 @@ jobs:
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
-          APP_URL: ${{ vars.APP_URL }}
         run: |
-          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY APP_URL; do
+          for name in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY; do
             [[ -n "${!name}" ]] || { echo "::error::Repository variable $name is not set"; exit 1; }
           done
+          APP_URL="$(jq -er .app.origin contracts/origins.json)"
           jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_PUBLISHABLE_KEY" --arg app "$APP_URL" \
             '{ENVIRONMENT: "production", SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, APP_URL: $app}' \
             > app/config/production.json
@@ -204,7 +247,9 @@ jobs:
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
 
   deploy:
-    # The backend and the web app, without waiting for the builds above.
+    # The backend and the web app, without waiting for the builds above: its
+    # supabase job runs the same Auth check, and its web job the same origin
+    # check, before either deploys anything.
     name: Deploy the release
     needs: release-please
     if: needs.release-please.outputs.created == 'true'
@@ -225,10 +270,16 @@ jobs:
     # to those attached when the site is built (deploy.yml), so the website
     # waits for both builds to finish. It goes out even if one failed, without
     # that build's files; re-running the failed job runs this one again after
-    # it, and the page then links to them too.
+    # it, and the page then links to them too. It also waits for the backend
+    # and the web app (deploy), and goes out only once they are deployed: the
+    # site links to the web app and to builds that expect this release's
+    # backend, and after a move to a web app built for its new address
+    # (docs/operations.md, Domains). Re-running deploy runs this one after it.
     name: Deploy the website
-    needs: [release-please, artefacts, ios]
-    if: ${{ !cancelled() && needs.release-please.outputs.created == 'true' }}
+    needs: [release-please, artefacts, ios, deploy]
+    if: >-
+      ${{ !cancelled() && needs.release-please.outputs.created == 'true'
+      && needs.deploy.result == 'success' }}
     permissions:
       contents: read
       issues: read # the roadmap page reads the roadmap's milestones and issues

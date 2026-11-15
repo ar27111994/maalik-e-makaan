@@ -2,7 +2,8 @@
 # week and by hand, so the roadmap page shows the milestones and issues as they
 # stand on GitHub between releases (deploy.yml, "site-only"). The backend and
 # the web app are not touched. The site's content comes from the release's tag,
-# so nothing unreleased on main reaches the pages; the steps that build and
+# its addresses included (contracts/origins.json, decision D-20), so nothing
+# unreleased on main reaches the pages; the steps that build and
 # deploy it come from main's deploy.yml, and skip, with a warning, a tool that
 # is newer than the tag (the pitch deck, the live roadmap). The download page
 # links only to the release files attached at the time, so a release still

@@ -19,8 +19,12 @@ export const SITE = {
     nameUrdu: "احمد ریحان",
     url: "https://github.com/ar27111994",
   },
-  /** The product's mailbox, for privacy requests and anything else. */
-  contactEmail: "maalik-e-makaan@news.ar27111994.dev",
+  /**
+   * The company's mailbox on its own domain (decision D-20), for privacy requests and anything
+   * else. The pages, llms.txt, the structured data and the deck ({{contactEmail}}) read it; the
+   * privacy pages repeat it, which tests/unit/content.test.ts checks.
+   */
+  contactEmail: "hello@mmakaan.app",
   /** The year the copyright starts; the footer runs it to the year the site is built. */
   copyrightYear: 2026,
 } as const;

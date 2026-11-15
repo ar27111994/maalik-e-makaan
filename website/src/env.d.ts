@@ -1,7 +1,7 @@
 /// <reference types="astro/client" />
 
 interface ImportMetaEnv {
-  /** The web app's address; see website/README.md. Defaults to https://maalik-e-makaan.vercel.app. */
+  /** The web app's address; see website/README.md. Defaults to app.origin in contracts/origins.json. */
   readonly PUBLIC_APP_URL?: string;
 }
 

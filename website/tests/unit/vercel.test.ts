@@ -1,9 +1,18 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, expect, test } from "vitest";
+import origins from "../../../contracts/origins.json";
 import {
+  decodedPath,
   headersFor,
   readVercelConfig,
+  redirectFor,
+  requestUrl,
   sourceMatches,
   trailingSlashRedirect,
+  type VercelConfig,
 } from "../../scripts/lib/vercel.ts";
 
 const config = readVercelConfig(new URL("../../vercel.json", import.meta.url));
@@ -99,5 +108,207 @@ describe("the Vercel emulation used by the local server", () => {
     expect(trailingSlashRedirect(config, "/ur/licences")).toBe("/ur/licences/");
     expect(trailingSlashRedirect(config, "/ur/")).toBeUndefined();
     expect(trailingSlashRedirect(config, "/robots.txt")).toBeUndefined();
+  });
+
+  test("adds no trailing slash to a path that starts with //, whose Location names a host", () => {
+    for (const path of ["//ur", "//ur/licences", "///ur", "//"]) {
+      expect(trailingSlashRedirect(config, path), path).toBeUndefined();
+    }
+    // An empty segment further on keeps the Location a path on this host.
+    expect(trailingSlashRedirect(config, "/ur//licences")).toBe("/ur//licences/");
+  });
+
+  test("decodes a path, and refuses one that is not valid percent-encoding", () => {
+    expect(decodedPath("/caf%C3%A9/")).toBe("/café/");
+    expect(decodedPath("/a%20b/")).toBe("/a b/");
+    for (const path of ["/%zz", "/%", "/%2", "/%ff", "/a%E0%A4%A/"]) {
+      expect(decodedPath(path), path).toBeUndefined();
+    }
+  });
+});
+
+describe("the request's URL, as Vercel reads it", () => {
+  test("the host comes from the Host header and the whole target is the path", () => {
+    const url = requestUrl("/ur/pricing/?a=1", "mmakaan.app:4321");
+    expect([url?.hostname, url?.pathname, url?.search]).toEqual([
+      "mmakaan.app",
+      "/ur/pricing/",
+      "?a=1",
+    ]);
+    expect(requestUrl("/", undefined)?.hostname).toBe("localhost");
+    expect(requestUrl("/", "[::1]:4321")?.hostname).toBe("[::1]");
+    expect(requestUrl("/", "127.0.0.1")?.hostname).toBe("127.0.0.1");
+    for (const target of ["//evil.example/", "//evil.example/x/", "/\\evil.example/"]) {
+      const parsed = requestUrl(target, "mmakaan.app");
+      expect(parsed?.hostname, target).toBe("mmakaan.app");
+      expect(parsed?.pathname.startsWith("//evil.example/"), target).toBe(true);
+    }
+  });
+
+  test("a target that is not a path, or a Host header that is not a host, is refused", () => {
+    for (const target of ["*", "http://evil.example/", "evil.example/", ""]) {
+      expect(requestUrl(target, "mmakaan.app"), target).toBeUndefined();
+    }
+    for (const host of [
+      "",
+      "evil.example/x",
+      "a@evil.example",
+      "mmakaan.app:",
+      "a b",
+      "x:99999999",
+    ]) {
+      expect(requestUrl("/", host), host).toBeUndefined();
+    }
+  });
+});
+
+describe("the earlier addresses redirect to the site's origin (contracts/origins.json, D-20)", () => {
+  const legacyHosts = origins.site.legacy.map((url) => new URL(url).hostname);
+  const siteHost = new URL(origins.site.origin).hostname;
+
+  test("one permanent redirect per earlier address, matched on its exact host, to the origin", () => {
+    expect(config.redirects).toEqual(
+      legacyHosts.map((host) => ({
+        source: "/:path((?!google[0-9a-f]{16}\\.html$).*)",
+        has: [{ type: "host", value: host.replaceAll(".", "\\.") }],
+        destination: `${origins.site.origin}/:path`,
+        permanent: true,
+      })),
+    );
+  });
+
+  test.each(legacyHosts)(
+    "%s: every path, with its query, goes to the same path on the origin",
+    (host) => {
+      for (const [path, search] of [
+        ["/", ""],
+        ["/pricing/", "?utm_source=x&a=%20b"],
+        ["/ur/guides/rent-agreement/", ""],
+        ["/sitemap-index.xml", ""],
+        ["/missing/", "?q=1"],
+      ] as const) {
+        expect(redirectFor(config, host, path, search)).toEqual({
+          status: 308,
+          location: `${origins.site.origin}${path}${search}`,
+        });
+      }
+    },
+  );
+
+  test.each(legacyHosts)(
+    "%s: a path holding String.prototype.replace's replacement patterns is passed on as it is",
+    (host) => {
+      // String.prototype.replace reads these in a replacement string; Vercel copies the path.
+      for (const path of ["/$&/", "/$1/", "/$$/", "/$`/", "/$'/", "/a/$&$1$$/b/"]) {
+        expect(redirectFor(config, host, path, "?q=$&")).toEqual({
+          status: 308,
+          location: `${origins.site.origin}${path}?q=$&`,
+        });
+      }
+    },
+  );
+
+  test.each(legacyHosts)(
+    "%s: a path that starts with // stays a path on that host and moves to the origin",
+    (host) => {
+      // new URL("//evil.example/", base) would read evil.example as the host and answer it
+      // locally; Vercel keeps the whole target as the path and redirects it like any other.
+      for (const [target, path] of [
+        ["//evil.example/", "//evil.example/"],
+        ["//evil.example/x/", "//evil.example/x/"],
+        ["//evil.example/x/?q=1", "//evil.example/x/"],
+      ] as const) {
+        const url = requestUrl(target, `${host}:443`);
+        expect(url?.hostname, target).toBe(host);
+        expect(url?.pathname, target).toBe(path);
+        expect(redirectFor(config, url?.hostname ?? "", url?.pathname ?? "", url?.search)).toEqual({
+          status: 308,
+          location: `${origins.site.origin}${target}`,
+        });
+      }
+    },
+  );
+
+  test.each(legacyHosts)(
+    "%s keeps answering Google's verification file and /.well-known/ itself",
+    (host) => {
+      expect(redirectFor(config, host, "/google0123456789abcdef.html")).toBeUndefined();
+      expect(redirectFor(config, host, "/.well-known/security.txt")).toBeUndefined();
+      // Only a file at the root is Google's; the same name deeper down moves like any page.
+      expect(redirectFor(config, host, "/x/google0123456789abcdef.html")?.status).toBe(308);
+    },
+  );
+
+  test("the origin, its aliases, previews and local servers are never redirected", () => {
+    for (const host of [
+      siteHost,
+      ...origins.site.aliases.map((url) => new URL(url).hostname),
+      `x${legacyHosts[0] ?? ""}`,
+      `${legacyHosts[0] ?? ""}.example`,
+      // A preview's host: the project's name with the branch and team after it.
+      (legacyHosts[0] ?? "").replace(/^([^.]+)/, "$1-git-main-team"),
+      "127.0.0.1",
+      "localhost",
+    ]) {
+      expect(redirectFor(config, host, "/pricing/"), host).toBeUndefined();
+    }
+  });
+});
+
+describe("the redirect emulation refuses what it cannot apply as Vercel does", () => {
+  function configWith(redirects: unknown): URL {
+    const dir = mkdtempSync(join(tmpdir(), "vercel-json-"));
+    const file = join(dir, "vercel.json");
+    writeFileSync(file, JSON.stringify({ redirects }));
+    return pathToFileURL(file);
+  }
+  const rule = { source: "/:p(.*)", destination: "https://b.example/:p", permanent: true };
+
+  test.each([
+    [{ ...rule, source: "/:p*" }, /not emulated/],
+    [{ ...rule, source: "/:p" }, /not emulated/],
+    [{ ...rule, source: "/(.*)" }, /not emulated/],
+    [{ ...rule, source: "/:p((.*))" }, /Capturing group/],
+    [{ ...rule, source: "/:p(.*)?" }, /modifiers/],
+    [{ ...rule, source: "/:p(.*" }, /Unbalanced/],
+    [{ ...rule, has: [{ type: "header", key: "x", value: "y" }] }, /on the host/],
+    [{ ...rule, missing: [] }, /nothing else/],
+    [{ ...rule, statusCode: 301 }, /permanent or statusCode/],
+    [{ source: rule.source, destination: rule.destination }, /permanent or statusCode/],
+  ])("%j", (bad, message) => {
+    expect(() => readVercelConfig(configWith([bad]))).toThrow(message);
+  });
+
+  test("statusCode, a temporary redirect, a destination with its own query and literal text", () => {
+    const own: VercelConfig = {
+      redirects: [
+        { source: "/old.html", destination: "/new/?from=old", statusCode: 301 },
+        { source: "/a/:rest(.*)", destination: "https://b.example/c/:rest", permanent: false },
+      ],
+    };
+    expect(redirectFor(own, "any", "/old.html", "?x=1")).toEqual({
+      status: 301,
+      location: "/new/?from=old",
+    });
+    expect(redirectFor(own, "any", "/oldxhtml")).toBeUndefined();
+    expect(redirectFor(own, "any", "/a/b/c", "?y")).toEqual({
+      status: 307,
+      location: "https://b.example/c/b/c?y",
+    });
+  });
+
+  test("each parameter is filled in once, from its own capture, never from another's", () => {
+    const two: VercelConfig = {
+      redirects: [
+        { source: "/:a([^/]*)/:b(.*)", destination: "https://b.example/:b/:a", permanent: true },
+      ],
+    };
+    // The first capture holds the name of the second parameter: it must stay as it is.
+    expect(redirectFor(two, "any", "/:b/x")?.location).toBe("https://b.example/x/:b");
+    expect(redirectFor(two, "any", "/$&/$'")?.location).toBe("https://b.example/$'/$&");
+  });
+
+  test("the trailing slash is not added under /.well-known/, as on Vercel", () => {
+    expect(trailingSlashRedirect(config, "/.well-known/thing")).toBeUndefined();
   });
 });

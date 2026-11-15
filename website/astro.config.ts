@@ -9,8 +9,8 @@ import { resolveSiteUrl } from "./src/config/urls.ts";
 import { LOCALE_INFO } from "./src/i18n/locales.ts";
 import { contentDates, sitemapItem } from "./src/lib/seo/sitemap.ts";
 
-// SITE_URL comes from the environment (the Vercel project, or website/.env
-// locally); see README.md. It defaults to the Vercel production address.
+// SITE_URL comes from the environment (website/.env locally); see README.md.
+// It defaults to the site's production origin in contracts/origins.json.
 const env = loadEnv(process.env.NODE_ENV ?? "production", process.cwd(), "");
 const site = resolveSiteUrl(env.SITE_URL);
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));

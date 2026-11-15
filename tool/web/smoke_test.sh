@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Smoke test of a deployed web app: the app shell, the SPA fallback, the
-# security headers and the Android App Links file.
+# security headers, noindex and the Android App Links file; and that nothing
+# on the app's own address tells the browser to clear what the app keeps there
+# (only an earlier address does, tool/web/redirect_smoke_test.sh --page).
 #
-#   tool/web/smoke_test.sh https://maalik-e-makaan.vercel.app io.github.ar27111994.maalik_e_makaan [SUPABASE_URL]
+#   tool/web/smoke_test.sh https://app.mmakaan.app io.github.ar27111994.maalik_e_makaan [SUPABASE_URL]
 #
 # With SUPABASE_URL, the Content-Security-Policy must allow that project.
 set -euo pipefail
@@ -26,8 +28,11 @@ fetch() {
     -D "$work/headers" -o "$work/body" -w '%{http_code}' "$base$1"
 }
 
+# header NAME: the value of that response header, or nothing when the response has none (a
+# header that is missing is a finding to report, not an error to stop on).
 header() {
-  grep -i "^$1:" "$work/headers" | tail -n 1 | cut -d: -f2- | tr -d '\r' | sed 's/^ *//'
+  { grep -i "^$1:" "$work/headers" || true; } | tail -n 1 | cut -d: -f2- | tr -d '\r' \
+    | sed 's/^ *//'
 }
 
 # Just after `vercel deploy --prod`, the production address can still answer
@@ -64,15 +69,21 @@ for path in / /auth/callback?code=smoke-test "/invite/smoke-test-$RANDOM"; do
   fi
   [[ "$(header strict-transport-security)" == max-age=* ]] || fail "$path lacks HSTS"
   [[ "$(header x-content-type-options)" == nosniff ]] || fail "$path lacks nosniff"
+  # The website is what search engines index (D-01); the app's shell answers every path.
+  [[ "$(header x-robots-tag)" == noindex ]] || fail "$path lacks X-Robots-Tag: noindex"
   # index.html must be revalidated on every load, or a deploy reaches users late.
   cache="$(header cache-control)"
   [[ "$cache" == *no-cache* || "$cache" == *max-age=0* ]] || fail "$path is cached: $cache"
+  # The session, the records and the settings the app keeps here are the person's own.
+  [[ -z "$(header clear-site-data)" ]] || fail "$path carries Clear-Site-Data on the app's address"
 done
 
 status="$(fetch /.well-known/assetlinks.json)"
 type="$(header content-type)"
 if [[ "$status" != 200 ]]; then
   fail "assetlinks.json answered $status"
+elif [[ -n "$(header clear-site-data)" ]]; then
+  fail "assetlinks.json carries Clear-Site-Data"
 elif [[ "$type" != application/json* ]]; then
   fail "assetlinks.json is served as $type"
 elif ! jq -e --arg package "$package" \

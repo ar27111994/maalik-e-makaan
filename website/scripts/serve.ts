@@ -1,8 +1,11 @@
 /**
  * Serves the built site (dist/) the way Vercel does: the headers of
- * vercel.json, trailing-slash redirects, index.html for directories and
- * dist/404.html with status 404 for anything missing. The e2e suite and
- * Lighthouse run against it.
+ * vercel.json, trailing-slash redirects, then its redirects (an earlier
+ * address's, matched on the Host header), index.html for directories and
+ * dist/404.html with status 404 for anything missing. The path is the raw
+ * request target, so `//x/` is a path, as on Vercel, not the host x, and never gains a
+ * trailing slash (a Location of `//x/` would name the host x). A path that is not valid
+ * percent-encoding answers 400. The e2e suite and Lighthouse run against it.
  *
  *   node scripts/serve.ts [--port 4321]
  */
@@ -12,7 +15,14 @@ import { createServer } from "node:http";
 import { extname, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { headersFor, readVercelConfig, trailingSlashRedirect } from "./lib/vercel.ts";
+import {
+  decodedPath,
+  headersFor,
+  readVercelConfig,
+  redirectFor,
+  requestUrl,
+  trailingSlashRedirect,
+} from "./lib/vercel.ts";
 
 const { values } = parseArgs({ options: { port: { type: "string", default: "4321" } } });
 const port = Number(values.port);
@@ -43,20 +53,32 @@ async function isFile(path: string): Promise<boolean> {
 
 /** The file in dist/ for a URL path, or undefined. Paths cannot escape dist/. */
 async function resolveFile(pathname: string): Promise<string | undefined> {
-  const relative = pathname.endsWith("/") ? `${pathname}index.html` : pathname;
-  const path = normalize(`${dist}${decodeURIComponent(relative)}`);
+  const relative = decodedPath(pathname.endsWith("/") ? `${pathname}index.html` : pathname);
+  if (relative === undefined) return undefined;
+  const path = normalize(`${dist}${relative}`);
   if (!path.startsWith(dist) || path.includes(`${sep}..${sep}`)) return undefined;
   return (await isFile(path)) ? path : undefined;
 }
 
 const server = createServer((request, response) => {
   void (async () => {
-    const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+    // The Host header and the raw target: a target that starts with // stays a path, as on Vercel.
+    const url = requestUrl(request.url ?? "/", request.headers.host);
+    if (url === undefined || decodedPath(url.pathname) === undefined) {
+      response.writeHead(400).end();
+      return;
+    }
     const pathname = url.pathname;
     const headers = headersFor(config, pathname);
     const redirect = trailingSlashRedirect(config, pathname);
     if (redirect !== undefined && (await resolveFile(redirect)) !== undefined) {
       response.writeHead(308, { ...headers, location: `${redirect}${url.search}` }).end();
+      return;
+    }
+    // Vercel's order: the trailing slash first (on the same host), then vercel.json's redirects.
+    const moved = redirectFor(config, url.hostname, pathname, url.search);
+    if (moved !== undefined) {
+      response.writeHead(moved.status, { ...headers, location: moved.location }).end();
       return;
     }
     const file = await resolveFile(pathname);

@@ -47,7 +47,7 @@ const Map<String, Object?> _inviteAnswer = {
   'email': 'kamran@example.com',
   'role': 'accountant',
   'expires_at': '2026-11-14T05:00:00+00:00',
-  'invite_url': 'https://maalik-e-makaan.vercel.app/invite#token=abc.def',
+  'invite_url': 'https://app.example.pk/invite#token=abc.def',
   'email_delivery': 'sent',
 };
 

@@ -42,6 +42,7 @@ LEAN_TOOLCHAIN = "formal/lean/lean-toolchain"
 SUPABASE_CONFIG = "supabase/config.toml"
 MM_VARIANTS = "packages/mm_ui/test/support/harness.dart"
 TLA_DIR = "formal/tla"
+ORIGINS = "contracts/origins.json"
 
 # The pins ci.yml's env sets, which other workflows repeat (C11 holds the copies equal).
 TOOLCHAIN_VARS = (
@@ -638,6 +639,67 @@ def parse_decisions(text: str) -> Decisions:
     return Decisions(counts["D"], counts["P"])
 
 
+# ── contracts/origins.json ─────────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class Origins:
+    """The website's and the web app's production origins, and the addresses that lead to them."""
+
+    site: str
+    site_aliases: tuple[str, ...]
+    site_legacy: tuple[str, ...]
+    app: str
+    app_legacy: tuple[str, ...]
+
+    @property
+    def current(self) -> tuple[str, ...]:
+        """The origins, and the aliases that redirect to one by a hosting setting."""
+        return (self.site, *self.site_aliases, self.app)
+
+    @property
+    def legacy(self) -> tuple[str, ...]:
+        return (*self.site_legacy, *self.app_legacy)
+
+
+_ORIGIN_KEYS = {"site": {"origin", "aliases", "legacy"}, "app": {"origin", "legacy"}}
+
+
+def parse_origins(text: str) -> Origins:
+    """contracts/origins.json: `site` and `app`, each an `origin` string with lists of strings
+    (`aliases` for the site, `legacy` for both). Whether each string is an origin is C17's."""
+
+    def fail(message: str) -> SourceShapeError:
+        return SourceShapeError(
+            ORIGINS, f"{message}; update parse_origins in tool/docs/fact_sources.py"
+        )
+
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise SourceShapeError(ORIGINS, f"is not JSON ({error.msg}, line {error.lineno})") from None
+    if not isinstance(data, dict) or set(data) - {"$comment"} != set(_ORIGIN_KEYS):
+        raise fail('is not an object of "site" and "app" (and "$comment")')
+    for name, allowed in _ORIGIN_KEYS.items():
+        entry = data[name]
+        if not isinstance(entry, dict) or "origin" not in entry or set(entry) - allowed:
+            raise fail(f'"{name}" is not an object of {", ".join(sorted(allowed))}, with "origin"')
+        if not isinstance(entry["origin"], str):
+            raise fail(f'"{name}.origin" is not a string')
+        for key in allowed - {"origin"}:
+            value = entry.get(key, [])
+            if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+                raise fail(f'"{name}.{key}" is not a list of strings')
+    site, app = data["site"], data["app"]
+    return Origins(
+        site["origin"],
+        tuple(site.get("aliases", [])),
+        tuple(site.get("legacy", [])),
+        app["origin"],
+        tuple(app.get("legacy", [])),
+    )
+
+
 # ── Workflows ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -1097,6 +1159,9 @@ class Repo:
 
     def decisions(self) -> Decisions:
         return self._cached("decisions", lambda: parse_decisions(self.text(PROJECT)))
+
+    def origins(self) -> Origins:
+        return self._cached("origins", lambda: parse_origins(self.text(ORIGINS)))
 
     def mm_variants(self) -> tuple[str, ...]:
         return self._cached("mm-variants", lambda: parse_mm_variants(self.text(MM_VARIANTS)))
