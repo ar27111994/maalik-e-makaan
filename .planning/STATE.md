@@ -34,10 +34,11 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   which Resend refuses: it sends only from a domain it has verified, that is
   `news.ar27111994.dev`, and its free plan holds one. Auth's SMTP sender was shown as
   `hello@mmakaan.app` too, and its confirmations and resets are refused the same way if it
-  still is. The owner wants the company's address everywhere, so the choice is theirs: set both
-  back to an address on `news.ar27111994.dev`, or move Resend to `mmakaan.app` (remove the old
-  domain, add the new one and its DNS records, two new API keys, tracking off). Until one is
-  done, the sign-up, reset and invitation checks of step 9 fail. The next release (step 12) is
+  still is. The owner wants the company's address everywhere and chose, the same day, to move
+  Resend to `mmakaan.app` itself and not to set the sender back: remove the old domain, add the
+  new one and its three DNS records at Dynadot, two new API keys, tracking off
+  (`docs/operations.md`, Domains, step 13, has the order). It is the owner's to finish; until
+  then the sign-up, reset and invitation checks of step 9 fail. The next release (step 12) is
   not before 14:00 UTC on 16 November 2026.
 - Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
   zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
@@ -416,7 +417,8 @@ The rest, in short:
 - Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
   choice, 2026-11-09), with the bilingual templates in `supabase/templates/`. The sending domain
   `news.ar27111994.dev` is verified (2026-11-09); its click and open tracking are off (the owner,
-  reported 2026-11-12).
+  reported 2026-11-12). It gives way to `mmakaan.app`, with `hello@mmakaan.app` as the sender
+  (the owner's decision of 2026-11-15, the Current Position).
 - Reported done by the owner on 2026-11-09 (not checkable from the agent's network): the backup
   key, `RELEASE_PLEASE_TOKEN`, Supabase SMTP through Resend with the templates, and the other
   configuration in `docs/release-readiness.md`, Owner actions. Since then: the pull request to

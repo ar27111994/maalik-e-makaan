@@ -213,7 +213,9 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   and the query. The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (its free
   plan; the owner, 13 November 2026, in place of the Zoho Mail first planned). It is the contact
   address of the website, the privacy pages and the deck, and the only mailbox on the domain that
-  a page may name (`make docs-check` C17). Done by the agent through the Vercel connector on 13
+  a page may name (`make docs-check` C17). It is also the sender of the app's own e-mails (the
+  owner, 15 November 2026: the company's address everywhere), so Resend sends from `mmakaan.app`
+  itself and not from a sending subdomain; `docs/operations.md`, E-mail, has what that takes. Done by the agent through the Vercel connector on 13
   November 2026: `mmakaan.app` and `www.mmakaan.app` (308 to the apex) on the project
   `maalik-e-makaan-site`, and `app.mmakaan.app` on `maalik-e-makaan`. Done by the owner: the
   records at Dynadot (`A` records `216.198.79.1` and `64.29.17.1` for the apex, `CNAME` records

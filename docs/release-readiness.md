@@ -338,7 +338,10 @@ In order. Record each in `.planning/STATE.md` when it is done.
    `news.ar27111994.dev` was verified on 2026-11-09 (us-east-1). Its click and open tracking,
    which were on (they rewrite the sign-in links through Resend and add a tracking pixel, which
    the privacy page rules out), are off: the owner reported on 2026-11-12 that they had switched
-   them off some days before. Still to do: check that `MAIL_FROM` uses that domain;
+   them off some days before. (On 15 November 2026 the owner decided to send from
+   `hello@mmakaan.app` instead, which moves Resend to `mmakaan.app`: item 13, step 13; the
+   tracking must be switched off again on the new domain.) Still to do: check that `MAIL_FROM`
+   uses the sending domain;
    turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
    check the "Email sent" rate limit; paste the three bilingual templates from
    `supabase/templates/` with their subjects from `supabase/config.toml`. (The iOS app's redirect
@@ -478,17 +481,21 @@ In order. Record each in `.planning/STATE.md` when it is done.
         2026): the agent answers the old address's
         `/auth/callback` with the page too, so it clears and sends people on like every other
         path; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone.
-    13. **Later:** the mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`
+    13. **The mail.** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`
         (`p=none`), which was being added on 13 November 2026: check that it is there. The company's
         mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho; a test
-        message to Gmail passed SPF and DKIM for `mmakaan.app` on 13 November 2026. The Edge
-        Function secret `MAIL_REPLY_TO` can become `hello@mmakaan.app` (dashboard, Edge
-        Functions, Secrets). The mailbox is not a sender for the app: Auth's SMTP sender and
-        `MAIL_FROM` stay on `news.ar27111994.dev` until Resend has verified a sending subdomain
-        of the domain, or every confirmation and reset is refused. Resend's free plan holds one
-        domain, so that move means removing the current one first, or a paid plan. Then a Resend
-        sending subdomain, then Auth's SMTP sender and `MAIL_FROM`; and Customer.io's subdomain
-        (D-18).
+        message to Gmail passed SPF and DKIM for `mmakaan.app` on 13 November 2026. **Done on 15
+        November 2026:** the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app`. **Decided
+        that day, and yours to finish:** the app's e-mails come from `hello@mmakaan.app` too, so
+        Resend moves from `news.ar27111994.dev` to `mmakaan.app` (its free plan holds one
+        domain). In order: remove the old domain in Resend and add `mmakaan.app`; its three
+        records at Dynadot as subdomain records (`send` twice, `resend._domainkey`), the apex's
+        left alone; wait for "Verified"; click and open tracking off; two new sending keys
+        limited to the domain, one as Auth's SMTP password and one as `RESEND_API_KEY`; Auth's
+        SMTP sender `hello@mmakaan.app` and `MAIL_FROM="Maalik-e-Makaan <hello@mmakaan.app>"`;
+        then step 9's e-mail checks. `MAIL_FROM` already holds the address (since 14:13 UTC that
+        day), so until this is finished Resend refuses the invitations, and Auth's e-mails too
+        if its sender is the same. Customer.io gets a subdomain of its own (D-18).
         Every host on the domain is HTTPS-only (`.app` is HSTS-preloaded), so a subdomain opened in
         a browser, such as a link-tracking or webmail one, needs the provider's TLS before its
         `CNAME`. Also the owner's to set: when Auth drops the old redirect URLs and the Android

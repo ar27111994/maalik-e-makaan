@@ -187,20 +187,26 @@ Resend's free plan (3,000 e-mails a month, 100 a day, one domain, in November 20
 launch; Auth and invitations share the daily 100. Check the plan's terms allow production use.
 
 1. **A domain.** Resend sends to other people only from a domain whose DNS you control; a
-   `vercel.app` address cannot be one. Use a subdomain (`mail.<domain>`), add the records Resend
-   lists (MX and SPF TXT on `send.mail.<domain>`, DKIM TXT on `resend._domainkey.mail.<domain>`)
-   and a DMARC record (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". The
-   project's domain is `news.ar27111994.dev` (verified 2026-11-09), and Auth's e-mails and the
-   invitations are still sent from it. The company's own domain, `mmakaan.app` (D-20), can take
-   over later, as a sending subdomain of its own beside the company's mailbox, which Dynadot's
-   e-mail serves on the apex ([Domains](#domains), step 13). In the domain's
+   `vercel.app` address cannot be one. Add the domain, then the records Resend lists (MX and SPF
+   TXT on `send.<domain>`, DKIM TXT on `resend._domainkey.<domain>`) and a DMARC record
+   (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". **The owner's decision of
+   15 November 2026:** the app's e-mails come from the company's own address,
+   `hello@mmakaan.app`, so the domain in Resend is `mmakaan.app` itself, beside the company's
+   mailbox, which Dynadot's e-mail serves on the same name. Resend's records sit on `send` and
+   `resend._domainkey`, so the mailbox's own MX and SPF records on the apex stay as they are;
+   what the two share is the domain's reputation. The free plan holds one domain, so
+   `news.ar27111994.dev` (verified 2026-11-09, the sender until then) is removed first, and
+   nothing is sent until the new domain is verified ([Domains](#domains), step 13, has the
+   state). In the domain's
    Configuration, turn **off** click tracking and open tracking: click tracking rewrites the
    sign-in links through Resend's servers, and open tracking adds a tracking pixel; the privacy
    page says the app has no trackers.
 2. **Two API keys**, both "Sending access" and limited to that domain: one for Supabase's SMTP,
-   one for the `invite-member` function, so either can be revoked alone.
+   one for the `invite-member` function, so either can be revoked alone. After a move to
+   another domain, make both again, limited to the new one.
 3. **Supabase SMTP** (Authentication, Emails, SMTP Settings, Enable custom SMTP): sender
-   `no-reply@mail.<domain>`, name "Maalik-e-Makaan", host `smtp.resend.com`, port 465, user
+   `hello@mmakaan.app` (a mailbox someone reads, so a reply to a confirmation reaches the
+   company), name "Maalik-e-Makaan", host `smtp.resend.com`, port 465, user
    `resend`, password the first key, minimum interval 60 seconds. (Resend's Supabase integration,
    Settings, Integrations, fills in the same.)
 4. **Rate limit** (Authentication, Rate Limits, "Email sent"): custom SMTP starts at 30 an hour,
@@ -229,7 +235,8 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    in the files are written by `make tokens` from the type tokens, at the role each Urdu element
    names with `data-mm-type`; edit the tokens, not the values in the files.
 7. **Invitations**: the Edge Function secrets `RESEND_API_KEY` (the second key) and
-   `MAIL_FROM="Maalik-e-Makaan <no-reply@mail.<domain>>"` (Edge Function secrets, above).
+   `MAIL_FROM="Maalik-e-Makaan <hello@mmakaan.app>"` (Edge Function secrets, above; with the
+   name, so that an inbox shows it and not "hello").
 8. **Check**: sign up in each language, reset a password, change an address, and invite someone
    outside the team. Each link should open `/auth/callback`, and "Show original" in Gmail should
    say SPF, DKIM and DMARC "PASS".
@@ -735,18 +742,28 @@ variable at all (Moving again).
     people on like every other path (only `assetlinks.json` stays); after its deploy, the owner
     sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes it, which means `APP_URL`'s
     origin).
-13. **Later:** the mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`,
+13. **The mail.** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`,
     which was being added on 13 November 2026: check that it is there ("Show original" in Gmail
-    says DMARC "PASS"), and leave the mailbox's own SPF record as Dynadot wrote it. The Edge
-    Function secret `MAIL_REPLY_TO=hello@mmakaan.app`, so that a reply to an invitation reaches the
-    company (dashboard, Edge Functions, Secrets; no redeploy needed). The mailbox is not a sender for the app: Auth's SMTP sender and
-    `MAIL_FROM` stay on `news.ar27111994.dev` until Resend has verified a sending subdomain of
-    the domain, because Resend refuses a sender on a domain it has not verified, and the
-    company's address there would stop every confirmation and reset. Resend's free plan holds
-    one domain ([E-mail](#e-mail)), so moving means removing the current one first, with no
-    e-mail sent until the new one is verified, or a paid plan. Then, each in its own pull request: Resend on a sending subdomain
-    of the domain (its records, click and open tracking off), then Auth's SMTP sender and
-    `MAIL_FROM`; and Customer.io on another subdomain (D-18). Every host on `mmakaan.app` is reached
+    says DMARC "PASS"), and leave the mailbox's own SPF record as Dynadot wrote it. **Done on 15
+    November 2026 (the owner):** the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app`, so
+    that a reply to an invitation reaches the company. **Decided that day, and the owner's to
+    finish:** the app's e-mails come from `hello@mmakaan.app` too, so Resend moves from
+    `news.ar27111994.dev` to `mmakaan.app` ([E-mail](#e-mail) has the reasons and each setting).
+    In order:
+    1. In Resend, remove the old domain and add `mmakaan.app`.
+    2. At Dynadot, add its three records as subdomain records (an MX and a TXT on `send`, a TXT
+       on `resend._domainkey`), and leave the apex's records alone.
+    3. Wait for "Verified", then turn click and open tracking off.
+    4. Make two sending keys limited to the domain: one is Auth's SMTP password, the other the
+       secret `RESEND_API_KEY`.
+    5. Auth's SMTP sender is `hello@mmakaan.app`, and
+       `MAIL_FROM="Maalik-e-Makaan <hello@mmakaan.app>"`.
+    6. Step 9's sign-up, reset and invitation, with SPF, DKIM and DMARC "PASS" in Gmail.
+
+    `MAIL_FROM` was set to the address at 14:13 UTC that day, before the domain was verified:
+    until the move is finished, Resend refuses the invitations, and Auth's e-mails too if its
+    sender is the same. Customer.io gets a subdomain of its own, in its own pull request (D-18).
+    Every host on `mmakaan.app` is reached
     over HTTPS only: the whole `.app` domain is on the browsers' HSTS preload list, and the site
     sends HSTS with `includeSubDomains`. So a subdomain people open in a browser (a link-tracking
     domain, a custom webmail address) needs its certificate, through the provider's managed TLS,
