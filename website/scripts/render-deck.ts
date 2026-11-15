@@ -7,9 +7,10 @@
 // <x-connector> elements and data-crop on images. This script turns those into
 // plain HTML: the icons from deck/icons (Lucide), the screens cropped from the
 // app's golden test images (sample data, so they always show the current app),
-// the fonts from packages/mm_ui, {{version}} and {{releaseDate}} from the
-// release-please manifest and CHANGELOG.md, {{siteHost}} and {{appHost}} from
-// contracts/origins.json, and {{contactEmail}} from src/config/site.ts. CI and
+// the fonts from packages/mm_ui, {{version}}, {{releaseDate}} and
+// {{laterReleases}} from the release-please manifest and CHANGELOG.md,
+// {{siteHost}} and {{appHost}} from contracts/origins.json, and
+// {{contactEmail}} from src/config/site.ts. CI and
 // the Deploy workflow run it before the site is built, so the deck on the site
 // matches each release.
 import { readFileSync } from "node:fs";
@@ -18,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
 import { SITE } from "../src/config/site.ts";
+import { deckRelease } from "./lib/deck-release.ts";
 import { readOrigins } from "./lib/origins.ts";
 
 const website = new URL("../", import.meta.url);
@@ -44,29 +46,6 @@ const ICONS: Readonly<Record<string, string>> = {
   Users: "users",
   Chat: "message-circle",
 };
-
-function release(): { version: string; date: string } {
-  const manifest = JSON.parse(text(new URL(".release-please-manifest.json", repository))) as Record<
-    string,
-    string
-  >;
-  const version = manifest["."];
-  if (version === undefined) throw new Error("The release-please manifest has no version");
-  const escaped = version.replaceAll(".", "\\.");
-  const heading = new RegExp(
-    `^## \\[?${escaped}\\]?(?:\\([^)]*\\))? \\((\\d{4}-\\d{2}-\\d{2})\\)`,
-    "m",
-  );
-  const iso = heading.exec(text(new URL("CHANGELOG.md", repository)))?.[1];
-  if (iso === undefined) throw new Error(`CHANGELOG.md has no entry for ${version}`);
-  const date = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${iso}T00:00:00Z`));
-  return { version, date };
-}
 
 async function screen(name: string): Promise<string> {
   const box = SCREENS[name];
@@ -135,7 +114,10 @@ async function slideHtml(file: string, values: Record<string, string>): Promise<
 }
 
 const deck = JSON.parse(text(new URL("deck.json", deckDir))) as { title: string; order: string[] };
-const { version, date } = release();
+const { version, date, later } = deckRelease(
+  text(new URL(".release-please-manifest.json", repository)),
+  text(new URL("CHANGELOG.md", repository)),
+);
 // The addresses as a slide shows them: the host alone, as people type it.
 const origins = readOrigins();
 const hosts = {
@@ -144,7 +126,13 @@ const hosts = {
 };
 const slides = await Promise.all(
   deck.order.map((file) =>
-    slideHtml(file, { version, releaseDate: date, ...hosts, contactEmail: SITE.contactEmail }),
+    slideHtml(file, {
+      version,
+      releaseDate: date,
+      laterReleases: String(later),
+      ...hosts,
+      contactEmail: SITE.contactEmail,
+    }),
   ),
 );
 // Urdu words on the slides are in Noto Sans Arabic; Noto Nastaliq Urdu is only for the

@@ -12,8 +12,11 @@ Deploy workflow render it before every build, so the PDF is not committed.
 - `<img src="screens/<golden>.png">` shows a screen cropped from the app's golden test image of
   that name (`app/test/src/goldens/goldens/`), so the deck always shows the current app with its
   sample data. The crop of each screen is in `scripts/render-deck.ts`.
-- `{{version}}` and `{{releaseDate}}` are replaced with the current release, from
-  `.release-please-manifest.json` and `CHANGELOG.md`; `{{siteHost}}` and `{{appHost}}` with the
+- `{{version}}` and `{{releaseDate}}` are replaced with the current release, and
+  `{{laterReleases}}` with the number of releases since the first, from
+  `.release-please-manifest.json` and `CHANGELOG.md` (`scripts/lib/deck-release.ts`). A slide
+  or its notes name the current release, or count the releases, only through these: a number
+  written out goes stale at the next release. `{{siteHost}}` and `{{appHost}}` are replaced with the
   website's and the web app's host names, from `contracts/origins.json` (decision D-20); and
   `{{contactEmail}}` with the company's mailbox, `contactEmail` in `src/config/site.ts`. A slide
   names an address or the mailbox only through these, so the deck follows a change of any.
