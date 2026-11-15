@@ -354,6 +354,14 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Open
 
+- Owner: the portfolio prune knows a portfolio only from a saved list, and cache entries do not
+  name their portfolio. A portfolio joined on another device after this one last loaded the list,
+  whose record is opened here by its link, and left before the list loads again, is never in a
+  saved list, so its record stays until the session ends; the privacy page's "the next time it
+  loads your list of portfolios" does not hold for it (`docs/architecture/app.md`, Writes after a
+  removal). Closing it needs entries that name their portfolio (each cached query saying which
+  portfolio its value is of), or a list save that forgets on every load, which ends saved copies
+  outliving an online start; the second is a product choice.
 - Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
   session and the record cache reach the person's Google backup, as the preferences reach iCloud
   on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
