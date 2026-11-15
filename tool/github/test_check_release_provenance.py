@@ -750,6 +750,19 @@ MUTANTS = {
         later_step("ios", 'command "$GH" release -R "$GITHUB_REPOSITORY" upload "$TAG" dist/late'),
         ['job "ios" runs `gh release upload` in 2 steps'],
     ),
+    # A variable under any name, or an expression, may hold gh's name.
+    "a second upload step that runs gh through a variable of another name": (
+        later_step("artefacts", 'tool=gh; "$tool" release upload "$TAG" dist/late'),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "the release deleted by a command named in an expression": (
+        later_step("ios", '${{ env.TOOL }} release -R "$GITHUB_REPOSITORY" delete "$TAG" --yes'),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a summary line that names the tag and the release (still passes)": (
+        later_step("artefacts", 'echo "Uploaded $TAG to the release" >> "$GITHUB_STEP_SUMMARY"'),
+        [],
+    ),
     # Only gh knows which flags take a value, so a word after a flag counts as the subcommand
     # too: wider than gh, which runs `view` here, but an upload is never missed.
     "a step whose flag's value is the word upload": (
@@ -1688,6 +1701,12 @@ class WordsTest(unittest.TestCase):
             crp.filled("gh ${{ 'release' }} delete v1"),
             crp.filled("gh release ${{ env.VERB }} v1"),
             crp.filled("gh ${{ env.COMMAND }} set up 'release upload'"),
+            # A word whose text is only known at run time may be gh.
+            '"$tool" release -R o/r delete v1 --yes',
+            "$(command -v hub) release create v1",
+            crp.filled("${{ env.TOOL }} release create v1"),
+            # Prose with a variable right before the exact words is refused too.
+            'echo "$TAG release create"',
         ):
             with self.subTest(line=line):
                 self.assertTrue(crp.refused_line(line))
@@ -1710,6 +1729,9 @@ class WordsTest(unittest.TestCase):
             "echo 'Checked the release - upload next'",
             "echo 'Never delete a release; see release -- delete policy'",
             "echo 'Enough said: release new notes'",
+            'echo "Uploaded $TAG to the release"',
+            'echo "$TAG" is the release to view, create nothing',
+            'echo "$TAG release created"',
         ):
             with self.subTest(line=line):
                 self.assertFalse(crp.refused_line(line))

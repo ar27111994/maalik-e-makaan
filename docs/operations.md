@@ -1215,8 +1215,9 @@ gh and curl take `-XDELETE` and `--method delete`, the client libraries' delete 
 would leave a release without its provenance file; and a gh alias or extension, which could
 upload under another name. It looks for them in every value of every step (so also in an
 `actions/github-script` script and an `env` value), and in a run once its quoting is read
-(`gh release $'upload'` counts), after a word gh is run by (`gh`, `"$GH"`), so a summary line
-such as `echo "the release upload finished"` is not taken for a command. Each `${{ }}`
+(`gh release $'upload'` counts), after a word that may run gh (`gh`, `"$GH"`, or any variable
+or expression, such as `"$tool"`), so a summary line such as `echo "the release upload
+finished"` is not taken for a command. Each `${{ }}`
 expression is first filled in as Actions could fill it: a string literal as its text
 (`gh release ${{ 'upload' }}` counts), any other expression as a word that could be any
 subcommand, except as the value of `-R` or `--repo`, which always take one

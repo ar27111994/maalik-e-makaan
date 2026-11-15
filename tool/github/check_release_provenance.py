@@ -78,8 +78,9 @@ upload under another name. It looks for these in every value of every step, so a
 other expression as a word that may be any word gh reads, except as the value of `-R` or
 `--repo`); in a run, it looks once the run's quoting is read (`_words`: `gh release $'upload'`,
 `gh release ${x:-upload}` and the words of a quoted `bash -c` or `eval` string count), after a
-word gh is run by (`gh`, `"$GH"`, `${x:-gh}`), so that prose (`echo "the release upload
-finished"`) is not read as a command. Both readings find the subcommand as gh does
+word that may run gh (`_may_run_gh`: one holding `gh`, such as `"$GH"` or `${x:-gh}`, or one
+whose text is only known at run time, such as `"$tool"` or `${{ env.TOOL }}`), so that prose
+(`echo "the release upload finished"`) is not read as a command. Both readings find the subcommand as gh does
 (`_subcommand`, `_gh_runs`): flags, and a value after a flag, are skipped first, so
 `gh release -R "$GITHUB_REPOSITORY" upload`, `gh release -R ${{ github.repository }} upload` and
 `gh release --repo=x delete` count; in text a flag's value may be quoted or joined with `+` and
@@ -155,7 +156,8 @@ REPO_FLAGS = ("-R", "--repo")
 # for any word gh may read (`gh release ${{ env.VERB }}` counts as an upload).
 ANY_WORD = "__expression__"
 LITERAL = re.compile(r"\$\{\{\s*'((?:[^']|'')*)'\s*\}\}")
-# A word gh is run by (`gh`, `/usr/bin/gh`, `"$GH"`, `${x:-gh}`), in a line read as words.
+# A word that holds gh's name (`gh`, `/usr/bin/gh`, `"$GH"`, `${x:-gh}`), in a line read as
+# words (`_may_run_gh` adds the words whose text is only known at run time).
 GH_WORD = re.compile(r"(?<![A-Za-z0-9])gh(?![A-Za-z0-9])", re.I)
 # `gh` in text that is not read as words (an action's script, an env value, a run as text).
 GH_TEXT = re.compile(r"(?<![\w.])gh(?![\w.])")
@@ -218,8 +220,8 @@ OTHER_UPLOAD = re.compile(
     r"|\bupload_release_asset\b|\bdeleteRelease(?:Asset)?\b|\bdelete_(?:release|asset)\b"
     r"|(?is:delete\b.*\breleases/|\breleases/.*delete\b)"
 )
-# Pairs of words that a run may not hold once its quoting is read (`_words`): after a word gh is
-# run by (`gh`, `"$GH"`, `${x:-gh}`), a subcommand holding the first text, then, as gh finds its
+# Pairs of words that a run may not hold once its quoting is read (`_words`): after a word that
+# may run gh (`_may_run_gh`), a subcommand holding the first text, then, as gh finds its
 # subcommand (`_verb_after`), one holding one of the second.
 REFUSED_PAIRS = (
     (RELEASE, CREATE_OR_DELETE),
@@ -528,16 +530,26 @@ def _verb_after(words: list[str], verbs: tuple[str, ...]) -> bool:
     return _subcommand(words, verbs) is not None
 
 
+def _may_run_gh(word: str) -> bool:
+    """Whether a word of a run may be the gh command: it holds gh's name (`GH_WORD`: `gh`,
+    `/usr/bin/gh`, `"$GH"`, `${x:-gh}`), or its text is only known at run time, which is a
+    shell expansion (`"$tool"`, `$(command -v gh)`) or an expression that is not a string
+    literal (`${{ env.TOOL }}`). A word of prose is neither."""
+    return GH_WORD.search(word) is not None or "$" in word or ANY_WORD in word
+
+
 def _holds_pair(line: str, firsts: tuple[str, ...], seconds: tuple[str, ...]) -> bool:
-    """Whether, once the quoting of `line` is read, a word gh is run by (`GH_WORD`: `gh`,
-    `"$GH"`, `${x:-gh}`) is followed, as gh finds its subcommands (`_subcommand`), by a word
-    holding one of `firsts` and then by one holding one of `seconds`: `gh 'release' upload`,
-    `gh release $'\\x75pload'`, `gh release ${x:-upload}` and
+    """Whether, once the quoting of `line` is read, a word that may run gh (`_may_run_gh`) is
+    followed, as gh finds its subcommands (`_subcommand`), by a word holding one of `firsts` and
+    then by one holding one of `seconds`: `gh 'release' upload`, `gh release $'\\x75pload'`,
+    `gh release ${x:-upload}`, `"$tool" release upload` and
     `gh release -R "$GITHUB_REPOSITORY" upload` all hold `release` and then `upload`. A line
-    with no such word runs no gh, so prose (`echo "the release upload finished"`) holds none."""
+    with no such word runs no gh, so prose (`echo "the release upload finished"`) holds none;
+    prose with a variable right before the words (`echo "$TAG release upload"`) is refused,
+    which errs on the side of asking."""
     words = _words(line)
     for start, word in enumerate(words):
-        if not GH_WORD.search(word):
+        if not _may_run_gh(word):
             continue
         rest = words[start + 1 :]
         command = _subcommand(rest, firsts)
