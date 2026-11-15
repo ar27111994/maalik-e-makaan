@@ -293,6 +293,36 @@ void main() {
       expect(_ofGulberg(app), isEmpty);
     });
 
+    test('a list kept alive while another account takes the session reads '
+        'nothing for its own account', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      // Held by a listener that outlives the session.
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.cache.portfoliosOf(testUserId), isNotNull);
+      final asked = app.portfolios.calls.length;
+      // An e-mail link of another account replaces the session: the wipe,
+      // then that account's status, with no signed-out status between.
+      await app.cache.clear();
+      app.auth.emit(
+        const SignedIn(
+          userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+          email: 'sana.malik@example.com',
+        ),
+      );
+      await pumpEventQueue();
+      expect(
+        container.read(portfoliosProvider(testUserId)).error,
+        isA<SessionExpired>(),
+      );
+      // Nothing was asked for under the other account's session, and
+      // nothing of the first account is known or saved again.
+      expect(app.portfolios.calls, hasLength(asked));
+      expect(app.cache.portfoliosOf(testUserId), isNull);
+      expect(app.store.values, isEmpty);
+    });
+
     test(
       'a list that comes back after the device was wiped is not kept',
       () async {
