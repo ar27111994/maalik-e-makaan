@@ -724,6 +724,36 @@ void main() {
       await clearing;
       expect(hold.inner.values, isEmpty);
     });
+
+    test('one begun before a clear deletes nothing the next account saved '
+        'since', () async {
+      await put('a', 1);
+      cache.applyPortfolios(_user, [_a], asked: cache.ask(), epoch: 0);
+      // The listing is slow: the removal waits for it.
+      final listing = store.keysHeld = Completer();
+      final pruning = cache.prune(_user);
+      await pumpEventQueue();
+      // The session ends; another account signs in and saves two entries.
+      store.keysHeld = null;
+      await cache.clear();
+      await cache.write(
+        'u2',
+        'profile',
+        OwnScope.profile<int>(),
+        1,
+        _same,
+        epoch: cache.epoch,
+      );
+      await put('a', 1, user: 'u2');
+      // The old removal's listing answers now, and names the new entries.
+      listing.complete();
+      await pruning;
+      await pumpEventQueue();
+      expect(store.values.keys.toSet(), {
+        key(const OwnTag(), 'profile', user: 'u2'),
+        key(const PortfolioTag(_a), 'a', user: 'u2'),
+      });
+    });
   });
 
   group('a read while a list is applied', () {

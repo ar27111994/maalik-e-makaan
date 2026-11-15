@@ -435,19 +435,21 @@ final class SwrCache {
   /// unknown portfolio, every key of another user or of an older version.
   /// The user's own stay. Nothing saved is read, so it can run again at
   /// any time: what a deletion that failed or never answered left is found
-  /// again by the next. Nothing happens before a list is applied. Throws
-  /// when an entry could not be deleted, once the others are
+  /// again by the next. Nothing happens before a list is applied, and
+  /// nothing once the cache was cleared since it began: the clear deleted
+  /// it all, and what the store lists by then the next session saved.
+  /// Throws when an entry could not be deleted, once the others are
   /// ([_deleteWhere]).
   Future<void> prune(String userId) async {
     if (_members[userId] == null) return;
+    final epoch = _epoch;
     final mine = '$_prefix$userId.';
     await _deleteWhere((key) {
+      if (clearedSince(epoch)) return false;
       if (!key.startsWith(_root)) return false;
       if (!key.startsWith(mine)) return true;
       final parsed = _parse(key);
       if (parsed == null) return true;
-      // A clear meanwhile deletes it all.
-      if (_members[userId] == null) return false;
       return !_keeps(userId, parsed.tag, const {});
     });
   }

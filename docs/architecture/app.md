@@ -368,7 +368,10 @@ else does then, since a picker may be handing over a copy.
     and reading no value (`SwrCache.prune`), every entry of the user's that S
     does not keep (a `p:` tag outside S, every `unknown` one, a key that does
     not parse), every key of another user, and every `mm.swr.v1.` key. The
-    user's own are never removed. The list is shown at once and saved without
+    user's own are never removed. A removal begun before a wipe deletes
+    nothing after it: the wipe deleted it all, and the keys the store lists
+    by then are the next session's, another account's among them. The list
+    is shown at once and saved without
     waiting for the store, so a store that never answers holds up neither
     the screens nor the commands that reload it. A list the controller
     builds itself (an owner-abroad answer; a created or deleted portfolio
