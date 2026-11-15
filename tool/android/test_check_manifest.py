@@ -430,6 +430,16 @@ class CheckManifestTest(unittest.TestCase):
                     " does not hold",
                     found[0],
                 )
+        # Android keeps any value that is not empty as the permission's name, spaces and all,
+        # and a browser holds no permission of that name either; an empty value is none.
+        for value in ("   ", " pk.example.PRIVATE "):
+            with self.subTest(value=value):
+                element = f'<activity android:name=".A" android:permission="{value}">'
+                found = self.problems(self.component(element))
+                self.assertEqual(len(found), 3, found)
+                self.assertIn(f'with android:permission="{value}", which a browser', found[0])
+        found = self.problems(self.component('<activity android:name=".A" android:permission="">'))
+        self.assertEqual(found, [])
 
     def test_exported_and_enabled_read_as_aapt2_reads_them(self):
         missing = ["lack the web app's host app.example.pk", "host old.example.org"]

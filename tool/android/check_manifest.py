@@ -106,7 +106,8 @@ def _component_problems(
     intent filter is exported unless it says not. A permission keeps a link out too: a browser
     holds none, so startActivity() fails. This refuses one on the component, on an alias's
     target, or on the application (which applies to every component that sets none), so it
-    fails closed whichever of them Android applies to an alias. An alias whose target this
+    fails closed whichever of them Android applies to an alias, and any value but an empty
+    one, since Android keeps one of spaces as a name too. An alias whose target this
     manifest does not declare is left to Android, which refuses to install it."""
     if parent is None:
         tag = "no component"
@@ -139,7 +140,8 @@ def _component_problems(
         f'{where} with android:permission="{element.get(f"{ANDROID}permission")}", which a'
         " browser does not hold, so no link starts it"
         for element, where in holders
-        if element.get(f"{ANDROID}permission", "").strip()
+        # As written, not stripped: Android keeps any value that is not empty, spaces and all.
+        if element.get(f"{ANDROID}permission", "")
     ]
     return found
 
