@@ -686,21 +686,20 @@ addresses.
    name `https://app.mmakaan.app`, which serves the build from before the move until step 7's web
    deploy. Nothing changes in production: a site refresh then builds the last tag, with its own
    addresses.
-7. **Release.** Merge the release pull request and approve the Deploy runs. Release checks that the
-   web app's origin answers and that Auth allows the builds' callbacks (step 4) before it builds
-   anything, but only if the token may read Auth's settings. If the `preflight` or `supabase` job
-   warns that it may not (HTTP 401 or 403), Auth was not checked: the builds and the backend go
-   ahead, and a green run does not show that Auth allows the callbacks. Then compare
+7. **Release.** Merge the release pull request and approve the Deploy runs. Before it builds
+   anything, Release checks that the web app's origin answers and, if the token may read Auth's
+   settings, that Auth allows the builds' callbacks (step 4). If the `preflight` or `supabase` job
+   warns that the token may not (HTTP 401 or 403), Auth was not checked: the builds and the backend
+   go ahead, and a green run does not show that Auth allows the callbacks. Then compare
    Authentication, URL Configuration with step 4's four callbacks by hand. The backend and the web
-   app go first, beside the builds: the
-   `supabase` job checks Auth's redirect URLs (step 4), the `web` job that the origin answers and
-   that the Edge Functions accept it (step 5); then the web app's `APP_URL` becomes
-   `https://app.mmakaan.app`, and the old address starts answering with the page that clears its
-   storage and sends people on. The website follows once the builds are attached and the web app's
-   deploy has succeeded, and checks first that its new addresses answer and that the old web app
-   address sends people on. Check every smoke test, the ones of the old addresses included; if one
-   fails on a path, the query or the header, roll forward with a fix rather than back (Rollback
-   and restore).
+   app go first, beside the builds: the `supabase` job checks Auth's redirect URLs (step 4), the
+   `web` job that the origin answers and that the Edge Functions accept it (step 5); then the web
+   app's `APP_URL` becomes `https://app.mmakaan.app`, and the old address starts answering with the
+   page that clears its storage and sends people on. The website follows once the builds are
+   attached and the web app's deploy has succeeded, and checks first that its new addresses answer
+   and that the old web app address sends people on. Check every smoke test, the ones of the old
+   addresses included; if one fails on a path, the query or the header, roll forward with a fix
+   rather than back (Rollback and restore).
 8. **Right after the web deploy:** Auth's Site URL to `https://app.mmakaan.app`. Then delete the
    `APP_URL` repository variable (Settings, Secrets and variables, Actions, Variables): nothing
    from this release on reads it, and without it a Deploy run by hand on a tag from before the move

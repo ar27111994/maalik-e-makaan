@@ -427,13 +427,13 @@ In order. Record each in `.planning/STATE.md` when it is done.
        step 7 in the same sitting.
     7. **Release:** merge the release pull request, approve the Deploy runs and check every smoke
        test, the ones of the old addresses included. Nothing is built or attached while the new web
-       app address does not answer (step 3) or Auth lacks a callback (step 4), and the backend is
-       not deployed while Auth lacks one, but only if the token may read Auth's settings. If the
-       `preflight` or `supabase` job warns that it may not (HTTP 401 or 403), Auth was not checked:
-       the builds and the backend go ahead, and a green run does not show that Auth allows the
-       callbacks. Then compare Authentication, URL Configuration with step 4's four callbacks by
-       hand. If the functions refuse the origin (step 5), only the web app's deploy stops, and the
-       website after it: the builds and the backend may already be out.
+       app address does not answer (step 3). If the token may read Auth's settings, nothing is
+       built or attached, and the backend is not deployed, while Auth lacks a callback (step 4). If
+       the `preflight` or `supabase` job warns that the token may not (HTTP 401 or 403), Auth was
+       not checked: the builds and the backend go ahead, and a green run does not show that Auth
+       allows the callbacks. Then compare Authentication, URL Configuration with step 4's four
+       callbacks by hand. If the functions refuse the origin (step 5), only the web app's deploy
+       stops, and the website after it: the builds and the backend may already be out.
        The website goes out only after the web app's deploy. From the web deploy,
        the old web app address answers with a page that clears what the app kept in the browser
        there and goes to the same address on the new one.
