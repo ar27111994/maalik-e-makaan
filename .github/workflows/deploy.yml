@@ -190,11 +190,10 @@ jobs:
         # Browsers call the functions from the web app's origin, and the functions answer only
         # the origins in the ALLOWED_ORIGINS secret (by default APP_URL's). Checked before the
         # build, so a missing origin fails the deploy rather than every call in the new app
-        # (docs/operations.md, Domains). An earlier address only warns: it serves just the
-        # e-mail links already sent.
+        # (docs/operations.md, Domains). Only the origin: since step 12 no page of an earlier
+        # address runs the app, so none of them calls the functions.
         env:
           APP: ${{ steps.origins.outputs.app }}
-          LEGACY: ${{ steps.origins.outputs.legacy }}
         run: |
           preflight() {
             curl -sS -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 5 --retry-all-errors \
@@ -207,14 +206,6 @@ jobs:
             exit 1
           fi
           echo "$APP: preflight 204"
-          while read -r origin; do
-            status="$(preflight "$origin")"
-            if [[ "$status" == 204 ]]; then
-              echo "$origin: preflight 204"
-            else
-              echo "::warning::The Edge Functions refuse the earlier address $origin (preflight answered $status); keep it in ALLOWED_ORIGINS while e-mail links to it are in use (docs/operations.md, Domains)"
-            fi
-          done < <(jq -r '.[]' <<<"$LEGACY")
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
