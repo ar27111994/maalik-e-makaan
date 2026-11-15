@@ -534,7 +534,7 @@ jobs:
       - uses: zizmorcore/zizmor-action@0000000000000000000000000000000000000000 # v0.8.1
         id: zizmor
         with:
-          # Equal to tool/requirements-lint.in's pin.
+          # Equal to tool/requirements-lint.txt's pin.
           version: 1.32.0
       - name: Fail on any zizmor finding
         run: exit 0
@@ -587,6 +587,10 @@ FILES: dict[str, str] = {
     "website/deck/slides/trust.html": TRUST_SLIDE,
     "tool/formal/requirements.txt": "z3-solver==5.3.3.0 \\\n    --hash=sha256:00\n",
     "tool/requirements-lint.in": "# lint tools\nactionlint-py==1.7.12.25\nzizmor==1.32.0\n",
+    "tool/requirements-lint.txt": (
+        "# pip-compile output\nactionlint-py==1.7.12.25 \\\n    --hash=sha256:00\n"
+        "zizmor==1.32.0 \\\n    --hash=sha256:00\n"
+    ),
     ".github/workflows/security.yml": SECURITY,
     "formal/lean/lean-toolchain": "leanprover/lean4:v4.35.0\n",
     "tool/test_guard.py": "",

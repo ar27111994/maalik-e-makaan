@@ -28,6 +28,7 @@ from fact_sources import (
     FORMAL_REQUIREMENTS,
     JOURNEYS,
     LEAN_TOOLCHAIN,
+    LINT_LOCK,
     LINT_REQUIREMENTS,
     MAKEFILE,
     MANIFEST,
@@ -1386,19 +1387,32 @@ def check_counts(repo: Repo, tracked: Tracked) -> list[Problem]:
 
 
 def check_zizmor_pin(repo: Repo, tracked: Tracked) -> list[Problem]:
-    """make lint's zizmor (tool/requirements-lint.in) and the Security workflow's are one."""
-    pinned, _ = repo.zizmor_requirement()
+    """One zizmor: tool/requirements-lint.txt's (what CI and make bootstrap install for make
+    lint), tool/requirements-lint.in's (what pip-compile locks it from) and the Security
+    workflow's zizmor-action `version:`."""
+    locked, _ = repo.zizmor_requirement(LINT_LOCK)
+    wanted, wanted_line = repo.zizmor_requirement(LINT_REQUIREMENTS)
     action = repo.zizmor_action_version()
-    if action.value == pinned:
-        return []
-    return [
-        Problem(
-            SECURITY,
-            action.line,
-            f"zizmor-action runs zizmor {action.value}; {LINT_REQUIREMENTS} pins zizmor=={pinned}"
-            " (make lint's); make them equal",
+    problems: list[Problem] = []
+    if wanted != locked:
+        problems.append(
+            Problem(
+                LINT_REQUIREMENTS,
+                wanted_line,
+                f"{LINT_REQUIREMENTS} pins zizmor=={wanted}; {LINT_LOCK} pins zizmor=={locked}"
+                " (what make lint installs); run pip-compile",
+            )
         )
-    ]
+    if action.value != locked:
+        problems.append(
+            Problem(
+                SECURITY,
+                action.line,
+                f"zizmor-action runs zizmor {action.value}; {LINT_LOCK} pins zizmor=={locked}"
+                " (what make lint installs); make them equal",
+            )
+        )
+    return problems
 
 
 _MARKDOWN = "**/*.md"
@@ -1547,9 +1561,9 @@ CHECKS: tuple[Check, ...] = (
     Check(
         "C17",
         "zizmor-pin",
-        (LINT_REQUIREMENTS, SECURITY),
-        "the zizmor the Security workflow's zizmor-action runs is the one tool/requirements-lint.in"
-        " pins for make lint",
+        (LINT_LOCK, LINT_REQUIREMENTS, SECURITY),
+        "the zizmor the Security workflow's zizmor-action runs is the one tool/requirements-lint.txt"
+        " installs for make lint, and tool/requirements-lint.in pins the same",
         check_zizmor_pin,
     ),
 )

@@ -100,7 +100,7 @@ tool/formal/verify.sh ci tla/RateLimit lean                    # some formal tra
 | Formal verification (TLA+, Lean, Z3, Bend) | `make formal-install`, `make verify`                                                                                                                                                                                     |
 
 Other workflows: `security.yml` (CodeQL, gitleaks, OSV-Scanner, dependency review, zizmor at
-the version `tool/requirements-lint.in` pins, uploading to code scanning and failing on any
+the version `tool/requirements-lint.txt` installs, uploading to code scanning and failing on any
 finding, outdated function dependencies), `scorecard.yml`, `pr-title.yml` (the squash title), `release.yml`
 (release-please and the release artefacts), `deploy.yml` (Supabase, web app and website; see
 [`docs/operations.md`](../operations.md#deployment-github-actions)), `backup.yml` (the weekly

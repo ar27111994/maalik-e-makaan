@@ -120,7 +120,7 @@ jobs:
       - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         id: zizmor
         with:
-          # Equal to zizmor's pin in tool/requirements-lint.in; make docs-check checks it.
+          # Equal to zizmor's pin in tool/requirements-lint.txt; make docs-check checks it.
           version: 1.32.0
       - name: Fail on any zizmor finding
         env:

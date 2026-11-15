@@ -786,8 +786,9 @@ class WorkflowChecksTest(FixtureCase):
 
 class ZizmorPinCheckTest(FixtureCase):
     SECURITY = ".github/workflows/security.yml"
+    LOCK = "tool/requirements-lint.txt"
 
-    def test_c17_the_workflow_runs_the_pinned_zizmor(self) -> None:
+    def test_the_workflow_runs_the_installed_zizmor(self) -> None:
         self.assert_problems(
             check("zizmor-pin"),
             edited(self.SECURITY, "version: 1.32.0", "version: 1.31.0"),
@@ -795,24 +796,50 @@ class ZizmorPinCheckTest(FixtureCase):
                 (
                     self.SECURITY,
                     line(self.SECURITY, "version: 1.32.0"),
-                    "zizmor-action runs zizmor 1.31.0; tool/requirements-lint.in pins"
-                    " zizmor==1.32.0 (make lint's); make them equal",
+                    "zizmor-action runs zizmor 1.31.0; tool/requirements-lint.txt pins"
+                    " zizmor==1.32.0 (what make lint installs); make them equal",
                 )
             ],
         )
+
+    def test_a_lockfile_only_bump_fails(self) -> None:
+        # CI and make bootstrap install tool/requirements-lint.txt, so a bump there alone (a
+        # Dependabot pull request, say) changes the zizmor make lint runs.
+        self.assert_problems(
+            check("zizmor-pin"),
+            edited(self.LOCK, "zizmor==1.32.0", "zizmor==1.33.0"),
+            [
+                (
+                    "tool/requirements-lint.in",
+                    line("tool/requirements-lint.in", "zizmor==1.32.0"),
+                    "tool/requirements-lint.in pins zizmor==1.32.0; tool/requirements-lint.txt"
+                    " pins zizmor==1.33.0 (what make lint installs); run pip-compile",
+                ),
+                (self.SECURITY, line(self.SECURITY, "version: 1.32.0"), "pins zizmor==1.33.0"),
+            ],
+        )
+
+    def test_an_unlocked_bump_fails(self) -> None:
         self.assert_problems(
             check("zizmor-pin"),
             edited("tool/requirements-lint.in", "zizmor==1.32.0", "zizmor==1.33.0"),
-            [(self.SECURITY, line(self.SECURITY, "version: 1.32.0"), "pins zizmor==1.33.0")],
+            [
+                (
+                    "tool/requirements-lint.in",
+                    line("tool/requirements-lint.in", "zizmor==1.32.0"),
+                    "pins zizmor==1.33.0; tool/requirements-lint.txt pins zizmor==1.32.0",
+                )
+            ],
         )
 
-    def test_c17_needs_both_pins(self) -> None:
+    def test_all_three_pins_are_needed(self) -> None:
         repo = self.repo(edited(self.SECURITY, "          version: 1.32.0\n", ""))
         with self.assertRaisesRegex(SourceShapeError, "zizmor-action has no version input"):
             check("zizmor-pin").run(repo, repo.tracked)
-        repo = self.repo(edited("tool/requirements-lint.in", "zizmor==1.32.0\n", ""))
-        with self.assertRaisesRegex(SourceShapeError, "does not pin zizmor==X"):
-            check("zizmor-pin").run(repo, repo.tracked)
+        for path in ("tool/requirements-lint.in", self.LOCK):
+            repo = self.repo(edited(path, "zizmor==1.32.0", "zizmor>=1.32.0"))
+            with self.assertRaisesRegex(SourceShapeError, f"{path}: does not pin zizmor==X"):
+                check("zizmor-pin").run(repo, repo.tracked)
 
 
 class VersionMentionsTest(FixtureCase):

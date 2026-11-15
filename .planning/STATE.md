@@ -15,8 +15,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   refuses `$/`, so `.github/actionlint.yaml` ignores exactly that message and
   `tool/github/check_workflow_calls.py` (`make lint`, with a canary test that fails once
   actionlint accepts `$/`) checks the calls instead. zizmor 1.32.0 is pinned in
-  `tool/requirements-lint.in`, runs offline in `make lint`, and the Security workflow's zizmor job
-  now runs that version and fails on any finding (`make docs-check` C17 keeps the two equal).
+  `tool/requirements-lint.txt` (and `.in`), runs offline in `make lint`, and the Security
+  workflow's zizmor job now runs that version and fails on any finding (`make docs-check`'s
+  `zizmor-pin` check keeps the three equal).
   `docs/operations.md`, Code scanning and branch rules, records the ruleset on `main` and the
   Scorecard result of that day; turning on "up-to-date branches", removing the admin bypass and
   signing release files are open decisions for the owner. zizmor's auditor persona (not the

@@ -39,6 +39,7 @@ PYPROJECT = "pyproject.toml"
 FORMAL_INSTALL = "tool/formal/install.sh"
 FORMAL_REQUIREMENTS = "tool/formal/requirements.txt"
 LINT_REQUIREMENTS = "tool/requirements-lint.in"
+LINT_LOCK = "tool/requirements-lint.txt"
 SECURITY = ".github/workflows/security.yml"
 LEAN_TOOLCHAIN = "formal/lean/lean-toolchain"
 SUPABASE_CONFIG = "supabase/config.toml"
@@ -1208,10 +1209,11 @@ class Repo:
             ),
         )
 
-    def zizmor_requirement(self) -> tuple[str, int]:
+    def zizmor_requirement(self, path: str) -> tuple[str, int]:
+        """zizmor's pin in `path`: LINT_REQUIREMENTS, or LINT_LOCK, which CI installs."""
         return self._cached(
-            "zizmor-requirement",
-            lambda: parse_requirement(LINT_REQUIREMENTS, self.text(LINT_REQUIREMENTS), "zizmor"),
+            f"zizmor-requirement:{path}",
+            lambda: parse_requirement(path, self.text(path), "zizmor"),
         )
 
     def zizmor_action_version(self) -> Pin:
