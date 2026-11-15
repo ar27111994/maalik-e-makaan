@@ -480,13 +480,22 @@ and `ios` jobs, which all run in `release`, run for the branch `main`, and such 
 every release at `preflight`. The rule keeps the signing secrets from a run on any other branch (Run
 workflow on a branch, or a branch pushed with a workflow changed to name the environment); it
 protects nothing merged to `main`, and no secret left at repository level, which a workflow on any
-branch can read. Keep the Supabase and Vercel secrets at repository level: the weekly Backup reads
-the Supabase ones without an environment, so it needs no approval, and the Release and Site refresh
-workflows hand them to Deploy from jobs that have no environment. A branch rule on `production`
-would have to allow `main` (Release and Site refresh run Deploy for it, and Owner actions, item 7,
-runs it there by hand) and every tag Deploy is run on by hand (`docs/operations.md`, Restoring, step
-6, may run one), and adds little to the reviewer that environment should require, who sees every
-run.
+branch can read. Keep the Supabase secrets at repository level, since jobs in different
+environments, or in none, read them: the weekly Backup's `backup` job, which has no environment (so
+a scheduled run waits for no reviewer), reads `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`;
+Release's `preflight` job, in `release`, reads `SUPABASE_ACCESS_TOKEN` for the Auth check; and
+Deploy's `supabase` job, in `production`, reads both. Moved into one environment, they would be
+missing from the others' jobs (the Auth check fails without the token), or kept as copies in
+`release` and `production` that must be rotated together, with Backup in an environment too. That
+Release and Site refresh hand them to Deploy from jobs with no environment is no reason on its own:
+a called workflow's job that names an environment reads that environment's secret ahead of the one
+passed in. `VERCEL_TOKEN` could move into `production` for the same reason: only Deploy's `web`
+and `site` jobs read it, and both run there (then delete the repository copy; the callers pass an
+empty value, which `deploy.yml` accepts, since its `workflow_call` secrets are not required). A
+branch rule on `production` would have to allow `main` (Release and Site refresh run Deploy for it,
+and Owner actions, item 7, runs it there by hand) and every tag Deploy is run on by hand
+(`docs/operations.md`, Restoring, step 6, may run one), and adds little to the reviewer that
+environment should require, who sees every run.
 
 ### The first backup and restore (2026-11-09)
 
