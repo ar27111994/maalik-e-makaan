@@ -124,6 +124,12 @@ final class SwrCache {
   /// when the last such failure was seen ([unsettled]).
   final _failed = <String, int>{};
 
+  /// The entries the store holds although they were to go (a removal
+  /// covered the write that landed, or a later write of the entry landed
+  /// first), by key, with the number of that write, until they are seen to
+  /// go ([strayed]).
+  final _strays = <String, int>{};
+
   /// How many requests were numbered ([ask]).
   int _asked = 0;
 
@@ -246,9 +252,15 @@ final class SwrCache {
     // Removed while the store was writing: the removal may have listed the
     // keys before this one was there.
     if (_removedSince(epoch, userId, query) || (_landed[key] ?? 0) > number) {
+      // A stray until the deletion ends: one that fails or never answers
+      // leaves the value on the store.
+      _strays[key] = number;
       await _store.delete(key);
+      if (_strays[key] == number) _strays.remove(key);
     } else {
       _landed[key] = number;
+      // It replaced whatever the store held.
+      _strays.remove(key);
     }
     return savedAt;
   }
@@ -262,6 +274,21 @@ final class SwrCache {
     final key = _key(userId, query);
     final failed = _failed[key];
     return failed != null && (_landed[key] ?? 0) <= failed;
+  }
+
+  /// Whether the store may hold an entry of [userId]'s that was to go, of
+  /// a query not in [except]: a write landed after a removal covered it,
+  /// or after a later write of its entry, and the deletion that followed
+  /// failed or has not answered. It stops being one when a later write of
+  /// the entry lands, or a deletion of it ([forgetUser], [clear],
+  /// [forgetOthers]) ends, or the store no longer lists it.
+  bool strayed(String userId, {Set<String> except = const {}}) {
+    final prefix = '$_prefix$userId.';
+    return _strays.keys.any(
+      (key) =>
+          key.startsWith(prefix) &&
+          !except.contains(key.substring(prefix.length)),
+    );
   }
 
   /// A number for a request of a value made now: later requests have
@@ -380,11 +407,25 @@ final class SwrCache {
   /// for at once: one that cannot be deleted, or whose deletion never
   /// answers, holds up no other. It ends when they all have, with the
   /// first failure if there was one.
+  ///
+  /// A stray ([strayed]) seen before the keys were listed stops being one
+  /// when its deletion ends, or when they do not list it.
   Future<void> _deleteWhere(bool Function(String key) doomed) async {
+    final strays = {..._strays};
+    void gone(String key) {
+      if (strays.containsKey(key) && _strays[key] == strays[key]) {
+        _strays.remove(key);
+      }
+    }
+
     final keys = await _store.keys();
+    for (final key in strays.keys) {
+      if (doomed(key) && !keys.contains(key)) gone(key);
+    }
     await Future.wait([
       for (final key in keys)
-        if (doomed(key)) Future.sync(() => _store.delete(key)),
+        if (doomed(key))
+          Future.sync(() => _store.delete(key)).then((_) => gone(key)),
     ]);
   }
 

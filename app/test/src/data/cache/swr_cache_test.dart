@@ -687,6 +687,106 @@ void main() {
     });
   });
 
+  group('strayed', () {
+    const key = 'mm.swr.v1.u1.tenants.p1';
+
+    /// A write of u1's tenants.p1 asked before a forget that does not keep
+    /// it, landing after, whose deletion the store [refuses] or hangs on.
+    Future<void> strand({bool refuses = true}) async {
+      store.holding.add(key);
+      final late = cache.seed('u1', 'tenants.p1', 1);
+      await pumpEventQueue();
+      await cache.forgetUser('u1', keep: {'portfolios'});
+      (refuses ? store.undeletable : store.silent).add(key);
+      store
+        ..holding.clear()
+        ..finishHeldWritesOldestFirst();
+      if (refuses) await expectLater(late, throwsStateError);
+      await pumpEventQueue();
+      expect(store.values.keys, [key]);
+    }
+
+    test('tells a write that landed after a removal and stayed, whether '
+        'its deletion was refused or never answers', () async {
+      expect(cache.strayed('u1'), isFalse);
+      await strand();
+      expect(cache.strayed('u1'), isTrue);
+      expect(cache.strayed('u2'), isFalse);
+      expect(cache.strayed('u1', except: {'tenants.p1'}), isFalse);
+      cache = SwrCache(store = MemoryStore(), clock: () => saved);
+      await strand(refuses: false);
+      expect(cache.strayed('u1'), isTrue);
+    });
+
+    test(
+      'tells an older write that landed after a later one and stayed',
+      () async {
+        store.holding.add('mm.swr.v1.u1.portfolios');
+        final older = cache.seed('u1', 'portfolios', 1);
+        final newer = cache.seed('u1', 'portfolios', 2);
+        await pumpEventQueue();
+        store
+          ..undeletable.add('mm.swr.v1.u1.portfolios')
+          ..holding.clear()
+          ..finishHeldWritesNewestFirst();
+        await newer;
+        await expectLater(older, throwsStateError);
+        expect((await cache.read('u1', 'portfolios', decodeInt))!.value, 1);
+        expect(cache.strayed('u1'), isTrue);
+        expect(cache.strayed('u1', except: {'portfolios'}), isFalse);
+        // A later write replaces it.
+        await cache.seed('u1', 'portfolios', 3);
+        expect(cache.strayed('u1'), isFalse);
+      },
+    );
+
+    test('is not set when the deletion that follows ends', () async {
+      store.holding.add(key);
+      final late = cache.seed('u1', 'tenants.p1', 1);
+      await pumpEventQueue();
+      await cache.forgetUser('u1', keep: {'portfolios'});
+      store
+        ..holding.clear()
+        ..finishHeldWritesOldestFirst();
+      await late;
+      expect(store.values, isEmpty);
+      expect(cache.strayed('u1'), isFalse);
+    });
+
+    test(
+      'ends when a forget deletes it, but not when that deletion fails',
+      () async {
+        await strand();
+        await expectLater(
+          cache.forgetUser('u1', keep: {'portfolios'}),
+          throwsStateError,
+        );
+        expect(cache.strayed('u1'), isTrue);
+        // A forget that keeps it leaves it a stray.
+        store.undeletable.clear();
+        await cache.forgetUser('u1', keep: {'tenants.p1'});
+        expect(cache.strayed('u1'), isTrue);
+        await cache.forgetUser('u1', keep: {'portfolios'});
+        expect(store.values, isEmpty);
+        expect(cache.strayed('u1'), isFalse);
+      },
+    );
+
+    test(
+      'ends when a clear deletes it, or the store no longer lists it',
+      () async {
+        await strand();
+        store.undeletable.clear();
+        await cache.clear();
+        expect(cache.strayed('u1'), isFalse);
+        await strand();
+        store.values.clear();
+        await cache.forgetOthers('u2');
+        expect(cache.strayed('u1'), isFalse);
+      },
+    );
+  });
+
   test('claim takes the answer to the newest request of an entry, whatever '
       'the order the answers come in', () {
     final first = cache.ask();

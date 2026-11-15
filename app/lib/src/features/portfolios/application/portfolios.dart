@@ -43,7 +43,8 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 /// known to be of a portfolio still in the list, and the save forgets it
 /// all the same: whatever the store holds, and, as the forget starts a new
 /// epoch, every write asked for before it, also one whose answer is still
-/// on its way. So does a saved list a failed write left unsettled.
+/// on its way. So does a saved list a failed write left unsettled, and any
+/// while the store may still hold an entry that was to go.
 final class PortfoliosController
     extends StreamNotifier<Snapshot<List<PortfolioMembership>>> {
   new(this.userId);
@@ -59,6 +60,14 @@ final class PortfoliosController
   /// reads records of a portfolio, whatever its key names.
   static const Set<String> kept = {
     query,
+    ProfileController.query,
+    ResidenceController.query,
+  };
+
+  /// The queries in [kept] but the list: the user's own, which a forget
+  /// never deletes, so a stray of theirs ([SwrCache.strayed]) says nothing
+  /// of a portfolio.
+  static const Set<String> _own = {
     ProfileController.query,
     ResidenceController.query,
   };
@@ -129,7 +138,10 @@ final class PortfoliosController
   /// ([SwrCache.writing]). After a write of the list failed, the saved list
   /// counts as unknown until a later one lands ([SwrCache.unsettled]): the
   /// store may hold an older list, without a portfolio whose records were
-  /// saved since.
+  /// saved since. So it does while the store may hold an entry that was to
+  /// go ([SwrCache.strayed]): a record that landed after its portfolio left,
+  /// or an older list that landed after a later one, whose deletion failed
+  /// or has not answered.
   ///
   /// A server's answer comes with [asked], the number of its request
   /// ([SwrCache.ask]). It is neither saved nor shown (null) when the answer
@@ -151,8 +163,11 @@ final class PortfoliosController
     try {
       final saved = await cache.read(userId, query, _decode).timeout(limit);
       // Taken after the read: a write that failed before it ended may have
-      // left an older list.
-      if (saved != null && !cache.unsettled(userId, query)) {
+      // left an older list, and one that landed after a removal or a later
+      // write, a record or a list the store kept.
+      if (saved != null &&
+          !cache.unsettled(userId, query) &&
+          !cache.strayed(userId, except: _own)) {
         before = [...saved.value, ...landing];
       }
     } on Object {

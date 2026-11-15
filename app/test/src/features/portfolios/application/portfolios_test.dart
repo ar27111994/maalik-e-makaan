@@ -651,6 +651,72 @@ void main() {
     });
   });
 
+  group('an entry whose deletion the store refuses after it lands', () {
+    const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
+    final gulbergList = (portfolioId: gulberg.id, archived: false, search: '');
+    final gulbergRecords =
+        'mm.swr.v1.$testUserId.tenants.${gulberg.id}.active.';
+
+    test('a record of a portfolio that left goes at the next list save, '
+        'when it landed after the forget', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      // Gulberg's tenants are on their way to the store when Gulberg leaves.
+      app.store.holding.add(gulbergRecords);
+      listen(container, tenantsProvider(gulbergList));
+      await pumpEventQueue();
+      expect(app.store.heldWrites, 1);
+      final list = container.read(portfoliosProvider(testUserId).notifier);
+      app.portfolios.memberships.remove(gulberg);
+      await list.reload();
+      expect(await _savedList(app), [plaza.toRow()]);
+      app.store
+        ..holding.clear()
+        ..undeletable.add(gulbergRecords)
+        ..finishHeldWritesOldestFirst();
+      await pumpEventQueue();
+      // Dropped as it landed, but the store kept it.
+      expect(app.store.values.keys, contains(gulbergRecords));
+      app.store.undeletable.clear();
+      await list.reload();
+      expect(app.store.values.keys, [listKey]);
+      expect(await _savedList(app), [plaza.toRow()]);
+    });
+
+    test('an older list that landed last, without a portfolio that joined, '
+        'counts as unknown, so that portfolio takes its records when it '
+        'leaves', () async {
+      final app = TestApp(portfolios: const [plaza]);
+      app.cache = SwrCache(app.store, callLimit: _callLimit);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      final list = container.read(portfoliosProvider(testUserId).notifier);
+      // Two writes of the list the store holds: one without Gulberg, then
+      // one with it, after Gulberg joined.
+      app.store.holding.add(listKey);
+      await list.reload();
+      app.portfolios.memberships.add(gulberg);
+      await list.reload();
+      expect(app.store.heldWrites, 2);
+      app.store
+        ..holding.clear()
+        ..undeletable.add(listKey)
+        ..finishHeldWritesNewestFirst();
+      await pumpEventQueue();
+      expect(await _savedList(app), [plaza.toRow()]);
+      app.store.undeletable.clear();
+      listen(container, tenantsProvider(gulbergList));
+      await pumpEventQueue();
+      expect(app.store.values.keys, contains(gulbergRecords));
+      app.portfolios.memberships.remove(gulberg);
+      await list.reload();
+      expect(app.store.values.keys, [listKey]);
+    });
+  });
+
   group('a call to the store that never answers', () {
     const listKey = 'mm.swr.v1.$testUserId.${PortfoliosController.query}';
     final plazaRecords = 'mm.swr.v1.$testUserId.tenants.${plaza.id}';
