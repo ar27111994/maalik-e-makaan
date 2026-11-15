@@ -69,6 +69,7 @@ final class Tenant {
     this.notes,
     this.archivedAt,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `tenants` row selected with [Tenant.columns].
@@ -82,6 +83,7 @@ final class Tenant {
     final cnic = row.optionalString('cnic');
     return Tenant(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       kind: row.choice('kind', TenantKind.parse),
       fullName: row.string('full_name'),
       guardianName: row.optionalString('guardian_name'),
@@ -122,7 +124,8 @@ final class Tenant {
 
   /// The columns [Tenant.fromRow] reads.
   static const columns =
-      'id,kind,full_name,guardian_name,guardian_relation,cnic,cnic_expiry,'
+      'id,portfolio_id,'
+      'kind,full_name,guardian_name,guardian_relation,cnic,cnic_expiry,'
       'ntn,phone,alt_phone,email,occupation,employer,permanent_address,'
       'previous_address,emergency_contact_name,emergency_contact_phone,'
       'emergency_contact_relation,reference1_name,reference1_phone,'
@@ -142,6 +145,10 @@ final class Tenant {
   static final ntnPattern = RegExp(r'^[0-9A-Z][0-9A-Z-]{5,14}$');
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final TenantKind kind;
   final String fullName;
 
@@ -219,6 +226,7 @@ final class Tenant {
   /// The row [Tenant.fromRow] reads back (the offline cache).
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     ...toWrite(),
     'full_name': fullName,
     'archived_at': archivedAt?.toIso8601String(),
@@ -227,6 +235,7 @@ final class Tenant {
 
   List<Object?> get _fields => [
     id,
+    portfolioId,
     kind,
     fullName,
     guardianName,

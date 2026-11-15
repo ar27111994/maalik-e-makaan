@@ -263,6 +263,7 @@ final class Lease {
     this.movedOutOn,
     this.endReason,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `leases` row selected with [Lease.columns].
@@ -273,6 +274,7 @@ final class Lease {
     final lateFee = _lateFee(row);
     return Lease(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       unitId: row.string('unit_id'),
       tenantId: row.string('tenant_id'),
       status: row.choice('status', LeaseStatus.parse),
@@ -342,7 +344,8 @@ final class Lease {
   /// The columns [Lease.fromRow] reads, with the tenant, unit and property
   /// embedded through their composite foreign keys.
   static const columns =
-      'id,unit_id,tenant_id,status,start_date,end_date,monthly_rent,'
+      'id,portfolio_id,'
+      'unit_id,tenant_id,status,start_date,end_date,monthly_rent,'
       'rent_due_day,grace_days,security_deposit,increment_percent,'
       'increment_interval_months,late_fee_type,late_fee_value,late_fee_cap,'
       'prorate_first_month,billing_starts_on,notice_period_days,'
@@ -356,6 +359,10 @@ final class Lease {
       'property:properties!units_property_fkey(name,province))';
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final String unitId;
   final String tenantId;
   final LeaseStatus status;
@@ -381,6 +388,7 @@ final class Lease {
     final fee = terms.lateFee;
     return {
       'id': id,
+      'portfolio_id': portfolioId,
       'unit_id': unitId,
       'tenant_id': tenantId,
       'status': status.db,
@@ -415,6 +423,7 @@ final class Lease {
 
   List<Object?> get _fields => [
     id,
+    portfolioId,
     unitId,
     tenantId,
     status,

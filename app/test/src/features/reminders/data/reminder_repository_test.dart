@@ -8,6 +8,7 @@ import '../../../../support/supabase.dart';
 
 final Map<String, Object?> _row = {
   'id': 'rem-1',
+  'portfolio_id': gulberg.id,
   'lease_id': aliLease.id,
   'channel': 'whatsapp',
   'template': 'overdue',

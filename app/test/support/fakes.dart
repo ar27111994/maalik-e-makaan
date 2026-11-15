@@ -923,6 +923,7 @@ final class FakeDeviceScratch implements DeviceScratch {
 /// A house in [gulberg] with three units, and an archived plot.
 final gulbergHouse = Property(
   id: '0192d0c4-2222-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   name: 'Gulberg House',
   type: PropertyType.house,
   addressLine: '42-B, Main Boulevard',
@@ -943,6 +944,7 @@ final gulbergHouse = Property(
 );
 final oldPlot = Property(
   id: '0192d0c4-2222-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   name: 'DHA plot',
   type: PropertyType.plot,
   city: 'Karachi',
@@ -952,6 +954,7 @@ final oldPlot = Property(
 );
 const saddarPlaza = Property(
   id: '0192d0c4-2222-7000-8000-000000000003',
+  portfolioId: '0192d0c4-0000-7000-8000-000000000002',
   name: 'Saddar Plaza',
   type: PropertyType.plaza,
   city: 'Rawalpindi',
@@ -961,6 +964,7 @@ const saddarPlaza = Property(
 
 final groundFloor = Unit(
   id: '0192d0c4-3333-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   label: 'Ground floor',
   type: UnitType.portion,
@@ -973,6 +977,7 @@ final groundFloor = Unit(
 );
 final firstFloor = Unit(
   id: '0192d0c4-3333-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   label: 'First floor',
   type: UnitType.portion,
@@ -983,6 +988,7 @@ final firstFloor = Unit(
 );
 final annexe = Unit(
   id: '0192d0c4-3333-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   label: 'Annexe room',
   type: UnitType.room,
@@ -1082,18 +1088,28 @@ final class FakePropertyRepository implements PropertyRepository {
     return property;
   }
 
-  Property _stored(Property p, {DateTime? archivedAt, String? createdAt}) =>
-      Property.fromRow({
-        ...p.toRow(),
-        ...p.toWrite(),
-        'archived_at': archivedAt?.toIso8601String(),
-        'created_at': createdAt ?? p.createdAt,
-      });
+  /// [p] as the server returns it: in [portfolioId] (else its own).
+  Property _stored(
+    Property p, {
+    DateTime? archivedAt,
+    String? createdAt,
+    String? portfolioId,
+  }) => Property.fromRow({
+    ...p.toRow(),
+    ...p.toWrite(),
+    'portfolio_id': portfolioId ?? p.portfolioId,
+    'archived_at': archivedAt?.toIso8601String(),
+    'created_at': createdAt ?? p.createdAt,
+  });
 
   @override
   Future<Property> createProperty(String portfolioId, Property property) async {
     await _write('createProperty', [portfolioId, property]);
-    final stored = _stored(property, createdAt: '2026-11-07T10:00:00+00:00');
+    final stored = _stored(
+      property,
+      createdAt: '2026-11-07T10:00:00+00:00',
+      portfolioId: portfolioId,
+    );
     (byPortfolio[portfolioId] ??= []).add(stored);
     return stored;
   }
@@ -1103,7 +1119,12 @@ final class FakePropertyRepository implements PropertyRepository {
     await _write('updateProperty', [property]);
     final old = _all.firstWhere((p) => p.id == property.id);
     return _replace(
-      _stored(property, archivedAt: old.archivedAt, createdAt: old.createdAt),
+      _stored(
+        property,
+        archivedAt: old.archivedAt,
+        createdAt: old.createdAt,
+        portfolioId: old.portfolioId,
+      ),
     );
   }
 
@@ -1156,13 +1177,19 @@ final class FakePropertyRepository implements PropertyRepository {
     );
   }
 
-  Unit _storedUnit(Unit u, {DateTime? archivedAt, String? createdAt}) =>
-      Unit.fromRow({
-        ...u.toRow(),
-        ...u.toWrite(),
-        'archived_at': archivedAt?.toIso8601String(),
-        'created_at': createdAt ?? u.createdAt,
-      });
+  /// [u] as the server returns it: in [portfolioId] (else its own).
+  Unit _storedUnit(
+    Unit u, {
+    DateTime? archivedAt,
+    String? createdAt,
+    String? portfolioId,
+  }) => Unit.fromRow({
+    ...u.toRow(),
+    ...u.toWrite(),
+    'portfolio_id': portfolioId ?? u.portfolioId,
+    'archived_at': archivedAt?.toIso8601String(),
+    'created_at': createdAt ?? u.createdAt,
+  });
 
   Unit _replaceUnit(Unit unit) {
     unitList[unitList.indexWhere((u) => u.id == unit.id)] = unit;
@@ -1172,7 +1199,11 @@ final class FakePropertyRepository implements PropertyRepository {
   @override
   Future<Unit> createUnit(String portfolioId, Unit unit) async {
     await _write('createUnit', [portfolioId, unit]);
-    final stored = _storedUnit(unit, createdAt: '2026-11-07T10:00:00+00:00');
+    final stored = _storedUnit(
+      unit,
+      createdAt: '2026-11-07T10:00:00+00:00',
+      portfolioId: portfolioId,
+    );
     unitList.add(stored);
     occupancy[stored.id] = Occupancy(
       status: stored.isAvailable
@@ -1188,7 +1219,12 @@ final class FakePropertyRepository implements PropertyRepository {
     await _write('updateUnit', [unit]);
     final old = unitList.firstWhere((u) => u.id == unit.id);
     return _replaceUnit(
-      _storedUnit(unit, archivedAt: old.archivedAt, createdAt: old.createdAt),
+      _storedUnit(
+        unit,
+        archivedAt: old.archivedAt,
+        createdAt: old.createdAt,
+        portfolioId: old.portfolioId,
+      ),
     );
   }
 
@@ -1214,6 +1250,7 @@ final class FakePropertyRepository implements PropertyRepository {
 /// Tenants of [gulberg]: a family man, a company, and an archived tenant.
 final aliRaza = Tenant(
   id: '0192d0c4-4444-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   fullName: 'Ali Raza',
   guardianName: 'Ahmed Raza',
   guardianRelation: GuardianRelation.sonOf,
@@ -1239,6 +1276,7 @@ final aliRaza = Tenant(
 );
 final techCorp = Tenant(
   id: '0192d0c4-4444-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   fullName: 'Indus Tech (Pvt) Ltd',
   kind: TenantKind.company,
   ntn: '1234567-8',
@@ -1248,6 +1286,7 @@ final techCorp = Tenant(
 );
 final formerTenant = Tenant(
   id: '0192d0c4-4444-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   fullName: 'Hamid Ali',
   cnic: Cnic.parse('42101-7654321-3'),
   cnicExpiry: CalendarDate(2024, 1, 1),
@@ -1331,12 +1370,18 @@ final class FakeTenantRepository implements TenantRepository {
     ];
   }
 
-  Tenant _stored(Tenant t, {DateTime? archivedAt, String? createdAt}) =>
-      Tenant.fromRow({
-        ...t.toRow(),
-        'archived_at': archivedAt?.toIso8601String(),
-        'created_at': createdAt ?? t.createdAt,
-      });
+  /// [t] as the server returns it: in [portfolioId] (else its own).
+  Tenant _stored(
+    Tenant t, {
+    DateTime? archivedAt,
+    String? createdAt,
+    String? portfolioId,
+  }) => Tenant.fromRow({
+    ...t.toRow(),
+    'portfolio_id': portfolioId ?? t.portfolioId,
+    'archived_at': archivedAt?.toIso8601String(),
+    'created_at': createdAt ?? t.createdAt,
+  });
 
   Tenant _replace(Tenant tenant) {
     for (final list in byPortfolio.values) {
@@ -1349,7 +1394,11 @@ final class FakeTenantRepository implements TenantRepository {
   @override
   Future<Tenant> createTenant(String portfolioId, Tenant tenant) async {
     await _call('createTenant', [portfolioId, tenant]);
-    final stored = _stored(tenant, createdAt: '2026-11-07T10:00:00+00:00');
+    final stored = _stored(
+      tenant,
+      createdAt: '2026-11-07T10:00:00+00:00',
+      portfolioId: portfolioId,
+    );
     (byPortfolio[portfolioId] ??= []).add(stored);
     return stored;
   }
@@ -1359,7 +1408,12 @@ final class FakeTenantRepository implements TenantRepository {
     await _call('updateTenant', [tenant]);
     final old = _all.firstWhere((t) => t.id == tenant.id);
     return _replace(
-      _stored(tenant, archivedAt: old.archivedAt, createdAt: old.createdAt),
+      _stored(
+        tenant,
+        archivedAt: old.archivedAt,
+        createdAt: old.createdAt,
+        portfolioId: old.portfolioId,
+      ),
     );
   }
 
@@ -1387,6 +1441,7 @@ final class FakeTenantRepository implements TenantRepository {
 /// Ali Raza's tenancy of [groundFloor], and an ended one of [firstFloor].
 final aliLease = Lease(
   id: '0192d0c4-5555-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   unitId: groundFloor.id,
   tenantId: aliRaza.id,
   status: LeaseStatus.active,
@@ -1415,6 +1470,7 @@ final aliLease = Lease(
 );
 final endedLease = Lease(
   id: '0192d0c4-5555-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   unitId: firstFloor.id,
   tenantId: formerTenant.id,
   status: LeaseStatus.ended,
@@ -1496,6 +1552,7 @@ final class FakeLeaseRepository implements LeaseRepository {
     EndReason? endReason,
   }) => Lease(
     id: old.id,
+    portfolioId: old.portfolioId,
     unitId: old.unitId,
     tenantId: old.tenantId,
     status: status ?? old.status,
@@ -1542,6 +1599,7 @@ final class FakeLeaseRepository implements LeaseRepository {
     await _call('createLease', [id, portfolioId, unitId, tenantId, terms]);
     final lease = Lease(
       id: id,
+      portfolioId: portfolioId,
       unitId: unitId,
       tenantId: tenantId,
       status: LeaseStatus.active,
