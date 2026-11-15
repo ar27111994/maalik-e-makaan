@@ -135,8 +135,10 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   what actionlint does not cover. actionlint also refuses a step-level `$/` action (its
   `[action]` rule, not ignored): the repository has no action of its own today, and the first
   one needs that ignore and the check of its inputs added together.
-- Every job that runs `supabase start` (or `supabase db start`) first runs the step "Reserve the
-  local stack's host ports", in one spelling, before any step that connects out:
+- Every job that starts the local stack (`supabase start` or `supabase db start`, with any CLI
+  options, or `make test-uat` and `tool/uat/run.sh`, which start it when it is not running) runs
+  the step "Reserve the local stack's host ports", in one spelling, as its first step, before
+  any step that connects out:
 
   ```yaml
   - name: Reserve the local stack's host ports
@@ -158,8 +160,9 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   the kernel refuses it, where `sysctl -w` prints "ignoring" and exits 0. The backup's restore
   check is allowed to fail, so there the step has `continue-on-error` and the stack starts only
   when it succeeded (`steps.reserve.outcome == 'success'`). `tool/github/check_stack_ports.py`
-  (`make lint`, the pre-commit hook) requires all of this, and that the range covers every port
-  `supabase/config.toml` names inside 32768 to 60999 (a port below it is never given out).
+  (`make lint`, the pre-commit hook) requires all of this, the step first in each such job, and
+  a range that covers every port `supabase/config.toml` names inside 32768 to 60999 (a port
+  below it is never given out).
 
 - zizmor findings fail the gate, at every severity, unless an inline ignore suppresses them.
   `make lint` (so the Repository hygiene job) runs the zizmor that `tool/requirements-lint.txt`

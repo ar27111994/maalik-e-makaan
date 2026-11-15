@@ -2,8 +2,9 @@
 
 Most tests apply a small mutant to copies of the repository's own workflows and
 supabase/config.toml, and require the check to name it: the reservation removed from each job
-that starts the stack, moved after the start, narrowed so a port of config.toml falls outside
-it, a new job that starts the stack without it, and a port added to config.toml outside it.
+that starts the stack, moved after the start or anywhere after the job's first step, narrowed so
+a port of config.toml falls outside it, a new job that starts the stack without it (in any of
+the spellings StartsStackTest lists), and a port added to config.toml outside it.
 """
 
 from __future__ import annotations
@@ -100,7 +101,7 @@ class TheRepositoryTest(Repo):
                 self.assertIn("run: ", text[a:b])
 
     def test_each_job_that_starts_the_stack_is_found(self):
-        # Without the reservations, exactly the three starts are reported.
+        # Without the reservations, exactly the three jobs are reported, each once.
         for path in (CI, BACKUP):
             text = self.text(path)
             for _, job, _ in [s for s in STARTS if s[0] == path]:
@@ -157,6 +158,41 @@ class MutantsTest(Repo):
                     f'no "{csp.NAME}" step before it (the one at line',
                 )
                 self.assertIn("comes after it); make that step the job's first", self.problems()[0])
+
+    def test_the_step_moved_later_but_before_the_start(self):
+        # Steps that connect out (setup-cli, flutter-action, setup-node) would then run before
+        # it, and a reservation does not free a port a socket already holds.
+        for path, job, start in STARTS:
+            for where in ("after setup-cli", "to just before the start"):
+                with self.subTest(job=job, where=where):
+                    self.setUp()
+                    text = self.text(path)
+                    a, b = step_span(text, job, csp.NAME)
+                    step = text[a:b].rstrip("\n") + "\n"
+                    text = text[:a] + text[b:]
+                    if where == "after setup-cli":
+                        first, last = job_span(text, job)
+                        if "supabase/setup-cli@" not in text[first:last]:
+                            continue  # the backup job installs the CLI by its own step
+                        at = text.index("supabase/setup-cli@", first, last)
+                        at = text.index("\n      - ", at) + 1
+                    else:
+                        at = step_span(text, job, start)[0]
+                    self.write(path, text[:at] + step + text[at:])
+                    text = self.text(path)
+                    line = text[: step_span(text, job, csp.NAME)[0]].count("\n") + 1
+                    (found,) = self.assert_problems(f'job {job!r}: "{csp.NAME}" is step ')
+                    self.assertTrue(found.startswith(f"{path}:{line}: "), found)
+                    self.assertTrue(found.endswith(f"; make it the job's first ({csp.WHY})"), found)
+
+    def test_a_job_that_runs_make_test_uat_without_it(self):
+        # tool/uat/run.sh starts the stack itself when it is not running.
+        text = self.text(CI)
+        a, b = step_span(text, "uat", csp.NAME)
+        c, d = step_span(text[:a] + text[b:], "uat", "Start the stack")
+        text = text[:a] + text[b:]
+        self.write(CI, text[:c] + text[d:])
+        self.assert_problems("job 'uat' starts the local stack with no")
 
     def test_the_range_narrowed(self):
         self.replace(CI, "54320-54329", "54321-54329", count=2)
@@ -232,8 +268,9 @@ class MutantsTest(Repo):
             NAME_LINE + "        continue-on-error: true\n",
             count=2,
         )
+        # Two in the uat job: its supabase start and its make test-uat.
         self.assert_problems(
-            *[f'"{csp.NAME}" has continue-on-error, but the start it guards (line'] * 2
+            *[f'"{csp.NAME}" has continue-on-error, but the start it guards (line'] * 3
         )
 
     def test_the_backup_start_must_stay_allowed_to_fail(self):
@@ -268,6 +305,17 @@ class StartsStackTest(unittest.TestCase):
             "supabase start -x studio",
             "cd x && supabase db start\n",
             "echo\n  supabase   start\n",
+            "supabase --workdir . start",
+            'supabase --workdir "$WORKDIR" start -x studio',
+            "supabase --debug --workdir=. db start",
+            "supabase db --workdir . start",
+            "npx supabase start",
+            "supabase \\\n  start -x studio",
+            "supabase \\\n  --workdir . \\\n  db start",
+            "make test-uat",
+            "UAT_RESET=1 make -C . test-uat",
+            "tool/uat/run.sh",
+            "bash ./tool/uat/run.sh",
         ):
             self.assertTrue(csp.starts_stack(run), run)
 
@@ -278,8 +326,30 @@ class StartsStackTest(unittest.TestCase):
             "# supabase start is in the step above",
             "supabase db reset --local",
             "supabase starter",
+            "supabase status --output start",
+            "supabase --workdir ./start status",
+            "make test-uat-report",
+            "make test-functions-e2e",
+            "# make test-uat",
+            "cat tool/uat/run.shx",
+            "supabase stop \\\n  # start",
         ):
             self.assertFalse(csp.starts_stack(run), run)
+
+    def test_a_long_line_is_quick(self):
+        # The pattern has no nested ambiguity: a long line that does not start the stack fails
+        # to match at once instead of backtracking.
+        run = "supabase" + " --flag value" * 5000 + " status"
+        self.assertFalse(csp.starts_stack(run))
+
+    def test_the_uat_runner_still_starts_the_stack(self):
+        # csp.UAT_STARTS treats make test-uat and tool/uat/run.sh as starts: keep that true.
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        recipe = makefile.split("\ntest-uat:", 1)[1].split("\n\n", 1)[0]
+        self.assertIn("\ttool/uat/run.sh", recipe)
+        script = (ROOT / "tool/uat/run.sh").read_text(encoding="utf-8")
+        self.assertIn('SUPABASE=(supabase --workdir "$WORKDIR")', script)
+        self.assertIn('"${SUPABASE[@]}" start -x', script)
 
     def test_config_ports(self):
         config = {

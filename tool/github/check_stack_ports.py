@@ -6,8 +6,9 @@ Linux gives an outgoing connection a local port from net.ipv4.ip_local_port_rang
 address to the same port fails with EADDRINUSE. The stack's host ports (supabase/config.toml)
 lie in that range, and a job binds them straight after pulling the images over many
 connections: run 43740334888 failed so, on 0.0.0.0:54322. net.ipv4.ip_local_reserved_ports keeps
-listed ports from automatic assignment and leaves explicit binds alone, so each job that runs
-`supabase start` or `supabase db start` first runs, in exactly this spelling:
+listed ports from automatic assignment and leaves explicit binds alone, but it does not free a
+port a socket already holds, so each job that starts the stack runs as its first step, before
+anything connects out, in exactly this spelling:
 
     - name: Reserve the local stack's host ports
       run: |
@@ -18,13 +19,18 @@ The write keeps any ports already reserved; tee fails the step when the kernel r
 `sysctl -w` would print "ignoring" and exit 0. This check requires, for every such job in
 .github/workflows:
 
-- the step, by that name and in that spelling, before every step that starts the stack;
+- the step, by that name and in that spelling, as the job's first step;
 - a range that covers every port supabase/config.toml names (a key `port` or ending in `_port`)
   inside the kernel's default automatic range, since a port below it is never given out;
 - no `if:` on the step, and `continue-on-error` only where the start it guards has it too and
   runs only when the step succeeded, `if: … steps.<its id>.outcome == 'success'` (the backup's
   restore check, whose last step then fails the run), so a failed reservation cannot pass in
   silence.
+
+A step starts the stack when its `run:` (backslash-continued lines joined, comment lines left
+out) runs `supabase start` or `supabase db start`, with or without CLI options before `start`
+(`supabase --workdir . start`), or runs `make test-uat` or tool/uat/run.sh, which starts the
+stack itself when it is not running.
 
     python3 tool/github/check_stack_ports.py [repository root]
 """
@@ -59,7 +65,14 @@ SPELLING = (
     f'reserved="$(cat {SYSCTL})" then '
     f'echo "${{reserved:+$reserved,}}<first>-<last>" | sudo tee {SYSCTL}'
 )
-START = re.compile(r"\bsupabase\s+(?:db\s+)?start\b")
+# CLI options between `supabase` and `start`: `-x`, `--debug`, `--workdir=.`, `--workdir .`. A
+# value is a word that is not an option, `db` or `start`; option and value each have one way to
+# match, so a long line that does not start the stack fails at once.
+_OPTIONS = r"(?:\s+-{1,2}\w[\w-]*(?:=\S*|\s+(?!-|(?:db|start)\b)\S+)?)*"
+START = re.compile(rf"\bsupabase{_OPTIONS}\s+(?:db{_OPTIONS}\s+)?start\b")
+# tool/uat/run.sh runs `"${SUPABASE[@]}" start` when the stack is not running, and the Makefile's
+# test-uat runs it (test_check_stack_ports.py keeps both true).
+UAT_STARTS = re.compile(r"\bmake\b[^\n;&|#]*\stest-uat(?![\w-])|\btool/uat/run\.sh(?![\w.-])")
 WHY = "docs/agents/conventions.md, Workflows and actions"
 
 
@@ -81,7 +94,12 @@ def config_ports(config: dict, table: str = "") -> Iterator[Port]:
 
 def starts_stack(run: str) -> bool:
     """Whether a `run:` script starts the stack, outside a comment line."""
-    return any(START.search(line) for line in run.splitlines() if not line.lstrip().startswith("#"))
+    joined = re.sub(r"\\\n", " ", run)
+    return any(
+        START.search(line) or UAT_STARTS.search(line)
+        for line in joined.splitlines()
+        if not line.lstrip().startswith("#")
+    )
 
 
 class Checker:
@@ -109,12 +127,16 @@ class Checker:
         found: list[Problem] = []
         for step in reserves:
             found += self.check_reserve(path, step, scalar(get(step, "run")) or "")
+        unguarded = False
+        starts = False
         for index, step in enumerate(steps):
             if step not in reserves and starts_stack(scalar(get(step, "run")) or ""):
+                starts = True
                 before = [r for r in reserves if steps.index(r) < index]
                 if before:
                     found += self.check_start(path, step, before[0])
                     continue
+                unguarded = True
                 later = (
                     f" (the one at line {line_of(reserves[0])} comes after it)" if reserves else ""
                 )
@@ -126,6 +148,18 @@ class Checker:
                         f" it{later}; make that step the job's first ({WHY})",
                     )
                 )
+                break  # one fix serves every later start
+        # A reservation does not free a port a socket already holds, so it must come before
+        # every step that connects out: the first. (A start with none before it is named above.)
+        if starts and not unguarded and steps.index(reserves[0]) != 0:
+            found.append(
+                Problem(
+                    path,
+                    line_of(reserves[0]),
+                    f'job {job_name!r}: "{NAME}" is step {steps.index(reserves[0]) + 1};'
+                    f" make it the job's first ({WHY})",
+                )
+            )
         return found
 
     def check_reserve(self, path: str, step: yaml.Node, run: str) -> list[Problem]:
