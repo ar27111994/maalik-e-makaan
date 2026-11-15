@@ -273,10 +273,10 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     the new one.
   - **What the old app host keeps answering:** `/.well-known/assetlinks.json` for good (Android
     builds list both hosts from the release that carries this, older ones only the old host),
-    and `/auth/callback` with the app's files until the release after the move, since a link
-    requested there has its sign-in verifier in that origin's storage. Neither response clears
-    anything. The release after the move, at least 24 hours later, answers the callback with the
-    page too.
+    and `/auth/callback` with the app's files until a release at least 24 hours after the
+    move's, since a link requested there has its sign-in verifier in that origin's storage.
+    Neither response clears anything. That later release answers the callback with the page too;
+    a release before then leaves it as it is.
   - **The web app is not indexed:** it answers `X-Robots-Tag: noindex` on every path, since every
     path answers with the app's shell and the website is what search engines index (D-01).
   - **Invitations after the move (the owner's choice):** the Edge Functions' `APP_URL` secret
