@@ -2,9 +2,11 @@
 """Check the repository's same-repository workflow and action references.
 
 GitHub's self-repository syntax, `uses: $/.github/workflows/deploy.yml`, names a reusable
-workflow or an action in this repository at the caller's own commit; the older `./` form names
-whatever is in the runner's workspace at that path, which a previous step may have replaced.
-zizmor's self-repository audit flags every `./` reference, and this repository writes `$/`
+workflow or an action in this repository at the running commit. For a step-level action the
+older `./` form instead names whatever is in the runner's workspace at that path, which a
+previous step may have replaced; for a reusable workflow `./` also takes the caller's commit,
+and `$/` is GitHub's recommended form and counts as pinned under a fully-pinned policy. zizmor's
+self-repository audit flags every `./` reference, and this repository writes `$/`
 (docs/agents/conventions.md).
 
 actionlint 1.7.12 does not know `$/` and refuses it; .github/actionlint.yaml ignores exactly that

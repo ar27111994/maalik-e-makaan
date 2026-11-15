@@ -375,8 +375,9 @@ The Deploy workflow (`.github/workflows/deploy.yml`) runs when the Release workf
 tag (Release calls it for that tag), or by hand (Actions, Deploy, Run workflow, for the branch or
 tag chosen there; only once the workflow is on the default branch). Publishing a release by hand
 does not start it. See [Releasing](#releasing). Release and Site refresh call it as
-`uses: $/.github/workflows/deploy.yml`, GitHub's self-repository syntax, so the called workflow is
-always the one in the caller's commit (`docs/agents/conventions.md`, Workflows and actions). Its `supabase`
+`uses: $/.github/workflows/deploy.yml`, GitHub's self-repository syntax and its recommended form.
+The called workflow is the one in the caller's commit, as it was with the earlier `./` form
+(`docs/agents/conventions.md`, Workflows and actions). Its `supabase`
 job pushes migrations and Edge Functions to Supabase and calls the `health` function. Its `web`
 job then:
 
@@ -602,12 +603,31 @@ committed icon is stale (`make app-icons-check`).
 
 The Security workflow (`security.yml`) uploads CodeQL, OSV-Scanner and zizmor results to code
 scanning. Its "Workflow security (zizmor)" job runs the zizmor version that
-`tool/requirements-lint.in` pins, with its online audits, and fails on any finding after the
+`tool/requirements-lint.txt` installs for `make lint`, with its online audits, and fails on any finding after the
 upload; `make lint` runs the same version offline, which leaves out the four audits that need
 the GitHub API (`impostor-commit`, `known-vulnerable-actions`, `ref-confusion` and
 `stale-action-refs`). Until 15 November 2026 the job ran the newest zizmor and never failed on a
 finding, so the `self-repository` audit added in zizmor 1.30.0 left three notes on `main` (the
 calls of `deploy.yml`, now written with `$/`) without failing a pull request.
+
+**After the change to `$/` merges.** `$/` first runs on GitHub after the merge, and two runs show
+whether GitHub accepts it:
+
+- The Release run on the merge commit. `release.yml` runs on every push to `main`, and GitHub
+  validates the workflow file, called workflows included, when it creates the run, so a refused
+  `$/` is expected to show here even when the deploy jobs are skipped. The run
+  starts with no "Invalid workflow file" banner; release-please runs, and "Deploy the release"
+  and "Deploy the website" are skipped, or run if a release was created. On a release, both
+  deploy jobs expand into `deploy.yml`'s jobs at the release commit.
+- The Security run on `main`, where the three `self-repository` alerts move to Fixed.
+
+Site refresh, the third call, first runs on its schedule (Wednesdays at 04:23 UTC, the first on
+18 November 2026) unless run by hand. If GitHub refuses `$/`, revert with a pull request that
+reverts the whole squash commit, which also restores the zizmor job that does not fail on a
+finding. A pull request that puts back only the three `./` lines is refused by its own gates:
+the same-repository call check fails "Repository hygiene" and zizmor fails "Workflow security
+(zizmor)", both required checks. The other way past those gates is the admin bypass, which is
+the owner's decision.
 
 **As read from GitHub on 15 November 2026** (a record of that day; the settings live on GitHub and
 may have changed since):

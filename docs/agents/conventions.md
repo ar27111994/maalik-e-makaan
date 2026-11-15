@@ -99,11 +99,13 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
 
 - A reusable workflow or an action in this repository is referenced with GitHub's
   self-repository syntax, `uses: $/.github/workflows/deploy.yml`: never `./…`, and never with an
-  `@ref`. With `$/` the called file always comes from the caller's own commit, while `./` names
-  whatever sits at that path in the runner's workspace, which an earlier step can replace, and
-  GitHub can enforce a pinned-actions policy on `$/` but not on `./`. zizmor's `self-repository`
-  audit flags `./`. (`$/` does not exist on GitHub Enterprise Server, which this repository does
-  not use.)
+  `@ref`. The reasons differ by kind. For a step-level action, `$/` resolves to the repository
+  at the running commit, while `./` resolves against the runner's workspace, which an earlier
+  step can replace. For a reusable workflow, both forms take the called file from the caller's
+  own commit, and `$/` is used because it is GitHub's recommended form, because zizmor's
+  `self-repository` audit flags `./`, and because a fully-pinned actions policy counts `$/` as
+  pinned and `./` not. (`$/` does not exist on GitHub Enterprise Server, which this repository
+  does not use.)
 - actionlint 1.7.12 refuses `$/`, and then stops checking the call against the called workflow.
   `.github/actionlint.yaml` ignores exactly that message, for a `$/` call without an `@ref`, and
   `tool/github/check_workflow_calls.py` (`make lint`, the pre-commit hook) checks instead: it
@@ -116,10 +118,11 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   `[action]` rule, not ignored): the repository has no action of its own today, and the first
   one needs that ignore and the check of its inputs added together.
 - zizmor findings fail the gate, at every severity. `make lint` (so the Repository hygiene job)
-  runs the zizmor pinned in `tool/requirements-lint.in` offline, with `--strict-collection`, on
+  runs the zizmor that `tool/requirements-lint.txt` installs offline, with `--strict-collection`, on
   the whole repository; the Security workflow's "Workflow security (zizmor)" job runs the same
   version with its online audits, uploads the results to code scanning, then fails on any
-  finding. `make docs-check` (C17) keeps the two versions equal. A finding is fixed; an
+  finding. `make docs-check` (its `zizmor-pin` check) keeps the two versions equal, and
+  `tool/requirements-lint.in` equal to the lockfile. A finding is fixed; an
   exception is an inline `# zizmor: ignore[<audit>]` with its reason, agreed in review.
 
 ## Design
@@ -193,7 +196,8 @@ needs the owner's agreement before it ships. Every GitHub Action is pinned to a 
 Dependabot pull requests (`.github/dependabot.yml`) change only the manifest and lockfile, so a
 bump is not done until the same branch updates `THIRD_PARTY_NOTICES.md` and any README or
 comment naming the old version, and rebuilds generated files that depend on it (`make icons`
-after lucide-static). A bump of zizmor in `tool/requirements-lint.txt` also changes `version:`
-of zizmor-action in `security.yml` (`make docs-check` fails until it does). A lockfile is written with the npm in `packageManager`, which is the npm
+after lucide-static). A bump of zizmor in `tool/requirements-lint.txt` also changes its pin in
+`tool/requirements-lint.in` and `version:` of zizmor-action in `security.yml` (`make docs-check`
+fails until all three agree). A lockfile is written with the npm in `packageManager`, which is the npm
 that the Node in `.nvmrc` bundles. When a bump moves a pinned override with it (the website's
 `playwright-core` follows `@playwright/test`), the override changes in the same commit.
