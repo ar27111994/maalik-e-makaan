@@ -1257,7 +1257,8 @@ It is not in `SHA256SUMS`, which is one of its subjects and written before it; i
 protects it. Before the upload, the job checks it against every build file in `dist/` (all but
 the provenance file itself, the bundle they are checked against, which the upload then attaches
 with them) with `gh attestation verify --bundle`, with the options `SECURITY.md` gives, and logs
-`gh --version`. The source ref is `refs/heads/main`, written literally, so a run started by hand
+`gh --version`. A check that passes prints nothing there (`gh` writes its result only to a
+terminal), so the step's log holds the version line alone, as release 1.4.0's did. The source ref is `refs/heads/main`, written literally, so a run started by hand
 (Run workflow) from another branch fails there and attaches nothing in that run: start Release
 by hand from `main` only. That holds exactly with `gh` 2.102.0 or later on the runner: an older
 `gh` compares the branch name without regard to case, so look at the version the step logs, and
@@ -1361,8 +1362,8 @@ file names: a release with a name ending in `.intoto.jsonl` scores 10; one with 
 (`.asc`, `.minisig`, `.sig`, `.sign`, `.sigstore`, `.sigstore.json`) 8; one with neither 0. It
 looks at the five newest of the 30 most recent releases, leaves out any of those five that has no
 files, and takes the floor of the mean. Nothing is downloaded or verified. With seven releases
-(v1.0.0 to v1.3.1) and none carrying a provenance file, v1.4.0 scores 2, the release after it
-4, and the fifth such release 10. Scorecard's `main` also scores an immutable release 10; v5.6.0
+(v1.0.0 to v1.3.1) and none carrying a provenance file, v1.4.0 (15 November 2026, the first
+that does) scores 2, the release after it 4, and the fifth such release 10. Scorecard's `main` also scores an immutable release 10; v5.6.0
 does not.
 
 **Past releases (optional, the owner's own step).** v1.0.0 to v1.3.1 carry no provenance file,

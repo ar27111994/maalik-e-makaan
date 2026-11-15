@@ -9,11 +9,31 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-15)
 
+- Release 1.4.0 was published on 15 November 2026 at 20:25 UTC (tag `v1.4.0`, commit 433395a on
+  `main`; the Release run 43757999421, 20:25 to 20:36 UTC; every job passed, as the agent read
+  it). The agent merged the release pull request (#83) on the owner's standing word (`AGENTS.md`,
+  How to work here). It carries #81 (each release's signed build provenance, and how to check a
+  download), #82 (the record after 1.3.1) and #85 (the CI port reservation, which the changelog
+  does not list, being a `ci` change). No migration: 24 stay applied. Its Deploy run redeployed
+  the four Edge Functions (Deployed), the web app and the website, each with its smoke tests,
+  and the download page shows 1.4.0 with its line on checking a download. Eleven files are
+  attached: the nine kinds 1.3.1 has, and the two provenance files,
+  `maalik-e-makaan-v1.4.0.intoto.jsonl` and `maalik-e-makaan-v1.4.0-ios.intoto.jsonl`.
+  It was the provenance steps' first real run. The runner's `gh` was 2.103.3, so the source ref
+  was compared exactly (`SECURITY.md`, Checking a download). `gh attestation verify` prints
+  nothing when it succeeds outside a terminal, so each step's log shows only that version; the
+  steps passed under `bash -e`, and the agent read the two attached files instead. Each is one
+  Sigstore bundle holding SLSA provenance v1, signed for
+  `.github/workflows/release.yml@refs/heads/main` with one transparency-log entry, built from
+  commit 433395a (the tag's). Their subjects are the seven files `artefacts` attached and the
+  two `ios` attached, each with the SHA-256 that `SHA256SUMS` and `SHA256SUMS-ios` list (and
+  those two lists' own). Not run: `gh attestation verify` by the agent, whose container cannot
+  reach Sigstore; the first person to run `SECURITY.md`'s command on a download does that.
 - Release 1.3.1 was published on 15 November 2026 at 15:50 UTC (tag `v1.3.1`, commit 8f6f062 on
   `main`; the Release run 43732066821; every job passed, as the agent read it). The agent
   merged the release pull request (#79) itself, on the owner's standing word of that day:
-  release whenever everything meant for a release is merged and green (pull request #81, not
-  merged yet, is to record it in `AGENTS.md` and the runbook). It carries #77 (the record after
+  release whenever everything meant for a release is merged and green (#81 recorded it in
+  `AGENTS.md` and the runbook). It carries #77 (the record after
   1.3.0 and the regenerated database types), #78 (the pitch deck brought up to date) and #80 (Search
   Console's ownership file). No migration: 24 stay applied. Its Deploy run redeployed the four
   Edge Functions (Deployed), the web app and the website, each with its smoke tests. Nine files are
@@ -109,8 +129,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   `docs/operations.md`, Code scanning and branch rules, records the ruleset on `main` and the
   Scorecard result of that day; turning on "up-to-date branches" and removing the admin bypass
   are open decisions for the owner. Signed release files (the owner chose this work on
-  2026-11-15): in a pull request from `claude/signed-release-files`, in no release yet and
-  meant for v1.4.0, each Release build copies its
+  2026-11-15): since pull request #81, first released in 1.4.0 (Current Position has that run),
+  each Release build copies its
   attestation's Sigstore bundle into `dist/` as `maalik-e-makaan-vX.Y.Z.intoto.jsonl` (and
   `-ios.intoto.jsonl`), checks it against every build file there with `gh attestation verify
 --bundle`, and attaches it with them; `tool/github/check_release_provenance.py` (`make lint`)
@@ -121,11 +141,13 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   a release; attaching provenance to v1.0.0 to v1.3.1 is the owner's optional step
   (`docs/operations.md`, Release provenance). zizmor's auditor persona (not the
   gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
-- CI (2026-11-15, branch `claude/reserve-stack-ports`): the UAT job of run 43740334888 (pull
+- CI (2026-11-15, pull request #85): the UAT job of run 43740334888 (pull
   request #82) stopped before any test because `supabase start` could not bind `0.0.0.0:54322`,
   a port inside the kernel's automatic range that an outgoing connection can hold, so every job
   that starts the local stack now first reserves 54320-54329 (`net.ipv4.ip_local_reserved_ports`)
-  and `tool/github/check_stack_ports.py` in `make lint` requires it.
+  and `tool/github/check_stack_ports.py` in `make lint` requires it. The pull request's own CI
+  was the step's first run on a runner: in both jobs the kernel took the range, and the jobs
+  passed. The race itself was not reproduced there.
 - D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
   the `vercel.app` addresses send people on for good. Pull request #74, released in 1.3.0:
@@ -352,7 +374,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
 - `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
-  (`supabase db push`), so 24 migrations are applied; release 1.3.1 carried none. "After every
+  (`supabase db push`), so 24 migrations are applied; releases 1.3.1 and 1.4.0 carried none
+  (`list_migrations`, read again by the agent after 1.4.0). "After every
   migration" (`docs/operations.md`), done the same day with read-only queries:
   1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
      order, with nothing extra on either side.
@@ -378,8 +401,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Still to run on the hosted project, by the owner in the SQL editor (the file is too long for
   the connector's query call): `tool/db/time_zone_skew.sql` (`docs/operations.md`, Time-zone
   data). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
-  speaker notes) says 23 reviewed write functions and 23 database suites, as releases 1.3.0 and
-  1.3.1 have.
+  speaker notes) says 23 reviewed write functions and 23 database suites, as releases 1.3.0 to
+  1.4.0 have. Its notes still name 1.3.0 as the released app and count five releases since
+  1.0.0; with 1.3.1 and 1.4.0 there are seven.
 
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
@@ -570,9 +594,9 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 ## Deployed
 
 - Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version
-  17 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-15), active,
-  verify_jwt off as in config.toml: release 1.3.1's Deploy run uploaded them from the tag with
-  the Supabase CLI at 15:51 UTC that day, as every release since 1.0.0 (2026-11-09) has.
+  18 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-15), active,
+  verify_jwt off as in config.toml: release 1.4.0's Deploy run uploaded them from the tag with
+  the Supabase CLI at 20:26 UTC that day, as every release since 1.0.0 (2026-11-09) has.
 - They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
   (version 1). A byte-for-byte comparison with the repository matched then, except one line of
   `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the

@@ -534,8 +534,10 @@ In order. Record each in `.planning/STATE.md` when it is done.
         `CNAME`. Also the owner's to set: when Auth drops the old redirect URLs and the Android
         manifest the old host (a date, or the oldest version still in use).
 
-Optional, after the first release that carries its own provenance files has checked out
-(`SECURITY.md`, Checking a download): attach provenance files to v1.0.0 to v1.3.1 with the
+Optional, now that the first release with its own provenance files, 1.4.0, is out (15 November
+2026; the agent read both files against the release's checksums, and running `SECURITY.md`'s
+command on a download, Checking a download, is still to be done by a person): attach
+provenance files to v1.0.0 to v1.3.1 with the
 procedure in `docs/operations.md`, Release provenance. It only adds files, after they verify, and
 raises Scorecard's Signed-Releases to 10 at once instead of over five releases.
 
