@@ -51,9 +51,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   workflow's Edge Functions preflight checks only the origin. The release that carries it is not
   before 14:00 UTC on 16 November 2026, and every release from `main` carries it once merged.
   After its deploy the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone and does
-  the check by hand of `docs/operations.md`, Domains, step 12. A late link (asked for on the old
-  address, opened after that release) cannot finish; D-20 and Where it never clears say why the
-  window stays. Two app follow-ups came out of it (Follow-ups, Open).
+  the check by hand of `docs/operations.md`, Domains, step 12. A late link (asked for in a tab open on
+  the old address since before the move, the only app whose links name the old callback, and
+  opened after that release) cannot finish; D-20 and Where it never clears say why the window
+  stays. Two app follow-ups came out of it (Follow-ups, Open).
 - Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
   zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
   `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
@@ -484,7 +485,9 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   check with it).
 - App: `reasonLinkOtherDevice` tells a password reset to open the link where it was asked for,
   which cannot work once that browser's storage is gone; add "If you were resetting your
-  password, ask for a new link here" in English and Urdu (the same source).
+  password, ask for a new link here" in English and Urdu (the same source). Its "it is confirmed"
+  holds for a sign-up; an e-mail change needs both of its links (`double_confirm_changes`), so
+  say so there too.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed in e853378

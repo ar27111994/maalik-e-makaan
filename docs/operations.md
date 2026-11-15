@@ -612,24 +612,36 @@ and Android opens an App Link in the app before any request.
 Where it never clears: `/.well-known/assetlinks.json` and the app's other files, which are served as
 files. `/auth/callback` was among them from the move's release until step 12's, because a sign-up,
 reset or e-mail-change link requested on the earlier address keeps its sign-in verifier in that
-address's storage and can only finish there. Such links were not only requested before the move:
-a tab left open on the earlier address keeps running the app it loaded, and until step 12's release
-the earlier `/auth/callback` still booted the app, so a person could sign in there and stay. Such a
-tab can ask for a link at any time before that release, and even after it, until the tab is closed
-or reloaded. Each link is good for an hour (`otp_expiry = 3600` in `supabase/config.toml`; the
-hosted project is assumed to keep that default, and the dashboard allows up to a day, which is why
-step 12 waits at least 24 hours). Opened after step 12's release, the earlier address's
-`/auth/callback` answers with the page: the header (or, in a browser without it, the script)
-removes the storage that holds the verifier before the code can be exchanged, and the page goes on
-to the same `/auth/callback?code=…` on `app.mmakaan.app`. There the app finds no verifier and sends
-nothing to Auth, so the code is not used (unless that browser holds the verifier of a link asked
-for on the new address: Auth then refuses the pair, the app shows its general error, and that other
-link still works). It says the link did not work, and that an e-mail being confirmed is confirmed
-(a sign-up or e-mail change took effect when Auth checked the link); in a browser that has not yet
-chosen a language on the new address, it shows the sign-in page instead. A password reset needs a
+address's storage, so it can finish only on the earlier callback. Only a link that names that
+callback reaches it, and only the app from before the move asks for one: the app gives Auth the
+callback of the address it was built for (`APP_URL`, which the Deploy workflow takes from
+`contracts/origins.json`). The move's app, which the earlier `/auth/callback` booted until step 12,
+was built for `app.mmakaan.app`, so a link asked for in it on the earlier address names the new
+callback, where its verifier is not: that link already cannot finish, and step 12 changes nothing
+for it. The window comes from tabs open on the earlier address since before the move (loaded before
+about 13:45 UTC on 15 November 2026 and never reloaded): such a tab keeps running the app it loaded,
+whose links name the earlier callback, and it can ask for one at any time, before step 12's release
+or after it, until it is closed or reloaded (a reload gets the page and is sent on). Each link is
+good for an hour (`otp_expiry = 3600` in `supabase/config.toml`; the hosted project is assumed to
+keep that default, and the dashboard allows up to a day, which is why step 12 waits at least 24
+hours). Opened after step 12's release, the earlier address's `/auth/callback` answers with the
+page: the header (or, in a browser without it, the script) removes the storage that holds the
+verifier before the code can be exchanged, and the page goes on to the same
+`/auth/callback?code=…` on `app.mmakaan.app`. There the app finds no verifier and sends nothing to
+Auth, so the code is not used (unless that browser holds the verifier of a link asked for on the new
+address: Auth then refuses the pair, the app shows its general error, and that other link still
+works). It shows "This link did not work" ("یہ لنک کام نہیں کر سکا") and says: "Open the link on the
+phone or browser where you asked for it. If you were confirming your e-mail, it is confirmed: sign
+in with your password." The first sentence cannot help once that browser's storage is gone; it
+stays until the follow-up on `reasonLinkOtherDevice` in `.planning/STATE.md` (Follow-ups, Open)
+lands. Of the second, a sign-up took effect when Auth checked the link; an e-mail change takes
+effect only once both of its links have been checked (`double_confirm_changes = true`). In a browser
+that has not yet chosen a language on the new address (most people coming from the earlier one), it
+shows the language choice, then the sign-in page, with no word on the link. A password reset needs a
 new link: the person asks for it on the new address, and it works.
 
-Whether that window could be narrowed was weighed, and it stays as it is:
+Whether that window could be narrowed was weighed on that basis (it lasts as long as a tab from
+before the move stays open, plus the hour of its last link), and it stays as it is:
 
 - Finishing the exchange on the page would put Auth's key in it, read the verifier the page exists
   to delete, and carry the session to the new address in a URL, where history and logs keep it.
@@ -638,13 +650,17 @@ Whether that window could be narrowed was weighed, and it stays as it is:
   keep the earlier address running the full app, with the session and the lists it loads (CNICs
   among them), for anyone with a link pending: the exception step 12 ends. A verifier stays until
   its link finishes, so for someone who once asked for a link there and never used it, that would
-  last for good. The callback would also lose the header, the only clearing that reaches IndexedDB
-  and service workers, and the script would gain a second rule with its own tests.
+  last for good, and so would the verifier of a link the move's app asked for there, which names
+  the new callback and never comes back. The callback would also lose the header, the only clearing
+  that reaches IndexedDB and service workers, and the script would gain a second rule with its own
+  tests.
 - Dropping the earlier https callback from Auth's redirect URLs would send such links to the Site
   URL's root, where the app ignores a code and explains nothing, and would also break the e-mail
   links of Android builds from before the move, which App Links open in the app that holds the
   verifier.
-- A later release would not shorten the hour a link lives, nor close a tab still open.
+- Waiting longer, or a later release, would not shorten the hour a link lives, nor close a tab
+  from before the move: such a tab can ask for a link on any day, and nothing the hosting serves
+  reaches a tab that does not navigate.
 
 The session a browser held on the earlier address is removed from the browser, not ended on the
 server, where it stays until it is revoked; nothing else holds its token.

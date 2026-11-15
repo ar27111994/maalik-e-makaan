@@ -277,23 +277,33 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     clears anything. `/auth/callback` was kept too, booting the app, from the move's release
     until the first release at least 24 hours after it (step 12, not before 14:00 UTC on 16
     November 2026), and from that release answers with the page. What that costs (promised in
-    the review of #80): a tab left open on the old address keeps running the app it loaded, and
-    until that release the old callback booted the app, so a sign-up, reset or e-mail-change link
-    could be asked for there at any time before the release, not only before the move, and from
-    a tab still open even after it. Each link is good for an hour. Opened after the release, the
-    old `/auth/callback` answers with the page, which clears the storage holding the sign-in
-    verifier before the code can be exchanged, and goes on to the same callback on the new
-    address. There the app exchanges nothing and says the link did not work (an e-mail being
-    confirmed is confirmed), or, in a browser that has not yet chosen a language on the new
-    address, shows the sign-in page; a password reset needs a new link, asked for on the new
-    address, which works. Weighed and kept (`docs/operations.md`, Domains, Where it never
-    clears): finishing the exchange on the page would carry a session across addresses in a URL;
-    booting the app on the old callback only while a verifier is stored would keep the old
-    address running the full app, with the session and the CNICs it loads, for anyone with a
-    link pending (for good, if that link is never used), which is the exception this ends, and
-    would give up the header, the only clearing that reaches IndexedDB and service workers;
-    dropping the old callback from Auth's redirect URLs would also break the links of Android
-    builds from before the move; a later release does not shorten the hour.
+    the review of #80): only a link that names the old callback reaches it, and only the app from
+    before the move asks for one, since the app gives Auth the callback of the address it was built
+    for (`APP_URL`). The move's app, which the old callback booted until that release, was built
+    for the new address, so a link asked for in it on the old address names the new callback,
+    where its verifier is not: it already cannot finish, and step 12 changes nothing for it. The
+    window comes from tabs open on the old address since before the move (loaded before about
+    13:45 UTC on 15 November 2026 and never reloaded): such a tab keeps running the app it loaded,
+    whose sign-up, reset and e-mail-change links name the old callback, and can ask for one at any
+    time, before the release or after it, until it is closed or reloaded. Each link is good for an
+    hour. Opened after the release, the old `/auth/callback` answers with the page, which clears
+    the storage holding the sign-in verifier before the code can be exchanged, and goes on to the
+    same callback on the new address. There the app exchanges nothing and shows "This link did not
+    work", telling the person to open the link where they asked for it (which cannot help once
+    that storage is gone, until the follow-up in `.planning/STATE.md` lands) and that an e-mail
+    being confirmed is confirmed (a sign-up took effect when Auth checked the link; an e-mail
+    change only once both of its links have been); in a browser that has not yet chosen a language
+    on the new address, it shows the language choice, then the sign-in page, with no word on the
+    link. A password reset needs a new link, asked for on the new address, which works. Weighed on
+    that basis and kept (`docs/operations.md`, Domains, Where it never clears): finishing the
+    exchange on the page would carry a session across addresses in a URL; booting the app on the
+    old callback only while a verifier is stored would keep the old address running the full app,
+    with the session and the CNICs it loads, for anyone with a link pending (for good, if that link
+    is never used or names the new callback), which is the exception this ends, and would give up
+    the header, the only clearing that reaches IndexedDB and service workers; dropping the old
+    callback from Auth's redirect URLs would also break the links of Android builds from before the
+    move; waiting longer or a later release does not shorten the hour, nor close a tab from before
+    the move.
   - **The web app is not indexed:** it answers `X-Robots-Tag: noindex` on every path, since every
     path answers with the app's shell and the website is what search engines index (D-01).
   - **Invitations after the move (the owner's choice):** the Edge Functions' `APP_URL` secret
