@@ -89,10 +89,12 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   (`PortfoliosController.kept`); a profile or list made from the one on show is saved for the
   epoch it was asked for in
   (CodeRabbit's second review of PR #70). After a write of the list failed, the saved list
-  counts as unknown until a later one lands (`SwrCache.unsettled`), and a list answer that comes
-  after the answer to a later read is neither saved nor shown (`SwrCache.claim`); two reference
-  models check `SwrCache` over random sequences (`test/src/data/cache/`). A command that chooses the current portfolio after a
-  request chooses nothing when the session ended meanwhile, and a start signed in removes what
+  counts as unknown until a later one lands (`SwrCache.unsettled`), and so it does while the store
+  holds an entry that was to go and whose deletion failed or hangs (`SwrCache.strayed`); a list
+  answer that comes after the answer to a later read is neither saved nor shown
+  (`SwrCache.claim`); two reference models check `SwrCache` over random sequences
+  (`test/src/data/cache/`). A command that chooses the current portfolio after a request chooses
+  nothing when the session ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on
   that device, because "sign out, then sign in with the invited address" needs it. The website's
@@ -429,9 +431,10 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   whose record is opened here by its link, and left before the list loads again, is never in a
   saved list, so its record stays until the session ends; the privacy page says the copy goes
   "usually" at the next list load "and in any case" when the session ends, which holds for it
-  (`docs/architecture/app.md`, Writes after a removal). Closing it needs entries that name their portfolio (each cached query saying which
-  portfolio its value is of), or a list save that forgets on every load, which ends saved copies
-  outliving an online start; the second is a product choice.
+  (`docs/architecture/app.md`, Writes after a removal). Closing it needs entries that name their
+  portfolio (each cached query saying which portfolio its value is of), or a list save that
+  forgets on every load, which ends saved copies outliving an online start; the second is a
+  product choice.
 - Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
   session and the record cache reach the person's Google backup, as the preferences reach iCloud
   on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
