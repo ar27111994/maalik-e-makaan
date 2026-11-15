@@ -192,7 +192,8 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   `continue-on-error`, `shell:` or `working-directory:` (a default shell, where set, is `bash`,
   which keeps `-e`; no default working directory). The check step's run is exactly its six lines,
   so it cannot skip a file or lose a failure, and the upload's run is exactly its one command,
-  with only `GH_TOKEN` in its `env`, so it attaches nothing the attestation does not cover. The
+  with only `GH_TOKEN` in its `env`, so it attaches only the attested build files and their
+  provenance file. The
   check step's `env` sets only `BUNDLE` and `PROVENANCE`, and the job's and the workflow's `env`
   nothing that changes what bash or gh runs (`BASH_ENV`, `PATH`, `BASH_FUNC_*` and others). The
   check reads both runs as bash does and refuses what it could read otherwise (a comment that

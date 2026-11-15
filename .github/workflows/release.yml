@@ -311,7 +311,8 @@ jobs:
     # The download page links to the files artefacts and ios attach, and only
     # to those attached when the site is built (deploy.yml), so the website
     # waits for both builds to finish. It goes out even if one failed, without
-    # that build's files; re-running the failed job runs this one again after
+    # that build's files (or with the part an upload cut off part-way left on
+    # the release); re-running the failed job runs this one again after
     # it, and the page then links to them too. It also waits for the backend
     # and the web app (deploy), and goes out only once they are deployed: the
     # site links to the web app and to builds that expect this release's

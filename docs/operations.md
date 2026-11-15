@@ -897,7 +897,8 @@ runs alongside the other two when the workflow runs by hand. The Release workflo
 Deploy twice: once with `skip-site` straight after tagging, for the backend and the web app, and
 once with `site-only` after its `artefacts` and `ios` jobs have finished and the first call has
 succeeded, so that the download page links to the files they attached and to a web app deployed
-for the release. If a build fails, the website still goes out, without that build's links;
+for the release. If a build fails, the website still goes out, without that build's links (or
+with links to the part of its files that an upload cut off part-way left on the release);
 re-running the failed job (Re-run failed jobs) runs the website's deploy again after it, which
 adds them. If the backend's or the web app's deploy fails, the website waits for it the same way.
 The `site` job:
@@ -1106,7 +1107,8 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    only: any other change outside the repository is still the owner's to approve.
 4. Watch both Deploy calls: each job ends with its smoke test, and the `supabase` job with a call
    to `health`. If `artefacts` or `ios` failed, the website still describes the new release, but
-   its download page has no links to that build's files; re-run the failed job (Re-run failed
+   its download page has no links to that build's files, other than any an upload that was cut
+   off part-way left on the release; re-run the failed job (Re-run failed
    jobs), which deploys the website again afterwards. A build that keeps failing (the optional
    iOS one after a macOS runner change, say) leaves those links out until a release has them,
    and holds up nothing else. A build whose attest step or "Provenance file, checked against
