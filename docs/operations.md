@@ -688,7 +688,11 @@ addresses.
    addresses.
 7. **Release.** Merge the release pull request and approve the Deploy runs. Release checks that the
    web app's origin answers and that Auth allows the builds' callbacks (step 4) before it builds
-   anything. The backend and the web app go first, beside the builds: the
+   anything, but only if the token may read Auth's settings. If the `preflight` or `supabase` job
+   warns that it may not (HTTP 401 or 403), Auth was not checked: the builds and the backend go
+   ahead, and a green run does not show that Auth allows the callbacks. Then compare
+   Authentication, URL Configuration with step 4's four callbacks by hand. The backend and the web
+   app go first, beside the builds: the
    `supabase` job checks Auth's redirect URLs (step 4), the `web` job that the origin answers and
    that the Edge Functions accept it (step 5); then the web app's `APP_URL` becomes
    `https://app.mmakaan.app`, and the old address starts answering with the page that clears its
