@@ -12,7 +12,8 @@ default. And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
 contracts/origins.json (decision D-20), each host with both paths in one
 https App Links filter that Android verifies (autoVerify) and can launch: VIEW,
-DEFAULT and BROWSABLE, no port and no MIME type, under an activity (or activity
+DEFAULT and BROWSABLE, no port, no MIME type and nothing nested in its action, category
+or data (_nested_problems, refused in every filter), under an activity (or activity
 alias) that a link reaches (_component_problems: exported and enabled, in an enabled
 application, and no permission a browser would need). No web link filter, verified or
 not, names another host: Android 6 to 11 verify every web host of the app's
@@ -184,6 +185,25 @@ def _flagged_problems(parent: ET.Element | None, intent_filter: ET.Element) -> l
     ]
 
 
+def _nested_problems(intent_filter: ET.Element) -> list[str]:
+    """An element inside the filter's <action>, <category> or <data>. Android 11 and later read
+    every element under the filter as the filter's own, however deep (ParsedIntentInfoUtils
+    loops while "parser.getDepth() > depth" and its action, category and data cases skip nothing
+    beneath them), while Android 10 and earlier skip what is inside (PackageParser.parseIntent:
+    "XmlUtils.skipCurrentTag(parser)"). So a nested <data android:mimeType>, host or scheme
+    changes what the filter opens on some phones and not on others, while this check reads only
+    the filter's direct children; it refuses the filter instead. aapt2 refuses such a manifest
+    too, unless manifest validation only warns."""
+    return [
+        f"has a <{inner.tag}> inside its <{element.tag}>, which Android 11 and later read as part"
+        " of the filter and Android 10 and earlier skip: put it directly in the <intent-filter>"
+        for element in intent_filter
+        if element.tag in ("action", "category", "data")
+        for inner in element.iter()
+        if inner is not element
+    ]
+
+
 def _launch_lacks(intent_filter: ET.Element) -> list[str]:
     """The actions and categories Android needs to launch the activity for a link, which the
     filter lacks: a link reaches an activity as an implicit VIEW intent with BROWSABLE, and
@@ -202,11 +222,19 @@ def unverified_host_problems(manifest: Path, root: ET.Element, hosts: set[str]) 
     host of every filter with a VIEW action and an http or https scheme, and grants App Links
     for all of them or none. A host that does not serve the web app's assetlinks.json would
     therefore stop the e-mail links opening the app on the web app's own hosts. The verified
-    filters' hosts are reported by app_link_problems."""
+    filters' hosts are reported by app_link_problems. An element nested in any unverified
+    filter's <action>, <category> or <data> is reported as well, since Android 11 and later read
+    it as the filter's own and it could add a web host."""
     found = []
     for number, intent_filter in enumerate(root.iter("intent-filter"), start=1):
         if intent_filter.get(f"{ANDROID}autoVerify") == "true":
             continue
+        # Nesting can add an action, a scheme or a host on Android 11 and later, so it is
+        # refused on every filter, not only on those this function reads as web filters.
+        found += [
+            f"{manifest}: intent filter {number} {problem}"
+            for problem in _nested_problems(intent_filter)
+        ]
         actions = {element.get(f"{ANDROID}name") for element in intent_filter.findall("action")}
         datas = intent_filter.findall("data")
         schemes = {data.get(f"{ANDROID}scheme") for data in datas}
@@ -227,7 +255,8 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
     Android matches a link against each filter on its own: a filter opens every combination of
     its own schemes, hosts and paths, and never one filter's host with another's path. So the
     links each filter opens are worked out per filter, and only a filter that Android can launch
-    (VIEW, DEFAULT, BROWSABLE, no port, no MIME type, on an activity a link reaches), with https
+    (VIEW, DEFAULT, BROWSABLE, no port, no MIME type, nothing nested in its <action>,
+    <category> or <data>, on an activity a link reaches), with https
     among its schemes, counts.
 
     Only the filter's own <data> paths count, and only the two literal ones: Android matches a
@@ -256,6 +285,7 @@ def app_link_problems(manifest: Path, root: ET.Element, hosts: set[str]) -> list
         unreachable += _port_problems(intent_filter)
         unreachable += _type_problems(intent_filter)
         unreachable += _flagged_problems(parent, intent_filter)
+        unreachable += _nested_problems(intent_filter)
         found += [f"{where} {problem}" for problem in unreachable]
         datas = intent_filter.findall("data")
         schemes = {data.get(f"{ANDROID}scheme") for data in datas} - {None}

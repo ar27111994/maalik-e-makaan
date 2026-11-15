@@ -951,7 +951,9 @@ host opens both paths through a filter Android can launch: `VIEW`, `DEFAULT` and
 filter, which is stricter than Android on purpose), no `android:mimeType` (a link carries no MIME
 type, so Android never matches it to a filter that names one) and no `android:mimeGroup` (filled at
 run time, so this is stricter than Android on purpose), no `android:featureFlag` on the filter,
-anything in it or its component (Android drops such an element where the flag is off), on an
+anything in it or its component (Android drops such an element where the flag is off), nothing
+nested inside its `<action>`, `<category>` or `<data>` (Android 11 and later read such an element
+as the filter's own, Android 10 and earlier skip it, so the check refuses it on every filter), on an
 `<activity>` or `<activity-alias>` that a link reaches: not `exported="false"` or `enabled="false"` (in any case aapt2 accepts, such as
 `FALSE`), in an application that is not disabled, and with no permission a browser would need.
 Android reads an alias's `enabled`, `exported` and `android:permission` from the alias alone, never

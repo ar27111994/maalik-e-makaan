@@ -566,6 +566,73 @@ class CheckManifestTest(unittest.TestCase):
         self.assertEqual(len(found), 1, found)
         self.assertIn('filter 2 names android:mimeType="text/html"', found[0])
 
+    def test_an_element_nested_in_an_action_category_or_data_refuses_the_filter(self):
+        # Android 11 and later read every element under the filter as its own, however deep, and
+        # Android 10 and earlier skip what is inside an <action>, <category> or <data>: a MIME
+        # type nested in the VIEW action would open no link on newer phones.
+        view = '<action android:name="android.intent.action.VIEW"/>'
+        browsable = '<category android:name="android.intent.category.BROWSABLE"/>'
+        typed = '<data android:mimeType="text/html"/>'
+        for name, (launch, data, inner, outer) in {
+            "a MIME type in the VIEW action": (
+                LAUNCH.replace(view, view.replace("/>", f">{typed}</action>")),
+                DATA,
+                "data",
+                "action",
+            ),
+            "a host and port in a category": (
+                LAUNCH.replace(
+                    browsable,
+                    browsable.replace(
+                        "/>", '><data android:host="x.example" android:port="1"/></category>'
+                    ),
+                ),
+                DATA,
+                "data",
+                "category",
+            ),
+            "a content scheme in a data": (
+                LAUNCH,
+                DATA.replace(
+                    '<data android:path="/invite"/>',
+                    '<data android:path="/invite"><data android:scheme="content"/></data>',
+                ),
+                "data",
+                "data",
+            ),
+            "an action in a data, which only widens the filter": (
+                LAUNCH,
+                DATA.replace(
+                    '<data android:path="/invite"/>',
+                    f'<data android:path="/invite">{view}</data>',
+                ),
+                "action",
+                "data",
+            ),
+        }.items():
+            with self.subTest(name):
+                found = self.problems(self.application(intent_filter(data, launch=launch)))
+                self.assertEqual(len(found), 3, found)
+                self.assertIn(
+                    f"filter 1 has a <{inner}> inside its <{outer}>, which Android 11", found[0]
+                )
+                self.assertIn("lack the web app's host app.example.pk", found[1])
+        # An unverified filter, web or not, is refused too: on Android 11 and later its nested
+        # <data> could add a host that Android 6 to 11 would then have to verify.
+        for name, launch in {
+            "a web filter": LAUNCH,
+            "a launcher filter": '<action android:name="android.intent.action.MAIN"/>'
+            '<category android:name="android.intent.category.LAUNCHER"/>',
+        }.items():
+            with self.subTest(name):
+                nested = launch.replace(
+                    "/>", '><data android:scheme="https" android:host="x.example"/></action>', 1
+                )
+                extra = intent_filter('<data android:scheme="https"/>', verify="", launch=nested)
+                found = self.problems(self.application(intent_filter(), extra))
+                self.assertEqual(len(found), 1, found)
+                self.assertIn("intent filter 2 has a <data> inside its <action>", found[0])
+
     def test_other_data_attributes_do_not_stop_the_two_paths_counting(self):
         # Android opens a link whose path matches any path of the filter, so more paths, more
         # schemes' specific parts and relative-reference groups only widen the filter, and
