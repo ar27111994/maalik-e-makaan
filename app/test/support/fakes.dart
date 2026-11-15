@@ -581,8 +581,11 @@ final class FakeTeamRepository implements TeamRepository {
       email: invitation.email,
       role: role,
       expiresAt: invitation.expiresAt,
+      // A token as long as a real one (its id, a dot and a secret), so the
+      // link wraps in the invitation sheet as a real one does.
       url: Uri.parse(
-        'https://maalik-e-makaan.vercel.app/invite#token=${invitation.id}.x',
+        'https://app.example.pk/invite#token=${invitation.id}.'
+        'q7Kx2Vn9Lr4Tb8Wd1Yf6Hs3Jm0Pz5Ca',
       ),
       delivery: delivery,
     );

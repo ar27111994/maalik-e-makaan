@@ -20,7 +20,7 @@
 [label]
 name = "roadmap"
 color = "1D3F8F"
-description = "On the public roadmap (maalik-e-makaan-site.vercel.app/roadmap/)"
+description = "On the public roadmap (mmakaan.app/roadmap/)"
 
 [[milestones]]
 id = "launch"

@@ -69,7 +69,7 @@ The phone or computer you delete it on signs out and removes what the app kept t
 
 ## Who runs it, and how to reach us
 
-The website and the app are run by **AR LABS (SMC-PRIVATE) LIMITED**, a company registered with the Securities and Exchange Commission of Pakistan (CUIN 0361950), which decides how this data is used. Write to us at [maalik-e-makaan@news.ar27111994.dev](mailto:maalik-e-makaan@news.ar27111994.dev) about your data, to correct it or to have it deleted.
+The website and the app are run by **AR LABS (SMC-PRIVATE) LIMITED**, a company registered with the Securities and Exchange Commission of Pakistan (CUIN 0361950), which decides how this data is used. Write to us at [hello@mmakaan.app](mailto:hello@mmakaan.app) about your data, to correct it or to have it deleted.
 
 ## Questions
 

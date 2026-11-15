@@ -15,7 +15,7 @@ purpose: read the file for the area you are changing, not everything.
 | `supabase/`         | Migrations, pgTAP suites, Deno Edge Functions, `config.toml`                    | [`supabase/AGENTS.md`](supabase/AGENTS.md)                   |
 | `website/`          | Astro static site, English and Urdu                                             | [`website/AGENTS.md`](website/AGENTS.md)                     |
 | `formal/`           | TLA+, Lean 4, Z3 and Bend models and proofs                                     | [`formal/AGENTS.md`](formal/AGENTS.md)                       |
-| `contracts/`        | Test vectors shared by Dart, SQL and TypeScript; the Urdu glossary              | [`docs/agents/conventions.md`](docs/agents/conventions.md)   |
+| `contracts/`        | Test vectors shared by Dart, SQL and TypeScript; the Urdu glossary; the origins | [`docs/agents/conventions.md`](docs/agents/conventions.md)   |
 | `design/`           | Design-token, icon and font sources (`make tokens`, `make icons`, `make fonts`) | [`packages/mm_ui/AGENTS.md`](packages/mm_ui/AGENTS.md)       |
 | `tool/`             | Repository tooling: generators, checks and test harnesses                       | [`docs/agents/commands.md`](docs/agents/commands.md)         |
 | `docs/`             | Architecture, operations runbook, permissions, design QA                        | [`docs/README.md`](docs/README.md)                           |
@@ -58,6 +58,8 @@ port 54329 and what this container cannot reach).
 - **Money is whole paisa in integers** (`Money` in `mm_core`), `numeric(14,2)` in SQL. Never a
   floating-point type. Financial rows are voided, never deleted.
 - **Lock order**: account, then portfolio, then lease, then other rows. Every write path keeps it.
+- **Addresses**: the website's and the web app's origins live only in `contracts/origins.json`
+  (D-20); code reads it and `make docs-check` checks every other mention.
 - **Migrations**: always a new file, never an edit to one in `supabase/migrations/`. The hosted
   project (`aaifamxzzjspohwksxyr`) is changed only by the process in
   [`docs/operations.md`](docs/operations.md#after-every-migration).

@@ -1,8 +1,10 @@
 // The content files themselves: valid against their schemas, the two languages
 // in step, Urdu in Urdu script, English in British spelling.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { parse } from "yaml";
+import origins from "../../../contracts/origins.json";
+import { SITE } from "../../src/config/site.ts";
 import {
   downloadSchema,
   faqSchema,
@@ -123,8 +125,7 @@ describe("content facts", () => {
     );
   });
 
-  test("no guides are published in one language only", async () => {
-    const { readdirSync } = await import("node:fs");
+  test("no guides are published in one language only", () => {
     const list = (locale: string) =>
       readdirSync(new URL(`../../src/content/guides/${locale}/`, import.meta.url)).filter((file) =>
         /\.mdx?$/.test(file),
@@ -270,5 +271,47 @@ describe("pitch deck facts", () => {
     for (const id of order) {
       expect(slide(id), id).not.toMatch(/carr(y|ies) a (small )?link|link back/i);
     }
+  });
+});
+
+describe("the contact address (contactEmail in src/config/site.ts)", () => {
+  /** Anything shaped like an e-mail address, whatever its domain. */
+  const ADDRESS = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
+  const address = SITE.contactEmail;
+  const text = (path: string): string =>
+    readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+  const files = (folder: string): string[] =>
+    readdirSync(new URL(`../../${folder}/`, import.meta.url), { recursive: true })
+      .map((file) => `${folder}/${String(file)}`)
+      .filter((file) => /\.(md|yaml|html)$/.test(file))
+      .sort();
+
+  test("is a mailbox on the site's own domain (D-20)", () => {
+    expect(address).toMatch(/^[a-z0-9.-]+@[a-z0-9.-]+$/);
+    expect(address.split("@")[1]).toBe(new URL(origins.site.origin).hostname);
+  });
+
+  test("both privacy pages give it as a mailto link, and no other address", () => {
+    const english = text("src/content/pages/en/privacy.md");
+    const urdu = text("src/content/pages/ur/privacy.md");
+    expect(english).toContain(`[${address}](mailto:${address})`);
+    // In Urdu the address stays left to right, as every Latin name on these pages does.
+    expect(urdu).toContain(`[<kbd lang="en" dir="ltr">${address}</kbd>](mailto:${address})`);
+    for (const page of [english, urdu]) {
+      expect(page.match(ADDRESS)).toEqual([address, address]);
+    }
+  });
+
+  test("no other content file or slide writes an e-mail address: they read the config", () => {
+    const written = [...files("src/content"), ...files("deck/slides")]
+      .filter((file) => !/^src\/content\/pages\/(en|ur)\/privacy\.md$/.test(file))
+      .flatMap((file) => (text(file).match(ADDRESS) ?? []).map((found) => `${file}: ${found}`));
+    expect(written).toEqual([]);
+  });
+
+  test("the deck names it through {{contactEmail}}, on the slides that give a contact", () => {
+    const naming = files("deck/slides").filter((file) => text(file).includes("{{contactEmail}}"));
+    expect(naming).toEqual(["deck/slides/ask.html", "deck/slides/company.html"]);
+    for (const file of naming) expect(text(file)).toMatch(/Contact<\/(b|td)>/);
   });
 });

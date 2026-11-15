@@ -87,10 +87,11 @@ put on transfers. It never holds CNICs, documents other than receipts, notes, ph
 other tenancies, audit data or the details of voided rows, which show only as "voided".
 
 **Page.** A public `/t` route in the Flutter web build, outside the signed-in shell, designed for
-phone width first. `package_vercel.py` gives the route `noindex` and
-`Referrer-Policy: no-referrer`. On the first visit a notice says who holds the record (the landlord), that AR LABS
-processes it for them, how to ask the landlord to correct it and how to report a wrong link. A
-language switch offers English, Urdu and Roman Urdu, starting from the tenancy's language.
+phone width first. Every path of the web app already answers `X-Robots-Tag: noindex` (D-20), and
+`package_vercel.py` gives the route `Referrer-Policy: no-referrer`. On the first visit a notice
+says who holds the record (the landlord), that AR LABS processes it for them, how to ask the
+landlord to correct it and how to report a wrong link. A language switch offers English, Urdu
+and Roman Urdu, starting from the tenancy's language.
 
 **Receipts and statements.** Receipts are the letterheaded PDFs stored when each payment was
 confirmed, served through short-lived signed URLs. The statement is built in the browser by the

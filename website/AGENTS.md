@@ -28,6 +28,13 @@ design system, calculators, content, adding a page or a guide, security headers.
   `src/i18n/units.ts`).
 - Legal and tax content is informational, dated and sourced, and says it is not advice. Tax shows
   withholding only, never final tax (D-10).
+- The site's and the web app's addresses come from `contracts/origins.json` (D-20) through
+  `src/config/urls.ts`, and the deck's through `{{siteHost}}` and `{{appHost}}`; no page, slide or
+  test writes a production address. `vercel.json`'s redirect of the earlier address is checked
+  against the file by `tests/unit/vercel.test.ts`.
+- The contact address is `contactEmail` in `src/config/site.ts`, a mailbox on the site's own
+  domain. Pages, `llms.txt`, the structured data and the deck (`{{contactEmail}}`) read it; the
+  two privacy pages repeat it in their Markdown, and `tests/unit/content.test.ts` checks them.
 - `dist/llms.txt` and `dist/llms-full.txt` are built from the content (`src/lib/llms.ts`); the
   repository's own [`llms.txt`](../llms.txt) indexes the code documentation instead.
 

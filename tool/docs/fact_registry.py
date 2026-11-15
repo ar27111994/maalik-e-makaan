@@ -33,6 +33,7 @@ from fact_sources import (
     MM_VARIANTS,
     NPM_STEP,
     NVMRC,
+    ORIGINS,
     PGTAP_DIR,
     PROJECT,
     PUBSPEC,
@@ -40,6 +41,7 @@ from fact_sources import (
     RELEASE_PLEASE,
     SUPABASE_CONFIG,
     TLA_DIR,
+    Origins,
     Repo,
     SourceShapeError,
     glob_match,
@@ -268,6 +270,14 @@ def render_golden_variants(repo: Repo) -> str:
     return prose_list([code(name) for name in repo.mm_variants()])
 
 
+def render_site_origin(repo: Repo) -> str:
+    return f"<{repo.origins().site}>"
+
+
+def render_app_origin(repo: Repo) -> str:
+    return f"<{repo.origins().app}>"
+
+
 FACTS: tuple[Fact, ...] = (
     Fact(
         "G1",
@@ -412,6 +422,24 @@ FACTS: tuple[Fact, ...] = (
         (MM_VARIANTS,),
         (CONVENTIONS,),
         render_golden_variants,
+    ),
+    Fact(
+        "G17",
+        "site-origin",
+        "inline",
+        f"{ORIGINS} site.origin",
+        (ORIGINS,),
+        (README, OPERATIONS, WEBSITE_README),
+        render_site_origin,
+    ),
+    Fact(
+        "G18",
+        "app-origin",
+        "inline",
+        f"{ORIGINS} app.origin",
+        (ORIGINS,),
+        (README, OPERATIONS, WEBSITE_README),
+        render_app_origin,
     ),
 )
 
@@ -1383,6 +1411,215 @@ def check_counts(repo: Repo, tracked: Tracked) -> list[Problem]:
     return problems
 
 
+# ── C17: the origins ───────────────────────────────────────────────────────────────────────
+
+# The files that may name an earlier address, and why. Each address in them must be one of
+# contracts/origins.json's `legacy`; the history files are not read at all.
+LEGACY_PATHS = {
+    ORIGINS: "the source",
+    "app/android/app/src/main/AndroidManifest.xml": (
+        "App Links keep the earlier host for links already sent (tool/android/check_manifest.py)"
+    ),
+    "website/vercel.json": "the earlier site address's redirect (tests/unit/vercel.test.ts)",
+    OPERATIONS: "the Domains section, and the redirect URLs Auth keeps for older builds",
+    "docs/release-readiness.md": "the owner's checklist for the move",
+}
+HISTORY = (".planning/**", "CHANGELOG.md")
+# The check's own tests, which name wrong addresses on purpose.
+C17_TESTS = ("tool/docs/test_*.py", "tool/docs/docs_fixture.py")
+# The mailboxes on the site's domain that exist, in lower case: the company's one, which the
+# owner named on 13 November 2026 (D-20) and the website gives as its contact address
+# (contactEmail in website/src/config/site.ts; the website's unit tests hold it to the domain).
+# Any other address on the domain is refused, so that no page sends people to a mailbox nobody
+# reads; a new one is added here once the owner has made it.
+NAMED_MAILBOXES: tuple[str, ...] = ("hello@mmakaan.app",)
+# The code C17 reads, as globs for the pre-commit hook (sync_facts.py --paths), which skips the
+# check unless a staged file matches one of its reads: code names addresses too (a default, a
+# test, a comment), and the full check reads every tracked text file.
+C17_CODE = tuple(
+    f"**/*.{extension}"
+    for extension in (
+        *("ts", "astro", "mdx", "js", "mjs", "cjs", "css", "svg", "webmanifest"),
+        *("dart", "arb", "kt", "kts", "swift", "plist", "py", "sql", "example"),
+    )
+)
+_BINARY = re.compile(r"\.(?:png|jpe?g|gif|webp|ico|ttf|otf|woff2?|pdf|jks|zip|wasm)$", re.I)
+_HTTPS_ORIGIN = re.compile(r"https://((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,})")
+_HOST_START = r"(?<![A-Za-z0-9.-])"
+_HOST_END = r"(?![A-Za-z0-9-])"
+
+
+def _host(origin: str) -> str:
+    return origin.removeprefix("https://")
+
+
+def _under(host: str, domain: str) -> bool:
+    return host == domain or host.endswith(f".{domain}")
+
+
+def _site_domain(origins: Origins) -> str:
+    """The domain the site's origin is on: its host without a leading www."""
+    return _host(origins.site).removeprefix("www.")
+
+
+def _legacy_family(host: str) -> str:
+    """The hosts an earlier address stands for, as a pattern: any subdomain of its parent when
+    it has three labels or more (a project's address on a shared host such as vercel.app, whose
+    other hosts are previews and aliases of it), else the address and its subdomains."""
+    if host.count(".") >= 2:
+        return rf"(?:[A-Za-z0-9-]+\.)+{re.escape(host.split('.', 1)[1])}"
+    return rf"(?:[A-Za-z0-9-]+\.)*{re.escape(host)}"
+
+
+def _origin_problems(origins: Origins) -> list[tuple[str, str]]:
+    """(the address, what is wrong with it) for the file's addresses themselves (C17 (a))."""
+    named = [
+        ("site.origin", origins.site),
+        *(("site.aliases", url) for url in origins.site_aliases),
+        *(("site.legacy", url) for url in origins.site_legacy),
+        ("app.origin", origins.app),
+        *(("app.legacy", url) for url in origins.app_legacy),
+    ]
+    found = [
+        (
+            url,
+            f"{key} {url!r} is not an https origin in lower case (no port, path or trailing slash)",
+        )
+        for key, url in named
+        if not _HTTPS_ORIGIN.fullmatch(url)
+    ]
+    urls = [url for _, url in named]
+    found += [
+        (url, f"{url} is named twice") for url in sorted({u for u in urls if urls.count(u) > 1})
+    ]
+    domain = _site_domain(origins)
+    found += [
+        (
+            url,
+            f"the earlier address {url} is on {domain}, the site's own domain; an address there"
+            " is an origin or an alias",
+        )
+        for url in origins.legacy
+        if _under(_host(url), domain)
+    ]
+    return found
+
+
+def _scanned(text: str) -> str:
+    """`text` with regex-escaped dots read as dots (vercel.json's host conditions)."""
+    return text.replace("\\\\.", ".").replace("\\.", ".")
+
+
+def _origin_findings(
+    text: str, origins: Origins, workflow: bool, history: bool, legacy_allowed: bool
+) -> list[tuple[int, str]]:
+    """(offset, message) of every address in `text` that disagrees with `origins`."""
+    domain = _site_domain(origins)
+    current = {_host(url) for url in origins.current}
+    legacy = {_host(url) for url in origins.legacy}
+    on_domain = re.compile(
+        rf"{_HOST_START}((?:[A-Za-z0-9-]+\.)*{re.escape(domain)}){_HOST_END}", re.I
+    )
+    families = "|".join(sorted({_legacy_family(host) for host in legacy}))
+    on_family = re.compile(rf"{_HOST_START}({families}){_HOST_END}", re.I) if families else None
+    mailbox = re.compile(
+        rf"[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)*{re.escape(domain)}{_HOST_END}", re.I
+    )
+    found: list[tuple[int, str]] = []
+    for match in on_domain.finditer(text):
+        host = match[1].lower()
+        if host not in current:
+            found.append(
+                (
+                    match.start(),
+                    f"names {host}, which is not an origin or alias in {ORIGINS}"
+                    f" ({', '.join(sorted(current))})",
+                )
+            )
+        elif workflow:
+            found.append(
+                (
+                    match.start(),
+                    f"names {host}; a workflow reads the ref's {ORIGINS} instead, so each"
+                    " release carries its own addresses",
+                )
+            )
+    named = ", ".join(NAMED_MAILBOXES) or "none yet"
+    found += [
+        (
+            match.start(),
+            f"names the mailbox {match[0]}, which the owner has not named on {domain} (D-20):"
+            f" the mailboxes there are NAMED_MAILBOXES in tool/docs/fact_registry.py ({named})",
+        )
+        for match in mailbox.finditer(text)
+        if match[0].lower() not in NAMED_MAILBOXES
+    ]
+    for match in on_family.finditer(text) if on_family and not history else ():
+        host = match[1].lower()
+        if not legacy_allowed:
+            found.append(
+                (
+                    match.start(),
+                    f"names {host}, an earlier address or its host; name the origin instead, or"
+                    f" read {ORIGINS} (only {', '.join(sorted(LEGACY_PATHS))} keep the earlier"
+                    " addresses)",
+                )
+            )
+        elif host not in legacy:
+            found.append(
+                (
+                    match.start(),
+                    f"names {host}, which {ORIGINS} does not list as an earlier address"
+                    f" ({', '.join(sorted(legacy))})",
+                )
+            )
+    if workflow:
+        found += [
+            (
+                match.start(),
+                f"reads vars.APP_URL; the web app's origin is app.origin in the ref's {ORIGINS}",
+            )
+            for match in re.finditer(r"vars\.APP_URL\b", text)
+        ]
+    return found
+
+
+def check_origins(repo: Repo, tracked: Tracked) -> list[Problem]:
+    """C17: contracts/origins.json is well formed, and every address the repository names
+    agrees with it. (a) https origins in lower case, each once, no earlier address on the site's
+    domain; (b) every host on the site's domain is an origin or an alias; (c) an earlier address,
+    or another host it stands for (_legacy_family), appears only in LEGACY_PATHS, and there only
+    as listed; (d) no workflow names an origin or reads `vars.APP_URL`, since each reads the
+    ref's file; (e) no mailbox on the domain but NAMED_MAILBOXES. History (HISTORY) is read for
+    (b) and (e) only; the check's own tests (C17_TESTS) and binary files not at all."""
+    origins = repo.origins()
+    bad = _origin_problems(origins)
+    if bad:
+        text = repo.text(ORIGINS)
+        return [Problem(ORIGINS, _line_containing(text, f'"{url}"'), why) for url, why in bad]
+    problems = []
+    for path in tracked:
+        skipped = _BINARY.search(path) or any(glob_match(path, p) for p in C17_TESTS)
+        if skipped or path == "CHANGELOG.md" or not repo.exists(path):
+            continue
+        try:
+            text = _scanned(repo.text(path))
+        except SourceShapeError:  # not UTF-8, so not text
+            continue
+        findings = _origin_findings(
+            text,
+            origins,
+            workflow=glob_match(path, _WORKFLOWS),
+            history=any(glob_match(path, pattern) for pattern in HISTORY),
+            legacy_allowed=path in LEGACY_PATHS,
+        )
+        problems += [
+            Problem(path, fact_markers.line_of(text, offset), message)
+            for offset, message in findings
+        ]
+    return problems
+
+
 _MARKDOWN = "**/*.md"
 _WORKFLOWS = ".github/workflows/*.yml"
 
@@ -1525,6 +1762,29 @@ CHECKS: tuple[Check, ...] = (
         'the golden variants, TLA+ models and "N database tests in M suites" the docs and the'
         " deck's slides count match MmVariant, formal/tla and the pgTAP plans",
         check_counts,
+    ),
+    Check(
+        "C17",
+        "origins",
+        (
+            ORIGINS,
+            _MARKDOWN,
+            LLMS,
+            "**/*.json",
+            "**/*.yml",
+            "**/*.yaml",
+            "**/*.toml",
+            "**/*.html",
+            "**/*.xml",
+            "**/*.sh",
+            "**/*.txt",
+            *C17_CODE,
+        ),
+        "contracts/origins.json holds https origins, each once; every host on the site's domain"
+        " is an origin or alias; earlier addresses only where LEGACY_PATHS allows; no workflow"
+        " names an origin or reads vars.APP_URL; no mailbox on the domain but the ones the owner"
+        " named",
+        check_origins,
     ),
 )
 

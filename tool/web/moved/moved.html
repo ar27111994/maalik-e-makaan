@@ -1,0 +1,43 @@
+<!doctype html>
+<!--
+  What an earlier address of the web app answers for every page, in place of the app
+  (tool/web/package_vercel.py; docs/operations.md, Domains). The response carries
+  Clear-Site-Data: "storage", and moved.js removes what the app kept in this browser for this
+  address and goes to the same page on the app's origin. Without scripts the browser goes to
+  the origin's first page; the link is there for a browser that does neither. The origin and
+  its host are filled in when the app is packaged, from contracts/origins.json.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <meta name="color-scheme" content="light dark">
+    <meta name="mm-moved-to" content="{{origin}}">
+    <title>Maalik-e-Makaan has moved</title>
+    <script src="/moved.js"></script>
+    <noscript><meta http-equiv="refresh" content="0; url={{origin}}/"></noscript>
+    <style>
+      body {
+        font: 1.125rem/1.6 system-ui, sans-serif;
+        margin: 2rem auto;
+        max-inline-size: 36rem;
+        padding-inline: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Maalik-e-Makaan has moved</h1>
+      <p>
+        The app is now at <a href="{{origin}}/" data-moved>{{host}}</a>. Please sign in there once
+        more.
+      </p>
+      <p lang="ur" dir="rtl">
+        مالکِ مکان ایپ کا پتہ بدل گیا ہے۔ ایپ اب
+        <a href="{{origin}}/" lang="en" dir="ltr" data-moved>{{host}}</a>
+        پر ہے۔ وہاں ایک بار پھر سائن اِن کریں۔
+      </p>
+    </main>
+  </body>
+</html>
