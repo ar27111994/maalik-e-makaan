@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -12,6 +12,7 @@ import {
   requestUrl,
   sourceMatches,
   trailingSlashRedirect,
+  VERIFICATION_FILE,
   type VercelConfig,
 } from "../../scripts/lib/vercel.ts";
 
@@ -236,6 +237,52 @@ describe("the earlier addresses redirect to the site's origin (contracts/origins
       expect(redirectFor(config, host, "/.well-known/security.txt")).toBeUndefined();
       // Only a file at the root is Google's; the same name deeper down moves like any page.
       expect(redirectFor(config, host, "/x/google0123456789abcdef.html")?.status).toBe(308);
+    },
+  );
+
+  test("the redirect leaves out exactly the names VERIFICATION_FILE accepts", () => {
+    for (const redirect of config.redirects ?? []) {
+      expect(redirect.source).toBe(`/:path((?!${VERIFICATION_FILE.source.slice(1)}).*)`);
+    }
+    expect(VERIFICATION_FILE.test("google0123456789abcdef.html")).toBe(true);
+    for (const name of [
+      "google0123456789abcde.html", // 15 digits
+      "google0123456789abcdef0.html", // 17 digits
+      "google0123456789ABCDEF.html",
+      "google0123456789abcdeg.html",
+      "google0123456789abcdef.htm",
+      "google0123456789abcdef.html.bak",
+      "xgoogle0123456789abcdef.html",
+      "x/google0123456789abcdef.html",
+      "bing0123456789abcdef.html",
+    ]) {
+      expect(VERIFICATION_FILE.test(name), name).toBe(false);
+    }
+  });
+
+  // The files the owner has put in public/ for Search Console. One with another name would be
+  // redirected away from an earlier address, where its property could then never be verified.
+  const publicDirectory = new URL("../../public/", import.meta.url);
+  const ownershipFiles = readdirSync(publicDirectory).filter((name) => name.endsWith(".html"));
+
+  test("the only HTML files at the root of public/ are ownership files that name themselves", () => {
+    expect(ownershipFiles).toEqual(["google17fd3f30f3354533.html"]);
+    for (const name of ownershipFiles) {
+      expect(VERIFICATION_FILE.test(name), name).toBe(true);
+      // Byte for byte what Search Console gave: it looks for this line in the answer.
+      expect(readFileSync(new URL(name, publicDirectory), "utf8"), name).toBe(
+        `google-site-verification: ${name}`,
+      );
+    }
+  });
+
+  test.each([siteHost, ...legacyHosts])(
+    "%s answers for each ownership file itself: no redirect and no added slash",
+    (host) => {
+      for (const name of ownershipFiles) {
+        expect(redirectFor(config, host, `/${name}`), name).toBeUndefined();
+        expect(trailingSlashRedirect(config, `/${name}`), name).toBeUndefined();
+      }
     },
   );
 

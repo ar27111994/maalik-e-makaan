@@ -69,9 +69,14 @@ permanently (308) to the same path and query on the site's origin, matching the 
 exactly, so previews and the origin itself are never redirected. The rule leaves out one file so
 that it can stay on the old host: a Google Search Console verification file at the root
 (`/google<16 hex digits>.html`), which the old address's property needs for Search Console's
-change of address. None is committed yet; when the owner makes the property, it goes in `public/`.
-The old address serves it only once a release that carries it is deployed, so the owner presses
-Verify after that deploy, not before (`docs/operations.md`, Domains, steps 1 and 9).
+change of address. The owner's file, `google17fd3f30f3354533.html`, is in `public/` since 15
+November 2026, byte for byte as Search Console gave it. An address serves it only once a release
+that carries it is deployed, so the owner presses Verify after that deploy, not before
+(`docs/operations.md`, Domains, steps 1 and 9). Such a file is not a page of the site: the e2e
+suite's page list and Lighthouse's leave it out (`VERIFICATION_FILE` in `scripts/lib/vercel.ts`;
+`lighthouserc.cjs` keeps its own copy, which `tests/e2e/http.spec.ts` checks against it
+character for character), and the unit tests check that every HTML file at the root of `public/`
+has a name the redirect leaves out and holds the one line that names it.
 `tests/unit/vercel.test.ts` checks the rule against `contracts/origins.json`, and the local server
 (`scripts/serve.ts`) applies it to requests whose `Host` header names an old address, as the e2e
 suite does. `www.mmakaan.app` redirects to the origin by the Vercel project's domain setting.

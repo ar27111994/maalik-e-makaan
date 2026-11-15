@@ -5,6 +5,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { VERIFICATION_FILE } from "../../scripts/lib/vercel.ts";
 import { delocalisePath, localisePath, otherLocale, type Locale } from "../../src/i18n/locales.ts";
 
 export const dist = fileURLToPath(new URL("../../dist/", import.meta.url));
@@ -31,11 +32,19 @@ const NOT_FOUND: Readonly<Record<string, { locale: Locale; twin: string }>> = {
   "/ur/404/": { locale: "ur", twin: "/404.html" },
 };
 
-/** Every HTML page in dist/, sorted by path. */
+/** The search engines' ownership files at the root of dist/ (public/), by name. */
+export function verificationFiles(): string[] {
+  return readdirSync(dist)
+    .filter((name) => VERIFICATION_FILE.test(name))
+    .sort();
+}
+
+/** Every HTML page in dist/, sorted by path. An ownership file at the root is not a page. */
 export function sitePages(): SitePage[] {
   return walk(dist)
     .filter((file) => file.endsWith(".html"))
     .map((file) => `/${relative(dist, file).replace(/index\.html$/, "")}`)
+    .filter((path) => !VERIFICATION_FILE.test(path.slice(1)))
     .sort()
     .map((path) => {
       const notFound = NOT_FOUND[path];

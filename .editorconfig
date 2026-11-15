@@ -27,3 +27,7 @@ switch_case_indent = true
 
 [*.py]
 indent_size = 4
+
+[website/public/google*.html]
+# A search engine's ownership file stays byte for byte as it was given: one line, no newline.
+insert_final_newline = false

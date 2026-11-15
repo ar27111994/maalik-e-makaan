@@ -187,23 +187,36 @@ Resend's free plan (3,000 e-mails a month, 100 a day, one domain, in November 20
 launch; Auth and invitations share the daily 100. Check the plan's terms allow production use.
 
 1. **A domain.** Resend sends to other people only from a domain whose DNS you control; a
-   `vercel.app` address cannot be one. Add the domain, then the records Resend lists (MX and SPF
-   TXT on `send.<domain>`, DKIM TXT on `resend._domainkey.<domain>`) and a DMARC record
-   (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". **The owner's decision of
-   15 November 2026:** the app's e-mails come from the company's own address,
-   `hello@mmakaan.app`, so the domain in Resend is `mmakaan.app` itself, beside the company's
-   mailbox, which Dynadot's e-mail serves on the same name. Resend's records sit on `send` and
-   `resend._domainkey`, so the mailbox's own MX and SPF records on the apex stay as they are;
-   what the two share is the domain's reputation. The free plan holds one domain, so
-   `news.ar27111994.dev` (verified 2026-11-09, the sender until then) is removed first, and
-   nothing is sent until the new domain is verified ([Domains](#domains), step 13, has the
-   state). In the domain's
-   Configuration, turn **off** click tracking and open tracking: click tracking rewrites the
-   sign-in links through Resend's servers, and open tracking adds a tracking pixel; the privacy
-   page says the app has no trackers.
+   `vercel.app` address cannot be one. **Keep exactly one DMARC record** (below). Add the domain in
+   Resend, then add at the DNS host exactly the DKIM and sending records Resend's page for that
+   domain lists, as records on their own subdomains, and wait for "Verified"; a DMARC record that
+   page suggests is added only when the domain has none yet. Copy the records from that page, not
+   from a guide: they changed in 2026. For `mmakaan.app` (region ap-northeast-1, Tokyo; 15
+   November 2026) Resend asked for a DKIM TXT on `resend._domainkey` and two `CNAME` records,
+   `send` to `send.forge.rmta.net` and `rsend` to `rsend-apne1.forge.rmta.net`, and not the MX and SPF TXT on
+   `send` that this step named before. Leave Resend's "Enable receiving" off, so that the domain's
+   own MX records, the mailbox's, keep receiving. Keep exactly one DMARC record at
+   `_dmarc.<domain>`: two TXT records that start `v=DMARC1` at one name mean that receivers apply
+   neither (RFC 7489, section 6.6.3), and Gmail then shows no DMARC result at all. Where the mail
+   host writes one for itself, as Dynadot's e-mail does on `mmakaan.app` (`p=none`), add none of
+   your own; where none exists, add `v=DMARC1; p=none;`. In the domain's Configuration, turn **off**
+   click tracking and open tracking: click tracking rewrites the sign-in links through Resend's
+   servers, and open tracking adds a tracking pixel; the privacy page says the app has no
+   trackers.
+
+   **Since 15 November 2026** the app's e-mails come from the company's own address,
+   `hello@mmakaan.app` (the owner's decision that day), so the domain in Resend is `mmakaan.app`
+   itself, beside the company's mailbox, which Dynadot's e-mail serves on the same name.
+   Resend's records sit on `send`, `rsend` and `resend._domainkey`, so the mailbox's own MX and
+   SPF records on the apex stay as they are; what the two share is the domain's reputation. The
+   owner added the domain at 15:06 UTC and it was verified at 15:21 UTC, with click and open
+   tracking off (the owner reported); `news.ar27111994.dev` (verified 2026-11-09) is no longer the
+   sender, and the free plan holds one domain. Step 8 has what the first e-mail showed.
+
 2. **Two API keys**, both "Sending access" and limited to that domain: one for Supabase's SMTP,
    one for the `invite-member` function, so either can be revoked alone. After a move to
-   another domain, make both again, limited to the new one.
+   another domain, make both again, limited to the new one, as the owner did for `mmakaan.app`
+   on 15 November 2026 (reported that day).
 3. **Supabase SMTP** (Authentication, Emails, SMTP Settings, Enable custom SMTP): sender
    `hello@mmakaan.app` (a mailbox someone reads, so a reply to a confirmation reaches the
    company), name "Maalik-e-Makaan", host `smtp.resend.com`, port 465, user
@@ -239,7 +252,15 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    name, so that an inbox shows it and not "hello").
 8. **Check**: sign up in each language, reset a password, change an address, and invite someone
    outside the team. Each link should open `/auth/callback`, and "Show original" in Gmail should
-   say SPF, DKIM and DMARC "PASS".
+   say SPF, DKIM and DMARC "PASS". **On 15 November 2026** the agent read the raw headers of a
+   sign-up confirmation sent at 15:44 UTC: From `Maalik-e-Makaan <hello@mmakaan.app>`,
+   `dkim=pass` for `mmakaan.app` with the selector `resend`, `spf=pass` with the return path on
+   the domain's `rsend` subdomain, links straight to the Auth server and no image in the HTML (so
+   neither click nor open tracking is on), and the link returning to
+   `https://app.mmakaan.app/auth/callback`. Gmail's result had no `dmarc` entry: `_dmarc` held two
+   records then, the owner's and Dynadot's own, and the owner removed theirs (step 1); a lookup
+   afterwards showed Dynadot's own record alone, `p=none`. Still open, the owner's: an e-mail that
+   shows `dmarc=pass`, and the password reset and invitation e-mails, which the agent has not seen.
 
 ## Hosting (Vercel)
 
@@ -458,8 +479,10 @@ contact address the website, its `llms.txt` and the pitch deck give (`contactEma
 `website/src/config/site.ts`), and the only address on the domain that a page or a document may
 name: `make docs-check` refuses any other until it is added to `NAMED_MAILBOXES` in
 `tool/docs/fact_registry.py`. A test message from the mailbox to Gmail passed SPF and DKIM for
-`mmakaan.app` that day, and the `_dmarc` record (`p=none`) was being added. Auth's e-mails and
-the invitations are not sent from the domain yet (E-mail, above).
+`mmakaan.app` that day. `_dmarc` holds one record, Dynadot's own (`p=none`): the owner's own,
+added that day beside it, was removed on 15 November 2026, since two DMARC records at one name
+mean that none applies (E-mail, step 1). Auth's e-mails and the invitations are sent from
+`hello@mmakaan.app` through Resend since 15 November 2026 (E-mail, above).
 
 | Host                              | Vercel project         | Answers                                                                                                                                                                                                  |
 | --------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -524,11 +547,12 @@ settings with the callbacks the builds send.
   builds them from the Edge Functions' `APP_URL` secret, which names the new address since 14
   November 2026 (step 8), so such a build opens an invitation in the browser, on the web app, where
   the invitee signs in; installing the new APK brings invitations back into the app.
-- `maalik-e-makaan.vercel.app/auth/callback` and the files it needs, until the release after the
-  move (at least 24 hours later): a sign-up, reset or e-mail change requested on the old address
+- `maalik-e-makaan.vercel.app/auth/callback` and the files it needs, until a release at least
+  24 hours after the move's: a sign-up, reset or e-mail change requested on the old address
   keeps its sign-in verifier in that origin's storage, so its link must finish there, and the
-  response must not clear that storage. The next release answers it like every other path, keeping
-  only `assetlinks.json` (step 12).
+  response must not clear that storage. That later release answers it like every other path,
+  keeping only `assetlinks.json` (step 12). A release in between, without that change, leaves
+  it as it is.
 - Every other path of the web app's earlier address answers 200 with one small page, which clears
   what the app kept in the browser for that address and goes to the same path, query and
   `#fragment` on the origin (below). An invitation link, `/invite#token=…`, arrives with its token;
@@ -617,16 +641,16 @@ answers 308, so a client that runs no script and follows no meta refresh (`curl`
 stays on the page. Search engines are not among them (the web app answers `X-Robots-Tag: noindex`),
 and Android opens an App Link in the app before any request.
 
-Where it never clears: `/.well-known/assetlinks.json` and the app's other files, which are served
-as files, and `/auth/callback` until the release after the move. A link requested on the earlier
-address before the move has its verifier in that address's storage, and Auth's links live an hour
-(`otp_expiry = 3600` in `supabase/config.toml`; the hosted project is assumed to keep that
-default, and the dashboard allows up to a day, which is why step 12 waits at least 24 hours). One
-case is lost: a link requested on the earlier address in its last hour, when the same browser
-opens another page of that address after the release and before the link. That visit removes the
-verifier, the app says to request the link again, and on the new address that works. The session
-a browser held on the earlier address is removed from the browser, not ended on the server, where
-it stays until it is revoked; nothing else holds its token.
+Where it never clears: `/.well-known/assetlinks.json` and the app's other files, which are served as
+files, and `/auth/callback` until a release at least 24 hours after the move's (step 12). A link
+requested on the earlier address before the move has its verifier in that address's storage, and
+Auth's links live an hour (`otp_expiry = 3600` in `supabase/config.toml`; the hosted project is
+assumed to keep that default, and the dashboard allows up to a day, which is why step 12 waits at
+least 24 hours). One case is lost: a link requested on the earlier address in its last hour, when
+the same browser opens another page of that address after the release and before the link. That
+visit removes the verifier, the app says to request the link again, and on the new address that
+works. The session a browser held on the earlier address is removed from the browser, not ended on
+the server, where it stays until it is revoked; nothing else holds its token.
 
 The checks: `tool/web/test_package_vercel.py` (the routes: the header on the earlier addresses'
 pages alone, never without the host condition, and the local server's answers for every route and
@@ -649,9 +673,11 @@ is removed when you next open that address."
 The owner's steps, with the agent's pull request between them; `docs/release-readiness.md`, Owner
 actions, item 13, tracks them in the same order. **On 15 November 2026:** steps 2 to 8 are done.
 The pull request is merged (#74), release 1.3.0 deployed the move, and the owner reported Auth's
-Site URL moved and the `APP_URL` repository variable deleted the same day. Left: the checks by
-hand (step 9), the repository's homepage and the company's records (step 10), Search Console
-(steps 1 and 11), the next release (step 12) and the mail steps (step 13).
+Site URL moved and the `APP_URL` repository variable deleted the same day. Release 1.3.1 (15:50
+UTC that day) carried Search Console's file, and steps 1, 11 and the move of the app's e-mail to
+the domain (step 13) were done the same day, with the homepage and the company's website of
+step 10. Left: the checks by hand (step 9, and the e-mails with `dmarc=pass` of step 13), the
+company's other records (step 10) and the callback's release (step 12).
 
 **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
 Edge Function secret and in the GitHub repository variable, and by the owner's decision of that
@@ -662,11 +688,18 @@ not finish its link. The release ended that, and the variable is deleted (step 8
 addresses move again, keep to the order: the secret after the web deploy, and no repository
 variable at all (Moving again).
 
-1. _(Optional, still open)_ **Search Console, old property, part one.** Add a URL-prefix property
-   for `https://maalik-e-makaan-site.vercel.app/`, choose the HTML file method and download the
-   file (`google<16 hex digits>.html`). Send its name, so that a pull request adds it to
-   `website/public/`. Do not press Verify yet: the old address serves the file only once a
-   release that has it is deployed (the redirect leaves that one path out; step 9 finishes it). Without the property, Search Console's change of address cannot be used (step 11).
+1. **Search Console, old property. Done on 15 November 2026.** A URL-prefix property for
+   `https://maalik-e-makaan-site.vercel.app/`, verified by the HTML file method: the owner sent
+   `google17fd3f30f3354533.html`, `website/public/` holds it byte for byte (#80), and release
+   1.3.1 deployed it. At 16:03 UTC the agent read
+   `https://mmakaan.app/google17fd3f30f3354533.html` and
+   `https://maalik-e-makaan-site.vercel.app/google17fd3f30f3354533.html` through the Vercel
+   connector: each answered 200 with the file's one line (53 bytes), the old address without a
+   redirect (the redirect leaves that one path out). The owner then reported the property
+   verified (screenshots, that day). Without the old address's property, Search Console's change
+   of address cannot be used (step 11). A URL-prefix property for `https://mmakaan.app/` exists
+   too (the owner, the same day). Another verification file goes in `website/public/` and in the
+   unit test in `website/tests/unit/vercel.test.ts` that lists the files there.
 2. **Dynadot DNS. Done on 13 November 2026:** the records are in, and Vercel reports `mmakaan.app`
    (`A` `216.198.79.1` and `64.29.17.1`), `www.mmakaan.app` and `app.mmakaan.app` (`CNAME` records)
    as correctly configured. What it took: the parking records removed (an `A` record to Dynadot's
@@ -737,61 +770,81 @@ variable at all (Moving again).
    open the old address, land on the new one signed out, and find the old address's local storage
    empty (developer tools, Application, Local storage); on a phone with the new APK,
    `adb shell pm get-app-links io.github.ar27111994.maalik_e_makaan` shows both hosts verified; the
-   Digital Asset Links API says `"linked": true` for both (Android App Links, below). If step 1 was
-   done: `https://maalik-e-makaan-site.vercel.app/google<16 hex digits>.html` answers 200 (the
-   redirect leaves it out); press Verify on the old property now.
+   Digital Asset Links API says `"linked": true` for both (Android App Links, below). **On 15
+   November 2026:** Search Console's file answered 200 on both site addresses after release
+   1.3.1, and the property was verified (step 1); the agent read a sign-up confirmation whose
+   link returns to `https://app.mmakaan.app/auth/callback`, which passed SPF and DKIM but showed
+   no DMARC result ([E-mail](#e-mail), step 8). Still the owner's: an e-mail that shows DMARC
+   "PASS", and the password reset and the invitation, with SPF, DKIM and DMARC "PASS" in Gmail;
+   the old invitation address with its
+   `#token`; the old address's storage found empty; and App Links on a phone with release
+   1.3.1's APK.
 10. **Housekeeping.** Done on 15 November 2026: no uptime monitor requests the old web app
     address (step 3), and the `roadmap` label's description names the new address (the Roadmap
-    workflow rewrote it from `.github/roadmap.toml` when the move reached `main`). Still the
-    owner's: the repository's homepage, which reads `https://maalik-e-makaan-site.vercel.app`
-    (on the repository's page, the gear beside About, Website: `https://mmakaan.app`; the agent's
-    session may not change repository settings); the website on the D-U-N-S record, LinkedIn and
-    the AWS Activate application. One decision with it: the site's structured data and `llms.txt` give the company's
-    website as `https://ar27111994.dev/` (`company.url` in `website/src/config/site.ts`), while
-    those records will name `https://mmakaan.app`, and Apple checks that an organisation's website
-    is on a domain that belongs to it. If the company's website is to be `https://mmakaan.app/` (or
-    its `/company/` page), say so: the agent then builds `company.url` from the site's origin, so it
-    follows `contracts/origins.json`, and keeps `ar27111994.dev` among the company's other profiles.
-11. **Search Console:** a Domain property for `mmakaan.app` (a TXT record at Dynadot), the sitemap
-    `https://mmakaan.app/sitemap-index.xml` submitted; then, with the old property verified (steps 1
-    and 9), Settings, Change of address, to `https://mmakaan.app/`. Bing Webmaster Tools can import
-    the properties and has a site move of its own. If Search Console rejects the 308,
-    `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web app answers
-    `X-Robots-Tag: noindex` on every path, so the Domain property lists it as excluded, not as an
-    error: the website is what search engines index (D-01).
-12. **The next release, at least 24 hours later** (so not before 14:00 UTC on 16 November 2026):
-    the agent's pull request answers the old
-    address's `/auth/callback` with the page too, so it clears that address's storage and sends
-    people on like every other path (only `assetlinks.json` stays); after its deploy, the owner
-    sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes it, which means `APP_URL`'s
-    origin).
-13. **The mail.** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`,
-    which was being added on 13 November 2026: check that it is there ("Show original" in Gmail
-    says DMARC "PASS"), and leave the mailbox's own SPF record as Dynadot wrote it. **Done on 15
-    November 2026 (the owner):** the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app`, so
-    that a reply to an invitation reaches the company. **Decided that day, and the owner's to
-    finish:** the app's e-mails come from `hello@mmakaan.app` too, so Resend moves from
-    `news.ar27111994.dev` to `mmakaan.app` ([E-mail](#e-mail) has the reasons and each setting).
-    In order:
-    1. In Resend, remove the old domain and add `mmakaan.app`.
-    2. At Dynadot, add its three records as subdomain records (an MX and a TXT on `send`, a TXT
-       on `resend._domainkey`), and leave the apex's records alone.
-    3. Wait for "Verified", then turn click and open tracking off.
-    4. Make two sending keys limited to the domain: one is Auth's SMTP password, the other the
-       secret `RESEND_API_KEY`.
+    workflow rewrote it from `.github/roadmap.toml` when the move reached `main`). The
+    repository's homepage reads `https://mmakaan.app` (the owner set it, 15 November 2026; the
+    agent's session may not change repository settings). **The company's website stays
+    `https://ar27111994.dev/`** (the owner's decision of 15 November 2026), so `company.url` in
+    `website/src/config/site.ts`, which the site's structured data and `llms.txt` give, does not
+    change; the product's own domain carries the company's name, since the footer of every page
+    reads "© 2026 AR LABS (SMC-PRIVATE) LIMITED" (the agent read it on the live terms page at
+    16:19 UTC that day). The AWS Activate application: the three changes its provider asked for
+    on 12 November 2026 (the website and the web app on the company's own domain, an e-mail
+    address on it, the company's name on the website) are met, and a reply with the pitch deck at
+    1.3.1 was drafted for the owner on 15 November 2026. Still the owner's: sending that reply,
+    and the website on LinkedIn and on the D-U-N-S record.
+11. **Search Console. Done on 15 November 2026, as the owner reported** (screenshots): a Domain
+    property for `mmakaan.app` (a TXT record at Dynadot); the sitemap
+    `https://mmakaan.app/sitemap-index.xml` submitted and read the same day, status Success, 42
+    pages (the 44 built pages less the two not-found pages, which are kept out of the sitemap);
+    and, with the old property verified (step 1), Settings, Change of address, to
+    `https://mmakaan.app/`, started that day. Still optional: Bing Webmaster Tools, which can
+    import the properties and has a site move of its own. On a later move, if Search Console
+    rejects the 308, `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web
+    app answers `X-Robots-Tag: noindex` on every path, so the Domain property lists it as
+    excluded, not as an error: the website is what search engines index (D-01).
+12. **A release at least 24 hours after the move's** (so not before 14:00 UTC on 16 November
+    2026; an earlier release simply goes without this change, as 1.3.1 did): the agent's pull
+    request answers the old address's `/auth/callback` with the page too, so it clears that
+    address's storage and sends people on like every other path (only `assetlinks.json` stays);
+    after its deploy, the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes
+    it, which means `APP_URL`'s origin).
+13. **The mail. Done on 15 November 2026, except the e-mail checks (DMARC "PASS", the reset and the
+    invitation).** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM, and its own
+    `_dmarc` record, `p=none`); leave the mailbox's own SPF record as Dynadot wrote it, and add no
+    second DMARC record ([E-mail](#e-mail), step 1): the owner's own, added on 13 November 2026,
+    stood beside Dynadot's, so that neither applied, and the owner removed it on 15 November 2026; a
+    lookup afterwards showed Dynadot's own record alone. The Edge Function secret
+    `MAIL_REPLY_TO=hello@mmakaan.app` (the owner), so that a reply to an invitation reaches the
+    company. By the owner's decision of the same day the app's e-mails come from `hello@mmakaan.app`
+    too, and Resend moved from `news.ar27111994.dev` to `mmakaan.app` ([E-mail](#e-mail) has the
+    reasons and each setting).
+    What the owner did, as reported that day:
+    1. In Resend, `mmakaan.app` added at 15:06 UTC, in the region ap-northeast-1 (Tokyo).
+    2. At Dynadot, the records Resend listed, as subdomain records: a DKIM TXT on
+       `resend._domainkey`, and `CNAME` records `send` to `send.forge.rmta.net` and `rsend` to
+       `rsend-apne1.forge.rmta.net`; the apex's records left alone, and Resend's "Enable
+       receiving" off, so the mailbox at Dynadot keeps receiving.
+    3. "Verified" at 15:21 UTC; click and open tracking off.
+    4. Two sending keys limited to the domain: one is Auth's SMTP password, the other the secret
+       `RESEND_API_KEY`.
     5. Auth's SMTP sender is `hello@mmakaan.app`, and
        `MAIL_FROM="Maalik-e-Makaan <hello@mmakaan.app>"`.
-    6. Step 9's sign-up, reset and invitation, with SPF, DKIM and DMARC "PASS" in Gmail.
+    6. Step 9's e-mails: the agent read a sign-up confirmation (15:44 UTC) that passed SPF and
+       DKIM for `mmakaan.app`, with no tracking, but showed no DMARC result, from before the
+       second record was removed ([E-mail](#e-mail), step 8). **Still open, the owner's:** an
+       e-mail that shows DMARC "PASS", and the reset and invitation e-mails, with SPF, DKIM and
+       DMARC "PASS" in Gmail.
 
-    `MAIL_FROM` was set to the address at 14:13 UTC that day, before the domain was verified:
-    until the move is finished, Resend refuses the invitations, and Auth's e-mails too if its
-    sender is the same. Customer.io gets a subdomain of its own, in its own pull request (D-18).
+    `MAIL_FROM` was set to the address at 14:13 UTC that day, before the domain was verified, so
+    until 15:21 UTC Resend refused the invitations, and Auth's e-mails too if its sender was the
+    same. Customer.io gets a subdomain of its own, in its own pull request (D-18).
     Every host on `mmakaan.app` is reached
     over HTTPS only: the whole `.app` domain is on the browsers' HSTS preload list, and the site
     sends HSTS with `includeSubDomains`. So a subdomain people open in a browser (a link-tracking
     domain, a custom webmail address) needs its certificate, through the provider's managed TLS,
-    before its `CNAME` is added; one that carries only mail records (MX, SPF, DKIM, DMARC) needs
-    none.
+    before its `CNAME` is added; one that carries only mail records (MX, SPF, DKIM, DMARC, or
+    Resend's `send` and `rsend`) needs none.
 
 Auth keeps the earlier redirect URLs, and the Android manifest the earlier host, until the builds
 from before the move are out of use: a date or a lowest version for that is the owner's to set.
