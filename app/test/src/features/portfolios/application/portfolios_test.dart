@@ -453,6 +453,77 @@ void main() {
     });
   });
 
+  group('a command called when its user is not the one signed in asks for, '
+      'shows and saves nothing', () {
+    // A caller that read the user before a request of its own (leaving a
+    // portfolio, changing one's own role) calls the list after it.
+    const other = SignedIn(
+      userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+      email: 'sana.malik@example.com',
+    );
+    final commands = <(String, Future<void> Function(PortfoliosController))>[
+      ('reloading', (list) => list.reload()),
+      ('creating', (list) => list.create(name: 'Khan family', id: 'p-new')),
+      ('deleting', (list) => list.delete(plaza.id, confirmation: plaza.name)),
+      (
+        'answering the owner-abroad question',
+        (list) => list.answerOwnerAbroad(gulberg.id, abroad: true),
+      ),
+    ];
+
+    for (final (session, status) in <(String, AuthStatus)>[
+      ('after the session ended', const SignedOut()),
+      ('with another account signed in', other),
+    ]) {
+      for (final (name, command) in commands) {
+        test('$name, $session', () async {
+          final app = TestApp();
+          final container = containerFor(app);
+          // Held by a listener that outlives the session.
+          listen(container, portfoliosProvider(testUserId));
+          await pumpEventQueue();
+          // The session ends, or is replaced: the wipe, then the status.
+          await app.cache.clear();
+          app.auth.emit(status);
+          await pumpEventQueue();
+          final asked = app.portfolios.calls.length;
+          await expectLater(
+            command(container.read(portfoliosProvider(testUserId).notifier)),
+            throwsA(isA<SessionExpired>()),
+          );
+          await pumpEventQueue();
+          expect(app.portfolios.calls, hasLength(asked));
+          expect(app.cache.portfoliosOf(testUserId), isNull);
+          expect(app.store.values, isEmpty);
+          expect(
+            app.settings.values,
+            isNot(contains(AppSettings.currentPortfolioKey)),
+          );
+          expect(
+            container.read(portfoliosProvider(testUserId)).error,
+            isA<SessionExpired>(),
+          );
+        });
+      }
+    }
+
+    test('nor on a list first read after the session ended', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      await expectLater(
+        container.read(portfoliosProvider(testUserId).notifier).reload(),
+        throwsA(isA<SessionExpired>()),
+      );
+      await pumpEventQueue();
+      expect(app.portfolios.calls, isEmpty);
+      expect(app.cache.portfoliosOf(testUserId), isNull);
+      expect(app.store.values, isEmpty);
+    });
+  });
+
   group('a list made from the one on show is saved when that list was asked '
       'for in this session', () {
     for (final (name, command, offline)

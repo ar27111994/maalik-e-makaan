@@ -27,6 +27,11 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 
 /// Reads the user's portfolios and creates new ones.
 ///
+/// It reads, and its commands work, only while its user is the one signed
+/// in ([currentUserIdProvider]): a command called after that session has
+/// ended, by a caller that read the user before a request of its own,
+/// throws [SessionExpired] and asks for, shows and saves nothing.
+///
 /// Each list the server answers sets, in the cache, the portfolios the
 /// user is in ([SwrCache.applyPortfolios]): the saved records of a
 /// portfolio that is no longer in it (deleted, or the user left it or was
@@ -158,6 +163,17 @@ final class PortfoliosController
     for (final membership in list) membership.toRow(),
   ];
 
+  /// Throws [SessionExpired] unless the signed-in user is this list's.
+  ///
+  /// Every command begins with it. The list is built again when the user
+  /// changes, so [_epoch] is then the cache's new one: without this, a
+  /// command begun after the session ended would save the answer of a
+  /// request made with no session, or with another account's, as this
+  /// user's list.
+  void _requireSession() {
+    if (ref.read(currentUserIdProvider) != userId) throw const SessionExpired();
+  }
+
   /// Creates a portfolio (see [PortfolioRepository.create]; keep [id] for
   /// retries of the same attempt), lists it with the others and makes it the
   /// current one on this device. Throws [AppFailure].
@@ -170,6 +186,7 @@ final class PortfoliosController
     required String id,
     OwnerAbroad ownerAbroad = OwnerAbroad.notAnswered,
   }) async {
+    _requireSession();
     final repository = ref.read(portfolioRepositoryProvider);
     final epoch = _epoch;
     final created = await repository.create(
@@ -209,6 +226,7 @@ final class PortfoliosController
     String portfolioId, {
     required String confirmation,
   }) async {
+    _requireSession();
     final repository = ref.read(portfolioRepositoryProvider);
     final epoch = _epoch;
     await repository.delete(portfolioId, confirmation: confirmation);
@@ -239,6 +257,7 @@ final class PortfoliosController
     String portfolioId, {
     required bool abroad,
   }) async {
+    _requireSession();
     final epoch = _epoch;
     final answer = await ref
         .read(portfolioRepositoryProvider)
@@ -260,6 +279,7 @@ final class PortfoliosController
   /// portfolio, and returns it. Throws [AppFailure] when it cannot be read;
   /// the list on screen then stays as it was.
   Future<List<PortfolioMembership>> reload() async {
+    _requireSession();
     final epoch = _epoch;
     final asked = ref.read(swrCacheProvider).ask();
     final list = await ref.read(portfolioRepositoryProvider).listMine(userId);

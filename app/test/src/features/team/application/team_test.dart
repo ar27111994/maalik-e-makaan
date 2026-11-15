@@ -245,6 +245,28 @@ void main() {
       });
     });
 
+    test('leaving as the session ends reads no list for the account that '
+        'signed out', () async {
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      app.team.gate.close();
+      final leaving = team().leave();
+      await pumpEventQueue();
+      expect(app.team.calls.last.$2, [gulberg.id, testUserId]);
+      // The session ends while the server removes the member: the wipe,
+      // then the signed-out status.
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      final asked = app.portfolios.calls.length;
+      app.team.gate.open();
+      await leaving;
+      await pumpEventQueue();
+      expect(app.portfolios.calls, hasLength(asked));
+      expect(app.cache.portfoliosOf(testUserId), isNull);
+      expect(app.store.values, isEmpty);
+    });
+
     test('leaving while signed out is an expired session', () async {
       app.auth.emit(const SignedOut());
       await pumpEventQueue();
