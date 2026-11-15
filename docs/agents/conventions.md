@@ -159,10 +159,19 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   later is covered. The write keeps any ports already reserved, and `tee` fails the step when
   the kernel refuses it, where `sysctl -w` prints "ignoring" and exits 0. The backup's restore
   check is allowed to fail, so there the step has `continue-on-error` and the stack starts only
-  when it succeeded (`steps.reserve.outcome == 'success'`). `tool/github/check_stack_ports.py`
-  (`make lint`, the pre-commit hook) requires all of this, the step first in each such job, and
-  a range that covers every port `supabase/config.toml` names inside 32768 to 60999 (a port
-  below it is never given out).
+  when it succeeded: `steps.reserve.outcome == 'success'` is one of the `&&`-joined terms of the
+  start's `if:`. An `||` outside brackets or the term inside brackets would let the start run
+  after a failed reservation, and so would anything before or after a `${{ }}` around the
+  condition, even the newline that ends a `|` or `>` block: GitHub then reads the whole as text,
+  which is true. Both `continue-on-error` are a plain `true`, not an expression.
+  `tool/github/check_stack_ports.py` (`make lint`, the pre-commit hook) requires all of this,
+  the step once and first in each such job (not a `background:` step and not inside a
+  `parallel:` group, where the next step would not wait for it), and a range that covers every
+  port `supabase/config.toml` names inside 32768 to 60999 (a port below it is never given out).
+  It finds a start written in a step's `run:`, steps of a `parallel:` group included. It does
+  not see a stack started by an action, a reusable workflow, another script, or a command put
+  together from an expression or a variable: whoever adds one reserves the ports by hand, and a
+  reviewer reads it.
 
 - zizmor findings fail the gate, at every severity, unless an inline ignore suppresses them.
   `make lint` (so the Repository hygiene job) runs the zizmor that `tool/requirements-lint.txt`

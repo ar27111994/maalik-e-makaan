@@ -4,12 +4,16 @@ Most tests apply a small mutant to copies of the repository's own workflows and
 supabase/config.toml, and require the check to name it: the reservation removed from each job
 that starts the stack, moved after the start or anywhere after the job's first step, narrowed so
 a port of config.toml falls outside it, a new job that starts the stack without it (in any of
-the spellings StartsStackTest lists), and a port added to config.toml outside it.
+the spellings StartsStackTest lists), a port added to config.toml outside it, and, where the
+reservation may fail, a start whose `if:` lets it run all the same (ConditionTest lists them).
+StepKeysTest covers a reservation in the background, inside a `parallel:` group or written
+twice, a start inside a group, and an id, a condition or a boolean that is not what it looks like.
 """
 
 from __future__ import annotations
 
 import io
+import json
 import shutil
 import sys
 import tempfile
@@ -26,6 +30,72 @@ ROOT = csp.ROOT
 CI = ".github/workflows/ci.yml"
 BACKUP = ".github/workflows/backup.yml"
 NAME_LINE = f"      - name: {csp.NAME}\n"
+GUARD = "steps.reserve.outcome == 'success'"
+BACKUP_IF = f"if: env.CHAIN_MATCHES == 'true' && {GUARD}"
+# Conditions under which a step runs only when the reservation succeeded, with their terms.
+WAITS = [
+    (GUARD, [GUARD]),
+    (f"env.CHAIN_MATCHES == 'true' && {GUARD}", ["env.CHAIN_MATCHES == 'true'", GUARD]),
+    (f"{GUARD} && env.CHAIN_MATCHES == 'true'", [GUARD, "env.CHAIN_MATCHES == 'true'"]),
+    (f"${{{{ always() && {GUARD} }}}}", ["always()", GUARD]),
+    ("  !cancelled()  &&\n  steps.reserve.outcome  ==  'success'\n", ["!cancelled()", GUARD]),
+    # An || or && inside brackets or a string belongs to its term.
+    (f"(env.A == '1' || env.B == '2') && {GUARD}", ["(env.A == '1' || env.B == '2')", GUARD]),
+    (f"contains(fromJSON('[1]')[0] && 'x', 'x') && {GUARD}", None),
+    (f"env.A == 'a || b && c' && {GUARD}", ["env.A == 'a || b && c'", GUARD]),
+    (f"env.A == 'it''s (' && {GUARD}", ["env.A == 'it''s ('", GUARD]),
+    # GitHub ends an expression at the first }} outside a string, so one inside is the term's.
+    (f"${{{{ env.A == '}}}}' && {GUARD} }}}}", ["env.A == '}}'", GUARD]),
+    (f"env.A == '{{0}}' && {GUARD}\n", ["env.A == '{0}'", GUARD]),
+    (f"{GUARD} && false", [GUARD, "false"]),
+]
+# Conditions the check refuses, each with why: they let the step run after a failed reservation,
+# or they are not `&&`-joined terms with the guard, as it is spelt, among them.
+REFUSED = [
+    ("env.CHAIN_MATCHES == 'true'", "the term is missing"),
+    (f"{GUARD} || always()", "|| lets it run without the term"),
+    (f"always() || {GUARD}", "|| lets it run without the term"),
+    (f"env.A == '1' && {GUARD} || env.B == '2'", "&& binds tighter than ||"),
+    (f"!(always() && {GUARD} && true)", "the term is inside brackets, negated"),
+    (f"({GUARD})", "the term is inside brackets"),
+    (f"({GUARD} && always()) == false", "the term is inside brackets"),
+    (f"contains('x', 'x' && {GUARD} && 'x') || true", "the term is a function's argument"),
+    (f"fromJSON('[true]')[0 && {GUARD} && 0]", "the term is inside an index"),
+    (f"!{GUARD}", "not the term: ! binds before ==, so this is never true"),
+    ("steps.reserve.outcome=='success'", "not the term as it is spelt"),
+    ("steps.reserve.outcome\u00a0== 'success'", "a no-break space is not the term's space"),
+    (f"{GUARD} == false", "the term is compared"),
+    ("steps.reserve.outcome != 'success'", "another comparison"),
+    ("steps.reserve.outcome == 'failure'", "another outcome"),
+    ("steps.reserve.conclusion == 'success'", "continue-on-error makes every conclusion success"),
+    ("steps.reserved.outcome == 'success'", "another step's id"),
+    (f"env.A == '{GUARD.replace(chr(39), chr(39) * 2)}'", "a string of other text"),
+    (f"env.A == 'x && {GUARD} && x'", "the term is inside a string"),
+    (
+        f"${{{{ env.CHAIN_MATCHES == 'true' }}}} && ${{{{ {GUARD} }}}}",
+        "text around expressions is always true",
+    ),
+    (f"${{{{ {GUARD} }}}} && true", "text around an expression is always true"),
+    (f"true && ${{{{ {GUARD} }}}}", "text around an expression is always true"),
+    (f"${{{{ {GUARD} }}}} ${{{{ {GUARD} }}}}", "two expressions are text"),
+    (f"{GUARD} }}}}", "a stray }}"),
+    # Anything before ${{ or after its }} makes the whole a text (TemplateReader.ParseScalar).
+    (
+        f"${{{{ env.CHAIN_MATCHES == 'true' && {GUARD} }}}}\n",
+        "the newline a | or > block ends with",
+    ),
+    (f" ${{{{ {GUARD} }}}}", "a space before ${{"),
+    (f"${{{{ {GUARD} }}}} ", "a space after }}"),
+    (f"\u00a0${{{{ {GUARD} }}}}", "a no-break space before ${{"),
+    (f"${{{{ {GUARD} && env.A == '1' }}}}}}", "a third } is text after the expression"),
+    (f"${{{{ env.A == '${{{{' && {GUARD} }}}}", "a second ${{, though in a string"),
+    (f"env.A == {{0}} && {GUARD}", "a brace outside a string"),
+    (f"env.A == 'x && {GUARD}", "a string left open"),
+    (f"(always() && {GUARD}", "a bracket left open"),
+    (f"always()) && {GUARD} && (true", "a bracket closed before it opens"),
+    (f"always() & {GUARD}", "one & is not &&"),
+    ("", "no if: at all"),
+]
 # The jobs that start the stack today, as (workflow, job, the start step's name).
 STARTS = [
     (CI, "supabase-stack", "Start the stack"),
@@ -284,18 +354,271 @@ class MutantsTest(Repo):
         self.assert_problems("does not, so a failed reservation would pass in silence")
 
     def test_the_backup_start_must_wait_for_the_reservation(self):
-        self.replace(
-            BACKUP,
-            "if: env.CHAIN_MATCHES == 'true' && steps.reserve.outcome == 'success'",
-            "if: env.CHAIN_MATCHES == 'true'",
-        )
+        self.replace(BACKUP, BACKUP_IF, "if: env.CHAIN_MATCHES == 'true'")
         self.assert_problems(
-            f'this start runs even when "{csp.NAME}" failed (it has continue-on-error): give'
-            " that step an id and add \"steps.reserve.outcome == 'success'\" to this step's if:"
+            f'this start can run when "{csp.NAME}" failed (it has continue-on-error): give that'
+            f' step an id and make "{GUARD}", spelt so, one of the &&-joined terms of this'
+            " step's if:, with no || outside brackets and nothing before or after a ${{ }}"
+            " around it"
         )
         self.setUp()
         self.replace(BACKUP, "        id: reserve\n", "")
         self.assert_problems("give that step an id")
+        self.setUp()
+        text = self.text(BACKUP)
+        a, b = step_span(text, "backup", "Start a local stack from the applied chain")
+        self.write(BACKUP, text[:a] + text[a:b].replace(f"        {BACKUP_IF}\n", "") + text[b:])
+        self.assert_problems("this start can run when")
+
+    def test_the_backup_start_must_wait_on_every_path(self):
+        for condition, why in REFUSED[1:-1]:
+            with self.subTest(condition, why=why):
+                self.setUp()
+                self.replace(BACKUP, BACKUP_IF, f"if: {json.dumps(condition)}")
+                self.assert_problems("this start can run when")
+
+    def test_the_backup_start_may_wait_in_other_words(self):
+        for condition, _ in WAITS:
+            with self.subTest(condition):
+                self.setUp()
+                self.replace(BACKUP, BACKUP_IF, f"if: {json.dumps(condition)}")
+                self.assert_problems()
+
+    def test_an_expression_in_a_block_is_text(self):
+        """`|` and `>` keep the line's newline, which GitHub reads as text after the `}}`."""
+        expression = "${{ " + BACKUP_IF.removeprefix("if: ") + " }}"
+        for style, refused in (("|", True), (">", True), ("|-", False), (">-", False)):
+            with self.subTest(style):
+                self.setUp()
+                self.replace(BACKUP, BACKUP_IF, f"if: {style}\n          {expression}")
+                self.assert_problems(*["this start can run when"] * refused)
+        self.setUp()
+        self.replace(BACKUP, BACKUP_IF, f"if: {expression}")
+        self.assert_problems()
+        # Without ${{ }} the whole block is one expression, and its newline is only a space.
+        self.setUp()
+        self.replace(BACKUP, BACKUP_IF, "if: |\n          " + BACKUP_IF.removeprefix("if: "))
+        self.assert_problems()
+
+    def test_a_continue_on_error_the_check_cannot_read(self):
+        text = self.text(BACKUP)
+        a, b = step_span(text, "backup", csp.NAME)
+        reserve = text[a:b]
+        self.assertEqual(reserve.count("        continue-on-error: true\n"), 1)
+        for value in ("${{ true }}", "${{ fromJSON('true') }}", '"true"', "yes", "1"):
+            with self.subTest(reserve=value):
+                self.setUp()
+                self.write(
+                    BACKUP,
+                    text[:a]
+                    + reserve.replace("continue-on-error: true", f"continue-on-error: {value}")
+                    + text[b:],
+                )
+                self.assert_problems(f'"{csp.NAME}": write continue-on-error as a plain true')
+        a, b = step_span(text, "backup", "Start a local stack from the applied chain")
+        start = text[a:b]
+        self.assertEqual(start.count("        continue-on-error: true\n"), 1)
+        for value in ("${{ true }}", '"true"'):
+            with self.subTest(start=value):
+                self.setUp()
+                self.write(
+                    BACKUP,
+                    text[:a]
+                    + start.replace("continue-on-error: true", f"continue-on-error: {value}")
+                    + text[b:],
+                )
+                self.assert_problems("write this start's continue-on-error as a plain true")
+        # Where the reservation must not fail, an expression is no plainer.
+        self.setUp()
+        self.replace(
+            CI, NAME_LINE, NAME_LINE + "        continue-on-error: ${{ false }}\n", count=2
+        )
+        self.assert_problems(*[f'"{csp.NAME}": write continue-on-error as a plain true'] * 2)
+        self.setUp()
+        self.replace(CI, NAME_LINE, NAME_LINE + "        continue-on-error: false\n", count=2)
+        self.assert_problems()
+
+
+class StepKeysTest(Repo):
+    """The reservation's and the guarded start's keys, read as GitHub reads them."""
+
+    def backup_step(self, name: str) -> tuple[str, str, str]:
+        text = self.text(BACKUP)
+        a, b = step_span(text, "backup", name)
+        return text[:a], text[a:b], text[b:]
+
+    def test_a_reservation_in_the_background_is_refused(self):
+        for value in ("true", "false", "${{ true }}"):
+            with self.subTest(value):
+                self.setUp()
+                self.replace(CI, NAME_LINE, NAME_LINE + f"        background: {value}\n", count=2)
+                self.assert_problems(*[f'"{csp.NAME}" has background:'] * 2)
+
+    def test_a_reservation_inside_a_parallel_group_is_refused(self):
+        text = self.text(CI)
+        a, b = step_span(text, "supabase-stack", csp.NAME)
+        grouped = "      - parallel:\n" + textwrap.indent(text[a:b], "    ")
+        self.write(CI, text[:a] + grouped + text[b:])
+        self.assert_problems(
+            f'"{csp.NAME}" is inside a parallel: group',
+            f"job 'supabase-stack' starts the local stack with no \"{csp.NAME}\" step before it;",
+        )
+
+    def test_a_start_inside_a_parallel_group_is_found(self):
+        for workflow, job, name in STARTS:
+            with self.subTest(job=job):
+                self.setUp()
+                text = self.text(workflow)
+                a, b = step_span(text, job, name)
+                grouped = "      - parallel:\n" + textwrap.indent(text[a:b], "    ")
+                # With the reservation first, the grouped start is as good as any other.
+                self.write(workflow, text[:a] + grouped + text[b:])
+                self.assert_problems()
+                # Without it, the grouped start is the one named.
+                c, d = step_span(text[:a] + grouped + text[b:], job, csp.NAME)
+                moved = text[:a] + grouped + text[b:]
+                self.write(workflow, moved[:c] + moved[d:])
+                found = self.problems()
+                self.assertIn(f"job {job!r} starts the local stack with no", found[0])
+
+    def test_a_grouped_start_must_wait_for_a_reservation_that_may_fail(self):
+        before, start, after = self.backup_step("Start a local stack from the applied chain")
+        grouped = "      - parallel:\n" + textwrap.indent(start, "    ")
+        self.write(BACKUP, before + grouped.replace(f"            {BACKUP_IF}\n", "") + after)
+        self.assert_problems("this start can run when")
+
+    def test_a_second_reservation_is_refused(self):
+        before, reserve, after = self.backup_step(csp.NAME)
+        self.assertEqual(reserve.count("        id: reserve\n"), 1)
+        # The first cannot fail, so no guard would be asked for the second, which can.
+        first = reserve.replace("        id: reserve\n", "        id: first\n").replace(
+            "        continue-on-error: true\n", ""
+        )
+        self.write(BACKUP, before + first + reserve + after)
+        self.assert_problems(f"job 'backup' has \"{csp.NAME}\" 2 times; keep the first")
+
+    def test_the_reservation_needs_an_id_github_takes(self):
+        for value in ('""', "", "~", "1", "true", "a.b", "a b", "'a'' || ''b'", "!!null reserve"):
+            with self.subTest(value):
+                self.setUp()
+                self.replace(
+                    BACKUP, "        id: reserve\n", f"        id: {value}\n".replace(" \n", "\n")
+                )
+                self.assert_problems("give that step an id")
+        # Another step named `reserve` does not stand in for a reservation with no id.
+        self.setUp()
+        self.replace(BACKUP, "        id: reserve\n", "        id:\n")
+        text = self.text(BACKUP)
+        a, _ = step_span(text, "backup", "Start a local stack from the applied chain")
+        self.write(BACKUP, text[:a] + '      - id: reserve\n        run: "true"\n' + text[a:])
+        self.assert_problems("give that step an id")
+        self.setUp()
+        self.replace(BACKUP, "        id: reserve\n", "        id: port_reservation-1\n")
+        self.replace(
+            BACKUP, BACKUP_IF, BACKUP_IF.replace("steps.reserve.", "steps.port_reservation-1.")
+        )
+        self.assert_problems()
+
+    def test_a_tagged_condition_is_not_its_text(self):
+        for tag in ("!!null", "!!bool", "!!int"):
+            with self.subTest(tag):
+                self.setUp()
+                self.replace(
+                    BACKUP, BACKUP_IF, f"if: {tag} {json.dumps(BACKUP_IF.removeprefix('if: '))}"
+                )
+                self.assert_problems("this start can run when")
+
+    def test_a_tagged_boolean_is_not_a_plain_one(self):
+        before, reserve, after = self.backup_step(csp.NAME)
+        for value in ("!!bool yes", "!!bool 1", "!!bool on"):
+            with self.subTest(value):
+                self.setUp()
+                self.write(
+                    BACKUP,
+                    before
+                    + reserve.replace("continue-on-error: true", f"continue-on-error: {value}")
+                    + after,
+                )
+                self.assert_problems(f'"{csp.NAME}": write continue-on-error as a plain true')
+        # Read as true, so the guard is still asked for: the backup's start has it, and
+        # without it each is refused.
+        for value in ("True", "TRUE", "true # as the restore check may fail", '!!bool "true"'):
+            with self.subTest(value):
+                self.setUp()
+                self.write(
+                    BACKUP,
+                    before
+                    + reserve.replace("continue-on-error: true", f"continue-on-error: {value}")
+                    + after,
+                )
+                self.assert_problems()
+                self.replace(BACKUP, BACKUP_IF, "if: env.CHAIN_MATCHES == 'true'")
+                self.assert_problems("this start can run when")
+
+
+class ConditionTest(unittest.TestCase):
+    def test_the_backup_condition_is_the_one_tested(self):
+        text = (ROOT / BACKUP).read_text(encoding="utf-8")
+        a, b = step_span(text, "backup", "Start a local stack from the applied chain")
+        self.assertEqual(text[a:b].count(f"        {BACKUP_IF}\n"), 1)
+        self.assertEqual(WAITS[1][0], BACKUP_IF.removeprefix("if: "))
+
+    def test_conditions_that_wait_for_the_reservation(self):
+        for condition, _ in WAITS:
+            with self.subTest(condition):
+                self.assertTrue(csp.waits_for(condition, GUARD))
+
+    def test_conditions_that_do_not(self):
+        for condition, why in REFUSED:
+            with self.subTest(condition, why=why):
+                self.assertFalse(csp.waits_for(condition, GUARD))
+
+    def test_terms(self):
+        for condition, expected in WAITS:
+            if expected is not None:
+                with self.subTest(condition):
+                    self.assertEqual(csp.terms(condition), expected)
+        self.assertEqual(
+            csp.terms(WAITS[6][0]), ["contains(fromJSON('[1]')[0] && 'x', 'x')", GUARD]
+        )
+        self.assertEqual(csp.terms(""), [""])
+        self.assertEqual(csp.terms("${{ }}"), [""])
+        self.assertEqual(csp.terms("a&&b"), ["a", "b"])
+        self.assertEqual(csp.terms("a && b &&"), ["a", "b", ""])
+        self.assertEqual(
+            csp.terms("(a || (b && c)) && d[e || f]"), ["(a || (b && c))", "d[e || f]"]
+        )
+        self.assertEqual(csp.terms("${{a}}"), ["a"])
+        self.assertEqual(csp.terms(" a \t&&\r\n b "), ["a", "b"])
+        self.assertEqual(csp.terms("a\u00a0&& b"), ["a\u00a0", "b"])
+        self.assertEqual(csp.terms("${{ a == '}}' }}"), ["a == '}}'"])
+
+    def test_what_is_not_only_terms(self):
+        for condition in (
+            "a || b",
+            "a && b || c",
+            "(a) || (b)",
+            "a)",
+            "(a",
+            "a]",
+            "[a",
+            "a && (b",
+            "'a",
+            "a == 'b''",
+            "${{ a }} && b",
+            "a && ${{ b }}",
+            "${{ a }} ${{ b }}",
+            "${{ a",
+            "a }}",
+            "${{ ${{ a }} }}",
+            "${{ a }}\n",
+            " ${{ a }}",
+            "${{ a }}}",
+            "a && {b}",
+            "a == '${{'",
+        ):
+            with self.subTest(condition):
+                self.assertIsNone(csp.terms(condition))
 
 
 class StartsStackTest(unittest.TestCase):
@@ -310,6 +633,8 @@ class StartsStackTest(unittest.TestCase):
             "supabase --debug --workdir=. db start",
             "supabase db --workdir . start",
             "npx supabase start",
+            "npx supabase@2.122.1 start -x studio",
+            "pnpm dlx supabase@latest --workdir . db start",
             "supabase \\\n  start -x studio",
             "supabase \\\n  --workdir . \\\n  db start",
             "make test-uat",
