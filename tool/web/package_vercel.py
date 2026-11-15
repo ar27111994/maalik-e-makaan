@@ -51,8 +51,8 @@ only as written: one asked for with a slash more
 (`/.well-known//assetlinks.json`, `//main.dart.js`) is another path, which
 gets the page of 5 in tool/web/serve_output.py (test_package_vercel pins it);
 whether Vercel's filesystem step reads `//.well-known/assetlinks.json` as the
-file is not documented, so that one may get either answer there. Until the
-release after the move's (docs/operations.md, Domains, step 12),
+file is not documented, so that one may get either answer there. Up to
+release 1.4.0 (docs/operations.md, Domains, step 12),
 /auth/callback was kept too, for e-mail links whose sign-in verifier was in
 that address's storage; it now gets the page like every other path.
 Every response carries the security headers and `no-cache`, so browsers ask

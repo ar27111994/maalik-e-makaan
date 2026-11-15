@@ -849,7 +849,8 @@ variable at all (Moving again).
     address's `/auth/callback` with the page too, so it clears that address's storage and sends
     people on like every other path. The old address then serves only files: `assetlinks.json`,
     and the app's other files for tabs still open there (Hosting). From its merge every release
-    from `main` carries it, so none is cut before that time (1.3.1 went without it). After its
+    from `main` carries it, so none is cut before that time (1.3.1 and 1.4.0 went without it).
+    After its
     deploy, the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone (or removes it,
     which means `APP_URL`'s origin), and checks it by hand: open
     `https://maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, add a key `flutter.x` in the

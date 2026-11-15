@@ -499,7 +499,7 @@ In order. Record each in `.planning/STATE.md` when it is done.
         address's `/auth/callback` with the page too, so it clears and sends people on like every
         other path; the old address then serves only files, `assetlinks.json` and the app's other
         files for tabs still open there. From its merge every release from `main` carries it, so
-        none is cut before that time (1.3.1 went without it). After its deploy, yours:
+        none is cut before that time (1.3.1 and 1.4.0 went without it). After its deploy, yours:
         `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone, then the check by hand that
         `docs/operations.md`, Domains, step 12, describes (a `flutter.x` key set on the old address
         is gone after opening its `/auth/callback?code=x`, which lands on the new address). A link
