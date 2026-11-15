@@ -328,6 +328,21 @@ void main() {
       },
     );
 
+    test('a write for an epoch the cache was cleared since is never written, '
+        'even of an own entry, by a store that keeps it and never answers', () {
+      final profile = OwnScope.profile<int>();
+      final epoch = cache.epoch;
+      store.landingSilently.add(key(profile.tagOf(1), 'profile'));
+      return Future(() async {
+        await cache.clear();
+        unawaited(
+          cache.write(_user, 'profile', profile, 1, _same, epoch: epoch),
+        );
+        await pumpEventQueue();
+        expect(store.values, isEmpty);
+      });
+    });
+
     test('a write still on its way when the cache is cleared is deleted as '
         'it lands', () async {
       final slow = _SlowStore()..held = Completer();
@@ -892,13 +907,20 @@ void main() {
 
     test('a newer write wins over an older one whose copy-removal comes '
         'late', () async {
-      store.hangingKeys = true;
+      final listing = store.keysHeld = Completer();
       await putRows('leases.u1.-', [_a]);
       await putRows('leases.u1.-', const <String?>[]);
-      store.hangingKeys = false;
       await pumpEventQueue();
       // Both stay until a listing answers: neither removal ran.
       expect(store.values, hasLength(2));
+      // Both listings then name both copies: the older write's removal,
+      // no longer the newest, deletes nothing; the newer's deletes the
+      // older copy.
+      store.keysHeld = null;
+      listing.complete();
+      await pumpEventQueue();
+      expect(store.values.keys, [key(const UnknownTag(), 'leases.u1.-')]);
+      expect(await rows('leases.u1.-'), isEmpty);
     });
   });
 

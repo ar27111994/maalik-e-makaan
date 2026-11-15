@@ -855,9 +855,14 @@ final class MemoryStore implements KeyValueStore {
   /// hangs.
   bool hangingKeys = false;
 
+  /// While set, every listing of the keys waits for it, and then lists the
+  /// keys there are when it completes.
+  Completer<void>? keysHeld;
+
   @override
   Future<Set<String>> keys() async {
     if (hangingKeys) await Completer<void>().future;
+    if (keysHeld case final held?) await held.future;
     final failure = keysFailure;
     if (failure != null) throw failure;
     return values.keys.toSet();

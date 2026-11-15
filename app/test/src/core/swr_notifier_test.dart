@@ -209,6 +209,38 @@ void main() {
     expect(await savedCount(), 5);
   });
 
+  group('in the session after a wipe, a value made from the one on show is '
+      'saved', () {
+    test('when the query built for it brought that one', () async {
+      await cache.clear();
+      container.invalidate(_count);
+      await pumpEventQueue();
+      held.complete(4);
+      await pumpEventQueue();
+      final notifier = container.read(_count.notifier);
+      // "Load more": made from the value on show.
+      await notifier.show(5, epoch: notifier.shownEpoch);
+      expect(await savedCount(), 5);
+    });
+
+    test('when a reload brought that one', () async {
+      await cache.clear();
+      container.invalidate(_count);
+      await pumpEventQueue();
+      // The query built for the session cannot read the server...
+      held.completeError(const NetworkFailure());
+      await pumpEventQueue();
+      expect(saved(), isEmpty);
+      // ...and a reload can.
+      held = Completer()..complete(6);
+      final notifier = container.read(_count.notifier);
+      await notifier.reload();
+      expect(await savedCount(), 6);
+      await notifier.show(7, epoch: notifier.shownEpoch);
+      expect(await savedCount(), 7);
+    });
+  });
+
   test('nobody signed in: nothing is shown or saved', () async {
     final signedOut = ProviderContainer.test(
       overrides: [
