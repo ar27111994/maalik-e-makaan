@@ -23,7 +23,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   clears anything; App Links on both hosts; `redirect_smoke_test.sh` in CI and after each
   deploy. Release builds and attaches nothing until its `preflight` job has checked that the web
   app's origin answers (`tool/web/check_live.py`) and that Auth allows every build's e-mail links
-  (`tool/web/check_auth_urls.py`, which Deploy's `supabase` job also runs before the backend);
+  (`tool/web/check_auth_urls.py`, which Deploy's `supabase` job also runs before the backend; a
+  token that may not read Auth's settings only warns, and what the check gates goes ahead);
   Deploy's web app also waits for the Edge Functions to accept the origin, and the website goes
   out only after the web app it links to. The web app answers `X-Robots-Tag: noindex`. After
   CodeRabbit's review of dca00eb (2026-11-14): the Auth check gates the builds too, the Android

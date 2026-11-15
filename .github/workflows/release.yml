@@ -6,7 +6,8 @@
 # the web app at once, the website once those builds and the web app's deploy
 # have finished. The builds start only once the web app's origin answers
 # (tool/web/check_live.py), since every one of them names it, and Auth allows
-# the e-mail link callbacks they send (tool/web/check_auth_urls.py).
+# the e-mail link callbacks they send (tool/web/check_auth_urls.py; a token
+# that may not read Auth's settings only warns there, and the builds go ahead).
 name: Release
 
 on:

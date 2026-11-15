@@ -386,9 +386,12 @@ In order. Record each in `.planning/STATE.md` when it is done.
     `claude/domain-mmakaan` does the rest in the repository. The Release workflow builds nothing
     until the new web app address answers (step 3) and Auth allows its callbacks (step 4); Deploy
     deploys the backend only once step 4 holds, the web app only once its address answers and
-    steps 4 and 5 hold, and the website only once the site's addresses answer. `docs/operations.md`, Domains, has each step in full, in the same
-    order. **On 14 November 2026:** steps 2 to 5 are done, and half of step 8 ahead of its place;
-    the merge and the release (steps 6 and 7) are next, before Wednesday 18 November 2026.
+    steps 4 and 5 hold, and the website only once the site's addresses answer. The check of step 4
+    holds anything back only while the token may read Auth's settings: with one that may not, it
+    warns, and the builds and the backend go ahead unchecked (step 7). `docs/operations.md`,
+    Domains, has each step in full, in the same order. **On 14 November 2026:** steps 2 to 5 are
+    done, and half of step 8 ahead of its place; the merge and the release (steps 6 and 7) are
+    next, before Wednesday 18 November 2026.
 
     **`APP_URL` was moved early (the owner, 14 November 2026)**, in both places: the Edge Function
     secret and the GitHub repository variable hold `https://app.mmakaan.app`. Until the release:

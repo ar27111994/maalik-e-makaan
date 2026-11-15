@@ -457,16 +457,18 @@ cannot answer for them. Each check stops the jobs that wait for it, and only tho
   lists it in its App Links, where on Android 6 to 11 one host that fails costs every host's links.
   It then checks that Auth allows the e-mail links the builds send (`tool/web/check_auth_urls.py`,
   step 4 below): a callback Auth does not allow gets its links at the Site URL, where no build
-  finishes the sign-in, and an APK cannot be recalled. Deploy's `web` job checks the origin again
-  before it builds.
+  finishes the sign-in, and an APK cannot be recalled. With a token that may not read Auth's
+  settings (HTTP 401 or 403) that check only warns and stops nothing: step 7 below says what to
+  compare by hand then. Deploy's `web` job checks the origin again before it builds.
 - Deploy's `site` job deploys nothing until the site's origin answers, `www` redirects to it, and
   the web app the site links to is the deployment built for its origin: the web app's earlier
   address must already send people on to it, with its page or a 308
   (`tool/web/check_live.py site`). Release also deploys the website only after the web app's deploy
   has succeeded.
 - Deploy's `supabase` job deploys nothing until Auth allows the e-mail links of the release's builds
-  (the same `tool/web/check_auth_urls.py`), and its `web` job, which waits for it, builds nothing
-  until the Edge Functions accept the origin (step 5).
+  (the same `tool/web/check_auth_urls.py`, and the same warning in place of a check when the token
+  may not read Auth's settings), and its `web` job, which waits for it, builds nothing until the
+  Edge Functions accept the origin (step 5).
 - Release's `deploy` call runs beside `preflight` and the builds. So when the Edge Functions refuse
   the origin, only the web app's deploy stops (and the website after it): the builds may already be
   attached and the backend deployed, which is harmless, since apps send no `Origin` and only a
@@ -766,8 +768,9 @@ answer with takes the origin from the file, and each address in `legacy` gets it
 order above: DNS and HTTPS, Auth's redirect URLs and `ALLOWED_ORIGINS` first, then merge and
 release, then Auth's Site URL and `APP_URL` (the secret, and no repository variable). Release
 builds nothing until the new origin answers and Auth allows its callbacks; Deploy deploys the
-backend only once Auth does, and the web app only once all three first steps hold (Checked before
-anything is deployed, above).
+backend only once Auth does, and the web app only once all three first steps hold. A token that
+may not read Auth's settings turns the Auth check into a warning (Checked before anything is
+deployed, above).
 
 ## Deployment (GitHub Actions)
 
@@ -1015,8 +1018,9 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    `"release-as"`, removed straight after it was tagged.)
 3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
    checks that the web app's origin answers and that Auth allows the builds' callbacks
-   (`preflight`; nothing is built or attached otherwise, Domains), builds
-   the signed Android app and the web app and attaches them (`artefacts`), builds and attaches the
+   (`preflight`; nothing is built or attached otherwise, except that a token which may not read
+   Auth's settings only warns: Domains), builds the signed Android app and the web app and
+   attaches them (`artefacts`), builds and attaches the
    unsigned iOS app (`ios`), and calls the Deploy workflow for the tag twice: at once for the
    backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
    finished and `deploy` has succeeded (`site`), since its download page links to the files they
