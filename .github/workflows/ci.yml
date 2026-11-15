@@ -404,6 +404,12 @@ jobs:
         run: supabase test db
       - name: Edge Functions end to end
         run: make test-functions-e2e
+      # If the stack could not bind a port, show what holds it and what was reserved.
+      - name: Sockets on the stack's ports
+        if: failure()
+        run: |
+          echo "Reserved: $(cat /proc/sys/net/ipv4/ip_local_reserved_ports)"
+          sudo ss -Htanp | grep -E ':5432[0-9]\b' || echo "No socket on ports 54320 to 54329 now."
       # A stack that failed to start leaves no container: say so instead of
       # failing this step and hiding the error above.
       - name: Function logs
@@ -477,6 +483,12 @@ jobs:
             ${{ runner.temp }}/uat-screenshots/
           if-no-files-found: ignore
           retention-days: 14
+      # If the stack could not bind a port, show what holds it and what was reserved.
+      - name: Sockets on the stack's ports
+        if: failure()
+        run: |
+          echo "Reserved: $(cat /proc/sys/net/ipv4/ip_local_reserved_ports)"
+          sudo ss -Htanp | grep -E ':5432[0-9]\b' || echo "No socket on ports 54320 to 54329 now."
       # The page as Playwright last saw it (its accessibility snapshot), so a
       # failure can be read from the log; the data is the journeys' own.
       - name: Page at the failure
