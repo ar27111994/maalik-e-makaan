@@ -146,8 +146,10 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
 - A job that puts files on a GitHub release attests them first and attaches their provenance:
   the attest step (`actions/attest-build-provenance`, `subject-path: dist/*`), then a step that
   copies its Sigstore bundle into `dist/` as a `.intoto.jsonl` file and checks it with
-  `gh attestation verify --bundle` against every file, with `--source-ref refs/heads/main`, then
-  one `gh release upload` of `dist/*` with `--clobber`, back to back, with no `if:`,
+  `gh attestation verify --bundle` against every build file there (all but the provenance file
+  itself, the bundle they are checked against), with `--source-ref refs/heads/main`, then
+  one `gh release upload` of `dist/*`, the provenance file included, with `--clobber`, back to
+  back, with no `if:`,
   `continue-on-error`, `shell:` or `working-directory:` (a default shell, where set, is `bash`,
   which keeps `-e`; no default working directory). The check step's run is exactly its six lines,
   so it cannot skip a file or lose a failure, and the upload's run is exactly its one command,
@@ -157,9 +159,14 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   check reads both runs as bash does and refuses what it could read otherwise (a comment that
   ends in a backslash, a here-document, a quoted string over two lines, a carriage return or a
   no-break space among others), and the provenance file's name starts with a letter or a digit,
-  since `dist/*` leaves out a hidden file. `tool/github/check_release_provenance.py` (`make lint`, the pre-commit hook) enforces it, and
-  refuses other ways of uploading, deleting a release or its files, and gh aliases and
-  extensions. Why, and what Scorecard counts: `docs/operations.md`, Release
+  since `dist/*` leaves out a hidden file; no two jobs give it the same name, as GitHub reads
+  the `${{ }}` in it. `tool/github/check_release_provenance.py` (`make lint`, the pre-commit
+  hook) enforces it, and refuses other ways of uploading, deleting a release or its files, and gh
+  aliases and extensions, with gh's flags before the subcommand skipped as gh skips them
+  (`gh release -R x upload`). It reads only the workflow files: an upload by a script or program
+  a step runs, by a gh alias or extension already on the runner, or by text built at run time is
+  not seen, and a reviewer reads those by hand (`docs/operations.md`, Release provenance, What
+  the check cannot see). Why, and what Scorecard counts: `docs/operations.md`, Release
   provenance.
 
 ## Design

@@ -119,9 +119,10 @@ by one.
   Actions are pinned to commit hashes.
 - Concurrency and money logic are formally checked (`formal/`), and the website's money
   calculators have property-based tests (fast-check).
-- Each release carries the build provenance of its files, checked against every file before it
-  is attached, and a check in `make lint` keeps the workflow that way (Checking a download,
-  above).
+- Each release carries the build provenance of its files, checked against each of them before
+  they are attached, and a check in `make lint` keeps the workflow that way (Checking a download,
+  above). The check reads only the workflow file, so an upload by a script or program a step
+  runs is left to review (`docs/operations.md`, Release provenance, names each such path).
 
 Common classes of error, and what stops each one:
 

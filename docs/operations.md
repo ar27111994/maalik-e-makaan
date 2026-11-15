@@ -1110,9 +1110,12 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    jobs), which deploys the website again afterwards. A build that keeps failing (the optional
    iOS one after a macOS runner change, say) leaves those links out until a release has them,
    and holds up nothing else. A build whose attest step or "Provenance file, checked against
-   every file it covers" step failed has attached nothing: if the log points at Sigstore or
-   GitHub's attestation API, check githubstatus.com (Actions, API) and status.sigstore.dev, wait,
-   then re-run the failed job. Then run the daily query of Monitoring and alerts.
+   every file it covers" step failed has attached nothing in that attempt, but files an earlier
+   attempt's upload left on the release when it stopped part-way stay there (Release provenance,
+   Re-runs): look at the release's files (`gh release view vX.Y.Z --json assets`, or the release
+   page) before taking it to have none. If the log points at Sigstore or GitHub's attestation
+   API, check githubstatus.com (Actions, API) and status.sigstore.dev, wait, then re-run the
+   failed job. Then run the daily query of Monitoring and alerts.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
    `git diff --stat <previous tag> vX.Y.Z -- supabase/templates/` lists it), paste that body into
    its Auth template in the dashboard (E-mail, step 6), with the subject from
@@ -1163,10 +1166,12 @@ copies the attestation's bundle into `dist/` and attaches it with the files:
 The file is JSON Lines, one Sigstore bundle on its one line, and `gh attestation verify --bundle`
 reads it (`SECURITY.md`, Checking a download, has the commands; `slsa-verifier` does not apply).
 It is not in `SHA256SUMS`, which is one of its subjects and written before it; its own signature
-protects it. Before the upload, the job checks it against every file in `dist/` with
-`gh attestation verify --bundle`, with the options `SECURITY.md` gives, and logs `gh --version`.
-The source ref is `refs/heads/main`, written literally, so a run started by hand (Run workflow)
-from another branch fails there and attaches nothing: start Release by hand from `main` only.
+protects it. Before the upload, the job checks it against every build file in `dist/` (all but
+the provenance file itself, the bundle they are checked against, which the upload then attaches
+with them) with `gh attestation verify --bundle`, with the options `SECURITY.md` gives, and logs
+`gh --version`. The source ref is `refs/heads/main`, written literally, so a run started by hand
+(Run workflow) from another branch fails there and attaches nothing in that run: start Release
+by hand from `main` only.
 `tool/github/check_release_provenance.py` (`make lint`) keeps the attest step, that check and the
 one upload together, with no `if:`, `continue-on-error`, `shell:` or `working-directory:` on
 them, and no `defaults.run.working-directory` on the job or the workflow (either would move
@@ -1189,17 +1194,37 @@ space, a tab and a line feed that Python reads as white space or as nothing. The
 file's name starts with a letter or a digit and holds only letters, digits, `.`, `_`, `-` and
 plain context properties such as `${{ needs.release-please.outputs.tag }}` (an expression with a
 literal or a function in it could put a `#` or a space there): `dist/*`, in the check's loop and in the upload, leaves out a name that
-starts with a dot, so a hidden provenance file would never be attached. In every
+starts with a dot, so a hidden provenance file would never be attached. No two jobs may name
+the same provenance file, compared as GitHub reads the names (white space inside `${{ }}`
+dropped and the expression's case ignored), since each `--clobber` upload would replace the
+other's. In every
 workflow it refuses other ways of putting files on a release: `gh release create`, a
 release-upload action, and the REST upload by its URL or its client libraries' names; ways of
 taking them off (`gh release delete` and `delete-asset`, a `DELETE` on a release URL, the client
 libraries' delete calls), which would leave a release without its provenance file; and a gh
 alias or extension, which could upload under another name. It looks for them in every value of
 every step (so also in an `actions/github-script` script), and in a run once its quoting is read
-(`gh release $'upload'` counts). It reads only the workflow files, as PyYAML parses them: an
-upload from a script file a step runs or through text built at run time, a gh alias read from a
-configuration directory in the repository, or a `GH_REPO` an earlier step writes to
-`$GITHUB_ENV`, is for the reviewer to catch.
+(`gh release $'upload'` counts). It finds the subcommand as gh does, past the flags gh skips
+first and a value after each (`gh release -R "$GITHUB_REPOSITORY" upload` and
+`gh release --repo=x delete` count); since only gh knows which flags take a value, a word after
+a flag counts as the subcommand too. `gh release view`, `list`, `download` and `edit` attach and
+delete nothing, and are left alone.
+
+**What the check cannot see.** It reads only the workflow files, as PyYAML parses them, and runs
+none of what they run. So these can still put a file on a release, or take one off, unseen:
+
+- a script or program a step runs (`./attach.sh`, `node attach.js`, `python3 tool/x.py`, a
+  built binary), which can call `gh` or the REST API itself;
+- an action that is not in the check's list of release-upload actions;
+- a gh alias or extension already configured on the runner, or read from a configuration
+  directory in the repository (`GH_CONFIG_DIR`);
+- text built at run time (`$(printf upload)`, a shell variable or function);
+- a variable an earlier step writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload
+  elsewhere, a `BASH_ENV` or `BASH_FUNC_*` for every later step).
+
+A reviewer reads these paths by hand in every pull request that changes a workflow, or a script,
+program or action a workflow's job runs: what each one sends to GitHub, and what each step writes
+to `$GITHUB_ENV`. The check's docstring and the shorter mentions elsewhere point here.
 
 **Re-runs.** "Re-run failed jobs" runs the whole job again on a new runner: a new build, a new
 attestation and a new provenance file, under the same names, so `--clobber` replaces every file.
