@@ -143,6 +143,14 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   (its `zizmor-pin` check) keeps the two versions equal, and `tool/requirements-lint.in` equal
   to the lockfile. A finding is fixed; an exception is an inline `# zizmor: ignore[<audit>]`
   with its reason, agreed in review.
+- A job that puts files on a GitHub release attests them first and attaches their provenance:
+  the attest step (`actions/attest-build-provenance`, `subject-path: dist/*`), then a step that
+  copies its Sigstore bundle into `dist/` as a `.intoto.jsonl` file and checks it with
+  `gh attestation verify --bundle` against every file, with `--source-ref refs/heads/main`, then
+  one `gh release upload` of `dist/*` with `--clobber`, back to back and none of them skippable.
+  `tool/github/check_release_provenance.py` (`make lint`, the pre-commit hook) enforces it, and
+  refuses other ways of uploading. Why, and what Scorecard counts: `docs/operations.md`, Release
+  provenance.
 
 ## Design
 
