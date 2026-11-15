@@ -45,8 +45,8 @@ accounts you own, and gives us reasonable time to fix before disclosure.
 
 ## Checking a download
 
-From the release after v1.3.0, each release carries, beside its files, the build provenance that
-GitHub recorded for them when the Release workflow built them:
+From v1.4.0 on, each release carries, beside its files, the build provenance that GitHub
+recorded for them when the Release workflow built them:
 
 - `maalik-e-makaan-vX.Y.Z.intoto.jsonl` covers the app bundle, the three APKs, the web zip, the
   debug symbols and `SHA256SUMS`;
@@ -87,7 +87,7 @@ compared only with the repository and owner names recorded in the certificate wh
 **Online, with a GitHub account.** Leave out `--bundle`, and `gh` fetches the provenance from
 GitHub's attestation store, which also confirms that it belongs to the repository that has the
 name today. This form needs `gh` signed in (`gh auth login`, with any GitHub account) or a token
-in `GH_TOKEN`, even though the repository is public. It also works for v1.0.0 to v1.3.0, which
+in `GH_TOKEN`, even though the repository is public. It also works for v1.0.0 to v1.3.1, which
 have no provenance file attached: their builds attested every file they attached except
 `SHA256SUMS-ios`, so that one file cannot be checked this way.
 

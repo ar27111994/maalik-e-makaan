@@ -507,7 +507,7 @@ In order. Record each in `.planning/STATE.md` when it is done.
         manifest the old host (a date, or the oldest version still in use).
 
 Optional, after the first release that carries its own provenance files has checked out
-(`SECURITY.md`, Checking a download): attach provenance files to v1.0.0 to v1.3.0 with the
+(`SECURITY.md`, Checking a download): attach provenance files to v1.0.0 to v1.3.1 with the
 procedure in `docs/operations.md`, Release provenance. It only adds files, after they verify, and
 raises Scorecard's Signed-Releases to 10 at once instead of over five releases.
 

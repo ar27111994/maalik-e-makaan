@@ -1058,7 +1058,10 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
    finished and `deploy` has succeeded (`site`), since its download page links to the files they
    attached and to the web app. Each deployment waits for a reviewer when the `production`
-   environment requires one.
+   environment requires one. **Who merges it, and when (the owner, 15 November 2026):** the
+   agent merges the release pull request without asking each time, once everything meant for
+   the release is merged and every check on it is green. That standing word covers releases
+   only: any other change outside the repository is still the owner's to approve.
 4. Watch both Deploy calls: each job ends with its smoke test, and the `supabase` job with a call
    to `health`. If `artefacts` or `ios` failed, the website still describes the new release, but
    its download page has no links to that build's files; re-run the failed job (Re-run failed
@@ -1113,7 +1116,7 @@ copies the attestation's bundle into `dist/` and attaches it with the files:
 - `artefacts`: `maalik-e-makaan-vX.Y.Z.intoto.jsonl`, covering the app bundle, the three APKs, the
   web zip, the debug symbols and `SHA256SUMS`;
 - `ios`: `maalik-e-makaan-vX.Y.Z-ios.intoto.jsonl`, covering the `.ipa` and `SHA256SUMS-ios`
-  (before the release after v1.3.0 this job attested the `.ipa` alone).
+  (before v1.4.0 this job attested the `.ipa` alone).
 
 The file is JSON Lines, one Sigstore bundle on its one line, and `gh attestation verify --bundle`
 reads it (`SECURITY.md`, Checking a download, has the commands; `slsa-verifier` does not apply).
@@ -1142,12 +1145,12 @@ store, for files no longer on the release; that is harmless.
 file names: a release with a name ending in `.intoto.jsonl` scores 10; one with only a signature
 (`.asc`, `.minisig`, `.sig`, `.sign`, `.sigstore`, `.sigstore.json`) 8; one with neither 0. It
 looks at the five newest of the 30 most recent releases, leaves out any of those five that has no
-files, and takes the floor of the mean. Nothing is downloaded or verified. With six releases
-(v1.0.0 to v1.3.0) and none carrying a provenance file, the next release scores 2, the one after
-4, and the fifth from now 10. Scorecard's `main` also scores an immutable release 10; v5.6.0
+files, and takes the floor of the mean. Nothing is downloaded or verified. With seven releases
+(v1.0.0 to v1.3.1) and none carrying a provenance file, v1.4.0 scores 2, the release after it
+4, and the fifth such release 10. Scorecard's `main` also scores an immutable release 10; v5.6.0
 does not.
 
-**Past releases (optional, the owner's own step).** v1.0.0 to v1.3.0 carry no provenance file,
+**Past releases (optional, the owner's own step).** v1.0.0 to v1.3.1 carry no provenance file,
 but GitHub still holds their builds' attestations, so the online check already works for their
 files (except `SHA256SUMS-ios`, which those runs did not attest). Attaching the files to them
 would only raise the Scorecard score at once instead of release by release, and let their files
@@ -1174,7 +1177,7 @@ gh release upload "$tag" maalik-e-makaan-"$tag"*.intoto.jsonl --repo "$repo"
 
 `gh attestation download` writes the bundles for a file's digest to `sha256:<digest>.jsonl`; a
 job re-run on the same files would give two lines, both valid. If any check fails, leave that
-release as it is. Do it once the next release's own provenance files have checked out.
+release as it is. Do it once v1.4.0's own provenance files have checked out.
 
 ### Store icons
 
@@ -1245,7 +1248,7 @@ may have changed since):
   bypass), 1 required approval where Scorecard wants 2, code-owner review is not required, and
   "up-to-date branches" is off. Signed-Releases 0: release files carried no signature or
   provenance file (the provenance that `release.yml` attested was kept by GitHub, not attached
-  to the release); from the release after v1.3.0 each build attaches it as a `.intoto.jsonl`
+  to the release); from v1.4.0 on each build attaches it as a `.intoto.jsonl`
   file, and the score rises by 2 with each release, to 10 at the fifth (Releasing, Release
   provenance). Contributors 3 (one organisation), CII-Best-Practices 5 (the passing badge), and
   Packaging not detected. Every other check scored 10.
@@ -1253,8 +1256,8 @@ may have changed since):
 **Who can change what.**
 
 - In the repository: Signed-Releases. `release.yml` attaches each build's provenance file from
-  the release after v1.3.0, so the score rises with each release. Attaching provenance files to
-  v1.0.0 to v1.3.0 would reach 10 at once; that is the owner's optional step (Releasing, Release
+  v1.4.0 on, so the score rises with each release. Attaching provenance files to the five
+  newest releases before it would reach 10 at once; that is the owner's optional step (Releasing, Release
   provenance).
 - With time and steady reviewed work: Maintained and Code-Review.
 - The owner's settings: the admin bypass and "up-to-date branches". Removing the bypass and
