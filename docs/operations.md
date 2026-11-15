@@ -385,7 +385,8 @@ Three things on the site update themselves, so a release needs no copy edits for
   `.release-please-manifest.json` (`website/src/lib/release.ts`). The Release workflow deploys the
   site at the tag it has just made, so they always show that release; from version 1.0.0 the
   site describes the app as available rather than in development. The download page links to the
-  APKs, the unsigned iOS app, the web zip and `SHA256SUMS`, which exist only once Release's
+  APKs, the unsigned iOS app, the web zip and `SHA256SUMS` (not to the provenance files, which it
+  mentions with a link to `SECURITY.md`, Checking a download), which exist only once Release's
   `artefacts` and `ios` jobs have attached them. So the `site` job lists the files attached when
   it runs (`website/src/data/release-assets.json`) and the page links to those alone, and Release
   deploys the site after both builds have finished (Deployment, below). A build that fails, even
@@ -928,7 +929,8 @@ There is no Apple Developer Program membership yet, so nothing signs the iOS app
 `ios-build` job builds it for iPhone without signing on every push and pull request, which keeps it
 compiling, and keeps the result for 14 days as the `ios-unsigned-ipa` artefact. Each release
 attaches `maalik-e-makaan-vX.Y.Z-ios-unsigned.ipa`, built with production's configuration, with
-its checksum in `SHA256SUMS-ios` and a provenance attestation.
+its checksum in `SHA256SUMS-ios`, both covered by the provenance file
+`maalik-e-makaan-vX.Y.Z-ios.intoto.jsonl` (Releasing, Release provenance).
 
 An unsigned `.ipa` installs on no iPhone as it is. To try it on your own phone:
 
@@ -1024,8 +1026,9 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    checks that the web app's origin answers and that Auth allows the builds' callbacks
    (`preflight`; nothing is built or attached otherwise, except that a token which may not read
    Auth's settings only warns: Domains), builds the signed Android app and the web app and
-   attaches them (`artefacts`), builds and attaches the
-   unsigned iOS app (`ios`), and calls the Deploy workflow for the tag twice: at once for the
+   attaches them (`artefacts`), builds and attaches the unsigned iOS app (`ios`), each build with
+   its provenance file beside it (Release provenance, below), and calls the Deploy workflow for
+   the tag twice: at once for the
    backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
    finished and `deploy` has succeeded (`site`), since its download page links to the files they
    attached and to the web app. Each deployment waits for a reviewer when the `production`
@@ -1035,7 +1038,10 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    its download page has no links to that build's files; re-run the failed job (Re-run failed
    jobs), which deploys the website again afterwards. A build that keeps failing (the optional
    iOS one after a macOS runner change, say) leaves those links out until a release has them,
-   and holds up nothing else. Then run the daily query of Monitoring and alerts.
+   and holds up nothing else. A build whose attest step or "Provenance file, checked against
+   every file it covers" step failed has attached nothing: if the log points at Sigstore or
+   GitHub's attestation API, check githubstatus.com (Actions, API) and status.sigstore.dev, wait,
+   then re-run the failed job. Then run the daily query of Monitoring and alerts.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
    `git diff --stat <previous tag> vX.Y.Z -- supabase/templates/` lists it), paste that body into
    its Auth template in the dashboard (E-mail, step 6), with the subject from
@@ -1069,6 +1075,77 @@ offset: lowering it later would put a Play build below an APK already in someone
 release-please titles its pull request `chore(release): release X.Y.Z`
 (`pull-request-title-pattern` in `release-please-config.json`), which the title check and
 commitlint accept; commitlint skips that commit's generated changelog body.
+
+### Release provenance
+
+Both build jobs attest every file in `dist/` with `actions/attest-build-provenance`, so GitHub
+keeps a signed build provenance attestation for each (a Sigstore bundle holding an in-toto
+statement with SLSA provenance v1). The attestation in GitHub's store is not on the release, and
+OpenSSF Scorecard's Signed-Releases check reads only the release's file names. So each job then
+copies the attestation's bundle into `dist/` and attaches it with the files:
+
+- `artefacts`: `maalik-e-makaan-vX.Y.Z.intoto.jsonl`, covering the app bundle, the three APKs, the
+  web zip, the debug symbols and `SHA256SUMS`;
+- `ios`: `maalik-e-makaan-vX.Y.Z-ios.intoto.jsonl`, covering the `.ipa` and `SHA256SUMS-ios`
+  (before the release after v1.3.0 this job attested the `.ipa` alone).
+
+The file is JSON Lines, one Sigstore bundle on its one line, and `gh attestation verify --bundle`
+reads it (`SECURITY.md`, Checking a download, has the commands; `slsa-verifier` does not apply).
+It is not in `SHA256SUMS`, which is one of its subjects and written before it; its own signature
+protects it. Before the upload, the job checks it against every file in `dist/` with
+`gh attestation verify --bundle`, with the options `SECURITY.md` gives, and logs `gh --version`.
+The source ref is `refs/heads/main`, written literally, so a run started by hand (Run workflow)
+from another branch fails there and attaches nothing: start Release by hand from `main` only.
+`tool/github/check_release_provenance.py` (`make lint`) keeps the attest step, that check and the
+one upload together, and none of them skippable.
+
+**Re-runs.** "Re-run failed jobs" runs the whole job again on a new runner: a new build, a new
+attestation and a new provenance file, under the same names, so `--clobber` replaces every file.
+A job that ends green leaves a provenance file and a `SHA256SUMS` that match every file beside
+them. If an upload is cut off part-way, the release can hold files from two attempts; the
+provenance file and `SHA256SUMS` then do not match the mixed set, and the `--bundle` check and
+`sha256sum -c` fail for the files of the other attempt (the online check still passes, since
+GitHub keeps both attempts' attestations, and each file was built by the workflow). Re-run until
+the job is green, which restores a matching set. A failed attempt's attestations stay in GitHub's
+store, for files no longer on the release; that is harmless.
+
+**What Scorecard counts** (v5.6.0, `checks/evaluation/signed_releases.go` and its probes). Only
+file names: a release with a name ending in `.intoto.jsonl` scores 10; one with only a signature
+(`.asc`, `.minisig`, `.sig`, `.sign`, `.sigstore`, `.sigstore.json`) 8; one with neither 0. It
+looks at the five newest of the 30 most recent releases, leaves out any of those five that has no
+files, and takes the floor of the mean. Nothing is downloaded or verified. With six releases
+(v1.0.0 to v1.3.0) and none carrying a provenance file, the next release scores 2, the one after
+4, and the fifth from now 10. Scorecard's `main` also scores an immutable release 10; v5.6.0
+does not.
+
+**Past releases (optional, the owner's own step).** v1.0.0 to v1.3.0 carry no provenance file,
+but GitHub still holds their builds' attestations, so the online check already works for their
+files (except `SHA256SUMS-ios`, which those runs did not attest). Attaching the files to them
+would only raise the Scorecard score at once instead of release by release, and let their files
+be checked offline. It is not part of releasing and nothing runs it; if the owner chooses to,
+with their own `gh` login and in a new, empty folder, for each tag:
+
+```sh
+repo=ar27111994/maalik-e-makaan tag=v1.3.0
+gh release download "$tag" --repo "$repo"
+gh attestation download SHA256SUMS --repo "$repo"
+mv -- sha256:*.jsonl "maalik-e-makaan-$tag.intoto.jsonl"
+for f in SHA256SUMS *.aab *.apk *-web.zip *-debug-symbols.zip; do
+  gh attestation verify "$f" --bundle "maalik-e-makaan-$tag.intoto.jsonl" --repo "$repo" \
+    --signer-workflow "$repo/.github/workflows/release.yml" --source-ref refs/heads/main
+done
+gh attestation download "maalik-e-makaan-$tag-ios-unsigned.ipa" --repo "$repo"
+mv -- sha256:*.jsonl "maalik-e-makaan-$tag-ios.intoto.jsonl"
+gh attestation verify "maalik-e-makaan-$tag-ios-unsigned.ipa" \
+  --bundle "maalik-e-makaan-$tag-ios.intoto.jsonl" --repo "$repo" \
+  --signer-workflow "$repo/.github/workflows/release.yml" --source-ref refs/heads/main
+# Only when every check above passed; without --clobber, so nothing is replaced:
+gh release upload "$tag" maalik-e-makaan-"$tag"*.intoto.jsonl --repo "$repo"
+```
+
+`gh attestation download` writes the bundles for a file's digest to `sha256:<digest>.jsonl`; a
+job re-run on the same files would give two lines, both valid. If any check fails, leave that
+release as it is. Do it once the next release's own provenance files have checked out.
 
 ### Store icons
 
@@ -1137,15 +1214,19 @@ may have changed since):
   without is pull request #64, and the score reaches 10 once it leaves that window.
   Branch-Protection 5, with four warnings: the rules do not apply to administrators (the
   bypass), 1 required approval where Scorecard wants 2, code-owner review is not required, and
-  "up-to-date branches" is off. Signed-Releases 0: release files carry no signature or
-  provenance file (the provenance that `release.yml` attests is kept by GitHub, not attached to
-  the release). Contributors 3 (one organisation), CII-Best-Practices 5 (the passing badge), and
+  "up-to-date branches" is off. Signed-Releases 0: release files carried no signature or
+  provenance file (the provenance that `release.yml` attested was kept by GitHub, not attached
+  to the release); from the release after v1.3.0 each build attaches it as a `.intoto.jsonl`
+  file, and the score rises by 2 with each release, to 10 at the fifth (Releasing, Release
+  provenance). Contributors 3 (one organisation), CII-Best-Practices 5 (the passing badge), and
   Packaging not detected. Every other check scored 10.
 
 **Who can change what.**
 
-- In the repository: Signed-Releases, since `release.yml` could attach signature or provenance
-  files to each release; whether to sign them is an open decision for the owner.
+- In the repository: Signed-Releases. `release.yml` attaches each build's provenance file from
+  the release after v1.3.0, so the score rises with each release. Attaching provenance files to
+  v1.0.0 to v1.3.0 would reach 10 at once; that is the owner's optional step (Releasing, Release
+  provenance).
 - With time and steady reviewed work: Maintained and Code-Review.
 - The owner's settings: the admin bypass and "up-to-date branches". Removing the bypass and
   turning on "up-to-date branches" are open decisions; neither has been made.

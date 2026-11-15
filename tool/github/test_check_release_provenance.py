@@ -502,5 +502,25 @@ class CommandsTest(unittest.TestCase):
         self.assertEqual(crp.commands(run), ["gh attestation verify a    --bundle b", "done"])
 
 
+class DocsTest(unittest.TestCase):
+    """SECURITY.md tells people to check a download with the files and options the workflow
+    attaches and checks with."""
+
+    def test_security_md_names_the_files_and_options_the_workflow_uses(self):
+        security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+        names = re.findall(r"^ {10}PROVENANCE: (dist/.+)$", RELEASE_TEXT, re.M)
+        self.assertEqual(len(names), 2, names)
+        for name in names:
+            shown = name.removeprefix("dist/").replace(
+                "${{ needs.release-please.outputs.tag }}", "vX.Y.Z"
+            )
+            self.assertIn(f"`{shown}`", security)
+        self.assertIn("--bundle maalik-e-makaan-vX.Y.Z.intoto.jsonl", security)
+        self.assertIn("--bundle maalik-e-makaan-vX.Y.Z-ios.intoto.jsonl", security)
+        self.assertIn(f"--source-ref {crp.SOURCE_REF}\n", security)
+        self.assertRegex(security, r"--signer-workflow \S+/\S+/\.github/workflows/release\.yml")
+        self.assertIn("## Checking a download", security)
+
+
 if __name__ == "__main__":
     unittest.main()
