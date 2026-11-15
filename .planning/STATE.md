@@ -23,7 +23,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   repository variable deleted (the agent's session can read neither). At the owner's word the
   agent moved the web app's Checkly monitor to `https://app.mmakaan.app/` and added one on
   `https://mmakaan.app/`; both pass, beside the deep health check, and the account's plan reads
-  "Trial", so check them again when the trial ends. The `roadmap` label's description names the
+  "Trial", so check them again when the trial ends. The owner sent Search Console's HTML file
+  the same day; it is `website/public/google17fd3f30f3354533.html` (branch
+  `claude/search-console-file`), and Verify waits for the release that carries it (item 13,
+  steps 1 and 9). The `roadmap` label's description names the
   new address. Still the owner's: the checks by hand (step 9); the repository's homepage, which
   reads `https://maalik-e-makaan-site.vercel.app` (the agent's write was refused). The owner set
   the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app` in the dashboard that day (the
@@ -38,8 +41,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Resend to `mmakaan.app` itself and not to set the sender back: remove the old domain, add the
   new one and its three DNS records at Dynadot, two new API keys, tracking off
   (`docs/operations.md`, Domains, step 13, has the order). It is the owner's to finish; until
-  then the sign-up, reset and invitation checks of step 9 fail. The next release (step 12) is
-  not before 14:00 UTC on 16 November 2026.
+  then the sign-up, reset and invitation checks of step 9 fail. The release that carries step 12
+  (the old address's callback) is not before 14:00 UTC on 16 November 2026.
 - Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
   zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
   `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
@@ -71,7 +74,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   redirects (`website/vercel.json`); the web app's old address answers every page with one that
   clears what the app kept in the browser there (`Clear-Site-Data: "storage"`, and a script for
   browsers without the header) and goes to the same address on the new one, while it keeps
-  serving `assetlinks.json` and, until the next release, `/auth/callback`, neither of which
+  serving `assetlinks.json` and, until step 12's release, `/auth/callback`, neither of which
   clears anything; App Links on both hosts; `redirect_smoke_test.sh` in CI and after each
   deploy. Release builds and attaches nothing until its `preflight` job has checked that the web
   app's origin answers (`tool/web/check_live.py`) and that Auth allows every build's e-mail links
