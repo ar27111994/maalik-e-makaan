@@ -481,11 +481,17 @@ In order. Record each in `.planning/STATE.md` when it is done.
     11. **Search Console:** a Domain property for `mmakaan.app` (a TXT record at Dynadot) and its
         sitemap, `https://mmakaan.app/sitemap-index.xml`; then the change of address from the old
         property (steps 1 and 9). Optionally Bing's import and site move.
-    12. **A release at least 24 hours after the move's** (so not before 14:00 UTC on 16
-        November 2026; an earlier release simply goes without this change): the agent answers
-        the old address's
-        `/auth/callback` with the page too, so it clears and sends people on like every other
-        path; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone.
+    12. **The callback's release, not before 14:00 UTC on 16 November 2026** (24 hours after
+        the move's deploy). The agent's change (branch `claude/old-callback-clears`) answers the
+        old address's `/auth/callback` with the page too, so it clears and sends people on like
+        every other path; the old address then serves only files, `assetlinks.json` and the
+        app's other files for tabs still open there. From its merge every release from `main`
+        carries it, so none is cut before that time. After its deploy, yours: `ALLOWED_ORIGINS`
+        to `https://app.mmakaan.app` alone, then the check by hand that `docs/operations.md`,
+        Domains, step 12, describes (a `flutter.x` key set on the old address is gone after
+        opening its `/auth/callback?code=x`, which lands on the new address). A link asked for
+        on the old address and opened after this release cannot finish; what it meets, and why
+        the window stays, is in `docs/operations.md`, Domains, Where it never clears.
     13. **The mail.** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`
         (`p=none`), which was being added on 13 November 2026: check that it is there. The company's
         mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho; a test

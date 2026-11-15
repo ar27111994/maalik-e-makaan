@@ -168,11 +168,15 @@ A malformed optional secret breaks only the feature that uses it (the function a
 because CORS needs it on every request. `supabase/functions/.env.example` lists the same secrets
 for local development.
 
-While the web app has an earlier address that still serves e-mail links ([Domains](#domains)),
-`ALLOWED_ORIGINS` names both: `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (set by
-the owner, reported on 14 November 2026). The Deploy workflow's `web` job checks before it builds
-that the functions accept the web app's origin (a CORS preflight to `health` must answer 204), and
-fails otherwise; for an earlier address it only warns. No secret holds the website's address.
+`ALLOWED_ORIGINS` names both web app origins,
+`https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (set by the owner, reported on 14
+November 2026), until the release that carries step 12 of the move ([Domains](#domains)). From that
+release's deploy no page of the earlier address runs the app, and the owner then sets it to
+`https://app.mmakaan.app` alone (or removes it, which means `APP_URL`'s origin); a tab still open on
+the earlier address gets CORS errors from the functions until it is reloaded and sent on. The Deploy
+workflow's `web` job checks before it builds that the functions accept the web app's origin (a CORS
+preflight to `health` must answer 204), and fails otherwise; it checks only the origin. No secret
+holds the website's address.
 `APP_URL` is `https://app.mmakaan.app` since 14 November 2026 (the owner), so invitation links
 open on the new address ([Domains](#domains), step 8, has what that means before the release).
 No workflow reads a secret's value, and none depends on which address `APP_URL` holds.
@@ -284,21 +288,28 @@ directory. The routes in `config.json`, in order:
    200 with the page that clears what the app kept in the browser there and goes to the origin
    (`moved.html`, below), with the header `Clear-Site-Data: "storage"`.
 4. `{"handle": "filesystem"}`: existing files are served, on every host.
-5. On an earlier address: every other path but `/auth/callback` answers with the same page and
-   header. The page's script goes to the same path, query and `#fragment` on the origin, so an
-   invitation link keeps its `#token=…`.
-6. Every other path, such as `/auth/callback?code=…` or `/invite/…`, serves `index.html` with
-   status 200, and the app's router takes over.
+5. On an earlier address: every other path answers with the same page and header,
+   `/auth/callback` included (since step 12 of the move, [Domains](#domains)). The page's script
+   goes to the same path, query and `#fragment` on the origin, so an invitation link keeps its
+   `#token=…` and an e-mail link its `?code=…`.
+6. Every other path, such as `/auth/callback?code=…` or `/invite/…` on the origin, serves
+   `index.html` with status 200, and the app's router takes over. No request to an earlier
+   address reaches this route.
 
 `/.well-known/assetlinks.json` comes from `app/web/.well-known/` (the Flutter build copies it) and
 is served as `application/json`, on the earlier address too ([Domains](#domains)).
 
-On the earlier address only `/auth/callback` and `/.well-known/assetlinks.json` as written are
-kept, the only forms Android and the e-mail links request. A form with a slash more
-(`//auth/callback`, `/auth//callback`, `/auth/callback/`, `/.well-known//assetlinks.json`) is
-another path and gets the page and its header, in `tool/web/serve_output.py` and in the tests that
-pin it. Whether Vercel's filesystem step reads `//.well-known/assetlinks.json` as the file is not
-in its documentation, so that form may get either answer there.
+On the earlier address, of the paths a link or Android asks for, only
+`/.well-known/assetlinks.json` as written is kept, the only form Android requests. A form with a
+slash more (`/.well-known//assetlinks.json`, `//main.dart.js`) is another path and gets the page
+and its header, in `tool/web/serve_output.py` and in the tests that pin it, and so does
+`/auth/callback` in every form. Whether Vercel's filesystem step reads
+`//.well-known/assetlinks.json` as the file is not in its documentation, so that form may get
+either answer there. The app's other files are still served as files there: no page of the earlier
+address loads them any more (`index.html` is the build's only page, and route 3 answers it before
+the filesystem), but a tab still running the app it loaded there may fetch one later (an image, the
+licences' `NOTICES`), and an HTML answer with the header would break that tab part-way and clear
+its storage under it. Reloaded, such a tab gets the page.
 
 `moved.html` and `moved.js` are not part of the Flutter build: `package_vercel.py` copies them
 from `tool/web/moved/` into the package when the web app has an earlier address, with the origin
@@ -363,7 +374,9 @@ origin, since a browser ignores `Clear-Site-Data` over plain http) and fails unl
 header, everything that address kept is gone and the browser is at the same path, query and
 fragment on the origin; with the header taken off, the script alone removes the app's keys and
 goes to the same address; without scripts, the browser reaches the origin's first page; the App
-Links file, the callback and the app's files clear nothing; and nothing breaks the CSP.
+Links file and the app's files clear nothing; an e-mail link to `/auth/callback?code=…` clears
+everything the address kept, the sign-in verifier included, with the header and with the script
+alone, and arrives at the same path and query on the origin; and nothing breaks the CSP.
 
 ### The website on Vercel
 
@@ -438,13 +451,13 @@ name: `make docs-check` refuses any other until it is added to `NAMED_MAILBOXES`
 `mmakaan.app` that day, and the `_dmarc` record (`p=none`) was being added. Auth's e-mails and
 the invitations are not sent from the domain yet (E-mail, above).
 
-| Host                              | Vercel project         | Answers                                                                                                                                                                                                  |
-| --------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mmakaan.app`                     | `maalik-e-makaan-site` | the website                                                                                                                                                                                              |
-| `www.mmakaan.app`                 | `maalik-e-makaan-site` | 308 to `https://mmakaan.app`, path and query kept (the project's domain setting)                                                                                                                         |
-| `maalik-e-makaan-site.vercel.app` | `maalik-e-makaan-site` | 308 to the same path and query on `mmakaan.app` (`website/vercel.json`), except a Google verification file `/google<hex>.html`                                                                           |
-| `app.mmakaan.app`                 | `maalik-e-makaan`      | the web app                                                                                                                                                                                              |
-| `maalik-e-makaan.vercel.app`      | `maalik-e-makaan`      | `/.well-known/assetlinks.json`, the app's files and `/auth/callback` as before; every other path 200 with the page that clears what the app kept there and goes to the same address on `app.mmakaan.app` |
+| Host                              | Vercel project         | Answers                                                                                                                                                                                                            |
+| --------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `mmakaan.app`                     | `maalik-e-makaan-site` | the website                                                                                                                                                                                                        |
+| `www.mmakaan.app`                 | `maalik-e-makaan-site` | 308 to `https://mmakaan.app`, path and query kept (the project's domain setting)                                                                                                                                   |
+| `maalik-e-makaan-site.vercel.app` | `maalik-e-makaan-site` | 308 to the same path and query on `mmakaan.app` (`website/vercel.json`), except a Google verification file `/google<hex>.html`                                                                                     |
+| `app.mmakaan.app`                 | `maalik-e-makaan`      | the web app                                                                                                                                                                                                        |
+| `maalik-e-makaan.vercel.app`      | `maalik-e-makaan`      | `/.well-known/assetlinks.json` and the app's files as before; every other path, `/auth/callback` included, 200 with the page that clears what the app kept there and goes to the same address on `app.mmakaan.app` |
 
 **One source.** [`contracts/origins.json`](../contracts/origins.json) names each origin once, and
 each earlier address under `legacy` (and `www` under the site's `aliases`). Code reads it: the
@@ -501,12 +514,13 @@ settings with the callbacks the builds send.
   builds them from the Edge Functions' `APP_URL` secret, which names the new address since 14
   November 2026 (step 8), so such a build opens an invitation in the browser, on the web app, where
   the invitee signs in; installing the new APK brings invitations back into the app.
-- `maalik-e-makaan.vercel.app/auth/callback` and the files it needs, until a release at least
-  24 hours after the move's: a sign-up, reset or e-mail change requested on the old address
-  keeps its sign-in verifier in that origin's storage, so its link must finish there, and the
-  response must not clear that storage. That later release answers it like every other path,
-  keeping only `assetlinks.json` (step 12). A release in between, without that change, leaves
-  it as it is.
+- The app's other files, as files: no page there loads them any more, but a tab still running
+  the app it loaded there may fetch one (Hosting, above).
+- `maalik-e-makaan.vercel.app/auth/callback` was kept too, booting the app, from the move's
+  release until step 12's: a sign-up, reset or e-mail change requested on the old address keeps
+  its sign-in verifier in that origin's storage, so its link could only finish there. Since step
+  12's release it answers with the page like every other path ([Where it never
+  clears](#what-the-earlier-address-kept-in-the-browser) says what a link that arrives late meets).
 - Every other path of the web app's earlier address answers 200 with one small page, which clears
   what the app kept in the browser for that address and goes to the same path, query and
   `#fragment` on the origin (below). An invitation link, `/invite#token=…`, arrives with its token;
@@ -596,23 +610,55 @@ stays on the page. Search engines are not among them (the web app answers `X-Rob
 and Android opens an App Link in the app before any request.
 
 Where it never clears: `/.well-known/assetlinks.json` and the app's other files, which are served as
-files, and `/auth/callback` until a release at least 24 hours after the move's (step 12). A link
-requested on the earlier address before the move has its verifier in that address's storage, and
-Auth's links live an hour (`otp_expiry = 3600` in `supabase/config.toml`; the hosted project is
-assumed to keep that default, and the dashboard allows up to a day, which is why step 12 waits at
-least 24 hours). One case is lost: a link requested on the earlier address in its last hour, when
-the same browser opens another page of that address after the release and before the link. That
-visit removes the verifier, the app says to request the link again, and on the new address that
-works. The session a browser held on the earlier address is removed from the browser, not ended on
-the server, where it stays until it is revoked; nothing else holds its token.
+files. `/auth/callback` was among them from the move's release until step 12's, because a sign-up,
+reset or e-mail-change link requested on the earlier address keeps its sign-in verifier in that
+address's storage and can only finish there. Such links were not only requested before the move:
+a tab left open on the earlier address keeps running the app it loaded, and until step 12's release
+the earlier `/auth/callback` still booted the app, so a person could sign in there and stay. Such a
+tab can ask for a link at any time before that release, and even after it, until the tab is closed
+or reloaded. Each link is good for an hour (`otp_expiry = 3600` in `supabase/config.toml`; the
+hosted project is assumed to keep that default, and the dashboard allows up to a day, which is why
+step 12 waits at least 24 hours). Opened after step 12's release, the earlier address's
+`/auth/callback` answers with the page: the header (or, in a browser without it, the script)
+removes the storage that holds the verifier before the code can be exchanged, and the page goes on
+to the same `/auth/callback?code=…` on `app.mmakaan.app`. There the app finds no verifier and sends
+nothing to Auth, so the code is not used (unless that browser holds the verifier of a link asked
+for on the new address: Auth then refuses the pair, the app shows its general error, and that other
+link still works). It says the link did not work, and that an e-mail being confirmed is confirmed
+(a sign-up or e-mail change took effect when Auth checked the link); in a browser that has not yet
+chosen a language on the new address, it shows the sign-in page instead. A password reset needs a
+new link: the person asks for it on the new address, and it works.
+
+Whether that window could be narrowed was weighed, and it stays as it is:
+
+- Finishing the exchange on the page would put Auth's key in it, read the verifier the page exists
+  to delete, and carry the session to the new address in a URL, where history and logs keep it.
+- Booting the app on the earlier `/auth/callback` only while the browser holds a verifier (the
+  script looking for `flutter.supabase.auth.token-code-verifier`), and clearing otherwise, would
+  keep the earlier address running the full app, with the session and the lists it loads (CNICs
+  among them), for anyone with a link pending: the exception step 12 ends. A verifier stays until
+  its link finishes, so for someone who once asked for a link there and never used it, that would
+  last for good. The callback would also lose the header, the only clearing that reaches IndexedDB
+  and service workers, and the script would gain a second rule with its own tests.
+- Dropping the earlier https callback from Auth's redirect URLs would send such links to the Site
+  URL's root, where the app ignores a code and explains nothing, and would also break the e-mail
+  links of Android builds from before the move, which App Links open in the app that holds the
+  verifier.
+- A later release would not shorten the hour a link lives, nor close a tab still open.
+
+The session a browser held on the earlier address is removed from the browser, not ended on the
+server, where it stays until it is revoked; nothing else holds its token.
 
 The checks: `tool/web/test_package_vercel.py` (the routes: the header on the earlier addresses'
 pages alone, never without the host condition, and the local server's answers for every route and
 host); `tool/web/test_moved_js.py` (the script, run in Node: which keys go, the address it goes to,
 nothing on the origin, storage a browser blocks, and that it removes every key the app's sources
 write); `tool/web/redirect_smoke_test.sh --page` (in CI against the local server and after every
-deploy against the earlier address: the header is `"storage"` alone on the pages, and absent from
-the callback and the App Links file); `tool/web/smoke_test.sh` (the origin never sends the header);
+deploy against the earlier address: the header is `"storage"` alone on the pages, the callback's
+among them, and absent from the App Links file; after a deploy it also waits for the callback,
+which the deployment before kept); `tool/web/test_redirect_smoke_test.py` (that wait, against a
+local server switched from the package before step 12 to the new one); `tool/web/smoke_test.sh`
+(the origin never sends the header);
 and `tool/web/moved_browser_check.cjs` (Chromium, by hand: Hosting, above).
 
 People who used the web app on the old address sign in once more on the new one, and choose their
@@ -746,13 +792,19 @@ variable at all (Moving again).
     `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web app answers
     `X-Robots-Tag: noindex` on every path, so the Domain property lists it as excluded, not as an
     error: the website is what search engines index (D-01).
-12. **A release at least 24 hours after the move's** (so not before 14:00 UTC on 16 November
-    2026; an earlier release simply goes without this change): the agent's pull request answers
-    the old
+12. **The callback's release, not before 14:00 UTC on 16 November 2026** (24 hours after the
+    move's deploy). The agent's change (branch `claude/old-callback-clears`) answers the old
     address's `/auth/callback` with the page too, so it clears that address's storage and sends
-    people on like every other path (only `assetlinks.json` stays); after its deploy, the owner
-    sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes it, which means `APP_URL`'s
-    origin).
+    people on like every other path. The old address then serves only files: `assetlinks.json`,
+    and the app's other files for tabs still open there (Hosting). From its merge every release
+    from `main` carries it, so none is cut before that time. After its deploy, the owner sets
+    `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone (or removes it, which means `APP_URL`'s
+    origin), and checks it by hand: open
+    `https://maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, add a key `flutter.x` in the
+    developer tools (Application, Local storage), then open
+    `https://maalik-e-makaan.vercel.app/auth/callback?code=x`. The browser lands on
+    `https://app.mmakaan.app/auth/callback?code=x`, and the key is gone when the old address's
+    file is opened again.
 13. **The mail.** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`,
     which was being added on 13 November 2026: check that it is there ("Show original" in Gmail
     says DMARC "PASS"), and leave the mailbox's own SPF record as Dynadot wrote it. **Done on 15
@@ -783,6 +835,8 @@ variable at all (Moving again).
 
 Auth keeps the earlier redirect URLs, and the Android manifest the earlier host, until the builds
 from before the move are out of use: a date or a lowest version for that is the owner's to set.
+Since step 12 the earlier https callback finishes only the links of Android builds from before
+the move, which App Links open in the app; a browser gets the page.
 
 ### Moving again
 
@@ -797,6 +851,13 @@ builds nothing until the new origin answers and Auth allows its callbacks; Deplo
 backend only once Auth does, and the web app only once all three first steps hold. A token that
 may not read Auth's settings turns the Auth check into a warning (Checked before anything is
 deployed, above).
+
+The release that moves the web app answers every path of the address it retires with the page,
+`/auth/callback` included, so a link requested there in the hour before is lost. This move kept
+the callback for one release (step 12); a later move that wants the same grace puts that exception
+back for one release (the route after the filesystem in `tool/web/package_vercel.py` with a
+negative lookahead for `auth/callback`, as releases 1.3.0 and 1.3.1 had), with its tests, and
+weighs the window of [Where it never clears](#what-the-earlier-address-kept-in-the-browser) again.
 
 ## Deployment (GitHub Actions)
 
@@ -826,7 +887,7 @@ function. Its `web` job then:
    (`tool/web/check_live.py app`), and stops before building if it does not: the deploy makes
    each earlier address send people on to it;
 4. checks that the Edge Functions accept the origin: a CORS preflight to `health` must answer
-   204, or the deploy stops before building (an earlier address only warns);
+   204, or the deploy stops before building (only the origin is checked);
 5. writes `app/config/production.json` from the repository variables and that origin
    (`APP_URL`), as the Release workflow does, and runs
    `flutter build web --release --no-web-resources-cdn`;
@@ -843,11 +904,12 @@ function. Its `web` job then:
    200 as JSON, delegating to the Android package, and that none of these carries
    `Clear-Site-Data`: the origin's storage is the app's own. Then
    `tool/web/redirect_smoke_test.sh --page` on each earlier address. It waits the same way, for
-   `/` to answer with the header. Then `/` and a deep path with a query must answer 200 with the
-   page that names the origin as its destination, its script and its way on without scripts, with
-   `Clear-Site-Data: "storage"` and nothing more, revalidated; `/moved.js` must be served as
-   JavaScript; and `/.well-known/assetlinks.json` and `/auth/callback?code=…` must still answer 200
-   as before, without the header.
+   `/` and `/auth/callback?code=…` to answer with the header (the deployment before step 12's
+   release already answered `/` so, but kept the callback). Then `/`, a deep path with a query
+   and `/auth/callback?code=…` must answer 200 with the page that names the origin as its
+   destination, its script and its way on without scripts, with `Clear-Site-Data: "storage"` and
+   nothing more, revalidated; `/moved.js` must be served as JavaScript; and
+   `/.well-known/assetlinks.json` must still answer 200 as before, without the header.
 
 Its `site` job deploys the website. It does not wait for Supabase (the site never calls it), so it
 runs alongside the other two when the workflow runs by hand. The Release workflow instead calls
@@ -1187,7 +1249,7 @@ an applied one (CONTRIBUTING.md). What can be rolled back, and how:
 
 | What                   | Roll back by                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The web app            | Vercel dashboard, project `maalik-e-makaan`, Deployments: the previous production deployment, Promote to Production (or `vercel rollback <deployment-url> --scope ar27111994s-projects`). Takes effect at once; the database must still suit the older app (migrations add, they do not remove). Never to a deployment from before D-20: it has the old `APP_URL` and nothing that sends people on, and would serve that build on both hosts, so links requested on the new address would go to the old one. Roll forward instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| The web app            | Vercel dashboard, project `maalik-e-makaan`, Deployments: the previous production deployment, Promote to Production (or `vercel rollback <deployment-url> --scope ar27111994s-projects`). Takes effect at once; the database must still suit the older app (migrations add, they do not remove). Never to a deployment from before D-20: it has the old `APP_URL` and nothing that sends people on, and would serve that build on both hosts, so links requested on the new address would go to the old one. Roll forward instead. A deployment from before step 12's release (1.3.0, 1.3.1) serves the earlier `/auth/callback` with the app again, which keeps storage there, until the next deploy; once `ALLOWED_ORIGINS` names only the origin, that app also gets CORS errors from the Edge Functions. Roll forward there too where possible.                                                                                                                                                        |
 | The website            | The same, project `maalik-e-makaan-site`, and never to a deployment from before D-20 either: its canonical and hreflang links, sitemap and `robots.txt` name the old address and it has no redirect, which undoes the change of address in Search Console. Roll forward instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Edge Functions         | Check out the previous tag and deploy its functions with the CLI: `supabase functions deploy --project-ref <project-ref> --use-api` (with `SUPABASE_ACCESS_TOKEN` set; `verify_jwt` comes from that tag's `supabase/config.toml`). Not with Deploy by hand on a tag: that runs the tag's own `deploy.yml`, which also redeploys its web app and website. A tag from before D-20 reads the web app's address from the `APP_URL` repository variable, which holds the new address since 14 November 2026. Such a run would put that tag's web app on both hosts, built for `app.mmakaan.app` but with nothing on the old host that sends people on or clears its storage, so a link requested on the old host would open on the new one, where its verifier is missing; and that tag's website on every site host, with the old address in its canonical links and no redirect. Once the variable is deleted ([Domains](#domains), step 8), those two jobs of such a tag stop at "Deployment is configured". |
 | A migration            | A new migration that undoes it (forward fix), through the usual process (After every migration). If it destroyed data, restore that data from a backup (below) into a scratch project and copy the rows back.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
