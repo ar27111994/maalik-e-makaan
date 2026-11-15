@@ -91,7 +91,9 @@ no telemetry (privacy). Two checks cover it, one outside and one inside.
    on its free plan (UptimeRobot, HetrixTools) cannot do this check. Without the secret, `?deep=1`
    answers 403 `deep_check_disabled`; with a wrong or missing header, 401. Add a monitor on the
    web app, `https://app.mmakaan.app/`, and one on the website, `https://mmakaan.app/` (200 each,
-   with the certificate checked on the same host).
+   with the certificate checked on the same host). All three are on Checkly since 15 November
+   2026, every 5 minutes from one location, alerting the owner by e-mail. The account's plan
+   read "Trial" that day: when the trial ends, check that all three still run.
 
    Setting it up. Any monitor whose free plan sends a custom request header will do. Better Stack
    Uptime was the first suggestion, but it refused new sign-ups on 2026-11-09. Next in line:
@@ -185,20 +187,26 @@ Resend's free plan (3,000 e-mails a month, 100 a day, one domain, in November 20
 launch; Auth and invitations share the daily 100. Check the plan's terms allow production use.
 
 1. **A domain.** Resend sends to other people only from a domain whose DNS you control; a
-   `vercel.app` address cannot be one. Use a subdomain (`mail.<domain>`), add the records Resend
-   lists (MX and SPF TXT on `send.mail.<domain>`, DKIM TXT on `resend._domainkey.mail.<domain>`)
-   and a DMARC record (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". The
-   project's domain is `news.ar27111994.dev` (verified 2026-11-09), and Auth's e-mails and the
-   invitations are still sent from it. The company's own domain, `mmakaan.app` (D-20), can take
-   over later, as a sending subdomain of its own beside the company's mailbox, which Dynadot's
-   e-mail serves on the apex ([Domains](#domains), step 13). In the domain's
+   `vercel.app` address cannot be one. Add the domain, then the records Resend lists (MX and SPF
+   TXT on `send.<domain>`, DKIM TXT on `resend._domainkey.<domain>`) and a DMARC record
+   (`_dmarc.<domain>`, `v=DMARC1; p=none;`), and wait for "Verified". **The owner's decision of
+   15 November 2026:** the app's e-mails come from the company's own address,
+   `hello@mmakaan.app`, so the domain in Resend is `mmakaan.app` itself, beside the company's
+   mailbox, which Dynadot's e-mail serves on the same name. Resend's records sit on `send` and
+   `resend._domainkey`, so the mailbox's own MX and SPF records on the apex stay as they are;
+   what the two share is the domain's reputation. The free plan holds one domain, so
+   `news.ar27111994.dev` (verified 2026-11-09, the sender until then) is removed first, and
+   nothing is sent until the new domain is verified ([Domains](#domains), step 13, has the
+   state). In the domain's
    Configuration, turn **off** click tracking and open tracking: click tracking rewrites the
    sign-in links through Resend's servers, and open tracking adds a tracking pixel; the privacy
    page says the app has no trackers.
 2. **Two API keys**, both "Sending access" and limited to that domain: one for Supabase's SMTP,
-   one for the `invite-member` function, so either can be revoked alone.
+   one for the `invite-member` function, so either can be revoked alone. After a move to
+   another domain, make both again, limited to the new one.
 3. **Supabase SMTP** (Authentication, Emails, SMTP Settings, Enable custom SMTP): sender
-   `no-reply@mail.<domain>`, name "Maalik-e-Makaan", host `smtp.resend.com`, port 465, user
+   `hello@mmakaan.app` (a mailbox someone reads, so a reply to a confirmation reaches the
+   company), name "Maalik-e-Makaan", host `smtp.resend.com`, port 465, user
    `resend`, password the first key, minimum interval 60 seconds. (Resend's Supabase integration,
    Settings, Integrations, fills in the same.)
 4. **Rate limit** (Authentication, Rate Limits, "Email sent"): custom SMTP starts at 30 an hour,
@@ -227,7 +235,8 @@ launch; Auth and invitations share the daily 100. Check the plan's terms allow p
    in the files are written by `make tokens` from the type tokens, at the role each Urdu element
    names with `data-mm-type`; edit the tokens, not the values in the files.
 7. **Invitations**: the Edge Function secrets `RESEND_API_KEY` (the second key) and
-   `MAIL_FROM="Maalik-e-Makaan <no-reply@mail.<domain>>"` (Edge Function secrets, above).
+   `MAIL_FROM="Maalik-e-Makaan <hello@mmakaan.app>"` (Edge Function secrets, above; with the
+   name, so that an inbox shows it and not "hello").
 8. **Check**: sign up in each language, reset a password, change an address, and invite someone
    outside the team. Each link should open `/auth/callback`, and "Show original" in Gmail should
    say SPF, DKIM and DMARC "PASS".
@@ -616,43 +625,26 @@ is removed when you next open that address."
 ### Moving the addresses (the order, 2026-11)
 
 The owner's steps, with the agent's pull request between them; `docs/release-readiness.md`, Owner
-actions, item 13, tracks them in the same order. **On 14 November 2026:** steps 2 to 5 are done,
-and so is the first half of step 8, ahead of its place. Steps 6 and 7, the merge and the release,
-are next, and both should happen before Wednesday 18 November 2026.
+actions, item 13, tracks them in the same order. **On 15 November 2026:** steps 2 to 8 are done.
+The pull request is merged (#74), release 1.3.0 deployed the move, and the owner reported Auth's
+Site URL moved and the `APP_URL` repository variable deleted the same day. Left: the checks by
+hand (step 9), the repository's homepage and the company's records (step 10), Search Console
+(steps 1 and 11), the next release (step 12) and the mail steps (step 13).
 
-**`APP_URL` was moved early (the owner, 14 November 2026).** The Edge Function secret and the
-GitHub repository variable `APP_URL` both hold `https://app.mmakaan.app` already; this order had
-them after the web deploy. Until the release that means:
+**`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
+Edge Function secret and in the GitHub repository variable, and by the owner's decision of that
+day it was not set back, because nobody used the app yet. From then until the release, invitation
+e-mails linked to `https://app.mmakaan.app` while that address still served the web app from
+before the move, whose own e-mail links named the old address, so a sign-up started there could
+not finish its link. The release ended that, and the variable is deleted (step 8). When the
+addresses move again, keep to the order: the secret after the web deploy, and no repository
+variable at all (Moving again).
 
-- _The secret._ Invitation e-mails link to `https://app.mmakaan.app` now. Until step 7's web deploy
-  that address serves the web app from before the move, whose own e-mail links (sign-up
-  confirmation, password reset) name the old address. Someone who signs up there, as an invitee
-  without an account does, gets a confirmation link that opens the old address, where the sign-in
-  verifier kept on the new one is missing: the link cannot finish there until the release. An
-  invitee who has an account signs in and accepts as usual. Android builds installed today list
-  only the old host in their App Links, so they open such an invitation in the browser, as they
-  will after the move until the new APK is installed.
-- _The variable._ The workflows on `main` read it until this pull request is merged; this branch
-  reads `contracts/origins.json` instead, and `make docs-check` refuses a workflow that reads the
-  variable. A deploy from `main` in that state builds for the new address with nothing on the old
-  one that sends people on. The Wednesday site refresh (`site-refresh.yml`, 04:23 UTC; the next is
-  18 November 2026) would rebuild the website with every link to the web app naming
-  `https://app.mmakaan.app`; a Deploy run by hand would build the web app for it too; and a release
-  would build Android apps for it whose App Links list only the old host. Once this pull request is
-  merged, a site refresh of the last tag builds that tag's own addresses again.
-
-So merge, and release, before 18 November 2026. **The owner's decision (14 November 2026):**
-`APP_URL` stays at `https://app.mmakaan.app` in both places and is not set back before the
-release, because nobody uses the app yet. If the release has to wait longer than that Wednesday,
-merge the pull request before it all the same, so that the site refresh builds the last tag's own
-addresses.
-
-1. _(Optional, open)_ **Search Console, old property, part one.** Add a URL-prefix property for
-   `https://maalik-e-makaan-site.vercel.app/`, choose the HTML file method and download the file
-   (`google<16 hex digits>.html`). Send its name, so that this pull request, or one merged before
-   the release, adds it to `website/public/`. Do not press Verify yet: the old address serves the
-   release from before the move, which lacks the file, until step 7's website deploy (step 9
-   finishes it). Without the property, Search Console's change of address cannot be used (step 11).
+1. _(Optional, still open)_ **Search Console, old property, part one.** Add a URL-prefix property
+   for `https://maalik-e-makaan-site.vercel.app/`, choose the HTML file method and download the
+   file (`google<16 hex digits>.html`). Send its name, so that a pull request adds it to
+   `website/public/`. Do not press Verify yet: the old address serves the file only once a
+   release that has it is deployed (the redirect leaves that one path out; step 9 finishes it). Without the property, Search Console's change of address cannot be used (step 11).
 2. **Dynadot DNS. Done on 13 November 2026:** the records are in, and Vercel reports `mmakaan.app`
    (`A` `216.198.79.1` and `64.29.17.1`), `www.mmakaan.app` and `app.mmakaan.app` (`CNAME` records)
    as correctly configured. What it took: the parking records removed (an `A` record to Dynadot's
@@ -664,12 +656,12 @@ addresses.
    over HTTPS in a browser. To check again: `curl -sI https://mmakaan.app/` answers 200,
    `https://www.mmakaan.app/x?y=1` answers 308 to `https://mmakaan.app/x?y=1`, and
    `https://app.mmakaan.app/.well-known/assetlinks.json` answers 200 with JSON; the Release and
-   Deploy workflows check the same before they build or deploy. The new hosts serve the current
-   deployments, so the web app there is still the build from before the move (above). Still to do:
-   uptime monitors on `https://app.mmakaan.app/` and `https://mmakaan.app/` (200 each, the
-   certificate checked on the same host; Monitoring and alerts). After step 7 the old address
-   answers 200 with the page that sends people on, so the monitor on
-   `https://maalik-e-makaan.vercel.app/` raises no false alarm; it goes at step 10.
+   Deploy workflows check the same before they build or deploy. **The uptime monitors. Done on
+   15 November 2026** (the agent, at the owner's word, through the Checkly connector): the web
+   app's monitor, which requested the old address, now requests `https://app.mmakaan.app/`, and a
+   new one requests `https://mmakaan.app/`; each expects 200, checks the certificate on its own
+   host, runs every 5 minutes from one location and passed its first runs (Monitoring and
+   alerts). No monitor requests the old address any more.
 4. **Supabase Auth. Done on 14 November 2026:** the redirect URLs (Authentication, URL
    Configuration) list all four callbacks, `https://app.mmakaan.app/auth/callback`,
    `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback`,
@@ -684,12 +676,17 @@ addresses.
 5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it holds both app
    origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no redeploy needed).
    Deploy's `web` job checks it before it builds.
-6. **Merge the pull request**, once its checks pass, before Wednesday 18 November 2026 (above),
-   and go on to step 7 in the same sitting: from the merge, the README and `llms.txt` on `main`
-   name `https://app.mmakaan.app`, which serves the build from before the move until step 7's web
-   deploy. Nothing changes in production: a site refresh then builds the last tag, with its own
-   addresses.
-7. **Release.** Merge the release pull request and approve the Deploy runs. Before it builds
+6. **Merge the pull request. Done on 15 November 2026** (#74, commit 8cd3c15). From the merge,
+   the README and `llms.txt` on `main` name `https://app.mmakaan.app`, and nothing changes in
+   production until the release: a site refresh of the last tag builds that tag's own addresses.
+   So merge and release in one sitting.
+7. **Release. Done on 15 November 2026:** release 1.3.0 (the Release run 43720578854). The
+   `preflight` job's token could read Auth's settings, and all four callbacks were allowed. Every
+   smoke test passed, the old addresses' included: the old web app address answers 200 with the
+   page that clears its storage and goes to `https://app.mmakaan.app`, its `/auth/callback` and
+   `assetlinks.json` are kept as they were, and `www` and the site's old address answer 308. No
+   run waited for an approval, because the `production` environment has no required reviewer.
+   How such a release goes: merge the release pull request. Before it builds
    anything, Release checks that the web app's origin answers and, if the token may read Auth's
    settings, that Auth allows the builds' callbacks (step 4). If the `preflight` or `supabase` job
    warns that the token may not (HTTP 401 or 403), Auth was not checked: the builds and the backend
@@ -703,15 +700,15 @@ addresses.
    and that the old web app address sends people on. Check every smoke test, the ones of the old
    addresses included; if one fails on a path, the query or the header, roll forward with a fix
    rather than back (Rollback and restore).
-8. **Right after the web deploy:** Auth's Site URL to `https://app.mmakaan.app`. Then delete the
-   `APP_URL` repository variable (Settings, Secrets and variables, Actions, Variables): nothing
-   from this release on reads it, and without it a Deploy run by hand on a tag from before the move
-   stops at "Deployment is configured" instead of deploying that tag's web app and website
-   (Rollback and restore). **Done ahead of this step, on 14 November 2026:** the Edge Function
-   secret `APP_URL=https://app.mmakaan.app`, so invitations already link to the new address
-   (above), and by the owner's decision of that day it stays there. What that costs: Android
-   builds from before the move open such invitations in the browser until the new APK is
-   installed.
+8. **Right after the web deploy. Done on 15 November 2026, as the owner reported** (the agent's
+   session can read neither setting): Auth's Site URL is `https://app.mmakaan.app`, and the
+   `APP_URL` repository variable is deleted (Settings, Secrets and variables, Actions,
+   Variables). Nothing from release 1.3.0 on reads the variable, and without it a Deploy run by
+   hand on a tag from before the move stops at "Deployment is configured" instead of deploying
+   that tag's web app and website (Rollback and restore). The Edge Function secret
+   `APP_URL=https://app.mmakaan.app` was set ahead of this step, on 14 November 2026 (above), and
+   stays. What that costs: Android builds from before the move open invitations in the browser
+   until the new APK is installed.
 9. **Check by hand:** on `app.mmakaan.app`, sign up, reset a password and invite someone; open
    `https://maalik-e-makaan.vercel.app/invite#token=x` in a desktop browser and land on
    `https://app.mmakaan.app/invite#token=x`; in a browser that was signed in on the old address,
@@ -721,11 +718,13 @@ addresses.
    Digital Asset Links API says `"linked": true` for both (Android App Links, below). If step 1 was
    done: `https://maalik-e-makaan-site.vercel.app/google<16 hex digits>.html` answers 200 (the
    redirect leaves it out); press Verify on the old property now.
-10. **Housekeeping:** remove the uptime monitor on the old web app address (step 3 adds the new
-    ones); the repository's homepage to `https://mmakaan.app` (Settings, General); the `roadmap`
-    label's description (the Roadmap workflow rewrites it from `.github/roadmap.toml` when this
-    reaches `main`; check it did); the website on the D-U-N-S record, LinkedIn and the AWS Activate
-    application. One decision with it: the site's structured data and `llms.txt` give the company's
+10. **Housekeeping.** Done on 15 November 2026: no uptime monitor requests the old web app
+    address (step 3), and the `roadmap` label's description names the new address (the Roadmap
+    workflow rewrote it from `.github/roadmap.toml` when the move reached `main`). Still the
+    owner's: the repository's homepage, which reads `https://maalik-e-makaan-site.vercel.app`
+    (on the repository's page, the gear beside About, Website: `https://mmakaan.app`; the agent's
+    session may not change repository settings); the website on the D-U-N-S record, LinkedIn and
+    the AWS Activate application. One decision with it: the site's structured data and `llms.txt` give the company's
     website as `https://ar27111994.dev/` (`company.url` in `website/src/config/site.ts`), while
     those records will name `https://mmakaan.app`, and Apple checks that an organisation's website
     is on a domain that belongs to it. If the company's website is to be `https://mmakaan.app/` (or
@@ -738,18 +737,34 @@ addresses.
     `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web app answers
     `X-Robots-Tag: noindex` on every path, so the Domain property lists it as excluded, not as an
     error: the website is what search engines index (D-01).
-12. **The next release, at least 24 hours later:** the agent's pull request answers the old
+12. **The next release, at least 24 hours later** (so not before 14:00 UTC on 16 November 2026):
+    the agent's pull request answers the old
     address's `/auth/callback` with the page too, so it clears that address's storage and sends
     people on like every other path (only `assetlinks.json` stays); after its deploy, the owner
     sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes it, which means `APP_URL`'s
     origin).
-13. **Later:** the mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`,
+13. **The mail.** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`,
     which was being added on 13 November 2026: check that it is there ("Show original" in Gmail
-    says DMARC "PASS"), and leave the mailbox's own SPF record as Dynadot wrote it. The Edge
-    Function secret `MAIL_REPLY_TO=hello@mmakaan.app`, so that a reply to an invitation reaches the
-    company (no redeploy needed). Then, each in its own pull request: Resend on a sending subdomain
-    of the domain (its records, click and open tracking off), then Auth's SMTP sender and
-    `MAIL_FROM`; and Customer.io on another subdomain (D-18). Every host on `mmakaan.app` is reached
+    says DMARC "PASS"), and leave the mailbox's own SPF record as Dynadot wrote it. **Done on 15
+    November 2026 (the owner):** the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app`, so
+    that a reply to an invitation reaches the company. **Decided that day, and the owner's to
+    finish:** the app's e-mails come from `hello@mmakaan.app` too, so Resend moves from
+    `news.ar27111994.dev` to `mmakaan.app` ([E-mail](#e-mail) has the reasons and each setting).
+    In order:
+    1. In Resend, remove the old domain and add `mmakaan.app`.
+    2. At Dynadot, add its three records as subdomain records (an MX and a TXT on `send`, a TXT
+       on `resend._domainkey`), and leave the apex's records alone.
+    3. Wait for "Verified", then turn click and open tracking off.
+    4. Make two sending keys limited to the domain: one is Auth's SMTP password, the other the
+       secret `RESEND_API_KEY`.
+    5. Auth's SMTP sender is `hello@mmakaan.app`, and
+       `MAIL_FROM="Maalik-e-Makaan <hello@mmakaan.app>"`.
+    6. Step 9's sign-up, reset and invitation, with SPF, DKIM and DMARC "PASS" in Gmail.
+
+    `MAIL_FROM` was set to the address at 14:13 UTC that day, before the domain was verified:
+    until the move is finished, Resend refuses the invitations, and Auth's e-mails too if its
+    sender is the same. Customer.io gets a subdomain of its own, in its own pull request (D-18).
+    Every host on `mmakaan.app` is reached
     over HTTPS only: the whole `.app` domain is on the browsers' HSTS preload list, and the site
     sends HSTS with `includeSubDomains`. So a subdomain people open in a browser (a link-tracking
     domain, a custom webmail address) needs its certificate, through the provider's managed TLS,

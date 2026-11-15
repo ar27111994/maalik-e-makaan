@@ -1127,6 +1127,8 @@ export type Database = {
           archived_at: string | null;
           bank_account_title: string | null;
           bank_iban: string | null;
+          caretaker_since: string | null;
+          caretaker_user_id: string | null;
           created_at: string;
           created_by: string | null;
           default_due_day: number;
@@ -1136,6 +1138,7 @@ export type Database = {
           landlord_name: string | null;
           landlord_phone: string | null;
           name: string;
+          owner_abroad: boolean | null;
           raast_id: string | null;
           receipt_prefix: string;
           updated_at: string;
@@ -1144,6 +1147,8 @@ export type Database = {
           archived_at?: string | null;
           bank_account_title?: string | null;
           bank_iban?: string | null;
+          caretaker_since?: string | null;
+          caretaker_user_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           default_due_day?: number;
@@ -1153,6 +1158,7 @@ export type Database = {
           landlord_name?: string | null;
           landlord_phone?: string | null;
           name: string;
+          owner_abroad?: boolean | null;
           raast_id?: string | null;
           receipt_prefix?: string;
           updated_at?: string;
@@ -1161,6 +1167,8 @@ export type Database = {
           archived_at?: string | null;
           bank_account_title?: string | null;
           bank_iban?: string | null;
+          caretaker_since?: string | null;
+          caretaker_user_id?: string | null;
           created_at?: string;
           created_by?: string | null;
           default_due_day?: number;
@@ -1170,11 +1178,47 @@ export type Database = {
           landlord_name?: string | null;
           landlord_phone?: string | null;
           name?: string;
+          owner_abroad?: boolean | null;
           raast_id?: string | null;
           receipt_prefix?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      profile_residences: {
+        Row: {
+          created_at: string;
+          residence_country: string | null;
+          stated_at: string | null;
+          time_zone: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          residence_country?: string | null;
+          stated_at?: string | null;
+          time_zone?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          residence_country?: string | null;
+          stated_at?: string | null;
+          time_zone?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'profile_residences_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       profiles: {
         Row: {
@@ -2028,11 +2072,13 @@ export type Database = {
         Returns: Json;
       };
       create_portfolio: {
-        Args: { p_id?: string; p_name: string };
+        Args: { p_id?: string; p_name: string; p_owner_abroad?: boolean };
         Returns: {
           archived_at: string | null;
           bank_account_title: string | null;
           bank_iban: string | null;
+          caretaker_since: string | null;
+          caretaker_user_id: string | null;
           created_at: string;
           created_by: string | null;
           default_due_day: number;
@@ -2042,6 +2088,7 @@ export type Database = {
           landlord_name: string | null;
           landlord_phone: string | null;
           name: string;
+          owner_abroad: boolean | null;
           raast_id: string | null;
           receipt_prefix: string;
           updated_at: string;
@@ -2276,6 +2323,18 @@ export type Database = {
           subtitle: string;
           title: string;
         }[];
+      };
+      set_caretaker: {
+        Args: { p_portfolio_id: string; p_user_id: string };
+        Returns: undefined;
+      };
+      set_owner_abroad: {
+        Args: {
+          p_if_unanswered?: boolean;
+          p_owner_abroad: boolean;
+          p_portfolio_id: string;
+        };
+        Returns: boolean;
       };
       sync_portfolio_billing: {
         Args: { p_portfolio_id: string };

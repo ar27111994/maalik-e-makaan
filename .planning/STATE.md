@@ -9,6 +9,37 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-15)
 
+- Release 1.3.0 was published on 15 November 2026 (tag `v1.3.0`, commit 638586b on `main`; the
+  Release run 43720578854). Its Deploy run applied `20261112092618_residence.sql` to the hosted
+  project with `supabase db push` and redeployed the four Edge Functions through the CLI; every
+  job passed. The web app is at `https://app.mmakaan.app`, and its earlier address
+  (`https://maalik-e-makaan.vercel.app`) answers with the page that clears its storage and goes
+  on to the same path there, while `/auth/callback` and `assetlinks.json` are kept as they were;
+  the website is at `https://mmakaan.app`, and `www` and the site's earlier address answer 308 to
+  it. The Deploy run's smoke tests showed each of these. "After every migration" was done the
+  same day (branch `claude/post-release-1-3-0`; Hosted Supabase Project has the results).
+- After the release, on 15 November 2026 (`docs/release-readiness.md`, Owner actions, item 13):
+  the owner reported step 8 done, Auth's Site URL on `https://app.mmakaan.app` and the `APP_URL`
+  repository variable deleted (the agent's session can read neither). At the owner's word the
+  agent moved the web app's Checkly monitor to `https://app.mmakaan.app/` and added one on
+  `https://mmakaan.app/`; both pass, beside the deep health check, and the account's plan reads
+  "Trial", so check them again when the trial ends. The `roadmap` label's description names the
+  new address. Still the owner's: the checks by hand (step 9); the repository's homepage, which
+  reads `https://maalik-e-makaan-site.vercel.app` (the agent's write was refused). The owner set
+  the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app` in the dashboard that day (the
+  Supabase connector's way of storing a secret was paused); the dashboard's digest is the
+  address's SHA-256.
+- **Open, 15 November 2026: the app's e-mail sender.** The same screen shows `MAIL_FROM` changed
+  at 14:13 UTC that day to the same digest, so invitations are sent from `hello@mmakaan.app`,
+  which Resend refuses: it sends only from a domain it has verified, that is
+  `news.ar27111994.dev`, and its free plan holds one. Auth's SMTP sender was shown as
+  `hello@mmakaan.app` too, and its confirmations and resets are refused the same way if it
+  still is. The owner wants the company's address everywhere and chose, the same day, to move
+  Resend to `mmakaan.app` itself and not to set the sender back: remove the old domain, add the
+  new one and its three DNS records at Dynadot, two new API keys, tracking off
+  (`docs/operations.md`, Domains, step 13, has the order). It is the owner's to finish; until
+  then the sign-up, reset and invitation checks of step 9 fail. The next release (step 12) is
+  not before 14:00 UTC on 16 November 2026.
 - Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
   zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
   `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
@@ -64,10 +95,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   there cannot finish its e-mail link), and the workflows on `main` would build for the new
   address until this pull request is merged; the weekly site refresh is next due on Wednesday
   2026-11-18. `APP_URL` stays at the new address in both places and is not set back before the
-  release, because nobody uses the app yet (the owner, 2026-11-14). Next: merge and release
-  before then, then Auth's Site URL, then delete the
-  `APP_URL` repository variable. Open for the owner: whether the company's website in the
-  structured data becomes the new domain (step 10), and uptime monitors for the new addresses.
+  release, because nobody uses the app yet (the owner, 2026-11-14). The merge, the release, Auth's
+  Site URL, the variable's deletion and the monitors all followed on 2026-11-15 (the Current
+  Position). Open for the owner: whether the company's website in the structured data becomes
+  the new domain (step 10).
 - The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho
   (the owner, 2026-11-13); a test message to Gmail passed SPF and DKIM for `mmakaan.app`, and the
   `_dmarc` record (`p=none`) was being added. The website, both privacy pages, `llms.txt` and the
@@ -251,16 +282,40 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 ## Hosted Supabase Project
 
 - Ref `aaifamxzzjspohwksxyr` ("maalik-e-makaan"), org AR Labs, region ap-south-1, Postgres 17.11.
-- Twenty-three migrations applied, the latest `20261109081109_uat_display_fixes`, according
-  to the commits that applied them (764e640, c1c0d7a, 13c5d18, f155413, 67639d8, e853378 and the
+- Twenty-four migrations applied, the latest `20261112092618_residence` (below). The first
+  twenty-three, up to `20261109081109_uat_display_fixes`, according to the commits that applied
+  them (764e640, c1c0d7a, 13c5d18, f155413, 67639d8, e853378 and the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
-- `20261112092618_residence.sql` is **not applied** to the hosted project yet. The next release
-  the owner approves applies it (the Deploy workflow's `supabase db push`), and then come "After
-  every migration" in `docs/operations.md` and `tool/db/time_zone_skew.sql` on the hosted project.
-  The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and speaker notes) now says
-  23 reviewed write functions and 23 database suites: the deck is rendered from the release tag,
-  the same release that applies the migration.
+- `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
+  (`supabase db push`), so 24 migrations are applied. "After every migration"
+  (`docs/operations.md`), done the same day with read-only queries:
+  1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
+     order, with nothing extra on either side.
+  2. Types: `_shared/database.types.ts` regenerated from the hosted project: the table
+     `profile_residences`, the `portfolios` columns `caretaker_since`, `caretaker_user_id` and
+     `owner_abroad` (also in `create_portfolio`'s result), `create_portfolio`'s `p_owner_abroad`,
+     and the RPCs `set_caretaker` and `set_owner_abroad`; no enum changed. The functions needed
+     no change.
+  3. Drift: `tool/db/fingerprint_diff.py` says "schemas match (1220 objects)" between the local
+     chain (PostgreSQL 16) and the hosted project (the `psql -At` output's md5 is
+     `ebe541b2085461f621b30aa26a82297e`).
+  4. Advisors: security lists the 23 write RPCs pinned in `01_schema_security.test.sql`, name for
+     name, and leaked password protection (off; an Auth setting, the owner's). Performance lists
+     only "unused index" INFO findings (62), among them the new
+     `portfolios_caretaker_user_id_idx`; no unindexed foreign key and no policy that re-evaluates
+     auth functions per row.
+  5. GoTrue's foreign-key actions on `auth.users`: the hosted order, without Auth's own tables,
+     is the order `formal/tla/Membership/replay/residence.sh` prints for the migrated local
+     database (34 entries), with `portfolios.caretaker_user_id` last, after
+     `portfolio_members.user_id`; so the Membership model's `caretaker_first` configurations do
+     not describe the hosted project. The replay's outcomes were all as expected.
+
+  Still to run on the hosted project, by the owner in the SQL editor (the file is too long for
+  the connector's query call): `tool/db/time_zone_skew.sql` (`docs/operations.md`, Time-zone
+  data). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
+  speaker notes) says 23 reviewed write functions and 23 database suites, as release 1.3.0 has.
+
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
   was applied on 2026-11-09 by the process in `docs/operations.md`; afterwards no live automatic
@@ -276,7 +331,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   - `mm-storage-cleanup`: every 10 minutes, through pg_net, once the Vault secrets are set;
   - `mm-rate-limit-cleanup`: hourly.
 - `authenticator` has `pgrst.db_pre_request = app.check_request`.
-- Advisors (2026-11-03):
+- Advisors (2026-11-03; on 2026-11-15, after the residence migration, the same, as step 4 above
+  records):
   - Security: only the reviewed definer RPCs (lint 0029, intentional; see D-15).
   - Performance: "unused index" INFO findings only. These are expected on an empty database, and
     the indexes are justified by foreign-key coverage and the stress test.
@@ -331,9 +387,10 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
 - **The D-U-N-S number** gates Google Play, the App Store and paid plans; Dun & Bradstreet quotes
   up to 30 business days.
 - **The move to the domain:** `mmakaan.app` is bought (D-20, 2026-11-13), its DNS points at the
-  hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). Waiting on the owner:
-  the merge of the move's pull request and the release, before Wednesday 2026-11-18, then the
-  steps after it (`docs/release-readiness.md`, Owner actions, item 13). Apple enrols an
+  hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). The move's pull request
+  is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done.
+  Waiting on the owner: steps 9 to 13 (`docs/release-readiness.md`, Owner actions, item 13).
+  Apple enrols an
   organisation only if its website is on a domain associated with it, with work e-mail there; the
   same domain serves Meta's verification and the e-mail sending subdomains.
 - **A lawyer:** a fixed-fee request for quotation this month, with a deadline at least six weeks
@@ -351,11 +408,10 @@ The rest, in short:
   to NULL under portfolio locks taken in id order, so that GoTrue's deletion finds nothing to
   lock. It writes 20 tables (each write audited) and locks more portfolios, including ones the
   user has left. Until then a rare 40P01 on the delete-account path is resolved by the retries.
-- The first production run of the Deploy workflow: it must be on the default branch to be run by
-  hand (or a release published). It deploys the web app to Vercel (`web` job, needs
-  `VERCEL_TOKEN`, set) and redeploys the Edge Functions so they send the database's Retry-After
-  (`admin_rate_limit_hit`, 20261107181820); until then the hosted functions use the deprecated
-  `admin_hit_rate_limit`, which still works.
+- Done with release 1.0.0 (2026-11-09) and by every release since: the first production run of
+  the Deploy workflow. It deploys the web app to Vercel (`web` job) and redeploys the Edge
+  Functions, so they send the database's Retry-After (`admin_rate_limit_hit`, 20261107181820)
+  and no longer call the deprecated `admin_hit_rate_limit`.
 - Google Play: the organisation account waits for its D-U-N-S number. Once the app is on Play,
   add the Play app-signing key's SHA-256 to `app/web/.well-known/assetlinks.json`, and link the
   listing from the website.
@@ -369,12 +425,13 @@ The rest, in short:
 - Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
   choice, 2026-11-09), with the bilingual templates in `supabase/templates/`. The sending domain
   `news.ar27111994.dev` is verified (2026-11-09); its click and open tracking are off (the owner,
-  reported 2026-11-12).
+  reported 2026-11-12). It gives way to `mmakaan.app`, with `hello@mmakaan.app` as the sender
+  (the owner's decision of 2026-11-15, the Current Position).
 - Reported done by the owner on 2026-11-09 (not checkable from the agent's network): the backup
   key, `RELEASE_PLEASE_TOKEN`, Supabase SMTP through Resend with the templates, and the other
-  configuration in `docs/release-readiness.md`, Owner actions. Waiting: the pull request to
-  `main` (then the first Backup and Deploy runs), an uptime monitor (Better Stack refused
-  sign-ups; Checkly or StatusCake next), and the D-U-N-S number. On 2026-11-12 the owner reported
+  configuration in `docs/release-readiness.md`, Owner actions. Since then: the pull request to
+  `main` and the first Deploy run (release 1.0.0, 2026-11-09), and the uptime monitors, on
+  Checkly (Better Stack refused sign-ups; the Current Position). Waiting: the D-U-N-S number. On 2026-11-12 the owner reported
   the three Auth templates updated in the dashboard (the plain-Urdu copies, still in Nastaliq);
   on 2026-11-13, after release 1.2.0, they pasted the sans-Urdu copies from `main`.
 - Answered by the owner on 2026-11-09: the operator named on the privacy page (Ahmed Rehan) is
@@ -434,13 +491,16 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 
 ## Deployed
 
-- Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version 1
-  on the hosted project (deployed 2026-11-05 from commit b41771d through the Supabase connector,
-  verify_jwt off as in config.toml). A byte-for-byte comparison with the repository matches,
-  except one line of `invite-member/email.ts` where three `\u` escapes in a regular expression
-  arrived as the literal characters (same behaviour); the Deploy workflow's CLI upload restores
-  exact parity at the first release. Live checks: health 200; the other three refuse
-  unauthenticated calls with 401 and allow the app's origin.
+- Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version
+  14 on the hosted project (`list_edge_functions`, 2026-11-15), active, verify_jwt off as in
+  config.toml: release 1.3.0's Deploy run uploaded them from the tag with the Supabase CLI at
+  13:45 UTC that day, as every release since 1.0.0 (2026-11-09) has.
+- They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
+  (version 1). A byte-for-byte comparison with the repository matched then, except one line of
+  `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the
+  literal characters (same behaviour); the CLI uploads take the files as they are. Live checks
+  that day: health 200; the other three refused unauthenticated calls with 401 and allowed the
+  app's origin.
 
 ## Hosting
 
@@ -449,8 +509,9 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
   production is public.
 - Domains (D-20, added 2026-11-13 through the Vercel connector): `mmakaan.app` and
   `www.mmakaan.app` (308 to the apex) on `maalik-e-makaan-site`, `app.mmakaan.app` on
-  `maalik-e-makaan`; each project keeps its `vercel.app` address, which sends people on once the
-  release that carries D-20 is deployed. The DNS at Dynadot points at Vercel since 2026-11-13
+  `maalik-e-makaan`; each project keeps its `vercel.app` address, which sends people on since
+  release 1.3.0, which carries D-20, was deployed (2026-11-15). The DNS at Dynadot points at
+  Vercel since 2026-11-13
   (the owner: Vercel reports the three hosts as correctly configured); `docs/operations.md`,
   Domains, has the records.
 
