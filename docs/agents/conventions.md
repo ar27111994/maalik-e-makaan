@@ -159,15 +159,20 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   check reads both runs as bash does and refuses what it could read otherwise (a comment that
   ends in a backslash, a here-document, a quoted string over two lines, a carriage return or a
   no-break space among others), and the provenance file's name starts with a letter or a digit,
-  since `dist/*` leaves out a hidden file; no two jobs give it the same name, as GitHub reads
-  the `${{ }}` in it. `tool/github/check_release_provenance.py` (`make lint`, the pre-commit
-  hook) enforces it, and refuses other ways of uploading, deleting a release or its files, and gh
-  aliases and extensions, with gh's flags before the subcommand skipped as gh skips them
-  (`gh release -R x upload`). It reads only the workflow files: an upload by a script or program
-  a step runs, by a gh alias or extension already on the runner, or by text built at run time is
-  not seen, and a reviewer reads those by hand (`docs/operations.md`, Release provenance, What
-  the check cannot see). Why, and what Scorecard counts: `docs/operations.md`, Release
-  provenance.
+  since `dist/*` leaves out a hidden file, with no two dots in a row; no two jobs give it names
+  that can be the same file once Actions fills in the `${{ }}` in them, whose values the check
+  does not know (so the names differ in their text around the same expressions, or at their
+  ends), and an uploading job runs no matrix. `tool/github/check_release_provenance.py`
+  (`make lint`, the pre-commit hook) enforces it, and refuses other ways of uploading (`gh
+release create` or `new`), deleting a release or its files (a `DELETE` in any case, `-XDELETE`
+  too), and gh aliases and extensions, with gh's flags and their values before the subcommand
+  skipped (`gh release -R x upload`, `-R ${{ github.repository }}`) and an expression read as
+  the word Actions could put there. It reads only the workflow files: an upload by a script or
+  program a step runs, by a gh alias or extension already on the runner, by a reusable workflow
+  called twice, or by text built at run time (a variable, `xargs`, a flag value a script
+  computes other than with `+`, a call or a template literal) is not seen, and a reviewer reads
+  those by hand (`docs/operations.md`, Release provenance, What the check cannot see). Why, and
+  what Scorecard counts: `docs/operations.md`, Release provenance.
 
 ## Design
 

@@ -1194,21 +1194,39 @@ space, a tab and a line feed that Python reads as white space or as nothing. The
 file's name starts with a letter or a digit and holds only letters, digits, `.`, `_`, `-` and
 plain context properties such as `${{ needs.release-please.outputs.tag }}` (an expression with a
 literal or a function in it could put a `#` or a space there): `dist/*`, in the check's loop and in the upload, leaves out a name that
-starts with a dot, so a hidden provenance file would never be attached. No two jobs may name
-the same provenance file, compared as GitHub reads the names (white space inside `${{ }}`
-dropped and the expression's case ignored), since each `--clobber` upload would replace the
-other's. In every
-workflow it refuses other ways of putting files on a release: `gh release create`, a
-release-upload action, and the REST upload by its URL or its client libraries' names; ways of
-taking them off (`gh release delete` and `delete-asset`, a `DELETE` on a release URL, the client
-libraries' delete calls), which would leave a release without its provenance file; and a gh
-alias or extension, which could upload under another name. It looks for them in every value of
-every step (so also in an `actions/github-script` script), and in a run once its quoting is read
-(`gh release $'upload'` counts). It finds the subcommand as gh does, past the flags gh skips
-first and a value after each (`gh release -R "$GITHUB_REPOSITORY" upload` and
-`gh release --repo=x delete` count); since only gh knows which flags take a value, a word after
-a flag counts as the subcommand too. `gh release view`, `list`, `download` and `edit` attach and
-delete nothing, and are left alone.
+starts with a dot, so a hidden provenance file would never be attached. Nor may it hold two dots
+in a row, which GitHub, and gh when it looks for the file `--clobber` replaces, fold into one.
+No two jobs may name provenance files that can be the same file on the release, since each
+`--clobber` upload would replace the other's. The check compares the names as GitHub reads them
+(white space inside `${{ }}` dropped, the expressions' case ignored, and, more widely than
+GitHub, the text's too), but it cannot know the expressions' values: another expression with
+the same value (`${{ env.TAG }}`, `v${{ needs.release-please.outputs.version }}`) or an empty
+one could make two names one. So two names pass only if they hold the same expressions, each
+with one value in every job of the run (an output of a job both list in `needs`, `vars`,
+`inputs`, `github.repository`, `github.sha` and the like), and differ in the text around them
+in a way no value can make up, as release.yml's do (`-ios` added after the tag); or if the text
+of one before its first expression, or after its last, neither starts nor ends the other's. An
+uploading job may not set a `strategy`, since each leg of a matrix would give its provenance
+file the same name. In every workflow it refuses other ways of putting files on a release:
+`gh release create` (and `gh release new`, its alias in gh), a release-upload action, and the
+REST upload by its URL or its client libraries' names; ways of taking them off (`gh release
+delete` and `delete-asset`, a `DELETE` on a release URL in any case and glued to its flag, as
+gh and curl take `-XDELETE` and `--method delete`, the client libraries' delete calls), which
+would leave a release without its provenance file; and a gh alias or extension, which could
+upload under another name. It looks for them in every value of every step (so also in an
+`actions/github-script` script and an `env` value), and in a run once its quoting is read
+(`gh release $'upload'` counts), after a word gh is run by (`gh`, `"$GH"`), so a summary line
+such as `echo "the release upload finished"` is not taken for a command. Each `${{ }}`
+expression is first filled in as Actions could fill it: a string literal as its text
+(`gh release ${{ 'upload' }}` counts), any other expression as a word that could be any
+subcommand, except as the value of `-R` or `--repo`, which always take one
+(`gh release -R ${{ github.repository }} upload` counts, `… view` passes). It finds the
+subcommand as gh does, past the flags gh skips first and a value after each
+(`gh release -R "$GITHUB_REPOSITORY" upload` and `gh release --repo=x delete` count); in a
+script, a flag's value may be a quoted string or be joined with `+` and calls
+(`owner + '/' + name`, `String(repo)`, a template literal). Since only gh knows which flags take
+a value, a word after a flag counts as the subcommand too. `gh release view`, `list`,
+`download` and `edit` attach and delete nothing, and are left alone.
 
 **What the check cannot see.** It reads only the workflow files, as PyYAML parses them, and runs
 none of what they run. So these can still put a file on a release, or take one off, unseen:
@@ -1218,7 +1236,14 @@ none of what they run. So these can still put a file on a release, or take one o
 - an action that is not in the check's list of release-upload actions;
 - a gh alias or extension already configured on the runner, or read from a configuration
   directory in the repository (`GH_CONFIG_DIR`);
-- text built at run time (`$(printf upload)`, a shell variable or function);
+- a reusable workflow that uploads, called twice, whose two runs would give their provenance
+  files the same name;
+- text built at run time (`$(printf upload)`, a shell variable or function, positional
+  parameters such as `set -- upload; gh release "$@"`, `xargs gh release`, a glob such as
+  `upl[o]ad`), or a flag's value an action's script computes other than with `+`, a call or a
+  template literal (`'-R', a ? b : c, 'upload'`);
+- a context property in the provenance file's name whose value GitHub would change (a `/`, a
+  `#`, a space, or a dot at either end): the check takes the tag's `vX.Y.Z` to hold none;
 - a variable an earlier step writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload
   elsewhere, a `BASH_ENV` or `BASH_FUNC_*` for every later step).
 
