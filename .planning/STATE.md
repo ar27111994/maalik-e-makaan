@@ -75,24 +75,21 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   (once unchanged for ten minutes; younger ones at the next start or return to the app). The
   pickers' copies, the camera's original included, also go as soon as they are read; at start-up
   the camera's photos and record stay only while a lost photo may still come back (a day). A
-  deletion whose answer was lost signs out and wipes as a deletion, and says so. A portfolio that
-  leaves the user's list takes the user's other cache entries with it, and any list of theirs
-  that was still loading; the list is saved without it only once they are gone, so a prune cut
-  short is done again at the next load. A store that does not answer holds up neither the other
+  deletion whose answer was lost signs out and wipes as a deletion, and says so. Every saved
+  entry names its portfolio in its key (`own`, `p:<id>` or `unknown`; each cached query declares
+  its `CacheScope`, and the ten models behind the record queries read `portfolio_id`), as the
+  owner decided on 15 November 2026 (D-21). Each list of portfolios the server answers (the newest
+  asked only) sets the portfolios the user is in and removes, from the keys alone, every entry
+  outside them, the unknown ones and the old `mm.swr.v1.` format included; a write is checked
+  again as it lands, and a read never shows what the rule rejects. A portfolio joined on another
+  device, opened here by its link and left before this device loads the list again is now
+  removed at that load (P9, closed). A store that does not answer holds up neither the other
   removals nor the sign-out (three seconds each), and the next wipe starts afresh; the steps of
   a pass over the files start together, and a plugin's record of a lost pick that answers after
-  five seconds has its copies discarded when it does. The portfolio list's saves run one after
-  another (`SwrCache.serially`), each call to the store waited for at most three seconds, and a
-  missing saved list counts as unknown, so the next save always forgets the user's other entries,
-  a record saved before the session's first list save or still on its way included; a portfolio
-  leaving or a missing list never forgets the user's own profile and residence
-  (`PortfoliosController.kept`); a profile or list made from the one on show is saved for the
-  epoch it was asked for in
-  (CodeRabbit's second review of PR #70). After a write of the list failed, the saved list
-  counts as unknown until a later one lands (`SwrCache.unsettled`), and so it does while the store
-  holds an entry that was to go and whose deletion failed or hangs (`SwrCache.strayed`); a list
-  answer that comes after the answer to a later read is neither saved nor shown
-  (`SwrCache.claim`); two reference models check `SwrCache` over random sequences
+  five seconds has its copies discarded when it does. The list is shown and saved without
+  waiting for the store; a profile or list made from the one on show is saved for the epoch it
+  was asked for in; two reference models, a table of all 34 cached queries and the earlier
+  reviews' probes check it
   (`test/src/data/cache/`). A command that chooses the current portfolio after a request chooses
   nothing when the session ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an
@@ -426,15 +423,6 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Open
 
-- Owner: the portfolio prune knows a portfolio only from a saved list, and cache entries do not
-  name their portfolio. A portfolio joined on another device after this one last loaded the list,
-  whose record is opened here by its link, and left before the list loads again, is never in a
-  saved list, so its record stays until the session ends; the privacy page says the copy goes
-  "usually" at the next list load "and in any case" when the session ends, which holds for it
-  (`docs/architecture/app.md`, Writes after a removal). Closing it needs entries that name their
-  portfolio (each cached query saying which portfolio its value is of), or a list save that
-  forgets on every load, which ends saved copies outliving an online start; the second is a
-  product choice.
 - Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
   session and the record cache reach the person's Google backup, as the preferences reach iCloud
   on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
@@ -466,6 +454,13 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
+
+### Closed on 15 November 2026
+
+The portfolio prune that knew a portfolio only from a saved list (P9: a portfolio joined on
+another device, opened here by its link and left before this device loads the list again). Saved
+entries now name their portfolio, the owner's decision (D-21); the privacy page keeps its plain
+sentence (the copy goes "the next time it loads your list of portfolios").
 
 ### Closed in e853378
 

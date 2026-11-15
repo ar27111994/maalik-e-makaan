@@ -292,6 +292,13 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     web app origins until the old callback is retired, and the Deploy workflow refuses to deploy
     a web app whose origin the functions refuse.
 
+- D-21: **Saved records name their portfolio.** (Decided by the owner, 15 November 2026.) The
+  pull request that wipes the device at sign-out (#70) waits until every saved entry's key says
+  which portfolio it holds, so that each list of portfolios the app loads removes, from the keys
+  alone, what the list no longer names; the privacy page keeps its plain sentence, that the app
+  removes its copy "the next time it loads your list of portfolios", in English and Urdu. Built in
+  `docs/architecture/app.md` (Reading; On the device, Writes after a removal).
+
 ## Open Proposals
 
 Changes that roadmap items would make to an earlier decision. Each stays a proposal until the
