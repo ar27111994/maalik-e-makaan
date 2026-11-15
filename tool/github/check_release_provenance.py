@@ -11,8 +11,11 @@ covers, and only then uploads `dist/*` (docs/operations.md, Release provenance; 
 Checking a download). This check keeps that so, for every tracked workflow in
 .github/workflows. In each job that runs `gh release upload`:
 
-- there is exactly one such step, and its run is that one command, uploading `dist/*` (and no
-  other path) with `--clobber`;
+- there is exactly one such step, and once comments are dropped, continuation lines joined and
+  runs of white space read as one space, its run is exactly `UPLOAD_RUN`, the one command
+  release.yml has: `dist/*` and no other path, with `--clobber`, to `"$TAG"` in
+  `"$GITHUB_REPOSITORY"`, with nothing before, after or around it (no `cd`, `;`, `&&`, pipe or
+  variable set for the command); its `env` sets only `GH_TOKEN`;
 - the two steps just before it are, back to back, the attest step (`uses:
   actions/attest-build-provenance@<40-hex commit>`, with an `id` and `subject-path: dist/*`)
   and the provenance step, so no step can add an unattested file to `dist/` in between;
@@ -24,8 +27,11 @@ Checking a download). This check keeps that so, for every tracked workflow in
   Once comments are dropped and continuation lines joined, the run is exactly the six lines
   release.yml has (`RUN_LINES`), so nothing in it can stop the loop early, skip a file, or
   swallow a failure (`||`, `!`, `set +e`, `exit 0`, `break`);
-- none of the three steps has an `if:`, `continue-on-error` or `shell:`, the job has no
-  `continue-on-error`, and the job's and the workflow's `defaults.run.shell`, where set, is
+- none of the three steps has an `if:`, `continue-on-error`, `shell:` or `working-directory:`,
+  the job has no `continue-on-error`, neither the job nor the workflow sets
+  `defaults.run.working-directory` (each would move `dist/` away from the files the attest step
+  covers, which it names from the workspace root), and the job's and the workflow's
+  `defaults.run.shell`, where set, is
   `bash`: the runner runs that as `bash --noprofile --norc -e -o pipefail {0}`, and a step without
   a shell as `bash -e {0}`, so a failed verify ends the step; a custom shell such as `bash {0}`
   drops `-e`, and then only the last file's verify would count;
@@ -71,6 +77,14 @@ ROOT = Path(__file__).resolve().parents[2]
 ATTEST_ACTION = "actions/attest-build-provenance"
 ATTEST = re.compile(rf"^{re.escape(ATTEST_ACTION)}@[0-9a-f]{{40}}$")
 UPLOAD = re.compile(r"\bgh\s+release\s+upload\b")
+# The upload step's run, once read as RUN_LINES are: dist/* alone, to this release of this
+# repository, replacing a file of the same name.
+UPLOAD_RUN = 'gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"'
+# The only variable the upload step's own env may set: a step-level TAG or GH_REPO would send
+# the files elsewhere.
+UPLOAD_ENV = ("GH_TOKEN",)
+# Keys none of the attest, provenance and upload steps may have.
+STEP_KEYS = ("if", "continue-on-error", "shell", "working-directory")
 SOURCE_REF = "refs/heads/main"
 # Other ways of putting files on a release, refused so that the check cannot be sidestepped.
 OTHER_UPLOAD = re.compile(r"\bgh\s+release\s+create\b|uploads\.github\.com")
@@ -118,9 +132,21 @@ def uses_of(step: yaml.Node) -> str:
     return (scalar(get(step, "uses")) or "").strip()
 
 
+def _says(line: str, pattern: re.Pattern[str], verb: str) -> bool:
+    """Whether `line` runs `gh release <verb>`: as plain text, or once its shell quoting is read
+    (so `gh 'release' upload` and `"gh" release upload` count too)."""
+    if pattern.search(line):
+        return True
+    try:
+        words = shlex.split(line)
+    except ValueError:
+        return False
+    return any(words[i : i + 2] == ["release", verb] for i in range(len(words) - 1))
+
+
 def is_upload(step: yaml.Node) -> bool:
     run = run_of(step)
-    return run is not None and any(UPLOAD.search(line) for line in commands(run))
+    return run is not None and any(_says(line, UPLOAD, "upload") for line in commands(run))
 
 
 class Checker:
@@ -181,7 +207,11 @@ class Checker:
             uses = uses_of(step).split("@", 1)[0]
             run = run_of(step)
             if uses in UPLOAD_ACTIONS or (
-                run is not None and any(OTHER_UPLOAD.search(line) for line in commands(run))
+                run is not None
+                and any(
+                    OTHER_UPLOAD.search(line) or _says(line, OTHER_UPLOAD, "create")
+                    for line in commands(run)
+                )
             ):
                 found.append(
                     Problem(
@@ -226,6 +256,7 @@ class Checker:
         index = uploads[0]
         upload = steps[index]
         found += self.check_upload(path, name, upload)
+        found += self.check_step_keys(path, name, upload)
         if index < 2:
             found.append(
                 Problem(
@@ -243,52 +274,75 @@ class Checker:
             path, name, provenance, attest_id
         )
         found += provenance_problems
-        for step in (attest, provenance, upload):
-            for key in ("if", "continue-on-error"):
-                value = get(step, key)
-                if value is not None:
-                    found.append(
-                        Problem(
-                            path,
-                            line_of(value),
-                            f'job "{name}": the attest, provenance and upload steps run'
-                            f" always and must succeed, so none may have `{key}:`",
-                        )
-                    )
-            shell = get(step, "shell")
-            if shell is not None:
-                found.append(
-                    Problem(
-                        path,
-                        line_of(shell),
-                        f'job "{name}": the attest, provenance and upload steps run in the'
-                        f" default `{SHELL}` (-e, pipefail), so none may have `shell:`"
-                        f" (this one is {scalar(shell)!r})",
-                    )
-                )
+        for step in (attest, provenance):
+            found += self.check_step_keys(path, name, step)
         return found, provenance_name
+
+    def check_step_keys(self, path: str, name: str, step: yaml.Node) -> list[Problem]:
+        """The keys none of the attest, provenance and upload steps may have."""
+        found = []
+        for key in STEP_KEYS:
+            value = get(step, key)
+            if value is None:
+                continue
+            if key == "shell":
+                why = (
+                    f"run in the default `{SHELL}` (-e, pipefail), so none may have `shell:`"
+                    f" (this one is {scalar(value)!r})"
+                )
+            elif key == "working-directory":
+                why = (
+                    "work on dist/ in the workspace root, the files the attestation covers, so"
+                    f" none may have `working-directory:` (this one is {scalar(value)!r})"
+                )
+            else:
+                why = f"run always and must succeed, so none may have `{key}:`"
+            found.append(
+                Problem(
+                    path,
+                    line_of(value),
+                    f'job "{name}": the attest, provenance and upload steps {why}',
+                )
+            )
+        return found
 
     def check_shell(
         self, path: str, name: str, document: yaml.Node, job: yaml.Node
     ) -> list[Problem]:
-        """The default shell the job's steps run in: the job's `defaults.run.shell`, or else the
-        workflow's (the job's overrides the workflow's)."""
+        """The defaults the job's run steps take: the job's `defaults.run`, or else the
+        workflow's (the job's overrides the workflow's, key by key). The shell, where set, must
+        be bash; the working directory may not be set at all."""
+        found = []
+        for owner, node in ((f'job "{name}"', job), ("the workflow", document)):
+            directory = get(get(get(node, "defaults"), "run"), "working-directory")
+            if directory is not None:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(directory),
+                        f'job "{name}" uploads release files, but {owner} sets'
+                        f" `defaults.run.working-directory: {scalar(directory)}`; the provenance"
+                        " and upload steps must work on dist/ in the workspace root, the files"
+                        " the attest step covers",
+                    )
+                )
         for owner, node in ((f'job "{name}"', job), ("the workflow", document)):
             shell = get(get(get(node, "defaults"), "run"), "shell")
             if shell is None:
                 continue
-            if scalar(shell) == SHELL:
-                return []
-            return [
-                Problem(
-                    path,
-                    line_of(shell),
-                    f'job "{name}" uploads release files, but {owner} sets'
-                    f" `defaults.run.shell: {scalar(shell)}`; set `{SHELL}` (the runner adds"
-                    " -e and pipefail) or nothing, so a failed verify ends the provenance step",
+            if scalar(shell) != SHELL:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(shell),
+                        f'job "{name}" uploads release files, but {owner} sets'
+                        f" `defaults.run.shell: {scalar(shell)}`; set `{SHELL}` (the runner"
+                        " adds -e and pipefail) or nothing, so a failed verify ends the"
+                        " provenance step",
+                    )
                 )
-            ]
-        return []
+            break
+        return found
 
     def check_permissions(
         self, path: str, name: str, job: yaml.Node, job_name: yaml.ScalarNode
@@ -349,6 +403,38 @@ class Checker:
                     " first attempt's files beside a provenance file that does not match them",
                 )
             )
+        actual = re.sub(r"\s+", " ", lines[0])
+        if not found and actual != UPLOAD_RUN:
+            found.append(
+                Problem(
+                    path,
+                    where,
+                    f'job "{name}": the upload step\'s run must be exactly `{UPLOAD_RUN}`, so that'
+                    " it attaches the files of dist/ and nothing else, to this release, with"
+                    f" nothing run before, after or around it; it runs `{actual}`",
+                )
+            )
+        env = get(upload, "env")
+        if env is not None and not isinstance(env, yaml.MappingNode):
+            found.append(
+                Problem(
+                    path,
+                    line_of(env),
+                    f'job "{name}": the upload step\'s env must be a mapping that sets only '
+                    + ", ".join(UPLOAD_ENV),
+                )
+            )
+        for key, _ in items(env):
+            if key.value not in UPLOAD_ENV:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(key),
+                        f'job "{name}": the upload step\'s env sets {key.value}; it may set only '
+                        + ", ".join(UPLOAD_ENV)
+                        + " (the tag and the repository come from the job and the runner)",
+                    )
+                )
         return found
 
     def check_attest(

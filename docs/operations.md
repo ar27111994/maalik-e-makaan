@@ -1126,10 +1126,15 @@ protects it. Before the upload, the job checks it against every file in `dist/` 
 The source ref is `refs/heads/main`, written literally, so a run started by hand (Run workflow)
 from another branch fails there and attaches nothing: start Release by hand from `main` only.
 `tool/github/check_release_provenance.py` (`make lint`) keeps the attest step, that check and the
-one upload together, with no `if:`, `continue-on-error` or `shell:` on them. It requires the
-check's run to be exactly its six lines, and the job's default shell, where set, to be `bash` (which the
-runner starts with `-e -o pipefail`; `bash {0}` would drop `-e`, and only the last file's check
-would count), so no file is skipped and no failed check is lost.
+one upload together, with no `if:`, `continue-on-error`, `shell:` or `working-directory:` on
+them, and no `defaults.run.working-directory` on the job or the workflow (either would move
+`dist/` away from the files attested from the workspace root). It requires the check's run to be
+exactly its six lines, the upload's to be exactly
+`gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"` (so it attaches nothing
+outside `dist/` and runs nothing before, after or around it), the upload step's own `env` to set
+only `GH_TOKEN`, and the job's default shell, where set, to be `bash` (which the runner starts
+with `-e -o pipefail`; `bash {0}` would drop `-e`, and only the last file's check would count), so
+no file is skipped, no failed check is lost and no unattested file is attached.
 
 **Re-runs.** "Re-run failed jobs" runs the whole job again on a new runner: a new build, a new
 attestation and a new provenance file, under the same names, so `--clobber` replaces every file.

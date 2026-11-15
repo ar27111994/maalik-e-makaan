@@ -46,6 +46,13 @@ VERIFY = (
     "              --source-ref refs/heads/main\n"
 )
 UPLOAD = '        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"\n'
+UPLOAD_ENV = "        env:\n          GH_TOKEN: ${{ github.token }}\n"
+EXACT = "the upload step's run must be exactly `" + crp.UPLOAD_RUN + "`"
+
+
+def upload_run(command: str) -> str:
+    """The upload step's run line, with `command` in place of release.yml's."""
+    return f"        run: {command}\n"
 
 
 def provenance_step(job: str) -> str:
@@ -92,10 +99,12 @@ class Fixture(unittest.TestCase):
     def release(self, text: str) -> list[str]:
         return [str(p) for p in self.problems(self.write(RELEASE, text))]
 
-    def assert_problems(self, found: list[str], *fragments: str) -> None:
+    def assert_problems(self, found: list[str], *fragments: str | tuple[str, ...]) -> None:
+        """One problem per fragment, in order; a tuple's parts must all be in its problem."""
         self.assertEqual(len(found), len(fragments), found)
         for problem, fragment in zip(found, fragments, strict=True):
-            self.assertIn(fragment, problem)
+            for part in fragment if isinstance(fragment, tuple) else (fragment,):
+                self.assertIn(part, problem)
 
 
 class RepositoryTest(Fixture):
@@ -190,6 +199,104 @@ MUTANTS = {
             '          gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"\n',
         ),
         ['job "ios": the upload step must run `gh release upload` alone'],
+    ),
+    # The upload command, which must be exactly release.yml's.
+    "a path outside dist/ uploaded beside dist/*": (
+        in_job("artefacts", " dist/* --clobber", " dist/* build/x --clobber"),
+        [
+            f'job "artefacts": {EXACT}, so that it attaches the files of dist/ and nothing else,'
+            " to this release, with nothing run before, after or around it; it runs"
+            ' `gh release upload "$TAG" dist/* build/x --clobber --repo "$GITHUB_REPOSITORY"`'
+        ],
+    ),
+    "a file written into dist/ on the upload line": (
+        in_job(
+            "ios",
+            UPLOAD,
+            upload_run(
+                'date > dist/late && gh release upload "$TAG" dist/* --clobber'
+                ' --repo "$GITHUB_REPOSITORY"'
+            ),
+        ),
+        ['job "ios" uploads dist/late, dist/*; upload `dist/*`'],
+    ),
+    "a file written into dist/ from a subshell on the upload line": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            upload_run(
+                '(cd dist; date > late) && gh release upload "$TAG" dist/* --clobber'
+                ' --repo "$GITHUB_REPOSITORY"'
+            ),
+        ),
+        [(f'job "artefacts": {EXACT}', "it runs `(cd dist; date > late) && gh release upload")],
+    ),
+    "another directory entered with ; before the upload": (
+        in_job(
+            "ios",
+            UPLOAD,
+            upload_run(
+                'cd build; gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"'
+            ),
+        ),
+        [(f'job "ios": {EXACT}', "it runs `cd build; gh release upload")],
+    ),
+    "the upload piped into another command": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            upload_run(
+                'gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY" | tee log'
+            ),
+        ),
+        [(f'job "artefacts": {EXACT}', '"$GITHUB_REPOSITORY" | tee log`')],
+    ),
+    "a variable set for the upload command": (
+        in_job("ios", "run: gh release upload", "run: GH_REPO=other/fork gh release upload"),
+        [(f'job "ios": {EXACT}', "it runs `GH_REPO=other/fork gh release upload")],
+    ),
+    "an extra flag on the upload": (
+        in_job(
+            "artefacts",
+            ' --repo "$GITHUB_REPOSITORY"\n',
+            ' --repo "$GITHUB_REPOSITORY" -R other/fork\n',
+        ),
+        [(f'job "artefacts": {EXACT}', '"$GITHUB_REPOSITORY" -R other/fork`')],
+    ),
+    "the upload to another tag variable": (
+        in_job("ios", 'upload "$TAG" dist/*', 'upload "$VERSION" dist/*'),
+        [(f'job "ios": {EXACT}', 'it runs `gh release upload "$VERSION" dist/*')],
+    ),
+    "a second upload step with the command's words quoted": (
+        in_job("ios", UPLOAD, UPLOAD + "      - run: gh 'release' upload \"$TAG\" build/x\n"),
+        ['job "ios" runs `gh release upload` in 2 steps'],
+    ),
+    "a release created with the command's words quoted": (
+        in_job("artefacts", UPLOAD, UPLOAD + "      - run: '\"gh\" release create v9 build/x'\n"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "the tag set in the upload step's env": (
+        in_job("artefacts", UPLOAD_ENV + UPLOAD, UPLOAD_ENV + "          TAG: v0.0.1\n" + UPLOAD),
+        ['job "artefacts": the upload step\'s env sets TAG; it may set only GH_TOKEN'],
+    ),
+    "the upload step's env from an expression": (
+        in_job(
+            "ios",
+            UPLOAD_ENV + UPLOAD,
+            "        env: ${{ fromJSON(vars.UPLOAD_ENV) }}\n" + UPLOAD,
+        ),
+        ['job "ios": the upload step\'s env must be a mapping that sets only GH_TOKEN'],
+    ),
+    "the upload written over several lines, with a comment (still passes)": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            "        run: |\n"
+            "          # Every file in dist/, the provenance file included.\n"
+            '          gh release upload "$TAG" dist/* \\\n'
+            '            --clobber   --repo "$GITHUB_REPOSITORY"\n',
+        ),
+        [],
     ),
     # The provenance file.
     "the suffix changed to .json": (
@@ -368,6 +475,14 @@ MUTANTS = {
         ),
         ["none may have `continue-on-error:`"],
     ),
+    "continue-on-error on the upload step": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            UPLOAD.replace("        run:", "        continue-on-error: true\n        run:"),
+        ),
+        ["none may have `continue-on-error:`"],
+    ),
     "continue-on-error on the job": (
         lambda t: once(
             t,
@@ -425,6 +540,60 @@ MUTANTS = {
     "no default shell anywhere": (
         lambda t: once(t, "defaults:\n  run:\n    shell: bash\n\n", ""),
         [],
+    ),
+    # The working directory, which must stay the workspace root the attest step names dist/ from.
+    "working-directory on the attest step": (
+        in_job(
+            "artefacts",
+            "        with:\n          subject-path",
+            "        working-directory: app\n        with:\n          subject-path",
+        ),
+        [
+            'job "artefacts": the attest, provenance and upload steps work on dist/ in the'
+            " workspace root, the files the attestation covers, so none may have"
+            " `working-directory:` (this one is 'app')"
+        ],
+    ),
+    "working-directory on the provenance step": (
+        in_job(
+            "ios",
+            "        env:\n          BUNDLE:",
+            "        working-directory: app\n        env:\n          BUNDLE:",
+        ),
+        ['job "ios": the attest, provenance and upload steps work on dist/ in the workspace root'],
+    ),
+    "working-directory on the upload step": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            UPLOAD.replace("        run:", "        working-directory: build\n        run:"),
+        ),
+        ["so none may have `working-directory:` (this one is 'build')"],
+    ),
+    "a job's default working directory": (
+        lambda t: once(
+            t,
+            "    runs-on: macos-26\n",
+            "    runs-on: macos-26\n    defaults:\n      run:\n        working-directory: app\n",
+        ),
+        [
+            'job "ios" uploads release files, but job "ios" sets'
+            " `defaults.run.working-directory: app`; the provenance and upload steps must work on"
+            " dist/ in the workspace root"
+        ],
+    ),
+    "the workflow's default working directory": (
+        lambda t: once(
+            t,
+            "defaults:\n  run:\n    shell: bash\n",
+            "defaults:\n  run:\n    shell: bash\n    working-directory: app\n",
+        ),
+        [
+            'job "artefacts" uploads release files, but the workflow sets'
+            " `defaults.run.working-directory: app`",
+            'job "ios" uploads release files, but the workflow sets'
+            " `defaults.run.working-directory: app`",
+        ],
     ),
     # Pins and permissions.
     "the attest action unpinned": (
@@ -486,7 +655,7 @@ jobs:
     steps:
       - run: echo build
       - run: mkdir dist && date > dist/file
-      - run: gh release upload v1 dist/* --clobber
+      - run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
 """
 
 
@@ -515,6 +684,23 @@ class FixtureTest(Fixture):
             '.github/workflows/x.yml:4: job "attach" uploads release files, so it must grant',
             '.github/workflows/x.yml:8: job "attach" uploads to a release without the attest step',
             f"{RELEASE}:1: cannot read it",
+        )
+
+    def test_the_upload_step_s_keys_are_read_without_the_steps_before_it(self):
+        # One step before the upload, so the attest and provenance steps are not read at all.
+        text = UPLOADING_JOB.replace("      - run: echo build\n", "").replace(
+            "      - run: gh release upload",
+            "      - if: false\n        working-directory: build\n        run: gh release upload",
+        )
+        found = [str(p) for p in self.problems(self.write(".github/workflows/x.yml", text))]
+        self.assert_problems(
+            found,
+            '.github/workflows/x.yml:7: job "attach" uploads release files, so it must grant',
+            '.github/workflows/x.yml:10: job "attach": the attest, provenance and upload steps run'
+            " always and must succeed, so none may have `if:`",
+            '.github/workflows/x.yml:11: job "attach": the attest, provenance and upload steps work'
+            " on dist/ in the workspace root",
+            '.github/workflows/x.yml:10: job "attach" uploads to a release without the attest step',
         )
 
     def test_no_upload_anywhere(self):
