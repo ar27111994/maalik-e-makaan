@@ -230,7 +230,8 @@ class BuildConfigTest(unittest.TestCase):
             "status": 200,
         }
         self.assertEqual(routes[handle - 1], {"src": r"^/+(?:index\.html|moved\.html)?$", **moved})
-        self.assertEqual(routes[handle + 1], {"src": "^/(?!auth/callback$).*$", **moved})
+        # After it every path, /auth/callback included (docs/operations.md, Domains, step 12).
+        self.assertEqual(routes[handle + 1], {"src": "^/.*$", **moved})
         # The root and the page with more slashes before them too, and nothing deeper.
         first = re.compile(routes[handle - 1]["src"], re.IGNORECASE)
         for path in ("/", "//", "///", "/index.html", "//index.html", "//moved.html"):
@@ -278,17 +279,31 @@ class BuildConfigTest(unittest.TestCase):
             ("/invite", False),
         ):
             self.assertEqual(bool(before.search(path)), matches, path)
-        # After it every path but the callback, whose sign-in verifier is in that storage.
+        # After it every path that is not a file, the e-mail links' callback included: since
+        # step 12 (docs/operations.md, Domains) it clears the storage that holds a sign-in
+        # verifier too, and the page sends the link on to the origin.
         for path, matches in (
             ("/invite", True),
             ("/a/b/", True),
             ("/auth/callback/extra", True),
             ("/auth/callbacks", True),
             ("/auth", True),
-            ("/auth/callback", False),
-            ("/AUTH/Callback", False),
+            ("/auth/callback", True),
+            ("/AUTH/Callback", True),
+            ("/auth/callback/", True),
+            ("//auth/callback", True),
         ):
             self.assertEqual(bool(after.search(path)), matches, path)
+
+    def test_routes_without_a_host_condition_are_the_config_without_earlier_addresses(self):
+        # The routes an earlier address adds all carry its host condition, and taking them away
+        # leaves exactly the config of a web app with no earlier address: so no route that a
+        # request to the origin can match differs from that one, the callback's included.
+        config = pv.build_config(self.FILES, SUPABASE, APP)
+        hosted = [route for route in config["routes"] if "has" in route]
+        self.assertEqual(len(hosted), 2)
+        unconditional = [route for route in config["routes"] if "has" not in route]
+        self.assertEqual({**config, "routes": unconditional}, pv.build_config(self.FILES, SUPABASE))
 
     def test_every_security_header_is_set(self):
         headers = pv.build_config(self.FILES, SUPABASE)["routes"][0]["headers"]
@@ -568,6 +583,12 @@ class ServeOutputTest(unittest.TestCase):
                 "/auth/callbacks",
                 "/auth",
                 "/.well-known/other.json",
+                # An e-mail link's callback, late or not: the page clears the storage that holds
+                # its sign-in verifier and carries the query on (test_moved_js).
+                "/auth/callback",
+                "/auth/callback?code=x",
+                "/AUTH/CALLBACK?code=x",
+                "/auth/callback?error=access_denied&error_code=otp_expired",
             ):
                 with self.subTest(host=host, path=path):
                     status, headers, body = self.get_as(host, path)
@@ -583,7 +604,7 @@ class ServeOutputTest(unittest.TestCase):
         status, headers, body = self.get_as(OLD_HOSTS[0], "/invite?x=1", "HEAD")
         self.assertEqual((status, body, headers["Clear-Site-Data"]), (200, "", '"storage"'))
 
-    def test_an_earlier_address_keeps_serving_its_files_and_the_callback_and_clears_nothing(self):
+    def test_an_earlier_address_keeps_serving_its_files_and_clears_nothing(self):
         host = OLD_HOSTS[0]
         status, headers, body = self.get_as(host, "/.well-known/assetlinks.json")
         self.assertEqual((status, headers["Content-Type"]), (200, "application/json"))
@@ -603,11 +624,6 @@ class ServeOutputTest(unittest.TestCase):
         status, headers, body = self.get_as(host, "/moved.js")
         self.assertEqual(headers["Content-Type"], "text/javascript; charset=utf-8")
         self.assertEqual(body, pv.moved_files(APP)["moved.js"])
-        for path in ("/auth/callback", "/auth/callback?code=x", "/AUTH/CALLBACK?code=x"):
-            with self.subTest(path=path):
-                status, headers, body = self.get_as(host, path)
-                self.assertEqual((status, body), (200, INDEX))
-                self.assertNotIn("Clear-Site-Data", headers)
 
     def test_the_origin_and_other_hosts_serve_the_app_and_never_clear(self):
         for host in ("app.example.pk", "preview-abc.example.org", "xold.example.org", "localhost"):
@@ -704,10 +720,11 @@ class ServeOutputTest(unittest.TestCase):
         self.assertEqual(router._file("/").name, "index.html")
         self.assertEqual(router._file("/main.dart.js").name, "main.dart.js")
 
-    def test_only_the_single_slash_forms_of_the_kept_paths_are_kept_on_an_earlier_address(self):
-        # Android asks for /.well-known/assetlinks.json and the e-mail links name
-        # /auth/callback, as written, so only those are kept; a form with an extra slash is
-        # another path, and gets the page that clears and sends on, as any other path does.
+    def test_a_form_with_a_slash_more_gets_the_page_on_an_earlier_address(self):
+        # Android asks for /.well-known/assetlinks.json as written, so only that form is kept
+        # among the paths a link or Android asks for; a form with an extra slash is another
+        # path, and gets the page that clears and sends on, as any other path does. The
+        # callback gets the page in every form.
         moved = pv.moved_files(APP)["moved.html"]
         for host in OLD_HOSTS:
             for path in (
@@ -717,6 +734,7 @@ class ServeOutputTest(unittest.TestCase):
                 "/auth/callback/",
                 "//.well-known/assetlinks.json",
                 "/.well-known//assetlinks.json",
+                "//main.dart.js",
             ):
                 with self.subTest(host=host, path=path):
                     status, headers, body = self.get_as(host, path)

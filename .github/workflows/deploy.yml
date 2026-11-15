@@ -258,8 +258,9 @@ jobs:
       - name: Smoke test
         # The origin, which never tells a browser to clear its storage. Then each earlier
         # address: every page answers with the one that clears that address's storage and goes
-        # to the origin (--page), but it keeps answering the Android App Links file (checked by
-        # Android without following a redirect) and the e-mail links' callback, and clears
+        # to the origin (--page), the e-mail links' callback included (--moved, which the check
+        # also waits for, since the deployment before kept it), but it keeps answering the
+        # Android App Links file (checked by Android without following a redirect), and clears
         # nothing there.
         env:
           APP: ${{ steps.origins.outputs.app }}
@@ -268,7 +269,7 @@ jobs:
           tool/web/smoke_test.sh "$APP" "$ANDROID_PACKAGE" "$SUPABASE_URL"
           while read -r origin; do
             tool/web/redirect_smoke_test.sh "$origin" "$APP" --page \
-              --keep '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
+              --moved '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
           done < <(jq -r '.[]' <<<"$LEGACY")
 
   site:

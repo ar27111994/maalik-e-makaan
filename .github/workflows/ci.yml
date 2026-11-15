@@ -189,7 +189,7 @@ jobs:
         # applies the package's config.json the way Vercel does; each earlier
         # address of contracts/origins.json is reached with its Host header, and
         # must answer with the page that clears its storage and goes to the
-        # origin, except for the callback and the App Links file.
+        # origin, the e-mail links' callback included, except the App Links file.
         run: |
           python3 tool/web/serve_output.py "$RUNNER_TEMP/vercel/.vercel/output" --port 8080 &
           for _ in {1..20}; do curl -fs -o /dev/null http://127.0.0.1:8080/ && break; sleep 0.5; done
@@ -199,7 +199,7 @@ jobs:
           while read -r legacy; do
             tool/web/redirect_smoke_test.sh http://127.0.0.1:8080 "$app" --page \
               --host "${legacy#https://}" \
-              --keep '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
+              --moved '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
           done < <(jq -r '.app.legacy[]?' contracts/origins.json)
 
   website:
