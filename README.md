@@ -166,8 +166,10 @@ role-checked write functions on a reviewed allowlist, and CHECK constraints that
 text, phone numbers, CNICs and IBANs to the form the app reads back.
 Clients hold only the publishable key. Security checks ([`security.yml`](.github/workflows/security.yml))
 run CodeQL, gitleaks over the whole history, OSV-Scanner, dependency review and zizmor, and every
-action is pinned to a commit. Report vulnerabilities privately, as [`SECURITY.md`](SECURITY.md)
-explains.
+action is pinned to a commit. From v1.4.0 on, each release carries GitHub's
+signed build provenance for its files as `.intoto.jsonl` files, which
+[`SECURITY.md`](SECURITY.md#checking-a-download) shows how to check. Report vulnerabilities
+privately, as [`SECURITY.md`](SECURITY.md) explains.
 
 ## Contributing
 

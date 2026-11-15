@@ -182,6 +182,37 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   (its `zizmor-pin` check) keeps the two versions equal, and `tool/requirements-lint.in` equal
   to the lockfile. A finding is fixed; an exception is an inline `# zizmor: ignore[<audit>]`
   with its reason, agreed in review.
+- A job that puts files on a GitHub release attests them first and attaches their provenance:
+  the attest step (`actions/attest-build-provenance`, `subject-path: dist/*`), then a step that
+  copies its Sigstore bundle into `dist/` as a `.intoto.jsonl` file and checks it with
+  `gh attestation verify --bundle` against every build file there (all but the provenance file
+  itself, the bundle they are checked against), with `--source-ref refs/heads/main`, then
+  one `gh release upload` of `dist/*`, the provenance file included, with `--clobber`, back to
+  back, with no `if:`,
+  `continue-on-error`, `shell:` or `working-directory:` (a default shell, where set, is `bash`,
+  which keeps `-e`; no default working directory). The check step's run is exactly its six lines,
+  so it cannot skip a file or lose a failure, and the upload's run is exactly its one command,
+  with only `GH_TOKEN` in its `env`, so it attaches only the attested build files and their
+  provenance file. The
+  check step's `env` sets only `BUNDLE` and `PROVENANCE`, and the job's and the workflow's `env`
+  nothing that changes what bash or gh runs (`BASH_ENV`, `PATH`, `BASH_FUNC_*` and others). The
+  check reads both runs as bash does and refuses what it could read otherwise (a comment that
+  ends in a backslash, a here-document, a quoted string over two lines, a carriage return or a
+  no-break space among others), and the provenance file's name starts with a letter or a digit,
+  since `dist/*` leaves out a hidden file, with no two dots in a row; no two jobs give it names
+  that can be the same file once Actions fills in the `${{ }}` in them, whose values the check
+  does not know (so the names differ in their text around the same expressions, or at their
+  ends), and an uploading job runs no matrix. `tool/github/check_release_provenance.py`
+  (`make lint`, the pre-commit hook) enforces it, and refuses other ways of uploading (`gh
+release create` or `new`), deleting a release or its files (a `DELETE` in any case, `-XDELETE`
+  too), and gh aliases and extensions, with gh's flags and their values before the subcommand
+  skipped (`gh release -R x upload`, `-R ${{ github.repository }}`) and an expression read as
+  the word Actions could put there. It reads only the workflow files: an upload by a script or
+  program a step runs, by a gh alias or extension already on the runner, by a reusable workflow
+  called twice, or by text built at run time (a variable, `xargs`, a flag value a script
+  computes other than with `+`, a call or a template literal) is not seen, and a reviewer reads
+  those by hand (`docs/operations.md`, Release provenance, What the check cannot see). Why, and
+  what Scorecard counts: `docs/operations.md`, Release provenance.
 
 ## Design
 

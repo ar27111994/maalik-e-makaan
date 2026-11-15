@@ -26,6 +26,8 @@ const release = LATEST_RELEASE;
 // Only the files attached to the release when the site was built (src/lib/release.ts).
 const files =
   release === undefined ? [] : releaseAssets(release, SITE.repositoryUrl, ATTACHED_ASSETS);
+// How to check a download with the release's provenance files: in English on both pages.
+const verifyUrl = `${SITE.repositoryUrl}/blob/main/SECURITY.md#checking-a-download`;
 ---
 
 <BaseLayout
@@ -75,6 +77,12 @@ const files =
                 </li>
               ))}
             </ul>
+            <p class="release__verify">
+              {page.release.verify.body}{" "}
+              <a href={verifyUrl} hreflang="en">
+                {page.release.verify.label}
+              </a>
+            </p>
           </>
         )}
         <h3>{page.release.notesHeading}</h3>
@@ -184,6 +192,10 @@ const files =
 
   .release__language {
     color: var(--mm-color-ink-muted);
+  }
+
+  .release__verify {
+    max-inline-size: var(--reading-max);
   }
 
   .web-address {
