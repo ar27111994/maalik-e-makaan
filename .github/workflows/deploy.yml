@@ -276,7 +276,9 @@ jobs:
     name: Website (Vercel)
     if: ${{ !inputs.skip-site }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # The address check alone may take 13 minutes when every address answers only on its last
+    # try (tool/web/test_check_time.py), and the build, the deploy and the smoke test follow.
+    timeout-minutes: 30
     permissions:
       contents: read
       # The roadmap page reads the roadmap's milestones and issues.

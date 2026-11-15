@@ -90,7 +90,10 @@ def _flag_problems(element: ET.Element, name: str, where: str, why: str) -> list
 
 def _qualified(name: str, package: str) -> str:
     """A component's class name as Android reads it: a leading dot, or no dot at all, puts the
-    manifest's package in front."""
+    manifest's package in front. A manifest without a package attribute (the app's own: its
+    namespace is in Gradle) leaves such a name as written, so there an alias whose target is
+    written in full matches no activity written with a leading dot, and the alias counts as one
+    with no declared target; the merged manifest, which CI checks, carries the package."""
     if package and (name.startswith(".") or "." not in name):
         return f"{package}{'' if name.startswith('.') else '.'}{name}"
     return name

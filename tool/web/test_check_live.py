@@ -15,6 +15,7 @@ import sys
 import tempfile
 import threading
 import time
+import typing
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -412,6 +413,18 @@ class WithinTest(unittest.TestCase):
         with self.assertRaisesRegex(cl.UnreachableError, "refused"):
             cl.within(5, fails)
 
+    def test_an_error_that_is_no_exception_reaches_the_caller_as_itself(self):
+        # A SystemExit or KeyboardInterrupt in the call is not "no whole answer": the caller
+        # must see what really happened.
+        class Stop(BaseException):
+            pass
+
+        def stops() -> cl.Answer:
+            raise Stop
+
+        with self.assertRaises(Stop):
+            cl.within(5, stops)
+
     def test_a_call_that_takes_longer_is_no_answer(self):
         release = threading.Event()
         self.addCleanup(release.set)
@@ -444,6 +457,26 @@ class WithinTest(unittest.TestCase):
             with self.assertRaises(cl.UnreachableError):
                 cl.within(0.05, lambda: (release.wait(30), cl.Answer(200))[1])
         self.assertEqual(waits, [7, 0.05])
+
+
+class FetchTimeoutTest(unittest.TestCase):
+    def test_the_request_carries_the_socket_timeout_that_ends_a_thread_left_behind(self):
+        # within() stops waiting for a request after TIMEOUT_SECONDS; the request's own thread
+        # ends only because each of its socket steps has that timeout too.
+        seen: list[float | None] = []
+
+        class Response(io.BytesIO):
+            status = 200
+            headers: typing.ClassVar[dict[str, str]] = {}
+
+        class Opener:
+            def open(self, request: object, timeout: float | None = None) -> Response:
+                seen.append(timeout)
+                return Response(b"ok")
+
+        with unittest.mock.patch.object(cl.urllib.request, "build_opener", lambda *_: Opener()):
+            self.assertEqual(cl.fetch("https://example.org/"), cl.Answer(200, "", b"ok"))
+        self.assertEqual(seen, [cl.TIMEOUT_SECONDS])
 
 
 class FetchTest(unittest.TestCase):
