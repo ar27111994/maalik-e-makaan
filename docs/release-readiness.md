@@ -500,10 +500,11 @@ In order. Record each in `.planning/STATE.md` when it is done.
         the old address's
         `/auth/callback` with the page too, so it clears and sends people on like every other
         path; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone.
-    13. **The mail. Done on 15 November 2026, except the DMARC check.** The company's mailbox is
-        `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho; a test message to
-        Gmail passed SPF and DKIM for `mmakaan.app` on 13 November 2026. Its DNS records are as
-        Dynadot sets them (MX, SPF, DKIM), with Dynadot's own `_dmarc` record (`p=none`) alone:
+    13. **The mail. Done on 15 November 2026, except the e-mail checks (DMARC "PASS", the reset and
+        the invitation).** The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail
+        (free plan), not Zoho; a test message to Gmail passed SPF and DKIM for `mmakaan.app` on 13
+        November 2026. Its DNS records are as Dynadot sets them (MX, SPF, DKIM), with Dynadot's own
+        `_dmarc` record (`p=none`) alone:
         yours, added on 13 November 2026, stood beside it, so that neither applied (RFC 7489,
         section 6.6.3), and you removed it on 15 November 2026; a lookup then showed the one
         record. Add no second one. The Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app`

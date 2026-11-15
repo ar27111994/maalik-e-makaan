@@ -12,9 +12,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 - Release 1.3.1 was published on 15 November 2026 at 15:50 UTC (tag `v1.3.1`, commit 8f6f062 on
   `main`; the Release run 43732066821; every job passed, as the agent read it). The agent
   merged the release pull request (#79) itself, on the owner's standing word of that day:
-  release whenever everything meant for a release is merged and green (pull request #81
-  records it in `AGENTS.md` and the runbook). It carries #77 (the record after 1.3.0 and the
-  regenerated database types), #78 (the pitch deck brought up to date) and #80 (Search
+  release whenever everything meant for a release is merged and green (pull request #81, not
+  merged yet, is to record it in `AGENTS.md` and the runbook). It carries #77 (the record after
+  1.3.0 and the regenerated database types), #78 (the pitch deck brought up to date) and #80 (Search
   Console's ownership file). No migration: 24 stay applied. Its Deploy run redeployed the four
   Edge Functions (Deployed), the web app and the website, each with its smoke tests. Nine files are
   attached: the app bundle, three APKs, the web zip, the debug symbols, the unsigned iOS app,
@@ -425,8 +425,8 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
 - **The move to the domain:** `mmakaan.app` is bought (D-20, 2026-11-13), its DNS points at the
   hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). The move's pull request
   is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done, with
-  steps 1, 11 and 13 (but its DMARC check) and step 10's homepage and company website (the same
-  day). Waiting on the owner: step 9's checks by hand and the e-mails with `dmarc=pass`, the
+  steps 1, 11 and 13 (except its e-mail checks) and step 10's homepage and company website (the
+  same day). Waiting on the owner: step 9's checks by hand and the e-mails with `dmarc=pass`, the
   website on LinkedIn and the D-U-N-S record, and `ALLOWED_ORIGINS` after step 12's release
   (`docs/release-readiness.md`, Owner actions, item 13).
   Apple enrols an

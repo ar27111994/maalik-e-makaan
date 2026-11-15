@@ -187,19 +187,20 @@ Resend's free plan (3,000 e-mails a month, 100 a day, one domain, in November 20
 launch; Auth and invitations share the daily 100. Check the plan's terms allow production use.
 
 1. **A domain.** Resend sends to other people only from a domain whose DNS you control; a
-   `vercel.app` address cannot be one. Add the domain in Resend, then add at the DNS host exactly
-   the records Resend's page for that domain lists, as records on their own subdomains, and wait
-   for "Verified". Copy them from that page, not from a guide: they changed in 2026. For
-   `mmakaan.app` (region ap-northeast-1, Tokyo; 15 November 2026) Resend asked for a DKIM TXT on
-   `resend._domainkey` and two `CNAME` records, `send` to `send.forge.rmta.net` and `rsend` to
-   `rsend-apne1.forge.rmta.net`, and not the MX and SPF TXT on `send` that this step named
-   before. Leave Resend's "Enable receiving" off, so that the domain's own MX records, the
-   mailbox's, keep receiving. **Keep exactly one DMARC record** at `_dmarc.<domain>`: two TXT
-   records that start `v=DMARC1` at one name mean that receivers apply neither (RFC 7489,
-   section 6.6.3), and Gmail then shows no DMARC result at all. Where the mail host writes one
-   for itself, as Dynadot's e-mail does on `mmakaan.app` (`p=none`), add none of your own; where
-   none exists, add `v=DMARC1; p=none;`. In the domain's Configuration, turn **off** click
-   tracking and open tracking: click tracking rewrites the sign-in links through Resend's
+   `vercel.app` address cannot be one. **Keep exactly one DMARC record** (below). Add the domain in
+   Resend, then add at the DNS host exactly the DKIM and sending records Resend's page for that
+   domain lists, as records on their own subdomains, and wait for "Verified"; a DMARC record that
+   page suggests is added only when the domain has none yet. Copy the records from that page, not
+   from a guide: they changed in 2026. For `mmakaan.app` (region ap-northeast-1, Tokyo; 15
+   November 2026) Resend asked for a DKIM TXT on `resend._domainkey` and two `CNAME` records,
+   `send` to `send.forge.rmta.net` and `rsend` to `rsend-apne1.forge.rmta.net`, and not the MX and SPF TXT on
+   `send` that this step named before. Leave Resend's "Enable receiving" off, so that the domain's
+   own MX records, the mailbox's, keep receiving. Keep exactly one DMARC record at
+   `_dmarc.<domain>`: two TXT records that start `v=DMARC1` at one name mean that receivers apply
+   neither (RFC 7489, section 6.6.3), and Gmail then shows no DMARC result at all. Where the mail
+   host writes one for itself, as Dynadot's e-mail does on `mmakaan.app` (`p=none`), add none of
+   your own; where none exists, add `v=DMARC1; p=none;`. In the domain's Configuration, turn **off**
+   click tracking and open tracking: click tracking rewrites the sign-in links through Resend's
    servers, and open tracking adds a tracking pixel; the privacy page says the app has no
    trackers.
 
@@ -785,15 +786,16 @@ variable at all (Moving again).
     address's storage and sends people on like every other path (only `assetlinks.json` stays);
     after its deploy, the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes
     it, which means `APP_URL`'s origin).
-13. **The mail. Done on 15 November 2026, except the DMARC check.** The mailbox's DNS records,
-    as Dynadot sets them (MX, SPF, DKIM, and its own `_dmarc` record, `p=none`); leave the
-    mailbox's own SPF record as Dynadot wrote it, and add no second DMARC record
-    ([E-mail](#e-mail), step 1): the owner's own, added on 13 November 2026, stood beside Dynadot's,
-    so that neither applied, and the owner removed it on 15 November 2026; a lookup afterwards
-    showed Dynadot's own record alone. The Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app`
-    (the owner), so that a reply to an invitation reaches the company. By the owner's decision of
-    the same day the app's e-mails come from `hello@mmakaan.app` too, and Resend moved from
-    `news.ar27111994.dev` to `mmakaan.app` ([E-mail](#e-mail) has the reasons and each setting).
+13. **The mail. Done on 15 November 2026, except the e-mail checks (DMARC "PASS", the reset and the
+    invitation).** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM, and its own
+    `_dmarc` record, `p=none`); leave the mailbox's own SPF record as Dynadot wrote it, and add no
+    second DMARC record ([E-mail](#e-mail), step 1): the owner's own, added on 13 November 2026,
+    stood beside Dynadot's, so that neither applied, and the owner removed it on 15 November 2026; a
+    lookup afterwards showed Dynadot's own record alone. The Edge Function secret
+    `MAIL_REPLY_TO=hello@mmakaan.app` (the owner), so that a reply to an invitation reaches the
+    company. By the owner's decision of the same day the app's e-mails come from `hello@mmakaan.app`
+    too, and Resend moved from `news.ar27111994.dev` to `mmakaan.app` ([E-mail](#e-mail) has the
+    reasons and each setting).
     What the owner did, as reported that day:
     1. In Resend, `mmakaan.app` added at 15:06 UTC, in the region ap-northeast-1 (Tokyo).
     2. At Dynadot, the records Resend listed, as subdomain records: a DKIM TXT on
