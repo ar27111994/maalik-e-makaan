@@ -395,6 +395,14 @@ else does then, since a picker may be handing over a copy.
   land (`SwrCache.writing`). Accepted: when such a write lands after a later
   one and the app is closed before the delete that follows it, the saved
   list can stop naming a portfolio whose records were saved meanwhile.
+  Not yet closed: the prune knows a portfolio only from a saved list, and
+  entries do not say which portfolio they are of. A portfolio the user
+  joins after this device last loaded the list (on another device), whose
+  record is opened here by its link before the list loads again, and that
+  the user leaves before it does, is never in a saved list: its leaving
+  forgets nothing, and the record stays until the session ends. Closing it
+  needs entries that name their portfolio, or a save that forgets on every
+  load (no saved copy would then outlive a load of the list online).
   Elsewhere only the device wipe puts a limit on the store: a read or write
   of another query that never answers keeps its screen or command waiting.
   A command that chooses the current portfolio after a request (creating a
