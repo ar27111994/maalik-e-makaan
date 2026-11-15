@@ -1134,11 +1134,20 @@ exactly its six lines, the upload's to be exactly
 outside `dist/` and runs nothing before, after or around it), the upload step's own `env` to set
 only `GH_TOKEN`, and the job's default shell, where set, to be `bash` (which the runner starts
 with `-e -o pipefail`; `bash {0}` would drop `-e`, and only the last file's check would count), so
-no file is skipped, no failed check is lost and no unattested file is attached. In every
+no file is skipped, no failed check is lost and no unattested file is attached. It reads those
+two runs as bash does and refuses what it could read otherwise: a comment that ends in a
+backslash (bash ends the comment there and runs the next line, which reads as part of it), a `#`
+right after an operator, a quoted string over more than one line, a here-document, a command
+substitution or parameter expansion, a `${{ }}` expression (Actions replaces it before bash reads
+the run), and a carriage return, a no-break or zero-width space or any other character but a
+space, a tab and a line feed that Python reads as white space or as nothing. The provenance
+file's name starts with a letter or a digit and holds only letters, digits, `.`, `_`, `-` and
+`${{ }}` expressions: `dist/*`, in the check's loop and in the upload, leaves out a name that
+starts with a dot, so a hidden provenance file would never be attached. In every
 workflow it refuses other ways of putting files on a release: `gh release create`, a
 release-upload action, and the REST upload by its URL or its client libraries' names, which it
 looks for in every value of every step (so also in an `actions/github-script` script). It reads
-only the workflow files: an upload from a script file a step runs, or a `GH_REPO` an earlier step
+only the workflow files, as PyYAML parses them: an upload from a script file a step runs, or a `GH_REPO` an earlier step
 writes to `$GITHUB_ENV`, is for the reviewer to catch.
 
 **Re-runs.** "Re-run failed jobs" runs the whole job again on a new runner: a new build, a new

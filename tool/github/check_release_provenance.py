@@ -9,10 +9,17 @@ release.yml therefore attests `dist/*`, copies the attestation's Sigstore bundle
 a `.intoto.jsonl` file, checks it with `gh attestation verify --bundle` against every file it
 covers, and only then uploads `dist/*` (docs/operations.md, Release provenance; SECURITY.md,
 Checking a download). This check keeps that so, for every tracked workflow in
-.github/workflows. In each job that runs `gh release upload`:
+.github/workflows. It reads the runs of the provenance and upload steps as bash does
+(`commands`: a backslash at a line's end joins the next line, a comment runs from a `#` that
+starts a word to the end of its line and is dropped, and runs of spaces and tabs read as one
+space), and refuses what it could read otherwise than bash: a comment that ends in a backslash
+(bash never continues a comment, so the line after it runs), a `#` right after an operator, a
+quoted string that goes on past its line, a here-document, a command substitution, parameter
+expansion or $-quoted string, a `${{ }}` expression, and any character but a space, a tab and a
+line feed that Python reads as white space, a line end or nothing (a carriage return, a no-break
+or zero-width space). In each job that runs `gh release upload`:
 
-- there is exactly one such step, and once comments are dropped, continuation lines joined and
-  runs of white space read as one space, its run is exactly `UPLOAD_RUN`, the one command
+- there is exactly one such step, and its run, read so, is exactly `UPLOAD_RUN`, the one command
   release.yml has: `dist/*` and no other path, with `--clobber`, to `"$TAG"` in
   `"$GITHUB_REPOSITORY"`, with nothing before, after or around it (no `cd`, `;`, `&&`, pipe or
   variable set for the command); its `env` sets only `GH_TOKEN`;
@@ -20,11 +27,14 @@ Checking a download). This check keeps that so, for every tracked workflow in
   actions/attest-build-provenance@<40-hex commit>`, with an `id` and `subject-path: dist/*`)
   and the provenance step, so no step can add an unattested file to `dist/` in between;
 - the provenance step's `env.BUNDLE` is the attest step's `bundle-path` output, its
-  `env.PROVENANCE` a file directly in `dist/` whose name ends in `.intoto.jsonl`, and its run
+  `env.PROVENANCE` a file directly in `dist/` whose name ends in `.intoto.jsonl` and starts
+  with a letter or a digit, with only letters, digits, `.`, `_`, `-` and `${{ }}` expressions
+  after it (`dist/*` leaves out a name that starts with a dot, or an expression that could
+  become one, and gh and GitHub read other characters in their own way), and its run
   copies the one to the other (`cp -- "$BUNDLE" "$PROVENANCE"`) and loops over `dist/*`, running
   `gh attestation verify "$file" --bundle "$PROVENANCE"` with `--signer-workflow` naming this
   workflow file and `--source-ref refs/heads/main`, the options SECURITY.md tells people to use.
-  Once comments are dropped and continuation lines joined, the run is exactly the six lines
+  Read so, the run is exactly the six lines
   release.yml has (`RUN_LINES`), so nothing in it can stop the loop early, skip a file, or
   swallow a failure (`||`, `!`, `set +e`, `exit 0`, `break`);
 - none of the three steps has an `if:`, `continue-on-error`, `shell:` or `working-directory:`,
@@ -46,13 +56,18 @@ one job must upload, so that a renamed upload command cannot pass this check by 
 
 Limits. It reads the workflow's structure, the text of these three steps' commands and the text
 of every step's values; it does not run the shell or any script, and it reads only the workflow
-files. An upload made by a script file a step runs (`./attach.sh`, `node attach.js`), by an
-action not named here, or through text built at run time is not seen; nor is a variable an
-earlier step writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload elsewhere), or a
-`BASH_ENV` file that bash reads before every step. Such changes to a workflow need a reviewer's
-eye. It checks the action as named here: a move to `actions/attest` (which the wrapper's README
-recommends for new work) must update this check in the same change, keeping build provenance (no
-predicate inputs). Scorecard's extension lists are as of v5.6.0; the docs name that version.
+files, as PyYAML parses them: YAML folds a `run: >` and a plain scalar over several lines into
+one, and reads a CR or a CRLF in the file as a line feed. GitHub's parser is not PyYAML; where
+the two differ, this check sees PyYAML's value. Where it cannot read some other step's run as
+bash does, it looks for an upload in every line of it, comments included. It cannot know an
+expression's value, so one in the provenance file's name could still hold a `/`. An upload made
+by a script file a step runs (`./attach.sh`, `node attach.js`), by an action not named here, or
+through text built at run time is not seen; nor is a variable an earlier step writes to
+`$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload elsewhere), or a `BASH_ENV` file that
+bash reads before every step. Such changes to a workflow need a reviewer's eye. It checks the
+action as named here: a move to `actions/attest` (which the wrapper's README recommends for new
+work) must update this check in the same change, keeping build provenance (no predicate inputs).
+Scorecard's extension lists are as of v5.6.0; the docs name that version.
 
     python3 tool/github/check_release_provenance.py [repository root]
 """
@@ -62,6 +77,7 @@ from __future__ import annotations
 import re
 import shlex
 import sys
+import unicodedata
 from pathlib import Path, PurePosixPath
 
 import yaml
@@ -127,18 +143,155 @@ RUN_LINES = (
     ' --signer-workflow "$GITHUB_REPOSITORY/{workflow}" --source-ref ' + SOURCE_REF,
     "done",
 )
+# A `${{ }}` expression in a workflow value, which Actions replaces before the step runs.
+EXPRESSION = re.compile(r"\$\{\{.*?\}\}")
 # The one shell a workflow or a job may set as its default for these steps.
 SHELL = "bash"
 
 
+# Unquoted characters that end a word, besides spaces and tabs: after one, a `#` starts a comment.
+OPERATORS = ";&|()<>"
+# Inside double quotes or unquoted: what this check does not read the way bash does, because
+# what it encloses can nest quotes, span lines or hold comments of its own.
+UNREAD = ("$(", "${", "`")
+UNREAD_UNQUOTED = (*UNREAD, "$'", '$"')
+
+
+class UnclearRunError(ValueError):
+    """Text in a run that this check could read otherwise than bash does, so it refuses it."""
+
+
+def _unclear_character(run: str) -> str | None:
+    """A character bash reads as part of a word that Python reads as white space, a line end or
+    nothing at all (a carriage return, a no-break space, a zero-width space)."""
+    for number, line in enumerate(run.split("\n"), start=1):
+        for char in line:
+            if char in " \t":
+                continue
+            if char.isspace() or unicodedata.category(char) in ("Cc", "Cf", "Zs", "Zl", "Zp"):
+                name = unicodedata.name(char, "a control character").lower()
+                return (
+                    f"line {number} has U+{ord(char):04X} ({name}), which bash reads as part of a"
+                    " word: only spaces and tabs separate its words, and only a line feed ends"
+                    " its lines"
+                )
+    return None
+
+
 def commands(run: str) -> list[str]:
-    """The run's logical lines: continuation lines joined, comment lines and blanks dropped."""
-    joined = re.sub(r"\\\n", " ", run)
-    return [
-        line.strip()
-        for line in joined.split("\n")
-        if line.strip() and not line.strip().startswith("#")
-    ]
+    """The run's commands, one per logical line, as bash reads them: a backslash at the end of
+    a line joins the next one to it, a comment (a `#` that starts a word, to the end of its line)
+    is dropped, and so is a blank line. Raises `UnclearRunError` for text where bash's reading
+    and a simpler one could differ, none of which the release steps need: a comment that ends in
+    a backslash (bash never continues a comment), a `#` right after an operator, a quoted string
+    that goes on past its line, a here-document, a command substitution, a parameter expansion
+    or a $-quoted string, a `${{ }}` expression, and a character bash reads as part of a word
+    that Python reads as white space, a line end or nothing (anything but a space, a tab or a
+    line feed that is white space, a control or a format character)."""
+    if (problem := _unclear_character(run)) is not None:
+        raise UnclearRunError(problem)
+    if "${{" in run:
+        number = run[: run.index("${{")].count("\n") + 1
+        raise UnclearRunError(
+            f"line {number} has a `${{{{ }}}}` expression, which Actions replaces with its value"
+            " (any text, a line break or a `#` included) before bash reads the run"
+        )
+    lines: list[str] = []
+    line: list[str] = []
+    quote = ""
+    # What came before: "start" of a line, a "blank", an "operator", or a "word" character.
+    before = "start"
+    number = 1
+    i = 0
+    while i < len(run):
+        char = run[i]
+        rest = run[i : i + 2]
+        if char == "\n" and quote:
+            raise UnclearRunError(
+                f"line {number} opens a quoted string that goes on past the line's end"
+            )
+        if quote == "'":
+            line.append(char)
+            quote = "" if char == "'" else quote
+            i += 1
+            continue
+        if any(rest.startswith(text) for text in (UNREAD if quote else UNREAD_UNQUOTED)):
+            text = next(t for t in UNREAD_UNQUOTED if rest.startswith(t))
+            shown = "`` ` ``" if text == "`" else f"`{text}`"
+            raise UnclearRunError(
+                f"line {number} has {shown} (a command substitution, a parameter expansion or a"
+                " $-quoted string), which this check does not read"
+            )
+        if char == "\\":
+            following = run[i + 1 : i + 2]
+            if following == "\n" and quote:
+                raise UnclearRunError(
+                    f"line {number} opens a quoted string that goes on past the line's end"
+                )
+            if following == "\n":
+                number += 1
+                i += 2
+                continue
+            if not following:
+                raise UnclearRunError(f"line {number}, the run's last, ends in a backslash")
+            line.append(rest)
+            before = "word"
+            i += 2
+            continue
+        if quote == '"':
+            line.append(char)
+            quote = "" if char == '"' else quote
+            i += 1
+            continue
+        if char == "\n":
+            lines.append("".join(line).strip(" \t"))
+            line, before, number = [], "start", number + 1
+        elif char == "#" and before != "word":
+            if before == "operator":
+                raise UnclearRunError(
+                    f"line {number} has a `#` right after `{line[-1]}`, where bash starts a"
+                    " comment: put a space before the `#`, or quote it"
+                )
+            end = run.find("\n", i)
+            end = len(run) if end < 0 else end
+            if run[i:end].rstrip(" \t").endswith("\\"):
+                raise UnclearRunError(
+                    f"line {number} is a comment that ends in a backslash; bash ends a comment at"
+                    " the end of its line and runs the next line, which reads as part of the"
+                    " comment: drop the backslash"
+                )
+            i = end
+            continue
+        elif rest == "<<":
+            raise UnclearRunError(
+                f"line {number} has `<<`, a here-document or here-string, whose lines bash reads"
+                " as text, not as commands"
+            )
+        else:
+            line.append(char)
+            if char in "'\"":
+                quote, before = char, "word"
+            elif char in " \t":
+                before = "blank"
+            elif char in OPERATORS:
+                before = "operator"
+            else:
+                before = "word"
+        i += 1
+    if quote:
+        raise UnclearRunError(f"line {number} opens a quoted string that is never closed")
+    lines.append("".join(line).strip(" \t"))
+    return [text for text in lines if text]
+
+
+def command_lines(run: str) -> list[str]:
+    """What to look for an upload in: `commands(run)`, or, where the check cannot read the run as
+    bash does, every line of it, comments included, as written and with continuations joined,
+    so that nothing bash could run is missed."""
+    try:
+        return commands(run)
+    except UnclearRunError:
+        return run.splitlines() + re.sub(r"\\\n", "", run).splitlines()
 
 
 def strings(node: yaml.Node | None) -> list[tuple[yaml.ScalarNode, str]]:
@@ -174,7 +327,7 @@ def _says(line: str, pattern: re.Pattern[str], verb: str) -> bool:
 
 def is_upload(step: yaml.Node) -> bool:
     run = run_of(step)
-    return run is not None and any(_says(line, UPLOAD, "upload") for line in commands(run))
+    return run is not None and any(_says(line, UPLOAD, "upload") for line in command_lines(run))
 
 
 class Checker:
@@ -239,7 +392,7 @@ class Checker:
                 uses in UPLOAD_ACTIONS
                 or any(
                     OTHER_UPLOAD.search(line) or _says(line, OTHER_UPLOAD, "create")
-                    for line in commands(scalar(run) or "")
+                    for line in command_lines(scalar(run) or "")
                 )
                 or any(OTHER_UPLOAD.search(text) or GH_RELEASE_TEXT.search(text) for text in others)
             ):
@@ -398,8 +551,11 @@ class Checker:
 
     def check_upload(self, path: str, name: str, upload: yaml.Node) -> list[Problem]:
         run = run_of(upload) or ""
-        lines = commands(run)
         where = line_of(get(upload, "run"))
+        try:
+            lines = commands(run)
+        except UnclearRunError as unclear:
+            return [_unreadable(path, where, name, "upload", unclear)]
         if len(lines) != 1:
             return [
                 Problem(
@@ -409,10 +565,8 @@ class Checker:
                     " nothing it runs can add a file to dist/ after the provenance check",
                 )
             ]
-        try:
-            words = shlex.split(lines[0])
-        except ValueError as error:
-            return [Problem(path, where, f'job "{name}": cannot read the upload command ({error})')]
+        # commands() has refused a quote left open and a trailing backslash, so this reads.
+        words = shlex.split(lines[0])
         paths = [word for word in words if word.startswith("dist/") or word == "dist"]
         found = []
         if paths != ["dist/*"]:
@@ -539,15 +693,9 @@ class Checker:
                 )
             )
         text = scalar(provenance) or ""
-        directly_in_dist = text.startswith("dist/") and "/" not in text[len("dist/") :]
-        if not directly_in_dist or not text.endswith(".intoto.jsonl"):
+        if (why := provenance_name_problem(text)) is not None:
             found.append(
-                Problem(
-                    path,
-                    line_of(provenance),
-                    f'job "{name}": PROVENANCE is {text!r}; name a file directly in dist/ ending'
-                    " in .intoto.jsonl, the name Scorecard counts and gh reads as JSON Lines",
-                )
+                Problem(path, line_of(provenance), f'job "{name}": PROVENANCE is {text!r}; {why}')
             )
         found += self.check_provenance_run(path, name, step)
         return found, (text, line_of(provenance))
@@ -555,7 +703,10 @@ class Checker:
     def check_provenance_run(self, path: str, name: str, step: yaml.Node) -> list[Problem]:
         run = run_of(step) or ""
         where = line_of(get(step, "run"))
-        lines = commands(run)
+        try:
+            lines = commands(run)
+        except UnclearRunError as unclear:
+            return [_unreadable(path, where, name, "provenance", unclear)]
         workflow = PurePosixPath(path).as_posix()
         found = []
         if any(SWALLOWS.search(line) for line in lines):
@@ -627,6 +778,45 @@ class Checker:
                 )
             )
         return found
+
+
+def _unreadable(path: str, where: int, name: str, step: str, unclear: UnclearRunError) -> Problem:
+    return Problem(
+        path,
+        where,
+        f'job "{name}": the {step} step\'s run cannot be read as bash reads it: {unclear}',
+    )
+
+
+def provenance_name_problem(text: str) -> str | None:
+    """Why `text` is not a name the provenance step may give its file, or None if it is."""
+    file = text[len("dist/") :]
+    if not text.startswith("dist/") or "/" in file or not text.endswith(".intoto.jsonl"):
+        return (
+            "name a file directly in dist/ ending in .intoto.jsonl, the name Scorecard counts and"
+            " gh reads as JSON Lines"
+        )
+    if file.startswith("."):
+        return (
+            "a hidden file: `dist/*`, in the check's loop and in the upload, leaves out a name"
+            " that starts with a dot, so the release would go out without its provenance file;"
+            " start the name with a letter or a digit"
+        )
+    if file.startswith("${{"):
+        return (
+            "a name that starts with an expression, which could expand to a dot or to nothing"
+            " (`.intoto.jsonl`, a hidden file that `dist/*` leaves out): start the name with a"
+            " letter or a digit"
+        )
+    others = sorted(set(re.sub(r"[A-Za-z0-9._-]", "", re.sub(EXPRESSION, "", file))))
+    if others:
+        return (
+            "a name with " + " ".join(f"`{char}`" for char in others) + "; use only letters,"
+            " digits, `.`, `_` and `-`, and `${{ }}` expressions after the first character: gh"
+            " reads a `#` as the start of the file's label, and GitHub renames a file whose name"
+            " has other characters, so the release would not carry the name SECURITY.md gives"
+        )
+    return None
 
 
 def _has(line: str, part: str) -> bool:

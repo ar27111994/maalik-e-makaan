@@ -13,7 +13,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import textwrap
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -48,6 +47,21 @@ VERIFY = (
 UPLOAD = '        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"\n'
 UPLOAD_ENV = "        env:\n          GH_TOKEN: ${{ github.token }}\n"
 EXACT = "the upload step's run must be exactly `" + crp.UPLOAD_RUN + "`"
+UPLOAD_LINE = crp.UPLOAD_RUN
+GH_VERSION = "          gh --version\n"
+# How a run the check cannot read as bash does is refused, by step.
+UNREADABLE = {
+    "provenance": "the provenance step's run cannot be read as bash reads it: ",
+    "upload": "the upload step's run cannot be read as bash reads it: ",
+}
+COMMENT_BACKSLASH = (
+    "is a comment that ends in a backslash; bash ends a comment at the end of its line and runs"
+    " the next line, which reads as part of the comment: drop the backslash"
+)
+PAST_THE_LINE = "opens a quoted string that goes on past the line's end"
+HERE_DOCUMENT = "has `<<`, a here-document or here-string, whose lines bash reads as text"
+AS_A_WORD = "which bash reads as part of a word: only spaces and tabs separate its words"
+EXACT_LINES = "the provenance step's run must be exactly these lines"
 
 
 def upload_run(command: str) -> str:
@@ -61,6 +75,22 @@ def provenance_step(job: str) -> str:
     start = RELEASE_TEXT.index(BEFORE[job] + ATTEST + name) + len(BEFORE[job] + ATTEST)
     end = RELEASE_TEXT.index("          done\n", start) + len("          done\n")
     return RELEASE_TEXT[start:end]
+
+
+def unreadable(job: str, step: str, reason: str) -> tuple[str, ...]:
+    """The problem of a run in `job`'s `step` that the check cannot read as bash does."""
+    return (f'job "{job}": {UNREADABLE[step]}{reason}',)
+
+
+def both(*mutants: callable) -> callable:
+    """A mutant that applies each of `mutants` in turn."""
+
+    def mutate(text: str) -> str:
+        for mutant in mutants:
+            text = mutant(text)
+        return text
+
+    return mutate
 
 
 def once(text: str, old: str, new: str) -> str:
@@ -346,7 +376,20 @@ MUTANTS = {
             VERIFY,
             "".join(line[:12] + "# " + line[12:] for line in VERIFY.splitlines(keepends=True)),
         ),
-        ['job "ios": the provenance step must run, on a line that is not a comment'],
+        # Its first two lines end in a backslash, which bash does not read as joining a comment
+        # to the next line.
+        [unreadable("ios", "provenance", "line 5 " + COMMENT_BACKSLASH)],
+    ),
+    "the verify command turned into a comment, without the backslashes": (
+        in_job(
+            "artefacts",
+            VERIFY,
+            "".join(
+                line[:12] + "# " + line[12:].replace(" \\\n", "\n")
+                for line in VERIFY.splitlines(keepends=True)
+            ),
+        ),
+        ['job "artefacts": the provenance step must run, on a line that is not a comment'],
     ),
     "a failed verify swallowed with || true": (
         in_job(
@@ -434,6 +477,231 @@ MUTANTS = {
     "the provenance file not passed to verify": (
         in_job("artefacts", '--bundle "$PROVENANCE"', '--bundle "$BUNDLE"'),
         ['job "artefacts": the provenance step must run, on a line that is not a comment'],
+    ),
+    # Reading a run as bash does (C1 on #81): a comment never goes on to the next line.
+    "a comment that ends in a backslash, then set +e": (
+        in_job("artefacts", GH_VERSION, "          # note \\\n          set +e\n" + GH_VERSION),
+        [unreadable("artefacts", "provenance", "line 1 " + COMMENT_BACKSLASH)],
+    ),
+    "a comment that ends in a backslash, opening a quote over every check": (
+        both(
+            in_job("ios", GH_VERSION, GH_VERSION + "          # note \\\n          : '\n"),
+            in_job("ios", "          done\n", "          done\n          # '\n"),
+        ),
+        [unreadable("ios", "provenance", "line 2 " + COMMENT_BACKSLASH)],
+    ),
+    "a comment after a command that ends in a backslash, then set +e": (
+        in_job("ios", GH_VERSION, "          gh --version # for the log \\\n          set +e\n"),
+        [unreadable("ios", "provenance", "line 1 " + COMMENT_BACKSLASH)],
+    ),
+    "a comment that ends in a backslash, then a file written in the upload step": (
+        in_job(
+            "ios",
+            UPLOAD,
+            "        run: |\n          # attach \\\n          date > dist/late\n"
+            f"          {UPLOAD_LINE}\n",
+        ),
+        [unreadable("ios", "upload", "line 1 " + COMMENT_BACKSLASH)],
+    ),
+    "a comment that ends in two backslashes, then a file written in the upload step": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            "        run: |\n          # attach \\\\\n          date > dist/late\n"
+            f"          {UPLOAD_LINE}\n",
+        ),
+        [unreadable("artefacts", "upload", "line 1 " + COMMENT_BACKSLASH)],
+    ),
+    "a second upload step behind a comment that ends in a backslash": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            UPLOAD
+            + '      - run: |\n          # one more \\\n          gh release upload "$TAG" x\n',
+        ),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a release created behind a comment that ends in a backslash": (
+        in_job(
+            "ios",
+            UPLOAD,
+            UPLOAD + "      - run: |\n          # one more \\\n          gh release create v9 x\n",
+        ),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a comment after a command (still passes)": (
+        in_job("artefacts", GH_VERSION, "          gh --version  # for the log\n"),
+        [],
+    ),
+    "a comment after the upload command (still passes)": (
+        in_job("ios", UPLOAD, f"        run: |\n          {UPLOAD_LINE} # every file\n"),
+        [],
+    ),
+    "a # inside a word, which is not a comment": (
+        in_job("artefacts", GH_VERSION, "          gh --version#log\n"),
+        [(f'job "artefacts": {EXACT_LINES}', "it runs `gh --version#log`")],
+    ),
+    "a # right after ;": (
+        in_job("ios", GH_VERSION, "          gh --version;# log\n"),
+        [unreadable("ios", "provenance", "line 1 has a `#` right after `;`, where bash starts")],
+    ),
+    "a backslash at a line's end inside single quotes": (
+        in_job("artefacts", GH_VERSION, "          echo 'a \\\n          set +e'\n" + GH_VERSION),
+        [unreadable("artefacts", "provenance", "line 1 " + PAST_THE_LINE)],
+    ),
+    "a backslash at a line's end inside double quotes": (
+        in_job("ios", GH_VERSION, '          echo "a \\\n          set +e"\n' + GH_VERSION),
+        [unreadable("ios", "provenance", "line 1 " + PAST_THE_LINE)],
+    ),
+    "a quoted string over two lines in the upload step": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            "        run: |\n          " + UPLOAD_LINE[:-1] + '\n          "\n',
+        ),
+        [unreadable("artefacts", "upload", "line 1 " + PAST_THE_LINE)],
+    ),
+    "a here-document in the provenance step": (
+        in_job(
+            "artefacts",
+            GH_VERSION,
+            "          cat <<'X'\n          set +e\n          X\n" + GH_VERSION,
+        ),
+        [unreadable("artefacts", "provenance", "line 1 " + HERE_DOCUMENT)],
+    ),
+    "a here-document in the upload step": (
+        in_job(
+            "ios",
+            UPLOAD,
+            f"        run: |\n          {UPLOAD_LINE} <<'X'\n          a\n          X\n",
+        ),
+        [unreadable("ios", "upload", "line 1 " + HERE_DOCUMENT)],
+    ),
+    "a second upload step inside a here-document": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            UPLOAD + "      - run: |\n          bash <<'X'\n"
+            '          gh release upload "$TAG" x\n          X\n',
+        ),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a line that ends in two backslashes, then a command, in the upload step": (
+        in_job(
+            "ios", UPLOAD, f"        run: |\n          {UPLOAD_LINE} \\\\\n          date > late\n"
+        ),
+        ['job "ios": the upload step must run `gh release upload` alone'],
+    ),
+    "a carriage return at the end of the upload command": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            '        run: "' + UPLOAD_LINE.replace('"', '\\"') + '\\r"\n',
+        ),
+        [
+            unreadable(
+                "artefacts", "upload", "line 1 has U+000D (a control character), " + AS_A_WORD
+            )
+        ],
+    ),
+    "CRLF line endings in the provenance step (still passes)": (
+        lambda t: once(t, provenance_step("ios"), provenance_step("ios").replace("\n", "\r\n")),
+        [],
+    ),
+    "a lone carriage return between two lines (still passes)": (
+        in_job("artefacts", GH_VERSION, GH_VERSION[:-1] + "\r"),
+        [],
+    ),
+    "tabs between the upload command's words (still passes)": (
+        in_job(
+            "ios",
+            UPLOAD,
+            '        run: |\n          gh release upload\t"$TAG" dist/*\t--clobber --repo'
+            ' "$GITHUB_REPOSITORY"\n',
+        ),
+        [],
+    ),
+    "a no-break space in the upload command": (
+        in_job("artefacts", "run: gh release upload", "run: gh\u00a0release upload"),
+        [unreadable("artefacts", "upload", "line 1 has U+00A0 (no-break space), " + AS_A_WORD)],
+    ),
+    "a line of no-break spaces in the provenance step": (
+        in_job("ios", GH_VERSION, GH_VERSION + "          \u00a0\u00a0\n"),
+        [unreadable("ios", "provenance", "line 2 has U+00A0 (no-break space), " + AS_A_WORD)],
+    ),
+    "a line of a zero-width space in the provenance step": (
+        in_job("artefacts", GH_VERSION, GH_VERSION + "          \u200b\n"),
+        [
+            unreadable(
+                "artefacts", "provenance", "line 2 has U+200B (zero width space), " + AS_A_WORD
+            )
+        ],
+    ),
+    "the provenance step's run as a folded scalar": (
+        in_job("ios", "        run: |\n", "        run: >\n"),
+        [
+            'job "ios": the provenance step must run `cp -- "$BUNDLE" "$PROVENANCE"`',
+            'job "ios": the provenance step must check every file',
+        ],
+    ),
+    "the upload as a folded scalar over two lines (still passes)": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            '        run: >\n          gh release upload "$TAG" dist/*\n'
+            '          --clobber --repo "$GITHUB_REPOSITORY"\n',
+        ),
+        [],
+    ),
+    "the upload as a plain scalar over two lines (still passes)": (
+        in_job(
+            "ios",
+            UPLOAD,
+            '        run: gh release upload "$TAG" dist/*\n'
+            '          --clobber --repo "$GITHUB_REPOSITORY"\n',
+        ),
+        [],
+    ),
+    "an expression in the upload command": (
+        in_job(
+            "artefacts", ' --repo "$GITHUB_REPOSITORY"\n', ' --repo "${{ github.repository }}"\n'
+        ),
+        [unreadable("artefacts", "upload", "line 1 has a `${{ }}` expression, which Actions")],
+    ),
+    "a command substitution in the upload command": (
+        in_job("ios", 'upload "$TAG"', 'upload "$(cat tag)"'),
+        [unreadable("ios", "upload", "line 1 has `$(` (a command substitution")],
+    ),
+    # The provenance file's name, which `dist/*` must meet in the loop and the upload (C2 on #81).
+    "a hidden provenance file": (
+        in_job("artefacts", "PROVENANCE: dist/", "PROVENANCE: dist/."),
+        [
+            (
+                'job "artefacts": PROVENANCE is \'dist/.maalik-e-makaan-',
+                "a hidden file: `dist/*`, in the check's loop and in the upload, leaves out a name"
+                " that starts with a dot, so the release would go out without its provenance file",
+            )
+        ],
+    ),
+    "a provenance file named by an expression first": (
+        in_job("ios", "PROVENANCE: dist/maalik-e-makaan-", "PROVENANCE: dist/"),
+        [('job "ios": PROVENANCE is', "a name that starts with an expression, which could expand")],
+    ),
+    "a space in the provenance file's name": (
+        in_job("artefacts", "dist/maalik-e-makaan-", "dist/maalik e-makaan-"),
+        [('job "artefacts": PROVENANCE is', "a name with ` `; use only letters, digits")],
+    ),
+    "a glob character in the provenance file's name": (
+        in_job("ios", "-ios.intoto.jsonl", "-ios*.intoto.jsonl"),
+        [('job "ios": PROVENANCE is', "a name with `*`;")],
+    ),
+    "a # and a quote in the provenance file's name": (
+        in_job("artefacts", "}}.intoto.jsonl", "}}#'x.intoto.jsonl"),
+        [('job "artefacts": PROVENANCE is', "a name with `#` `'`;", "start of the file's label")],
+    ),
+    "a slash after an expression in the provenance file's name": (
+        in_job("ios", "}}-ios.intoto.jsonl", "}}/ios.intoto.jsonl"),
+        [('job "ios": PROVENANCE is', "name a file directly in dist/")],
     ),
     # Steps that may be skipped or may fail.
     "if: false on the attest step": (
@@ -759,7 +1027,7 @@ class FixtureTest(Fixture):
         )
         found = self.release(text)
         self.assert_problems(
-            found, 'job "ios": cannot read the upload command (No closing quotation)'
+            found, unreadable("ios", "upload", "line 1 opens a quoted string that is never closed")
         )
         # A reusable workflow call (no steps) is not a job this check reads.
         call = "on: push\njobs:\n  a:\n    uses: $/.github/workflows/b.yml\n"
@@ -799,17 +1067,109 @@ class MainTest(Fixture):
         self.assertNotIn("untracked.yml", err)
 
 
-class CommandsTest(unittest.TestCase):
-    def test_commands_join_continuations_and_drop_comments(self):
-        run = textwrap.dedent("""\
-            # a comment
-            gh attestation verify a \\
-              --bundle b
+# Runs that commands() reads, with the commands it reads in them. BashTest checks that bash runs
+# the same as it runs the commands read.
+READ = (
+    ("echo a \\\n  b\n", ["echo a   b"]),
+    ("# c\necho a\n\n   # indented c\necho b\n", ["echo a", "echo b"]),
+    ("echo a # c\necho b  #c\n", ["echo a", "echo b"]),
+    ("echo a#b\n", ["echo a#b"]),
+    ("echo a\\#b \\# # c\n", ["echo a\\#b \\#"]),
+    ("echo 'a # b' \"c # d\" # e\n", ["echo 'a # b' \"c # d\""]),
+    ("echo a \\\\\necho b\n", ["echo a \\\\", "echo b"]),
+    ("echo a\\\n# b\n", ["echo a# b"]),
+    ("echo a\tb\t# c\n", ["echo a\tb"]),
+    ("echo 'a\\' \"b\\\"c\" 'd # e'\n", ["echo 'a\\' \"b\\\"c\" 'd # e'"]),
+    ("echo a; echo b && echo c | cat\n", ["echo a; echo b && echo c | cat"]),
+    ("echo a", ["echo a"]),
+    ('echo "a$" "$\'b\'"\n', ['echo "a$" "$\'b\'"']),
+)
+# Runs that commands() refuses, with what it says.
+REFUSED = (
+    ("# c \\\necho a\n", "line 1 " + COMMENT_BACKSLASH),
+    ("echo a\n# c \\\\\necho b\n", "line 2 " + COMMENT_BACKSLASH),
+    ("echo a # c \\  \necho b\n", "line 1 " + COMMENT_BACKSLASH),
+    ("echo a \\\n  # c \\\necho b\n", "line 2 " + COMMENT_BACKSLASH),
+    ("echo a;#c\n", "line 1 has a `#` right after `;`"),
+    ("echo a|#c\n", "line 1 has a `#` right after `|`"),
+    ("echo a&&#c\n", "line 1 has a `#` right after `&`"),
+    ("echo a >#c\n", "line 1 has a `#` right after `>`"),
+    ("echo 'a\nb'\n", "line 1 " + PAST_THE_LINE),
+    ("echo 'a \\\nb'\n", "line 1 " + PAST_THE_LINE),
+    ('echo "a\nb"\n', "line 1 " + PAST_THE_LINE),
+    ('echo a\necho "a \\\nb"\n', "line 2 " + PAST_THE_LINE),
+    ("echo 'a", "line 1 opens a quoted string that is never closed"),
+    ("cat <<X\na\nX\n", "line 1 " + HERE_DOCUMENT),
+    ("cat <<<a\n", "line 1 " + HERE_DOCUMENT),
+    ("echo $(date)\n", "line 1 has `$(` (a command substitution"),
+    ('echo "$(date)"\n', "line 1 has `$(`"),
+    ("echo `date`\n", "line 1 has `` ` ``"),
+    ('echo "`date`"\n', "line 1 has `` ` ``"),
+    ("echo ${HOME}\n", "line 1 has `${`"),
+    ("echo $'a'\n", "line 1 has `$'`"),
+    ('echo $"a"\n', 'line 1 has `$"`'),
+    ("echo a\necho ${{ github.ref }}\n", "line 2 has a `${{ }}` expression"),
+    ("echo 'a' \\", "line 1, the run's last, ends in a backslash"),
+    ("echo a\r\necho b\n", "line 1 has U+000D (a control character), " + AS_A_WORD),
+    ("echo a\u00a0b\n", "line 1 has U+00A0 (no-break space)"),
+    ("echo a\n\u200b\n", "line 2 has U+200B (zero width space)"),
+    ("echo a\x0bb\n", "line 1 has U+000B (a control character)"),
+    ("echo a\u2028b\n", "line 1 has U+2028 (line separator)"),
+    ("echo a\u3000b\n", "line 1 has U+3000 (ideographic space)"),
+)
 
-              # indented comment
-            done
-            """)
-        self.assertEqual(crp.commands(run), ["gh attestation verify a    --bundle b", "done"])
+
+class CommandsTest(unittest.TestCase):
+    def test_runs_it_reads(self):
+        for run, expected in READ:
+            with self.subTest(run=run):
+                self.assertEqual(crp.commands(run), expected)
+                self.assertEqual(crp.command_lines(run), expected)
+
+    def test_runs_it_refuses(self):
+        for run, reason in REFUSED:
+            with self.subTest(run=run):
+                with self.assertRaises(crp.UnclearRunError) as raised:
+                    crp.commands(run)
+                self.assertTrue(str(raised.exception).startswith(reason), str(raised.exception))
+
+    def test_a_refused_run_is_searched_line_by_line_for_an_upload(self):
+        # Every line, comments included, as written and with continuations joined.
+        run = "# c \\\ngh release \\\nupload x\n"
+        self.assertEqual(
+            crp.command_lines(run),
+            ["# c \\", "gh release \\", "upload x", "# c gh release upload x"],
+        )
+
+
+BASH = shutil.which("bash")
+
+
+@unittest.skipIf(BASH is None, "bash is not on PATH")
+class BashTest(unittest.TestCase):
+    """bash, given a run commands() reads, runs what it runs given the commands read."""
+
+    def bash(self, script: str) -> str:
+        with tempfile.TemporaryDirectory() as folder:
+            done = subprocess.run(  # noqa: S603
+                [BASH, "--noprofile", "--norc", "-e"],
+                input=script,
+                capture_output=True,
+                text=True,
+                cwd=folder,
+                check=False,
+            )
+        return f"{done.returncode}\n{done.stdout}{done.stderr}"
+
+    def test_bash_runs_what_the_check_reads(self):
+        for run, expected in READ:
+            with self.subTest(run=run):
+                self.assertEqual(self.bash(run), self.bash("\n".join(expected) + "\n"))
+
+    def test_bash_runs_the_line_after_a_comment_that_ends_in_a_backslash(self):
+        # Why such a comment is refused (C1 on #81): bash does not continue it.
+        self.assertEqual(self.bash("# note \\\necho ran\n"), "0\nran\n")
+        self.assertEqual(self.bash("echo a # note \\\necho ran\n"), "0\na\nran\n")
 
 
 class DocsTest(unittest.TestCase):
