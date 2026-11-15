@@ -435,6 +435,46 @@ class SuitesTest(unittest.TestCase):
             fs.parse_decisions("# Nothing\n")
 
 
+class OriginsTest(unittest.TestCase):
+    def test_the_fixture(self) -> None:
+        origins = fs.parse_origins(docs_fixture.ORIGINS)
+        self.assertEqual(origins.site, "https://example.pk")
+        self.assertEqual(origins.site_aliases, ("https://www.example.pk",))
+        self.assertEqual(origins.site_legacy, ("https://example-site.hosting.example",))
+        self.assertEqual(origins.app, "https://app.example.pk")
+        self.assertEqual(origins.app_legacy, ("https://example-app.hosting.example",))
+        self.assertEqual(
+            origins.current,
+            ("https://example.pk", "https://www.example.pk", "https://app.example.pk"),
+        )
+        self.assertEqual(
+            origins.legacy,
+            ("https://example-site.hosting.example", "https://example-app.hosting.example"),
+        )
+
+    def test_the_lists_are_optional(self) -> None:
+        origins = fs.parse_origins('{"site": {"origin": "a"}, "app": {"origin": "b"}}')
+        self.assertEqual(
+            (origins.site_aliases, origins.site_legacy, origins.app_legacy), ((), (), ())
+        )
+
+    def test_any_other_shape_is_refused(self) -> None:
+        for text, message in (
+            ("{", "is not JSON"),
+            ("[]", 'is not an object of "site" and "app"'),
+            ('{"site": {"origin": "a"}}', 'is not an object of "site" and "app"'),
+            ('{"site": {"origin": "a"}, "app": {"origin": "b"}, "x": 1}', '"site" and "app"'),
+            ('{"site": {"origin": "a", "www": []}, "app": {"origin": "b"}}', '"site" is not'),
+            ('{"site": {"origin": "a"}, "app": {"origin": "b", "aliases": []}}', '"app" is not'),
+            ('{"site": {"aliases": []}, "app": {"origin": "b"}}', 'with "origin"'),
+            ('{"site": {"origin": 1}, "app": {"origin": "b"}}', '"site.origin" is not a string'),
+            ('{"site": {"origin": "a"}, "app": {"origin": "b", "legacy": "c"}}', "app.legacy"),
+            ('{"site": {"origin": "a", "aliases": [1]}, "app": {"origin": "b"}}', "site.aliases"),
+        ):
+            with self.subTest(text), self.assertRaisesRegex(SourceShapeError, message):
+                fs.parse_origins(text)
+
+
 class WorkflowTest(unittest.TestCase):
     def setUp(self) -> None:
         self.ci = fs.parse_workflow("ci.yml", docs_fixture.CI)

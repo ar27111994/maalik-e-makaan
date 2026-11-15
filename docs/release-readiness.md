@@ -340,11 +340,11 @@ In order. Record each in `.planning/STATE.md` when it is done.
    the privacy page rules out), are off: the owner reported on 2026-11-12 that they had switched
    them off some days before. Still to do: check that `MAIL_FROM` uses that domain;
    turn on custom SMTP in Supabase Auth with a second sending-only key for that domain;
-   check the "Email sent" rate limit; add the iOS app's redirect URL
-   `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` (Authentication,
-   URL Configuration); paste the three bilingual templates from
-   `supabase/templates/` with their subjects from `supabase/config.toml`. Then sign up in each
-   language, reset a password and send an invitation to someone outside the team. The owner
+   check the "Email sent" rate limit; paste the three bilingual templates from
+   `supabase/templates/` with their subjects from `supabase/config.toml`. (The iOS app's redirect
+   URLs, for the old address and the new, are listed in Authentication, URL Configuration: the
+   owner reported all four callbacks there on 14 November 2026, item 13, step 4.) Then sign up in
+   each language, reset a password and send an invitation to someone outside the team. The owner
    reported the templates pasted (2026-11-09) and updated (2026-11-12), copies that set the Urdu
    half in Nastaliq. Release 1.2.0 (2026-11-12) sets it in Noto Sans Arabic or a sans the reader
    already has, a size larger than the English beside it so that both read the same size, with
@@ -375,16 +375,134 @@ In order. Record each in `.planning/STATE.md` when it is done.
 10. **Urdu review** by the owner: `app/lib/l10n/arb/app_ur.arb`, the website's Urdu pages, the
     three e-mail templates, and the privacy page's new paragraphs (account e-mails through Resend,
     weekly encrypted backups kept 90 days).
-11. **Legal**: a lawyer's review of the privacy policy and terms; a contact e-mail address for the
-    privacy page (it says there is none yet); a check of the official `.gov.pk` texts behind the
-    guides.
+11. **Legal**: a lawyer's review of the privacy policy and terms; a check of the official
+    `.gov.pk` texts behind the guides. The contact address is settled: the privacy pages, the
+    company page and the deck give the company's mailbox, `hello@mmakaan.app` (item 13).
 12. **After the first deploy**, re-run the gates (CI on `main`, the Deploy smoke tests, the first
     scheduled Backup run, the daily check) and update this file's verdict.
+13. **Move to `mmakaan.app`** (D-20, 13 November 2026). The domain is bought and, through the Vercel
+    connector, `mmakaan.app` and `www.mmakaan.app` (308 to the apex) are on the project
+    `maalik-e-makaan-site` and `app.mmakaan.app` on `maalik-e-makaan`. The pull request on
+    `claude/domain-mmakaan` does the rest in the repository. The Release workflow builds nothing
+    until the new web app address answers (step 3) and Auth allows its callbacks (step 4); Deploy
+    deploys the backend only once step 4 holds, the web app only once its address answers and
+    steps 4 and 5 hold, and the website only once the site's addresses answer. The check of step 4
+    holds anything back only while the token may read Auth's settings: with one that may not, it
+    warns, and the builds and the backend go ahead unchecked (step 7). `docs/operations.md`,
+    Domains, has each step in full, in the same order. **On 14 November 2026:** steps 2 to 5 are
+    done, and half of step 8 ahead of its place; the merge and the release (steps 6 and 7) are
+    next, before Wednesday 18 November 2026.
 
-Optional hardening: move the `ANDROID_*` secrets into the `release` environment and limit that
-environment to tags `v*`; only the Release workflow reads them. Keep the Supabase and Vercel
-secrets at repository level: the weekly Backup reads them without an environment, so it needs no
-approval.
+    **`APP_URL` was moved early (the owner, 14 November 2026)**, in both places: the Edge Function
+    secret and the GitHub repository variable hold `https://app.mmakaan.app`. Until the release:
+    invitation e-mails already link to the new address, which still serves the web app from before
+    the move, whose own e-mail links name the old address, so a sign-up started there cannot finish
+    its link until the release (an invitee with an account signs in as usual, and installed Android
+    builds open such invitations in the browser). And the workflows on `main` read the variable
+    until this pull request is merged: the Wednesday site refresh (the next is 18 November 2026), a
+    Deploy by hand or a release from `main` would build for the new address with nothing on the old
+    one that sends people on. So merge and release before then. The owner's decision (14 November
+    2026): `APP_URL` stays at the new address in both places and is not set back before the
+    release, because nobody uses the app yet. If the release must wait longer, merge before that
+    Wednesday all the same, so that the site refresh builds the last tag's own addresses.
+    1. _Optional, open, before the release:_ a Search Console URL-prefix property for
+       `https://maalik-e-makaan-site.vercel.app/`, with the HTML file method. Download the file and
+       send its name (`google<16 hex digits>.html`) so a pull request adds it to `website/public/`
+       before the release, but do not press Verify yet: the old address serves the file only from
+       step 7 (step 9 verifies it).
+    2. **Dynadot. Done on 13 November 2026:** the records are in, and Vercel reports `mmakaan.app`
+       (`A` `216.198.79.1` and `64.29.17.1`), `www.mmakaan.app` and `app.mmakaan.app` (`CNAME`
+       records) as correctly configured.
+    3. **HTTPS on the new addresses. Done on 14 November 2026:** the owner checked them over HTTPS
+       in a browser; the workflows check the same before they build or deploy. Still to do: uptime
+       monitors on `https://app.mmakaan.app/` and `https://mmakaan.app/`.
+    4. **Supabase Auth. Done on 14 November 2026:** the redirect URLs list all four callbacks
+       (`https://app.mmakaan.app/auth/callback`,
+       `io.github.ar27111994.maalikemakaan://app.mmakaan.app/auth/callback`,
+       `https://maalik-e-makaan.vercel.app/auth/callback` and
+       `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback`); the Site
+       URL was left as it was. Release's builds and Deploy's backend check these first (only a
+       warning if the token may not read them; they then go ahead, so check by hand).
+    5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it holds both app
+       origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no secret holds the
+       website's address).
+    6. **Merge the pull request** once "CI passed", before Wednesday 18 November 2026, and go on to
+       step 7 in the same sitting.
+    7. **Release:** merge the release pull request, approve the Deploy runs and check every smoke
+       test, the ones of the old addresses included. Nothing is built or attached while the new web
+       app address does not answer (step 3). If the token may read Auth's settings, nothing is
+       built or attached, and the backend is not deployed, while Auth lacks a callback (step 4). If
+       the `preflight` or `supabase` job warns that the token may not (HTTP 401 or 403), Auth was
+       not checked: the builds and the backend go ahead, and a green run does not show that Auth
+       allows the callbacks. Then compare Authentication, URL Configuration with step 4's four
+       callbacks by hand. If the functions refuse the origin (step 5), only the web app's deploy
+       stops, and the website after it: the builds and the backend may already be out.
+       The website goes out only after the web app's deploy. From the web deploy,
+       the old web app address answers with a page that clears what the app kept in the browser
+       there and goes to the same address on the new one.
+    8. **Right after the web deploy:** Auth's Site URL to `https://app.mmakaan.app`; then delete the
+       `APP_URL` repository variable. **Done ahead, on 14 November 2026:** the Edge Function secret
+       `APP_URL`, on the new address, where it stays (the owner's decision of that day, above).
+       With it there, Android builds from before the move open invitations in the browser until
+       the new APK is installed. Until the variable is deleted, do not run Deploy by hand on a
+       tag from before the move: it would deploy that tag's web app, built for the new address but
+       with nothing on the old host that sends people on, and its website with the old address in
+       its links (`docs/operations.md`, Rollback and restore).
+    9. **Check:** sign up, reset a password and invite someone on `https://app.mmakaan.app`; an old
+       invitation address, `https://maalik-e-makaan.vercel.app/invite#token=x`, lands on
+       `https://app.mmakaan.app/invite#token=x`; a browser that was signed in on the old address
+       lands on the new one signed out, with the old address's local storage empty; with the new
+       APK, both hosts read "verified" in `adb shell pm get-app-links`, and the Digital Asset Links
+       API says `"linked": true` for both. If step 1 was done, the old address answers 200 for the
+       Google file: press Verify.
+    10. **Housekeeping:** remove the old web app address's uptime monitor; the repository's homepage
+        to `https://mmakaan.app`; check that the `roadmap` label's description names the new
+        address; the website on the D-U-N-S record, LinkedIn and the AWS Activate application.
+        Decide whether the company's website in the site's structured data and `llms.txt`,
+        `https://ar27111994.dev/` today, becomes `https://mmakaan.app/` (or `/company/`), to match
+        those records; Apple checks that an organisation's website is on its own domain.
+    11. **Search Console:** a Domain property for `mmakaan.app` (a TXT record at Dynadot) and its
+        sitemap, `https://mmakaan.app/sitemap-index.xml`; then the change of address from the old
+        property (steps 1 and 9). Optionally Bing's import and site move.
+    12. **The next release, at least 24 hours later:** the agent answers the old address's
+        `/auth/callback` with the page too, so it clears and sends people on like every other
+        path; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone.
+    13. **Later:** the mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`
+        (`p=none`), which was being added on 13 November 2026: check that it is there. The company's
+        mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho; a test
+        message to Gmail passed SPF and DKIM for `mmakaan.app` on 13 November 2026. The Edge
+        Function secret `MAIL_REPLY_TO` can become `hello@mmakaan.app`. Then a Resend sending
+        subdomain, then Auth's SMTP sender and `MAIL_FROM`; and Customer.io's subdomain (D-18).
+        Every host on the domain is HTTPS-only (`.app` is HSTS-preloaded), so a subdomain opened in
+        a browser, such as a link-tracking or webmail one, needs the provider's TLS before its
+        `CNAME`. Also the owner's to set: when Auth drops the old redirect URLs and the Android
+        manifest the old host (a date, or the oldest version still in use).
+
+Optional hardening: move the `ANDROID_*` secrets from the repository into the `release` environment;
+only the Release workflow's `artefacts` job reads them, and it runs in that environment. A
+deployment branch rule can then keep them to `main` (Settings, Environments, `release`, Deployment
+branches and tags: Selected branches and tags, the branch `main` alone). Never a rule for tags
+alone, such as `v*`: the Release workflow runs on a push to `main`, so its `preflight`, `artefacts`
+and `ios` jobs, which all run in `release`, run for the branch `main`, and such a rule would stop
+every release at `preflight`. The rule keeps the signing secrets from a run on any other branch (Run
+workflow on a branch, or a branch pushed with a workflow changed to name the environment); it
+protects nothing merged to `main`, and no secret left at repository level, which a workflow on any
+branch can read. Keep the Supabase secrets at repository level, since jobs in different
+environments, or in none, read them: the weekly Backup's `backup` job, which has no environment (so
+a scheduled run waits for no reviewer), reads `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`;
+Release's `preflight` job, in `release`, reads `SUPABASE_ACCESS_TOKEN` for the Auth check; and
+Deploy's `supabase` job, in `production`, reads both. Moved into one environment, they would be
+missing from the others' jobs (the Auth check fails without the token), or kept as copies in
+`release` and `production` that must be rotated together, with Backup in an environment too. That
+Release and Site refresh hand them to Deploy from jobs with no environment is no reason on its own:
+a called workflow's job that names an environment reads that environment's secret ahead of the one
+passed in. `VERCEL_TOKEN` could move into `production` for the same reason: only Deploy's `web`
+and `site` jobs read it, and both run there (then delete the repository copy; the callers pass an
+empty value, which `deploy.yml` accepts, since its `workflow_call` secrets are not required). A
+branch rule on `production` would have to allow `main` (Release and Site refresh run Deploy for it,
+and Owner actions, item 7, runs it there by hand) and every tag Deploy is run on by hand
+(`docs/operations.md`, Restoring, step 6, may run one), and adds little to the reviewer that
+environment should require, who sees every run.
 
 ### The first backup and restore (2026-11-09)
 
@@ -406,11 +524,11 @@ approval.
 ## Follow-ups (not blocking)
 
 - iOS e-mail links (Greptile on PR 1) come back through the app's own URL scheme since
-  2026-11-09 (`docs/operations.md`, iOS e-mail links). Still to do: add
-  `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback` to Auth's
-  redirect URLs, and check it on an iPhone. CI builds the iOS app unsigned from 2026-11-09, and
-  each release attaches the unsigned `.ipa` to sign with an Apple Account (`docs/operations.md`,
-  iOS builds).
+  2026-11-09 (`docs/operations.md`, iOS e-mail links). The scheme's redirect URLs are in Auth
+  (the owner, 14 November 2026: Owner actions, item 13, step 4, which the Deploy workflow's
+  `supabase` job checks). Still to do: a check on an iPhone. CI builds the iOS app unsigned from
+  2026-11-09, and each release attaches the unsigned `.ipa` to sign with an Apple Account
+  (`docs/operations.md`, iOS builds).
 - TEAM-05: no screen reads the audit trail.
 - NFR-07: the UAT does not reach the operations screens, reports or search.
 - NFR-04: cold start and frame rates are not measured on a mid-range Android phone.

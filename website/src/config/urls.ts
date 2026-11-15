@@ -1,17 +1,19 @@
 /**
  * The site's own address (SITE_URL) and the web app's address (PUBLIC_APP_URL).
  *
- * Both default to the Vercel production addresses. When the owner moves either
- * to a custom domain, set the variable in the Vercel project (and locally in
- * website/.env) and rebuild; see website/README.md. These helpers validate the
- * values when the site is built, so a typo fails the build instead of shipping
- * broken canonical URLs.
+ * Both default to the production origins in contracts/origins.json (decision
+ * D-20), the one place they are written, so a release builds the addresses its
+ * own commit names and the Deploy workflow sets neither. Set a variable only to
+ * build for another address (website/.env locally; see website/README.md).
+ * These helpers validate the values when the site is built, so a typo fails
+ * the build instead of shipping broken canonical URLs.
  */
+import origins from "../../../contracts/origins.json";
 
-/** The production address of the Vercel project maalik-e-makaan-site (root directory website/). */
-export const DEFAULT_SITE_URL = "https://maalik-e-makaan-site.vercel.app";
-/** The production address of the Flutter web app (its APP_URL). */
-export const DEFAULT_APP_URL = "https://maalik-e-makaan.vercel.app";
+/** The website's production origin (the Vercel project maalik-e-makaan-site). */
+export const DEFAULT_SITE_URL: string = origins.site.origin;
+/** The web app's production origin, its APP_URL (the Vercel project maalik-e-makaan). */
+export const DEFAULT_APP_URL: string = origins.app.origin;
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
