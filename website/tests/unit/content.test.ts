@@ -125,6 +125,21 @@ describe("content facts", () => {
     );
   });
 
+  test("the download page's provenance line never calls it a signature", () => {
+    // The iPhone file is "unsigned" and testers "sign" it themselves: the provenance record
+    // must not read as a signed file, and the Urdu line says the instructions are in English.
+    interface Verify {
+      release: { verify: { body: string; label: string } };
+    }
+    const en = (read("download/en.yaml") as Verify).release.verify;
+    const ur = (read("download/ur.yaml") as Verify).release.verify;
+    expect(`${en.body} ${en.label}`).not.toMatch(/sign/i);
+    expect(en.body).toContain("GitHub");
+    expect(`${ur.body} ${ur.label}`).not.toMatch(/دستخط/);
+    expect(ur.body).toContain("گٹ ہب");
+    expect(ur.body).toContain("انگریزی میں");
+  });
+
   test("no guides are published in one language only", () => {
     const list = (locale: string) =>
       readdirSync(new URL(`../../src/content/guides/${locale}/`, import.meta.url)).filter((file) =>
