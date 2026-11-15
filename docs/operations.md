@@ -501,11 +501,12 @@ settings with the callbacks the builds send.
   builds them from the Edge Functions' `APP_URL` secret, which names the new address since 14
   November 2026 (step 8), so such a build opens an invitation in the browser, on the web app, where
   the invitee signs in; installing the new APK brings invitations back into the app.
-- `maalik-e-makaan.vercel.app/auth/callback` and the files it needs, until the release after the
-  move (at least 24 hours later): a sign-up, reset or e-mail change requested on the old address
+- `maalik-e-makaan.vercel.app/auth/callback` and the files it needs, until a release at least
+  24 hours after the move's: a sign-up, reset or e-mail change requested on the old address
   keeps its sign-in verifier in that origin's storage, so its link must finish there, and the
-  response must not clear that storage. The next release answers it like every other path, keeping
-  only `assetlinks.json` (step 12).
+  response must not clear that storage. That later release answers it like every other path,
+  keeping only `assetlinks.json` (step 12). A release in between, without that change, leaves
+  it as it is.
 - Every other path of the web app's earlier address answers 200 with one small page, which clears
   what the app kept in the browser for that address and goes to the same path, query and
   `#fragment` on the origin (below). An invitation link, `/invite#token=…`, arrives with its token;
@@ -628,7 +629,7 @@ actions, item 13, tracks them in the same order. **On 15 November 2026:** steps 
 The pull request is merged (#74), release 1.3.0 deployed the move, and the owner reported Auth's
 Site URL moved and the `APP_URL` repository variable deleted the same day. Left: the checks by
 hand (step 9), the repository's homepage and the company's records (step 10), Search Console
-(steps 1 and 11), the next release (step 12) and the mail steps (step 13).
+(steps 1 and 11), the callback's release (step 12) and the mail steps (step 13).
 
 **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
 Edge Function secret and in the GitHub repository variable, and by the owner's decision of that
@@ -639,11 +640,15 @@ not finish its link. The release ended that, and the variable is deleted (step 8
 addresses move again, keep to the order: the secret after the web deploy, and no repository
 variable at all (Moving again).
 
-1. _(Optional, still open)_ **Search Console, old property, part one.** Add a URL-prefix property
-   for `https://maalik-e-makaan-site.vercel.app/`, choose the HTML file method and download the
-   file (`google<16 hex digits>.html`). Send its name, so that a pull request adds it to
-   `website/public/`. Do not press Verify yet: the old address serves the file only once a
-   release that has it is deployed (the redirect leaves that one path out; step 9 finishes it). Without the property, Search Console's change of address cannot be used (step 11).
+1. **Search Console, old property, part one.** Add a URL-prefix property for
+   `https://maalik-e-makaan-site.vercel.app/`, choose the HTML file method and download the file
+   (`google<16 hex digits>.html`). **The file is in the repository since 15 November 2026:** the
+   owner sent `google17fd3f30f3354533.html`, and `website/public/` holds it byte for byte. Do not
+   press Verify yet: an address serves the file only once a release that has it is deployed
+   (the redirect from the old address leaves that one path out; step 9 finishes it). Google
+   ties the file to the account, not to one address, so the same file should also verify a
+   URL-prefix property for `https://mmakaan.app/`. Without the old address's property, Search
+   Console's change of address cannot be used (step 11).
 2. **Dynadot DNS. Done on 13 November 2026:** the records are in, and Vercel reports `mmakaan.app`
    (`A` `216.198.79.1` and `64.29.17.1`), `www.mmakaan.app` and `app.mmakaan.app` (`CNAME` records)
    as correctly configured. What it took: the parking records removed (an `A` record to Dynadot's
@@ -714,9 +719,11 @@ variable at all (Moving again).
    open the old address, land on the new one signed out, and find the old address's local storage
    empty (developer tools, Application, Local storage); on a phone with the new APK,
    `adb shell pm get-app-links io.github.ar27111994.maalik_e_makaan` shows both hosts verified; the
-   Digital Asset Links API says `"linked": true` for both (Android App Links, below). If step 1 was
-   done: `https://maalik-e-makaan-site.vercel.app/google<16 hex digits>.html` answers 200 (the
-   redirect leaves it out); press Verify on the old property now.
+   Digital Asset Links API says `"linked": true` for both (Android App Links, below). After the
+   release that carries step 1's file:
+   `https://maalik-e-makaan-site.vercel.app/google17fd3f30f3354533.html` and
+   `https://mmakaan.app/google17fd3f30f3354533.html` each answer 200 with the file's one line
+   (the redirect leaves it out); press Verify then, not before.
 10. **Housekeeping.** Done on 15 November 2026: no uptime monitor requests the old web app
     address (step 3), and the `roadmap` label's description names the new address (the Roadmap
     workflow rewrote it from `.github/roadmap.toml` when the move reached `main`). Still the
@@ -736,8 +743,9 @@ variable at all (Moving again).
     `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web app answers
     `X-Robots-Tag: noindex` on every path, so the Domain property lists it as excluded, not as an
     error: the website is what search engines index (D-01).
-12. **The next release, at least 24 hours later** (so not before 14:00 UTC on 16 November 2026):
-    the agent's pull request answers the old
+12. **A release at least 24 hours after the move's** (so not before 14:00 UTC on 16 November
+    2026; an earlier release simply goes without this change): the agent's pull request answers
+    the old
     address's `/auth/callback` with the page too, so it clears that address's storage and sends
     people on like every other path (only `assetlinks.json` stays); after its deploy, the owner
     sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` (or removes it, which means `APP_URL`'s

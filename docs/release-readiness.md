@@ -401,8 +401,8 @@ In order. Record each in `.planning/STATE.md` when it is done.
     done: the pull request is merged (#74), release 1.3.0 deployed the move, and the owner
     reported Auth's Site URL moved and the `APP_URL` repository variable deleted the same day.
     Left: the checks by hand (step 9), the repository's homepage and the company's records
-    (step 10), Search Console (steps 1 and 11), the next release (step 12) and the mail steps
-    (step 13).
+    (step 10), Search Console (steps 1 and 11), the callback's release (step 12) and the mail
+    steps (step 13).
 
     **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
     Edge Function secret and the GitHub repository variable, and by the owner's decision of that
@@ -410,11 +410,13 @@ In order. Record each in `.planning/STATE.md` when it is done.
     e-mails linked to the new address while it still served the web app from before the move, so
     a sign-up started there could not finish its e-mail link. The release ended that, and the
     variable is deleted (step 8).
-    1. _Optional, still open:_ a Search Console URL-prefix property for
-       `https://maalik-e-makaan-site.vercel.app/`, with the HTML file method. Download the file and
-       send its name (`google<16 hex digits>.html`) so a pull request adds it to `website/public/`,
-       but do not press Verify yet: the old address serves the file only once a release with it
-       is deployed (step 9 verifies it).
+    1. **Search Console's file. In the repository since 15 November 2026:** you sent
+       `google17fd3f30f3354533.html`, the HTML file of a URL-prefix property, and
+       `website/public/` holds it byte for byte. Do not press Verify yet: an address serves the
+       file only once a release with it is deployed (step 9 verifies it). For the change of
+       address the property has to be the old site address,
+       `https://maalik-e-makaan-site.vercel.app/`; the same file should also verify one for
+       `https://mmakaan.app/`.
     2. **Dynadot. Done on 13 November 2026:** the records are in, and Vercel reports `mmakaan.app`
        (`A` `216.198.79.1` and `64.29.17.1`), `www.mmakaan.app` and `app.mmakaan.app` (`CNAME`
        records) as correctly configured.
@@ -463,8 +465,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
        `https://app.mmakaan.app/invite#token=x`; a browser that was signed in on the old address
        lands on the new one signed out, with the old address's local storage empty; with the new
        APK, both hosts read "verified" in `adb shell pm get-app-links`, and the Digital Asset Links
-       API says `"linked": true` for both. If step 1 was done, the old address answers 200 for the
-       Google file: press Verify.
+       API says `"linked": true` for both. After the release that carries step 1's file, the old
+       site address and the new one each answer 200 for `/google17fd3f30f3354533.html`: press
+       Verify then.
     10. **Housekeeping.** Done on 15 November 2026: no uptime monitor requests the old web app
         address (step 3), and the `roadmap` label's description names the new address. Still the
         owner's: the repository's homepage, which reads `https://maalik-e-makaan-site.vercel.app`
@@ -477,8 +480,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
     11. **Search Console:** a Domain property for `mmakaan.app` (a TXT record at Dynadot) and its
         sitemap, `https://mmakaan.app/sitemap-index.xml`; then the change of address from the old
         property (steps 1 and 9). Optionally Bing's import and site move.
-    12. **The next release, at least 24 hours later** (so not before 14:00 UTC on 16 November
-        2026): the agent answers the old address's
+    12. **A release at least 24 hours after the move's** (so not before 14:00 UTC on 16
+        November 2026; an earlier release simply goes without this change): the agent answers
+        the old address's
         `/auth/callback` with the page too, so it clears and sends people on like every other
         path; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone.
     13. **The mail.** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM), and `_dmarc`

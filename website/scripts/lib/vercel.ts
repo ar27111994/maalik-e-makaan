@@ -118,6 +118,14 @@ function isWellKnown(pathname: string): boolean {
 }
 
 /**
+ * The name of a search engine's ownership file: Google Search Console's HTML file method asks
+ * for `google<16 hex digits>.html` at the site's root. Such a file lives in `public/` and is
+ * served as it is. It is not a page of the site, and vercel.json's redirect from an earlier
+ * address leaves it out, so that the earlier address can be verified too.
+ */
+export const VERIFICATION_FILE = /^google[0-9a-f]{16}\.html$/;
+
+/**
  * With `trailingSlash: true`, a path without a file extension gains a slash (308). Not a path
  * that starts with `//`: its Location (`//ur/` for `//ur`) would start with `//` too, which a
  * browser reads as another host (`ur`). Such a path goes on to vercel.json's redirects and the

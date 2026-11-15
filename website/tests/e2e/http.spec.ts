@@ -1,10 +1,12 @@
 // What the server sends: the security headers of vercel.json on every
 // response, long-lived caching for hashed assets, redirects and 404s.
+import { readdirSync, readFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
+import { createRequire } from "node:module";
 import { expect, test } from "@playwright/test";
 import { readOrigins } from "../../scripts/lib/origins.ts";
-import { headersFor, readVercelConfig } from "../../scripts/lib/vercel.ts";
-import { sitePages } from "./site.ts";
+import { headersFor, readVercelConfig, VERIFICATION_FILE } from "../../scripts/lib/vercel.ts";
+import { sitePages, verificationFiles } from "./site.ts";
 
 const config = readVercelConfig(new URL("../../vercel.json", import.meta.url));
 const origins = readOrigins();
@@ -69,6 +71,62 @@ function getAs(
       .end();
   });
 }
+
+/** GET `path` as `host`, as getAs does, and read the whole answer. */
+function readAs(
+  baseURL: string,
+  host: string,
+  path: string,
+): Promise<{ status: number; type: string | undefined; body: string }> {
+  const { hostname, port } = new URL(baseURL);
+  return new Promise((resolve, reject) => {
+    httpRequest({ hostname, port, path, headers: { host } }, (response) => {
+      const chunks: Buffer[] = [];
+      response.on("data", (chunk: Buffer) => chunks.push(chunk));
+      response.on("end", () => {
+        resolve({
+          status: response.statusCode ?? 0,
+          type: response.headers["content-type"],
+          body: Buffer.concat(chunks).toString("utf8"),
+        });
+      });
+    })
+      .on("error", reject)
+      .end();
+  });
+}
+
+test("a search engine's ownership file is served as it is, on the origin and each earlier address", async ({
+  baseURL,
+}) => {
+  const publicDirectory = new URL("../../public/", import.meta.url);
+  const names = readdirSync(publicDirectory).filter((name) => VERIFICATION_FILE.test(name));
+  // The build copies public/ as it is, so dist/ holds the same files, and at least the one
+  // the owner's Search Console property asks for.
+  expect(names).toContain("google17fd3f30f3354533.html");
+  expect(verificationFiles()).toEqual(names.toSorted());
+  const hosts = [origins.site.origin, ...origins.site.legacy].map((url) => new URL(url).host);
+  for (const name of names) {
+    const body = readFileSync(new URL(name, publicDirectory), "utf8");
+    for (const host of hosts) {
+      expect(await readAs(baseURL ?? "", host, `/${name}`), `${host}/${name}`).toEqual({
+        status: 200,
+        type: "text/html; charset=utf-8",
+        body,
+      });
+    }
+  }
+});
+
+test("an ownership file is not a page: not in the suite's page list, nor in Lighthouse's", () => {
+  const pages = sitePages().map((page) => page.path);
+  expect(pages.filter((path) => VERIFICATION_FILE.test(path.slice(1)))).toEqual([]);
+  // lighthouserc.cjs walks dist/ by itself; it must come to the same pages.
+  const lighthouse = createRequire(import.meta.url)("../../lighthouserc.cjs") as {
+    ci: { collect: { url: string[] } };
+  };
+  expect(lighthouse.ci.collect.url.map((url) => new URL(url).pathname)).toEqual(pages);
+});
 
 test("each earlier address redirects permanently to the same page on the origin", async ({
   baseURL,
