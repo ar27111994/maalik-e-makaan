@@ -441,7 +441,7 @@ export PATH=/opt/flutter/bin:$PATH   # Flutter 3.47
 ## CI jobs
 
 `.github/workflows/ci.yml` runs on every pull request; the `CI passed` job needs every other job.
-Other workflows: `deploy.yml` and `pr-title.yml`.
+Other workflows: `deploy.yml`, `pr-title.yml` and `security.yml`.
 
 | Job                | Runs                                        |
 | ------------------ | ------------------------------------------- |
@@ -532,6 +532,24 @@ LLMS = """\
 > D-02.
 """
 
+SECURITY = """\
+name: Security
+on: push
+jobs:
+  workflows:
+    name: Workflow security (zizmor)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@0000000000000000000000000000000000000000 # v7.0.1
+      - uses: zizmorcore/zizmor-action@0000000000000000000000000000000000000000 # v0.8.1
+        id: zizmor
+        with:
+          # Equal to tool/requirements-lint.txt's pin.
+          version: 1.32.0
+      - name: Fail on any zizmor finding
+        run: exit 0
+"""
+
 TRUST_SLIDE = """\
 <section id="trust">
 <p style="font-size:60px">1,974</p>
@@ -594,6 +612,12 @@ FILES: dict[str, str] = {
     "formal/tla/README.md": "# TLA+\n",
     "website/deck/slides/trust.html": TRUST_SLIDE,
     "tool/formal/requirements.txt": "z3-solver==5.3.3.0 \\\n    --hash=sha256:00\n",
+    "tool/requirements-lint.in": "# lint tools\nactionlint-py==1.7.12.25\nzizmor==1.32.0\n",
+    "tool/requirements-lint.txt": (
+        "# pip-compile output\nactionlint-py==1.7.12.25 \\\n    --hash=sha256:00\n"
+        "zizmor==1.32.0 \\\n    --hash=sha256:00\n"
+    ),
+    ".github/workflows/security.yml": SECURITY,
     "formal/lean/lean-toolchain": "leanprover/lean4:v4.35.0\n",
     "tool/test_guard.py": "",
     "tool/docs/test_docs.py": "",

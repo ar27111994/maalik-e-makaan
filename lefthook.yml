@@ -35,7 +35,10 @@ pre-commit:
         && PATH="$PWD/.venv/bin:$PATH" shellcheck {staged_files}
     workflows:
       glob: ".github/workflows/*.yml"
-      run: PATH="$PWD/.venv/bin:$PATH" actionlint {staged_files}
+      run: >-
+        PATH="$PWD/.venv/bin:$PATH" actionlint {staged_files}
+        && PATH="$PWD/.venv/bin:$PATH" python3 tool/github/check_workflow_calls.py
+        && PATH="$PWD/.venv/bin:$PATH" zizmor --offline --no-progress {staged_files}
     design-lint:
       glob: "{packages/mm_ui,app}/lib/**/*.dart"
       run: python3 tool/design/lint_hardcoded.py {staged_files}
