@@ -9,6 +9,19 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-15)
 
+- Release 1.3.0 was published on 15 November 2026 (tag `v1.3.0`, commit 638586b on `main`; the
+  Release run 43720578854). Its Deploy run applied `20261112092618_residence.sql` to the hosted
+  project with `supabase db push` and redeployed the four Edge Functions through the CLI; every
+  job passed. The web app is at `https://app.mmakaan.app`, and its earlier address
+  (`https://maalik-e-makaan.vercel.app`) answers with the page that clears its storage and goes
+  on to the same path there, while `/auth/callback` and `assetlinks.json` are kept as they were;
+  the website is at `https://mmakaan.app`, and `www` and the site's earlier address answer 308 to
+  it. The Deploy run's smoke tests showed each of these. "After every migration" was done the
+  same day (branch `claude/post-release-1-3-0`; Hosted Supabase Project has the results). Still
+  to do by the owner, `docs/release-readiness.md`, Owner actions, item 13, step 8: Auth's Site
+  URL to `https://app.mmakaan.app`, then deleting the `APP_URL` repository variable; then the
+  checks of step 9. Until the variable is deleted, do not run Deploy by hand on a tag from before
+  the move.
 - Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
   zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
   `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
@@ -243,16 +256,39 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 ## Hosted Supabase Project
 
 - Ref `aaifamxzzjspohwksxyr` ("maalik-e-makaan"), org AR Labs, region ap-south-1, Postgres 17.11.
-- Twenty-three migrations applied, the latest `20261109081109_uat_display_fixes`, according
-  to the commits that applied them (764e640, c1c0d7a, 13c5d18, f155413, 67639d8, e853378 and the
+- Twenty-four migrations applied, the latest `20261112092618_residence` (below). The first
+  twenty-three, up to `20261109081109_uat_display_fixes`, according to the commits that applied
+  them (764e640, c1c0d7a, 13c5d18, f155413, 67639d8, e853378 and the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
-- `20261112092618_residence.sql` is **not applied** to the hosted project yet. The next release
-  the owner approves applies it (the Deploy workflow's `supabase db push`), and then come "After
-  every migration" in `docs/operations.md` and `tool/db/time_zone_skew.sql` on the hosted project.
-  The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and speaker notes) now says
-  23 reviewed write functions and 23 database suites: the deck is rendered from the release tag,
-  the same release that applies the migration.
+- `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
+  (`supabase db push`), so 24 migrations are applied. "After every migration"
+  (`docs/operations.md`), done the same day with read-only queries:
+  1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
+     order, with nothing extra on either side.
+  2. Types: `_shared/database.types.ts` regenerated from the hosted project: the table
+     `profile_residences`, the `portfolios` columns `caretaker_since`, `caretaker_user_id` and
+     `owner_abroad` (also in `create_portfolio`'s result), `create_portfolio`'s `p_owner_abroad`,
+     and the RPCs `set_caretaker` and `set_owner_abroad`; no enum changed. The functions needed
+     no change.
+  3. Drift: `tool/db/fingerprint_diff.py` says "schemas match (1220 objects)" between the local
+     chain (PostgreSQL 16) and the hosted project (the `psql -At` output's md5 is
+     `ebe541b2085461f621b30aa26a82297e`).
+  4. Advisors: security lists the 23 write RPCs pinned in `01_schema_security.test.sql`, name for
+     name, and leaked password protection (off; an Auth setting, the owner's). Performance lists
+     only "unused index" INFO findings (62), among them the new
+     `portfolios_caretaker_user_id_idx`; no unindexed foreign key and no policy that re-evaluates
+     auth functions per row.
+  5. GoTrue's foreign-key actions on `auth.users`: the hosted order, without Auth's own tables,
+     is the order `formal/tla/Membership/replay/residence.sh` prints for the migrated local
+     database (34 entries), with `portfolios.caretaker_user_id` last, after
+     `portfolio_members.user_id`; so the Membership model's `caretaker_first` configurations do
+     not describe the hosted project. The replay's outcomes were all as expected.
+
+  Still to run on the hosted project: `tool/db/time_zone_skew.sql` (`docs/operations.md`,
+  Time-zone data). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
+  speaker notes) says 23 reviewed write functions and 23 database suites, as release 1.3.0 has.
+
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
   was applied on 2026-11-09 by the process in `docs/operations.md`; afterwards no live automatic
@@ -268,7 +304,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   - `mm-storage-cleanup`: every 10 minutes, through pg_net, once the Vault secrets are set;
   - `mm-rate-limit-cleanup`: hourly.
 - `authenticator` has `pgrst.db_pre_request = app.check_request`.
-- Advisors (2026-11-03):
+- Advisors (2026-11-03; on 2026-11-15, after the residence migration, the same, as step 4 above
+  records):
   - Security: only the reviewed definer RPCs (lint 0029, intentional; see D-15).
   - Performance: "unused index" INFO findings only. These are expected on an empty database, and
     the indexes are justified by foreign-key coverage and the stress test.
@@ -323,9 +360,9 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
 - **The D-U-N-S number** gates Google Play, the App Store and paid plans; Dun & Bradstreet quotes
   up to 30 business days.
 - **The move to the domain:** `mmakaan.app` is bought (D-20, 2026-11-13), its DNS points at the
-  hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). Waiting on the owner:
-  the merge of the move's pull request and the release, before Wednesday 2026-11-18, then the
-  steps after it (`docs/release-readiness.md`, Owner actions, item 13). Apple enrols an
+  hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). The move's pull request
+  is merged and released (1.3.0, 2026-11-15). Waiting on the owner: the steps after it
+  (`docs/release-readiness.md`, Owner actions, item 13). Apple enrols an
   organisation only if its website is on a domain associated with it, with work e-mail there; the
   same domain serves Meta's verification and the e-mail sending subdomains.
 - **A lawyer:** a fixed-fee request for quotation this month, with a deadline at least six weeks
@@ -343,8 +380,10 @@ The rest, in short:
   to NULL under portfolio locks taken in id order, so that GoTrue's deletion finds nothing to
   lock. It writes 20 tables (each write audited) and locks more portfolios, including ones the
   user has left. Until then a rare 40P01 on the delete-account path is resolved by the retries.
-- The first production run of the Deploy workflow: it must be on the default branch to be run by
-  hand (or a release published). It deploys the web app to Vercel (`web` job, needs
+- Done on 15 November 2026, by release 1.3.0 (the Current Position): the first production run of
+  the Deploy workflow, which redeployed the Edge Functions. As it was written before: it must be
+  on the default branch to be run by hand (or a release published). It deploys the web app to
+  Vercel (`web` job, needs
   `VERCEL_TOKEN`, set) and redeploys the Edge Functions so they send the database's Retry-After
   (`admin_rate_limit_hit`, 20261107181820); until then the hosted functions use the deprecated
   `admin_hit_rate_limit`, which still works.
@@ -426,6 +465,8 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 
 ## Deployed
 
+- Release 1.3.0 (2026-11-15): the Deploy run uploaded the four Edge Functions from the tag with
+  the Supabase CLI, which replaces the connector's version 1 below.
 - Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version 1
   on the hosted project (deployed 2026-11-05 from commit b41771d through the Supabase connector,
   verify_jwt off as in config.toml). A byte-for-byte comparison with the repository matches,
@@ -441,8 +482,9 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
   production is public.
 - Domains (D-20, added 2026-11-13 through the Vercel connector): `mmakaan.app` and
   `www.mmakaan.app` (308 to the apex) on `maalik-e-makaan-site`, `app.mmakaan.app` on
-  `maalik-e-makaan`; each project keeps its `vercel.app` address, which sends people on once the
-  release that carries D-20 is deployed. The DNS at Dynadot points at Vercel since 2026-11-13
+  `maalik-e-makaan`; each project keeps its `vercel.app` address, which sends people on since
+  release 1.3.0, which carries D-20, was deployed (2026-11-15). The DNS at Dynadot points at
+  Vercel since 2026-11-13
   (the owner: Vercel reports the three hosts as correctly configured); `docs/operations.md`,
   Domains, has the records.
 
