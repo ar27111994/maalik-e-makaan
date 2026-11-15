@@ -45,6 +45,7 @@ void main() {
     final saved = await app.cache.read(
       testUserId,
       'properties.${gulberg.id}.active',
+      InPortfolio<Object?>(gulberg.id),
       (json) => json,
     );
     expect(saved, isNotNull);

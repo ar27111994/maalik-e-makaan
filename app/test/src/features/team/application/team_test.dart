@@ -104,6 +104,7 @@ void main() {
       final saved = await app.cache.read(
         testUserId,
         'team.${gulberg.id}',
+        InPortfolio<Team>(gulberg.id),
         Team.fromJson,
       );
       expect(saved!.value, shown.value);

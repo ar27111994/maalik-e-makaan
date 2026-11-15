@@ -8,7 +8,7 @@ import 'package:maalik_e_makaan/src/core/swr_notifier.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 
-import '../../support/fakes.dart' show MemoryStore;
+import '../../support/fakes.dart' show ListAnswers, MemoryStore;
 
 /// What the next fetch answers; a test holds it on a completer.
 final _answer = Provider<Future<int> Function()>(
@@ -20,6 +20,10 @@ final _answer = Provider<Future<int> Function()>(
 final class _Count extends SwrNotifier<int> {
   @override
   String get query => 'count';
+
+  /// Of the portfolio 'pA', named before the fetch.
+  @override
+  RecordScope<int> get scope => InPortfolio('pA');
 
   @override
   Future<int> fetch() => ref.read(_answer)();
@@ -62,7 +66,7 @@ void main() {
       ],
     )..listen(_count, (_, _) {});
     await pumpEventQueue();
-    expect(saved(), ['mm.swr.v1.u1.count']);
+    expect(saved(), ['mm.swr.v2.u1.p:pA.count']);
   });
 
   test('a reload still on its way when the device is wiped saves nothing, '
@@ -107,15 +111,20 @@ void main() {
     expect(saved(), isEmpty);
   });
 
-  group('when a portfolio left the list', () {
-    Future<int?> savedCount() async =>
-        (await cache.read('u1', 'count', (json) => json! as int))?.value;
+  Future<int?> savedCount() async =>
+      (await cache.read('u1', 'count', InPortfolio<int>('pA'), (json) {
+        return json! as int;
+      }))?.value;
 
-    test('a reload still on its way saves nothing, and shows what came '
-        'back', () async {
+  /// The server's list of u1's portfolios is [ids].
+  Future<void> listIs(List<String> ids) => cache.answer('u1', ids);
+
+  group('when its portfolio left the list', () {
+    test('its saved copy goes, a reload still on its way saves nothing, and '
+        'shows what came back', () async {
       final reload = container.read(_count.notifier).reload();
       await pumpEventQueue();
-      await cache.forgetUser('u1', keep: {'portfolios'});
+      await listIs(['pB']);
       expect(saved(), isEmpty);
       held.complete(2);
       await reload;
@@ -123,100 +132,68 @@ void main() {
       expect(container.read(_count).value!.value, 2);
     });
 
-    test('a reload begun after it is saved, though the query was built '
-        'before', () async {
-      await cache.forgetUser('u1', keep: {'portfolios'});
+    test('a reload begun after it saves nothing, nor what is made from the '
+        'value on show', () async {
+      await listIs(['pB']);
       held.complete(3);
-      await container.read(_count.notifier).reload();
-      expect(await savedCount(), 3);
-    });
-
-    test('an answer asked for before it is shown and not saved', () async {
       final notifier = container.read(_count.notifier);
-      final asked = notifier.requestEpoch();
-      await cache.forgetUser('u1', keep: {'portfolios'});
-      await notifier.show(4, epoch: asked);
+      await notifier.reload();
       expect(saved(), isEmpty);
-      expect(container.read(_count).value!.value, 4);
-    });
-
-    test('an answer asked for before it is not saved either when the query '
-        'was built again before it came', () async {
-      final notifier = container.read(_count.notifier);
-      final asked = notifier.requestEpoch();
-      await cache.forgetUser('u1', keep: {'portfolios'});
-      // The query starts over (a failed reload, a list that changed): the
-      // same notifier, built in the new epoch.
-      container.invalidate(_count);
-      await pumpEventQueue();
-      expect(notifier.requestEpoch(), greaterThan(asked));
-      await notifier.show(9, epoch: asked);
+      expect(container.read(_count).value!.value, 3);
+      await notifier.show(4, epoch: notifier.shownEpoch);
       expect(saved(), isEmpty);
     });
 
-    test('an answer asked for after it is saved, though the query was built '
-        'before, and so is what is then made from it', () async {
-      await cache.forgetUser('u1', keep: {'portfolios'});
-      final notifier = container.read(_count.notifier);
-      await notifier.show(4, epoch: notifier.requestEpoch());
-      expect(await savedCount(), 4);
-      // A page added to it, a row of it changed.
-      await notifier.show(5, epoch: notifier.shownEpoch);
-      expect(await savedCount(), 5);
-    });
-
-    test('a value made from the one on show since before it is shown and '
-        'not saved', () async {
-      await cache.forgetUser('u1', keep: {'portfolios'});
-      final notifier = container.read(_count.notifier);
-      // A page asked for now, added to rows whose saved copy was removed.
-      await notifier.show(
-        container.read(_count).value!.value + 10,
-        epoch: notifier.shownEpoch,
-      );
-      expect(saved(), isEmpty);
-      expect(container.read(_count).value!.value, 11);
-      // Nor is what is made from that one.
-      await notifier.show(12, epoch: notifier.shownEpoch);
-      expect(saved(), isEmpty);
-    });
-
-    test('nor is it once the query was built again and could not be read: '
-        'the value on show is still the old one', () async {
-      await cache.forgetUser('u1', keep: {'portfolios'});
+    test('a query built again after it shows nothing saved', () async {
+      await listIs(['pB']);
       container.invalidate(_count);
       await pumpEventQueue();
       held.completeError(const NetworkFailure());
       await pumpEventQueue();
       final state = container.read(_count);
       expect(state.hasError, isTrue);
+      // The value of the build before stays on show; nothing came from the
+      // device.
       expect(state.value!.value, 1);
-      final notifier = container.read(_count.notifier);
-      await notifier.show(state.value!.value + 10, epoch: notifier.shownEpoch);
+      expect(state.value!.fromCache, isFalse);
       expect(saved(), isEmpty);
     });
 
-    test('a value made from the one a reload brought after it is '
-        'saved', () async {
-      await cache.forgetUser('u1', keep: {'portfolios'});
-      held.complete(3);
+    test('once it is back in the list, a reload is saved, and what is made '
+        'from it', () async {
+      await listIs(['pB']);
+      await listIs(['pA', 'pB']);
+      held.complete(5);
       final notifier = container.read(_count.notifier);
       await notifier.reload();
-      await notifier.show(13, epoch: notifier.shownEpoch);
-      expect(await savedCount(), 13);
+      expect(await savedCount(), 5);
+      await notifier.show(6, epoch: notifier.shownEpoch);
+      expect(await savedCount(), 6);
+    });
+  });
+
+  group('when another portfolio left the list', () {
+    test('a reload still on its way is saved', () async {
+      await listIs(['pA', 'pB']);
+      final reload = container.read(_count.notifier).reload();
+      await pumpEventQueue();
+      await listIs(['pA']);
+      expect(saved(), ['mm.swr.v2.u1.p:pA.count']);
+      held.complete(2);
+      await reload;
+      expect(await savedCount(), 2);
     });
 
-    test('a query built after it saves what it shows, and what is made from '
-        'that', () async {
-      await cache.forgetUser('u1', keep: {'portfolios'});
-      container.invalidate(_count);
-      await pumpEventQueue();
-      held.complete(7);
-      await pumpEventQueue();
-      expect(await savedCount(), 7);
+    test('an answer asked for before it is saved, and so is what is made '
+        'from the value on show', () async {
+      await listIs(['pA', 'pB']);
       final notifier = container.read(_count.notifier);
-      await notifier.show(8, epoch: notifier.shownEpoch);
-      expect(await savedCount(), 8);
+      final asked = notifier.requestEpoch();
+      await listIs(['pA']);
+      await notifier.show(4, epoch: asked);
+      expect(await savedCount(), 4);
+      await notifier.show(5, epoch: notifier.shownEpoch);
+      expect(await savedCount(), 5);
     });
   });
 
@@ -226,11 +203,10 @@ void main() {
     await pumpEventQueue();
     held.complete(4);
     await pumpEventQueue();
-    expect(saved(), ['mm.swr.v1.u1.count']);
+    expect(saved(), ['mm.swr.v2.u1.p:pA.count']);
     final notifier = container.read(_count.notifier);
     await notifier.show(5, epoch: notifier.requestEpoch());
-    final entry = await cache.read('u1', 'count', (json) => json! as int);
-    expect(entry!.value, 5);
+    expect(await savedCount(), 5);
   });
 
   test('nobody signed in: nothing is shown or saved', () async {

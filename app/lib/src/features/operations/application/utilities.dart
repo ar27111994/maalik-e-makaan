@@ -42,6 +42,9 @@ final class UtilityAccountsController
       'utilities.${list.portfolioId}.${list.archived ? 'archived' : 'active'}';
 
   @override
+  RecordScope<Paged<UtilityAccount>> get scope => InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<UtilityAccount>>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -105,6 +108,9 @@ final class UnpaidBillsController extends SwrNotifier<List<UtilityBill>> {
   String get query => 'unpaid_bills.$portfolioId';
 
   @override
+  RecordScope<List<UtilityBill>> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<List<UtilityBill>>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -150,6 +156,10 @@ final class UtilityAccountController extends SwrNotifier<UtilityAccountDetail> {
 
   @override
   String get query => 'utility.$accountId';
+
+  @override
+  RecordScope<UtilityAccountDetail> get scope =>
+      FromValue((detail) => detail.account.portfolioId);
 
   @override
   Stream<Snapshot<UtilityAccountDetail>> build() {
@@ -282,6 +292,9 @@ final class UtilityBillController extends SwrNotifier<UtilityBill> {
   String get query => 'bill.$billId';
 
   @override
+  RecordScope<UtilityBill> get scope => FromValue((bill) => bill.portfolioId);
+
+  @override
   Stream<Snapshot<UtilityBill>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -365,6 +378,10 @@ final class MeterReadingController extends SwrNotifier<ReadingDetail> {
 
   @override
   String get query => 'reading.$readingId';
+
+  @override
+  RecordScope<ReadingDetail> get scope =>
+      FromValue((detail) => detail.reading.portfolioId);
 
   @override
   Stream<Snapshot<ReadingDetail>> build() {

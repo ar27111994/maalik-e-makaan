@@ -6,7 +6,6 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
 import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
-import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:mm_core/mm_core.dart';
 
 import '../../../../support/container.dart';
@@ -41,6 +40,7 @@ void main() {
       final saved = await app.cache.read(
         testUserId,
         ProfileController.query,
+        ProfileController.scope,
         Profile.fromRow,
       );
       expect(saved!.value, profile);
@@ -84,6 +84,7 @@ void main() {
         final saved = await app.cache.read(
           testUserId,
           ProfileController.query,
+          ProfileController.scope,
           Profile.fromRow,
         );
         expect(saved!.value.language, AppLanguage.urdu);
@@ -124,16 +125,20 @@ void main() {
       app.profiles.gate.close();
       final saving = notifier.saveDetails(fullName: 'Ayesha K.', phone: null);
       await pumpEventQueue();
-      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [1]);
-      await app.cache.forgetUser(testUserId, keep: PortfoliosController.kept);
+      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [
+        1,
+      ], portfolio: gulberg.id);
+      // Gulberg leaves the user's list.
+      await app.cache.answer(testUserId, [plaza.id]);
       expect(app.store.values.keys, [
-        'mm.swr.v1.$testUserId.${ProfileController.query}',
+        cacheKey(testUserId, ProfileController.query),
       ]);
       app.profiles.gate.open();
       await saving;
       final saved = await app.cache.read(
         testUserId,
         ProfileController.query,
+        ProfileController.scope,
         Profile.fromRow,
       );
       expect(saved!.value.fullName, 'Ayesha K.');
@@ -142,6 +147,7 @@ void main() {
       final again = await app.cache.read(
         testUserId,
         ProfileController.query,
+        ProfileController.scope,
         Profile.fromRow,
       );
       expect(again!.value.language, AppLanguage.urdu);
@@ -167,35 +173,6 @@ void main() {
         container.read(profileProvider(testUserId)).value!.value.language,
         AppLanguage.urdu,
       );
-    });
-
-    test('a profile forgotten with the rest is not saved again by a language '
-        'saved after, until it is read again', () async {
-      // Not done by the app, whose forget keeps the profile
-      // (PortfoliosController.kept): the profile's own epoch rule, which a
-      // wipe also relies on.
-      final app = TestApp();
-      final container = containerFor(app);
-      listen(container, profileProvider(testUserId));
-      await pumpEventQueue();
-      expect(app.store.values, hasLength(1));
-      await app.cache.forgetUser(
-        testUserId,
-        keep: {PortfoliosController.query},
-      );
-      expect(app.store.values, isEmpty);
-      await container
-          .read(profileProvider(testUserId).notifier)
-          .saveLanguage(AppLanguage.urdu);
-      expect(app.store.values, isEmpty);
-      expect(
-        container.read(profileProvider(testUserId)).value!.value.language,
-        AppLanguage.urdu,
-      );
-      // Read again, it is saved as the server has it.
-      container.invalidate(profileProvider(testUserId));
-      await pumpEventQueue();
-      expect(app.store.values, hasLength(1));
     });
 
     test(

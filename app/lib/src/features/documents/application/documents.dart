@@ -82,6 +82,9 @@ final class DocumentsController extends SwrNotifier<Paged<Document>> {
       'documents.${list.portfolioId}.${list.owner.entity.db}.${list.owner.id}';
 
   @override
+  RecordScope<Paged<Document>> get scope => InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<Document>>> build() {
     ref.watch(documentRepositoryProvider);
     return super.build();

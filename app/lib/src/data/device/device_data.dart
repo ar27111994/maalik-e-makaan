@@ -350,8 +350,9 @@ final class DeviceDataWipe {
   /// At start-up, once the stored session has been read: when nobody is
   /// signed in, a [WipeReason.startedSignedOut] wipe. When someone is (the
   /// user [signedInAs]), what another account's ended session left because
-  /// its wipe could not finish: the cache's entries of other users
-  /// ([SwrCache.forgetOthers]) and a portfolio another user chose, each on
+  /// its wipe could not finish: the cache's entries of other users, and
+  /// every entry of the cache's old format ([SwrCache.forgetOthers]), and a
+  /// portfolio another user chose, each on
   /// its own and waited for at most [wipePreferencesLimit]; and the files
   /// an earlier run left (the pickers' copies, the shared files older than
   /// [sharedFileGrace]).

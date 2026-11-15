@@ -30,6 +30,9 @@ final class ResidenceController
   /// The cache key of the residence query.
   static const query = 'residence';
 
+  /// The residence is the user's own: no list of portfolios removes it.
+  static final OwnScope<AccountResidence> scope = OwnScope.residence();
+
   /// The cache's epoch when the residence was built: one saved after the
   /// device was wiped since (the session ended) is not kept on it.
   int _epoch = 0;
@@ -42,6 +45,7 @@ final class ResidenceController
     return cache.watch(
       userId: userId,
       query: query,
+      scope: scope,
       fetch: () => repository.fetch(userId),
       decode: AccountResidence.fromRow,
       encode: (residence) => residence.toRow(),
@@ -56,7 +60,7 @@ final class ResidenceController
     final cache = ref.read(swrCacheProvider);
     // Read before the request: an answer that comes after the device was
     // wiped (the session ended meanwhile) is not saved.
-    final epoch = cache.requestEpoch(madeIn: _epoch);
+    final epoch = _epoch;
     final saved = await ref
         .read(residenceRepositoryProvider)
         .update(userId, country: country, timeZone: timeZone);
@@ -64,7 +68,9 @@ final class ResidenceController
     final savedAt = await cache.write(
       userId,
       query,
-      saved.toRow(),
+      scope,
+      saved,
+      (residence) => residence.toRow(),
       epoch: epoch,
     );
     if (!ref.mounted) return;

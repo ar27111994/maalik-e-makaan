@@ -74,6 +74,9 @@ final class NotificationsController
   String get query => 'notifications.$portfolioId';
 
   @override
+  RecordScope<Paged<AppNotification>> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<Paged<AppNotification>>> build() {
     ref.watch(notificationRepositoryProvider);
     return super.build();

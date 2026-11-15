@@ -25,6 +25,9 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   /// The cache key of the profile query.
   static const query = 'profile';
 
+  /// The profile is the user's own: no list of portfolios removes it.
+  static final OwnScope<Profile> scope = OwnScope.profile();
+
   ProfileRepository get _repository => ref.read(profileRepositoryProvider);
 
   /// The cache's epoch when the profile was built: a profile saved after
@@ -32,8 +35,8 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   int _epoch = 0;
 
   /// The cache's epoch the profile on show was asked for in: a profile
-  /// made from it is saved for that epoch, so that one shown before its
-  /// saved copy was removed is not saved again.
+  /// made from it is saved for that epoch, so that one shown before the
+  /// device was wiped is not saved again.
   int _shown = 0;
 
   @override
@@ -46,6 +49,7 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
         .watch(
           userId: userId,
           query: query,
+          scope: scope,
           fetch: () => repository.fetch(userId),
           decode: Profile.fromRow,
           encode: (profile) => profile.toRow(),
@@ -57,18 +61,12 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
         });
   }
 
-  /// The epoch of a request made now, read before it: a profile that
-  /// comes back after the device was wiped meanwhile is not kept, and one
-  /// asked for after a portfolio left the user's list is.
-  int _requestEpoch() =>
-      ref.read(swrCacheProvider).requestEpoch(madeIn: _epoch);
-
   /// Saves the name and phone and shows the profile as the server stored it.
   Future<void> saveDetails({
     required String fullName,
     required PhoneNumber? phone,
   }) async {
-    final epoch = _requestEpoch();
+    final epoch = _epoch;
     final saved = await _repository.updateDetails(
       userId,
       fullName: fullName,
@@ -78,11 +76,11 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   }
 
   /// Saves the app language to the profile, and shows the profile on show
-  /// with it. That profile is saved only when its own copy was not removed
-  /// since it was asked for: what was shown before a removal is not saved
-  /// again with the new language.
+  /// with it. That profile is saved only when the device was not wiped
+  /// since it was asked for: what was shown in a session that has ended is
+  /// not saved again with the new language.
   Future<void> saveLanguage(AppLanguage language) async {
-    final epoch = _requestEpoch();
+    final epoch = _epoch;
     await _repository.updateLanguage(userId, language);
     final current = state.value?.value;
     if (current != null) {
@@ -98,7 +96,14 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   Future<void> _show(Profile profile, int epoch) async {
     final savedAt = await ref
         .read(swrCacheProvider)
-        .write(userId, query, profile.toRow(), epoch: epoch);
+        .write(
+          userId,
+          query,
+          scope,
+          profile,
+          (profile) => profile.toRow(),
+          epoch: epoch,
+        );
     if (!ref.mounted) return;
     _shown = epoch;
     state = AsyncData(

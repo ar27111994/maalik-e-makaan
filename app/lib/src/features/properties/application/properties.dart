@@ -36,6 +36,9 @@ final class PropertiesController extends SwrNotifier<Paged<Property>> {
       'properties.${list.portfolioId}.${list.archived ? 'archived' : 'active'}';
 
   @override
+  RecordScope<Paged<Property>> get scope => InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<Property>>> build() {
     ref.watch(propertyRepositoryProvider);
     return super.build();
@@ -99,6 +102,10 @@ final class PropertyController extends SwrNotifier<Property> {
 
   @override
   String get query => 'property.$propertyId';
+
+  @override
+  RecordScope<Property> get scope =>
+      FromValue((property) => property.portfolioId);
 
   @override
   Stream<Snapshot<Property>> build() {
@@ -170,6 +177,11 @@ final class UnitsController extends SwrNotifier<Paged<UnitSummary>> {
   String get query => 'units.$propertyId';
 
   @override
+  RecordScope<Paged<UnitSummary>> get scope => FromValue(
+    (page) => samePortfolio(page.items.map((s) => s.unit.portfolioId)),
+  );
+
+  @override
   Stream<Snapshot<Paged<UnitSummary>>> build() {
     ref.watch(propertyRepositoryProvider);
     return super.build();
@@ -222,6 +234,10 @@ final class UnitController extends SwrNotifier<UnitSummary> {
 
   @override
   String get query => 'unit.$unitId';
+
+  @override
+  RecordScope<UnitSummary> get scope =>
+      FromValue((summary) => summary.unit.portfolioId);
 
   @override
   Stream<Snapshot<UnitSummary>> build() {

@@ -31,6 +31,9 @@ final class PortfolioDetailsController extends SwrNotifier<PortfolioDetails> {
   String get query => 'portfolio.$portfolioId';
 
   @override
+  RecordScope<PortfolioDetails> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<PortfolioDetails>> build() {
     ref.watch(portfolioRepositoryProvider);
     return super.build();

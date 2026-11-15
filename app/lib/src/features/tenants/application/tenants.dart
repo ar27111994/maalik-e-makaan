@@ -37,6 +37,9 @@ final class TenantsController extends SwrNotifier<Paged<Tenant>> {
       '.${list.search.trim().toLowerCase()}';
 
   @override
+  RecordScope<Paged<Tenant>> get scope => InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<Tenant>>> build() {
     ref.watch(tenantRepositoryProvider);
     return super.build();
@@ -104,6 +107,9 @@ final class TenantController extends SwrNotifier<Tenant> {
 
   @override
   String get query => 'tenant.$tenantId';
+
+  @override
+  RecordScope<Tenant> get scope => FromValue((tenant) => tenant.portfolioId);
 
   @override
   Stream<Snapshot<Tenant>> build() {

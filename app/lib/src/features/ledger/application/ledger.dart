@@ -61,6 +61,9 @@ final class ReceivablesController extends SwrNotifier<List<Receivable>> {
   String get query => 'receivables.${portfolio.id}';
 
   @override
+  RecordScope<List<Receivable>> get scope => InPortfolio(portfolio.id);
+
+  @override
   Stream<Snapshot<List<Receivable>>> build() {
     ref.watch(ledgerRepositoryProvider);
     return super.build();
@@ -110,6 +113,10 @@ final class TenancyLedgerController extends SwrNotifier<TenancyLedger> {
 
   @override
   String get query => 'ledger.$leaseId';
+
+  @override
+  RecordScope<TenancyLedger> get scope =>
+      FromValue((ledger) => ledger.lease.portfolioId);
 
   @override
   Stream<Snapshot<TenancyLedger>> build() {
@@ -331,6 +338,10 @@ final class PaymentController extends SwrNotifier<PaymentDetail> {
 
   @override
   String get query => 'payment.$paymentId';
+
+  @override
+  RecordScope<PaymentDetail> get scope =>
+      FromValue((detail) => detail.lease.portfolioId);
 
   @override
   Stream<Snapshot<PaymentDetail>> build() {

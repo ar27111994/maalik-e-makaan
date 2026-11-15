@@ -818,10 +818,18 @@ final class MemoryStore implements KeyValueStore {
   /// Thrown by every write while set, as by a store that is full.
   Exception? writeFailure;
 
+  /// The keys whose writes are stored at once but never answer while they
+  /// are listed here, as a platform call that saved and then hung.
+  final landingSilently = <String>{};
+
   @override
   Future<void> write(String key, String value) async {
     final failure = writeFailure;
     if (failure != null) throw failure;
+    if (landingSilently.contains(key)) {
+      values[key] = value;
+      await Completer<void>().future;
+    }
     if (holding.contains(key)) {
       final done = Completer<void>();
       _held.add((key, value, done));
@@ -856,13 +864,75 @@ final class MemoryStore implements KeyValueStore {
   }
 }
 
+/// The scope the cache saves [query] under: the user's own for the
+/// portfolio list, the profile and the residence; else [portfolio]'s, or
+/// of no known portfolio when there is none.
+CacheScope<Object?> scopeOf(String query, {String? portfolio}) =>
+    switch (query) {
+      'portfolios' => OwnScope.portfolioList<Object?>(
+        (json) => [
+          // A list the test spoiled names none.
+          if (json is List)
+            for (final row in json) PortfolioMembership.fromRow(row).id,
+        ],
+      ),
+      'profile' => OwnScope.profile<Object?>(),
+      'residence' => OwnScope.residence<Object?>(),
+      _ =>
+        portfolio == null
+            ? const UnknownPortfolio<Object?>()
+            : InPortfolio<Object?>(portfolio),
+    };
+
+/// The key of [query]'s entry for [userId], tagged as [scopeOf] tags it.
+String cacheKey(String userId, String query, {String? portfolio}) =>
+    SwrCache.keyOf(
+      userId,
+      scopeOf(query, portfolio: portfolio).tagOf(null),
+      query,
+    );
+
+/// How a test answers the user's list of portfolios to the cache, as the
+/// portfolio list's controller does with a server's answer.
+extension ListAnswers on SwrCache {
+  /// Applies [ids] as the newest list of [userId]'s portfolios, and waits
+  /// for the removal it starts.
+  Future<void> answer(String userId, Iterable<String> ids) async {
+    applyPortfolios(userId, ids, asked: ask(), epoch: epoch);
+    await prune(userId);
+  }
+}
+
 /// What a test puts in the cache before it starts, as an earlier run of the
 /// app saved it.
 extension SeededCache on SwrCache {
   /// Saves [json] as the value of [query] for [userId], in the cache's
-  /// current epoch.
-  Future<DateTime> seed(String userId, String query, Object? json) =>
-      write(userId, query, json, epoch: epoch);
+  /// current epoch, tagged as [scopeOf] tags it: in [portfolio], else in the
+  /// portfolio a record's `portfolio_id` names, else in the fixture
+  /// portfolio the query names (`tenants.<portfolio id>.…`), else of no
+  /// known portfolio.
+  Future<DateTime> seed(
+    String userId,
+    String query,
+    Object? json, {
+    String? portfolio,
+  }) => write(
+    userId,
+    query,
+    scopeOf(query, portfolio: portfolio ?? _portfolioOf(query, json)),
+    json,
+    (json) => json,
+    epoch: epoch,
+  );
+
+  static String? _portfolioOf(String query, Object? json) {
+    if (json case {'portfolio_id': final String id}) return id;
+    final named = query.split('.');
+    if (named.length > 1 && {gulberg.id, plaza.id}.contains(named[1])) {
+      return named[1];
+    }
+    return null;
+  }
 }
 
 /// A [DeviceScratch] that records what it is asked, for a wipe's files.

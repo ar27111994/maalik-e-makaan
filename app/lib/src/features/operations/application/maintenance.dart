@@ -42,6 +42,10 @@ final class MaintenanceListController
       'maintenance.${list.portfolioId}.${list.pending ? 'pending' : 'closed'}';
 
   @override
+  RecordScope<Paged<MaintenanceRequest>> get scope =>
+      InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<MaintenanceRequest>>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -108,6 +112,10 @@ final class MaintenanceRequestController
 
   @override
   String get query => 'maintenance_request.$requestId';
+
+  @override
+  RecordScope<MaintenanceRequest> get scope =>
+      FromValue((request) => request.portfolioId);
 
   @override
   Stream<Snapshot<MaintenanceRequest>> build() {

@@ -215,9 +215,9 @@ void main() {
         'go', () async {
       await cache.seed(testUserId, 'leases', [1]);
       await cache.seed('another-user', 'tenants', [1]);
-      store.undeletable.add('mm.swr.v1.$testUserId.tenants');
+      store.undeletable.add(cacheKey(testUserId, 'tenants'));
       await wipe.wipe(WipeReason.signedOut);
-      expect(store.values.keys, ['mm.swr.v1.$testUserId.tenants', 'other']);
+      expect(store.values.keys, [cacheKey(testUserId, 'tenants'), 'other']);
       expect(settings.values, {
         ..._display,
         AppSettings.pendingInvitationKey: 'invitation.verifier',
@@ -387,11 +387,11 @@ void main() {
     testWidgets('for one cache entry leaves the other entries and the '
         'preferences to go', (tester) async {
       await cache.seed('another-user', 'tenants', [1]);
-      store.silent.add('mm.swr.v1.$testUserId.tenants');
+      store.silent.add(cacheKey(testUserId, 'tenants'));
       var done = false;
       unawaited(wipe.wipe(WipeReason.signedOut).then((_) => done = true));
       await tester.pump();
-      expect(store.values.keys, ['mm.swr.v1.$testUserId.tenants', 'other']);
+      expect(store.values.keys, [cacheKey(testUserId, 'tenants'), 'other']);
       expect(
         settings.values,
         {..._everything()}
@@ -467,7 +467,14 @@ void main() {
       expect(settings.values, {..._display, ...next});
       expect(wiped, [WipeReason.accountDeleted]);
       // A fetch of the first account that was on its way is still dropped.
-      await lateCache.write(testUserId, 'tenants', 2, epoch: 0);
+      await lateCache.write(
+        testUserId,
+        'tenants',
+        scopeOf('tenants', portfolio: gulberg.id),
+        2,
+        (value) => value,
+        epoch: 0,
+      );
       expect(late.inner.values, isEmpty);
     });
   });
@@ -526,7 +533,7 @@ void main() {
     test("signed in, it removes what another account's wipe could not: its "
         'records and its chosen portfolio', () async {
       const other = 'another-user';
-      const key = 'mm.swr.v1.$other.tenants.p1';
+      final key = cacheKey(other, 'tenants.p1');
       await cache.seed(other, 'tenants.p1', [
         {'cnic': '00000-0000000-0'},
       ]);
@@ -548,7 +555,7 @@ void main() {
       await next.atStart(signedInAs: testUserId, photoMayReturn: true);
       await next.settled;
       expect(store.values.keys.toSet(), {
-        'mm.swr.v1.$testUserId.tenants',
+        cacheKey(testUserId, 'tenants'),
         'other',
       });
       expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
@@ -556,7 +563,7 @@ void main() {
 
     test('signed in, one removal that never answers holds up neither the '
         'other nor the start', () async {
-      const key = 'mm.swr.v1.another-user.tenants';
+      final key = cacheKey('another-user', 'tenants');
       await cache.seed('another-user', 'tenants', [1]);
       await settings.setString(
         AppSettings.currentPortfolioKey,
@@ -574,7 +581,7 @@ void main() {
           .atStart(signedInAs: testUserId, photoMayReturn: true)
           .timeout(const Duration(seconds: 10));
       expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
-      expect(store.values.keys, contains('mm.swr.v1.$testUserId.tenants'));
+      expect(store.values.keys, contains(cacheKey(testUserId, 'tenants')));
     });
 
     test('signed in, with no photo to bring back, the camera goes', () async {

@@ -1,15 +1,32 @@
-// A reference model of what SwrCache keeps, run against SwrCache over random
-// sequences of its operations, with a fixed seed (so a failure is the same on
-// every run, and is printed shrunk to the fewest operations that show it).
+// An operational model of the cache's portfolio rule, run against SwrCache
+// over random sequences of its operations with a fixed seed. It is written
+// from the rules in docs/architecture/app.md (Reading, Writes after a
+// removal) and builds keys with its own code from the documented format; it
+// reads nothing private of SwrCache, and nothing of the other model.
 //
-// The rule: a write asked for in epoch e, of query q, for user u, must not be
-// on the store once its write has landed if, after e, the cache was cleared,
-// or u's entries were forgotten with q not kept, or another user's entries
-// alone were kept (forgetOthers). An entry no removal covers must be there,
-// unless a write of the same key with a higher number landed first (the
-// documented out-of-order delete), or its key's deletion failed or hung. A
-// write the store fails deletes its key, which is unsettled until a write
-// asked after the failure lands and is kept.
+// The rules it simulates, step by step:
+// R1  a key `mm.swr.v2.<user>.<tag>.<query>` says what its entry holds: `own`,
+//     `p:<portfolio>` or `unknown`.
+// R2  only the newest-asked list answer of a session applies; it sets the
+//     portfolios the user is in (S), then deletes, from the keys alone,
+//     every entry S does not keep, another user's and older versions'.
+// R3  a write is kept only if, when the store has written it, the cache was
+//     not cleared since it was asked and S keeps its tag (S unknown: kept);
+//     otherwise it is deleted as it lands. A later write of the entry that
+//     landed first wins (the older is deleted as it lands).
+//
+// The store is controlled: every write waits until the model lands it,
+// fails it, or lets it land silently (stored, never answered); deletions of
+// chosen keys fail or never answer; a listing of the keys fails. Since a
+// deletion that fails or hangs leaves the value where it was, the model
+// predicts the store exactly, and checks after every step that:
+// - the store holds exactly what the model says (the code follows the rules);
+// - privacy: an entry the rule rejects is there only while its last deletion
+//   failed or hung, or it landed silently, or the listing of the last
+//   removal failed;
+// - a read never returns an entry the rule rejects, and finds an entry whose
+//   portfolio comes from its value under whatever tag it has;
+// - the epoch moves only at a clear.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -18,341 +35,509 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 
 const _users = ['u1', 'u2'];
-const _queries = ['portfolios', 'profile', 'residence', 'tenants.A', 'lease.1'];
+const _portfolios = ['A', 'B', 'C'];
 
-String _key(String u, String q) => 'mm.swr.v1.$u.$q';
+/// The queries, each of one kind.
+const _ownList = 'portfolios';
+const _profile = 'profile';
+const _inA = 'tenants.A.active.';
+const _inB = 'tenants.B';
+const _fromValue = 'units.h.1';
+const _unknown = 'note';
+const List<String> _queries = [
+  _ownList,
+  _profile,
+  _inA,
+  _inB,
+  _fromValue,
+  _unknown,
+];
 
-/// The number of the write whose entry [value] is.
-int _idOf(String value) =>
-    ((jsonDecode(value) as Map<String, Object?>)['value']!
+/// The value a write saves: its number, and the portfolios it names (the
+/// list's ids, or the rows' portfolios; null for a row of none).
+final class _V {
+  const new(this.w, this.names);
+
+  factory fromJson(Object? json) {
+    final map = json! as Map<String, Object?>;
+    return _V(map['w']! as int, [
+      for (final n in map['names']! as List) n as String?,
+    ]);
+  }
+
+  final int w;
+  final List<String?> names;
+
+  Object? toJson() => {'w': w, 'names': names};
+}
+
+CacheScope<_V> _scopeOf(String query) => switch (query) {
+  _ownList => OwnScope.portfolioList<_V>((v) => [...v.names.nonNulls]),
+  _profile => OwnScope.profile<_V>(),
+  _inA => InPortfolio<_V>('A'),
+  _inB => InPortfolio<_V>('B'),
+  _fromValue => FromValue<_V>((v) => _one(v.names)),
+  _ => const UnknownPortfolio<_V>(),
+};
+
+/// The one portfolio all of [names] name, else null.
+String? _one(List<String?> names) {
+  if (names.isEmpty || names.contains(null)) return null;
+  return names.toSet().length == 1 ? names.first : null;
+}
+
+/// The model's own key builder, from the documented format.
+String _key(String user, String tag, String query) =>
+    'mm.swr.v2.$user.$tag.$query';
+
+/// The tag the model gives [query]'s entry holding [names].
+String _tagOf(String query, List<String?> names) => switch (query) {
+  _ownList || _profile => 'own',
+  _inA => 'p:A',
+  _inB => 'p:B',
+  _fromValue => _one(names) == null ? 'unknown' : 'p:${_one(names)}',
+  _ => 'unknown',
+};
+
+int _idOf(String raw) =>
+    ((jsonDecode(raw) as Map<String, Object?>)['value']!
             as Map<String, Object?>)['w']!
         as int;
 
-/// A store whose every write waits until the test lands or fails it, in any
-/// order, and whose deletions and listings fail or hang on request.
-final class _CtlStore implements KeyValueStore {
+/// A store whose writes wait for the model, and whose deletions and listings
+/// fail or hang on request.
+final class _Store implements KeyValueStore {
   final values = <String, String>{};
   final pending = <(int, String, String, Completer<void>)>[];
-  final undeletable = <String>{};
-  final silent = <String>{};
-  String keysMode = 'ok';
-
-  /// Keys whose last deletion failed or never answered.
-  final dirty = <String>{};
-
-  /// Ids of the writes the store was asked for.
-  final asked = <int>{};
+  final refusing = <String>{};
+  final hanging = <String>{};
+  bool listingFails = false;
 
   @override
   Future<String?> read(String key) async => values[key];
 
   @override
   Future<void> write(String key, String value) {
-    final id = _idOf(value);
-    asked.add(id);
     final done = Completer<void>();
-    pending.add((id, key, value, done));
+    pending.add((_idOf(value), key, value, done));
     return done.future;
   }
 
   @override
   Future<void> delete(String key) async {
-    if (silent.contains(key)) {
-      dirty.add(key);
-      await Completer<void>().future;
-    }
-    if (undeletable.contains(key)) {
-      dirty.add(key);
-      throw StateError('cannot delete $key');
-    }
-    dirty.remove(key);
+    if (hanging.contains(key)) await Completer<void>().future;
+    if (refusing.contains(key)) throw StateError('refused');
     values.remove(key);
   }
 
   @override
   Future<Set<String>> keys() async {
-    if (keysMode == 'hang') await Completer<void>().future;
-    if (keysMode == 'fail') throw StateError('keys failed');
+    if (listingFails) throw StateError('no listing');
     return values.keys.toSet();
   }
 }
 
-final class _W {
-  new(this.id, this.u, this.q, this.epoch);
-  final int id;
-  final String u;
-  final String q;
-  final int epoch;
-  bool landed = false;
+/// A write the model asked for.
+typedef _Write = ({
+  int w,
+  String user,
+  String query,
+  String tag,
+  List<String?> names,
+  int epoch,
+});
+
+/// The model's state.
+final class _Model {
+  int epoch = 0;
+  int cleared = 0;
+  int asked = 0;
+  final members = <String, Set<String>>{};
+  final claimed = <String, int>{};
+  final newest = <String, int>{};
+
+  /// What the store holds, by key: the number of the write.
+  final store = <String, int>{};
+
+  /// Keys whose last deletion failed or never answered.
+  final dirty = <String>{};
+
+  /// Keys that landed silently since the last removal that listed them.
+  final silentlyLanded = <String>{};
+
+  /// Users whose last removal could not list the keys.
+  final unlisted = <String>{};
+
+  bool keeps(String user, String tag, List<String?> names) {
+    final s = members[user];
+    if (s == null) return true;
+    if (tag == 'own') return names.nonNulls.every(s.contains);
+    if (tag.startsWith('p:')) return s.contains(tag.substring(2));
+    return false;
+  }
 }
 
-/// Removals, as the model sees them: (kind, user, keep, epoch).
-final class _Removal {
-  new(this.kind, this.user, this.keep, this.epoch);
-  final String kind; // clear, forget, others
-  final String? user;
-  final Set<String> keep;
-  final int epoch;
+String _entry(String user, String query) => '$user/$query';
 
-  bool covers(_W w) {
-    if (w.epoch >= epoch) return false;
-    switch (kind) {
-      case 'clear':
-        return true;
-      case 'forget':
-        return w.u == user && !keep.contains(w.q);
-      default:
-        return w.u != user;
+Future<void> _settle() => pumpEventQueue(times: 30);
+
+/// Runs one random sequence; returns a description of the first broken
+/// property, or null.
+Future<String?> _run(Random random, int steps, List<String> log) async {
+  final store = _Store();
+  var clock = DateTime.utc(2026, 11, 15);
+  final cache = SwrCache(
+    store,
+    clock: () => clock = clock.add(const Duration(seconds: 1)),
+  );
+  final m = _Model();
+  final writes = <int, _Write>{};
+  var nextW = 0;
+  final askedNumbers = <(int, int)>[]; // (number, epoch)
+
+  // An earlier version's entry, and another user's.
+  store.values['mm.swr.v1.u1.tenants'] = '{}';
+
+  void deleteKey(String key) {
+    if (store.hanging.contains(key) || store.refusing.contains(key)) {
+      if (m.store.containsKey(key)) m.dirty.add(key);
+      return;
     }
+    m.store.remove(key);
+    m.dirty.remove(key);
+    m.silentlyLanded.remove(key);
   }
-}
 
-/// One operation, as data, so that a sequence can be replayed and shrunk.
-typedef _Op = List<int>;
-
-String _show(_Op op) {
-  Set<String> keep(int mask) => {
-    for (var i = 0; i < _queries.length; i++)
-      if (mask & (1 << i) != 0) _queries[i],
-  };
-  return switch (op[0]) {
-    0 => 'write(${_users[op[1]]}, ${_queries[op[2]]}, epochSel ${op[3]})',
-    1 => 'land(#${op[1]})',
-    2 => 'failWrite(#${op[1]})',
-    3 => 'clear()',
-    4 => 'forgetUser(${_users[op[1]]}, keep: ${keep(op[2])})',
-    5 => 'forgetOthers(${_users[op[1]]})',
-    6 => 'undeletable(${_queries[op[2]]} of ${_users[op[1]]})',
-    7 => 'silent(${_queries[op[2]]} of ${_users[op[1]]})',
-    8 => 'mend deletes',
-    9 => 'keys ${['ok', 'fail', 'hang'][op[1]]}',
-    _ => '?',
-  };
-}
-
-_Op _randomOp(Random r) {
-  final p = r.nextInt(100);
-  if (p < 30) {
-    return [0, r.nextInt(2), r.nextInt(_queries.length), r.nextInt(4)];
+  /// Whether the removal keeps [key]: the user's own always (they hold
+  /// nothing of a portfolio but the list's names, which a read checks), a
+  /// portfolio's while S keeps it.
+  bool keyKept(String key) {
+    final w = writes[m.store[key]]!;
+    return w.tag == 'own' || m.keeps(w.user, w.tag, w.names);
   }
-  if (p < 50) return [1, r.nextInt(8)];
-  if (p < 55) return [2, r.nextInt(8)];
-  if (p < 61) return [3];
-  if (p < 73) return [4, r.nextInt(2), r.nextInt(1 << _queries.length)];
-  if (p < 78) return [5, r.nextInt(2)];
-  if (p < 82) return [6, r.nextInt(2), r.nextInt(_queries.length)];
-  if (p < 84) return [7, r.nextInt(2), r.nextInt(_queries.length)];
-  if (p < 89) return [8];
-  if (p < 93) {
-    return [9, if (r.nextInt(10) < 7) 0 else 1 + r.nextInt(2)];
-  }
-  return [1, r.nextInt(8)];
-}
 
-/// Runs [ops]; returns the first difference from the model, or null.
-Future<String?> _run(List<_Op> ops) async {
-  final store = _CtlStore();
-  final cache = SwrCache(store);
-  final writes = <int, _W>{};
-  final removals = <_Removal>[];
-  var modelEpoch = 0;
-  var nextId = 0;
-  // The id of each key's writes in the order they landed.
-  final landedOrder = <String, List<int>>{};
-  // Keys whose last write to end failed: the cache deleted them.
-  final failedLast = <String>{};
-  // The newest id asked when a write of each key last failed, and the
-  // newest id of each key that landed and was kept ([SwrCache.unsettled]).
-  final failedAt = <String, int>{};
-  final kept = <String, int>{};
-
-  bool covered(_W w) => removals.any((r) => r.covers(w));
-
-  Set<String> keepOf(int mask) => {
-    for (var i = 0; i < _queries.length; i++)
-      if (mask & (1 << i) != 0) _queries[i],
-  };
-
-  for (var step = 0; step < ops.length; step++) {
-    final op = ops[step];
-    switch (op[0]) {
-      case 0:
-        final u = _users[op[1]];
-        final q = _queries[op[2]];
-        // 0, 1: the current epoch; 2: requestEpoch of a reader made at a
-        // random earlier epoch; 3: a random earlier epoch (a value made
-        // from one on show).
-        final made = modelEpoch == 0
-            ? 0
-            : (op[3] * 7919 + step) % (modelEpoch + 1);
-        final epoch = switch (op[3]) {
-          0 || 1 => cache.epoch,
-          2 => cache.requestEpoch(madeIn: made),
-          _ => made,
-        };
-        final w = _W(nextId++, u, q, epoch);
-        writes[w.id] = w;
-        unawaited(
-          cache
-              .write(u, q, {'w': w.id}, epoch: epoch)
-              .then((_) {}, onError: (_) {}),
-        );
-        await Future<void>.delayed(Duration.zero);
-        if (!covered(w) && !store.asked.contains(w.id)) {
-          return 'step $step: an uncovered write was not asked of the store';
-        }
-      case 1 || 2:
-        if (store.pending.isEmpty) break;
-        final (id, key, value, done) = store.pending.removeAt(
-          op[1] % store.pending.length,
-        );
-        if (op[0] == 1) {
-          store.values[key] = value;
-          store.dirty.remove(key);
-          writes[id]!.landed = true;
-          (landedOrder[key] ??= []).add(id);
-          failedLast.remove(key);
-          if (!covered(writes[id]!) && id > (kept[key] ?? -1)) kept[key] = id;
-          done.complete();
+  void prune(String user) {
+    if (m.members[user] == null) return;
+    if (store.listingFails) {
+      m.unlisted.add(user);
+      return;
+    }
+    m.unlisted.remove(user);
+    final mine = 'mm.swr.v2.$user.';
+    for (final key in [...store.values.keys]) {
+      if (!key.startsWith('mm.swr.')) continue;
+      if (!key.startsWith(mine)) {
+        if (m.store.containsKey(key)) {
+          deleteKey(key);
         } else {
-          failedLast.add(key);
-          failedAt[key] = nextId - 1;
-          done.completeError(StateError('write failed'));
-        }
-      case 3 || 4 || 5:
-        final kind = ['clear', 'forget', 'others'][op[0] - 3];
-        final user = op[0] == 3 ? null : _users[op[1]];
-        final keep = op[0] == 4 ? keepOf(op[2]) : <String>{};
-        final removal = _Removal(kind, user, keep, ++modelEpoch);
-        removals.add(removal);
-        if (store.keysMode != 'ok') {
-          // The removal cannot list the keys: what it would delete stays.
-          for (final key in store.values.keys) {
-            final w = writes[_idOf(store.values[key]!)]!;
-            if (removal.covers(w)) store.dirty.add(key);
+          // An older version's: the model does not track its value.
+          if (!store.hanging.contains(key) && !store.refusing.contains(key)) {
+            store.values.remove(key);
           }
         }
-        final f = switch (op[0]) {
-          3 => cache.clear(),
-          4 => cache.forgetUser(user!, keep: keep),
-          _ => cache.forgetOthers(user!),
+        continue;
+      }
+      if (!keyKept(key)) deleteKey(key);
+    }
+  }
+
+  void dropCopies(String user, String query, String except, int w) {
+    final s = m.members[user];
+    final List<String> keys;
+    if (s != null) {
+      keys = [
+        for (final p in s) _key(user, 'p:$p', query),
+        _key(user, 'unknown', query),
+      ];
+    } else {
+      if (store.listingFails) return;
+      keys = [
+        for (final key in m.store.keys)
+          if (key.startsWith('mm.swr.v2.$user.') &&
+              key.endsWith('.$query') &&
+              !key.startsWith('mm.swr.v2.$user.own.') &&
+              key.split('.').length == _key(user, 'x', query).split('.').length)
+            key,
+      ];
+    }
+    for (final key in keys) {
+      if (key != except && m.newest[_entry(user, query)] == w) {
+        if (m.store.containsKey(key)) deleteKey(key);
+      }
+    }
+  }
+
+  String? check(String step) {
+    final actual = {
+      for (final e in store.values.entries)
+        if (e.key.startsWith('mm.swr.v2.')) e.key: _idOf(e.value),
+    };
+    if (!_mapEquals(actual, m.store)) {
+      return '$step: store $actual, model ${m.store}';
+    }
+    if (cache.epoch != m.epoch) return '$step: epoch ${cache.epoch}';
+    for (final key in m.store.keys) {
+      final w = writes[m.store[key]]!;
+      final excused =
+          m.dirty.contains(key) ||
+          m.silentlyLanded.contains(key) ||
+          m.unlisted.contains(w.user);
+      if (w.epoch < m.cleared && !excused) {
+        return '$step: $key of an ended session stays';
+      }
+      if (!keyKept(key) && !excused) return '$step: $key is kept unkept';
+    }
+    return null;
+  }
+
+  for (var step = 0; step < steps; step++) {
+    final user = _users[random.nextInt(_users.length)];
+    final query = _queries[random.nextInt(_queries.length)];
+    final op = random.nextInt(14);
+    String desc;
+    switch (op) {
+      case 0 || 1 || 2:
+        final names = switch (query) {
+          _ownList => [
+            for (final p in _portfolios)
+              if (random.nextBool()) p,
+          ],
+          _fromValue => [
+            for (var i = random.nextInt(3); i > 0; i--)
+              _portfolios[random.nextInt(4) == 0 ? random.nextInt(2) : 0],
+          ],
+          _ => <String?>[],
         };
-        unawaited(f.then((_) {}, onError: (_) {}));
-        if (cache.epoch != modelEpoch) {
-          return 'step $step: epoch ${cache.epoch}, model $modelEpoch';
+        final old = random.nextInt(5) == 0 && m.epoch > 0;
+        final epoch = old ? m.epoch - 1 : m.epoch;
+        final w = ++nextW;
+        final tag = _tagOf(query, names);
+        writes[w] = (
+          w: w,
+          user: user,
+          query: query,
+          tag: tag,
+          names: names,
+          epoch: epoch,
+        );
+        desc = 'write#$w $user $query $tag $names e$epoch';
+        unawaited(
+          cache
+              .write(
+                user,
+                query,
+                _scopeOf(query),
+                _V(w, names),
+                (v) => v.toJson(),
+                epoch: epoch,
+              )
+              .then((_) {}, onError: (_) {}),
+        );
+        if (epoch < m.cleared) break;
+        if (!m.keeps(user, tag, names)) {
+          m.newest[_entry(user, query)] = w;
+          if (query == _fromValue) dropCopies(user, query, '', w);
         }
-      case 6:
-        store.undeletable.add(_key(_users[op[1]], _queries[op[2]]));
-      case 7:
-        store.silent.add(_key(_users[op[1]], _queries[op[2]]));
+      case 3 || 4:
+        // A held write lands, fails, or lands silently.
+        await _settle();
+        if (store.pending.isEmpty) {
+          desc = 'nothing held';
+          break;
+        }
+        final i = random.nextInt(store.pending.length);
+        final (w, key, raw, done) = store.pending.removeAt(i);
+        final wr = writes[w]!;
+        final how = random.nextInt(6);
+        if (how == 0) {
+          desc = 'fail#$w';
+          done.completeError(StateError('full'));
+          deleteKey(key);
+        } else if (how == 1) {
+          desc = 'silent#$w';
+          store.values[key] = raw;
+          m.store[key] = w;
+          m.dirty.remove(key);
+          m.silentlyLanded.add(key);
+        } else {
+          desc = 'land#$w';
+          store.values[key] = raw;
+          m.store[key] = w;
+          m.dirty.remove(key);
+          m.silentlyLanded.remove(key);
+          done.complete();
+          final entry = _entry(wr.user, wr.query);
+          if (wr.epoch < m.cleared ||
+              !m.keeps(wr.user, wr.tag, wr.names) ||
+              (m.newest[entry] ?? 0) > w) {
+            deleteKey(key);
+          } else {
+            m.newest[entry] = w;
+            if (wr.query == _fromValue) dropCopies(wr.user, wr.query, key, w);
+          }
+        }
+      case 5:
+        desc = 'clear';
+        m.epoch++;
+        m.cleared = m.epoch;
+        m.members.clear();
+        unawaited(cache.clear().then((_) {}, onError: (_) {}));
+        // A wipe that cannot list leaves everything, as one whose deletions
+        // fail: the residue of a failed wipe.
+        if (store.listingFails) m.dirty.addAll(m.store.keys);
+        if (!store.listingFails) {
+          for (final key in [...store.values.keys]) {
+            if (m.store.containsKey(key)) {
+              deleteKey(key);
+            } else if (!store.hanging.contains(key) &&
+                !store.refusing.contains(key)) {
+              store.values.remove(key);
+            }
+          }
+        }
+      case 6 || 7:
+        // A list answer, asked now or earlier, maybe before a clear.
+        if (askedNumbers.isEmpty || random.nextBool()) {
+          askedNumbers.add((cache.ask(), m.epoch));
+          m.asked++;
+        }
+        final (number, epoch) =
+            askedNumbers[random.nextInt(askedNumbers.length)];
+        final ids = [
+          for (final p in _portfolios)
+            if (random.nextBool()) p,
+        ];
+        final applied = cache.applyPortfolios(
+          user,
+          ids,
+          asked: number,
+          epoch: epoch,
+        );
+        final expected = epoch >= m.cleared && (m.claimed[user] ?? 0) <= number;
+        desc = 'apply $user $ids #$number e$epoch -> $applied';
+        if (applied != expected) return '$desc: model says $expected';
+        if (expected) {
+          m.claimed[user] = number;
+          m.members[user] = {...ids};
+          prune(user);
+        }
       case 8:
-        store
-          ..undeletable.clear()
-          ..silent.clear();
+        final p = _portfolios[random.nextInt(_portfolios.length)];
+        final add = random.nextBool();
+        desc = '${add ? 'add' : 'remove'} $user $p';
+        if (add) {
+          cache.addPortfolio(user, p, epoch: m.epoch);
+          m.members[user]?.add(p);
+        } else {
+          cache.removePortfolio(user, p, epoch: m.epoch);
+          if (m.members[user]?.remove(p) ?? false) prune(user);
+        }
       case 9:
-        store.keysMode = ['ok', 'fail', 'hang'][op[1]];
-    }
-    await Future<void>.delayed(Duration.zero);
-    // Privacy: nothing covered stays once landed, but where a deletion failed.
-    for (final MapEntry(:key, :value) in store.values.entries) {
-      final w = writes[_idOf(value)]!;
-      if (w.landed && covered(w) && !store.dirty.contains(key)) {
-        return 'step $step: $key holds write #${w.id} (epoch ${w.epoch}), '
-            'which a removal covers';
-      }
-    }
-    // A failed write deletes its key, and leaves it unsettled until one
-    // asked after the failure lands and is kept.
-    for (final u in _users) {
-      for (final q in _queries) {
-        final key = _key(u, q);
-        final unsettled =
-            failedAt.containsKey(key) && (kept[key] ?? -1) <= failedAt[key]!;
-        if (cache.unsettled(u, q) != unsettled) {
-          return 'step $step: unsettled($u, $q) is ${!unsettled}, model '
-              '$unsettled';
+        final key = random.nextBool()
+            ? _key(user, _tagOf(query, const ['A']), query)
+            : _key(user, 'p:B', _fromValue);
+        final which = random.nextInt(3);
+        desc = 'fault $key $which';
+        store.refusing.remove(key);
+        store.hanging.remove(key);
+        if (which == 0) store.refusing.add(key);
+        if (which == 1) store.hanging.add(key);
+      case 10:
+        store.listingFails = !store.listingFails;
+        desc = 'listing fails: ${store.listingFails}';
+      case 11:
+        desc = 'prune $user';
+        unawaited(cache.prune(user).then((_) {}, onError: (_) {}));
+        prune(user);
+      case 12:
+        desc = 'forgetOthers $user';
+        unawaited(cache.forgetOthers(user).then((_) {}, onError: (_) {}));
+        if (!store.listingFails) {
+          for (final key in [...store.values.keys]) {
+            if (!key.startsWith('mm.swr.') ||
+                key.startsWith('mm.swr.v2.$user.')) {
+              continue;
+            }
+            if (m.store.containsKey(key)) {
+              deleteKey(key);
+            } else if (!store.hanging.contains(key) &&
+                !store.refusing.contains(key)) {
+              store.values.remove(key);
+            }
+          }
         }
-        if (failedLast.contains(key) &&
-            store.values.containsKey(key) &&
-            !store.dirty.contains(key)) {
-          return 'step $step: $key stays after its write failed';
+      default:
+        // A read: never an entry the rule rejects.
+        if (query == _fromValue &&
+            m.members[user] == null &&
+            store.listingFails) {
+          desc = 'read skipped';
+          break;
         }
-      }
+        await _settle();
+        desc = 'read $user $query';
+        final read = await cache.read(
+          user,
+          query,
+          _scopeOf(query),
+          _V.fromJson,
+        );
+        if (read != null) {
+          final w = writes[read.value.w]!;
+          if (w.user != user || w.query != query) {
+            return "$desc: read another entry's #${w.w}";
+          }
+          if (!m.keeps(user, w.tag, w.names)) {
+            return '$desc: read #${w.w}, which the rule rejects';
+          }
+        } else {
+          // Found when the model holds one the rule keeps, whose key the
+          // read looks at.
+          final s = m.members[user];
+          for (final key in m.store.keys) {
+            final w = writes[m.store[key]]!;
+            if (w.user != user || w.query != query) continue;
+            if (!m.keeps(user, w.tag, w.names)) continue;
+            final looked =
+                query != _fromValue ||
+                s == null && !store.listingFails ||
+                s != null && w.tag.startsWith('p:');
+            if (looked) return '$desc: missed $key';
+          }
+        }
+        // The read asks for the deletion of what it rejects.
+        for (final key in [...m.store.keys]) {
+          final w = writes[m.store[key]]!;
+          if (w.user != user || w.query != query) continue;
+          // A query found by its value reads only keys the rule keeps.
+          if (query != _fromValue && !m.keeps(user, w.tag, w.names)) {
+            deleteKey(key);
+          }
+        }
     }
-    // Loss: the last write landed of each key is there when nothing covers
-    // it and no write with a higher number landed before it, nor failed
-    // after it.
-    for (final MapEntry(:key, value: order) in landedOrder.entries) {
-      if (failedLast.contains(key)) continue;
-      final last = writes[order.last]!;
-      if (covered(last)) continue;
-      if (order.any((id) => id > last.id)) continue;
-      final held = store.values[key];
-      final heldId = held == null ? null : _idOf(held);
-      if (heldId != last.id && !store.dirty.contains(key)) {
-        return 'step $step: $key should hold write #${last.id} '
-            '(epoch ${last.epoch}), '
-            'holds ${heldId == null ? 'nothing' : '#$heldId'}';
-      }
-    }
+    log.add(desc);
+    await _settle();
+    final broken = check(desc);
+    if (broken != null) return broken;
   }
   return null;
 }
 
-Future<List<_Op>> _shrink(List<_Op> ops) async {
-  var current = ops;
-  var changed = true;
-  while (changed) {
-    changed = false;
-    for (var i = 0; i < current.length; i++) {
-      final candidate = [...current]..removeAt(i);
-      if (await _run(candidate) != null) {
-        current = candidate;
-        changed = true;
-        break;
-      }
-    }
-  }
-  return current;
-}
-
-/// Sequences with forgetOthers at most once, as the app calls it (once per
-/// run, at start-up).
-List<_Op> _oncePerRun(List<_Op> ops) {
-  var seen = false;
-  return [
-    for (final op in ops)
-      if (op[0] != 5)
-        op
-      else if (!seen) ...[
-        (() {
-          seen = true;
-          return op;
-        })(),
-      ],
-  ];
-}
-
-/// How many random sequences a run checks: enough to meet the shortest
-/// known failures of earlier designs many times over, in a few seconds.
-const _sequences = 3000;
+bool _mapEquals(Map<String, int> a, Map<String, int> b) =>
+    a.length == b.length && a.entries.every((e) => b[e.key] == e.value);
 
 void main() {
-  test('SwrCache agrees with the reference model over $_sequences random '
-      'sequences (forgetOthers at most once per sequence)', () async {
+  test('SwrCache keeps what the portfolio rule keeps, and nothing else, over '
+      'random sequences', () async {
+    const sequences = int.fromEnvironment('MODEL_SEQ', defaultValue: 500);
+    const steps = int.fromEnvironment('MODEL_STEPS', defaultValue: 40);
     final random = Random(20261115);
-    final failures = <String>{};
-    for (var s = 0; s < _sequences; s++) {
-      final ops = _oncePerRun([
-        for (var i = 0, n = 5 + random.nextInt(36); i < n; i++)
-          _randomOp(random),
-      ]);
-      if (await _run(ops) != null) {
-        final shrunk = _oncePerRun(await _shrink(ops));
-        final why = await _run(shrunk);
-        failures.add('${shrunk.map(_show).join('; ')}\n  -> $why');
+    for (var i = 0; i < sequences; i++) {
+      final log = <String>[];
+      final broken = await _run(random, steps, log);
+      if (broken != null) {
+        fail('sequence $i: $broken\n  after: ${log.join('\n  ')}');
       }
     }
-    expect(failures, isEmpty, reason: failures.join('\n'));
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 10)));
 }

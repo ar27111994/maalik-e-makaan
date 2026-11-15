@@ -135,7 +135,7 @@ void main() {
             'performance.${gulberg.id}.2025-12-01.2026-11-30',
             'tax-year.${gulberg.id}.2026',
           ])
-            'mm.swr.v1.$testUserId.$query',
+            cacheKey(testUserId, query, portfolio: gulberg.id),
         ]),
       );
 

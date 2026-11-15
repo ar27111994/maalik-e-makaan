@@ -17,7 +17,6 @@ import 'package:maalik_e_makaan/src/features/operations/data/expense.dart';
 import 'package:maalik_e_makaan/src/features/operations/data/maintenance.dart';
 import 'package:maalik_e_makaan/src/features/operations/data/utility.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
-import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/properties/application/properties.dart';
 import 'package:maalik_e_makaan/src/features/tenants/application/tenants.dart';
@@ -26,14 +25,28 @@ import 'package:mm_core/mm_core.dart';
 import '../../support/container.dart';
 import '../../support/harness.dart';
 
-/// The saved copy of [query] for the test user, or null.
-Future<Snapshot<Object?>?> _saved(TestApp app, String query) =>
-    app.cache.read<Object?>(testUserId, query, (json) => json);
+/// The saved copy of [notifier]'s query for the test user, or null.
+Future<Snapshot<Object?>?> _saved(TestApp app, SwrNotifier<Object?> notifier) =>
+    app.cache.read<Object?>(
+      testUserId,
+      notifier.query,
+      notifier.scope,
+      (json) => json,
+    );
 
-/// A portfolio leaves the user's list: every saved record of theirs goes
-/// but the list itself.
-Future<void> _portfolioLeft(TestApp app) =>
-    app.cache.forgetUser(testUserId, keep: PortfoliosController.kept);
+/// The user's list of portfolios comes from the server with [ids] in it:
+/// the records of a portfolio not in it go, and are not saved again.
+/// The server agrees: a list read again (a portfolio's settings) has the
+/// same.
+Future<void> _listIs(TestApp app, List<String> ids) {
+  app.portfolios.memberships
+    ..clear()
+    ..addAll([
+      for (final m in [gulberg, plaza])
+        if (ids.contains(m.id)) m,
+    ]);
+  return app.cache.answer(testUserId, ids);
+}
 
 /// A feature's command over one query.
 final class _Command {
@@ -367,8 +380,9 @@ final _building = <_Command>[
 ];
 
 void main() {
-  group('an answer asked for before a portfolio left the list is not saved, '
-      'and one asked for after it is:', () {
+  // Every command below works on a record of Gulberg's.
+  group('an answer asked for before its portfolio left the list is not '
+      'saved, nor one asked after; once it is back, a reload is:', () {
     for (final command in _answering) {
       test(command.name, () async {
         final app = TestApp();
@@ -377,8 +391,7 @@ void main() {
         listen(container, command.provider);
         await pumpEventQueue();
         final notifier = command.notifier(container);
-        final query = notifier.query;
-        expect(await _saved(app, query), isNotNull);
+        expect(await _saved(app, notifier), isNotNull);
         final gate = command.gate(app)..close();
         // The command's request is on its way...
         final running = command.run(container);
@@ -388,52 +401,95 @@ void main() {
           gate.holdLaterCallsApart()();
           await pumpEventQueue();
         }
-        // ...when a portfolio leaves the list and its records go.
-        await _portfolioLeft(app);
+        // ...when Gulberg leaves the list and its records go.
+        await _listIs(app, [plaza.id]);
+        expect(await _saved(app, notifier), isNull);
         gate.open();
         await running;
         await pumpEventQueue();
-        expect(await _saved(app, query), isNull);
-        // What is asked for after it is saved.
+        expect(await _saved(app, notifier), isNull);
+        expect(
+          app.store.values.keys.where((k) => k.contains(gulberg.id)),
+          isEmpty,
+        );
+        // Asked for after it, it is still not saved.
         await notifier.reload();
-        expect(await _saved(app, query), isNotNull);
+        await pumpEventQueue();
+        expect(await _saved(app, notifier), isNull);
+        // Back in the list, it is.
+        await _listIs(app, [gulberg.id, plaza.id]);
+        await notifier.reload();
+        await pumpEventQueue();
+        expect(await _saved(app, notifier), isNotNull);
       });
     }
   });
 
-  group('a command started after a portfolio left the list saves its '
-      'answer, with no reload in between:', () {
+  group('an answer held while another portfolio leaves the list is saved:', () {
     for (final command in _answering) {
       test(command.name, () async {
         final app = TestApp();
-        // For the ledger, the refund's answer is lost again (setUp).
         command.setUp?.call(app);
         final container = containerFor(app);
-        // The portfolio list is on show and saved, as in the app: a list
-        // read again by the command (a portfolio's settings) then finds
-        // nothing more has left it, and forgets nothing. The screen opens
-        // once the list is saved: the first save of a session, finding no
-        // saved list, forgets every record saved before it.
-        listen(container, portfoliosProvider(testUserId));
-        await pumpEventQueue();
         listen(container, command.provider);
         await pumpEventQueue();
-        final query = command.notifier(container).query;
-        expect(await _saved(app, query), isNotNull);
-        // The value on show was asked for before the portfolio left...
-        await _portfolioLeft(app);
-        expect(await _saved(app, query), isNull);
-        // ...and the command asks the server after it: its answer is saved
-        // with the epoch read before its own request, not the shown one.
-        await command.run(container);
+        final notifier = command.notifier(container);
+        await _listIs(app, [gulberg.id, plaza.id]);
+        expect(await _saved(app, notifier), isNotNull);
+        final gate = command.gate(app)..close();
+        final running = command.run(container);
         await pumpEventQueue();
-        expect(await _saved(app, query), isNotNull);
+        if (command.readAfterFailedWrite) {
+          gate.holdLaterCallsApart()();
+          await pumpEventQueue();
+        }
+        // Saddar Plaza leaves; Gulberg stays.
+        await _listIs(app, [gulberg.id]);
+        gate.open();
+        await running;
+        await pumpEventQueue();
+        expect(await _saved(app, notifier), isNotNull);
       });
     }
   });
 
-  group('a value made from one shown before a portfolio left the list is '
-      'not saved, and one made after a reload is:', () {
+  group('an answer asked for before the device was wiped is not saved, nor '
+      'is a reload of the query built before it:', () {
+    for (final command in _answering) {
+      test(command.name, () async {
+        final app = TestApp();
+        command.setUp?.call(app);
+        final container = containerFor(app);
+        listen(container, command.provider);
+        await pumpEventQueue();
+        final notifier = command.notifier(container);
+        final gate = command.gate(app)..close();
+        final running = command.run(container);
+        await pumpEventQueue();
+        if (command.readAfterFailedWrite) {
+          gate.holdLaterCallsApart()();
+          await pumpEventQueue();
+        }
+        await app.cache.clear();
+        gate.open();
+        await running;
+        await pumpEventQueue();
+        // Nothing but the portfolio list a command read again after the
+        // wipe, with a list controller built for the new session.
+        Iterable<String> records() =>
+            app.store.values.keys.where((key) => !key.contains('.own.'));
+        expect(records(), isEmpty);
+        // The query was built for the session that ended.
+        expect(notifier.requestEpoch(), lessThan(app.cache.epoch));
+        await notifier.reload();
+        await pumpEventQueue();
+        expect(records(), isEmpty);
+      });
+    }
+  });
+
+  group('a value made from the one on show is not saved once its portfolio '
+      'left the list, and is while another left:', () {
     for (final command in _building) {
       test(command.name, () async {
         final app = TestApp();
@@ -442,20 +498,44 @@ void main() {
         listen(container, command.provider);
         await pumpEventQueue();
         final notifier = command.notifier(container);
-        final query = notifier.query;
-        expect(await _saved(app, query), isNotNull);
-        // The rows on show were asked for before the portfolio left.
-        await _portfolioLeft(app);
+        // Gulberg leaves: nothing of it is saved.
+        await _listIs(app, [plaza.id]);
         await command.run(container);
         await pumpEventQueue();
-        expect(await _saved(app, query), isNull);
-        // Read again, they are saved with what is made from them.
+        expect(await _saved(app, notifier), isNull);
+        // Back, read again; then Saddar Plaza leaves, and what is made from
+        // the rows on show is saved.
+        await _listIs(app, [gulberg.id, plaza.id]);
         await notifier.reload();
         await pumpEventQueue();
-        final reloaded = (await _saved(app, query))!.value;
+        final reloaded = (await _saved(app, notifier))!.value;
+        await _listIs(app, [gulberg.id]);
         await command.run(container);
         await pumpEventQueue();
-        expect((await _saved(app, query))!.value, isNot(equals(reloaded)));
+        expect((await _saved(app, notifier))!.value, isNot(equals(reloaded)));
+      });
+    }
+  });
+
+  group('a value made from one shown before the device was wiped is not '
+      'saved:', () {
+    for (final command in _building) {
+      test(command.name, () async {
+        final app = TestApp();
+        command.setUp?.call(app);
+        final container = containerFor(app);
+        listen(container, command.provider);
+        await pumpEventQueue();
+        final notifier = command.notifier(container);
+        expect(await _saved(app, notifier), isNotNull);
+        await app.cache.clear();
+        expect(notifier.shownEpoch, lessThan(app.cache.epoch));
+        await command.run(container);
+        await pumpEventQueue();
+        expect(
+          app.store.values.keys.where((key) => !key.contains('.own.')),
+          isEmpty,
+        );
       });
     }
   });

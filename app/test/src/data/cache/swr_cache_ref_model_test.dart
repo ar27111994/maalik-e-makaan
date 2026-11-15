@@ -1,21 +1,24 @@
-// An independent reference model of SwrCache's removal rule, run against
-// SwrCache over a MemoryStore for many random sequences (fixed seed).
+// A declarative reference model of the cache's portfolio rule. It keeps no
+// simulated cache: it records what happened (writes asked, writes landed or
+// failed, clears, list answers, faults) and, after every step, computes from
+// that history alone two sets of entries, the ones allowed on the store and
+// the ones that must be there, and compares the whole store with them. It
+// runs over a MemoryStore with held writes, for many random sequences with
+// fixed seeds. It is written from docs/architecture/app.md and the
+// documented key format, apart from SwrCache's private parts and from the
+// operational model.
 //
-// The rule: an entry asked for in epoch e, under query q, for user u, must
-// not be on the store once its write has landed if, after e, a clear, a
-// forgetUser(u) that did not keep q, or a forgetOthers of another user
-// happened; an entry no removal covers must be there (unless a write of the
-// same key with a higher number landed and was kept first, the documented
-// out-of-order delete, or the store refused, hung on, or could not list it
-// for a deletion). A write the store fails deletes its key, and leaves the
-// key unsettled until a write asked after the failure lands and is kept. A
-// write that lands where it is to go, and whose deletion the store refuses
-// or hangs on, leaves its user strayed while the store holds it.
+// Allowed: a key of this version whose value is a write of that key, asked
+// in the session on now (no clear since), whose tag the portfolios the user
+// is in keep (or the user's own), unless the key met a fault (a refused or
+// hung deletion, a silent landing, a failed listing) since that write.
+// Required: the last write asked of an entry, when it landed and nothing
+// since could remove it (no clear, no list without its portfolio, no other
+// write of its entry, no fault), is on the store.
 //
-// It runs 2,000 sequences by default (a few seconds); -DREF_SEQ=20000 runs
-// the 20,000 the verifier first ran, REF_ANY=true also lets forgetOthers
-// run any number of times (the app calls it once per run, and the cache
-// keeps only the last call's user), and REF_MAXF caps the differences kept.
+// It also fuzzes the key format: random ids and queries with dots, `#`,
+// spaces and Urdu; the tag reads back from the key alone, and the removal
+// finds every entry by it.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -23,438 +26,385 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 
-import '../../../support/fakes.dart';
+import '../../../support/fakes.dart' show MemoryStore;
 
-const _users = ['u1', 'u2'];
-const _queries = [
-  'portfolios',
-  'profile',
-  'residence',
-  'tenants.A',
-  'tenant.x',
-];
-String _key(String u, String q) => 'mm.swr.v1.$u.$q';
+const _alphabet = '0123456789abcdef';
+
+String _uuid(Random r) => [8, 4, 4, 4, 12]
+    .map((n) => List.generate(n, (_) => _alphabet[r.nextInt(16)]).join())
+    .join('-');
+
+const _pieces = ['tenants', 'active', '', 'علی رضا', '#1', 'a b', '0300', '.'];
+
+String _query(Random r) => [
+  for (var i = 1 + r.nextInt(4); i > 0; i--) _pieces[r.nextInt(_pieces.length)],
+].join('.');
+
+/// A query's kind, and what its writes name.
+enum _Kind { ownList, own, inPortfolio, fromValue, unknown }
+
+/// A query of the sequence: its text, kind, and portfolio when named.
+typedef _Q = ({String text, _Kind kind, String? portfolio});
+
+/// The documented key, built here.
+String _keyOf(String user, String tag, String query) =>
+    'mm.swr.v2.$user.$tag.$query';
+
+/// A write asked of the cache.
+final class _W {
+  new(this.id, this.user, this.q, this.names, this.epoch, this.tag);
+
+  final int id;
+  final String user;
+  final _Q q;
+  final List<String> names;
+  final int epoch;
+  final String tag;
+
+  String get key => _keyOf(user, tag, q.text);
+
+  /// How it ended: null while held; 'landed', 'failed' or 'silent'.
+  String? end;
+
+  /// The step it ended at.
+  int endedAt = -1;
+}
+
+/// One thing that happened, at a step.
+sealed class _Event {
+  const new(this.step);
+  final int step;
+}
+
+final class _Clear extends _Event {
+  const new(super.step);
+}
+
+final class _Members extends _Event {
+  const new(super.step, this.user, this.ids);
+  final String user;
+
+  /// The portfolios after it.
+  final Set<String> ids;
+}
+
+final class _Fault extends _Event {
+  const new(super.step, this.key);
+
+  /// The key, or null for every key (a failed listing).
+  final String? key;
+}
+
+/// The faults of the store end: deletions answer, the keys list.
+final class _Heal extends _Event {
+  const new(super.step);
+}
+
+Object? _encode(_W w) => {'w': w.id};
 
 int _idOf(String raw) =>
     ((jsonDecode(raw) as Map<String, Object?>)['value']!
             as Map<String, Object?>)['w']!
         as int;
 
-/// Holds each write until the test lands or fails it; everything else is
-/// the MemoryStore underneath.
-final class _HeldStore implements KeyValueStore {
-  new(this.mem);
-  final MemoryStore mem;
-  final held = <int, (String, String, Completer<void>)>{};
-  String keysMode = 'ok';
+CacheScope<_W> _scope(_Q q) => switch (q.kind) {
+  _Kind.ownList => OwnScope.portfolioList<_W>((w) => w.names),
+  _Kind.own => OwnScope.profile<_W>(),
+  _Kind.inPortfolio => InPortfolio<_W>(q.portfolio!),
+  _Kind.fromValue => FromValue<_W>(
+    (w) => w.names.length == 1 ? w.names.single : null,
+  ),
+  _Kind.unknown => const UnknownPortfolio<_W>(),
+};
 
-  @override
-  Future<String?> read(String key) => mem.read(key);
+/// What the sequence did, step by step, for a failure's message.
+final _log = <String>[];
 
-  @override
-  Future<void> write(String key, String value) {
-    final done = Completer<void>();
-    held[_idOf(value)] = (key, value, done);
-    return done.future;
-  }
-
-  void land(int id) {
-    final (key, value, done) = held.remove(id)!;
-    mem.values[key] = value;
-    done.complete();
-  }
-
-  void fail(int id) {
-    final (_, _, done) = held.remove(id)!;
-    done.completeError(StateError('write failed'));
-  }
-
-  @override
-  Future<void> delete(String key) => mem.delete(key);
-
-  @override
-  Future<Set<String>> keys() async {
-    if (keysMode == 'hang') await Completer<void>().future;
-    if (keysMode == 'fail') throw StateError('keys failed');
-    return mem.values.keys.toSet();
-  }
-}
-
-sealed class _Op {
-  const new();
-}
-
-final class _Ask extends _Op {
-  const new(this.id, this.u, this.q, this.back);
-  final int id;
-  final String u;
-  final String q;
-  final int back; // epoch read this many removals ago (clamped)
-  @override
-  String toString() => 'ask#$id($u,$q,epoch-$back)';
-}
-
-final class _Land extends _Op {
-  const new(this.id);
-  final int id;
-  @override
-  String toString() => 'land#$id';
-}
-
-final class _Fail extends _Op {
-  const new(this.id);
-  final int id;
-  @override
-  String toString() => 'fail#$id';
-}
-
-final class _ForgetUser extends _Op {
-  const new(this.u, this.keep);
-  final String u;
-  final Set<String> keep;
-  @override
-  String toString() => 'forgetUser($u,keep:$keep)';
-}
-
-final class _ForgetOthers extends _Op {
-  const new(this.u);
-  final String u;
-  @override
-  String toString() => 'forgetOthers($u)';
-}
-
-final class _Clear extends _Op {
-  const new();
-  @override
-  String toString() => 'clear';
-}
-
-final class _Block extends _Op {
-  const new(this.key, this.how);
-  final String key;
-  final String how; // undeletable, silent, none
-  @override
-  String toString() => 'block($key,$how)';
-}
-
-final class _Keys extends _Op {
-  const new(this.mode);
-  final String mode;
-  @override
-  String toString() => 'keys($mode)';
-}
-
-/// A removal: what it covers, whatever the epoch.
-final class _Removal {
-  const new clear() : kind = 'clear', u = null, keep = const {};
-  const new forgetUser(this.u, this.keep) : kind = 'user';
-  const new forgetOthers(this.u) : kind = 'others', keep = const {};
-  final String kind;
-  final String? u;
-  final Set<String> keep;
-
-  bool covers(String user, String q) => switch (kind) {
-    'clear' => true,
-    'user' => user == u && !keep.contains(q),
-    _ => user != u,
-  };
-}
-
-final class _MW {
-  new(this.id, this.u, this.q, this.epoch, this.number);
-  final int id;
-  final String u;
-  final String q;
-  final int epoch;
-  final int number;
-  int clearedAtAsk = 0; // removals.length of last clear when asked
-}
-
-/// Runs [ops]; returns the first difference as text, or null.
-Future<String?> _run(List<_Op> ops) async {
-  final mem = MemoryStore();
-  final store = _HeldStore(mem);
+Future<String?> _sequence(Random r, int steps) async {
+  _log.clear();
+  final store = MemoryStore();
   final cache = SwrCache(store);
-  final removals = <_Removal>[];
-  var lastClear = 0; // removals.length right after the last clear
-  final pending = <int, _MW>{};
-  final value = <String, int>{}; // key -> write id expected on the store
-  final landed = <String, int>{}; // key -> number of newest kept landing
-  final failed = <String, int>{}; // key -> numbers asked at its last failure
-  final excused = <String>{}; // keys whose deletion was blocked once
-  // key -> the write that landed when it was to go (a removal covered it,
-  // or a later one landed first) and whose deletion was blocked.
-  final strays = <String, int>{};
-  final ids = <int, _MW>{};
-  var numbers = 0;
+  final users = [_uuid(r), _uuid(r)];
+  final portfolios = [_uuid(r), _uuid(r), _uuid(r)];
+  final queries = <_Q>[
+    (text: 'portfolios', kind: _Kind.ownList, portfolio: null),
+    (text: 'profile', kind: _Kind.own, portfolio: null),
+    for (var i = 0; i < 3; i++)
+      (
+        text: _query(r),
+        kind: _Kind.inPortfolio,
+        portfolio: portfolios[r.nextInt(3)],
+      ),
+    (text: _query(r), kind: _Kind.fromValue, portfolio: null),
+    (text: _query(r), kind: _Kind.unknown, portfolio: null),
+  ];
+  final writes = <_W>[];
+  final events = <_Event>[];
+  final asked = <(int, int)>[];
+  var epoch = 0;
 
-  bool covered(int epoch, String u, String q) {
-    for (var i = epoch; i < removals.length; i++) {
-      if (removals[i].covers(u, q)) return true;
+  // The documented format, and the tag back from it.
+  for (final q in queries) {
+    final tag = switch (q.kind) {
+      _Kind.ownList || _Kind.own => const OwnTag(),
+      _Kind.inPortfolio => PortfolioTag(q.portfolio!),
+      _ => const UnknownTag(),
+    };
+    final key = SwrCache.keyOf(users[0], tag, q.text);
+    if (key != _keyOf(users[0], tag.text, q.text)) return 'key $key';
+    if (EntryTag.parse(tag.text) != tag) return 'tag ${tag.text}';
+  }
+
+  int lastClear(int step) => events
+      .whereType<_Clear>()
+      .where((e) => e.step <= step)
+      .fold(-1, (a, e) => max(a, e.step));
+
+  /// The portfolios [user] is in at [step], from the history: null before a
+  /// list since the last clear.
+  Set<String>? membersAt(String user, int step) {
+    final since = lastClear(step);
+    Set<String>? s;
+    for (final e in events.whereType<_Members>()) {
+      if (e.step > step || e.step < since || e.user != user) continue;
+      s = e.ids;
     }
+    return s;
+  }
+
+  bool keeps(String user, String tag, List<String> names, int step) {
+    final s = membersAt(user, step);
+    if (s == null) return true;
+    if (tag == 'own') return names.every(s.contains);
+    if (tag.startsWith('p:')) return s.contains(tag.substring(2));
     return false;
   }
 
-  bool blocked(String key) =>
-      mem.undeletable.contains(key) || mem.silent.contains(key);
+  /// Whether [key] met a fault at any time from [step] on: one that began
+  /// then or later, or began earlier and lasted until then.
+  bool faultedSince(String key, int step) =>
+      events.whereType<_Fault>().any((e) {
+        if (e.key != null && e.key != key) return false;
+        final healed = events
+            .whereType<_Heal>()
+            .where((h) => h.step > e.step)
+            .fold<int?>(null, (a, h) => a == null ? h.step : min(a, h.step));
+        return e.step >= step || healed == null || healed >= step;
+      });
 
-  for (var step = 0; step < ops.length; step++) {
-    final op = ops[step];
-    switch (op) {
-      case _Ask(:final id, :final u, :final q, :final back):
-        final epoch = max(0, removals.length - back);
-        if (!covered(epoch, u, q)) {
-          final w = _MW(id, u, q, epoch, ++numbers)..clearedAtAsk = lastClear;
-          pending[id] = w;
-          ids[id] = w;
+  final newestApplied = <String, int>{};
+  var current = 0;
+  for (var step = 0; step < steps; step++) {
+    current = step;
+    final user = users[r.nextInt(2)];
+    final q = queries[r.nextInt(queries.length)];
+    final opn = r.nextInt(12);
+    _log.add(
+      '$step op$opn ${user.substring(0, 4)} ${q.kind.name} e$epoch '
+      'w${writes.length}',
+    );
+    switch (opn) {
+      case 0 || 1 || 2 || 3:
+        final names = switch (q.kind) {
+          _Kind.ownList => [
+            for (final p in portfolios)
+              if (r.nextBool()) p,
+          ],
+          _Kind.fromValue => [
+            for (var i = r.nextInt(2); i >= 0; i--) portfolios[r.nextInt(2)],
+          ].take(r.nextInt(3)).toList(),
+          _ => <String>[],
+        };
+        final tag = switch (q.kind) {
+          _Kind.ownList || _Kind.own => 'own',
+          _Kind.inPortfolio => 'p:${q.portfolio}',
+          _Kind.fromValue =>
+            names.length == 1 ? 'p:${names.single}' : 'unknown',
+          _Kind.unknown => 'unknown',
+        };
+        final w = _W(
+          writes.length + 1,
+          user,
+          q,
+          names,
+          r.nextInt(6) == 0 ? max(0, epoch - 1) : epoch,
+          tag,
+        );
+        writes.add(w);
+        if (r.nextInt(3) == 0) store.holding.add(w.key);
+        if (r.nextInt(12) == 0) {
+          store.landingSilently.add(w.key);
+          events.add(_Fault(step, w.key));
         }
         unawaited(
           cache
-              .write(u, q, {'w': id}, epoch: epoch)
-              .then((_) {}, onError: (_) {}),
+              .write(w.user, q.text, _scope(q), w, _encode, epoch: w.epoch)
+              .then(
+                (_) => w
+                  ..end ??= 'landed'
+                  ..endedAt = current,
+                onError: (_) => w
+                  ..end = 'failed'
+                  ..endedAt = current,
+              ),
         );
-      case _Land(:final id):
-        final w = pending.remove(id);
-        if (w == null || !store.held.containsKey(id)) continue;
-        store.land(id);
-        final key = _key(w.u, w.q);
-        value[key] = id;
-        if (covered(w.epoch, w.u, w.q) || (landed[key] ?? 0) > w.number) {
-          if (blocked(key)) {
-            excused.add(key);
-            strays[key] = id;
-          } else {
-            value.remove(key);
+        store.landingSilently.remove(w.key);
+      case 4:
+        // The held writes end: newest first, oldest first, or failing.
+        final how = r.nextInt(3);
+        if (how == 0) store.finishHeldWritesNewestFirst();
+        if (how == 1) store.finishHeldWritesOldestFirst();
+        if (how == 2) {
+          for (final w in writes.where((w) => w.end == null)) {
+            events.add(_Fault(step, w.key));
           }
-        } else {
-          landed[key] = w.number;
+          store.failHeldWrites(StateError('full'));
         }
-      case _Fail(:final id):
-        final w = pending.remove(id);
-        if (w == null || !store.held.containsKey(id)) continue;
-        store.fail(id);
-        final key = _key(w.u, w.q);
-        failed[key] = numbers;
-        // The cache deletes the key: the store may hold any value or none.
-        if (blocked(key)) {
-          excused.add(key);
-        } else {
-          value.remove(key);
-        }
-      case _ForgetUser(:final u, :final keep):
-        removals.add(_Removal.forgetUser(u, keep));
-        _applyRemoval(removals.last, store, value, excused, blocked);
-        unawaited(
-          cache.forgetUser(u, keep: keep).then((_) {}, onError: (_) {}),
-        );
-      case _ForgetOthers(:final u):
-        removals.add(_Removal.forgetOthers(u));
-        _applyRemoval(removals.last, store, value, excused, blocked);
-        unawaited(cache.forgetOthers(u).then((_) {}, onError: (_) {}));
-      case _Clear():
-        removals.add(const _Removal.clear());
-        lastClear = removals.length;
-        _applyRemoval(removals.last, store, value, excused, blocked);
+        store.holding.clear();
+      case 5:
+        epoch++;
+        events.add(_Clear(step));
+        if (store.keysFailure != null) events.add(_Fault(step, null));
         unawaited(cache.clear().then((_) {}, onError: (_) {}));
-      case _Block(:final key, :final how):
-        mem.undeletable.remove(key);
-        mem.silent.remove(key);
-        if (how == 'undeletable') mem.undeletable.add(key);
-        if (how == 'silent') mem.silent.add(key);
-      case _Keys(:final mode):
-        store.keysMode = mode;
+      case 6 || 7:
+        if (asked.isEmpty || r.nextBool()) asked.add((cache.ask(), epoch));
+        final (number, e) = asked[r.nextInt(asked.length)];
+        final ids = {
+          for (final p in portfolios)
+            if (r.nextBool()) p,
+        };
+        if (cache.applyPortfolios(user, ids, asked: number, epoch: e)) {
+          // The newest-asked answer of the session: never older than one
+          // applied before it, never of an ended session.
+          if (e != epoch || number < (newestApplied[user] ?? 0)) {
+            return 'applied a stale answer #$number';
+          }
+          newestApplied[user] = number;
+          events.add(_Members(step, user, ids));
+          if (store.keysFailure != null) events.add(_Fault(step, null));
+        }
+      case 8:
+        final key = writes.isEmpty
+            ? null
+            : writes[r.nextInt(writes.length)].key;
+        if (key != null) {
+          events.add(_Fault(step, key));
+          if (r.nextBool()) {
+            store.undeletable.add(key);
+          } else {
+            store.silent.add(key);
+          }
+        }
+      case 9:
+        events.add(_Heal(step));
+        store
+          ..undeletable.clear()
+          ..silent.clear()
+          ..keysFailure = r.nextInt(4) == 0 ? Exception('listing') : null;
+        if (store.keysFailure != null) events.add(_Fault(step, null));
+      case 10:
+        final p = portfolios[r.nextInt(3)];
+        final s = membersAt(user, step);
+        if (s != null) {
+          if (r.nextBool()) {
+            cache.addPortfolio(user, p, epoch: epoch);
+            events.add(_Members(step, user, {...s, p}));
+          } else {
+            cache.removePortfolio(user, p, epoch: epoch);
+            events.add(_Members(step, user, {...s}..remove(p)));
+          }
+        }
+      default:
+        // Reads: what they return must be allowed.
+        await pumpEventQueue();
+        final read = await cache.read(
+          user,
+          q.text,
+          _scope(q),
+          (json) => writes[((json! as Map<String, Object?>)['w']! as int) - 1],
+        );
+        if (read != null) {
+          final w = read.value;
+          if (w.user != user || w.q != q) return 'read another entry';
+          if (!keeps(user, w.tag, w.names, step)) {
+            return 'read #${w.id}, which the rule rejects';
+          }
+        }
     }
-    await pumpEventQueue(times: 2);
+    await pumpEventQueue();
 
-    // Compare.
-    if (cache.epoch != removals.length) {
-      return 'step $step ($op): epoch ${cache.epoch} != ${removals.length}';
+    // The whole store against the two sets.
+    final now = step;
+    final present = <String, int>{
+      for (final e in store.values.entries)
+        if (e.key.startsWith('mm.swr.')) e.key: _idOf(e.value),
+    };
+    for (final MapEntry(:key, :value) in present.entries) {
+      final w = writes[value - 1];
+      if (w.key != key) return 'step $step: $key holds #$value of ${w.key}';
+      final excused = faultedSince(key, w.endedAt < 0 ? 0 : w.endedAt);
+      if (excused) continue;
+      if (w.epoch < epoch) return 'step $step: #$value of an ended session';
+      if (w.tag != 'own' && !keeps(w.user, w.tag, w.names, now)) {
+        return 'step $step: #$value under ${w.tag} is kept unkept';
+      }
     }
-    for (final u in _users) {
-      for (final q in _queries) {
-        final key = _key(u, q);
-        final raw = mem.values[key];
-        final actual = raw == null ? null : _idOf(raw);
-        if (actual != value[key]) {
-          return 'step $step ($op): $key holds ${actual ?? '-'}, model '
-              '${value[key] ?? '-'}';
-        }
-        // The rule itself: a covered value only where a deletion was blocked.
-        if (actual != null) {
-          final w = ids[actual]!;
-          if (covered(w.epoch, u, q) && !excused.contains(key)) {
-            return 'step $step ($op): $key holds removed write #$actual';
-          }
-          // A value left where it was to go is told by strayed.
-          if (strays[key] == actual && !cache.strayed(u)) {
-            return 'step $step ($op): $key holds stray #$actual, but '
-                'strayed($u) is false';
-          }
-        }
-        // writing(): the unfinished writes asked since the last clear.
-        final want = [
-          for (final w in pending.values)
-            if (_key(w.u, w.q) == key && w.clearedAtAsk == lastClear) w.id,
-        ]..sort();
-        final got = [
-          for (final v in cache.writing(u, q))
-            (v! as Map<String, Object?>)['w']! as int,
-        ]..sort();
-        if (want.join(',') != got.join(',')) {
-          return 'step $step ($op): writing($u,$q) $got, model $want';
-        }
-        final unsettled =
-            failed.containsKey(key) && (landed[key] ?? 0) <= failed[key]!;
-        if (cache.unsettled(u, q) != unsettled) {
-          return 'step $step ($op): unsettled($u,$q) ${!unsettled}, model '
-              '$unsettled';
-        }
+    // Required: the last write asked of each entry, landed, untouched.
+    final last = <String, _W>{};
+    for (final w in writes) {
+      last['${w.user}/${w.q.text}'] = w;
+    }
+    for (final w in last.values) {
+      if (w.end != 'landed') continue;
+      if (w.epoch < epoch) continue;
+      // A list of another user's removes every entry but theirs.
+      final others = events.whereType<_Members>().any(
+        (e) => e.user != w.user && e.step >= w.endedAt,
+      );
+      if (others) continue;
+      if (lastClear(now) > w.endedAt) continue;
+      if (faultedSince(w.key, 0)) continue;
+      if (!keeps(w.user, w.tag, w.names, w.endedAt)) continue;
+      // Every list since it landed kept it.
+      final dropped = events.whereType<_Members>().any(
+        (e) =>
+            e.user == w.user &&
+            e.step >= w.endedAt &&
+            !keeps(w.user, w.tag, w.names, e.step),
+      );
+      if (dropped || !keeps(w.user, w.tag, w.names, now)) continue;
+      // An earlier write of the entry that landed after it deletes it (the
+      // documented out-of-order loss).
+      final crossed = writes.any(
+        (o) =>
+            o.id < w.id &&
+            o.user == w.user &&
+            o.q == w.q &&
+            o.end != null &&
+            o.endedAt >= w.endedAt,
+      );
+      if (crossed) continue;
+      if (present[w.key] != w.id) {
+        return 'step $step: #${w.id} at ${w.key} is missing';
       }
     }
   }
   return null;
 }
 
-void _applyRemoval(
-  _Removal r,
-  _HeldStore store,
-  Map<String, int> value,
-  Set<String> excused,
-  bool Function(String) blocked,
-) {
-  for (final key in [...value.keys]) {
-    final rest = key.substring('mm.swr.v1.'.length);
-    final dot = rest.indexOf('.');
-    final u = rest.substring(0, dot);
-    final q = rest.substring(dot + 1);
-    if (!r.covers(u, q)) continue;
-    if (store.keysMode != 'ok' || blocked(key)) {
-      excused.add(key);
-    } else {
-      value.remove(key);
-    }
-  }
-}
-
-List<_Op> _sequence(Random rnd, {required int maxOthers}) {
-  final ops = <_Op>[];
-  final length = 1 + rnd.nextInt(40);
-  var nextId = 1;
-  var others = 0;
-  final asked = <int>[];
-  for (var i = 0; i < length; i++) {
-    final r = rnd.nextInt(100);
-    if (r < 32) {
-      final id = nextId++;
-      asked.add(id);
-      ops.add(
-        _Ask(
-          id,
-          _users[rnd.nextInt(_users.length)],
-          _queries[rnd.nextInt(_queries.length)],
-          rnd.nextInt(3),
-        ),
-      );
-    } else if (r < 52 && asked.isNotEmpty) {
-      ops.add(_Land(asked[rnd.nextInt(asked.length)]));
-    } else if (r < 58 && asked.isNotEmpty) {
-      ops.add(_Fail(asked[rnd.nextInt(asked.length)]));
-    } else if (r < 72) {
-      ops.add(
-        _ForgetUser(_users[rnd.nextInt(_users.length)], {
-          for (final q in _queries)
-            if (rnd.nextInt(3) == 0) q,
-        }),
-      );
-    } else if (r < 76 && others < maxOthers) {
-      others++;
-      ops.add(_ForgetOthers(_users[rnd.nextInt(_users.length)]));
-    } else if (r < 84) {
-      ops.add(const _Clear());
-    } else if (r < 94) {
-      final key = _key(
-        _users[rnd.nextInt(_users.length)],
-        _queries[rnd.nextInt(_queries.length)],
-      );
-      ops.add(
-        _Block(
-          key,
-          const ['none', 'none', 'undeletable', 'silent'][rnd.nextInt(4)],
-        ),
-      );
-    } else {
-      ops.add(_Keys(const ['ok', 'ok', 'ok', 'fail', 'hang'][rnd.nextInt(5)]));
-    }
-  }
-  return ops;
-}
-
-Future<(List<_Op>, String)> _shrink(List<_Op> ops, String why) async {
-  var best = ops;
-  var reason = why;
-  var changed = true;
-  while (changed) {
-    changed = false;
-    for (var i = 0; i < best.length; i++) {
-      final shorter = [...best]..removeAt(i);
-      final r = await _run(shorter);
-      if (r != null) {
-        best = shorter;
-        reason = r;
-        changed = true;
-        break;
-      }
-    }
-  }
-  return (best, reason);
-}
-
-Future<void> _campaign(
-  int seed,
-  int sequences, {
-  required int maxOthers,
-}) async {
-  final rnd = Random(seed);
-  var steps = 0;
-  final failures = <String>{};
-  for (var s = 0; s < sequences; s++) {
-    final ops = _sequence(rnd, maxOthers: maxOthers);
-    steps += ops.length;
-    final r = await _run(ops);
-    if (r != null) {
-      final (shrunk, why) = await _shrink(ops, r);
-      failures.add('${shrunk.join(' ; ')}\n   => $why');
-      if (failures.length >=
-          const int.fromEnvironment('REF_MAXF', defaultValue: 5)) {
-        break;
-      }
-    }
-  }
-  // The size of the run and each difference, for the person reading it.
-  // ignore: avoid_print
-  print(
-    'seed $seed maxOthers $maxOthers: $sequences sequences, $steps steps, '
-    '${failures.length} distinct shrunk differences',
-  );
-  for (final f in failures) {
-    // A difference, shrunk, for the person reading the run.
-    // ignore: avoid_print
-    print('  DIFF: $f');
-  }
-  expect(failures, isEmpty, reason: failures.join('\n'));
-}
-
 void main() {
-  const sequences = int.fromEnvironment('REF_SEQ', defaultValue: 2000);
-  test(
-    'SwrCache agrees with the reference model (forgetOthers at most once)',
-    () => _campaign(20261115, sequences, maxOthers: 1),
-    timeout: const Timeout(Duration(minutes: 20)),
-  );
-  test(
-    'SwrCache agrees with the reference model (forgetOthers any number)',
-    () => _campaign(7, sequences ~/ 4, maxOthers: 99),
-    timeout: const Timeout(Duration(minutes: 20)),
-    skip: !const bool.fromEnvironment('REF_ANY'),
-  );
+  test('the store holds what the history allows, and what it requires, over '
+      'random sequences', () async {
+    const sequences = int.fromEnvironment('REF_SEQ', defaultValue: 400);
+    const steps = int.fromEnvironment('REF_STEPS', defaultValue: 40);
+    for (final seed in [20261115, 15112026]) {
+      final r = Random(seed);
+      for (var i = 0; i < sequences ~/ 2; i++) {
+        final broken = await _sequence(r, steps);
+        if (broken != null) {
+          fail('seed $seed, sequence $i: $broken\n${_log.join('\n')}');
+        }
+      }
+    }
+  }, timeout: const Timeout(Duration(minutes: 10)));
 }

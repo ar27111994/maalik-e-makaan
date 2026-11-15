@@ -31,6 +31,9 @@ final class CashBookController extends SwrNotifier<CashBook> {
   String get query => 'cash.$portfolioId';
 
   @override
+  RecordScope<CashBook> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<CashBook>> build() {
     ref.watch(handoverRepositoryProvider);
     return super.build();

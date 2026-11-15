@@ -44,6 +44,9 @@ final class ExpensesController extends SwrNotifier<Paged<Expense>> {
   String get query => 'expenses.${list.portfolioId}.${list.requestId ?? 'all'}';
 
   @override
+  RecordScope<Paged<Expense>> get scope => InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<Expense>>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -105,6 +108,9 @@ final class ExpenseController extends SwrNotifier<Expense> {
 
   @override
   String get query => 'expense.$expenseId';
+
+  @override
+  RecordScope<Expense> get scope => FromValue((expense) => expense.portfolioId);
 
   @override
   Stream<Snapshot<Expense>> build() {

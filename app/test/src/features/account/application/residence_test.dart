@@ -4,7 +4,6 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/features/account/application/residence.dart';
 import 'package:maalik_e_makaan/src/features/account/data/residence.dart';
-import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:mm_core/mm_core.dart';
 
 import '../../../../support/container.dart';
@@ -50,6 +49,7 @@ void main() {
       final saved = await app.cache.read(
         testUserId,
         ResidenceController.query,
+        ResidenceController.scope,
         AccountResidence.fromRow,
       );
       expect(saved!.value, shown.value);
@@ -92,6 +92,7 @@ void main() {
       final saved = await app.cache.read(
         testUserId,
         ResidenceController.query,
+        ResidenceController.scope,
         AccountResidence.fromRow,
       );
       expect(saved!.value.residence.timeZone, _london);
@@ -144,6 +145,7 @@ void main() {
       final saved = await app.cache.read(
         testUserId,
         ResidenceController.query,
+        ResidenceController.scope,
         AccountResidence.fromRow,
       );
       expect(saved!.value.residence.country, CountryCode.parse('NO'));
@@ -162,12 +164,14 @@ void main() {
         timeZone: _london,
       );
       await pumpEventQueue();
-      await app.cache.forgetUser(testUserId, keep: PortfoliosController.kept);
+      // Gulberg leaves the user's list.
+      await app.cache.answer(testUserId, [plaza.id]);
       app.residences.gate.open();
       await saving;
       final kept = await app.cache.read(
         testUserId,
         ResidenceController.query,
+        ResidenceController.scope,
         AccountResidence.fromRow,
       );
       expect(kept!.value.residence.country, CountryCode.parse('GB'));
@@ -175,6 +179,7 @@ void main() {
       final saved = await app.cache.read(
         testUserId,
         ResidenceController.query,
+        ResidenceController.scope,
         AccountResidence.fromRow,
       );
       expect(saved!.value.residence.country, CountryCode.parse('NO'));

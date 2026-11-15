@@ -29,6 +29,9 @@ final class PlacesController extends SwrNotifier<List<PropertyPlace>> {
   String get query => 'places.$portfolioId';
 
   @override
+  RecordScope<List<PropertyPlace>> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<List<PropertyPlace>>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -73,6 +76,10 @@ final class TenanciesController extends SwrNotifier<List<Lease>> {
 
   @override
   String get query => 'tenancies.${place.propertyId}.${place.unitId ?? '-'}';
+
+  @override
+  RecordScope<List<Lease>> get scope =>
+      FromValue((leases) => samePortfolio(leases.map((l) => l.portfolioId)));
 
   @override
   Stream<Snapshot<List<Lease>>> build() {
