@@ -428,8 +428,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   the connector's query call): `tool/db/time_zone_skew.sql` (`docs/operations.md`, Time-zone
   data). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
   speaker notes) says 23 reviewed write functions and 23 database suites, as releases 1.3.0 to
-  1.4.0 have. Its notes still name 1.3.0 as the released app and count five releases since
-  1.0.0; with 1.3.1 and 1.4.0 there are seven.
+  1.4.0 have. The deck's notes named 1.3.0 as the released app and counted five releases
+  since 1.0.0 until after 1.4.0; they now take both from the manifest and the changelog
+  (`{{version}}`, `{{laterReleases}}`; `website/deck/README.md`), and a unit test refuses a
+  slide that writes either out.
 
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
