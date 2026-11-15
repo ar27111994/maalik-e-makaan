@@ -1134,7 +1134,12 @@ exactly its six lines, the upload's to be exactly
 outside `dist/` and runs nothing before, after or around it), the upload step's own `env` to set
 only `GH_TOKEN`, and the job's default shell, where set, to be `bash` (which the runner starts
 with `-e -o pipefail`; `bash {0}` would drop `-e`, and only the last file's check would count), so
-no file is skipped, no failed check is lost and no unattested file is attached.
+no file is skipped, no failed check is lost and no unattested file is attached. In every
+workflow it refuses other ways of putting files on a release: `gh release create`, a
+release-upload action, and the REST upload by its URL or its client libraries' names, which it
+looks for in every value of every step (so also in an `actions/github-script` script). It reads
+only the workflow files: an upload from a script file a step runs, or a `GH_REPO` an earlier step
+writes to `$GITHUB_ENV`, is for the reviewer to catch.
 
 **Re-runs.** "Re-run failed jobs" runs the whole job again on a new runner: a new build, a new
 attestation and a new provenance file, under the same names, so `--clobber` replaces every file.
@@ -1161,28 +1166,29 @@ files (except `SHA256SUMS-ios`, which those runs did not attest). Attaching the 
 would only raise the Scorecard score at once instead of release by release, and let their files
 be checked offline. It is not part of releasing and nothing runs it; if the owner chooses to,
 with their own `gh` login and in a new, empty folder, for each tag: set the tag on the third
-line, then paste the whole block into the terminal.
+line, then paste the whole block into the terminal (bash, or zsh, macOS's default shell). The
+block downloads the release's files and the attestation of the Android and web build, checks it
+against every file of that build, does the same for the iOS build, and only then attaches the two
+provenance files, without `--clobber`, so nothing on the release is replaced. It has no comment
+lines, since zsh, unless `setopt interactivecomments` is on, reads a pasted `#` line as a
+command.
 
 ```sh
 (
   set -euo pipefail
   repo=ar27111994/maalik-e-makaan tag=v1.3.0
-  # 1. Download the release's files and the attestation of the Android and web build.
   gh release download "$tag" --repo "$repo"
   gh attestation download SHA256SUMS --repo "$repo"
   mv -- sha256:*.jsonl "maalik-e-makaan-$tag.intoto.jsonl"
-  # 2. Check it against every file of that build.
   for f in SHA256SUMS *.aab *.apk *-web.zip *-debug-symbols.zip; do
     gh attestation verify "$f" --bundle "maalik-e-makaan-$tag.intoto.jsonl" --repo "$repo" \
       --signer-workflow "$repo/.github/workflows/release.yml" --source-ref refs/heads/main
   done
-  # 3. The same for the iOS build.
   gh attestation download "maalik-e-makaan-$tag-ios-unsigned.ipa" --repo "$repo"
   mv -- sha256:*.jsonl "maalik-e-makaan-$tag-ios.intoto.jsonl"
   gh attestation verify "maalik-e-makaan-$tag-ios-unsigned.ipa" \
     --bundle "maalik-e-makaan-$tag-ios.intoto.jsonl" --repo "$repo" \
     --signer-workflow "$repo/.github/workflows/release.yml" --source-ref refs/heads/main
-  # 4. Reached only when every step above worked; without --clobber, so nothing is replaced.
   gh release upload "$tag" maalik-e-makaan-"$tag"*.intoto.jsonl --repo "$repo"
   echo "Attached the two provenance files to $tag."
 )
