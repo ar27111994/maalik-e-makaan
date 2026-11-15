@@ -1,0 +1,11 @@
+# actionlint configuration (https://github.com/rhysd/actionlint/blob/main/docs/config.md).
+paths:
+  .github/workflows/*.{yml,yaml}:
+    ignore:
+      # actionlint 1.7.12 does not know GitHub's self-repository syntax for a reusable
+      # workflow (uses: $/.github/workflows/deploy.yml; docs/agents/conventions.md) and
+      # refuses it. Only that message, and only for a "$/" call without an @ref, is ignored.
+      # tool/github/check_workflow_calls.py (make lint) checks such a call as actionlint
+      # would have, and its canary test fails once the pinned actionlint accepts "$/": then
+      # remove this ignore and trim that check to what actionlint still does not cover.
+      - '^reusable workflow call "\$/[^"@]+" at "uses" is not following the format "owner/repo/path/to/workflow\.yml@ref" nor "\./path/to/workflow\.yml"\.'

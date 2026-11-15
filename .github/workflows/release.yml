@@ -211,7 +211,7 @@ jobs:
     permissions:
       contents: read
       issues: read # asked for by deploy.yml's site job, skipped here
-    uses: ./.github/workflows/deploy.yml
+    uses: $/.github/workflows/deploy.yml
     with:
       ref: ${{ needs.release-please.outputs.tag }}
       skip-site: true
@@ -232,7 +232,7 @@ jobs:
     permissions:
       contents: read
       issues: read # the roadmap page reads the roadmap's milestones and issues
-    uses: ./.github/workflows/deploy.yml
+    uses: $/.github/workflows/deploy.yml
     with:
       ref: ${{ needs.release-please.outputs.tag }}
       site-only: true

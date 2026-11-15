@@ -220,6 +220,7 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 | Package              | Version   | Licence                                                          |
 | -------------------- | --------- | ---------------------------------------------------------------- |
 | fonttools            | 4.68.0    | MIT                                                              |
+| PyYAML               | 6.0.3     | MIT                                                              |
 | black                | 26.10.1   | MIT                                                              |
 | ruff                 | 0.17.3    | MIT                                                              |
 | shellcheck-py        | 0.11.0.1  | MIT wrapper; the ShellCheck 0.11.0 binary it installs is GPL-3.0 |

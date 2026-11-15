@@ -46,7 +46,7 @@ jobs:
     permissions:
       contents: read
       issues: read
-    uses: ./.github/workflows/deploy.yml
+    uses: $/.github/workflows/deploy.yml
     with:
       ref: ${{ needs.latest.outputs.tag }}
       site-only: true
