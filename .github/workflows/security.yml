@@ -115,8 +115,9 @@ jobs:
           persist-credentials: false
       # Runs zizmor, with its online audits, and uploads the findings to code scanning. With
       # that upload on (advanced-security, the default) zizmor writes SARIF and exits 0 whatever
-      # it finds, so the next step fails the job on a finding: a pull request is stopped, not
-      # main warned afterwards. make lint runs the same zizmor offline.
+      # it finds, so the next step fails the job on a finding that no inline ignore suppresses:
+      # a pull request is stopped, not main warned afterwards. make lint runs the same zizmor
+      # offline.
       - uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         id: zizmor
         with:

@@ -135,13 +135,14 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   what actionlint does not cover. actionlint also refuses a step-level `$/` action (its
   `[action]` rule, not ignored): the repository has no action of its own today, and the first
   one needs that ignore and the check of its inputs added together.
-- zizmor findings fail the gate, at every severity. `make lint` (so the Repository hygiene job)
-  runs the zizmor that `tool/requirements-lint.txt` installs offline, with `--strict-collection`, on
-  the whole repository; the Security workflow's "Workflow security (zizmor)" job runs the same
-  version with its online audits, uploads the results to code scanning, then fails on any
-  finding. `make docs-check` (its `zizmor-pin` check) keeps the two versions equal, and
-  `tool/requirements-lint.in` equal to the lockfile. A finding is fixed; an
-  exception is an inline `# zizmor: ignore[<audit>]` with its reason, agreed in review.
+- zizmor findings fail the gate, at every severity, unless an inline ignore suppresses them.
+  `make lint` (so the Repository hygiene job) runs the zizmor that `tool/requirements-lint.txt`
+  installs offline, with `--strict-collection`, on the whole repository; the Security workflow's
+  "Workflow security (zizmor)" job runs the same version with its online audits, uploads the
+  results to code scanning, then fails on any finding that is not suppressed. `make docs-check`
+  (its `zizmor-pin` check) keeps the two versions equal, and `tool/requirements-lint.in` equal
+  to the lockfile. A finding is fixed; an exception is an inline `# zizmor: ignore[<audit>]`
+  with its reason, agreed in review.
 
 ## Design
 

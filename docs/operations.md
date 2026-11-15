@@ -1089,15 +1089,15 @@ committed icon is stale (`make app-icons-check`).
 The Security workflow (`security.yml`) uploads CodeQL, OSV-Scanner and zizmor results to code
 scanning. Its "Workflow security (zizmor)" job runs the zizmor version that
 `tool/requirements-lint.txt` installs for `make lint`, with its online audits, and fails on any
-finding after the upload; `make lint` runs the same version offline, which leaves out the four
-audits that need the GitHub API (`impostor-commit`, `known-vulnerable-actions`, `ref-confusion` and
-`stale-action-refs`). A finding of one of those four, such as a new advisory against a pinned
-action, can therefore turn the job red on every open pull request with no change in any of them:
-bump the action, or add an inline ignore with its reason, agreed in review
-(`docs/agents/conventions.md`, Workflows and actions). Until 15 November 2026 the job ran the newest
-zizmor and never failed on a finding, so the `self-repository` audit added in zizmor 1.30.0 left
-three notes on `main` (the calls of `deploy.yml`, now written with `$/`) without failing a pull
-request.
+finding that no inline ignore suppresses, after the upload; `make lint` runs the same version
+offline, which leaves out the four audits that need the GitHub API (`impostor-commit`,
+`known-vulnerable-actions`, `ref-confusion` and `stale-action-refs`). A finding of one of those
+four, such as a new advisory against a pinned action, can therefore turn the job red on every open
+pull request with no change in any of them: bump the action, or add an inline ignore with its
+reason, agreed in review (`docs/agents/conventions.md`, Workflows and actions). Until 15 November
+2026 the job ran the newest zizmor and never failed on a finding, so the `self-repository` audit
+added in zizmor 1.30.0 left three notes on `main` (the calls of `deploy.yml`, now written with `$/`)
+without failing a pull request.
 
 **After the change to `$/` merges.** `$/` first runs on GitHub after the merge, and two runs show
 whether GitHub accepts it:
