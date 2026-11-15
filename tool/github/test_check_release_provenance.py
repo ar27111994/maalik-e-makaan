@@ -361,6 +361,39 @@ MUTANTS = {
         in_job("ios", "-ios.intoto.jsonl", ".intoto.jsonl"),
         ['job "ios" names the provenance file dist/maalik-e-makaan-'],
     ),
+    # GitHub ignores white space inside `${{ }}` and the case of context and property names, so
+    # these are the artefacts job's file too (F2 on #81's second review).
+    "the iOS provenance file named as the artefacts one, with other padding": (
+        in_job(
+            "ios",
+            "${{ needs.release-please.outputs.tag }}-ios.intoto.jsonl",
+            "${{needs.release-please.outputs.tag  }}.intoto.jsonl",
+        ),
+        [
+            (
+                'job "ios" names the provenance file'
+                " dist/maalik-e-makaan-${{needs.release-please.outputs.tag  }}.intoto.jsonl, as"
+                f" {RELEASE}:",
+                " does (dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}"
+                ".intoto.jsonl, the same file once GitHub reads its expressions); the two uploads"
+                " would replace each other's file",
+            )
+        ],
+    ),
+    "the iOS provenance file named as the artefacts one, in other case": (
+        in_job(
+            "ios",
+            "${{ needs.release-please.outputs.tag }}-ios.intoto.jsonl",
+            "${{ needs.Release-Please.outputs.TAG }}.intoto.jsonl",
+        ),
+        [
+            (
+                'job "ios" names the provenance file'
+                " dist/maalik-e-makaan-${{ needs.Release-Please.outputs.TAG }}.intoto.jsonl",
+                "the same file once GitHub reads its expressions",
+            )
+        ],
+    ),
     "BUNDLE reading attestation-id": (
         in_job("artefacts", "outputs.bundle-path", "outputs.attestation-id"),
         ['job "artefacts": BUNDLE must be ${{ steps.provenance.outputs.bundle-path }}'],
@@ -622,6 +655,63 @@ MUTANTS = {
     "a release file deleted through the REST API": (
         later_step("ios", 'gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/1"'),
         ["this step puts files on a release without the provenance check"],
+    ),
+    # Flags before the subcommand, which gh skips with their values (F1 on #81's second
+    # review): `-R`/`--repo` is a flag of `gh release` itself.
+    **{
+        f"a second upload step in {job} with {how}": (
+            later_step(job, f'gh release {flags} upload "$TAG" dist/late --clobber'),
+            [f'job "{job}" runs `gh release upload` in 2 steps'],
+        )
+        for job in ("artefacts", "ios")
+        for how, flags in (
+            ("-R before the subcommand", '-R "$GITHUB_REPOSITORY"'),
+            ("--repo= before the subcommand", '--repo="$GITHUB_REPOSITORY"'),
+            ("a flag of its own before the subcommand", "--some-flag"),
+        )
+    },
+    **{
+        f"{what} in {job} with {flag.split()[0]} before the subcommand": (
+            later_step(job, f"gh release {flag} {command}"),
+            ["this step puts files on a release without the provenance check"],
+        )
+        for job in ("artefacts", "ios")
+        for flag in ('-R "$GITHUB_REPOSITORY"', '--repo "$GITHUB_REPOSITORY"')
+        for what, command in (
+            ("a release created", "create v9 dist/late"),
+            ("the release deleted", '"$TAG" --yes'.join(("delete ", ""))),
+            ("the provenance file deleted", 'delete-asset "$TAG" x.intoto.jsonl --yes'),
+        )
+    },
+    "a second upload step with -R before the subcommand, gh's name in a variable": (
+        later_step("ios", 'command "$GH" release -R "$GITHUB_REPOSITORY" upload "$TAG" dist/late'),
+        ['job "ios" runs `gh release upload` in 2 steps'],
+    ),
+    # Only gh knows which flags take a value, so a word after a flag counts as the subcommand
+    # too: wider than gh, which runs `view` here, but an upload is never missed.
+    "a step whose flag's value is the word upload": (
+        later_step("artefacts", 'gh release -R upload view "$TAG"'),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a gh alias set with a flag before set, gh's name in a variable": (
+        later_step("ios", "${GH:-gh} alias --clobber set up 'release view'"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a gh extension installed with a flag before install, gh's name in a variable": (
+        later_step("artefacts", 'command "$GH" extension --force install someone/gh-attach'),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a release viewed, with -R before the subcommand (still passes)": (
+        later_step("ios", 'gh release -R "$GITHUB_REPOSITORY" view "$TAG" --json assets'),
+        [],
+    ),
+    "a release edited and downloaded, with -R before the subcommand (still passes)": (
+        later_step(
+            "artefacts",
+            'gh release -R "$GITHUB_REPOSITORY" edit "$TAG" --draft=false'
+            ' && gh release --repo "$GITHUB_REPOSITORY" download "$TAG" -p "*.apk"',
+        ),
+        [],
     ),
     "a comment after a command (still passes)": (
         in_job("artefacts", GH_VERSION, "          gh --version  # for the log\n"),
@@ -1204,6 +1294,21 @@ class FixtureTest(Fixture):
             "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
             "        with:\n"
             "          script: await exec.exec('gh', ['alias', 'set', 'up', 'release upload'])\n",
+            # Flags gh skips before the subcommand, in an action's script and in an env value.
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: await exec.exec('gh',"
+            " ['release', '-R', repo, 'upload', 'v2', 'x'])\n",
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: await exec.exec('gh --repo=o/r release"
+            " --repo o/r delete-asset v2 x')\n",
+            "      - uses: some/action@0123456789abcdef0123456789abcdef01234567\n"
+            "        env:\n"
+            '          COMMAND: gh release -R "o/r" create v2 x\n',
+            "      - uses: some/action@0123456789abcdef0123456789abcdef01234567\n"
+            "        env:\n"
+            "          COMMAND: gh -R o/r extension install someone/gh-attach\n",
         )
         for step in steps:
             with self.subTest(step=step):
@@ -1357,6 +1462,16 @@ class WordsTest(unittest.TestCase):
             "${x:-gh} alias set up 'release upload'",
             "gh ex$'t' install o/gh-x",
             "curl -X DELETE https://api.github.com/repos/o/r/releases/1",
+            # Flags, and their values, before the subcommand (F1 on #81's second review).
+            'gh release -R "$GITHUB_REPOSITORY" create v1',
+            'gh release --repo "$GITHUB_REPOSITORY" delete v1 --yes',
+            "gh release --repo=o/r delete-asset v1 x",
+            '"$GH" release -R o/r --yes delete v1',
+            "${x:-gh} alias --clobber set up 'release view'",
+            '"$GH" ext --force install o/gh-x',
+            '"$GH" extension --force install o/gh-x',
+            # A flag's value that is itself a verb counts too (wider than gh, which runs view).
+            "command gh release -R create view v1",
         ):
             with self.subTest(line=line):
                 self.assertTrue(crp.refused_line(line))
@@ -1365,9 +1480,94 @@ class WordsTest(unittest.TestCase):
             'gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq .assets',
             "gh attestation verify x --bundle y",
             "echo next steps",
+            # Another subcommand first ends the search: `view`, `list`, `edit` and `download`
+            # attach and delete nothing, whatever words come after them.
+            "${x:-gh} release view create",
+            '"$GH" release -R o/r view --json create',
+            '"$GH" release --repo o/r list --limit 1 --exclude-drafts delete',
+            '"$GH" release -R o/r edit v1 --draft=false --tag create',
+            '"$GH" release download v1 -R o/r -p delete',
         ):
             with self.subTest(line=line):
                 self.assertFalse(crp.refused_line(line))
+
+    def test_the_subcommand_is_found_past_flags_as_gh_finds_it(self):
+        upload = ("upload",)
+        for words, expected in (
+            (["upload"], True),
+            (["-R", "o/r", "upload"], True),
+            (["--repo=o/r", "upload"], True),
+            (["--some-flag", "upload"], True),
+            (["-R", "o/r", "--yes", "upload"], True),
+            (["-R", "upload", "view"], True),
+            (["view", "upload"], False),
+            (["-R", "o/r", "view", "upload"], False),
+            # Every flag may take a value, even one written with `=` (which gh reads as
+            # holding its value): wider than gh, never narrower.
+            (["--repo=o/r", "view", "upload"], True),
+            (["-R"], False),
+            ([], False),
+        ):
+            with self.subTest(words=words):
+                self.assertEqual(crp._verb_after(words, upload), expected)
+        self.assertTrue(
+            crp._says('gh release -R "$GITHUB_REPOSITORY" upload "$TAG" x', crp.UPLOAD, "upload")
+        )
+        self.assertFalse(crp._says("gh release view -R o/r upload", crp.UPLOAD, "upload"))
+
+    def test_the_text_patterns_skip_flags_as_gh_does(self):
+        for pattern, text in (
+            (crp.UPLOAD, 'gh release -R "$GITHUB_REPOSITORY" upload "$TAG" x'),
+            (crp.UPLOAD, "gh --repo=o/r release --some-flag upload v1 x"),
+            (crp.GH_RELEASE_TEXT, "exec.exec('gh', ['release', '-R', repo, 'upload', 'v1'])"),
+            (crp.GH_RELEASE_TEXT, "exec.exec('gh', ['release', '--repo', 'o/r', 'delete'])"),
+            (crp.GH_RELEASE_TEXT, "gh release -R 'o r' create v1"),
+            (crp.GH_RELEASE_TEXT, "gh release -R upload view"),
+            (crp.OTHER_UPLOAD, "gh release --repo o/r delete-asset v1 x"),
+            (crp.GH_COMMANDS_TEXT, "gh -R o/r extension install o/gh-x"),
+            (crp.GH_COMMANDS_TEXT, "exec.exec('gh', ['--repo', 'o/r', 'alias', 'set'])"),
+        ):
+            with self.subTest(text=text):
+                self.assertIsNotNone(pattern.search(text))
+        for pattern, text in (
+            (crp.GH_RELEASE_TEXT, "gh release view upload"),
+            (crp.GH_RELEASE_TEXT, "gh release -R o/r view upload"),
+            (crp.GH_RELEASE_TEXT, "gh release download v1 -p delete"),
+            (crp.GH_RELEASE_TEXT, "gh release edit v1 --tag create"),
+            (
+                crp.GH_RELEASE_TEXT,
+                "uses: googleapis/release-please-action, gh release-please -x upload",
+            ),
+            (crp.OTHER_UPLOAD, "gh release list --limit 1"),
+        ):
+            with self.subTest(text=text):
+                self.assertIsNone(pattern.search(text))
+
+    def test_a_long_line_of_flags_is_read_quickly(self):
+        # Each flag may or may not take a value; the patterns must not try every combination.
+        text = "gh release " + "-a b " * 5000 + "view"
+        for pattern in (crp.UPLOAD, crp.GH_RELEASE_TEXT, crp.OTHER_UPLOAD):
+            self.assertIsNone(pattern.search(text))
+        self.assertFalse(crp.refused_line(text))
+
+
+class ProvenanceKeyTest(unittest.TestCase):
+    def test_names_are_compared_as_github_reads_them(self):
+        name = "dist/m-${{ needs.release-please.outputs.tag }}.intoto.jsonl"
+        for same in (
+            "dist/m-${{needs.release-please.outputs.tag}}.intoto.jsonl",
+            "dist/m-${{\tneeds.release-please.outputs.tag  }}.intoto.jsonl",
+            "dist/m-${{ Needs.Release-Please.Outputs.TAG }}.intoto.jsonl",
+        ):
+            with self.subTest(name=same):
+                self.assertEqual(crp.provenance_key(same), crp.provenance_key(name))
+        # The text outside the braces is kept as written.
+        for other in (
+            "dist/M-${{ needs.release-please.outputs.tag }}.intoto.jsonl",
+            "dist/m-${{ needs.release-please.outputs.tag }}-ios.intoto.jsonl",
+        ):
+            with self.subTest(name=other):
+                self.assertNotEqual(crp.provenance_key(other), crp.provenance_key(name))
 
 
 class CommandsTest(unittest.TestCase):
