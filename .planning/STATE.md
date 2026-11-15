@@ -204,7 +204,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   reviews' probes check it
   (`test/src/data/cache/`). The list's controller is built again when the signed-in user
   changes, so one kept alive across a sign-out applies the next session's lists (a verifier's
-  probe, 2026-11-15). A command that chooses the current portfolio after a request chooses
+  probe, 2026-11-15), and its commands refuse (`SessionExpired`) unless the signed-in user is
+  the list's own: leaving a portfolio as the session ended reloaded the list afterwards and
+  saved it again for the account that had signed out (the agent's probe, the same day). A
+  command that chooses the current portfolio after a request chooses
   nothing when the session ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on

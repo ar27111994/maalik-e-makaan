@@ -45,7 +45,10 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   `requestEpoch()` before its request, or `shownEpoch` with the value on show it builds on), so
   that nothing lands after a wipe; a notifier that is not an `SwrNotifier` (`ProfileController`,
   `PortfoliosController`) keeps the epoch of the value on show itself; `PortfoliosController`
-  watches the signed-in user, as `SwrNotifier` does, so each session's lists are applied. Every
+  watches the signed-in user, as `SwrNotifier` does, so each session's lists are applied, and
+  each of its commands begins with `_requireSession()`: a new command on it, or on another
+  notifier keyed by a user id, does the same, since its caller may have read the user before a
+  request of its own. Every
   saved entry names its portfolio in its key: each `SwrNotifier` declares its `scope` (`InPortfolio` when its
   request filters by a portfolio it names, `FromValue` when its rows carry `portfolio_id`, or
   `UnknownPortfolio`, kept only until the session's first list of portfolios); only the list,

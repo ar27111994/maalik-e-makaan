@@ -354,6 +354,12 @@ else does then, since a picker may be handing over a copy.
     `PortfoliosController`, is built again when the signed-in user changes
     (every wipe ends a session): a portfolio list held across a sign-out
     reads nothing while signed out, and applies the next session's lists.
+    Its commands (reload, create, delete, the owner-abroad answer) throw
+    `SessionExpired` unless the signed-in user is the list's own, and ask
+    for, show and save nothing: a caller that read the user before a request
+    of its own (leaving a portfolio, changing one's own role) reloads the
+    list afterwards, and by then the session may have ended, or be another
+    account's.
   - _The portfolio list._ Each list the server answers is numbered before
     it is asked (`SwrCache.ask`), and only the newest-asked answer of the
     session applies (`SwrCache.applyPortfolios`; one asked before a wipe is
