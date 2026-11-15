@@ -352,16 +352,20 @@ else does then, since a picker may be handing over a copy.
   same entry (the store may finish the two in either order, and would hold
   the older value); that delete also takes a later, wanted write the store
   finished first, and the entry is fetched again. For the portfolio list a
-  missing saved list counts as unknown: its next save forgets the user's
-  other entries but the profile and residence, if the device holds any
-  (`SwrCache.holdsOthers`), so a list deleted this way, one a wipe deleted
-  while it could not delete everything else, or none yet in a new session,
-  leaves nothing of a removed portfolio behind. Every such entry counts,
-  whenever it was saved and whether or not its write has finished: a record
-  opened by its link (`/tenants/:tenantId` after a web reload or a
-  sign-in's redirect) is asked for before the list, and its portfolio may
-  have left by the time the list comes. What that costs: in a session with
-  no saved list, a record saved before the first list save goes with it,
+  missing saved list counts as unknown: its next save always forgets the
+  user's other entries but the profile and residence, so a list deleted
+  this way, one a wipe deleted while it could not delete everything else,
+  or none yet in a new session, leaves nothing of a removed portfolio
+  behind. The save does not first look at what the store lists: a write
+  the store has been asked for but does not list yet, or a fetch whose
+  answer is still on its way, would not be there to see. A record opened
+  by its link (`/tenants/:tenantId` after a web reload or a sign-in's
+  redirect) is asked for before the list, its portfolio may have left by
+  the time the list comes, and its answer may come after the list: the
+  forget starts a new epoch, so that answer is dropped as it lands (kept,
+  nothing later would find it, since the saved list does not name that
+  portfolio). What that costs: in a session with no saved list, a record
+  saved before the first list save, or still on its way, goes with it,
   and its screen, still shown, saves a value made from the one on show only
   once the record is read again. The profile and residence, the user's own,
   are never forgotten for a portfolio, so the profile loading beside the

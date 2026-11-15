@@ -527,39 +527,6 @@ void main() {
     expect(storeCallLimit, const Duration(seconds: 3));
   });
 
-  group('holdsOthers', () {
-    test('tells whether the user has an entry of a query not kept', () async {
-      const kept = {'portfolios', 'profile'};
-      expect(await cache.holdsOthers('u1', keep: kept), isFalse);
-      await cache.seed('u1', 'portfolios', []);
-      await cache.seed('u1', 'profile', {});
-      await cache.seed('u12', 'tenants', []);
-      await cache.seed('u2', 'tenants', []);
-      expect(await cache.holdsOthers('u1', keep: kept), isFalse);
-      await cache.seed('u1', 'tenants', []);
-      expect(await cache.holdsOthers('u1', keep: kept), isTrue);
-    });
-
-    test('counts what this run saved, also before the kept entry was first '
-        'written, and after a clear', () async {
-      await cache.seed('u1', 'tenants', []);
-      expect(await cache.holdsOthers('u1', keep: {'portfolios'}), isTrue);
-      await cache.clear();
-      await cache.seed('u1', 'tenant.t1', {});
-      expect(await cache.holdsOthers('u1', keep: {'portfolios'}), isTrue);
-    });
-
-    test('counts an entry whose write has not finished', () async {
-      const tenants = 'mm.swr.v1.u1.tenants';
-      store.values[tenants] = '{}';
-      store.holding.add(tenants);
-      unawaited(cache.seed('u1', 'tenants', [1]));
-      await pumpEventQueue();
-      expect(store.heldWrites, 1);
-      expect(await cache.holdsOthers('u1', keep: {'portfolios'}), isTrue);
-    });
-  });
-
   group('forgetOthers', () {
     test("deletes every user's entries but one's, and nothing else", () async {
       await cache.seed('u1', 'tenants', [1]);

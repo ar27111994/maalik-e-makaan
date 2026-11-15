@@ -196,7 +196,7 @@ final class SwrCache {
   /// value). A later, wanted value the store finished first goes with it:
   /// the entry is then missing, and is fetched again. The saved portfolio
   /// list counts a missing list as unknown, and forgets the user's entries
-  /// that may be of a portfolio ([holdsOthers], `PortfoliosController`).
+  /// that may be of a portfolio ([forgetUser], `PortfoliosController`).
   Future<DateTime> write(
     String userId,
     String query,
@@ -304,12 +304,6 @@ final class SwrCache {
       ..add((kept, ++_epoch));
     await _deleteWhere((key) => _isOther(key, userId, kept));
   }
-
-  /// Whether the store holds an entry of [userId]'s but those of the
-  /// queries in [keep]: whatever wrote it, and whether or not its write
-  /// has finished.
-  Future<bool> holdsOthers(String userId, {required Set<String> keep}) async =>
-      (await _store.keys()).any((key) => _isOther(key, userId, keep));
 
   /// Whether [key] is the entry of [userId]'s of a query not in [keep].
   static bool _isOther(String key, String userId, Set<String> keep) {

@@ -641,7 +641,7 @@ void main() {
       final epoch = app.cache.epoch;
       app.portfolios.gate.open();
       await pumpEventQueue();
-      expect(app.cache.epoch, epoch, reason: 'no forget');
+      expect(app.cache.epoch, epoch + 1, reason: 'forgotten, but kept');
       expect(app.store.values.keys, {profileKey, listKey});
       await container
           .read(profileProvider(testUserId).notifier)
@@ -804,14 +804,58 @@ void main() {
       expect(saved!.value.language, AppLanguage.urdu);
     });
 
-    test('but nothing is forgotten when it holds nothing else', () async {
+    test('nor a record opened by its link whose store write has not '
+        'finished when the first list save looks at the store', () async {
+      final app = TestApp();
+      final tenantKey = 'mm.swr.v1.$testUserId.tenant.${aliRaza.id}';
+      app.portfolios.gate.close();
+      app.store.holding.add(tenantKey);
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      listen(container, tenantProvider(aliRaza.id));
+      await pumpEventQueue();
+      expect(app.store.heldWrites, 1, reason: "the record's write on its way");
+      expect(app.store.values.keys, isEmpty, reason: 'not listed yet');
+      app.portfolios.memberships.remove(gulberg);
+      app.portfolios.gate.open();
+      await pumpEventQueue();
+      app.store
+        ..holding.clear()
+        ..finishHeldWritesOldestFirst();
+      await pumpEventQueue();
+      expect(app.store.values.keys, [listKey]);
+    });
+
+    test('nor a record opened by its link whose answer, given while the '
+        'user was a member, comes after the list', () async {
+      final app = TestApp();
+      app.portfolios.gate.close();
+      app.tenants.gate.close();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      listen(container, tenantProvider(aliRaza.id));
+      await pumpEventQueue();
+      app.portfolios.memberships.remove(gulberg);
+      app.portfolios.gate.open();
+      await pumpEventQueue();
+      expect(app.store.values.keys, [listKey]);
+      app.tenants.gate.open();
+      await pumpEventQueue();
+      expect(app.store.values.keys, [listKey], reason: 'dropped as it lands');
+      // The saved list no longer names Gulberg: nothing later would find it.
+      await container.read(portfoliosProvider(testUserId).notifier).reload();
+      expect(app.store.values.keys, [listKey]);
+    });
+
+    test("but another user's entries stay when it holds nothing else of the "
+        "user's", () async {
       final app = TestApp();
       final container = containerFor(app);
       listen(container, portfoliosProvider(testUserId));
       await app.cache.seed('another-user', 'tenants.${plaza.id}', [1]);
       final epoch = app.cache.epoch;
       await pumpEventQueue();
-      expect(app.cache.epoch, epoch, reason: 'no forget');
+      expect(app.cache.epoch, epoch + 1, reason: 'forgotten all the same');
       expect(app.store.values, hasLength(2));
     });
   });

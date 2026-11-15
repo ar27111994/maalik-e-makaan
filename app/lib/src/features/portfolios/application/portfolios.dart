@@ -40,8 +40,9 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 /// With no saved list (a wipe that could not delete everything, a write
 /// that landed out of order and was deleted, or the session's first list
 /// save), what the device holds of the user is not known to be of a
-/// portfolio still in the list, and goes too, whenever and however it was
-/// saved ([SwrCache.holdsOthers]).
+/// portfolio still in the list, and the save forgets it all the same:
+/// whatever the store holds, and, as the forget starts a new epoch, every
+/// write asked for before it, also one whose answer is still on its way.
 final class PortfoliosController
     extends StreamNotifier<Snapshot<List<PortfolioMembership>>> {
   new(this.userId);
@@ -152,9 +153,8 @@ final class PortfoliosController
   });
 
   /// Forgets the user's saved records when a portfolio of [before] is not
-  /// in [after], or, when [before] is unknown (null), whenever the device
-  /// holds any. False when they could not all be forgotten in time
-  /// ([SwrCache.callLimit]).
+  /// in [after], or when [before] is unknown (null). False when they could
+  /// not all be forgotten in time ([SwrCache.callLimit]).
   Future<bool> _forgetLeft(
     SwrCache cache,
     List<PortfolioMembership>? before,
@@ -165,12 +165,7 @@ final class PortfoliosController
       return true;
     }
     try {
-      await Future.sync(() async {
-        if (before == null && !await cache.holdsOthers(userId, keep: kept)) {
-          return;
-        }
-        await cache.forgetUser(userId, keep: kept);
-      }).timeout(cache.callLimit);
+      await cache.forgetUser(userId, keep: kept).timeout(cache.callLimit);
       return true;
     } on Object {
       return false;
