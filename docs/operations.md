@@ -1132,7 +1132,10 @@ them, and no `defaults.run.working-directory` on the job or the workflow (either
 exactly its six lines, the upload's to be exactly
 `gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"` (so it attaches nothing
 outside `dist/` and runs nothing before, after or around it), the upload step's own `env` to set
-only `GH_TOKEN`, and the job's default shell, where set, to be `bash` (which the runner starts
+only `GH_TOKEN` and the check step's only `BUNDLE` and `PROVENANCE`, the job's and the
+workflow's `env` to set nothing that changes what bash or gh runs (`BASH_ENV`, `PATH`, `IFS`,
+`LD_PRELOAD` or an exported function such as `BASH_FUNC_gh%%` could make every check pass), and
+the job's default shell, where set, to be `bash` (which the runner starts
 with `-e -o pipefail`; `bash {0}` would drop `-e`, and only the last file's check would count), so
 no file is skipped, no failed check is lost and no unattested file is attached. It reads those
 two runs as bash does and refuses what it could read otherwise: a comment that ends in a
@@ -1142,13 +1145,19 @@ substitution or parameter expansion, a `${{ }}` expression (Actions replaces it 
 the run), and a carriage return, a no-break or zero-width space or any other character but a
 space, a tab and a line feed that Python reads as white space or as nothing. The provenance
 file's name starts with a letter or a digit and holds only letters, digits, `.`, `_`, `-` and
-`${{ }}` expressions: `dist/*`, in the check's loop and in the upload, leaves out a name that
+plain context properties such as `${{ needs.release-please.outputs.tag }}` (an expression with a
+literal or a function in it could put a `#` or a space there): `dist/*`, in the check's loop and in the upload, leaves out a name that
 starts with a dot, so a hidden provenance file would never be attached. In every
 workflow it refuses other ways of putting files on a release: `gh release create`, a
-release-upload action, and the REST upload by its URL or its client libraries' names, which it
-looks for in every value of every step (so also in an `actions/github-script` script). It reads
-only the workflow files, as PyYAML parses them: an upload from a script file a step runs, or a `GH_REPO` an earlier step
-writes to `$GITHUB_ENV`, is for the reviewer to catch.
+release-upload action, and the REST upload by its URL or its client libraries' names; ways of
+taking them off (`gh release delete` and `delete-asset`, a `DELETE` on a release URL, the client
+libraries' delete calls), which would leave a release without its provenance file; and a gh
+alias or extension, which could upload under another name. It looks for them in every value of
+every step (so also in an `actions/github-script` script), and in a run once its quoting is read
+(`gh release $'upload'` counts). It reads only the workflow files, as PyYAML parses them: an
+upload from a script file a step runs or through text built at run time, a gh alias read from a
+configuration directory in the repository, or a `GH_REPO` an earlier step writes to
+`$GITHUB_ENV`, is for the reviewer to catch.
 
 **Re-runs.** "Re-run failed jobs" runs the whole job again on a new runner: a new build, a new
 attestation and a new provenance file, under the same names, so `--clobber` replaces every file.

@@ -26,11 +26,14 @@ or zero-width space). In each job that runs `gh release upload`:
 - the two steps just before it are, back to back, the attest step (`uses:
   actions/attest-build-provenance@<40-hex commit>`, with an `id` and `subject-path: dist/*`)
   and the provenance step, so no step can add an unattested file to `dist/` in between;
-- the provenance step's `env.BUNDLE` is the attest step's `bundle-path` output, its
-  `env.PROVENANCE` a file directly in `dist/` whose name ends in `.intoto.jsonl` and starts
-  with a letter or a digit, with only letters, digits, `.`, `_`, `-` and `${{ }}` expressions
-  after it (`dist/*` leaves out a name that starts with a dot, or an expression that could
-  become one, and gh and GitHub read other characters in their own way), and its run
+- the provenance step's `env` sets only `BUNDLE` and `PROVENANCE` (another variable, such as
+  `BASH_FUNC_gh%%` or `BASH_ENV`, could make bash run a `gh` that passes every file), `BUNDLE`
+  is the attest step's `bundle-path` output, `PROVENANCE` a file directly in `dist/` whose name
+  ends in `.intoto.jsonl` and starts with a letter or a digit, with only letters, digits, `.`,
+  `_`, `-` and plain context properties (`${{ needs.<job>.outputs.<name> }}`, no literal,
+  function or operator) after it (`dist/*` leaves out a name that starts with a dot, or an
+  expression that could become one, and gh and GitHub read other characters in their own way),
+  and its run
   copies the one to the other (`cp -- "$BUNDLE" "$PROVENANCE"`) and loops over `dist/*`, running
   `gh attestation verify "$file" --bundle "$PROVENANCE"` with `--signer-workflow` naming this
   workflow file and `--source-ref refs/heads/main`, the options SECURITY.md tells people to use.
@@ -45,13 +48,21 @@ or zero-width space). In each job that runs `gh release upload`:
   `bash`: the runner runs that as `bash --noprofile --norc -e -o pipefail {0}`, and a step without
   a shell as `bash -e {0}`, so a failed verify ends the step; a custom shell such as `bash {0}`
   drops `-e`, and then only the last file's verify would count;
+- neither the job's nor the workflow's `env` sets a variable that changes what bash or gh
+  runs (`SHELL_ENV`: `BASH_ENV`, `PATH`, `IFS`, `LD_PRELOAD` and others, and any
+  `BASH_FUNC_*`), merges variables in with `<<`, or comes from an expression;
 - the job grants `attestations: write` and `id-token: write`.
 
 No two jobs may name the same provenance file (the two `--clobber` uploads would replace each
 other's), no job may upload release files another way (`gh release create`, an upload to
 uploads.github.com or by the client libraries' `uploadReleaseAsset` and `upload_release_asset`,
-or a release-upload action; looked for in every value of every step, so also in an
-`actions/github-script` step's `with.script`, along with `gh release upload` there), and at least
+or a release-upload action), take them off a release (`gh release delete` or `delete-asset`, a
+`DELETE` on a release URL, the client libraries' `deleteRelease`, `deleteReleaseAsset`,
+`delete_release` and `delete_asset`), or define a gh alias or extension (`gh alias`, `gh
+extension`), which could upload under another name. It looks for these in every value of every
+step, so also in an `actions/github-script` step's `with.script`, along with `gh release upload`
+there; in a run, it looks once the run's quoting is read (`_words`: `gh release $'upload'`,
+`gh release ${x:-upload}` and the words of a quoted `bash -c` or `eval` string count). At least
 one job must upload, so that a renamed upload command cannot pass this check by matching nothing.
 
 Limits. It reads the workflow's structure, the text of these three steps' commands and the text
@@ -59,12 +70,14 @@ of every step's values; it does not run the shell or any script, and it reads on
 files, as PyYAML parses them: YAML folds a `run: >` and a plain scalar over several lines into
 one, and reads a CR or a CRLF in the file as a line feed. GitHub's parser is not PyYAML; where
 the two differ, this check sees PyYAML's value. Where it cannot read some other step's run as
-bash does, it looks for an upload in every line of it, comments included. It cannot know an
-expression's value, so one in the provenance file's name could still hold a `/`. An upload made
-by a script file a step runs (`./attach.sh`, `node attach.js`), by an action not named here, or
-through text built at run time is not seen; nor is a variable an earlier step writes to
-`$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload elsewhere), or a `BASH_ENV` file that
-bash reads before every step. Such changes to a workflow need a reviewer's eye. It checks the
+bash does, it looks for an upload in every line of it, comments included. It cannot know a
+context property's value, so one in the provenance file's name could still hold a `/`, a `#` or
+a space. An upload made by a script file a step runs (`./attach.sh`, `node attach.js`), by an
+action not named here, by a gh alias or extension read from a configuration directory in the
+repository (`GH_CONFIG_DIR`), or through text built at run time (`$(printf upload)`, a shell
+variable or function) is not seen; nor is a variable an earlier step writes to `$GITHUB_ENV` (a
+`GH_REPO` or `TAG` that sends the upload elsewhere, a `BASH_ENV` or `BASH_FUNC_*` for every later
+step). Such changes to a workflow need a reviewer's eye. It checks the
 action as named here: a move to `actions/attest` (which the wrapper's README recommends for new
 work) must update this check in the same change, keeping build provenance (no predicate inputs).
 Scorecard's extension lists are as of v5.6.0; the docs name that version.
@@ -74,6 +87,7 @@ Scorecard's extension lists are as of v5.6.0; the docs name that version.
 
 from __future__ import annotations
 
+import itertools
 import re
 import shlex
 import sys
@@ -105,21 +119,60 @@ UPLOAD_RUN = 'gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITO
 # The only variable the upload step's own env may set: a step-level TAG or GH_REPO would send
 # the files elsewhere.
 UPLOAD_ENV = ("GH_TOKEN",)
+# The only variables the provenance step's own env may set: any other could change what bash or
+# gh does there (`BASH_FUNC_gh%%` defines a `gh` function that passes every file, `BASH_ENV` a
+# file bash reads first).
+PROVENANCE_ENV = ("BUNDLE", "PROVENANCE")
+# Variables the job's and the workflow's env may not set, since they reach the provenance and
+# upload steps: each can make bash or gh run something other than the commands this check reads.
+SHELL_ENV = (
+    "BASH_ENV",
+    "ENV",
+    "SHELLOPTS",
+    "BASHOPTS",
+    "GLOBIGNORE",
+    "PATH",
+    "IFS",
+    "CDPATH",
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "DYLD_INSERT_LIBRARIES",
+    "DYLD_LIBRARY_PATH",
+)
+# An exported bash function, which bash defines from the environment before the run starts.
+SHELL_FUNCTION_ENV = "BASH_FUNC_"
+# A YAML merge key, whose variables PyYAML's node tree does not spell out.
+MERGE_KEY = "<<"
 # Keys none of the attest, provenance and upload steps may have.
 STEP_KEYS = ("if", "continue-on-error", "shell", "working-directory")
 SOURCE_REF = "refs/heads/main"
-# Other ways of putting files on a release, refused so that the check cannot be sidestepped:
-# looked for in every value of every step (a `run`, an action's `with.script`, an `env`). The
-# REST call by its URL and by the names Octokit (`uploadReleaseAsset`) and PyGithub
-# (`upload_release_asset`) give it.
+# Other ways of putting files on a release or taking them off it, refused so that the check
+# cannot be sidestepped: looked for in every value of every step (a `run`, an action's
+# `with.script`, an `env`). `gh release create`, `delete` and `delete-asset`; the REST upload by
+# its URL and by the names Octokit (`uploadReleaseAsset`) and PyGithub (`upload_release_asset`)
+# give it; the deletes by Octokit's and PyGithub's names; and a `DELETE` on a release URL.
 OTHER_UPLOAD = re.compile(
-    r"\bgh\s+release\s+create\b|uploads\.github\.com|\buploadReleaseAsset\b"
-    r"|\bupload_release_asset\b"
+    r"\bgh\s+release\s+(?:create|delete)\b|uploads\.github\.com|\buploadReleaseAsset\b"
+    r"|\bupload_release_asset\b|\bdeleteRelease(?:Asset)?\b|\bdelete_(?:release|asset)\b"
+    r"|(?s:\bDELETE\b.*\breleases/|\breleases/.*\bDELETE\b)"
 )
-# `gh release upload` or `create` outside a `run`, where it is not read as a command: in an
-# action's script, also as separate quoted words (`exec.exec('gh', ['release', 'upload'])`).
+# `gh release upload`, `create` or `delete` outside a `run`, where it is not read as a command:
+# in an action's script, also as separate quoted words
+# (`exec.exec('gh', ['release', 'upload'])`).
 GH_RELEASE_TEXT = re.compile(
-    r"""\bgh\b['"]?[\s,\[(]*['"]?release['"]?[\s,]*['"]?(?:upload|create)\b"""
+    r"""\bgh\b['"]?[\s,\[(]*['"]?release['"]?[\s,]*['"]?(?:upload|create|delete)\b"""
+)
+# `gh alias` and `gh extension` (or `ext`, `extensions`): an alias (`gh alias set attach 'release
+# upload'`) or an installed extension can run an upload under another name. Refused in every
+# value of every step, as text and as separate quoted words.
+GH_COMMANDS_TEXT = re.compile(r"""\bgh\b['"]?[\s,\[(]*['"]?(?:alias|ext|extensions?)\b""")
+# Pairs of words that a run may not hold, one right after the other, once its quoting is read
+# (`_words`): the first word holding the first text, the next holding one of the second. They
+# need no `gh` before them, so that `"$GH" release create` and `${x:-gh} alias set` count too.
+REFUSED_PAIRS = (
+    ("release", ("create", "delete")),
+    ("alias", ("set", "import")),
+    ("ext", ("install",)),
 )
 UPLOAD_ACTIONS = (
     "softprops/action-gh-release",
@@ -145,6 +198,11 @@ RUN_LINES = (
 )
 # A `${{ }}` expression in a workflow value, which Actions replaces before the step runs.
 EXPRESSION = re.compile(r"\$\{\{.*?\}\}")
+# The only expression the provenance file's name may hold: a context property, such as
+# `${{ needs.release-please.outputs.tag }}`, with no literal, function, index or operator.
+CONTEXT_PROPERTY = re.compile(
+    r"\$\{\{\s*(?:needs|steps|github|env|vars|inputs|matrix)(?:\.[A-Za-z_][A-Za-z0-9_-]*)+\s*\}\}"
+)
 # The one shell a workflow or a job may set as its default for these steps.
 SHELL = "bash"
 
@@ -313,21 +371,108 @@ def uses_of(step: yaml.Node) -> str:
     return (scalar(get(step, "uses")) or "").strip()
 
 
+# bash's escapes in a $'...' string (ANSI-C quoting), as bash 5 decodes them.
+ANSI_C_ESCAPE = re.compile(
+    r"\\(x[0-9A-Fa-f]{1,2}|u[0-9A-Fa-f]{1,4}|U[0-9A-Fa-f]{1,8}|[0-7]{1,3}|c.|.)", re.S
+)
+ANSI_C_LETTERS = {
+    "a": "\a",
+    "b": "\b",
+    "e": "\x1b",
+    "E": "\x1b",
+    "f": "\f",
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+    "\\": "\\",
+    "'": "'",
+    '"': '"',
+    "?": "?",
+}
+
+
+def _ansi_c(match: re.Match[str]) -> str:
+    """One escape of a $'...' string, decoded as bash decodes it."""
+    escape = match[1]
+    if escape[0] in "xuU" and len(escape) > 1:
+        return chr(min(int(escape[1:], 16), 0x10FFFF))
+    if escape[0] in "01234567":
+        return chr(int(escape, 8) & 0xFF)
+    if escape[0] == "c" and len(escape) == 2:
+        return chr(ord(escape[1]) & 0x1F)
+    return ANSI_C_LETTERS.get(escape, "\\" + escape)
+
+
+def _plain_quotes(line: str) -> str:
+    """`line` with each $'...' string turned into a single-quoted one holding what bash decodes
+    it to, and each `$"` into `"`, so that `shlex` reads the words bash runs. It does not tell
+    whether the string is itself inside double quotes, where bash keeps it as written: reading
+    more words than bash does only makes the search for a command wider."""
+
+    def single(match: re.Match[str]) -> str:
+        return "'" + ANSI_C_ESCAPE.sub(_ansi_c, match[1]).replace("'", "'\\''") + "'"
+
+    return re.sub(r"""\$'((?:[^'\\]|\\.)*)'""", single, line, flags=re.S).replace('$"', '"')
+
+
+def _words(line: str, depth: int = 2) -> list[str]:
+    """The words of `line` once its shell quoting is read ($'...' and $"..." included), and the
+    words of any word that holds white space, read again (`bash -c 'gh release upload'`,
+    `alias up='gh release upload'`, `eval "gh release $'upload'"`), to `depth` levels. A line
+    `shlex` cannot read is split at its white space."""
+    text = _plain_quotes(line)
+    try:
+        words = shlex.split(text)
+    except ValueError:
+        words = text.split()
+    found: list[str] = []
+    for word in words:
+        if depth and re.search(r"\s", word):
+            found += _words(word, depth - 1)
+        else:
+            found.append(word)
+    return found
+
+
+def _holds_pair(line: str, first: str, seconds: tuple[str, ...]) -> bool:
+    """Whether a word of `line` that holds `first` comes right before one that holds any of
+    `seconds`, once its quoting is read: `gh 'release' upload`, `gh release $'\\x75pload'` and
+    `gh release ${x:-upload}` all hold `release` and then `upload`."""
+    words = _words(line)
+    return any(
+        first in word and any(second in after for second in seconds)
+        for word, after in itertools.pairwise(words)
+    )
+
+
 def _says(line: str, pattern: re.Pattern[str], verb: str) -> bool:
     """Whether `line` runs `gh release <verb>`: as plain text, or once its shell quoting is read
-    (so `gh 'release' upload` and `"gh" release upload` count too)."""
-    if pattern.search(line):
-        return True
-    try:
-        words = shlex.split(line)
-    except ValueError:
-        return False
-    return any(words[i : i + 2] == ["release", verb] for i in range(len(words) - 1))
+    (so `gh 'release' upload`, `"gh" release upload` and `gh release $'upload'` count too)."""
+    return pattern.search(line) is not None or _holds_pair(line, "release", (verb,))
 
 
 def is_upload(step: yaml.Node) -> bool:
     run = run_of(step)
     return run is not None and any(_says(line, UPLOAD, "upload") for line in command_lines(run))
+
+
+def refused_line(line: str) -> bool:
+    """Whether a line of some step's run puts files on a release another way, takes them off it,
+    or defines a gh alias or extension (which could upload under another name)."""
+    return (
+        OTHER_UPLOAD.search(line) is not None
+        or GH_COMMANDS_TEXT.search(line) is not None
+        or any(_holds_pair(line, first, seconds) for first, seconds in REFUSED_PAIRS)
+    )
+
+
+def refused_text(text: str) -> bool:
+    """The same, for a step's other values (an action's script, an `env` value), read as text."""
+    return any(
+        pattern.search(text) is not None
+        for pattern in (OTHER_UPLOAD, GH_RELEASE_TEXT, GH_COMMANDS_TEXT)
+    )
 
 
 class Checker:
@@ -355,6 +500,7 @@ class Checker:
                 uploading_jobs += 1
                 job_problems, name = self.check_job(path, job_name, job, steps.value, uploads)
                 job_problems += self.check_shell(path, job_name.value, document, job)
+                job_problems += self.check_env(path, job_name.value, document, job)
                 found += job_problems
                 if name is not None:
                     text, line = name
@@ -390,19 +536,17 @@ class Checker:
             others = [text for node, text in strings(step) if node is not run]
             if (
                 uses in UPLOAD_ACTIONS
-                or any(
-                    OTHER_UPLOAD.search(line) or _says(line, OTHER_UPLOAD, "create")
-                    for line in command_lines(scalar(run) or "")
-                )
-                or any(OTHER_UPLOAD.search(text) or GH_RELEASE_TEXT.search(text) for text in others)
+                or any(refused_line(line) for line in command_lines(scalar(run) or ""))
+                or any(refused_text(text) for text in others)
             ):
                 found.append(
                     Problem(
                         path,
                         line_of(step),
-                        "this step puts files on a release without the provenance check: attach"
-                        " them with one `gh release upload` step after the attest and provenance"
-                        " steps (tool/github/check_release_provenance.py)",
+                        "this step puts files on a release without the provenance check, takes"
+                        " them off it, or defines a gh alias or extension that could: attach"
+                        " release files with one `gh release upload` step after the attest and"
+                        " provenance steps, and delete none (tool/github/check_release_provenance.py)",
                     )
                 )
         return found
@@ -525,6 +669,44 @@ class Checker:
                     )
                 )
             break
+        return found
+
+    def check_env(self, path: str, name: str, document: yaml.Node, job: yaml.Node) -> list[Problem]:
+        """The job's and the workflow's env, which every step of the job takes: a mapping, with
+        none of the variables that change what bash or gh runs (`SHELL_ENV`, `BASH_FUNC_*`)."""
+        found = []
+        for owner, node in ((f'job "{name}"', job), ("the workflow", document)):
+            env = get(node, "env")
+            if env is not None and not isinstance(env, yaml.MappingNode):
+                found.append(
+                    Problem(
+                        path,
+                        line_of(env),
+                        f'job "{name}" uploads release files, but {owner} sets its env from an'
+                        " expression, which could set a variable that changes what the"
+                        " provenance and upload steps run: write each variable out",
+                    )
+                )
+            for key, _ in items(env):
+                if (
+                    key.value in SHELL_ENV
+                    or key.value.startswith(SHELL_FUNCTION_ENV)
+                    or key.value == MERGE_KEY
+                ):
+                    what = (
+                        "merges variables into its env with `<<`, which this check does not read"
+                        if key.value == MERGE_KEY
+                        else f"sets {key.value} in its env"
+                    )
+                    found.append(
+                        Problem(
+                            path,
+                            line_of(key),
+                            f'job "{name}" uploads release files, but {owner} {what}; such a'
+                            " variable could make bash or gh in the provenance and upload steps"
+                            " run something other than their commands",
+                        )
+                    )
         return found
 
     def check_permissions(
@@ -680,6 +862,18 @@ class Checker:
                 )
             ], None
         found = []
+        # env is a mapping here, since it sets BUNDLE and PROVENANCE.
+        for key, _ in items(env):
+            if key.value not in PROVENANCE_ENV:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(key),
+                        f'job "{name}": the provenance step\'s env sets {key.value}; it may set'
+                        " only " + " and ".join(PROVENANCE_ENV) + ", since another variable"
+                        " could change what bash or gh runs there (`BASH_FUNC_gh%%`, `BASH_ENV`)",
+                    )
+                )
         if attest_id is not None and not re.fullmatch(
             rf"\$\{{\{{\s*steps\.{re.escape(attest_id)}\.outputs\.bundle-path\s*\}}\}}",
             scalar(bundle) or "",
@@ -808,6 +1002,14 @@ def provenance_name_problem(text: str) -> str | None:
             " (`.intoto.jsonl`, a hidden file that `dist/*` leaves out): start the name with a"
             " letter or a digit"
         )
+    for expression in EXPRESSION.findall(file):
+        if not CONTEXT_PROPERTY.fullmatch(expression):
+            return (
+                f"a name with the expression `{expression}`, which is not a plain context"
+                " property such as `${{ needs.<job>.outputs.<name> }}`: a literal, a function"
+                " or an operator in it can put a `#`, a space or a dot first into the name, and"
+                " the check would not see it"
+            )
     others = sorted(set(re.sub(r"[A-Za-z0-9._-]", "", re.sub(EXPRESSION, "", file))))
     if others:
         return (

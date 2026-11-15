@@ -152,11 +152,14 @@ human version; `.planning/PROJECT.md` (<!-- docs:decision-range from .planning/P
   which keeps `-e`; no default working directory). The check step's run is exactly its six lines,
   so it cannot skip a file or lose a failure, and the upload's run is exactly its one command,
   with only `GH_TOKEN` in its `env`, so it attaches nothing the attestation does not cover. The
+  check step's `env` sets only `BUNDLE` and `PROVENANCE`, and the job's and the workflow's `env`
+  nothing that changes what bash or gh runs (`BASH_ENV`, `PATH`, `BASH_FUNC_*` and others). The
   check reads both runs as bash does and refuses what it could read otherwise (a comment that
   ends in a backslash, a here-document, a quoted string over two lines, a carriage return or a
   no-break space among others), and the provenance file's name starts with a letter or a digit,
   since `dist/*` leaves out a hidden file. `tool/github/check_release_provenance.py` (`make lint`, the pre-commit hook) enforces it, and
-  refuses other ways of uploading. Why, and what Scorecard counts: `docs/operations.md`, Release
+  refuses other ways of uploading, deleting a release or its files, and gh aliases and
+  extensions. Why, and what Scorecard counts: `docs/operations.md`, Release
   provenance.
 
 ## Design

@@ -111,6 +111,22 @@ def in_job(job: str, old: str, new: str) -> callable:
     return mutate
 
 
+def later_step(job: str, run: str) -> callable:
+    """A mutant that adds a step running `run` right after `job`'s upload step."""
+    return in_job(job, UPLOAD, UPLOAD + f"      - run: {run}\n")
+
+
+def in_job_header(job: str, old: str, new: str) -> callable:
+    """A mutant that changes `old` in `job`'s keys before its steps (the jobs share the text)."""
+
+    def mutate(text: str) -> str:
+        start = text.index(f"\n  {job}:\n")
+        end = text.index("    steps:\n", start)
+        return text[:start] + once(text[start:end], old, new) + text[end:]
+
+    return mutate
+
+
 class Fixture(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -529,6 +545,84 @@ MUTANTS = {
         ),
         ["this step puts files on a release without the provenance check"],
     ),
+    # Words bash runs once it has read its $-quoting (finding 1 on #81's verification): the
+    # check reads them as bash does, so a second upload or a create stays visible.
+    "a second upload step with the command's word $'quoted'": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            UPLOAD + "      - run: |\n          date > late.txt\n"
+            "          gh release $'upload' \"$TAG\" late.txt\n",
+        ),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    'a second upload step with the command\'s word $"quoted"': (
+        later_step("ios", 'gh release $"upload" "$TAG" late.txt'),
+        ['job "ios" runs `gh release upload` in 2 steps'],
+    ),
+    "a second upload step with release $'quoted'": (
+        later_step("artefacts", "gh $'release' upload \"$TAG\" late.txt"),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a second upload step with half the command's word $'quoted'": (
+        later_step("ios", "gh release up$'load' \"$TAG\" late.txt"),
+        ['job "ios" runs `gh release upload` in 2 steps'],
+    ),
+    "a second upload step with an ANSI-C escape in the command's word": (
+        later_step("artefacts", "gh release $'\\x75pload' \"$TAG\" late.txt"),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a second upload step with the command's word as a parameter's default": (
+        later_step("ios", 'gh release ${x:-upload} "$TAG" late.txt'),
+        ['job "ios" runs `gh release upload` in 2 steps'],
+    ),
+    "a second upload step through eval": (
+        later_step("artefacts", "eval \"gh release $'upload' late.txt\""),
+        ['job "artefacts" runs `gh release upload` in 2 steps'],
+    ),
+    "a release created with the command's word $'quoted'": (
+        later_step("ios", "gh release $'create' v9 x"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    # A gh alias or extension can upload under another name (finding 2).
+    "a gh alias for the upload in a later step": (
+        in_job(
+            "artefacts",
+            UPLOAD,
+            UPLOAD + "      - run: |\n          gh alias set attach 'release upload'\n"
+            '          gh attach "$TAG" late.txt\n',
+        ),
+        [
+            "this step puts files on a release without the provenance check, takes them off it,"
+            " or defines a gh alias or extension that could",
+            # The alias's text holds the upload's words, so the step counts as an upload too.
+            'job "artefacts" runs `gh release upload` in 2 steps',
+        ],
+    ),
+    "a gh alias with its words quoted in a later step": (
+        later_step("ios", "command gh $'alias' set attach 'release view'"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a gh extension installed in a later step": (
+        later_step("artefacts", "gh extension install someone/gh-attach"),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    # A release file deleted after the upload (finding 4).
+    "the provenance file deleted from the release": (
+        later_step(
+            "ios",
+            'gh release delete-asset "$TAG" "maalik-e-makaan-$TAG-ios.intoto.jsonl" --yes',
+        ),
+        ["this step puts files on a release without the provenance check, takes them off it"],
+    ),
+    "the release deleted": (
+        later_step("artefacts", 'gh release delete "$TAG" --yes'),
+        ["this step puts files on a release without the provenance check"],
+    ),
+    "a release file deleted through the REST API": (
+        later_step("ios", 'gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/1"'),
+        ["this step puts files on a release without the provenance check"],
+    ),
     "a comment after a command (still passes)": (
         in_job("artefacts", GH_VERSION, "          gh --version  # for the log\n"),
         [],
@@ -702,6 +796,81 @@ MUTANTS = {
     "a slash after an expression in the provenance file's name": (
         in_job("ios", "}}-ios.intoto.jsonl", "}}/ios.intoto.jsonl"),
         [('job "ios": PROVENANCE is', "name a file directly in dist/")],
+    ),
+    "a literal # in an expression in the provenance file's name": (
+        in_job("artefacts", "dist/maalik-e-makaan-${{", "dist/m${{ '#' }}-${{"),
+        [
+            (
+                'job "artefacts": PROVENANCE is',
+                "a name with the expression `${{ '#' }}`, which is not a plain context property",
+            )
+        ],
+    ),
+    "a literal space in an expression in the provenance file's name": (
+        in_job("ios", "dist/maalik-e-makaan-${{", "dist/m${{ ' x' }}-${{"),
+        [('job "ios": PROVENANCE is', "the expression `${{ ' x' }}`, which is not a plain")],
+    ),
+    "a function in an expression in the provenance file's name": (
+        in_job(
+            "artefacts",
+            "${{ needs.release-please.outputs.tag }}.intoto",
+            "${{ format('{0} x', needs.release-please.outputs.tag) }}.intoto",
+        ),
+        [('job "artefacts": PROVENANCE is', "which is not a plain context property")],
+    ),
+    # Variables that change what bash or gh runs in the provenance and upload steps (finding 3).
+    "an exported gh function in the provenance step's env": (
+        in_job(
+            "artefacts",
+            ".intoto.jsonl\n        run: |\n",
+            ".intoto.jsonl\n          'BASH_FUNC_gh%%': '() { echo fake; }'\n        run: |\n",
+        ),
+        [
+            'job "artefacts": the provenance step\'s env sets BASH_FUNC_gh%%; it may set only'
+            " BUNDLE and PROVENANCE"
+        ],
+    ),
+    "BASH_ENV in the provenance step's env": (
+        in_job(
+            "ios",
+            "-ios.intoto.jsonl\n",
+            "-ios.intoto.jsonl\n          BASH_ENV: ./tool/env.sh\n",
+        ),
+        ['job "ios": the provenance step\'s env sets BASH_ENV; it may set only BUNDLE and'],
+    ),
+    "BASH_ENV in the job's env": (
+        in_job_header("ios", "    env:\n", "    env:\n      BASH_ENV: ./tool/env.sh\n"),
+        ['job "ios" uploads release files, but job "ios" sets BASH_ENV in its env; such a'],
+    ),
+    "an exported gh function in the job's env": (
+        in_job_header(
+            "artefacts", "    env:\n", "    env:\n      BASH_FUNC_gh%%: '() { echo fake; }'\n"
+        ),
+        ['job "artefacts" uploads release files, but job "artefacts" sets BASH_FUNC_gh%% in'],
+    ),
+    "PATH in the job's env": (
+        in_job_header("ios", "    env:\n", "    env:\n      PATH: ./bin:/usr/bin:/bin\n"),
+        ['job "ios" uploads release files, but job "ios" sets PATH in its env'],
+    ),
+    "the job's env from an expression": (
+        in_job_header(
+            "artefacts",
+            "    env:\n      TAG: ${{ needs.release-please.outputs.tag }}\n"
+            "      VERSION: ${{ needs.release-please.outputs.version }}\n",
+            "    env: ${{ fromJSON(vars.RELEASE_ENV) }}\n",
+        ),
+        ['job "artefacts" uploads release files, but job "artefacts" sets its env from an'],
+    ),
+    "variables merged into the job's env": (
+        in_job_header("ios", "    env:\n", "    env:\n      <<: {BASH_ENV: ./tool/env.sh}\n"),
+        ['job "ios" uploads release files, but job "ios" merges variables into its env with'],
+    ),
+    "BASH_ENV in the workflow's env": (
+        lambda t: once(t, '  JAVA_VERSION: "21"\n', '  JAVA_VERSION: "21"\n  BASH_ENV: ./x.sh\n'),
+        [
+            'job "artefacts" uploads release files, but the workflow sets BASH_ENV in its env',
+            'job "ios" uploads release files, but the workflow sets BASH_ENV in its env',
+        ],
     ),
     # Steps that may be skipped or may fail.
     "if: false on the attest step": (
@@ -1009,6 +1178,32 @@ class FixtureTest(Fixture):
             "      - uses: some/action@0123456789abcdef0123456789abcdef01234567\n"
             "        env:\n"
             "          URL: https://uploads.github.com/repos/o/r/releases/1/assets\n",
+            # Taking files off a release, in a run and in an action's script.
+            "      - run: gh release delete-asset v2 app.apk --yes\n",
+            "      - run: command \"$GH\" release $'delete' v2 --yes\n",
+            "      - run: curl -X DELETE https://api.github.com/repos/o/r/releases/assets/1\n",
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: await github.rest.repos.deleteReleaseAsset(asset)\n",
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: |\n"
+            "            await github.request({method: 'DELETE',\n"
+            "              url: '/repos/o/r/releases/assets/1'})\n",
+            "      - uses: some/python-action@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: release.get_assets()[0].delete_asset()\n",
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: await exec.exec('gh', ['release', 'delete', 'v2', '--yes'])\n",
+            # A gh alias or extension, which could upload under another name.
+            "      - run: gh alias import aliases.yml\n",
+            "      - run: ${GH:-gh} 'alias' set up 'release view'\n",
+            "      - run: gh ext install someone/gh-attach\n",
+            "      - run: gh extensions list\n",
+            "      - uses: actions/github-script@0123456789abcdef0123456789abcdef01234567\n"
+            "        with:\n"
+            "          script: await exec.exec('gh', ['alias', 'set', 'up', 'release upload'])\n",
         )
         for step in steps:
             with self.subTest(step=step):
@@ -1119,6 +1314,62 @@ REFUSED = (
 )
 
 
+# Lines with the words bash runs in them, once their $-quoting is read. BashTest checks them.
+WORDS = (
+    ("gh release $'upload' x", ["gh", "release", "upload", "x"]),
+    ('gh release $"upload" x', ["gh", "release", "upload", "x"]),
+    ("gh release up$'load'", ["gh", "release", "upload"]),
+    ("gh release $'\\x75pload'", ["gh", "release", "upload"]),
+    ("gh release $'\\u0075pload'", ["gh", "release", "upload"]),
+    ("gh release $'\\U00000075pload'", ["gh", "release", "upload"]),
+    ("gh release $'\\165pload'", ["gh", "release", "upload"]),
+    ("gh $'it\\'s' $'a\\\\b' $'\\\"'", ["gh", "it's", "a\\b", '"']),
+    ("gh $'\\q' $'\\x' $'\\u' $'\\c' $'\\?'", ["gh", "\\q", "\\x", "\\u", "\\c", "?"]),
+    ("gh $'\\cA\\e\\E\\a\\b\\f\\v'", ["gh", "\x01\x1b\x1b\x07\x08\x0c\x0b"]),
+    ("gh 'release' \"upload\" re\\lease", ["gh", "release", "upload", "release"]),
+)
+
+
+class WordsTest(unittest.TestCase):
+    def test_words_bash_runs(self):
+        for line, expected in WORDS:
+            with self.subTest(line=line):
+                self.assertEqual(crp._words(line), expected)
+
+    def test_a_word_with_white_space_is_read_again(self):
+        self.assertEqual(crp._words("gh $'a\\tb'"), ["gh", "a", "b"])
+        self.assertEqual(crp._words("gh $'\\n'"), ["gh"])
+        self.assertEqual(
+            crp._words("bash -c 'gh release $\"upload\" x'"),
+            ["bash", "-c", "gh", "release", "upload", "x"],
+        )
+        # Two levels down, a word is left as it is.
+        self.assertEqual(crp._words("a 'b \"c d\"'", depth=1), ["a", "b", "c d"])
+
+    def test_a_line_shlex_cannot_read_is_split_at_its_white_space(self):
+        self.assertEqual(crp._words("gh release 'upload x"), ["gh", "release", "'upload", "x"])
+
+    def test_refused_lines(self):
+        for line in (
+            "gh release delete-asset v1 x",
+            "gh alias list",
+            "gh release ${x:-create} v1",
+            "${x:-gh} alias set up 'release upload'",
+            "gh ex$'t' install o/gh-x",
+            "curl -X DELETE https://api.github.com/repos/o/r/releases/1",
+        ):
+            with self.subTest(line=line):
+                self.assertTrue(crp.refused_line(line))
+        for line in (
+            'gh release view --repo "$GITHUB_REPOSITORY" --json tagName',
+            'gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" --jq .assets',
+            "gh attestation verify x --bundle y",
+            "echo next steps",
+        ):
+            with self.subTest(line=line):
+                self.assertFalse(crp.refused_line(line))
+
+
 class CommandsTest(unittest.TestCase):
     def test_runs_it_reads(self):
         for run, expected in READ:
@@ -1170,6 +1421,17 @@ class BashTest(unittest.TestCase):
         # Why such a comment is refused (C1 on #81): bash does not continue it.
         self.assertEqual(self.bash("# note \\\necho ran\n"), "0\nran\n")
         self.assertEqual(self.bash("echo a # note \\\necho ran\n"), "0\na\nran\n")
+
+    def test_bash_runs_the_words_the_check_reads(self):
+        # Why $-quoting is read before the search for an upload (finding 1 on #81's
+        # verification): bash runs `gh release upload` for each of these.
+        shown = 'gh() { for word in gh "$@"; do printf \'<%s>\' "$word"; done; echo; }\n'
+        for line, expected in WORDS:
+            with self.subTest(line=line):
+                self.assertEqual(
+                    self.bash(shown + line + "\n"),
+                    "0\n" + "".join(f"<{word}>" for word in expected) + "\n",
+                )
 
 
 class DocsTest(unittest.TestCase):
