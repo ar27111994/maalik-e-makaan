@@ -14,6 +14,7 @@ import socket
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -377,6 +378,17 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             self.send_response(308)
             self.send_header("Location", "https://app.example.pk/")
             self.end_headers()
+        elif self.path == "/trickle":
+            # Headers at once, then a byte of the body every 50 ms for three seconds: each read
+            # gets data well within a socket timeout, so only a limit by the clock ends it.
+            self.send_response(200)
+            self.send_header("Content-Length", "60")
+            self.end_headers()
+            with contextlib.suppress(OSError):
+                for _ in range(60):
+                    self.wfile.write(b"x")
+                    self.wfile.flush()
+                    time.sleep(0.05)
         elif self.path == "/ok":
             body = b"[1]"
             self.send_response(200)
@@ -388,6 +400,30 @@ class _Handler(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
+
+class WithinTest(unittest.TestCase):
+    def test_the_answer_or_the_error_of_the_call(self):
+        self.assertEqual(cl.within(5, lambda: cl.Answer(200)), cl.Answer(200))
+
+        def fails() -> cl.Answer:
+            raise cl.UnreachableError("refused")
+
+        with self.assertRaisesRegex(cl.UnreachableError, "refused"):
+            cl.within(5, fails)
+
+    def test_a_call_that_takes_longer_is_no_answer(self):
+        release = threading.Event()
+        self.addCleanup(release.set)
+
+        def hangs() -> cl.Answer:
+            release.wait(30)
+            return cl.Answer(200)
+
+        started = time.monotonic()
+        with self.assertRaisesRegex(cl.UnreachableError, "no whole answer within 0.2 seconds"):
+            cl.within(0.2, hangs)
+        self.assertLess(time.monotonic() - started, 2.0)
 
 
 class FetchTest(unittest.TestCase):
@@ -416,6 +452,13 @@ class FetchTest(unittest.TestCase):
         self.assertEqual((moved.status, moved.location), (308, "https://app.example.pk/"))
         self.assertEqual(cl.fetch(f"{self.base}/missing").status, 404)
         self.assertEqual(cl.fetch(f"{self.base}/busy"), cl.Answer(429, "", b"", "7"))
+
+    def test_an_answer_that_trickles_in_ends_at_the_limit(self):
+        with unittest.mock.patch.object(cl, "TIMEOUT_SECONDS", 0.5):
+            started = time.monotonic()
+            with self.assertRaisesRegex(cl.UnreachableError, "within 0.5 seconds"):
+                cl.fetch(f"{self.base}/trickle")
+            self.assertLess(time.monotonic() - started, 2.0)
 
     def test_no_server_is_unreachable(self):
         with socket.socket() as probe:

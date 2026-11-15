@@ -28,7 +28,8 @@ and fails closed:
 Redirects are not followed. A request that fails (DNS, connection, certificate, timeout), or
 answers 5xx, 408 (Request Timeout) or 429 (Too Many Requests), is tried again, six tries in all:
 after the seconds its Retry-After header gives, at most fifteen, or else after five seconds. A
-request gives up after twenty seconds without a reply. With these, the longest a check can take
+request that has not got its whole answer twenty seconds after it started, from the DNS lookup
+to the end of the body, counts as no answer (within()). With these, the longest a check can take
 fits the timeout-minutes of every job that runs it, so a check that keeps failing ends the job
 with its own error rather than GitHub's timeout (tool/web/test_check_time.py works it out from
 the workflows and fails when it no longer fits).
@@ -40,6 +41,7 @@ import argparse
 import json
 import re
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -57,7 +59,9 @@ RETRY_STATUSES = frozenset({408, 429})
 # TIMEOUT_SECONDS bound how long a check takes; tool/web/test_check_time.py checks that bound
 # against the timeout-minutes of each job that runs one.
 MAX_RETRY_AFTER_SECONDS = 15.0
-# How long a request waits to connect, and then for each read of the answer.
+# The longest a request takes, by the clock, from the DNS lookup to the end of its answer
+# (within()); the socket also gives up after as long without a byte, which ends the request's
+# thread once within() has stopped waiting for it.
 TIMEOUT_SECONDS = 20.0
 # Enough of a body for assetlinks.json; nothing else is read.
 BODY_LIMIT = 1 << 20
@@ -135,8 +139,39 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def within(seconds: float, call: Callable[[], Answer]) -> Answer:
+    """`call()`, waited for at most `seconds` by the clock; raises UnreachableError after that.
+
+    urllib's timeout applies to each step of a request on its own (each address it connects to,
+    the TLS handshake, each read), and not to the DNS lookup, so a slow resolver, many addresses
+    or a server that sends its answer a byte at a time could make one request take many times
+    that timeout. The call runs in a daemon thread instead, which this stops waiting for; the
+    thread ends with its socket's timeout, or with the process."""
+    outcome: list[Answer | BaseException] = []
+
+    def run() -> None:
+        try:
+            outcome.append(call())
+        except BaseException as error:  # raised again in the caller's thread, below
+            outcome.append(error)
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    if not outcome:
+        raise UnreachableError(f"no whole answer within {seconds:g} seconds")
+    if isinstance(outcome[0], BaseException):
+        raise outcome[0]
+    return outcome[0]
+
+
 def fetch(url: str) -> Answer:
-    """One GET of `url`, redirects not followed; raises UnreachableError when no answer came."""
+    """One GET of `url`, redirects not followed, within TIMEOUT_SECONDS; raises
+    UnreachableError when no whole answer came in that time."""
+    return within(TIMEOUT_SECONDS, lambda: _fetch(url))
+
+
+def _fetch(url: str) -> Answer:
     opener = urllib.request.build_opener(_NoRedirect)
     # The URLs are the https origins of read_origins (or a test's local server).
     headers = {"User-Agent": "maalik-e-makaan-deploy-check"}

@@ -12,10 +12,11 @@ the requests and the pauses. A change to a constant (TRIES, TIMEOUT_SECONDS,
 MAX_RETRY_AFTER_SECONDS, PAUSE_SECONDS), to the addresses a check asks for, or to a job's
 timeout-minutes that no longer leaves the job time to print its error fails here.
 
-The worst case of one request is TIMEOUT_SECONDS: urllib applies it to the connection and to
-each read of the answer, which for these small answers (a status line, a few headers, a body
-of a few kilobytes) is a read or two. A server that trickles its answer a byte at a time, or a
-DNS resolver that hangs, could take longer; neither is modelled.
+The worst case of one request is TIMEOUT_SECONDS: check_live.within() stops waiting for a
+request then, by the clock, whatever it is waiting for (a DNS lookup, a connection, a server
+that sends its answer a byte at a time); test_check_live.py and test_check_auth_urls.py hold
+both fetches to it. Python's own work between requests takes milliseconds, which the margin
+covers.
 """
 
 from __future__ import annotations

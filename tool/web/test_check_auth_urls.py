@@ -12,6 +12,8 @@ import json
 import plistlib
 import sys
 import tempfile
+import threading
+import time
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -309,6 +311,24 @@ class FetchTest(unittest.TestCase):
         self.assertEqual(seen, {"auth": f"Bearer {TOKEN}", "timeout": ca.TIMEOUT_SECONDS})
         self.assertIs(build.call_args.args[0], ca._NoRedirect)
         self.assertIsNone(ca._NoRedirect().redirect_request())
+
+    def test_a_request_ends_at_the_limit(self):
+        release = threading.Event()
+        self.addCleanup(release.set)
+
+        class Opener:
+            def open(self, request, timeout):
+                release.wait(30)  # a resolver or a server that never finishes
+                raise ca.urllib.error.URLError("too late")
+
+        with (
+            unittest.mock.patch.object(ca, "TIMEOUT_SECONDS", 0.2),
+            unittest.mock.patch.object(ca.urllib.request, "build_opener", return_value=Opener()),
+        ):
+            started = time.monotonic()
+            with self.assertRaisesRegex(ca.UnreachableError, "within 0.2 seconds"):
+                ca.fetch_with_token(TOKEN)("https://api.supabase.com/x")
+            self.assertLess(time.monotonic() - started, 2.0)
 
     def test_the_answer_keeps_its_status_body_and_retry_after(self):
         url = "https://api.supabase.com/x"

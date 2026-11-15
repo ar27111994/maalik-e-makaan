@@ -13,10 +13,11 @@ before its builds and the Deploy workflow's supabase job before it deploys. A to
 read Auth's settings (401 or 403) only warns, and what the check gates goes ahead: the owner
 compares Authentication, URL Configuration with docs/operations.md, Domains, by hand. No answer,
 a 5xx, 408 or 429 is tried again, six tries in all (after the seconds of a Retry-After header, at
-most fifteen, or else five seconds; check_live.answer, with its request timeout), since the
-Release workflow's preflight job and the Deploy workflow's supabase job call the Management API
-at the same moment. Any other answer, or one of those on the last try, fails. AUTH_JSON is a file holding those two fields, for
-a check by hand.
+most fifteen, or else five seconds; check_live.answer), since the Release workflow's preflight
+job and the Deploy workflow's supabase job call the Management API at the same moment. A request
+counts as no answer when its whole answer has not come twenty seconds after it started
+(check_live.within). Any other answer, or one of those on the last try, fails. AUTH_JSON is a
+file holding those two fields, for a check by hand.
 
 A build asks Auth to send its e-mail links (confirmation, password reset, e-mail change) to
 `APP_URL/auth/callback` (the web app and Android), or, on iOS, to the same address under the
@@ -60,6 +61,7 @@ from check_live import (
     UnreachableError,
     answer,
     read_origins,
+    within,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -194,9 +196,13 @@ class TokenCannotReadError(Exception):
 
 
 def fetch_with_token(token: str) -> Callable[[str], Answer]:
-    """A GET for check_live.answer() that sends `token` and follows no redirect."""
+    """A GET for check_live.answer() that sends `token`, follows no redirect and takes at most
+    TIMEOUT_SECONDS (check_live.within)."""
 
     def get(url: str) -> Answer:
+        return within(TIMEOUT_SECONDS, lambda: _get(url))
+
+    def _get(url: str) -> Answer:
         # The URL is MANAGEMENT_API's, with a project reference checked against _PROJECT_REF.
         request = urllib.request.Request(  # noqa: S310
             url,
