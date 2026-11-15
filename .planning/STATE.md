@@ -9,6 +9,16 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-15)
 
+- Release 1.3.1 was published on 15 November 2026 at 15:50 UTC (tag `v1.3.1`, commit 8f6f062 on
+  `main`; the Release run 43732066821; every job passed, as the agent read it). The agent
+  merged the release pull request (#79) itself, on the owner's standing word of that day:
+  release whenever everything meant for a release is merged and green (pull request #81, not
+  merged yet, is to record it in `AGENTS.md` and the runbook). It carries #77 (the record after
+  1.3.0 and the regenerated database types), #78 (the pitch deck brought up to date) and #80 (Search
+  Console's ownership file). No migration: 24 stay applied. Its Deploy run redeployed the four
+  Edge Functions (Deployed), the web app and the website, each with its smoke tests. Nine files are
+  attached: the app bundle, three APKs, the web zip, the debug symbols, the unsigned iOS app,
+  `SHA256SUMS` and `SHA256SUMS-ios`.
 - Release 1.3.0 was published on 15 November 2026 (tag `v1.3.0`, commit 638586b on `main`; the
   Release run 43720578854). Its Deploy run applied `20261112092618_residence.sql` to the hosted
   project with `supabase db push` and redeployed the four Edge Functions through the CLI; every
@@ -25,36 +35,68 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   agent moved the web app's Checkly monitor to `https://app.mmakaan.app/` and added one on
   `https://mmakaan.app/`; both pass, beside the deep health check, and the account's plan reads
   "Trial", so check them again when the trial ends. The owner sent Search Console's HTML file
-  the same day; it is `website/public/google17fd3f30f3354533.html` (branch
-  `claude/search-console-file`), and Verify waits for the release that carries it (item 13,
-  steps 1 and 9). The `roadmap` label's description names the
-  new address. Still the owner's: the checks by hand (step 9); the repository's homepage, which
-  reads `https://maalik-e-makaan-site.vercel.app` (the agent's write was refused). The owner set
+  the same day; it is `website/public/google17fd3f30f3354533.html` (#80, in release 1.3.1). The
+  `roadmap` label's description names the new address. The owner set
   the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app` in the dashboard that day (the
   Supabase connector's way of storing a secret was paused); the dashboard's digest is the
   address's SHA-256.
-- **Open, 15 November 2026: the app's e-mail sender.** The same screen shows `MAIL_FROM` changed
-  at 14:13 UTC that day to the same digest, so invitations are sent from `hello@mmakaan.app`,
-  which Resend refuses: it sends only from a domain it has verified, that is
-  `news.ar27111994.dev`, and its free plan holds one. Auth's SMTP sender was shown as
-  `hello@mmakaan.app` too, and its confirmations and resets are refused the same way if it
-  still is. The owner wants the company's address everywhere and chose, the same day, to move
-  Resend to `mmakaan.app` itself and not to set the sender back: remove the old domain, add the
-  new one and its three DNS records at Dynadot, two new API keys, tracking off
-  (`docs/operations.md`, Domains, step 13, has the order). It is the owner's to finish; until
-  then the sign-up, reset and invitation checks of step 9 fail.
 - **Step 12, 15 November 2026 (branch `claude/old-callback-clears`, not merged yet):** the old
-  address's `/auth/callback` answers with the page that clears its storage and goes on, like
-  every other path; the old address serves only files (`assetlinks.json`, and the app's other
-  files for tabs still open there). `redirect_smoke_test.sh --moved` checks the callback in CI and
-  after each deploy, and its wait covers it (`tool/web/test_redirect_smoke_test.py`); the Deploy
-  workflow's Edge Functions preflight checks only the origin. The release that carries it is not
-  before 14:00 UTC on 16 November 2026, and every release from `main` carries it once merged.
-  After its deploy the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone and does
-  the check by hand of `docs/operations.md`, Domains, step 12. A late link (asked for in a tab open on
-  the old address since before the move, the only app whose links name the old callback, and
-  opened after that release) cannot finish; D-20 and Where it never clears say why the window
-  stays. Two app follow-ups came out of it (Follow-ups, Open).
+  address's `/auth/callback` answers with the page that clears its storage and goes on, like every
+  other path; the old address serves only files (`assetlinks.json`, and the app's other files for
+  tabs still open there). `redirect_smoke_test.sh --moved` checks the callback in CI and after each
+  deploy, and its wait covers it (`tool/web/test_redirect_smoke_test.py`); the Deploy workflow's
+  Edge Functions preflight checks only the origin. The release that carries it is not before 14:00
+  UTC on 16 November 2026, and every release from `main` carries it once merged. After its deploy
+  the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone and does the check by hand of
+  `docs/operations.md`, Domains, step 12. A late link (asked for in a tab open on the old address
+  since before the move, the only app whose links name the old callback, and opened after that
+  release) cannot finish; D-20 and Where it never clears say why the window stays. Two app
+  follow-ups came out of it (Follow-ups, Open).
+- **Closed, 15 November 2026: the app's e-mail sender.** `MAIL_FROM` was changed to
+  `hello@mmakaan.app` at 14:13 UTC, which Resend refused while it had verified only
+  `news.ar27111994.dev`. The owner finished the move that day (item 13, step 13, and
+  `docs/operations.md`, E-mail, step 1): `mmakaan.app` added to Resend at 15:06 UTC and verified
+  at 15:21 UTC (ap-northeast-1, Tokyo), with the records Resend listed (a DKIM TXT on
+  `resend._domainkey`, `CNAME` records `send` and `rsend`, not the MX and TXT the runbook named),
+  "Enable receiving" off, click and open tracking off, two new sending keys limited to the
+  domain, Auth's SMTP sender `hello@mmakaan.app` and `MAIL_FROM` with the display name (the
+  owner reported); `news.ar27111994.dev` is no longer the sender. The agent read the raw headers
+  of a sign-up confirmation sent at 15:44 UTC: from `Maalik-e-Makaan <hello@mmakaan.app>`,
+  `dkim=pass` for `mmakaan.app` (selector `resend`), `spf=pass` with the return path on
+  the domain's `rsend` subdomain, no click or open tracking, the link back to
+  `https://app.mmakaan.app/auth/callback`; but no `dmarc` entry, because the domain's `_dmarc`
+  held two records, the owner's and Dynadot's own, and two DMARC records at one name mean that
+  none applies (RFC 7489, section 6.6.3). The owner removed theirs; a lookup then showed
+  Dynadot's own alone, `p=none`. Still open, the owner's: an e-mail that shows `dmarc=pass`, and
+  the password reset and invitation e-mails, which the agent has not seen.
+- Search Console (item 13, steps 1 and 11): at 16:03 UTC on 15 November 2026 the agent read
+  `/google17fd3f30f3354533.html` on `https://mmakaan.app` and on
+  `https://maalik-e-makaan-site.vercel.app` through the Vercel connector, 200 with the file's one
+  line (53 bytes) each, the old address without a redirect. The owner then reported
+  (screenshots): the old site address's URL-prefix property verified and its change of address
+  to `mmakaan.app` started; a Domain property for `mmakaan.app` and a URL-prefix property for
+  `https://mmakaan.app/`; the sitemap `/sitemap-index.xml` submitted and read, status Success, 42
+  pages (the 44 built pages less the two not-found pages). Bing stays optional.
+- Step 10, 15 November 2026: the repository's homepage reads `https://mmakaan.app` (the owner
+  set it). The company's website stays `https://ar27111994.dev/` (the owner's decision), so
+  `company.url` in `website/src/config/site.ts` does not change; the footer of every page reads
+  "© 2026 AR LABS (SMC-PRIVATE) LIMITED" (read by the agent on the live terms page at 16:19 UTC).
+- Waiting on the owner, 15 November 2026: the AWS Activate provider's three requests of 12
+  November 2026 (the website and the web app on the company's own domain, an e-mail address
+  there, the company's name on the website) are met, and a reply with the pitch deck at 1.3.1
+  was drafted for the owner to send; the agent advised a separate mailbox for the application
+  over sharing the company mailbox's login. Also still the owner's: the rest of step 9's checks
+  by hand (the reset and invitation e-mails with `dmarc=pass`; an old invitation address with
+  its hash; the old address's storage emptied; App Links on a phone with the 1.3.1 APK); leaked
+  password protection in Auth; `tool/db/time_zone_skew.sql` in the SQL editor; the website on
+  LinkedIn and the D-U-N-S record; the three Checkly monitors once the account's "Trial" (read
+  on 15 November) ends; and, after the release that carries step 12 (not before 14:00 UTC on 16
+  November 2026), `ALLOWED_ORIGINS` set to the new origin alone.
+- Open note for the owner (15 November 2026): the owner also made an inbox for
+  `hello@mmakaan.app` in Resend, with a receiving address; nothing is forwarded to it. The
+  agent's advice: forwarding the mailbox there would put people's incoming messages at Resend,
+  which the privacy page names only as the sender of the app's e-mails, so the privacy page
+  changes first if that is wanted.
 - Code scanning (2026-11-15, branch `claude/self-repository-syntax`, not merged into `main`):
   zizmor's three `self-repository` notes on `main` are settled by calling `deploy.yml` as
   `uses: $/.github/workflows/deploy.yml` (Release twice, Site refresh once). actionlint 1.7.12
@@ -70,7 +112,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
 - D-20 (the owner, 2026-11-13): the company bought `mmakaan.app` (Dynadot). The website moves to
   `https://mmakaan.app` (`www` redirects to it) and the web app to `https://app.mmakaan.app`;
-  the `vercel.app` addresses send people on for good. Pull request #74, in no release yet:
+  the `vercel.app` addresses send people on for good. Pull request #74, released in 1.3.0:
   `contracts/origins.json` as the one source of the origins (the website's
   defaults, the deck, the workflows' `APP_URL` and the page the web app's old address answers
   with read it; the Android manifest's hosts and `website/vercel.json`'s redirect are checked
@@ -104,16 +146,15 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   2026-11-18. `APP_URL` stays at the new address in both places and is not set back before the
   release, because nobody uses the app yet (the owner, 2026-11-14). The merge, the release, Auth's
   Site URL, the variable's deletion and the monitors all followed on 2026-11-15 (the Current
-  Position). Open for the owner: whether the company's website in the structured data becomes
-  the new domain (step 10).
+  Position). The company's website in the structured data stays `https://ar27111994.dev/` (the
+  owner's decision of 2026-11-15, step 10).
 - The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail (free plan), not Zoho
-  (the owner, 2026-11-13); a test message to Gmail passed SPF and DKIM for `mmakaan.app`, and the
-  `_dmarc` record (`p=none`) was being added. The website, both privacy pages, `llms.txt` and the
-  deck give it as the contact address in place of the Resend sending address, from which Auth's
-  e-mails and the invitations are still sent. It is the one mailbox on the domain that
-  `make docs-check` allows (`NAMED_MAILBOXES`).
+  (the owner, 2026-11-13); a test message to Gmail passed SPF and DKIM for `mmakaan.app`. The
+  website, both privacy pages, `llms.txt` and the deck give it as the contact address, and since
+  2026-11-15 Auth's e-mails and the invitations are sent from it too (above). It is the one
+  mailbox on the domain that `make docs-check` allows (`NAMED_MAILBOXES`).
 - The amount reader's work items 1, 3 and 4 (`docs/roadmap/amount-parser.md`), merged in #75 and
-  in no release yet: `contracts/amount_lexicon.json` (version 1,
+  released in 1.3.0: `contracts/amount_lexicon.json` (version 1,
   `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
   `docs/roadmap/urdu-review.md`, starting with its `review.check_first`),
   `contracts/amount_vectors.json` (353 parse and 33 words vectors, written by hand), their checks
@@ -295,8 +336,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
 - `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
-  (`supabase db push`), so 24 migrations are applied. "After every migration"
-  (`docs/operations.md`), done the same day with read-only queries:
+  (`supabase db push`), so 24 migrations are applied; release 1.3.1 carried none. "After every
+  migration" (`docs/operations.md`), done the same day with read-only queries:
   1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
      order, with nothing extra on either side.
   2. Types: `_shared/database.types.ts` regenerated from the hosted project: the table
@@ -321,7 +362,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Still to run on the hosted project, by the owner in the SQL editor (the file is too long for
   the connector's query call): `tool/db/time_zone_skew.sql` (`docs/operations.md`, Time-zone
   data). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
-  speaker notes) says 23 reviewed write functions and 23 database suites, as release 1.3.0 has.
+  speaker notes) says 23 reviewed write functions and 23 database suites, as releases 1.3.0 and
+  1.3.1 have.
 
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
@@ -395,8 +437,11 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
   up to 30 business days.
 - **The move to the domain:** `mmakaan.app` is bought (D-20, 2026-11-13), its DNS points at the
   hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). The move's pull request
-  is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done.
-  Waiting on the owner: steps 9 to 13 (`docs/release-readiness.md`, Owner actions, item 13).
+  is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done, with
+  steps 1, 11 and 13 (except its e-mail checks) and step 10's homepage and company website (the
+  same day). Waiting on the owner: step 9's checks by hand and the e-mails with `dmarc=pass`, the
+  website on LinkedIn and the D-U-N-S record, and `ALLOWED_ORIGINS` after step 12's release
+  (`docs/release-readiness.md`, Owner actions, item 13).
   Apple enrols an
   organisation only if its website is on a domain associated with it, with work e-mail there; the
   same domain serves Meta's verification and the e-mail sending subdomains.
@@ -431,9 +476,9 @@ The rest, in short:
   guides word every unconfirmed point as unconfirmed until someone checks them.
 - Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
   choice, 2026-11-09), with the bilingual templates in `supabase/templates/`. The sending domain
-  `news.ar27111994.dev` is verified (2026-11-09); its click and open tracking are off (the owner,
-  reported 2026-11-12). It gives way to `mmakaan.app`, with `hello@mmakaan.app` as the sender
-  (the owner's decision of 2026-11-15, the Current Position).
+  `news.ar27111994.dev` was verified (2026-11-09), with click and open tracking off (the owner,
+  reported 2026-11-12). Since 2026-11-15 the domain is `mmakaan.app`, verified with tracking off,
+  and the sender `hello@mmakaan.app` (the Current Position).
 - Reported done by the owner on 2026-11-09 (not checkable from the agent's network): the backup
   key, `RELEASE_PLEASE_TOKEN`, Supabase SMTP through Resend with the templates, and the other
   configuration in `docs/release-readiness.md`, Owner actions. Since then: the pull request to
@@ -509,9 +554,9 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 ## Deployed
 
 - Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version
-  14 on the hosted project (`list_edge_functions`, 2026-11-15), active, verify_jwt off as in
-  config.toml: release 1.3.0's Deploy run uploaded them from the tag with the Supabase CLI at
-  13:45 UTC that day, as every release since 1.0.0 (2026-11-09) has.
+  17 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-15), active,
+  verify_jwt off as in config.toml: release 1.3.1's Deploy run uploaded them from the tag with
+  the Supabase CLI at 15:51 UTC that day, as every release since 1.0.0 (2026-11-09) has.
 - They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
   (version 1). A byte-for-byte comparison with the repository matched then, except one line of
   `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the
