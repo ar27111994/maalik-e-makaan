@@ -142,8 +142,9 @@ class Router:
         """The static file `path` names, or None. The path is the one the routes matched, so a
         path with an empty segment ("//", "//index.html", "/a//b") names no file: collapsing it
         here would serve, say, index.html for "//" behind the back of a route that did not match
-        "//" and so leave that request to the routes after the filesystem."""
-        if "//" in path:
+        "//" and so leave that request to the routes after the filesystem. A NUL (from "%00")
+        names no file either: Path.resolve() would raise on it and drop the connection."""
+        if "//" in path or "\0" in path:
             return None
         relative = path.removeprefix("/") or "index.html"
         candidate = (self.static / relative).resolve()

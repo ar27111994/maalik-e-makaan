@@ -704,6 +704,22 @@ class ServeOutputTest(unittest.TestCase):
         self.assertEqual(router._file("/").name, "index.html")
         self.assertEqual(router._file("/main.dart.js").name, "main.dart.js")
 
+    def test_a_nul_in_the_path_names_no_file_and_still_gets_an_answer(self):
+        # unquote turns %00 into a NUL, which Path.resolve() refuses with ValueError; the
+        # server must answer as for any other path, not drop the connection.
+        moved = pv.moved_files(APP)["moved.html"]
+        for path in ("/%00", "/ur/%00", "/main.dart.js%00", "/%00?x=1"):
+            with self.subTest(host="app.example.pk", path=path):
+                status, headers, body = self.get_as("app.example.pk", path)
+                self.assertEqual((status, body), (200, INDEX))
+                self.assertNotIn("Clear-Site-Data", headers)
+            with self.subTest(host=OLD_HOSTS[0], path=path):
+                status, headers, body = self.get_as(OLD_HOSTS[0], path)
+                self.assertEqual((status, body), (200, moved))
+                self.assertEqual(headers["Clear-Site-Data"], '"storage"')
+        router = serve_output.Router.load(Path(self.server.output))
+        self.assertIsNone(router._file("/main.dart.js\0"))
+
     def test_a_target_that_is_not_a_path_is_a_bad_request(self):
         for target in ("*", "http://evil.example/", "evil.example/x"):
             with self.subTest(target=target):
