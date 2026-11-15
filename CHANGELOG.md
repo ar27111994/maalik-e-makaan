@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.3.0...v1.3.1) (2026-11-15)
+
+
+### Bug fixes
+
+* **web:** bring the pitch deck up to date with release 1.3.0 ([#78](https://github.com/ar27111994/maalik-e-makaan/issues/78)) ([abb983c](https://github.com/ar27111994/maalik-e-makaan/commit/abb983c4be13b5445d9c2c73276217bed57aa110))
+
+
+### Documentation
+
+* **docs:** record what followed release 1.3.0, and regenerate the database types ([#77](https://github.com/ar27111994/maalik-e-makaan/issues/77)) ([272727f](https://github.com/ar27111994/maalik-e-makaan/commit/272727f76fe6a5b50a318fc593353f2725b83617))
+
 ## [1.3.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.2.0...v1.3.0) (2026-11-15)
 
 
