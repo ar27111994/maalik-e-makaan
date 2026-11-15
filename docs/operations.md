@@ -1328,7 +1328,10 @@ Restoring (triggers off, one transaction), and checks that `tool/db/fingerprint_
 "schemas match" against the hosted project and that `tool/db/dump_digest.py compare` finds every
 table's rows equal in a fresh dump of the stack. The backup is kept either way; a failed check
 fails the run at its end. A failed load names the table and the SQLSTATE only: PostgreSQL's own
-message quotes the row, so it is kept off the public log. The hosted project lets `postgres` set `session_replication_role = replica` (checked on 2026-11-09), so step 3 of
+message quotes the row, so it is kept off the public log. The job's first step reserves the stack's
+host ports (54320 to 54329) so that no outgoing connection is given one before the stack binds
+it (docs/agents/conventions.md, Workflows and actions); if the runner refuses that, the check
+is skipped and the run fails at its end the same way. The hosted project lets `postgres` set `session_replication_role = replica` (checked on 2026-11-09), so step 3 of
 Restoring works there too. The rehearsal does not use a hosted scratch project: the repository's
 `SUPABASE_ACCESS_TOKEN` is scoped and may not create projects, and should stay that way.
 

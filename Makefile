@@ -56,11 +56,12 @@ format-check-repo: ## Formatting of Python, shell and docs (no Flutter or Deno n
 	npx --no-install prettier --check "**/*.{md,yml,yaml,json,jsonc}"
 
 .PHONY: lint
-lint: ## Lint Python, shell, workflows (actionlint, their same-repository calls, zizmor), migrations, docs, text, Urdu words, the Android manifest and the design lint
+lint: ## Lint Python, shell, workflows (actionlint, their same-repository calls, the stack's reserved ports, zizmor), migrations, docs, text, Urdu words, the Android manifest and the design lint
 	ruff check $(PYTHON_SOURCES)
 	shellcheck $(SHELL_SOURCES)
 	actionlint
 	python3 tool/github/check_workflow_calls.py
+	python3 tool/github/check_stack_ports.py
 	zizmor --offline --strict-collection --no-progress .
 	tool/db/lint_migrations.sh
 	ec
@@ -188,7 +189,7 @@ test-web: ## Website checks, unit tests, build, e2e and Lighthouse on a page sub
 	  && npm run lighthouse:ci
 
 .PHONY: test-tools
-test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, same-repository workflow calls and the actionlint canary, formal installer, time-zone reference, amount lexicon and vector checks, the command map's rows)
+test-tools: ## Unit tests of the repository tooling (coverage gate, text guard, plain-Urdu guard, migration lint, tokens, icons, fonts, web and iOS packaging, Android manifest, roadmap, same-repository workflow calls and the actionlint canary, the stack's reserved ports, formal installer, time-zone reference, amount lexicon and vector checks, the command map's rows)
 	python3 -m unittest discover -s tool -p 'test_*.py'
 	python3 -m unittest discover -s tool/coverage -p 'test_*.py'
 	python3 -m unittest discover -s tool/db -p 'test_*.py'
