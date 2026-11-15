@@ -8,7 +8,9 @@
 // same key with a higher number landed and was kept first, the documented
 // out-of-order delete, or the store refused, hung on, or could not list it
 // for a deletion). A write the store fails deletes its key, and leaves the
-// key unsettled until a write asked after the failure lands and is kept.
+// key unsettled until a write asked after the failure lands and is kept. A
+// write that lands where it is to go, and whose deletion the store refuses
+// or hangs on, leaves its user strayed while the store holds it.
 //
 // It runs 2,000 sequences by default (a few seconds); -DREF_SEQ=20000 runs
 // the 20,000 the verifier first ran, REF_ANY=true also lets forgetOthers
@@ -180,6 +182,9 @@ Future<String?> _run(List<_Op> ops) async {
   final landed = <String, int>{}; // key -> number of newest kept landing
   final failed = <String, int>{}; // key -> numbers asked at its last failure
   final excused = <String>{}; // keys whose deletion was blocked once
+  // key -> the write that landed when it was to go (a removal covered it,
+  // or a later one landed first) and whose deletion was blocked.
+  final strays = <String, int>{};
   final ids = <int, _MW>{};
   var numbers = 0;
 
@@ -217,6 +222,7 @@ Future<String?> _run(List<_Op> ops) async {
         if (covered(w.epoch, w.u, w.q) || (landed[key] ?? 0) > w.number) {
           if (blocked(key)) {
             excused.add(key);
+            strays[key] = id;
           } else {
             value.remove(key);
           }
@@ -278,6 +284,11 @@ Future<String?> _run(List<_Op> ops) async {
           final w = ids[actual]!;
           if (covered(w.epoch, u, q) && !excused.contains(key)) {
             return 'step $step ($op): $key holds removed write #$actual';
+          }
+          // A value left where it was to go is told by strayed.
+          if (strays[key] == actual && !cache.strayed(u)) {
+            return 'step $step ($op): $key holds stray #$actual, but '
+                'strayed($u) is false';
           }
         }
         // writing(): the unfinished writes asked since the last clear.
