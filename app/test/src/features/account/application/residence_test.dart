@@ -192,7 +192,7 @@ void main() {
     });
   });
 
-  group('the session it serves: profile', () {
+  group('the session it serves: residence', () {
     const other = SignedIn(
       userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
       email: 'sana.malik@example.com',
