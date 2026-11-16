@@ -122,12 +122,17 @@ void main() {
         final statuses = <AuthStatus>[];
         final subscription = repository.watch().listen(statuses.add);
         await pumpEventQueue();
+        // gotrue holds the session before it announces it, and drops it
+        // before it announces a sign-out.
+        when(() => auth.currentSession).thenReturn(_session());
         changes
           ..add(AuthState(AuthChangeEvent.signedIn, _session()))
           ..add(AuthState(AuthChangeEvent.passwordRecovery, _session()))
           ..add(AuthState(AuthChangeEvent.tokenRefreshed, _session()))
-          ..add(AuthState(AuthChangeEvent.userUpdated, _session()))
-          ..add(const AuthState(AuthChangeEvent.signedOut, null));
+          ..add(AuthState(AuthChangeEvent.userUpdated, _session()));
+        await pumpEventQueue();
+        when(() => auth.currentSession).thenReturn(null);
+        changes.add(const AuthState(AuthChangeEvent.signedOut, null));
         await pumpEventQueue();
         await subscription.cancel();
         expect(statuses, const [
@@ -172,12 +177,26 @@ void main() {
         // gotrue replays its latest event to a new listener.
         await cache.seed(_userId, 'dashboard', 1);
         when(() => auth.currentSession).thenReturn(_session());
-        final subscription = repository.watch().listen((_) {});
+        final statuses = <AuthStatus>[];
+        final subscription = repository.watch().listen(statuses.add);
         await pumpEventQueue();
-        changes.add(const AuthState(AuthChangeEvent.signedOut, null));
+        changes
+          ..add(const AuthState(AuthChangeEvent.signedOut, null))
+          // And an older session's, of another account.
+          ..add(
+            AuthState(
+              AuthChangeEvent.initialSession,
+              _session(id: _otherId, email: 'sana.malik@example.com'),
+            ),
+          );
         await pumpEventQueue();
         await subscription.cancel();
         expect(wipes, isEmpty);
+        // The status is the session the device holds, never the event's.
+        expect(statuses, [
+          for (var i = 0; i < 3; i++)
+            const SignedIn(userId: _userId, email: 'ali.raza@example.com'),
+        ]);
         expect(store.values, isNotEmpty);
         expect(settings.values, hasLength(4));
       },
@@ -259,13 +278,19 @@ void main() {
           AppSettings.pendingInvitationKey,
         });
         expect(statuses.last, const RecoveringPassword(userId: _otherId));
-        // An older event about the first account, replayed, changes nothing.
+        // An older event about the first account, replayed, changes nothing:
+        // the status is the current session's, never the event's.
+        final before = statuses.length;
         changes.add(AuthState(AuthChangeEvent.signedIn, _session()));
         await pumpEventQueue();
         changes.add(AuthState(AuthChangeEvent.userUpdated, other));
         await pumpEventQueue();
         await subscription.cancel();
         expect(wipes, hasLength(1));
+        expect(statuses.skip(before), const [
+          RecoveringPassword(userId: _otherId),
+          SignedIn(userId: _otherId, email: 'sana.malik@example.com'),
+        ]);
       },
     );
 

@@ -155,10 +155,8 @@ final class SupabaseAuthRepository implements AuthRepository {
   String? _userId;
 
   @override
-  AuthStatus get status => _statusOf(_auth.currentSession);
-
-  AuthStatus _statusOf(sb.Session? session) {
-    final user = session?.user;
+  AuthStatus get status {
+    final user = _auth.currentSession?.user;
     if (user == null) return SignedOut(cause: _signOutCause);
     if (_recovering) return RecoveringPassword(userId: user.id);
     return SignedIn(userId: user.id, email: user.email);
@@ -194,27 +192,24 @@ final class SupabaseAuthRepository implements AuthRepository {
       // a refresh, or signed out in another tab).
       await _forgetAccount();
     }
-    await _forgetReplaced(change.session);
-    return _statusOf(change.session);
+    await _forgetReplaced();
+    // The session the device holds now, not the event's: gotrue replays
+    // every earlier event to a new listener, and those may be about an
+    // earlier session. gotrue drops the session before it announces a
+    // sign-out, so a real one is still signed out.
+    return status;
   }
 
-  /// Wipes what the device kept for the account whose session [session]
-  /// replaced without a sign-out between them: an e-mail link of another
-  /// account, opened while signed in, swaps one session for the other and
-  /// gotrue announces only the new one. Only an event about the session the
-  /// device holds now counts: gotrue replays every earlier event to a new
-  /// listener, and those may be about an earlier one.
-  Future<void> _forgetReplaced(sb.Session? session) async {
+  /// Wipes what the device kept for the account whose session the current
+  /// one replaced without a sign-out between them: an e-mail link of
+  /// another account, opened while signed in, swaps one session for the
+  /// other and gotrue announces only the new one. Decided from the session
+  /// the device holds alone, whatever the event was about.
+  Future<void> _forgetReplaced() async {
     final current = _auth.currentSession?.user.id;
-    if (current == null) {
-      _userId = null;
-      return;
-    }
-    final user = session?.user.id;
-    if (user != current) return;
     final previous = _userId;
-    _userId = user;
-    if (previous != null && previous != user) {
+    _userId = current;
+    if (current != null && previous != null && previous != current) {
       await _wipe.wipe(WipeReason.signedOut);
     }
   }
