@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 
 import '../../../support/fakes.dart';
@@ -104,26 +105,30 @@ void main() {
 
   setUp(() {
     store = MemoryStore();
-    cache = SwrCache(store, clock: () => saved);
+    cache = SwrCache(store, clock: () => saved)..serve(_user);
   });
 
   String key(EntryTag tag, String query, {String user = _user}) =>
       SwrCache.keyOf(user, tag, query);
 
-  /// Writes [value] of [query] in [portfolio], for the current epoch.
-  Future<DateTime> put(
+  /// Writes [value] of [query] in [portfolio], for the current epoch, of
+  /// the user the cache serves; of another user, puts it in the store as
+  /// an earlier session of theirs left it.
+  Future<DateTime?> put(
     String query,
     int value, {
     String portfolio = _a,
     String user = _user,
-  }) => cache.write(
-    user,
-    query,
-    InPortfolio<int>(portfolio),
-    value,
-    _same,
-    epoch: cache.epoch,
-  );
+  }) => cache.serves(user, cache.epoch)
+      ? cache.write(
+          user,
+          query,
+          InPortfolio<int>(portfolio),
+          value,
+          _same,
+          epoch: cache.epoch,
+        )
+      : cache.seed(user, query, value, portfolio: portfolio);
 
   Future<int?> get(String query, {String portfolio = _a}) async =>
       (await cache.read(
@@ -131,6 +136,7 @@ void main() {
         query,
         InPortfolio<int>(portfolio),
         _decodeInt,
+        epoch: cache.epoch,
       ))?.value;
 
   group('reading and writing', () {
@@ -142,6 +148,7 @@ void main() {
         'dashboard',
         InPortfolio<int>(_a),
         _decodeInt,
+        epoch: cache.epoch,
       );
       expect(entry!.value, 45000);
       expect(entry.savedAt, saved);
@@ -150,7 +157,8 @@ void main() {
     });
 
     test("its time is the clock's, in UTC, or the one handed over", () async {
-      final local = SwrCache(store, clock: () => DateTime(2026, 11, 5, 15));
+      final local = SwrCache(store, clock: () => DateTime(2026, 11, 5, 15))
+        ..serve(_user);
       expect(local.now().isUtc, isTrue);
       final at = DateTime.utc(2026);
       expect(
@@ -160,7 +168,7 @@ void main() {
           InPortfolio<int>(_a),
           1,
           _same,
-          epoch: 0,
+          epoch: local.epoch,
           savedAt: at,
         ),
         at,
@@ -193,6 +201,7 @@ void main() {
           'dashboard',
           InPortfolio<int>(_a),
           (_) => throw const FormatException('changed'),
+          epoch: cache.epoch,
         );
         expect(read, isNull);
         expect(store.values, isEmpty);
@@ -209,9 +218,16 @@ void main() {
         OwnScope.profile<int>(),
         2,
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
-      await cache.write(_user, 'tenant.t1', _fromRows, [null], _same, epoch: 0);
+      await cache.write(
+        _user,
+        'tenant.t1',
+        _fromRows,
+        [null],
+        _same,
+        epoch: cache.epoch,
+      );
       expect(store.values.keys.toSet(), {
         'mm.swr.v2.u1.p:pA.tenants.pA.active.',
         'mm.swr.v2.u1.own.profile',
@@ -233,10 +249,26 @@ void main() {
       'refuses a user or a portfolio id that cannot stand in a key',
       () async {
         for (final bad in ['', 'a.b']) {
-          expect(() => put('x', 1, user: bad), throwsArgumentError);
+          expect(
+            () => cache.write(
+              bad,
+              'x',
+              InPortfolio<int>(_a),
+              1,
+              _same,
+              epoch: cache.epoch,
+            ),
+            throwsArgumentError,
+          );
           expect(() => InPortfolio<int>(bad), throwsArgumentError);
           expect(
-            () => cache.read(bad, 'x', InPortfolio<int>(_a), _decodeInt),
+            () => cache.read(
+              bad,
+              'x',
+              InPortfolio<int>(_a),
+              _decodeInt,
+              epoch: cache.epoch,
+            ),
             throwsArgumentError,
           );
         }
@@ -251,7 +283,7 @@ void main() {
           OwnScope.profile<int>(),
           1,
           _same,
-          epoch: 0,
+          epoch: cache.epoch,
         ),
         throwsArgumentError,
       );
@@ -306,8 +338,9 @@ void main() {
       await cache.clear();
       expect(store.values.keys, ['other']);
       expect(cache.epoch, before + 1);
-      expect(cache.clearedSince(before), isTrue);
-      expect(cache.clearedSince(cache.epoch), isFalse);
+      // Nobody owns the epoch it started.
+      expect(cache.serves(_user, before), isFalse);
+      expect(cache.serves(_user, cache.epoch), isFalse);
     });
 
     test('forgets the portfolios the user is in', () async {
@@ -371,7 +404,7 @@ void main() {
     test('a write still on its way when the cache is cleared is deleted as '
         'it lands', () async {
       final slow = _SlowStore()..held = Completer();
-      final cache = SwrCache(slow);
+      final cache = SwrCache(slow)..serve(_user);
       final writing = cache.write(
         _user,
         'x',
@@ -410,7 +443,7 @@ void main() {
         () async {
           final stuck = key(const PortfolioTag(_a), 'a');
           final throwing = _ThrowingStore(stuck);
-          final cache = SwrCache(throwing);
+          final cache = SwrCache(throwing)..serve(_user);
           for (final query in ['a', 'b']) {
             await cache.write(
               _user,
@@ -418,7 +451,7 @@ void main() {
               InPortfolio<int>(_a),
               1,
               _same,
-              epoch: 0,
+              epoch: cache.epoch,
             );
           }
           await expectLater(cache.clear(), throwsStateError);
@@ -464,6 +497,7 @@ void main() {
       // The session ends; another account signs in and saves two entries.
       store.keysHeld = null;
       await cache.clear();
+      cache.serve('u2');
       await cache.write(
         'u2',
         'profile',
@@ -496,7 +530,7 @@ void main() {
           _fromRows,
           const <String?>[],
           _same,
-          epoch: 0,
+          epoch: cache.epoch,
         );
         expect(store.values, hasLength(3));
         expect(cache.portfoliosOf(_user), isNull);
@@ -514,7 +548,7 @@ void main() {
         _fromRows,
         const <String?>[],
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
       expect(store.values.keys, [key(const PortfolioTag(_a), 'a')]);
     });
@@ -523,16 +557,30 @@ void main() {
         'user is not in', () async {
       final list = OwnScope.portfolioList<List<String>>((ids) => ids);
       await cache.answer(_user, [_a]);
-      await cache.write(_user, 'portfolios', list, [_a, _b], _same, epoch: 0);
+      await cache.write(
+        _user,
+        'portfolios',
+        list,
+        [_a, _b],
+        _same,
+        epoch: cache.epoch,
+      );
       expect(store.values, isEmpty);
-      await cache.write(_user, 'portfolios', list, [_a], _same, epoch: 0);
+      await cache.write(
+        _user,
+        'portfolios',
+        list,
+        [_a],
+        _same,
+        epoch: cache.epoch,
+      );
       await cache.write(
         _user,
         'profile',
         OwnScope.profile<int>(),
         1,
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
       expect(store.values, hasLength(2));
       expect(list.portfoliosOf([_a, _b]), {_a, _b});
@@ -542,14 +590,14 @@ void main() {
     test('a write is checked again as it lands: one of a portfolio that '
         'left meanwhile is deleted then', () async {
       final slow = _SlowStore()..held = Completer();
-      final cache = SwrCache(slow);
+      final cache = SwrCache(slow)..serve(_user);
       final writing = cache.write(
         _user,
         'x',
         InPortfolio<int>(_a),
         1,
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
       await pumpEventQueue();
       await cache.answer(_user, [_b]);
@@ -560,14 +608,14 @@ void main() {
 
     test('a write that lands while its portfolio stays is kept', () async {
       final slow = _SlowStore()..held = Completer();
-      final cache = SwrCache(slow);
+      final cache = SwrCache(slow)..serve(_user);
       final writing = cache.write(
         _user,
         'x',
         InPortfolio<int>(_a),
         1,
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
       await pumpEventQueue();
       await cache.answer(_user, [_a]);
@@ -594,21 +642,30 @@ void main() {
       final second = cache.ask();
       expect(second, greaterThan(first));
       expect(
-        cache.applyPortfolios(_user, [_a], asked: second, epoch: 0),
+        cache.applyPortfolios(_user, [_a], asked: second, epoch: cache.epoch),
         isTrue,
       );
       expect(
-        cache.applyPortfolios(_user, [_a, _b], asked: first, epoch: 0),
+        cache.applyPortfolios(
+          _user,
+          [_a, _b],
+          asked: first,
+          epoch: cache.epoch,
+        ),
         isFalse,
       );
       expect(cache.portfoliosOf(_user), {_a});
       // The same answer again is no older.
       expect(
-        cache.applyPortfolios(_user, [_b], asked: second, epoch: 0),
+        cache.applyPortfolios(_user, [_b], asked: second, epoch: cache.epoch),
         isTrue,
       );
-      // Per user.
-      expect(cache.applyPortfolios('u2', [_a], asked: first, epoch: 0), isTrue);
+      // Per epoch: the next owner's first answer applies, however old.
+      cache.serve('u2');
+      expect(
+        cache.applyPortfolios('u2', [_a], asked: first, epoch: cache.epoch),
+        isTrue,
+      );
     });
 
     test('refuses an answer of a session that has ended', () async {
@@ -626,6 +683,7 @@ void main() {
         'not outrank one asked after', () async {
       final before = cache.ask();
       await cache.clear();
+      cache.serve(_user);
       final after = cache.ask();
       expect(
         cache.applyPortfolios(_user, [_a], asked: after, epoch: cache.epoch),
@@ -647,8 +705,8 @@ void main() {
     test('change nothing before a list is applied', () async {
       await put('a', 1);
       cache
-        ..addPortfolio(_user, _b, epoch: 0)
-        ..removePortfolio(_user, _a, epoch: 0);
+        ..addPortfolio(_user, _b, epoch: cache.epoch)
+        ..removePortfolio(_user, _a, epoch: cache.epoch);
       await pumpEventQueue();
       expect(cache.portfoliosOf(_user), isNull);
       expect(store.values, hasLength(1));
@@ -660,21 +718,22 @@ void main() {
       await put('b', 1, portfolio: _b);
       await cache.answer(_user, [_a]);
       expect(store.values, hasLength(1));
-      cache.addPortfolio(_user, _b, epoch: 0);
+      cache.addPortfolio(_user, _b, epoch: cache.epoch);
       await put('b', 2, portfolio: _b);
       expect(store.values, hasLength(2));
-      cache.removePortfolio(_user, _a, epoch: 0);
+      cache.removePortfolio(_user, _a, epoch: cache.epoch);
       await pumpEventQueue();
       expect(cache.portfoliosOf(_user), {_b});
       expect(store.values.keys, [key(const PortfolioTag(_b), 'b')]);
       // One it does not hold changes nothing.
-      cache.removePortfolio(_user, 'pC', epoch: 0);
+      cache.removePortfolio(_user, 'pC', epoch: cache.epoch);
       expect(cache.portfoliosOf(_user), {_b});
     });
 
     test('change nothing for a session that has ended', () async {
       final epoch = cache.epoch;
       await cache.clear();
+      cache.serve(_user);
       await cache.answer(_user, [_a]);
       cache
         ..addPortfolio(_user, _b, epoch: epoch)
@@ -696,7 +755,7 @@ void main() {
           _fromRows,
           const <String?>[],
           _same,
-          epoch: 0,
+          epoch: cache.epoch,
         );
         await cache.write(
           _user,
@@ -704,7 +763,7 @@ void main() {
           OwnScope.profile<int>(),
           1,
           _same,
-          epoch: 0,
+          epoch: cache.epoch,
         );
         await put('a', 1, user: 'u2');
         store.values
@@ -753,7 +812,12 @@ void main() {
         await put('a', 1);
         store.hangingKeys = true;
         expect(
-          cache.applyPortfolios(_user, [_b], asked: cache.ask(), epoch: 0),
+          cache.applyPortfolios(
+            _user,
+            [_b],
+            asked: cache.ask(),
+            epoch: cache.epoch,
+          ),
           isTrue,
         );
         await pumpEventQueue();
@@ -766,9 +830,21 @@ void main() {
     test('a clear while it lists leaves the deleting to the clear', () async {
       final slowKeys = Completer<void>();
       final hold = _HeldKeys(slowKeys.future);
-      final cache = SwrCache(hold);
-      await cache.write(_user, 'a', InPortfolio<int>(_a), 1, _same, epoch: 0);
-      cache.applyPortfolios(_user, [_a], asked: cache.ask(), epoch: 0);
+      final cache = SwrCache(hold)..serve(_user);
+      await cache.write(
+        _user,
+        'a',
+        InPortfolio<int>(_a),
+        1,
+        _same,
+        epoch: cache.epoch,
+      );
+      cache.applyPortfolios(
+        _user,
+        [_a],
+        asked: cache.ask(),
+        epoch: cache.epoch,
+      );
       final pruning = cache.prune(_user);
       await pumpEventQueue();
       // The clear wipes S and lists too; both answer now.
@@ -782,7 +858,12 @@ void main() {
     test('one begun before a clear deletes nothing the next account saved '
         'since', () async {
       await put('a', 1);
-      cache.applyPortfolios(_user, [_a], asked: cache.ask(), epoch: 0);
+      cache.applyPortfolios(
+        _user,
+        [_a],
+        asked: cache.ask(),
+        epoch: cache.epoch,
+      );
       // The listing is slow: the removal waits for it.
       final listing = store.keysHeld = Completer();
       final pruning = cache.prune(_user);
@@ -790,6 +871,7 @@ void main() {
       // The session ends; another account signs in and saves two entries.
       store.keysHeld = null;
       await cache.clear();
+      cache.serve('u2');
       await cache.write(
         'u2',
         'profile',
@@ -835,7 +917,7 @@ void main() {
         const UnknownPortfolio<int>(),
         1,
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
       expect(
         (await cache.read(
@@ -843,6 +925,7 @@ void main() {
           'u',
           const UnknownPortfolio<int>(),
           _decodeInt,
+          epoch: cache.epoch,
         ))?.value,
         1,
       );
@@ -850,7 +933,13 @@ void main() {
       unawaited(cache.answer(_user, [_a]));
       await pumpEventQueue();
       expect(
-        await cache.read(_user, 'u', const UnknownPortfolio<int>(), _decodeInt),
+        await cache.read(
+          _user,
+          'u',
+          const UnknownPortfolio<int>(),
+          _decodeInt,
+          epoch: cache.epoch,
+        ),
         isNull,
       );
     });
@@ -860,13 +949,35 @@ void main() {
       () async {
         final list = OwnScope.portfolioList<List<String>>((ids) => ids);
         List<String> decode(Object? json) => [...(json! as List).cast()];
-        await cache.write(_user, 'portfolios', list, [_a, _b], _same, epoch: 0);
-        expect((await cache.read(_user, 'portfolios', list, decode))!.value, [
-          _a,
-          _b,
-        ]);
+        await cache.write(
+          _user,
+          'portfolios',
+          list,
+          [_a, _b],
+          _same,
+          epoch: cache.epoch,
+        );
+        expect(
+          (await cache.read(
+            _user,
+            'portfolios',
+            list,
+            decode,
+            epoch: cache.epoch,
+          ))!.value,
+          [_a, _b],
+        );
         await cache.answer(_user, [_a]);
-        expect(await cache.read(_user, 'portfolios', list, decode), isNull);
+        expect(
+          await cache.read(
+            _user,
+            'portfolios',
+            list,
+            decode,
+            epoch: cache.epoch,
+          ),
+          isNull,
+        );
         await pumpEventQueue();
         expect(store.values, isEmpty);
       },
@@ -874,12 +985,30 @@ void main() {
 
     test('nor one whose portfolio left while the store read it', () async {
       final slow = _SlowReads();
-      final cache = SwrCache(slow);
-      await cache.write(_user, 'a', InPortfolio<int>(_a), 1, _same, epoch: 0);
+      final cache = SwrCache(slow)..serve(_user);
+      await cache.write(
+        _user,
+        'a',
+        InPortfolio<int>(_a),
+        1,
+        _same,
+        epoch: cache.epoch,
+      );
       slow.held = Completer();
-      final reading = cache.read(_user, 'a', InPortfolio<int>(_a), _decodeInt);
+      final reading = cache.read(
+        _user,
+        'a',
+        InPortfolio<int>(_a),
+        _decodeInt,
+        epoch: cache.epoch,
+      );
       await pumpEventQueue();
-      cache.applyPortfolios(_user, [_b], asked: cache.ask(), epoch: 0);
+      cache.applyPortfolios(
+        _user,
+        [_b],
+        asked: cache.ask(),
+        epoch: cache.epoch,
+      );
       await pumpEventQueue();
       // The removal the list started has deleted it, after the store read
       // it: the check comes after the read.
@@ -892,7 +1021,7 @@ void main() {
         'before a list that drops it, while another copy was still being '
         'read', () async {
       final slow = _SlowReads();
-      final cache = SwrCache(slow);
+      final cache = SwrCache(slow)..serve(_user);
       final unknown = SwrCache.keyOf(_user, const UnknownTag(), 'units.h1');
       slow.inner.values[SwrCache.keyOf(
         _user,
@@ -909,21 +1038,44 @@ void main() {
       slow
         ..only.add(unknown)
         ..held = Completer();
-      final reading = cache.read(_user, 'units.h1', _fromRows, _decodeRows);
+      final reading = cache.read(
+        _user,
+        'units.h1',
+        _fromRows,
+        _decodeRows,
+        epoch: cache.epoch,
+      );
       await pumpEventQueue();
       // The copy in pA has been read; the list then drops pA.
-      cache.applyPortfolios(_user, [_b], asked: cache.ask(), epoch: 0);
+      cache.applyPortfolios(
+        _user,
+        [_b],
+        asked: cache.ask(),
+        epoch: cache.epoch,
+      );
       slow.held!.complete();
       expect(await reading, isNull);
     });
   });
 
   group('a query whose portfolio comes from its value', () {
-    Future<_Rows?> rows(String query) async =>
-        (await cache.read(_user, query, _fromRows, _decodeRows))?.value;
+    Future<_Rows?> rows(String query) async => (await cache.read(
+      _user,
+      query,
+      _fromRows,
+      _decodeRows,
+      epoch: cache.epoch,
+    ))?.value;
 
     Future<void> putRows(String query, _Rows value, {int? epoch}) =>
-        cache.write(_user, query, _fromRows, value, _same, epoch: epoch ?? 0);
+        cache.write(
+          _user,
+          query,
+          _fromRows,
+          value,
+          _same,
+          epoch: epoch ?? cache.epoch,
+        );
 
     test('is found by its query under whatever tag it has', () async {
       await putRows('units.h1', [_a]);
@@ -985,15 +1137,20 @@ void main() {
     test('an older copy still on its way when it becomes empty is deleted '
         'as it lands', () async {
       final slow = _SlowStore()..held = Completer();
-      final cache = SwrCache(slow);
-      cache.applyPortfolios(_user, [_a], asked: cache.ask(), epoch: 0);
+      final cache = SwrCache(slow)..serve(_user);
+      cache.applyPortfolios(
+        _user,
+        [_a],
+        asked: cache.ask(),
+        epoch: cache.epoch,
+      );
       final older = cache.write(
         _user,
         'units.h1',
         _fromRows,
         [_a],
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
       await pumpEventQueue();
       await cache.write(
@@ -1002,7 +1159,7 @@ void main() {
         _fromRows,
         const <String?>[],
         _same,
-        epoch: 0,
+        epoch: cache.epoch,
       );
       slow.held!.complete();
       await older;
@@ -1107,6 +1264,7 @@ void main() {
         final snapshots = await cache
             .watch(
               userId: _user,
+              epoch: cache.epoch,
               query: 'x',
               scope: InPortfolio<int>(_a),
               fetch: () async => 2,
@@ -1124,6 +1282,7 @@ void main() {
       final snapshots = await cache
           .watch(
             userId: _user,
+            epoch: cache.epoch,
             query: 'x',
             scope: InPortfolio<int>(_a),
             fetch: () async => 2,
@@ -1143,6 +1302,7 @@ void main() {
         await cache
             .watch(
               userId: _user,
+              epoch: cache.epoch,
               query: 'x',
               scope: InPortfolio<int>(_a),
               fetch: () async => throw Exception('offline'),
@@ -1156,27 +1316,292 @@ void main() {
       },
     );
 
+    test('a fetch still on its way when the cache is cleared stores and shows '
+        'nothing', () async {
+      final answer = Completer<int>();
+      final watching = cache
+          .watch(
+            userId: _user,
+            epoch: cache.epoch,
+            query: 'x',
+            scope: InPortfolio<int>(_a),
+            fetch: () => answer.future,
+            decode: _decodeInt,
+            encode: _same,
+          )
+          .toList();
+      await pumpEventQueue();
+      await cache.clear();
+      answer.complete(3);
+      expect(await watching, isEmpty);
+      expect(store.values, isEmpty);
+    });
+  });
+
+  group('the owner of the epoch', () {
+    test('serve does nothing for the owner, and for anyone else starts an '
+        'epoch they own, with no list of portfolios', () async {
+      await cache.answer(_user, [_a]);
+      final epoch = cache.epoch;
+      cache.serve(_user);
+      expect(cache.epoch, epoch);
+      expect(cache.portfoliosOf(_user), {_a});
+      cache.serve('u2');
+      expect(cache.epoch, epoch + 1);
+      expect(cache.serves('u2', epoch + 1), isTrue);
+      expect(cache.serves(_user, epoch + 1), isFalse);
+      expect(cache.portfoliosOf(_user), isNull);
+      expect(cache.portfoliosOf('u2'), isNull);
+      // Nobody: an epoch nobody owns, once.
+      cache.serve(null);
+      expect(cache.epoch, epoch + 2);
+      cache.serve(null);
+      expect(cache.epoch, epoch + 2);
+      // The same user again: a new epoch of theirs.
+      cache.serve(_user);
+      expect(cache.epoch, epoch + 3);
+      expect(cache.serves(_user, epoch), isFalse);
+      expect(cache.serves(_user, epoch + 3), isTrue);
+    });
+
     test(
-      'a fetch still on its way when the cache is cleared stores nothing',
+      'a clear starts an epoch nobody owns, which serving nobody keeps',
       () async {
-        final answer = Completer<int>();
-        final watching = cache
+        final epoch = cache.epoch;
+        await cache.clear();
+        expect(cache.epoch, epoch + 1);
+        expect(cache.serves(_user, cache.epoch), isFalse);
+        cache.serve(null);
+        expect(cache.epoch, epoch + 1);
+      },
+    );
+
+    test('serves only its owner, in the current epoch; require throws '
+        'otherwise', () {
+      final epoch = cache.epoch;
+      expect(cache.serves(_user, epoch), isTrue);
+      expect(cache.require(_user, epoch), epoch);
+      for (final (user, at) in [
+        (null, epoch),
+        ('u2', epoch),
+        (_user, epoch - 1),
+        (_user, epoch + 1),
+      ]) {
+        expect(cache.serves(user, at), isFalse, reason: '$user $at');
+        expect(
+          () => cache.require(user, at),
+          throwsA(isA<SessionExpired>()),
+          reason: '$user $at',
+        );
+      }
+    });
+
+    for (final (name, user, earlier) in [
+      ('another account', 'u2', false),
+      ('an earlier epoch of its owner', _user, true),
+    ]) {
+      test('refuses every operation of $name', () async {
+        await put('a', 1);
+        await cache.answer(_user, [_a]);
+        final epoch = cache.epoch;
+        if (earlier) {
+          // The owner's session ends and begins again.
+          cache
+            ..serve(null)
+            ..serve(_user);
+        }
+        final before = {...store.values};
+        expect(
+          await cache.write(
+            user,
+            'b',
+            InPortfolio<int>(_a),
+            2,
+            _same,
+            epoch: epoch,
+          ),
+          isNull,
+        );
+        expect(
+          await cache.read(
+            user,
+            'a',
+            InPortfolio<int>(_a),
+            _decodeInt,
+            epoch: epoch,
+          ),
+          isNull,
+        );
+        expect(
+          cache.applyPortfolios(user, [_b], asked: cache.ask(), epoch: epoch),
+          isFalse,
+        );
+        cache
+          ..addPortfolio(user, _b, epoch: epoch)
+          ..removePortfolio(user, _a, epoch: epoch);
+        await cache.prune(user);
+        await cache.forgetOthers(user);
+        var fetched = false;
+        await expectLater(
+          cache
+              .watch(
+                userId: user,
+                epoch: epoch,
+                query: 'a',
+                scope: InPortfolio<int>(_a),
+                fetch: () async {
+                  fetched = true;
+                  return 3;
+                },
+                decode: _decodeInt,
+                encode: _same,
+              )
+              .toList(),
+          throwsA(isA<SessionExpired>()),
+        );
+        await pumpEventQueue();
+        expect(fetched, isFalse);
+        expect(store.values, before);
+        expect(cache.portfoliosOf(user), isNull);
+        // The owner's list stays as it was.
+        if (!earlier) expect(cache.portfoliosOf(_user), {_a});
+      });
+    }
+
+    test('nobody signed in: no read and no fetch', () async {
+      var fetched = false;
+      await expectLater(
+        cache
             .watch(
-              userId: _user,
-              query: 'x',
+              userId: null,
+              epoch: cache.epoch,
+              query: 'a',
               scope: InPortfolio<int>(_a),
-              fetch: () => answer.future,
+              fetch: () async {
+                fetched = true;
+                return 1;
+              },
               decode: _decodeInt,
               encode: _same,
             )
-            .toList();
-        await pumpEventQueue();
-        await cache.clear();
-        answer.complete(3);
-        expect([for (final s in await watching) s.value], [3]);
-        expect(store.values, isEmpty);
-      },
-    );
+            .toList(),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(fetched, isFalse);
+    });
+
+    test('a read whose store answers after another account is served shows '
+        'nothing', () async {
+      final slow = _SlowReads();
+      final cache = SwrCache(slow)..serve(_user);
+      await cache.write(
+        _user,
+        'a',
+        InPortfolio<int>(_a),
+        1,
+        _same,
+        epoch: cache.epoch,
+      );
+      slow.held = Completer();
+      final reading = cache.read(
+        _user,
+        'a',
+        InPortfolio<int>(_a),
+        _decodeInt,
+        epoch: cache.epoch,
+      );
+      await pumpEventQueue();
+      cache.serve('u2');
+      slow.held!.complete();
+      expect(await reading, isNull);
+    });
+
+    test('a write that lands after another account is served is deleted, '
+        'and shows nothing', () async {
+      final slow = _SlowStore()..held = Completer();
+      final cache = SwrCache(slow)..serve(_user);
+      final writing = cache.write(
+        _user,
+        'x',
+        InPortfolio<int>(_a),
+        1,
+        _same,
+        epoch: cache.epoch,
+      );
+      await pumpEventQueue();
+      cache.serve('u2');
+      slow.held!.complete();
+      expect(await writing, isNull);
+      expect(slow.inner.values, isEmpty);
+    });
+
+    test('a removal whose listing answers after another account is served '
+        'deletes nothing', () async {
+      await put('a', 1);
+      await cache.seed('u3', 'a', 1, portfolio: _a);
+      cache.applyPortfolios(
+        _user,
+        [_b],
+        asked: cache.ask(),
+        epoch: cache.epoch,
+      );
+      await pumpEventQueue();
+      await cache.seed(_user, 'a', 1, portfolio: _a);
+      await cache.seed('u3', 'a', 1, portfolio: _a);
+      final listing = store.keysHeld = Completer();
+      final pruning = cache.prune(_user);
+      final forgetting = cache.forgetOthers(_user);
+      await pumpEventQueue();
+      store.keysHeld = null;
+      cache.serve('u2');
+      listing.complete();
+      await Future.wait([pruning, forgetting]);
+      expect(store.values, hasLength(2));
+    });
+
+    test('a fetch that comes after another account is served is neither '
+        'saved nor shown', () async {
+      final answer = Completer<int>();
+      final watching = cache
+          .watch(
+            userId: _user,
+            epoch: cache.epoch,
+            query: 'x',
+            scope: InPortfolio<int>(_a),
+            fetch: () => answer.future,
+            decode: _decodeInt,
+            encode: _same,
+          )
+          .toList();
+      await pumpEventQueue();
+      cache.serve('u2');
+      answer.complete(3);
+      expect(await watching, isEmpty);
+      expect(store.values, isEmpty);
+    });
+
+    test('the copies of a query whose portfolio comes from its value are not '
+        'removed for a session that has ended', () async {
+      final listing = store.keysHeld = Completer();
+      await cache.write(
+        _user,
+        'u.h',
+        _fromRows,
+        [_a],
+        _same,
+        epoch: cache.epoch,
+      );
+      // Its removal of the other copies waits for the listing; the next
+      // session of the same account saves a copy of its own.
+      cache
+        ..serve(null)
+        ..serve(_user);
+      await cache.seed(_user, 'u.h', <String>[]);
+      store.keysHeld = null;
+      listing.complete();
+      await pumpEventQueue();
+      expect(store.values, hasLength(2));
+    });
   });
 }
 

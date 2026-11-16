@@ -27,7 +27,7 @@ import '../../support/harness.dart';
 
 /// The saved copy of [notifier]'s query for the test user, or null.
 Future<Snapshot<Object?>?> _saved(TestApp app, SwrNotifier<Object?> notifier) =>
-    app.cache.read<Object?>(
+    app.cache.saved<Object?>(
       testUserId,
       notifier.query,
       notifier.scope,
@@ -453,8 +453,8 @@ void main() {
     }
   });
 
-  group('an answer asked for before the device was wiped is not saved, nor '
-      'is a reload of the query built before it:', () {
+  group('an answer asked for before the device was wiped is not saved, and '
+      'the query built before it asks for nothing more:', () {
     for (final command in _answering) {
       test(command.name, () async {
         final app = TestApp();
@@ -472,16 +472,21 @@ void main() {
         }
         await app.cache.clear();
         gate.open();
-        await running;
+        try {
+          await running;
+        } on SessionExpired {
+          // Its follow-up read was refused: the change itself was made.
+        }
         await pumpEventQueue();
         // Nothing but the portfolio list a command read again after the
         // wipe, with a list controller built for the new session.
         Iterable<String> records() =>
             app.store.values.keys.where((key) => !key.contains('.own.'));
         expect(records(), isEmpty);
-        // The query was built for the session that ended.
-        expect(notifier.requestEpoch(), lessThan(app.cache.epoch));
-        await notifier.reload();
+        // The query was built for the session that ended: its reload
+        // throws before it fetches.
+        expect(notifier.requestEpoch, throwsA(isA<SessionExpired>()));
+        await expectLater(notifier.reload(), throwsA(isA<SessionExpired>()));
         await pumpEventQueue();
         expect(records(), isEmpty);
       });
@@ -529,8 +534,12 @@ void main() {
         final notifier = command.notifier(container);
         expect(await _saved(app, notifier), isNotNull);
         await app.cache.clear();
-        expect(notifier.shownEpoch, lessThan(app.cache.epoch));
-        await command.run(container);
+        expect(() => notifier.shownEpoch, throwsA(isA<SessionExpired>()));
+        try {
+          await command.run(container);
+        } on SessionExpired {
+          // It read the value on show before its request.
+        }
         await pumpEventQueue();
         expect(
           app.store.values.keys.where((key) => !key.contains('.own.')),

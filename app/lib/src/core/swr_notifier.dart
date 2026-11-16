@@ -35,25 +35,29 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
   /// The value as JSON [decode] reads back.
   Object? encode(T value);
 
+  /// The user the query was built for, if anyone was signed in.
   String? _userId;
 
-  /// The cache's epoch when the query was built.
+  /// The session's epoch when the query was built.
   int _epoch = 0;
 
   /// The cache's epoch the value on show was asked for in ([shownEpoch]).
   int _shown = 0;
 
+  /// Built again whenever the session changes ([sessionProvider]); while
+  /// the cache does not serve it, it reads nothing and ends with
+  /// [SessionExpired] (`SwrCache.watch`).
   @override
   Stream<Snapshot<T>> build() {
-    final userId = ref.watch(currentUserIdProvider);
+    final session = ref.watch(sessionProvider);
     final cache = ref.watch(swrCacheProvider);
-    final epoch = cache.epoch;
-    _userId = userId;
+    final epoch = session?.epoch ?? 0;
+    _userId = session?.userId;
     _epoch = epoch;
-    if (userId == null) return Stream.error(const SessionExpired());
     return cache
         .watch(
-          userId: userId,
+          userId: _userId,
+          epoch: epoch,
           query: query,
           scope: scope,
           // The cache is read first: by then nobody may show the query any
@@ -71,18 +75,22 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
 
   /// The cache's epoch for the answer to a request made now, to hand to
   /// [show] with it: the epoch the query was built in. A command reads it
-  /// before its request: an answer that comes after the device was wiped
-  /// is then not saved, and a query built for a session that has ended
-  /// saves nothing. (Whether its portfolio is still the user's is asked as
-  /// the answer is saved: `SwrCache.write`.)
-  int requestEpoch() => _epoch;
+  /// before its request, and it throws [SessionExpired] when the cache no
+  /// longer serves that session (`SwrCache.require`): nothing is asked for
+  /// a session that has ended, and an answer that comes after it ended is
+  /// neither shown nor saved. (Whether its portfolio is still the user's is
+  /// asked as the answer is saved: `SwrCache.write`.)
+  int requestEpoch() => ref.read(swrCacheProvider).require(_userId, _epoch);
 
   /// The cache's epoch the value on show was asked for in, to hand to
   /// [show] with a value made from that one (a page added to it, a row of
   /// it changed). A command reads it as it reads the value: what was on
   /// show before its saved copy was removed is not saved again with what
-  /// came after.
-  int get shownEpoch => _shown;
+  /// came after. It throws [SessionExpired], as [requestEpoch] does.
+  int get shownEpoch {
+    ref.read(swrCacheProvider).require(_userId, _epoch);
+    return _shown;
+  }
 
   /// Fetches the value again and shows it, after a command changed it.
   ///
@@ -99,9 +107,9 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
     }
   }
 
-  /// Shows [value] as the server's latest, and saves it unless the device
-  /// was wiped since [epoch], or the cache does not keep its portfolio's
-  /// entries (`SwrCache.write`).
+  /// Shows [value] as the server's latest, and saves it unless the cache
+  /// does not keep its portfolio's entries (`SwrCache.write`). Neither,
+  /// unless the cache still serves the session of [epoch].
   ///
   /// [epoch] is the cache's epoch the whole of [value] was asked for in:
   /// [requestEpoch], read before the request, when [value] is the server's
@@ -113,7 +121,7 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
     final savedAt = await ref
         .read(swrCacheProvider)
         .write(userId, query, scope, value, encode, epoch: epoch);
-    if (!ref.mounted) return;
+    if (savedAt == null || !ref.mounted) return;
     _shown = epoch;
     state = AsyncData(
       Snapshot(value, savedAt: savedAt, source: SnapshotSource.network),

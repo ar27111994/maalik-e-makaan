@@ -40,15 +40,15 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   is added there, to its tests, to `docs/architecture/app.md` (On the device) and to the website's
   privacy page, in both languages. Display settings belong to the device and stay; the pending
   invitation stays until the account is deleted (see On the device); text the person copies is
-  theirs. A cache write names the cache's epoch read before its request
-  (`SwrCache.write(epoch:)` and `SwrNotifier.show(epoch:)`, required arguments: a command reads
-  `requestEpoch()` before its request, or `shownEpoch` with the value on show it builds on), so
-  that nothing lands after a wipe; a notifier that is not an `SwrNotifier` (`ProfileController`,
-  `PortfoliosController`) keeps the epoch of the value on show itself; `PortfoliosController`
-  watches the signed-in user, as `SwrNotifier` does, so each session's lists are applied, and
-  each of its commands begins with `_requireSession()`: a new command on it, or on another
-  notifier keyed by a user id, does the same, since its caller may have read the user before a
-  request of its own. Every
+  theirs. The cache serves one user at a time (`SwrCache.serve`): every cache operation names
+  its user and the epoch it belongs to (`read`, `write`, `watch` and `SwrNotifier.show` take a
+  required `epoch`), and does anything only while the cache serves that user in that epoch
+  (`SwrCache.serves`). A notifier that reads or saves for the session watches `sessionProvider`
+  and takes its user and epoch from it, as `SwrNotifier`, `PortfoliosController`,
+  `ProfileController` and `ResidenceController` do. A command reads `requestEpoch()` (in a
+  controller that is not an `SwrNotifier`, `SwrCache.require`) before each request, or
+  `shownEpoch` with the value on show it builds on: either throws `SessionExpired` once the
+  session has ended, so a new command does the same, also before a second request. Every
   saved entry names its portfolio in its key: each `SwrNotifier` declares its `scope` (`InPortfolio` when its
   request filters by a portfolio it names, `FromValue` when its rows carry `portfolio_id`, or
   `UnknownPortfolio`, kept only until the session's first list of portfolios); only the list,
@@ -56,8 +56,9 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   fetch guarantees, its model reads `portfolio_id` when it is `FromValue`, and it gets a row in
   `test/src/data/cache/cache_scopes_test.dart`. A list answer of the server is numbered before
   its request (`SwrCache.ask`) and applied with `SwrCache.applyPortfolios`, which removes what
-  the list does not name; a list the controller builds itself never takes a number. A command
-  that chooses the current portfolio after a request passes `select(askedIn:)`. A new command
+  the list does not name; a list the controller builds itself never takes a number. A setting
+  kept per account (the current portfolio, the camera's target) is written only while the cache
+  serves its user (`SwrCache.serves(userId, cache.epoch)`). A new command
   that shows a value gets a case in `test/src/core/swr_commands_test.dart`, which checks when it
   reads it. Each step of the wipe runs on its own and is bounded; a plugin that answers after its
   limit still has its answer acted on.

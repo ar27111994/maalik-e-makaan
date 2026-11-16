@@ -237,8 +237,8 @@ String? cameraOriginalOf(String path) {
 /// It removes:
 ///
 /// - the saved copy of every list the app loaded (the [SwrCache]), and any
-///   copy a fetch still on its way would bring back later
-///   ([SwrCache.epoch]);
+///   copy a fetch still on its way would bring back later: the cache serves
+///   nobody from the moment the wipe begins ([SwrCache.clear]);
 /// - the portfolio last chosen on the device;
 /// - the camera's record of a photo being taken, and on Android the
 ///   camera's and the file picker's record of a pick the app was closed
@@ -309,15 +309,15 @@ final class DeviceDataWipe {
     return preferences;
   }
 
-  /// At start-up, once the stored session has been read: when nobody is
-  /// signed in, a [WipeReason.startedSignedOut] wipe. When someone is (the
-  /// user [signedInAs]), what another account's ended session left because
-  /// its wipe could not finish: the cache's entries of other users, and
-  /// every entry of the cache's old format ([SwrCache.forgetOthers]), and a
-  /// portfolio another user chose, each on
-  /// its own and waited for at most [wipePreferencesLimit]; and the files
-  /// an earlier run left (the pickers' copies, the shared files older than
-  /// [sharedFileGrace]).
+  /// At start-up, once the stored session has been read, the cache serves
+  /// [signedInAs] ([SwrCache.serve]), before anything is read. Then, when
+  /// nobody is signed in, a [WipeReason.startedSignedOut] wipe. When
+  /// someone is, what another account's ended session left because its wipe
+  /// could not finish: the cache's entries of other users, and every entry
+  /// of the cache's old format ([SwrCache.forgetOthers]), and a portfolio
+  /// another user chose, each on its own and waited for at most
+  /// [wipePreferencesLimit]; and the files an earlier run left (the
+  /// pickers' copies, the shared files older than [sharedFileGrace]).
   ///
   /// Either way, the camera's record, the photos the camera took on Android
   /// and the plugins' records of a pick the app was closed during stay only
@@ -330,6 +330,7 @@ final class DeviceDataWipe {
     required bool photoMayReturn,
   }) {
     final camera = !photoMayReturn;
+    _cache.serve(signedInAs);
     if (signedInAs == null) {
       return _wipe(WipeReason.startedSignedOut, camera: camera);
     }

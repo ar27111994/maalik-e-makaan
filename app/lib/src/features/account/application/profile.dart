@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
@@ -17,6 +18,13 @@ profileProvider = StreamNotifierProvider.autoDispose
     );
 
 /// Reads the profile and saves changes to it. Commands throw `AppFailure`.
+///
+/// It reads, and its commands ask for anything, only while the cache
+/// serves its user's session (`SwrCache.serves`): built for another
+/// account, or kept alive after its session ended, it reads nothing, and a
+/// command throws `SessionExpired` before its request. It is built again
+/// whenever the session changes, so the same account's next session reads
+/// and saves again.
 final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   new(this.userId);
 
@@ -30,8 +38,8 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
 
   ProfileRepository get _repository => ref.read(profileRepositoryProvider);
 
-  /// The cache's epoch when the profile was built: a profile saved after
-  /// the device was wiped since (the session ended) is not kept on it.
+  /// The session's epoch when the profile was built: what is asked for in
+  /// it is saved only while the cache still serves it.
   int _epoch = 0;
 
   /// The cache's epoch the profile on show was asked for in: a profile
@@ -41,13 +49,15 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
 
   @override
   Stream<Snapshot<Profile>> build() {
+    final session = ref.watch(sessionProvider);
     final repository = ref.watch(profileRepositoryProvider);
     final cache = ref.watch(swrCacheProvider);
-    final epoch = cache.epoch;
+    final epoch = session?.epoch ?? 0;
     _epoch = epoch;
     return cache
         .watch(
           userId: userId,
+          epoch: epoch,
           query: query,
           scope: scope,
           fetch: () => repository.fetch(userId),
@@ -66,7 +76,7 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
     required String fullName,
     required PhoneNumber? phone,
   }) async {
-    final epoch = _epoch;
+    final epoch = ref.read(swrCacheProvider).require(userId, _epoch);
     final saved = await _repository.updateDetails(
       userId,
       fullName: fullName,
@@ -76,11 +86,11 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   }
 
   /// Saves the app language to the profile, and shows the profile on show
-  /// with it. That profile is saved only when the device was not wiped
-  /// since it was asked for: what was shown in a session that has ended is
-  /// not saved again with the new language.
+  /// with it. That profile is saved only while the cache serves the session
+  /// it was asked for in: what was shown in a session that has ended is not
+  /// saved again with the new language.
   Future<void> saveLanguage(AppLanguage language) async {
-    final epoch = _epoch;
+    final epoch = ref.read(swrCacheProvider).require(userId, _epoch);
     await _repository.updateLanguage(userId, language);
     final current = state.value?.value;
     if (current != null) {
@@ -92,7 +102,7 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   }
 
   /// Shows [profile], and saves it for [epoch], the cache's when (all of)
-  /// it was asked for.
+  /// it was asked for: neither once the cache no longer serves it.
   Future<void> _show(Profile profile, int epoch) async {
     final savedAt = await ref
         .read(swrCacheProvider)
@@ -104,7 +114,7 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
           (profile) => profile.toRow(),
           epoch: epoch,
         );
-    if (!ref.mounted) return;
+    if (savedAt == null || !ref.mounted) return;
     _shown = epoch;
     state = AsyncData(
       Snapshot(profile, savedAt: savedAt, source: SnapshotSource.network),

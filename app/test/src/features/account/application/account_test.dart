@@ -37,7 +37,7 @@ void main() {
       expect(profile.phone, isNull);
       expect(app.profiles.calls.last.$2, [testUserId, '  Ayesha  K. ', null]);
       // The cache holds it for next time.
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ProfileController.query,
         ProfileController.scope,
@@ -81,7 +81,7 @@ void main() {
           await saving;
         }
         await notifier.saveLanguage(AppLanguage.urdu);
-        final saved = await app.cache.read(
+        final saved = await app.cache.saved(
           testUserId,
           ProfileController.query,
           ProfileController.scope,
@@ -91,8 +91,9 @@ void main() {
       });
     }
 
-    test('a profile that comes back after the device was wiped is not '
-        'kept, nor one saved after it', () async {
+    test('a profile that comes back after the device was wiped is neither '
+        'kept nor shown, and the profile built for that session asks for '
+        'nothing after', () async {
       final app = TestApp();
       final container = containerFor(app);
       listen(container, profileProvider(testUserId));
@@ -107,11 +108,16 @@ void main() {
       await saving;
       expect(app.store.values, isEmpty);
       expect(
-        container.read(profileProvider(testUserId)).value!.value.fullName,
-        'Ayesha K.',
+        container.read(profileProvider(testUserId)).value?.value.fullName,
+        isNot('Ayesha K.'),
       );
-      // Nor what the profile, built for that session, saves after.
-      await notifier.saveLanguage(AppLanguage.urdu);
+      // The profile, built for that session, asks for nothing after.
+      final asked = app.profiles.calls.length;
+      await expectLater(
+        notifier.saveLanguage(AppLanguage.urdu),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.profiles.calls, hasLength(asked));
       expect(app.store.values, isEmpty);
     });
 
@@ -135,7 +141,7 @@ void main() {
       ]);
       app.profiles.gate.open();
       await saving;
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ProfileController.query,
         ProfileController.scope,
@@ -144,7 +150,7 @@ void main() {
       expect(saved!.value.fullName, 'Ayesha K.');
       // Made from the profile on show, asked for before the removal.
       await notifier.saveLanguage(AppLanguage.urdu);
-      final again = await app.cache.read(
+      final again = await app.cache.saved(
         testUserId,
         ProfileController.query,
         ProfileController.scope,
@@ -154,7 +160,7 @@ void main() {
     });
 
     test('a language whose save was on its way when the device was wiped is '
-        'shown and not kept', () async {
+        'neither shown nor kept', () async {
       final app = TestApp();
       final container = containerFor(app);
       listen(container, profileProvider(testUserId));
@@ -170,8 +176,8 @@ void main() {
       await saving;
       expect(app.store.values, isEmpty);
       expect(
-        container.read(profileProvider(testUserId)).value!.value.language,
-        AppLanguage.urdu,
+        container.read(profileProvider(testUserId)).value?.value.language,
+        isNot(AppLanguage.urdu),
       );
     });
 
@@ -206,6 +212,89 @@ void main() {
         throwsA(isA<RejectedFailure>()),
       );
       expect(container.read(profileProvider(testUserId)).value!.value, ayesha);
+    });
+  });
+
+  group('the session it serves: profile', () {
+    const other = SignedIn(
+      userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+      email: 'sana.malik@example.com',
+    );
+
+    test(
+      'built first, it loads: the session is read before its epoch',
+      () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, profileProvider(testUserId));
+        await pumpEventQueue();
+        expect(container.read(profileProvider(testUserId)).value, isNotNull);
+      },
+    );
+
+    test('built for another account than the one signed in, it asks for '
+        'nothing', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(other);
+      await pumpEventQueue();
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.profiles.calls, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).error,
+        isA<SessionExpired>(),
+      );
+      expect(app.store.values, isEmpty);
+    });
+
+    test('a command of another account than the one signed in sends '
+        'nothing', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(other);
+      await pumpEventQueue();
+      // As a screen built for the first account calls it after an await.
+      await expectLater(
+        container
+            .read(profileProvider(testUserId).notifier)
+            .saveLanguage(AppLanguage.urdu),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.profiles.calls, isEmpty);
+      expect(app.store.values, isEmpty);
+    });
+
+    test('kept alive across a sign-out by the same account, it saves in the '
+        'next session', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      app.profiles.gate.close();
+      final saving = container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      app.auth.emit(signedIn);
+      await pumpEventQueue();
+      app.profiles.gate.open();
+      await saving;
+      await pumpEventQueue();
+      // Built again for the new session: it read the profile and saved it.
+      expect(
+        [for (final (name, _) in app.profiles.calls) name],
+        ['fetch', 'updateLanguage', 'fetch'],
+      );
+      expect(app.store.values.keys, [cacheKey(testUserId, 'profile')]);
+      expect(container.read(profileProvider(testUserId)).value, isNotNull);
     });
   });
 

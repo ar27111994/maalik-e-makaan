@@ -2,13 +2,17 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
+import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/swr_notifier.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 
-import '../../support/fakes.dart' show ListAnswers, MemoryStore;
+import '../../support/fakes.dart'
+    show FakeAuthRepository, ListAnswers, MemoryStore;
+
+const _u1 = SignedIn(userId: 'u1', email: 'u1@example.com');
+const _u2 = SignedIn(userId: 'u2', email: 'u2@example.com');
 
 /// What the next fetch answers; a test holds it on a completer.
 final _answer = Provider<Future<int> Function()>(
@@ -37,11 +41,17 @@ final class _Count extends SwrNotifier<int> {
 
 final _count = StreamNotifierProvider<_Count, Snapshot<int>>(_Count.new);
 
+int _int(Object? json) => json! as int;
+
 void main() {
   late MemoryStore store;
   late SwrCache cache;
+  late FakeAuthRepository auth;
   late Completer<int> held;
   late ProviderContainer container;
+
+  /// How many times the query was fetched.
+  late int fetches;
 
   Iterable<String> saved() =>
       store.values.keys.where((key) => key.startsWith('mm.swr.'));
@@ -49,18 +59,16 @@ void main() {
   setUp(() async {
     store = MemoryStore();
     cache = SwrCache(store);
+    auth = FakeAuthRepository(_u1);
     held = Completer();
-    var first = true;
+    fetches = 0;
     container = ProviderContainer.test(
       overrides: [
         swrCacheProvider.overrideWithValue(cache),
-        currentUserIdProvider.overrideWithValue('u1'),
+        authRepositoryProvider.overrideWithValue(auth),
         _answer.overrideWithValue(() {
           // The first fetch answers at once; later ones wait for the test.
-          if (first) {
-            first = false;
-            return Future.value(1);
-          }
+          if (fetches++ == 0) return Future.value(1);
           return held.future;
         }),
       ],
@@ -69,8 +77,8 @@ void main() {
     expect(saved(), ['mm.swr.v2.u1.p:pA.count']);
   });
 
-  test('a reload still on its way when the device is wiped saves nothing, '
-      'and shows what came back', () async {
+  test('a reload still on its way when the device is wiped neither saves '
+      'nor shows what came back', () async {
     final reload = container.read(_count.notifier).reload();
     await pumpEventQueue();
     // The session ends: the device wipe clears the cache.
@@ -78,43 +86,60 @@ void main() {
     held.complete(2);
     await reload;
     expect(saved(), isEmpty);
-    expect(container.read(_count).value!.value, 2);
+    expect(container.read(_count).value!.value, 1);
   });
 
-  test('an answer asked for after the wipe, by a query built before it, is '
-      'not saved', () async {
+  test('a query built before the wipe asks for nothing after it', () async {
     await cache.clear();
     final notifier = container.read(_count.notifier);
-    await notifier.show(3, epoch: notifier.requestEpoch());
+    expect(notifier.requestEpoch, throwsA(isA<SessionExpired>()));
+    expect(() => notifier.shownEpoch, throwsA(isA<SessionExpired>()));
+    // A command's reload sends no request, and its command hears why.
+    await expectLater(notifier.reload(), throwsA(isA<SessionExpired>()));
+    expect(fetches, 1);
     expect(saved(), isEmpty);
-    expect(container.read(_count).value!.value, 3);
-  });
-
-  test('a reload begun after the wipe, by a query built before it, saves '
-      'nothing', () async {
-    await cache.clear();
-    held.complete(6);
-    await container.read(_count.notifier).reload();
-    expect(saved(), isEmpty);
-    expect(container.read(_count).value!.value, 6);
+    expect(container.read(_count).value!.value, 1);
   });
 
   test('an answer asked for before the wipe is not saved by the query built '
-      'for the next session', () async {
+      'for the next session of the same account', () async {
     final notifier = container.read(_count.notifier);
     final asked = notifier.requestEpoch();
     await cache.clear();
-    // The same account signs in again: the query starts over.
-    container.invalidate(_count);
+    // The same account signs in again: the query is built again by itself.
+    auth.emit(_u1);
     await pumpEventQueue();
+    expect(fetches, 2);
     await notifier.show(9, epoch: asked);
     expect(saved(), isEmpty);
+    expect(container.read(_count).value?.value, isNot(9));
   });
 
-  Future<int?> savedCount() async =>
-      (await cache.read('u1', 'count', InPortfolio<int>('pA'), (json) {
-        return json! as int;
-      }))?.value;
+  test("a build's fetch that comes after the session changed saves "
+      'nothing', () async {
+    // Built again for a new session of the same account, whose fetch waits.
+    await cache.clear();
+    auth.emit(_u1);
+    await pumpEventQueue();
+    // Another account's session replaces it before the fetch comes back.
+    await cache.clear();
+    auth.emit(_u2);
+    await pumpEventQueue();
+    // Both builds' fetches answer: the earlier build's is saved for
+    // nobody, the new session's build's for its own account.
+    held.complete(7);
+    await pumpEventQueue();
+    expect(fetches, 3);
+    expect(saved(), ['mm.swr.v2.u2.p:pA.count']);
+  });
+
+  Future<int?> savedCount() async => (await cache.read(
+    'u1',
+    'count',
+    InPortfolio<int>('pA'),
+    _int,
+    epoch: cache.epoch,
+  ))?.value;
 
   /// The server's list of u1's portfolios is [ids].
   Future<void> listIs(List<String> ids) => cache.answer('u1', ids);
@@ -197,23 +222,26 @@ void main() {
     });
   });
 
-  test('a query built after the wipe saves again', () async {
-    await cache.clear();
-    container.invalidate(_count);
-    await pumpEventQueue();
-    held.complete(4);
-    await pumpEventQueue();
-    expect(saved(), ['mm.swr.v2.u1.p:pA.count']);
-    final notifier = container.read(_count.notifier);
-    await notifier.show(5, epoch: notifier.requestEpoch());
-    expect(await savedCount(), 5);
-  });
+  test(
+    'a query built for the next session of the same account saves again',
+    () async {
+      await cache.clear();
+      auth.emit(_u1);
+      await pumpEventQueue();
+      held.complete(4);
+      await pumpEventQueue();
+      expect(saved(), ['mm.swr.v2.u1.p:pA.count']);
+      final notifier = container.read(_count.notifier);
+      await notifier.show(5, epoch: notifier.requestEpoch());
+      expect(await savedCount(), 5);
+    },
+  );
 
   group('in the session after a wipe, a value made from the one on show is '
       'saved', () {
     test('when the query built for it brought that one', () async {
       await cache.clear();
-      container.invalidate(_count);
+      auth.emit(_u1);
       await pumpEventQueue();
       held.complete(4);
       await pumpEventQueue();
@@ -225,7 +253,7 @@ void main() {
 
     test('when a reload brought that one', () async {
       await cache.clear();
-      container.invalidate(_count);
+      auth.emit(_u1);
       await pumpEventQueue();
       // The query built for the session cannot read the server...
       held.completeError(const NetworkFailure());
@@ -241,18 +269,20 @@ void main() {
     });
   });
 
-  test('nobody signed in: nothing is shown or saved', () async {
+  test('nobody signed in: nothing is asked for, shown or saved', () async {
     final signedOut = ProviderContainer.test(
       overrides: [
-        swrCacheProvider.overrideWithValue(cache),
-        currentUserIdProvider.overrideWithValue(null),
+        swrCacheProvider.overrideWithValue(SwrCache(store)),
+        authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
       ],
     )..listen(_count, (_, _) {});
     await pumpEventQueue();
     store.values.clear();
     final notifier = signedOut.read(_count.notifier);
-    await notifier.show(5, epoch: notifier.requestEpoch());
+    expect(notifier.requestEpoch, throwsA(isA<SessionExpired>()));
+    await notifier.show(5, epoch: 0);
     expect(saved(), isEmpty);
-    expect(signedOut.read(_count).hasValue, isFalse);
+    expect(signedOut.read(_count).error, isA<SessionExpired>());
+    expect(fetches, 1);
   });
 }

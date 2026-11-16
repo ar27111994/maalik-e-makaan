@@ -8,13 +8,24 @@
 // documented key format, apart from SwrCache's private parts and from the
 // operational model.
 //
+// The epochs come from the history too: a clear starts one nobody owns,
+// serving a user who does not own the current one starts one they own
+// (serving nobody: one nobody owns, unless nobody owns it).
+//
 // Allowed: a key of this version whose value is a write of that key, asked
-// in the session on now (no clear since), whose tag the portfolios the user
-// is in keep (or the user's own), unless the key met a fault (a refused or
-// hung deletion, a silent landing, a failed listing) since that write.
-// Required: the last write asked of an entry, when it landed and nothing
-// since could remove it (no clear, no list without its portfolio, no other
-// write of its entry, no fault), is on the store.
+// by the owner of the epoch it was asked in, landed while that epoch was the
+// current one, with no clear since, whose tag the portfolios the user is in
+// keep (or the user's own), unless the key met a fault (a refused or hung
+// deletion, a silent landing, a failed listing) since that write.
+// Required: the last write asked of an entry, when it landed served and
+// nothing since could remove it (no clear, no list without its portfolio,
+// no list of another user's, no other write of its entry, no fault), is on
+// the store.
+// A read returns nothing for a user or an epoch the cache does not serve,
+// and nothing the rule rejects.
+//
+// Each of three defects of the cache (CacheFault) must make it report a
+// divergence: the tests at the end run it over a cache built with each.
 //
 // It also fuzzes the key format: random ids and queries with dots, `#`,
 // spaces and Urdu; the tag reads back from the key alone, and the removal
@@ -67,7 +78,10 @@ final class _W {
 
   String get key => _keyOf(user, tag, q.text);
 
-  /// How it ended: null while held; 'landed', 'failed' or 'silent'.
+  /// How it ended: null while held; 'refused' (asked for a session the
+  /// cache did not serve: nothing was written), 'landed', 'dropped' (it
+  /// landed after its session ended, and was deleted), 'failed' or
+  /// 'silent'.
   String? end;
 
   /// The step it ended at.
@@ -82,6 +96,12 @@ sealed class _Event {
 
 final class _Clear extends _Event {
   const new(super.step);
+}
+
+/// A status applied: the cache serves [user], or nobody.
+final class _Serve extends _Event {
+  const new(super.step, this.user);
+  final String? user;
 }
 
 final class _Members extends _Event {
@@ -124,10 +144,10 @@ CacheScope<_W> _scope(_Q q) => switch (q.kind) {
 /// What the sequence did, step by step, for a failure's message.
 final _log = <String>[];
 
-Future<String?> _sequence(Random r, int steps) async {
+Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
   _log.clear();
   final store = MemoryStore();
-  final cache = SwrCache(store);
+  final cache = SwrCache(store, fault: fault);
   final users = [_uuid(r), _uuid(r)];
   final portfolios = [_uuid(r), _uuid(r), _uuid(r)];
   final queries = <_Q>[
@@ -145,7 +165,6 @@ Future<String?> _sequence(Random r, int steps) async {
   final writes = <_W>[];
   final events = <_Event>[];
   final asked = <(int, int)>[];
-  var epoch = 0;
 
   // The documented format, and the tag back from it.
   for (final q in queries) {
@@ -164,13 +183,40 @@ Future<String?> _sequence(Random r, int steps) async {
       .where((e) => e.step <= step)
       .fold(-1, (a, e) => max(a, e.step));
 
-  /// The portfolios [user] is in at [step], from the history: null before a
-  /// list since the last clear.
+  /// The epochs up to [step], from the history: each one's number, owner
+  /// and the step it began at (the first, owned by nobody, at -1).
+  List<({int epoch, String? owner, int from})> epochsTo(int step) {
+    final epochs = [(epoch: 0, owner: null as String?, from: -1)];
+    for (final e in events) {
+      if (e.step > step) break;
+      final last = epochs.last;
+      if (e is _Clear) {
+        epochs.add((epoch: last.epoch + 1, owner: null, from: e.step));
+      } else if (e is _Serve && e.user != last.owner) {
+        epochs.add((epoch: last.epoch + 1, owner: e.user, from: e.step));
+      }
+    }
+    return epochs;
+  }
+
+  /// The current epoch at [step].
+  ({int epoch, String? owner, int from}) epochAt(int step) =>
+      epochsTo(step).last;
+
+  /// Whether the cache serves [user] in [epoch] at [step].
+  bool servesAt(String user, int epoch, int step) {
+    final now = epochAt(step);
+    return now.epoch == epoch && now.owner == user;
+  }
+
+  /// The portfolios [user] is in at [step], from the history: null unless
+  /// they own the epoch and a list was applied since it began.
   Set<String>? membersAt(String user, int step) {
-    final since = lastClear(step);
+    final now = epochAt(step);
+    if (now.owner != user) return null;
     Set<String>? s;
     for (final e in events.whereType<_Members>()) {
-      if (e.step > step || e.step < since || e.user != user) continue;
+      if (e.step > step || e.step <= now.from || e.user != user) continue;
       s = e.ids;
     }
     return s;
@@ -196,18 +242,30 @@ Future<String?> _sequence(Random r, int steps) async {
         return e.step >= step || healed == null || healed >= step;
       });
 
-  final newestApplied = <String, int>{};
+  var newestApplied = 0;
   var current = 0;
+  // The app starts signed in, most often.
+  if (r.nextInt(4) > 0) {
+    final first = users[r.nextInt(2)];
+    events.add(_Serve(-1, first));
+    cache.serve(first);
+  }
   for (var step = 0; step < steps; step++) {
     current = step;
-    final user = users[r.nextInt(2)];
-    final q = queries[r.nextInt(queries.length)];
-    final opn = r.nextInt(12);
+    var user = users[r.nextInt(2)];
+    var q = queries[r.nextInt(queries.length)];
+    final opn = r.nextInt(14);
+    final epoch = epochAt(step).epoch;
     _log.add(
       '$step op$opn ${user.substring(0, 4)} ${q.kind.name} e$epoch '
       'w${writes.length}',
     );
     switch (opn) {
+      case 12 || 13:
+        // A status is applied: a user signed in, or nobody.
+        final who = r.nextInt(3) == 0 ? null : user;
+        events.add(_Serve(step, who));
+        cache.serve(who);
       case 0 || 1 || 2 || 3:
         final names = switch (q.kind) {
           _Kind.ownList => [
@@ -235,6 +293,11 @@ Future<String?> _sequence(Random r, int steps) async {
           tag,
         );
         writes.add(w);
+        if (!servesAt(user, w.epoch, step)) {
+          w
+            ..end = 'refused'
+            ..endedAt = step;
+        }
         if (r.nextInt(3) == 0) store.holding.add(w.key);
         if (r.nextInt(12) == 0) {
           store.landingSilently.add(w.key);
@@ -244,9 +307,9 @@ Future<String?> _sequence(Random r, int steps) async {
           cache
               .write(w.user, q.text, _scope(q), w, _encode, epoch: w.epoch)
               .then(
-                (_) => w
-                  ..end ??= 'landed'
-                  ..endedAt = current,
+                (at) => w
+                  ..end ??= at == null ? 'dropped' : 'landed'
+                  ..endedAt = w.end == 'refused' ? w.endedAt : current,
                 onError: (_) => w
                   ..end = 'failed'
                   ..endedAt = current,
@@ -266,7 +329,6 @@ Future<String?> _sequence(Random r, int steps) async {
         }
         store.holding.clear();
       case 5:
-        epoch++;
         events.add(_Clear(step));
         if (store.keysFailure != null) events.add(_Fault(step, null));
         unawaited(cache.clear().then((_) {}, onError: (_) {}));
@@ -277,13 +339,16 @@ Future<String?> _sequence(Random r, int steps) async {
           for (final p in portfolios)
             if (r.nextBool()) p,
         };
+        // Applied in a new epoch, the first answer is never stale.
+        if (membersAt(user, step) == null) newestApplied = 0;
         if (cache.applyPortfolios(user, ids, asked: number, epoch: e)) {
-          // The newest-asked answer of the session: never older than one
-          // applied before it, never of an ended session.
-          if (e != epoch || number < (newestApplied[user] ?? 0)) {
+          // The newest-asked answer of the epoch: never older than one
+          // applied before it in the epoch, never of one the cache does not
+          // serve.
+          if (!servesAt(user, e, step) || number < newestApplied) {
             return 'applied a stale answer #$number';
           }
-          newestApplied[user] = number;
+          newestApplied = number;
           events.add(_Members(step, user, ids));
           if (store.keysFailure != null) events.add(_Fault(step, null));
         }
@@ -309,24 +374,43 @@ Future<String?> _sequence(Random r, int steps) async {
       case 10:
         final p = portfolios[r.nextInt(3)];
         final s = membersAt(user, step);
-        if (s != null) {
-          if (r.nextBool()) {
-            cache.addPortfolio(user, p, epoch: epoch);
-            events.add(_Members(step, user, {...s, p}));
-          } else {
-            cache.removePortfolio(user, p, epoch: epoch);
-            events.add(_Members(step, user, {...s}..remove(p)));
-          }
+        // In the epoch now, or in the one before.
+        final e = r.nextInt(4) == 0 ? epoch - 1 : epoch;
+        final served = s != null && servesAt(user, e, step);
+        if (r.nextBool()) {
+          cache.addPortfolio(user, p, epoch: e);
+          if (served) events.add(_Members(step, user, {...s, p}));
+        } else {
+          cache.removePortfolio(user, p, epoch: e);
+          if (served) events.add(_Members(step, user, {...s}..remove(p)));
         }
       default:
-        // Reads: what they return must be allowed.
+        // Reads: what they return must be allowed. Half the time, of an
+        // entry the store holds that the rule rejects now.
         await pumpEventQueue();
+        final rejected = [
+          for (final raw in store.values.values)
+            if (writes[_idOf(raw) - 1] case final w
+                when !keeps(w.user, w.tag, w.names, step))
+              w,
+        ];
+        if (rejected.isNotEmpty && r.nextBool()) {
+          final w = rejected[r.nextInt(rejected.length)];
+          user = w.user;
+          q = w.q;
+        }
+        // In the epoch now, or in the one before.
+        final e = r.nextInt(4) == 0 ? epoch - 1 : epoch;
         final read = await cache.read(
           user,
           q.text,
           _scope(q),
           (json) => writes[((json! as Map<String, Object?>)['w']! as int) - 1],
+          epoch: e,
         );
+        if (read != null && !servesAt(user, e, step)) {
+          return 'read #${read.value.id} for a session not served';
+        }
         if (read != null) {
           final w = read.value;
           if (w.user != user || w.q != q) return 'read another entry';
@@ -339,6 +423,21 @@ Future<String?> _sequence(Random r, int steps) async {
 
     // The whole store against the two sets.
     final now = step;
+    final epochs = epochsTo(now);
+
+    /// Whether [w] was asked by the owner of its epoch, and landed while
+    /// that epoch was the current one.
+    bool servedAtLanding(_W w) {
+      final asked = epochs.firstWhere((e) => e.epoch == w.epoch);
+      return asked.owner == w.user && epochAt(w.endedAt).epoch == w.epoch;
+    }
+
+    /// Whether a clear came after [w]'s epoch.
+    bool clearedSince(_W w) => epochs.any(
+      (e) =>
+          e.epoch > w.epoch &&
+          events.whereType<_Clear>().any((c) => c.step == e.from),
+    );
     final present = <String, int>{
       for (final e in store.values.entries)
         if (e.key.startsWith('mm.swr.')) e.key: _idOf(e.value),
@@ -348,7 +447,10 @@ Future<String?> _sequence(Random r, int steps) async {
       if (w.key != key) return 'step $step: $key holds #$value of ${w.key}';
       final excused = faultedSince(key, w.endedAt < 0 ? 0 : w.endedAt);
       if (excused) continue;
-      if (w.epoch < epoch) return 'step $step: #$value of an ended session';
+      if (clearedSince(w)) return 'step $step: #$value of an ended session';
+      if (!servedAtLanding(w)) {
+        return 'step $step: #$value of a session not served';
+      }
       if (w.tag != 'own' && !keeps(w.user, w.tag, w.names, now)) {
         return 'step $step: #$value under ${w.tag} is kept unkept';
       }
@@ -360,7 +462,7 @@ Future<String?> _sequence(Random r, int steps) async {
     }
     for (final w in last.values) {
       if (w.end != 'landed') continue;
-      if (w.epoch < epoch) continue;
+      if (clearedSince(w) || !servedAtLanding(w)) continue;
       // A list of another user's removes every entry but theirs.
       final others = events.whereType<_Members>().any(
         (e) => e.user != w.user && e.step >= w.endedAt,
@@ -385,6 +487,7 @@ Future<String?> _sequence(Random r, int steps) async {
             o.user == w.user &&
             o.q == w.q &&
             o.end != null &&
+            o.end != 'refused' &&
             o.endedAt >= w.endedAt,
       );
       if (crossed) continue;
@@ -411,4 +514,17 @@ void main() {
       }
     }
   }, timeout: const Timeout(Duration(minutes: 10)));
+
+  // The model catches each defect: a cache built with it diverges within a
+  // few sequences of a fixed seed.
+  for (final fault in CacheFault.values) {
+    test('it catches a cache whose ${fault.name}', () async {
+      final r = Random(20261116);
+      String? broken;
+      for (var i = 0; i < 200 && broken == null; i++) {
+        broken = await _sequence(r, 40, fault: fault);
+      }
+      expect(broken, isNotNull);
+    }, timeout: const Timeout(Duration(minutes: 5)));
+  }
 }

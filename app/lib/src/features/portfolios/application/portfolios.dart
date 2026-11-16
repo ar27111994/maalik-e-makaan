@@ -27,10 +27,12 @@ portfoliosProvider = StreamNotifierProvider.autoDispose
 
 /// Reads the user's portfolios and creates new ones.
 ///
-/// It reads, and its commands work, only while its user is the one signed
-/// in ([currentUserIdProvider]): a command called after that session has
-/// ended, by a caller that read the user before a request of its own,
-/// throws [SessionExpired] and asks for, shows and saves nothing.
+/// It reads, and its commands ask for anything, only while the cache serves
+/// its user's session ([SwrCache.serves]): a command throws
+/// [SessionExpired] before each request when that session has ended (also
+/// during an earlier request of the command), and an answer that comes
+/// after it ended is neither shown, applied nor saved. It is built again
+/// whenever the session changes ([sessionProvider]).
 ///
 /// Each list the server answers sets, in the cache, the portfolios the
 /// user is in ([SwrCache.applyPortfolios]): the saved records of a
@@ -52,26 +54,25 @@ final class PortfoliosController
   static final OwnScope<List<PortfolioMembership>> scope =
       OwnScope.portfolioList((list) => [for (final m in list) m.id]);
 
-  /// The cache's epoch when the list was built: a list asked for after the
-  /// device was wiped since (the session ended) is not kept on it. The
-  /// list is built again whenever the signed-in user changes, so each
-  /// session's lists are asked for in its own epoch, and applied.
+  /// The session's epoch when the list was built: each session's lists
+  /// are asked for in its own epoch, and applied and saved only while the
+  /// cache still serves it.
   int _epoch = 0;
 
   /// The cache's epoch the list on show was asked for in: a list made from
   /// it is saved for that epoch (or an older one), so that one shown
-  /// before the device was wiped is not saved again.
+  /// in a session that has ended is not saved again.
   int _shown = 0;
 
   @override
   Stream<Snapshot<List<PortfolioMembership>>> build() {
+    final session = ref.watch(sessionProvider);
     final repository = ref.watch(portfolioRepositoryProvider);
     final cache = ref.watch(swrCacheProvider);
-    final epoch = cache.epoch;
+    final epoch = session?.epoch ?? 0;
     _epoch = epoch;
-    // Built again when the session ends and when the next begins (every
-    // wipe ends one); while it is not this user's, nothing is read.
-    if (ref.watch(currentUserIdProvider) != userId) {
+    // While the session is not this user's, nothing is read.
+    if (!cache.serves(userId, epoch)) {
       return Stream.error(const SessionExpired());
     }
     return _watch(cache, repository, epoch);
@@ -85,7 +86,7 @@ final class PortfoliosController
     PortfolioRepository repository,
     int epoch,
   ) async* {
-    final saved = await cache.read(userId, query, scope, _decode);
+    final saved = await cache.read(userId, query, scope, _decode, epoch: epoch);
     if (saved != null) {
       _shown = epoch;
       yield saved;
@@ -93,7 +94,8 @@ final class PortfoliosController
     final asked = cache.ask();
     final list = await repository.listMine(userId);
     final fresh = _save(cache, list, epoch, asked: asked);
-    // Out of date: a list asked later is on show.
+    // Out of date (a list asked later is on show), or of a session that has
+    // ended.
     if (fresh == null) return;
     _shown = epoch;
     yield fresh;
@@ -102,16 +104,16 @@ final class PortfoliosController
   /// Saves [list] for [epoch] and returns it as shown, without waiting for
   /// the store (one that never answers holds up nothing).
   ///
-  /// A server's answer comes with [asked], the number of its request
-  /// ([SwrCache.ask]), and sets the portfolios the cache keeps
-  /// ([SwrCache.applyPortfolios]). It is neither saved nor shown (null)
-  /// when the answer to a request asked later was applied first: it is out
-  /// of date, and could name a portfolio that has left again.
+  /// It is neither saved nor shown (null) unless the cache serves the
+  /// session of [epoch]. A server's answer comes with [asked], the number
+  /// of its request ([SwrCache.ask]), and sets the portfolios the cache
+  /// keeps ([SwrCache.applyPortfolios]). It is neither saved nor shown
+  /// either when the answer to a request asked later was applied first: it
+  /// is out of date, and could name a portfolio that has left again.
   ///
   /// A list made from the one on show carries no number and sets nothing:
   /// it is cut to the portfolios the cache keeps, when it knows them, so it
-  /// never names one a server's answer dropped. A list asked for in a
-  /// session that has ended is shown but neither applied nor saved.
+  /// never names one a server's answer dropped.
   Snapshot<List<PortfolioMembership>>? _save(
     SwrCache cache,
     List<PortfolioMembership> list,
@@ -119,9 +121,7 @@ final class PortfoliosController
     int? asked,
   }) {
     final savedAt = cache.now();
-    if (cache.clearedSince(epoch)) {
-      return Snapshot(list, savedAt: savedAt, source: SnapshotSource.network);
-    }
+    if (!cache.serves(userId, epoch)) return null;
     if (asked != null &&
         !cache.applyPortfolios(
           userId,
@@ -163,17 +163,6 @@ final class PortfoliosController
     for (final membership in list) membership.toRow(),
   ];
 
-  /// Throws [SessionExpired] unless the signed-in user is this list's.
-  ///
-  /// Every command begins with it. The list is built again when the user
-  /// changes, so [_epoch] is then the cache's new one: without this, a
-  /// command begun after the session ended would save the answer of a
-  /// request made with no session, or with another account's, as this
-  /// user's list.
-  void _requireSession() {
-    if (ref.read(currentUserIdProvider) != userId) throw const SessionExpired();
-  }
-
   /// Creates a portfolio (see [PortfolioRepository.create]; keep [id] for
   /// retries of the same attempt), lists it with the others and makes it the
   /// current one on this device. Throws [AppFailure].
@@ -186,15 +175,18 @@ final class PortfoliosController
     required String id,
     OwnerAbroad ownerAbroad = OwnerAbroad.notAnswered,
   }) async {
-    _requireSession();
     final repository = ref.read(portfolioRepositoryProvider);
-    final epoch = _epoch;
+    final cache = ref.read(swrCacheProvider);
+    final epoch = cache.require(userId, _epoch);
     final created = await repository.create(
       name: name,
       id: id,
       ownerAbroad: ownerAbroad,
     );
-    final cache = ref.read(swrCacheProvider)
+    // The epoch taken at the start, not [_epoch] again: after a rebuild,
+    // that is the next session's.
+    cache
+      ..require(userId, epoch)
       // The server confirmed it: its records are kept until the next list.
       ..addPortfolio(userId, created.id, epoch: epoch);
     final asked = cache.ask();
@@ -214,7 +206,7 @@ final class PortfoliosController
     }
     await ref
         .read(selectedPortfolioProvider(userId).notifier)
-        .select(created.id, askedIn: epoch);
+        .select(created.id);
     return created;
   }
 
@@ -226,11 +218,12 @@ final class PortfoliosController
     String portfolioId, {
     required String confirmation,
   }) async {
-    _requireSession();
     final repository = ref.read(portfolioRepositoryProvider);
-    final epoch = _epoch;
+    final cache = ref.read(swrCacheProvider);
+    final epoch = cache.require(userId, _epoch);
     await repository.delete(portfolioId, confirmation: confirmation);
-    final cache = ref.read(swrCacheProvider)
+    cache
+      ..require(userId, epoch)
       // It is gone: its records go now.
       ..removePortfolio(userId, portfolioId, epoch: epoch);
     final asked = cache.ask();
@@ -257,8 +250,7 @@ final class PortfoliosController
     String portfolioId, {
     required bool abroad,
   }) async {
-    _requireSession();
-    final epoch = _epoch;
+    final epoch = ref.read(swrCacheProvider).require(userId, _epoch);
     final answer = await ref
         .read(portfolioRepositoryProvider)
         .answerOwnerAbroad(portfolioId, abroad: abroad);
@@ -279,9 +271,9 @@ final class PortfoliosController
   /// portfolio, and returns it. Throws [AppFailure] when it cannot be read;
   /// the list on screen then stays as it was.
   Future<List<PortfolioMembership>> reload() async {
-    _requireSession();
-    final epoch = _epoch;
-    final asked = ref.read(swrCacheProvider).ask();
+    final cache = ref.read(swrCacheProvider);
+    final epoch = cache.require(userId, _epoch);
+    final asked = cache.ask();
     final list = await ref.read(portfolioRepositoryProvider).listMine(userId);
     if (ref.mounted) await _show(list, epoch, asked: asked);
     return list;
@@ -290,7 +282,8 @@ final class PortfoliosController
   /// Shows [list], and saves it for [epoch], the cache's when (all of) it
   /// was asked for ([_save]): the build's for the server's answer, and no
   /// later than [_shown] for a list made from the one on show. A server's
-  /// answer comes with [asked], and is not shown when out of date.
+  /// answer comes with [asked]. Not shown when out of date, nor once the
+  /// cache no longer serves [epoch]'s session.
   Future<void> _show(
     List<PortfolioMembership> list,
     int epoch, {
@@ -336,15 +329,14 @@ final class SelectedPortfolioController extends Notifier<String?> {
     return saved.substring(_prefix.length);
   }
 
-  /// Makes [portfolioId] the current portfolio on this device. A command
-  /// that chooses it after a request passes [askedIn], the
-  /// [SwrCache.epoch] read before the request: when the session ended
-  /// meanwhile, nothing is chosen, and nothing is written on the device
-  /// that its wipe removed.
-  Future<void> select(String portfolioId, {int? askedIn}) async {
-    if (askedIn != null && ref.read(swrCacheProvider).clearedSince(askedIn)) {
-      return;
-    }
+  /// Makes [portfolioId] the current portfolio on this device, while the
+  /// cache serves this user ([SwrCache.serves]): when their session has
+  /// ended (also during the request of a command that chooses it after),
+  /// nothing is chosen, and nothing is written on the device that its wipe
+  /// removed.
+  Future<void> select(String portfolioId) async {
+    final cache = ref.read(swrCacheProvider);
+    if (!cache.serves(userId, cache.epoch)) return;
     state = portfolioId;
     await ref
         .read(settingsStoreProvider)

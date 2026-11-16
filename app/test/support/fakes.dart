@@ -908,11 +908,55 @@ extension ListAnswers on SwrCache {
   }
 }
 
+/// What a test finds saved, read straight from the store whoever the cache
+/// serves, so that "nothing saved" is not merely "nothing the cache would
+/// show".
+extension SavedCopies on SwrCache {
+  /// The copy of [query] saved for [userId] under the tag [scope] names; for
+  /// a query whose portfolio comes from its value, the newest under any tag
+  /// but the user's own. Null when there is none.
+  Future<Snapshot<T>?> saved<T>(
+    String userId,
+    String query,
+    CacheScope<T> scope,
+    T Function(Object? json) decode,
+  ) async {
+    final known = scope.knownTag;
+    final mine = 'mm.swr.v2.$userId.';
+    final keys = known != null
+        ? [SwrCache.keyOf(userId, known, query)]
+        : [
+            for (final key in await store.keys())
+              if (key.startsWith(mine) &&
+                  !key.startsWith('${mine}own.') &&
+                  key.substring(mine.length).split('.').skip(1).join('.') ==
+                      query)
+                key,
+          ];
+    Snapshot<T>? newest;
+    for (final key in keys) {
+      final raw = await store.read(key);
+      if (raw == null) continue;
+      final entry = jsonDecode(raw) as Map<String, Object?>;
+      final snapshot = Snapshot(
+        decode(entry['value']),
+        savedAt: DateTime.parse(entry['saved_at']! as String),
+        source: SnapshotSource.cache,
+      );
+      if (newest == null || snapshot.savedAt.isAfter(newest.savedAt)) {
+        newest = snapshot;
+      }
+    }
+    return newest;
+  }
+}
+
 /// What a test puts in the cache before it starts, as an earlier run of the
 /// app saved it.
 extension SeededCache on SwrCache {
-  /// Saves [json] as the value of [query] for [userId], in the cache's
-  /// current epoch, tagged as [scopeOf] tags it: in [portfolio], else in the
+  /// Puts [json] in the store as the value of [query] for [userId], saved
+  /// now, as the documented entry an earlier run left (whoever the cache
+  /// serves), tagged as [scopeOf] tags it: in [portfolio], else in the
   /// portfolio a record's `portfolio_id` names, else in the fixture
   /// portfolio the query names (`tenants.<portfolio id>.…`), else of no
   /// known portfolio.
@@ -921,14 +965,18 @@ extension SeededCache on SwrCache {
     String query,
     Object? json, {
     String? portfolio,
-  }) => write(
-    userId,
-    query,
-    scopeOf(query, portfolio: portfolio ?? _portfolioOf(query, json)),
-    json,
-    (json) => json,
-    epoch: epoch,
-  );
+  }) async {
+    final at = now();
+    final scope = scopeOf(
+      query,
+      portfolio: portfolio ?? _portfolioOf(query, json),
+    );
+    await store.write(
+      SwrCache.keyOf(userId, scope.tagOf(json), query),
+      jsonEncode({'saved_at': at.toIso8601String(), 'value': json}),
+    );
+    return at;
+  }
 
   static String? _portfolioOf(String query, Object? json) {
     if (json case {'portfolio_id': final String id}) return id;

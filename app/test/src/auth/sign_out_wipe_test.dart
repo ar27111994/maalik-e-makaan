@@ -11,10 +11,14 @@ import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
+import 'package:maalik_e_makaan/src/features/account/application/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
+import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio_repository.dart';
 import 'package:maalik_e_makaan/src/features/team/application/invitation.dart';
+import 'package:maalik_e_makaan/src/features/team/application/team.dart';
+import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
@@ -29,15 +33,18 @@ final _config = AppConfig.parse({
   'APP_URL': 'https://app.example.pk',
 });
 
-sb.Session _session() => sb.Session(
-  accessToken: 'a',
+/// Another account, whose e-mail link may be opened on the device.
+const _otherId = '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91';
+
+sb.Session _session({String id = testUserId, String token = 'a'}) => sb.Session(
+  accessToken: token,
   tokenType: 'bearer',
-  user: const sb.User(
-    id: testUserId,
-    appMetadata: {},
-    userMetadata: {},
+  user: sb.User(
+    id: id,
+    appMetadata: const {},
+    userMetadata: const {},
     aud: 'authenticated',
-    email: testEmail,
+    email: id == testUserId ? testEmail : 'sana.malik@example.com',
     createdAt: '2026-11-01T00:00:00Z',
   ),
 );
@@ -52,10 +59,13 @@ void main() {
   late StreamController<sb.AuthState> changes;
   late sb.Session? session;
   late MemoryStore store;
+  late SwrCache cache;
   late MemorySettingsStore settings;
   late FakeDeviceScratch scratch;
   late FakeAccountRepository account;
   late FakePortfolioRepository portfolios;
+  late FakeTeamRepository team;
+  late FakeProfileRepository profiles;
   late ProviderContainer container;
 
   setUpAll(() => registerFallbackValue(sb.SignOutScope.local));
@@ -80,7 +90,7 @@ void main() {
       changes.add(const sb.AuthState(sb.AuthChangeEvent.signedOut, null));
     });
     store = MemoryStore();
-    final cache = SwrCache(store);
+    cache = SwrCache(store);
     await cache.seed(testUserId, 'tenants', 1);
     settings = MemorySettingsStore({
       AppSettings.localeKey: 'ur',
@@ -92,14 +102,22 @@ void main() {
     scratch = FakeDeviceScratch();
     account = FakeAccountRepository();
     portfolios = FakePortfolioRepository([gulberg]);
+    team = FakeTeamRepository();
+    profiles = FakeProfileRepository(ayesha);
     container =
         ProviderContainer.test(
+            // As the app retries a query that could not reach the server.
+            retry: (count, error) => count < 3 && error is NetworkFailure
+                ? const Duration(milliseconds: 50)
+                : null,
             overrides: [
               swrCacheProvider.overrideWithValue(cache),
               settingsStoreProvider.overrideWithValue(settings),
               deviceScratchProvider.overrideWithValue(scratch),
               accountRepositoryProvider.overrideWithValue(account),
               portfolioRepositoryProvider.overrideWithValue(portfolios),
+              teamRepositoryProvider.overrideWithValue(team),
+              profileRepositoryProvider.overrideWithValue(profiles),
               authRepositoryProvider.overrideWith(
                 (ref) => SupabaseAuthRepository(
                   auth: gotrue,
@@ -232,5 +250,229 @@ void main() {
       store.values.keys.where((key) => key.startsWith('mm.swr.')),
       isEmpty,
     );
+  });
+
+  group("the session's life cycle", () {
+    /// What each status found, as it was applied: the status, whether the
+    /// cache served the signed-in user then, and whether the store was
+    /// empty.
+    late List<(AuthStatus, bool, bool)> applied;
+
+    /// The signed-in user, and whether the cache served them, at each wipe
+    /// as it told the app (before the status).
+    late List<(String?, bool)> wiped;
+
+    setUp(() {
+      applied = [];
+      wiped = [];
+      container
+        ..listen(authStatusProvider, (_, next) {
+          applied.add((
+            next,
+            next is SignedIn && cache.serves(next.userId, cache.epoch),
+            store.values.isEmpty,
+          ));
+        })
+        ..listen(deviceDataWipesProvider, (_, _) {
+          final user = container.read(currentUserIdProvider);
+          wiped.add((user, cache.serves(user, cache.epoch)));
+        });
+    });
+
+    test('a sign-out serves nobody from the moment the wipe begins, before '
+        'the status', () async {
+      final epoch = cache.epoch;
+      await container.read(authStatusProvider.notifier).signOut();
+      await pumpEventQueue();
+      // The user still reads as signed in when the wipe has run, but the
+      // cache serves them no more.
+      expect(wiped, [(testUserId, false)]);
+      expect(cache.epoch, epoch + 1);
+      // The status finds the account's copies gone.
+      expect(applied, hasLength(1));
+      expect(applied.single.$1, isA<SignedOut>());
+      expect(applied.single.$3, isTrue);
+      expect(container.read(sessionProvider), isNull);
+    });
+
+    test('a session replaced by another account serves that account only, '
+        'once its status comes', () async {
+      final epoch = cache.epoch;
+      session = _session(id: _otherId);
+      changes.add(sb.AuthState(sb.AuthChangeEvent.signedIn, session));
+      await pumpEventQueue();
+      expect(wiped, [(testUserId, false)]);
+      expect(applied.single.$1, isA<SignedIn>());
+      expect(applied.single.$2, isTrue);
+      expect(applied.single.$3, isTrue);
+      expect(cache.epoch, epoch + 2);
+      expect(cache.serves(_otherId, cache.epoch), isTrue);
+      expect(cache.serves(testUserId, cache.epoch), isFalse);
+    });
+
+    for (final (name, event) in [
+      ('a new link of the same account', sb.AuthChangeEvent.signedIn),
+      ('a refreshed token', sb.AuthChangeEvent.tokenRefreshed),
+      ('a changed user', sb.AuthChangeEvent.userUpdated),
+    ]) {
+      test('$name keeps the session it serves', () async {
+        final epoch = cache.epoch;
+        session = _session(token: 'b');
+        changes.add(sb.AuthState(event, session));
+        await pumpEventQueue();
+        expect(wiped, isEmpty);
+        expect(cache.epoch, epoch);
+        expect(cache.serves(testUserId, epoch), isTrue);
+        expect(store.values, isNotEmpty);
+      });
+    }
+
+    test('a password recovery by the signed-in account serves nobody until '
+        'the new password, then a new session', () async {
+      final epoch = cache.epoch;
+      changes.add(sb.AuthState(sb.AuthChangeEvent.passwordRecovery, session));
+      await pumpEventQueue();
+      expect(applied.last.$1, const RecoveringPassword(userId: testUserId));
+      expect(cache.epoch, epoch + 1);
+      expect(cache.serves(testUserId, cache.epoch), isFalse);
+      changes.add(sb.AuthState(sb.AuthChangeEvent.userUpdated, session));
+      await pumpEventQueue();
+      expect(applied.last.$2, isTrue);
+      expect(cache.epoch, epoch + 2);
+      // Nothing was wiped: the account's saved copies stay.
+      expect(wiped, isEmpty);
+      expect(store.values, isNotEmpty);
+    });
+
+    test("a password recovery with another account's link wipes, and serves "
+        'nobody', () async {
+      session = _session(id: _otherId);
+      changes.add(sb.AuthState(sb.AuthChangeEvent.passwordRecovery, session));
+      await pumpEventQueue();
+      expect(wiped, [(testUserId, false)]);
+      expect(applied.single.$1, const RecoveringPassword(userId: _otherId));
+      expect(container.read(sessionProvider), isNull);
+      expect(store.values, isEmpty);
+    });
+
+    test('an old sign-out and an older session replayed to a listener while '
+        'signed in change nothing', () async {
+      final epoch = cache.epoch;
+      changes
+        ..add(const sb.AuthState(sb.AuthChangeEvent.signedOut, null))
+        ..add(
+          sb.AuthState(
+            sb.AuthChangeEvent.initialSession,
+            _session(id: _otherId),
+          ),
+        );
+      await pumpEventQueue();
+      expect(wiped, isEmpty);
+      expect(cache.epoch, epoch);
+      expect(container.read(authStatusProvider), isA<SignedIn>());
+      expect(container.read(currentUserIdProvider), testUserId);
+      expect(store.values.keys, [cacheKey(testUserId, 'tenants')]);
+    });
+
+    test('the same account back while the wipe waits for the store is '
+        'served again: the list and the team are read and saved', () async {
+      container
+        ..listen(portfoliosProvider(testUserId), (_, _) {})
+        ..listen(teamProvider(gulberg), (_, _) {});
+      await pumpEventQueue();
+      final listed = portfolios.calls.length;
+      final read = team.calls.length;
+      store.keysHeld = Completer();
+      final ending = container.read(authStatusProvider.notifier).signOut();
+      await pumpEventQueue();
+      // The account's session comes back (its e-mail link, another tab)
+      // before the wipe's listing answers.
+      session = _session();
+      changes.add(sb.AuthState(sb.AuthChangeEvent.signedIn, session));
+      store.keysHeld!.complete();
+      store.keysHeld = null;
+      await ending;
+      await pumpEventQueue();
+      expect(container.read(currentUserIdProvider), testUserId);
+      expect(cache.serves(testUserId, cache.epoch), isTrue);
+      expect(portfolios.calls.length, greaterThan(listed));
+      expect(team.calls.length, greaterThan(read));
+      await container.read(portfoliosProvider(testUserId).notifier).reload();
+      await container.read(teamProvider(gulberg).notifier).reload();
+      expect(
+        store.values.keys,
+        containsAll([
+          cacheKey(testUserId, 'portfolios'),
+          cacheKey(testUserId, 'team.${gulberg.id}', portfolio: gulberg.id),
+        ]),
+      );
+    });
+
+    for (final replaced in [false, true]) {
+      test('a query first built between the wipe and the status asks for '
+          'nothing (${replaced ? 'replaced' : 'signed out'})', () async {
+        store.keysHeld = Completer();
+        team.gate.close();
+        final Future<void> ending;
+        if (replaced) {
+          session = _session(id: _otherId);
+          changes.add(sb.AuthState(sb.AuthChangeEvent.signedIn, session));
+          ending = Future.value();
+        } else {
+          ending = container.read(authStatusProvider.notifier).signOut();
+        }
+        await pumpEventQueue();
+        // The window: the cache serves nobody, the user still reads as the
+        // one who signed out.
+        expect(container.read(currentUserIdProvider), testUserId);
+        expect(cache.serves(testUserId, cache.epoch), isFalse);
+        // A screen opened now.
+        container
+          ..listen(teamProvider(plaza), (_, _) {})
+          ..listen(profileProvider(testUserId), (_, _) {});
+        await pumpEventQueue();
+        expect(team.calls, isEmpty);
+        expect(profiles.calls, isEmpty);
+        store.keysHeld!.complete();
+        store.keysHeld = null;
+        await ending;
+        await pumpEventQueue();
+        team.gate.open();
+        await pumpEventQueue();
+        await container.read(deviceDataWipeProvider).settled;
+        expect(profiles.calls, isEmpty);
+        expect(
+          store.values.keys.where((key) => key.contains(testUserId)),
+          isEmpty,
+        );
+        if (!replaced) {
+          expect(team.calls, isEmpty);
+          expect(store.values, isEmpty);
+        }
+      });
+    }
+
+    test('a failed query retried between the wipe and the status asks for '
+        'nothing', () async {
+      team.readFailure = const NetworkFailure();
+      container.listen(teamProvider(plaza), (_, _) {});
+      await pumpEventQueue();
+      expect(container.read(teamProvider(plaza)).error, isA<NetworkFailure>());
+      // The connection is back; the wipe's listing waits for the store
+      // while the retry timer fires.
+      team.readFailure = null;
+      store.keysHeld = Completer();
+      final ending = container.read(authStatusProvider.notifier).signOut();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(container.read(currentUserIdProvider), testUserId);
+      expect(team.calls.map((call) => call.$1), ['members']);
+      store.keysHeld!.complete();
+      store.keysHeld = null;
+      await ending;
+      await pumpEventQueue();
+      await container.read(deviceDataWipeProvider).settled;
+      expect(team.calls.map((call) => call.$1), ['members']);
+      expect(store.values, isEmpty);
+    });
   });
 }

@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
-import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
@@ -70,9 +69,6 @@ final class PendingInvitationController extends Notifier<String?> {
     if (token == null) {
       return const InvitationRefused(InvitationRefusal.invalid);
     }
-    // Read before the request: a session that ended meanwhile chooses no
-    // portfolio on the device its wipe cleared.
-    final askedIn = ref.read(swrCacheProvider).epoch;
     final outcome = await ref.read(teamRepositoryProvider).accept(token);
     if (outcome is InvitationAccepted) {
       final userId = ref.read(currentUserIdProvider);
@@ -84,7 +80,7 @@ final class PendingInvitationController extends Notifier<String?> {
         }
         await ref
             .read(selectedPortfolioProvider(userId).notifier)
-            .select(outcome.portfolioId, askedIn: askedIn);
+            .select(outcome.portfolioId);
       }
     }
     // Signed in with another address, or one not confirmed yet: kept, so

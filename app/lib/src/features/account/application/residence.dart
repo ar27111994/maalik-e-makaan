@@ -21,6 +21,10 @@ residenceProvider = StreamNotifierProvider.autoDispose
 
 /// Reads the user's residence and saves changes to it. Commands throw
 /// `AppFailure`.
+///
+/// Like the profile (`ProfileController`), it reads and asks for anything
+/// only while the cache serves its user's session, and is built again
+/// whenever the session changes.
 final class ResidenceController
     extends StreamNotifier<Snapshot<AccountResidence>> {
   new(this.userId);
@@ -33,17 +37,19 @@ final class ResidenceController
   /// The residence is the user's own: no list of portfolios removes it.
   static final OwnScope<AccountResidence> scope = OwnScope.residence();
 
-  /// The cache's epoch when the residence was built: one saved after the
-  /// device was wiped since (the session ended) is not kept on it.
+  /// The session's epoch when the residence was built: what is asked for
+  /// in it is saved only while the cache still serves it.
   int _epoch = 0;
 
   @override
   Stream<Snapshot<AccountResidence>> build() {
+    final session = ref.watch(sessionProvider);
     final repository = ref.watch(residenceRepositoryProvider);
     final cache = ref.watch(swrCacheProvider);
-    _epoch = cache.epoch;
+    _epoch = session?.epoch ?? 0;
     return cache.watch(
       userId: userId,
+      epoch: _epoch,
       query: query,
       scope: scope,
       fetch: () => repository.fetch(userId),
@@ -58,9 +64,9 @@ final class ResidenceController
     required TimeZoneId? timeZone,
   }) async {
     final cache = ref.read(swrCacheProvider);
-    // Read before the request: an answer that comes after the device was
-    // wiped (the session ended meanwhile) is not saved.
-    final epoch = _epoch;
+    // Before the request: nothing is asked for a session that has ended,
+    // and an answer that comes after it ended is neither saved nor shown.
+    final epoch = cache.require(userId, _epoch);
     final saved = await ref
         .read(residenceRepositoryProvider)
         .update(userId, country: country, timeZone: timeZone);
@@ -73,7 +79,7 @@ final class ResidenceController
       (residence) => residence.toRow(),
       epoch: epoch,
     );
-    if (!ref.mounted) return;
+    if (savedAt == null || !ref.mounted) return;
     state = AsyncData(
       Snapshot(saved, savedAt: savedAt, source: SnapshotSource.network),
     );

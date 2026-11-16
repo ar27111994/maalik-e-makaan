@@ -132,7 +132,7 @@ void main() {
       await container
           .read(profileProvider(testUserId).notifier)
           .saveLanguage(AppLanguage.urdu);
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ProfileController.query,
         ProfileController.scope,
@@ -294,7 +294,7 @@ void main() {
       _leaveGulberg(app);
       await _reload(container);
       expect(_ofGulberg(app), isEmpty);
-      final saved = await app.cache.read<Object?>(
+      final saved = await app.cache.saved<Object?>(
         testUserId,
         PortfoliosController.query,
         scopeOf(PortfoliosController.query),
@@ -370,7 +370,7 @@ void main() {
     _leaveGulberg(app);
     await _reload(container);
     // The list is saved all the same.
-    final saved = await app.cache.read<Object?>(
+    final saved = await app.cache.saved<Object?>(
       testUserId,
       PortfoliosController.query,
       scopeOf(PortfoliosController.query),
@@ -396,7 +396,8 @@ void main() {
       settings: app.settings,
       scratch: app.scratch,
     ).wipe(WipeReason.signedOut);
-    // Another account's list is saved.
+    // Another account signs in, and its list is saved.
+    app.cache.serve('other-user');
     await app.cache.write<int>(
       'other-user',
       'tenants.x',
@@ -460,7 +461,7 @@ void main() {
       await pumpEventQueue();
       final shown = container.read(portfoliosProvider(testUserId)).value!;
       expect([for (final m in shown.value) m.id], [plaza.id]);
-      final saved = await app.cache.read<Object?>(
+      final saved = await app.cache.saved<Object?>(
         testUserId,
         PortfoliosController.query,
         scopeOf(PortfoliosController.query),

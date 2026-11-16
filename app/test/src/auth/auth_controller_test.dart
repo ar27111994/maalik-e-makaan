@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 
@@ -118,6 +119,7 @@ void main() {
     final container = ProviderContainer.test(
       overrides: [
         settingsStoreProvider.overrideWithValue(app.settings),
+        swrCacheProvider.overrideWithValue(app.cache),
         authRepositoryProvider.overrideWithValue(_FailingStream(app.auth)),
       ],
     );

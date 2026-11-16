@@ -46,7 +46,7 @@ void main() {
         CountryCode.parse('NO'),
         null,
       ]);
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ResidenceController.query,
         ResidenceController.scope,
@@ -89,7 +89,7 @@ void main() {
       app.residences.gate.open();
       await saving;
       expect(app.residences.residence.residence.timeZone, _london);
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ResidenceController.query,
         ResidenceController.scope,
@@ -98,8 +98,9 @@ void main() {
       expect(saved!.value.residence.timeZone, _london);
     });
 
-    test('a save that comes back after the device was wiped is not kept, '
-        'nor one made after it', () async {
+    test('a save that comes back after the device was wiped is neither kept '
+        'nor shown, and the residence built for that session asks for '
+        'nothing after', () async {
       final app = TestApp();
       final container = containerFor(app);
       listen(container, residenceProvider(testUserId));
@@ -119,14 +120,19 @@ void main() {
       expect(
         container
             .read(residenceProvider(testUserId))
-            .value!
             .value
+            ?.value
             .residence
             .timeZone,
-        _london,
+        isNot(_london),
       );
-      // Nor what the residence, built for that session, saves after.
-      await notifier.save(country: CountryCode.parse('NO'), timeZone: null);
+      // The residence, built for that session, asks for nothing after.
+      final asked = app.residences.calls.length;
+      await expectLater(
+        notifier.save(country: CountryCode.parse('NO'), timeZone: null),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.residences.calls, hasLength(asked));
       expect(app.store.values, isEmpty);
     });
 
@@ -142,7 +148,7 @@ void main() {
       await container
           .read(residenceProvider(testUserId).notifier)
           .save(country: CountryCode.parse('NO'), timeZone: null);
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ResidenceController.query,
         ResidenceController.scope,
@@ -168,7 +174,7 @@ void main() {
       await app.cache.answer(testUserId, [plaza.id]);
       app.residences.gate.open();
       await saving;
-      final kept = await app.cache.read(
+      final kept = await app.cache.saved(
         testUserId,
         ResidenceController.query,
         ResidenceController.scope,
@@ -176,13 +182,80 @@ void main() {
       );
       expect(kept!.value.residence.country, CountryCode.parse('GB'));
       await notifier.save(country: CountryCode.parse('NO'), timeZone: null);
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ResidenceController.query,
         ResidenceController.scope,
         AccountResidence.fromRow,
       );
       expect(saved!.value.residence.country, CountryCode.parse('NO'));
+    });
+  });
+
+  group('the session it serves: profile', () {
+    const other = SignedIn(
+      userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+      email: 'sana.malik@example.com',
+    );
+
+    test(
+      'built first, it loads: the session is read before its epoch',
+      () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, residenceProvider(testUserId));
+        await pumpEventQueue();
+        expect(container.read(residenceProvider(testUserId)).value, isNotNull);
+      },
+    );
+
+    for (final (name, status) in <(String, AuthStatus)>[
+      ('signed out', const SignedOut()),
+      ('with another account signed in', other),
+    ]) {
+      test('read $name, it asks for nothing', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        await pumpEventQueue();
+        await app.cache.clear();
+        app.auth.emit(status);
+        await pumpEventQueue();
+        listen(container, residenceProvider(testUserId));
+        await pumpEventQueue();
+        expect(app.residences.calls, isEmpty);
+        expect(app.store.values, isEmpty);
+        await expectLater(
+          container
+              .read(residenceProvider(testUserId).notifier)
+              .save(
+                country: CountryCode.parse('AE'),
+                timeZone: TimeZoneId.parse('Asia/Dubai'),
+              ),
+          throwsA(isA<SessionExpired>()),
+        );
+        expect(app.residences.calls, isEmpty);
+      });
+    }
+
+    test('kept alive across a sign-out by the same account, it saves in the '
+        'next session', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, residenceProvider(testUserId));
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      app.auth.emit(signedIn);
+      await pumpEventQueue();
+      await container
+          .read(residenceProvider(testUserId).notifier)
+          .save(
+            country: CountryCode.parse('AE'),
+            timeZone: TimeZoneId.parse('Asia/Dubai'),
+          );
+      await pumpEventQueue();
+      expect(app.store.values.keys, [cacheKey(testUserId, 'residence')]);
     });
   });
 

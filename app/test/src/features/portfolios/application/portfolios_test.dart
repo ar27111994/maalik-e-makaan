@@ -50,7 +50,7 @@ void main() {
       expect(states.last.value!.value, [gulberg, plaza]);
       expect(states.last.value!.source, SnapshotSource.network);
       // The fresh list is saved for next time.
-      final saved = await app.cache.read<Object?>(
+      final saved = await app.cache.saved<Object?>(
         testUserId,
         PortfoliosController.query,
         scopeOf(PortfoliosController.query),
@@ -229,7 +229,7 @@ void main() {
       await container
           .read(portfoliosProvider(testUserId).notifier)
           .create(name: 'Khan family', id: 'p-new');
-      final saved = await app.cache.read<Object?>(
+      final saved = await app.cache.saved<Object?>(
         testUserId,
         PortfoliosController.query,
         scopeOf(PortfoliosController.query),
@@ -238,8 +238,8 @@ void main() {
       expect((saved!.value! as List).length, 2);
     });
 
-    test('a list that comes back after the device was wiped is not kept, '
-        'though a portfolio left it', () async {
+    test('a list that comes back after the device was wiped is neither kept '
+        'nor shown, though a portfolio left it', () async {
       final app = TestApp(portfolios: const [gulberg]);
       await app.cache.seed(testUserId, PortfoliosController.query, [
         gulberg.toRow(),
@@ -253,12 +253,20 @@ void main() {
       await app.cache.clear();
       app.portfolios.gate.open();
       await pumpEventQueue();
-      expect(container.read(portfoliosProvider(testUserId)).value!.value, [
-        gulberg,
-      ]);
+      // The saved list stays on the ended session's screen until the status
+      // comes; the answer is not shown.
+      expect(
+        container.read(portfoliosProvider(testUserId)).value!.source,
+        SnapshotSource.cache,
+      );
       expect(app.store.values, isEmpty);
-      // Nor one a command shows after it.
-      await container.read(portfoliosProvider(testUserId).notifier).reload();
+      // Nor does a command ask for one after it.
+      final asked = app.portfolios.calls.length;
+      await expectLater(
+        container.read(portfoliosProvider(testUserId).notifier).reload(),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.portfolios.calls, hasLength(asked));
       expect(app.store.values, isEmpty);
     });
 
@@ -323,24 +331,26 @@ void main() {
       expect(app.store.values, isEmpty);
     });
 
-    test(
-      'a list that comes back after the device was wiped is not kept',
-      () async {
-        final app = TestApp();
-        app.portfolios.gate.close();
-        final container = containerFor(app);
-        listen(container, portfoliosProvider(testUserId));
-        await pumpEventQueue();
-        // The session ends while the list loads.
-        await app.cache.clear();
-        app.portfolios.gate.open();
-        await pumpEventQueue();
-        expect(app.store.values, isEmpty);
-        // Nor one a command shows after it.
-        await container.read(portfoliosProvider(testUserId).notifier).reload();
-        expect(app.store.values, isEmpty);
-      },
-    );
+    test('a list that comes back after the device was wiped is neither kept '
+        'nor shown', () async {
+      final app = TestApp();
+      app.portfolios.gate.close();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      // The session ends while the list loads.
+      await app.cache.clear();
+      app.portfolios.gate.open();
+      await pumpEventQueue();
+      expect(app.store.values, isEmpty);
+      expect(container.read(portfoliosProvider(testUserId)).hasValue, false);
+      // Nor does a command ask for one after it.
+      await expectLater(
+        container.read(portfoliosProvider(testUserId).notifier).reload(),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.store.values, isEmpty);
+    });
   });
 
   group('a list answer that comes after a later one', () {
@@ -427,7 +437,9 @@ void main() {
         scratch: app.scratch,
       ).wipe(WipeReason.signedOut);
       app.portfolios.gate.open();
-      await creating;
+      // Created on the server; its session has ended, so the list is not
+      // asked for, and the caller hears why.
+      await expectLater(creating, throwsA(isA<SessionExpired>()));
       expect(app.store.values, isEmpty);
       expect(
         app.settings.values,
@@ -451,6 +463,95 @@ void main() {
         '$testUserId/p-new',
       );
     });
+  });
+
+  group('a command begun in its session, which ends during its request, '
+      'asks for and shows nothing after', () {
+    const other = SignedIn(
+      userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+      email: 'sana.malik@example.com',
+    );
+    final commands =
+        <(String, Future<Object?> Function(PortfoliosController), String)>[
+          (
+            'creating',
+            (list) => list.create(name: 'Khan family', id: 'p-new'),
+            'create',
+          ),
+          (
+            'deleting',
+            (list) => list.delete(plaza.id, confirmation: plaza.name),
+            'delete',
+          ),
+          (
+            'answering the owner-abroad question',
+            (list) => list.answerOwnerAbroad(gulberg.id, abroad: true),
+            'answerOwnerAbroad',
+          ),
+          ('reloading', (list) => list.reload(), 'listMine'),
+        ];
+
+    for (final (session, status) in <(String, AuthStatus)>[
+      ('signed out', const SignedOut()),
+      ('replaced by another account', other),
+    ]) {
+      for (final (name, command, request) in commands) {
+        test('$name, $session', () async {
+          final app = TestApp();
+          final container = containerFor(app);
+          listen(container, portfoliosProvider(testUserId));
+          listen(container, currentPortfolioProvider);
+          await pumpEventQueue();
+          app.portfolios.gate.close();
+          final running = command(
+            container.read(portfoliosProvider(testUserId).notifier),
+          );
+          await pumpEventQueue();
+          // The session ends while the request is on its way: the wipe,
+          // then the status.
+          await app.cache.clear();
+          app.auth.emit(status);
+          await pumpEventQueue();
+          app.portfolios.gate.open();
+          Object? outcome;
+          try {
+            outcome = await running;
+          } on SessionExpired catch (expired) {
+            outcome = expired;
+          }
+          await pumpEventQueue();
+          // A command that asks for the list after its request reports the
+          // expired session; the others return what the server answered.
+          expect(
+            outcome,
+            request == 'create' || request == 'delete'
+                ? isA<SessionExpired>()
+                : isNot(isA<SessionExpired>()),
+          );
+          // Nothing was asked for the ended session after its request.
+          expect(
+            [
+              for (final (name, arguments) in app.portfolios.calls)
+                if (name != 'listMine' || arguments.first == testUserId) name,
+            ],
+            ['listMine', request],
+          );
+          expect(
+            container.read(portfoliosProvider(testUserId)).error,
+            isA<SessionExpired>(),
+          );
+          expect(app.cache.portfoliosOf(testUserId), isNull);
+          expect(
+            app.store.values.keys.where((key) => key.contains(testUserId)),
+            isEmpty,
+          );
+          expect(
+            app.settings.values[AppSettings.currentPortfolioKey],
+            isNot(startsWith('$testUserId/')),
+          );
+        });
+      }
+    }
   });
 
   group('a command called when its user is not the one signed in asks for, '
@@ -586,7 +687,8 @@ void main() {
   });
 
   group('a list made from the one on show, after the device was wiped and '
-      'while the list built anew has not loaded, is not kept:', () {
+      'while the list built anew has not loaded, is neither kept nor '
+      'shown:', () {
     for (final (name, command)
         in <(String, Future<void> Function(PortfoliosController))>[
           ('creating', (list) => list.create(name: 'Khan family', id: 'p-new')),
@@ -608,17 +710,16 @@ void main() {
         // is built anew by a read that fails: the old list stays on show.
         await app.cache.clear();
         app.portfolios.listFailure = const NetworkFailure();
-        container
-          ..invalidate(portfoliosProvider(testUserId))
-          ..read(portfoliosProvider(testUserId));
+        app.auth.emit(signedIn);
         await pumpEventQueue();
-        expect(container.read(portfoliosProvider(testUserId)).value, isNotNull);
+        final before = container.read(portfoliosProvider(testUserId)).value;
+        expect(before, isNotNull);
         await command(container.read(portfoliosProvider(testUserId).notifier));
         expect(app.store.values, isEmpty);
-        // The list is shown all the same.
+        // Made from a list of the session that ended, it is not shown.
         expect(
-          container.read(portfoliosProvider(testUserId)).value!.source,
-          SnapshotSource.network,
+          container.read(portfoliosProvider(testUserId)).value,
+          same(before),
         );
       });
     }
@@ -666,13 +767,16 @@ void main() {
         } else {
           answerCommand = gate.holdLaterCallsApart();
         }
-        container
-          ..invalidate(portfoliosProvider(testUserId))
-          ..read(portfoliosProvider(testUserId));
+        app.auth.emit(signedIn);
         await pumpEventQueue();
         // Only then does the command's answer come.
         answerCommand();
-        await running;
+        try {
+          await running;
+        } on SessionExpired {
+          // It asks for the list after its request: not for a session that
+          // has ended.
+        }
         await pumpEventQueue();
         expect(app.store.values, isEmpty);
       });
@@ -792,7 +896,7 @@ void main() {
       );
       expect(container.read(currentPortfolioProvider).value, created);
       expect(container.read(portfolioGateProvider), PortfolioGate.some);
-      final saved = await app.cache.read<Object?>(
+      final saved = await app.cache.saved<Object?>(
         testUserId,
         PortfoliosController.query,
         scopeOf(PortfoliosController.query),
@@ -954,7 +1058,7 @@ void main() {
       expect(list.value.first.ownerAbroad, OwnerAbroad.abroad);
       expect(list.value.last, plaza);
       expect(container.read(ownerAbroadQuestionProvider), isNull);
-      final saved = await app.cache.read<Object?>(
+      final saved = await app.cache.saved<Object?>(
         testUserId,
         PortfoliosController.query,
         scopeOf(PortfoliosController.query),
@@ -1015,7 +1119,7 @@ void main() {
 
 /// The saved portfolio list of the test user, as stored, or null.
 Future<List<Object?>?> _savedList(TestApp app) async =>
-    (await app.cache.read<Object?>(
+    (await app.cache.saved<Object?>(
           testUserId,
           PortfoliosController.query,
           scopeOf(PortfoliosController.query),

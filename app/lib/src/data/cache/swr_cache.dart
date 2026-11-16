@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/cache_scope.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -54,52 +55,78 @@ final class Snapshot<T> {
   bool get fromCache => source == SnapshotSource.cache;
 }
 
+/// A defect [SwrCache] can be built with, so that the tests of the cache's
+/// reference models show each model catches it. The app never sets one.
+@visibleForTesting
+enum CacheFault {
+  /// [SwrCache.serves] asks only for the epoch, not for its owner.
+  servesIgnoresOwner,
+
+  /// [SwrCache.serve] gives the epoch a new owner without starting a new
+  /// one.
+  serveKeepsEpoch,
+
+  /// [SwrCache.read] returns what it read without checking it again once
+  /// the store has answered.
+  readUnchecked,
+}
+
 /// Stale-while-revalidate storage for query results, namespaced per user so
 /// one account never sees another's cached data, and cleared when a
 /// session ends (`DeviceDataWipe`).
 ///
+/// The cache serves one user at a time. Each [epoch] has at most one owner,
+/// fixed when the epoch starts: a [clear] starts one nobody owns, and
+/// [serve] one that user owns (unless they own the current one). Every
+/// operation names the user and the epoch it belongs to, and does anything
+/// only while that epoch is the current one and that user owns it
+/// ([serves]): checked when it starts, and again each time the store
+/// answers it. So nothing is read, saved, applied or removed for a session
+/// that has ended, or for another account than the signed-in one.
+///
 /// Every entry's key says what it holds ([CacheScope]): the user's own
 /// (the portfolio list, the profile, the residence), a portfolio's, or one
 /// whose portfolio is not known. The cache keeps, in memory, the
-/// portfolios the user is in, as the newest list of portfolios this session
-/// applied ([applyPortfolios]), and keeps nothing else: a portfolio's entry
-/// while the user is in it, an entry of unknown portfolio only until that
-/// first list. Each list applied removes what it does not name, from the
-/// keys alone ([prune]), and a write is checked again as it lands
+/// portfolios its owner is in, as the newest list of portfolios applied in
+/// the epoch ([applyPortfolios]), and keeps nothing else: a portfolio's
+/// entry while the user is in it, an entry of unknown portfolio only until
+/// that first list. Each list applied removes what it does not name, from
+/// the keys alone ([prune]), and a write is checked again as it lands
 /// ([write]).
 ///
 /// Entries are JSON with the time they were saved. An entry that cannot be
 /// decoded (it was tampered with, or the format changed) is deleted and
 /// treated as missing.
-///
-/// A clear starts a new [epoch]. A write names the epoch its value was
-/// asked for in, and is dropped when the cache was cleared since: its
-/// fetch began in a session that has ended.
 final class SwrCache {
-  new(this._store, {DateTime Function()? clock})
+  new(this._store, {DateTime Function()? clock, @visibleForTesting this._fault})
     : _clock = clock ?? DateTime.now;
 
   final KeyValueStore _store;
   final DateTime Function() _clock;
+  final CacheFault? _fault;
 
-  /// How many times the cache was cleared. A reader takes it before it
-  /// fetches and hands it to [write].
+  /// The store, for tests that put entries in it as an earlier run left
+  /// them.
+  @visibleForTesting
+  KeyValueStore get store => _store;
+
+  /// The current epoch: it moves at every [clear], and at every [serve] of
+  /// a user who does not own it.
   int get epoch => _epoch;
   int _epoch = 0;
 
-  /// The epoch the last [clear] started.
-  int _cleared = 0;
+  /// The user who owns the current epoch; null when nobody does.
+  String? _owner;
 
-  /// The portfolios each user is in, as the newest list applied since the
-  /// last clear said; a user missing has had none applied.
-  final _members = <String, Set<String>>{};
+  /// The portfolios the owner is in, as the newest list applied in this
+  /// epoch said; null until one is.
+  Set<String>? _members;
 
   /// How many requests of the portfolio list were numbered ([ask]).
   int _asked = 0;
 
-  /// The number of the newest list applied, by user. Not reset by a clear:
-  /// [ask] counts up for the whole run.
-  final _claimed = <String, int>{};
+  /// The number of the newest list applied in this epoch.
+  int _claimed = 0;
 
   /// How many writes were asked of the cache: each write's number.
   int _writes = 0;
@@ -108,10 +135,36 @@ final class SwrCache {
   /// under whatever tag) that landed, or that the cache chose not to keep.
   final _newest = <String, int>{};
 
-  /// Whether the cache was cleared since [epoch] (a [SwrCache.epoch] read
-  /// earlier): the session it was read in has ended, and what was asked
-  /// for in it is not kept on the device.
-  bool clearedSince(int epoch) => epoch < _cleared;
+  /// Starts an epoch that [userId] owns, unless they own the current one;
+  /// null: an epoch nobody owns, unless nobody owns the current one. Called
+  /// as each authentication status is applied (`AuthController`), and at
+  /// start-up before anything is read (`DeviceDataWipe.atStart`).
+  void serve(String? userId) {
+    if (userId == _owner) return;
+    _start(userId);
+  }
+
+  void _start(String? owner) {
+    if (_fault != CacheFault.serveKeepsEpoch) _epoch++;
+    _owner = owner;
+    _members = null;
+    _claimed = 0;
+  }
+
+  /// Whether the cache serves [userId] in [epoch]: it is the current epoch,
+  /// and [userId] owns it.
+  bool serves(String? userId, int epoch) =>
+      userId != null &&
+      epoch == _epoch &&
+      (_fault == CacheFault.servesIgnoresOwner || userId == _owner);
+
+  /// [epoch], when the cache [serves] [userId] in it. Throws
+  /// [SessionExpired] otherwise: a command reads it before each request,
+  /// so that nothing is asked for a session that has ended.
+  int require(String? userId, int epoch) {
+    if (!serves(userId, epoch)) throw const SessionExpired();
+    return epoch;
+  }
 
   /// Now, as the cache stamps what it saves.
   DateTime now() => _clock().toUtc();
@@ -162,12 +215,12 @@ final class SwrCache {
     }
   }
 
-  /// Whether an entry of [userId]'s under [tag], whose value names the
+  /// Whether an entry of the owner's under [tag], whose value names the
   /// portfolios [names], is kept: always until a list was applied; then a
-  /// portfolio's while the user is in it, the user's own while it names
+  /// portfolio's while the owner is in it, the owner's own while it names
   /// no portfolio they are not in, and none of unknown portfolio.
-  bool _keeps(String userId, EntryTag tag, Set<String> names) {
-    final members = _members[userId];
+  bool _keeps(EntryTag tag, Set<String> names) {
+    final members = _members;
     if (members == null) return true;
     return switch (tag) {
       OwnTag() => members.containsAll(names),
@@ -190,7 +243,7 @@ final class SwrCache {
     String query, {
     bool unknownToo = false,
   }) async {
-    final members = _members[userId];
+    final members = _members;
     if (members != null) {
       return [
         for (final id in members) keyOf(userId, PortfolioTag(id), query),
@@ -219,18 +272,22 @@ final class SwrCache {
         parsed.tag is! OwnTag;
   }
 
-  /// The cached value of [query] for [userId], or null. While a list of
-  /// portfolios is applied, an entry the cache would not keep counts as
-  /// missing, and its deletion is asked for. An entry whose portfolio is
-  /// known only from its value ([FromValue]) is found under whichever tag
-  /// it has, the newest first.
+  /// The cached value of [query] for [userId], asked for in [epoch], or
+  /// null; null too unless the cache [serves] [userId] in [epoch], when it
+  /// starts and once the store has answered. While a list of portfolios is
+  /// applied, an entry the cache would not keep counts as missing, and its
+  /// deletion is asked for. An entry whose portfolio is known only from its
+  /// value ([FromValue]) is found under whichever tag it has, the newest
+  /// first.
   Future<Snapshot<T>?> read<T>(
     String userId,
     String query,
     CacheScope<T> scope,
-    T Function(Object? json) decode,
-  ) async {
+    T Function(Object? json) decode, {
+    required int epoch,
+  }) async {
     _check(userId, query, scope);
+    if (!serves(userId, epoch)) return null;
     final known = scope.knownTag;
     final keys = known != null
         ? [keyOf(userId, known, query)]
@@ -239,9 +296,11 @@ final class SwrCache {
     final found = await Future.wait([
       for (final key in keys) _readKey(key, decode),
     ]);
-    // Asked once every read has returned, of every copy: a list may have
-    // been applied while the store read, and the portfolio list's names are
-    // in its value.
+    final checked = _fault != CacheFault.readUnchecked;
+    // Asked once every read has returned, of every copy: the session may
+    // have ended, or a list been applied, while the store read, and the
+    // portfolio list's names are in its value.
+    if (checked && !serves(userId, epoch)) return null;
     Snapshot<T>? newest;
     for (final (index, snapshot) in found.indexed) {
       if (snapshot == null) continue;
@@ -249,7 +308,7 @@ final class SwrCache {
       final names = scope is OwnScope<T>
           ? scope.portfoliosOf(snapshot.value)
           : const <String>{};
-      if (!_keeps(userId, _parse(key)!.tag, names)) {
+      if (checked && !_keeps(_parse(key)!.tag, names)) {
         _forget(key);
         continue;
       }
@@ -289,21 +348,23 @@ final class SwrCache {
 
   /// Stores [value] as the latest of [query] for [userId], under the tag
   /// [scope] gives it, and returns when it was saved ([savedAt], else now).
-  /// [epoch] is the [SwrCache.epoch] read before the value was asked for:
-  /// nothing is stored when the cache was cleared since, nor when the cache
-  /// would not keep the entry ([applyPortfolios]).
+  /// [epoch] is the epoch the value was asked for in. Nothing is stored,
+  /// and null is returned, unless the cache [serves] [userId] in [epoch]:
+  /// the value belongs to a session that has ended, or to another account,
+  /// and is not shown either. Nothing is stored, but the time is returned,
+  /// when the cache would not keep the entry ([applyPortfolios]).
   ///
   /// It is checked again once the store has written it, and deleted when
-  /// either holds then, or when a later write of the entry landed first
-  /// (the store may finish two writes in either order, and would now hold
-  /// the older value). A later, wanted value the store finished first goes
-  /// with it: the entry is then missing, and is fetched again. When it
-  /// lands, the entry's copies under another tag are deleted (an entry
-  /// whose portfolio comes from its value moves from unknown to its
-  /// portfolio, or back, as the value changes); when the cache does not
-  /// keep it, all are. A write the store fails throws, and its deletion is
-  /// asked for then.
-  Future<DateTime> write<T>(
+  /// either holds then (null when the session no longer serves it), or
+  /// when a later write of the entry landed first (the store may finish two
+  /// writes in either order, and would now hold the older value). A later,
+  /// wanted value the store finished first goes with it: the entry is then
+  /// missing, and is fetched again. When it lands, the entry's copies under
+  /// another tag are deleted (an entry whose portfolio comes from its value
+  /// moves from unknown to its portfolio, or back, as the value changes);
+  /// when the cache does not keep it, all are. A write the store fails
+  /// throws, and its deletion is asked for then.
+  Future<DateTime?> write<T>(
     String userId,
     String query,
     CacheScope<T> scope,
@@ -314,16 +375,18 @@ final class SwrCache {
   }) async {
     final at = savedAt ?? now();
     _check(userId, query, scope);
-    if (clearedSince(epoch)) return at;
+    if (!serves(userId, epoch)) return null;
     final tag = scope.tagOf(value);
     final names = scope is OwnScope<T>
         ? scope.portfoliosOf(value)
         : const <String>{};
     final entry = _entry(userId, tag, query);
     final number = ++_writes;
-    if (!_keeps(userId, tag, names)) {
+    if (!_keeps(tag, names)) {
       _newest[entry] = number;
-      if (scope is FromValue<T>) _dropCopies(userId, query, entry, number);
+      if (scope is FromValue<T>) {
+        _dropCopies(userId, query, entry, number, epoch: epoch);
+      }
       return at;
     }
     final key = keyOf(userId, tag, query);
@@ -343,34 +406,39 @@ final class SwrCache {
     // Checked again: the session may have ended, or a list been applied,
     // while the store was writing, and the removal may have listed the
     // keys before this one was there.
-    if (clearedSince(epoch) ||
-        !_keeps(userId, tag, names) ||
-        (_newest[entry] ?? 0) > number) {
+    if (!serves(userId, epoch)) {
+      await _store.delete(key);
+      return null;
+    }
+    if (!_keeps(tag, names) || (_newest[entry] ?? 0) > number) {
       await _store.delete(key);
     } else {
       _newest[entry] = number;
       if (scope is FromValue<T>) {
-        _dropCopies(userId, query, entry, number, except: key);
+        _dropCopies(userId, query, entry, number, epoch: epoch, except: key);
       }
     }
     return at;
   }
 
   /// Deletes the copies of [userId]'s entry of [query] but [except], as
-  /// long as the write [number] is still its newest, and waits for none of
-  /// it.
+  /// long as the cache serves [userId] in [epoch] and the write [number] is
+  /// still the entry's newest, and waits for none of it.
   void _dropCopies(
     String userId,
     String query,
     String entry,
     int number, {
+    required int epoch,
     String? except,
   }) => unawaited(
     Future.sync(() async {
       final keys = await _keysOf(userId, query, unknownToo: true);
       await Future.wait([
         for (final key in [...?keys])
-          if (key != except && _newest[entry] == number)
+          if (key != except &&
+              serves(userId, epoch) &&
+              _newest[entry] == number)
             Future.sync(() => _store.delete(key)),
       ]);
     }).then((_) {}, onError: (_) {}),
@@ -386,46 +454,50 @@ final class SwrCache {
   /// unknown portfolio. Then it starts removing what the list does not name
   /// ([prune]) and waits for none of it.
   ///
-  /// False, and nothing changes, when the answer is out of date: the
-  /// answer to a request asked later was applied first, or the cache was
-  /// cleared since [epoch] (an answer of a session that has ended).
+  /// False, and nothing changes, unless the cache [serves] [userId] in
+  /// [epoch] (an answer of a session that has ended, or of another
+  /// account's), or when the answer is out of date: the answer to a
+  /// request asked later was applied first.
   bool applyPortfolios(
     String userId,
     Iterable<String> ids, {
     required int asked,
     required int epoch,
   }) {
-    if (clearedSince(epoch)) return false;
-    if ((_claimed[userId] ?? 0) > asked) return false;
-    _claimed[userId] = asked;
-    _members[userId] = {...ids};
+    if (!serves(userId, epoch)) return false;
+    if (_claimed > asked) return false;
+    _claimed = asked;
+    _members = {...ids};
     _pruneLater(userId);
     return true;
   }
 
   /// Notes that [userId] is in the portfolio [id] they just created (asked
   /// for in [epoch]), when a list is applied: its entries are kept until
-  /// the next list.
+  /// the next list. Nothing unless the cache [serves] [userId] in [epoch].
   void addPortfolio(String userId, String id, {required int epoch}) {
-    if (clearedSince(epoch)) return;
-    _members[userId]?.add(id);
+    if (!serves(userId, epoch)) return;
+    _members?.add(id);
   }
 
   /// Notes that [userId] is no longer in the portfolio [id] they just
   /// deleted (asked for in [epoch]), when a list is applied, and starts
-  /// removing its entries.
+  /// removing its entries. Nothing unless the cache [serves] [userId] in
+  /// [epoch].
   void removePortfolio(String userId, String id, {required int epoch}) {
-    if (clearedSince(epoch)) return;
-    final members = _members[userId];
+    if (!serves(userId, epoch)) return;
+    final members = _members;
     if (members == null || !members.remove(id)) return;
     _pruneLater(userId);
   }
 
-  /// The portfolios [userId] is in, as the cache keeps them; null until a
-  /// list was applied in this session.
+  /// The portfolios [userId] is in, as the cache keeps them; null unless
+  /// they own the current epoch and a list was applied in it.
   Set<String>? portfoliosOf(String userId) {
-    final members = _members[userId];
-    return members == null ? null : Set.unmodifiable(members);
+    final members = _members;
+    return userId != _owner || members == null
+        ? null
+        : Set.unmodifiable(members);
   }
 
   void _pruneLater(String userId) =>
@@ -436,33 +508,32 @@ final class SwrCache {
   /// unknown portfolio, every key of another user or of an older version.
   /// The user's own stay. Nothing saved is read, so it can run again at
   /// any time: what a deletion that failed or never answered left is found
-  /// again by the next. Nothing happens before a list is applied, and
-  /// nothing once the cache was cleared since it began: the clear deleted
-  /// it all, and what the store lists by then the next session saved.
-  /// Throws when an entry could not be deleted, once the others are
-  /// ([_deleteWhere]).
+  /// again by the next. Nothing happens unless the cache [serves] [userId]
+  /// and a list is applied, and no key is deleted once it no longer serves
+  /// them in the epoch the removal began in: the next session's entries
+  /// are not this one's to remove. Throws when an entry could not be
+  /// deleted, once the others are ([_deleteWhere]).
   Future<void> prune(String userId) async {
-    if (_members[userId] == null) return;
     final epoch = _epoch;
+    if (!serves(userId, epoch) || _members == null) return;
     final mine = '$_prefix$userId.';
     await _deleteWhere((key) {
-      if (clearedSince(epoch)) return false;
+      if (!serves(userId, epoch)) return false;
       if (!key.startsWith(_root)) return false;
       if (!key.startsWith(mine)) return true;
       final parsed = _parse(key);
       if (parsed == null) return true;
-      return !_keeps(userId, parsed.tag, const {});
+      return !_keeps(parsed.tag, const {});
     });
   }
 
   /// Deletes every cached entry (all users, every version), when the device
-  /// is wiped, and starts a new [epoch] before anything else, so that a
-  /// write still on its way is dropped. The portfolios the cache knew go
-  /// with it. Throws when an entry could not be deleted, once the others
+  /// is wiped, and first starts an epoch nobody owns, so that nothing on
+  /// its way is saved, and nothing is read or saved until the next
+  /// [serve]. Throws when an entry could not be deleted, once the others
   /// are ([_deleteWhere]).
   Future<void> clear() async {
-    _cleared = ++_epoch;
-    _members.clear();
+    _start(null);
     await _deleteWhere((key) => key.startsWith(_root));
   }
 
@@ -471,16 +542,17 @@ final class SwrCache {
   /// left because its wipe could not finish (an entry the store refused or
   /// did not answer for, or the app closed meanwhile), and every entry of
   /// an older version, which names no portfolio. It runs before any query
-  /// is read, and deletes nothing once the cache was cleared since it
-  /// began: the clear deleted it all, and what the store lists by then the
-  /// next session saved. Throws when an entry could not be deleted, once
-  /// the others are ([_deleteWhere]).
+  /// is read. Nothing happens unless the cache [serves] [userId], and no
+  /// key is deleted once it no longer serves them in the epoch the removal
+  /// began in. Throws when an entry could not be deleted, once the others
+  /// are ([_deleteWhere]).
   Future<void> forgetOthers(String userId) async {
     final epoch = _epoch;
+    if (!serves(userId, epoch)) return;
     final mine = '$_prefix$userId.';
     await _deleteWhere(
       (key) =>
-          !clearedSince(epoch) &&
+          serves(userId, epoch) &&
           key.startsWith(_root) &&
           !key.startsWith(mine),
     );
@@ -499,26 +571,38 @@ final class SwrCache {
   }
 
   /// The cached value first (when there is one), then the fresh value once
-  /// [fetch] returns, which is also stored unless the cache was cleared
-  /// since this was called, or does not keep it (see [write]). A failing
-  /// [fetch] ends the stream with its error after the cached value, so the
-  /// screen keeps showing the cached data next to the error.
+  /// [fetch] returns, which is also stored unless the cache does not keep
+  /// it (see [write]). A failing [fetch] ends the stream with its error
+  /// after the cached value, so the screen keeps showing the cached data
+  /// next to the error.
+  ///
+  /// Unless the cache [serves] [userId] in [epoch], the stream is a
+  /// [SessionExpired] error, and nothing is read or fetched; when it no
+  /// longer does once the fresh value comes, that value is not shown, and
+  /// the stream ends without it (not with an error: nobody may listen any
+  /// more, and the provider is built again for the next session).
   Stream<Snapshot<T>> watch<T>({
-    required String userId,
+    required String? userId,
+    required int epoch,
     required String query,
     required CacheScope<T> scope,
     required Future<T> Function() fetch,
     required T Function(Object? json) decode,
     required Object? Function(T value) encode,
-  }) => _watch(
-    epoch: _epoch,
-    userId: userId,
-    query: query,
-    scope: scope,
-    fetch: fetch,
-    decode: decode,
-    encode: encode,
-  );
+  }) {
+    if (userId == null || !serves(userId, epoch)) {
+      return Stream.error(const SessionExpired());
+    }
+    return _watch(
+      epoch: epoch,
+      userId: userId,
+      query: query,
+      scope: scope,
+      fetch: fetch,
+      decode: decode,
+      encode: encode,
+    );
+  }
 
   Stream<Snapshot<T>> _watch<T>({
     required int epoch,
@@ -529,7 +613,7 @@ final class SwrCache {
     required T Function(Object? json) decode,
     required Object? Function(T value) encode,
   }) async* {
-    final cached = await read(userId, query, scope, decode);
+    final cached = await read(userId, query, scope, decode, epoch: epoch);
     if (cached != null) yield cached;
     final fresh = await fetch();
     final savedAt = await write(
@@ -540,6 +624,7 @@ final class SwrCache {
       encode,
       epoch: epoch,
     );
+    if (savedAt == null) return;
     yield Snapshot(fresh, savedAt: savedAt, source: SnapshotSource.network);
   }
 }

@@ -7,13 +7,19 @@
 // The rules it simulates, step by step:
 // R1  a key `mm.swr.v2.<user>.<tag>.<query>` says what its entry holds: `own`,
 //     `p:<portfolio>` or `unknown`.
-// R2  only the newest-asked list answer of a session applies; it sets the
+// R2  only the newest-asked list answer of an epoch applies; it sets the
 //     portfolios the user is in (S), then deletes, from the keys alone,
 //     every entry S does not keep, another user's and older versions'.
-// R3  a write is kept only if, when the store has written it, the cache was
-//     not cleared since it was asked and S keeps its tag (S unknown: kept);
-//     otherwise it is deleted as it lands. A later write of the entry that
-//     landed first wins (the older is deleted as it lands).
+// R3  a write is kept only if, when the store has written it, the cache
+//     still serves its user in its epoch and S keeps its tag (S unknown:
+//     kept); otherwise it is deleted as it lands. A later write of the
+//     entry that landed first wins (the older is deleted as it lands).
+// R6  the cache serves one user at a time: a clear starts an epoch nobody
+//     owns, serving a user who does not own the current epoch starts one
+//     they own (serving nobody: one nobody owns, unless nobody owns it).
+//     Every operation (a read, a write, a list answer, a portfolio added
+//     or removed, a removal) does anything only while its epoch is the
+//     current one and its user owns it.
 //
 // The store is controlled: every write waits until the model lands it,
 // fails it, or lets it land silently (stored, never answered); deletions of
@@ -24,9 +30,13 @@
 // - privacy: an entry the rule rejects is there only while its last deletion
 //   failed or hung, or it landed silently, or the listing of the last
 //   removal failed;
-// - a read never returns an entry the rule rejects, and finds an entry whose
-//   portfolio comes from its value under whatever tag it has;
-// - the epoch moves only at a clear.
+// - a read never returns an entry the rule rejects, nor anything for a user
+//   or an epoch the cache does not serve, and finds an entry whose portfolio
+//   comes from its value under whatever tag it has;
+// - the epoch moves only at a clear or at serving a new owner.
+//
+// Each of three defects of the cache (CacheFault) must make it report a
+// divergence: the tests at the end run it over a cache built with each.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -152,9 +162,27 @@ final class _Model {
   int epoch = 0;
   int cleared = 0;
   int asked = 0;
+
+  /// The user who owns [epoch]; null when nobody does.
+  String? owner;
+
+  /// The owner's portfolios (S), under their id, once a list was applied in
+  /// the epoch; nobody else's.
   final members = <String, Set<String>>{};
-  final claimed = <String, int>{};
+  int claimed = 0;
   final newest = <String, int>{};
+
+  /// Whether the cache serves [user] in [at].
+  bool serves(String? user, int at) =>
+      user != null && at == epoch && user == owner;
+
+  /// A new epoch, owned by [user].
+  void start(String? user) {
+    epoch++;
+    owner = user;
+    members.clear();
+    claimed = 0;
+  }
 
   /// What the store holds, by key: the number of the write.
   final store = <String, int>{};
@@ -187,12 +215,18 @@ Future<void> _settle() => pumpEventQueue(times: 30);
 
 /// Runs one random sequence; returns a description of the first broken
 /// property, or null.
-Future<String?> _run(Random random, int steps, List<String> log) async {
+Future<String?> _run(
+  Random random,
+  int steps,
+  List<String> log, {
+  CacheFault? fault,
+}) async {
   final store = _Store();
   var clock = DateTime.utc(2026, 11, 15);
   final cache = SwrCache(
     store,
     clock: () => clock = clock.add(const Duration(seconds: 1)),
+    fault: fault,
   );
   final m = _Model();
   final writes = <int, _Write>{};
@@ -202,6 +236,13 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
   // An earlier version's entry, and another user's.
   store.values['mm.swr.v1.u1.tenants'] = '{}';
   m.legacy.add('mm.swr.v1.u1.tenants');
+  // The app starts signed in, most often.
+  if (random.nextInt(4) > 0) {
+    final first = _users[random.nextInt(_users.length)];
+    cache.serve(first);
+    m.start(first);
+    log.add('serve $first');
+  }
 
   void deleteKey(String key) {
     if (store.hanging.contains(key) || store.refusing.contains(key)) {
@@ -235,7 +276,7 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
   }
 
   void prune(String user) {
-    if (m.members[user] == null) return;
+    if (!m.serves(user, m.epoch) || m.members[user] == null) return;
     if (store.listingFails) {
       m.unlisted.add(user);
       return;
@@ -256,6 +297,7 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
   }
 
   void dropCopies(String user, String query, String except, int w) {
+    if (!m.serves(user, writes[w]!.epoch)) return;
     final s = m.members[user];
     final List<String> keys;
     if (s != null) {
@@ -313,11 +355,17 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
   }
 
   for (var step = 0; step < steps; step++) {
-    final user = _users[random.nextInt(_users.length)];
-    final query = _queries[random.nextInt(_queries.length)];
-    final op = random.nextInt(14);
+    var user = _users[random.nextInt(_users.length)];
+    var query = _queries[random.nextInt(_queries.length)];
+    final op = random.nextInt(16);
     String desc;
     switch (op) {
+      case 14 || 15:
+        // A status is applied: a user signed in, or nobody.
+        final who = random.nextInt(3) == 0 ? null : user;
+        desc = 'serve $who';
+        cache.serve(who);
+        if (who != m.owner) m.start(who);
       case 0 || 1 || 2:
         final names = switch (query) {
           _ownList => [
@@ -355,7 +403,7 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
               )
               .then((_) {}, onError: (_) {}),
         );
-        if (epoch < m.cleared) break;
+        if (!m.serves(user, epoch)) break;
         if (!m.keeps(user, tag, names)) {
           m.newest[_entry(user, query)] = w;
           if (query == _fromValue) dropCopies(user, query, '', w);
@@ -389,7 +437,7 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
           m.silentlyLanded.remove(key);
           done.complete();
           final entry = _entry(wr.user, wr.query);
-          if (wr.epoch < m.cleared ||
+          if (!m.serves(wr.user, wr.epoch) ||
               !m.keeps(wr.user, wr.tag, wr.names) ||
               (m.newest[entry] ?? 0) > w) {
             deleteKey(key);
@@ -400,9 +448,9 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
         }
       case 5:
         desc = 'clear';
-        m.epoch++;
-        m.cleared = m.epoch;
-        m.members.clear();
+        m
+          ..start(null)
+          ..cleared = m.epoch;
         unawaited(cache.clear().then((_) {}, onError: (_) {}));
         // A wipe that cannot list leaves everything, as one whose deletions
         // fail: the residue of a failed wipe.
@@ -434,11 +482,11 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
           asked: number,
           epoch: epoch,
         );
-        final expected = epoch >= m.cleared && (m.claimed[user] ?? 0) <= number;
+        final expected = m.serves(user, epoch) && m.claimed <= number;
         desc = 'apply $user $ids #$number e$epoch -> $applied';
         if (applied != expected) return '$desc: model says $expected';
         if (expected) {
-          m.claimed[user] = number;
+          m.claimed = number;
           m.members[user] = {...ids};
           prune(user);
         }
@@ -446,12 +494,16 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
         final p = _portfolios[random.nextInt(_portfolios.length)];
         final add = random.nextBool();
         desc = '${add ? 'add' : 'remove'} $user $p';
+        // In the epoch now, or in the one before.
+        final epoch = random.nextInt(4) == 0 ? m.epoch - 1 : m.epoch;
+        desc += ' e$epoch';
+        final served = m.serves(user, epoch);
         if (add) {
-          cache.addPortfolio(user, p, epoch: m.epoch);
-          m.members[user]?.add(p);
+          cache.addPortfolio(user, p, epoch: epoch);
+          if (served) m.members[user]?.add(p);
         } else {
-          cache.removePortfolio(user, p, epoch: m.epoch);
-          if (m.members[user]?.remove(p) ?? false) prune(user);
+          cache.removePortfolio(user, p, epoch: epoch);
+          if (served && (m.members[user]?.remove(p) ?? false)) prune(user);
         }
       case 9:
         final key = random.nextBool()
@@ -473,7 +525,7 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
       case 12:
         desc = 'forgetOthers $user';
         unawaited(cache.forgetOthers(user).then((_) {}, onError: (_) {}));
-        if (!store.listingFails) {
+        if (m.serves(user, m.epoch) && !store.listingFails) {
           for (final key in [...listed()]) {
             if (key.startsWith('mm.swr.v2.$user.')) continue;
             if (m.store.containsKey(key)) {
@@ -484,7 +536,18 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
           }
         }
       default:
-        // A read: never an entry the rule rejects.
+        // A read: never an entry the rule rejects. Half the time, of an
+        // entry the store holds that the rule rejects (its deletion failed
+        // or hung, it landed silently, or a removal could not list it).
+        final rejected = [
+          for (final w in m.store.values.map((w) => writes[w]!))
+            if (!m.keeps(w.user, w.tag, w.names)) w,
+        ];
+        if (rejected.isNotEmpty && random.nextBool()) {
+          final w = rejected[random.nextInt(rejected.length)];
+          user = w.user;
+          query = w.query;
+        }
         if (query == _fromValue &&
             m.members[user] == null &&
             store.listingFails) {
@@ -492,13 +555,21 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
           break;
         }
         await _settle();
-        desc = 'read $user $query';
+        // In the epoch now, or in the one before.
+        final epoch = random.nextInt(4) == 0 ? m.epoch - 1 : m.epoch;
+        final served = m.serves(user, epoch);
+        desc = 'read $user $query e$epoch';
         final read = await cache.read(
           user,
           query,
           _scopeOf(query),
           _V.fromJson,
+          epoch: epoch,
         );
+        if (read != null && !served) {
+          return '$desc: read #${read.value.w} for a session not served';
+        }
+        if (!served) break;
         if (read != null) {
           final w = writes[read.value.w]!;
           if (w.user != user || w.query != query) {
@@ -557,4 +628,17 @@ void main() {
       }
     }
   }, timeout: const Timeout(Duration(minutes: 10)));
+
+  // The model catches each defect: a cache built with it diverges within a
+  // few sequences of a fixed seed.
+  for (final fault in CacheFault.values) {
+    test('it catches a cache whose ${fault.name}', () async {
+      final random = Random(20261116);
+      String? broken;
+      for (var i = 0; i < 200 && broken == null; i++) {
+        broken = await _run(random, 40, [], fault: fault);
+      }
+      expect(broken, isNotNull);
+    }, timeout: const Timeout(Duration(minutes: 5)));
+  }
 }

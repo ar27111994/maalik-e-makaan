@@ -42,7 +42,7 @@ void main() {
     );
     expect(archived.items, [oldPlot]);
     // The list is saved for next time, apart from the archived one.
-    final saved = await app.cache.read(
+    final saved = await app.cache.saved(
       testUserId,
       'properties.${gulberg.id}.active',
       InPortfolio<Object?>(gulberg.id),
