@@ -34,10 +34,6 @@ enum WipeReason {
 
   /// Whether a session ended (not a start-up tidy).
   bool get endsSession => this != startedSignedOut;
-
-  /// Whether a wipe for this reason removes everything one for [other]
-  /// does.
-  bool covers(WipeReason other) => index >= other.index;
 }
 
 /// How long a file written to share is kept after it last changed: the app
@@ -234,23 +230,6 @@ String? cameraOriginalOf(String path) {
   return '${path.substring(0, slash + 1)}${name.substring(prefix.length)}';
 }
 
-/// The preferences step of a wipe on its way, for single-flight.
-final class _Wipe {
-  new(this.reason, this.preferences, {required this.camera});
-
-  final WipeReason reason;
-
-  /// Completes when the step ends: within [wipePreferencesLimit].
-  final Future<void> preferences;
-
-  /// Whether it removes the camera's record.
-  final bool camera;
-
-  /// Whether it removes everything a wipe for [other] would.
-  bool covers(WipeReason other, {required bool camera}) =>
-      reason.covers(other) && (this.camera || !camera);
-}
-
 /// Removes what the app kept on the device for an account, when its
 /// session ends (whatever ended it) and when the app starts with nobody
 /// signed in.
@@ -282,8 +261,10 @@ final class _Wipe {
 ///
 /// Every step runs on its own: one that fails, or never answers, leaves
 /// the others to run. It never throws, and logs nothing (a file's name can
-/// carry a tenant's). A second wipe for one sign-out does no harm: each
-/// step finds nothing left.
+/// carry a tenant's). Every wipe runs all its steps itself, also while
+/// another is on its way: a second wipe for one sign-out finds nothing
+/// left, and one for a session that began and ended meanwhile removes what
+/// that session kept.
 final class DeviceDataWipe {
   /// `preferencesLimit` is [wipePreferencesLimit] but in tests.
   new({
@@ -304,10 +285,6 @@ final class DeviceDataWipe {
   final DateTime Function() _clock;
   final Duration _preferencesLimit;
 
-  /// The preferences step on its way, if any: none once it has ended, also
-  /// when a store did not answer in time.
-  _Wipe? _current;
-
   /// The last pass over the files, which the next one waits for.
   Future<void> _files = Future.value();
 
@@ -317,32 +294,17 @@ final class DeviceDataWipe {
   /// does not answer; the files follow without holding anyone up
   /// ([settled]).
   ///
-  /// A call while the preferences of a wipe that removes as much are being
-  /// removed shares that step, and its pass over the files. A call after
-  /// the step has ended (in time or not) is a wipe of its own: someone may
-  /// have signed in since. Each wipe has its own pass over the files, after
-  /// the passes before it, which touches nothing written after the wipe
-  /// began: a photo taken by someone who signed in since is theirs.
+  /// Every call is a wipe of its own, also while another is on its way: a
+  /// session may have begun and ended since that one began. Each wipe has
+  /// its own pass over the files, after the passes before it, which touches
+  /// nothing written after the wipe began: a photo taken by someone who
+  /// signed in since is theirs.
   Future<void> wipe(WipeReason reason) =>
       _wipe(reason, camera: reason.endsSession);
 
   Future<void> _wipe(WipeReason reason, {required bool camera}) {
-    final current = _current;
-    // Accepted: a session that began while this step waits for a store
-    // that does not answer, and ends before the step does, shares it and
-    // removes nothing of its own; the next wipe does.
-    if (current != null && current.covers(reason, camera: camera)) {
-      return current.preferences;
-    }
     final startedAt = _clock();
     final preferences = _forgetPreferences(reason, camera: camera);
-    final run = _Wipe(reason, preferences, camera: camera);
-    _current = run;
-    unawaited(
-      preferences.whenComplete(() {
-        if (identical(_current, run)) _current = null;
-      }),
-    );
     _queueFiles(camera: camera, pickers: true, at: startedAt);
     return preferences;
   }

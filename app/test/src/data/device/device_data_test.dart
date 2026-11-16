@@ -133,14 +133,10 @@ void main() {
   ];
 
   group('WipeReason', () {
-    test('orders what each removes', () {
+    test('says which end a session', () {
       expect(WipeReason.startedSignedOut.endsSession, isFalse);
       expect(WipeReason.signedOut.endsSession, isTrue);
       expect(WipeReason.accountDeleted.endsSession, isTrue);
-      expect(WipeReason.accountDeleted.covers(WipeReason.signedOut), isTrue);
-      expect(WipeReason.signedOut.covers(WipeReason.signedOut), isTrue);
-      expect(WipeReason.signedOut.covers(WipeReason.accountDeleted), isFalse);
-      expect(WipeReason.startedSignedOut.covers(WipeReason.signedOut), isFalse);
     });
   });
 
@@ -175,7 +171,7 @@ void main() {
       );
       var done = 0;
       unawaited(stuck.wipe(WipeReason.signedOut).then((_) => done++));
-      // A second call shares the stuck step, within the same limit.
+      // A second call runs its own, within the same limit.
       unawaited(stuck.wipe(WipeReason.signedOut).then((_) => done++));
       await tester.pump(wipePreferencesLimit - const Duration(seconds: 1));
       expect(done, 0);
@@ -695,37 +691,68 @@ void main() {
   });
 
   group('wipes that meet', () {
-    test('a start-up wipe that keeps the camera does not cover one that '
-        'removes it', () async {
+    test('a start-up wipe that keeps the camera leaves one that removes it '
+        'its work', () async {
       await Future.wait([
         wipe.atStart(signedInAs: null, photoMayReturn: true),
         wipe.atStart(signedInAs: null, photoMayReturn: false),
       ]);
       expect(wiped, [WipeReason.startedSignedOut, WipeReason.startedSignedOut]);
       expect(settings.values, isNot(contains(AppSettings.cameraTargetKey)));
-      await Future.wait([
-        wipe.atStart(signedInAs: null, photoMayReturn: false),
-        wipe.atStart(signedInAs: null, photoMayReturn: true),
-      ]);
-      expect(wiped, hasLength(3));
     });
 
-    test('share the preferences while they are being removed', () async {
+    test('each removes the preferences on its own, while another is on its '
+        'way', () async {
       await Future.wait([
         wipe.wipe(WipeReason.accountDeleted),
         wipe.wipe(WipeReason.signedOut),
       ]);
-      expect(wiped, [WipeReason.accountDeleted]);
-      // A wipe that removes more is not covered by one that removes less.
+      expect(wiped, [WipeReason.accountDeleted, WipeReason.signedOut]);
       await Future.wait([
         wipe.wipe(WipeReason.signedOut),
         wipe.wipe(WipeReason.accountDeleted),
       ]);
-      expect(wiped, [
-        WipeReason.accountDeleted,
-        WipeReason.signedOut,
-        WipeReason.accountDeleted,
-      ]);
+      expect(wiped, hasLength(4));
+      expect(settings.values, _display);
+    });
+
+    test('a session that begins and ends while a wipe waits for the store '
+        'is wiped by its own: its entries, its choice and its fetch on the '
+        'way', () async {
+      final late = _LateStore();
+      final lateCache = SwrCache(late);
+      await lateCache.seed(testUserId, 'tenants', 1);
+      final timed = DeviceDataWipe(
+        cache: lateCache,
+        settings: settings,
+        scratch: scratch,
+        onWiped: wiped.add,
+        clock: () => _now,
+      );
+      final first = timed.wipe(WipeReason.signedOut);
+      await pumpEventQueue();
+      // The next account signs in, chooses a portfolio, and signs out with
+      // a fetch of its still on its way.
+      await settings.setString(AppSettings.currentPortfolioKey, 'next/p2');
+      late.inner.holding.add(cacheKey('next-user', 'tenants'));
+      final writing = lateCache.write(
+        'next-user',
+        'tenants',
+        scopeOf('tenants'),
+        2,
+        (value) => value,
+        epoch: lateCache.epoch,
+      );
+      await pumpEventQueue();
+      final second = timed.wipe(WipeReason.signedOut);
+      await pumpEventQueue();
+      expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
+      late.inner.finishHeldWritesOldestFirst();
+      await writing;
+      late.listing.complete();
+      await Future.wait([first, second]);
+      expect(late.inner.values, isEmpty);
+      expect(wiped, [WipeReason.signedOut, WipeReason.signedOut]);
     });
 
     test('a later one wipes again: someone may have signed in', () async {
