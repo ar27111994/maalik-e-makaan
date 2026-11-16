@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.0...v1.4.1) (2026-11-16)
+
+
+### Bug fixes
+
+* **web:** send the old address's /auth/callback on to the new one, clearing its storage ([#84](https://github.com/ar27111994/maalik-e-makaan/issues/84)) ([03e6dfb](https://github.com/ar27111994/maalik-e-makaan/commit/03e6dfb1715b0d020bee198e769ac9dfec41af01))
+* **web:** take the deck notes' release and release count from the changelog ([#88](https://github.com/ar27111994/maalik-e-makaan/issues/88)) ([5fd1fa4](https://github.com/ar27111994/maalik-e-makaan/commit/5fd1fa49743420eecc986d9bcd652e51b0e101f1))
+
+
+### Documentation
+
+* **docs:** record release 1.4.0 and the first real run of the provenance steps ([#86](https://github.com/ar27111994/maalik-e-makaan/issues/86)) ([71767c8](https://github.com/ar27111994/maalik-e-makaan/commit/71767c8333b7030432539d835bfb67f20da75772))
+
 ## [1.4.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.3.1...v1.4.0) (2026-11-15)
 
 
