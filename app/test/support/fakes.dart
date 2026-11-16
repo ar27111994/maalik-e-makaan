@@ -725,6 +725,10 @@ final class MemorySettingsStore implements SettingsStore {
   /// Thrown by every write while set, as by a device that cannot write.
   Exception? writeFailure;
 
+  /// Holds every string written until completed, as a device slow to
+  /// answer.
+  Completer<void>? holding;
+
   void _write() {
     final failure = writeFailure;
     if (failure != null) throw failure;
@@ -738,6 +742,7 @@ final class MemorySettingsStore implements SettingsStore {
 
   @override
   Future<void> setString(String key, String value) async {
+    await holding?.future;
     _write();
     values[key] = value;
   }

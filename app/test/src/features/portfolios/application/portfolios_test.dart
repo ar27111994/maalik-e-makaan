@@ -451,6 +451,36 @@ void main() {
       );
     });
 
+    test('nothing is chosen while the cache serves another account, or '
+        'nobody', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await _current(container);
+      final selected = container.read(
+        selectedPortfolioProvider(testUserId).notifier,
+      );
+      // The wipe has begun; the status after it has not come.
+      await app.cache.clear();
+      await selected.select(plaza.id);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      // Another account's status has come.
+      app.auth.emit(
+        const SignedIn(
+          userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+          email: 'sana.malik@example.com',
+        ),
+      );
+      await pumpEventQueue();
+      await selected.select(plaza.id);
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+    });
+
     test('but a portfolio created in the session is chosen', () async {
       final app = TestApp();
       final container = containerFor(app);

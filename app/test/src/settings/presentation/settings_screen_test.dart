@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -147,6 +148,36 @@ void main() {
       await _tap(tester, find.text('اردو'));
       expect(app.settings.values[AppSettings.localeKey], 'ur');
       expect(app.profiles.calls.last.$2, [testUserId, AppLanguage.urdu]);
+    });
+
+    testWidgets('a language chosen as another account takes the session is '
+        'not saved to the first one, and says nothing', (tester) async {
+      final app = await pumpScreen(tester, SettingsScreen.new, size: _tall);
+      final asked = app.profiles.calls.length;
+      // The device is slow to keep the choice; meanwhile another account's
+      // e-mail link replaces the session.
+      app.settings.holding = Completer();
+      await tester.tap(find.text('اردو'));
+      await tester.pump();
+      app.auth.emit(
+        const SignedIn(
+          userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+          email: 'sana.malik@example.com',
+        ),
+      );
+      await tester.pump();
+      app.settings.holding!.complete();
+      app.settings.holding = null;
+      await tester.pumpAndSettle();
+      expect(app.settings.values[AppSettings.localeKey], 'ur');
+      expect([
+        for (final (name, arguments) in app.profiles.calls.skip(asked))
+          if (name == 'updateLanguage') arguments.first,
+      ], isNot(contains(testUserId)));
+      expect(
+        find.textContaining('could not be saved to your account'),
+        findsNothing,
+      );
     });
 
     testWidgets('a language the profile could not take is still applied', (
