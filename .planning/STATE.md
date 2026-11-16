@@ -212,7 +212,10 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   between the wipe and the status saved the next account's answer under the ended one's key, a
   list command asked for the list after its session ended during its request, a profile
   notifier of one account read and saved under another's session, and the status followed a
-  replayed event. Both reference models serve users too, and each must catch three defects the
+  replayed event. A second pass by that verifier the same day found that Riverpod kept the
+  earlier account's value in a provider rebuilt for the next account (now dropped,
+  `sessionChanged`), and a loss of the saved list that is now named and pinned. Both reference
+  models serve users too, and each must catch three defects the
   cache can be built with (`CacheFault`). A command that chooses the current portfolio after a
   request chooses nothing when the session ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an

@@ -45,7 +45,9 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   required `epoch`), and does anything only while the cache serves that user in that epoch
   (`SwrCache.serves`). A notifier that reads or saves for the session watches `sessionProvider`
   and takes its user and epoch from it, as `SwrNotifier`, `PortfoliosController`,
-  `ProfileController` and `ResidenceController` do. A command reads `requestEpoch()` (in a
+  `ProfileController` and `ResidenceController` do; built for another user than the build before,
+  or for nobody, it sets `state = sessionChanged()` before anything else, since Riverpod would
+  keep the earlier account's value on show. A command reads `requestEpoch()` (in a
   controller that is not an `SwrNotifier`, `SwrCache.require`) before each request, or
   `shownEpoch` with the value on show it builds on: either throws `SessionExpired` once the
   session has ended, so a new command does the same, also before a second request. Every

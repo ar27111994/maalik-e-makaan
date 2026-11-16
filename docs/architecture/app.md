@@ -361,7 +361,14 @@ else does then, since a picker may be handing over a copy.
     user and epoch from the same value, so they are built again whenever the
     session changes, also when the same account's session starts again
     after a wipe (`AuthController` notifies then, although the status is the
-    same). A command reads `SwrNotifier.requestEpoch` (the controllers:
+    same). Riverpod keeps a provider's last value through a rebuild until
+    the next one comes, also when that one fails; built for another user
+    than the build before, or for nobody, each of them drops it at once
+    (`sessionChanged`: loading, with `SessionExpired` and no value), so no
+    provider holds the earlier account's value in the next account's
+    session, whatever a screen reads; built for a new session of the same
+    user, it keeps it until the new one comes. A command reads
+    `SwrNotifier.requestEpoch` (the controllers:
     `SwrCache.require`) before each request: it throws `SessionExpired` once
     the cache no longer serves that session, so nothing is asked for a
     session that has ended, also between two requests of one command
@@ -396,7 +403,11 @@ else does then, since a picker may be handing over a copy.
     removal of other accounts' entries, `SwrCache.forgetOthers`) deletes a
     key only while the cache still serves the user it began for: once a wipe
     or another account's status has come, the keys the store lists are the
-    next session's. The list is shown at once and saved without
+    next session's. A password recovery by the same account also starts a
+    new epoch, so a start's removal it interrupts leaves the rest of the
+    other accounts' keys until the next list or the session's end; they are
+    never read meanwhile, as no read names another user. The list is shown
+    at once and saved without
     waiting for the store, so a store that never answers holds up neither
     the screens nor the commands that reload it. A list the controller
     builds itself (an owner-abroad answer; a created or deleted portfolio
@@ -426,7 +437,11 @@ else does then, since a picker may be handing over a copy.
     A record of a portfolio the user joined on another device since this
     session's last list is shown but not saved until the list loads again
     (pull to refresh, accepting an invitation here, or the next start). Two
-    writes of one entry landing in reverse leave no entry; so does a write
+    writes of one entry landing in reverse leave no entry; so do two writes
+    of the portfolio list landing in order when a list applied between
+    them drops a portfolio the older names (the older, no longer kept,
+    deletes the key, which then holds the newer, so no list is saved until
+    the next load); so does a write
     of a query found by its value whose removal of its other copies lists
     the keys after the store has finished a newer write under another tag
     but before the cache has heard that it landed; a write from
@@ -437,10 +452,18 @@ else does then, since a picker may be handing over a copy.
     ended session may stay); a write the
     store fails deletes its entry; an answer asked before the newest is
     neither shown nor saved; an answer asked before a create that drops the
-    created portfolio costs that portfolio's saves until the next list.
+    created portfolio costs that portfolio's saves until the next list; and
+    the list a build of the controller answers while nobody listens
+    (Riverpod pauses the provider, and the list waits at its `yield`)
+    reaches the screen only when one listens again, after a delete's list
+    shown meanwhile, so it can show the deleted portfolio again until the
+    next list (it was applied and saved as it came, before the delete; S and
+    the saved list are the delete's).
     Around the end of a session: a screen opened between a wipe's start and
     the status after it shows an expired session instead of loading, then
-    the router moves on; the answer to a request on its way when the session
+    the router moves on; a screen that stays open while another account
+    signs in shows an expired session (no value) until that account's first
+    answer; the answer to a request on its way when the session
     ended is not shown (with the same account signed in again inside one
     request, the new session's own read shows the server's state); a command
     whose session ended after its request reports an expired session
