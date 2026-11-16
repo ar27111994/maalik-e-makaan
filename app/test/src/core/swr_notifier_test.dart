@@ -269,6 +269,53 @@ void main() {
     });
   });
 
+  group('sessionChanged: built for another account', () {
+    test(
+      'the value on show goes at once, not when its first answer comes',
+      () async {
+        await cache.clear();
+        auth.emit(_u2);
+        await pumpEventQueue();
+        // Its fetch has not answered yet.
+        final state = container.read(_count);
+        expect(state.isLoading, isTrue);
+        expect(state.value, isNull);
+      },
+    );
+
+    test('and stays gone when its first answer fails', () async {
+      await cache.clear();
+      auth.emit(_u2);
+      await pumpEventQueue();
+      held.completeError(const Forbidden());
+      await pumpEventQueue();
+      final state = container.read(_count);
+      expect(state.error, isA<Forbidden>());
+      expect(state.value, isNull);
+    });
+
+    test(
+      'or for nobody: the value on show goes when the user signs out',
+      () async {
+        await cache.clear();
+        auth.emit(const SignedOut());
+        await pumpEventQueue();
+        expect(container.read(_count).value, isNull);
+      },
+    );
+
+    test('for a new session of the same account, the value on show stays '
+        'until the new one comes', () async {
+      await cache.clear();
+      auth.emit(_u1);
+      await pumpEventQueue();
+      expect(container.read(_count).value!.value, 1);
+      held.complete(2);
+      await pumpEventQueue();
+      expect(container.read(_count).value!.value, 2);
+    });
+  });
+
   test('nobody signed in: nothing is asked for, shown or saved', () async {
     final signedOut = ProviderContainer.test(
       overrides: [

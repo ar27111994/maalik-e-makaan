@@ -71,6 +71,10 @@ final class PortfoliosController
     final cache = ref.watch(swrCacheProvider);
     final epoch = session?.epoch ?? 0;
     _epoch = epoch;
+    // Another user's session, or nobody's: the list goes from on show.
+    if (!ref.isFirstBuild && session?.userId != userId) {
+      state = sessionChanged();
+    }
     // While the session is not this user's, nothing is read.
     if (!cache.serves(userId, epoch)) {
       return Stream.error(const SessionExpired());

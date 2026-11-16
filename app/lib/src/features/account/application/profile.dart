@@ -54,6 +54,10 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
     final cache = ref.watch(swrCacheProvider);
     final epoch = session?.epoch ?? 0;
     _epoch = epoch;
+    // Another user's session, or nobody's: the profile goes from on show.
+    if (!ref.isFirstBuild && session?.userId != userId) {
+      state = sessionChanged();
+    }
     return cache
         .watch(
           userId: userId,

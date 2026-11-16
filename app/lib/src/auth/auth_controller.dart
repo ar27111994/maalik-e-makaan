@@ -35,6 +35,24 @@ final sessionProvider = Provider<({String userId, int epoch})?>((ref) {
   return (userId: status.userId, epoch: ref.watch(swrCacheProvider).epoch);
 });
 
+/// The state a provider that reads for the session takes when it is built
+/// again for another user than the build before (or for nobody): loading,
+/// with nothing of the earlier account, which can then be shown in no
+/// other session. Its error is [SessionExpired]: that account's session
+/// has ended.
+///
+/// Riverpod keeps a provider's last value through a rebuild: its loading
+/// and error states carry it (`AsyncValue.copyWithPrevious`) until a new
+/// value comes. Only a state that is loading and failed at once is set as
+/// it is, and its public constructors make neither.
+AsyncValue<T> sessionChanged<T>() =>
+    // The one way to drop the value; the tests of each provider that takes
+    // this state pin it (`sessionChanged` in their names).
+    // ignore: invalid_use_of_internal_member
+    AsyncLoading<T>().copyWithPrevious(
+      AsyncError<T>(const SessionExpired(), StackTrace.empty),
+    );
+
 /// The current [AuthStatus] and the commands that change it. Every command
 /// throws [AppFailure]; the status follows from the session, so screens
 /// never navigate after signing in or out: the router does.

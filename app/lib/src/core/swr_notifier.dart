@@ -46,12 +46,18 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
 
   /// Built again whenever the session changes ([sessionProvider]); while
   /// the cache does not serve it, it reads nothing and ends with
-  /// [SessionExpired] (`SwrCache.watch`).
+  /// [SessionExpired] (`SwrCache.watch`). Built for another user than the
+  /// build before, or for nobody, it drops the value on show
+  /// ([sessionChanged]); built for a new session of the same user, it
+  /// keeps it on show until the new one comes.
   @override
   Stream<Snapshot<T>> build() {
     final session = ref.watch(sessionProvider);
     final cache = ref.watch(swrCacheProvider);
     final epoch = session?.epoch ?? 0;
+    if (!ref.isFirstBuild && session?.userId != _userId) {
+      state = sessionChanged();
+    }
     _userId = session?.userId;
     _epoch = epoch;
     return cache

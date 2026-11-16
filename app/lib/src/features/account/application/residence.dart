@@ -47,6 +47,10 @@ final class ResidenceController
     final repository = ref.watch(residenceRepositoryProvider);
     final cache = ref.watch(swrCacheProvider);
     _epoch = session?.epoch ?? 0;
+    // Another user's session, or nobody's: the residence goes from on show.
+    if (!ref.isFirstBuild && session?.userId != userId) {
+      state = sessionChanged();
+    }
     return cache.watch(
       userId: userId,
       epoch: _epoch,
