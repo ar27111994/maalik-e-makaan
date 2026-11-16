@@ -394,8 +394,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
 - `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
-  (`supabase db push`), so 24 migrations are applied; releases 1.3.1 and 1.4.0 carried none
-  (`list_migrations`, read again by the agent after 1.4.0). "After every
+  (`supabase db push`), so 24 migrations are applied; releases 1.3.1, 1.4.0 and 1.4.1 carried
+  none (`list_migrations`, read again by the agent after 1.4.1). "After every
   migration" (`docs/operations.md`), done the same day with read-only queries:
   1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
      order, with nothing extra on either side.
@@ -617,9 +617,9 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 ## Deployed
 
 - Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version
-  18 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-15), active,
-  verify_jwt off as in config.toml: release 1.4.0's Deploy run uploaded them from the tag with
-  the Supabase CLI at 20:26 UTC that day, as every release since 1.0.0 (2026-11-09) has.
+  19 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-16), active,
+  verify_jwt off as in config.toml: release 1.4.1's Deploy run uploaded them from the tag with
+  the Supabase CLI at 15:47 UTC that day, as every release since 1.0.0 (2026-11-09) has.
 - They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
   (version 1). A byte-for-byte comparison with the repository matched then, except one line of
   `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the
