@@ -494,12 +494,18 @@ In order. Record each in `.planning/STATE.md` when it is done.
         pages (the 44 built pages less the two not-found pages, kept out of the sitemap); and the
         change of address from the old property (step 1) to `https://mmakaan.app/`, started that
         day. Still optional: Bing's import and site move.
-    12. **A release at least 24 hours after the move's** (so not before 14:00 UTC on 16
-        November 2026; an earlier release simply goes without this change, as 1.3.1 did): the
-        agent answers
-        the old address's
-        `/auth/callback` with the page too, so it clears and sends people on like every other
-        path; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone.
+    12. **The callback's release, not before 14:00 UTC on 16 November 2026** (24 hours after the
+        move's deploy). The agent's change (branch `claude/old-callback-clears`) answers the old
+        address's `/auth/callback` with the page too, so it clears and sends people on like every
+        other path; the old address then serves only files, `assetlinks.json` and the app's other
+        files for tabs still open there. From its merge every release from `main` carries it, so
+        none is cut before that time (1.3.1 and 1.4.0 went without it). After its deploy, yours:
+        `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone, then the check by hand that
+        `docs/operations.md`, Domains, step 12, describes (a `flutter.x` key set on the old address
+        is gone after opening its `/auth/callback?code=x`, which lands on the new address). A link
+        asked for in a tab open on the old address since before the move, and opened after this
+        release, cannot finish; what it meets, and why the window stays, is in `docs/operations.md`,
+        Domains, Where it never clears.
     13. **The mail. Done on 15 November 2026, except the e-mail checks (DMARC "PASS", the reset and
         the invitation).** The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail
         (free plan), not Zoho; a test message to Gmail passed SPF and DKIM for `mmakaan.app` on 13
