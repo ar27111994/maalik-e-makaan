@@ -237,11 +237,22 @@ final class SwrCache {
         : await _keysOf(userId, query);
     if (keys == null) return null;
     final found = await Future.wait([
-      for (final key in keys) _readKey(key, userId, scope, decode),
+      for (final key in keys) _readKey(key, decode),
     ]);
+    // Asked once every read has returned, of every copy: a list may have
+    // been applied while the store read, and the portfolio list's names are
+    // in its value.
     Snapshot<T>? newest;
-    for (final snapshot in found) {
+    for (final (index, snapshot) in found.indexed) {
       if (snapshot == null) continue;
+      final key = keys[index];
+      final names = scope is OwnScope<T>
+          ? scope.portfoliosOf(snapshot.value)
+          : const <String>{};
+      if (!_keeps(userId, _parse(key)!.tag, names)) {
+        _forget(key);
+        continue;
+      }
       if (newest == null || snapshot.savedAt.isAfter(newest.savedAt)) {
         newest = snapshot;
       }
@@ -249,13 +260,12 @@ final class SwrCache {
     return newest;
   }
 
+  /// The snapshot saved under [key], or null; an entry that cannot be
+  /// decoded is deleted.
   Future<Snapshot<T>?> _readKey<T>(
     String key,
-    String userId,
-    CacheScope<T> scope,
     T Function(Object? json) decode,
   ) async {
-    final tag = _parse(key)!.tag;
     final raw = await _store.read(key);
     if (raw == null) return null;
     final Snapshot<T> snapshot;
@@ -272,15 +282,6 @@ final class SwrCache {
       );
     } on Object {
       await _store.delete(key);
-      return null;
-    }
-    // Asked once the value is read: a list may have been applied while the
-    // store read, and the portfolio list's names are in its value.
-    final names = scope is OwnScope<T>
-        ? scope.portfoliosOf(snapshot.value)
-        : const <String>{};
-    if (!_keeps(userId, tag, names)) {
-      _forget(key);
       return null;
     }
     return snapshot;

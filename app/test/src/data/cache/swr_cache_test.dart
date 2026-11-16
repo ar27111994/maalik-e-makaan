@@ -54,15 +54,21 @@ final class _ThrowingStore implements KeyValueStore {
   Future<Set<String>> keys() => inner.keys();
 }
 
-/// A store whose reads wait for the test while [held] is set.
+/// A store whose reads wait for the test while [held] is set, once they
+/// have read the value: what the cache does with it after the wait is what
+/// a test sees.
 final class _SlowReads implements KeyValueStore {
   final inner = MemoryStore();
   Completer<void>? held;
 
+  /// The keys whose reads wait; every key's while it is empty.
+  final only = <String>{};
+
   @override
   Future<String?> read(String key) async {
-    await held?.future;
-    return await inner.read(key);
+    final value = await inner.read(key);
+    if (only.isEmpty || only.contains(key)) await held?.future;
+    return value;
   }
 
   @override
@@ -873,6 +879,39 @@ void main() {
       slow.held = Completer();
       final reading = cache.read(_user, 'a', InPortfolio<int>(_a), _decodeInt);
       await pumpEventQueue();
+      cache.applyPortfolios(_user, [_b], asked: cache.ask(), epoch: 0);
+      await pumpEventQueue();
+      // The removal the list started has deleted it, after the store read
+      // it: the check comes after the read.
+      expect(slow.inner.values, isEmpty);
+      slow.held!.complete();
+      expect(await reading, isNull);
+    });
+
+    test('nor, of a query whose portfolio comes from its value, a copy read '
+        'before a list that drops it, while another copy was still being '
+        'read', () async {
+      final slow = _SlowReads();
+      final cache = SwrCache(slow);
+      final unknown = SwrCache.keyOf(_user, const UnknownTag(), 'units.h1');
+      slow.inner.values[SwrCache.keyOf(
+        _user,
+        const PortfolioTag(_a),
+        'units.h1',
+      )] = jsonEncode({
+        'saved_at': '2026-11-02T00:00:00Z',
+        'value': [_a],
+      });
+      slow.inner.values[unknown] = jsonEncode({
+        'saved_at': '2026-11-01T00:00:00Z',
+        'value': <String>[],
+      });
+      slow
+        ..only.add(unknown)
+        ..held = Completer();
+      final reading = cache.read(_user, 'units.h1', _fromRows, _decodeRows);
+      await pumpEventQueue();
+      // The copy in pA has been read; the list then drops pA.
       cache.applyPortfolios(_user, [_b], asked: cache.ask(), epoch: 0);
       slow.held!.complete();
       expect(await reading, isNull);
