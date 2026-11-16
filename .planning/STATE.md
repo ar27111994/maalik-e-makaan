@@ -181,7 +181,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 - The device forgets the account (2026-11-13, branch `claude/signout-device-data`): signing out, a
   session that ends by itself, a session replaced by another account's (an e-mail link) and
   account deletion run `DeviceDataWipe` (`docs/architecture/app.md`, On the device). It removes
-  the record cache (and drops any list a fetch brings back after it: `SwrCache.epoch`), the
+  the record cache, the
   portfolio last chosen and the camera's record, and on phones the pickers' copies, Android's
   records of a lost pick with the camera's full-size original, and the files written to share
   (once unchanged for ten minutes; younger ones at the next start or return to the app). The
@@ -196,19 +196,25 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   again as it lands, and a read never shows what the rule rejects. A portfolio joined on another
   device, opened here by its link and left before this device loads the list again is now
   removed at that load (P9, closed). A store that does not answer holds up neither the other
-  removals nor the sign-out (three seconds each), and the next wipe starts afresh; the steps of
+  removals nor the sign-out (three seconds each), and every wipe runs its own; the steps of
   a pass over the files start together, and a plugin's record of a lost pick that answers after
   five seconds has its copies discarded when it does. The list is shown and saved without
   waiting for the store; a profile or list made from the one on show is saved for the epoch it
   was asked for in; two reference models, a table of all 34 cached queries and the earlier
   reviews' probes check it
-  (`test/src/data/cache/`). The list's controller is built again when the signed-in user
-  changes, so one kept alive across a sign-out applies the next session's lists (a verifier's
-  probe, 2026-11-15), and its commands refuse (`SessionExpired`) unless the signed-in user is
-  the list's own: leaving a portfolio as the session ended reloaded the list afterwards and
-  saved it again for the account that had signed out (the agent's probe, the same day). A
-  command that chooses the current portfolio after a request chooses
-  nothing when the session ended meanwhile, and a start signed in removes what
+  (`test/src/data/cache/`). The cache serves one user at a time (16 November 2026, the owner's
+  word to make the rules hold more simply): a wipe starts an epoch nobody owns, each status
+  serves its user, and every read, write, list answer and removal does anything only while its
+  user owns its epoch (`SwrCache.serve` and `serves`; `docs/architecture/app.md`, The session
+  the cache serves). It replaced five guards (the epoch's `clearedSince`, the list's
+  `_requireSession`, its shown-but-not-saved answer, `select(askedIn:)` and the wipe's
+  single-flight), and closed what an independent verifier found on 2026-11-16: a query built
+  between the wipe and the status saved the next account's answer under the ended one's key, a
+  list command asked for the list after its session ended during its request, a profile
+  notifier of one account read and saved under another's session, and the status followed a
+  replayed event. Both reference models serve users too, and each must catch three defects the
+  cache can be built with (`CacheFault`). A command that chooses the current portfolio after a
+  request chooses nothing when the session ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on
   that device, because "sign out, then sign in with the invited address" needs it. The website's

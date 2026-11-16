@@ -114,12 +114,13 @@ its rows: the ten models behind them read `portfolio_id`), or
 `.residence` make the user's own. An empty list names no portfolio and is
 `unknown`. A query found by its value is read under whatever tag it has:
 while the portfolios the user is in are known, by reading `p:<id>.<query>`
-for each; before, by listing the store's keys. When a session ends, the
-device wipe clears the cache and starts a new `SwrCache.epoch`: a value
-fetched for the ended session is not saved, even when it arrives after the
-wipe (see [On the device](#on-the-device)). How a portfolio that leaves the
-user's list loses its saved entries is in On the device, Writes after a
-removal. A screen shows
+for each; before, by listing the store's keys. The cache serves one user at
+a time, and every read and write names the user and the epoch it belongs
+to: a value fetched for a session that has ended is neither saved nor
+shown, even when it arrives after the wipe (see
+[On the device](#on-the-device), Writes after a removal, The session the
+cache serves). How a portfolio that leaves the user's list loses its saved
+entries is in the same place. A screen shows
 "Offline, showing what was saved at …" when the refresh fails with a
 `NetworkFailure` and data is on screen; otherwise it shows the error with a
 retry.
@@ -313,9 +314,9 @@ else does then, since a picker may be handing over a copy.
   Sign out buttons, a refresh the server refused, a session that cannot be
   read, another tab signing out, whatever its `signOutReason`) and, in
   `signOut`'s `finally`, when that event never came (gotrue failed before
-  announcing it). It also wipes, as a sign-out, when an event carries another
-  account's session than the one the device held without a sign-out between
-  them: an e-mail link of account B opened while A is signed in. Account
+  announcing it). It also wipes, as a sign-out, when the session the device
+  holds is another account's than the one it held, without a sign-out
+  between them: an e-mail link of account B opened while A is signed in. Account
   deletion signs out with `SignOutCause.accountDeleted`, which wipes the
   invitation too. When the deletion's answer is lost or the server failed
   part-way (`mayHaveDeleted`: a `NetworkFailure`, `ServerFailure` or
@@ -336,43 +337,66 @@ else does then, since a picker may be handing over a copy.
   (Writes after a removal).
 - **Writes after a removal.** Two things remove saved entries: the wipe and
   the portfolio list.
-  - _The wipe._ `SwrCache.clear` starts a new epoch before it deletes
-    anything (every `mm.swr.` key, of every version and user). Every write
-    names the epoch read before its value was asked for
-    (`SwrCache.write(epoch:)`, a required argument): `SwrCache.watch` takes
-    it when it is called; `SwrNotifier`, `PortfoliosController`,
-    `ProfileController` and `ResidenceController` note it when they are
-    built, and a command hands over that epoch (`SwrNotifier.requestEpoch`)
-    or, for a value made from the one on show ("load more", a notification
-    marked read, a language saved, an owner-abroad answer),
-    `SwrNotifier.shownEpoch` or the controller's own, the epoch that value
-    was asked for in. A write is dropped when the cache was cleared since its
-    epoch, and one the store had not finished then is deleted as it lands:
-    a fetch on its way when the session ended (its token is still valid for
-    up to an hour) cannot put the account back on the device, nor can a
-    notifier built for that session. Every `SwrNotifier`, and
-    `PortfoliosController`, is built again when the signed-in user changes
-    (every wipe ends a session): a portfolio list held across a sign-out
-    reads nothing while signed out, and applies the next session's lists.
-    Its commands (reload, create, delete, the owner-abroad answer) throw
-    `SessionExpired` unless the signed-in user is the list's own, and ask
-    for, show and save nothing: a caller that read the user before a request
-    of its own (leaving a portfolio, changing one's own role) reloads the
-    list afterwards, and by then the session may have ended, or be another
-    account's.
+  - _The session the cache serves._ The cache serves one user at a time,
+    and each epoch has at most one owner, fixed when it starts
+    (`SwrCache.serve`, `SwrCache.serves`). `SwrCache.clear` starts an epoch
+    nobody owns before it deletes anything (every `mm.swr.` key, of every
+    version and user), and every wipe runs its own clear. Before each
+    authentication status is applied, `AuthController` serves its user (or
+    nobody, for a signed-out or password-recovery status), which starts an
+    epoch of theirs unless they own the current one; at start-up
+    `DeviceDataWipe.atStart` serves the stored session's user before
+    anything is read. Every operation names its user and the epoch it was
+    asked in (`read`, `write`, `watch`, `applyPortfolios`, `addPortfolio`
+    and `removePortfolio` take a required `epoch`; `prune` and
+    `forgetOthers` take the current one as they begin), and does anything
+    only while that epoch is the current one and that user owns it: checked
+    when it starts, and again each time the store answers it. A fetch on its
+    way when the session ended (its token is still valid for up to an hour)
+    therefore cannot put the account back on the device, nor can a notifier
+    built for that session, nor can one account's answer be saved or shown
+    in another's session. `sessionProvider` gives the signed-in user with
+    the epoch they own: `SwrNotifier`, `PortfoliosController`,
+    `ProfileController` and `ResidenceController` watch it and take their
+    user and epoch from the same value, so they are built again whenever the
+    session changes, also when the same account's session starts again
+    after a wipe (`AuthController` notifies then, although the status is the
+    same). A command reads `SwrNotifier.requestEpoch` (the controllers:
+    `SwrCache.require`) before each request: it throws `SessionExpired` once
+    the cache no longer serves that session, so nothing is asked for a
+    session that has ended, also between two requests of one command
+    (`PortfoliosController.create` lists the portfolios after creating
+    one), and the answer to a request on its way when it ended is neither
+    shown nor saved (`SwrCache.write` returns null). For a value made from
+    the one on show ("load more", a notification marked read, a language
+    saved, an owner-abroad answer), `SwrNotifier.shownEpoch` or the
+    controller's own gives the epoch that value was asked for in. Between a
+    wipe's start and the status that follows it (a few milliseconds; at most
+    `wipePreferencesLimit` with a store that hangs) the signed-in user still
+    reads as the account that ended, but the cache serves nobody: a screen
+    opened then, or a retry that fires then (`SessionExpired` is not
+    retried), asks for nothing and shows the expired session, and then the
+    router moves on. What is left: a request already on its way when the
+    session ended, and the first request of a command that reads no epoch
+    before it (a team command, deleting a tenant) tapped on a screen of the
+    ended session in that window, go out with no session (refused: the
+    anonymous role has no grants) or with the next account's token
+    (row-level security decides what that account may do); nothing of
+    either is saved or shown.
   - _The portfolio list._ Each list the server answers is numbered before
     it is asked (`SwrCache.ask`), and only the newest-asked answer of the
-    session applies (`SwrCache.applyPortfolios`; one asked before a wipe is
-    refused, and the numbers count up across wipes). It sets, in memory, the
-    portfolios the user is in (S), then removes, from the store's keys alone
+    epoch applies (`SwrCache.applyPortfolios`; one of an epoch the cache no
+    longer serves is refused, and the numbers count up for the whole run).
+    It sets, in memory, the portfolios the user is in (S), then removes,
+    from the store's keys alone
     and reading no value (`SwrCache.prune`), every entry of the user's that S
     does not keep (a `p:` tag outside S, every `unknown` one, a key that does
     not parse), every key of another user, and every `mm.swr.v1.` key. The
-    user's own are never removed. A removal begun before a wipe deletes
-    nothing after it, and nor does the start's removal of other accounts'
-    entries (`SwrCache.forgetOthers`): the wipe deleted it all, and the keys
-    the store lists by then are the next session's, another account's among
-    them. The list is shown at once and saved without
+    user's own are never removed. A removal (this one, and the start's
+    removal of other accounts' entries, `SwrCache.forgetOthers`) deletes a
+    key only while the cache still serves the user it began for: once a wipe
+    or another account's status has come, the keys the store lists are the
+    next session's. The list is shown at once and saved without
     waiting for the store, so a store that never answers holds up neither
     the screens nor the commands that reload it. A list the controller
     builds itself (an owner-abroad answer; a created or deleted portfolio
@@ -381,8 +405,8 @@ else does then, since a picker may be handing over a copy.
     entries) once the server has confirmed, when S is known, and the list
     shown and saved is cut to S.
   - _A write as it lands._ A write is kept only when, once the store has
-    written it, the cache was not cleared since its epoch and S keeps its
-    tag, or no list was applied yet in this session (then the first list
+    written it, the cache still serves its user in its epoch and S keeps its
+    tag, or no list was applied yet in this epoch (then the first list
     removes it when it does not name its portfolio); otherwise it is
     deleted as it lands, and when it is already not kept as it is asked, it
     is not written. A later write of the same entry that landed first wins
@@ -391,7 +415,8 @@ else does then, since a picker may be handing over a copy.
     query found by its value lands, the same query's copies under another tag
     go, so an empty list does not leave an older copy with rows behind; one
     the rule does not keep removes them all. A read never shows an entry S
-    does not keep, and asks for its deletion.
+    does not keep, and asks for its deletion: every copy it read is checked
+    once all its reads have returned.
   - _What is lost._ Every `mm.swr.v1.*` entry goes once, after the upgrade
     (a start signed in, the first list, or the wipe): an offline first
     start after it shows nothing saved, the portfolio list included. An
@@ -413,6 +438,19 @@ else does then, since a picker may be handing over a copy.
     store fails deletes its entry; an answer asked before the newest is
     neither shown nor saved; an answer asked before a create that drops the
     created portfolio costs that portfolio's saves until the next list.
+    Around the end of a session: a screen opened between a wipe's start and
+    the status after it shows an expired session instead of loading, then
+    the router moves on; the answer to a request on its way when the session
+    ended is not shown (with the same account signed in again inside one
+    request, the new session's own read shows the server's state); a command
+    whose session ended after its request reports an expired session
+    although its change was made (a portfolio created then is not chosen on
+    this device, and the next session's list shows it; a command with a
+    retry id, such as a handover's `record`, is safe to try again); a
+    password recovery by the signed-in account starts two epochs, so a save
+    on its way across it is not kept, and the lists are read again when the
+    new password is set; and two wipes for one sign-out each list the keys
+    and remove the preferences, the second finding nothing.
   - _Offline starts._ Until the session's first list, S is unknown and every
     saved entry is shown, also one of a portfolio left on another device
     since this device last loaded the list: it goes the next time the list
@@ -431,10 +469,11 @@ else does then, since a picker may be handing over a copy.
     next list (three races, and the portfolio no longer exists). A key
     listing that fails while a record opened by its link is read before the
     first list shows no saved copy.
-  - _Commands._ A command that chooses the current portfolio after a request
-    (creating a portfolio, accepting an invitation) passes the epoch it read
-    before it (`select(askedIn:)`), and chooses nothing when the session
-    ended meanwhile. When a portfolio leaves the list, `mm.portfolio.current`
+  - _Commands._ `select` chooses the current portfolio only while the cache
+    serves its user, so a command that chooses it after a request (creating
+    a portfolio, accepting an invitation) chooses nothing when the session
+    ended meanwhile; nor does the camera keep a target for a user the cache
+    does not serve. When a portfolio leaves the list, `mm.portfolio.current`
     may still name it until the user picks another or the session ends; it
     is two ids, and `pickCurrent` falls back to the first portfolio. Apart
     from the wipe nothing puts a limit on the store: a read or write of a
@@ -449,12 +488,21 @@ else does then, since a picker may be handing over a copy.
     (operational) and `swr_cache_ref_model_test.dart` (declarative, with a
     key-format fuzz) compare `SwrCache` with two models written apart from
     its code and from each other (500 and 400 random sequences by default,
-    fixed seeds, `--dart-define=MODEL_SEQ=` and `REF_SEQ=` for more).
+    fixed seeds, `--dart-define=MODEL_SEQ=` and `REF_SEQ=` for more); both
+    serve users and nobody between the other operations, and each must
+    catch the three defects a cache can be built with for testing
+    (`CacheFault`: `serves` blind to the owner, `serve` that starts no
+    epoch, a read not checked once the store has answered).
+    `test/src/auth/sign_out_wipe_test.dart` runs the session's life cycle
+    over the real repository and wipe (the order of the wipe and the status,
+    a link of the same or another account, a password recovery, replays, a
+    screen opened and a retry fired between the wipe and the status).
 - **Replays.** gotrue's auth stream replays every earlier event to a new
-  listener (an unbounded `ReplaySubject`), so a `signedOut` is acted on only
-  when no session exists, and a session counts as replaced only when the
-  event's session is the current one; gotrue removes the session before it
-  announces a sign-out.
+  listener (an unbounded `ReplaySubject`), so the status and the check for
+  a replaced session read the session the device holds, never the event's:
+  a replayed event changes nothing. A `signedOut` wipes only when no
+  session exists; gotrue removes the session before it announces a
+  sign-out.
 - **A start signed in.** A wipe whose cache deletions failed, never answered
   or were cut off by the app closing is not retried by a session that
   begins later (an e-mail link of account B opened while A was signed in
@@ -470,14 +518,11 @@ else does then, since a picker may be handing over a copy.
   removals nor the sign-out. A removal that answers later finishes what it was
   asked and no more: no preference is asked for after the start, when someone
   else may have signed in (the cache's entries are the exception: its
-  listing names the keys there are when it answers; see What is lost). While
-  that step runs, a wipe that removes no more
-  shares it; once it has ended, in time or not, the next wipe is a wipe of its
-  own, with its own pass over the files. So a session that begins while a
-  store has not answered (a link signs another account in) and ends within
-  those three seconds removes nothing of its own: accepted, since it needs a
-  store that hangs and a session of under three seconds, and the next wipe
-  removes it. The files follow, one pass
+  listing names the keys there are when it answers; see What is lost). Every
+  wipe runs its own preferences step and its own pass over the files, also
+  while another is on its way: a session that begins while a store has not
+  answered (a link signs another account in) and ends within those three
+  seconds is removed by its own wipe. The files follow, one pass
   at a time, never holding the user up and given up after thirty seconds
   (`wipeFilesLimit`). The steps of a pass (the records of a lost pick and
   their copies, the pickers' copies, the sweep) start together, so one that
@@ -492,7 +537,7 @@ else does then, since a picker may be handing over a copy.
   Android's share sheet returns before the receiving app has read it. Such a
   file goes at the next start or return to the foreground after that. A
   second wipe for one sign-out (gotrue's announcement handled after
-  `signOut` returned, when the auth stream was busy) does no harm.
+  `signOut` returned, when the auth stream was busy) finds nothing left.
 - **The invitation.** It survives signing out because the way to take up an
   invitation sent to another address is "sign out, then sign in with the
   address it was sent to" (`invitationEmailMismatchBody`). The token names
@@ -521,9 +566,10 @@ else does then, since a picker may be handing over a copy.
   it (refresh tokens do not expire by time, and no session time-box is set),
   so a backup made before can still sign in.
 - **Moving the web app to another address.** The browser keeps the web app's
-  storage per origin. When the web app moves (to `app.mmakaan.app`), the old
-  origin's storage stays in every browser that used it, and the app on the
-  new origin cannot reach it: see `docs/operations.md`, Moving the web app.
+  storage per origin, and the app on a new origin cannot reach the old
+  one's. The web app has moved (to `app.mmakaan.app`), and the earlier
+  address clears what it kept the first time a browser comes back to it:
+  see `docs/operations.md`, What the earlier address kept in the browser.
 
 ## State
 
