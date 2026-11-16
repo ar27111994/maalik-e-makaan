@@ -168,6 +168,10 @@ final class _Model {
   /// Users whose last removal could not list the keys.
   final unlisted = <String>{};
 
+  /// The keys of an earlier version the store still holds: the model never
+  /// touches the store, so a cache that stopped deleting them is caught.
+  final legacy = <String>{};
+
   bool keeps(String user, String tag, List<String?> names) {
     final s = members[user];
     if (s == null) return true;
@@ -197,6 +201,7 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
 
   // An earlier version's entry, and another user's.
   store.values['mm.swr.v1.u1.tenants'] = '{}';
+  m.legacy.add('mm.swr.v1.u1.tenants');
 
   void deleteKey(String key) {
     if (store.hanging.contains(key) || store.refusing.contains(key)) {
@@ -206,6 +211,19 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
     m.store.remove(key);
     m.dirty.remove(key);
     m.silentlyLanded.remove(key);
+  }
+
+  /// Every key of the cache's the store lists: the model's own record of
+  /// what a removal that lists the keys finds.
+  Iterable<String> listed() => [...m.store.keys, ...m.legacy];
+
+  /// A removal deletes [key] of an earlier version, unless its deletion
+  /// fails or hangs (none of them do: their faults are only drawn for this
+  /// version's keys).
+  void deleteLegacy(String key) {
+    if (!store.hanging.contains(key) && !store.refusing.contains(key)) {
+      m.legacy.remove(key);
+    }
   }
 
   /// Whether the removal keeps [key]: the user's own always (they hold
@@ -224,16 +242,12 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
     }
     m.unlisted.remove(user);
     final mine = 'mm.swr.v2.$user.';
-    for (final key in [...store.values.keys]) {
-      if (!key.startsWith('mm.swr.')) continue;
+    for (final key in [...listed()]) {
       if (!key.startsWith(mine)) {
         if (m.store.containsKey(key)) {
           deleteKey(key);
         } else {
-          // An older version's: the model does not track its value.
-          if (!store.hanging.contains(key) && !store.refusing.contains(key)) {
-            store.values.remove(key);
-          }
+          deleteLegacy(key);
         }
         continue;
       }
@@ -274,6 +288,14 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
     };
     if (!_mapEquals(actual, m.store)) {
       return '$step: store $actual, model ${m.store}';
+    }
+    // Every other key of the cache's, by its name.
+    final older = {
+      for (final key in store.values.keys)
+        if (key.startsWith('mm.swr.') && !key.startsWith('mm.swr.v2.')) key,
+    };
+    if (older.length != m.legacy.length || !older.containsAll(m.legacy)) {
+      return '$step: older keys $older, model ${m.legacy}';
     }
     if (cache.epoch != m.epoch) return '$step: epoch ${cache.epoch}';
     for (final key in m.store.keys) {
@@ -386,12 +408,11 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
         // fail: the residue of a failed wipe.
         if (store.listingFails) m.dirty.addAll(m.store.keys);
         if (!store.listingFails) {
-          for (final key in [...store.values.keys]) {
+          for (final key in [...listed()]) {
             if (m.store.containsKey(key)) {
               deleteKey(key);
-            } else if (!store.hanging.contains(key) &&
-                !store.refusing.contains(key)) {
-              store.values.remove(key);
+            } else {
+              deleteLegacy(key);
             }
           }
         }
@@ -453,16 +474,12 @@ Future<String?> _run(Random random, int steps, List<String> log) async {
         desc = 'forgetOthers $user';
         unawaited(cache.forgetOthers(user).then((_) {}, onError: (_) {}));
         if (!store.listingFails) {
-          for (final key in [...store.values.keys]) {
-            if (!key.startsWith('mm.swr.') ||
-                key.startsWith('mm.swr.v2.$user.')) {
-              continue;
-            }
+          for (final key in [...listed()]) {
+            if (key.startsWith('mm.swr.v2.$user.')) continue;
             if (m.store.containsKey(key)) {
               deleteKey(key);
-            } else if (!store.hanging.contains(key) &&
-                !store.refusing.contains(key)) {
-              store.values.remove(key);
+            } else {
+              deleteLegacy(key);
             }
           }
         }

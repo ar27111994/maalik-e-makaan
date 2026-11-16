@@ -36,7 +36,11 @@ String _uuid(Random r) => [8, 4, 4, 4, 12]
 
 const _pieces = ['tenants', 'active', '', 'علی رضا', '#1', 'a b', '0300', '.'];
 
-String _query(Random r) => [
+/// A fuzzed query text after [kind], a prefix of its own: two queries of
+/// different kinds never share a text (an empty value of one and a value
+/// of the other would otherwise share a key).
+String _query(Random r, String kind) => [
+  kind,
   for (var i = 1 + r.nextInt(4); i > 0; i--) _pieces[r.nextInt(_pieces.length)],
 ].join('.');
 
@@ -131,12 +135,12 @@ Future<String?> _sequence(Random r, int steps) async {
     (text: 'profile', kind: _Kind.own, portfolio: null),
     for (var i = 0; i < 3; i++)
       (
-        text: _query(r),
+        text: _query(r, 'in$i'),
         kind: _Kind.inPortfolio,
         portfolio: portfolios[r.nextInt(3)],
       ),
-    (text: _query(r), kind: _Kind.fromValue, portfolio: null),
-    (text: _query(r), kind: _Kind.unknown, portfolio: null),
+    (text: _query(r, 'fv'), kind: _Kind.fromValue, portfolio: null),
+    (text: _query(r, 'un'), kind: _Kind.unknown, portfolio: null),
   ];
   final writes = <_W>[];
   final events = <_Event>[];
