@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
@@ -10,7 +9,6 @@ import 'package:maalik_e_makaan/src/features/account/application/residence.dart'
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 
 import '../../support/container.dart';
-import '../../support/fakes.dart' show testUserId;
 import '../../support/harness.dart';
 
 const _other = SignedIn(userId: 'another-user', email: 'other@example.com');
