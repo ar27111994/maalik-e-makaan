@@ -1221,6 +1221,41 @@ void main() {
       await Future.wait([older, newer]);
       expect(await get('x'), 2);
     });
+
+    test('loss: an older write of the portfolio list that stops being kept '
+        'deletes the newer, kept one, although they land in order', () async {
+      final scope = OwnScope.portfolioList<List<String>>((list) => list);
+      final listKey = key(const OwnTag(), 'portfolios');
+      Future<DateTime?> putList(List<String> ids) => cache.write(
+        _user,
+        'portfolios',
+        scope,
+        ids,
+        _same,
+        epoch: cache.epoch,
+      );
+      void apply(List<String> ids) => cache.applyPortfolios(
+        _user,
+        ids,
+        asked: cache.ask(),
+        epoch: cache.epoch,
+      );
+      apply([_a, _b]);
+      store.holding.add(listKey);
+      final older = putList([_a, _b]);
+      await pumpEventQueue();
+      // A list asked later drops pA, and is saved too, while the older
+      // write is still in the store's hands.
+      apply([_b]);
+      final newer = putList([_b]);
+      await pumpEventQueue();
+      store.finishHeldWritesOldestFirst();
+      await Future.wait([older, newer]);
+      // The older write, no longer kept, deletes the key, which by then
+      // holds the newer list: no list is saved until the next load.
+      // (docs/architecture/app.md, What is lost.)
+      expect(store.values.containsKey(listKey), isFalse);
+    });
   });
 
   group('a write the store fails', () {
