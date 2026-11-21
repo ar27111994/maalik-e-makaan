@@ -13,10 +13,26 @@ accountDeletionProvider =
     >(AccountDeletionController.new);
 
 /// Loads the [DeletionPreview] and deletes the account.
+///
+/// It is built again whenever the session changes ([sessionProvider]):
+/// built for another user than the build before, or for nobody, it drops
+/// the preview on show ([sessionChanged]), since it names the earlier
+/// account's portfolios; with nobody signed in it asks for nothing.
 final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
+  /// The user the preview was built for, if anyone was signed in.
+  String? _userId;
+
   @override
-  Future<DeletionPreview> build() =>
-      ref.watch(accountRepositoryProvider).deletionPreview();
+  Future<DeletionPreview> build() async {
+    final userId = ref.watch(sessionProvider)?.userId;
+    final repository = ref.watch(accountRepositoryProvider);
+    if (!ref.isFirstBuild && userId != _userId) {
+      state = sessionChanged();
+    }
+    _userId = userId;
+    if (userId == null) throw const SessionExpired();
+    return await repository.deletionPreview();
+  }
 
   /// Deletes the account: signs in again with [password] (the server asks
   /// for a recent sign-in), deletes it with [confirmEmail] as the typed
