@@ -107,7 +107,7 @@ AGPL.
 | Atkinson Hyperlegible Next | 2.001                | SIL Open Font License 1.1                   | 2020-2024 The Atkinson Hyperlegible Next Project Authors |
 | Noto Sans Arabic           | 2.012                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
 | Noto Nastaliq Urdu         | 3.009                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
-| MmIcons (subset of Lucide) | lucide-static 1.66.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
+| MmIcons (subset of Lucide) | lucide-static 1.70.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
 
 The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
 (`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoSansArabic.txt`, `OFL-NotoNastaliqUrdu.txt`,
@@ -123,7 +123,7 @@ language switch on English pages, renamed "MM Urdu Label") and Noto Nastaliq
 Urdu (the letters of the wordmark only), and publishes the three OFL texts at
 `/licences/`. The pitch deck (`website/deck/`) embeds the three in its PDF (Noto
 Nastaliq Urdu for the cover's wordmark only) and draws five Lucide icons
-(`website/deck/icons/`, with their ISC notice) from lucide-static 1.66.0.
+(`website/deck/icons/`, with their ISC notice) from lucide-static 1.70.0.
 
 What the licences ask:
 
@@ -201,7 +201,7 @@ Root `package.json` (development only):
 | @commitlint/cli                 | 21.2.4  | MIT     |
 | @commitlint/config-conventional | 21.2.4  | MIT     |
 | lefthook                        | 2.2.2   | MIT     |
-| lucide-static                   | 1.66.0  | ISC     |
+| lucide-static                   | 1.70.0  | ISC     |
 | markdownlint-cli2               | 0.24.0  | MIT     |
 | prettier                        | 3.9.10  | MIT     |
 
