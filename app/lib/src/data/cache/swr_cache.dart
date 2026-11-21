@@ -355,15 +355,17 @@ final class SwrCache {
   /// when the cache would not keep the entry ([applyPortfolios]).
   ///
   /// It is checked again once the store has written it, and deleted when
-  /// either holds then (null when the session no longer serves it), or
-  /// when a later write of the entry landed first (the store may finish two
-  /// writes in either order, and would now hold the older value). A later,
-  /// wanted value the store finished first goes with it: the entry is then
-  /// missing, and is fetched again. When it lands, the entry's copies under
-  /// another tag are deleted (an entry whose portfolio comes from its value
-  /// moves from unknown to its portfolio, or back, as the value changes);
-  /// when the cache does not keep it, all are. A write the store fails
-  /// throws, and its deletion is asked for then.
+  /// either holds then (null when the session no longer serves it, then or
+  /// once the deletion has answered), or when a later write of the entry
+  /// landed first (the store may finish two writes in either order, and
+  /// would now hold the older value). A later, wanted value the store
+  /// finished first goes with it: the entry is then missing, and is fetched
+  /// again. When it lands, the entry's copies under another tag are
+  /// deleted (an entry whose portfolio comes from its value moves from
+  /// unknown to its portfolio, or back, as the value changes); when the
+  /// cache does not keep it, all are. A write the store fails throws, and
+  /// its deletion is asked for then. A caller that shows the value calls
+  /// [save] instead.
   Future<DateTime?> write<T>(
     String userId,
     String query,
@@ -412,6 +414,8 @@ final class SwrCache {
     }
     if (!_keeps(tag, names) || (_newest[entry] ?? 0) > number) {
       await _store.delete(key);
+      // And again once the store has deleted it.
+      if (!serves(userId, epoch)) return null;
     } else {
       _newest[entry] = number;
       if (scope is FromValue<T>) {
@@ -419,6 +423,33 @@ final class SwrCache {
       }
     }
     return at;
+  }
+
+  /// Stores [value] as [write] does, and returns it as the server's latest,
+  /// to show; null when [write] does, and when the cache no longer serves
+  /// [userId] in [epoch] once [write] has returned. A write that stores
+  /// nothing returns at once, but what waits for it goes on only in a later
+  /// microtask, when the session may have ended. This one has waited, so
+  /// its caller goes on as it returns, with nothing run in between: what it
+  /// returns may be shown.
+  Future<Snapshot<T>?> save<T>(
+    String userId,
+    String query,
+    CacheScope<T> scope,
+    T value,
+    Object? Function(T value) encode, {
+    required int epoch,
+  }) async {
+    final savedAt = await write(
+      userId,
+      query,
+      scope,
+      value,
+      encode,
+      epoch: epoch,
+    );
+    if (savedAt == null || !serves(userId, epoch)) return null;
+    return Snapshot(value, savedAt: savedAt, source: SnapshotSource.network);
   }
 
   /// Deletes the copies of [userId]'s entry of [query] but [except], as
@@ -616,15 +647,7 @@ final class SwrCache {
     final cached = await read(userId, query, scope, decode, epoch: epoch);
     if (cached != null) yield cached;
     final fresh = await fetch();
-    final savedAt = await write(
-      userId,
-      query,
-      scope,
-      fresh,
-      encode,
-      epoch: epoch,
-    );
-    if (savedAt == null) return;
-    yield Snapshot(fresh, savedAt: savedAt, source: SnapshotSource.network);
+    final saved = await save(userId, query, scope, fresh, encode, epoch: epoch);
+    if (saved != null) yield saved;
   }
 }

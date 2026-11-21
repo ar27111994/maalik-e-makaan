@@ -1570,6 +1570,65 @@ void main() {
       expect(slow.inner.values, isEmpty);
     });
 
+    test('a write whose late deletion answers after another account is '
+        'served shows nothing', () async {
+      await cache.answer(_user, [_a]);
+      store.holding.add(key(const PortfolioTag(_a), 'x'));
+      final writing = cache.write(
+        _user,
+        'x',
+        InPortfolio<int>(_a),
+        1,
+        _same,
+        epoch: cache.epoch,
+      );
+      await pumpEventQueue();
+      expect(store.heldWrites, 1);
+      // Its portfolio leaves the list while the store writes: the write is
+      // deleted as it lands, and the store holds that deletion.
+      await cache.answer(_user, [_b]);
+      final deletion = store.nextDeletionHeld = Completer();
+      store.finishHeldWritesOldestFirst();
+      await pumpEventQueue();
+      expect(store.heldDeletions, 1);
+      cache.serve('u2');
+      deletion.complete();
+      expect(await writing, isNull);
+      expect(store.values, isEmpty);
+    });
+
+    test('a value whose write returns at once is not shown when another '
+        'account is served before its caller goes on', () async {
+      // Not kept: the write stores nothing and returns at once, but the
+      // caller goes on only in a later microtask, after this one.
+      await cache.answer(_user, [_b]);
+      final epoch = cache.epoch;
+      scheduleMicrotask(() => cache.serve('u2'));
+      expect(
+        await cache.save(
+          _user,
+          'x',
+          InPortfolio<int>(_a),
+          1,
+          _same,
+          epoch: epoch,
+        ),
+        isNull,
+      );
+      // While it serves the user, the value comes back to show.
+      cache.serve(_user);
+      final saved = await cache.save(
+        _user,
+        'x',
+        InPortfolio<int>(_a),
+        2,
+        _same,
+        epoch: cache.epoch,
+      );
+      expect(saved?.value, 2);
+      expect(saved?.source, SnapshotSource.network);
+    });
+
     test('a removal whose listing answers after another account is served '
         'deletes nothing', () async {
       await put('a', 1);

@@ -75,7 +75,7 @@ final class ResidenceController
         .read(residenceRepositoryProvider)
         .update(userId, country: country, timeZone: timeZone);
     // Kept for next time even when nobody shows it any more.
-    final savedAt = await cache.write(
+    final shown = await cache.save(
       userId,
       query,
       scope,
@@ -83,10 +83,8 @@ final class ResidenceController
       (residence) => residence.toRow(),
       epoch: epoch,
     );
-    if (savedAt == null || !ref.mounted) return;
-    state = AsyncData(
-      Snapshot(saved, savedAt: savedAt, source: SnapshotSource.network),
-    );
+    if (shown == null || !ref.mounted) return;
+    state = AsyncData(shown);
   }
 }
 

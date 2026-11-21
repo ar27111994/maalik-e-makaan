@@ -304,6 +304,34 @@ void main() {
       },
     );
 
+    test('and the value of a write whose late deletion answers after it is '
+        'not put on show', () async {
+      final notifier = container.read(_count.notifier);
+      final epoch = notifier.requestEpoch();
+      // The store holds the write; meanwhile pA leaves the list.
+      store.holding.add('mm.swr.v2.u1.p:pA.count');
+      final showing = notifier.show(5, epoch: epoch);
+      await pumpEventQueue();
+      expect(store.heldWrites, 1);
+      await cache.answer('u1', const []);
+      // The write lands: the cache no longer keeps it, and deletes it; the
+      // store holds that deletion.
+      final deletion = store.nextDeletionHeld = Completer();
+      store.finishHeldWritesOldestFirst();
+      await pumpEventQueue();
+      expect(store.heldDeletions, 1);
+      // u1 signs out and u2 signs in while it waits.
+      await cache.clear();
+      auth.emit(_u2);
+      await pumpEventQueue();
+      expect(container.read(_count).value, isNull);
+      deletion.complete();
+      await showing;
+      await pumpEventQueue();
+      expect(container.read(_count).value, isNull);
+      expect(saved(), isEmpty);
+    });
+
     test('for a new session of the same account, the value on show stays '
         'until the new one comes', () async {
       await cache.clear();

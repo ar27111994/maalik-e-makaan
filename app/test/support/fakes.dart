@@ -844,8 +844,22 @@ final class MemoryStore implements KeyValueStore {
     values[key] = value;
   }
 
+  /// When set, the next deletion waits for it (and it is unset), as a
+  /// platform call still on its way; the deletions after it do not wait.
+  Completer<void>? nextDeletionHeld;
+
+  /// How many deletions wait for the completer they took from
+  /// [nextDeletionHeld].
+  int heldDeletions = 0;
+
   @override
   Future<void> delete(String key) async {
+    if (nextDeletionHeld case final held?) {
+      nextDeletionHeld = null;
+      heldDeletions++;
+      await held.future;
+      heldDeletions--;
+    }
     // Never answers: what follows is not reached.
     if (silent.contains(key)) await Completer<void>().future;
     if (undeletable.contains(key)) throw StateError('cannot delete $key');

@@ -287,7 +287,8 @@ final class PortfoliosController
   /// was asked for ([_save]): the build's for the server's answer, and no
   /// later than [_shown] for a list made from the one on show. A server's
   /// answer comes with [asked]. Not shown when out of date, nor once the
-  /// cache no longer serves [epoch]'s session.
+  /// cache no longer serves [epoch]'s session: [_save] asks, and nothing is
+  /// awaited between its answer and the state being set.
   Future<void> _show(
     List<PortfolioMembership> list,
     int epoch, {

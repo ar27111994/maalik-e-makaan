@@ -115,7 +115,8 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
 
   /// Shows [value] as the server's latest, and saves it unless the cache
   /// does not keep its portfolio's entries (`SwrCache.write`). Neither,
-  /// unless the cache still serves the session of [epoch].
+  /// unless the cache still serves the session of [epoch], also once the
+  /// write has returned (`SwrCache.save`).
   ///
   /// [epoch] is the cache's epoch the whole of [value] was asked for in:
   /// [requestEpoch], read before the request, when [value] is the server's
@@ -124,13 +125,11 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
   Future<void> show(T value, {required int epoch}) async {
     final userId = _userId;
     if (userId == null) return;
-    final savedAt = await ref
+    final saved = await ref
         .read(swrCacheProvider)
-        .write(userId, query, scope, value, encode, epoch: epoch);
-    if (savedAt == null || !ref.mounted) return;
+        .save(userId, query, scope, value, encode, epoch: epoch);
+    if (saved == null || !ref.mounted) return;
     _shown = epoch;
-    state = AsyncData(
-      Snapshot(value, savedAt: savedAt, source: SnapshotSource.network),
-    );
+    state = AsyncData(saved);
   }
 }

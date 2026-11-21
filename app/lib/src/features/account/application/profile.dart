@@ -108,9 +108,9 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
   /// Shows [profile], and saves it for [epoch], the cache's when (all of)
   /// it was asked for: neither once the cache no longer serves it.
   Future<void> _show(Profile profile, int epoch) async {
-    final savedAt = await ref
+    final saved = await ref
         .read(swrCacheProvider)
-        .write(
+        .save(
           userId,
           query,
           scope,
@@ -118,10 +118,8 @@ final class ProfileController extends StreamNotifier<Snapshot<Profile>> {
           (profile) => profile.toRow(),
           epoch: epoch,
         );
-    if (savedAt == null || !ref.mounted) return;
+    if (saved == null || !ref.mounted) return;
     _shown = epoch;
-    state = AsyncData(
-      Snapshot(profile, savedAt: savedAt, source: SnapshotSource.network),
-    );
+    state = AsyncData(saved);
   }
 }
