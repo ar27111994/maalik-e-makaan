@@ -160,7 +160,7 @@ Their locked transitive packages are MIT (`@supabase/auth-js`,
 | Package          | Version | Licence      |
 | ---------------- | ------- | ------------ |
 | astro            | 7.4.12  | MIT          |
-| @astrojs/mdx     | 8.1.2   | MIT          |
+| @astrojs/mdx     | 8.1.3   | MIT          |
 | @astrojs/sitemap | 3.7.4   | MIT          |
 | subset-font      | 2.9.0   | BSD-3-Clause |
 
@@ -171,15 +171,15 @@ Development only:
 | @astrojs/check            | 0.9.12  | MIT        |
 | @axe-core/playwright      | 4.14.0  | MPL-2.0    |
 | @eslint/js                | 10.0.1  | MIT        |
-| @lhci/cli                 | 0.15.1  | Apache-2.0 |
-| @playwright/test          | 1.64.1  | Apache-2.0 |
+| @lhci/cli                 | 0.16.0  | Apache-2.0 |
+| @playwright/test          | 1.65.0  | Apache-2.0 |
 | @types/node               | 22.20.5 | MIT        |
 | eslint                    | 10.14.0 | MIT        |
 | eslint-plugin-astro       | 3.2.1   | MIT        |
 | eslint-plugin-jsx-a11y    | 6.10.2  | MIT        |
 | fast-check                | 4.10.2  | MIT        |
 | globals                   | 17.14.0 | MIT        |
-| parse5                    | 8.1.0   | MIT        |
+| parse5                    | 8.1.1   | MIT        |
 | postcss-html              | 2.0.0   | MIT        |
 | prettier                  | 3.9.10  | MIT        |
 | prettier-plugin-astro     | 1.1.2   | MIT        |
