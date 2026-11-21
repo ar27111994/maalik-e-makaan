@@ -63,8 +63,10 @@ final class PendingInvitationController extends Notifier<String?> {
   /// portfolio becomes the current one. Accepted or refused, the invitation
   /// is then forgotten, unless it was refused because of the signed-in
   /// account (another address, or one not confirmed), which signing in
-  /// with the invited address puts right. A failure to reach the server
-  /// throws [AppFailure] and keeps it, to try again.
+  /// with the invited address puts right. Only the invitation answered is
+  /// forgotten: one opened on the device while the request was on its way
+  /// stays. A failure to reach the server throws [AppFailure] and keeps it,
+  /// to try again.
   ///
   /// The answer is the asking session's alone ([sessionProvider], read
   /// before the request): when that session has ended by the time it
@@ -84,12 +86,13 @@ final class PendingInvitationController extends Notifier<String?> {
     final outcome = await ref.read(teamRepositoryProvider).accept(token);
     // Signed in with another address, or one not confirmed yet: kept, so
     // signing in with the invited address picks it up again. Otherwise it
-    // is used up, whoever is signed in now.
+    // is used up, whoever is signed in now; an invitation opened since (by
+    // the next account, while this one signed out) is not this answer's.
     final retryable =
         outcome is InvitationRefused &&
         (outcome.reason == InvitationRefusal.emailMismatch ||
             outcome.reason == InvitationRefusal.emailNotVerified);
-    if (!retryable) await clear();
+    if (!retryable && state == token) await clear();
     cache.require(userId, epoch);
     if (outcome is InvitationAccepted) {
       try {

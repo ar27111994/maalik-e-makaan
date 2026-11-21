@@ -629,6 +629,54 @@ void main() {
       expect(container.read(pendingInvitationProvider), isNull);
     });
 
+    for (final outcome in <AcceptOutcome>[
+      InvitationAccepted(portfolioId: plaza.id, role: MemberRole.manager),
+      const InvitationRefused(InvitationRefusal.expired),
+    ]) {
+      test(
+        '${outcome.runtimeType} after the account signed out, it forgets '
+        'only itself: the invitation the next account opened since stays',
+        () async {
+          final app = TestApp(
+            settings: {AppSettings.pendingInvitationKey: 'a1.first'},
+          )..team.acceptOutcome = outcome;
+          final container = containerFor(app);
+          listen(container, pendingInvitationProvider);
+          await pumpEventQueue();
+          app.team.gate.close();
+          final accepting = container
+              .read(pendingInvitationProvider.notifier)
+              .accept();
+          await pumpEventQueue();
+          // The account signs out (a plain sign-out keeps the invitation);
+          // the next opens its own invitation's link and signs in.
+          await DeviceDataWipe(
+            cache: app.cache,
+            settings: app.settings,
+            scratch: app.scratch,
+          ).wipe(WipeReason.signedOut);
+          app.auth.emit(const SignedOut());
+          await pumpEventQueue();
+          await container
+              .read(pendingInvitationProvider.notifier)
+              .hold('b2.second');
+          app.auth.emit(
+            const SignedIn(userId: 'other', email: 'o@example.com'),
+          );
+          await pumpEventQueue();
+          // The first account's answer comes.
+          app.team.gate.open();
+          await expectLater(accepting, throwsA(isA<SessionExpired>()));
+          await pumpEventQueue();
+          expect(container.read(pendingInvitationProvider), 'b2.second');
+          expect(
+            app.settings.values[AppSettings.pendingInvitationKey],
+            'b2.second',
+          );
+        },
+      );
+    }
+
     test("accepted, when the same account's next session begins while the "
         'list is read, it chooses no portfolio in that session', () async {
       final app =
