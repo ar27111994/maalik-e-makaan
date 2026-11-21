@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.1...v1.4.2) (2026-11-21)
+
+
+### Documentation
+
+* **docs:** record release 1.4.1 and the old callback's first check on Vercel ([#98](https://github.com/ar27111994/maalik-e-makaan/issues/98)) ([d593daa](https://github.com/ar27111994/maalik-e-makaan/commit/d593daace4be85f38dad69b2ff44fe73917e7a09))
+
 ## [1.4.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.0...v1.4.1) (2026-11-16)
 
 
