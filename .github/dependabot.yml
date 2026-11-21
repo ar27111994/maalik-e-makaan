@@ -113,6 +113,13 @@ updates:
     groups:
       dart:
         update-types: [minor, patch]
+    # test 1.32.0 needs test_api 0.7.14, and the flutter_test of the Flutter that
+    # FLUTTER_VERSION in ci.yml names pins test_api 0.7.12: pub resolves test back
+    # to 1.31.1, so Dependabot's lockfile would name a version CI never runs (#97).
+    # Moving FLUTTER_VERSION to a Flutter whose flutter_test accepts it lifts this.
+    ignore:
+      - dependency-name: test
+        versions: [">= 1.32.0"]
     cooldown:
       default-days: 7
 

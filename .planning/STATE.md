@@ -602,6 +602,11 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   `.github/dependabot.yml` ignores both until a release that accepts 18, or a replacement plugin,
   lifts it; then take the two together and run the lint suite against stylelint 18's removed
   rules and options.
+- Dart: `test` stays at 1.31.1. test 1.32.0 needs test_api 0.7.14, and the flutter_test of the
+  Flutter that `FLUTTER_VERSION` in ci.yml names pins 0.7.12, so `.github/dependabot.yml` ignores
+  test 1.32.0 and later until that pin moves. CI's `flutter pub get` re-resolves quietly, so a
+  lockfile pub cannot satisfy still passes CI; `flutter pub get --enforce-lockfile` in CI would
+  catch it (not yet done: it changes every Flutter job).
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed in e853378
