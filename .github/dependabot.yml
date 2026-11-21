@@ -62,11 +62,20 @@ updates:
     # - @types/node follows the Node major in .nvmrc, and moves with it by hand.
     # - TypeScript 7 cannot run `astro check` or typed lint until
     #   @astrojs/check and typescript-eslint support it; upgrade by hand then.
+    # - Stylelint 18 and stylelint-config-standard 41 (which needs 18) wait for
+    #   stylelint-use-logical, the plugin behind csstools/use-logical in
+    #   stylelint.config.js: its latest release, 2.1.3, accepts stylelint
+    #   ">= 11 < 18", so npm ci fails with ERESOLVE (#95, #92). A release that
+    #   accepts 18, or a replacement plugin, lifts both; take the two together.
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      - dependency-name: stylelint
+        versions: [">= 18.0.0"]
+      - dependency-name: stylelint-config-standard
+        versions: [">= 41.0.0"]
     cooldown:
       default-days: 7
 
