@@ -20,10 +20,11 @@ Copies the build into OUTPUT/static and writes OUTPUT/config.json, which
    with more slashes before them (`//`, `//index.html`), answer with the page
    that sends people on to the origin (below), not with the app.
 4. `{"handle": "filesystem"}`: existing files are served, on every host.
-5. On an earlier address: every other path except /auth/callback answers with
-   the same page.
+5. On an earlier address: every other path answers with the same page,
+   /auth/callback included.
 6. Every other path (/auth/callback?code=..., /invite/...) serves index.html
-   with status 200, so the app's router handles it.
+   with status 200, so the app's router handles it; no request to an earlier
+   address gets this far.
 
 The page that sends people on (tool/web/moved/, copied to moved.html and
 moved.js) is a 200, not a redirect, because the earlier address has to clear
@@ -41,17 +42,19 @@ first page. A redirect that carried the header would not do: Chromium and
 Firefox act on it for a redirect, WebKit only for the response a navigation
 ends on (docs/operations.md, Domains, has the sources).
 
-So an earlier address keeps answering what was sent before the move: the
-files, among them `.well-known/assetlinks.json`, which Android checks on each
-App Links host without following a redirect, and /auth/callback, which boots
-the app where the sign-in verifier of a link requested there is stored.
-Neither carries Clear-Site-Data: the header is only on the routes of 3 and 5.
-Only those paths as written are kept, the only forms Android and the e-mail
-links request: one with a slash more (`//auth/callback`, `/auth//callback`,
-`/auth/callback/`, `/.well-known//assetlinks.json`) is another path, which
+So an earlier address serves only files: `.well-known/assetlinks.json`,
+which Android checks on each App Links host without following a redirect, the
+page's script, and the app's other files, which no page there loads any more
+but a tab still running the app it loaded there may fetch. None carries
+Clear-Site-Data: the header is only on the routes of 3 and 5. A file is kept
+only as written: one asked for with a slash more
+(`/.well-known//assetlinks.json`, `//main.dart.js`) is another path, which
 gets the page of 5 in tool/web/serve_output.py (test_package_vercel pins it);
 whether Vercel's filesystem step reads `//.well-known/assetlinks.json` as the
-file is not documented, so that one may get either answer there.
+file is not documented, so that one may get either answer there. Up to
+release 1.4.0 (docs/operations.md, Domains, step 12),
+/auth/callback was kept too, for e-mail links whose sign-in verifier was in
+that address's storage; it now gets the page like every other path.
 Every response carries the security headers and `no-cache`, so browsers ask
 again each time. `.well-known/assetlinks.json` is served as application/json.
 The Supabase origin is the only backend the CSP allows.
@@ -118,9 +121,6 @@ STATIC_HEADERS = {
 # fontFallbackBaseUrl.
 FONT_FALLBACK_ORIGIN = "https://fonts.gstatic.com"
 
-
-# The path an earlier address keeps serving (route 5), besides the files.
-KEPT_ON_LEGACY = "auth/callback"
 
 # The page an earlier address answers instead (routes 3 and 5), and its script: the sources,
 # and their names in the package.
@@ -244,8 +244,8 @@ def _alternation(paths: list[str]) -> str:
 def legacy_routes(app: AppOrigins | None) -> tuple[list[dict], list[dict]]:
     """The routes of the earlier addresses, which answer with the page that clears their storage
     and sends people on: the ones before the filesystem (the root and the page itself, which
-    would otherwise be served as files), and the one after it (every other path but the
-    callback). None when there is no earlier address."""
+    would otherwise be served as files), and the one after it (every other path, the e-mail
+    links' callback included). None when there is no earlier address."""
     if app is None or not app.legacy:
         return [], []
     # A host holds only [a-z0-9.-] (read_app_origins), so escaping the dots is enough, as in
@@ -262,7 +262,7 @@ def legacy_routes(app: AppOrigins | None) -> tuple[list[dict], list[dict]]:
     # they get the page whether or not Vercel's filesystem step reads "//index.html" as the
     # file index.html; the routes after it see the request as sent, "//" and all.
     before = {"src": rf"^/+(?:index\.html|{page})?$", **moved}
-    after = {"src": f"^/(?!{KEPT_ON_LEGACY}$).*$", **moved}
+    after = {"src": "^/.*$", **moved}
     return [before], [after]
 
 

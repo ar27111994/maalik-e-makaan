@@ -12,14 +12,20 @@
 # goes to TO (tool/web/package_vercel.py): the header Clear-Site-Data:
 # "storage" and nothing more, TO as the page's destination, its script and its
 # way on without scripts; and the script must be served. The script keeps the
-# path, the query and the #fragment (tool/web/test_moved_js.py).
+# path, the query and the #fragment (tool/web/test_moved_js.py). Each --moved
+# path (only with --page) must answer with the page as well: a path the
+# deployment before this one answered differently, such as the e-mail links'
+# callback before step 12 (docs/operations.md, Domains).
 #
 # Each --keep path must answer 200 where it is, without a redirect and without
 # Clear-Site-Data.
 #
+# Before the checks it waits up to two minutes for / and every --moved path
+# to answer as this deployment does (see smoke_test.sh).
+#
 #   tool/web/redirect_smoke_test.sh https://old-site.example.org https://example.pk
 #   tool/web/redirect_smoke_test.sh https://old-app.example.org https://app.example.pk --page \
-#     --keep '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
+#     --moved '/auth/callback?code=smoke-test' --keep /.well-known/assetlinks.json
 #   tool/web/redirect_smoke_test.sh http://127.0.0.1:8080 https://app.example.pk --page \
 #     --host old-app.example.org --keep /.well-known/assetlinks.json
 #
@@ -28,7 +34,7 @@
 # from contracts/origins.json.
 set -euo pipefail
 
-usage="usage: redirect_smoke_test.sh FROM TO [--page] [--host HOST] [--keep PATH]..."
+usage="usage: redirect_smoke_test.sh FROM TO [--page [--moved PATH]...] [--host HOST] [--keep PATH]..."
 from="${1:?$usage}"
 to="${2:?$usage}"
 shift 2
@@ -37,6 +43,7 @@ to="${to%/}"
 host=""
 page=false
 keep=()
+moved_paths=()
 while (($# > 0)); do
   case "$1" in
     --host)
@@ -45,6 +52,10 @@ while (($# > 0)); do
       ;;
     --keep)
       keep+=("${2:?$usage}")
+      shift 2
+      ;;
+    --moved)
+      moved_paths+=("${2:?$usage}")
       shift 2
       ;;
     --page)
@@ -57,6 +68,11 @@ while (($# > 0)); do
       ;;
   esac
 done
+if ((${#moved_paths[@]} > 0)) && ! $page; then
+  echo "--moved needs --page: only the web app's earlier address answers with the page" >&2
+  echo "$usage" >&2
+  exit 2
+fi
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 # A request that gets no answer writes no headers; they then read as none.
@@ -85,11 +101,11 @@ header() {
     | sed 's/^ *//'
 }
 
-# moved: whether / already answers as the deployment that sends people on does.
+# moved PATH: whether PATH already answers as the deployment that sends people on does.
 moved() {
   local status
   status="$(curl -s --max-time 10 "${headers[@]}" -D "$work/headers" -o /dev/null \
-    -w '%{http_code}' "$from/" || true)"
+    -w '%{http_code}' "$from$1" || true)"
   if $page; then
     [[ "$status" == 200 && -n "$(header clear-site-data)" ]]
   else
@@ -97,15 +113,28 @@ moved() {
   fi
 }
 
+# waiting: the first of / and the --moved paths that does not answer so yet, or nothing.
+waiting() {
+  local path
+  for path in / "${moved_paths[@]}"; do
+    if ! moved "$path"; then
+      echo "$path"
+      return
+    fi
+  done
+}
+
 # Just after a deploy the address can still answer from the deployment before
-# it (see smoke_test.sh). Wait up to two minutes for / to send people on.
+# it (see smoke_test.sh). Wait up to two minutes for / and every --moved path
+# to send people on: the deployment before may already answer / so, but not
+# a path that this one is the first to send on.
 deadline=$((SECONDS + 120))
-until moved; do
+while late="$(waiting)" && [[ -n "$late" ]]; do
   if ((SECONDS >= deadline)); then
-    echo "/ on $name did not send people on after two minutes; checking anyway"
+    echo "$late on $name did not send people on after two minutes; checking anyway"
     break
   fi
-  echo "/ on $name does not send people on yet; waiting for the deployment"
+  echo "$late on $name does not send people on yet; waiting for the deployment"
   sleep 5
 done
 
@@ -137,7 +166,7 @@ check_page() {
   fi
 }
 
-for path in / "/smoke-test-$RANDOM/a/?x=1&y=%20"; do
+for path in / "/smoke-test-$RANDOM/a/?x=1&y=%20" "${moved_paths[@]}"; do
   if $page; then
     check_page "$path"
     continue

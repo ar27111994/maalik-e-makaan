@@ -404,8 +404,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
     Release 1.3.1 (15:50 UTC that day) carried Search Console's file, and steps 1, 11 and the
     move of the app's e-mail to the domain (step 13) were done the same day, with the homepage
     and the company's website of step 10. Left: the checks by hand (step 9, and the e-mails with
-    DMARC "PASS" of step 13), the company's other records (step 10) and the callback's release
-    (step 12).
+    DMARC "PASS" of step 13), the company's other records (step 10) and, the callback's release
+    being out since 16 November (1.4.1, step 12), `ALLOWED_ORIGINS` and the check by hand of the
+    old callback.
 
     **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
     Edge Function secret and the GitHub repository variable, and by the owner's decision of that
@@ -494,12 +495,18 @@ In order. Record each in `.planning/STATE.md` when it is done.
         pages (the 44 built pages less the two not-found pages, kept out of the sitemap); and the
         change of address from the old property (step 1) to `https://mmakaan.app/`, started that
         day. Still optional: Bing's import and site move.
-    12. **A release at least 24 hours after the move's** (so not before 14:00 UTC on 16
-        November 2026; an earlier release simply goes without this change, as 1.3.1 did): the
-        agent answers
-        the old address's
-        `/auth/callback` with the page too, so it clears and sends people on like every other
-        path; after that deploy, `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone.
+    12. **The callback's release. Done on 16 November 2026, except your two steps:** release
+        1.4.1 (at 15:46 UTC; it waited until 14:00 UTC, 24 hours after the move's deploy). Pull
+        request #84 answers the old address's `/auth/callback` with the page too, so it clears
+        and sends people on like every other path; the old address now serves only files,
+        `assetlinks.json` and the app's other files for tabs still open there. The release's
+        Deploy job checked it on Vercel. Still yours:
+        `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone, then the check by hand that
+        `docs/operations.md`, Domains, step 12, describes (a `flutter.x` key set on the old address
+        is gone after opening its `/auth/callback?code=x`, which lands on the new address). A link
+        asked for in a tab open on the old address since before the move, and opened after this
+        release, cannot finish; what it meets, and why the window stays, is in `docs/operations.md`,
+        Domains, Where it never clears.
     13. **The mail. Done on 15 November 2026, except the e-mail checks (DMARC "PASS", the reset and
         the invitation).** The company's mailbox is `hello@mmakaan.app`, on Dynadot's own e-mail
         (free plan), not Zoho; a test message to Gmail passed SPF and DKIM for `mmakaan.app` on 13

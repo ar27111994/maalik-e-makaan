@@ -137,6 +137,14 @@ class MovedScriptTest(unittest.TestCase):
             ("/invite", "", "#token=abc"),
             ("/leases/4f2c", "?tab=dues", ""),
             ("/auth/callback/extra", "?code=x", ""),
+            # An e-mail link that reaches the earlier address after step 12 (docs/operations.md,
+            # Domains): its code, or the error Auth sent instead, goes on to the origin as sent.
+            ("/auth/callback", "?code=x", ""),
+            (
+                "/auth/callback",
+                "?error=access_denied&error_code=otp_expired",
+                "#error=access_denied&error_code=otp_expired",
+            ),
             ("/%D8%A7", "?q=%26", "#%23"),
         ):
             with self.subTest(path=path, search=search, fragment=fragment):
