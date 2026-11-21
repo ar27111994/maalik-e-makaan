@@ -167,8 +167,13 @@ void main() {
   });
 
   group('waitsForSession', () {
-    test('is true for the state sessionChanged sets', () {
-      expect(waitsForSession(sessionChanged<int>()), isTrue);
+    test('is true for the state sessionChanged sets, which is loading with '
+        'no value', () {
+      final state = sessionChanged<int>();
+      expect(waitsForSession(state), isTrue);
+      expect(state.isLoading, isTrue);
+      expect(state.hasValue, isFalse);
+      expect(state.error, isA<SessionExpired>());
     });
 
     test('is false for any other state', () {

@@ -60,20 +60,21 @@ AsyncValue<T> sessionChanged<T>() =>
 /// failed a read.
 final _sessionChangedTrace = StackTrace.fromString('sessionChanged');
 
-/// Whether [state] is the one [sessionChanged] set, still loading: the
-/// account a screen showed has changed, and the first answer for the
-/// account signed in now is on its way. A screen shows it as it shows any
-/// first load (its skeleton), not as a failure with "Try again": nothing
-/// failed for the person reading it, who is signed in. (Its error is
-/// there only because Riverpod keeps a provider's value through a rebuild
-/// unless the state also carries an error.)
+/// Whether [state] is the one [sessionChanged] set: the account a screen
+/// showed has changed, and the first answer for the account signed in now
+/// is on its way. A screen shows it as it shows any first load (its
+/// skeleton), not as a failure with "Try again": nothing failed for the
+/// person reading it, who is signed in. (Its error is there only because
+/// Riverpod keeps a provider's value through a rebuild unless the state
+/// also carries an error.)
 ///
-/// A [SessionExpired] that really failed a read (the cache refused it, or
-/// the server did) carries another trace, so it shows as a failure as
-/// before, also while "Try again" loads (Riverpod keeps the error then).
+/// Riverpod carries that error, trace and all, while the provider loads
+/// (and so does a value made from the state, such as `whenData`'s), until
+/// a value or another error replaces it. A [SessionExpired] that really
+/// failed a read (the cache refused it, or the server did) carries another
+/// trace, so it shows as a failure as before, also while "Try again" loads
+/// (Riverpod keeps the error then).
 bool waitsForSession(AsyncValue<Object?> state) =>
-    state.isLoading &&
-    !state.hasValue &&
     identical(state.stackTrace, _sessionChangedTrace);
 
 /// The current [AuthStatus] and the commands that change it. Every command
