@@ -253,9 +253,18 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   `lib`). Greptile's review of 63b047d found three more, fixed on 21 November 2026: a write whose
   late deletion answered after another account had signed in put the earlier account's value on
   show (the write now asks again after that deletion, and what a notifier shows comes from
-  `SwrCache.save`, which asks once more after the write); accepting an invitation read the
-  signed-in user only after the answer (the answer now belongs to the session that asked); and
-  two wipe tests wrote for an account the cache never served, so their write never began. A
+  `SwrCache.save`, which asks once more after the write; the portfolio list, shown without
+  waiting for the store, sets its state with nothing awaited after its check); accepting an
+  invitation read the signed-in user only after the answer (the answer now belongs to the session
+  that asked); and two wipe tests wrote for an account the cache never served, so their write
+  never began. Two independent verifiers of that round found more, fixed the same day: the
+  delete-account screen kept the earlier account's preview, naming its portfolios, after another
+  account's session replaced it (the preview now watches the session); a read went on reading
+  after its listing of the keys answered for an ended session, and a build whose saved copy was
+  read then still sent its request with the next account's token (each now asks again); an
+  invitation's late answer forgot the one the next account had opened since (only the invitation
+  answered is forgotten); bootstrap's start-up wipe was run by no test (it now is); and five lines
+  were held by no test (now pinned). A
   command that chooses the current portfolio after a request chooses nothing when the
   session it asked in has ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an

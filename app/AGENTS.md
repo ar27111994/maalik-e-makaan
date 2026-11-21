@@ -43,10 +43,13 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   theirs. The cache serves one user at a time (`SwrCache.serve`): every cache operation names
   its user and the epoch it belongs to (`read`, `write`, `save`, `watch` and `SwrNotifier.show`
   take a required `epoch`), and does anything only while the cache serves that user in that epoch
-  (`SwrCache.serves`). What a notifier shows of an answer it saves is what `SwrCache.save` gives
-  back, never `write`'s time: `save` asks again once the write has returned. A notifier that reads or saves for the session watches `sessionProvider`
-  and takes its user and epoch from it, as `SwrNotifier`, `PortfoliosController`,
-  `ProfileController` and `ResidenceController` do; built for another user than the build before,
+  (`SwrCache.serves`), asking again after each store answer and before a build's request. What a
+  notifier shows of an answer it saves is what `SwrCache.save` gives back, never `write`'s time:
+  `save` asks again once the write has returned (the portfolio list alone is shown without waiting
+  for the store: its `_save` asks `serves` and the state is set with nothing awaited between). A
+  notifier that reads or saves for the session watches `sessionProvider` and takes its user and
+  epoch from it, as `SwrNotifier`, `PortfoliosController`, `ProfileController`,
+  `ResidenceController` and `AccountDeletionController` do; built for another user than the build before,
   or for nobody, it sets `state = sessionChanged()` before anything else, since Riverpod would
   keep the earlier account's value on show. A command reads `requestEpoch()` (in a
   controller that is not an `SwrNotifier`, `SwrCache.require`) before each request, or

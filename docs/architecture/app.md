@@ -351,29 +351,41 @@ else does then, since a picker may be handing over a copy.
     and `removePortfolio` take a required `epoch`; `prune` and
     `forgetOthers` take the current one as they begin), and does anything
     only while that epoch is the current one and that user owns it: checked
-    when it starts, and again each time the store answers it (a write that
-    deletes what it stored asks again once that deletion has answered). What
+    when it starts, and again each time the store answers it (a read asks
+    nothing more of the store once it does not; a write that
+    deletes what it stored asks again once that deletion has answered). A
+    build whose saved copy is read once the session has ended sends no
+    request (`SwrCache.watch`, and the portfolio list's own build). What
     a notifier shows of an answer it saves comes from `SwrCache.save`, which
     asks once more after the write has returned: a write that stores nothing
     returns at once, but what waits for it goes on only in a later
     microtask, when the session may have ended; `save` itself has waited, so
-    its caller goes on as it returns. A fetch on its
+    its caller goes on as it returns. The portfolio list is the exception:
+    it is shown without waiting for the store, as `_save` asks `serves` and
+    the state is set with nothing awaited in between. A fetch on its
     way when the session ended (its token is still valid for up to an hour)
     therefore cannot put the account back on the device, nor can a notifier
     built for that session, nor can one account's answer be saved or shown
     in another's session. `sessionProvider` gives the signed-in user with
     the epoch they own: `SwrNotifier`, `PortfoliosController`,
-    `ProfileController` and `ResidenceController` watch it and take their
-    user and epoch from the same value, so they are built again whenever the
+    `ProfileController`, `ResidenceController` and the deletion preview
+    (`AccountDeletionController`) watch it and take their
+    user (and the first four their epoch) from the same value, so they are
+    built again whenever the
     session changes, also when the same account's session starts again
     after a wipe (`AuthController` notifies then, although the status is the
     same). Riverpod keeps a provider's last value through a rebuild until
     the next one comes, also when that one fails; built for another user
     than the build before, or for nobody, each of them drops it at once
-    (`sessionChanged`: loading, with `SessionExpired` and no value), so no
-    provider holds the earlier account's value in the next account's
-    session, whatever a screen reads; built for a new session of the same
-    user, it keeps it until the new one comes. A command reads
+    (`sessionChanged`: loading, with `SessionExpired` and no value), so none
+    of them holds the earlier account's value in the next account's
+    session, whatever a screen reads of it; built for a new session of the
+    same user, it keeps it until the new one comes. Two providers outside
+    them can: the unread count, built again for the next user, keeps the
+    earlier number until that build answers (`unreadCountProvider`), and the
+    links made for the document a sheet shows stay until the sheet closes,
+    made again every three minutes with whatever token is signed in then
+    (`documentLinksProvider`). A command reads
     `SwrNotifier.requestEpoch` (the controllers:
     `SwrCache.require`) before each request: it throws `SessionExpired` once
     the cache no longer serves that session, so nothing is asked for a
@@ -510,10 +522,11 @@ else does then, since a picker may be handing over a copy.
     so it chooses nothing when that session has ended meanwhile, also when
     the same account has signed in again. Accepting an invitation reads the
     session before its request (none: nothing is asked, and the invitation
-    is kept); its answer is that session's alone: once an accepted or
-    finally refused invitation is forgotten, whoever is signed in, it throws
-    `SessionExpired` unless the cache still serves that session, and nothing
-    is read or chosen for anyone. Nor does the camera keep a target for a
+    is kept); its answer is that session's alone: once the invitation it
+    answered is forgotten (accepted or finally refused; one opened on the
+    device while the request was on its way stays), whoever is signed in, it
+    throws `SessionExpired` unless the cache still serves that session, and
+    nothing is read or chosen for anyone. Nor does the camera keep a target for a
     user the cache does not serve. When a portfolio leaves the list, `mm.portfolio.current`
     may still name it until the user picks another or the session ends; it
     is two ids, and `pickCurrent` falls back to the first portfolio. Apart
