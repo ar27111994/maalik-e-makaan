@@ -275,8 +275,8 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     builds list both hosts from the release that carries this, older ones only the old host),
     and the app's files, which no page there loads but a tab still open there may fetch; neither
     clears anything. `/auth/callback` was kept too, booting the app, from the move's release
-    until the first release at least 24 hours after it (step 12, not before 14:00 UTC on 16
-    November 2026), and from that release answers with the page. What that costs (promised in
+    until the first release at least 24 hours after it (step 12: release 1.4.1, on 16 November
+    2026), and since that release answers with the page. What that costs (promised in
     the review of #80): only a link that names the old callback reaches it, and only the app from
     before the move asks for one, since the app gives Auth the callback of the address it was built
     for (`APP_URL`). The move's app, which the old callback booted until that release, was built
@@ -318,8 +318,8 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   - **Auth and the Edge Functions accept both hosts during the move** (set by the owner,
     reported on 14 November 2026): Auth keeps the old redirect URLs (web and iOS) until builds
     from before the move are out of use, a point the owner sets; `ALLOWED_ORIGINS` names both
-    web app origins until step 12's release, after whose deploy the owner sets it to the new
-    origin alone, and the Deploy workflow refuses to deploy a web app whose origin the functions
+    web app origins until the owner sets it to the new origin alone, which step 12's release
+    (1.4.1, 16 November 2026) made due, and the Deploy workflow refuses to deploy a web app whose origin the functions
     refuse (it checks only the origin).
 
 ## Open Proposals

@@ -170,8 +170,9 @@ for local development.
 
 `ALLOWED_ORIGINS` names both web app origins,
 `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (set by the owner, reported on 14
-November 2026), until the release that carries step 12 of the move ([Domains](#domains)). From that
-release's deploy no page of the earlier address runs the app, and the owner then sets it to
+November 2026), until the owner narrows it after step 12 of the move ([Domains](#domains)), which
+release 1.4.1 carried on 16 November 2026. Since that release's deploy no page of the earlier
+address runs the app, and the owner sets it to
 `https://app.mmakaan.app` alone (or removes it, which means `APP_URL`'s origin); a tab still open on
 the earlier address gets CORS errors from the functions until it is reloaded and sent on. The Deploy
 workflow's `web` job checks before it builds that the functions accept the web app's origin (a CORS
@@ -719,8 +720,10 @@ The pull request is merged (#74), release 1.3.0 deployed the move, and the owner
 Site URL moved and the `APP_URL` repository variable deleted the same day. Release 1.3.1 (15:50
 UTC that day) carried Search Console's file, and steps 1, 11 and the move of the app's e-mail to
 the domain (step 13) were done the same day, with the homepage and the company's website of
-step 10. Left: the checks by hand (step 9, and the e-mails with `dmarc=pass` of step 13), the
-company's other records (step 10) and the callback's release (step 12).
+step 10. **On 16 November 2026:** release 1.4.1 carried the callback's release (step 12). Left:
+the checks by hand (step 9, and the e-mails with `dmarc=pass` of step 13), the company's other
+records (step 10), and step 12's two steps for the owner (`ALLOWED_ORIGINS` and the old callback
+checked by hand).
 
 **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
 Edge Function secret and in the GitHub repository variable, and by the owner's decision of that
@@ -846,15 +849,17 @@ variable at all (Moving again).
     rejects the 308, `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web
     app answers `X-Robots-Tag: noindex` on every path, so the Domain property lists it as
     excluded, not as an error: the website is what search engines index (D-01).
-12. **The callback's release, not before 14:00 UTC on 16 November 2026** (24 hours after the
-    move's deploy). The agent's change (branch `claude/old-callback-clears`) answers the old
-    address's `/auth/callback` with the page too, so it clears that address's storage and sends
-    people on like every other path. The old address then serves only files: `assetlinks.json`,
-    and the app's other files for tabs still open there (Hosting). From its merge every release
-    from `main` carries it, so none is cut before that time (1.3.1 and 1.4.0 went without it).
-    After its
-    deploy, the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone (or removes it,
-    which means `APP_URL`'s origin), and checks it by hand: open
+12. **The callback's release. Done on 16 November 2026, except the owner's two steps below:**
+    release 1.4.1 (the Release run 43899955940, at 15:46 UTC; it waited until 14:00 UTC, 24 hours
+    after the move's deploy, and 1.3.1 and 1.4.0 went without it). Pull request #84 answers the
+    old address's `/auth/callback` with the page too, so it clears that address's storage and
+    sends people on like every other path. The old address now serves only files:
+    `assetlinks.json`, and the app's other files for tabs still open there (Hosting). The
+    release's Deploy job checked it on Vercel: `/auth/callback?code=smoke-test` on the old address
+    answered 200 with the page that clears its storage and goes to the new origin, and the App
+    Links file was still answered there.
+    Still to do: the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone (or removes
+    it, which means `APP_URL`'s origin), and checks the callback by hand: open
     `https://maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, add a key `flutter.x` in the
     developer tools (Application, Local storage), then open
     `https://maalik-e-makaan.vercel.app/auth/callback?code=x`. The browser goes on to

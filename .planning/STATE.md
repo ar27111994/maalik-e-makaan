@@ -7,8 +7,28 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-15)
+## Current Position (2026-11-16)
 
+- Release 1.4.1 was published on 16 November 2026 at 15:46 UTC (tag `v1.4.1`, commit 17888e9 on
+  `main`; the Release run 43899955940, 15:46 to 15:58 UTC; every job passed, as the agent read
+  it). The agent merged the release pull request (#87) on the owner's standing word, after the
+  hold on step 12 of the move ended at 14:00 UTC. It carries #84 (the old address's
+  `/auth/callback` clears its storage and sends people on), #88 (the pitch deck's notes take the
+  version and the release count from the changelog) and #86 (the record of 1.4.0). No migration:
+  24 stay applied (`list_migrations`). Its Deploy run redeployed the four Edge Functions
+  (version 19, 15:47 UTC, `list_edge_functions`), the web app and the website, each with its
+  smoke tests, and the download page shows 1.4.1.
+  It was the first real run of the callback's check against Vercel. The Deploy job's log has
+  `/auth/callback?code=smoke-test on https://maalik-e-makaan.vercel.app: 200, clears its storage
+and goes to https://app.mmakaan.app`, with the App Links file still answered there. Eleven
+  files are attached, as for 1.4.0. The agent read both provenance files against the checksum
+  lists again: seven and two subjects, each with the listed SHA-256, signed for
+  `.github/workflows/release.yml@refs/heads/main` at commit 17888e9, one transparency-log entry
+  each. Not run by the agent: `gh attestation verify` (its container cannot reach Sigstore).
+  Now the owner's (`docs/operations.md`, Domains, step 12): `ALLOWED_ORIGINS` set to
+  `https://app.mmakaan.app` alone, and the check by hand of the old callback.
+  Merged the same day after the release: #96 (the pull-request title action, 6.1.2) and #91
+  (the Gradle wrapper, 9.9.0), Dependabot's two updates that needed nothing else.
 - Release 1.4.0 was published on 15 November 2026 at 20:25 UTC (tag `v1.4.0`, commit 433395a on
   `main`; the Release run 43757999421, 20:25 to 20:36 UTC; every job passed, as the agent read
   it). The agent merged the release pull request (#83) on the owner's standing word (`AGENTS.md`,
@@ -60,14 +80,14 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   the Edge Function secret `MAIL_REPLY_TO=hello@mmakaan.app` in the dashboard that day (the
   Supabase connector's way of storing a secret was paused); the dashboard's digest is the
   address's SHA-256.
-- **Step 12, 15 November 2026 (branch `claude/old-callback-clears`, not merged yet):** the old
+- **Step 12, released in 1.4.1 on 16 November 2026 (pull request #84):** the old
   address's `/auth/callback` answers with the page that clears its storage and goes on, like every
   other path; the old address serves only files (`assetlinks.json`, and the app's other files for
   tabs still open there). `redirect_smoke_test.sh --moved` checks the callback in CI and after each
   deploy, and its wait covers it (`tool/web/test_redirect_smoke_test.py`); the Deploy workflow's
-  Edge Functions preflight checks only the origin. The release that carries it is not before 14:00
-  UTC on 16 November 2026, and every release from `main` carries it once merged. After its deploy
-  the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone and does the check by hand of
+  Edge Functions preflight checks only the origin. It waited until 14:00 UTC on 16 November 2026,
+  24 hours after the move's deploy, and went out at 15:46 UTC. Still to do, by the owner:
+  `ALLOWED_ORIGINS` set to `https://app.mmakaan.app` alone, and the check by hand of
   `docs/operations.md`, Domains, step 12. A late link (asked for in a tab open on the old address
   since before the move, the only app whose links name the old callback, and opened after that
   release) cannot finish; D-20 and Where it never clears say why the window stays. Two app
@@ -110,8 +130,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   its hash; the old address's storage emptied; App Links on a phone with the 1.3.1 APK); leaked
   password protection in Auth; `tool/db/time_zone_skew.sql` in the SQL editor; the website on
   LinkedIn and the D-U-N-S record; the three Checkly monitors once the account's "Trial" (read
-  on 15 November) ends; and, after the release that carries step 12 (not before 14:00 UTC on 16
-  November 2026), `ALLOWED_ORIGINS` set to the new origin alone.
+  on 15 November) ends; and, now that release 1.4.1 carries step 12 (16 November 2026),
+  `ALLOWED_ORIGINS` set to the new origin alone and the old callback checked by hand.
 - Open note for the owner (15 November 2026): the owner also made an inbox for
   `hello@mmakaan.app` in Resend, with a receiving address; nothing is forwarded to it. The
   agent's advice: forwarding the mailbox there would put people's incoming messages at Resend,
@@ -374,8 +394,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
 - `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
-  (`supabase db push`), so 24 migrations are applied; releases 1.3.1 and 1.4.0 carried none
-  (`list_migrations`, read again by the agent after 1.4.0). "After every
+  (`supabase db push`), so 24 migrations are applied; releases 1.3.1, 1.4.0 and 1.4.1 carried
+  none (`list_migrations`, read again by the agent after 1.4.1). "After every
   migration" (`docs/operations.md`), done the same day with read-only queries:
   1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
      order, with nothing extra on either side.
@@ -482,7 +502,8 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
   is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done, with
   steps 1, 11 and 13 (except its e-mail checks) and step 10's homepage and company website (the
   same day). Waiting on the owner: step 9's checks by hand and the e-mails with `dmarc=pass`, the
-  website on LinkedIn and the D-U-N-S record, and `ALLOWED_ORIGINS` after step 12's release
+  website on LinkedIn and the D-U-N-S record, and, step 12 being released (1.4.1),
+  `ALLOWED_ORIGINS` and the check by hand of the old callback
   (`docs/release-readiness.md`, Owner actions, item 13).
   Apple enrols an
   organisation only if its website is on a domain associated with it, with work e-mail there; the
@@ -596,9 +617,9 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 ## Deployed
 
 - Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version
-  18 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-15), active,
-  verify_jwt off as in config.toml: release 1.4.0's Deploy run uploaded them from the tag with
-  the Supabase CLI at 20:26 UTC that day, as every release since 1.0.0 (2026-11-09) has.
+  19 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-16), active,
+  verify_jwt off as in config.toml: release 1.4.1's Deploy run uploaded them from the tag with
+  the Supabase CLI at 15:47 UTC that day, as every release since 1.0.0 (2026-11-09) has.
 - They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
   (version 1). A byte-for-byte comparison with the repository matched then, except one line of
   `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the
