@@ -47,7 +47,7 @@ others); Flutter writes their notices into every build's `NOTICES` asset.
 | ------------------ | ------- | ---------------------------------------------------------------------------------- |
 | clock              | 1.1.3   | Apache-2.0                                                                         |
 | file_picker        | 13.3.2  | MIT                                                                                |
-| flutter_riverpod   | 3.4.3   | MIT                                                                                |
+| flutter_riverpod   | 3.5.0   | MIT                                                                                |
 | go_router          | 18.1.3  | BSD-3-Clause                                                                       |
 | http               | 1.6.0   | BSD-3-Clause                                                                       |
 | image              | 4.12.0  | MIT                                                                                |
