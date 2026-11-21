@@ -172,12 +172,14 @@ void main() {
       container.invalidate(list);
       await pumpEventQueue();
       expect(app.ledger.syncs, 1);
+      // Reading `.exists` reports whether the day's catch-up is mounted
+      // without mounting it.
       expect(
-        container.exists(
+        container.read(
           billingSyncProvider((
             portfolioId: gulberg.id,
             day: CalendarDate(2026, 11, 7),
-          )),
+          )).exists,
         ),
         isTrue,
       );

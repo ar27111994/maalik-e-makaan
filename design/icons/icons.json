@@ -88,8 +88,8 @@
     { "name": "more", "lucide": "ellipsis-vertical" },
     { "name": "menu", "lucide": "menu" },
     { "name": "info", "lucide": "info" },
-    { "name": "warning", "lucide": "triangle-alert" },
-    { "name": "error", "lucide": "circle-alert" },
+    { "name": "warning", "lucide": "triangle-exclamation-point" },
+    { "name": "error", "lucide": "circle-exclamation-point" },
     { "name": "success", "lucide": "circle-check" },
     { "name": "help", "lucide": "circle-help" }
   ]
