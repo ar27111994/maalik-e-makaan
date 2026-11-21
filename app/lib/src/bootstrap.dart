@@ -18,9 +18,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Starts the app: reads the build configuration, loads the settings, opens
-/// the Supabase client and runs [MaalikApp]. A build without a valid
+/// the Supabase client, tidies what the device keeps for the session it
+/// holds ([tidyDeviceAtStart]) and runs [MaalikApp]. A build without a valid
 /// configuration shows what is missing instead of crashing.
-Future<void> bootstrap() async {
+///
+/// [readConfig] reads the configuration: the compile-time defines, which
+/// tests are compiled without, so they pass their own.
+Future<void> bootstrap({
+  AppConfig Function() readConfig = AppConfig.fromEnvironment,
+}) async {
   WidgetsFlutterBinding.ensureInitialized();
   _reportErrors();
   // The fonts' and icons' licences, for the licence page in Settings.
@@ -33,7 +39,7 @@ Future<void> bootstrap() async {
 
   final AppConfig config;
   try {
-    config = AppConfig.fromEnvironment();
+    config = readConfig();
   } on ConfigException catch (error) {
     runApp(ConfigErrorApp(error: error));
     return;
