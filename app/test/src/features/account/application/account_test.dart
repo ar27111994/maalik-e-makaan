@@ -11,6 +11,11 @@ import 'package:mm_core/mm_core.dart';
 import '../../../../support/container.dart';
 import '../../../../support/harness.dart';
 
+const _otherAccount = SignedIn(
+  userId: 'another-user',
+  email: 'other@example.com',
+);
+
 void main() {
   group('profile', () {
     test('loads through the cache', () async {
@@ -423,6 +428,83 @@ void main() {
         );
       });
     }
+
+    // Another tab of the same browser signs in as someone else while the
+    // deletion is on its way: the device now holds that account's session,
+    // and the deletion's answer must not sign it out or wipe it.
+    for (final failure in <AppFailure?>[null, const NetworkFailure()]) {
+      test('a deletion answered (${failure?.runtimeType ?? 'deleted'}) after '
+          'another account signed in signs nobody out', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        app.account.gate
+          ..failure = failure
+          ..close();
+        final deleting = container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+        await pumpEventQueue();
+        expect(app.account.calls.last.$1, 'deleteAccount');
+        expect(app.account.calls.last.$2, [testEmail]);
+        await app.cache.clear();
+        app.auth.emit(_otherAccount);
+        await pumpEventQueue();
+        app.account.gate.open();
+        await expectLater(deleting, throwsA(isA<SessionExpired>()));
+        expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+        expect(container.read(authStatusProvider), _otherAccount);
+      });
+    }
+
+    test('a session that ends while it signs in again asks for no '
+        'deletion', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      app.auth.gate.close();
+      final deleting = container
+          .read(accountDeletionProvider.notifier)
+          .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(_otherAccount);
+      await pumpEventQueue();
+      app.auth.gate.open();
+      await expectLater(deleting, throwsA(isA<SessionExpired>()));
+      expect(
+        app.account.calls.map((c) => c.$1),
+        isNot(contains('deleteAccount')),
+      );
+      expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+      expect(container.read(authStatusProvider), _otherAccount);
+    });
+
+    test('with nobody signed in it asks for nothing', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      await expectLater(
+        container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.auth.calls, isEmpty);
+      expect(
+        app.account.calls.map((c) => c.$1),
+        isNot(contains('deleteAccount')),
+      );
+    });
 
     test('only an outcome that may have deleted counts as one', () {
       for (final failure in <AppFailure>[

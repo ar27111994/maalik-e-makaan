@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 
 /// What deleting the account would remove, and the command that does it.
@@ -46,6 +47,13 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// rather than show a deleted account's records until its session is
   /// refused. Signing in again tells whether it still exists.
   ///
+  /// The answer is the asking session's alone ([sessionProvider], read
+  /// before the request): when that session has ended by the time it
+  /// comes (also when another account has signed in since, from another
+  /// tab), nobody is signed out, since the device no longer holds the
+  /// deleted account's session and its wipe ran when that session ended,
+  /// and it throws [SessionExpired]. With no session, nothing is asked.
+  ///
   /// Throws [AppFailure] when the account was certainly not deleted:
   /// `invalid_credentials` for a wrong password, `does_not_match_account`
   /// when [confirmEmail] is not the account's.
@@ -54,16 +62,23 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
     required String confirmEmail,
   }) async {
     final auth = ref.read(authStatusProvider.notifier);
+    final session = ref.read(sessionProvider);
+    final cache = ref.read(swrCacheProvider)
+      ..require(session?.userId, session?.epoch ?? 0);
+    final (:userId, :epoch) = session!;
     await auth.reauthenticate(password);
+    cache.require(userId, epoch);
     try {
       await ref
           .read(accountRepositoryProvider)
           .deleteAccount(confirmEmail: confirmEmail);
     } on AppFailure catch (failure) {
       if (!mayHaveDeleted(failure)) rethrow;
+      cache.require(userId, epoch);
       await auth.signOut(cause: SignOutCause.deletionUnconfirmed);
       return;
     }
+    cache.require(userId, epoch);
     await auth.signOut(cause: SignOutCause.accountDeleted);
   }
 }

@@ -324,7 +324,10 @@ else does then, since a picker may be handing over a copy.
   all the same with `SignOutCause.deletionUnconfirmed`, wiped as a deletion;
   the sign-in screen says the account may be gone and how to check. A
   refusal, a rate limit or a busy database (503, rolled back) signs nobody
-  out. `bootstrap` calls `tidyDeviceAtStart` once Supabase has read the
+  out. Either sign-out is the asking session's alone: when that session has
+  ended by the time the answer comes (another account signed in from
+  another tab, say), nobody is signed out, since its own wipe ran when it
+  ended, and the command throws `SessionExpired`. `bootstrap` calls `tidyDeviceAtStart` once Supabase has read the
   stored session (the last two columns of the table), and the root widget
   watches `deviceTidyOnResumeProvider`.
 - **Other devices.** Signing out is local (gotrue's default scope): another
