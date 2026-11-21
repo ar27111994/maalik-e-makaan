@@ -19,9 +19,9 @@
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "lefthook": "2.2.2",
-    "lucide-static": "1.70.0",
-    "markdownlint-cli2": "0.24.0",
-    "prettier": "3.9.10"
+    "lucide-static": "1.73.0",
+    "markdownlint-cli2": "0.24.1",
+    "prettier": "3.10.1"
   },
   "overrides": {
     "re2js": "2.8.7",
