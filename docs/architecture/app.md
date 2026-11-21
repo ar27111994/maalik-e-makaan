@@ -351,7 +351,13 @@ else does then, since a picker may be handing over a copy.
     and `removePortfolio` take a required `epoch`; `prune` and
     `forgetOthers` take the current one as they begin), and does anything
     only while that epoch is the current one and that user owns it: checked
-    when it starts, and again each time the store answers it. A fetch on its
+    when it starts, and again each time the store answers it (a write that
+    deletes what it stored asks again once that deletion has answered). What
+    a notifier shows of an answer it saves comes from `SwrCache.save`, which
+    asks once more after the write has returned: a write that stores nothing
+    returns at once, but what waits for it goes on only in a later
+    microtask, when the session may have ended; `save` itself has waited, so
+    its caller goes on as it returns. A fetch on its
     way when the session ended (its token is still valid for up to an hour)
     therefore cannot put the account back on the device, nor can a notifier
     built for that session, nor can one account's answer be saved or shown
@@ -374,7 +380,7 @@ else does then, since a picker may be handing over a copy.
     session that has ended, also between two requests of one command
     (`PortfoliosController.create` lists the portfolios after creating
     one), and the answer to a request on its way when it ended is neither
-    shown nor saved (`SwrCache.write` returns null). For a value made from
+    shown nor saved (`SwrCache.write` and `SwrCache.save` return null). For a value made from
     the one on show ("load more", a notification marked read, a language
     saved, an owner-abroad answer), `SwrNotifier.shownEpoch` or the
     controller's own gives the epoch that value was asked for in. Between a
@@ -468,8 +474,13 @@ else does then, since a picker may be handing over a copy.
     request, the new session's own read shows the server's state); a command
     whose session ended after its request reports an expired session
     although its change was made (a portfolio created then is not chosen on
-    this device, and the next session's list shows it; a command with a
-    retry id, such as a handover's `record`, is safe to try again); a
+    this device, and the next session's list shows it; an invitation
+    accepted then is forgotten, the screen says the session has ended and
+    offers no second try, and that account's next list shows the portfolio;
+    a command with a retry id, such as a handover's `record`, is safe to try
+    again); a portfolio created, or joined by an invitation, while the same
+    account's next session began during the list read after it is not chosen
+    in that session; a
     password recovery by the signed-in account starts two epochs, so a save
     on its way across it is not kept, and the lists are read again when the
     new password is set; and two wipes for one sign-out each list the keys
@@ -493,10 +504,17 @@ else does then, since a picker may be handing over a copy.
     listing that fails while a record opened by its link is read before the
     first list shows no saved copy.
   - _Commands._ `select` chooses the current portfolio only while the cache
-    serves its user, so a command that chooses it after a request (creating
-    a portfolio, accepting an invitation) chooses nothing when the session
-    ended meanwhile; nor does the camera keep a target for a user the cache
-    does not serve. When a portfolio leaves the list, `mm.portfolio.current`
+    serves its user. A command that chooses it after a request (creating a
+    portfolio, accepting an invitation) asks first whether the cache still
+    serves the session of that request (`SwrCache.serves` with its epoch),
+    so it chooses nothing when that session has ended meanwhile, also when
+    the same account has signed in again. Accepting an invitation reads the
+    session before its request (none: nothing is asked, and the invitation
+    is kept); its answer is that session's alone: once an accepted or
+    finally refused invitation is forgotten, whoever is signed in, it throws
+    `SessionExpired` unless the cache still serves that session, and nothing
+    is read or chosen for anyone. Nor does the camera keep a target for a
+    user the cache does not serve. When a portfolio leaves the list, `mm.portfolio.current`
     may still name it until the user picks another or the session ends; it
     is two ids, and `pickCurrent` falls back to the first portfolio. Apart
     from the wipe nothing puts a limit on the store: a read or write of a

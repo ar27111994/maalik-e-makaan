@@ -250,7 +250,13 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   `sessionChanged`), and a loss of the saved list that is now named and pinned. Both reference
   models serve users too; built with each of three defects a cache could have, each predicts what
   such a cache would do, and the cache must differ from it (the defects live in the tests, not in
-  `lib`). A command that chooses the current portfolio after a request chooses nothing when the
+  `lib`). Greptile's review of 63b047d found three more, fixed on 21 November 2026: a write whose
+  late deletion answered after another account had signed in put the earlier account's value on
+  show (the write now asks again after that deletion, and what a notifier shows comes from
+  `SwrCache.save`, which asks once more after the write); accepting an invitation read the
+  signed-in user only after the answer (the answer now belongs to the session that asked); and
+  two wipe tests wrote for an account the cache never served, so their write never began. A
+  command that chooses the current portfolio after a request chooses nothing when the
   session it asked in has ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on

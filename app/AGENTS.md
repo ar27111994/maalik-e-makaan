@@ -41,16 +41,20 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   privacy page, in both languages. Display settings belong to the device and stay; the pending
   invitation stays until the account is deleted (see On the device); text the person copies is
   theirs. The cache serves one user at a time (`SwrCache.serve`): every cache operation names
-  its user and the epoch it belongs to (`read`, `write`, `watch` and `SwrNotifier.show` take a
-  required `epoch`), and does anything only while the cache serves that user in that epoch
-  (`SwrCache.serves`). A notifier that reads or saves for the session watches `sessionProvider`
+  its user and the epoch it belongs to (`read`, `write`, `save`, `watch` and `SwrNotifier.show`
+  take a required `epoch`), and does anything only while the cache serves that user in that epoch
+  (`SwrCache.serves`). What a notifier shows of an answer it saves is what `SwrCache.save` gives
+  back, never `write`'s time: `save` asks again once the write has returned. A notifier that reads or saves for the session watches `sessionProvider`
   and takes its user and epoch from it, as `SwrNotifier`, `PortfoliosController`,
   `ProfileController` and `ResidenceController` do; built for another user than the build before,
   or for nobody, it sets `state = sessionChanged()` before anything else, since Riverpod would
   keep the earlier account's value on show. A command reads `requestEpoch()` (in a
   controller that is not an `SwrNotifier`, `SwrCache.require`) before each request, or
   `shownEpoch` with the value on show it builds on: either throws `SessionExpired` once the
-  session has ended, so a new command does the same, also before a second request. Every
+  session has ended, so a new command does the same, also before a second request. One that
+  chooses something on the device after its request (the current portfolio) first asks
+  `SwrCache.serves` with the epoch of that request: the same user's next session is served too,
+  and the choice belongs to the session that asked. Every
   saved entry names its portfolio in its key: each `SwrNotifier` declares its `scope` (`InPortfolio` when its
   request filters by a portfolio it names, `FromValue` when its rows carry `portfolio_id`, or
   `UnknownPortfolio`, kept only until the session's first list of portfolios); only the list,
