@@ -209,9 +209,9 @@ Browser UAT (`app/uat/package.json`, development only; `docs/uat.md`):
 
 | Package          | Version | Licence    |
 | ---------------- | ------- | ---------- |
-| @playwright/test | 1.64.1  | Apache-2.0 |
+| @playwright/test | 1.65.0  | Apache-2.0 |
 
-It installs `playwright` and `playwright-core` 1.64.1 (Apache-2.0) and, at run time, a Chromium
+It installs `playwright` and `playwright-core` 1.65.0 (Apache-2.0) and, at run time, a Chromium
 build for testing; none of it is distributed.
 
 Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
