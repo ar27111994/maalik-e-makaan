@@ -76,6 +76,37 @@ void main() {
     expect(find.text('Other Flats'), findsOneWidget);
   });
 
+  testWidgets("while that account's preview is on its way, shows it "
+      'loading, not a failure (waitsForSession)', (tester) async {
+    final app = await pumpScreen(tester, DeleteAccountScreen.new, size: _tall);
+    app.account.preview = const DeletionPreview(
+      portfoliosToDelete: [
+        DoomedPortfolio(id: 'pb', name: 'Other Flats', otherMembers: 0),
+      ],
+      reauthMaxAge: Duration(minutes: 10),
+      secondFactorRequired: false,
+    );
+    app.account.gate.close();
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(
+        find.text('We could not check what would be deleted'),
+        findsNothing,
+      );
+      expect(find.text('Try again'), findsNothing);
+      expect(find.text('Gulberg Houses'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Checking what would be deleted'),
+        findsOneWidget,
+      );
+    }
+    app.account.gate.open();
+    await tester.pumpAndSettle();
+    expect(find.text('Other Flats'), findsOneWidget);
+  });
+
   testWidgets('with no portfolio of its own, none is deleted', (tester) async {
     await pumpScreen(
       tester,

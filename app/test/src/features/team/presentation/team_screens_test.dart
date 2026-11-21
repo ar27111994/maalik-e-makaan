@@ -340,6 +340,20 @@ void main() {
       app.portfolios.gate.open();
       await tester.pumpAndSettle();
     });
+
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(tester, TeamScreen.new);
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.team.gate],
+        failure: find.text('The team could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the team'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(find.text('Bilal Ahmed'), findsOneWidget);
+    });
   });
 
   group('inviting', () {
@@ -792,6 +806,20 @@ void main() {
       );
       app.portfolios.gate.open();
       await tester.pumpAndSettle();
+      expect(find.text('Gulberg Houses'), findsOneWidget);
+    });
+
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(tester, PortfolioDetailsScreen.new);
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.portfolios.detailsGate],
+        failure: find.text('The portfolio details could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the portfolio details'),
+      );
+      expect(frames, (failure: 0, loading: 10));
       expect(find.text('Gulberg Houses'), findsOneWidget);
     });
   });

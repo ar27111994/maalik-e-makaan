@@ -138,6 +138,22 @@ void main() {
       expect(find.bySemanticsLabel('Loading your details'), findsOneWidget);
       app.profiles.gate.open();
     });
+
+    testWidgets("load the next account's, not failing, while its session "
+        "replaces the user's", (tester) async {
+      // The profile is read by a provider keyed by the user: the next
+      // account's is a new one, which loads as any first read does.
+      final app = await pumpScreen(tester, SettingsScreen.new, size: _tall);
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.profiles.gate],
+        failure: find.text('Your details could not be loaded'),
+        loading: find.bySemanticsLabel('Loading your details'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(_valueOf(tester, 'Your name'), 'Ayesha Khan');
+    });
   });
 
   group('display settings', () {

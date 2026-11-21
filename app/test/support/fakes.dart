@@ -390,9 +390,13 @@ final class FakePortfolioRepository implements PortfolioRepository {
     ),
   };
 
+  /// Holds reading settings, and nothing else, until open.
+  final detailsGate = Gate();
+
   @override
   Future<PortfolioDetails> details(String portfolioId) async {
     calls.add(('details', [portfolioId]));
+    await detailsGate.pass();
     await gate.pass();
     final failure = detailsFailure;
     if (failure != null) throw failure;

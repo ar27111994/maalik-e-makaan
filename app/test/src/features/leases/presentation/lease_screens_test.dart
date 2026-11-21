@@ -283,6 +283,44 @@ void main() {
       await pumpScreen(tester, LeaseFormScreen.new, settle: false);
       expect(find.bySemanticsLabel('Loading the tenancy'), findsOneWidget);
     });
+
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(
+        tester,
+        _newLease,
+        size: const Size(360, 3000),
+      );
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.properties.gate, app.tenants.gate],
+        failure: find.text('This tenancy could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(find.widgetWithText(MmButton, 'Start tenancy'), findsOneWidget);
+    });
+
+    testWidgets('shows what failed for the next account while another part '
+        'is still on its way (waitsForSession)', (tester) async {
+      final app = await pumpScreen(
+        tester,
+        _newLease,
+        size: const Size(360, 3000),
+      );
+      // The next account's unit waits; its tenants cannot be read.
+      app.tenants.readFailure = const NetworkFailure();
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.properties.gate],
+        failure: find.text('No connection. Check your internet and try again.'),
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+      );
+      expect(frames, (failure: 10, loading: 0));
+      expect(find.text('This tenancy could not be loaded'), findsOneWidget);
+    });
   });
 
   group('editing a tenancy', () {

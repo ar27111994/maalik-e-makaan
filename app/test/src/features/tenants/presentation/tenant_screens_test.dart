@@ -128,9 +128,41 @@ void main() {
       app.portfolios.gate.open();
       await tester.pumpAndSettle();
     });
+
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(tester, TenantsScreen.new);
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.tenants.gate],
+        failure: find.text('The tenants could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the tenants'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(find.text('Ali Raza'), findsOneWidget);
+    });
   });
 
   group('a tenant', () {
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(
+        tester,
+        _detail,
+        size: const Size(360, 2400),
+      );
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.tenants.gate],
+        failure: find.text('This tenant could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the tenant'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(find.text('Son of Ahmed Raza'), findsOneWidget);
+    });
+
     testWidgets('shows their details with the CNIC masked', (tester) async {
       await pumpScreen(tester, _detail, size: const Size(360, 2400));
       expect(find.text('Son of Ahmed Raza'), findsOneWidget);

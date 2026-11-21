@@ -342,6 +342,43 @@ Future<TestApp> pumpScreen(
   return testApp;
 }
 
+/// Another account, whose session replaces the user's in
+/// [framesWhileReplaced].
+const otherAccount = SignedIn(userId: 'other-user', email: 'other@example.com');
+
+/// Replaces the user's session with [otherAccount]'s while the screen stays
+/// open, as when another tab signs in as someone else: the device's saved
+/// copies are wiped, then that account's status comes. What [held] answers
+/// waits for [frames] frames of 16 ms; the counts say on how many of them
+/// [failure] and [loading] were found. Then the answers come, and the
+/// screen settles.
+Future<({int failure, int loading})> framesWhileReplaced(
+  WidgetTester tester,
+  TestApp app, {
+  required List<Gate> held,
+  required Finder failure,
+  required Finder loading,
+  int frames = 10,
+}) async {
+  for (final gate in held) {
+    gate.close();
+  }
+  await app.cache.clear();
+  app.auth.emit(otherAccount);
+  var failed = 0;
+  var loaded = 0;
+  for (var frame = 0; frame < frames; frame++) {
+    await tester.pump(const Duration(milliseconds: 16));
+    if (failure.evaluate().isNotEmpty) failed++;
+    if (loading.evaluate().isNotEmpty) loaded++;
+  }
+  for (final gate in held) {
+    gate.open();
+  }
+  await tester.pumpAndSettle();
+  return (failure: failed, loading: loaded);
+}
+
 /// Asserts the accessibility guidelines: 48 dp tap targets (Android) and
 /// 44 pt (iOS), a label on every tappable element, and text contrast
 /// measured by [mmTextContrastGuideline].
