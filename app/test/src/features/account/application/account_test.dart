@@ -250,22 +250,74 @@ void main() {
       expect(app.store.values, isEmpty);
     });
 
-    test('a command of another account than the one signed in sends '
-        'nothing', () async {
+    for (final (name, command)
+        in <(String, Future<void> Function(ProfileController))>[
+          (
+            'saving the language',
+            (profile) => profile.saveLanguage(AppLanguage.urdu),
+          ),
+          (
+            'saving the details',
+            (profile) =>
+                profile.saveDetails(fullName: 'Ayesha K.', phone: null),
+          ),
+        ]) {
+      test('$name for another account than the one signed in sends '
+          'nothing', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        await pumpEventQueue();
+        await app.cache.clear();
+        app.auth.emit(other);
+        await pumpEventQueue();
+        // As a screen built for the first account calls it after an await.
+        await expectLater(
+          command(container.read(profileProvider(testUserId).notifier)),
+          throwsA(isA<SessionExpired>()),
+        );
+        expect(app.profiles.calls, isEmpty);
+        expect(app.store.values, isEmpty);
+      });
+
+      test('$name once the device is wiped, before the next status, sends '
+          'nothing', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, profileProvider(testUserId));
+        await pumpEventQueue();
+        final asked = app.profiles.calls.length;
+        // The wipe has begun; the status after it has not come yet.
+        await app.cache.clear();
+        await expectLater(
+          command(container.read(profileProvider(testUserId).notifier)),
+          throwsA(isA<SessionExpired>()),
+        );
+        expect(app.profiles.calls, hasLength(asked));
+        expect(app.store.values, isEmpty);
+      });
+    }
+
+    test("a language saved in the same account's next session, before its "
+        'profile comes, does not save the profile shown in the session that '
+        'ended', () async {
       final app = TestApp();
       final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
       await pumpEventQueue();
+      // The device is wiped, and the same account signs in again offline:
+      // the earlier profile stays on show, and no new one comes.
+      app.profiles.fetchFailure = const NetworkFailure();
       await app.cache.clear();
-      app.auth.emit(other);
+      app.auth.emit(signedIn);
       await pumpEventQueue();
-      // As a screen built for the first account calls it after an await.
-      await expectLater(
-        container
-            .read(profileProvider(testUserId).notifier)
-            .saveLanguage(AppLanguage.urdu),
-        throwsA(isA<SessionExpired>()),
+      expect(container.read(profileProvider(testUserId)).value, isNotNull);
+      await container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      expect(
+        [for (final (name, _) in app.profiles.calls) name],
+        ['fetch', 'fetch', 'updateLanguage'],
       );
-      expect(app.profiles.calls, isEmpty);
       expect(app.store.values, isEmpty);
     });
 
