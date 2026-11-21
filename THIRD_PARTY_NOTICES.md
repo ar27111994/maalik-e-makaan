@@ -43,28 +43,31 @@ others); Flutter writes their notices into every build's `NOTICES` asset.
 
 ### `app/` dependencies
 
-| Package            | Version | Licence                                                                            |
-| ------------------ | ------- | ---------------------------------------------------------------------------------- |
-| clock              | 1.1.3   | Apache-2.0                                                                         |
-| file_picker        | 13.3.2  | MIT                                                                                |
-| flutter_riverpod   | 3.4.3   | MIT                                                                                |
-| go_router          | 18.1.3  | BSD-3-Clause                                                                       |
-| http               | 1.6.0   | BSD-3-Clause                                                                       |
-| image              | 4.12.0  | MIT                                                                                |
-| image_picker       | 1.2.4   | BSD-3-Clause (its licence file also carries an Apache-2.0 notice for aFileChooser) |
-| intl               | 0.20.3  | BSD-3-Clause                                                                       |
-| pdf                | 3.13.1  | Apache-2.0                                                                         |
-| share_plus         | 13.3.1  | BSD-3-Clause                                                                       |
-| shared_preferences | 2.5.6   | BSD-3-Clause                                                                       |
-| supabase_flutter   | 2.18.3  | MIT                                                                                |
-| url_launcher       | 6.3.3   | BSD-3-Clause                                                                       |
-| web                | 1.1.2   | BSD-3-Clause                                                                       |
+| Package             | Version | Licence                                                                            |
+| ------------------- | ------- | ---------------------------------------------------------------------------------- |
+| android_file_picker | 2.1.4   | MIT                                                                                |
+| clock               | 1.1.3   | Apache-2.0                                                                         |
+| file_picker         | 13.3.2  | MIT                                                                                |
+| flutter_riverpod    | 3.4.3   | MIT                                                                                |
+| go_router           | 18.1.3  | BSD-3-Clause                                                                       |
+| http                | 1.6.0   | BSD-3-Clause                                                                       |
+| image               | 4.12.0  | MIT                                                                                |
+| image_picker        | 1.2.4   | BSD-3-Clause (its licence file also carries an Apache-2.0 notice for aFileChooser) |
+| intl                | 0.20.3  | BSD-3-Clause                                                                       |
+| path_provider       | 2.1.6   | BSD-3-Clause                                                                       |
+| pdf                 | 3.13.1  | Apache-2.0                                                                         |
+| share_plus          | 13.3.1  | BSD-3-Clause                                                                       |
+| shared_preferences  | 2.5.6   | BSD-3-Clause                                                                       |
+| supabase_flutter    | 2.18.3  | MIT                                                                                |
+| url_launcher        | 6.3.3   | BSD-3-Clause                                                                       |
+| web                 | 1.1.2   | BSD-3-Clause                                                                       |
 
 Development only (tests and analysis; not shipped):
 
 | Package                               | Version | Licence      |
 | ------------------------------------- | ------- | ------------ |
 | mocktail                              | 1.0.5   | MIT          |
+| path_provider_platform_interface      | 2.1.3   | BSD-3-Clause |
 | shared_preferences_platform_interface | 2.4.2   | BSD-3-Clause |
 | very_good_analysis                    | 11.0.0  | MIT          |
 

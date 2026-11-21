@@ -414,6 +414,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your sign-in, your profile and the portfolios you owned alone are gone. Thank you for using Maalik-e-Makaan.';
 
   @override
+  String get deletionUnconfirmedTitle => 'Your account may have been deleted';
+
+  @override
+  String get deletionUnconfirmedBody =>
+      'The answer to your request did not arrive, so this device has signed out and removed what it kept for your account, to be safe. If you can still sign in, your account was not deleted, and you can delete it again in Settings.';
+
+  @override
   String get emailSentAgain => 'We sent the e-mail again.';
 
   @override

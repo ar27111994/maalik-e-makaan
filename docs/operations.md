@@ -402,6 +402,17 @@ address kept) and with the script alone (as one of the app's keys, any other key
 staying), and the browser arrives at the same path and query on the origin; and nothing breaks
 the CSP.
 
+### Moving the web app to another address
+
+Done: the web app moved from `maalik-e-makaan.vercel.app` to `app.mmakaan.app` ([Domains](#domains)).
+A browser keeps a web app's storage per origin, and the app on a new origin cannot read or delete
+what the old one kept, so the old origin serves a page that clears it, not a bare redirect: what it
+kept and how it is cleared is in
+[What the earlier address kept in the browser](#what-the-earlier-address-kept-in-the-browser). A
+later move does the same, for as long as the old origin's sessions may still be used (their refresh
+tokens do not expire by time). Signing in on the new address starts a new session; the old one stays
+valid on the server until it is used or revoked.
+
 ### The website on Vercel
 
 The website is built in GitHub Actions too, not by Vercel. The Deploy workflow writes the

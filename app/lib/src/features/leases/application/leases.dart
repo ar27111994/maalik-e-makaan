@@ -37,6 +37,10 @@ final class LeasesController extends SwrNotifier<List<Lease>> {
   String get query => 'leases.${list.unitId ?? '-'}.${list.tenantId ?? '-'}';
 
   @override
+  RecordScope<List<Lease>> get scope =>
+      FromValue((leases) => samePortfolio(leases.map((l) => l.portfolioId)));
+
+  @override
   Stream<Snapshot<List<Lease>>> build() {
     ref.watch(leaseRepositoryProvider);
     return super.build();
@@ -105,6 +109,10 @@ final class LeaseController extends SwrNotifier<LeaseDetail> {
 
   @override
   String get query => 'lease.$leaseId';
+
+  @override
+  RecordScope<LeaseDetail> get scope =>
+      FromValue((detail) => detail.lease.portfolioId);
 
   @override
   Stream<Snapshot<LeaseDetail>> build() {

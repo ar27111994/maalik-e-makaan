@@ -7,18 +7,18 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 
 ## Where things are
 
-| Path                                               | What                                                                                        |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `lib/src/bootstrap.dart`, `app.dart`               | Start-up, `MaterialApp`, themes, localisation, `MmLicenses.register()`                      |
-| `lib/src/config/app_config.dart`                   | Configuration from `--dart-define-from-file`; refuses secret keys                           |
-| `lib/src/core/`                                    | `AppFailure` and `failureMessage`, dates, validation, text limits, SWR helper               |
-| `lib/src/data/`                                    | Supabase client providers, `SwrCache`, keyset `paging.dart` (50 rows), ids, retry           |
-| `lib/src/auth/`, `settings/`, `routing/`, `shell/` | Sign-in, settings, routes, adaptive navigation shell                                        |
-| `lib/src/features/<feature>/`                      | `data/` (models, repository), `application/` (providers, notifiers), `presentation/`        |
-| `lib/l10n/arb/`                                    | `app_en.arb` (template) and `app_ur.arb`; `lib/l10n/generated/` is generated                |
-| `config/*.example.json`                            | Local and production configuration templates; the real files are not committed              |
-| `test/support/`                                    | `harness.dart` (`pumpScreen`, `testEveryVariant`, `screenGoldenEveryVariant`), fakes, fonts |
-| `test/src/goldens/`                                | Screen goldens; images in `test/src/goldens/goldens/`                                       |
+| Path                                               | What                                                                                                           |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `lib/src/bootstrap.dart`, `app.dart`               | Start-up, `MaterialApp`, themes, localisation, `MmLicenses.register()`                                         |
+| `lib/src/config/app_config.dart`                   | Configuration from `--dart-define-from-file`; refuses secret keys                                              |
+| `lib/src/core/`                                    | `AppFailure` and `failureMessage`, dates, validation, text limits, SWR helper                                  |
+| `lib/src/data/`                                    | Supabase client providers, `SwrCache`, keyset `paging.dart` (50 rows), ids, retry, `device/` (the device wipe) |
+| `lib/src/auth/`, `settings/`, `routing/`, `shell/` | Sign-in, settings, routes, adaptive navigation shell                                                           |
+| `lib/src/features/<feature>/`                      | `data/` (models, repository), `application/` (providers, notifiers), `presentation/`                           |
+| `lib/l10n/arb/`                                    | `app_en.arb` (template) and `app_ur.arb`; `lib/l10n/generated/` is generated                                   |
+| `config/*.example.json`                            | Local and production configuration templates; the real files are not committed                                 |
+| `test/support/`                                    | `harness.dart` (`pumpScreen`, `testEveryVariant`, `screenGoldenEveryVariant`), fakes, fonts                    |
+| `test/src/goldens/`                                | Screen goldens; images in `test/src/goldens/goldens/`                                                          |
 
 ## Rules here
 
@@ -29,11 +29,39 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
 - Reads filter by the current portfolio and page by `created_at, id`. Writes are pessimistic and
   safe to retry: client-chosen ids, idempotency keys for payments and deposit applications,
   status-only updates. The rules and their exceptions are in `docs/architecture/app.md`.
-- Every visible string is an ARB key in both files with an `@key` description; run
-  `make codegen` after editing them.
+- Every visible string is an ARB key in both files, with its `@key` description in
+  `app_en.arb` (the template: the generator reads descriptions from it alone, so `app_ur.arb`
+  carries none); run `make codegen` after editing them.
 - UI comes from `mm_ui`; no literal colours, sizes, radii or durations (`make design-lint`).
 - The UI hides what a role cannot do, but the database is the authority; do not add client-only
   permission checks as protection.
+- Whatever the app keeps on the device for an account (a preference, a file it writes or a plugin
+  copies) is removed by `DeviceDataWipe` (`lib/src/data/device/`) when the session ends. A new one
+  is added there, to its tests, to `docs/architecture/app.md` (On the device) and to the website's
+  privacy page, in both languages. Display settings belong to the device and stay; the pending
+  invitation stays until the account is deleted (see On the device); text the person copies is
+  theirs. The cache serves one user at a time (`SwrCache.serve`): every cache operation names
+  its user and the epoch it belongs to (`read`, `write`, `watch` and `SwrNotifier.show` take a
+  required `epoch`), and does anything only while the cache serves that user in that epoch
+  (`SwrCache.serves`). A notifier that reads or saves for the session watches `sessionProvider`
+  and takes its user and epoch from it, as `SwrNotifier`, `PortfoliosController`,
+  `ProfileController` and `ResidenceController` do. A command reads `requestEpoch()` (in a
+  controller that is not an `SwrNotifier`, `SwrCache.require`) before each request, or
+  `shownEpoch` with the value on show it builds on: either throws `SessionExpired` once the
+  session has ended, so a new command does the same, also before a second request. Every
+  saved entry names its portfolio in its key: each `SwrNotifier` declares its `scope` (`InPortfolio` when its
+  request filters by a portfolio it names, `FromValue` when its rows carry `portfolio_id`, or
+  `UnknownPortfolio`, kept only until the session's first list of portfolios); only the list,
+  the profile and the residence are the user's own (`OwnScope`). A new query picks the scope its
+  fetch guarantees, its model reads `portfolio_id` when it is `FromValue`, and it gets a row in
+  `test/src/data/cache/cache_scopes_test.dart`. A list answer of the server is numbered before
+  its request (`SwrCache.ask`) and applied with `SwrCache.applyPortfolios`, which removes what
+  the list does not name; a list the controller builds itself never takes a number. A setting
+  kept per account (the current portfolio, the camera's target) is written only while the cache
+  serves its user (`SwrCache.serves(userId, cache.epoch)`). A new command
+  that shows a value gets a case in `test/src/core/swr_commands_test.dart`, which checks when it
+  reads it. Each step of the wipe runs on its own and is bounded; a plugin that answers after its
+  limit still has its answer acted on.
 - The launcher icons are generated from the brand mark (`website/src/lib/brand.ts`) and the colour
   tokens by `make app-icons`: Android's `mipmap-*`, `drawable/ic_launcher_foreground.xml` and
   `values/ic_launcher_background.xml`, iOS's `AppIcon.appiconset`, `web/favicon.png`,

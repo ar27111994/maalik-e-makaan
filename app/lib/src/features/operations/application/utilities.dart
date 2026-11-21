@@ -42,6 +42,9 @@ final class UtilityAccountsController
       'utilities.${list.portfolioId}.${list.archived ? 'archived' : 'active'}';
 
   @override
+  RecordScope<Paged<UtilityAccount>> get scope => InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<UtilityAccount>>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -62,12 +65,13 @@ final class UtilityAccountsController
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.utilityAccounts(
       list.portfolioId,
       archived: list.archived,
       after: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Adds a connection ([id] names this attempt: keep it for retries).
@@ -102,6 +106,9 @@ final class UnpaidBillsController extends SwrNotifier<List<UtilityBill>> {
 
   @override
   String get query => 'unpaid_bills.$portfolioId';
+
+  @override
+  RecordScope<List<UtilityBill>> get scope => InPortfolio(portfolioId);
 
   @override
   Stream<Snapshot<List<UtilityBill>>> build() {
@@ -151,6 +158,10 @@ final class UtilityAccountController extends SwrNotifier<UtilityAccountDetail> {
   String get query => 'utility.$accountId';
 
   @override
+  RecordScope<UtilityAccountDetail> get scope =>
+      FromValue((detail) => detail.account.portfolioId);
+
+  @override
   Stream<Snapshot<UtilityAccountDetail>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -170,16 +181,24 @@ final class UtilityAccountController extends SwrNotifier<UtilityAccountDetail> {
     final current = state.value?.value;
     final next = current?.bills.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.bills(accountId, before: next);
-    await show(current.copyWith(bills: current.bills.followedBy(more)));
+    await show(
+      current.copyWith(bills: current.bills.followedBy(more)),
+      epoch: epoch,
+    );
   }
 
   Future<void> loadMoreReadings() async {
     final current = state.value?.value;
     final next = current?.readings.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.readings(accountId, before: next);
-    await show(current.copyWith(readings: current.readings.followedBy(more)));
+    await show(
+      current.copyWith(readings: current.readings.followedBy(more)),
+      epoch: epoch,
+    );
   }
 
   /// The lists that name the connection, and its bills, read again.
@@ -273,6 +292,9 @@ final class UtilityBillController extends SwrNotifier<UtilityBill> {
   String get query => 'bill.$billId';
 
   @override
+  RecordScope<UtilityBill> get scope => FromValue((bill) => bill.portfolioId);
+
+  @override
   Stream<Snapshot<UtilityBill>> build() {
     ref.watch(operationsRepositoryProvider);
     return super.build();
@@ -293,17 +315,19 @@ final class UtilityBillController extends SwrNotifier<UtilityBill> {
 
   /// Saves the bill's details; whether it is paid is left as stored.
   Future<UtilityBill> save(BillDraft draft) async {
+    final epoch = requestEpoch();
     final saved = await _repository.updateBill(billId, draft);
     _listsChanged(saved.connection.id);
-    await show(saved);
+    await show(saved, epoch: epoch);
     return saved;
   }
 
   /// Marks the bill paid or unpaid, and changes nothing else.
   Future<UtilityBill> setPayment(BillPayment payment) async {
+    final epoch = requestEpoch();
     final saved = await _repository.setBillPayment(billId, payment);
     _listsChanged(saved.connection.id);
-    await show(saved);
+    await show(saved, epoch: epoch);
     return saved;
   }
 
@@ -354,6 +378,10 @@ final class MeterReadingController extends SwrNotifier<ReadingDetail> {
 
   @override
   String get query => 'reading.$readingId';
+
+  @override
+  RecordScope<ReadingDetail> get scope =>
+      FromValue((detail) => detail.reading.portfolioId);
 
   @override
   Stream<Snapshot<ReadingDetail>> build() {

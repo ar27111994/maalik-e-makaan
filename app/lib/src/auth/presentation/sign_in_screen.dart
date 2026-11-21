@@ -91,6 +91,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> with CommandState {
                     message: l10n.accountDeletedBody,
                   ),
                 ),
+              if (status case SignedOut(
+                cause: SignOutCause.deletionUnconfirmed,
+              ))
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(bottom: MmSpace.s4),
+                  child: MmBanner(
+                    tone: MmBannerTone.info,
+                    title: l10n.deletionUnconfirmedTitle,
+                    message: l10n.deletionUnconfirmedBody,
+                  ),
+                ),
               if (failure != null && emailError == null)
                 FailureBanner(
                   failure: failure,

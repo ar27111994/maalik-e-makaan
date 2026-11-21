@@ -107,7 +107,9 @@ class _Language extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     await ref.read(settingsProvider.notifier).setLocale(Locale(language.code));
     final userId = this.userId;
-    if (userId == null) return;
+    // Read again after the await: the session may have ended, or be another
+    // account's, whose profile this is not.
+    if (userId == null || ref.read(currentUserIdProvider) != userId) return;
     try {
       await ref.read(profileProvider(userId).notifier).saveLanguage(language);
     } on AppFailure catch (failure) {

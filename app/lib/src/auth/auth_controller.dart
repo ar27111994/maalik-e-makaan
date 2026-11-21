@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile_repository.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
@@ -21,24 +22,63 @@ final currentUserIdProvider = Provider<String?>(
   },
 );
 
+/// The session the device's saved copies are read and saved for: the
+/// signed-in user, and the cache's epoch they own (`SwrCache.serve`); null
+/// while nobody is signed in. A provider that reads or saves for the
+/// session watches it, and takes its user and its epoch from the same
+/// value, so it is built again whenever either changes: also when the same
+/// user's session starts again after a wipe.
+final sessionProvider = Provider<({String userId, int epoch})?>((ref) {
+  // The status first: building it serves its user.
+  final status = ref.watch(authStatusProvider);
+  if (status is! SignedIn) return null;
+  return (userId: status.userId, epoch: ref.watch(swrCacheProvider).epoch);
+});
+
 /// The current [AuthStatus] and the commands that change it. Every command
 /// throws [AppFailure]; the status follows from the session, so screens
 /// never navigate after signing in or out: the router does.
+///
+/// Before each status is applied, the cache serves its user, or nobody
+/// (`SwrCache.serve`): what was asked for in the session before is then
+/// neither shown nor saved.
 final class AuthController extends Notifier<AuthStatus> {
   AuthRepository get _repository => ref.read(authRepositoryProvider);
+
+  /// Whether serving the status about to be set started a new epoch.
+  bool _served = false;
 
   @override
   AuthStatus build() {
     final repository = ref.watch(authRepositoryProvider);
+    final cache = ref.watch(swrCacheProvider);
     final subscription = repository.watch().listen(
-      (status) => state = status,
+      (status) {
+        final epoch = cache.epoch;
+        cache.serve(_userOf(status));
+        _served = cache.epoch != epoch;
+        state = status;
+      },
       // Errors on this stream report a background refresh that failed; the
       // session lasts until it really ends, which arrives as a status.
       onError: (Object _) {},
     );
     ref.onDispose(subscription.cancel);
-    return repository.status;
+    final status = repository.status;
+    cache.serve(_userOf(status));
+    return status;
   }
+
+  static String? _userOf(AuthStatus status) => switch (status) {
+    SignedIn(:final userId) => userId,
+    _ => null,
+  };
+
+  /// Also when the status is the same but a new epoch started for it (the
+  /// same user signed in again after a wipe): [sessionProvider] changes.
+  @override
+  bool updateShouldNotify(AuthStatus previous, AuthStatus next) =>
+      _served || previous != next;
 
   /// The language chosen on this device.
   AppLanguage get _language =>
@@ -81,9 +121,13 @@ final class AuthController extends Notifier<AuthStatus> {
   }
 
   /// Signs out of this device. It cannot fail: the device forgets the
-  /// session and its cache before the server is told, so when the server
-  /// cannot be reached the user is still signed out here, and the session
-  /// ends on the server when its refresh token expires.
+  /// session, and wipes what it kept for the account (`DeviceDataWipe`),
+  /// before the server is told, so when the server cannot be reached the
+  /// user is still signed out here. The session then stays valid on the
+  /// server: Supabase's refresh tokens do not expire by time, and the
+  /// project sets no session time-box or inactivity timeout
+  /// (`supabase/config.toml`), so a copy of it (in a phone's backup) can
+  /// still be used.
   Future<void> signOut({SignOutCause cause = SignOutCause.userRequest}) async {
     try {
       await _repository.signOut(cause: cause);

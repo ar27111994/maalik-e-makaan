@@ -211,6 +211,51 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   website, both privacy pages, `llms.txt` and the deck give it as the contact address, and since
   2026-11-15 Auth's e-mails and the invitations are sent from it too (above). It is the one
   mailbox on the domain that `make docs-check` allows (`NAMED_MAILBOXES`).
+- The device forgets the account (2026-11-13, branch `claude/signout-device-data`): signing out, a
+  session that ends by itself, a session replaced by another account's (an e-mail link) and
+  account deletion run `DeviceDataWipe` (`docs/architecture/app.md`, On the device). It removes
+  the record cache, the
+  portfolio last chosen and the camera's record, and on phones the pickers' copies, Android's
+  records of a lost pick with the camera's full-size original, and the files written to share
+  (once unchanged for ten minutes; younger ones at the next start or return to the app). The
+  pickers' copies, the camera's original included, also go as soon as they are read; at start-up
+  the camera's photos and record stay only while a lost photo may still come back (a day). A
+  deletion whose answer was lost signs out and wipes as a deletion, and says so. Every saved
+  entry names its portfolio in its key (`own`, `p:<id>` or `unknown`; each cached query declares
+  its `CacheScope`, and the ten models behind the record queries read `portfolio_id`), as the
+  owner decided on 15 November 2026 (D-21). Each list of portfolios the server answers (the newest
+  asked only) sets the portfolios the user is in and removes, from the keys alone, every entry
+  outside them, the unknown ones and the old `mm.swr.v1.` format included; a write is checked
+  again as it lands, and a read never shows what the rule rejects. A portfolio joined on another
+  device, opened here by its link and left before this device loads the list again is now
+  removed at that load (P9, closed). A store that does not answer holds up neither the other
+  removals nor the sign-out (three seconds each), and every wipe runs its own; the steps of
+  a pass over the files start together, and a plugin's record of a lost pick that answers after
+  five seconds has its copies discarded when it does. The list is shown and saved without
+  waiting for the store; a profile or list made from the one on show is saved for the epoch it
+  was asked for in; two reference models, a table of all 34 cached queries and the earlier
+  reviews' probes check it
+  (`test/src/data/cache/`). The cache serves one user at a time (16 November 2026, the owner's
+  word to make the rules hold more simply): a wipe starts an epoch nobody owns, each status
+  serves its user, and every read, write, list answer and removal does anything only while its
+  user owns its epoch (`SwrCache.serve` and `serves`; `docs/architecture/app.md`, The session
+  the cache serves). It replaced five guards (the epoch's `clearedSince`, the list's
+  `_requireSession`, its shown-but-not-saved answer, `select(askedIn:)` and the wipe's
+  single-flight), and closed what an independent verifier found on 2026-11-16: a query built
+  between the wipe and the status saved the next account's answer under the ended one's key, a
+  list command asked for the list after its session ended during its request, a profile
+  notifier of one account read and saved under another's session, and the status followed a
+  replayed event. Both reference models serve users too, and each must catch three defects the
+  cache can be built with (`CacheFault`). A command that chooses the current portfolio after a
+  request chooses nothing when the session ended meanwhile, and a start signed in removes what
+  other accounts left in the cache and their chosen portfolio. Display settings stay; an
+  invitation opened and not answered stays until it is answered or the account is deleted on
+  that device, because "sign out, then sign in with the invited address" needs it. The website's
+  how-it-works step and privacy page say this in both languages, with what the app cannot delete
+  (downloads, the browser's copies, the clipboard, other devices, backups). The J14
+  browser-storage checks in the UAT (after a plain sign-out, which keeps an unanswered
+  invitation, and after each deletion, which removes it) are written but not run here yet: they
+  need the Docker stack.
 - The amount reader's work items 1, 3 and 4 (`docs/roadmap/amount-parser.md`), merged in #75 and
   released in 1.3.0: `contracts/amount_lexicon.json` (version 1,
   `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
@@ -569,6 +614,19 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Open
 
+- Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
+  session and the record cache reach the person's Google backup, as the preferences reach iCloud
+  on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
+  owner's decision with the lawyer (legal pack, question T7). The legal pack's data map (rows
+  14a to 14e, PR #66) describes the device before the wipe and needs the same update.
+- Owner: a sign-out that cannot reach the server leaves that session valid on it (refresh tokens
+  do not expire by time; `supabase/config.toml` sets no `[auth.sessions]` time-box or inactivity
+  timeout), so a copy of it in a phone backup can still sign in; the privacy page says so. A
+  session inactivity timeout on the hosted project, or retrying the server sign-out later, is the
+  owner's decision.
+- Owner: moving the web app to `app.mmakaan.app` leaves the old origin's `localStorage` (session,
+  record cache, invitation) in every browser that used it; the old address should clear it
+  before it redirects (`docs/operations.md`, Moving the web app to another address).
 - Licences: `MmIcons.ttf` has empty copyright fields (`THIRD_PARTY_NOTICES.md`, Gaps). dbus
   0.8.0 (MPL-2.0, Linux desktop only, unmodified): a distributed Linux build must say where its
   source is.
@@ -597,6 +655,13 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   holds for a sign-up; an e-mail change needs both of its links (`double_confirm_changes`), so
   say so there too.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
+
+### Closed on 15 November 2026
+
+The portfolio prune that knew a portfolio only from a saved list (P9: a portfolio joined on
+another device, opened here by its link and left before this device loads the list again). Saved
+entries now name their portfolio, the owner's decision (D-21); the privacy page keeps its plain
+sentence (the copy goes "the next time it loads your list of portfolios").
 
 ### Closed in e853378
 

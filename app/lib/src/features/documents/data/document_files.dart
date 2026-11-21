@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/image_metadata.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/jpeg_encoder.dart';
@@ -61,10 +62,20 @@ const int maxPickedImageBytes = 50 * 1024 * 1024;
 /// Android closed the app behind it) and file_picker (the device's files,
 /// filtered to [pickableExtensions]); both work on Android, iOS and the
 /// web.
+///
+/// On a phone both plugins hand over a copy in the app's cache or
+/// temporary folder (a photo of a CNIC, an agreement under its own name).
+/// Once its bytes are read, or it is refused, the copy goes to `discard`
+/// (the app's `DeviceScratch.discard`), so it does not wait on the phone
+/// for the next sign-out.
 final class PluginDocumentPicker implements DocumentPicker {
-  new([ImagePicker? camera]) : _camera = camera ?? ImagePicker();
+  new({ImagePicker? camera, this._discard = _keepCopies})
+    : _camera = camera ?? ImagePicker();
 
   final ImagePicker _camera;
+  final Future<void> Function(Iterable<String> paths) _discard;
+
+  static Future<void> _keepCopies(Iterable<String> paths) async {}
 
   /// The longest side the camera keeps, before [prepareFile] makes the
   /// photo smaller still.
@@ -80,7 +91,11 @@ final class PluginDocumentPicker implements DocumentPicker {
       requestFullMetadata: false,
     );
     if (photo == null) return null;
-    return ChosenFile(name: photo.name, bytes: await photo.readAsBytes());
+    try {
+      return ChosenFile(name: photo.name, bytes: await photo.readAsBytes());
+    } finally {
+      await _discard([photo.path]);
+    }
   });
 
   @override
@@ -90,13 +105,18 @@ final class PluginDocumentPicker implements DocumentPicker {
     // The camera's refusal before the app closed, as takePhoto throws it.
     if (lost.exception case final exception?) throw exception;
     final photo = lost.file;
-    // The app takes only photos (never videos) with image_picker.
-    if (photo == null || lost.type != RetrieveType.image) return null;
+    if (photo == null) return null;
     try {
+      // The app takes only photos (never videos) with image_picker.
+      if (lost.type != RetrieveType.image) return null;
       return ChosenFile(name: photo.name, bytes: await photo.readAsBytes());
     } on Exception catch (error) {
       // The kept photo is gone: Android cleared the app's cache since.
       throw AppFailure.from(error);
+    } finally {
+      // image_picker resized the photo only now, and left the camera's
+      // full-size original next to the copy it handed over.
+      await _discard([photo.path, ?cameraOriginalOf(photo.path)]);
     }
   });
 
@@ -107,11 +127,16 @@ final class PluginDocumentPicker implements DocumentPicker {
       allowedExtensions: pickableExtensions,
     );
     if (file == null) return null;
-    final length = file.lengthSync() ?? await file.length();
-    if (length != null && length > maxPickedImageBytes) {
-      throw const RejectedFailure('file_too_large');
+    try {
+      final length = file.lengthSync() ?? await file.length();
+      if (length != null && length > maxPickedImageBytes) {
+        throw const RejectedFailure('file_too_large');
+      }
+      return ChosenFile(name: file.name, bytes: await file.readAsBytes());
+    } finally {
+      // On the web the file is in memory and has no path.
+      await _discard([?file.path]);
     }
-    return ChosenFile(name: file.name, bytes: await file.readAsBytes());
   });
 
   Future<T> _guard<T>(Future<T> Function() pick) async {
@@ -129,7 +154,11 @@ final class PluginDocumentPicker implements DocumentPicker {
 }
 
 final Provider<DocumentPicker> documentPickerProvider =
-    Provider<DocumentPicker>((ref) => PluginDocumentPicker());
+    Provider<DocumentPicker>(
+      (ref) => PluginDocumentPicker(
+        discard: ref.watch(deviceScratchProvider).discard,
+      ),
+    );
 
 /// Makes picked files ready to upload. Tests replace it.
 typedef FilePreparer = Future<PreparedFile> Function(ChosenFile file);

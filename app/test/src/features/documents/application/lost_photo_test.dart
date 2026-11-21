@@ -282,6 +282,31 @@ void main() {
     });
   });
 
+  group('lostPhotoMayReturn', () {
+    test('only while a readable record is recent', () async {
+      final settings = MemorySettingsStore();
+      // No record: nothing can come back.
+      expect(lostPhotoMayReturn(settings, _now), isFalse);
+      final targets = SettingsCameraTargetStore(settings);
+      await targets.remember(_opened(lostPhotoMaxAge));
+      expect(lostPhotoMayReturn(settings, _now), isTrue);
+      await targets.remember(_opened(-lostPhotoClockSkew));
+      expect(lostPhotoMayReturn(settings, _now), isTrue);
+      // Too old, or too far in the future, as recoverLostPhoto decides.
+      await targets.remember(
+        _opened(lostPhotoMaxAge + const Duration(seconds: 1)),
+      );
+      expect(lostPhotoMayReturn(settings, _now), isFalse);
+      await targets.remember(
+        _opened(-lostPhotoClockSkew - const Duration(seconds: 1)),
+      );
+      expect(lostPhotoMayReturn(settings, _now), isFalse);
+      // A record this version cannot read.
+      await settings.setString(AppSettings.cameraTargetKey, '{}');
+      expect(lostPhotoMayReturn(settings, _now), isFalse);
+    });
+  });
+
   group('lostPhotoProvider', () {
     test('Android is the platform that loses photos', () {
       final container = containerFor(TestApp());

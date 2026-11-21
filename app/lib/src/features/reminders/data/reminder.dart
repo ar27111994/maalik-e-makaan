@@ -72,12 +72,14 @@ final class ReminderLog {
     required this.language,
     required this.sentAt,
     this.messagePreview,
+    this.portfolioId,
   });
 
   factory fromRow(Object? json) {
     final row = JsonRow.of(json, 'reminder');
     return ReminderLog(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       leaseId: row.string('lease_id'),
       channel: row.choice('channel', ReminderChannel.parse),
       template: row.choice('template', ReminderTemplate.parse),
@@ -88,12 +90,17 @@ final class ReminderLog {
   }
 
   static const columns =
-      'id,lease_id,channel,template,language,message_preview,sent_at';
+      'id,portfolio_id,'
+      'lease_id,channel,template,language,message_preview,sent_at';
 
   /// The longest message the log keeps.
   static const maxPreviewLength = 1000;
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final String leaseId;
   final ReminderChannel channel;
   final ReminderTemplate template;
@@ -103,6 +110,7 @@ final class ReminderLog {
 
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     'lease_id': leaseId,
     'channel': channel.db,
     'template': template.db,

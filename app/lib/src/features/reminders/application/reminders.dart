@@ -38,6 +38,10 @@ final class RemindersController extends SwrNotifier<List<ReminderLog>> {
   String get query => 'reminders.$leaseId';
 
   @override
+  RecordScope<List<ReminderLog>> get scope =>
+      FromValue((logs) => samePortfolio(logs.map((l) => l.portfolioId)));
+
+  @override
   Stream<Snapshot<List<ReminderLog>>> build() {
     ref.watch(reminderRepositoryProvider);
     return super.build();

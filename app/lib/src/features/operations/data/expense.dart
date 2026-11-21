@@ -51,6 +51,7 @@ final class Expense {
     this.notes,
     this.paidBy,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads an `expenses` row selected with [Expense.columns].
@@ -58,6 +59,7 @@ final class Expense {
     final row = JsonRow.of(json, 'expense');
     return Expense(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       propertyId: row.optionalString('property_id'),
       propertyName: row.optionalObject('property')?.string('name'),
       unitId: row.optionalString('unit_id'),
@@ -79,7 +81,8 @@ final class Expense {
   /// The columns [Expense.fromRow] reads, with the property, unit and
   /// maintenance job embedded through their composite foreign keys.
   static const columns =
-      'id,property_id,unit_id,maintenance_request_id,category,amount,'
+      'id,portfolio_id,'
+      'property_id,unit_id,maintenance_request_id,category,amount,'
       'spent_on,payee,method,reference,notes,paid_by,created_at,'
       'property:properties!expenses_property_fkey(name),'
       'unit:units!expenses_unit_fkey(label),'
@@ -91,6 +94,10 @@ final class Expense {
   static const maxNotesLength = 1000;
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final ExpenseCategory category;
   final Money amount;
   final CalendarDate spentOn;
@@ -122,6 +129,7 @@ final class Expense {
   /// What [Expense.fromRow] reads back (the offline cache).
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     'property_id': propertyId,
     'property': propertyName == null ? null : {'name': propertyName},
     'unit_id': unitId,
@@ -141,6 +149,7 @@ final class Expense {
 
   List<Object?> get _fields => [
     id,
+    portfolioId,
     category,
     amount,
     spentOn,

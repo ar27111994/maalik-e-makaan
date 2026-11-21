@@ -37,9 +37,10 @@ void main() {
       expect(profile.phone, isNull);
       expect(app.profiles.calls.last.$2, [testUserId, '  Ayesha  K. ', null]);
       // The cache holds it for next time.
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         ProfileController.query,
+        ProfileController.scope,
         Profile.fromRow,
       );
       expect(saved!.value, profile);
@@ -56,6 +57,127 @@ void main() {
       expect(
         container.read(profileProvider(testUserId)).value!.value.language,
         AppLanguage.urdu,
+      );
+    });
+
+    for (final from in ['the server', 'saving the details']) {
+      test('a language saved in a session after an earlier one ended saves '
+          'the profile on show, from $from', () async {
+        final app = TestApp();
+        await app.cache.clear();
+        // The first read never answers when the details show the profile.
+        if (from == 'saving the details') app.profiles.gate.close();
+        final container = containerFor(app);
+        listen(container, profileProvider(testUserId));
+        await pumpEventQueue();
+        final notifier = container.read(profileProvider(testUserId).notifier);
+        if (from == 'saving the details') {
+          app.profiles.gate.holdLaterCallsApart();
+          final saving = notifier.saveDetails(
+            fullName: 'Ayesha Khan',
+            phone: null,
+          );
+          app.profiles.gate.open();
+          await saving;
+        }
+        await notifier.saveLanguage(AppLanguage.urdu);
+        final saved = await app.cache.saved(
+          testUserId,
+          ProfileController.query,
+          ProfileController.scope,
+          Profile.fromRow,
+        );
+        expect(saved!.value.language, AppLanguage.urdu);
+      });
+    }
+
+    test('a profile that comes back after the device was wiped is neither '
+        'kept nor shown, and the profile built for that session asks for '
+        'nothing after', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      final notifier = container.read(profileProvider(testUserId).notifier);
+      app.profiles.gate.close();
+      final saving = notifier.saveDetails(fullName: 'Ayesha K.', phone: null);
+      await pumpEventQueue();
+      // The session ends while the save is on its way.
+      await app.cache.clear();
+      app.profiles.gate.open();
+      await saving;
+      expect(app.store.values, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).value?.value.fullName,
+        isNot('Ayesha K.'),
+      );
+      // The profile, built for that session, asks for nothing after.
+      final asked = app.profiles.calls.length;
+      await expectLater(
+        notifier.saveLanguage(AppLanguage.urdu),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.profiles.calls, hasLength(asked));
+      expect(app.store.values, isEmpty);
+    });
+
+    test('a portfolio leaving the list keeps the profile: one asked for '
+        'before is kept, and so is a language saved after', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      final notifier = container.read(profileProvider(testUserId).notifier);
+      app.profiles.gate.close();
+      final saving = notifier.saveDetails(fullName: 'Ayesha K.', phone: null);
+      await pumpEventQueue();
+      await app.cache.seed(testUserId, 'tenants.${gulberg.id}', [
+        1,
+      ], portfolio: gulberg.id);
+      // Gulberg leaves the user's list.
+      await app.cache.answer(testUserId, [plaza.id]);
+      expect(app.store.values.keys, [
+        cacheKey(testUserId, ProfileController.query),
+      ]);
+      app.profiles.gate.open();
+      await saving;
+      final saved = await app.cache.saved(
+        testUserId,
+        ProfileController.query,
+        ProfileController.scope,
+        Profile.fromRow,
+      );
+      expect(saved!.value.fullName, 'Ayesha K.');
+      // Made from the profile on show, asked for before the removal.
+      await notifier.saveLanguage(AppLanguage.urdu);
+      final again = await app.cache.saved(
+        testUserId,
+        ProfileController.query,
+        ProfileController.scope,
+        Profile.fromRow,
+      );
+      expect(again!.value.language, AppLanguage.urdu);
+    });
+
+    test('a language whose save was on its way when the device was wiped is '
+        'neither shown nor kept', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      app.profiles.gate.close();
+      final saving = container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      await pumpEventQueue();
+      // Removed, all of it, while the request is on its way.
+      await app.cache.clear();
+      app.profiles.gate.open();
+      await saving;
+      expect(app.store.values, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).value?.value.language,
+        isNot(AppLanguage.urdu),
       );
     });
 
@@ -93,6 +215,89 @@ void main() {
     });
   });
 
+  group('the session it serves: profile', () {
+    const other = SignedIn(
+      userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+      email: 'sana.malik@example.com',
+    );
+
+    test(
+      'built first, it loads: the session is read before its epoch',
+      () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, profileProvider(testUserId));
+        await pumpEventQueue();
+        expect(container.read(profileProvider(testUserId)).value, isNotNull);
+      },
+    );
+
+    test('built for another account than the one signed in, it asks for '
+        'nothing', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(other);
+      await pumpEventQueue();
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      expect(app.profiles.calls, isEmpty);
+      expect(
+        container.read(profileProvider(testUserId)).error,
+        isA<SessionExpired>(),
+      );
+      expect(app.store.values, isEmpty);
+    });
+
+    test('a command of another account than the one signed in sends '
+        'nothing', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(other);
+      await pumpEventQueue();
+      // As a screen built for the first account calls it after an await.
+      await expectLater(
+        container
+            .read(profileProvider(testUserId).notifier)
+            .saveLanguage(AppLanguage.urdu),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.profiles.calls, isEmpty);
+      expect(app.store.values, isEmpty);
+    });
+
+    test('kept alive across a sign-out by the same account, it saves in the '
+        'next session', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, profileProvider(testUserId));
+      await pumpEventQueue();
+      app.profiles.gate.close();
+      final saving = container
+          .read(profileProvider(testUserId).notifier)
+          .saveLanguage(AppLanguage.urdu);
+      await pumpEventQueue();
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      app.auth.emit(signedIn);
+      await pumpEventQueue();
+      app.profiles.gate.open();
+      await saving;
+      await pumpEventQueue();
+      // Built again for the new session: it read the profile and saved it.
+      expect(
+        [for (final (name, _) in app.profiles.calls) name],
+        ['fetch', 'updateLanguage', 'fetch'],
+      );
+      expect(app.store.values.keys, [cacheKey(testUserId, 'profile')]);
+      expect(container.read(profileProvider(testUserId)).value, isNotNull);
+    });
+  });
+
   group('account deletion', () {
     test('previews what goes', () async {
       final app = TestApp();
@@ -123,6 +328,63 @@ void main() {
         container.read(authStatusProvider),
         const SignedOut(cause: SignOutCause.accountDeleted),
       );
+    });
+
+    test('a refused deletion signs nobody out and wipes nothing', () async {
+      final app = TestApp();
+      app.account.gate.failure = const RejectedFailure(
+        'does_not_match_account',
+      );
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      await pumpEventQueue();
+      await expectLater(
+        container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: 'x@y.pk'),
+        throwsA(isA<RejectedFailure>()),
+      );
+      expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+    });
+
+    for (final failure in [
+      const NetworkFailure(),
+      const ServerFailure('function:502'),
+      UnexpectedFailure(StateError('lost')),
+    ]) {
+      test('an answer lost on the way (${failure.runtimeType}) signs out as '
+          'a deletion that may have happened', () async {
+        final app = TestApp();
+        app.account.gate.failure = failure;
+        final container = containerFor(app);
+        listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        await container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+        expect(app.auth.calls.last.$2, [SignOutCause.deletionUnconfirmed]);
+        await pumpEventQueue();
+        expect(
+          container.read(authStatusProvider),
+          const SignedOut(cause: SignOutCause.deletionUnconfirmed),
+        );
+      });
+    }
+
+    test('only an outcome that may have deleted counts as one', () {
+      for (final failure in <AppFailure>[
+        const RejectedFailure('does_not_match_account'),
+        const ReauthenticationRequired(),
+        const SessionExpired(),
+        const Forbidden(),
+        const RateLimited(null),
+        const TemporarilyUnavailable(),
+        const NotFoundFailure(),
+        const ConflictFailure(),
+      ]) {
+        expect(mayHaveDeleted(failure), isFalse, reason: '$failure');
+      }
     });
 
     test('a wrong password deletes nothing', () async {

@@ -10,13 +10,20 @@ import 'package:maalik_e_makaan/src/data/providers.dart';
 /// the saved copy at once, then the server's, saved for next time under the
 /// signed-in user, so one account never sees another's.
 ///
-/// A subclass names its [query] (the portfolio and the parameters), says
-/// how to [fetch] it and how to keep it ([decode], [encode]). Its commands
+/// A subclass names its [query] (the portfolio and the parameters) and its
+/// [scope] (which portfolio its saved copy is of), says how to [fetch] it
+/// and how to keep it ([decode], [encode]). Its commands
 /// call the repository and then [reload], so the screen shows what the
-/// server stored.
+/// server stored, or [show] what it answered.
 abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
   /// The cache key: what is read, in which portfolio, with its parameters.
   String get query;
+
+  /// Which portfolio the saved copy is of: named by a parameter
+  /// ([InPortfolio]), read from the value ([FromValue]), or not known
+  /// ([UnknownPortfolio], kept only until the session's first list of
+  /// portfolios). Every query says which; none is the user's own.
+  RecordScope<T> get scope;
 
   /// Reads the value from the server. Called in [build], where it may
   /// `ref.watch` the repository it uses, and by [reload].
@@ -28,24 +35,61 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
   /// The value as JSON [decode] reads back.
   Object? encode(T value);
 
+  /// The user the query was built for, if anyone was signed in.
   String? _userId;
 
+  /// The session's epoch when the query was built.
+  int _epoch = 0;
+
+  /// The cache's epoch the value on show was asked for in ([shownEpoch]).
+  int _shown = 0;
+
+  /// Built again whenever the session changes ([sessionProvider]); while
+  /// the cache does not serve it, it reads nothing and ends with
+  /// [SessionExpired] (`SwrCache.watch`).
   @override
   Stream<Snapshot<T>> build() {
-    final userId = ref.watch(currentUserIdProvider);
-    _userId = userId;
-    if (userId == null) return Stream.error(const SessionExpired());
-    return ref
-        .watch(swrCacheProvider)
+    final session = ref.watch(sessionProvider);
+    final cache = ref.watch(swrCacheProvider);
+    final epoch = session?.epoch ?? 0;
+    _userId = session?.userId;
+    _epoch = epoch;
+    return cache
         .watch(
-          userId: userId,
+          userId: _userId,
+          epoch: epoch,
           query: query,
-          // The cache is read first: by then nobody may show the query
-          // any more, and the fetch must not touch a disposed ref.
+          scope: scope,
+          // The cache is read first: by then nobody may show the query any
+          // more, and the fetch must not touch a disposed ref.
           fetch: () => ref.mounted ? fetch() : Completer<T>().future,
           decode: decode,
           encode: encode,
-        );
+        )
+        .map((snapshot) {
+          // Until it comes, the value of the build before stays on show.
+          _shown = epoch;
+          return snapshot;
+        });
+  }
+
+  /// The cache's epoch for the answer to a request made now, to hand to
+  /// [show] with it: the epoch the query was built in. A command reads it
+  /// before its request, and it throws [SessionExpired] when the cache no
+  /// longer serves that session (`SwrCache.require`): nothing is asked for
+  /// a session that has ended, and an answer that comes after it ended is
+  /// neither shown nor saved. (Whether its portfolio is still the user's is
+  /// asked as the answer is saved: `SwrCache.write`.)
+  int requestEpoch() => ref.read(swrCacheProvider).require(_userId, _epoch);
+
+  /// The cache's epoch the value on show was asked for in, to hand to
+  /// [show] with a value made from that one (a page added to it, a row of
+  /// it changed). A command reads it as it reads the value: what was on
+  /// show before its saved copy was removed is not saved again with what
+  /// came after. It throws [SessionExpired], as [requestEpoch] does.
+  int get shownEpoch {
+    ref.read(swrCacheProvider).require(_userId, _epoch);
+    return _shown;
   }
 
   /// Fetches the value again and shows it, after a command changed it.
@@ -55,21 +99,30 @@ abstract class SwrNotifier<T> extends StreamNotifier<Snapshot<T>> {
   Future<void> reload() async {
     // Nobody shows the query any more: there is nothing to refresh.
     if (!ref.mounted) return;
+    final epoch = requestEpoch();
     try {
-      await show(await fetch());
+      await show(await fetch(), epoch: epoch);
     } on AppFailure {
       if (ref.mounted) ref.invalidateSelf();
     }
   }
 
-  /// Shows [value] as the server's latest, and saves it.
-  Future<void> show(T value) async {
+  /// Shows [value] as the server's latest, and saves it unless the cache
+  /// does not keep its portfolio's entries (`SwrCache.write`). Neither,
+  /// unless the cache still serves the session of [epoch].
+  ///
+  /// [epoch] is the cache's epoch the whole of [value] was asked for in:
+  /// [requestEpoch], read before the request, when [value] is the server's
+  /// answer; [shownEpoch], read with the value on show, when it is made
+  /// from that one.
+  Future<void> show(T value, {required int epoch}) async {
     final userId = _userId;
     if (userId == null) return;
     final savedAt = await ref
         .read(swrCacheProvider)
-        .write(userId, query, encode(value));
-    if (!ref.mounted) return;
+        .write(userId, query, scope, value, encode, epoch: epoch);
+    if (savedAt == null || !ref.mounted) return;
+    _shown = epoch;
     state = AsyncData(
       Snapshot(value, savedAt: savedAt, source: SnapshotSource.network),
     );

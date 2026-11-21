@@ -45,6 +45,53 @@ const receipt1 = `MM-${year}-00001`;
 // 10th.
 const lateFees = today.getDate() > 10 ? 3 : 2;
 
+/** Where the app keeps an invitation opened on the device and not answered. */
+const invitationKey = "mm.invitation.pending";
+
+/**
+ * Puts an unanswered invitation in the browser's storage, as opening an
+ * invitation link leaves one, and returns what was stored. The running app
+ * read its preferences when it started, so it does not act on this one.
+ */
+async function leaveUnansweredInvitation(page: Page): Promise<string> {
+  const stored = JSON.stringify("uat-unanswered-invitation");
+  await page.evaluate(([key, value]) => localStorage.setItem(key, value), [invitationKey, stored]);
+  return stored;
+}
+
+/** The invitation the browser's storage holds, as stored, or null. */
+function storedInvitation(page: Page): Promise<string | null> {
+  return page.evaluate((key) => localStorage.getItem(key), invitationKey);
+}
+
+/**
+ * What a browser still holds of an account once its session ended
+ * (docs/architecture/app.md, On the device): nothing, but an invitation not
+ * yet answered. A plain sign-out keeps that one (`kept`, as it was stored),
+ * so that the person can sign in with the address it was sent to; deleting
+ * the account removes it too. The display settings stay either way: they are
+ * the device's.
+ */
+async function expectAccountForgotten(
+  page: Page,
+  ended: { by: "signOut"; kept: string | null } | { by: "deletion" },
+): Promise<void> {
+  const keys = () => page.evaluate(() => Object.keys(localStorage));
+  await expect
+    .poll(async () =>
+      (await keys()).filter(
+        (key) =>
+          key.startsWith("mm.swr.") ||
+          key === "mm.portfolio.current" ||
+          key === "mm.documents.camera_target" ||
+          /^sb-.+-auth-token$/.test(key),
+      ),
+    )
+    .toEqual([]);
+  await expect.poll(() => storedInvitation(page)).toBe(ended.by === "signOut" ? ended.kept : null);
+  expect(await keys()).toContain("mm.settings.locale");
+}
+
 /** "September 2026", as the app names a rent month in English. */
 function monthName(year: number, monthIndex: number): string {
   return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(
@@ -599,6 +646,19 @@ test.describe.serial("Landlord journeys", () => {
   });
 
   test("J14 account deletion: the viewer, then the owner", async () => {
+    // A plain sign-out first: the browser forgets the account, and keeps the
+    // language and an invitation not yet answered; the viewer then signs in
+    // again.
+    const unanswered = await leaveUnansweredInvitation(viewerPage);
+    await openTab(viewerPage, "مزید");
+    await tap(viewerPage, /^سیٹنگز /);
+    await tap(viewerPage, "سائن آؤٹ کریں");
+    await expect(viewerPage).toHaveURL(/\/sign-in$/);
+    await expectAccountForgotten(viewerPage, { by: "signOut", kept: unanswered });
+    await fill(viewerPage, "ای میل", viewer.email);
+    await fill(viewerPage, "پاس ورڈ", password);
+    await tap(viewerPage, "سائن اِن کریں");
+    await expect(viewerPage).not.toHaveURL(/\/sign-in$/);
     await openTab(viewerPage, "مزید");
     await tap(viewerPage, /^سیٹنگز /);
     await tap(viewerPage, "اکاؤنٹ ڈیلیٹ کریں");
@@ -610,9 +670,15 @@ test.describe.serial("Landlord journeys", () => {
     await fill(viewerPage, "پاس ورڈ", password);
     await fill(viewerPage, /^تصدیق کے لیے/, viewer.email);
     await shot(viewerPage, "ur-10-delete-account");
+    // Signing in again left the invitation exactly as planted (the running
+    // app never read it, so it did not take it up): its absence afterwards
+    // is the deletion's doing.
+    expect(await storedInvitation(viewerPage)).toBe(unanswered);
     await tap(viewerPage, "میرا اکاؤنٹ ڈیلیٹ کریں");
     await see(viewerPage, loose("آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے"), 60_000);
     await expect(viewerPage).toHaveURL(/\/sign-in$/);
+    // The invitation the sign-out kept goes with the account.
+    await expectAccountForgotten(viewerPage, { by: "deletion" });
     expect(sql(`select count(*) from auth.users where email = ${literal(viewer.email)}`)).toEqual([
       ["0"],
     ]);
@@ -641,6 +707,7 @@ test.describe.serial("Landlord journeys", () => {
     await tap(page, "میرا اکاؤنٹ ڈیلیٹ کریں");
     await see(page, loose("آپ کا اکاؤنٹ ڈیلیٹ ہو گیا ہے"), 60_000);
     await expect(page).toHaveURL(/\/sign-in$/);
+    await expectAccountForgotten(page, { by: "deletion" });
     // The user, the portfolio and everything in it are gone.
     expect(sql(`select count(*) from auth.users where email = ${literal(owner.email)}`)).toEqual([
       ["0"],

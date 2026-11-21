@@ -11,6 +11,7 @@ import '../../../../support/supabase.dart';
 /// A `properties` row as PostgREST returns it.
 final Map<String, Object?> _propertyRow = {
   'id': gulbergHouse.id,
+  'portfolio_id': gulberg.id,
   'name': 'Gulberg House',
   'type': 'house',
   'address_line': '42-B, Main Boulevard',
@@ -33,6 +34,7 @@ final Map<String, Object?> _propertyRow = {
 
 final Map<String, Object?> _unitRow = {
   'id': groundFloor.id,
+  'portfolio_id': gulberg.id,
   'property_id': gulbergHouse.id,
   'label': 'Ground floor',
   'type': 'portion',

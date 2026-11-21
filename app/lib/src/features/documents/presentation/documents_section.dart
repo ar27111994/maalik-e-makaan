@@ -15,6 +15,7 @@ import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/core/snapshot_view.dart';
 import 'package:maalik_e_makaan/src/core/text_limits.dart';
+import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/documents.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
@@ -666,8 +667,13 @@ class _AddDocumentSheetState extends ConsumerState<AddDocumentSheet>
   /// forgotten: the camera does not open.
   Future<CameraTarget?> _keepTarget(CameraTargetStore targets) async {
     final userId = ref.read(currentUserIdProvider);
+    final cache = ref.read(swrCacheProvider);
     final location = widget.location;
-    if (userId != null && location != null) {
+    // Kept only while the cache serves the user: between a wipe's start and
+    // the status after it, a target would outlive the wipe that removed it.
+    if (userId != null &&
+        cache.serves(userId, cache.epoch) &&
+        location != null) {
       final target = CameraTarget(
         userId: userId,
         portfolioId: widget.list.portfolioId,

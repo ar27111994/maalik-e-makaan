@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolio_details.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
@@ -50,7 +51,7 @@ void main() {
     test('the saved team shows first, and is kept when offline', () async {
       final app = TestApp()..team.readFailure = const NetworkFailure();
       const saved = Team(members: [], invitations: []);
-      await app.cache.write(testUserId, 'team.${gulberg.id}', saved.toJson());
+      await app.cache.seed(testUserId, 'team.${gulberg.id}', saved.toJson());
       final container = containerFor(app);
       listen(container, teamProvider(gulberg));
       await pumpEventQueue();
@@ -100,9 +101,10 @@ void main() {
       expect(shown.source, SnapshotSource.network);
       expect(shown.value.invitations.first.email, 'kamran.new@example.com');
       // Saved for next time.
-      final saved = await app.cache.read(
+      final saved = await app.cache.saved(
         testUserId,
         'team.${gulberg.id}',
+        InPortfolio<Team>(gulberg.id),
         Team.fromJson,
       );
       expect(saved!.value, shown.value);
@@ -243,11 +245,159 @@ void main() {
       });
     });
 
+    test('leaving as the session ends reads no list for the account that '
+        'signed out', () async {
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      app.team.gate.close();
+      final leaving = team().leave();
+      await pumpEventQueue();
+      expect(app.team.calls.last.$2, [gulberg.id, testUserId]);
+      // The session ends while the server removes the member: the wipe,
+      // then the signed-out status.
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await pumpEventQueue();
+      final asked = app.portfolios.calls.length;
+      app.team.gate.open();
+      await leaving;
+      await pumpEventQueue();
+      expect(app.portfolios.calls, hasLength(asked));
+      expect(app.cache.portfoliosOf(testUserId), isNull);
+      expect(app.store.values, isEmpty);
+    });
+
     test('leaving while signed out is an expired session', () async {
       app.auth.emit(const SignedOut());
       await pumpEventQueue();
       await expectLater(team().leave(), throwsA(isA<SessionExpired>()));
     });
+  });
+
+  group('a team command begun in its session, which ends during its '
+      'request, asks for nothing after it for the account that ended', () {
+    const other = SignedIn(
+      userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+      email: 'sana.malik@example.com',
+    );
+    final commands = <(String, Future<void> Function(TeamController))>[
+      ('leaving', (team) => team.leave()),
+      (
+        'changing their own role',
+        (team) => team.changeRole(testUserId, MemberRole.viewer),
+      ),
+      (
+        "changing another's role",
+        (team) => team.changeRole(bilalMember.userId, MemberRole.viewer),
+      ),
+      (
+        'inviting',
+        (team) => team.invite(
+          email: 'kamran.new@example.com',
+          role: MemberRole.manager,
+          language: AppLanguage.english,
+        ),
+      ),
+    ];
+    for (final (session, status) in <(String, AuthStatus)>[
+      ('signed out', const SignedOut()),
+      ('replaced by another account', other),
+    ]) {
+      for (final (name, command) in commands) {
+        test('$name, $session', () async {
+          final app = TestApp();
+          final container = containerFor(app);
+          listen(container, portfoliosProvider(testUserId));
+          listen(container, teamProvider(gulberg));
+          await pumpEventQueue();
+          app.team.gate.close();
+          final running = command(
+            container.read(teamProvider(gulberg).notifier),
+          );
+          await pumpEventQueue();
+          await app.cache.clear();
+          app.auth.emit(status);
+          await pumpEventQueue();
+          final listed = app.portfolios.calls.length;
+          final asked = app.team.calls.length;
+          app.team.gate.open();
+          try {
+            await running;
+          } on AppFailure {
+            // The command's own report: not what this test is about.
+          }
+          await pumpEventQueue();
+          // No list of the ended account's portfolios, and nothing saved
+          // under it.
+          expect([
+            for (final (name, arguments) in app.portfolios.calls.skip(listed))
+              if (arguments.contains(testUserId)) name,
+          ], isEmpty);
+          expect(app.cache.portfoliosOf(testUserId), isNull);
+          expect(
+            app.store.values.keys.where((key) => key.contains(testUserId)),
+            isEmpty,
+          );
+          if (status is SignedOut) {
+            // Nothing asked of the team for nobody either.
+            expect(app.team.calls.skip(asked), isEmpty);
+            expect(
+              container.read(teamProvider(gulberg)).error,
+              isA<SessionExpired>(),
+            );
+            expect(app.store.values, isEmpty);
+          }
+        });
+      }
+    }
+  });
+
+  group('the same account signed in again after a wipe reads and saves '
+      'again', () {
+    const other = SignedIn(
+      userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+      email: 'sana.malik@example.com',
+    );
+    for (final (name, statuses) in <(String, List<AuthStatus>)>[
+      ('its own status after the wipe', const [signedIn]),
+      (
+        'another account, then its own, within one wipe',
+        const [other, signedIn],
+      ),
+    ]) {
+      test(name, () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, portfoliosProvider(testUserId));
+        listen(container, teamProvider(gulberg));
+        await pumpEventQueue();
+        final listed = app.portfolios.calls.length;
+        final read = app.team.calls.length;
+        // The wipe clears the cache; the statuses follow, the last the
+        // same account's, as the one before the wipe.
+        await app.cache.clear();
+        for (final status in statuses) {
+          app.auth.emit(status);
+          await pumpEventQueue();
+        }
+        // Both were built again, and read their account's.
+        expect(app.portfolios.calls.length, greaterThan(listed));
+        expect(app.team.calls.length, greaterThan(read));
+        expect(container.read(portfoliosProvider(testUserId)).value, isNotNull);
+        expect(container.read(teamProvider(gulberg)).value, isNotNull);
+        // Their next commands are asked for and saved.
+        await container.read(portfoliosProvider(testUserId).notifier).reload();
+        await container.read(teamProvider(gulberg).notifier).reload();
+        expect(app.cache.portfoliosOf(testUserId), isNotNull);
+        expect(
+          app.store.values.keys,
+          containsAll([
+            cacheKey(testUserId, 'portfolios'),
+            cacheKey(testUserId, 'team.${gulberg.id}', portfolio: gulberg.id),
+          ]),
+        );
+      });
+    }
   });
 
   group('portfolio details', () {
@@ -398,6 +548,36 @@ void main() {
       expect(app.team.calls.single.$2, ['abc.def']);
       expect(container.read(currentPortfolioProvider).value, plaza);
       expect(container.read(pendingInvitationProvider), isNull);
+    });
+
+    test('accepted after the session ended meanwhile, it chooses no '
+        'portfolio on the device', () async {
+      final app =
+          TestApp(settings: {AppSettings.pendingInvitationKey: 'abc.def'})
+            ..team.acceptOutcome = InvitationAccepted(
+              portfolioId: plaza.id,
+              role: MemberRole.manager,
+            );
+      final container = containerFor(app);
+      listen(container, currentPortfolioProvider);
+      await pumpEventQueue();
+      app.team.gate.close();
+      final accepting = container
+          .read(pendingInvitationProvider.notifier)
+          .accept();
+      await pumpEventQueue();
+      await DeviceDataWipe(
+        cache: app.cache,
+        settings: app.settings,
+        scratch: app.scratch,
+      ).wipe(WipeReason.signedOut);
+      app.team.gate.open();
+      expect(await accepting, isA<InvitationAccepted>());
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(container.read(selectedPortfolioProvider(testUserId)), isNull);
     });
 
     test(

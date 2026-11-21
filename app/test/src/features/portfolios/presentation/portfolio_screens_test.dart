@@ -196,7 +196,7 @@ void main() {
 
     testWidgets('offline, it says what it shows', (tester) async {
       final app = TestApp()..portfolios.listFailure = const NetworkFailure();
-      await app.cache.write(testUserId, 'portfolios', [plaza.toRow()]);
+      await app.cache.seed(testUserId, 'portfolios', [plaza.toRow()]);
       await pumpScreen(tester, MoreScreen.new, app: app);
       expect(find.textContaining('You are offline.'), findsOneWidget);
       expect(find.text('Saddar Plaza'), findsOneWidget);
@@ -209,7 +209,7 @@ void main() {
 
     testWidgets('other refresh failures say so, with a retry', (tester) async {
       final app = TestApp()..portfolios.listFailure = const Forbidden();
-      await app.cache.write(testUserId, 'portfolios', [plaza.toRow()]);
+      await app.cache.seed(testUserId, 'portfolios', [plaza.toRow()]);
       await pumpScreen(tester, MoreScreen.new, app: app);
       expect(
         find.text('You do not have permission to do this.'),

@@ -711,6 +711,23 @@ void main() {
       expect(find.text(recoveredNotice), findsNothing);
     });
 
+    testWidgets('a camera opened while the cache serves nobody keeps no '
+        'target, and still opens', (tester) async {
+      final app = TestApp();
+      app.picker.gate.close();
+      await pumpScreen(tester, _tenant, app: app);
+      await _tap(tester, 'Add document');
+      // The wipe has begun; the status that ends the session has not come.
+      await app.cache.clear();
+      await tester.tap(find.text('Take a photo'));
+      await tester.pump();
+      expect(app.picker.calls, ['takePhoto']);
+      expect(kept(app), isNull);
+      app.picker.gate.open();
+      await tester.pumpAndSettle();
+      expect(kept(app), isNull);
+    });
+
     testWidgets('iOS and the web remember nothing: they never lose a photo', (
       tester,
     ) async {

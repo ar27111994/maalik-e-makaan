@@ -10,6 +10,7 @@ import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_files.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document_repository.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
+import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 
 /// How old a remembered camera target may be for its photo to come back.
 ///
@@ -144,8 +145,7 @@ Future<LostPhotoOutcome> recoverLostPhoto({
   if (target.userId != userId) {
     return const LostPhotoDiscarded(LostPhotoDiscard.otherUser);
   }
-  final age = now.difference(target.openedAt);
-  if (age < -lostPhotoClockSkew || age > lostPhotoMaxAge) {
+  if (!_recent(target, now)) {
     return const LostPhotoDiscarded(LostPhotoDiscard.stale);
   }
   final membership = portfolios
@@ -166,6 +166,24 @@ Future<LostPhotoOutcome> recoverLostPhoto({
   }
   if (!open) return const LostPhotoDiscarded(LostPhotoDiscard.unreachable);
   return LostPhotoRecovered(target: target, photo: photo);
+}
+
+/// Whether [target]'s camera opened recently enough at [now] for its photo
+/// to come back: within [lostPhotoMaxAge], and not more than
+/// [lostPhotoClockSkew] in the future.
+bool _recent(CameraTarget target, DateTime now) {
+  final age = now.difference(target.openedAt);
+  return age >= -lostPhotoClockSkew && age <= lostPhotoMaxAge;
+}
+
+/// Whether a photo an earlier run of the app lost may still come back to
+/// its record: the camera's record kept in [settings] can be read and is
+/// recent at [now]. Otherwise [recoverLostPhoto] would let the photo go,
+/// so the start-up tidy (`tidyDeviceAtStart`) deletes it with the record
+/// at once.
+bool lostPhotoMayReturn(SettingsStore settings, DateTime now) {
+  final target = SettingsCameraTargetStore(settings).read();
+  return target != null && _recent(target, now);
 }
 
 /// Whether the camera can lose a photo here: Android may close the app

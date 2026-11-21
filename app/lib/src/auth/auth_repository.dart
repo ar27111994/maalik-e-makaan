@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/config/app_config.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
-import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
@@ -21,6 +21,11 @@ enum SignOutCause {
 
   /// The account was deleted.
   accountDeleted,
+
+  /// Deleting the account was asked for, but its answer never came (the
+  /// connection broke, or the server failed part-way): it may be gone. The
+  /// device forgets it as for a deletion; signing in again tells.
+  deletionUnconfirmed,
 }
 
 /// Nobody is signed in.
@@ -116,7 +121,8 @@ abstract interface class AuthRepository {
   /// on another device or browser).
   Future<void> completeEmailLink(Uri link);
 
-  /// Signs out of this device and forgets everything cached for the account.
+  /// Signs out of this device, and wipes what the device kept for the
+  /// account ([DeviceDataWipe]).
   Future<void> signOut({SignOutCause cause = SignOutCause.userRequest});
 }
 
@@ -126,24 +132,31 @@ final class SupabaseAuthRepository implements AuthRepository {
   /// (iOS), not the web address.
   new({
     required this._auth,
-    required this._cache,
+    required this._wipe,
     required AppConfig config,
     bool nativeLinks = false,
   }) : _callbackUrl = config
            .authCallbackUrlFor(nativeScheme: nativeLinks)
-           .toString();
+           .toString(),
+       _userId = _auth.currentSession?.user.id;
 
   final sb.GoTrueClient _auth;
-  final SwrCache _cache;
+  final DeviceDataWipe _wipe;
   final String _callbackUrl;
   bool _recovering = false;
   SignOutCause? _signOutCause;
 
-  @override
-  AuthStatus get status => _statusOf(_auth.currentSession);
+  /// Whether the device was wiped since [signOut] began: gotrue's
+  /// announcement of the sign-out did it, and [signOut] need not again.
+  bool _wiped = false;
 
-  AuthStatus _statusOf(sb.Session? session) {
-    final user = session?.user;
+  /// The user whose session the device holds: at first the stored one,
+  /// then as the events say.
+  String? _userId;
+
+  @override
+  AuthStatus get status {
+    final user = _auth.currentSession?.user;
     if (user == null) return SignedOut(cause: _signOutCause);
     if (_recovering) return RecoveringPassword(userId: user.id);
     return SignedIn(userId: user.id, email: user.email);
@@ -152,7 +165,7 @@ final class SupabaseAuthRepository implements AuthRepository {
   @override
   Stream<AuthStatus> watch() => Stream.multi((controller) {
     controller.add(status);
-    // asyncMap keeps the events in order while a sign-out clears the cache.
+    // asyncMap keeps the events in order while a sign-out wipes the device.
     final subscription = _auth.onAuthStateChange
         .asyncMap(_apply)
         .listen(
@@ -175,10 +188,48 @@ final class SupabaseAuthRepository implements AuthRepository {
       _recovering = false;
     } else if (event == sb.AuthChangeEvent.signedOut) {
       _recovering = false;
-      // Also when the session ended elsewhere (revoked, expired).
-      await _cache.clear();
+      // Also when the session ended elsewhere (revoked, expired, refused at
+      // a refresh, or signed out in another tab).
+      await _forgetAccount();
     }
-    return _statusOf(change.session);
+    await _forgetReplaced();
+    // The session the device holds now, not the event's: gotrue replays
+    // every earlier event to a new listener, and those may be about an
+    // earlier session. gotrue drops the session before it announces a
+    // sign-out, so a real one is still signed out.
+    return status;
+  }
+
+  /// Wipes what the device kept for the account whose session the current
+  /// one replaced without a sign-out between them: an e-mail link of
+  /// another account, opened while signed in, swaps one session for the
+  /// other and gotrue announces only the new one. Decided from the session
+  /// the device holds alone, whatever the event was about.
+  Future<void> _forgetReplaced() async {
+    final current = _auth.currentSession?.user.id;
+    final previous = _userId;
+    _userId = current;
+    if (current != null && previous != null && previous != current) {
+      await _wipe.wipe(WipeReason.signedOut);
+    }
+  }
+
+  /// Wipes what the device kept for the account that signed out, before
+  /// the signed-out status is shown: the preferences at once, the files
+  /// after ([DeviceDataWipe.wipe]).
+  ///
+  /// Not while a session exists: gotrue replays every earlier event to a
+  /// new listener, an old sign-out included, and the user signed in since
+  /// keeps their data. gotrue drops the session before it announces a
+  /// sign-out, so a real one always finds none.
+  Future<void> _forgetAccount() async {
+    if (_auth.currentSession != null) return;
+    _wiped = true;
+    await _wipe.wipe(switch (_signOutCause) {
+      SignOutCause.accountDeleted ||
+      SignOutCause.deletionUnconfirmed => WipeReason.accountDeleted,
+      SignOutCause.userRequest || null => WipeReason.signedOut,
+    });
   }
 
   Future<T> _guard<T>(Future<T> Function() action) async {
@@ -270,24 +321,28 @@ final class SupabaseAuthRepository implements AuthRepository {
   });
 
   @override
-  Future<void> signOut({
-    SignOutCause cause = SignOutCause.userRequest,
-  }) => _guard(() async {
-    _signOutCause = cause;
-    try {
-      await _auth.signOut();
-    } finally {
-      // Even when the server cannot be reached, nothing of the account stays
-      // on the device.
-      await _cache.clear();
-    }
-  });
+  Future<void> signOut({SignOutCause cause = SignOutCause.userRequest}) =>
+      _guard(() async {
+        _signOutCause = cause;
+        _wiped = false;
+        try {
+          await _auth.signOut();
+        } finally {
+          // Even when the server cannot be reached, or gotrue failed before
+          // it announced the sign-out (whose wipe is otherwise enough), the
+          // device is wiped. gotrue's listeners have its announcement one
+          // microtask after it is made, before signOut returns to here; only
+          // when they are still busy with an earlier event does it come
+          // after, and the device is wiped twice, which does no harm.
+          if (!_wiped) await _forgetAccount();
+        }
+      });
 }
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => SupabaseAuthRepository(
     auth: ref.watch(supabaseClientProvider).auth,
-    cache: ref.watch(swrCacheProvider),
+    wipe: ref.watch(deviceDataWipeProvider),
     config: ref.watch(appConfigProvider),
     nativeLinks: !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS,
   ),

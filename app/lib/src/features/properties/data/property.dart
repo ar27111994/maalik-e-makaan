@@ -209,6 +209,7 @@ final class Property {
     this.notes,
     this.archivedAt,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `properties` row selected with [Property.columns].
@@ -218,6 +219,7 @@ final class Property {
     final size = row.optionalMoney('plot_size');
     return Property(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       name: row.string('name'),
       type: row.choice('type', PropertyType.parse),
       addressLine: row.optionalString('address_line'),
@@ -241,7 +243,7 @@ final class Property {
 
   /// The columns [Property.fromRow] reads.
   static const columns =
-      'id,name,type,address_line,locality,city,province,plot_size,'
+      'id,portfolio_id,name,type,address_line,locality,city,province,plot_size,'
       'plot_size_unit,covered_area_sqft,year_built,purchase_price,'
       'purchased_on,estimated_value,value_estimated_on,property_tax_ref,'
       'notes,archived_at,created_at';
@@ -260,6 +262,10 @@ final class Property {
   static const maxPlotSize = Hundredths(9999999999);
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final String name;
   final PropertyType type;
   final String? addressLine;
@@ -312,6 +318,7 @@ final class Property {
   /// The row [Property.fromRow] reads back (the offline cache).
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     ...toWrite(),
     'name': name,
     'city': city,
@@ -325,6 +332,7 @@ final class Property {
 
   static List<Object?> _list(Property p) => [
     p.id,
+    p.portfolioId,
     p.name,
     p.type,
     p.addressLine,
@@ -390,6 +398,7 @@ final class Unit {
     this.notes,
     this.archivedAt,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `units` row selected with [Unit.columns].
@@ -397,6 +406,7 @@ final class Unit {
     final row = JsonRow.of(json, 'unit');
     return Unit(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       propertyId: row.string('property_id'),
       label: row.string('label'),
       type: row.choice('type', UnitType.parse),
@@ -415,7 +425,7 @@ final class Unit {
 
   /// The columns [Unit.fromRow] reads.
   static const columns =
-      'id,property_id,label,type,floor_label,bedrooms,bathrooms,'
+      'id,portfolio_id,property_id,label,type,floor_label,bedrooms,bathrooms,'
       'covered_area_sqft,furnished,asking_rent,is_available,notes,'
       'archived_at,created_at';
 
@@ -424,6 +434,10 @@ final class Unit {
   static const maxRooms = 50;
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final String propertyId;
   final String label;
   final UnitType type;
@@ -463,6 +477,7 @@ final class Unit {
   /// The row [Unit.fromRow] reads back (the offline cache).
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     'property_id': propertyId,
     ...toWrite(),
     'label': label,
@@ -472,6 +487,7 @@ final class Unit {
 
   static List<Object?> _list(Unit u) => [
     u.id,
+    u.portfolioId,
     u.propertyId,
     u.label,
     u.type,

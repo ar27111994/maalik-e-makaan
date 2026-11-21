@@ -91,6 +91,7 @@ final class MaintenanceRequest {
     this.resolvedOn,
     this.resolutionNote,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `maintenance_requests` row selected with
@@ -100,6 +101,7 @@ final class MaintenanceRequest {
     final phone = row.optionalString('vendor_phone');
     return MaintenanceRequest(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       propertyId: row.string('property_id'),
       propertyName: row.object('property').string('name'),
       unitId: row.optionalString('unit_id'),
@@ -128,7 +130,8 @@ final class MaintenanceRequest {
   /// The columns [MaintenanceRequest.fromRow] reads, with the property,
   /// unit and tenant embedded through their composite foreign keys.
   static const columns =
-      'id,property_id,unit_id,lease_id,title,description,category,priority,'
+      'id,portfolio_id,'
+      'property_id,unit_id,lease_id,title,description,category,priority,'
       'status,reported_by,reported_on,assigned_to,vendor_phone,'
       'estimated_cost,resolved_on,resolution_note,created_at,'
       'property:properties!maintenance_requests_property_fkey(name),'
@@ -142,6 +145,10 @@ final class MaintenanceRequest {
   static const maxResolutionLength = 1000;
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final String propertyId;
   final String propertyName;
 
@@ -172,6 +179,7 @@ final class MaintenanceRequest {
 
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     'property_id': propertyId,
     'property': {'name': propertyName},
     'unit_id': unitId,
@@ -199,6 +207,7 @@ final class MaintenanceRequest {
 
   List<Object?> get _fields => [
     id,
+    portfolioId,
     propertyId,
     propertyName,
     unitId,
