@@ -248,9 +248,10 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   replayed event. A second pass by that verifier the same day found that Riverpod kept the
   earlier account's value in a provider rebuilt for the next account (now dropped,
   `sessionChanged`), and a loss of the saved list that is now named and pinned. Both reference
-  models serve users too, and each must catch three defects the
-  cache can be built with (`CacheFault`). A command that chooses the current portfolio after a
-  request chooses nothing when the session ended meanwhile, and a start signed in removes what
+  models serve users too; built with each of three defects a cache could have, each predicts what
+  such a cache would do, and the cache must differ from it (the defects live in the tests, not in
+  `lib`). A command that chooses the current portfolio after a request chooses nothing when the
+  session it asked in has ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on
   that device, because "sign out, then sign in with the invited address" needs it. The website's

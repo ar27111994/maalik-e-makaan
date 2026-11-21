@@ -512,10 +512,12 @@ else does then, since a picker may be handing over a copy.
     key-format fuzz) compare `SwrCache` with two models written apart from
     its code and from each other (500 and 400 random sequences by default,
     fixed seeds, `--dart-define=MODEL_SEQ=` and `REF_SEQ=` for more); both
-    serve users and nobody between the other operations, and each must
-    catch the three defects a cache can be built with for testing
-    (`CacheFault`: `serves` blind to the owner, `serve` that starts no
-    epoch, a read not checked once the store has answered).
+    serve users and nobody between the other operations. Each is also
+    built with each of three defects a cache could have (`serves` blind to
+    the owner, `serve` that starts no epoch, a read not checked against the
+    rule), and then predicts what such a cache would do: the cache must
+    differ from that prediction within the same seeds. The defects live in
+    the tests; nothing in `lib` can turn a check off.
     `test/src/auth/sign_out_wipe_test.dart` runs the session's life cycle
     over the real repository and wipe (the order of the wipe and the status,
     a link of the same or another account, a password recovery, replays, a

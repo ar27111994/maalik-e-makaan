@@ -35,8 +35,10 @@
 //   comes from its value under whatever tag it has;
 // - the epoch moves only at a clear or at serving a new owner.
 //
-// Each of three defects of the cache (CacheFault) must make it report a
-// divergence: the tests at the end run it over a cache built with each.
+// Three defects a cache could have (_Defect) must each be told from this
+// one. The tests at the end build the model with each defect, so that it
+// predicts what a cache with that defect would do, and run it over the
+// cache, which has none: it must report a divergence.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -62,6 +64,21 @@ const List<String> _queries = [
   _fromValue,
   _unknown,
 ];
+
+/// A defect a cache could have, which the model can be built with: it then
+/// predicts what a cache with it would do.
+enum _Defect {
+  /// Whether the cache serves a user asks only for the epoch, not for its
+  /// owner.
+  servesIgnoresOwner,
+
+  /// Serving a new owner, or a clear, starts no new epoch.
+  serveKeepsEpoch,
+
+  /// A read returns what the store answered without checking it against
+  /// the rule: it may show an entry the rule rejects, and deletes none.
+  readUnchecked,
+}
 
 /// The value a write saves: its number, and the portfolios it names (the
 /// list's ids, or the rows' portfolios; null for a row of none).
@@ -159,6 +176,11 @@ typedef _Write = ({
 
 /// The model's state.
 final class _Model {
+  new(this.defect);
+
+  /// The defect of the cache it models; none for this one.
+  final _Defect? defect;
+
   int epoch = 0;
   int cleared = 0;
   int asked = 0;
@@ -174,11 +196,13 @@ final class _Model {
 
   /// Whether the cache serves [user] in [at].
   bool serves(String? user, int at) =>
-      user != null && at == epoch && user == owner;
+      user != null &&
+      at == epoch &&
+      (defect == _Defect.servesIgnoresOwner || user == owner);
 
   /// A new epoch, owned by [user].
   void start(String? user) {
-    epoch++;
+    if (defect != _Defect.serveKeepsEpoch) epoch++;
     owner = user;
     members.clear();
     claimed = 0;
@@ -219,16 +243,15 @@ Future<String?> _run(
   Random random,
   int steps,
   List<String> log, {
-  CacheFault? fault,
+  _Defect? defect,
 }) async {
   final store = _Store();
   var clock = DateTime.utc(2026, 11, 15);
   final cache = SwrCache(
     store,
     clock: () => clock = clock.add(const Duration(seconds: 1)),
-    fault: fault,
   );
-  final m = _Model();
+  final m = _Model(defect);
   final writes = <int, _Write>{};
   var nextW = 0;
   final askedNumbers = <(int, int)>[]; // (number, epoch)
@@ -593,7 +616,9 @@ Future<String?> _run(
             if (looked) return '$desc: missed $key';
           }
         }
-        // The read asks for the deletion of what it rejects.
+        // The read asks for the deletion of what it rejects (unless it
+        // checks nothing).
+        if (defect == _Defect.readUnchecked) break;
         for (final key in [...m.store.keys]) {
           final w = writes[m.store[key]]!;
           if (w.user != user || w.query != query) continue;
@@ -629,14 +654,15 @@ void main() {
     }
   }, timeout: const Timeout(Duration(minutes: 10)));
 
-  // The model catches each defect: a cache built with it diverges within a
-  // few sequences of a fixed seed.
-  for (final fault in CacheFault.values) {
-    test('it catches a cache whose ${fault.name}', () async {
+  // The model tells each defect from this cache: built with it, it
+  // predicts what a cache with that defect would do, and the cache differs
+  // from that within a few sequences of a fixed seed.
+  for (final defect in _Defect.values) {
+    test('it tells a cache whose ${defect.name} from this one', () async {
       final random = Random(20261116);
       String? broken;
       for (var i = 0; i < 200 && broken == null; i++) {
-        broken = await _run(random, 40, [], fault: fault);
+        broken = await _run(random, 40, [], defect: defect);
       }
       expect(broken, isNotNull);
     }, timeout: const Timeout(Duration(minutes: 5)));

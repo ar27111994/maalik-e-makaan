@@ -22,10 +22,14 @@
 // no list of another user's, no other write of its entry, no fault), is on
 // the store.
 // A read returns nothing for a user or an epoch the cache does not serve,
-// and nothing the rule rejects.
+// and nothing the rule rejects; of a query whose key the history knows, it
+// returns what the store holds there when the rule keeps it. A write asked
+// in a session the cache serves is not refused.
 //
-// Each of three defects of the cache (CacheFault) must make it report a
-// divergence: the tests at the end run it over a cache built with each.
+// Three defects a cache could have (_Defect) must each be told from this
+// one. The tests at the end build the model with each defect, so that it
+// predicts what a cache with that defect would do, and run it over the
+// cache, which has none: it must report a divergence.
 //
 // It also fuzzes the key format: random ids and queries with dots, `#`,
 // spaces and Urdu; the tag reads back from the key alone, and the removal
@@ -54,6 +58,21 @@ String _query(Random r, String kind) => [
   kind,
   for (var i = 1 + r.nextInt(4); i > 0; i--) _pieces[r.nextInt(_pieces.length)],
 ].join('.');
+
+/// A defect a cache could have, which the model can be built with: it then
+/// predicts what a cache with it would do.
+enum _Defect {
+  /// Whether the cache serves a user asks only for the epoch, not for its
+  /// owner.
+  servesIgnoresOwner,
+
+  /// Serving a new owner, or a clear, starts no new epoch.
+  serveKeepsEpoch,
+
+  /// A read returns what the store answered without checking it against
+  /// the rule: it may show an entry the rule rejects.
+  readUnchecked,
+}
 
 /// A query's kind, and what its writes name.
 enum _Kind { ownList, own, inPortfolio, fromValue, unknown }
@@ -144,10 +163,12 @@ CacheScope<_W> _scope(_Q q) => switch (q.kind) {
 /// What the sequence did, step by step, for a failure's message.
 final _log = <String>[];
 
-Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
+Future<String?> _sequence(Random r, int steps, {_Defect? defect}) async {
   _log.clear();
   final store = MemoryStore();
-  final cache = SwrCache(store, fault: fault);
+  final cache = SwrCache(store);
+  // Whether the cache modelled serves a user whoever owns the epoch.
+  final anyone = defect == _Defect.servesIgnoresOwner;
   final users = [_uuid(r), _uuid(r)];
   final portfolios = [_uuid(r), _uuid(r), _uuid(r)];
   final queries = <_Q>[
@@ -190,10 +211,13 @@ Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
     for (final e in events) {
       if (e.step > step) break;
       final last = epochs.last;
+      final next = defect == _Defect.serveKeepsEpoch
+          ? last.epoch
+          : last.epoch + 1;
       if (e is _Clear) {
-        epochs.add((epoch: last.epoch + 1, owner: null, from: e.step));
+        epochs.add((epoch: next, owner: null, from: e.step));
       } else if (e is _Serve && e.user != last.owner) {
-        epochs.add((epoch: last.epoch + 1, owner: e.user, from: e.step));
+        epochs.add((epoch: next, owner: e.user, from: e.step));
       }
     }
     return epochs;
@@ -206,17 +230,18 @@ Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
   /// Whether the cache serves [user] in [epoch] at [step].
   bool servesAt(String user, int epoch, int step) {
     final now = epochAt(step);
-    return now.epoch == epoch && now.owner == user;
+    return now.epoch == epoch && (anyone || now.owner == user);
   }
 
   /// The portfolios [user] is in at [step], from the history: null unless
   /// they own the epoch and a list was applied since it began.
   Set<String>? membersAt(String user, int step) {
     final now = epochAt(step);
-    if (now.owner != user) return null;
+    if (!anyone && now.owner != user) return null;
     Set<String>? s;
     for (final e in events.whereType<_Members>()) {
-      if (e.step > step || e.step <= now.from || e.user != user) continue;
+      if (e.step > step || e.step <= now.from) continue;
+      if (!anyone && e.user != user) continue;
       s = e.ids;
     }
     return s;
@@ -256,6 +281,8 @@ Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
     var q = queries[r.nextInt(queries.length)];
     final opn = r.nextInt(14);
     final epoch = epochAt(step).epoch;
+    // A write asked in this step in a session the cache serves.
+    _W? servedWrite;
     _log.add(
       '$step op$opn ${user.substring(0, 4)} ${q.kind.name} e$epoch '
       'w${writes.length}',
@@ -297,6 +324,8 @@ Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
           w
             ..end = 'refused'
             ..endedAt = step;
+        } else {
+          servedWrite = w;
         }
         if (r.nextInt(3) == 0) store.holding.add(w.key);
         if (r.nextInt(12) == 0) {
@@ -401,6 +430,17 @@ Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
         }
         // In the epoch now, or in the one before.
         final e = r.nextInt(4) == 0 ? epoch - 1 : epoch;
+        // What the store holds at the query's key, when the history knows
+        // the key.
+        final known = switch (q.kind) {
+          _Kind.ownList || _Kind.own => 'own',
+          _Kind.inPortfolio => 'p:${q.portfolio}',
+          _Kind.unknown => 'unknown',
+          _Kind.fromValue => null,
+        };
+        final held = known == null
+            ? null
+            : store.values[_keyOf(user, known, q.text)];
         final read = await cache.read(
           user,
           q.text,
@@ -418,8 +458,27 @@ Future<String?> _sequence(Random r, int steps, {CacheFault? fault}) async {
             return 'read #${w.id}, which the rule rejects';
           }
         }
+        if (known != null) {
+          final there = held == null ? null : writes[_idOf(held) - 1];
+          final shown =
+              there != null &&
+              servesAt(user, e, step) &&
+              (defect == _Defect.readUnchecked ||
+                  keeps(user, there.tag, there.names, step));
+          final expected = shown ? there.id : null;
+          if (read?.value.id != expected) {
+            return 'read #${read?.value.id} at $known, history says '
+                '#$expected';
+          }
+        }
     }
     await pumpEventQueue();
+    // Refused at once: in the same step, a write served when it was asked
+    // has landed, or waits for the store, unless the cache refused it.
+    if (servedWrite?.end == 'dropped') {
+      return 'step $step: #${servedWrite!.id} refused, though asked in a '
+          'session served';
+    }
 
     // The whole store against the two sets.
     final now = step;
@@ -515,14 +574,15 @@ void main() {
     }
   }, timeout: const Timeout(Duration(minutes: 10)));
 
-  // The model catches each defect: a cache built with it diverges within a
-  // few sequences of a fixed seed.
-  for (final fault in CacheFault.values) {
-    test('it catches a cache whose ${fault.name}', () async {
+  // The model tells each defect from this cache: built with it, it
+  // predicts what a cache with that defect would do, and the cache differs
+  // from that within a few sequences of a fixed seed.
+  for (final defect in _Defect.values) {
+    test('it tells a cache whose ${defect.name} from this one', () async {
       final r = Random(20261116);
       String? broken;
       for (var i = 0; i < 200 && broken == null; i++) {
-        broken = await _sequence(r, 40, fault: fault);
+        broken = await _sequence(r, 40, defect: defect);
       }
       expect(broken, isNotNull);
     }, timeout: const Timeout(Duration(minutes: 5)));

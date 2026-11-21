@@ -55,22 +55,6 @@ final class Snapshot<T> {
   bool get fromCache => source == SnapshotSource.cache;
 }
 
-/// A defect [SwrCache] can be built with, so that the tests of the cache's
-/// reference models show each model catches it. The app never sets one.
-@visibleForTesting
-enum CacheFault {
-  /// [SwrCache.serves] asks only for the epoch, not for its owner.
-  servesIgnoresOwner,
-
-  /// [SwrCache.serve] gives the epoch a new owner without starting a new
-  /// one.
-  serveKeepsEpoch,
-
-  /// [SwrCache.read] returns what it read without checking it again once
-  /// the store has answered.
-  readUnchecked,
-}
-
 /// Stale-while-revalidate storage for query results, namespaced per user so
 /// one account never sees another's cached data, and cleared when a
 /// session ends (`DeviceDataWipe`).
@@ -98,12 +82,11 @@ enum CacheFault {
 /// decoded (it was tampered with, or the format changed) is deleted and
 /// treated as missing.
 final class SwrCache {
-  new(this._store, {DateTime Function()? clock, @visibleForTesting this._fault})
+  new(this._store, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
 
   final KeyValueStore _store;
   final DateTime Function() _clock;
-  final CacheFault? _fault;
 
   /// The store, for tests that put entries in it as an earlier run left
   /// them.
@@ -145,7 +128,7 @@ final class SwrCache {
   }
 
   void _start(String? owner) {
-    if (_fault != CacheFault.serveKeepsEpoch) _epoch++;
+    _epoch++;
     _owner = owner;
     _members = null;
     _claimed = 0;
@@ -154,9 +137,7 @@ final class SwrCache {
   /// Whether the cache serves [userId] in [epoch]: it is the current epoch,
   /// and [userId] owns it.
   bool serves(String? userId, int epoch) =>
-      userId != null &&
-      epoch == _epoch &&
-      (_fault == CacheFault.servesIgnoresOwner || userId == _owner);
+      userId != null && epoch == _epoch && userId == _owner;
 
   /// [epoch], when the cache [serves] [userId] in it. Throws
   /// [SessionExpired] otherwise: a command reads it before each request,
@@ -296,11 +277,10 @@ final class SwrCache {
     final found = await Future.wait([
       for (final key in keys) _readKey(key, decode),
     ]);
-    final checked = _fault != CacheFault.readUnchecked;
     // Asked once every read has returned, of every copy: the session may
     // have ended, or a list been applied, while the store read, and the
     // portfolio list's names are in its value.
-    if (checked && !serves(userId, epoch)) return null;
+    if (!serves(userId, epoch)) return null;
     Snapshot<T>? newest;
     for (final (index, snapshot) in found.indexed) {
       if (snapshot == null) continue;
@@ -308,7 +288,7 @@ final class SwrCache {
       final names = scope is OwnScope<T>
           ? scope.portfoliosOf(snapshot.value)
           : const <String>{};
-      if (checked && !_keeps(_parse(key)!.tag, names)) {
+      if (!_keeps(_parse(key)!.tag, names)) {
         _forget(key);
         continue;
       }
