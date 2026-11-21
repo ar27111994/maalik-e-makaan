@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
@@ -56,11 +57,13 @@ class PaymentScoreSection extends ConsumerWidget {
               ),
               null => Text(l10n.scoreNotYet, style: text.bodyLarge),
             },
-            AsyncValue(:final error?) => MmErrorState(
-              title: l10n.scoresLoadFailedTitle,
-              message: failureMessage(l10n, AppFailure.from(error)),
-              onRetry: () => ref.invalidate(paymentFactsProvider(portfolio.id)),
-            ),
+            AsyncValue(:final error?) when !waitsForSession(scores) =>
+              MmErrorState(
+                title: l10n.scoresLoadFailedTitle,
+                message: failureMessage(l10n, AppFailure.from(error)),
+                onRetry: () =>
+                    ref.invalidate(paymentFactsProvider(portfolio.id)),
+              ),
             _ => Semantics(
               container: true,
               label: l10n.loadingScores,

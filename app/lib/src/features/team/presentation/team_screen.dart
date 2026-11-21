@@ -54,7 +54,7 @@ class TeamScreen extends ConsumerWidget {
             RefreshNotice(state: state, onRetry: retry),
             if (team != null)
               _TeamBody(portfolio: portfolio, team: team)
-            else if (state.error case final error?)
+            else if (state.error case final error? when !waitsForSession(state))
               MmErrorState(
                 title: l10n.teamLoadFailedTitle,
                 message: failureMessage(l10n, AppFailure.from(error)),
