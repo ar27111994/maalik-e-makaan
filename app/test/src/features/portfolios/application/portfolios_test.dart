@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
@@ -669,6 +671,24 @@ void main() {
         });
       }
     }
+
+    test("nor by a build whose saved list is read after another account's "
+        'status comes', () async {
+      final app = TestApp();
+      final reading = app.store.readsHeld = Completer();
+      final container = containerFor(app);
+      listen(container, portfoliosProvider(testUserId));
+      await pumpEventQueue();
+      // The build waits for the saved list; another account signs in.
+      await app.cache.clear();
+      app.auth.emit(other);
+      await pumpEventQueue();
+      // Its read answers: the list would be asked with the other's token.
+      reading.complete();
+      await pumpEventQueue();
+      expect(app.portfolios.calls, isEmpty);
+      expect(app.cache.portfoliosOf(testUserId), isNull);
+    });
 
     test('nor on a list first read after the session ended', () async {
       final app = TestApp();

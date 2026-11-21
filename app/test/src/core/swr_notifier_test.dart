@@ -344,6 +344,36 @@ void main() {
     });
   });
 
+  test("a build whose saved copy is read after another account's status "
+      'comes asks for nothing', () async {
+    final store = MemoryStore();
+    final cache = SwrCache(store);
+    final auth = FakeAuthRepository(_u1);
+    final asked = <String>[];
+    final reading = store.readsHeld = Completer();
+    ProviderContainer.test(
+      overrides: [
+        swrCacheProvider.overrideWithValue(cache),
+        authRepositoryProvider.overrideWithValue(auth),
+        _answer.overrideWithValue(() {
+          asked.add((auth.status as SignedIn).userId);
+          return Completer<int>().future;
+        }),
+      ],
+    ).listen(_count, (_, _) {});
+    await pumpEventQueue();
+    // u1's build waits for its saved copy; u1 signs out and u2 signs in.
+    await cache.clear();
+    store.readsHeld = null;
+    auth.emit(_u2);
+    await pumpEventQueue();
+    expect(asked, ['u2']);
+    // u1's read answers: its fetch would go out with u2's token.
+    reading.complete();
+    await pumpEventQueue();
+    expect(asked, ['u2']);
+  });
+
   test('nobody signed in: nothing is asked for, shown or saved', () async {
     final signedOut = ProviderContainer.test(
       overrides: [

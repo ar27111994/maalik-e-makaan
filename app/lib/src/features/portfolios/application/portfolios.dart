@@ -84,7 +84,8 @@ final class PortfoliosController
 
   /// The saved list first (when there is one), then the server's, saved
   /// for [epoch], the cache's when the list was built. A failing read ends
-  /// the stream with its error after the saved list.
+  /// the stream with its error after the saved list. Once the cache no
+  /// longer serves [epoch]'s session, the list is not asked for.
   Stream<Snapshot<List<PortfolioMembership>>> _watch(
     SwrCache cache,
     PortfolioRepository repository,
@@ -95,6 +96,9 @@ final class PortfoliosController
       _shown = epoch;
       yield saved;
     }
+    // Asked again: the session may have ended while the store read, and the
+    // request would go out with the next account's token.
+    if (!cache.serves(userId, epoch)) return;
     final asked = cache.ask();
     final list = await repository.listMine(userId);
     final fresh = _save(cache, list, epoch, asked: asked);

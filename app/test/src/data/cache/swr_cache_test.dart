@@ -65,8 +65,13 @@ final class _SlowReads implements KeyValueStore {
   /// The keys whose reads wait; every key's while it is empty.
   final only = <String>{};
 
+  /// How many reads, and listings of the keys, the cache asked for.
+  int reads = 0;
+  int listings = 0;
+
   @override
   Future<String?> read(String key) async {
+    reads++;
     final value = await inner.read(key);
     if (only.isEmpty || only.contains(key)) await held?.future;
     return value;
@@ -79,7 +84,10 @@ final class _SlowReads implements KeyValueStore {
   Future<void> delete(String key) => inner.delete(key);
 
   @override
-  Future<Set<String>> keys() => inner.keys();
+  Future<Set<String>> keys() {
+    listings++;
+    return inner.keys();
+  }
 }
 
 /// A list of rows, each of a portfolio or of none, as a feature's list.
@@ -1551,6 +1559,87 @@ void main() {
       expect(await reading, isNull);
     });
 
+    test('a read asked in an epoch the cache no longer serves asks nothing '
+        'of the store', () async {
+      final slow = _SlowReads();
+      final cache = SwrCache(slow)..serve(_user);
+      final ended = cache.epoch;
+      await cache.write(
+        _user,
+        'a',
+        InPortfolio<int>(_a),
+        1,
+        _same,
+        epoch: ended,
+      );
+      await cache.write(_user, 'b', _fromRows, [_a], _same, epoch: ended);
+      // What the writes asked of the store is not counted.
+      await pumpEventQueue();
+      slow
+        ..reads = 0
+        ..listings = 0;
+      cache.serve('u2');
+      expect(
+        await cache.read(
+          _user,
+          'a',
+          InPortfolio<int>(_a),
+          _decodeInt,
+          epoch: ended,
+        ),
+        isNull,
+      );
+      expect(
+        await cache.read(_user, 'b', _fromRows, _decodeRows, epoch: ended),
+        isNull,
+      );
+      expect((slow.reads, slow.listings), (0, 0));
+    });
+
+    test('a read whose listing of the keys answers after another account is '
+        'served reads nothing more', () async {
+      final slow = _SlowReads();
+      final cache = SwrCache(slow)..serve(_user);
+      await cache.write(_user, 'b', _fromRows, [_a], _same, epoch: cache.epoch);
+      await pumpEventQueue();
+      slow.listings = 0;
+      final listing = slow.inner.keysHeld = Completer();
+      final reading = cache.read(
+        _user,
+        'b',
+        _fromRows,
+        _decodeRows,
+        epoch: cache.epoch,
+      );
+      await pumpEventQueue();
+      expect(slow.listings, 1);
+      cache.serve('u2');
+      listing.complete();
+      expect(await reading, isNull);
+      expect(slow.reads, 0);
+    });
+
+    test('an entry that cannot be decoded, read when the store answers after '
+        'another account is served, is left for that session', () async {
+      final slow = _SlowReads();
+      final cache = SwrCache(slow)..serve(_user);
+      final key = SwrCache.keyOf(_user, const PortfolioTag(_a), 'a');
+      slow.inner.values[key] = 'not json';
+      slow.held = Completer();
+      final reading = cache.read(
+        _user,
+        'a',
+        InPortfolio<int>(_a),
+        _decodeInt,
+        epoch: cache.epoch,
+      );
+      await pumpEventQueue();
+      cache.serve('u2');
+      slow.held!.complete();
+      expect(await reading, isNull);
+      expect(slow.inner.values, {key: 'not json'});
+    });
+
     test('a write that lands after another account is served is deleted, '
         'and shows nothing', () async {
       final slow = _SlowStore()..held = Completer();
@@ -1672,6 +1761,33 @@ void main() {
       answer.complete(3);
       expect(await watching, isEmpty);
       expect(store.values, isEmpty);
+    });
+
+    test('a build whose saved copy is read after another account is served '
+        'fetches nothing', () async {
+      final slow = _SlowReads()..held = Completer();
+      final cache = SwrCache(slow)..serve(_user);
+      var fetched = false;
+      final watching = cache
+          .watch(
+            userId: _user,
+            epoch: cache.epoch,
+            query: 'x',
+            scope: InPortfolio<int>(_a),
+            fetch: () async {
+              fetched = true;
+              return 3;
+            },
+            decode: _decodeInt,
+            encode: _same,
+          )
+          .toList();
+      await pumpEventQueue();
+      expect(slow.reads, 1);
+      cache.serve('u2');
+      slow.held!.complete();
+      expect(await watching, isEmpty);
+      expect(fetched, isFalse);
     });
 
     test('the copies of a query whose portfolio comes from its value are not '

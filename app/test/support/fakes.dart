@@ -775,9 +775,14 @@ final class MemoryStore implements KeyValueStore {
   /// While set, no read answers, as a platform call that hangs.
   bool hangingReads = false;
 
+  /// While set, every read waits for it, and then reads the value there is
+  /// when it completes.
+  Completer<void>? readsHeld;
+
   @override
   Future<String?> read(String key) async {
     if (hangingReads) await Completer<void>().future;
+    if (readsHeld case final held?) await held.future;
     return values[key];
   }
 

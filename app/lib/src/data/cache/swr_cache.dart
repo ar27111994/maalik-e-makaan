@@ -254,8 +254,10 @@ final class SwrCache {
   }
 
   /// The cached value of [query] for [userId], asked for in [epoch], or
-  /// null; null too unless the cache [serves] [userId] in [epoch], when it
-  /// starts and once the store has answered. While a list of portfolios is
+  /// null; null too unless the cache [serves] [userId] in [epoch]: asked
+  /// when it starts, and again each time the store answers (the listing of
+  /// the keys, each read, all the reads), and nothing more is asked of the
+  /// store once it does not. While a list of portfolios is
   /// applied, an entry the cache would not keep counts as missing, and its
   /// deletion is asked for. An entry whose portfolio is known only from its
   /// value ([FromValue]) is found under whichever tag it has, the newest
@@ -273,9 +275,10 @@ final class SwrCache {
     final keys = known != null
         ? [keyOf(userId, known, query)]
         : await _keysOf(userId, query);
-    if (keys == null) return null;
+    // Asked again once the store has listed the keys.
+    if (keys == null || !serves(userId, epoch)) return null;
     final found = await Future.wait([
-      for (final key in keys) _readKey(key, decode),
+      for (final key in keys) _readKey(key, decode, userId, epoch),
     ]);
     // Asked once every read has returned, of every copy: the session may
     // have ended, or a list been applied, while the store read, and the
@@ -300,13 +303,16 @@ final class SwrCache {
   }
 
   /// The snapshot saved under [key], or null; an entry that cannot be
-  /// decoded is deleted.
+  /// decoded is deleted. Null, and nothing deleted, unless the cache still
+  /// [serves] [userId] in [epoch] once the store has read it.
   Future<Snapshot<T>?> _readKey<T>(
     String key,
     T Function(Object? json) decode,
+    String userId,
+    int epoch,
   ) async {
     final raw = await _store.read(key);
-    if (raw == null) return null;
+    if (raw == null || !serves(userId, epoch)) return null;
     final Snapshot<T> snapshot;
     try {
       final entry = jsonDecode(raw);
@@ -588,10 +594,11 @@ final class SwrCache {
   /// next to the error.
   ///
   /// Unless the cache [serves] [userId] in [epoch], the stream is a
-  /// [SessionExpired] error, and nothing is read or fetched; when it no
-  /// longer does once the fresh value comes, that value is not shown, and
-  /// the stream ends without it (not with an error: nobody may listen any
-  /// more, and the provider is built again for the next session).
+  /// [SessionExpired] error, and nothing is read or fetched. When it no
+  /// longer does once the cached value is read, nothing is fetched; when it
+  /// no longer does once the fresh value comes, that value is not shown.
+  /// Either way the stream ends there (not with an error: nobody may listen
+  /// any more, and the provider is built again for the next session).
   Stream<Snapshot<T>> watch<T>({
     required String? userId,
     required int epoch,
@@ -626,6 +633,9 @@ final class SwrCache {
   }) async* {
     final cached = await read(userId, query, scope, decode, epoch: epoch);
     if (cached != null) yield cached;
+    // Asked again: the session may have ended while the store read, and the
+    // fetch would go out with the next account's token.
+    if (!serves(userId, epoch)) return;
     final fresh = await fetch();
     final saved = await save(userId, query, scope, fresh, encode, epoch: epoch);
     if (saved != null) yield saved;
