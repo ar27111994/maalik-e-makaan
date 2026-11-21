@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/device/device_data.dart';
+import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/application/portfolios.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team_repository.dart';
@@ -64,32 +65,45 @@ final class PendingInvitationController extends Notifier<String?> {
   /// account (another address, or one not confirmed), which signing in
   /// with the invited address puts right. A failure to reach the server
   /// throws [AppFailure] and keeps it, to try again.
+  ///
+  /// The answer is the asking session's alone ([sessionProvider], read
+  /// before the request): when that session has ended by the time it
+  /// comes (also when another account has signed in since), nothing is
+  /// read or chosen for anyone, and it throws [SessionExpired] once the
+  /// invitation is forgotten as above. With no session, nothing is asked
+  /// and the invitation is kept.
   Future<AcceptOutcome> accept() async {
     final token = state;
     if (token == null) {
       return const InvitationRefused(InvitationRefusal.invalid);
     }
+    final session = ref.read(sessionProvider);
+    final cache = ref.read(swrCacheProvider)
+      ..require(session?.userId, session?.epoch ?? 0);
+    final (:userId, :epoch) = session!;
     final outcome = await ref.read(teamRepositoryProvider).accept(token);
-    if (outcome is InvitationAccepted) {
-      final userId = ref.read(currentUserIdProvider);
-      if (userId != null) {
-        try {
-          await ref.read(portfoliosProvider(userId).notifier).reload();
-        } on AppFailure {
-          ref.invalidate(portfoliosProvider(userId));
-        }
-        await ref
-            .read(selectedPortfolioProvider(userId).notifier)
-            .select(outcome.portfolioId);
-      }
-    }
     // Signed in with another address, or one not confirmed yet: kept, so
-    // signing in with the invited address picks it up again.
+    // signing in with the invited address picks it up again. Otherwise it
+    // is used up, whoever is signed in now.
     final retryable =
         outcome is InvitationRefused &&
         (outcome.reason == InvitationRefusal.emailMismatch ||
             outcome.reason == InvitationRefusal.emailNotVerified);
     if (!retryable) await clear();
+    cache.require(userId, epoch);
+    if (outcome is InvitationAccepted) {
+      try {
+        await ref.read(portfoliosProvider(userId).notifier).reload();
+      } on AppFailure {
+        ref.invalidate(portfoliosProvider(userId));
+      }
+      // Not in the same account's next session either.
+      if (cache.serves(userId, epoch)) {
+        await ref
+            .read(selectedPortfolioProvider(userId).notifier)
+            .select(outcome.portfolioId);
+      }
+    }
     return outcome;
   }
 }

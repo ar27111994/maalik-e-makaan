@@ -550,8 +550,48 @@ void main() {
       expect(container.read(pendingInvitationProvider), isNull);
     });
 
-    test('accepted after the session ended meanwhile, it chooses no '
-        'portfolio on the device', () async {
+    test(
+      'accepted after the session ended meanwhile, it is forgotten, '
+      'chooses no portfolio on the device, and the caller hears why',
+      () async {
+        final app =
+            TestApp(settings: {AppSettings.pendingInvitationKey: 'abc.def'})
+              ..team.acceptOutcome = InvitationAccepted(
+                portfolioId: plaza.id,
+                role: MemberRole.manager,
+              );
+        final container = containerFor(app);
+        listen(container, currentPortfolioProvider);
+        await pumpEventQueue();
+        app.team.gate.close();
+        final accepting = container
+            .read(pendingInvitationProvider.notifier)
+            .accept();
+        await pumpEventQueue();
+        await DeviceDataWipe(
+          cache: app.cache,
+          settings: app.settings,
+          scratch: app.scratch,
+        ).wipe(WipeReason.signedOut);
+        app.team.gate.open();
+        await expectLater(accepting, throwsA(isA<SessionExpired>()));
+        expect(
+          app.settings.values,
+          isNot(contains(AppSettings.currentPortfolioKey)),
+        );
+        expect(container.read(selectedPortfolioProvider(testUserId)), isNull);
+        // Used up on the server: kept, it would be refused next time.
+        expect(container.read(pendingInvitationProvider), isNull);
+        expect(
+          app.settings.values,
+          isNot(contains(AppSettings.pendingInvitationKey)),
+        );
+      },
+    );
+
+    test('accepted after another account signed in meanwhile, it chooses no '
+        'portfolio for that account, and is forgotten', () async {
+      const other = SignedIn(userId: 'other', email: 'o@example.com');
       final app =
           TestApp(settings: {AppSettings.pendingInvitationKey: 'abc.def'})
             ..team.acceptOutcome = InvitationAccepted(
@@ -566,18 +606,103 @@ void main() {
           .read(pendingInvitationProvider.notifier)
           .accept();
       await pumpEventQueue();
+      // The first account signs out (its wipe), and another signs in,
+      // before the answer comes.
       await DeviceDataWipe(
         cache: app.cache,
         settings: app.settings,
         scratch: app.scratch,
       ).wipe(WipeReason.signedOut);
+      app.auth.emit(other);
+      await pumpEventQueue();
+      final listed = app.portfolios.calls.length;
       app.team.gate.open();
-      expect(await accepting, isA<InvitationAccepted>());
+      await expectLater(accepting, throwsA(isA<SessionExpired>()));
+      await pumpEventQueue();
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(container.read(selectedPortfolioProvider(other.userId)), isNull);
+      // Nobody's list was asked for again on its account.
+      expect(app.portfolios.calls, hasLength(listed));
+      expect(container.read(pendingInvitationProvider), isNull);
+    });
+
+    test("accepted, when the same account's next session begins while the "
+        'list is read, it chooses no portfolio in that session', () async {
+      final app =
+          TestApp(settings: {AppSettings.pendingInvitationKey: 'abc.def'})
+            ..team.acceptOutcome = InvitationAccepted(
+              portfolioId: plaza.id,
+              role: MemberRole.manager,
+            );
+      final container = containerFor(app);
+      listen(container, currentPortfolioProvider);
+      await pumpEventQueue();
+      app.portfolios.scripted = true;
+      final accepting = container
+          .read(pendingInvitationProvider.notifier)
+          .accept();
+      await pumpEventQueue();
+      expect(app.portfolios.answers, hasLength(1));
+      await DeviceDataWipe(
+        cache: app.cache,
+        settings: app.settings,
+        scratch: app.scratch,
+      ).wipe(WipeReason.signedOut);
+      app.auth.emit(signedIn);
+      await pumpEventQueue();
+      app.portfolios.answers.first.complete([gulberg, plaza]);
+      final outcome = await accepting;
+      expect(outcome, isA<InvitationAccepted>());
+      await pumpEventQueue();
       expect(
         app.settings.values,
         isNot(contains(AppSettings.currentPortfolioKey)),
       );
       expect(container.read(selectedPortfolioProvider(testUserId)), isNull);
+    });
+
+    test('refused after the session ended meanwhile, the caller hears why; '
+        'it is forgotten unless the account is the reason', () async {
+      for (final reason in [
+        InvitationRefusal.expired,
+        InvitationRefusal.emailMismatch,
+      ]) {
+        final app = TestApp(
+          settings: {AppSettings.pendingInvitationKey: 'abc.def'},
+        )..team.acceptOutcome = InvitationRefused(reason);
+        final container = containerFor(app);
+        await pumpEventQueue();
+        app.team.gate.close();
+        final accepting = container
+            .read(pendingInvitationProvider.notifier)
+            .accept();
+        await pumpEventQueue();
+        await app.cache.clear();
+        app.team.gate.open();
+        await expectLater(accepting, throwsA(isA<SessionExpired>()));
+        expect(
+          container.read(pendingInvitationProvider),
+          reason == InvitationRefusal.emailMismatch ? 'abc.def' : isNull,
+          reason: '$reason',
+        );
+      }
+    });
+
+    test('signed out, it asks for nothing and is kept', () async {
+      final app = TestApp(
+        auth: const SignedOut(),
+        settings: {AppSettings.pendingInvitationKey: 'abc.def'},
+      );
+      final container = containerFor(app);
+      await expectLater(
+        container.read(pendingInvitationProvider.notifier).accept(),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.team.calls, isEmpty);
+      expect(container.read(pendingInvitationProvider), 'abc.def');
     });
 
     test(

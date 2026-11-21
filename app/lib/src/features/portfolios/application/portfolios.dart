@@ -208,9 +208,12 @@ final class PortfoliosController
         math.min(epoch, _shown),
       );
     }
-    await ref
-        .read(selectedPortfolioProvider(userId).notifier)
-        .select(created.id);
+    // Chosen in the session that created it, not in the next one.
+    if (cache.serves(userId, epoch)) {
+      await ref
+          .read(selectedPortfolioProvider(userId).notifier)
+          .select(created.id);
+    }
     return created;
   }
 
@@ -335,10 +338,12 @@ final class SelectedPortfolioController extends Notifier<String?> {
   }
 
   /// Makes [portfolioId] the current portfolio on this device, while the
-  /// cache serves this user ([SwrCache.serves]): when their session has
-  /// ended (also during the request of a command that chooses it after),
-  /// nothing is chosen, and nothing is written on the device that its wipe
-  /// removed.
+  /// cache serves this user ([SwrCache.serves]): while it serves nobody, or
+  /// another account, nothing is chosen, and nothing is written on the
+  /// device that its wipe removed. It does not know the session a command
+  /// asked in, and the same user's next session is served too: a command
+  /// that chooses one after its request asks first whether the cache still
+  /// serves the session of that request.
   Future<void> select(String portfolioId) async {
     final cache = ref.read(swrCacheProvider);
     if (!cache.serves(userId, cache.epoch)) return;

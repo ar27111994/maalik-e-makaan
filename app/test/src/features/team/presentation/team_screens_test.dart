@@ -570,6 +570,34 @@ void main() {
       expect(find.text('Welcome to Gulberg Houses'), findsOneWidget);
     });
 
+    testWidgets('answered after its session ended, it says so and offers no '
+        'second try of an invitation used up', (tester) async {
+      final app = _invited(
+        InvitationAccepted(portfolioId: plaza.id, role: MemberRole.manager),
+      )..team.gate.close();
+      await pumpScreen(
+        tester,
+        AcceptInvitationScreen.new,
+        app: app,
+        settle: false,
+      );
+      await tester.pump();
+      expect(find.text('Opening your invitation…'), findsOneWidget);
+      // The session ends while the answer is on its way.
+      await app.cache.clear();
+      app.team.gate.open();
+      await tester.pumpAndSettle();
+      expect(find.text('The invitation could not be opened'), findsOneWidget);
+      expect(
+        find.text('Your session has ended. Please sign in again.'),
+        findsOneWidget,
+      );
+      expect(find.text('Try again'), findsNothing);
+      expect(find.text('Not now'), findsNothing);
+      await _tap(tester, 'Go to the app');
+      expect(routeShown(Routes.home), findsOneWidget);
+    });
+
     testWidgets('setting it aside forgets it', (tester) async {
       final app = _invited()..team.gate.failure = const NetworkFailure();
       await pumpScreen(tester, AcceptInvitationScreen.new, app: app);

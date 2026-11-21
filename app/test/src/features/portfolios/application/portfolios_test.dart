@@ -451,6 +451,38 @@ void main() {
       );
     });
 
+    test("creating, when the same account's next session begins while the "
+        'list is read', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      await _current(container);
+      app.portfolios.scripted = true;
+      final creating = container
+          .read(portfoliosProvider(testUserId).notifier)
+          .create(name: 'Khan family', id: 'p-new');
+      await pumpEventQueue();
+      expect(app.portfolios.answers, hasLength(1));
+      await DeviceDataWipe(
+        cache: app.cache,
+        settings: app.settings,
+        scratch: app.scratch,
+      ).wipe(WipeReason.signedOut);
+      app.auth.emit(signedIn);
+      await pumpEventQueue();
+      app.portfolios.answers.first.complete([gulberg, plaza]);
+      expect((await creating).id, 'p-new');
+      await pumpEventQueue();
+      // Its session has ended: the next one chooses for itself.
+      expect(
+        app.settings.values,
+        isNot(contains(AppSettings.currentPortfolioKey)),
+      );
+      expect(
+        container.read(selectedPortfolioProvider(testUserId)),
+        isNot('p-new'),
+      );
+    });
+
     test('nothing is chosen while the cache serves another account, or '
         'nobody', () async {
       final app = TestApp();
