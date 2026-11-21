@@ -51,7 +51,9 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   epoch from it, as `SwrNotifier`, `PortfoliosController`, `ProfileController`,
   `ResidenceController` and `AccountDeletionController` do; built for another user than the build before,
   or for nobody, it sets `state = sessionChanged()` before anything else, since Riverpod would
-  keep the earlier account's value on show. A command reads `requestEpoch()` (in a
+  keep the earlier account's value on show. A screen that shows a provider's error asks
+  `waitsForSession(state)` first and shows that state as loading (`SnapshotView` does), as the
+  account signed in now has not failed. A command reads `requestEpoch()` (in a
   controller that is not an `SwrNotifier`, `SwrCache.require`) before each request, or
   `shownEpoch` with the value on show it builds on: either throws `SessionExpired` once the
   session has ended, so a new command does the same, also before a second request. One that

@@ -264,7 +264,11 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   read then still sent its request with the next account's token (each now asks again); an
   invitation's late answer forgot the one the next account had opened since (only the invitation
   answered is forgotten); bootstrap's start-up wipe was run by no test (it now is); and five lines
-  were held by no test (now pinned). A
+  were held by no test (now pinned). The last check of that round found that a screen left open
+  while another account's session replaced the user's said the session had ended, with "Try
+  again", to the person now signed in, until that account's first answer came; screens now show
+  that state as loading (`waitsForSession`, which knows `sessionChanged`'s state by a stack trace
+  only it gives its error), and a session that really expired still shows as one. A
   command that chooses the current portfolio after a request chooses nothing when the
   session it asked in has ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an

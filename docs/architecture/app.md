@@ -380,7 +380,17 @@ else does then, since a picker may be handing over a copy.
     (`sessionChanged`: loading, with `SessionExpired` and no value), so none
     of them holds the earlier account's value in the next account's
     session, whatever a screen reads of it; built for a new session of the
-    same user, it keeps it until the new one comes. Two providers outside
+    same user, it keeps it until the new one comes. A screen shows that
+    state as it shows a first read, loading, not as a failure with "Try
+    again": nothing failed for the person signed in. Every screen that
+    shows a provider's error asks `waitsForSession` first (`SnapshotView`,
+    the team, the deletion preview, the portfolio details, a tenant's
+    payment score, the reports' scores, and a new tenancy, where a part
+    still on its way no longer hides one that failed); it is true only for
+    that state, whose error carries a stack trace that only
+    `sessionChanged` makes, so a `SessionExpired` that really failed a read
+    still shows as a failure, also while "Try again" loads (Riverpod keeps
+    the error then). Two providers outside
     them can: the unread count, built again for the next user, keeps the
     earlier number until that build answers (`unreadCountProvider`), and the
     links made for the document a sheet shows stay until the sheet closes,
@@ -480,9 +490,9 @@ else does then, since a picker may be handing over a copy.
     Around the end of a session: a screen opened between a wipe's start and
     the status after it shows an expired session instead of loading, then
     the router moves on; a screen that stays open while another account
-    signs in shows an expired session (no value) until that account's first
-    answer; the answer to a request on its way when the session
-    ended is not shown (with the same account signed in again inside one
+    signs in shows loading (nothing of the earlier account) until that
+    account's first answer; the answer to a request on its way when the
+    session ended is not shown (with the same account signed in again inside one
     request, the new session's own read shows the server's state); a command
     whose session ended after its request reports an expired session
     although its change was made (a portfolio created then is not chosen on
