@@ -431,7 +431,9 @@ void main() {
     testWidgets('and answers later finishes what it was asked, and touches '
         'nothing of the account signed in since', (tester) async {
       final late = _LateStore();
-      final lateCache = SwrCache(late);
+      // Served as the signed-in account is: what it asks for is saved.
+      final lateCache = SwrCache(late)..serve(testUserId);
+      final asked = lateCache.epoch;
       await lateCache.seed(testUserId, 'tenants', 1);
       final stuck = DeviceDataWipe(
         cache: lateCache,
@@ -452,6 +454,7 @@ void main() {
         AppSettings.currentPortfolioKey: 'next/p2',
         AppSettings.pendingInvitationKey: 'next.invitation',
       };
+      lateCache.serve('next-user');
       for (final MapEntry(:key, :value) in next.entries) {
         await settings.setString(key, value);
       }
@@ -463,13 +466,16 @@ void main() {
       expect(settings.values, {..._display, ...next});
       expect(wiped, [WipeReason.accountDeleted]);
       // A fetch of the first account that was on its way is still dropped.
-      await lateCache.write(
-        testUserId,
-        'tenants',
-        scopeOf('tenants', portfolio: gulberg.id),
-        2,
-        (value) => value,
-        epoch: 0,
+      expect(
+        await lateCache.write(
+          testUserId,
+          'tenants',
+          scopeOf('tenants', portfolio: gulberg.id),
+          2,
+          (value) => value,
+          epoch: asked,
+        ),
+        isNull,
       );
       expect(late.inner.values, isEmpty);
     });
@@ -733,6 +739,7 @@ void main() {
       await pumpEventQueue();
       // The next account signs in, chooses a portfolio, and signs out with
       // a fetch of its still on its way.
+      lateCache.serve('next-user');
       await settings.setString(AppSettings.currentPortfolioKey, 'next/p2');
       late.inner.holding.add(cacheKey('next-user', 'tenants'));
       final writing = lateCache.write(
@@ -744,11 +751,12 @@ void main() {
         epoch: lateCache.epoch,
       );
       await pumpEventQueue();
+      expect(late.inner.heldWrites, 1, reason: 'its fetch is on its way');
       final second = timed.wipe(WipeReason.signedOut);
       await pumpEventQueue();
       expect(settings.values, isNot(contains(AppSettings.currentPortfolioKey)));
       late.inner.finishHeldWritesOldestFirst();
-      await writing;
+      expect(await writing, isNull);
       late.listing.complete();
       await Future.wait([first, second]);
       expect(late.inner.values, isEmpty);
