@@ -400,6 +400,114 @@ void main() {
     );
   });
 
+  // A confirm dialog opened on a record keeps what it says above the page,
+  // as a sheet does, while another account's session replaces the user's.
+  // The part of the screen that opened it goes with the record (the screen
+  // shows loading), so confirming it then sends nothing (app.md, the
+  // providers' paragraph).
+  testWidgets("a confirm dialog opened on a tenant's screen keeps the "
+      "tenant's name while another account's session replaces the user's, "
+      'and confirming it then deletes nothing', (tester) async {
+    final app = await _pumpApp(
+      tester,
+      location: Routes.tenant(aliRaza.id),
+      size: const Size(390, 2400),
+    );
+    final delete = find.text('Delete').last;
+    await tester.ensureVisible(delete);
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    final dialog = find.byType(Dialog);
+    final title = find.descendant(
+      of: dialog,
+      matching: find.text('Delete Ali Raza?'),
+    );
+    expect(title, findsOneWidget);
+    app.tenants.gate.close();
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    var kept = 0;
+    var loading = 0;
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (title.evaluate().isNotEmpty) kept++;
+      if (find.bySemanticsLabel('Loading the tenant').evaluate().isNotEmpty) {
+        loading++;
+      }
+    }
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaalikApp)),
+    );
+    expect(container.read(currentUserIdProvider), otherAccount.userId);
+    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
+    app.tenants.gate.open();
+    await tester.pumpAndSettle();
+    expect(title, findsOneWidget);
+    final asked = app.tenants.calls.length;
+    await tester.tap(
+      find.descendant(of: dialog, matching: find.text('Delete')),
+    );
+    await tester.pumpAndSettle();
+    expect(dialog, findsNothing);
+    expect(app.tenants.calls.skip(asked), isEmpty);
+    expect(
+      app.tenants.calls.where((call) => call.$1 == 'deleteTenant'),
+      isEmpty,
+    );
+  });
+
+  // A confirm dialog opened on a sheet is the sheet's, and the sheet stays
+  // open (above), so confirming it still asks, now with the next account's
+  // session: row-level security decides what that account may do. Named,
+  // not fixed, in app.md (the providers' paragraph).
+  testWidgets('removing an occupant confirmed on its sheet after another '
+      "account's session replaced the user's is still asked for", (
+    tester,
+  ) async {
+    final app = await _pumpApp(
+      tester,
+      location: Routes.lease(aliLease.id),
+      size: const Size(390, 3600),
+    );
+    final occupant = find.text('Sana Raza').last;
+    await tester.ensureVisible(occupant);
+    await tester.tap(occupant);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OccupantSheet),
+        matching: find.widgetWithText(MmButton, 'Remove'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final dialog = find.byType(Dialog);
+    final title = find.descendant(
+      of: dialog,
+      matching: find.text('Remove Sana Raza?'),
+    );
+    expect(title, findsOneWidget);
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaalikApp)),
+    );
+    expect(container.read(currentUserIdProvider), otherAccount.userId);
+    expect(title, findsOneWidget);
+    await tester.tap(
+      find.descendant(of: dialog, matching: find.text('Remove')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      app.leases.calls
+          .where((call) => call.$1 == 'deleteOccupant')
+          .map((call) => call.$2),
+      [
+        ['occ-1'],
+      ],
+    );
+  });
+
   testWidgets('a session that ends elsewhere returns to sign-in, then back', (
     tester,
   ) async {

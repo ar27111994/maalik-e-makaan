@@ -715,6 +715,15 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   invitation stays unless gotrue's call to the server ends before the held wipe does.
   `docs/architecture/app.md` (Hooks) and the command's doc comment name it; the privacy page does
   not, as it needs a store that fails. The owner's call whether the privacy page should say it too.
+- App: a sheet left open while another account signs in (another tab) keeps the earlier account's
+  record on show, and its buttons, and a confirm dialog it opened (removing a member or an occupant,
+  withdrawing an invitation, deleting a document), still send their request, now with that account's
+  token, so row-level security decides what that account may do (found on #70, 22 November 2026;
+  older than #70). So do a new tenant's form and its warning, which names the earlier account's
+  tenant with that CNIC or phone. A confirm dialog that a screen opened sends nothing then, as that
+  part of the screen has gone. `docs/architecture/app.md` names it, and `app_test.dart` pins both.
+  The owner's call whether sheets and dialogs should close at an account change, or a sheet's
+  command ask whether the cache still serves the session it was opened in (`SwrCache.serves`).
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a

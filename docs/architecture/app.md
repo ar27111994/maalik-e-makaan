@@ -452,12 +452,25 @@ else does then, since a picker may be handing over a copy.
     what is typed belongs to whoever is at the device, and a new tenant's form
     left open keeps it too, while an edit screen filled from a record goes
     with that record and is filled again from the next account's own read. A
-    sheet does not: it is opened with the record it is about (an occupant, a
-    charge, a bill, a notification, a document, ending a tenancy) and shows
-    its own copy, above the page, which the router keeps, so it goes on
-    showing the earlier account's record, an occupant's CNIC and phone
-    included, until it is closed, as a document's sheet keeps its links;
-    closing the sheets when the account changes would be a new mechanism. A
+    sheet does not: it is opened with the record it is about (for example a
+    member or an invitation, with its e-mail address, an occupant, a charge,
+    a bill, a repair to resolve, a meter reading, a notification, a document,
+    ending a tenancy) and shows its own copy, above the page, which the
+    router keeps, so it goes on showing the earlier account's record, an
+    occupant's CNIC and phone included, until it is closed, as a document's
+    sheet keeps its links. So does a confirm dialog opened on a record (a
+    tenant's "Delete …?" with its name, an occupant's "Remove …?", and those
+    of a member, an invitation, a unit, a property, an expense, a bill, a
+    reading or a repair): it keeps what it says until it is closed, and so
+    does a new tenant's warning that another tenant has that CNIC or phone,
+    which names the earlier account's tenant. Confirming a dialog that a
+    screen opened then sends nothing: the part of the screen that opened it
+    went with the record, and it asks `mounted` after the dialog. A sheet
+    stays, so its buttons, and a dialog it opened (removing a member or an
+    occupant, withdrawing an invitation, deleting a document), still send
+    their request, as a new tenant's form does, now with the next account's
+    token: row-level security decides what that account may do. Closing the
+    sheets and dialogs when the account changes would be a new mechanism. A
     screen shows `sessionChanged`'s state as it shows a first read, loading,
     not as a failure with "Try again": nothing failed for the person signed
     in. Every
@@ -572,8 +585,10 @@ else does then, since a picker may be handing over a copy.
     shows loading (nothing the earlier account loaded) until that account's
     first answer (the search, whose results area is empty while that account's
     portfolios load, shows loading once its search asks, with the words typed
-    still in the field), while a sheet open above it keeps the record it was
-    opened with until it is closed; the answer to a
+    still in the field), while a sheet or a confirm dialog open above it
+    keeps the record it was opened with until it is closed (confirming a
+    dialog the screen opened then sends nothing; a sheet's buttons, and a
+    dialog the sheet opened, send with that account's token); the answer to a
     request on its way when the session ended is not shown (with the same
     account signed in again inside one
     request, the new session's own read shows the server's state); a command
