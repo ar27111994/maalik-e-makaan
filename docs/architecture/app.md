@@ -512,15 +512,28 @@ else does then, since a picker may be handing over a copy.
     be pressed any more. The exception is a sheet or dialog the user was
     already closing as the account changed: it is no longer above the page,
     so it finishes its closing animation (about a fifth of a second), and its
-    buttons ignore taps meanwhile. Snack bars go too, as one may name a
-    record (a member removed, a document deleted): the shell clears them
-    (`ScaffoldMessenger.clearSnackBars`) on the messenger above each
-    navigator, the app's and the one the frame gives the sections, which the
-    shell's own context does not reach, and in widget tests none shows on the
-    first frame after the change. Pages stay, for the router: at a
-    sign-out it leaves them for the sign-in screen as before, and the screens
-    left open show loading for the next account. A request a sheet or dialog
-    sent before the change is one on its way when the session ended (below).
+    buttons ignore taps meanwhile. Snack bars go at once too, as one may
+    name a record (a member removed, a document deleted). The shell takes
+    them from the messenger above each navigator: the app's, and the one the
+    frame gives the sections, which the shell's own context does not reach.
+    `ScaffoldMessengerState.removeCurrentSnackBar` takes the one on show
+    away at once. `ScaffoldMessengerState.clearSnackBars` alone would, with
+    normal motion, play it out over a quarter of a second, its text fully
+    drawn for about the first tenth of a second; with reduced motion
+    (`MmSnackbar` then shows it without animating) or a screen reader it
+    goes at once either way. The one waiting next then starts to come in,
+    and `clearSnackBars` takes it away before it is drawn and drops the rest
+    of the queue. So no frame after the change shows any of them. The
+    futures of the one on show and the one waiting next complete; Flutter
+    drops the rest without completing theirs, and no code in the app does
+    anything once a snack bar closes. The shell acts only when it hears the
+    change, so a snack bar shown after that stays its time, also one that a
+    late answer for the earlier account shows (the look for a camera photo
+    Android kept, in words that name no record). Pages stay, for the
+    router: at a sign-out it leaves them for the sign-in screen as before,
+    and the screens left open show loading for the next account. A request
+    a sheet or dialog sent before the change is one on its way when the
+    session ended (below).
     Only the shell does this, so it covers whatever opens under it; outside it
     (the sign-in screens, creating the first portfolio, an invitation) no
     sheet or dialog shows a record.
