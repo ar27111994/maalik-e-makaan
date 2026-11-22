@@ -329,6 +329,30 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   removes its copy "the next time it loads your list of portfolios", in English and Urdu. Built in
   `docs/architecture/app.md` (Reading; On the device, Writes after a removal).
 
+- D-22: **Back cancels an account deletion until its request is sent.** (Decided by the owner,
+  22 November 2026, in their words "Back cancels until sent", answering a question the device
+  wipe's pull request, #70, left open.) Back pressed while the app is still checking the password
+  (the sign-in again before the delete request goes out) cancels the deletion and sends nothing;
+  once the delete request is on its way, Back is blocked until it is answered, so leaving never
+  looks like cancelling. Both hold for every way the screen is left: Android's button and back
+  gesture, the app bar's arrow, the browser's back, another section and a link; the router asks the
+  deletion each time (`GoRoute.onExit`), and only its own redirect at a sign-out leaves the screen
+  while the request is on its way. Cancel does what Back does (an engineering choice of the same
+  day, for consistency): it works while the password is checked and waits once the request is
+  sent. The sign-out rules for an answer that deleted or may have deleted are unchanged. Built in
+  `docs/architecture/app.md` (On the device, Hooks).
+
+- D-23: **Sheets and dialogs close when the signed-in account changes.** (Decided by the owner,
+  22 November 2026, in their words "Close sheets on account change", answering a question #70
+  left open.) When another account signs in on the device (in another tab, or by an e-mail link) or
+  nobody is signed in any more, every open sheet, dialog and menu closes at once, without its
+  closing animation, so the earlier account's details on show (an occupant's CNIC and phone, a
+  member's or invitee's e-mail) go, and their buttons cannot act as the next account. A refreshed
+  or new session of the same account changes nothing. The owner's standing rule holds: fewer mechanisms,
+  so this is one small change in the app shell, not a check in every sheet; screens stay, for the
+  router. Built in `docs/architecture/app.md` (On the device, Writes after a removal, The session
+  the cache serves).
+
 ## Open Proposals
 
 Changes that roadmap items would make to an earlier decision. Each stays a proposal until the

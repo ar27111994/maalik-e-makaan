@@ -287,18 +287,21 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   wait. It goes on without its screen, also when the screen is left while it signs in again, and
   then sends the deletion (before, it sent none then, through an uncaught error): Cancel is disabled
   while it runs, and leaving is not cancelling. Whether back should cancel before the request goes
-  is the owner's call. A command that chooses the current portfolio after a request chooses nothing
-  when the session it asked in has ended meanwhile, and a start signed in removes what other
-  accounts left in the cache and their chosen portfolio. Display settings stay; an invitation opened
-  and not answered stays until it is answered or the account is deleted on that device (unless
-  another account signed in there while it was being deleted, as the invitation may be that
-  account's, or the app was closed meanwhile: the next start shows the account until its refresh is
-  refused, and that sign-out wipes it as a plain one), because "sign out, then sign in with the
-  invited address" needs it. The website's how-it-works step and privacy page say this in both
-  languages, with what the app cannot delete (downloads, the browser's copies, the clipboard, other
-  devices, backups); the privacy page also names the two exceptions. The J14 browser-storage checks
-  in the UAT (after a plain sign-out, which keeps an unanswered invitation, and after each deletion,
-  which removes it) are written but not run here yet: they need the Docker stack.
+  was the owner's call: on 22 November 2026 they chose "Back cancels until sent" (D-22), built on
+  the branch `claude/deletion-back-and-sheets`, where leaving while the password is checked cancels
+  and the screen cannot be left once the request is sent. A command that chooses the current
+  portfolio after a request chooses nothing when the session it asked in has ended meanwhile, and a
+  start signed in removes what other accounts left in the cache and their chosen portfolio. Display
+  settings stay; an invitation opened and not answered stays until it is answered or the account is
+  deleted on that device (unless another account signed in there while it was being deleted, as the
+  invitation may be that account's, or the app was closed meanwhile: the next start shows the
+  account until its refresh is refused, and that sign-out wipes it as a plain one), because "sign
+  out, then sign in with the invited address" needs it. The website's how-it-works step and privacy
+  page say this in both languages, with what the app cannot delete (downloads, the browser's copies,
+  the clipboard, other devices, backups); the privacy page also names the two exceptions. The J14
+  browser-storage checks in the UAT (after a plain sign-out, which keeps an unanswered invitation,
+  and after each deletion, which removes it) are written but not run here yet: they need the Docker
+  stack.
 - The amount reader's work items 1, 3 and 4 (`docs/roadmap/amount-parser.md`), merged in #75 and
   released in 1.3.0: `contracts/amount_lexicon.json` (version 1,
   `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
@@ -434,7 +437,7 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-20 record the decisions, and P-01 and P-02 the open proposals. The ones that
+- PROJECT.md D-01…D-23 record the decisions, and P-01 and P-02 the open proposals. The ones that
   carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
@@ -458,7 +461,10 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   - D-20 (the owner, 2026-11-13): the domain `mmakaan.app`, the website on the apex and the web
     app on `app.`, the `vercel.app` addresses sending people on (the web app's clears its storage
     first), the company's mailbox `hello@mmakaan.app` on Dynadot's e-mail; the origins written
-    once, in `contracts/origins.json`, and carried by each release tag.
+    once, in `contracts/origins.json`, and carried by each release tag;
+  - D-22 and D-23 (the owner, 2026-11-22): Back cancels an account deletion until its request is
+    sent, and waits once it is on its way ("Back cancels until sent"); sheets, dialogs and menus
+    close when the signed-in account changes ("Close sheets on account change").
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.
@@ -715,16 +721,13 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   invitation stays unless gotrue's call to the server ends before the held wipe does.
   `docs/architecture/app.md` (Hooks) and the command's doc comment name it; the privacy page does
   not, as it needs a store that fails. The owner's call whether the privacy page should say it too.
-- App: a sheet left open while another account signs in (another tab) keeps the earlier account's
-  record on show, and its buttons, and a confirm dialog it opened (removing a member or an occupant,
-  withdrawing an invitation, deleting a document), still send their request, now with that account's
-  token, so row-level security decides what that account may do (found on #70, 22 November 2026;
-  older than #70). So do a new tenant's form and its warning, which names the earlier account's
-  tenant with that CNIC or phone: the form stays, so "Save anyway" saves. A confirm dialog that a
-  screen opened on a record sends nothing then, as that part of the screen has gone.
-  `docs/architecture/app.md` names it, and `app_test.dart` pins both.
-  The owner's call whether sheets and dialogs should close at an account change, or a sheet's
-  command ask whether the cache still serves the session it was opened in (`SwrCache.serves`).
+- App: pages open with no transition (found 22 November 2026, building D-22): in widget tests of
+  the whole app (`MaalikApp`) every page the router builds is go_router's `NoTransitionPage`, its
+  fallback for an app it does not take for a `MaterialApp`, and a plain `MaterialApp.router` with
+  go_router 18.1.4 under Flutter 3.47.9 gets the same, so screens change at once, iOS has no swipe
+  back and Android's predictive back has no animation. Check on a device; if it holds, find why
+  go_router does not see the `MaterialApp`, or give the routes a `pageBuilder`. The delete screen
+  already says when it cannot be popped (`PopScope`), which a swipe back asks first.
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
@@ -753,6 +756,25 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   November) pin test_api 0.7.14, so moving `FLUTTER_VERSION` to 3.50 lifts this; that is its
   own change, with the analyzer, the goldens and every Flutter job.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
+
+### Closed on 22 November 2026
+
+The owner answered two questions #70 left open, on 22 November 2026; both are built on the branch
+`claude/deletion-back-and-sheets`.
+
+- Account deletion, in their words "Back cancels until sent" (D-22): Back pressed while the app is
+  still checking the password cancels and sends nothing; once the delete request is on its way,
+  Back is blocked, so leaving never looks like cancelling. The router asks the deletion whichever
+  way its screen is left (`GoRoute.onExit`, `AccountDeletionController.leave`); Cancel does the
+  same; the sign-out rules for an answer that deleted or may have deleted are unchanged.
+  `app_test.dart` ("deleting the account") and `account_test.dart` pin it.
+- Two accounts on one device, in their words "Close sheets on account change" (D-23): a sheet left
+  open while another account signs in (another tab) kept the earlier account's record on show, an
+  occupant's CNIC and phone included, and its buttons and the dialogs it opened sent their requests
+  with that account's token; a new tenant's warning kept "Save anyway". Every sheet, dialog and menu
+  now closes when the signed-in account changes, from one listener in the app shell, and a refreshed
+  or new session of the same account keeps them. `app_test.dart` ("when the signed-in account
+  changes") pins it.
 
 ### Closed on 15 November 2026
 
