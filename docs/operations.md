@@ -1003,9 +1003,10 @@ once with `site-only` after its `publish-artefacts` and `publish-ios` jobs have 
 skipped) and the first call has succeeded, so that the download page links to the files they
 attached and to a web app deployed for the release. If a build or its publish job fails, the
 website still goes out, without that build's links (or with links to the part of its files that
-an upload cut off part-way left on the release); re-running the failed job (Releasing, step 4)
-runs the website's deploy again after it, which adds them. If the backend's or the web app's
-deploy fails, the website waits for it the same way.
+an upload cut off part-way left on the release); re-running as Releasing, step 4, says (the job
+that failed, or the build of a publish job whose artifact has expired) runs the website's deploy
+again after it, which adds them. If the backend's or the web app's deploy fails, the website
+waits for it the same way.
 The `site` job:
 
 1. fails at once if the `VERCEL_TOKEN` secret is missing;
@@ -1216,16 +1217,17 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    standing word covers releases only: any other change outside the repository is still the
    owner's to approve.
 4. Watch both Deploy calls: each job ends with its smoke test, and the `supabase` job with a call
-   to `health`. A build (`artefacts` or `ios`) that failed skips its publish job, and a publish
-   job whose download, selection, attest, provenance or upload step failed attached nothing in
-   that attempt. Either way the website still describes the new release, but its download page
-   has no links to that build's files, other than any that an upload cut off part-way left on
-   the release, in that attempt or an earlier one (Release provenance, Re-runs): look at the
-   release's files (`gh release view vX.Y.Z --json assets`, or the release page) before taking
-   it to have none. A build that keeps failing (the optional iOS one after a macOS runner change,
-   say) leaves those links out until a release has them, and holds up nothing else. Read why a
-   job failed before re-running it. If the log points at Sigstore or GitHub's attestation API,
-   check githubstatus.com (Actions, API) and status.sigstore.dev, and wait. A build that failed
+   to `health`. A build (`artefacts` or `ios`) that failed skips its publish job; a publish job
+   whose download, selection, attest or provenance step failed attached nothing in that attempt,
+   and one whose upload step failed may have attached part of that build's files. Either way the
+   website still describes the new release, but its download page has no links to that build's
+   files, other than any that an upload cut off part-way left on the release, in that attempt or
+   an earlier one (Release provenance, Re-runs): look at the release's files
+   (`gh release view vX.Y.Z --json assets`, or the release page) before taking it to have none. A
+   build that keeps failing (the optional iOS one after a macOS runner change, say) leaves those
+   links out until a release has them, and holds up nothing else. Read why a job failed before
+   re-running it. If the log points at Sigstore or GitHub's attestation API, check
+   githubstatus.com (Actions, API) and status.sigstore.dev, and wait. A build that failed
    fetching its dependencies (an HTTP 429 or 5xx from `repo.maven.apache.org`,
    `plugins.gradle.org` or another repository, in the Android step) needs only a few minutes'
    wait: release 1.4.2's first attempt stopped on Maven Central's 429 Too Many Requests, and the
@@ -1234,15 +1236,23 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    (`.planning/STATE.md`, Follow-ups, Open, weighs the options; the one chosen goes in the
    `artefacts` build job, which can write nothing). Then re-run as below, and afterwards run the
    daily query of Monitoring and alerts:
-   - **A publish job that failed, within 7 days:** re-run it alone (Re-run failed jobs, or Re-run
-     this job on it). It takes its build's artifact from the earlier attempt by the same id, with
-     the same digest (the publish dry run of 22 November 2026 showed the download), attests and
-     checks those files again, and attaches them; the website is deployed again after it. The
-     artifact is kept for 7 days (`retention-days: 7`), and after that the download fails.
-   - **A build that failed, or a publish job after those 7 days:** re-run the build job (Re-run
-     failed jobs, Re-run this job on it, or `gh run rerun <run id> --job <job id>`), which GitHub
-     allows for 30 days after the run. Its publish job and the website run again after it, with
-     the new attempt's artifact.
+   - **A publish job that failed, within 7 days:** re-run it (Re-run this job on it, or Re-run
+     failed jobs, which re-runs every failed job of the run, so the publish job runs alone only
+     when it is the only one that failed). It takes its build's artifact from the earlier attempt
+     by the same id, with the same digest (the publish dry run of 22 November 2026 showed the
+     download), attests and checks those files again, and attaches them; the website is deployed
+     again after it. The artifact is kept for 7 days (`retention-days: 7`), and after that the
+     download fails.
+   - **A build that failed:** re-run it (Re-run failed jobs, or Re-run this job on it), which
+     GitHub allows for 30 days after the run. Its publish job and the website run again after it,
+     with the new attempt's artifact.
+   - **A publish job that failed, after those 7 days:** its build succeeded, so Re-run failed jobs
+     does not run the build again, and the download fails again. Re-run the build job instead,
+     within the same 30 days: Re-run this job on the build job, or
+     `gh run rerun --job <build job's databaseId>`. gh ignores a run id given with `--job`, and
+     takes the job's `databaseId`, not the number in the job's address in the browser;
+     `gh run view <run id> --json jobs --jq '.jobs[] | {name, databaseId}'` lists them. The
+     build, its publish job and the website then run again, with the new attempt's artifact.
    - **Never Re-run all jobs:** release-please then finds the release already made and reports no
      new one, so every build, publish and website job after it is skipped.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
@@ -1367,8 +1377,8 @@ are, and each such job is held to a fixed template. Its seven rules: every workf
 only release-please and the two publish jobs write anything, in any scope, and in every other
 workflow no job writes `contents` or `attestations` (`id-token: write` stays allowed there, as
 scorecard.yml needs it and another workflow's token fails `--signer-workflow`), and no other
-workflow has a name that `gh` before 2.102.0 could take for release.yml (one starting with
-`release.`, or with `release`, any one character and `yml`) (R2); secrets are named
+workflow's file name starts with `release.`, nor with `release`, any one character and `yml`,
+since `gh` before 2.102.0 would take only such a name for release.yml (R2); secrets are named
 `secrets.NAME` from a known list, the release-please token only in release-please's `with.token`,
 no mapping key holds an expression, and no job passes `secrets: inherit` (R3); release.yml runs
 only on push and workflow_dispatch, its `defaults` is at most `run: {shell: bash}`, and its
