@@ -180,6 +180,39 @@ void main() {
     expect(find.text('Aliabad Flats'), findsOneWidget);
   });
 
+  testWidgets("shows an empty results area, nothing of the user's, while the "
+      "next account's portfolios load", (tester) async {
+    // No portfolio is current until the next account's list answers, so the
+    // screen shows what it shows before any portfolio is known: neither
+    // results nor loading. Then its search asks, and loads (above).
+    final app = await pumpScreen(tester, _search);
+    await _type(tester, 'ali');
+    expect(find.text('Ali Raza'), findsOneWidget);
+    app.insights.searchAnswer = [
+      {
+        'entity_type': 'property',
+        'entity_id': 'p-aliabad',
+        'title': 'Aliabad Flats',
+        'subtitle': 'Model Town, Lahore',
+        'score': 0.8,
+      },
+    ];
+    final frames = await framesWhileReplaced(
+      tester,
+      app,
+      held: [app.portfolios.gate, app.insights.gate],
+      failure: find.text('Ali Raza'),
+      loading: find.byType(MmSkeletonList),
+    );
+    expect(frames, (failure: 0, loading: 0));
+    expect(app.insights.calls.map((c) => c.$2), [
+      [gulberg.id, 'ali'],
+      [gulberg.id, 'ali'],
+    ]);
+    expect(find.text('Ali Raza'), findsNothing);
+    expect(find.text('Aliabad Flats'), findsOneWidget);
+  });
+
   testWidgets('waits for a portfolio', (tester) async {
     await pumpScreen(tester, _search, app: TestApp(portfolios: const []));
     await _type(tester, 'ali');

@@ -415,8 +415,10 @@ else does then, since a picker may be handing over a copy.
     (`pendingEmailProvider`). A search watches no session either, but it is
     keyed by the user as well as the portfolio and the words
     (`searchProvider`): once another account signs in, the screen reads a new
-    one, which asks and shows loading until it answers, and the earlier
-    account's results go with the one no screen reads any more. A screen shows
+    one, and the earlier account's results go with the one no screen reads any
+    more. While the next account's portfolios load, no portfolio is current
+    and the results area is empty, as before any portfolio is known; then its
+    search asks, and the screen shows loading until it answers. A screen shows
     `sessionChanged`'s state as it shows a first read, loading, not as a
     failure with "Try again": nothing failed for the person signed in. Every
     screen that shows the error of a
@@ -525,11 +527,13 @@ else does then, since a picker may be handing over a copy.
     next list (it was applied and saved as it came, before the delete; S and
     the saved list are the delete's).
     Around the end of a session: a screen opened between a wipe's start and
-    the status after it shows an expired session instead of loading, then
-    the router moves on; a screen that stays open while another account
-    signs in shows loading (nothing of the earlier account) until that
-    account's first answer; the answer to a request on its way when the
-    session ended is not shown (with the same account signed in again inside one
+    the status after it shows an expired session instead of loading, then the
+    router moves on; a screen that stays open while another account signs in
+    shows loading (nothing of the earlier account) until that account's first
+    answer (the search, whose results area is empty while that account's
+    portfolios load, shows loading once its search asks); the answer to a
+    request on its way when the session ended is not shown (with the same
+    account signed in again inside one
     request, the new session's own read shows the server's state); a command
     whose session ended after its request reports an expired session
     although its change was made (a portfolio created then is not chosen on
