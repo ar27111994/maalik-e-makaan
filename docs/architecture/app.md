@@ -314,11 +314,17 @@ else does then, since a picker may be handing over a copy.
   Sign out buttons, a refresh the server refused, a session that cannot be
   read, another tab signing out, whatever its `signOutReason`) and, in
   `signOut`'s `finally`, when that event never came (gotrue failed before
-  announcing it). It also wipes, as a sign-out, when the session the device
-  holds is another account's than the one it held, without a sign-out between
-  them: an e-mail link of account B opened while A is signed in. Account
-  deletion signs out with `SignOutCause.accountDeleted`, which wipes the
-  invitation too. When the deletion's answer is lost or the server failed
+  announcing it; `signOut` forgets, as it starts, that an earlier event
+  wiped). No status follows that wipe, and supabase_flutter removes the
+  stored session only when the sign-out is announced, so the app goes on
+  showing the status it had (signed in; for a deletion after a sign-out
+  elsewhere, signed out without saying that the account was deleted) and the
+  next start restores that session; gotrue fails there only when its storage
+  cannot remove the sign-in-link verifier. It also wipes, as a sign-out, when the session the
+  device holds is another account's than the one it held, without a sign-out
+  between them: an e-mail link of account B opened while A is signed in.
+  Account deletion signs out with `SignOutCause.accountDeleted`, which wipes
+  the invitation too. When the deletion's answer is lost or the server failed
   part-way (`mayHaveDeleted`: a `NetworkFailure`, `ServerFailure` or
   `UnexpectedFailure` after the re-authentication succeeded), it signs out all
   the same with `SignOutCause.deletionUnconfirmed`, wiped as a deletion; the
@@ -338,13 +344,23 @@ else does then, since a picker may be handing over a copy.
   in). The privacy page says so. When nobody does (the session was signed out
   elsewhere, a plain sign-out's wipe, which kept the invitation) or the same
   account signed in again, the device is signed out as a deletion all the
-  same. The command reads everything it uses before its first wait, so it ends
-  the same when its screen is left meanwhile (the back button, or the router
-  at that sign-out), which disposes its provider. Nothing is awaited between
-  reading that session and gotrue dropping it, and on the web gotrue tells the
-  other tabs before any message of theirs can be handled (its one wait
-  between, removing the sign-in-link verifier from `localStorage`, ends in
-  microtasks). What is left is gotrue's own, between tabs, as for any
+  same. When the app or its tab is closed (or Android ends the app) after the
+  deletion was sent and before its answer, nothing signs out: the next start
+  restores the stored session and shows what the device kept until its
+  refresh is refused, within an hour of its next use online, as on another
+  device, and that sign-out, which carries no cause, wipes as a plain one:
+  the invitation stays, and the sign-in screen does not say the account was
+  deleted. Remembering a deletion from one run to the next would be a new
+  mechanism; the privacy page names it with the other exception. The command
+  reads everything it uses before its first wait, so it ends the same when
+  its screen is left meanwhile (the back button, or the router at that
+  sign-out), which disposes its provider. Left while it signs in again, it
+  still sends the deletion once that answers: Cancel is disabled while the
+  command runs, and leaving the screen is not cancelling it. Nothing is
+  awaited between reading that session and gotrue dropping it, and on the web
+  gotrue tells the other tabs before any message of theirs can be handled (its
+  one wait between, removing the sign-in-link verifier from `localStorage`,
+  ends in microtasks). What is left is gotrue's own, between tabs, as for any
   sign-out: a sign-in in another tab whose message has not arrived yet crosses
   this tab's, and that tab drops the account it signed in, which this one then
   holds.

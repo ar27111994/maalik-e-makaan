@@ -63,7 +63,9 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// after: the delete screen is this autoDispose provider's only listener,
   /// and leaving it (the back button, or the router at a sign-out) disposes
   /// the provider while the command runs. The command goes on without its
-  /// screen.
+  /// screen, also when it is left while the command signs in again: the
+  /// deletion is then sent, since Cancel is disabled while the command runs
+  /// and leaving the screen is not cancelling it.
   ///
   /// Throws [AppFailure] when the account was certainly not deleted:
   /// `invalid_credentials` for a wrong password, `does_not_match_account`
