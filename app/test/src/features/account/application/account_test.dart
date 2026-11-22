@@ -547,6 +547,28 @@ void main() {
       }
     }
 
+    test('once the device is wiped, before the next status, it asks for '
+        'nothing', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      await app.cache.clear();
+      expect(container.read(authStatusProvider), signedIn);
+      await expectLater(
+        container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail),
+        throwsA(isA<SessionExpired>()),
+      );
+      expect(app.auth.calls, isEmpty);
+      expect(
+        app.account.calls.map((c) => c.$1),
+        isNot(contains('deleteAccount')),
+      );
+    });
+
     test('a session that ends while it signs in again asks for no '
         'deletion', () async {
       final app = TestApp();
