@@ -17,37 +17,51 @@ OIDC token. For every tracked workflow in .github/workflows:
 
 - R1. Permissions are declared: the workflow's top-level `permissions`, and a job's own where
   it sets one, is a mapping or `read-all` (not `write-all`, an expression or nothing).
-- R2. Who may write. A job's permissions are its own, or else the workflow's; a scope whose
-  value is not `read` or `none` counts as a write. In release.yml, release-please writes only
-  within contents, issues and pull-requests, the publish jobs' permissions are R6's, and every
-  other job writes nothing at all. In every other workflow, no job writes `contents` or
-  `attestations` (`id-token: write` stays allowed there: an OIDC token of another workflow
-  fails the publish jobs' `--signer-workflow`).
+- R2. Who may write or sign. A job's permissions are its own, or else the workflow's; a scope
+  whose value is not `read` or `none` counts as a write. In release.yml, R5 and R6 hold the
+  permissions of release-please and of the publish jobs exactly, and every other job writes
+  nothing at all. In every other workflow, no job writes `contents` or `attestations`, and the
+  file's name does not start with `release.`, nor with `release`, any one character and `yml`.
+  `id-token: write` stays allowed there: an OIDC token of another workflow fails SECURITY.md's
+  `--signer-workflow` with gh 2.102.0 or later, and older gh, which matches it as a prefix (and
+  some versions with its dot as any character), would take only such a name for release.yml.
 - R3. Secrets. In each value, from its first `${{` to its end, `secrets` (in any case) is
   followed directly by `.NAME` (no `secrets[…]`, `toJSON(secrets)` or bare `secrets`); NAME,
-  upper-cased, is in KNOWN_SECRETS; the text RELEASE_PLEASE_TOKEN, in any case, appears in no
-  value but release-please's `with.token`; and no job passes `secrets: inherit`.
+  read as GitHub reads a property (`-` included) and upper-cased, is in KNOWN_SECRETS; the text
+  RELEASE_PLEASE_TOKEN, in any case, appears in no value but release-please's `with.token`; no
+  mapping key holds `${{` (these rules read values, and no workflow needs an expression in a
+  key); and a job passes `secrets` only as a mapping (never `inherit`).
 - R4. release.yml runs only on push and workflow_dispatch (`workflow_call` would let another
   workflow sign as release.yml), its `defaults` is at most `run: {shell: bash}`, and its
   top-level `env` sets only FLUTTER_VERSION and JAVA_VERSION: the workflow's `defaults` and
   `env` reach every publish step.
-- R5. release-please runs its pinned action alone: one step, with only `id`, `name`, `uses`
-  (googleapis/release-please-action at a 40-hex commit) and `with`, in a job with only `name`,
-  `runs-on`, `timeout-minutes`, `permissions`, `outputs` and `steps`.
+- R5. release-please, which holds the write token, equals RELEASE_PLEASE_TEMPLATE, compared as
+  R6 compares the publish jobs: its pinned action alone, with exactly today's inputs, runner,
+  outputs and permissions (an input such as `github-api-url` or `proxy-server` would send the
+  token elsewhere, and its `tag` output names the release the publish jobs overwrite).
 - R6. Each publish job in PUBLISH_JOBS equals PUBLISH_TEMPLATE, filled in for its build: key for
   key and value for value, steps in order, runs as exact text. Only `name` and `timeout-minutes`
   of the job and of its steps are free, and each `uses` may name any 40-hex commit of the
-  template's action (a Dependabot bump), never a tag or another owner.
-- R7. Each publish job's build hands `dist/` over through one step with `id: upload`
-  (actions/upload-artifact at a 40-hex commit, `with.path: dist/`) and the job output
+  template's action (a Dependabot bump), never a tag or another owner. A commit that is not the
+  action's own (an impostor commit, from a fork) passes here and in make lint's offline zizmor;
+  security.yml's zizmor job, which runs the online audits, catches it.
+- R7. Each publish job's build runs on its GitHub-hosted runner as PUBLISH_JOBS names it (the
+  provenance records the runner of the job that attests, so this rule holds the builds' runners)
+  and hands `dist/` over through one step with `id: upload` (actions/upload-artifact at a 40-hex
+  commit, `with.path: dist/`) and the job output
   `artifact-id: ${{ steps.upload.outputs.artifact-id }}`. actionlint cannot see a typo in an
   output of a SHA-pinned action; the publish job would fail closed without this rule, as
   `|| 'missing'` makes an empty id no id.
 
-A key given twice in one mapping, or a key that is not text, makes a file unreadable here, since
-the check would see one of the two values and GitHub refuses the file.
+A file is unreadable here when a mapping has a key twice or a key that is not text (the check
+would see one of two values, and GitHub refuses the file), when an alias holds itself, or when
+it has a line break that PyYAML, a YAML 1.1 reader, takes and a YAML 1.2 reader does not (NEL,
+LS or PS: PyYAML could see a key that GitHub reads as part of a comment). Other ways PyYAML and
+GitHub could read a workflow differently are refused elsewhere in make lint: actionlint refuses a
+merge key (`<<`), a key in another case (`Permissions:`, `Contents:`) and a value of the wrong
+shape (a scalar `env`), and tool/check_unicode.py refuses NEL as well.
 
-The template and release.yml change together, in one pull request that review reads; so does a
+The templates and release.yml change together, in one pull request that review reads; so does a
 move from actions/attest-build-provenance to actions/attest. What this check does not cover (what
 a build puts in its own files, the trust base, settings outside the files, PyYAML against
 GitHub's parser) is in docs/operations.md, Release provenance.
@@ -82,12 +96,16 @@ ROOT = Path(__file__).resolve().parents[2]
 RELEASE = f"{WORKFLOWS}/release.yml"
 RELEASE_PLEASE = "release-please"
 
+# Line breaks that PyYAML takes and a YAML 1.2 reader does not.
+YAML_1_1_BREAKS = frozenset("\x85\u2028\u2029")
+
 # R2. Permission values that write nothing; any other value counts as a write.
 READ_ONLY = frozenset({"read", "none"})
-# What release-please writes: the tag, the changelog, the release and the release pull request.
-RELEASE_PLEASE_WRITES = frozenset({"contents", "issues", "pull-requests"})
 # What no job outside release.yml may write: files on a release, or an attestation.
 REFUSED_ELSEWHERE = frozenset({"attestations", "contents"})
+# A workflow name that gh before 2.102.0 takes for release.yml under `--signer-workflow`: it
+# matches `release.yml` as a prefix, and some versions read its dot as any character.
+SIGNER_LOOKALIKE = re.compile(r"release(\.|.yml)")
 
 # R3. Every secret a workflow may name. Add one only after asking whether it can write to the
 # repository or sign; one that can is confined to a single place as RELEASE_PLEASE_TOKEN is.
@@ -109,29 +127,45 @@ KNOWN_SECRETS = frozenset(
 # The secrets context, with the name after it when it is named as `secrets.NAME`. Searched from
 # a value's first `${{` to its end, without working out where an expression ends, so that
 # `${{ '}}' && secrets[…] }}` is read too.
-SECRET_WORD = re.compile(r"\bsecrets\b(?:\.([A-Za-z_][A-Za-z0-9_]*))?", re.IGNORECASE)
+SECRET_WORD = re.compile(r"\bsecrets\b(?:\.([A-Za-z_][A-Za-z0-9_-]*))?", re.IGNORECASE)
 
 # R4.
 TRIGGERS = frozenset({"push", "workflow_dispatch"})
 DEFAULTS = {"run": {"shell": "bash"}}
 WORKFLOW_ENV = frozenset({"FLUTTER_VERSION", "JAVA_VERSION"})
 
-# R5.
-RELEASE_PLEASE_ACTION = "googleapis/release-please-action@"
-RELEASE_PLEASE_KEYS = frozenset(
-    {"name", "runs-on", "timeout-minutes", "permissions", "outputs", "steps"}
-)
-RELEASE_PLEASE_STEP_KEYS = frozenset({"id", "name", "uses", "with"})
-
-# R6. A commit an action is pinned to.
+# R5 and R6. A commit an action is pinned to.
 PIN = re.compile(r"[0-9a-f]{40}")
-# The keys of a publish job, and of each of its steps, that may hold any value.
+# The keys of a job held to a template, and of each of its steps, that may hold any value.
 FREE = frozenset({"name", "timeout-minutes"})
-# Each publish job: its build job, the files it moves into dist/ (the release's names for that
-# build, as shell words over lines joined by a backslash), and its provenance file's suffix.
+# release-please, without its free keys; a `uses` is its action's name and `@`, which any
+# 40-hex commit may follow.
+RELEASE_PLEASE_TEMPLATE = """\
+runs-on: ubuntu-24.04
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+outputs:
+  created: ${{ steps.release.outputs.release_created }}
+  tag: ${{ steps.release.outputs.tag_name }}
+  version: ${{ steps.release.outputs.version }}
+steps:
+  - id: release
+    uses: googleapis/release-please-action@
+    with:
+      token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+      config-file: release-please-config.json
+      manifest-file: .release-please-manifest.json
+"""
+
+# R6 and R7. Each publish job: its build job, the GitHub-hosted runner that build runs on, the
+# files it moves into dist/ (the release's names for that build, as shell words over lines
+# joined by a backslash), and its provenance file's suffix.
 PUBLISH_JOBS = {
     "publish-artefacts": (
         "artefacts",
+        "ubuntu-24.04",
         'build/SHA256SUMS "build/maalik-e-makaan-$TAG.aab" \\\n'
         '  "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \\\n'
         '  "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip',
@@ -139,6 +173,7 @@ PUBLISH_JOBS = {
     ),
     "publish-ios": (
         "ios",
+        "macos-26",
         'build/SHA256SUMS-ios "build/maalik-e-makaan-$TAG-ios-unsigned.ipa"',
         "-ios",
     ),
@@ -219,7 +254,7 @@ def plain(node: yaml.Node | None) -> Any:
 
 def template(job: str) -> Any:
     """PUBLISH_TEMPLATE filled in for `job`."""
-    build, files, suffix = PUBLISH_JOBS[job]
+    build, _, files, suffix = PUBLISH_JOBS[job]
     text = (
         PUBLISH_TEMPLATE.replace("<build>", build)
         .replace("<files>", files.replace("\n", "\n      "))
@@ -278,10 +313,10 @@ def differences(
 
 
 def steps(expected: list[Any], actual: yaml.Node, where: str) -> list[tuple[yaml.Node, str]]:
-    """A publish job's steps against the template's, in order."""
+    """A job's steps against its template's, in order."""
     if not isinstance(actual, yaml.SequenceNode) or len(actual.value) != len(expected):
-        count = len(actual.value) if isinstance(actual, yaml.SequenceNode) else "no list of"
-        return [(actual, f"{where}: the template's {len(expected)} steps, found {count} steps")]
+        count = len(actual.value) if isinstance(actual, yaml.SequenceNode) else "no list"
+        return [(actual, f"{where}: {len(expected)} in the template, found {count}")]
     return [
         found
         for i, (one, other) in enumerate(zip(expected, actual.value, strict=True))
@@ -303,16 +338,31 @@ def writes(permissions: yaml.Node | None) -> dict[str, str] | None:
     return None
 
 
-def values(node: yaml.Node | None, where: str = "") -> Iterator[tuple[str, yaml.ScalarNode]]:
-    """Every scalar value in the document (keys left out), with its path."""
+def scalars(node: yaml.Node | None, where: str = "") -> Iterator[tuple[str, yaml.ScalarNode, bool]]:
+    """Every scalar in the document with its path, and whether it is a mapping's key."""
     if isinstance(node, yaml.SequenceNode):
         for i, item in enumerate(node.value):
-            yield from values(item, f"{where}[{i}]")
+            yield from scalars(item, f"{where}[{i}]")
     elif isinstance(node, yaml.MappingNode):
         for key, value in items(node):
-            yield from values(value, f"{where}.{key.value}" if where else key.value)
+            path = f"{where}.{key.value}" if where else key.value
+            yield path, key, True
+            yield from scalars(value, path)
     elif isinstance(node, yaml.ScalarNode):
-        yield where, node
+        yield where, node, False
+
+
+def held(rule: str, job: str, expected: Any, node: yaml.Node, constant: str) -> list[Problem]:
+    """R5 and R6: where `node`, release.yml's job `job`, differs from its template."""
+    return [
+        Problem(
+            RELEASE,
+            line_of(at),
+            f'{rule}: job "{job}" differs from the template at {message}; change {constant} in'
+            " tool/github/check_release_provenance.py and the job together",
+        )
+        for at, message in differences(expected, node, "", free=True)
+    ]
 
 
 class Checker:
@@ -323,9 +373,10 @@ class Checker:
         found: list[Problem] = []
         for path in files:
             try:
-                document = compose((self.root / path).read_text(encoding="utf-8"))
+                text = (self.root / path).read_text(encoding="utf-8")
+                document = compose(text)
                 plain(document)
-            except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
+            except (OSError, UnicodeDecodeError, yaml.YAMLError, RecursionError) as error:
                 found.append(Problem(path, 1, f"cannot read it ({error})"))
                 continue
             except UnreadableError as error:
@@ -335,6 +386,17 @@ class Checker:
                         line_of(error.node),
                         f"cannot read it: {error}; GitHub refuses such a file, and this check"
                         " would see only one of the values",
+                    )
+                )
+                continue
+            at = min((text.index(c) for c in YAML_1_1_BREAKS if c in text), default=-1)
+            if at >= 0:
+                found.append(
+                    Problem(
+                        path,
+                        text.count("\n", 0, at) + 1,
+                        f"cannot read it: U+{ord(text[at]):04X} is a line break to PyYAML, not to"
+                        " a YAML 1.2 reader, so the two could see different keys",
                     )
                 )
                 continue
@@ -353,6 +415,16 @@ class Checker:
     def permissions(self, path: str, document: yaml.Node | None) -> list[Problem]:
         """R1 and R2."""
         found: list[Problem] = []
+        if path != RELEASE and SIGNER_LOOKALIKE.match(PurePosixPath(path).name):
+            found.append(
+                Problem(
+                    path,
+                    1,
+                    "R2: no workflow but release.yml may have a name that starts with `release.`"
+                    " (or `release`, any one character and `yml`): gh before 2.102.0 takes it"
+                    " for release.yml under --signer-workflow",
+                )
+            )
         top = get(document, "permissions")
         top_writes = writes(top)
         if top_writes is None:
@@ -384,11 +456,8 @@ class Checker:
                     "outside release.yml no job may write contents or attestations (files on a"
                     " release, or provenance)"
                 )
-            elif name.value == RELEASE_PLEASE:
-                refused = {s: v for s, v in granted.items() if s not in RELEASE_PLEASE_WRITES}
-                why = "release-please may write only contents, issues and pull-requests"
-            elif name.value in PUBLISH_JOBS:
-                refused, why = {}, ""  # R6 holds the publish jobs' permissions exactly
+            elif name.value == RELEASE_PLEASE or name.value in PUBLISH_JOBS:
+                refused, why = {}, ""  # R5 and R6 hold these jobs' permissions exactly
             else:
                 refused = granted
                 why = (
@@ -419,8 +488,19 @@ class Checker:
                         " secret the called workflow needs by name",
                     )
                 )
-        for where, node in values(document):
+        for where, node, key in scalars(document):
             text = node.value
+            if key:
+                if "${{" in text:
+                    found.append(
+                        Problem(
+                            path,
+                            line_of(node),
+                            f"R3: the key {where} holds an expression: this check reads secrets"
+                            " in values only, and no workflow needs an expression in a key",
+                        )
+                    )
+                continue
             if WRITE_SECRET.lower() in text.lower() and (path, where) != (RELEASE, WRITE_SECRET_AT):
                 found.append(
                     Problem(
@@ -507,61 +587,30 @@ class Checker:
                         )
                     )
         jobs = {key.value: value for key, value in items(get(document, "jobs"))}
-        found += self.release_please(path, jobs.get(RELEASE_PLEASE))
-        for job, (build, _, _) in PUBLISH_JOBS.items():
+        node = jobs.get(RELEASE_PLEASE)
+        if node is None:
+            found.append(Problem(path, 1, f'R5: release.yml has no job "{RELEASE_PLEASE}"'))
+        else:
+            expected = plain(compose(RELEASE_PLEASE_TEMPLATE))
+            found += held("R5", RELEASE_PLEASE, expected, node, "RELEASE_PLEASE_TEMPLATE")
+        for job, (build, runner, _, _) in PUBLISH_JOBS.items():
             node = jobs.get(job)
             if node is None:
                 found.append(Problem(path, 1, f'R6: release.yml has no job "{job}"'))
                 continue
-            for at, message in differences(template(job), node, "", free=True):
-                found.append(
-                    Problem(
-                        path,
-                        line_of(at),
-                        f'R6: job "{job}" differs from the template at {message}; change'
-                        " PUBLISH_TEMPLATE in tool/github/check_release_provenance.py and the"
-                        " job together",
-                    )
-                )
-            found += self.handoff(path, build, jobs.get(build))
+            found += held("R6", job, template(job), node, "PUBLISH_TEMPLATE")
+            found += self.handoff(path, build, runner, jobs.get(build))
         return found
 
-    def release_please(self, path: str, job: yaml.Node | None) -> list[Problem]:
-        """R5."""
-        if job is None:
-            return [Problem(path, 1, f'R5: release.yml has no job "{RELEASE_PLEASE}"')]
-        why: list[str] = []
-        extra = sorted({key.value for key, _ in items(job)} - RELEASE_PLEASE_KEYS)
-        if extra:
-            why.append(f"the job's keys {', '.join(extra)}")
-        run = get(job, "steps")
-        if not isinstance(run, yaml.SequenceNode) or len(run.value) != 1:
-            why.append("not exactly one step")
-        else:
-            step = run.value[0]
-            extra = sorted({key.value for key, _ in items(step)} - RELEASE_PLEASE_STEP_KEYS)
-            if extra:
-                why.append(f"the step's keys {', '.join(extra)}")
-            if not pinned(scalar(get(step, "uses")), RELEASE_PLEASE_ACTION):
-                why.append(f"a step other than {RELEASE_PLEASE_ACTION}<40-hex commit>")
-        if not why:
-            return []
-        return [
-            Problem(
-                path,
-                line_of(job),
-                f"R5: release-please runs its pinned action alone, with its write token; found"
-                f" {'; '.join(why)}",
-            )
-        ]
-
-    def handoff(self, path: str, build: str, job: yaml.Node | None) -> list[Problem]:
+    def handoff(self, path: str, build: str, runner: str, job: yaml.Node | None) -> list[Problem]:
         """R7."""
         if job is None:
             return [
                 Problem(path, 1, f'R7: release.yml has no job "{build}", which a publish job needs')
             ]
         why: list[str] = []
+        if scalar(get(job, "runs-on")) != runner:
+            why.append(f"it does not run on {runner}, its GitHub-hosted runner")
         if plain(get(job, "outputs")) != HANDOFF:
             why.append(
                 "its outputs are not exactly `artifact-id: ${{ steps.upload.outputs.artifact-id }}`"
@@ -585,8 +634,9 @@ class Checker:
             Problem(
                 path,
                 line_of(job),
-                f'R7: job "{build}" must hand dist/ to its publish job through one step with'
-                f" `id: upload` and its `artifact-id` output; {'; '.join(why)}",
+                f'R7: job "{build}" must run on its GitHub-hosted runner and hand dist/ to its'
+                " publish job through one step with `id: upload` and its `artifact-id` output;"
+                f" {'; '.join(why)}",
             )
         ]
 

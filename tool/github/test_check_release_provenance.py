@@ -2,8 +2,9 @@
 
 Most tests are mutants of the real workflows: each changes one workflow's text in one place, which
 must occur exactly once (so a mutant never turns silently into a no-op when the workflow changes),
-and must give exactly the expected problems, each pinned by its rule and what it says was refused.
-The accepted mutants record what the check leaves alone on purpose: it reads no build step.
+or adds a workflow, and must give exactly the expected problems, each pinned by its rule and what
+it says was refused. The accepted mutants record what the check leaves alone on purpose: it reads
+no build step.
 """
 
 from __future__ import annotations
@@ -49,6 +50,7 @@ BUILD_HEADER_1_4_2 = (
 )
 ATTEST_PIN = re.search(r"actions/attest-build-provenance@([0-9a-f]{40})", RELEASE_TEXT)[1]
 DOWNLOAD_PIN = re.search(r"actions/download-artifact@([0-9a-f]{40})", RELEASE_TEXT)[1]
+RELEASE_PLEASE_PIN = re.search(r"release-please-action@([0-9a-f]{40})", RELEASE_TEXT)[1]
 OTHER_PIN = "0123456789abcdef0123456789abcdef01234567"
 VERIFY_END = "              --source-ref refs/heads/main --deny-self-hosted-runners\n"
 # How each kind of problem starts, by rule.
@@ -56,12 +58,44 @@ TEMPLATE = 'R6: job "{}" differs from the template at '
 CHANGE_BOTH = (
     "change PUBLISH_TEMPLATE in tool/github/check_release_provenance.py and the job together"
 )
+RELEASE_PLEASE = 'R5: job "release-please" differs from the template at '
+CHANGE_RELEASE_PLEASE = "change RELEASE_PLEASE_TEMPLATE in tool/github/check_release_provenance.py"
 IN_RELEASE = "in release.yml only release-please and the publish jobs write"
 ELSEWHERE = "outside release.yml no job may write contents or attestations"
-HANDOFF = 'R7: job "{}" must hand dist/ to its publish job'
-RELEASE_PLEASE_ALONE = (
-    "R5: release-please runs its pinned action alone, with its write token; found "
+HANDOFF = 'R7: job "{}" must run on its GitHub-hosted runner and hand dist/ to its publish job'
+LOOKALIKE = (
+    ":1: R2: no workflow but release.yml may have a name that starts with `release.`",
+    "gh before 2.102.0 takes it for release.yml under --signer-workflow",
 )
+# A step's env in the ios job, after which a mutant adds a variable.
+IOS_ENV = "          BUILD_NUMBER: ${{ github.run_number }}\n"
+# A workflow other than release.yml, with a job named release-please that names the token.
+OTHER_RELEASE_PLEASE = f"""\
+name: Other
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: googleapis/release-please-action@{RELEASE_PLEASE_PIN}
+        with:
+          token: ${{{{ secrets.RELEASE_PLEASE_TOKEN }}}}
+"""
+# A workflow that may sign with an OIDC token and writes nothing else.
+SIGNS = """\
+name: Sign
+on: workflow_dispatch
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  sign:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo sign
+"""
 
 
 def once(text: str, old: str, new: str) -> str:
@@ -103,6 +137,11 @@ def in_job_header(job: str, old: str, new: str):
         return text[:start] + once(text[start:end], old, new) + text[end:]
 
     return mutate
+
+
+def new_file(text: str):
+    """A mutant that adds a workflow (its path is not among the repository's) holding `text`."""
+    return lambda _: text
 
 
 def replace_job(job: str, new: str):
@@ -185,6 +224,30 @@ MUTANTS = {
         in_job("artefacts", "    permissions:\n" + BUILD_READS, "    permissions: write-all\n"),
         ['R1: job "artefacts": set `permissions` as a mapping of scopes or `read-all`'],
     ),
+    "build: permissions from an expression": (
+        RELEASE,
+        in_job(
+            "ios",
+            "    permissions:\n" + BUILD_READS,
+            "    permissions: ${{ fromJSON(vars.PERMISSIONS) }}\n",
+        ),
+        ['R1: job "ios": set `permissions` as a mapping of scopes or `read-all`'],
+    ),
+    "build: artefacts on a self-hosted runner": (
+        RELEASE,
+        in_job("artefacts", "    runs-on: ubuntu-24.04\n", "    runs-on: [self-hosted, linux]\n"),
+        [
+            (
+                HANDOFF.format("artefacts"),
+                "it does not run on ubuntu-24.04, its GitHub-hosted runner",
+            )
+        ],
+    ),
+    "build: ios on a self-hosted runner": (
+        RELEASE,
+        in_job("ios", "    runs-on: macos-26\n", "    runs-on: self-hosted\n"),
+        [(HANDOFF.format("ios"), "it does not run on macos-26, its GitHub-hosted runner")],
+    ),
     "build: an output name with a typo": (
         RELEASE,
         in_job(
@@ -206,6 +269,15 @@ MUTANTS = {
     "build: the upload of another folder": (
         RELEASE,
         in_job("artefacts", "          path: dist/\n", "          path: app/build/\n"),
+        [(HANDOFF.format("artefacts"), "its upload step's `with.path` is not `dist/`")],
+    ),
+    "build: the upload of dist/ and another folder": (
+        RELEASE,
+        in_job(
+            "artefacts",
+            "          path: dist/\n",
+            "          path: |\n            dist/\n            app/\n",
+        ),
         [(HANDOFF.format("artefacts"), "its upload step's `with.path` is not `dist/`")],
     ),
     "build: the upload step without its id": (
@@ -241,7 +313,7 @@ MUTANTS = {
         in_job("deploy", "      contents: read\n", "      contents: write\n"),
         ['R2: job "deploy" holds `contents: write`'],
     ),
-    # release-please: its three writes, and its pinned action alone.
+    # release-please, which holds the write token: exactly its template, but for names and timeouts.
     "release-please: id-token write": (
         RELEASE,
         in_job(
@@ -249,12 +321,7 @@ MUTANTS = {
             "      pull-requests: write # open and update the release pull request\n",
             "      pull-requests: write\n      id-token: write\n",
         ),
-        [
-            (
-                'R2: job "release-please" holds `id-token: write`',
-                "release-please may write only contents, issues and pull-requests",
-            )
-        ],
+        [(RELEASE_PLEASE + "permissions.id-token: not in the template", CHANGE_RELEASE_PLEASE)],
     ),
     "release-please: a second step": (
         RELEASE,
@@ -263,7 +330,7 @@ MUTANTS = {
             "          manifest-file: .release-please-manifest.json\n",
             "          manifest-file: .release-please-manifest.json\n      - run: npm ci\n",
         ),
-        [RELEASE_PLEASE_ALONE + "not exactly one step"],
+        [RELEASE_PLEASE + "steps: 1 in the template, found 2"],
     ),
     "release-please: a container": (
         RELEASE,
@@ -272,7 +339,17 @@ MUTANTS = {
             "    timeout-minutes: 10\n",
             "    timeout-minutes: 10\n    container: node:22\n",
         ),
-        [RELEASE_PLEASE_ALONE + "the job's keys container"],
+        [RELEASE_PLEASE + "container: not in the template"],
+    ),
+    "release-please: code for node in the job's env": (
+        RELEASE,
+        in_job(
+            "release-please",
+            "    timeout-minutes: 10\n",
+            "    timeout-minutes: 10\n"
+            "    env:\n      NODE_OPTIONS: --import=data:text/javascript,0\n",
+        ),
+        [RELEASE_PLEASE + "env: not in the template"],
     ),
     "release-please: code for node in its step's env": (
         RELEASE,
@@ -281,16 +358,67 @@ MUTANTS = {
             "        with:\n",
             "        env:\n          NODE_OPTIONS: --import=data:text/javascript,0\n        with:\n",
         ),
-        [RELEASE_PLEASE_ALONE + "the step's keys env"],
+        [RELEASE_PLEASE + "steps[0].env: not in the template"],
     ),
     "release-please: the action by a tag": (
         RELEASE,
         in_job(
             "release-please",
-            "googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7",
+            f"googleapis/release-please-action@{RELEASE_PLEASE_PIN}",
             "googleapis/release-please-action@v5",
         ),
-        [RELEASE_PLEASE_ALONE + "a step other than googleapis/release-please-action@"],
+        [
+            RELEASE_PLEASE + "steps[0].uses: googleapis/release-please-action@<40-hex commit>,"
+            " found 'googleapis/release-please-action@v5'"
+        ],
+    ),
+    "release-please: its token sent to another API host": (
+        RELEASE,
+        in_job(
+            "release-please",
+            "          config-file: release-please-config.json\n",
+            "          config-file: release-please-config.json\n"
+            "          github-api-url: https://example.invalid/api\n",
+        ),
+        [RELEASE_PLEASE + "steps[0].with.github-api-url: not in the template"],
+    ),
+    "release-please: its token sent through a proxy": (
+        RELEASE,
+        in_job(
+            "release-please",
+            "          config-file: release-please-config.json\n",
+            "          config-file: release-please-config.json\n"
+            "          proxy-server: example.invalid:8080\n",
+        ),
+        [RELEASE_PLEASE + "steps[0].with.proxy-server: not in the template"],
+    ),
+    "release-please: another config file": (
+        RELEASE,
+        in_job(
+            "release-please",
+            "          config-file: release-please-config.json\n",
+            "          config-file: other.json\n",
+        ),
+        [
+            RELEASE_PLEASE + "steps[0].with.config-file: 'release-please-config.json', found"
+            " 'other.json'"
+        ],
+    ),
+    "release-please: a self-hosted runner": (
+        RELEASE,
+        in_job(
+            "release-please", "    runs-on: ubuntu-24.04\n", "    runs-on: [self-hosted, linux]\n"
+        ),
+        [RELEASE_PLEASE + "runs-on: 'ubuntu-24.04', found ['self-hosted', 'linux']"],
+    ),
+    "release-please: an older tag as its output": (
+        RELEASE,
+        in_job(
+            "release-please",
+            "      tag: ${{ steps.release.outputs.tag_name }}\n",
+            "      tag: v1.4.0\n",
+        ),
+        [RELEASE_PLEASE + "outputs.tag: '${{ steps.release.outputs.tag_name }}', found 'v1.4.0'"],
     ),
     "release-please: renamed": (
         RELEASE,
@@ -313,8 +441,7 @@ MUTANTS = {
         ),
         [
             (
-                TEMPLATE.format("publish-artefacts")
-                + "steps: the template's 5 steps, found 6 steps",
+                TEMPLATE.format("publish-artefacts") + "steps: 5 in the template, found 6",
                 CHANGE_BOTH,
             )
         ],
@@ -434,6 +561,18 @@ MUTANTS = {
             " 'actions/attest-build-provenance@v4'"
         ],
     ),
+    "publish: the attest action pinned to 40 hex digits and more": (
+        RELEASE,
+        in_job(
+            "publish-ios",
+            f"actions/attest-build-provenance@{ATTEST_PIN}",
+            f"actions/attest-build-provenance@{ATTEST_PIN}0",
+        ),
+        [
+            TEMPLATE.format("publish-ios")
+            + "steps[2].uses: actions/attest-build-provenance@<40-hex commit>, found"
+        ],
+    ),
     "publish: the attest action of a lookalike owner": (
         RELEASE,
         in_job(
@@ -522,6 +661,19 @@ MUTANTS = {
         ),
         ["cannot read it: the key 'timeout-minutes' twice in one mapping; GitHub refuses"],
     ),
+    "publish: a comment that hides a line from a YAML 1.2 reader": (
+        RELEASE,
+        in_job(
+            "publish-ios",
+            "    timeout-minutes: 15\n    environment: release\n",
+            "    timeout-minutes: 15 # PyYAML ends this comment here:\u2028"
+            "    environment: release\n",
+        ),
+        [
+            "cannot read it: U+2028 is a line break to PyYAML, not to a YAML 1.2 reader, so the"
+            " two could see different keys"
+        ],
+    ),
     "publish: a merge key in env": (
         RELEASE,
         in_job("publish-ios", f"      TAG: {TAG}\n", f"      TAG: {TAG}\n      <<: {{X: y}}\n"),
@@ -536,8 +688,7 @@ MUTANTS = {
         RELEASE,
         in_job("publish-ios", "    steps:\n", "    steps: ~\n    later:\n"),
         [
-            TEMPLATE.format("publish-ios")
-            + "steps: the template's 5 steps, found no list of steps",
+            TEMPLATE.format("publish-ios") + "steps: 5 in the template, found no list",
             TEMPLATE.format("publish-ios") + "later: not in the template",
         ],
     ),
@@ -599,23 +750,57 @@ MUTANTS = {
     ),
     "secrets: the release-please token in another case": (
         RELEASE,
-        in_job(
-            "ios",
-            "          BUILD_NUMBER: ${{ github.run_number }}\n",
-            "          BUILD_NUMBER: ${{ github.run_number }}\n"
-            "          T: ${{ SECRETS.release_please_token }}\n",
-        ),
+        in_job("ios", IOS_ENV, IOS_ENV + "          T: ${{ SECRETS.release_please_token }}\n"),
         ["R3: RELEASE_PLEASE_TOKEN at jobs.ios.steps[4].env.T"],
+    ),
+    "secrets: the release-please token in an env key": (
+        RELEASE,
+        in_job(
+            "ios", IOS_ENV, IOS_ENV + '          "T_${{ secrets.RELEASE_PLEASE_TOKEN }}": "1"\n'
+        ),
+        [
+            "R3: the key jobs.ios.steps[4].env.T_${{ secrets.RELEASE_PLEASE_TOKEN }} holds an"
+            " expression: this check reads secrets in values only"
+        ],
+    ),
+    "secrets: any expression as a key, in any workflow": (
+        f"{crp.WORKFLOWS}/site-refresh.yml",
+        sub(
+            "          GH_TOKEN: ${{ github.token }}\n",
+            "          GH_TOKEN: ${{ github.token }}\n          ${{ github.token }}: x\n",
+        ),
+        ["R3: the key jobs.latest.steps[0].env.${{ github.token }} holds an expression"],
+    ),
+    "secrets: the release-please token in another workflow's release-please job": (
+        f"{crp.WORKFLOWS}/other.yml",
+        new_file(OTHER_RELEASE_PLEASE),
+        [
+            f"{crp.WORKFLOWS}/other.yml:11: R3: RELEASE_PLEASE_TOKEN at"
+            " jobs.release-please.steps[0].with.token: it can write to the repository"
+        ],
     ),
     "secrets: a name built by format()": (
         RELEASE,
         in_job(
             "ios",
-            "          BUILD_NUMBER: ${{ github.run_number }}\n",
-            "          BUILD_NUMBER: ${{ github.run_number }}\n"
-            "          T: ${{ secrets[format('{0}_{1}', 'RELEASE_PLEASE', 'TOKEN')] }}\n",
+            IOS_ENV,
+            IOS_ENV + "          T: ${{ secrets[format('{0}_{1}', 'RELEASE_PLEASE', 'TOKEN')] }}\n",
         ),
         ["R3: `secrets` at jobs.ios.steps[4].env.T is not followed by `.NAME`"],
+    ),
+    "secrets: a name built by format(), in capitals": (
+        RELEASE,
+        in_job(
+            "ios",
+            IOS_ENV,
+            IOS_ENV + "          T: ${{ SECRETS[format('{0}_TOKEN', 'RELEASE_PLEASE')] }}\n",
+        ),
+        ["R3: `secrets` at jobs.ios.steps[4].env.T is not followed by `.NAME`"],
+    ),
+    "secrets: a known name followed by a hyphen": (
+        RELEASE,
+        in_job("ios", IOS_ENV, IOS_ENV + "          T: ${{ secrets.ANDROID_KEY_ALIAS-GH_PAT }}\n"),
+        ["R3: secrets.ANDROID_KEY_ALIAS-GH_PAT at jobs.ios.steps[4].env.T is not in KNOWN_SECRETS"],
     ),
     "secrets: all of them in deploy.yml": (
         f"{crp.WORKFLOWS}/deploy.yml",
@@ -644,6 +829,15 @@ MUTANTS = {
         ),
         ['R3: job "site" passes `secrets: inherit`; pass each secret'],
     ),
+    "secrets: passed by the site as a list": (
+        RELEASE,
+        in_job(
+            "site",
+            "    secrets:\n      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}\n",
+            "    secrets: [VERCEL_TOKEN]\n",
+        ),
+        ["R3: job \"site\" passes `secrets: ['VERCEL_TOKEN']`; pass each secret"],
+    ),
     # Other workflows.
     "roadmap.yml: contents write": (
         f"{crp.WORKFLOWS}/roadmap.yml",
@@ -657,6 +851,16 @@ MUTANTS = {
             "      id-token: write\n      attestations: write\n",
         ),
         ['R2: job "analysis" holds `attestations: write`'],
+    ),
+    "release.yml-sign.yml: a name older gh takes for release.yml": (
+        f"{crp.WORKFLOWS}/release.yml-sign.yml",
+        new_file(SIGNS),
+        [(f"{crp.WORKFLOWS}/release.yml-sign.yml" + LOOKALIKE[0], LOOKALIKE[1])],
+    ),
+    "release-yml.yml: a name older gh, reading the dot as any character, takes for release.yml": (
+        f"{crp.WORKFLOWS}/release-yml.yml",
+        new_file(SIGNS),
+        [f"{crp.WORKFLOWS}/release-yml.yml" + LOOKALIKE[0]],
     ),
     "pr-title.yml: no top-level permissions": (
         f"{crp.WORKFLOWS}/pr-title.yml",
@@ -713,6 +917,20 @@ MUTANTS = {
             ),
             in_job("publish-artefacts", "    # A fresh runner", "    # A new runner"),
         ),
+        [],
+    ),
+    "accepted: release-please's name, timeout and a Dependabot bump of its pin": (
+        RELEASE,
+        both(
+            in_job("release-please", "    name: Release pull request\n", "    name: Release PR\n"),
+            in_job("release-please", "    timeout-minutes: 10\n", "    timeout-minutes: 15\n"),
+            in_job("release-please", f"@{RELEASE_PLEASE_PIN}", f"@{OTHER_PIN}"),
+        ),
+        [],
+    ),
+    "accepted: a workflow named release-notes.yml, which no gh takes for release.yml": (
+        f"{crp.WORKFLOWS}/release-notes.yml",
+        new_file(SIGNS),
         [],
     ),
     "accepted: a Dependabot bump of the publish jobs' pins": (
@@ -787,7 +1005,9 @@ class RepositoryTest(Fixture):
         self.assertEqual(self.workflows(), [])
 
     def test_scorecard_keeps_its_oidc_token(self):
-        # id-token: write stays allowed outside release.yml: its token fails --signer-workflow.
+        # id-token: write stays allowed outside release.yml: its token fails SECURITY.md's
+        # --signer-workflow with gh 2.102.0 or later, and the names older gh would take for
+        # release.yml's are refused (R2).
         self.assertIn("      id-token: write", TEXTS[f"{crp.WORKFLOWS}/scorecard.yml"])
 
     def test_release_yml_as_in_1_4_2_fails(self):
@@ -808,8 +1028,8 @@ class MutantTest(Fixture):
     def test_each_mutant_gives_exactly_its_problems(self):
         for name, (path, mutate, fragments) in MUTANTS.items():
             with self.subTest(mutant=name):
-                mutated = mutate(TEXTS[path])
-                self.assertNotEqual(mutated, TEXTS[path])
+                mutated = mutate(TEXTS.get(path, ""))
+                self.assertNotEqual(mutated, TEXTS.get(path, ""))
                 self.assert_problems(self.workflows({path: mutated}), *fragments)
 
     def test_a_problem_names_the_file_and_line(self):
@@ -882,7 +1102,34 @@ class FixtureTest(Fixture):
                 )
             }
         )
-        self.assert_problems(found, RELEASE_PLEASE_ALONE + "not exactly one step")
+        self.assert_problems(
+            found,
+            RELEASE_PLEASE + "runs-on: 'ubuntu-24.04', found 'x'",
+            RELEASE_PLEASE + "permissions: missing; the template has {",
+            RELEASE_PLEASE + "outputs: missing; the template has {",
+            RELEASE_PLEASE + "steps: missing; the template has [",
+        )
+
+    def test_an_alias_that_holds_itself(self):
+        path = self.write(f"{crp.WORKFLOWS}/loop.yml", "permissions: {}\nLOOP: &loop [*loop]\n")
+        self.assert_problems(
+            [str(p) for p in self.problems(path)],
+            f"{crp.WORKFLOWS}/loop.yml:1: cannot read it (maximum recursion depth exceeded",
+            f"{RELEASE}:1: R6: release.yml is missing",
+        )
+
+    def test_line_breaks_a_yaml_1_2_reader_does_not_take(self):
+        for char in ("\x85", "\u2028", "\u2029"):
+            with self.subTest(char=f"U+{ord(char):04X}"):
+                path = self.write(
+                    f"{crp.WORKFLOWS}/breaks.yml", f"permissions: {{}}\n# a{char}jobs: {{}}\n"
+                )
+                self.assert_problems(
+                    [str(p) for p in self.problems(path)],
+                    f"{crp.WORKFLOWS}/breaks.yml:2: cannot read it: U+{ord(char):04X} is a line"
+                    " break to PyYAML",
+                    f"{RELEASE}:1: R6: release.yml is missing",
+                )
 
 
 UNDECLARED = """\

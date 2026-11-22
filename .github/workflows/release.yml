@@ -37,6 +37,8 @@ defaults:
 
 jobs:
   release-please:
+    # It holds the write token, so tool/github/check_release_provenance.py (make lint) holds
+    # this job to exactly these values, but for its name and timeout.
     name: Release pull request
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -98,7 +100,9 @@ jobs:
   artefacts:
     # Builds with the workflow's read-only token and no OIDC token: Gradle's plugins, the pub
     # packages and Flutter run here, and none of them can write to the release or sign a
-    # provenance. publish-artefacts attests and attaches what this job hands over.
+    # provenance. publish-artefacts attests and attaches what this job hands over. The
+    # provenance records publish-artefacts' runner, so tool/github/check_release_provenance.py
+    # holds this job to its GitHub-hosted runner.
     name: Build the Android app and the web app
     needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
@@ -193,7 +197,7 @@ jobs:
           path: dist/
           if-no-files-found: error
           # publish-artefacts reads it minutes later; a week leaves time to look at the files of
-          # a failed run (they are public on the release anyway).
+          # a failed run (the same files a release makes public).
           retention-days: 7
           compression-level: 0 # APKs, the app bundle and the zips are compressed already
 
@@ -202,6 +206,7 @@ jobs:
     # signs it with their own Apple Account to install it (docs/operations.md,
     # iOS builds). Like artefacts, it builds with the read-only token: CocoaPods, the pub
     # packages and Flutter run here, and publish-ios attests and attaches what it hands over.
+    # The check holds it to its GitHub-hosted runner too.
     name: Build the unsigned iOS app
     needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
