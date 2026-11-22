@@ -1,11 +1,14 @@
 # Dry run of release.yml's publish jobs, on this throwaway branch only: it is never merged and
 # is deleted once its runs are read. The builds make dummy files and then do what a hostile
 # build tool could (leave a process writing to dist/, replace gh with sudo, mask the artifact
-# id, add a file named as the other build's, squat the artifact name); the publish jobs are
-# release.yml's, step for step, but for three changes: no `environment`, TAG is a literal, and
-# in place of the attest, provenance and upload steps they list and hash what they would attach.
-# Nothing is attested, attached or published, so no job here asks for `attestations`,
-# `id-token` or any write.
+# id, add a file named as the other build's, squat the artifact name). publish-android and
+# publish-ios are release.yml's publish jobs, step for step, but for four changes: no
+# `environment`, TAG is a literal, the provenance check names this workflow and this branch, and
+# in place of the upload step they list and hash what they would attach, then print the
+# bundle's subjects. They attest the dummy files for real (the owner agreed on 22 November 2026),
+# so they alone hold `attestations: write` and `id-token: write`; nothing is attached or
+# published, and no job writes contents. publish-masked, publish-decoy and publish-after-squat
+# stop before the attest step by design and hold `contents: read` only.
 name: Publish dry run
 
 on:
@@ -274,7 +277,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      contents: read
+      attestations: write # record build provenance
+      contents: read # nothing is attached in the dry run
+      id-token: write # sign the provenance attestation
     env:
       TAG: v0.0.0-dry-run
     steps:
@@ -295,13 +300,40 @@ jobs:
             "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \
             "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip dist/
           rmdir build
-      - name: What would be attested and attached (in place of the attest, provenance and upload steps)
+      - id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Provenance file, checked against every file it covers
+        # release.yml's step, but for the signer workflow and the source ref: this workflow's,
+        # on this branch.
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          PROVENANCE: dist/maalik-e-makaan-v0.0.0-dry-run.intoto.jsonl
         run: |
           gh --version
+          cp -- "$BUNDLE" "$PROVENANCE"
+          for file in dist/*; do
+            [[ "$file" == "$PROVENANCE" ]] && continue
+            gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/publish-dry-run.yml" \
+              --source-ref refs/heads/claude/publish-dry-run --deny-self-hosted-runners
+          done
+      - name: What would be attached (in place of the upload step)
+        run: |
           ls -l dist
           sha256sum dist/*
           (cd dist && sha256sum -c SHA256SUMS)
           echo "the app bundle here ends with: [$(tail -c 9 "dist/maalik-e-makaan-$TAG.aab" | od -An -c | tr -s ' ')]"
+      - name: The bundle's subjects
+        # Each subject's name and SHA-256, as sha256sum prints them, to compare with the build's
+        # SHA256SUMS list.
+        env:
+          PROVENANCE: dist/maalik-e-makaan-v0.0.0-dry-run.intoto.jsonl
+        run: |
+          jq -r .dsseEnvelope.payload "$PROVENANCE" | base64 -d | jq .subject
+          jq -r .dsseEnvelope.payload "$PROVENANCE" | base64 -d \
+            | jq -r '"\(.subject | length) subjects", (.subject[] | "\(.digest.sha256)  \(.name)")'
 
   publish-ios:
     name: Publish (iOS names), as publish-ios
@@ -309,7 +341,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      contents: read
+      attestations: write # record build provenance
+      contents: read # nothing is attached in the dry run
+      id-token: write # sign the provenance attestation
     env:
       TAG: v0.0.0-dry-run
     steps:
@@ -328,12 +362,39 @@ jobs:
           mkdir dist
           mv -- build/SHA256SUMS-ios "build/maalik-e-makaan-$TAG-ios-unsigned.ipa" dist/
           rmdir build
-      - name: What would be attested and attached (in place of the attest, provenance and upload steps)
+      - id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Provenance file, checked against every file it covers
+        # release.yml's step, but for the signer workflow and the source ref: this workflow's,
+        # on this branch.
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          PROVENANCE: dist/maalik-e-makaan-v0.0.0-dry-run-ios.intoto.jsonl
         run: |
           gh --version
+          cp -- "$BUNDLE" "$PROVENANCE"
+          for file in dist/*; do
+            [[ "$file" == "$PROVENANCE" ]] && continue
+            gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/publish-dry-run.yml" \
+              --source-ref refs/heads/claude/publish-dry-run --deny-self-hosted-runners
+          done
+      - name: What would be attached (in place of the upload step)
+        run: |
           ls -l dist
           sha256sum dist/*
           (cd dist && shasum -a 256 -c SHA256SUMS-ios)
+      - name: The bundle's subjects
+        # Each subject's name and SHA-256, as sha256sum prints them, to compare with the build's
+        # SHA256SUMS-ios list.
+        env:
+          PROVENANCE: dist/maalik-e-makaan-v0.0.0-dry-run-ios.intoto.jsonl
+        run: |
+          jq -r .dsseEnvelope.payload "$PROVENANCE" | base64 -d | jq .subject
+          jq -r .dsseEnvelope.payload "$PROVENANCE" | base64 -d \
+            | jq -r '"\(.subject | length) subjects", (.subject[] | "\(.digest.sha256)  \(.name)")'
 
   publish-masked:
     # Expected to fail at the download: the masked output arrives empty, so the id is 'missing'.

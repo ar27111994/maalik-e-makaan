@@ -88,6 +88,12 @@ READ_ONLY = frozenset({"read", "none"})
 RELEASE_PLEASE_WRITES = frozenset({"contents", "issues", "pull-requests"})
 # What no job outside release.yml may write: files on a release, or an attestation.
 REFUSED_ELSEWHERE = frozenset({"attestations", "contents"})
+# THROWAWAY BRANCH ONLY (claude/publish-dry-run: never merged, deleted once its runs are read).
+# The dry run's two attesting jobs record provenance of dummy files, as the owner agreed on
+# 22 November 2026; this exempts `attestations` for those two jobs of that one file and nothing
+# else. main's check has no such lines.
+DRY_RUN = f"{WORKFLOWS}/publish-dry-run.yml"
+DRY_RUN_ATTESTERS = frozenset({"publish-android", "publish-ios"})
 
 # R3. Every secret a workflow may name. Add one only after asking whether it can write to the
 # repository or sign; one that can is confined to a single place as RELEASE_PLEASE_TOKEN is.
@@ -380,6 +386,8 @@ class Checker:
                 continue
             if path != RELEASE:
                 refused = {s: v for s, v in granted.items() if s in REFUSED_ELSEWHERE}
+                if path == DRY_RUN and name.value in DRY_RUN_ATTESTERS:
+                    refused.pop("attestations", None)  # throwaway branch only: see DRY_RUN
                 why = (
                     "outside release.yml no job may write contents or attestations (files on a"
                     " release, or provenance)"
