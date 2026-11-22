@@ -57,9 +57,11 @@ in-toto statement with SLSA provenance v1: it names each file by its SHA-256 and
 commit and git ref that built it. The signature uses a short-lived certificate issued to the
 Release workflow, `.github/workflows/release.yml`, running on `main`, from Sigstore's
 public-good instance (used because the repository is public), and the signing is recorded in
-Sigstore's public transparency log. A job of its own, on a fresh GitHub-hosted runner that runs
-none of the build's tools, attests the files the build handed over, checks each against the
-provenance as below, and only then attaches them.
+Sigstore's public transparency log. For releases after v1.4.2, a job of its own, on a fresh
+GitHub-hosted runner that runs none of the build's tools, attests the files the build handed
+over, checks each against the provenance as below, and only then attaches them. v1.4.0 to
+v1.4.2, like the releases before them, were attested in the build job itself, which also held
+the release's write token.
 
 Check it with GitHub's command-line tool, `gh`, version 2.102.0 or later. `--source-ref` came
 with 2.68.0, but until 2.102.0 `gh` compared the branch name without regard to case, so a build
@@ -132,12 +134,14 @@ by one.
   Actions are pinned to commit hashes.
 - Concurrency and money logic are formally checked (`formal/`), and the website's money
   calculators have property-based tests (fast-check).
-- Each release's files are built by jobs that hold only a read-only token and no OIDC token; a
-  separate job for each build, on a fresh runner, takes the files by their artifact id, attests
-  them, checks each against the provenance file and attaches them; a check in `make lint` holds
-  those jobs to a fixed shape and keeps every other job from writing to a release or signing as
-  the Release workflow (`docs/operations.md`, Release provenance). A change to the check itself
-  is read in review.
+- For releases after v1.4.2, the files are built by jobs that hold only a read-only token and
+  no OIDC token; a separate job for each build, on a fresh runner, takes the files by their
+  artifact id, attests them, checks each against the provenance file and attaches them. Up to
+  v1.4.2, each build job attested and attached its own files, and held the release's write
+  token to do so. A check in `make lint` holds the publish jobs to a fixed shape, and keeps every
+  other job but release-please, which runs only its pinned action, from writing to a release or
+  signing as the Release workflow (`docs/operations.md`, Release provenance). A change to the
+  check itself is read in review.
 
 Common classes of error, and what stops each one:
 
