@@ -6,9 +6,9 @@
  * describe the release being deployed; nothing is fetched.
  *
  * The release's files are another matter: the tag exists minutes before the
- * Release workflow has built and attached them, and a build that fails
- * before its upload attaches nothing until it is re-run (one cut off during
- * its upload can leave part of its files). So the Deploy workflow lists the files
+ * Release workflow has built and attached them, and a build or publish job
+ * that fails before the upload attaches nothing until it is re-run (an upload
+ * cut off part-way can leave part of the files). So the Deploy workflow lists the files
  * attached when the site is built (src/data/release-assets.json), and the
  * download page links to those alone; a deploy is never held up by a missing
  * file, and never publishes a link to one.
