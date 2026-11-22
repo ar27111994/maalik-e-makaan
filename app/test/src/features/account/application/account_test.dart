@@ -457,6 +457,94 @@ void main() {
         expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
         expect(container.read(authStatusProvider), _otherAccount);
       });
+
+      // gotrue changes the session it holds before its listeners hear of
+      // it, and the repository announces the change only after its wipe:
+      // until then the status and the cache may still name the deleting
+      // account, and signing out would sign the other one out.
+      for (final holder in <AuthStatus>[
+        _otherAccount,
+        RecoveringPassword(userId: _otherAccount.userId),
+      ]) {
+        test('a deletion answered (${failure?.runtimeType ?? 'deleted'}) '
+            'while the device holds another account '
+            '(${holder.runtimeType}), not yet announced, signs nobody '
+            'out', () async {
+          final app = TestApp();
+          final container = containerFor(app);
+          listen(container, accountDeletionProvider);
+          listen(container, authStatusProvider);
+          await pumpEventQueue();
+          app.account.gate
+            ..failure = failure
+            ..close();
+          final deleting = container
+              .read(accountDeletionProvider.notifier)
+              .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+          await pumpEventQueue();
+          expect(app.account.calls.last.$1, 'deleteAccount');
+          app.auth.status = holder; // Not announced.
+          expect(container.read(authStatusProvider), signedIn);
+          app.account.gate.open();
+          await expectLater(deleting, throwsA(isA<SessionExpired>()));
+          expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+          expect(app.auth.status, holder);
+        });
+      }
+    }
+
+    // The deleting session ends elsewhere (signed out in another tab) while
+    // the deletion is on its way: its own wipe was a plain sign-out's, so
+    // the deletion's answer still signs the device out as a deletion,
+    // which removes the invitation and says the account is gone. The same
+    // account signed in again is signed out too: it was just deleted.
+    for (final failure in <AppFailure?>[null, const NetworkFailure()]) {
+      final cause = failure == null
+          ? SignOutCause.accountDeleted
+          : SignOutCause.deletionUnconfirmed;
+      for (final (name, since) in <(String, AuthStatus?)>[
+        ('with nobody signed in since', null),
+        ('with the same account signed in again', signedIn),
+        (
+          'with the same account recovering its password',
+          const RecoveringPassword(userId: testUserId),
+        ),
+      ]) {
+        test('a deletion answered (${failure?.runtimeType ?? 'deleted'}) '
+            'after its session signed out elsewhere, $name, signs out as '
+            '$cause', () async {
+          final app = TestApp();
+          final container = containerFor(app);
+          listen(container, accountDeletionProvider);
+          listen(container, authStatusProvider);
+          await pumpEventQueue();
+          app.account.gate
+            ..failure = failure
+            ..close();
+          final deleting = container
+              .read(accountDeletionProvider.notifier)
+              .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+          await pumpEventQueue();
+          expect(app.account.calls.last.$1, 'deleteAccount');
+          await app.cache.clear();
+          app.auth.emit(const SignedOut());
+          await pumpEventQueue();
+          if (since != null) {
+            app.auth.emit(since);
+            await pumpEventQueue();
+            expect(container.read(authStatusProvider), since);
+          }
+          app.account.gate.open();
+          await deleting;
+          expect(app.auth.calls.map((c) => c.$1), [
+            'reauthenticate',
+            'signOut',
+          ]);
+          expect(app.auth.calls.last.$2, [cause]);
+          await pumpEventQueue();
+          expect(container.read(authStatusProvider), SignedOut(cause: cause));
+        });
+      }
     }
 
     test('a session that ends while it signs in again asks for no '

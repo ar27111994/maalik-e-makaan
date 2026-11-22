@@ -271,7 +271,11 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   only it gives its error), and a session that really expired still shows as one. The check
   after it found a search's results still on show, and not asked again, after another account
   signed in with the same portfolio current; a search is now keyed by the user too, as the
-  portfolio list is. A
+  portfolio list is. A deletion's sign-out is the deleting account's alone: when another account
+  has signed in from another tab by the time the answer comes, nobody is signed out; when nobody
+  holds the device, or the same account signed in again, it signs out as a deletion all the same,
+  decided from the session gotrue holds rather than the status shown (the first version of the
+  rule, found by the next check, left the invitation after a sign-out in another tab). A
   command that chooses the current portfolio after a request chooses nothing when the
   session it asked in has ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an

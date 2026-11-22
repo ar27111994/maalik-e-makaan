@@ -324,12 +324,21 @@ else does then, since a picker may be handing over a copy.
   all the same with `SignOutCause.deletionUnconfirmed`, wiped as a deletion;
   the sign-in screen says the account may be gone and how to check. A
   refusal, a rate limit or a busy database (503, rolled back) signs nobody
-  out. Either sign-out is the asking session's alone: when that session has
-  ended by the time the answer comes (another account signed in from
-  another tab, say), nobody is signed out, since its own wipe ran when it
-  ended, and the command throws `SessionExpired`. `bootstrap` calls `tidyDeviceAtStart` once Supabase has read the
-  stored session (the last two columns of the table), and the root widget
-  watches `deviceTidyOnResumeProvider`.
+  out. The deletion asks nothing once the cache no longer serves the
+  session it read before its request, and sends no deletion once that
+  session ends while it signs in again. Either sign-out is the deleting
+  account's alone, decided from the session the device holds as it signs
+  out (`AuthRepository.status`, which gotrue changes before it announces
+  the change, ahead of the status the app shows, which waits for the wipe):
+  when another account holds the device by the time the answer comes
+  (signed in from another tab), that account is neither signed out nor
+  wiped, and the command throws `SessionExpired`. When
+  nobody does (the session was signed out elsewhere, a plain sign-out's
+  wipe, which kept the invitation) or the same account signed in again,
+  the device is signed out as a deletion all the same. `bootstrap` calls
+  `tidyDeviceAtStart` once Supabase has read the stored session (the last
+  two columns of the table), and the root widget watches
+  `deviceTidyOnResumeProvider`.
 - **Other devices.** Signing out is local (gotrue's default scope): another
   phone or browser keeps its copy until its own session ends there, which
   for a deleted account is when its next refresh is refused, within an hour

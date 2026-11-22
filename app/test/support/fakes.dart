@@ -114,6 +114,13 @@ final class FakeAuthRepository implements AuthRepository {
   @override
   AuthStatus get status => _status;
 
+  /// Changes the session the device holds and, unlike [emit], does not
+  /// announce it: the real repository's [status] changes so before its
+  /// announcement, since gotrue changes its session before its listeners
+  /// hear of it, and the repository announces a change only once the wipe
+  /// it asks for has run.
+  set status(AuthStatus status) => _status = status;
+
   /// Like the real repository: the current status at once, then every
   /// change, subscribed as soon as the stream is listened to.
   @override

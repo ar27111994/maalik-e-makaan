@@ -47,12 +47,15 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// rather than show a deleted account's records until its session is
   /// refused. Signing in again tells whether it still exists.
   ///
-  /// The answer is the asking session's alone ([sessionProvider], read
-  /// before the request): when that session has ended by the time it
-  /// comes (also when another account has signed in since, from another
-  /// tab), nobody is signed out, since the device no longer holds the
-  /// deleted account's session and its wipe ran when that session ended,
-  /// and it throws [SessionExpired]. With no session, nothing is asked.
+  /// Nothing is asked with no session ([sessionProvider], read before the
+  /// request), nor once the device is wiped for its end, and no deletion
+  /// once it ends while it signs in again. Once the deletion was answered
+  /// as one that deleted or may have, either sign-out is the deleting
+  /// account's alone: when another account holds the device by then
+  /// (signed in from another tab), that account is not signed out and the
+  /// command throws [SessionExpired]. When nobody does (the session was
+  /// signed out elsewhere, whose wipe kept the invitation) or the same
+  /// account signed in again, the device is signed out as above.
   ///
   /// Throws [AppFailure] when the account was certainly not deleted:
   /// `invalid_credentials` for a wrong password, `does_not_match_account`
@@ -74,12 +77,32 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
           .deleteAccount(confirmEmail: confirmEmail);
     } on AppFailure catch (failure) {
       if (!mayHaveDeleted(failure)) rethrow;
-      cache.require(userId, epoch);
-      await auth.signOut(cause: SignOutCause.deletionUnconfirmed);
+      await _signOutDeleted(userId, SignOutCause.deletionUnconfirmed);
       return;
     }
-    cache.require(userId, epoch);
-    await auth.signOut(cause: SignOutCause.accountDeleted);
+    await _signOutDeleted(userId, SignOutCause.accountDeleted);
+  }
+
+  /// Signs the device out with [cause] after [userId]'s account was
+  /// deleted, or may have been, unless another account holds the device
+  /// now: then it throws [SessionExpired] and signs nobody out.
+  ///
+  /// Decided from the session the device holds ([AuthRepository.status])
+  /// as it signs out, with nothing awaited in between: gotrue changes that
+  /// session before it announces the change, and the status the app shows
+  /// ([authStatusProvider]) follows only once the wipe for the change has
+  /// run, so until then it, and maybe the cache, still name the deleting
+  /// account. Whether the cache serves the session that asked does not
+  /// decide either: its epoch moves at any sign-out, also one after which
+  /// nobody, or the same account, holds the device.
+  Future<void> _signOutDeleted(String userId, SignOutCause cause) async {
+    final holder = switch (ref.read(authRepositoryProvider).status) {
+      SignedIn(userId: final held) ||
+      RecoveringPassword(userId: final held) => held,
+      SignedOut() => null,
+    };
+    if (holder != null && holder != userId) throw const SessionExpired();
+    await ref.read(authStatusProvider.notifier).signOut(cause: cause);
   }
 }
 
