@@ -57,7 +57,11 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// account's sign-in replaced the session with a plain sign-out's wipe,
   /// and the invitation may be that account's now. When nobody does (the
   /// session was signed out elsewhere, whose wipe kept the invitation) or
-  /// the same account signed in again, the device is signed out as above.
+  /// the same account signed in again, the device is signed out as above,
+  /// unless a store that does not answer holds up that earlier wipe while
+  /// the same account's sign-in waits behind it: that sign-in then clears
+  /// the cause, so the sign-in screen does not say the account was deleted,
+  /// and the invitation may stay (app.md, Hooks).
   ///
   /// It reads everything it uses before its first wait, and [ref] not
   /// after: the delete screen is this autoDispose provider's only listener,

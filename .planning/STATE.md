@@ -707,6 +707,14 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   November 2026; the status and the stored session behaved so before #70).
   `docs/architecture/app.md` (Hooks) names it. Rare; the owner's call whether `signOut` should
   then remove the stored session and apply the device's status itself.
+- App: a deletion answered while a store that does not answer holds up an earlier sign-out's wipe,
+  with the same account signed in again behind it, ends as a plain sign-out (found on #70, 22
+  November 2026): the deleting session was signed out elsewhere, that wipe waits for the store (up
+  to `wipePreferencesLimit`), and the same account's sign-in, queued behind it, clears the cause the
+  deletion's sign-out set. The sign-in screen does not say the account was deleted, and the
+  invitation stays unless gotrue's call to the server ends before the held wipe does.
+  `docs/architecture/app.md` (Hooks) and the command's doc comment name it; the privacy page does
+  not, as it needs a store that fails. The owner's call whether the privacy page should say it too.
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
