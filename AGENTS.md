@@ -95,7 +95,9 @@ how to do common tasks is [`docs/agents/workflows.md`](docs/agents/workflows.md)
   service), or when you are blocked. Otherwise decide, and record the decision. A release is
   the exception: the owner's standing word (15 November 2026) is to release whenever
   everything meant for it is merged and green, without asking each time
-  ([`docs/operations.md`](docs/operations.md#releasing)).
+  ([`docs/operations.md`](docs/operations.md#releasing)). What is waiting on the owner lives in
+  [`docs/owner-actions.md`](docs/owner-actions.md), and every change that adds or closes an owner
+  action updates it in the same pull request.
 - **Keep the documentation current.** A pull request updates every document its change makes
   wrong: the READMEs, the `AGENTS.md` files, `docs/`, `.planning/` and `llms.txt`.
   `CHANGELOG.md` is written by release-please from the squash commits, so a commit message says

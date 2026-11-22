@@ -37,6 +37,7 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 
 ## Operations
 
+- [Owner actions](docs/owner-actions.md): what is waiting on the owner, each open action and decision with its steps, due dates first
 - [Operations runbook](docs/operations.md): scheduled jobs, storage cleanup, health checks, monitoring and alerts, function secrets, Vercel hosting, the Deploy workflow, releasing, rollback, backups and restore, account deletion, time-zone data, applying migrations to the hosted project
 - [Security policy](SECURITY.md): reporting vulnerabilities
 - [Third-party notices](THIRD_PARTY_NOTICES.md): dependencies, fonts and icons with their licences
@@ -44,7 +45,7 @@ Money is whole paisa in integers (numeric(14,2) in SQL); financial rows are void
 ## Quality
 
 - [UAT](docs/uat.md): browser acceptance tests of the landlord journeys against a local Supabase stack (`make test-uat`), results and defects
-- [Release readiness](docs/release-readiness.md): the v1.0 verdict, the checklist with evidence, the owner's actions
+- [Release readiness](docs/release-readiness.md): the v1.0 verdict, the checklist with evidence, the history of the owner's actions
 - [Design QA](docs/design-qa.md): automated design gates, the review checklist, verdicts and follow-ups
 - [Formal verification](formal/README.md): the TLA+, Lean 4, Z3 and Bend tracks, findings and timings
 - [Gallery](packages/mm_ui/example/README.md): the design-system gallery and its UAT screenshots

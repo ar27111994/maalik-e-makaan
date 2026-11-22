@@ -9,8 +9,10 @@ action 1).
 ## Verdict
 
 **Engineering: ready for a release candidate** (pushed; CI green on `a7f5c1a`).
-**Launch: not ready.** What is left is the owner's: the backup key, merging to `main`, e-mail,
-monitoring, the first Deploy and the reviews listed in [Owner actions](#owner-actions).
+**Launch: not ready.** What is left is the owner's, in [`owner-actions.md`](owner-actions.md):
+the lawyer's and the Urdu reviews, the store accounts and the checks by hand. The backup key, the
+merge to `main`, e-mail's set-up, monitoring and the first Deploy were done by 9 November 2026
+([Owner actions](#owner-actions) keeps the history).
 
 - The blocker is fixed. The Supabase CLI now applies the whole chain from the repository's own
   `supabase/` directory: `supabase db reset` applied all 23 migrations and the seed, and the
@@ -50,10 +52,10 @@ monitoring, the first Deploy and the reviews listed in [Owner actions](#owner-ac
 | 12  | Monitoring and alerting documented                         | Pass   | `docs/operations.md`, Monitoring and alerts (uptime monitor on deep health, daily SQL check)                                                              |
 | 13  | Release mechanics: first release is v1.0.0, and it deploys | Pass   | `release-please-config.json` `"release-as": "1.0.0"`, `website/package.json` tracked; Release calls Deploy (`actionlint` clean)                           |
 | 14  | Docs discoverable and current                              | Pass   | `docs/uat.md` and this file linked from README, `docs/README.md`, `llms.txt`, `AGENTS.md`, `docs/agents/commands.md`; REQUIREMENTS, STATE, NFR-07 updated |
-| 15  | CI green on the pushed branch                              | Open   | The last pushed run, 42518890202, failed only "Supabase stack" and "CI passed" (D1). These changes are not pushed yet                                     |
-| 16  | `main` protected, tag and changelog                        | Open   | `gh api …/branches/main/protection`: "Branch not protected"; `git tag --list` is empty; no `CHANGELOG.md` (owner actions 2 and 9)                         |
-| 17  | Production deploy run once                                 | Open   | Deploy has never run (owner action 8)                                                                                                                     |
-| 18  | Owner-only prerequisites                                   | Open   | [Owner actions](#owner-actions)                                                                                                                           |
+| 15  | CI green on the pushed branch                              | Done   | Run 34 on `a7f5c1a` passed every job (Verdict); merged as #1 on 2026-11-09. Before it, run 42518890202 failed only "Supabase stack" (D1)                  |
+| 16  | `main` protected, tag and changelog                        | Done   | Ruleset 26848224 ("Default") is active on `main`, squash merges only; tags `v1.0.0` to `v1.4.3`; `CHANGELOG.md` (read 2026-11-22; owner actions 2 and 9)  |
+| 17  | Production deploy run once                                 | Done   | Release 1.0.0's run 42662198834 (2026-11-09) passed its three Deploy jobs, and every release since deploys (owner action 8)                               |
+| 18  | Owner-only prerequisites                                   | Open   | [`owner-actions.md`](owner-actions.md) (open now); [Owner actions](#owner-actions) (history)                                                              |
 
 ## Engineering issues
 
@@ -144,7 +146,9 @@ data left by a UAT run:
 5. Afterwards `supabase db reset` restored the chain for the remaining gates.
 
 Still to rehearse (owner action 5): the same on a scratch hosted project, with the dump taken
-from the hosted one.
+from the hosted one. No longer planned: the repository's token may not create projects, and should
+stay that way, and every weekly backup is now restored and checked on a local stack instead
+(`docs/operations.md`, Backups).
 
 ### Medium: dashboard "Collected this month" (D2)
 
@@ -306,13 +310,17 @@ Not run here: iOS, Android on a phone, the Deploy workflow.
 
 ## Owner actions
 
+**The current to-do list is [`owner-actions.md`](owner-actions.md).** This section keeps the full
+history and reasoning of each action, in the order it was set, and is not kept as a to-do list.
+
 Updated 2026-11-09 after the owner's answers: the repository secrets, variables and the
 `release` and `production` environments exist (seen in the owner's screenshots), the operator's
 name on the privacy page is right, the owner is a native Urdu speaker, and e-mail goes through
 Resend's free plan. Done by the agent the same day: the migration applied (fingerprints equal,
 1,185 objects), CI green, and the Backup workflow (the first backup taken and restored, below).
 
-In order. Record each in `.planning/STATE.md` when it is done.
+In order. Each is recorded, when done, in [`owner-actions.md`](owner-actions.md) (Recently done)
+and in `.planning/STATE.md`.
 
 1. **Make the backup key** (`docs/operations.md`, Backups). Backups are encrypted only to the
    keys in `BACKUP_AGE_RECIPIENTS`, which is empty, so the Backup workflow refuses to run.

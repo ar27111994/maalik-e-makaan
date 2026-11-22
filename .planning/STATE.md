@@ -60,11 +60,12 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   from it; each can be matched to a secret change the record reports, though only one of those
   changes has a time on record and two fit only if a date on record is a day out (Deployed, below,
   lists them and what is open). Supabase's documentation says only that a secret needs no redeploy,
-  not that it makes a version. The Secrets page's update time for the secret would settle it
-  (Waiting on the owner, below). Version 22's bundle hashes (`ezbr_sha256`) equal version 20's, so
-  what runs now is the tag's code. Version 21's own bundle was never read (the tools return only the
-  current version); it was the same code only if the secret change made it, as a secret change does
-  not touch the bundle.
+  not that it makes a version. The Secrets page's update time for the secret would settle it (the
+  owner's to read, `docs/owner-actions.md`; Waiting on the owner, below, says what each time would
+  mean). Version 22's bundle hashes (`ezbr_sha256`) equal version 20's, so what runs now is the
+  tag's code. Version 21's own bundle was never read (the tools return only the current version);
+  it was the same code only if the secret change made it, as a secret change does not touch the
+  bundle.
   **It was the publish jobs' first real run (D-25), and every point of the check that Follow-ups
   listed held but the last, a person's run of `SECURITY.md`'s command, which is still to do**
   (now under Closed on 22 November 2026). The jobs ran in order: `release-please` (13:29 to
@@ -99,7 +100,7 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   v1.4.2's files first, and failed (2 checks) with one byte of a downloaded file changed. Not
   passed: `SECURITY.md`'s `gh attestation verify` stopped at "error creating Sigstore verifier",
   as for 1.4.2, and the container's `gh` is 2.89.0, older than the 2.102.0 `SECURITY.md` asks
-  for; a person's run is still needed (Waiting on the owner, below). The website's deploy listed
+  for; a person's run is still needed (`docs/owner-actions.md`). The website's deploy listed
   the release's eleven files and checked the site's six release-file links (the download page's)
   against the release; `https://mmakaan.app/download/` shows "Version 1.4.3", "Released on 22
   November 2026" and links to the three APKs, the unsigned `.ipa`, the web zip and `SHA256SUMS`,
@@ -337,27 +338,22 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   set it). The company's website stays `https://ar27111994.dev/` (the owner's decision), so
   `company.url` in `website/src/config/site.ts` does not change; the footer of every page reads
   "© 2026 AR LABS (SMC-PRIVATE) LIMITED" (read by the agent on the live terms page at 16:19 UTC).
-- Waiting on the owner, 15 November 2026: the AWS Activate provider's three requests of 12
-  November 2026 (the website and the web app on the company's own domain, an e-mail address
-  there, the company's name on the website) are met, and a reply with the pitch deck at 1.3.1
-  was drafted for the owner to send; the agent advised a separate mailbox for the application
-  over sharing the company mailbox's login. Also still the owner's: the rest of step 9's checks
-  by hand (the reset and invitation e-mails with `dmarc=pass`; an old invitation address with
-  its hash; the old address's storage emptied; App Links on a phone with the 1.3.1 APK); leaked
-  password protection in Auth; the website on LinkedIn and the D-U-N-S record; the three Checkly
-  monitors once the account's "Trial" (read on 15 November) ends; now that release 1.4.1 carries
-  step 12 (16 November 2026), the old callback checked by hand; and `SECURITY.md`'s
-  `gh attestation verify` on a download of 1.4.0 to 1.4.3 (Checking a download; 1.4.3 first, the
-  first release the publish jobs made), which the agent's container cannot run, as it cannot
-  reach Sigstore's trusted root. Reported by the owner on 22 November 2026 (Current Position):
-  `ALLOWED_ORIGINS` set to the new origin alone, and `tool/db/time_zone_skew.sql` run.
-  Since 22 November 2026, two more are the owner's. The first is deleting the throwaway branch
-  `claude/publish-dry-run`. The agent's session could not, as its git proxy answered 403. A push
-  to the branch would run its workflow, which attests, though `SECURITY.md`'s command refuses
-  what it signs (another workflow and another ref). The second is reading the dashboard's Edge
-  Functions Secrets page, which settles two things. If it shows only a relative time, such as
-  "2 hours ago", hovering over it may give the exact time; otherwise tell the agent what it
-  shows.
+- Waiting on the owner, 15 to 22 November 2026: a record, not the list. What is still open, with
+  the steps, is in `docs/owner-actions.md`. On 15 November the AWS Activate provider's three
+  requests of 12 November 2026 (the website and the web app on the company's own domain, an e-mail
+  address there, the company's name on the website) were met, and a reply with the pitch deck at
+  1.3.1 was drafted for the owner to send; the agent advised a separate mailbox for the
+  application over sharing the company mailbox's login. Reported by the owner on 22 November 2026
+  (Current Position): `ALLOWED_ORIGINS` set to the new origin alone, and
+  `tool/db/time_zone_skew.sql` run. `SECURITY.md`'s `gh attestation verify` needs a person's run,
+  as the agent's container cannot reach Sigstore's trusted root: on 1.4.3 first, the first release
+  the publish jobs made, then, optionally, on 1.4.0 to 1.4.2. The agent's session could not delete
+  the throwaway branch `claude/publish-dry-run` on 22 November 2026, as its git proxy answered 403;
+  a push to the branch would run its workflow, which attests, though `SECURITY.md`'s command
+  refuses what it signs (another workflow and another ref). What the update times on the
+  dashboard's Edge Functions Secrets page would show (reading them is on the owner's list; if the
+  page shows only a relative time, such as "2 hours ago", hovering over it may give the exact
+  time):
   - `ALLOWED_ORIGINS`'s last update. 22 November between 08:09 and 08:14 UTC (13:09 and 13:14
     Pakistan time) would settle that the change made version 21 (Current Position, release
     1.4.3). Any other time means version 21 is unexplained again: then check the organisation's
@@ -616,8 +612,9 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   against a co-owner's account deletion). `finding_m2_*` and replays R9 and R10 show it; the
   detector and the retries resolve it, and every other property holds. Its remedy
   (`admin_delete_account_data` nulls the user's 29 remaining `SET NULL` columns under id-ordered
-  portfolio locks) is the owner's decision (Blockers); moving the audit-trail `DELETE` after the
-  cascade alone was rejected (one shape only, and a new cycle on a restored schema).
+  portfolio locks) is the owner's decision (`docs/owner-actions.md`); moving the audit-trail
+  `DELETE` after the cascade alone was rejected (one shape only, and a new cycle on a restored
+  schema).
   After the review round and the merge with `main`, every gate passed (2026-11-13):
   `make format-check-repo lint docs-check test-tools`, `make verify` (8/8 tracks, 452 s), the
   Membership `run.sh all` (106/106, 367 s), `replay/residence.sh` (76 s), `make test-db` (23 suites,
@@ -641,7 +638,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   open proposals P-01 and P-02 there.
 - Milestone v1.0 (as of 2026-11-08), at commit e853378 on `claude/exciting-cray-2wue0f`. Phases 1–9 are built and
   tested; `REQUIREMENTS.md` ticks each requirement and says what remains of the six that are not
-  finished (TEAM-05, WEB-01, NFR-03, NFR-04, NFR-07, NFR-08).
+  finished (TEAM-05, WEB-01, NFR-03, NFR-04, NFR-07, NFR-08; NFR-08 is done since release
+  1.0.0's Deploy, 2026-11-09).
 - Phase 4 (Design System): `mm_ui` passed its final design QA with notes (2e791e4: 2,494 tests,
   100% line coverage). The gaps the app's feature reviews found in it were closed in e853378
   (see [Follow-ups](#follow-ups)); what remains is in `docs/design-qa.md`.
@@ -655,7 +653,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   a lawyer on privacy and terms, the official legal texts, a native Urdu editor.
 - Phase 11 (CI/CD): CI, Security, Scorecard, PR-title, Release and Deploy workflows are
   committed, including the formal-verification job (3139ca4) and the web deploys (c1013b8,
-  682ceb3). The first production Deploy run has not happened (see Blockers).
+  682ceb3). The first production Deploy ran with release 1.0.0 (2026-11-09), and every release
+  since deploys.
 - Phase 12 (Documentation, UAT and release readiness) is in progress. Documentation stage
   (2026-11-08): root and per-area `AGENTS.md` (with `CLAUDE.md` pointers), `docs/agents/`
   (commands, conventions, workflows), `llms.txt`, `docs/README.md`, the README rewritten, and
@@ -744,10 +743,10 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
      chain (PostgreSQL 16) and the hosted project (the `psql -At` output's md5 is
      `ebe541b2085461f621b30aa26a82297e`).
   4. Advisors: security lists the 23 write RPCs pinned in `01_schema_security.test.sql`, name for
-     name, and leaked password protection (off; an Auth setting, the owner's). Performance lists
-     only "unused index" INFO findings (62), among them the new
-     `portfolios_caretaker_user_id_idx`; no unindexed foreign key and no policy that re-evaluates
-     auth functions per row.
+     name, and leaked password protection (off; an Auth setting, the owner's, which needs the Pro
+     plan: Follow-ups, Open, first entry). Performance lists only "unused index" INFO findings
+     (62), among them the new `portfolios_caretaker_user_id_idx`; no unindexed foreign key and no
+     policy that re-evaluates auth functions per row.
   5. GoTrue's foreign-key actions on `auth.users`: the hosted order, without Auth's own tables,
      is the order `formal/tla/Membership/replay/residence.sh` prints for the migrated local
      database (34 entries), with `portfolios.caretaker_user_id` last, after
@@ -848,64 +847,34 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
 
 ## Blockers (need the owner)
 
-The ordered checklist of everything the owner must do before launch is in
-`docs/release-readiness.md`, Owner actions. For the roadmap, `docs/roadmap/README.md` lists the
-owner's decisions by date. The ones that hold up the launch milestone (due 2027-02-28):
+What the owner still has to do or decide, with the steps for each and the dates, is in
+`docs/owner-actions.md`: the one current list, which every change that adds or closes an owner
+action updates in the same pull request. `docs/release-readiness.md`, Owner actions, keeps the
+history and the reasoning of each action, and `docs/roadmap/README.md` the roadmap's decisions by
+date.
 
-- **By 2026-11-30:** the response to the State Bank's draft open-banking regulations, if AR LABS
-  is to comment (`docs/roadmap/open-banking.md`).
-- **The D-U-N-S number** gates Google Play, the App Store and paid plans; Dun & Bradstreet quotes
-  up to 30 business days.
-- **The move to the domain:** `mmakaan.app` is bought (D-20, 2026-11-13), its DNS points at the
-  hosting and its mailbox, `hello@mmakaan.app`, exists (both 2026-11-13). The move's pull request
-  is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done, with
-  steps 1, 11 and 13 (except its e-mail checks) and step 10's homepage and company website (the
-  same day). Waiting on the owner: step 9's checks by hand and the e-mails with `dmarc=pass`, the
-  website on LinkedIn and the D-U-N-S record, and, step 12 being released (1.4.1), its check by
-  hand of the old callback (`docs/release-readiness.md`, Owner actions, item 13; step 12's
-  `ALLOWED_ORIGINS` was reported done on 2026-11-22, and the old origin's refusal shown that day).
-  Apple enrols an
-  organisation only if its website is on a domain associated with it, with work e-mail there; the
-  same domain serves Meta's verification and the e-mail sending subdomains.
-- **A lawyer:** a fixed-fee request for quotation this month, with a deadline at least six weeks
-  before the store submissions. The plans have the lawyer review the privacy text for D-18 before
-  any analytics SDK ships, as the research recommends.
-- **A native Urdu editor**, after the owner signs off the glossary.
-- **By 2026-12-30:** the 60-day notice to early-access users, if anyone is to be charged before
-  2027-02-28; billing's web checkout would then come into wave 1 (`docs/roadmap/README.md`).
+What the owner has done, for the record (not a to-do list):
 
-The rest, in short:
-
-- Finding M2 of `formal/tla/Membership` (open, low; `docs/operations.md`, Deleting a user
-  account): decide whether `admin_delete_account_data` should set the 29 `ON DELETE SET NULL`
-  columns that name the user (`created_by`, `invited_by`, `voided_by`, `actor_id` and the like)
-  to NULL under portfolio locks taken in id order, so that GoTrue's deletion finds nothing to
-  lock. It writes 20 tables (each write audited) and locks more portfolios, including ones the
-  user has left. Until then a rare 40P01 on the delete-account path is resolved by the retries.
+- The move to the domain: `mmakaan.app` bought (D-20, 2026-11-13), its DNS pointed at the hosting
+  and its mailbox, `hello@mmakaan.app`, made (both 2026-11-13); the move's pull request merged and
+  released (1.3.0, 2026-11-15), and the owner's steps up to step 8, with steps 1, 11 and 13 (except
+  its e-mail checks) and step 10's homepage and company website, done the same day; step 12's
+  `ALLOWED_ORIGINS` reported done on 2026-11-22, and the old origin's refusal shown that day
+  (`docs/release-readiness.md`, Owner actions, item 13).
 - Done with release 1.0.0 (2026-11-09) and by every release since: the first production run of
   the Deploy workflow. It deploys the web app to Vercel (`web` job) and redeploys the Edge
   Functions, so they send the database's Retry-After (`admin_rate_limit_hit`, 20261107181820)
   and no longer call the deprecated `admin_hit_rate_limit`.
-- Google Play: the organisation account waits for its D-U-N-S number. Once the app is on Play,
-  add the Play app-signing key's SHA-256 to `app/web/.well-known/assetlinks.json`, and link the
-  listing from the website.
-- The owner, a native Urdu speaker, reviews the app's and the website's Urdu (including the date
-  picker's day names, one glossary for the app and the site, and the e-mail templates).
-- The backup key: an `age1...` public key in the repository variable `BACKUP_AGE_RECIPIENTS`.
-  Until then the Backup workflow refuses to run.
-- A lawyer to review the privacy policy and the terms (website and app) before launch.
-- The official legal texts (`.gov.pk`) behind the guides could not be reached from here; the
-  guides word every unconfirmed point as unconfirmed until someone checks them.
-- Custom SMTP for Supabase Auth e-mails before launch, through Resend's free plan (owner's
-  choice, 2026-11-09), with the bilingual templates in `supabase/templates/`. The sending domain
-  `news.ar27111994.dev` was verified (2026-11-09), with click and open tracking off (the owner,
-  reported 2026-11-12). Since 2026-11-15 the domain is `mmakaan.app`, verified with tracking off,
-  and the sender `hello@mmakaan.app` (the Current Position).
+- Custom SMTP for Supabase Auth e-mails, through Resend's free plan (owner's choice, 2026-11-09),
+  with the bilingual templates in `supabase/templates/`. The sending domain `news.ar27111994.dev`
+  was verified (2026-11-09), with click and open tracking off (the owner, reported 2026-11-12).
+  Since 2026-11-15 the domain is `mmakaan.app`, verified with tracking off, and the sender
+  `hello@mmakaan.app` (the Current Position).
 - Reported done by the owner on 2026-11-09 (not checkable from the agent's network): the backup
   key, `RELEASE_PLEASE_TOKEN`, Supabase SMTP through Resend with the templates, and the other
   configuration in `docs/release-readiness.md`, Owner actions. Since then: the pull request to
   `main` and the first Deploy run (release 1.0.0, 2026-11-09), and the uptime monitors, on
-  Checkly (Better Stack refused sign-ups; the Current Position). Waiting: the D-U-N-S number. On 2026-11-12 the owner reported
+  Checkly (Better Stack refused sign-ups; the Current Position). On 2026-11-12 the owner reported
   the three Auth templates updated in the dashboard (the plain-Urdu copies, still in Nastaliq);
   on 2026-11-13, after release 1.2.0, they pasted the sans-Urdu copies from `main`.
 - Answered by the owner on 2026-11-09: the operator named on the privacy page (Ahmed Rehan) is
@@ -932,7 +901,11 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   do not expire by time; `supabase/config.toml` sets no `[auth.sessions]` time-box or inactivity
   timeout), so a copy of it in a phone backup can still sign in; the privacy page says so. A
   session inactivity timeout on the hosted project, or retrying the server sign-out later, is the
-  owner's decision.
+  owner's decision. A time-box or inactivity timeout needs Supabase's Pro plan ("This feature is
+  only available on Pro Plans and up", `guides/auth/sessions`), as does leaked password
+  protection ("available on the Pro Plan and above", `guides/auth/password-security`), both read
+  through `search_docs` on 22 November 2026; Pro is about US$25 a month for the organisation
+  (`guides/platform/billing-faq`). `docs/owner-actions.md` has the decision.
 - Licences: `MmIcons.ttf` has empty copyright fields (`THIRD_PARTY_NOTICES.md`, Gaps). dbus
   0.8.0 (MPL-2.0, Linux desktop only, unmodified): a distributed Linux build must say where its
   source is.

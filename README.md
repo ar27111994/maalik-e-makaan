@@ -29,8 +29,8 @@ design system, the app, the website and CI/CD are built, tested and deployed, an
 passes ([`docs/uat.md`](docs/uat.md)).
 Still to come before inviting real users: a native-speaker review of the Urdu and a legal review
 of the privacy and terms pages. Google Play waits on a D-U-N-S number, and the App Store on an
-Apple Developer Program membership. [`docs/release-readiness.md`](docs/release-readiness.md) has
-what the owner must still do.
+Apple Developer Program membership. **What is waiting on the owner:**
+[`docs/owner-actions.md`](docs/owner-actions.md), with the steps for each.
 [`.planning/STATE.md`](.planning/STATE.md) has the current position and blockers, and
 [`.planning/REQUIREMENTS.md`](.planning/REQUIREMENTS.md) says what remains of each requirement.
 

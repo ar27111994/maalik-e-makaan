@@ -109,3 +109,6 @@ Follow [`website/README.md`](../../website/README.md) ("Add a page", "Add a guid
    `make docs`. To repeat a fact in a new place, or add a new one, edit
    `tool/docs/fact_registry.py` (and `fact_sources.py` for a new source) with tests.
 4. Run `make format-check-repo lint docs-check` (Prettier and markdownlint cover every `*.md`).
+5. A change that adds or closes something only the owner can do or decide updates
+   [`docs/owner-actions.md`](../owner-actions.md) in the same pull request: a new item with its
+   steps, or the item moved to "Recently done" with its date.

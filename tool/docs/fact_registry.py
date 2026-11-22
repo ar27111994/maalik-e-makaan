@@ -1479,6 +1479,7 @@ LEGACY_PATHS = {
     "website/vercel.json": "the earlier site address's redirect (tests/unit/vercel.test.ts)",
     OPERATIONS: "the Domains section, and the redirect URLs Auth keeps for older builds",
     "docs/release-readiness.md": "the owner's checklist for the move",
+    "docs/owner-actions.md": "the owner's checks by hand of the earlier addresses",
 }
 HISTORY = (".planning/**", "CHANGELOG.md")
 # The check's own tests, which name wrong addresses on purpose.
