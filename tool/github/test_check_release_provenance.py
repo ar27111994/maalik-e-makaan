@@ -248,8 +248,9 @@ MUTANTS = {
         in_job("ios", "    runs-on: macos-26\n", "    runs-on: self-hosted\n"),
         [(HANDOFF.format("ios"), "it does not run on macos-26, its GitHub-hosted runner")],
     ),
-    # A label that only starts with a GitHub-hosted one names no GitHub-hosted runner, so only a
-    # self-hosted runner could take the job: the runner is compared as the whole label.
+    # A label that only starts with a GitHub-hosted one names another runner: a self-hosted one,
+    # or a larger runner given a custom label, neither of which the rule allows. The rule pins the
+    # exact label, so the runner is compared as the whole label, never as a prefix.
     "build: artefacts on a label that starts with its runner's": (
         RELEASE,
         in_job("artefacts", "    runs-on: ubuntu-24.04\n", "    runs-on: ubuntu-24.04-builder\n"),
