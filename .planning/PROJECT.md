@@ -361,21 +361,25 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   removal, The session the cache serves).
 
 - D-24: **Phone backups are full.** (Decided by the owner, 22 November 2026, in their words "Full
-  Backup".) The phone's own backups keep the app's data whole: Android's Auto Backup to the
-  person's Google account and its transfer to a new phone, and on the iPhone a backup to iCloud or
-  a computer, may include the sign-in and the saved records (tenants' CNICs among them), as the
-  privacy page already says in English and Urdu. The app neither turns the backup off nor leaves
-  its preferences out of it. The device wipe's pull request (#70) had left this to the owner with
-  the lawyer (question T7 of the legal pack, PR #66); it is now the owner's decision, and the
-  pack's data map is to say that backups are full. The manifest writes `android:allowBackup="true"`
-  out (Android's default, set so that the choice is seen), and `tool/android/check_manifest.py`
-  (`make lint`, and CI on the merged release manifest) keeps it so: it refuses any other value,
-  and any `android:fullBackupContent`, `android:dataExtractionRules` or `android:backupAgent` on
-  the application, each of which would narrow the backup. What it costs: a sign-in kept in a
-  backup made before a sign-out that could not reach the server can still sign in, since refresh
-  tokens do not expire by time and `supabase/config.toml` sets no session time-box (a timeout on
-  the hosted project stays the owner's open follow-up in `.planning/STATE.md`). What the backups
-  hold, read on 22 November 2026:
+  Backup".) The phone's own backups keep the app's data whole: Android's Auto Backup to the person's
+  Google account and its transfer to a new phone, and on the iPhone a backup to iCloud or a
+  computer, may include the sign-in and the saved records (tenants' CNICs among them). The privacy
+  page says so in English and Urdu, in its backups bullet: a backup of the phone's apps ("Google's
+  backup on Android, iCloud or a computer on iPhone") "can include your sign-in and the app's copy
+  of your records as they were when it was made", and, in a sentence added with this decision, "When
+  you get a new phone and bring your old phone's data across, your sign-in and the app's copy of
+  your records are copied to the new phone too". The app neither turns the backup off nor leaves its
+  preferences out of it. The device wipe's pull request (#70) had left this to the owner with the
+  lawyer (question T7 of the legal pack, PR #66); it is now the owner's decision, and the pack's
+  data map is to say that backups are full. The manifest writes `android:allowBackup="true"` out
+  (Android's default, set so that the choice is seen), and `tool/android/check_manifest.py`
+  (`make lint`, and CI on the merged release manifest) keeps it so: it refuses any other value, and
+  any `android:fullBackupContent`, `android:dataExtractionRules` or `android:backupAgent` on the
+  application, each of which would narrow the backup. What it costs: a sign-in kept in a backup made
+  before a sign-out that could not reach the server can still sign in, since refresh tokens do not
+  expire by time and `supabase/config.toml` sets no session time-box (a timeout on the hosted
+  project stays the owner's open follow-up in `.planning/STATE.md`). What the backups hold, read on
+  22 November 2026:
   - **Android's cloud backup.** "Back up user data with Auto Backup"
     ([source](https://developer.android.com/identity/data/autobackup)): of `android:allowBackup`,
     "The default value is `true`, but we recommend explicitly setting the attribute in your

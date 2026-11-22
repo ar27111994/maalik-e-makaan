@@ -882,15 +882,16 @@ Phone backups. The owner decided on 22 November 2026, in their words "Full Backu
 phone backups stay complete (D-24): Android's Auto Backup and its transfer to a new phone, and an
 iCloud or computer backup on the iPhone, may include the sign-in and the saved records. The manifest
 now writes `android:allowBackup="true"` out, and `tool/android/check_manifest.py` refuses any other
-value and any backup rules or agent on the application. The privacy page's backups sentence already
-says what the app does, in English and Urdu, and is unchanged. The decision is the owner's, so the
-legal pack (PR #66, branch `claude/legal-pack`) needs: question T7 to say that whether the backup
-must be turned off is decided (its other questions, the unencrypted cache, a session timeout and
-whether the privacy page says enough, stay the lawyer's); its data map to say that backups are full
-(row 14g, the phone's own backup, and its retention row, which still reads "[Owner: Auto Backup off,
-or the preferences left out of it]"); and the README's "Android's Auto Backup" item, which asks to
-turn it off or leave the preferences out, closed with D-24. A session timeout on the hosted project
-stays open (Open, above).
+value and any backup rules or agent on the application. The privacy page's backups bullet already
+said that a backup can hold the sign-in and the app's copy of the records, in English and Urdu; it
+now also says that a new phone that brings the old phone's data across gets them too. The decision
+is the owner's, so the legal pack (PR #66, branch `claude/legal-pack`) needs: question T7 to say
+that whether the backup must be turned off is decided (its other questions, the unencrypted cache, a
+session timeout and whether the privacy page says enough, stay the lawyer's); its data map to say
+that backups are full (row 14g, the phone's own backup, and its retention row, which still reads
+"[Owner: Auto Backup off, or the preferences left out of it]"); and the README's "Android's Auto
+Backup" item, which asks to turn it off or leave the preferences out, closed with D-24. A session
+timeout on the hosted project stays open (Open, above).
 
 ### Closed on 15 November 2026
 
