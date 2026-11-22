@@ -336,6 +336,43 @@ void main() {
     });
   });
 
+  // Another account signs in from another tab just after the deletion's
+  // answer comes: that tab's message is an event of its own, handled after
+  // the answer's. The command reads the session the device holds and has
+  // gotrue drop it in one synchronous run, with nothing awaited between
+  // (app.md, Hooks), so the deleting account is signed out and wiped first,
+  // and the account that signs in after it keeps its session.
+  test('a deletion answered just before another account signs in from '
+      'another tab signs out the deleting account alone', () async {
+    container.listen(accountDeletionProvider, (_, _) {});
+    await pumpEventQueue();
+    account.gate.close();
+    final deleting = container
+        .read(accountDeletionProvider.notifier)
+        .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+    await pumpEventQueue();
+    expect(account.calls.last.$1, 'deleteAccount');
+    account.gate.open();
+    String? heldWhenTheMessageCame = 'not yet';
+    Timer.run(() {
+      heldWhenTheMessageCame = session?.user.id;
+      session = _session(id: _otherId, token: 'b');
+      changes.add(sb.AuthState(sb.AuthChangeEvent.signedIn, session));
+    });
+    await deleting;
+    await pumpEventQueue();
+    expect(heldWhenTheMessageCame, isNull);
+    verify(() => gotrue.signOut()).called(1);
+    expect(session?.user.id, _otherId);
+    expect(container.read(authStatusProvider), isA<SignedIn>());
+    expect(container.read(currentUserIdProvider), _otherId);
+    expect(store.values, isEmpty);
+    expect(settings.values, {
+      AppSettings.localeKey: 'ur',
+      AppSettings.themeKey: 'dark',
+    });
+  });
+
   test('a list still loading when the user signs out leaves no copy', () async {
     store.values.clear();
     portfolios.gate.close();
