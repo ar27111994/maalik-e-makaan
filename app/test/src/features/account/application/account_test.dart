@@ -622,30 +622,43 @@ void main() {
       );
     });
 
-    test('a session that ends while it signs in again asks for no '
-        'deletion', () async {
-      final app = TestApp();
-      final container = containerFor(app);
-      listen(container, accountDeletionProvider);
-      listen(container, authStatusProvider);
-      await pumpEventQueue();
-      app.auth.gate.close();
-      final deleting = container
-          .read(accountDeletionProvider.notifier)
-          .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
-      await pumpEventQueue();
-      await app.cache.clear();
-      app.auth.emit(_otherAccount);
-      await pumpEventQueue();
-      app.auth.gate.open();
-      await expectLater(deleting, throwsA(isA<SessionExpired>()));
-      expect(
-        app.account.calls.map((c) => c.$1),
-        isNot(contains('deleteAccount')),
-      );
-      expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
-      expect(container.read(authStatusProvider), _otherAccount);
-    });
+    // Another account's e-mail link replaces the session; or another tab
+    // signs it out and the same account signs in again there (or the
+    // re-authentication's own sign-in brings it back): the cache then
+    // serves that account again, in a new epoch, which asks no deletion
+    // either.
+    for (final (who, statuses) in [
+      ('another account', [_otherAccount]),
+      ('the same account', [const SignedOut(), signedIn]),
+    ]) {
+      test('a session that ends while it signs in again asks for no '
+          'deletion, with $who signed in after it', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        app.auth.gate.close();
+        final deleting = container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+        await pumpEventQueue();
+        await app.cache.clear();
+        for (final status in statuses) {
+          app.auth.emit(status);
+          await pumpEventQueue();
+        }
+        expect(container.read(authStatusProvider), statuses.last);
+        app.auth.gate.open();
+        await expectLater(deleting, throwsA(isA<SessionExpired>()));
+        expect(
+          app.account.calls.map((c) => c.$1),
+          isNot(contains('deleteAccount')),
+        );
+        expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+        expect(container.read(authStatusProvider), statuses.last);
+      });
+    }
 
     test('with nobody signed in it asks for nothing', () async {
       final app = TestApp();
