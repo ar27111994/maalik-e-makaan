@@ -677,6 +677,17 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   password, ask for a new link here" in English and Urdu (the same source). Its "it is confirmed"
   holds for a sign-up; an e-mail change needs both of its links (`double_confirm_changes`), so
   say so there too.
+- Website: Stylelint 18 (#95) and stylelint-config-standard 41 (#92) wait for
+  stylelint-use-logical, the plugin behind `csstools/use-logical`, whose latest release (2.1.3,
+  checked 2026-11-21) accepts stylelint `>= 11 < 18`, so `npm ci` fails with ERESOLVE.
+  `.github/dependabot.yml` ignores both until a release that accepts 18, or a replacement plugin,
+  lifts it; then take the two together and run the lint suite against stylelint 18's removed
+  rules and options.
+- Dart: `test` stays at 1.31.1. test 1.32.0 needs test_api 0.7.14, and the flutter_test of the
+  Flutter that `FLUTTER_VERSION` in ci.yml names pins 0.7.12, so `.github/dependabot.yml` ignores
+  test 1.32.0 and later until that pin moves. CI's `flutter pub get` re-resolves quietly, so a
+  lockfile pub cannot satisfy still passes CI; `flutter pub get --enforce-lockfile` in CI would
+  catch it (not yet done: it changes every Flutter job).
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed on 15 November 2026

@@ -9,7 +9,7 @@
 // CI runs a subset of the pages instead: lighthouserc.ci.cjs
 // (`npm run lighthouse:ci`).
 //
-// Chromium is the browser Playwright 1.64.1 pins (installed by
+// Chromium is the browser Playwright 1.65.0 pins (installed by
 // `npx playwright install chromium` in CI). Set LIGHTHOUSE_CHROME_PATH, or PW_CHROMIUM_PATH as for the e2e suite, to
 // use another binary. The generic CHROME_PATH is deliberately not read: some
 // machines set it to a system Google Chrome that is not the pinned build.

@@ -48,7 +48,7 @@ others); Flutter writes their notices into every build's `NOTICES` asset.
 | android_file_picker | 2.1.4   | MIT                                                                                |
 | clock               | 1.1.3   | Apache-2.0                                                                         |
 | file_picker         | 13.3.2  | MIT                                                                                |
-| flutter_riverpod    | 3.4.3   | MIT                                                                                |
+| flutter_riverpod    | 3.5.0   | MIT                                                                                |
 | go_router           | 18.1.3  | BSD-3-Clause                                                                       |
 | http                | 1.6.0   | BSD-3-Clause                                                                       |
 | image               | 4.12.0  | MIT                                                                                |
@@ -110,7 +110,7 @@ AGPL.
 | Atkinson Hyperlegible Next | 2.001                | SIL Open Font License 1.1                   | 2020-2024 The Atkinson Hyperlegible Next Project Authors |
 | Noto Sans Arabic           | 2.012                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
 | Noto Nastaliq Urdu         | 3.009                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
-| MmIcons (subset of Lucide) | lucide-static 1.66.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
+| MmIcons (subset of Lucide) | lucide-static 1.70.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
 
 The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
 (`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoSansArabic.txt`, `OFL-NotoNastaliqUrdu.txt`,
@@ -126,7 +126,7 @@ language switch on English pages, renamed "MM Urdu Label") and Noto Nastaliq
 Urdu (the letters of the wordmark only), and publishes the three OFL texts at
 `/licences/`. The pitch deck (`website/deck/`) embeds the three in its PDF (Noto
 Nastaliq Urdu for the cover's wordmark only) and draws five Lucide icons
-(`website/deck/icons/`, with their ISC notice) from lucide-static 1.66.0.
+(`website/deck/icons/`, with their ISC notice) from lucide-static 1.70.0.
 
 What the licences ask:
 
@@ -163,7 +163,7 @@ Their locked transitive packages are MIT (`@supabase/auth-js`,
 | Package          | Version | Licence      |
 | ---------------- | ------- | ------------ |
 | astro            | 7.4.12  | MIT          |
-| @astrojs/mdx     | 8.1.2   | MIT          |
+| @astrojs/mdx     | 8.1.3   | MIT          |
 | @astrojs/sitemap | 3.7.4   | MIT          |
 | subset-font      | 2.9.0   | BSD-3-Clause |
 
@@ -174,15 +174,15 @@ Development only:
 | @astrojs/check            | 0.9.12  | MIT        |
 | @axe-core/playwright      | 4.14.0  | MPL-2.0    |
 | @eslint/js                | 10.0.1  | MIT        |
-| @lhci/cli                 | 0.15.1  | Apache-2.0 |
-| @playwright/test          | 1.64.1  | Apache-2.0 |
+| @lhci/cli                 | 0.16.0  | Apache-2.0 |
+| @playwright/test          | 1.65.0  | Apache-2.0 |
 | @types/node               | 22.20.5 | MIT        |
 | eslint                    | 10.14.0 | MIT        |
 | eslint-plugin-astro       | 3.2.1   | MIT        |
 | eslint-plugin-jsx-a11y    | 6.10.2  | MIT        |
 | fast-check                | 4.10.2  | MIT        |
 | globals                   | 17.14.0 | MIT        |
-| parse5                    | 8.1.0   | MIT        |
+| parse5                    | 8.1.1   | MIT        |
 | postcss-html              | 2.0.0   | MIT        |
 | prettier                  | 3.9.10  | MIT        |
 | prettier-plugin-astro     | 1.1.2   | MIT        |
@@ -204,7 +204,7 @@ Root `package.json` (development only):
 | @commitlint/cli                 | 21.2.4  | MIT     |
 | @commitlint/config-conventional | 21.2.4  | MIT     |
 | lefthook                        | 2.2.2   | MIT     |
-| lucide-static                   | 1.66.0  | ISC     |
+| lucide-static                   | 1.70.0  | ISC     |
 | markdownlint-cli2               | 0.24.0  | MIT     |
 | prettier                        | 3.9.10  | MIT     |
 
@@ -212,9 +212,9 @@ Browser UAT (`app/uat/package.json`, development only; `docs/uat.md`):
 
 | Package          | Version | Licence    |
 | ---------------- | ------- | ---------- |
-| @playwright/test | 1.64.1  | Apache-2.0 |
+| @playwright/test | 1.65.0  | Apache-2.0 |
 
-It installs `playwright` and `playwright-core` 1.64.1 (Apache-2.0) and, at run time, a Chromium
+It installs `playwright` and `playwright-core` 1.65.0 (Apache-2.0) and, at run time, a Chromium
 build for testing; none of it is distributed.
 
 Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
@@ -225,7 +225,7 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 | fonttools            | 4.68.0    | MIT                                                              |
 | PyYAML               | 6.0.3     | MIT                                                              |
 | black                | 26.10.1   | MIT                                                              |
-| ruff                 | 0.17.3    | MIT                                                              |
+| ruff                 | 0.17.4    | MIT                                                              |
 | shellcheck-py        | 0.11.0.1  | MIT wrapper; the ShellCheck 0.11.0 binary it installs is GPL-3.0 |
 | shfmt-py             | 4.2.0     | MIT AND BSD-3-Clause (shfmt 3.14.1)                              |
 | squawk-cli           | 2.71.0    | Apache-2.0 OR MIT                                                |
