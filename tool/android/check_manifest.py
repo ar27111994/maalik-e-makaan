@@ -52,10 +52,12 @@ REQUIRED_APPLICATION_ATTRIBUTES = {
     "allowBackup": "true",
 }
 
-# What would narrow the phone's backup, which D-24 keeps full: a backup rules file for Android 11
-# and earlier (fullBackupContent) or for Android 12 and later (dataExtractionRules), and a backup
-# agent of the app's own, which decides what it backs up. With none of them, Android backs up and
-# transfers everything in the app's own folders but its cache and no-backup folders.
+# What would narrow the phone's backup, which D-24 keeps full: the older backup rules file
+# (fullBackupContent: Android 11 and earlier, and for an app that targets Android 12 or later, as
+# this one does, cloud backups on Android 12 and later when there is no dataExtractionRules), the
+# newer one (dataExtractionRules: Android 12 and later), and a backup agent of the app's own, which
+# decides what it backs up. With none of them, Android backs up and transfers everything in the
+# app's own folders but its cache and no-backup folders.
 NARROWING_BACKUP_ATTRIBUTES = ("fullBackupContent", "dataExtractionRules", "backupAgent")
 
 # The paths the web app's e-mail links open: Supabase Auth's callback (with its
