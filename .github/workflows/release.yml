@@ -1,9 +1,11 @@
 # Releases. release-please keeps a release pull request open from the
 # conventional commits on main; merging it tags vX.Y.Z, writes CHANGELOG.md and
 # publishes a GitHub release. This workflow then builds the signed Android app,
-# the web app and an unsigned iOS app for that tag, attests their provenance,
-# attaches them with that provenance beside them as a .intoto.jsonl file
-# (SECURITY.md, Checking a download), and deploys the tag to production
+# the web app and an unsigned iOS app for that tag in jobs that can write nothing,
+# hands each build's files to a publish job of its own on a fresh runner, which
+# attests their provenance and attaches them with that provenance beside them as a
+# .intoto.jsonl file (SECURITY.md, Checking a download; docs/operations.md, Release
+# provenance), and deploys the tag to production
 # (deploy.yml): the backend and the web app at once, the website once those
 # builds and the web app's deploy have finished. The builds start only once the
 # web app's origin answers (tool/web/check_live.py), since every one of them
@@ -94,16 +96,19 @@ jobs:
         run: python3 tool/web/check_auth_urls.py --project-ref "$PROJECT_REF"
 
   artefacts:
-    name: Build and attach artefacts
+    # Builds with the workflow's read-only token and no OIDC token: Gradle's plugins, the pub
+    # packages and Flutter run here, and none of them can write to the release or sign a
+    # provenance. publish-artefacts attests and attaches what this job hands over.
+    name: Build the Android app and the web app
     needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: release
     permissions:
-      attestations: write # record build provenance
-      contents: write # upload assets to the release
-      id-token: write # sign the provenance attestation
+      contents: read # check out the tag; nothing in this job can write
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     env:
       TAG: ${{ needs.release-please.outputs.tag }}
       VERSION: ${{ needs.release-please.outputs.version }}
@@ -178,48 +183,35 @@ jobs:
           (cd app/build && zip -qr "../../dist/maalik-e-makaan-$TAG-debug-symbols.zip" symbols)
           (cd dist && sha256sum -- * > SHA256SUMS)
           rm -f "$RUNNER_TEMP/release.jks"
-      - id: provenance
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+      - id: upload
+        name: Hand the files to the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          subject-path: dist/*
-      - name: Provenance file, checked against every file it covers
-        # The attestation is a Sigstore bundle naming every file in dist/ (SHA256SUMS
-        # included). It goes beside them as a .intoto.jsonl file, the provenance file Scorecard's
-        # Signed-Releases check counts, and is checked here against each of them, with the
-        # options SECURITY.md gives, before anything is attached. The source ref is main's
-        # literally: a run started by hand from another branch fails here and attaches nothing.
-        # tool/github/check_release_provenance.py (make lint) keeps these three steps together.
-        env:
-          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
-          PROVENANCE: dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}.intoto.jsonl
-        run: |
-          gh --version
-          cp -- "$BUNDLE" "$PROVENANCE"
-          for file in dist/*; do
-            [[ "$file" == "$PROVENANCE" ]] && continue
-            gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \
-              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
-              --source-ref refs/heads/main
-          done
-      - name: Attach to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+          # One name per attempt, so a re-run of this job never meets the earlier attempt's
+          # artifact; the publish job takes it by its id, never by this name.
+          name: release-android-web-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          # publish-artefacts reads it minutes later; a week leaves time to look at the files of
+          # a failed run (they are public on the release anyway).
+          retention-days: 7
+          compression-level: 0 # APKs, the app bundle and the zips are compressed already
 
   ios:
     # Unsigned: there is no Apple Developer Program membership yet. The owner
     # signs it with their own Apple Account to install it (docs/operations.md,
-    # iOS builds).
-    name: Build and attach the unsigned iOS app
+    # iOS builds). Like artefacts, it builds with the read-only token: CocoaPods, the pub
+    # packages and Flutter run here, and publish-ios attests and attaches what it hands over.
+    name: Build the unsigned iOS app
     needs: [release-please, preflight]
     if: needs.release-please.outputs.created == 'true'
     runs-on: macos-26
     timeout-minutes: 45
     environment: release
     permissions:
-      attestations: write # record build provenance
-      contents: write # upload assets to the release
-      id-token: write # sign the provenance attestation
+      contents: read # check out the tag; nothing in this job can write
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     env:
       TAG: ${{ needs.release-please.outputs.tag }}
       VERSION: ${{ needs.release-please.outputs.version }}
@@ -260,17 +252,135 @@ jobs:
           tool/ios/package_unsigned_ipa.sh app/build/ios/iphoneos/Runner.app \
             "dist/maalik-e-makaan-$TAG-ios-unsigned.ipa"
           (cd dist && shasum -a 256 -- * > SHA256SUMS-ios)
+      - id: upload
+        name: Hand the files to the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          # One name per attempt, so a re-run of this job never meets the earlier attempt's
+          # artifact; the publish job takes it by its id, never by this name.
+          name: release-ios-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0 # the .ipa is a zip already
+
+  publish-artefacts:
+    # A fresh runner that runs no build tool and checks nothing out. It takes the files
+    # of the artefacts job by the artifact's id, keeps only the names this release attaches
+    # for that build, attests them, checks the provenance file against each and attaches
+    # them. A process a build left running cannot reach this machine, and no build tool
+    # holds this job's write token or its OIDC token. tool/github/check_release_provenance.py
+    # (make lint) holds this job to exactly these values.
+    name: Attest and attach the Android and web files
+    needs: [release-please, artefacts]
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      attestations: write # record build provenance
+      contents: write # upload assets to the release
+      id-token: write # sign the provenance attestation
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+    steps:
+      - name: The build's files, by the artifact's id
+        # By id, not by name: an artifact another job of the run made or replaced under this
+        # name is not this one, and the download fails. The digest GitHub recorded at the
+        # upload is checked (digest-mismatch: error). An empty id (an output the runner
+        # skipped, say because it held a masked value) would download every artifact of the
+        # run; 'missing' is no id, so the download fails instead.
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.artefacts.outputs.artifact-id || 'missing' }}
+          path: build
+          digest-mismatch: error
+      - name: Only the files this release attaches for the build
+        # Exactly these names: a missing file fails mv, and anything else the artifact holds
+        # (a file named as the other build's, say) fails rmdir, so neither is attested or
+        # attached.
+        run: |
+          mkdir dist
+          mv -- build/SHA256SUMS "build/maalik-e-makaan-$TAG.aab" \
+            "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \
+            "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip dist/
+          rmdir build
       - id: provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/*
       - name: Provenance file, checked against every file it covers
-        # The attestation is a Sigstore bundle naming every file in dist/ (SHA256SUMS-ios
-        # included). It goes beside them as a .intoto.jsonl file, the provenance file Scorecard's
-        # Signed-Releases check counts, and is checked here against each of them, with the
-        # options SECURITY.md gives, before anything is attached. The source ref is main's
-        # literally: a run started by hand from another branch fails here and attaches nothing.
-        # tool/github/check_release_provenance.py (make lint) keeps these three steps together.
+        # The attestation is a Sigstore bundle naming every file in dist/. It goes beside them
+        # as a .intoto.jsonl file, the provenance file Scorecard's Signed-Releases check counts,
+        # and is checked here against each of them, with the options SECURITY.md gives, before
+        # anything is attached. The source ref is main's literally: a run started by hand from
+        # another branch fails here and attaches nothing.
+        env:
+          BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+          PROVENANCE: dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}.intoto.jsonl
+        run: |
+          gh --version
+          cp -- "$BUNDLE" "$PROVENANCE"
+          for file in dist/*; do
+            [[ "$file" == "$PROVENANCE" ]] && continue
+            gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+              --source-ref refs/heads/main --deny-self-hosted-runners
+          done
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  publish-ios:
+    # A fresh runner that runs no build tool and checks nothing out. It takes the files
+    # of the ios job by the artifact's id, keeps only the names this release attaches
+    # for that build, attests them, checks the provenance file against each and attaches
+    # them. A process a build left running cannot reach this machine, and no build tool
+    # holds this job's write token or its OIDC token. tool/github/check_release_provenance.py
+    # (make lint) holds this job to exactly these values.
+    name: Attest and attach the iOS files
+    needs: [release-please, ios]
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      attestations: write # record build provenance
+      contents: write # upload assets to the release
+      id-token: write # sign the provenance attestation
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+    steps:
+      - name: The build's files, by the artifact's id
+        # By id, not by name: an artifact another job of the run made or replaced under this
+        # name is not this one, and the download fails. The digest GitHub recorded at the
+        # upload is checked (digest-mismatch: error). An empty id (an output the runner
+        # skipped, say because it held a masked value) would download every artifact of the
+        # run; 'missing' is no id, so the download fails instead.
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.ios.outputs.artifact-id || 'missing' }}
+          path: build
+          digest-mismatch: error
+      - name: Only the files this release attaches for the build
+        # Exactly these names: a missing file fails mv, and anything else the artifact holds
+        # (a file named as the other build's, say) fails rmdir, so neither is attested or
+        # attached.
+        run: |
+          mkdir dist
+          mv -- build/SHA256SUMS-ios "build/maalik-e-makaan-$TAG-ios-unsigned.ipa" dist/
+          rmdir build
+      - id: provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Provenance file, checked against every file it covers
+        # The attestation is a Sigstore bundle naming every file in dist/. It goes beside them
+        # as a .intoto.jsonl file, the provenance file Scorecard's Signed-Releases check counts,
+        # and is checked here against each of them, with the options SECURITY.md gives, before
+        # anything is attached. The source ref is main's literally: a run started by hand from
+        # another branch fails here and attaches nothing.
         env:
           BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
           PROVENANCE: dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}-ios.intoto.jsonl
@@ -281,7 +391,7 @@ jobs:
             [[ "$file" == "$PROVENANCE" ]] && continue
             gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \
               --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
-              --source-ref refs/heads/main
+              --source-ref refs/heads/main --deny-self-hosted-runners
           done
       - name: Attach to the release
         env:
@@ -308,9 +418,10 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
   site:
-    # The download page links to the files artefacts and ios attach, and only
-    # to those attached when the site is built (deploy.yml), so the website
-    # waits for both builds to finish. It goes out even if one failed, without
+    # The download page links to the files publish-artefacts and publish-ios
+    # attach, and only to those attached when the site is built (deploy.yml), so
+    # the website waits for both to finish. It goes out even if a build or a
+    # publish job failed (that publish job is then skipped or failed), without
     # that build's files (or with the part an upload cut off part-way left on
     # the release); re-running the failed job runs this one again after
     # it, and the page then links to them too. It also waits for the backend
@@ -319,7 +430,7 @@ jobs:
     # backend, and after a move to a web app built for its new address
     # (docs/operations.md, Domains). Re-running deploy runs this one after it.
     name: Deploy the website
-    needs: [release-please, artefacts, ios, deploy]
+    needs: [release-please, publish-artefacts, publish-ios, deploy]
     if: >-
       ${{ !cancelled() && needs.release-please.outputs.created == 'true'
       && needs.deploy.result == 'success' }}
