@@ -728,7 +728,12 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   go_router 18.1.4 under Flutter 3.47.9 gets the same, so screens change at once, iOS has no swipe
   back and Android's predictive back has no animation. Check on a device; if it holds, find why
   go_router does not see the `MaterialApp`, or give the routes a `pageBuilder`. The delete screen
-  already says when it cannot be popped (`PopScope`), which a swipe back asks first.
+  already says when it cannot be popped (`PopScope`), which a swipe back asks first. On the same
+  device, look at a snack bar as the account changes (D-23): in widget tests none shows on the first
+  frame after the change, but Flutter's `clearSnackBars` runs the snack bar's exit animation, a
+  quarter of a second, unless accessible navigation is on (`MmSnackbar` shows with no animation
+  under reduced motion), so on a device its text may stay readable that long, as a sheet already
+  closing does; if it does, the shell can call `removeCurrentSnackBar()` after `clearSnackBars()`.
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
@@ -768,11 +773,14 @@ The owner answered two questions #70 left open, on 22 November 2026; both are bu
   Back is blocked, so leaving never looks like cancelling. The router asks the deletion whichever
   way its screen is left (`GoRoute.onExit`, `AccountDeletionController.leave`); Cancel does the
   same; the sign-out rules for an answer that deleted or may have deleted are unchanged. The
-  branch's check found two gaps, both closed there: Back waits for every request on its way (a
-  count), also one that another account, signed in meanwhile in another tab, started before the
-  earlier one answered; and another section, which cancels as Back does but keeps the screen in its
-  own, now finds it no longer busy, saying the deletion was cancelled and nothing was sent.
-  `app_test.dart` ("deleting the account") and `account_test.dart` pin it.
+  branch's checks found three gaps, all closed there. Another account, signed in meanwhile in
+  another tab, could start its own deletion while the earlier request was on its way: the earlier
+  answer then let Back leave while the later request was out, and during the later deletion's
+  password check neither Back nor Cancel could stop it, so it was sent. That account's Delete now
+  waits for the earlier answer, as Cancel does, and the deletion counts the requests on their way as
+  a defence. And another section, which cancels as Back does but keeps the screen in its own, now
+  finds it no longer busy, saying the deletion was cancelled and nothing was sent. `app_test.dart`
+  ("deleting the account") and `account_test.dart` pin it.
 - Two accounts on one device, in their words "Close sheets on account change" (D-23): a sheet left
   open while another account signs in (another tab) kept the earlier account's record on show, an
   occupant's CNIC and phone included, and its buttons and the dialogs it opened sent their requests
