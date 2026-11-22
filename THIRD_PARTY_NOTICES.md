@@ -49,9 +49,9 @@ others); Flutter writes their notices into every build's `NOTICES` asset.
 | clock               | 1.1.3   | Apache-2.0                                                                         |
 | file_picker         | 13.3.2  | MIT                                                                                |
 | flutter_riverpod    | 3.5.0   | MIT                                                                                |
-| go_router           | 18.1.3  | BSD-3-Clause                                                                       |
+| go_router           | 18.1.4  | BSD-3-Clause                                                                       |
 | http                | 1.6.0   | BSD-3-Clause                                                                       |
-| image               | 4.12.0  | MIT                                                                                |
+| image               | 4.13.1  | MIT                                                                                |
 | image_picker        | 1.2.4   | BSD-3-Clause (its licence file also carries an Apache-2.0 notice for aFileChooser) |
 | intl                | 0.20.3  | BSD-3-Clause                                                                       |
 | path_provider       | 2.1.6   | BSD-3-Clause                                                                       |

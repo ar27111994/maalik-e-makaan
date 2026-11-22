@@ -747,7 +747,11 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   Flutter that `FLUTTER_VERSION` in ci.yml names pins 0.7.12, so `.github/dependabot.yml` ignores
   test 1.32.0 and later until that pin moves. CI's `flutter pub get` re-resolves quietly, so a
   lockfile pub cannot satisfy still passes CI; `flutter pub get --enforce-lockfile` in CI would
-  catch it (not yet done: it changes every Flutter job).
+  catch it (not yet done: it changes every Flutter job). Dependabot resolves with a newer Flutter
+  than CI's: its lockfile in #105 named test 1.32.0 and test_api 0.7.14 despite the ignore, and
+  the batch of 22 November kept 1.31.1 again. Flutter 3.50.0 and 3.50.1 (stable, 11 and 20
+  November) pin test_api 0.7.14, so moving `FLUTTER_VERSION` to 3.50 lifts this; that is its
+  own change, with the analyzer, the goldens and every Flutter job.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed on 15 November 2026
