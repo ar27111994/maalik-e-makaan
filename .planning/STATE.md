@@ -9,6 +9,61 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-22)
 
+- **Publish jobs for the release files (D-25, branch `claude/release-publish-job`).** Release's
+  builds hold a read-only token and no OIDC token and hand their files to `publish-artefacts` and
+  `publish-ios`, which take them by the artifact's id on a fresh runner, attest, check and attach
+  them; `tool/github/check_release_provenance.py` is a structural check (permissions, secrets and
+  fixed templates) in place of the bash reader (`docs/operations.md`, Release provenance). It
+  applies from the first release after v1.4.2. Release pull request #109 (1.4.3, opened from #108's
+  record of release 1.4.2) is held, not merged, until this branch and the two branches that record
+  the owner's decisions of 22 November 2026 (D-22 to D-24) are merged, so that "after v1.4.2" stays
+  true and release-please folds this change into that release.
+  **The dry run, 22 November 2026,** on the throwaway branch `claude/publish-dry-run` (never
+  merged), with the workflow `publish-dry-run.yml`: its commits 55fee42, a12bf1a and 5c5f7a9 sit on
+  this branch's first commit, def8ff8, and run 45004074850 ran a12bf1a, run 45005674247 5c5f7a9,
+  each in two attempts. Its build jobs wrote files of random bytes under the release's names. The
+  publish jobs that attested (both in run 1, the Android one in run 2) were the template but for:
+  their signer workflow and source ref (that workflow, that branch); a literal tag; no environment;
+  `contents: read`, with a listing and a checksum check (`sha256sum -c`, `shasum -a 256 -c` for iOS)
+  in place of the upload step; a first step that logs the runner (its machine id, and whether the
+  OIDC request URL is set) before the download, and a last one that prints the bundle's subjects
+  after the check; `needs` naming the build alone, with no release-please, and no `if` in run 1
+  (`if: github.run_attempt == '1'` in run 2, so that a re-run made no new attestation); and, in run
+  2, a step after the check that runs its command on changed files, which must fail. The other
+  publish jobs (run 1's masked, decoy and squat ones; run 2's iOS one and the one after the re-run
+  build) only downloaded, selected and listed, with `contents: read`.
+  Run 45004074850, attempt 1: the Android publish job took `release-android-web-1` by its id, with
+  the digest the build's upload recorded, attested 7 subjects with those digests, and passed the
+  provenance check for every file on gh 2.104.0, the runner's own; the iOS one did the same with 2
+  subjects. The process the build left writing to its app bundle after the upload changed that file
+  on the build runner only, and the `gh` the build replaced with `sudo` was not the publish
+  runner's. The builds' tokens read Contents and Metadata only, and they had no OIDC token. A decoy
+  `.ipa` in the Android artifact failed at `rmdir`; an upload with `overwrite: true` under a build's
+  artifact name deleted the original, and the download by its id failed ("None of the provided
+  artifact IDs were found"); an id the runner left empty as possibly masked failed as `missing`
+  ("Invalid artifact ID"), never a download of every artifact. Attempt 2 (Re-run failed jobs): a
+  publish job re-run without its build (the decoy one) took attempt 1's artifact by the same id,
+  with the same digest. Run 45005674247, attempt 1: with the bundle and options of the provenance
+  check, the build's own app bundle passed, and the bundle with one byte more, other bytes under a
+  subject's name and a file the bundle does not name each exited 1. Attempt 2: a re-run build
+  uploaded `release-android-web-2`, and its publish job took the new id and passed; one fixed
+  artifact name uploaded in two attempts with no conflict, so GitHub keeps names apart by attempt
+  and the attempt in release.yml's names is a safeguard only. `docs/operations.md`, Releasing step
+  4, and the comments on the builds' `retention-days` are written from these results.
+  **The owner agreed to two things for it on 22 November 2026:** real attestations of dummy files,
+  and an exemption in the check on the throwaway branch alone. Three attestations of random bytes
+  were made, each signed for
+  `.github/workflows/publish-dry-run.yml@refs/heads/claude/publish-dry-run`, which `SECURITY.md`'s
+  command refuses (another workflow and another ref), and recorded in GitHub's attestation store and
+  Sigstore's public log: run 45004074850's Android publish job (attestation 70715752, Rekor log
+  index 4039734415) and iOS publish job (70715516, 4039724925), and run 45005674247's Android
+  publish job (70718515, 4039860339). The exemption (`DRY_RUN_ATTESTERS` in that branch's copy of
+  the check) let these hold `attestations: write`: both publish jobs in run 45004074850 (a12bf1a),
+  the Android one alone in run 45005674247 (5c5f7a9). Not proven by the dry run: the real signer
+  (`release.yml@refs/heads/main`), the real upload with `contents: write` from a job with no
+  checkout, that the real Flutter and Gradle file names match the `mv` list, release-please's
+  outputs and the `release` environment. The next release (1.4.3, as #109 stands) is the first full
+  test (Follow-ups, Open).
 - Release 1.4.2 was published on 22 November 2026 at 05:46 UTC (tag `v1.4.2`, commit 9807197 on
   `main`; the Release run 44990804084, two attempts, 05:45 to 06:07 UTC). The agent merged the
   release pull request (#99) at 05:45 UTC on the owner's standing word, 13 minutes after #70.
@@ -199,17 +254,17 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   Scorecard result of that day; turning on "up-to-date branches" and removing the admin bypass
   are open decisions for the owner. Signed release files (the owner chose this work on
   2026-11-15): since pull request #81, first released in 1.4.0 (Current Position has that run),
-  each Release build copies its
-  attestation's Sigstore bundle into `dist/` as `maalik-e-makaan-vX.Y.Z.intoto.jsonl` (and
-  `-ios.intoto.jsonl`), checks it against every build file there with `gh attestation verify
---bundle`, and attaches it with them; `tool/github/check_release_provenance.py` (`make lint`)
-  keeps the workflow so, within the limits `docs/operations.md` (Release provenance) names (a
-  script or program a step runs, a gh alias or extension already on the runner, text built at
-  run time), and
-  `SECURITY.md`, Checking a download, tells people how to check. Signed-Releases then rises by 2
-  a release; attaching provenance to v1.0.0 to v1.3.1 is the owner's optional step
-  (`docs/operations.md`, Release provenance). zizmor's auditor persona (not the
-  gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
+  each release carries its attestation's Sigstore bundle as `maalik-e-makaan-vX.Y.Z.intoto.jsonl`
+  (and `-ios.intoto.jsonl`), checked against every file it covers with `gh attestation verify
+--bundle` before it is attached. Up to 1.4.2 each build job did this itself, holding the
+  release's write token while the build tools ran; from the first release after v1.4.2 publish
+  jobs of their own do it on a fresh runner, and `tool/github/check_release_provenance.py`
+  (`make lint`) is a structural check of permissions, secrets and fixed templates in place of the
+  bash reader, whose list of what it could not see goes with it (D-25; `docs/operations.md`,
+  Release provenance). `SECURITY.md`, Checking a download, tells people how to check.
+  Signed-Releases then rises by 2 a release; attaching provenance to v1.0.0 to v1.3.1 is the
+  owner's optional step (`docs/operations.md`, Release provenance). zizmor's auditor persona (not
+  the gate) still reports seven `secrets-outside-env` notes in `backup.yml` and `release.yml`.
 - CI (2026-11-15, pull request #85): the UAT job of run 43740334888 (pull
   request #82) stopped before any test because `supabase start` could not bind `0.0.0.0:54322`,
   a port inside the kernel's automatic range that an outgoing connection can hold, so every job
@@ -487,7 +542,7 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-24 record the decisions, and P-01 and P-02 the open proposals. The ones that
+- PROJECT.md D-01…D-25 record the decisions, and P-01 and P-02 the open proposals. The ones that
   carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
@@ -516,7 +571,10 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
     sent, and waits once it is on its way ("Back cancels until sent"); sheets, dialogs and menus
     close when the signed-in account changes ("Close sheets on account change");
   - D-24 (the owner, 2026-11-22, "Full Backup"): phone backups stay complete, with
-    `android:allowBackup="true"` and no backup rules, which the manifest check keeps so.
+    `android:allowBackup="true"` and no backup rules, which the manifest check keeps so;
+  - D-25 (the agent, 2026-11-22, under the owner's word to use fewer mechanisms): only publish jobs
+    of their own put files on a release or sign its provenance (release-please creates the release
+    and its tag), and the release check is structural, not a reader of shell.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.
@@ -818,10 +876,10 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   1 s and then 2 s) before it disables the repository for the build, and Flutter 3.47.9 retries
   a build that fails on the network once, after 100 ms: neither waits as long as a rate limit
   lasts. Until a fix is chosen, a release whose build fails on the network is re-run as step 4
-  of Releasing says. A split of the Release job into build jobs and a publish job is planned
-  (the next change to release.yml); whichever option is chosen then goes in the Android build
-  job, where a cache can change the bytes a build makes but not what the publish job holds. The
-  options, none of them chosen yet:
+  of Releasing says. The Release job is now split into build jobs and publish jobs (D-25), so
+  whichever option is chosen goes in the `artefacts` build job, where a cache can change the
+  bytes a build makes but not what its publish job holds (`docs/operations.md`, Release
+  provenance, What the check does not cover). The options, none of them chosen yet:
   1. **`cache: gradle` in the build job**, one line as in CI. The release would restore what CI
      saved on `main` for the same Gradle files, which a release commit never changes (it touches
      version files only), so 1.4.2's first attempt would have found it. Costs: the signed build
@@ -849,6 +907,24 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
      `org.gradle.internal.plugins.portal.url.override` (a JVM-wide `systemProp.` line), with the
      costs of an internal name; a mirror adds a party to trust, and Gradle moves on to the next
      repository only when a module is missing, not after an error.
+- Release: the next release (1.4.3, as #109 stands), the first after the publish jobs (D-25), is
+  their first full test; the dry run (Current Position) could not prove the real signer, the real
+  upload, the real file names or release-please's outputs. Check, and record in that release's
+  record pull request as for 1.4.0: the two builds, then their publish jobs, run in order, and
+  `site` after both publish jobs; the builds' token reads Contents read and Metadata read, and the
+  publish jobs' Attestations write, Contents write and Metadata read; the release has 11 files,
+  named as 1.4.1's; each provenance file has exactly 7 and 2 subjects, with the SHA-256s that
+  `SHA256SUMS` and `SHA256SUMS-ios` list; the signer is `release.yml@refs/heads/main` at the tag's
+  commit, with Runner Environment `github-hosted`; the download page lists the files; and a person
+  runs `SECURITY.md`'s command on a download (the agent's container cannot reach Sigstore). A
+  publish job that fails because of its own definition cannot be fixed by a re-run, which runs that
+  run's workflow file: that build's files then wait for the next patch release.
+- Release: sign the APKs and the app bundle in a job of their own, so that no build tool reads
+  the upload key (today the `artefacts` job holds the keystore and its passwords while Gradle's
+  plugins run; `docs/operations.md`, Release provenance, What the check does not cover).
+- Release, optional: move from `actions/attest-build-provenance` to `actions/attest`, changing
+  `PUBLISH_TEMPLATE` and release.yml together. Immutable releases would need draft releases that
+  a last job publishes after both publish jobs; not planned.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed on 22 November 2026
@@ -914,6 +990,18 @@ owner's, so the legal pack (PR #66, branch `claude/legal-pack`) needs:
   out, closed with D-24.
 
 A session timeout on the hosted project stays open (Open, above).
+
+The provenance check's bash reader and its follow-up, the branch
+`claude/release-provenance-followup` (32 commits, never pushed), closed unmerged. Each review
+round of the reader found a new bash spelling that could reach the upload in the job that also
+ran the build tools, and an earlier step of that job could replace the runner's `gh` with `sudo`,
+which no rule could close; the branch's own note named the structural answer, a job of its own
+for the upload. The publish jobs are that answer (D-25). No commit of the branch was taken. Two
+of its facts are kept: `gh --version` prints two lines, the version and the address of its
+release (`docs/operations.md`, Release provenance); and a self-hosted runner, which can share its
+machine between jobs, is kept from the publish jobs by their template's `runs-on` and by
+`--deny-self-hosted-runners`. The branch and its worktree are deleted once the publish jobs'
+pull request is merged.
 
 ### Closed on 15 November 2026
 
