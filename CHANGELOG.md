@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.3](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.2...v1.4.3) (2026-11-22)
+
+
+### Bug fixes
+
+* **app:** let Back cancel a deletion until sent, and close sheets when the account changes ([#110](https://github.com/ar27111994/maalik-e-makaan/issues/110)) ([9d85273](https://github.com/ar27111994/maalik-e-makaan/commit/9d85273425f330e9cf4e8a98dddf637b7f46ae70))
+* **security:** attest and attach release files on a runner no build tool has touched ([#112](https://github.com/ar27111994/maalik-e-makaan/issues/112)) ([78721ae](https://github.com/ar27111994/maalik-e-makaan/commit/78721ae1c445fd6d1e17c3fa353e77ed0c39370a))
+
+
+### Documentation
+
+* **docs:** record release 1.4.2 and the Maven Central rate limit its first attempt met ([#108](https://github.com/ar27111994/maalik-e-makaan/issues/108)) ([d810000](https://github.com/ar27111994/maalik-e-makaan/commit/d81000027d97bb72d82e87ac30609a5ff560a4db))
+* **planning:** keep phone backups full (D-24), and say so of a new phone on the privacy page ([#111](https://github.com/ar27111994/maalik-e-makaan/issues/111)) ([7f10792](https://github.com/ar27111994/maalik-e-makaan/commit/7f10792a3779f4fecdfbaaaf781abc81488228d5))
+
 ## [1.4.2](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.1...v1.4.2) (2026-11-22)
 
 
