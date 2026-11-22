@@ -1061,6 +1061,8 @@ void main() {
       expectNothingSent(app);
     });
 
+    // Delete, meanwhile, stays busy rather than disabled: a busy button
+    // keeps its colours and keyboard focus, and ignores presses.
     testWidgets('Cancel waits while the deletion is on its way', (
       tester,
     ) async {
@@ -1072,6 +1074,10 @@ void main() {
             .onPressed,
         isNull,
       );
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(button(tester, 'Delete my account').onPressed, isNotNull);
+      await tapDelete(tester);
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
       app.account.gate.open();
       await tester.pumpAndSettle();
       expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
@@ -1094,12 +1100,15 @@ void main() {
     });
 
     // Another account signed in meanwhile (another tab) gets the screen,
-    // which the router keeps for whoever is signed in, and may start its
-    // own deletion while the earlier request is still on its way. Back
-    // waits for every request on its way: the earlier one's answer must
-    // not let the screen go while the later one is out.
-    testWidgets('Back waits while any deletion is on its way, also one '
-        'another account started before the earlier one answered', (
+    // which the router keeps for whoever is signed in, and the screen waits
+    // for the earlier request there too. Delete waits as well, as Cancel
+    // does: started while the earlier request was out, that account's
+    // password check would run while the screen could not be left, so
+    // neither Back nor Cancel could stop it. It is enabled once the earlier
+    // request is answered, and that account's own request then keeps the
+    // screen in turn.
+    testWidgets('another account signed in while a deletion is on its way '
+        'can delete only once it is answered, and Back waits meanwhile', (
       tester,
     ) async {
       final app = await deleting(tester, held: sending);
@@ -1113,38 +1122,120 @@ void main() {
       await settleWhileBusy(tester);
       expect(button(tester, 'Delete my account').busy, isFalse);
       await fill(tester, password: 'Other1234', email: otherAccount.email!);
-      app.account.gate.close();
+      expect(button(tester, 'Delete my account').onPressed, isNull);
+      expect(button(tester, 'Cancel').onPressed, isNull);
       await tapDelete(tester);
-      await tester.pump();
-      expect(app.account.calls.map((call) => call.$1), [
-        'deletionPreview',
-        'deleteAccount',
-        'deletionPreview',
-        'deleteAccount',
-      ]);
-      // The earlier request answers: its account no longer holds the
-      // device, so nobody is signed out by it.
-      answerEarlier();
-      await settleWhileBusy(tester);
-      expect(app.auth.calls.map((call) => call.$1), [
-        'reauthenticate',
-        'reauthenticate',
-      ]);
       await tester.binding.handlePopRoute();
       await settleWhileBusy(tester);
       expect(router(tester).state.uri.path, Routes.deleteAccount);
-      expect(find.text('This cannot be undone'), findsOneWidget);
-      expect(button(tester, 'Cancel').onPressed, isNull);
       expect(
         ModalRoute.of(tester.element(find.text('This cannot be undone')))!
             .popDisposition,
         RoutePopDisposition.doNotPop,
       );
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+      expect(app.account.calls.map((call) => call.$1), [
+        'deletionPreview',
+        'deleteAccount',
+        'deletionPreview',
+      ]);
+      // The earlier request answers: its account no longer holds the
+      // device, so nobody is signed out by it, and the screen is free.
+      answerEarlier();
+      await settleWhileBusy(tester);
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+      expect(button(tester, 'Delete my account').onPressed, isNotNull);
+      expect(button(tester, 'Cancel').onPressed, isNotNull);
+      app.account.gate.close();
+      await tapDelete(tester);
+      await tester.pump();
+      expect(
+        app.account.calls
+            .where((call) => call.$1 == 'deleteAccount')
+            .map((call) => call.$2),
+        [
+          [testEmail],
+          [otherAccount.email],
+        ],
+      );
+      await tester.binding.handlePopRoute();
+      await settleWhileBusy(tester);
+      expect(router(tester).state.uri.path, Routes.deleteAccount);
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(button(tester, 'Cancel').onPressed, isNull);
       app.account.gate.open();
       await tester.pumpAndSettle();
       expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
       expect(find.text('Your account has been deleted'), findsOneWidget);
     });
+
+    // The next account presses Delete while the earlier request is out,
+    // then leaves, and the earlier request answers only after that: the
+    // press started nothing, so no password is checked and nothing is sent
+    // for that account. Once the earlier request is answered its own
+    // deletion starts, and leaving while its password is checked cancels
+    // it, as for anyone.
+    final leavings = <String, Future<void> Function(WidgetTester tester)>{
+      'Back': (tester) => tester.binding.handlePopRoute(),
+      'Cancel': (tester) => tester.tap(find.widgetWithText(MmButton, 'Cancel')),
+    };
+    for (final MapEntry(key: name, value: leave) in leavings.entries) {
+      testWidgets("$name cancels the next account's deletion while its "
+          'password is checked, also when it signed in while an earlier '
+          'deletion was on its way', (tester) async {
+        final app = await deleting(tester, held: sending);
+        await tester.pump();
+        final answerEarlier = app.account.gate.holdLaterCallsApart();
+        await app.cache.clear();
+        app.auth.emit(otherAccount);
+        await settleWhileBusy(tester);
+        app.account.gate.open();
+        await settleWhileBusy(tester);
+        await fill(tester, password: 'Other1234', email: otherAccount.email!);
+        app.auth.gate.close();
+        await tapDelete(tester);
+        await leave(tester);
+        await settleWhileBusy(tester);
+        expect(router(tester).state.uri.path, Routes.deleteAccount);
+        app.account.gate.close();
+        app.auth.gate.open();
+        await settleWhileBusy(tester);
+        expect(
+          app.account.calls
+              .where((call) => call.$1 == 'deleteAccount')
+              .map((call) => call.$2),
+          [
+            [testEmail],
+          ],
+        );
+        expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+        app.account.gate.open();
+        answerEarlier();
+        await settleWhileBusy(tester);
+        expect(button(tester, 'Delete my account').busy, isFalse);
+        app.auth.gate.close();
+        await tapDelete(tester);
+        expect(button(tester, 'Delete my account').busy, isTrue);
+        await leave(tester);
+        await tester.pumpAndSettle();
+        expect(router(tester).state.uri.path, Routes.settings);
+        app.auth.gate.open();
+        await tester.pumpAndSettle();
+        expect(app.auth.calls.map((call) => call.$1), [
+          'reauthenticate',
+          'reauthenticate',
+        ]);
+        expect(
+          app.account.calls.where((call) => call.$1 == 'deleteAccount'),
+          hasLength(1),
+        );
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaalikApp)),
+        );
+        expect(container.read(currentUserIdProvider), otherAccount.userId);
+        expect(tester.takeException(), isNull);
+      });
+    }
 
     // Another section while the password is checked cancels, as Back
     // does, but the section keeps its screens: the delete screen is still

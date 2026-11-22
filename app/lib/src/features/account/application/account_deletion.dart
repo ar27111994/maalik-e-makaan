@@ -36,9 +36,11 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// it.
   Completer<void>? _running;
 
-  /// How many deletions' requests are on their way: another account signed
-  /// in meanwhile (another tab) may send its own before the earlier one is
-  /// answered, and the screen waits for both.
+  /// How many deletions' requests are on their way. The delete screen
+  /// starts none while one is on its way (another account signed in
+  /// meanwhile, in another tab, waits for the earlier answer), so there it
+  /// is one at most; counting keeps [sending] true until every one has
+  /// ended, should two ever overlap.
   var _requests = 0;
 
   final _sending = ValueNotifier<bool>(false);
@@ -46,7 +48,7 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// Whether any deletion's request is on its way: from the moment it is
   /// sent until its command ends, its sign-out included. The delete screen
   /// cannot be left meanwhile ([leave]), so Cancel waits and the page
-  /// cannot be popped.
+  /// cannot be popped, and it starts no other deletion: Delete waits too.
   ValueListenable<bool> get sending => _sending;
 
   @override

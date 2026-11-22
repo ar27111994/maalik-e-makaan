@@ -383,15 +383,21 @@ else does then, since a picker may be handing over a copy.
   no, so Back, another section and a link all wait for the answer, and
   leaving never looks like cancelling. With another account signed in
   meanwhile (another tab) the router keeps the screen, which waits too, and
-  that account may start its own deletion there before the earlier request
-  is answered: `sending` counts the requests on their way, so the screen
-  waits until every one is answered, not only the first. Only the router's
-  redirect at a sign-out leaves it then, when nobody is signed in any more
-  (or the account is choosing a new password): `leave` lets it, and the
-  command ends without its screen, the same as with it, since it reads
-  everything it uses before its first wait. A request that never answers
-  keeps the screen until the app is closed (requests have no time limit),
-  which is the case above.
+  so does that account's Delete, as Cancel does, until the earlier request
+  is answered: started while it was out, that account's password check
+  would run while `leave` says no, so neither Back nor Cancel could cancel
+  it, and its request would go once the check answered. Its own deletion
+  starts once nothing is on its way, and Back and Cancel cancel it while
+  its password is checked, as for anyone. (While a form's own request is
+  on its way its Delete stays busy instead, keeping its colours and focus.)
+  `sending` also counts the requests on their way, as a defence: were two
+  ever out at once, the screen would wait until every one is answered, not
+  only the first. Only the router's redirect at a sign-out leaves it then,
+  when nobody is signed in any more (or the account is choosing a new
+  password): `leave` lets it, and the command ends without its screen, the
+  same as with it, since it reads everything it uses before its first wait.
+  A request that never answers keeps the screen until the app is closed
+  (requests have no time limit), which is the case above.
   Nothing is awaited between reading that session and gotrue dropping it, and
   on the web gotrue tells the other tabs before any message of theirs can be
   handled (its one wait between, removing the sign-in-link verifier from

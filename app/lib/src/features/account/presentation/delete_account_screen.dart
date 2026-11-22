@@ -30,7 +30,10 @@ import 'package:mm_ui/mm_ui.dart';
 /// popped, and the router keeps it whichever way it is left
 /// ([AccountDeletionController.leave]). Another section cancels too, but
 /// keeps the screen in its own: shown again, it is no longer busy, and says
-/// that the deletion was cancelled and nothing was sent.
+/// that the deletion was cancelled and nothing was sent. Another account
+/// signed in meanwhile (another tab) gets the screen, and its Delete waits
+/// for the earlier request's answer, so that Back and Cancel can always
+/// cancel its own deletion while its password is checked.
 class DeleteAccountScreen extends ConsumerWidget {
   const new({super.key});
 
@@ -83,7 +86,9 @@ class _DeleteAccountForm extends ConsumerStatefulWidget {
   /// The account's address, which the user types to confirm.
   final String email;
 
-  /// Whether the deletion's request is on its way, when Cancel waits.
+  /// Whether a deletion's request is on its way, this form's or one an
+  /// earlier account sent from the screen: Cancel waits, and so does
+  /// Delete.
   final bool sending;
 
   @override
@@ -258,7 +263,15 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
           icon: MmIcons.delete,
           variant: MmButtonVariant.destructive,
           busy: busy,
-          onPressed: blocked || !_typedMatches ? null : _delete,
+          // Waits while another deletion's request is on its way, one an
+          // earlier account sent before this one signed in (another tab):
+          // started then, its password check would run while the screen
+          // cannot be left, so neither Back nor Cancel could cancel it.
+          // While this form's own command runs, the busy button already
+          // ignores presses and keeps its colours and focus.
+          onPressed: blocked || !_typedMatches || (widget.sending && !busy)
+              ? null
+              : _delete,
         ),
       ),
     );
