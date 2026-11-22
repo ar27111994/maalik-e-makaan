@@ -360,6 +360,73 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   screens stay, for the router. Built in `docs/architecture/app.md` (On the device, Writes after a
   removal, The session the cache serves).
 
+- D-24: **Phone backups are full.** (Decided by the owner, 22 November 2026, in their words "Full
+  Backup".) The phone's own backups keep the app's data whole: Android's Auto Backup to the
+  person's Google account and its transfer to a new phone, and on the iPhone a backup to iCloud or
+  a computer, may include the sign-in and the saved records (tenants' CNICs among them), as the
+  privacy page already says in English and Urdu. The app neither turns the backup off nor leaves
+  its preferences out of it. The device wipe's pull request (#70) had left this to the owner with
+  the lawyer (question T7 of the legal pack, PR #66); it is now the owner's decision, and the
+  pack's data map is to say that backups are full. The manifest writes `android:allowBackup="true"`
+  out (Android's default, set so that the choice is seen), and `tool/android/check_manifest.py`
+  (`make lint`, and CI on the merged release manifest) keeps it so: it refuses any other value,
+  and any `android:fullBackupContent`, `android:dataExtractionRules` or `android:backupAgent` on
+  the application, each of which would narrow the backup. What it costs: a sign-in kept in a
+  backup made before a sign-out that could not reach the server can still sign in, since refresh
+  tokens do not expire by time and `supabase/config.toml` sets no session time-box (a timeout on
+  the hosted project stays the owner's open follow-up in `.planning/STATE.md`). What the backups
+  hold, read on 22 November 2026:
+  - **Android's cloud backup.** "Back up user data with Auto Backup"
+    ([source](https://developer.android.com/identity/data/autobackup)): of `android:allowBackup`,
+    "The default value is `true`, but we recommend explicitly setting the attribute in your
+    manifest"; by default the backup includes "Shared preferences files" and the files under
+    `getFilesDir()`, `getDatabasePath()` and `getExternalFilesDir()`, and "excludes files in
+    directories returned by `getCacheDir()`, `getCodeCacheDir()`, and `getNoBackupFilesDir()`". It
+    goes to "a private folder in the user's Google Drive account, limited to 25 MB per app" (above
+    that nothing goes to the cloud until the data is smaller again), only the latest is kept, and
+    it "is end-to-end encrypted on devices running Android 9 or higher using the device's PIN,
+    pattern, or password". A backup runs when the person has backup turned on, at least 24 hours
+    after the last, with the phone idle and on Wi-Fi (unless they allowed mobile data); it is
+    restored "whenever the app is installed, whether from the Play Store, during device setup ...,
+    or by running `adb` install".
+  - **Android 12 and later** (the app targets API level 36, Flutter 3.47.9's default). Their rules
+    file is the one `android:dataExtractionRules` names, which "Applications can set"
+    ([`<application>`](https://developer.android.com/guide/topics/manifest/application-element)),
+    and "If there are no rules for a particular backup mode, such as if the `<device-transfer>`
+    section is missing, that mode is fully enabled for all content except for `no-backup` and
+    `cache` directories" (the Auto Backup page). So a full backup needs no rules file: cloud backups
+    and device-to-device transfers ("User data is sent directly to the user's new device from their
+    older device, such as by using a cable",
+    [Android 12 behaviour changes](https://developer.android.com/about/versions/12/backup-restore))
+    both take everything but those folders. Turning the attribute off would not have stopped every
+    transfer either: "On devices from some device manufacturers, specifying
+    `android:allowBackup="false"` disables cloud-based backup and restore (such as Google Drive
+    backups) but doesn't disable device-to-device transfers for the app" (the Auto Backup page).
+    `adb backup` leaves out the data of an app that targets Android 12 or later unless the app is
+    debuggable (Android 12 behaviour changes), so a computer is not a backup of the app on Android.
+  - **The iPhone.** Apple's File System Programming Guide
+    ([source](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html)):
+    "The contents of the `Library` directory (with the exception of the `Caches` subdirectory) are
+    backed up by iTunes and iCloud", `Library/Preferences` (where `NSUserDefaults` keeps its
+    values) and `Library/Application Support` among them, and `Documents/` too; the contents of
+    `tmp/` and `Library/Caches` "are not backed up by iTunes or iCloud". "Optimizing your app's data
+    for iCloud backup"
+    ([source](https://developer.apple.com/documentation/foundation/optimizing-your-app-s-data-for-icloud-backup)):
+    the system purges `/tmp` and `/Library/Caches`, "so iCloud Backup excludes them by default".
+  - **Where the app keeps what is backed up** (the packages `pubspec.lock` pins). The session:
+    supabase_flutter 2.18.3's `SharedPreferencesLocalStorage` (`SharedPreferences.getInstance()`),
+    on Android the shared-preferences file `FlutterSharedPreferences` (shared_preferences_android
+    2.5.4, `LegacySharedPreferencesPlugin.kt`:34), on the iPhone `UserDefaults.standard`
+    (shared_preferences_foundation 2.6.1). The saved records, the display settings, the portfolio
+    last chosen, a pending invitation and the camera's record: `SharedPreferencesAsync` and
+    `SharedPreferencesWithCache` (`app/lib/src/bootstrap.dart`), on Android in DataStore by default
+    (`shared_preferences_async_android_options.dart`:20), "a file in the "datastore/" subdirectory
+    in the application context's files directory"
+    ([source](https://developer.android.com/reference/kotlin/androidx/datastore/preferences/package-summary)),
+    on the iPhone the standard user defaults. Photos, picked files and shared files stay in the
+    cache folder on Android and in `tmp/` and `Library/Caches` on the iPhone
+    (`docs/architecture/app.md`, On the device), which no backup takes.
+
 ## Open Proposals
 
 Changes that roadmap items would make to an earlier decision. Each stays a proposal until the

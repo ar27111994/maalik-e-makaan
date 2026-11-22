@@ -487,7 +487,7 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-23 record the decisions, and P-01 and P-02 the open proposals. The ones that
+- PROJECT.md D-01…D-24 record the decisions, and P-01 and P-02 the open proposals. The ones that
   carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
@@ -514,7 +514,9 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
     once, in `contracts/origins.json`, and carried by each release tag;
   - D-22 and D-23 (the owner, 2026-11-22): Back cancels an account deletion until its request is
     sent, and waits once it is on its way ("Back cancels until sent"); sheets, dialogs and menus
-    close when the signed-in account changes ("Close sheets on account change").
+    close when the signed-in account changes ("Close sheets on account change");
+  - D-24 (the owner, 2026-11-22, "Full Backup"): phone backups stay complete, with
+    `android:allowBackup="true"` and no backup rules, which the manifest check keeps so.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.
@@ -713,11 +715,6 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Open
 
-- Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
-  session and the record cache reach the person's Google backup, as the preferences reach iCloud
-  on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
-  owner's decision with the lawyer (legal pack, question T7). The legal pack's data map (rows
-  14a to 14e, PR #66) describes the device before the wipe and needs the same update.
 - Owner: a sign-out that cannot reach the server leaves that session valid on it (refresh tokens
   do not expire by time; `supabase/config.toml` sets no `[auth.sessions]` time-box or inactivity
   timeout), so a copy of it in a phone backup can still sign in; the privacy page says so. A
@@ -880,6 +877,20 @@ The owner answered two questions #70 left open, on 22 November 2026; both are bu
   every snack bar (one may name a record); a refreshed or new session of the same account keeps
   them. `app_test.dart` ("when the signed-in account changes") pins it, two routes on one navigator
   included.
+
+Phone backups. The owner decided on 22 November 2026, in their words "Full Backup", that the app's
+phone backups stay complete (D-24): Android's Auto Backup and its transfer to a new phone, and an
+iCloud or computer backup on the iPhone, may include the sign-in and the saved records. The manifest
+now writes `android:allowBackup="true"` out, and `tool/android/check_manifest.py` refuses any other
+value and any backup rules or agent on the application. The privacy page's backups sentence already
+says what the app does, in English and Urdu, and is unchanged. The decision is the owner's, so the
+legal pack (PR #66, branch `claude/legal-pack`) needs: question T7 to say that whether the backup
+must be turned off is decided (its other questions, the unencrypted cache, a session timeout and
+whether the privacy page says enough, stay the lawyer's); its data map to say that backups are full
+(row 14g, the phone's own backup, and its retention row, which still reads "[Owner: Auto Backup off,
+or the preferences left out of it]"); and the README's "Android's Auto Backup" item, which asks to
+turn it off or leave the preferences out, closed with D-24. A session timeout on the hosted project
+stays open (Open, above).
 
 ### Closed on 15 November 2026
 
