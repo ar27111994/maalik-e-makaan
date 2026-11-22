@@ -38,7 +38,7 @@ defaults:
 jobs:
   release-please:
     # It holds the write token, so tool/github/check_release_provenance.py (make lint) holds
-    # this job to exactly these values, but for its name and timeout.
+    # this job to exactly these values, but for its name, its timeout and its action's commit.
     name: Release pull request
     runs-on: ubuntu-24.04
     timeout-minutes: 10

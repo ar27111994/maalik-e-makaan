@@ -59,7 +59,7 @@ it has a line break that PyYAML, a YAML 1.1 reader, takes and a YAML 1.2 reader 
 LS or PS: PyYAML could see a key that GitHub reads as part of a comment). Other ways PyYAML and
 GitHub could read a workflow differently are refused elsewhere in make lint: actionlint refuses a
 merge key (`<<`), a key in another case (`Permissions:`, `Contents:`) and a value of the wrong
-shape (a scalar `env`), and tool/check_unicode.py refuses NEL as well.
+shape (a plain-text scalar `env`), and tool/check_unicode.py refuses NEL as well.
 
 The templates and release.yml change together, in one pull request that review reads; so does a
 move from actions/attest-build-provenance to actions/attest. What this check does not cover (what

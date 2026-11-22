@@ -66,11 +66,11 @@ the release's write token.
 Check it with GitHub's command-line tool, `gh`, version 2.102.0 or later. `--source-ref` came
 with 2.68.0, but until 2.102.0 `gh` compared the branch name without regard to case, so a build
 from a branch named `Main` would pass as `main`, and `--signer-workflow` accepted any workflow
-whose name starts with `release.yml`, such as `release.yml-x.yml` (the check in `make lint`,
-below, refuses such a name). The `.intoto.jsonl` name is the one OpenSSF Scorecard counts, but
-the file is not output of slsa-github-generator, so `slsa-verifier` does not apply: its
-`verify-github-attestation` command accepts only a few named builders, and this workflow is not
-one of them.
+whose name starts with `release.yml` (older versions: `release`, any character, `yml`), such as
+`release.yml-x.yml` or `release-yml.yml` (the check in `make lint`, below, refuses such names).
+The `.intoto.jsonl` name is the one OpenSSF Scorecard counts, but the file is not output of
+slsa-github-generator, so `slsa-verifier` does not apply: its `verify-github-attestation` command
+accepts only a few named builders, and this workflow is not one of them.
 
 **With the attached file, no GitHub account needed.** Download the provenance file with the file
 you want to check, and run, with the release's version for `vX.Y.Z`:
@@ -87,8 +87,8 @@ gh attestation verify maalik-e-makaan-vX.Y.Z-arm64-v8a.apk \
 `--deny-self-hosted-runners` refuses provenance made on a self-hosted runner, as the signing
 certificate records, and every release from v1.4.0 on passes it. The runner environment the
 provenance records is that of the job that attested the files: the build job's up to v1.4.2,
-and the publish job's after it. The builds run on runners of their own, which the check in
-`make lint` (below) holds to GitHub-hosted ones.
+and the publish job's after it. For releases after v1.4.2, the builds run on runners of their
+own, whose labels the check in `make lint` (below) holds to GitHub-hosted ones.
 
 This shows that the file was built by this repository's Release workflow from `main`. It does
 not show which release it was built for: a file from an older release, with that release's
