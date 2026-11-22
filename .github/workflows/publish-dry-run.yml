@@ -1,0 +1,430 @@
+# Dry run of release.yml's publish jobs, on this throwaway branch only: it is never merged and
+# is deleted once its runs are read. The builds make dummy files and then do what a hostile
+# build tool could (leave a process writing to dist/, replace gh with sudo, mask the artifact
+# id, add a file named as the other build's, squat the artifact name); the publish jobs are
+# release.yml's, step for step, but for three changes: no `environment`, TAG is a literal, and
+# in place of the attest, provenance and upload steps they list and hash what they would attach.
+# Nothing is attested, attached or published, so no job here asks for `attestations`,
+# `id-token` or any write.
+name: Publish dry run
+
+on:
+  push:
+    branches: [claude/publish-dry-run]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-dry-run
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-ubuntu:
+    # As artefacts: hands the Android and web names over, then tampers with its own runner.
+    name: Build (Android names), then tamper
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: Runner
+        run: |
+          echo "machine-id $(cat /etc/machine-id)"
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL is ${ACTIONS_ID_TOKEN_REQUEST_URL:+set}${ACTIONS_ID_TOKEN_REQUEST_URL:-unset}"
+      - name: Collect artefacts (dummy)
+        run: |
+          mkdir -p dist
+          for name in "$TAG.aab" "$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk "$TAG"-{web,debug-symbols}.zip; do
+            head -c 1048576 /dev/urandom > "dist/maalik-e-makaan-$name"
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          cat dist/SHA256SUMS
+      - name: Leave a process that writes to dist/ after the upload, and replace gh
+        run: |
+          (sleep 120; echo tampered >> "dist/maalik-e-makaan-$TAG.aab") > /dev/null 2>&1 &
+          printf '#!/bin/sh\nexit 0\n' > "$RUNNER_TEMP/gh"
+          sudo install -m 0755 "$RUNNER_TEMP/gh" /usr/bin/gh
+          echo "gh --version now prints: [$(gh --version)]"
+      - id: upload
+        name: Hand the files to the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          # One name per attempt, so a re-run of this job never meets the earlier attempt's
+          # artifact; the publish job takes it by its id, never by this name.
+          name: release-android-web-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          # publish-artefacts reads it minutes later; a week leaves time to look at the files of
+          # a failed run (they are public on the release anyway).
+          retention-days: 7
+          compression-level: 0 # APKs, the app bundle and the zips are compressed already
+      - name: What the upload recorded, and the tampering on this runner
+        env:
+          ID: ${{ steps.upload.outputs.artifact-id }}
+          DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          echo "attempt $GITHUB_RUN_ATTEMPT: artifact-id $ID, artifact-digest $DIGEST"
+          sleep 130
+          echo "the app bundle here ends with: [$(tail -c 9 "dist/maalik-e-makaan-$TAG.aab" | od -An -c | tr -s ' ')]"
+          sha256sum "dist/maalik-e-makaan-$TAG.aab"
+
+  build-macos:
+    # As ios: hands the iOS names over, from macOS.
+    name: Build (iOS names)
+    runs-on: macos-26
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: Runner
+        run: |
+          echo "kern.uuid $(sysctl -n kern.uuid)"
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL is ${ACTIONS_ID_TOKEN_REQUEST_URL:+set}${ACTIONS_ID_TOKEN_REQUEST_URL:-unset}"
+      - name: Package (dummy)
+        run: |
+          mkdir -p dist
+          head -c 1048576 /dev/urandom > "dist/maalik-e-makaan-$TAG-ios-unsigned.ipa"
+          (cd dist && shasum -a 256 -- * > SHA256SUMS-ios)
+          cat dist/SHA256SUMS-ios
+      - id: upload
+        name: Hand the files to the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          # One name per attempt, so a re-run of this job never meets the earlier attempt's
+          # artifact; the publish job takes it by its id, never by this name.
+          name: release-ios-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0 # the .ipa is a zip already
+      - name: What the upload recorded
+        env:
+          ID: ${{ steps.upload.outputs.artifact-id }}
+          DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          echo "attempt $GITHUB_RUN_ATTEMPT: artifact-id $ID, artifact-digest $DIGEST"
+
+  build-masked:
+    # Masks its own artifact id after the upload: the runner then skips the job output.
+    name: Build (Android names), then mask the id
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: Collect artefacts (dummy)
+        run: |
+          mkdir -p dist
+          for name in "$TAG.aab" "$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk "$TAG"-{web,debug-symbols}.zip; do
+            head -c 1048576 /dev/urandom > "dist/maalik-e-makaan-$name"
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS)
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dry-run-masked-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+      - name: Mask the artifact id
+        env:
+          ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          echo "artifact-id before the mask: $ID"
+          echo "::add-mask::$ID"
+
+  build-decoy:
+    # Adds a file named as the iOS build's to the Android names.
+    name: Build (Android names and a decoy .ipa)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: Collect artefacts (dummy), and a decoy
+        run: |
+          mkdir -p dist
+          for name in "$TAG.aab" "$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk "$TAG"-{web,debug-symbols}.zip; do
+            head -c 1048576 /dev/urandom > "dist/maalik-e-makaan-$name"
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          head -c 1048576 /dev/urandom > "dist/maalik-e-makaan-$TAG-ios-unsigned.ipa"
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dry-run-decoy-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+  build-target:
+    # The build whose artifact squatter replaces under the same name.
+    name: Build (Android names), to be squatted
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: Collect artefacts (dummy)
+        run: |
+          mkdir -p dist
+          for name in "$TAG.aab" "$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk "$TAG"-{web,debug-symbols}.zip; do
+            head -c 1048576 /dev/urandom > "dist/maalik-e-makaan-$name"
+          done
+          (cd dist && sha256sum -- * > SHA256SUMS)
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dry-run-target-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+      - name: What the upload recorded
+        env:
+          ID: ${{ steps.upload.outputs.artifact-id }}
+          DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          echo "attempt $GITHUB_RUN_ATTEMPT: artifact-id $ID, artifact-digest $DIGEST"
+
+  squatter:
+    # Another job of the run, with the runtime token every job holds: it replaces build-target's
+    # artifact with other bytes under the same name.
+    name: Squat build-target's artifact name
+    needs: build-target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Other bytes
+        run: |
+          mkdir -p squat
+          echo squatted > squat/SHA256SUMS
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dry-run-target-${{ github.run_attempt }}
+          path: squat/
+          overwrite: true
+          retention-days: 7
+      - name: What the upload recorded
+        env:
+          ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          echo "attempt $GITHUB_RUN_ATTEMPT: squatter's artifact-id $ID"
+
+  build-fixed-name:
+    # The same name in every attempt: does a re-run of this job meet the earlier attempt's
+    # artifact? (The reason release.yml's names carry the run attempt.)
+    name: Upload under a fixed name
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: A file
+        run: |
+          mkdir -p fixed
+          echo "attempt $GITHUB_RUN_ATTEMPT" > fixed/attempt.txt
+      - id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        continue-on-error: true
+        with:
+          name: dry-run-fixed
+          path: fixed/
+          retention-days: 7
+      - name: What the upload did
+        env:
+          OUTCOME: ${{ steps.upload.outcome }}
+          ID: ${{ steps.upload.outputs.artifact-id }}
+        run: |
+          echo "attempt $GITHUB_RUN_ATTEMPT: upload $OUTCOME, artifact-id [$ID]"
+
+  publish-android:
+    name: Publish (Android names), as publish-artefacts
+    needs: [build-ubuntu]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: Runner
+        run: |
+          echo "machine-id $(cat /etc/machine-id)"
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL is ${ACTIONS_ID_TOKEN_REQUEST_URL:+set}${ACTIONS_ID_TOKEN_REQUEST_URL:-unset}"
+      - name: The build's files, by the artifact's id
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-ubuntu.outputs.artifact-id || 'missing' }}
+          path: build
+          digest-mismatch: error
+      - name: Only the files this release attaches for the build
+        run: |
+          mkdir dist
+          mv -- build/SHA256SUMS "build/maalik-e-makaan-$TAG.aab" \
+            "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \
+            "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip dist/
+          rmdir build
+      - name: What would be attested and attached (in place of the attest, provenance and upload steps)
+        run: |
+          gh --version
+          ls -l dist
+          sha256sum dist/*
+          (cd dist && sha256sum -c SHA256SUMS)
+          echo "the app bundle here ends with: [$(tail -c 9 "dist/maalik-e-makaan-$TAG.aab" | od -An -c | tr -s ' ')]"
+
+  publish-ios:
+    name: Publish (iOS names), as publish-ios
+    needs: [build-macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: Runner
+        run: |
+          echo "machine-id $(cat /etc/machine-id)"
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL is ${ACTIONS_ID_TOKEN_REQUEST_URL:+set}${ACTIONS_ID_TOKEN_REQUEST_URL:-unset}"
+      - name: The build's files, by the artifact's id
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-macos.outputs.artifact-id || 'missing' }}
+          path: build
+          digest-mismatch: error
+      - name: Only the files this release attaches for the build
+        run: |
+          mkdir dist
+          mv -- build/SHA256SUMS-ios "build/maalik-e-makaan-$TAG-ios-unsigned.ipa" dist/
+          rmdir build
+      - name: What would be attested and attached (in place of the attest, provenance and upload steps)
+        run: |
+          gh --version
+          ls -l dist
+          sha256sum dist/*
+          (cd dist && shasum -a 256 -c SHA256SUMS-ios)
+
+  publish-masked:
+    # Expected to fail at the download: the masked output arrives empty, so the id is 'missing'.
+    name: Publish from the masked build
+    needs: [build-masked]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    continue-on-error: true
+    permissions:
+      contents: read
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: The output as this job sees it
+        env:
+          GIVEN: ${{ needs.build-masked.outputs.artifact-id }}
+        run: echo "needs.build-masked.outputs.artifact-id is [$GIVEN]"
+      - name: The build's files, by the artifact's id
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-masked.outputs.artifact-id || 'missing' }}
+          path: build
+          digest-mismatch: error
+      - name: Only the files this release attaches for the build
+        run: |
+          mkdir dist
+          mv -- build/SHA256SUMS "build/maalik-e-makaan-$TAG.aab" \
+            "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \
+            "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip dist/
+          rmdir build
+      - name: What would be attested and attached
+        run: |
+          ls -l dist
+          sha256sum dist/*
+
+  publish-decoy:
+    # Expected to fail at rmdir: the decoy .ipa is left in build/.
+    name: Publish from the build with a decoy
+    needs: [build-decoy]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    continue-on-error: true
+    permissions:
+      contents: read
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: The build's files, by the artifact's id
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-decoy.outputs.artifact-id || 'missing' }}
+          path: build
+          digest-mismatch: error
+      - name: Only the files this release attaches for the build
+        run: |
+          mkdir dist
+          mv -- build/SHA256SUMS "build/maalik-e-makaan-$TAG.aab" \
+            "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \
+            "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip dist/
+          rmdir build
+      - name: What would be attested and attached
+        run: |
+          ls -l dist
+          sha256sum dist/*
+
+  publish-after-squat:
+    # Expected to fail at the download (the id is gone), or to download the original bytes.
+    name: Publish from the squatted build
+    needs: [build-target, squatter]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    continue-on-error: true
+    permissions:
+      contents: read
+    env:
+      TAG: v0.0.0-dry-run
+    steps:
+      - name: The build's files, by the artifact's id
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build-target.outputs.artifact-id || 'missing' }}
+          path: build
+          digest-mismatch: error
+      - name: Only the files this release attaches for the build
+        run: |
+          mkdir dist
+          mv -- build/SHA256SUMS "build/maalik-e-makaan-$TAG.aab" \
+            "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \
+            "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip dist/
+          rmdir build
+      - name: What would be attested and attached
+        run: |
+          ls -l dist
+          sha256sum dist/*

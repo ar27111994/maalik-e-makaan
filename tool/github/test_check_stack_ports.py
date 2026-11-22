@@ -784,7 +784,7 @@ class MainTest(Repo):
     def test_a_pass_names_the_ports(self):
         code, out, err = self.run_main()
         self.assertEqual((code, err), (0, ""))
-        self.assertIn("(54320, 54321, 54322, 54323, 54324; 9 workflow file(s))", out)
+        self.assertIn("(54320, 54321, 54322, 54323, 54324; 10 workflow file(s))", out)
 
     def test_the_default_root_is_the_repository(self):
         out = io.StringIO()

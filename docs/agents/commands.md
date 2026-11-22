@@ -107,6 +107,8 @@ finding without an inline ignore, outdated function dependencies), `scorecard.ym
 [`docs/operations.md`](../operations.md#deployment-github-actions)), `backup.yml` (the weekly
 encrypted backup, restored and checked on a local stack before it is kept; see
 [`docs/operations.md`](../operations.md#backups)), `roadmap.yml` (the roadmap's GitHub
-milestones and issues, from `.github/roadmap.toml`) and `site-refresh.yml` (the website alone,
+milestones and issues, from `.github/roadmap.toml`), `publish-dry-run.yml` (on the throwaway
+branch `claude/publish-dry-run` only, never merged: release.yml's publish jobs run on dummy
+files) and `site-refresh.yml` (the website alone,
 redeployed at the latest release every week for a current roadmap; see
 [`docs/operations.md`](../operations.md#the-website-on-vercel)).
