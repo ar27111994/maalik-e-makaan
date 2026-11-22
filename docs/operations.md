@@ -1219,7 +1219,13 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    Re-runs): look at the release's files (`gh release view vX.Y.Z --json assets`, or the release
    page) before taking it to have none. If the log points at Sigstore or GitHub's attestation
    API, check githubstatus.com (Actions, API) and status.sigstore.dev, wait, then re-run the
-   failed job. Then run the daily query of Monitoring and alerts.
+   failed job. A build that failed fetching its dependencies (an HTTP 429 or 5xx from
+   `repo.maven.apache.org`, `plugins.gradle.org` or another repository, in the Android step)
+   needs only a few minutes' wait and the same re-run: release 1.4.2's first attempt stopped on
+   Maven Central's 429 Too Many Requests, and the re-run seven minutes later attached the
+   Android and web files and their provenance. The Release workflow restores no Gradle cache, so each release build fetches everything
+   afresh (`.planning/STATE.md`, Follow-ups, Open, weighs the options). Then run the daily query
+   of Monitoring and alerts.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
    `git diff --stat <previous tag> vX.Y.Z -- supabase/templates/` lists it), paste that body into
    its Auth template in the dashboard (E-mail, step 6), with the subject from
@@ -1274,12 +1280,13 @@ protects it. Before the upload, the job checks it against every build file in `d
 the provenance file itself, the bundle they are checked against, which the upload then attaches
 with them) with `gh attestation verify --bundle`, with the options `SECURITY.md` gives, and logs
 `gh --version`. A check that passes prints nothing there (`gh` writes its result only to a
-terminal), so the step's log holds the version line alone, as release 1.4.0's did. The source ref is `refs/heads/main`, written literally, so a run started by hand
-(Run workflow) from another branch fails there and attaches nothing in that run: start Release
-by hand from `main` only. That holds exactly with `gh` 2.102.0 or later on the runner: an older
-`gh` compares the branch name without regard to case, so look at the version the step logs, and
-if it is older, say so in the release's notes and do not rely on the check for a branch whose
-name differs from `main` only in case.
+terminal), so the step's log holds only the two lines `gh --version` prints, the version and the
+address of its release, as release 1.4.2's did. The source ref is `refs/heads/main`, written
+literally, so a run started by hand (Run workflow) from another branch fails there and attaches
+nothing in that run: start Release by hand from `main` only. That holds exactly with `gh` 2.102.0
+or later on the runner: an older `gh` compares the branch name without regard to case, so look at
+the version the step logs, and if it is older, say so in the release's notes and do not rely on
+the check for a branch whose name differs from `main` only in case.
 `tool/github/check_release_provenance.py` (`make lint`) keeps the attest step, that check and the
 one upload together, with no `if:`, `continue-on-error`, `shell:` or `working-directory:` on
 them, and no `defaults.run.working-directory` on the job or the workflow (either would move
