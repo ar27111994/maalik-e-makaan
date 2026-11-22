@@ -380,22 +380,27 @@ else does then, since a picker may be handing over a copy.
     (`sessionChanged`: loading, with `SessionExpired` and no value), so none
     of them holds the earlier account's value in the next account's
     session, whatever a screen reads of it; built for a new session of the
-    same user, it keeps it until the new one comes. A screen shows that
-    state as it shows a first read, loading, not as a failure with "Try
-    again": nothing failed for the person signed in. Every screen that
-    shows a provider's error asks `waitsForSession` first (`SnapshotView`,
-    the team, the deletion preview, the portfolio details, a tenant's
-    payment score, the reports' scores, and a new tenancy, where a part
-    still on its way no longer hides one that failed); it is true only for
-    that state, whose error carries a stack trace that only
-    `sessionChanged` makes, so a `SessionExpired` that really failed a read
-    still shows as a failure, also while "Try again" loads (Riverpod keeps
-    the error then). Two providers outside
+    same user, it keeps it until the new one comes. Two providers outside
     them can: the unread count, built again for the next user, keeps the
     earlier number until that build answers (`unreadCountProvider`), and the
     links made for the document a sheet shows stay until the sheet closes,
     made again every three minutes with whatever token is signed in then
-    (`documentLinksProvider`). A command reads
+    (`documentLinksProvider`). A screen shows that state as it shows a
+    first read, loading, not as a failure with "Try again": nothing failed
+    for the person signed in. Every screen that shows the error of a
+    provider that can hold that state for the user signed in asks
+    `waitsForSession` first: that of an `SwrNotifier` (`SnapshotView`, the
+    team, the portfolio details, the reports' scores, and a new tenancy,
+    where a part still on its way no longer hides one that failed), of a
+    value made from one (a tenant's payment score) and of the deletion
+    preview. The portfolio list, the profile and the residence are keyed by
+    the user, so the one a screen reads for the user signed in never holds
+    it (the earlier user's ends with the cache's refusal), and the
+    settings' details and the shell, while the portfolios load, do not ask.
+    `waitsForSession` is true only for that state, whose error carries a
+    stack trace that only `sessionChanged` makes, so a `SessionExpired`
+    that really failed a read still shows as a failure, also while "Try
+    again" loads (Riverpod keeps the error then). A command reads
     `SwrNotifier.requestEpoch` (the controllers:
     `SwrCache.require`) before each request: it throws `SessionExpired` once
     the cache no longer serves that session, so nothing is asked for a
