@@ -15,9 +15,9 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   them; `tool/github/check_release_provenance.py` is a structural check (permissions, secrets and
   fixed templates) in place of the bash reader (`docs/operations.md`, Release provenance). It
   applies from the first release after v1.4.2. Release pull request #109 (1.4.3, opened from #108's
-  record of release 1.4.2) is held, not merged, until this branch and the two branches that record
-  the owner's decisions of 22 November 2026 (D-22 to D-24) are merged, so that "after v1.4.2" stays
-  true and release-please folds this change into that release.
+  record of release 1.4.2) is held, not merged, until this branch is merged (the owner's decisions
+  of 22 November 2026, D-22 to D-24, already are: #110 and #111), so that "after v1.4.2" stays true
+  and release-please folds this change into that release.
   **The dry run, 22 November 2026,** on the throwaway branch `claude/publish-dry-run` (never
   merged), with the workflow `publish-dry-run.yml`: its commits 55fee42, a12bf1a and 5c5f7a9 sit on
   this branch's first commit, def8ff8, and run 45004074850 ran a12bf1a, run 45005674247 5c5f7a9,
@@ -914,7 +914,7 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   `site` after both publish jobs; the builds' token reads Contents read and Metadata read, and the
   publish jobs' Attestations write, Contents write and Metadata read; the release has 11 files,
   named as 1.4.1's; each provenance file has exactly 7 and 2 subjects, with the SHA-256s that
-  `SHA256SUMS` and `SHA256SUMS-ios` list; the signer is `release.yml@refs/heads/main` at the tag's
+  `SHA256SUMS` and `SHA256SUMS-ios` list (and those two lists' own); the signer is `release.yml@refs/heads/main` at the tag's
   commit, with Runner Environment `github-hosted`; the download page lists the files; and a person
   runs `SECURITY.md`'s command on a download (the agent's container cannot reach Sigstore). A
   publish job that fails because of its own definition cannot be fixed by a re-run, which runs that
