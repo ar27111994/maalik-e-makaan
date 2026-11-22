@@ -41,9 +41,12 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   Checked by the agent afterwards, on downloads of all eleven files: each matches the digest
   GitHub gives for it, and the seven build files have the SHA-256s that `SHA256SUMS` and
   `SHA256SUMS-ios` list (`sha256sum -c`, all OK). Both provenance files were read against them:
-  seven and two subjects, each with the listed SHA-256, signed for
-  `.github/workflows/release.yml@refs/heads/main` at commit 9807197 on a GitHub-hosted runner (the
-  Android one in attempt 2, the iOS one in attempt 1), one transparency-log entry each. Not
+  seven and two subjects, each with the listed SHA-256, whose certificates name
+  `.github/workflows/release.yml@refs/heads/main`, commit 9807197 and a GitHub-hosted runner (the
+  Android one from attempt 2, the iOS one from attempt 1), one transparency-log entry each; that
+  reading checks no signature, but the Release run's own check steps verified both files with
+  `gh attestation verify` (gh 2.104.0: step 9 of the iOS job in attempt 1, step 12 of
+  `artefacts` in attempt 2). Not
   passed: `SECURITY.md`'s `gh attestation verify`, run on all nine files, stopped at "error
   creating Sigstore verifier", since the container's proxy refuses `tuf-repo-cdn.sigstore.dev`
   and `tuf-repo.github.com`, where `gh` fetches Sigstore's trusted root; the owner's own run is
@@ -809,11 +812,10 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   1 s and then 2 s) before it disables the repository for the build, and Flutter 3.47.9 retries
   a build that fails on the network once, after 100 ms: neither waits as long as a rate limit
   lasts. Until a fix is chosen, a release whose build fails on the network is re-run as step 4
-  of Releasing says. Whichever option is chosen goes in the build job of the publish split now
-  planned (`artefacts` with a read-only token; attest, check and attach in `publish-artefacts`
-  on a fresh runner): a cache there can change the bytes a build makes, not what the publish job
-  holds, and the split's record of what its check does not cover (it says no cache is restored)
-  changes with it. The options, none of them chosen yet:
+  of Releasing says. A split of the Release job into build jobs and a publish job is planned
+  (the next change to release.yml); whichever option is chosen then goes in the Android build
+  job, where a cache can change the bytes a build makes but not what the publish job holds. The
+  options, none of them chosen yet:
   1. **`cache: gradle` in the build job**, one line as in CI. The release would restore what CI
      saved on `main` for the same Gradle files, which a release commit never changes (it touches
      version files only), so 1.4.2's first attempt would have found it. Costs: the signed build
@@ -828,15 +830,19 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   2. **A retry with long waits around the Android step** (say up to three tries, minutes apart).
      No new input to trust, but a real failure takes longer, and a limit that outlasts the waits
      still stops the release.
-  3. **Gradle's own retry settings** (`org.gradle.internal.network.retry.max.attempts` and
-     `org.gradle.internal.network.retry.initial.backOff`, as `systemProp.` lines in a
+  3. **Gradle's own retry settings for dependency resolution**
+     (`org.gradle.internal.repository.max.tentatives` and
+     `org.gradle.internal.repository.initial.backoff`, read by
+     `ErrorHandlingModuleComponentRepository` in Gradle 9.9.0, as `systemProp.` lines in a
      `gradle.properties`). They reach Flutter's included build too, but they are internal names
      that Gradle does not document and may change, and they slow every real failure as well.
   4. **A mirror of Maven Central** listed before it. The request that failed came from the
      Flutter SDK's included build (`:gradle`) through the Gradle Plugin Portal's redirect, which
-     `app/android/settings.gradle.kts` does not govern, so only an init script on the runner
-     (`~/.gradle/init.d`) would reach it; it adds a party to trust, and Gradle moves on to the
-     next repository only when a module is missing, not after an error.
+     `app/android/settings.gradle.kts` does not govern, so it is reached only by an init script
+     on the runner (`~/.gradle/init.d`) or by the internal system property
+     `org.gradle.internal.plugins.portal.url.override` (a JVM-wide `systemProp.` line), with the
+     costs of an internal name; a mirror adds a party to trust, and Gradle moves on to the next
+     repository only when a module is missing, not after an error.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed on 15 November 2026

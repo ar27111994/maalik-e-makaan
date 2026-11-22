@@ -1222,8 +1222,8 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
    failed job. A build that failed fetching its dependencies (an HTTP 429 or 5xx from
    `repo.maven.apache.org`, `plugins.gradle.org` or another repository, in the Android step)
    needs only a few minutes' wait and the same re-run: release 1.4.2's first attempt stopped on
-   Maven Central's 429 Too Many Requests, and the re-run seven minutes later attached every
-   file. The Release workflow restores no Gradle cache, so each release build fetches everything
+   Maven Central's 429 Too Many Requests, and the re-run seven minutes later attached the
+   Android and web files and their provenance. The Release workflow restores no Gradle cache, so each release build fetches everything
    afresh (`.planning/STATE.md`, Follow-ups, Open, weighs the options). Then run the daily query
    of Monitoring and alerts.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
