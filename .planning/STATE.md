@@ -268,7 +268,10 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   while another account's session replaced the user's said the session had ended, with "Try
   again", to the person now signed in, until that account's first answer came; screens now show
   that state as loading (`waitsForSession`, which knows `sessionChanged`'s state by a stack trace
-  only it gives its error), and a session that really expired still shows as one. A
+  only it gives its error), and a session that really expired still shows as one. The check
+  after it found a search's results still on show, and not asked again, after another account
+  signed in with the same portfolio current; a search is now keyed by the user too, as the
+  portfolio list is. A
   command that chooses the current portfolio after a request chooses nothing when the
   session it asked in has ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an

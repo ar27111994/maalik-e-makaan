@@ -55,8 +55,10 @@ Who may do what: [`docs/architecture/permissions.md`](../docs/architecture/permi
   a value made from one (`whenData`) or of the deletion preview asks `waitsForSession(state)`
   first and shows that state as loading (`SnapshotView` does), as the account signed in now has
   not failed; the portfolio list, the profile and the residence are keyed by the user, so the one
-  read for the user signed in never takes it. A command reads `requestEpoch()` (in a
-  controller that is not an `SwrNotifier`, `SwrCache.require`) before each request, or
+  read for the user signed in never takes it. A search (`searchProvider`) watches no session and is
+  keyed by the user too, so the next account's is a new one with none of the earlier results. A
+  command reads `requestEpoch()` (in a controller that is not an `SwrNotifier`,
+  `SwrCache.require`) before each request, or
   `shownEpoch` with the value on show it builds on: either throws `SessionExpired` once the
   session has ended, so a new command does the same, also before a second request. One that
   chooses something on the device after its request (the current portfolio) first asks

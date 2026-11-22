@@ -388,9 +388,14 @@ else does then, since a picker may be handing over a copy.
     earlier number until that build answers (`unreadCountProvider`), and the
     links made for the document a sheet shows stay until the sheet closes,
     made again every three minutes with whatever token is signed in then
-    (`documentLinksProvider`). A screen shows that state as it shows a
-    first read, loading, not as a failure with "Try again": nothing failed
-    for the person signed in. Every screen that shows the error of a
+    (`documentLinksProvider`). A search watches no session either, but it
+    is keyed by the user as well as the portfolio and the words
+    (`searchProvider`): once another account signs in, the screen reads a
+    new one, which asks and shows loading until it answers, and the earlier
+    account's results go with the one no screen reads any more. A screen
+    shows `sessionChanged`'s state as it shows a first read, loading, not
+    as a failure with "Try again": nothing failed for the person signed
+    in. Every screen that shows the error of a
     provider that can hold that state for the user signed in asks
     `waitsForSession` first: that of an `SwrNotifier` (`SnapshotView`, the
     team, the portfolio details, the reports' scores, and a new tenancy,
