@@ -405,8 +405,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
     move of the app's e-mail to the domain (step 13) were done the same day, with the homepage
     and the company's website of step 10. Left: the checks by hand (step 9, and the e-mails with
     DMARC "PASS" of step 13), the company's other records (step 10) and, the callback's release
-    being out since 16 November (1.4.1, step 12), `ALLOWED_ORIGINS` and the check by hand of the
-    old callback.
+    being out since 16 November (1.4.1, step 12), its check by hand of the old callback. On 22
+    November 2026 you reported `ALLOWED_ORIGINS` set to the new origin alone, and your preflight
+    from the old origin showed the functions refuse it (step 12).
 
     **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
     Edge Function secret and the GitHub repository variable, and by the owner's decision of that
@@ -438,9 +439,9 @@ In order. Record each in `.planning/STATE.md` when it is done.
        `io.github.ar27111994.maalikemakaan://maalik-e-makaan.vercel.app/auth/callback`); the Site
        URL was left as it was. Release's builds and Deploy's backend check these first (only a
        warning if the token may not read them; they then go ahead, so check by hand).
-    5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it holds both app
-       origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no secret holds the
-       website's address).
+    5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it held both app
+       origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app`, until step 12
+       narrowed it (no secret holds the website's address).
     6. **Merge the pull request. Done on 15 November 2026** (#74, commit 8cd3c15).
     7. **Release. Done on 15 November 2026:** release 1.3.0 (the Release run 43720578854). The
        `preflight` job's token could read Auth's settings and found all four callbacks allowed,
@@ -495,15 +496,17 @@ In order. Record each in `.planning/STATE.md` when it is done.
         pages (the 44 built pages less the two not-found pages, kept out of the sitemap); and the
         change of address from the old property (step 1) to `https://mmakaan.app/`, started that
         day. Still optional: Bing's import and site move.
-    12. **The callback's release. Done on 16 November 2026, except your two steps:** release
+    12. **The callback's release. Done on 16 November 2026, except your check by hand:** release
         1.4.1 (at 15:46 UTC; it waited until 14:00 UTC, 24 hours after the move's deploy). Pull
         request #84 answers the old address's `/auth/callback` with the page too, so it clears
         and sends people on like every other path; the old address now serves only files,
         `assetlinks.json` and the app's other files for tabs still open there. The release's
-        Deploy job checked it on Vercel. Still yours:
-        `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone, then the check by hand that
-        `docs/operations.md`, Domains, step 12, describes (a `flutter.x` key set on the old address
-        is gone after opening its `/auth/callback?code=x`, which lands on the new address). A link
+        Deploy job checked it on Vercel. **`ALLOWED_ORIGINS`: set to `https://app.mmakaan.app`
+        alone, as you reported on 22 November 2026.** The functions accept that origin (release
+        1.4.3's preflight, 204) and refuse the old one (your preflight from it, 22 November 2026
+        at 16:35 UTC: 403 `origin_not_allowed`). Still yours: the check by hand
+        that the same step describes (a `flutter.x` key set on the old address is gone after
+        opening its `/auth/callback?code=x`, which lands on the new address). A link
         asked for in a tab open on the old address since before the move, and opened after this
         release, cannot finish; what it meets, and why the window stays, is in `docs/operations.md`,
         Domains, Where it never clears.

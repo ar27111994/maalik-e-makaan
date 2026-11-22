@@ -317,10 +317,10 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     build, with e-mails that show the `vercel.app` address.)
   - **Auth and the Edge Functions accept both hosts during the move** (set by the owner,
     reported on 14 November 2026): Auth keeps the old redirect URLs (web and iOS) until builds
-    from before the move are out of use, a point the owner sets; `ALLOWED_ORIGINS` names both
-    web app origins until the owner sets it to the new origin alone, which step 12's release
-    (1.4.1, 16 November 2026) made due, and the Deploy workflow refuses to deploy a web app whose origin the functions
-    refuse (it checks only the origin).
+    from before the move are out of use, a point the owner sets; `ALLOWED_ORIGINS` named both
+    web app origins until the owner set it to the new origin alone after step 12's release
+    (1.4.1, 16 November 2026; the change reported on 22 November 2026), and the Deploy workflow
+    refuses to deploy a web app whose origin the functions refuse (it checks only the origin).
 
 - D-21: **Saved records name their portfolio.** (Decided by the owner, 15 November 2026.) The
   pull request that wipes the device at sign-out (#70) waits until every saved entry's key says

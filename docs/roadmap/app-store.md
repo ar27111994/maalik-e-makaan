@@ -131,9 +131,10 @@ consent table as analytics.
 2. **S:** move the website and the web app to the domain: Vercel domains, the default URLs in
    `urls.ts`, Auth's site URL and redirects, and redirects from `vercel.app`. The repository's
    part is done in the pull request that records D-20 (one source, `contracts/origins.json`), and
-   the domains, DNS, Auth's redirect URLs and `ALLOWED_ORIGINS` are in place. Open until the
-   owner's steps after the merge are done: the release that deploys the move, then Auth's Site
-   URL and the checks by hand ([operations.md](../operations.md#domains), steps 6 to 9).
+   the domains, DNS, Auth's redirect URLs and `ALLOWED_ORIGINS` are in place. The release that
+   deployed the move (1.3.0) and Auth's Site URL followed on 15 November 2026, and
+   `ALLOWED_ORIGINS` names the new origin alone (the owner, reported on 22 November 2026). Open
+   until the owner's checks are done ([operations.md](../operations.md#domains), steps 9 and 12).
 3. **Owner:** enrol as an organisation (D-U-N-S, Account Holder, two-factor Apple Account in a legal
    name) and pay the fee.
 4. **M:** certificates, App ID and a signed TestFlight upload job on Xcode 26 in `release.yml`.
