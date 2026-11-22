@@ -448,9 +448,10 @@ else does then, since a picker may be handing over a copy.
     earlier account's value. The unread count, built again for the next user,
     keeps the earlier number until that build answers (`unreadCountProvider`).
     The links made for the document a sheet shows stay until the sheet closes,
-    made again every three minutes with whatever token is signed in then
-    (`documentLinksProvider`). A list's photo links are kept from one run to
-    the next in a map made again, empty, for each user who signs in
+    at the latest when the account changes (below), made again every three
+    minutes with whatever token is signed in then (`documentLinksProvider`). A
+    list's photo links are kept from one run to the next in a map made again,
+    empty, for each user who signs in
     (`_thumbnailLinksProvider` watches `currentUserIdProvider`), so the next
     account's photos are signed with its own token, and a link the earlier
     account's request brings after the change is never used; the list's value
@@ -470,28 +471,37 @@ else does then, since a picker may be handing over a copy.
     what is typed belongs to whoever is at the device, and a new tenant's form
     left open keeps it too, while an edit screen filled from a record goes
     with that record and is filled again from the next account's own read. A
-    sheet does not: it is opened with the record it is about (for example a
-    member or an invitation, with its e-mail address, an occupant, a charge,
-    a bill, a repair to resolve, a meter reading, a notification, a document,
-    ending a tenancy) and shows its own copy, above the page, which the
-    router keeps, so it goes on showing the earlier account's record, an
-    occupant's CNIC and phone included, until it is closed, as a document's
-    sheet keeps its links. So does a confirm dialog opened on a record (for
-    example a tenant's "Delete …?" with its name, an occupant's "Remove …?",
-    deleting or leaving a portfolio, and those of a member, an invitation, a
-    unit, a property, a utility connection, an expense, a bill, a reading, a
-    repair or a tenancy): it keeps what it says until it is closed.
-    Confirming a dialog that a screen opened on a record then sends nothing:
-    the part of the screen that opened it went with the record, and it asks
-    `mounted` after the dialog. A new tenant's warning that another tenant
-    has that CNIC or phone is the exception: it names the earlier account's
-    tenant, and the form that opened it stays, so "Save anyway" saves, as
-    the form does, with the next account's token. A sheet stays too, so its
-    buttons, and a dialog it opened (removing a member or an occupant,
-    withdrawing an invitation, deleting a document), still send their
-    request with the next account's token: row-level security decides what
-    that account may do. Closing the sheets and dialogs when the account
-    changes would be a new mechanism. A
+    sheet is opened with the record it is about (for example a member or an
+    invitation, with its e-mail address, an occupant, a charge, a bill, a
+    repair to resolve, a meter reading, a notification, a document, ending a
+    tenancy) and shows its own copy above the page, which the router keeps;
+    a confirm dialog opened on a record (for example a tenant's "Delete …?"
+    with its name, an occupant's "Remove …?", deleting or leaving a
+    portfolio, and those of a member, an invitation, a unit, a property, a
+    utility connection, an expense, a bill, a reading, a repair or a
+    tenancy) keeps what it says, and a new tenant's warning that another
+    tenant has that CNIC or phone names the earlier account's tenant. So
+    every sheet, dialog and menu closes when the signed-in account changes
+    (D-23): the app shell hears the signed-in user change (another account, or
+    nobody; a refreshed or new session of the same account is no change) as
+    the status changes, before the next frame, and on the root navigator and
+    each section's, the one out of sight included, removes every route above
+    the top page (`Navigator.removeRoute`). They go without their closing
+    animation, so no frame after the change shows the earlier account's
+    record, an occupant's CNIC and phone included, and none of their buttons
+    can act with the next account's token: each one's future completes with
+    null, as when it is dismissed, so a confirm dialog answers no and sends
+    nothing ("Save anyway" included), and nothing in a sheet can be pressed
+    any more. Pages stay, for the router: at a sign-out it leaves them for the
+    sign-in screen as before, and the screens left open show loading for the
+    next account. A request a sheet or dialog sent before the change is one on
+    its way when the session ended (below). Only the shell does this, so it
+    covers whatever opens under it; outside it (the sign-in screens, creating
+    the first portfolio, an invitation) no sheet or dialog shows a record.
+    What it removes is what is above each navigator's top page: a sheet or
+    dialog with a page opened above it on the same navigator (a screen opened
+    from a sheet left open) would stay under that page, and no sheet does
+    that. A
     screen shows `sessionChanged`'s state as it shows a first read, loading,
     not as a failure with "Try again": nothing failed for the person signed
     in. Every
@@ -606,11 +616,10 @@ else does then, since a picker may be handing over a copy.
     shows loading (nothing the earlier account loaded) until that account's
     first answer (the search, whose results area is empty while that account's
     portfolios load, shows loading once its search asks, with the words typed
-    still in the field), while a sheet or a confirm dialog open above it
-    keeps the record it was opened with until it is closed (confirming a
-    dialog the screen opened on a record then sends nothing; a sheet's
-    buttons, a dialog the sheet opened, and a new tenant's form and its
-    warning send with that account's token); the answer to a
+    still in the field), while every sheet, dialog and menu open above it
+    closes as the account changes, so none shows or acts on the earlier
+    account's record (a new tenant's form stays, with what is typed, and
+    sends with that account's token); the answer to a
     request on its way when the session ended is not shown (with the same
     account signed in again inside one
     request, the new session's own read shows the server's state); a command

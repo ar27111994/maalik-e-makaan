@@ -17,6 +17,7 @@ import 'package:maalik_e_makaan/src/features/leases/presentation/lease_detail_sc
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
+import 'package:maalik_e_makaan/src/features/team/presentation/team_screen.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
@@ -50,6 +51,9 @@ Future<TestApp> _pumpApp(
   await tester.pumpAndSettle();
   return testApp;
 }
+
+/// One frame at 60 Hz.
+const _frame = Duration(milliseconds: 16);
 
 Finder _inNavigation(String label) => find.descendant(
   of: find.byWidgetPredicate(
@@ -351,163 +355,312 @@ void main() {
     expect(find.text('What needs attention'), findsOneWidget);
   });
 
-  // A sheet opened on a record copies it into its fields as it opens, and
-  // stays open above the page, which the router keeps, while another
-  // account's session replaces the user's (another tab signing in): the
-  // tenancy below shows loading, the sheet the earlier account's occupant,
-  // CNIC and phone included, until it is closed. Named, not fixed, in
-  // app.md (the providers' paragraph).
-  testWidgets("an occupant's sheet keeps the user's record while another "
-      "account's session replaces theirs, as the tenancy below loads", (
-    tester,
-  ) async {
-    final app = await _pumpApp(
-      tester,
-      location: Routes.lease(aliLease.id),
-      size: const Size(390, 3600),
-    );
-    final occupant = find.text('Sana Raza').last;
-    await tester.ensureVisible(occupant);
-    await tester.tap(occupant);
-    await tester.pumpAndSettle();
-    final sheet = find.byType(OccupantSheet);
-    final cnic = find.descendant(
-      of: sheet,
-      matching: find.text('35202-7654321-2'),
-    );
-    expect(cnic, findsOneWidget);
-    app.leases.gate.close();
-    await app.cache.clear();
-    app.auth.emit(otherAccount);
-    var kept = 0;
-    var loading = 0;
-    for (var frame = 0; frame < 10; frame++) {
-      await tester.pump(const Duration(milliseconds: 16));
-      if (cnic.evaluate().isNotEmpty) kept++;
-      if (find.bySemanticsLabel('Loading the tenancy').evaluate().isNotEmpty) {
-        loading++;
+  // Sheets, dialogs and menus close when the signed-in account changes
+  // (the owner's decision): another tab signs in as someone else, or the
+  // session ends. A sheet or dialog shows a copy of the record it was opened
+  // on, and its buttons would act for whoever is signed in. The app shell
+  // removes them at once, with no closing animation, so no frame after the
+  // change shows the earlier account's record; the screens below are pages,
+  // which the router keeps, and they show loading until that account's own
+  // answers.
+  group('when the signed-in account changes', () {
+    // Counts, over [frames] frames of 16 ms after another account's session
+    // replaced the user's (the first at once), those on which any of
+    // [earlier] is found and those on which [loading] is. What [held]
+    // answers waits until then.
+    Future<({int earlier, int loading})> replaced(
+      WidgetTester tester,
+      TestApp app, {
+      required List<Finder> earlier,
+      required Finder loading,
+      List<Gate> held = const [],
+      int frames = 10,
+    }) async {
+      for (final gate in held) {
+        gate.close();
       }
-    }
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MaalikApp)),
-    );
-    expect(container.read(currentUserIdProvider), otherAccount.userId);
-    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
-    app.leases.gate.open();
-    await tester.pumpAndSettle();
-    expect(cnic, findsOneWidget);
-    expect(
-      find.descendant(of: sheet, matching: find.text('Sana Raza')),
-      findsOneWidget,
-    );
-  });
-
-  // A confirm dialog opened on a record keeps what it says above the page,
-  // as a sheet does, while another account's session replaces the user's.
-  // The part of the screen that opened it goes with the record (the screen
-  // shows loading), so confirming it then sends nothing (app.md, the
-  // providers' paragraph).
-  testWidgets("a confirm dialog opened on a tenant's screen keeps the "
-      "tenant's name while another account's session replaces the user's, "
-      'and confirming it then deletes nothing', (tester) async {
-    final app = await _pumpApp(
-      tester,
-      location: Routes.tenant(aliRaza.id),
-      size: const Size(390, 2400),
-    );
-    final delete = find.text('Delete').last;
-    await tester.ensureVisible(delete);
-    await tester.tap(delete);
-    await tester.pumpAndSettle();
-    final dialog = find.byType(Dialog);
-    final title = find.descendant(
-      of: dialog,
-      matching: find.text('Delete Ali Raza?'),
-    );
-    expect(title, findsOneWidget);
-    app.tenants.gate.close();
-    await app.cache.clear();
-    app.auth.emit(otherAccount);
-    var kept = 0;
-    var loading = 0;
-    for (var frame = 0; frame < 10; frame++) {
-      await tester.pump(const Duration(milliseconds: 16));
-      if (title.evaluate().isNotEmpty) kept++;
-      if (find.bySemanticsLabel('Loading the tenant').evaluate().isNotEmpty) {
-        loading++;
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      var shown = 0;
+      var waiting = 0;
+      for (var frame = 0; frame < frames; frame++) {
+        await tester.pump(frame == 0 ? Duration.zero : _frame);
+        if (earlier.any((finder) => finder.evaluate().isNotEmpty)) shown++;
+        if (loading.evaluate().isNotEmpty) waiting++;
       }
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaalikApp)),
+      );
+      expect(container.read(currentUserIdProvider), otherAccount.userId);
+      for (final gate in held) {
+        gate.open();
+      }
+      await tester.pumpAndSettle();
+      return (earlier: shown, loading: waiting);
     }
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MaalikApp)),
-    );
-    expect(container.read(currentUserIdProvider), otherAccount.userId);
-    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
-    app.tenants.gate.open();
-    await tester.pumpAndSettle();
-    expect(title, findsOneWidget);
-    final asked = app.tenants.calls.length;
-    await tester.tap(
-      find.descendant(of: dialog, matching: find.text('Delete')),
-    );
-    await tester.pumpAndSettle();
-    expect(dialog, findsNothing);
-    expect(app.tenants.calls.skip(asked), isEmpty);
-    expect(
-      app.tenants.calls.where((call) => call.$1 == 'deleteTenant'),
-      isEmpty,
-    );
-  });
 
-  // A confirm dialog opened on a sheet is the sheet's, and the sheet stays
-  // open (above), so confirming it still asks, now with the next account's
-  // session: row-level security decides what that account may do. Named,
-  // not fixed, in app.md (the providers' paragraph).
-  testWidgets('removing an occupant confirmed on its sheet after another '
-      "account's session replaced the user's is still asked for", (
-    tester,
-  ) async {
-    final app = await _pumpApp(
+    Future<void> openOccupant(WidgetTester tester) async {
+      final occupant = find.text('Sana Raza').last;
+      await tester.ensureVisible(occupant);
+      await tester.tap(occupant);
+      await tester.pumpAndSettle();
+      expect(find.byType(OccupantSheet), findsOneWidget);
+    }
+
+    // The occupant's sheet, name and CNIC, wherever they show.
+    final occupantShown = [
+      find.byType(OccupantSheet),
+      find.text('Sana Raza'),
+      find.text('35202-7654321-2'),
+    ];
+
+    testWidgets("an occupant's sheet closes, with nothing of the occupant on "
+        'any frame after the change, as the tenancy below loads', (
       tester,
-      location: Routes.lease(aliLease.id),
-      size: const Size(390, 3600),
-    );
-    final occupant = find.text('Sana Raza').last;
-    await tester.ensureVisible(occupant);
-    await tester.tap(occupant);
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(OccupantSheet),
-        matching: find.widgetWithText(MmButton, 'Remove'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final dialog = find.byType(Dialog);
-    final title = find.descendant(
-      of: dialog,
-      matching: find.text('Remove Sana Raza?'),
-    );
-    expect(title, findsOneWidget);
-    await app.cache.clear();
-    app.auth.emit(otherAccount);
-    await tester.pumpAndSettle();
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MaalikApp)),
-    );
-    expect(container.read(currentUserIdProvider), otherAccount.userId);
-    expect(title, findsOneWidget);
-    await tester.tap(
-      find.descendant(of: dialog, matching: find.text('Remove')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      app.leases.calls
-          .where((call) => call.$1 == 'deleteOccupant')
-          .map((call) => call.$2),
-      [
-        ['occ-1'],
-      ],
-    );
+    ) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      expect(
+        find.descendant(
+          of: find.byType(OccupantSheet),
+          matching: find.text('35202-7654321-2'),
+        ),
+        findsOneWidget,
+      );
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: occupantShown,
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      // The page stays: the router keeps it, and it shows the next
+      // account's own read.
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets("a member's sheet closes, with nothing of the member on any "
+        'frame after the change', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.team,
+        size: const Size(390, 2400),
+      );
+      await tester.tap(find.text('Bilal Ahmed').last);
+      await tester.pumpAndSettle();
+      expect(find.byType(MemberSheet), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.byType(MemberSheet),
+          find.textContaining('bilal.ahmed@', findRichText: true),
+        ],
+        loading: find.bySemanticsLabel('Loading the team'),
+        held: [app.team.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.byType(MemberSheet), findsNothing);
+      // Only the team was read again, for the next account.
+      expect(
+        app.team.calls.map((c) => c.$1),
+        everyElement(isIn(['members', 'pendingInvitations'])),
+      );
+    });
+
+    testWidgets("a confirm dialog opened on a tenant's screen closes, and "
+        'nothing is deleted', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.tenant(aliRaza.id),
+        size: const Size(390, 2400),
+      );
+      final delete = find.text('Delete').last;
+      await tester.ensureVisible(delete);
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+      expect(find.text('Delete Ali Raza?'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [find.byType(Dialog), find.text('Delete Ali Raza?')],
+        loading: find.bySemanticsLabel('Loading the tenant'),
+        held: [app.tenants.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.byType(Dialog), findsNothing);
+      expect(app.tenants.calls.where((c) => c.$1 == 'deleteTenant'), isEmpty);
+    });
+
+    testWidgets("removing an occupant: the dialog on the occupant's sheet "
+        'closes with the sheet, and nothing is removed', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(OccupantSheet),
+          matching: find.widgetWithText(MmButton, 'Remove'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Remove Sana Raza?'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [find.byType(Dialog), ...occupantShown],
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(app.leases.calls.where((c) => c.$1 == 'deleteOccupant'), isEmpty);
+    });
+
+    testWidgets("a new tenant's warning about another tenant closes, so its "
+        '"Save anyway" cannot save for the earlier account', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.newTenant,
+        size: const Size(390, 4000),
+      );
+      Finder input(String label) => find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) =>
+              (widget is MmTextField && widget.label == label) ||
+              (widget is MmPhoneField && widget.label == label),
+        ),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(input('Full name').first, 'Ali R.');
+      await tester.enterText(input('Phone').first, '03001112233');
+      await tester.pump();
+      final save = find.widgetWithText(MmButton, 'Save');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Is this the same tenant?'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.byType(Dialog),
+          find.textContaining('Ali Raza already has', findRichText: true),
+        ],
+        // The form is the next account's to fill or leave: what is typed
+        // belongs to whoever is at the device.
+        loading: find.text('Ali R.'),
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.text('Save anyway'), findsNothing);
+      expect(app.tenants.calls.where((c) => c.$1 == 'createTenant'), isEmpty);
+    });
+
+    testWidgets('a sheet left open in another section closes too', (
+      tester,
+    ) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      // A section's sheet covers that section only: the navigation bar
+      // still switches sections, and the section keeps its sheet.
+      await tester.tap(_inNavigation('Money'));
+      await tester.pumpAndSettle();
+      expect(find.text('Who owes what'), findsOneWidget);
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      await tester.pumpAndSettle();
+      await tester.tap(_inNavigation('Tenants'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(find.text('35202-7654321-2'), findsNothing);
+    });
+
+    // The same account all along is no change: a refreshed session (the
+    // same status, which notifies nobody), and a new session of the same
+    // account after the device was wiped (a new epoch, which notifies every
+    // listener of the status although it is the same).
+    for (final wiped in [false, true]) {
+      testWidgets(
+        'the same account ${wiped ? 'in a new session' : 'refreshed'} keeps '
+        'the sheet open',
+        (tester) async {
+          final app = await _pumpApp(
+            tester,
+            location: Routes.lease(aliLease.id),
+            size: const Size(390, 3600),
+          );
+          await openOccupant(tester);
+          final container = ProviderScope.containerOf(
+            tester.element(find.byType(MaalikApp)),
+          );
+          var heard = 0;
+          container.listen(authStatusProvider, (_, _) => heard++);
+          if (wiped) await app.cache.clear();
+          app.auth.emit(signedIn);
+          await tester.pumpAndSettle();
+          expect(heard, wiped ? 1 : 0);
+          expect(find.byType(OccupantSheet), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(OccupantSheet),
+              matching: find.text('35202-7654321-2'),
+            ),
+            findsOneWidget,
+          );
+        },
+      );
+    }
+
+    testWidgets('a session that ends with a sheet and its dialog open goes '
+        'to sign-in, and signing in again opens neither', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(OccupantSheet),
+          matching: find.widgetWithText(MmButton, 'Remove'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Remove Sana Raza?'), findsOneWidget);
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      // The first frame after the sign-out, while the router moves on.
+      await tester.pump(Duration.zero);
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(OccupantSheet), findsNothing);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, testEmail);
+      await tester.enterText(find.byType(TextField).last, 'Secret1234');
+      await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
+      expect(app.leases.calls.where((c) => c.$1 == 'deleteOccupant'), isEmpty);
+    });
   });
 
   testWidgets('a session that ends elsewhere returns to sign-in, then back', (

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
+import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
 import 'package:maalik_e_makaan/src/features/documents/presentation/lost_photo_recovery.dart';
@@ -22,6 +23,13 @@ import 'package:mm_ui/mm_ui.dart';
 /// read again: notifications may have arrived while it was away. A camera
 /// photo Android kept after closing the app is brought back to its record
 /// ([LostPhotoRecovery]).
+///
+/// When the signed-in account changes (another account signs in, in another
+/// tab or by an e-mail link, or nobody is signed in any more), every sheet,
+/// dialog and menu open closes at once: each shows a copy of the
+/// record it was opened on (an occupant's CNIC and phone, a member's
+/// e-mail), and its buttons would act for whoever is signed in now. Screens
+/// stay, for the router.
 class AppShell extends ConsumerStatefulWidget {
   const new({required this.shell, super.key});
 
@@ -53,8 +61,51 @@ class _AppShellState extends ConsumerState<AppShell> {
   void _select(int index) =>
       shell.goBranch(index, initialLocation: index == shell.currentIndex);
 
+  /// Closes every sheet, dialog and menu: on the root navigator (dialogs)
+  /// and on each section's (sheets, also in a section out of sight), every
+  /// route above its top page. They go without their closing animation, so
+  /// no frame shows the earlier account's record leaving, and each one's
+  /// future completes with null, as when it is dismissed: a confirm dialog
+  /// then answers no. Pages are left to the router.
+  void _closeOverlays() {
+    final navigators = [
+      Navigator.of(context, rootNavigator: true),
+      for (final branch in shell.route.branches)
+        ?branch.navigatorKey.currentState,
+    ];
+    for (final navigator in navigators) {
+      for (
+        var top = _topRoute(navigator);
+        top != null && top.settings is! Page<Object?>;
+        top = _topRoute(navigator)
+      ) {
+        navigator.removeRoute(top);
+      }
+    }
+  }
+
+  /// The route on top of [navigator]. `popUntil` shows its test the top
+  /// route first and pops nothing when the test says yes: Navigator has no
+  /// getter for it.
+  static Route<Object?>? _topRoute(NavigatorState navigator) {
+    Route<Object?>? top;
+    navigator.popUntil((route) {
+      top = route;
+      return true;
+    });
+    return top;
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Heard as the status changes, before the next frame; a refreshed or
+    // new session of the same account changes nothing here.
+    ref.listen(
+      authStatusProvider.select(
+        (status) => status is SignedIn ? status.userId : null,
+      ),
+      (_, _) => _closeOverlays(),
+    );
     final l10n = AppLocalizations.of(context);
     final portfolio = ref.watch(currentPortfolioProvider);
     final unread = ref.watch(unreadCountProvider).value;
