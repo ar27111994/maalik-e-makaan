@@ -362,11 +362,12 @@ jobs:
           python3 tool/github/fetch_roadmap.py --from-github --repository "$GITHUB_REPOSITORY"
       - name: Release files, as attached now
         # The download page links only to the files listed here. Release's
-        # artefacts and ios jobs attach them minutes after the tag, and a build
-        # that fails before its upload attaches nothing until it is re-run (one
-        # cut off during its upload can leave part of its files), so the page lists
-        # what is there and the deploy never waits on a missing file. A tag
-        # from before the list links to no release file.
+        # publish-artefacts and publish-ios jobs attach them minutes after the
+        # tag, and a build or publish job that fails before the upload attaches
+        # nothing until it is re-run (an upload cut off part-way can leave part
+        # of the files), so the page lists what is there and the deploy never
+        # waits on a missing file. A tag from before the list links to no
+        # release file.
         env:
           GH_TOKEN: ${{ github.token }}
           LIST: website/src/data/release-assets.json

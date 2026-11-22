@@ -448,6 +448,29 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     files stay in the cache folder on Android and in `tmp/` and `Library/Caches` on the iPhone
     (`docs/architecture/app.md`, On the device), which no backup takes.
 
+- D-25: **Only publish jobs of their own put files on a release or sign its provenance
+  (release-please creates the release and its tag).** (Decided by the agent, 22 November 2026, under
+  the owner's word of 16 November 2026 to make the rules hold more simply, with fewer mechanisms.)
+  Release's build jobs, `artefacts` and `ios`, hold a read-only token and no OIDC token, and hand
+  their files over as run artifacts. A publish job of its own for each build, `publish-artefacts`
+  and `publish-ios`, on a fresh GitHub-hosted runner in the `release` environment, takes them by the
+  artifact's id, keeps exactly the release's names, attests them, checks the provenance file against
+  each and only then attaches them. release-please keeps its `contents: write` for the tag, the
+  changelog and the release itself, and is held to a fixed template like the publish jobs. The check
+  in `make lint`, `tool/github/check_release_provenance.py`, is structural: it reads permissions,
+  secrets and two fixed templates (the publish jobs and release-please), and never shell. Why: the
+  check it replaces read every bash spelling that could reach the upload, in a job that also ran
+  Gradle's plugins, CocoaPods, the pub packages and Flutter, and each of its five review rounds
+  found a new spelling, the last `bash -co pipefail "$CODE"`; nor could any rule close an earlier
+  step of that job replacing the runner's `gh`. A job boundary closes the whole class: nothing a
+  build runs reaches the publish runner, its write token or its OIDC token. The structural check
+  replaces the bash reader, and the follow-up branch that extended it
+  (`claude/release-provenance-followup`) was never pushed and is not merged. Built in
+  `docs/operations.md` (Releasing; Release provenance, which also names what the check does not
+  cover). It applies from the first release after v1.4.2: release pull request #109 (1.4.3) is
+  held until this decision's pull request is merged, so that release-please folds it into that
+  release.
+
 ## Open Proposals
 
 Changes that roadmap items would make to an earlier decision. Each stays a proposal until the

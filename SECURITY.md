@@ -57,16 +57,20 @@ in-toto statement with SLSA provenance v1: it names each file by its SHA-256 and
 commit and git ref that built it. The signature uses a short-lived certificate issued to the
 Release workflow, `.github/workflows/release.yml`, running on `main`, from Sigstore's
 public-good instance (used because the repository is public), and the signing is recorded in
-Sigstore's public transparency log. The workflow checks each file against its provenance, as
-below, before it attaches anything.
+Sigstore's public transparency log. For releases after v1.4.2, a job of its own, on a fresh
+GitHub-hosted runner that runs none of the build's tools, attests the files the build handed
+over, checks each against the provenance as below, and only then attaches them. v1.4.0 to
+v1.4.2, like the releases before them, were attested in the build job itself, which also held
+the release's write token.
 
 Check it with GitHub's command-line tool, `gh`, version 2.102.0 or later. `--source-ref` came
 with 2.68.0, but until 2.102.0 `gh` compared the branch name without regard to case, so a build
-from a branch named `Main` would pass as `main`. The `.intoto.jsonl` name is the one OpenSSF
-Scorecard counts, but the file is
-not output of slsa-github-generator, so `slsa-verifier` does not apply: its
-`verify-github-attestation` command accepts only a few named builders, and this workflow is not
-one of them.
+from a branch named `Main` would pass as `main`, and `--signer-workflow` accepted any workflow
+whose name starts with `release.yml` (older versions: `release`, any character, `yml`), such as
+`release.yml-x.yml` or `release-yml.yml` (the check in `make lint`, below, refuses such names).
+The `.intoto.jsonl` name is the one OpenSSF Scorecard counts, but the file is not output of
+slsa-github-generator, so `slsa-verifier` does not apply: its `verify-github-attestation` command
+accepts only a few named builders, and this workflow is not one of them.
 
 **With the attached file, no GitHub account needed.** Download the provenance file with the file
 you want to check, and run, with the release's version for `vX.Y.Z`:
@@ -76,8 +80,15 @@ gh attestation verify maalik-e-makaan-vX.Y.Z-arm64-v8a.apk \
   --bundle maalik-e-makaan-vX.Y.Z.intoto.jsonl \
   --repo ar27111994/maalik-e-makaan \
   --signer-workflow ar27111994/maalik-e-makaan/.github/workflows/release.yml \
-  --source-ref refs/heads/main
+  --source-ref refs/heads/main \
+  --deny-self-hosted-runners
 ```
+
+`--deny-self-hosted-runners` refuses provenance made on a self-hosted runner, as the signing
+certificate records, and every release from v1.4.0 on passes it. The runner environment the
+provenance records is that of the job that attested the files: the build job's up to v1.4.2,
+and the publish job's after it. For releases after v1.4.2, the builds run on runners of their
+own, whose labels the check in `make lint` (below) holds to GitHub-hosted ones.
 
 This shows that the file was built by this repository's Release workflow from `main`. It does
 not show which release it was built for: a file from an older release, with that release's
@@ -127,10 +138,15 @@ by one.
   Actions are pinned to commit hashes.
 - Concurrency and money logic are formally checked (`formal/`), and the website's money
   calculators have property-based tests (fast-check).
-- Each release carries the build provenance of its files, checked against each of them before
-  they are attached, and a check in `make lint` keeps the workflow that way (Checking a download,
-  above). The check reads only the workflow file, so an upload by a script or program a step
-  runs is left to review (`docs/operations.md`, Release provenance, names each such path).
+- For releases after v1.4.2, the files are built by jobs that hold only a read-only token and
+  no OIDC token; a separate job for each build, on a fresh runner, takes the files by their
+  artifact id, attests them, checks each against the provenance file and attaches them. Up to
+  v1.4.2, each build job attested and attached its own files, and held the release's write
+  token to do so. A check in `make lint` holds the publish jobs to a fixed shape and the builds
+  to GitHub-hosted runners' labels. It keeps every other job but release-please from writing to a
+  release or signing as the Release workflow, and release-please, which runs only its pinned
+  action, to a fixed shape too (`docs/operations.md`, Release provenance). A change to the check
+  itself is read in review.
 
 Common classes of error, and what stops each one:
 

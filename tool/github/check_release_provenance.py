@@ -1,117 +1,70 @@
 #!/usr/bin/env python3
-"""Check that every job that uploads files to a GitHub release attaches their provenance.
+"""Check that only release.yml's publish jobs can put files on a release or sign their provenance.
 
-OpenSSF Scorecard's Signed-Releases check (v5.6.0) looks only at the names of the files on each
-of the five newest releases: a name ending in `.intoto.jsonl` scores the release 10, a signature
-(`.asc`, `.minisig`, `.sig`, `.sign`, `.sigstore`, `.sigstore.json`) 8, neither 0. The
-attestations GitHub keeps for a workflow's builds count for nothing until a file is attached.
-release.yml therefore attests `dist/*`, copies the attestation's Sigstore bundle into `dist/` as
-a `.intoto.jsonl` file, checks it with `gh attestation verify --bundle` against every file it
-covers (every build file in `dist/`, all but the provenance file itself), and only then uploads
-`dist/*`, the provenance file included (docs/operations.md, Release provenance; SECURITY.md,
-Checking a download). This check keeps that so, for every tracked workflow in
-.github/workflows. It reads the runs of the provenance and upload steps as bash does
-(`commands`: a backslash at a line's end joins the next line, a comment runs from a `#` that
-starts a word to the end of its line and is dropped, and runs of spaces and tabs read as one
-space), and refuses what it could read otherwise than bash: a comment that ends in a backslash
-(bash never continues a comment, so the line after it runs), a `#` right after an operator, a
-quoted string that goes on past its line, a here-document, a command substitution, parameter
-expansion or $-quoted string, a `${{ }}` expression, and any character but a space, a tab and a
-line feed that Python reads as white space, a line end or nothing (a carriage return, a no-break
-or zero-width space). In each job that runs `gh release upload`:
+Each release carries its files' build provenance as a `.intoto.jsonl` file, the name OpenSSF
+Scorecard's Signed-Releases check counts (SECURITY.md, Checking a download). The builds that
+make the files run Gradle's plugins, CocoaPods, the pub packages and Flutter, so release.yml
+gives them a read-only token and no OIDC token: they hand their files over as a run artifact,
+and a publish job of their own, on a fresh GitHub-hosted runner that runs none of those tools,
+takes it by its id, keeps exactly the release's names, attests them, checks the provenance file
+against each with the options SECURITY.md gives, and only then attaches them.
 
-- there is exactly one such step, and its run, read so, is exactly `UPLOAD_RUN`, the one command
-  release.yml has: `dist/*` and no other path, with `--clobber`, to `"$TAG"` in
-  `"$GITHUB_REPOSITORY"`, with nothing before, after or around it (no `cd`, `;`, `&&`, pipe or
-  variable set for the command); its `env` sets only `GH_TOKEN`;
-- the two steps just before it are, back to back, the attest step (`uses:
-  actions/attest-build-provenance@<40-hex commit>`, with an `id` and `subject-path: dist/*`)
-  and the provenance step, so no step can add an unattested file to `dist/` in between;
-- the provenance step's `env` sets only `BUNDLE` and `PROVENANCE` (another variable, such as
-  `BASH_FUNC_gh%%` or `BASH_ENV`, could make bash run a `gh` that passes every file), `BUNDLE`
-  is the attest step's `bundle-path` output, `PROVENANCE` a file directly in `dist/` whose name
-  ends in `.intoto.jsonl` and starts with a letter or a digit, with only letters, digits, `.`,
-  `_`, `-` and plain context properties (`${{ needs.<job>.outputs.<name> }}`, no literal,
-  function or operator) after it (`dist/*` leaves out a name that starts with a dot, or an
-  expression that could become one, and gh and GitHub read other characters in their own way),
-  and its run
-  copies the one to the other (`cp -- "$BUNDLE" "$PROVENANCE"`) and loops over `dist/*`,
-  skipping the provenance file (the bundle the others are checked against) and running
-  `gh attestation verify "$file" --bundle "$PROVENANCE"` with `--signer-workflow` naming this
-  workflow file and `--source-ref refs/heads/main`, the options SECURITY.md tells people to use.
-  Read so, the run is exactly the six lines
-  release.yml has (`RUN_LINES`), so nothing in it can stop the loop early, skip a file, or
-  swallow a failure (`||`, `!`, `set +e`, `exit 0`, `break`);
-- none of the three steps has an `if:`, `continue-on-error`, `shell:` or `working-directory:`,
-  the job has no `continue-on-error`, neither the job nor the workflow sets
-  `defaults.run.working-directory` (each would move `dist/` away from the files the attest step
-  covers, which it names from the workspace root), and the job's and the workflow's
-  `defaults.run.shell`, where set, is
-  `bash`: the runner runs that as `bash --noprofile --norc -e -o pipefail {0}`, and a step without
-  a shell as `bash -e {0}`, so a failed verify ends the step; a custom shell such as `bash {0}`
-  drops `-e`, and then only the last file's verify would count;
-- neither the job's nor the workflow's `env` sets a variable that changes what bash or gh
-  runs (`SHELL_ENV`: `BASH_ENV`, `PATH`, `IFS`, `LD_PRELOAD` and others, and any
-  `BASH_FUNC_*`), merges variables in with `<<`, or comes from an expression;
-- the job grants `attestations: write` and `id-token: write`.
+This check keeps that so. It reads the workflows' structure and values, never shell: the only
+jobs that matter are those that can write to a release or sign as release.yml, permissions and
+secrets decide which jobs those are, and each such job must be a fixed template. It reads no
+build step, by design: what a build runs cannot reach the publish runner, its write token or its
+OIDC token. For every tracked workflow in .github/workflows:
 
-No uploading job may set a `strategy` (each leg of a matrix would give its provenance file the
-same name), and no two jobs may name provenance files that can be the same file on the release
-(`same_file`), since the two `--clobber` uploads would replace each other's: the names are
-compared as GitHub reads them (white space inside `${{ }}` dropped, the expressions and, more
-widely than GitHub, the text case-folded), and since the check does not know the expressions'
-values, two names differ only if they have the same expressions, each with one value in every
-job of the run (a needed job's output, `vars`, `inputs`, some of `github`), and texts around them
-that differ without a value being able to make up the difference, or else if one's text before
-the first expression, or after the last, neither starts nor ends the other's. A name may not hold
-two dots in a row (GitHub, and gh's `--clobber`, fold them into one).
+- R1. Permissions are declared: the workflow's top-level `permissions`, and a job's own where
+  it sets one, is a mapping or `read-all` (not `write-all`, an expression or nothing).
+- R2. Who may write or sign. A job's permissions are its own, or else the workflow's; a scope
+  whose value is not `read` or `none` counts as a write. In release.yml, R5 and R6 hold the
+  permissions of release-please and of the publish jobs exactly, and every other job writes
+  nothing at all. In every other workflow, no job writes `contents` or `attestations`, and the
+  file's name does not start with `release.`, nor with `release`, any one character and `yml`.
+  `id-token: write` stays allowed there: an OIDC token of another workflow fails SECURITY.md's
+  `--signer-workflow` with gh 2.102.0 or later, and older gh, which matches it as a prefix (and
+  some versions with its dot as any character), would take only such a name for release.yml.
+- R3. Secrets. In each value, from its first `${{` to its end, `secrets` (in any case) is
+  followed directly by `.NAME` (no `secrets[…]`, `toJSON(secrets)` or bare `secrets`); NAME,
+  read as GitHub reads a property (`-` included) and upper-cased, is in KNOWN_SECRETS; the text
+  RELEASE_PLEASE_TOKEN, in any case, appears in no value but release-please's `with.token`; no
+  mapping key holds `${{` (these rules read values, and no workflow needs an expression in a
+  key); and a job passes `secrets` only as a mapping (never `inherit`).
+- R4. release.yml runs only on push and workflow_dispatch (`workflow_call` would let another
+  workflow sign as release.yml), its `defaults` is at most `run: {shell: bash}`, and its
+  top-level `env` sets only FLUTTER_VERSION and JAVA_VERSION: the workflow's `defaults` and
+  `env` reach every publish step.
+- R5. release-please, which holds the write token, equals RELEASE_PLEASE_TEMPLATE, compared as
+  R6 compares the publish jobs: its pinned action alone, with exactly today's inputs, runner,
+  outputs and permissions (an input such as `github-api-url` or `proxy-server` would send the
+  token elsewhere, and its `tag` output names the release the publish jobs overwrite).
+- R6. Each publish job in PUBLISH_JOBS equals PUBLISH_TEMPLATE, filled in for its build: key for
+  key and value for value, steps in order, runs as exact text. Only `name` and `timeout-minutes`
+  of the job and of its steps are free, and each `uses` may name any 40-hex commit of the
+  template's action (a Dependabot bump), never a tag or another owner. A commit that is not the
+  action's own (an impostor commit, from a fork) passes here and in make lint's offline zizmor;
+  security.yml's zizmor job, which runs the online audits, catches it.
+- R7. Each publish job's build runs on its GitHub-hosted runner as PUBLISH_JOBS names it (the
+  provenance records the runner of the job that attests, so this rule holds the builds' runners)
+  and hands `dist/` over through one step with `id: upload` (actions/upload-artifact at a 40-hex
+  commit, `with.path: dist/`) and the job output
+  `artifact-id: ${{ steps.upload.outputs.artifact-id }}`. actionlint cannot see a typo in an
+  output of a SHA-pinned action; the publish job would fail closed without this rule, as
+  `|| 'missing'` makes an empty id no id.
 
-No job may upload release files another way (`gh release create`, or `new`, its alias in gh, an
-upload to uploads.github.com or by the client libraries' `uploadReleaseAsset` and
-`upload_release_asset`, or a release-upload action), take them off a release (`gh release delete`
-or `delete-asset`, a `DELETE` on a release URL in any case and glued to its flag, as in
-`-XDELETE`, the client libraries' `deleteRelease`, `deleteReleaseAsset`, `delete_release` and
-`delete_asset`), or define a gh alias or extension (`gh alias`, `gh extension`), which could
-upload under another name. It looks for these in every value of every step, so also in an
-`actions/github-script` step's `with.script`, along with `gh release upload` there, once each
-`${{ }}` expression is filled in as Actions could (`filled`: a string literal as its text, any
-other expression as a word that may be any word gh reads, except as the value of `-R` or
-`--repo`); in a run, it looks once the run's quoting is read (`_words`: `gh release $'upload'`,
-`gh re$'\0'lease`, where the NUL ends the string as in bash, `gh release ${x:-upload}` and the
-words of a quoted `bash -c` or `eval` string count), with a redirection skipped wherever it
-stands among gh's words (`gh </dev/null release upload`), after a
-word that may run gh (`_may_run_gh`: one holding `gh`, such as `"$GH"` or `${x:-gh}`, or one
-whose text is only known at run time, such as `"$tool"` or `${{ env.TOOL }}`), so that prose
-(`echo "the release upload finished"`) is not read as a command. Both readings find the subcommand as gh does
-(`_subcommand`, `_gh_runs`): flags, and a value after a flag, are skipped first, so
-`gh release -R "$GITHUB_REPOSITORY" upload`, `gh release -R ${{ github.repository }} upload` and
-`gh release --repo=x delete` count; in text a flag's value may be quoted or joined with `+` and
-calls (`owner + '/' + name`, `String(repo)`). Since only gh knows which flags take a value, a
-word after a flag counts as the subcommand too (`gh release -R upload view` counts as an upload,
-which is wider than gh). `gh release view`, `list`, `download` and `edit` (which can retarget or
-rename a release, or make it a draft, but attaches and deletes nothing) are left alone. At least
-one job must upload, so that a renamed upload command cannot pass this check by matching nothing.
+A file is unreadable here when a mapping has a key twice or a key that is not text (the check
+would see one of two values, and GitHub refuses the file), when an alias holds itself, or when
+it has a line break that PyYAML, a YAML 1.1 reader, takes and a YAML 1.2 reader does not (NEL,
+LS or PS: PyYAML could see a key that GitHub reads as part of a comment). Other ways PyYAML and
+GitHub could read a workflow differently are refused elsewhere in make lint: actionlint refuses a
+merge key (`<<`), a key in another case (`Permissions:`, `Contents:`) and a value of the wrong
+shape (a plain-text scalar `env`), and tool/check_unicode.py refuses NEL as well.
 
-Limits. It reads the workflow's structure, the text of these three steps' commands and the text of
-every step's values; it does not run the shell or any script, and it reads only the workflow files,
-as PyYAML parses them: YAML folds a `run: >` and a plain scalar over several lines into one, and
-reads a CR or a CRLF in the file as a line feed. GitHub's parser is not PyYAML; where the two
-differ, this check sees PyYAML's value. Where it cannot read some other step's run as bash does, it
-looks for an upload in every line of it, comments included. It cannot know a context property's
-value, so one in the provenance file's name could still hold a `/`, a `#`, a space or a dot at
-either end, which GitHub would change; it takes the tag's `vX.Y.Z` to hold none. An upload made
-by a script or program a step runs (`./attach.sh`, `node attach.js`, a built binary), by an action
-not named here, by a gh alias or extension already configured on the runner or read from a
-configuration directory in the repository (`GH_CONFIG_DIR`), by a reusable workflow that uploads
-and is called twice, or through text built at run time (`$(printf upload)`, a shell variable or
-function, positional parameters, `xargs`, a glob such as `upl[o]ad`, or a value an action's script
-computes in another way than with `+`, a call or a template literal) is not seen; nor is a
-variable an earlier step writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload
-elsewhere, a `BASH_ENV` or `BASH_FUNC_*` for every later step). A reviewer reads those paths by
-hand (docs/operations.md, Release provenance, What the check cannot see). It checks the action as
-named here: a move to `actions/attest` (which the wrapper's README recommends for new work) must
-update this check in the same change, keeping build provenance (no predicate inputs). Scorecard's
-extension lists are as of v5.6.0; the docs name that version.
+The templates and release.yml change together, in one pull request that review reads; so does a
+move from actions/attest-build-provenance to actions/attest. What this check does not cover (what
+a build puts in its own files, the trust base, settings outside the files, PyYAML against
+GitHub's parser) is in docs/operations.md, Release provenance.
 
     python3 tool/github/check_release_provenance.py [repository root]
 """
@@ -119,10 +72,10 @@ extension lists are as of v5.6.0; the docs name that version.
 from __future__ import annotations
 
 import re
-import shlex
 import sys
-import unicodedata
+from collections.abc import Iterator
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 import yaml
 
@@ -140,566 +93,276 @@ from check_workflow_calls import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-ATTEST_ACTION = "actions/attest-build-provenance"
-ATTEST = re.compile(rf"^{re.escape(ATTEST_ACTION)}@[0-9a-f]{{40}}$")
-# The words gh may run, by level: `gh release`, then what each puts on a release or takes off it
-# (`new` is `create`'s alias in gh), and gh's alias and extension commands, any of which is
-# refused (`gh alias set attach 'release upload'` uploads under another name).
-RELEASE = ("release",)
-UPLOAD = ("upload",)
-CREATE_OR_DELETE = ("create", "new", "delete", "delete-asset")
-GH_COMMANDS = ("alias", "ext", "extension", "extensions")
-# The flags of `gh release` (and gh's own) that always take a value: an Actions expression right
-# after one is read as its value, not as the subcommand.
-REPO_FLAGS = ("-R", "--repo")
-# A `${{ }}` expression outside the provenance and upload steps' runs, as the search for other
-# uploads reads it: Actions puts its value in place before the step runs, so a string literal
-# (`${{ 'upload' }}`) is read as its text, and any other expression as this word, which stands
-# for any word gh may read (`gh release ${{ env.VERB }}` counts as an upload).
-ANY_WORD = "__expression__"
-LITERAL = re.compile(r"\$\{\{\s*'((?:[^']|'')*)'\s*\}\}")
-# A word that holds gh's name (`gh`, `/usr/bin/gh`, `"$GH"`, `${x:-gh}`), in a line read as
-# words (`_may_run_gh` adds the words whose text is only known at run time).
-GH_WORD = re.compile(r"(?<![A-Za-z0-9])gh(?![A-Za-z0-9])", re.I)
-# `gh` in text that is not read as words (an action's script, an env value, a run as text).
-GH_TEXT = re.compile(r"(?<![\w.])gh(?![\w.])")
-# In such text: what lies between two words (white space, commas, braces, `[(` and quotes), and
-# what ends a word. Any character Python reads as white space counts, a no-break space included:
-# wider than bash, which splits words at spaces and tabs only.
-_GAP = ",[({}'\"`"
-_WORD_END = ",[](){}'\"`;&|<>"
+RELEASE = f"{WORKFLOWS}/release.yml"
+RELEASE_PLEASE = "release-please"
 
+# Line breaks that PyYAML takes and a YAML 1.2 reader does not.
+YAML_1_1_BREAKS = frozenset("\x85\u2028\u2029")
 
-def _gap(char: str) -> bool:
-    return char in _GAP or char.isspace()
+# R2. Permission values that write nothing; any other value counts as a write.
+READ_ONLY = frozenset({"read", "none"})
+# What no job outside release.yml may write: files on a release, or an attestation.
+REFUSED_ELSEWHERE = frozenset({"attestations", "contents"})
+# A workflow name that gh before 2.102.0 takes for release.yml under `--signer-workflow`: it
+# matches `release.yml` as a prefix, and some versions read its dot as any character.
+SIGNER_LOOKALIKE = re.compile(r"release(\.|.yml)")
 
-
-def _word_end(char: str) -> bool:
-    return char in _WORD_END or char.isspace()
-
-
-# The upload step's run, once read as RUN_LINES are: dist/* alone, to this release of this
-# repository, replacing a file of the same name.
-UPLOAD_RUN = 'gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"'
-# The only variable the upload step's own env may set: a step-level TAG or GH_REPO would send
-# the files elsewhere.
-UPLOAD_ENV = ("GH_TOKEN",)
-# The only variables the provenance step's own env may set: any other could change what bash or
-# gh does there (`BASH_FUNC_gh%%` defines a `gh` function that passes every file, `BASH_ENV` a
-# file bash reads first).
-PROVENANCE_ENV = ("BUNDLE", "PROVENANCE")
-# Variables the job's and the workflow's env may not set, since they reach the provenance and
-# upload steps: each can make bash or gh run something other than the commands this check reads.
-SHELL_ENV = (
-    "BASH_ENV",
-    "ENV",
-    "SHELLOPTS",
-    "BASHOPTS",
-    "GLOBIGNORE",
-    "PATH",
-    "IFS",
-    "CDPATH",
-    "LD_PRELOAD",
-    "LD_LIBRARY_PATH",
-    "DYLD_INSERT_LIBRARIES",
-    "DYLD_LIBRARY_PATH",
+# R3. Every secret a workflow may name. Add one only after asking whether it can write to the
+# repository or sign; one that can is confined to a single place as RELEASE_PLEASE_TOKEN is.
+WRITE_SECRET = "RELEASE_PLEASE_TOKEN"  # noqa: S105 - the secret's name, not its value
+WRITE_SECRET_AT = f"jobs.{RELEASE_PLEASE}.steps[0].with.token"
+KNOWN_SECRETS = frozenset(
+    {
+        "GITHUB_TOKEN",
+        WRITE_SECRET,
+        "ANDROID_KEYSTORE_BASE64",
+        "ANDROID_KEYSTORE_PASSWORD",
+        "ANDROID_KEY_ALIAS",
+        "ANDROID_KEY_PASSWORD",
+        "SUPABASE_ACCESS_TOKEN",
+        "SUPABASE_DB_PASSWORD",
+        "VERCEL_TOKEN",
+    }
 )
-# An exported bash function, which bash defines from the environment before the run starts.
-SHELL_FUNCTION_ENV = "BASH_FUNC_"
-# A YAML merge key, whose variables PyYAML's node tree does not spell out.
-MERGE_KEY = "<<"
-# Keys none of the attest, provenance and upload steps may have.
-STEP_KEYS = ("if", "continue-on-error", "shell", "working-directory")
-SOURCE_REF = "refs/heads/main"
-# Other ways of putting files on a release or taking them off it, besides gh's commands, refused
-# so that the check cannot be sidestepped: looked for in every value of every step (a `run`, an
-# action's `with.script`, an `env`). The REST upload by its URL and by the names Octokit
-# (`uploadReleaseAsset`) and PyGithub (`upload_release_asset`) give it; the deletes by Octokit's
-# and PyGithub's names; and a `DELETE` on a release URL, in any case and glued to its flag
-# (`-XDELETE`, `--method delete`), as gh and curl take it.
-OTHER_UPLOAD = re.compile(
-    r"uploads\.github\.com|\buploadReleaseAsset\b"
-    r"|\bupload_release_asset\b|\bdeleteRelease(?:Asset)?\b|\bdelete_(?:release|asset)\b"
-    r"|(?is:delete\b.*\breleases/|\breleases/.*delete\b)"
-)
-# Pairs of words that a run may not hold once its quoting is read (`_words`): after a word that
-# may run gh (`_may_run_gh`), a subcommand holding the first text, then, as gh finds its
-# subcommand (`_verb_after`), one holding one of the second.
-REFUSED_PAIRS = (
-    (RELEASE, CREATE_OR_DELETE),
-    (("alias",), ("set", "import")),
-    (("ext", "extension", "extensions"), ("install",)),
-)
-UPLOAD_ACTIONS = (
-    "softprops/action-gh-release",
-    "ncipollo/release-action",
-    "svenstaro/upload-release-action",
-    "actions/upload-release-asset",
-)
-# `set +e`, `set +eo pipefail`, `set +xe`, `set +o errexit`, `set +o pipefail`, and a `!` that
-# turns a failed command into a success.
-SWALLOWS = re.compile(
-    r"\|\||\bset\s+\+[a-z]*e|\bset\s+\+o\s+(?:errexit|pipefail)\b|(?:^|[;&|(]\s*)!\s"
-)
-# The provenance step's run, line by line once comments are dropped and continuation lines joined
-# (with runs of white space read as one space); {workflow} is the workflow file's path.
-RUN_LINES = (
-    "gh --version",
-    'cp -- "$BUNDLE" "$PROVENANCE"',
-    "for file in dist/*; do",
-    '[[ "$file" == "$PROVENANCE" ]] && continue',
-    'gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY"'
-    ' --signer-workflow "$GITHUB_REPOSITORY/{workflow}" --source-ref ' + SOURCE_REF,
-    "done",
-)
-# A `${{ }}` expression in a workflow value, which Actions replaces before the step runs.
-EXPRESSION = re.compile(r"\$\{\{.*?\}\}")
-# The only expression the provenance file's name may hold: a context property, such as
-# `${{ needs.release-please.outputs.tag }}`, with no literal, function, index or operator.
-CONTEXT_PROPERTY = re.compile(
-    r"\$\{\{\s*(?:needs|steps|github|env|vars|inputs|matrix)(?:\.[A-Za-z_][A-Za-z0-9_-]*)+\s*\}\}"
-)
-# The one shell a workflow or a job may set as its default for these steps.
-SHELL = "bash"
+# The secrets context, with the name after it when it is named as `secrets.NAME`. Searched from
+# a value's first `${{` to its end, without working out where an expression ends, so that
+# `${{ '}}' && secrets[…] }}` is read too.
+SECRET_WORD = re.compile(r"\bsecrets\b(?:\.([A-Za-z_][A-Za-z0-9_-]*))?", re.IGNORECASE)
 
+# R4.
+TRIGGERS = frozenset({"push", "workflow_dispatch"})
+DEFAULTS = {"run": {"shell": "bash"}}
+WORKFLOW_ENV = frozenset({"FLUTTER_VERSION", "JAVA_VERSION"})
 
-# Unquoted characters that end a word, besides spaces and tabs: after one, a `#` starts a comment.
-OPERATORS = ";&|()<>"
-# Inside double quotes or unquoted: what this check does not read the way bash does, because
-# what it encloses can nest quotes, span lines or hold comments of its own.
-UNREAD = ("$(", "${", "`")
-UNREAD_UNQUOTED = (*UNREAD, "$'", '$"')
+# R5 and R6. A commit an action is pinned to.
+PIN = re.compile(r"[0-9a-f]{40}")
+# The keys of a job held to a template, and of each of its steps, that may hold any value.
+FREE = frozenset({"name", "timeout-minutes"})
+# release-please, without its free keys; a `uses` is its action's name and `@`, which any
+# 40-hex commit may follow.
+RELEASE_PLEASE_TEMPLATE = """\
+runs-on: ubuntu-24.04
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+outputs:
+  created: ${{ steps.release.outputs.release_created }}
+  tag: ${{ steps.release.outputs.tag_name }}
+  version: ${{ steps.release.outputs.version }}
+steps:
+  - id: release
+    uses: googleapis/release-please-action@
+    with:
+      token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+      config-file: release-please-config.json
+      manifest-file: .release-please-manifest.json
+"""
 
-
-class UnclearRunError(ValueError):
-    """Text in a run that this check could read otherwise than bash does, so it refuses it."""
-
-
-def _unclear_character(run: str) -> str | None:
-    """A character bash reads as part of a word that Python reads as white space, a line end or
-    nothing at all (a carriage return, a no-break space, a zero-width space)."""
-    for number, line in enumerate(run.split("\n"), start=1):
-        for char in line:
-            if char in " \t":
-                continue
-            if char.isspace() or unicodedata.category(char) in ("Cc", "Cf", "Zs", "Zl", "Zp"):
-                name = unicodedata.name(char, "a control character").lower()
-                return (
-                    f"line {number} has U+{ord(char):04X} ({name}), which bash reads as part of a"
-                    " word: only spaces and tabs separate its words, and only a line feed ends"
-                    " its lines"
-                )
-    return None
-
-
-def commands(run: str) -> list[str]:
-    """The run's commands, one per logical line, as bash reads them: a backslash at the end of
-    a line joins the next one to it, a comment (a `#` that starts a word, to the end of its line)
-    is dropped, and so is a blank line. Raises `UnclearRunError` for text where bash's reading
-    and a simpler one could differ, none of which the release steps need: a comment that ends in
-    a backslash (bash never continues a comment), a `#` right after an operator, a quoted string
-    that goes on past its line, a here-document, a command substitution, a parameter expansion
-    or a $-quoted string, a `${{ }}` expression, and a character bash reads as part of a word
-    that Python reads as white space, a line end or nothing (anything but a space, a tab or a
-    line feed that is white space, a control or a format character)."""
-    if (problem := _unclear_character(run)) is not None:
-        raise UnclearRunError(problem)
-    if "${{" in run:
-        number = run[: run.index("${{")].count("\n") + 1
-        raise UnclearRunError(
-            f"line {number} has a `${{{{ }}}}` expression, which Actions replaces with its value"
-            " (any text, a line break or a `#` included) before bash reads the run"
-        )
-    lines: list[str] = []
-    line: list[str] = []
-    quote = ""
-    # What came before: "start" of a line, a "blank", an "operator", or a "word" character.
-    before = "start"
-    number = 1
-    i = 0
-    while i < len(run):
-        char = run[i]
-        rest = run[i : i + 2]
-        if char == "\n" and quote:
-            raise UnclearRunError(
-                f"line {number} opens a quoted string that goes on past the line's end"
-            )
-        if quote == "'":
-            line.append(char)
-            quote = "" if char == "'" else quote
-            i += 1
-            continue
-        if any(rest.startswith(text) for text in (UNREAD if quote else UNREAD_UNQUOTED)):
-            text = next(t for t in UNREAD_UNQUOTED if rest.startswith(t))
-            shown = "`` ` ``" if text == "`" else f"`{text}`"
-            raise UnclearRunError(
-                f"line {number} has {shown} (a command substitution, a parameter expansion or a"
-                " $-quoted string), which this check does not read"
-            )
-        if char == "\\":
-            following = run[i + 1 : i + 2]
-            if following == "\n" and quote:
-                raise UnclearRunError(
-                    f"line {number} opens a quoted string that goes on past the line's end"
-                )
-            if following == "\n":
-                number += 1
-                i += 2
-                continue
-            if not following:
-                raise UnclearRunError(f"line {number}, the run's last, ends in a backslash")
-            line.append(rest)
-            before = "word"
-            i += 2
-            continue
-        if quote == '"':
-            line.append(char)
-            quote = "" if char == '"' else quote
-            i += 1
-            continue
-        if char == "\n":
-            lines.append("".join(line).strip(" \t"))
-            line, before, number = [], "start", number + 1
-        elif char == "#" and before != "word":
-            if before == "operator":
-                raise UnclearRunError(
-                    f"line {number} has a `#` right after `{line[-1]}`, where bash starts a"
-                    " comment: put a space before the `#`, or quote it"
-                )
-            end = run.find("\n", i)
-            end = len(run) if end < 0 else end
-            if run[i:end].rstrip(" \t").endswith("\\"):
-                raise UnclearRunError(
-                    f"line {number} is a comment that ends in a backslash; bash ends a comment at"
-                    " the end of its line and runs the next line, which reads as part of the"
-                    " comment: drop the backslash"
-                )
-            i = end
-            continue
-        elif rest == "<<":
-            raise UnclearRunError(
-                f"line {number} has `<<`, a here-document or here-string, whose lines bash reads"
-                " as text, not as commands"
-            )
-        else:
-            line.append(char)
-            if char in "'\"":
-                quote, before = char, "word"
-            elif char in " \t":
-                before = "blank"
-            elif char in OPERATORS:
-                before = "operator"
-            else:
-                before = "word"
-        i += 1
-    if quote:
-        raise UnclearRunError(f"line {number} opens a quoted string that is never closed")
-    lines.append("".join(line).strip(" \t"))
-    return [text for text in lines if text]
-
-
-def command_lines(run: str) -> list[str]:
-    """What to look for an upload in: `commands(run)`, or, where the check cannot read the run as
-    bash does, every line of it, comments included, as written and with continuations joined,
-    so that nothing bash could run is missed."""
-    try:
-        return commands(run)
-    except UnclearRunError:
-        return run.splitlines() + re.sub(r"\\\n", "", run).splitlines()
-
-
-def strings(node: yaml.Node | None) -> list[tuple[yaml.ScalarNode, str]]:
-    """Every scalar value under `node` (mapping keys left out), with its text."""
-    if isinstance(node, yaml.ScalarNode):
-        return [(node, node.value)]
-    if isinstance(node, yaml.SequenceNode):
-        return [found for item in node.value for found in strings(item)]
-    if isinstance(node, yaml.MappingNode):
-        return [found for _, value in node.value for found in strings(value)]
-    return []
-
-
-def run_of(step: yaml.Node) -> str | None:
-    return scalar(get(step, "run"))
-
-
-def uses_of(step: yaml.Node) -> str:
-    return (scalar(get(step, "uses")) or "").strip()
-
-
-# bash's escapes in a $'...' string (ANSI-C quoting), as bash 5 decodes them.
-ANSI_C_ESCAPE = re.compile(
-    r"\\(x[0-9A-Fa-f]{1,2}|u[0-9A-Fa-f]{1,4}|U[0-9A-Fa-f]{1,8}|[0-7]{1,3}|c.|.)", re.S
-)
-ANSI_C_LETTERS = {
-    "a": "\a",
-    "b": "\b",
-    "e": "\x1b",
-    "E": "\x1b",
-    "f": "\f",
-    "n": "\n",
-    "r": "\r",
-    "t": "\t",
-    "v": "\v",
-    "\\": "\\",
-    "'": "'",
-    '"': '"',
-    "?": "?",
+# R6 and R7. Each publish job: its build job, the GitHub-hosted runner that build runs on, the
+# files it moves into dist/ (the release's names for that build, as shell words over lines
+# joined by a backslash), and its provenance file's suffix.
+PUBLISH_JOBS = {
+    "publish-artefacts": (
+        "artefacts",
+        "ubuntu-24.04",
+        'build/SHA256SUMS "build/maalik-e-makaan-$TAG.aab" \\\n'
+        '  "build/maalik-e-makaan-$TAG"-{arm64-v8a,armeabi-v7a,x86_64}.apk \\\n'
+        '  "build/maalik-e-makaan-$TAG"-{web,debug-symbols}.zip',
+        "",
+    ),
+    "publish-ios": (
+        "ios",
+        "macos-26",
+        'build/SHA256SUMS-ios "build/maalik-e-makaan-$TAG-ios-unsigned.ipa"',
+        "-ios",
+    ),
 }
+# A publish job, without its free keys. <build>, <files> and <suffix> are filled in from
+# PUBLISH_JOBS; a `uses` is its action's name and `@`, which any 40-hex commit may follow.
+PUBLISH_TEMPLATE = """\
+needs: [release-please, <build>]
+if: needs.release-please.outputs.created == 'true'
+runs-on: ubuntu-24.04
+environment: release
+permissions:
+  attestations: write
+  contents: write
+  id-token: write
+env:
+  TAG: ${{ needs.release-please.outputs.tag }}
+steps:
+  - uses: actions/download-artifact@
+    with:
+      artifact-ids: ${{ needs.<build>.outputs.artifact-id || 'missing' }}
+      path: build
+      digest-mismatch: error
+  - run: |
+      mkdir dist
+      mv -- <files> dist/
+      rmdir build
+  - id: provenance
+    uses: actions/attest-build-provenance@
+    with:
+      subject-path: dist/*
+  - env:
+      BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+      PROVENANCE: dist/maalik-e-makaan-${{ needs.release-please.outputs.tag }}<suffix>.intoto.jsonl
+    run: |
+      gh --version
+      cp -- "$BUNDLE" "$PROVENANCE"
+      for file in dist/*; do
+        [[ "$file" == "$PROVENANCE" ]] && continue
+        gh attestation verify "$file" --bundle "$PROVENANCE" --repo "$GITHUB_REPOSITORY" \\
+          --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \\
+          --source-ref refs/heads/main --deny-self-hosted-runners
+      done
+  - env:
+      GH_TOKEN: ${{ github.token }}
+    run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+"""
+
+# R7.
+UPLOAD_ACTION = "actions/upload-artifact@"
+HANDOFF = {"artifact-id": "${{ steps.upload.outputs.artifact-id }}"}
 
 
-# A redirection as bash reads one in a simple command, where it may stand anywhere among the
-# words and is not handed to the command: an optional file descriptor (`2`, `{fd}`), an
-# operator, and its target, glued to it (`</dev/null`, `2>&1`) or in the next word (`> log`).
-REDIRECTION = re.compile(r"(?:\d+|\{[A-Za-z_]\w*\})?(?:&>>?|<<<|<<-?|<>|>>|>\||[<>]&?)")
+class UnreadableError(ValueError):
+    """A mapping in the file has a key twice, or a key that is not text."""
+
+    def __init__(self, node: yaml.Node, message: str) -> None:
+        super().__init__(message)
+        self.node = node
 
 
-def _ansi_c(match: re.Match[str]) -> str:
-    """One escape of a $'...' string, decoded as bash decodes it."""
-    escape = match[1]
-    if escape[0] in "xuU" and len(escape) > 1:
-        return chr(min(int(escape[1:], 16), 0x10FFFF))
-    if escape[0] in "01234567":
-        return chr(int(escape, 8) & 0xFF)
-    if escape[0] == "c" and len(escape) == 2:
-        return chr(ord(escape[1]) & 0x1F)
-    return ANSI_C_LETTERS.get(escape, "\\" + escape)
+def plain(node: yaml.Node | None) -> Any:
+    """The node as text, lists and dicts. GitHub merges nothing, so `<<` stays an ordinary key."""
+    if isinstance(node, yaml.SequenceNode):
+        return [plain(item) for item in node.value]
+    if isinstance(node, yaml.MappingNode):
+        found: dict[str, Any] = {}
+        for key, value in node.value:
+            name = scalar(key)
+            if name is None:
+                raise UnreadableError(key, "a key that is not text")
+            if name in found:
+                raise UnreadableError(key, f"the key {name!r} twice in one mapping")
+            found[name] = plain(value)
+        return found
+    return scalar(node)
 
 
-def _plain_quotes(line: str) -> str:
-    """`line` with each $'...' string turned into a single-quoted one holding what bash decodes
-    it to (up to its first NUL, where bash ends it), and each `$"` into `"`, so that `shlex`
-    reads the words bash runs. It does not tell
-    whether the string is itself inside double quotes, where bash keeps it as written: reading
-    more words than bash does only makes the search for a command wider."""
-
-    def single(match: re.Match[str]) -> str:
-        # A NUL ends the string there, as in bash: `re$'\\0'lease` is `release`.
-        decoded = ANSI_C_ESCAPE.sub(_ansi_c, match[1]).split("\0", 1)[0]
-        return "'" + decoded.replace("'", "'\\''") + "'"
-
-    return re.sub(r"""\$'((?:[^'\\]|\\.)*)'""", single, line, flags=re.S).replace('$"', '"')
+def template(job: str) -> Any:
+    """PUBLISH_TEMPLATE filled in for `job`."""
+    build, _, files, suffix = PUBLISH_JOBS[job]
+    text = (
+        PUBLISH_TEMPLATE.replace("<build>", build)
+        .replace("<files>", files.replace("\n", "\n      "))
+        .replace("<suffix>", suffix)
+    )
+    return plain(compose(text))
 
 
-def _words(line: str, depth: int = 2) -> list[str]:
-    """The words of `line` once its shell quoting is read ($'...' and $"..." included), and the
-    words of any word that holds white space, read again (`bash -c 'gh release upload'`,
-    `alias up='gh release upload'`, `eval "gh release $'upload'"`), to `depth` levels. A line
-    `shlex` cannot read is split at its white space."""
-    text = _plain_quotes(line)
-    try:
-        words = shlex.split(text)
-    except ValueError:
-        words = text.split()
-    found: list[str] = []
-    for word in words:
-        if depth and re.search(r"\s", word):
-            found += _words(word, depth - 1)
-        else:
-            found.append(word)
-    return found
-
-
-def _holds(word: str, names: tuple[str, ...]) -> bool:
-    """Whether `word`, read as a word gh is given, holds one of `names` as a whole word
-    (`${x:-upload}`, `delete-asset` and `up$'load'` once read hold one; `uploads` does not)."""
-    return any(
-        re.search(rf"(?<![A-Za-z0-9]){re.escape(name)}(?![A-Za-z0-9])", word) for name in names
+def pinned(value: str | None, prefix: str) -> bool:
+    """Whether `value` is `prefix` (an action's name and `@`) and a 40-hex commit."""
+    return (
+        value is not None
+        and value.startswith(prefix)
+        and PIN.fullmatch(value[len(prefix) :]) is not None
     )
 
 
-def _subcommand(words: list[str], names: tuple[str, ...]) -> int | None:
-    """The index in `words` of the word gh, given `words` after a command such as `release`,
-    could run as its subcommand, if that word holds one of `names` (or is an Actions expression,
-    `ANY_WORD`, which could be any of them); None if gh runs another subcommand or none. gh
-    (cobra) skips flags, and the value after a flag, before it takes the next word as the
-    subcommand, and which flags take a value it alone knows: so a flag (a word that starts with
-    `-`) is skipped, the word after it is the subcommand if it holds a name and is skipped as the
-    flag's value if not, and the first other word is the subcommand, which ends the search
-    (`gh release view upload` runs `view`). Reading a flag's value as the subcommand too makes
-    the search wider than gh's (`gh release -R upload view` runs `view`, yet counts as an
-    upload), never narrower. The one exception is an expression after `-R` or `--repo`, which
-    always take a value: it is that value (`gh release -R ${{ github.repository }} view` runs
-    `view`). A redirection (`REDIRECTION`), which bash takes out before gh sees its words, is
-    skipped like a flag, and the word after it like a flag's value, since it may be its target
-    (`gh </dev/null release upload`, `gh release > log delete`)."""
-    flag = None
-    for index, word in enumerate(words):
-        repository = flag in REPO_FLAGS and ANY_WORD in word
-        if not repository and (ANY_WORD in word or _holds(word, names)):
-            return index
-        if word.startswith("-") or REDIRECTION.match(word):
-            flag = word
-        elif flag is not None:
-            flag = None
-        else:
-            return None
+def differences(
+    expected: Any, actual: yaml.Node, where: str, free: bool
+) -> list[tuple[yaml.Node, str]]:
+    """Where `actual` differs from the template's `expected`; `free` is true only for a job's or
+    a step's own keys, of which `name` and `timeout-minutes` may hold anything."""
+    if isinstance(expected, dict):
+        if not isinstance(actual, yaml.MappingNode):
+            return [(actual, f"{where or 'the job'}: a mapping, as the template has")]
+        given = {key.value: (key, value) for key, value in items(actual)}
+        found: list[tuple[yaml.Node, str]] = []
+        for key, value in expected.items():
+            path = f"{where}.{key}" if where else key
+            if key not in given:
+                found.append((actual, f"{path}: missing; the template has {value!r}"))
+            elif key == "uses":
+                node = given[key][1]
+                if not pinned(scalar(node), value):
+                    found.append((node, f"{path}: {value}<40-hex commit>, found {plain(node)!r}"))
+            elif key == "steps":
+                found += steps(value, given[key][1], path)
+            else:
+                found += differences(value, given[key][1], path, free=False)
+        for key, (node, _) in given.items():
+            if key not in expected and not (free and key in FREE):
+                path = f"{where}.{key}" if where else key
+                found.append((node, f"{path}: not in the template"))
+        return found
+    if isinstance(expected, list):
+        if not isinstance(actual, yaml.SequenceNode) or len(actual.value) != len(expected):
+            return [(actual, f"{where}: {expected!r}, found {plain(actual)!r}")]
+        return [
+            found
+            for i, (one, other) in enumerate(zip(expected, actual.value, strict=True))
+            for found in differences(one, other, f"{where}[{i}]", free=False)
+        ]
+    if scalar(actual) == expected:
+        return []
+    return [(actual, f"{where}: {expected!r}, found {plain(actual)!r}")]
+
+
+def steps(expected: list[Any], actual: yaml.Node, where: str) -> list[tuple[yaml.Node, str]]:
+    """A job's steps against its template's, in order."""
+    if not isinstance(actual, yaml.SequenceNode) or len(actual.value) != len(expected):
+        count = len(actual.value) if isinstance(actual, yaml.SequenceNode) else "no list"
+        return [(actual, f"{where}: {len(expected)} in the template, found {count}")]
+    return [
+        found
+        for i, (one, other) in enumerate(zip(expected, actual.value, strict=True))
+        for found in differences(one, other, f"{where}[{i}]", free=True)
+    ]
+
+
+def writes(permissions: yaml.Node | None) -> dict[str, str] | None:
+    """The scopes a declared `permissions` value writes, with their values; None when it is
+    neither a mapping nor `read-all`."""
+    if isinstance(permissions, yaml.MappingNode):
+        return {
+            key.value: str(plain(value))
+            for key, value in items(permissions)
+            if scalar(value) not in READ_ONLY
+        }
+    if scalar(permissions) == "read-all":
+        return {}
     return None
 
 
-def _verb_after(words: list[str], verbs: tuple[str, ...]) -> bool:
-    """Whether gh, given `words` after a command such as `release`, could run one of `verbs`
-    (`_subcommand`)."""
-    return _subcommand(words, verbs) is not None
+def scalars(node: yaml.Node | None, where: str = "") -> Iterator[tuple[str, yaml.ScalarNode, bool]]:
+    """Every scalar in the document with its path, and whether it is a mapping's key."""
+    if isinstance(node, yaml.SequenceNode):
+        for i, item in enumerate(node.value):
+            yield from scalars(item, f"{where}[{i}]")
+    elif isinstance(node, yaml.MappingNode):
+        for key, value in items(node):
+            path = f"{where}.{key.value}" if where else key.value
+            yield path, key, True
+            yield from scalars(value, path)
+    elif isinstance(node, yaml.ScalarNode):
+        yield where, node, False
 
 
-def _may_run_gh(word: str) -> bool:
-    """Whether a word of a run may be the gh command: it holds gh's name (`GH_WORD`: `gh`,
-    `/usr/bin/gh`, `"$GH"`, `${x:-gh}`), or its text is only known at run time, which is a
-    shell expansion (`"$tool"`, `$(command -v gh)`) or an expression that is not a string
-    literal (`${{ env.TOOL }}`). A word of prose is neither."""
-    return GH_WORD.search(word) is not None or "$" in word or ANY_WORD in word
-
-
-def _holds_pair(line: str, firsts: tuple[str, ...], seconds: tuple[str, ...]) -> bool:
-    """Whether, once the quoting of `line` is read, a word that may run gh (`_may_run_gh`) is
-    followed, as gh finds its subcommands (`_subcommand`), by a word holding one of `firsts` and
-    then by one holding one of `seconds`: `gh 'release' upload`, `gh release $'\\x75pload'`,
-    `gh release ${x:-upload}`, `"$tool" release upload` and
-    `gh release -R "$GITHUB_REPOSITORY" upload` all hold `release` and then `upload`. A line
-    with no such word runs no gh, so prose (`echo "the release upload finished"`) holds none;
-    prose with a variable right before the words (`echo "$TAG release upload"`) is refused,
-    which errs on the side of asking."""
-    words = _words(line)
-    for start, word in enumerate(words):
-        if not _may_run_gh(word):
-            continue
-        rest = words[start + 1 :]
-        command = _subcommand(rest, firsts)
-        if command is not None and _verb_after(rest[command + 1 :], seconds):
-            return True
-    return False
-
-
-def _value_end(text: str, pos: int) -> int:
-    """Where a flag's value that starts at or after `pos` ends, in text read as text: one word
-    or quoted string (a closing quote right at `pos`, and the spaces, commas and `[(` after it,
-    skipped first), and then any more joined to it with `+`, with a call's parentheses
-    (`String(repo)`), so that a value an action's script computes (`owner + '/' + name`,
-    `` `${owner}/${name}` ``) is read whole."""
-    if text[pos : pos + 1] in ("'", '"', "`"):
-        pos += 1
-    while True:
-        while pos < len(text) and (text[pos] in ",[(" or text[pos].isspace()):
-            pos += 1
-        if pos < len(text) and text[pos] in "'\"`":
-            close = text.find(text[pos], pos + 1)
-            pos = len(text) if close < 0 else close + 1
-        else:
-            while pos < len(text) and not _word_end(text[pos]):
-                pos += 1
-            if text[pos : pos + 1] == "(":
-                depth = 0
-                while pos < len(text):
-                    depth += {"(": 1, ")": -1}.get(text[pos], 0)
-                    pos += 1
-                    if depth == 0:
-                        break
-        after = pos
-        while after < len(text) and text[after].isspace():
-            after += 1
-        if text[after : after + 1] != "+":
-            return pos
-        pos = after + 1
-
-
-def _text_subcommand(text: str, pos: int, names: tuple[str, ...]) -> int | None:
-    """`_subcommand` for text not read as words (an action's script, an env value, a run as
-    text), from `pos`: where the word gh runs as its subcommand ends, if it is one of `names`
-    (or holds an expression); None otherwise. Words are what lies between the gaps (`_GAP`),
-    so the quoted words of an array count (`'release', '-R', repo, 'upload'`), a flag's value
-    is read by `_value_end`, and a redirection is skipped with its target."""
-    flag, after_flag = None, pos
-    while True:
-        while pos < len(text) and _gap(text[pos]):
-            pos += 1
-        redirection = REDIRECTION.match(text, pos)
-        if redirection is not None:
-            # Not one of gh's words: skipped with its target, a quoted string or a word.
-            pos = redirection.end()
-            while pos < len(text) and text[pos] in " \t":
-                pos += 1
-            if text[pos : pos + 1] in ("'", '"'):
-                close = text.find(text[pos], pos + 1)
-                pos = len(text) if close < 0 else close + 1
-            else:
-                while pos < len(text) and not text[pos].isspace():
-                    pos += 1
-            continue
-        end = pos
-        while end < len(text) and not _word_end(text[end]):
-            end += 1
-        word = text[pos:end]
-        if not word:
-            return None
-        repository = flag in REPO_FLAGS and ANY_WORD in word
-        if not repository and (ANY_WORD in word or word in names):
-            return end
-        if word.startswith("-"):
-            flag, pos, after_flag = word, end, end
-        elif flag is not None:
-            flag, pos = None, _value_end(text, after_flag)
-        else:
-            return None
-
-
-def _gh_runs(text: str, *levels: tuple[str, ...]) -> bool:
-    """Whether `text`, read as text, runs `gh` and then, as gh finds its subcommands, one of
-    `levels[0]`, then one of `levels[1]`, and so on (`gh --repo=o/r release -R x upload`,
-    `exec.exec('gh', ['release', '-R', owner + '/' + name, 'upload'])`)."""
-    for match in GH_TEXT.finditer(text):
-        pos: int | None = match.end()
-        for names in levels:
-            pos = _text_subcommand(text, pos, names)
-            if pos is None:
-                break
-        if pos is not None:
-            return True
-    return False
-
-
-def filled(text: str) -> str:
-    """`text` with each `${{ }}` expression in it as Actions could fill it in: a string literal
-    as its text, any other expression as `ANY_WORD`."""
-
-    def fill(match: re.Match[str]) -> str:
-        literal = LITERAL.fullmatch(match[0])
-        return literal[1].replace("''", "'") if literal else ANY_WORD
-
-    return EXPRESSION.sub(fill, text)
-
-
-def _says(line: str, verbs: tuple[str, ...]) -> bool:
-    """Whether `line` runs `gh release` and one of `verbs`: as plain text, or once its shell
-    quoting is read (so `gh 'release' upload`, `"gh" release upload` and `gh release $'upload'`
-    count too)."""
-    return _gh_runs(line, RELEASE, verbs) or _holds_pair(line, RELEASE, verbs)
-
-
-def is_upload(step: yaml.Node) -> bool:
-    run = run_of(step)
-    return run is not None and any(_says(line, UPLOAD) for line in command_lines(filled(run)))
-
-
-def refused_line(line: str) -> bool:
-    """Whether a line of some step's run puts files on a release another way, takes them off it,
-    or defines a gh alias or extension (which could upload under another name)."""
-    return (
-        OTHER_UPLOAD.search(line) is not None
-        or _gh_runs(line, RELEASE, CREATE_OR_DELETE)
-        or _gh_runs(line, GH_COMMANDS)
-        or any(_holds_pair(line, firsts, seconds) for firsts, seconds in REFUSED_PAIRS)
-    )
-
-
-def refused_text(text: str) -> bool:
-    """The same, for a step's other values (an action's script, an `env` value), read as text,
-    where `gh release upload` is refused too."""
-    return (
-        OTHER_UPLOAD.search(text) is not None
-        or _gh_runs(text, RELEASE, UPLOAD + CREATE_OR_DELETE)
-        or _gh_runs(text, GH_COMMANDS)
-    )
+def held(rule: str, job: str, expected: Any, node: yaml.Node, constant: str) -> list[Problem]:
+    """R5 and R6: where `node`, release.yml's job `job`, differs from its template."""
+    return [
+        Problem(
+            RELEASE,
+            line_of(at),
+            f'{rule}: job "{job}" differs from the template at {message}; change {constant} in'
+            " tool/github/check_release_provenance.py and the job together",
+        )
+        for at, message in differences(expected, node, "", free=True)
+    ]
 
 
 class Checker:
@@ -708,636 +371,274 @@ class Checker:
 
     def problems(self, files: list[str]) -> list[Problem]:
         found: list[Problem] = []
-        provenance_names: list[tuple[str, str, int, ProvenanceParts]] = []
-        uploading_jobs = 0
         for path in files:
             try:
-                document = compose((self.root / path).read_text(encoding="utf-8"))
-            except (OSError, UnicodeDecodeError, yaml.YAMLError) as error:
+                text = (self.root / path).read_text(encoding="utf-8")
+                document = compose(text)
+                plain(document)
+            except (OSError, UnicodeDecodeError, yaml.YAMLError, RecursionError) as error:
                 found.append(Problem(path, 1, f"cannot read it ({error})"))
                 continue
-            for job_name, job in items(get(document, "jobs")):
-                steps = get(job, "steps")
-                if not isinstance(steps, yaml.SequenceNode):
-                    continue
-                found += self.other_uploads(path, steps.value)
-                uploads = [i for i, step in enumerate(steps.value) if is_upload(step)]
-                if not uploads:
-                    continue
-                uploading_jobs += 1
-                job_problems, name = self.check_job(path, job_name, job, steps.value, uploads)
-                job_problems += self.check_shell(path, job_name.value, document, job)
-                job_problems += self.check_env(path, job_name.value, document, job)
-                found += job_problems
-                if name is None:
-                    continue
-                text, line = name
-                parts = provenance_parts(text, needs_of(job))
-                for other_text, other_path, other_line, other_parts in provenance_names:
-                    if (why := same_file(parts, other_parts, path == other_path)) is not None:
-                        found.append(
-                            Problem(
-                                path,
-                                line,
-                                f'job "{job_name.value}" names the provenance file {text}, and'
-                                f" {other_path}:{other_line} names {other_text}: {why}, and the"
-                                " two `--clobber` uploads would replace each other's file; give"
-                                " each job a name that differs from the other's in its text"
-                                " before the first expression or after the last",
-                            )
-                        )
-                        break
-                else:
-                    provenance_names.append((text, path, line, parts))
-        if uploading_jobs == 0:
+            except UnreadableError as error:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(error.node),
+                        f"cannot read it: {error}; GitHub refuses such a file, and this check"
+                        " would see only one of the values",
+                    )
+                )
+                continue
+            at = min((text.index(c) for c in YAML_1_1_BREAKS if c in text), default=-1)
+            if at >= 0:
+                found.append(
+                    Problem(
+                        path,
+                        text.count("\n", 0, at) + 1,
+                        f"cannot read it: U+{ord(text[at]):04X} is a line break to PyYAML, not to"
+                        " a YAML 1.2 reader, so the two could see different keys",
+                    )
+                )
+                continue
+            found += self.permissions(path, document)
+            found += self.secrets(path, document)
+            if path == RELEASE:
+                found += self.release(path, document)
+        if RELEASE not in files:
             found.append(
                 Problem(
-                    WORKFLOWS,
-                    1,
-                    "no job runs `gh release upload`: release.yml attaches the release's files"
-                    " that way, so this check has matched nothing (was the command changed?)",
+                    RELEASE, 1, "R6: release.yml is missing, so no job attaches a release's files"
                 )
             )
         return found
 
-    def other_uploads(self, path: str, steps: list[yaml.Node]) -> list[Problem]:
-        found = []
-        for step in steps:
-            uses = uses_of(step).split("@", 1)[0]
-            run = get(step, "run")
-            others = [text for node, text in strings(step) if node is not run]
-            if (
-                uses in UPLOAD_ACTIONS
-                or any(refused_line(line) for line in command_lines(filled(scalar(run) or "")))
-                or any(refused_text(filled(text)) for text in others)
-            ):
-                found.append(
-                    Problem(
-                        path,
-                        line_of(step),
-                        "this step puts files on a release without the provenance check, takes"
-                        " them off it, or defines a gh alias or extension that could: attach"
-                        " release files with one `gh release upload` step after the attest and"
-                        " provenance steps, and delete none (tool/github/check_release_provenance.py)",
-                    )
-                )
-        return found
-
-    def check_job(
-        self,
-        path: str,
-        job_name: yaml.ScalarNode,
-        job: yaml.Node,
-        steps: list[yaml.Node],
-        uploads: list[int],
-    ) -> tuple[list[Problem], tuple[str, int] | None]:
-        name = job_name.value
+    def permissions(self, path: str, document: yaml.Node | None) -> list[Problem]:
+        """R1 and R2."""
         found: list[Problem] = []
-        if len(uploads) > 1:
-            lines = ", ".join(str(line_of(steps[i])) for i in uploads)
-            return [
-                Problem(
-                    path,
-                    line_of(steps[uploads[1]]),
-                    f'job "{name}" runs `gh release upload` in {len(uploads)} steps (lines'
-                    f" {lines}); attach the files in one step, right after the provenance step",
-                )
-            ], None
-        found += self.check_permissions(path, name, job, job_name)
-        if get(job, "continue-on-error") is not None:
+        if path != RELEASE and SIGNER_LOOKALIKE.match(PurePosixPath(path).name):
             found.append(
                 Problem(
                     path,
-                    line_of(get(job, "continue-on-error")),
-                    f'job "{name}" uploads release files, so it may not set continue-on-error',
+                    1,
+                    "R2: no workflow but release.yml may have a name that starts with `release.`"
+                    " (or `release`, any one character and `yml`): gh before 2.102.0 takes it"
+                    " for release.yml under --signer-workflow",
                 )
             )
-        if get(job, "strategy") is not None:
+        top = get(document, "permissions")
+        top_writes = writes(top)
+        if top_writes is None:
             found.append(
                 Problem(
                     path,
-                    line_of(get(job, "strategy")),
-                    f'job "{name}" uploads release files, so it may not set a strategy: each leg'
-                    " of a matrix would give its provenance file the same name, and each leg's"
-                    " `--clobber` upload would replace the others' files",
+                    line_of(top) if top is not None else 1,
+                    "R1: set the workflow's top-level `permissions` as a mapping of scopes or"
+                    " `read-all`; without it, or with `write-all`, every job may write",
                 )
             )
-        index = uploads[0]
-        upload = steps[index]
-        found += self.check_upload(path, name, upload)
-        found += self.check_step_keys(path, name, upload)
-        if index < 2:
-            found.append(
-                Problem(
-                    path,
-                    line_of(upload),
-                    f'job "{name}" uploads to a release without the attest step and the'
-                    " provenance step just before the upload",
+            top_writes = {}
+        for name, job in items(get(document, "jobs")):
+            own = get(job, "permissions")
+            granted = top_writes if own is None else writes(own)
+            if granted is None:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(own),
+                        f'R1: job "{name.value}": set `permissions` as a mapping of scopes or'
+                        " `read-all`",
+                    )
                 )
-            )
-            return found, None
-        attest, provenance = steps[index - 2], steps[index - 1]
-        attest_problems, attest_id = self.check_attest(path, name, attest)
-        found += attest_problems
-        provenance_problems, provenance_name = self.check_provenance(
-            path, name, provenance, attest_id
-        )
-        found += provenance_problems
-        for step in (attest, provenance):
-            found += self.check_step_keys(path, name, step)
-        return found, provenance_name
-
-    def check_step_keys(self, path: str, name: str, step: yaml.Node) -> list[Problem]:
-        """The keys none of the attest, provenance and upload steps may have."""
-        found = []
-        for key in STEP_KEYS:
-            value = get(step, key)
-            if value is None:
                 continue
-            if key == "shell":
+            if path != RELEASE:
+                refused = {s: v for s, v in granted.items() if s in REFUSED_ELSEWHERE}
                 why = (
-                    f"run in the default `{SHELL}` (-e, pipefail), so none may have `shell:`"
-                    f" (this one is {scalar(value)!r})"
+                    "outside release.yml no job may write contents or attestations (files on a"
+                    " release, or provenance)"
                 )
-            elif key == "working-directory":
-                why = (
-                    "work on dist/ in the workspace root, the files the attestation covers, so"
-                    f" none may have `working-directory:` (this one is {scalar(value)!r})"
-                )
+            elif name.value == RELEASE_PLEASE or name.value in PUBLISH_JOBS:
+                refused, why = {}, ""  # R5 and R6 hold these jobs' permissions exactly
             else:
-                why = f"run always and must succeed, so none may have `{key}:`"
-            found.append(
-                Problem(
-                    path,
-                    line_of(value),
-                    f'job "{name}": the attest, provenance and upload steps {why}',
+                refused = granted
+                why = (
+                    "in release.yml only release-please and the publish jobs write; a build"
+                    " hands its files to its publish job"
                 )
-            )
+            for scope, value in sorted(refused.items()):
+                found.append(
+                    Problem(
+                        path,
+                        line_of(own if own is not None else name),
+                        f'R2: job "{name.value}" holds `{scope}: {value}`: {why}',
+                    )
+                )
         return found
 
-    def check_shell(
-        self, path: str, name: str, document: yaml.Node, job: yaml.Node
-    ) -> list[Problem]:
-        """The defaults the job's run steps take: the job's `defaults.run`, or else the
-        workflow's (the job's overrides the workflow's, key by key). The shell, where set, must
-        be bash; the working directory may not be set at all."""
-        found = []
-        for owner, node in ((f'job "{name}"', job), ("the workflow", document)):
-            directory = get(get(get(node, "defaults"), "run"), "working-directory")
-            if directory is not None:
+    def secrets(self, path: str, document: yaml.Node | None) -> list[Problem]:
+        """R3."""
+        found: list[Problem] = []
+        for name, job in items(get(document, "jobs")):
+            passed = get(job, "secrets")
+            if passed is not None and not isinstance(passed, yaml.MappingNode):
                 found.append(
                     Problem(
                         path,
-                        line_of(directory),
-                        f'job "{name}" uploads release files, but {owner} sets'
-                        f" `defaults.run.working-directory: {scalar(directory)}`; the provenance"
-                        " and upload steps must work on dist/ in the workspace root, the files"
-                        " the attest step covers",
+                        line_of(passed),
+                        f'R3: job "{name.value}" passes `secrets: {plain(passed)}`; pass each'
+                        " secret the called workflow needs by name",
                     )
                 )
-        for owner, node in ((f'job "{name}"', job), ("the workflow", document)):
-            shell = get(get(get(node, "defaults"), "run"), "shell")
-            if shell is None:
-                continue
-            if scalar(shell) != SHELL:
-                found.append(
-                    Problem(
-                        path,
-                        line_of(shell),
-                        f'job "{name}" uploads release files, but {owner} sets'
-                        f" `defaults.run.shell: {scalar(shell)}`; set `{SHELL}` (the runner"
-                        " adds -e and pipefail) or nothing, so a failed verify ends the"
-                        " provenance step",
-                    )
-                )
-            break
-        return found
-
-    def check_env(self, path: str, name: str, document: yaml.Node, job: yaml.Node) -> list[Problem]:
-        """The job's and the workflow's env, which every step of the job takes: a mapping, with
-        none of the variables that change what bash or gh runs (`SHELL_ENV`, `BASH_FUNC_*`)."""
-        found = []
-        for owner, node in ((f'job "{name}"', job), ("the workflow", document)):
-            env = get(node, "env")
-            if env is not None and not isinstance(env, yaml.MappingNode):
-                found.append(
-                    Problem(
-                        path,
-                        line_of(env),
-                        f'job "{name}" uploads release files, but {owner} sets its env from an'
-                        " expression, which could set a variable that changes what the"
-                        " provenance and upload steps run: write each variable out",
-                    )
-                )
-            for key, _ in items(env):
-                if (
-                    key.value in SHELL_ENV
-                    or key.value.startswith(SHELL_FUNCTION_ENV)
-                    or key.value == MERGE_KEY
-                ):
-                    what = (
-                        "merges variables into its env with `<<`, which this check does not read"
-                        if key.value == MERGE_KEY
-                        else f"sets {key.value} in its env"
-                    )
+        for where, node, key in scalars(document):
+            text = node.value
+            if key:
+                if "${{" in text:
                     found.append(
                         Problem(
                             path,
-                            line_of(key),
-                            f'job "{name}" uploads release files, but {owner} {what}; such a'
-                            " variable could make bash or gh in the provenance and upload steps"
-                            " run something other than their commands",
+                            line_of(node),
+                            f"R3: the key {where} holds an expression: this check reads secrets"
+                            " in values only, and no workflow needs an expression in a key",
+                        )
+                    )
+                continue
+            if WRITE_SECRET.lower() in text.lower() and (path, where) != (RELEASE, WRITE_SECRET_AT):
+                found.append(
+                    Problem(
+                        path,
+                        line_of(node),
+                        f"R3: {WRITE_SECRET} at {where}: it can write to the repository, so only"
+                        f" release.yml's {WRITE_SECRET_AT} may name it",
+                    )
+                )
+            start = text.find("${{")
+            if start < 0:
+                continue
+            for match in SECRET_WORD.finditer(text, start):
+                secret = match.group(1)
+                if secret is None:
+                    found.append(
+                        Problem(
+                            path,
+                            line_of(node),
+                            f"R3: `secrets` at {where} is not followed by `.NAME`: name each"
+                            " secret as secrets.NAME (and, in a value with an expression,"
+                            " write the word secrets nowhere else, or move the expression into"
+                            " `env`)",
+                        )
+                    )
+                elif secret.upper() not in KNOWN_SECRETS:
+                    found.append(
+                        Problem(
+                            path,
+                            line_of(node),
+                            f"R3: secrets.{secret} at {where} is not in KNOWN_SECRETS; add it"
+                            " there only once it is known not to write to the repository or"
+                            " sign",
                         )
                     )
         return found
 
-    def check_permissions(
-        self, path: str, name: str, job: yaml.Node, job_name: yaml.ScalarNode
-    ) -> list[Problem]:
-        permissions = get(job, "permissions")
-        missing = [
-            scope
-            for scope in ("attestations", "id-token")
-            if scalar(get(permissions, scope)) != "write"
+    def release(self, path: str, document: yaml.Node | None) -> list[Problem]:
+        """R4 to R7, for release.yml."""
+        found: list[Problem] = []
+        on = get(document, "on")
+        if isinstance(on, yaml.ScalarNode):
+            triggers = [on.value]
+        elif isinstance(on, yaml.SequenceNode):
+            triggers = [scalar(item) for item in on.value]
+        else:
+            triggers = [key.value for key, _ in items(on)]
+        for trigger in triggers:
+            if trigger not in TRIGGERS:
+                found.append(
+                    Problem(
+                        path,
+                        line_of(on),
+                        f"R4: release.yml runs on {trigger!r}; only push and workflow_dispatch"
+                        " (another workflow calling it would sign as release.yml)",
+                    )
+                )
+        defaults = get(document, "defaults")
+        if defaults is not None and plain(defaults) != DEFAULTS:
+            found.append(
+                Problem(
+                    path,
+                    line_of(defaults),
+                    "R4: release.yml's `defaults` may be `run: {shell: bash}` and nothing else,"
+                    " since it reaches every publish step",
+                )
+            )
+        env = get(document, "env")
+        if env is not None:
+            names = (
+                [key.value for key, _ in items(env)]
+                if isinstance(env, yaml.MappingNode)
+                else [str(plain(env))]
+            )
+            for name in names:
+                if name not in WORKFLOW_ENV:
+                    found.append(
+                        Problem(
+                            path,
+                            line_of(env),
+                            f"R4: release.yml's top-level `env` sets {name!r}; only"
+                            f" {', '.join(sorted(WORKFLOW_ENV))}, since it reaches every"
+                            " publish step",
+                        )
+                    )
+        jobs = {key.value: value for key, value in items(get(document, "jobs"))}
+        node = jobs.get(RELEASE_PLEASE)
+        if node is None:
+            found.append(Problem(path, 1, f'R5: release.yml has no job "{RELEASE_PLEASE}"'))
+        else:
+            expected = plain(compose(RELEASE_PLEASE_TEMPLATE))
+            found += held("R5", RELEASE_PLEASE, expected, node, "RELEASE_PLEASE_TEMPLATE")
+        for job, (build, runner, _, _) in PUBLISH_JOBS.items():
+            node = jobs.get(job)
+            if node is None:
+                found.append(Problem(path, 1, f'R6: release.yml has no job "{job}"'))
+                continue
+            found += held("R6", job, template(job), node, "PUBLISH_TEMPLATE")
+            found += self.handoff(path, build, runner, jobs.get(build))
+        return found
+
+    def handoff(self, path: str, build: str, runner: str, job: yaml.Node | None) -> list[Problem]:
+        """R7."""
+        if job is None:
+            return [
+                Problem(path, 1, f'R7: release.yml has no job "{build}", which a publish job needs')
+            ]
+        why: list[str] = []
+        if scalar(get(job, "runs-on")) != runner:
+            why.append(f"it does not run on {runner}, its GitHub-hosted runner")
+        if plain(get(job, "outputs")) != HANDOFF:
+            why.append(
+                "its outputs are not exactly `artifact-id: ${{ steps.upload.outputs.artifact-id }}`"
+            )
+        run = get(job, "steps")
+        upload = [
+            step
+            for step in (run.value if isinstance(run, yaml.SequenceNode) else [])
+            if scalar(get(step, "id")) == "upload"
         ]
-        if not missing:
+        if len(upload) != 1:
+            why.append(f"{len(upload)} steps with `id: upload`, not one")
+        else:
+            if not pinned(scalar(get(upload[0], "uses")), UPLOAD_ACTION):
+                why.append(f"its upload step does not use {UPLOAD_ACTION}<40-hex commit>")
+            if scalar(get(get(upload[0], "with"), "path")) != "dist/":
+                why.append("its upload step's `with.path` is not `dist/`")
+        if not why:
             return []
-        node = permissions if permissions is not None else job_name
         return [
             Problem(
                 path,
-                line_of(node),
-                f'job "{name}" uploads release files, so it must grant '
-                + " and ".join(f"`{scope}: write`" for scope in missing)
-                + " to attest them",
+                line_of(job),
+                f'R7: job "{build}" must run on its GitHub-hosted runner and hand dist/ to its'
+                " publish job through one step with `id: upload` and its `artifact-id` output;"
+                f" {'; '.join(why)}",
             )
         ]
-
-    def check_upload(self, path: str, name: str, upload: yaml.Node) -> list[Problem]:
-        run = run_of(upload) or ""
-        where = line_of(get(upload, "run"))
-        try:
-            lines = commands(run)
-        except UnclearRunError as unclear:
-            return [_unreadable(path, where, name, "upload", unclear)]
-        if len(lines) != 1:
-            return [
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}": the upload step must run `gh release upload` alone, so that'
-                    " nothing it runs can add a file to dist/ after the provenance check",
-                )
-            ]
-        # commands() has refused a quote left open and a trailing backslash, so this reads.
-        words = shlex.split(lines[0])
-        paths = [word for word in words if word.startswith("dist/") or word == "dist"]
-        found = []
-        if paths != ["dist/*"]:
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}" uploads {", ".join(paths) or "no dist/ path"}; upload `dist/*`,'
-                    " every file the attestation and the provenance file cover",
-                )
-            )
-        if "--clobber" not in words:
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}" uploads without `--clobber`, so a re-run would keep the'
-                    " first attempt's files beside a provenance file that does not match them",
-                )
-            )
-        actual = re.sub(r"\s+", " ", lines[0])
-        if not found and actual != UPLOAD_RUN:
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}": the upload step\'s run must be exactly `{UPLOAD_RUN}`, so that'
-                    " it attaches the files of dist/ and nothing else, to this release, with"
-                    f" nothing run before, after or around it; it runs `{actual}`",
-                )
-            )
-        env = get(upload, "env")
-        if env is not None and not isinstance(env, yaml.MappingNode):
-            found.append(
-                Problem(
-                    path,
-                    line_of(env),
-                    f'job "{name}": the upload step\'s env must be a mapping that sets only '
-                    + ", ".join(UPLOAD_ENV),
-                )
-            )
-        for key, _ in items(env):
-            if key.value not in UPLOAD_ENV:
-                found.append(
-                    Problem(
-                        path,
-                        line_of(key),
-                        f'job "{name}": the upload step\'s env sets {key.value}; it may set only '
-                        + ", ".join(UPLOAD_ENV)
-                        + " (the tag and the repository come from the job and the runner)",
-                    )
-                )
-        return found
-
-    def check_attest(
-        self, path: str, name: str, attest: yaml.Node
-    ) -> tuple[list[Problem], str | None]:
-        uses = uses_of(attest)
-        if not uses.startswith(f"{ATTEST_ACTION}@"):
-            return [
-                Problem(
-                    path,
-                    line_of(attest),
-                    f'job "{name}": two steps before the upload must be the attest step (uses:'
-                    f" {ATTEST_ACTION}@<commit>), then the provenance step, back to back",
-                )
-            ], None
-        found = []
-        if not ATTEST.match(uses):
-            found.append(
-                Problem(
-                    path,
-                    line_of(get(attest, "uses")),
-                    f'job "{name}": pin {ATTEST_ACTION} by its full 40-character commit SHA',
-                )
-            )
-        subject = get(get(attest, "with"), "subject-path")
-        if scalar(subject) != "dist/*":
-            found.append(
-                Problem(
-                    path,
-                    line_of(subject if subject is not None else attest),
-                    f'job "{name}": the attest step\'s subject-path is'
-                    f" {scalar(subject)!r}; attest `dist/*`, every file the job uploads",
-                )
-            )
-        attest_id = scalar(get(attest, "id"))
-        if not attest_id:
-            found.append(
-                Problem(
-                    path,
-                    line_of(attest),
-                    f'job "{name}": give the attest step an `id`, so the provenance step can'
-                    " read its bundle-path output",
-                )
-            )
-        return found, attest_id
-
-    def check_provenance(
-        self, path: str, name: str, step: yaml.Node, attest_id: str | None
-    ) -> tuple[list[Problem], tuple[str, int] | None]:
-        env = get(step, "env")
-        bundle, provenance = get(env, "BUNDLE"), get(env, "PROVENANCE")
-        if bundle is None or provenance is None or run_of(step) is None:
-            return [
-                Problem(
-                    path,
-                    line_of(step),
-                    f'job "{name}": the step just before the upload must be the provenance step'
-                    " (env BUNDLE and PROVENANCE, and a run that copies and verifies the file)",
-                )
-            ], None
-        found = []
-        # env is a mapping here, since it sets BUNDLE and PROVENANCE.
-        for key, _ in items(env):
-            if key.value not in PROVENANCE_ENV:
-                found.append(
-                    Problem(
-                        path,
-                        line_of(key),
-                        f'job "{name}": the provenance step\'s env sets {key.value}; it may set'
-                        " only " + " and ".join(PROVENANCE_ENV) + ", since another variable"
-                        " could change what bash or gh runs there (`BASH_FUNC_gh%%`, `BASH_ENV`)",
-                    )
-                )
-        if attest_id is not None and not re.fullmatch(
-            rf"\$\{{\{{\s*steps\.{re.escape(attest_id)}\.outputs\.bundle-path\s*\}}\}}",
-            scalar(bundle) or "",
-        ):
-            found.append(
-                Problem(
-                    path,
-                    line_of(bundle),
-                    f'job "{name}": BUNDLE must be ${{{{ steps.{attest_id}.outputs.bundle-path }}}},'
-                    " the attestation the step before made",
-                )
-            )
-        text = scalar(provenance) or ""
-        if (why := provenance_name_problem(text)) is not None:
-            found.append(
-                Problem(path, line_of(provenance), f'job "{name}": PROVENANCE is {text!r}; {why}')
-            )
-        found += self.check_provenance_run(path, name, step)
-        # A name refused on its own is not compared with the others'.
-        return found, (text, line_of(provenance)) if why is None else None
-
-    def check_provenance_run(self, path: str, name: str, step: yaml.Node) -> list[Problem]:
-        run = run_of(step) or ""
-        where = line_of(get(step, "run"))
-        try:
-            lines = commands(run)
-        except UnclearRunError as unclear:
-            return [_unreadable(path, where, name, "provenance", unclear)]
-        workflow = PurePosixPath(path).as_posix()
-        found = []
-        if any(SWALLOWS.search(line) for line in lines):
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}": the provenance step must fail when a check fails; remove'
-                    " `||`, `!` and `set +e`",
-                )
-            )
-        if 'cp -- "$BUNDLE" "$PROVENANCE"' not in lines:
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}": the provenance step must run `cp -- "$BUNDLE" "$PROVENANCE"`',
-                )
-            )
-        if "for file in dist/*; do" not in lines:
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}": the provenance step must check every file, in a loop'
-                    " `for file in dist/*; do`",
-                )
-            )
-        verify = [line for line in lines if re.search(r"\bgh\s+attestation\s+verify\b", line)]
-        required = (
-            'gh attestation verify "$file"',
-            '--bundle "$PROVENANCE"',
-            f'--signer-workflow "$GITHUB_REPOSITORY/{workflow}"',
-            f"--source-ref {SOURCE_REF}",
-        )
-        if not any(all(_has(line, part) for part in required) for line in verify):
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}": the provenance step must run, on a line that is not a'
-                    " comment, " + " ".join(f"`{part}`" for part in required) + " (SECURITY.md"
-                    " tells people to check a download with the same options)",
-                )
-            )
-        expected = [line.format(workflow=workflow) for line in RUN_LINES]
-        actual = [re.sub(r"\s+", " ", line) for line in lines]
-        if not found and actual != expected:
-            extra = next((line for line in actual if line not in expected), None)
-            missing = next((line for line in expected if line not in actual), None)
-            what = (
-                f"it runs `{extra}`"
-                if extra is not None
-                else (
-                    f"it lacks `{missing}`"
-                    if missing is not None
-                    else "its lines are out of order or repeated"
-                )
-            )
-            found.append(
-                Problem(
-                    path,
-                    where,
-                    f'job "{name}": the provenance step\'s run must be exactly these lines, so that'
-                    " no file is skipped and no failure is lost; "
-                    + what
-                    + ": "
-                    + " / ".join(f"`{line}`" for line in expected),
-                )
-            )
-        return found
-
-
-def _unreadable(path: str, where: int, name: str, step: str, unclear: UnclearRunError) -> Problem:
-    return Problem(
-        path,
-        where,
-        f'job "{name}": the {step} step\'s run cannot be read as bash reads it: {unclear}',
-    )
-
-
-# A provenance file's name split at its expressions: the text around them, case-folded, and each
-# expression, white space dropped and case-folded, or None where its value may differ between
-# jobs (`provenance_parts`).
-ProvenanceParts = tuple[tuple[str, ...], tuple[str | None, ...]]
-# Context properties whose value is the same in every job of one run that reads them: a job's
-# output (in a job that lists it in `needs`), an input, and these of `github`. Any other (`env`,
-# `steps`, `matrix`, `github.job`, and `vars`, which a job's `environment:` can set apart) may
-# differ between jobs, or be empty in one.
-SHARED_PROPERTY = re.compile(
-    r"needs\.([a-z0-9_-]+)\.outputs\.[a-z0-9_-]+|inputs\.[a-z0-9_-]+"
-    r"|github\.(?:repository|repository_owner|sha|ref|ref_name|run_id|run_number|run_attempt)"
-)
-
-
-def needs_of(job: yaml.Node) -> set[str]:
-    """The jobs `job` lists in `needs`, case-folded."""
-    needs = get(job, "needs")
-    nodes = needs.value if isinstance(needs, yaml.SequenceNode) else [needs]
-    return {(scalar(node) or "").casefold() for node in nodes if scalar(node)}
-
-
-def provenance_parts(text: str, needs: set[str]) -> ProvenanceParts:
-    """A provenance file's name as GitHub reads it, to tell whether two jobs can name the same
-    file: the text around its `${{ }}` expressions, case-folded (wider than GitHub, which keeps
-    the case), and each expression with its white space dropped and case-folded (GitHub ignores
-    the one and context and property names are not case-sensitive), or None where its value may
-    differ between jobs (not a `SHARED_PROPERTY`, or a job output the job does not need)."""
-    expressions: list[str | None] = []
-    for expression in EXPRESSION.findall(text):
-        key = re.sub(r"\s+", "", expression[3:-2]).casefold()
-        shared = SHARED_PROPERTY.fullmatch(key)
-        expressions.append(
-            key if shared is not None and (shared[1] is None or shared[1] in needs) else None
-        )
-    return tuple(part.casefold() for part in EXPRESSION.split(text)), tuple(expressions)
-
-
-def same_file(one: ProvenanceParts, other: ProvenanceParts, same_workflow: bool) -> str | None:
-    """Why two provenance files' names can be the same file on the release, or None when they
-    cannot, whatever the expressions' values. Two names with the same shared expressions (in one
-    workflow, which is one run) differ when their texts around them differ, as long as the texts
-    are not both longer and shorter in places (then a value could make up the difference): the
-    expressions add the same characters to both. Otherwise the check does not know the values,
-    so two names differ only when the text before the first expression (or after the last) of
-    neither starts (or ends) the other's. It takes each value to hold no character GitHub
-    changes in a name, as the tag release-please makes does not (`vX.Y.Z`)."""
-    (texts, expressions), (other_texts, other_expressions) = one, other
-    if same_workflow and expressions == other_expressions and None not in expressions:
-        if texts == other_texts:
-            return "the same file, once GitHub reads its expressions"
-        lengths = [len(text) for text in texts]
-        other_lengths = [len(text) for text in other_texts]
-        if lengths == other_lengths or sum(lengths) != sum(other_lengths):
-            return None
-    elif not (texts[0].startswith(other_texts[0]) or other_texts[0].startswith(texts[0])) or not (
-        texts[-1].endswith(other_texts[-1]) or other_texts[-1].endswith(texts[-1])
-    ):
-        return None
-    return (
-        "names that can be the same file once Actions fills in their expressions, whose values"
-        " the check does not know"
-    )
-
-
-def provenance_name_problem(text: str) -> str | None:
-    """Why `text` is not a name the provenance step may give its file, or None if it is."""
-    file = text[len("dist/") :]
-    if not text.startswith("dist/") or "/" in file or not text.endswith(".intoto.jsonl"):
-        return (
-            "name a file directly in dist/ ending in .intoto.jsonl, the name Scorecard counts and"
-            " gh reads as JSON Lines"
-        )
-    if file.startswith("."):
-        return (
-            "a hidden file: `dist/*`, in the check's loop and in the upload, leaves out a name"
-            " that starts with a dot, so the release would go out without its provenance file;"
-            " start the name with a letter or a digit"
-        )
-    if file.startswith("${{"):
-        return (
-            "a name that starts with an expression, which could expand to a dot or to nothing"
-            " (`.intoto.jsonl`, a hidden file that `dist/*` leaves out): start the name with a"
-            " letter or a digit"
-        )
-    for expression in EXPRESSION.findall(file):
-        if not CONTEXT_PROPERTY.fullmatch(expression):
-            return (
-                f"a name with the expression `{expression}`, which is not a plain context"
-                " property such as `${{ needs.<job>.outputs.<name> }}`: a literal, a function"
-                " or an operator in it can put a `#`, a space or a dot first into the name, and"
-                " the check would not see it"
-            )
-    others = sorted(set(re.sub(r"[A-Za-z0-9._-]", "", re.sub(EXPRESSION, "", file))))
-    if others:
-        return (
-            "a name with " + " ".join(f"`{char}`" for char in others) + "; use only letters,"
-            " digits, `.`, `_` and `-`, and `${{ }}` expressions after the first character: gh"
-            " reads a `#` as the start of the file's label, and GitHub renames a file whose name"
-            " has other characters, so the release would not carry the name SECURITY.md gives"
-        )
-    if ".." in re.sub(EXPRESSION, "", file):
-        return (
-            "a name with two dots in a row, or only expressions between two dots: GitHub, and gh"
-            " when it looks for the file `--clobber` replaces, fold a run of dots into one, so"
-            " the name could be another job's file on the release; put a letter, a digit, `_` or"
-            " `-` between them"
-        )
-    return None
-
-
-def _has(line: str, part: str) -> bool:
-    """Whether `part` is in `line` as whole words (so `refs/heads/main` is not `…/mainx`)."""
-    return re.search(rf"(?<!\S){re.escape(part)}(?!\S)", line) is not None
 
 
 def workflow_files(root: Path) -> list[str]:

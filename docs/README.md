@@ -10,7 +10,7 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 | [`architecture/app.md`](architecture/app.md)                         | How the Flutter app reads, writes, caches, retries and fails: layers, models, repositories, uploads, open questions |
 | [`architecture/permissions.md`](architecture/permissions.md)         | Who can do what in a portfolio, how the database enforces it, the global lock order and what it costs               |
 | [`architecture/time.md`](architecture/time.md)                       | Pakistan time for business dates, a person's own zone for their alerts and dual times, the bundled tz data          |
-| [`../.planning/PROJECT.md`](../.planning/PROJECT.md)                 | The product, its users, the stack, the key decisions D-01 to D-24 and the open proposals P-01 and P-02              |
+| [`../.planning/PROJECT.md`](../.planning/PROJECT.md)                 | The product, its users, the stack, the key decisions D-01 to D-25 and the open proposals P-01 and P-02              |
 | [`../DESIGN.md`](../DESIGN.md)                                       | The visual language: tokens, type, colour, components, Urdu and right-to-left rules                                 |
 | [`../packages/mm_ui/COMPONENTS.md`](../packages/mm_ui/COMPONENTS.md) | How the design system's components are built, and the catalogue                                                     |
 | [`../packages/mm_core/README.md`](../packages/mm_core/README.md)     | The domain library's modules: money, time, time zones, residence, identity, text, rent, ledger                      |

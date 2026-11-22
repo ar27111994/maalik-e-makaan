@@ -444,11 +444,12 @@ Three things on the site update themselves, so a release needs no copy edits for
   site describes the app as available rather than in development. The download page links to the
   APKs, the unsigned iOS app, the web zip and `SHA256SUMS` (not to the provenance files, which it
   mentions with a link to `SECURITY.md`, Checking a download), which exist only once Release's
-  `artefacts` and `ios` jobs have attached them. So the `site` job lists the files attached when
-  it runs (`website/src/data/release-assets.json`) and the page links to those alone, and Release
-  deploys the site after both builds have finished (Deployment, below). A build that fails, even
-  on every re-run, then costs the page that build's links only (all but any to files that an
-  upload cut off part-way left on the release), never the deploy.
+  `publish-artefacts` and `publish-ios` jobs have attached them. So the `site` job lists the files
+  attached when it runs (`website/src/data/release-assets.json`) and the page links to those
+  alone, and Release deploys the site after both publish jobs have finished or been skipped
+  (Deployment, below). A build or publish job that fails, even on every re-run, then costs the
+  page that build's links only (all but any to files that an upload cut off part-way left on the
+  release), never the deploy.
 - **The roadmap.** `/roadmap/` shows the GitHub milestones and the issues labelled `roadmap`, as
   they are when the site is built: the `site` job runs `tool/github/fetch_roadmap.py
 --from-github` before the build (falling back, with a warning, to the copy in
@@ -512,10 +513,11 @@ carries a change to the file, and a site refresh of an older tag keeps that tag'
 **Checked before anything is deployed.** The workflows refuse to send people to an address that
 cannot answer for them. Each check stops the jobs that wait for it, and only those:
 
-- Release builds and attaches nothing until its `preflight` job has passed, and its `artefacts` and
-  `ios` jobs wait for it. That job checks that the web app's origin answers over HTTPS with its App
-  Links file (`tool/web/check_live.py app`): every build names the origin, and an Android build
-  lists it in its App Links, where on Android 6 to 11 one host that fails costs every host's links.
+- Release builds and attaches nothing until its `preflight` job has passed: its `artefacts` and
+  `ios` jobs, and the publish jobs after them, wait for it. That job checks that the web app's
+  origin answers over HTTPS with its App Links file (`tool/web/check_live.py app`): every build
+  names the origin, and an Android build lists it in its App Links, where on Android 6 to 11 one
+  host that fails costs every host's links.
   It then checks that Auth allows the e-mail links the builds send (`tool/web/check_auth_urls.py`,
   step 4 below): a callback Auth does not allow gets its links at the Site URL, where no build
   finishes the sign-in, and an APK cannot be recalled. With a token that may not read Auth's
@@ -997,12 +999,14 @@ function. Its `web` job then:
 Its `site` job deploys the website. It does not wait for Supabase (the site never calls it), so it
 runs alongside the other two when the workflow runs by hand. The Release workflow instead calls
 Deploy twice: once with `skip-site` straight after tagging, for the backend and the web app, and
-once with `site-only` after its `artefacts` and `ios` jobs have finished and the first call has
-succeeded, so that the download page links to the files they attached and to a web app deployed
-for the release. If a build fails, the website still goes out, without that build's links (or
-with links to the part of its files that an upload cut off part-way left on the release);
-re-running the failed job (Re-run failed jobs) runs the website's deploy again after it, which
-adds them. If the backend's or the web app's deploy fails, the website waits for it the same way.
+once with `site-only` after its `publish-artefacts` and `publish-ios` jobs have finished (or been
+skipped) and the first call has succeeded, so that the download page links to the files they
+attached and to a web app deployed for the release. If a build or its publish job fails, the
+website still goes out, without that build's links (or with links to the part of its files that
+an upload cut off part-way left on the release); re-running as Releasing, step 4, says (the job
+that failed, or the build of a publish job whose artifact has expired) runs the website's deploy
+again after it, which adds them. If the backend's or the web app's deploy fails, the website
+waits for it the same way.
 The `site` job:
 
 1. fails at once if the `VERCEL_TOKEN` secret is missing;
@@ -1041,8 +1045,8 @@ CI's `website` job checks every push first, with the steps of `make test-web` (l
 [`docs/agents/commands.md`](agents/commands.md#tests-by-area)), Lighthouse on a subset of pages
 included.
 
-The Release workflow builds the signed Android app and an unsigned iOS app, and attaches them and
-the web build to the release. The workflows read these repository settings:
+The Release workflow builds the signed Android app and an unsigned iOS app, and its publish jobs
+attach them and the web build to the release. The workflows read these repository settings:
 
 | Setting                     | Kind     | What it is                                                                |
 | --------------------------- | -------- | ------------------------------------------------------------------------- |
@@ -1060,7 +1064,8 @@ the web build to the release. The workflows read these repository settings:
 | `BACKUP_AGE_RECIPIENTS`     | variable | The public keys the weekly backup is encrypted to, one per line (Backups) |
 
 The `production` environment, which Deploy's three jobs run in, should require a reviewer. The
-Release workflow's `preflight`, `artefacts` and `ios` jobs run in the `release` environment, which
+Release workflow's `preflight`, `artefacts`, `ios`, `publish-artefacts` and `publish-ios` jobs run
+in the `release` environment (a reviewer rule on it would ask for approval at each of them), which
 may hold the `ANDROID_*` secrets in place of the repository; a deployment branch rule on it must
 allow `main`, the branch every release runs for, and never tags alone
 ([`docs/release-readiness.md`](release-readiness.md), Optional hardening). The web app's `APP_URL`
@@ -1196,36 +1201,60 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
 3. Merging the release pull request tags `vX.Y.Z` and publishes the GitHub release. The same run
    checks that the web app's origin answers and that Auth allows the builds' callbacks
    (`preflight`; nothing is built or attached otherwise, except that a token which may not read
-   Auth's settings only warns: Domains), builds the signed Android app and the web app and
-   attaches them (`artefacts`), builds and attaches the unsigned iOS app (`ios`), each build with
-   its provenance file beside it (Release provenance, below), and calls the Deploy workflow for
-   the tag twice: at once for the
-   backend and the web app (`deploy`), and for the website once `artefacts` and `ios` have
-   finished and `deploy` has succeeded (`site`), since its download page links to the files they
-   attached and to the web app. Each deployment waits for a reviewer when the `production`
-   environment requires one. **Who merges it, and when (the owner, 15 November 2026):** the
-   agent merges the release pull request without asking each time, once everything meant for
-   the release is merged and every check on it is green. That standing word covers releases
-   only: any other change outside the repository is still the owner's to approve.
+   Auth's settings only warns: Domains), then builds the signed Android app and the web app
+   (`artefacts`) and the unsigned iOS app (`ios`). The builds hold a read-only token and no OIDC
+   token, and hand their files over as run artifacts. A publish job of its own for each build,
+   `publish-artefacts` and `publish-ios`, each on a fresh GitHub-hosted runner in the `release`
+   environment, takes those files by the artifact's id, keeps exactly the release's names for
+   that build, attests them, checks each against the provenance file and attaches them with it
+   (Release provenance, below). The run also calls the Deploy workflow for the tag twice: at once
+   for the backend and the web app (`deploy`), and for the website once `publish-artefacts` and
+   `publish-ios` have finished (or been skipped) and `deploy` has succeeded (`site`), since its
+   download page links to the files they attached and to the web app. Each deployment waits for
+   a reviewer when the `production` environment requires one. **Who merges it, and when (the
+   owner, 15 November 2026):** the agent merges the release pull request without asking each
+   time, once everything meant for the release is merged and every check on it is green. That
+   standing word covers releases only: any other change outside the repository is still the
+   owner's to approve.
 4. Watch both Deploy calls: each job ends with its smoke test, and the `supabase` job with a call
-   to `health`. If `artefacts` or `ios` failed, the website still describes the new release, but
-   its download page has no links to that build's files, other than any an upload that was cut
-   off part-way left on the release; re-run the failed job (Re-run failed
-   jobs), which deploys the website again afterwards. A build that keeps failing (the optional
-   iOS one after a macOS runner change, say) leaves those links out until a release has them,
-   and holds up nothing else. A build whose attest step or "Provenance file, checked against
-   every file it covers" step failed has attached nothing in that attempt, but files an earlier
-   attempt's upload left on the release when it stopped part-way stay there (Release provenance,
-   Re-runs): look at the release's files (`gh release view vX.Y.Z --json assets`, or the release
-   page) before taking it to have none. If the log points at Sigstore or GitHub's attestation
-   API, check githubstatus.com (Actions, API) and status.sigstore.dev, wait, then re-run the
-   failed job. A build that failed fetching its dependencies (an HTTP 429 or 5xx from
-   `repo.maven.apache.org`, `plugins.gradle.org` or another repository, in the Android step)
-   needs only a few minutes' wait and the same re-run: release 1.4.2's first attempt stopped on
-   Maven Central's 429 Too Many Requests, and the re-run seven minutes later attached the
-   Android and web files and their provenance. The Release workflow restores no Gradle cache, so each release build fetches everything
-   afresh (`.planning/STATE.md`, Follow-ups, Open, weighs the options). Then run the daily query
-   of Monitoring and alerts.
+   to `health`. A build (`artefacts` or `ios`) that failed skips its publish job; a publish job
+   whose download, selection, attest or provenance step failed attached nothing in that attempt,
+   and one whose upload step failed may have attached part of that build's files. Either way the
+   website still describes the new release, but its download page has no links to that build's
+   files, other than any that an upload cut off part-way left on the release, in that attempt or
+   an earlier one (Release provenance, Re-runs): look at the release's files
+   (`gh release view vX.Y.Z --json assets`, or the release page) before taking it to have none. A
+   build that keeps failing (the optional iOS one after a macOS runner change, say) leaves those
+   links out until a release has them, and holds up nothing else. Read why a job failed before
+   re-running it. If the log points at Sigstore or GitHub's attestation API, check
+   githubstatus.com (Actions, API) and status.sigstore.dev, and wait. A build that failed
+   fetching its dependencies (an HTTP 429 or 5xx from `repo.maven.apache.org`,
+   `plugins.gradle.org` or another repository, in the Android step) needs only a few minutes'
+   wait: release 1.4.2's first attempt stopped on Maven Central's 429 Too Many Requests, and the
+   re-run seven minutes later attached the Android and web files and their provenance. The
+   Release workflow restores no Gradle cache, so each release build fetches everything afresh
+   (`.planning/STATE.md`, Follow-ups, Open, weighs the options; the one chosen goes in the
+   `artefacts` build job, which can write nothing). Then re-run as below, and afterwards run the
+   daily query of Monitoring and alerts:
+   - **A publish job that failed, within 7 days:** re-run it (Re-run this job on it, or Re-run
+     failed jobs, which re-runs every failed job of the run, so the publish job runs alone only
+     when it is the only one that failed). It takes its build's artifact from the earlier attempt
+     by the same id, with the same digest (the publish dry run of 22 November 2026 showed the
+     download), attests and checks those files again, and attaches them; the website is deployed
+     again after it. The artifact is kept for 7 days (`retention-days: 7`), and after that the
+     download fails.
+   - **A build that failed:** re-run it (Re-run failed jobs, or Re-run this job on it), which
+     GitHub allows for 30 days after the run. Its publish job and the website run again after it,
+     with the new attempt's artifact.
+   - **A publish job that failed, after those 7 days:** its build succeeded, so Re-run failed jobs
+     does not run the build again, and the download fails again. Re-run the build job instead,
+     within the same 30 days: Re-run this job on the build job, or
+     `gh run rerun --job <build job's databaseId>`. gh ignores a run id given with `--job`, and
+     takes the job's `databaseId`, not the number in the job's address in the browser;
+     `gh run view <run id> --json jobs --jq '.jobs[] | {name, databaseId}'` lists them. The
+     build, its publish job and the website then run again, with the new attempt's artifact.
+   - **Never Re-run all jobs:** release-please then finds the release already made and reports no
+     new one, so every build, publish and website job after it is skipped.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
    `git diff --stat <previous tag> vX.Y.Z -- supabase/templates/` lists it), paste that body into
    its Auth template in the dashboard (E-mail, step 6), with the subject from
@@ -1262,123 +1291,164 @@ commitlint accept; commitlint skips that commit's generated changelog body.
 
 ### Release provenance
 
-Both build jobs attest every file in `dist/` with `actions/attest-build-provenance`, so GitHub
-keeps a signed build provenance attestation for each (a Sigstore bundle holding an in-toto
-statement with SLSA provenance v1). The attestation in GitHub's store is not on the release, and
-OpenSSF Scorecard's Signed-Releases check reads only the release's file names. So each job then
-copies the attestation's bundle into `dist/` and attaches it with the files:
+Release builds its files in two jobs and attaches them from two others. The build jobs,
+`artefacts` (the signed Android app and the web app) and `ios` (the unsigned iOS app), run
+Gradle's plugins, CocoaPods, the pub packages and Flutter, so they hold only the workflow's
+read-only token (`contents: read`) and no OIDC token: nothing a build runs can write to the
+release or sign a provenance as the Release workflow. Each build hands `dist/` over as a run
+artifact (one step with `id: upload`, `actions/upload-artifact`, kept for 7 days) and gives the
+artifact's id as its job output `artifact-id`. A publish job of its own, `publish-artefacts` or
+`publish-ios`, on a fresh GitHub-hosted runner (`ubuntu-24.04`) in the `release` environment,
+checks nothing out and runs no build tool: it downloads that artifact by its id, keeps exactly the
+release's names for that build, attests them with `actions/attest-build-provenance`, checks the
+provenance file against each and only then attaches them. A process a build leaves running, a
+`gh` it replaces with `sudo`, a variable it writes to `$GITHUB_ENV` or `$GITHUB_PATH` (`BASH_ENV`,
+`BASH_FUNC_*`) and a file it puts earlier on the path all stay on the build's runner, which no
+publish job shares. The publish dry run of 22 November 2026 (`.planning/STATE.md`) showed it: a
+build that left a process writing to its app bundle after the upload, and replaced its own `gh`,
+changed nothing on the publish runner, where the bytes were the uploaded ones and `gh` was the
+runner's own.
 
-- `artefacts`: `maalik-e-makaan-vX.Y.Z.intoto.jsonl`, covering the app bundle, the three APKs, the
-  web zip, the debug symbols and `SHA256SUMS`;
-- `ios`: `maalik-e-makaan-vX.Y.Z-ios.intoto.jsonl`, covering the `.ipa` and `SHA256SUMS-ios`
-  (before v1.4.0 this job attested the `.ipa` alone).
+GitHub keeps the signed build provenance attestation (a Sigstore bundle holding an in-toto
+statement with SLSA provenance v1) in its store, which is not on the release, and OpenSSF
+Scorecard's Signed-Releases check reads only the release's file names. So each publish job copies
+the attestation's bundle into `dist/` and attaches it with the files it covers, which are exactly
+the files that job attaches:
 
+- `publish-artefacts`: `maalik-e-makaan-vX.Y.Z.intoto.jsonl`, covering the app bundle, the three
+  APKs, the web zip, the debug symbols and `SHA256SUMS`;
+- `publish-ios`: `maalik-e-makaan-vX.Y.Z-ios.intoto.jsonl`, covering the `.ipa` and
+  `SHA256SUMS-ios` (before v1.4.0 the iOS build attested the `.ipa` alone).
+
+Up to v1.4.2, each build job attested and attached its own files, and held the release's write
+token and the OIDC token to do so; the publish jobs make the provenance of the releases after it.
 The file is JSON Lines, one Sigstore bundle on its one line, and `gh attestation verify --bundle`
 reads it (`SECURITY.md`, Checking a download, has the commands; `slsa-verifier` does not apply).
 It is not in `SHA256SUMS`, which is one of its subjects and written before it; its own signature
-protects it. Before the upload, the job checks it against every build file in `dist/` (all but
-the provenance file itself, the bundle they are checked against, which the upload then attaches
-with them) with `gh attestation verify --bundle`, with the options `SECURITY.md` gives, and logs
-`gh --version`. A check that passes prints nothing there (`gh` writes its result only to a
-terminal), so the step's log holds only the two lines `gh --version` prints, the version and the
-address of its release, as release 1.4.2's did. The source ref is `refs/heads/main`, written
-literally, so a run started by hand (Run workflow) from another branch fails there and attaches
-nothing in that run: start Release by hand from `main` only. That holds exactly with `gh` 2.102.0
-or later on the runner: an older `gh` compares the branch name without regard to case, so look at
-the version the step logs, and if it is older, say so in the release's notes and do not rely on
-the check for a branch whose name differs from `main` only in case.
-`tool/github/check_release_provenance.py` (`make lint`) keeps the attest step, that check and the
-one upload together, with no `if:`, `continue-on-error`, `shell:` or `working-directory:` on
-them, and no `defaults.run.working-directory` on the job or the workflow (either would move
-`dist/` away from the files attested from the workspace root). It requires the check's run to be
-exactly its six lines, the upload's to be exactly
-`gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"` (so it attaches nothing
-outside `dist/` and runs nothing before, after or around it), the upload step's own `env` to set
-only `GH_TOKEN` and the check step's only `BUNDLE` and `PROVENANCE`, the job's and the
-workflow's `env` to set nothing that changes what bash or gh runs (`BASH_ENV`, `PATH`, `IFS`,
-`LD_PRELOAD` or an exported function such as `BASH_FUNC_gh%%` could make every check pass), and
-the job's default shell, where set, to be `bash` (which the runner starts
-with `-e -o pipefail`; `bash {0}` would drop `-e`, and only the last file's check would count), so
-no file is skipped, no failed check is lost and no unattested file is attached. It reads those
-two runs as bash does and refuses what it could read otherwise: a comment that ends in a
-backslash (bash ends the comment there and runs the next line, which reads as part of it), a `#`
-right after an operator, a quoted string over more than one line, a here-document, a command
-substitution or parameter expansion, a `${{ }}` expression (Actions replaces it before bash reads
-the run), and a carriage return, a no-break or zero-width space or any other character but a
-space, a tab and a line feed that Python reads as white space or as nothing. The provenance
-file's name starts with a letter or a digit and holds only letters, digits, `.`, `_`, `-` and
-plain context properties such as `${{ needs.release-please.outputs.tag }}` (an expression with a
-literal or a function in it could put a `#` or a space there): `dist/*`, in the check's loop and in the upload, leaves out a name that
-starts with a dot, so a hidden provenance file would never be attached. Nor may it hold two dots
-in a row, which GitHub, and gh when it looks for the file `--clobber` replaces, fold into one.
-No two jobs may name provenance files that can be the same file on the release, since each
-`--clobber` upload would replace the other's. The check compares the names as GitHub reads them
-(white space inside `${{ }}` dropped, the expressions' case ignored, and, more widely than
-GitHub, the text's too), but it cannot know the expressions' values: another expression with
-the same value (`${{ env.TAG }}`, `v${{ needs.release-please.outputs.version }}`) or an empty
-one could make two names one. So two names pass only if they hold the same expressions, each
-with one value in every job of the run (an output of a job both list in `needs`, `inputs`,
-`github.repository`, `github.sha` and the like, but not `vars`, which a job's `environment:` can
-set apart), and differ in the text around them
-in a way no value can make up, as release.yml's do (`-ios` added after the tag); or if the text
-of one before its first expression, or after its last, neither starts nor ends the other's. An
-uploading job may not set a `strategy`, since each leg of a matrix would give its provenance
-file the same name. In every workflow it refuses other ways of putting files on a release:
-`gh release create` (and `gh release new`, its alias in gh), a release-upload action, and the
-REST upload by its URL or its client libraries' names; ways of taking them off (`gh release
-delete` and `delete-asset`, a `DELETE` on a release URL in any case and glued to its flag, as
-gh and curl take `-XDELETE` and `--method delete`, the client libraries' delete calls), which
-would leave a release without its provenance file; and a gh alias or extension, which could
-upload under another name. It looks for them in every value of every step (so also in an
-`actions/github-script` script and an `env` value), and in a run once its quoting is read
-(`gh release $'upload'` counts, and so does `gh re$'\0'lease`, since a NUL ends such a string
-where it stands), after a word that may run gh (`gh`, `"$GH"`, or any variable or expression,
-such as `"$tool"`), so a summary line such as `echo "the release upload finished"` is not taken
-for a command. A redirection, which bash takes out before gh sees its words, is skipped wherever
-it stands among them (`gh </dev/null release upload`, `gh release > log delete`). Each `${{ }}`
-expression is first filled in as Actions could fill it: a string literal as its text
-(`gh release ${{ 'upload' }}` counts), any other expression as a word that could be any
-subcommand, except as the value of `-R` or `--repo`, which always take one
-(`gh release -R ${{ github.repository }} upload` counts, `… view` passes). It finds the
-subcommand as gh does, past the flags gh skips first and a value after each
-(`gh release -R "$GITHUB_REPOSITORY" upload` and `gh release --repo=x delete` count); in a
-script, a flag's value may be a quoted string or be joined with `+` and calls
-(`owner + '/' + name`, `String(repo)`, a template literal). Since only gh knows which flags take
-a value, a word after a flag counts as the subcommand too. `gh release view`, `list`,
-`download` and `edit` attach and delete nothing, and are left alone.
+protects it.
 
-**What the check cannot see.** It reads only the workflow files, as PyYAML parses them, and runs
-none of what they run. So these can still put a file on a release, or take one off, unseen:
+**The handoff.** The publish job downloads by the artifact's id
+(`artifact-ids: ${{ needs.<build>.outputs.artifact-id || 'missing' }}`), never by its name, with
+`digest-mismatch: error`, so it gets the bytes the build uploaded, by the digest GitHub recorded
+at the upload, or nothing. An artifact that another job of the run made or replaced under the same
+name has another id: in the dry run, an upload with `overwrite: true` under a build's artifact
+name deleted the original, and the download by the original id failed ("None of the provided
+artifact IDs were found"). A job of the run can stop a publish job that way, but not change what
+it attaches. An empty id would make the download take every artifact of the run, and the runner
+leaves a job output empty when it may hold a masked value (in the dry run, "Skip output
+'artifact-id' since it may contain secret"); `|| 'missing'` makes it no id, and the download fails
+("Invalid artifact ID: 'missing'"). The artifact's name carries the run attempt
+(`release-android-web-N`, `release-ios-N`), so a re-run build never meets an earlier attempt's
+artifact by name. GitHub already keeps names apart by attempt (the dry run uploaded one fixed name
+in two attempts with no conflict), so the number is a safeguard only. The selection moves the
+release's names for that build into `dist/` with `mv`, then runs `rmdir build`: a missing name
+fails `mv`, and anything else the artifact holds (a file named as the other build's, a hidden
+file, a folder) fails `rmdir`, so neither is attested or attached (the dry run's decoy `.ipa`
+failed there). A name that is a folder passes both, and fails at the provenance check, before any
+upload. The two publish jobs attach fixed, disjoint names, so neither's `--clobber` replaces the
+other's files.
 
-- a script or program a step runs (`./attach.sh`, `node attach.js`, `python3 tool/x.py`, a
-  built binary), which can call `gh` or the REST API itself;
-- an action that is not in the check's list of release-upload actions;
-- a gh alias or extension already configured on the runner, or read from a configuration
-  directory in the repository (`GH_CONFIG_DIR`);
-- a reusable workflow that uploads, called twice, whose two runs would give their provenance
-  files the same name;
-- text built at run time (`$(printf upload)`, a shell variable or function, positional
-  parameters such as `set -- upload; gh release "$@"`, `xargs gh release`, a glob such as
-  `upl[o]ad`), or a flag's value an action's script computes other than with `+`, a call or a
-  template literal (`'-R', a ? b : c, 'upload'`);
-- a context property in the provenance file's name whose value GitHub would change (a `/`, a
-  `#`, a space, or a dot at either end): the check takes the tag's `vX.Y.Z` to hold none;
-- a variable an earlier step writes to `$GITHUB_ENV` (a `GH_REPO` or `TAG` that sends the upload
-  elsewhere, a `BASH_ENV` or `BASH_FUNC_*` for every later step).
+**The check before the upload.** Each publish job checks the provenance file against every other
+file in `dist/` with `gh attestation verify --bundle` and the options `SECURITY.md` gives:
+`--repo`, `--signer-workflow` naming `.github/workflows/release.yml`,
+`--source-ref refs/heads/main` and `--deny-self-hosted-runners`. The last refuses provenance whose
+signing certificate records a self-hosted runner. That is the runner of the job that attests, so
+for the releases after v1.4.2 it vouches for the publish job's runner, and for the builds' only as
+far as their labels, which the check below holds; every release from v1.4.0 on passes it. The step
+logs `gh --version`, which prints two lines, the version and the address of its release. A check
+that passes prints nothing outside a terminal, so the step's log holds those two lines alone, as
+release 1.4.2's did. A check that fails exits non-zero, and the step runs under `bash -e` (the
+runner's `-e -o pipefail`), so the step passing is the evidence that every file matched: in the
+dry run, the build's own app bundle passed, while the bundle with one byte more, other bytes under
+a subject's name (`SHA256SUMS`) and a file the bundle does not name each exited 1. A file's own
+bytes under another name pass, since the check goes by digest. The source ref is
+`refs/heads/main`, written literally, so a run started by hand (Run workflow) from another branch
+fails there and attaches nothing in that run: start Release by hand from `main` only. That holds
+exactly with `gh` 2.102.0 or later on the runner: an older `gh` compares the branch name without
+regard to case, so look at the version the step logs, and if it is older, say so in the release's
+notes and do not rely on the check for a branch whose name differs from `main` only in case.
 
-A reviewer reads these paths by hand in every pull request that changes a workflow, or a script,
-program or action a workflow's job runs: what each one sends to GitHub, and what each step writes
-to `$GITHUB_ENV`. The check's docstring and the shorter mentions elsewhere point here.
+**The check in `make lint`.** `tool/github/check_release_provenance.py` (`make lint`, the
+pre-commit hook) keeps this so. It reads the workflows' structure and values, never shell, and no
+build step, by design: what a build runs cannot reach the publish runner. Only a job that can
+write to a release or sign as release.yml matters, permissions and secrets decide which jobs those
+are, and each such job is held to a fixed template. Its seven rules: every workflow sets top-level
+`permissions` as a mapping or `read-all`, and so does a job that sets its own (R1); in release.yml
+only release-please and the two publish jobs write anything, in any scope, and in every other
+workflow no job writes `contents` or `attestations` (`id-token: write` stays allowed there, as
+scorecard.yml needs it and another workflow's token fails `--signer-workflow`), and no other
+workflow's file name starts with `release.`, nor with `release`, any one character and `yml`,
+since `gh` before 2.102.0 would take only such a name for release.yml (R2); secrets are named
+`secrets.NAME` from a known list, the release-please token only in release-please's `with.token`,
+no mapping key holds an expression, and no job passes `secrets: inherit` (R3); release.yml runs
+only on push and workflow_dispatch, its `defaults` is at most `run: {shell: bash}`, and its
+top-level `env` sets only `FLUTTER_VERSION` and `JAVA_VERSION` (R4); release-please equals
+`RELEASE_PLEASE_TEMPLATE`, its pinned action alone with exactly today's inputs, runner, outputs
+and permissions (R5); each publish job equals `PUBLISH_TEMPLATE` key for key, steps in order and
+runs as exact text, with only `name` and `timeout-minutes` of the job and of its steps free, and
+each `uses` any 40-hex commit of the template's action, so a Dependabot bump passes and a tag or
+another owner fails (R6); and each build runs on its GitHub-hosted label (`artefacts` on
+`ubuntu-24.04`, `ios` on `macos-26`, compared as the whole label) and hands `dist/` over through
+one `id: upload` step and its `artifact-id` output (R7). It refuses as unreadable a file with a
+key twice, a key that is not text, an alias that holds itself, or a NEL, LS or PS line break. A
+change to a publish job or to release-please changes its template in the check in the same pull
+request, and review reads both; so does a move from `actions/attest-build-provenance` to
+`actions/attest`.
 
-**Re-runs.** "Re-run failed jobs" runs the whole job again on a new runner: a new build, a new
-attestation and a new provenance file, under the same names, so `--clobber` replaces every file.
-A job that ends green leaves a provenance file and a `SHA256SUMS` that match every file beside
-them. If an upload is cut off part-way, the release can hold files from two attempts; the
-provenance file and `SHA256SUMS` then do not match the mixed set, and the `--bundle` check and
-`sha256sum -c` fail for the files of the other attempt (the online check still passes, since
-GitHub keeps both attempts' attestations, and each file was built by the workflow). Re-run until
-the job is green, which restores a matching set. A failed attempt's attestations stay in GitHub's
-store, for files no longer on the release; that is harmless.
+**What the check does not cover.**
+
+- What a build puts in its own files. The provenance says which workflow, commit and run built
+  them, not that every build tool was honest (SLSA Build L2): a compromised Gradle plugin decides
+  its own build's bytes. A build, or any job of the run, can stop a publish job (by squatting or
+  deleting an artifact with the run's own token, or filling the disk), but not change what
+  another build publishes.
+- The upload key, which the `artefacts` job reads to sign the app, and its build tools with it
+  (`.planning/STATE.md`, Follow-ups: signing in a job of its own).
+- Build inputs: caches and the actions the builds use. release.yml restores no cache today; the
+  option the Gradle download follow-up chooses (`.planning/STATE.md`, Follow-ups, Open) goes in
+  the `artefacts` build job, where a cache can change the bytes a build makes but not what its
+  publish job holds.
+- Any job of release.yml but release-please and the publish jobs, beyond its permissions and
+  secrets. Such a job writes nothing, but its steps are not read and only the two builds' runner
+  labels are pinned; a build may fetch anything, an artifact of such a job included.
+- The trust base: GitHub-hosted runners, the artifact service (its digest comes from the
+  uploader), the attestation API, the pinned actions (upload-artifact, download-artifact,
+  attest-build-provenance and the actions/attest it pins), the runner's `gh`, and Sigstore.
+- An impostor commit: a `uses` pinned to a 40-hex commit that is not the action's own (one from a
+  fork) passes the check and `make lint`'s offline zizmor; only `security.yml`'s zizmor job, which
+  runs the online audits, catches it.
+- A pull request that changes a template and its job together, which review reads; and a major
+  version of a pinned action, through Dependabot, that keeps its inputs' names while changing what
+  they do.
+- Settings outside the files. No self-hosted runner may be registered to the repository or to the
+  organisation: the check holds labels, and GitHub's documents do not settle whether a job could
+  go to a self-hosted runner that carries a GitHub-hosted label (`--deny-self-hosted-runners`
+  would still refuse the publish runner's provenance then). Also outside: the `release`
+  environment's rules, the repository's Actions settings, and who may push to `main`.
+- PyYAML against GitHub's parser. The check reads the files as PyYAML does; actionlint refuses a
+  merge key (`<<`), a key in another case (`Permissions:`) and a plain-text scalar `env`, and the
+  check itself refuses the line breaks the two read differently.
+
+What this section listed before the publish jobs as unseen by the check (a script or program a
+step runs, a gh alias or extension, text built at run time, a reusable workflow called twice, the
+values in a provenance file's name, `$GITHUB_ENV`, a step that changes a program later steps run)
+no longer matters: the builds can neither write nor sign, and a publish runner runs only its
+template's fixed steps.
+
+**Re-runs.** Re-running a build job runs a new build on a new runner and uploads a new artifact
+under the new attempt's name; its publish job runs after it with the new id, and makes a new
+attestation and a new provenance file under the same names, so `--clobber` replaces every file of
+that build. A publish job re-run alone, within its artifact's 7 days, takes the same artifact by
+its id and attaches the same files with a new provenance file. A job that ends green leaves a
+provenance file and a `SHA256SUMS` that match every file beside them. If an upload is cut off
+part-way, the release can hold files from two attempts; the provenance file and `SHA256SUMS` then
+do not match the mixed set, and the `--bundle` check and `sha256sum -c` fail for the files of the
+other attempt (the online check still passes, since GitHub keeps both attempts' attestations, and
+each file was built by the workflow). Re-run until the job is green, which restores a matching
+set. A failed attempt's attestations stay in GitHub's store, for files no longer on the release;
+that is harmless. A re-run runs the workflow file of its run, so a publish job that fails because
+of its own definition cannot be put right by a re-run: that build's files then wait for the next
+patch release. Never "Re-run all jobs" (Releasing, step 4).
 
 **What Scorecard counts** (v5.6.0, `checks/evaluation/signed_releases.go` and its probes). Only
 file names: a release with a name ending in `.intoto.jsonl` scores 10; one with only a signature
@@ -1501,7 +1571,7 @@ may have changed since):
   bypass), 1 required approval where Scorecard wants 2, code-owner review is not required, and
   "up-to-date branches" is off. Signed-Releases 0: release files carried no signature or
   provenance file (the provenance that `release.yml` attested was kept by GitHub, not attached
-  to the release); from v1.4.0 on each build attaches it as a `.intoto.jsonl`
+  to the release); from v1.4.0 on each release attaches it as a `.intoto.jsonl`
   file, and the score rises by 2 with each release, to 10 at the fifth (Releasing, Release
   provenance). Contributors 3 (one organisation), CII-Best-Practices 5 (the passing badge), and
   Packaging not detected. Every other check scored 10.
