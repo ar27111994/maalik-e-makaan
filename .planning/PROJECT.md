@@ -354,7 +354,7 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   closing animation, so the earlier account's details on show (an occupant's CNIC and phone, a
   member's or invitee's e-mail) go, and their buttons cannot act as the next account; a sheet the
   user was already closing finishes its closing animation, with its buttons ignoring taps. Snack
-  bars are cleared too (an engineering choice of the same day), as one may name a record. A
+  bars go at once too (an engineering choice of the same day), as one may name a record. A
   refreshed or new session of the same account changes nothing. The owner's standing rule holds:
   fewer mechanisms, so this is one small change in the app shell, not a check in every sheet;
   screens stay, for the router. Built in `docs/architecture/app.md` (On the device, Writes after a

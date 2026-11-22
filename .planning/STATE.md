@@ -920,12 +920,17 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   go_router 18.1.4 under Flutter 3.47.9 gets the same, so screens change at once, iOS has no swipe
   back and Android's predictive back has no animation. Check on a device; if it holds, find why
   go_router does not see the `MaterialApp`, or give the routes a `pageBuilder`. The delete screen
-  already says when it cannot be popped (`PopScope`), which a swipe back asks first. On the same
-  device, look at a snack bar as the account changes (D-23): in widget tests none shows on the first
-  frame after the change, but Flutter's `clearSnackBars` runs the snack bar's exit animation, a
-  quarter of a second, unless accessible navigation is on (`MmSnackbar` shows with no animation
-  under reduced motion), so on a device its text may stay readable that long, as a sheet already
-  closing does; if it does, the shell can call `removeCurrentSnackBar()` after `clearSnackBars()`.
+  already says when it cannot be popped (`PopScope`), which a swipe back asks first. The snack bar
+  on show as the account changes, once part of this item, no longer needs the device (Closed on 22
+  November 2026, below).
+- App: an answer for the earlier account can still show a snack bar under the next one (found 22
+  November 2026, building the snack bar fix of D-23). The look for a camera photo Android kept
+  (`LostPhotoRecovery._look`, `lost_photo_recovery.dart`) checks only that it is still mounted
+  after its await, so a look that answers after the account changes shows its offer or its failure
+  under the next account. Its words name no record, and the offer's button does nothing then, as
+  `_bringBack` checks the user. Check the user there too. A screen that shows a snack bar after a
+  command with only a `mounted` check (the portfolio details screen's "Details saved", for one)
+  could do the same if the command answers after the change; not yet looked into.
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
@@ -1084,6 +1089,26 @@ listed held (Current Position has the run and the evidence), except a person's r
 `SECURITY.md`'s command on a download, which is still to do and is now the owner's (Waiting on
 the owner). That a publish job failing on its own definition waits for the next patch release
 stays in `docs/operations.md` (Release provenance, Re-runs).
+
+The snack bar on show as the account changes now goes at once (D-23; CodeRabbit asked for it in
+comment 4658013528 on #110, deferred there; it was part of the open item on page transitions). The
+shell cleared snack bars with `clearSnackBars()` alone, which drops those waiting but, with normal
+motion, plays the one on show out over a quarter of a second: in a widget test the earlier account's
+message stayed fully drawn for 96 ms after the change (seven frames), had faded by 160 ms and had
+left the tree by 256 ms. #110's test saw none on the first frame because it changed the account just
+as its snack bars began to come in: an animation starts counting at the first frame it runs in, so
+its one pump of 500 ms left them at the start, not yet drawn, and clearing them took no time. The
+shell now calls `removeCurrentSnackBar()` and then `clearSnackBars()` on each messenger. The first
+takes the one on show away at once; the second takes the one waiting next away as it starts to come
+in, before it is drawn, so its future completes too (in the other order Flutter drops it with the
+queue, and its future never completes). `app_test.dart` ("when the signed-in account changes") shows
+the snack bars in full first and pins the fix with normal motion, reduced motion and a screen
+reader, two snack bars waiting behind one going out, a messenger with none on show, and the next
+account's snack bars shown after the change, which start to come in at once and stay their time.
+With `clearSnackBars()` alone, three of the five snack bar tests fail, the normal-motion one finding
+the earlier messages on all ten frames; with `removeCurrentSnackBar()` alone, the snack bar waiting
+comes in; in the other order, its future never completes. The page-transition check on a device
+stays open (Open, above).
 
 ### Closed on 15 November 2026
 

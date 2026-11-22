@@ -29,8 +29,8 @@ import 'package:mm_ui/mm_ui.dart';
 /// dialog and menu open closes at once: each shows a copy of the
 /// record it was opened on (an occupant's CNIC and phone, a member's
 /// e-mail), and its buttons would act for whoever is signed in now. Snack
-/// bars go too, as one may name a record ("… removed"). Screens stay, for
-/// the router.
+/// bars go at once too, as one may name a record ("… removed"). Screens
+/// stay, for the router.
 class AppShell extends ConsumerStatefulWidget {
   const new({required this.shell, super.key});
 
@@ -71,9 +71,18 @@ class _AppShellState extends ConsumerState<AppShell> {
   /// already closing is no longer above the page: it finishes its closing
   /// animation, and its buttons ignore taps meanwhile.
   ///
-  /// Snack bars go too, from the messenger above each navigator: the
-  /// app's, and the one the frame gives the sections, which the shell's own
-  /// context does not reach.
+  /// Snack bars go at once too, from the messenger above each navigator:
+  /// the app's, and the one the frame gives the sections, which the shell's
+  /// own context does not reach. `removeCurrentSnackBar` takes the one on
+  /// show away with no closing animation; with normal motion,
+  /// `clearSnackBars` alone would play it out over a quarter of a second,
+  /// its text readable at first. The one waiting next then starts to come
+  /// in, and `clearSnackBars` takes it away before it is drawn and drops
+  /// the rest of the queue. The futures of those two complete; Flutter
+  /// drops the rest without completing theirs, and nothing in the app acts
+  /// when a snack bar closes. A messenger with none on show is left as it
+  /// is. The shell acts only when it hears the change, so a snack bar shown
+  /// after that stays its time.
   void _closeOverlays() {
     final navigators = [
       Navigator.of(context, rootNavigator: true),
@@ -85,7 +94,9 @@ class _AppShellState extends ConsumerState<AppShell> {
         ?ScaffoldMessenger.maybeOf(navigator.context),
     };
     for (final messenger in messengers) {
-      messenger.clearSnackBars();
+      messenger
+        ..removeCurrentSnackBar()
+        ..clearSnackBars();
     }
     for (final navigator in navigators) {
       for (

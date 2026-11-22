@@ -57,6 +57,22 @@ Future<TestApp> _pumpApp(
 /// One frame at 60 Hz.
 const _frame = Duration(milliseconds: 16);
 
+/// How opaque the one widget [finder] finds is drawn: the product of the
+/// fades above it (a snack bar fades as it comes and goes).
+double _opacity(Finder finder) {
+  var opacity = 1.0;
+  finder.evaluate().single.visitAncestorElements((ancestor) {
+    switch (ancestor.widget) {
+      case FadeTransition(opacity: Animation<double>(:final value)):
+        opacity *= value;
+      case Opacity(opacity: final value):
+        opacity *= value;
+    }
+    return true;
+  });
+  return opacity;
+}
+
 Finder _inNavigation(String label) => find.descendant(
   of: find.byWidgetPredicate(
     (widget) => widget is NavigationBar || widget is NavigationRail,
@@ -372,9 +388,9 @@ void main() {
   // session ends. A sheet or dialog shows a copy of the record it was opened
   // on, and its buttons would act for whoever is signed in. The app shell
   // removes them at once, with no closing animation, so no frame after the
-  // change shows the earlier account's record in them, and clears snack
-  // bars too; the screens below are pages, which the router keeps, and they
-  // show loading until that account's own answers.
+  // change shows the earlier account's record in them, and snack bars go
+  // at once too; the screens below are pages, which the router keeps, and
+  // they show loading until that account's own answers.
   group('when the signed-in account changes', () {
     // Counts, over [frames] frames of 16 ms after another account's session
     // replaced the user's (the first at once), those on which any of
@@ -657,30 +673,99 @@ void main() {
     // deleted) goes too, on the first frame: one shown from a section's
     // screen, on the messenger the frame gives the sections, and one shown
     // from above them (a dialog's context), on the app's own messenger.
-    testWidgets("snack bars naming the earlier account's records go on the "
-        'first frame', (tester) async {
+    // Each is in full view as the account changes: one that has only begun
+    // to come in is not drawn yet, and taking it away takes no time. With
+    // normal motion, clearing the snack bars alone would play the one on
+    // show out over a quarter of a second, its text fully drawn for about
+    // the first tenth of a second. With reduced motion (`MmSnackbar` shows
+    // it without animating) or a screen reader (no closing animation) it
+    // goes at once either way.
+    for (final (name, features) in [
+      ('', const FakeAccessibilityFeatures()),
+      (
+        ' with reduced motion',
+        const FakeAccessibilityFeatures(disableAnimations: true),
+      ),
+      (
+        ' with a screen reader',
+        const FakeAccessibilityFeatures(accessibleNavigation: true),
+      ),
+    ]) {
+      testWidgets("snack bars naming the earlier account's records go on the "
+          'first frame$name', (tester) async {
+        tester.platformDispatcher.accessibilityFeaturesTestValue = features;
+        addTearDown(
+          tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+        );
+        final app = await _pumpApp(
+          tester,
+          location: Routes.lease(aliLease.id),
+          size: const Size(390, 3600),
+        );
+        final shown = [
+          showMmSnackbar(
+            tester.element(find.byType(LeaseDetailScreen)),
+            message: 'Sana Raza removed',
+          ),
+          showMmSnackbar(
+            tester.element(find.byType(MmAdaptiveScaffold)),
+            message: 'Bilal Ahmed removed',
+          ),
+        ];
+        await tester.pumpAndSettle();
+        expect(_opacity(find.text('Sana Raza removed')), 1);
+        expect(_opacity(find.text('Bilal Ahmed removed')), 1);
+        final frames = await replaced(
+          tester,
+          app,
+          earlier: [
+            find.text('Sana Raza removed'),
+            find.text('Bilal Ahmed removed'),
+          ],
+          loading: find.bySemanticsLabel('Loading the tenancy'),
+          held: [app.leases.gate],
+        );
+        expect(frames, (earlier: 0, loading: 10));
+        await Future.wait(shown);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    // With normal motion, a snack bar that replaces another waits while that
+    // one plays out. As the account changes then, none shows on any frame:
+    // the one going out goes at once, the one waiting starts to come in and
+    // goes before it is drawn, and one waiting behind that never comes in.
+    // The futures of the first two complete. Flutter drops the third with
+    // the queue, without completing its future, which nothing in the app
+    // awaits, so the test asks only that it never shows.
+    testWidgets('snack bars waiting behind one going out never show', (
+      tester,
+    ) async {
       final app = await _pumpApp(
         tester,
         location: Routes.lease(aliLease.id),
         size: const Size(390, 3600),
       );
-      final shown = [
-        showMmSnackbar(
-          tester.element(find.byType(LeaseDetailScreen)),
-          message: 'Sana Raza removed',
-        ),
-        showMmSnackbar(
-          tester.element(find.byType(MmAdaptiveScaffold)),
-          message: 'Bilal Ahmed removed',
-        ),
-      ];
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(find.text('Sana Raza removed'), findsOneWidget);
-      expect(find.text('Bilal Ahmed removed'), findsOneWidget);
+      final screen = tester.element(find.byType(LeaseDetailScreen));
+      final closed = <String>[];
+      void show(String message) => showMmSnackbar(
+        screen,
+        message: message,
+      ).whenComplete(() => closed.add(message)).ignore();
+      show('Ali Raza archived');
+      await tester.pumpAndSettle();
+      show('Sana Raza removed');
+      show('Bilal Ahmed removed');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 48));
+      expect(_opacity(find.text('Ali Raza archived')), 1);
+      expect(find.text('Sana Raza removed'), findsNothing);
+      expect(find.text('Bilal Ahmed removed'), findsNothing);
       final frames = await replaced(
         tester,
         app,
         earlier: [
+          find.text('Ali Raza archived'),
           find.text('Sana Raza removed'),
           find.text('Bilal Ahmed removed'),
         ],
@@ -688,7 +773,87 @@ void main() {
         held: [app.leases.gate],
       );
       expect(frames, (earlier: 0, loading: 10));
-      await Future.wait(shown);
+      expect(closed, containsAll(['Ali Raza archived', 'Sana Raza removed']));
+      await tester.pump(const Duration(seconds: 15));
+      expect(find.text('Sana Raza removed'), findsNothing);
+      expect(find.text('Bilal Ahmed removed'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    // What the shell removes is what is on show as the account changes. A
+    // snack bar shown once it has changed is the next account's: it starts
+    // to come in at once, on a messenger whose earlier snack bar went and
+    // on one with none on show (the app's, whose last one closed by
+    // itself), and stays its four seconds. The sheet tests earlier in this
+    // group change the account with no snack bar ever shown on either
+    // messenger.
+    testWidgets("the next account's snack bars, shown once the account has "
+        'changed, start to come in at once and stay their time', (
+      tester,
+    ) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      final screen = find.byType(LeaseDetailScreen);
+      final appFrame = find.byType(MmAdaptiveScaffold);
+      final closed = showMmSnackbar(
+        tester.element(appFrame),
+        message: 'Receipt shared',
+      );
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await closed;
+      expect(find.text('Receipt shared'), findsNothing);
+      final earlier = showMmSnackbar(
+        tester.element(screen),
+        message: 'Sana Raza removed',
+      );
+      await tester.pumpAndSettle();
+      expect(_opacity(find.text('Sana Raza removed')), 1);
+
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      await tester.pump(Duration.zero);
+      expect(find.text('Sana Raza removed'), findsNothing);
+      await earlier;
+      var closedCount = 0;
+      final next = [
+        showMmSnackbar(tester.element(screen), message: 'Details saved'),
+        showMmSnackbar(tester.element(appFrame), message: 'Link copied'),
+      ];
+      for (final shown in next) {
+        shown.whenComplete(() => closedCount++).ignore();
+      }
+      final drawn = (saved: <double>[], copied: <double>[]);
+      for (var frame = 0; frame < 10; frame++) {
+        await tester.pump(_frame);
+        expect(find.text('Details saved'), findsOneWidget);
+        expect(find.text('Link copied'), findsOneWidget);
+        expect(find.text('Sana Raza removed'), findsNothing);
+        drawn.saved.add(_opacity(find.text('Details saved')));
+        drawn.copied.add(_opacity(find.text('Link copied')));
+      }
+      // Coming in: they never fade, and are drawn by the tenth frame.
+      for (final opacities in [drawn.saved, drawn.copied]) {
+        expect(opacities, orderedEquals([...opacities]..sort()));
+        expect(opacities.last, greaterThan(0));
+      }
+      await tester.pumpAndSettle();
+      expect(_opacity(find.text('Details saved')), 1);
+      expect(_opacity(find.text('Link copied')), 1);
+      await tester.pump(const Duration(seconds: 3));
+      expect(closedCount, 0);
+      expect(find.text('Details saved'), findsOneWidget);
+      expect(find.text('Link copied'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      await Future.wait(next);
+      expect(closedCount, 2);
+      expect(find.text('Details saved'), findsNothing);
+      expect(find.text('Link copied'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
