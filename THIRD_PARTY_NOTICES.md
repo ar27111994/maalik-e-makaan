@@ -225,14 +225,14 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 | fonttools            | 4.68.0    | MIT                                                              |
 | PyYAML               | 6.0.3     | MIT                                                              |
 | black                | 26.10.1   | MIT                                                              |
-| ruff                 | 0.17.4    | MIT                                                              |
+| ruff                 | 0.17.5    | MIT                                                              |
 | shellcheck-py        | 0.11.0.1  | MIT wrapper; the ShellCheck 0.11.0 binary it installs is GPL-3.0 |
 | shfmt-py             | 4.2.0     | MIT AND BSD-3-Clause (shfmt 3.14.1)                              |
 | squawk-cli           | 2.71.0    | Apache-2.0 OR MIT                                                |
 | editorconfig-checker | 3.11.1    | MIT                                                              |
 | actionlint-py        | 1.7.12.25 | MIT                                                              |
 | zizmor               | 1.32.0    | MIT                                                              |
-| z3-solver            | 5.3.3.0   | MIT                                                              |
+| z3-solver            | 5.4.1.0   | MIT                                                              |
 | tzdata               | 2026.6    | Apache-2.0 (the IANA 2026f data it carries is public domain)     |
 
 Locked transitive Python packages: click 8.5.0 (BSD-3-Clause), mypy-extensions
