@@ -853,8 +853,9 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Closed on 22 November 2026
 
-The owner answered two questions #70 left open, on 22 November 2026; both are built on the branch
-`claude/deletion-back-and-sheets`.
+The owner answered three questions #70 left open, on 22 November 2026. The first two are built on
+the branch `claude/deletion-back-and-sheets`, and the third, phone backups (below), on
+`claude/full-phone-backups`.
 
 - Account deletion, in their words "Back cancels until sent" (D-22): Back pressed while the app is
   still checking the password cancels and sends nothing; once the delete request is on its way,
