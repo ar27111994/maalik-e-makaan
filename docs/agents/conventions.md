@@ -260,8 +260,9 @@ the test counts, the website's checks) sits between markers that name its source
   parser in `tool/docs/fact_sources.py` and tests.
 - Copies the tool checks but does not write are fixed by hand: versions named in prose (in
   `llms.txt` too), workflow pins, the CI jobs table, every `make` reference, this table, the
-  README's release line, which release-please writes, the ranges of decisions and proposals, and
-  the counts of golden variants, TLA+ models and pgTAP tests (in the deck's slides too).
+  release's version in the README's release line and in `website/package.json` and its lockfile,
+  which release-please writes, the ranges of decisions and proposals, and the counts of golden
+  variants, TLA+ models and pgTAP tests (in the deck's slides too).
   `python3 tool/docs/sync_facts.py --list` lists them all.
 
 A broken marker is reported with its rule (M1 to M16, listed in `tool/docs/fact_markers.py`)

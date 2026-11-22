@@ -130,9 +130,11 @@ class RenderTest(FixtureCase):
         self.assertEqual(self.render("commit-header-max"), "100")
         self.assertEqual(self.render("commit-body-max"), "100")
         self.assertEqual(self.render("commit-subject-case"), "upper, Pascal or Start")
+        # The lockfile has two extra-files entries, one for each of its versions, and is named once.
         self.assertEqual(
             self.render("release-files"),
-            "`.release-please-manifest.json`, `app/pubspec.yaml` and `README.md`",
+            "`.release-please-manifest.json`, `app/pubspec.yaml`, `README.md`,"
+            " `website/package.json` and `website/package-lock.json`",
         )
         self.assertEqual(self.render("golden-variants"), "`light`, `dark` and `largeText`")
         self.assertEqual(self.render("site-origin"), "<https://example.pk>")
@@ -1195,7 +1197,7 @@ class GeneratedFilesAndReleaseTest(FixtureCase):
 
     def test_c14_the_release_line(self) -> None:
         self.assert_problems(
-            check("release-in-readme"),
+            check("release-versions"),
             edited("README.md", "**v1.2.3 is", "**v1.2.2 is"),
             [
                 (
@@ -1206,17 +1208,17 @@ class GeneratedFilesAndReleaseTest(FixtureCase):
             ],
         )
         self.assert_problems(
-            check("release-in-readme"),
+            check("release-versions"),
             edited("README.md", "**v1.2.3 is", "**1.2.3 is"),
             [("README.md", 3, "should name the release as v1.2.3")],
         )
         self.assert_problems(
-            check("release-in-readme"),
+            check("release-versions"),
             edited("README.md", " <!-- x-release-please-version -->", ""),
             [("README.md", 1, "has 0 lines marked x-release-please-version")],
         )
         self.assert_problems(
-            check("release-in-readme"),
+            check("release-versions"),
             edited(
                 "README.md",
                 "([release notes](CHANGELOG.md)).",
@@ -1225,7 +1227,7 @@ class GeneratedFilesAndReleaseTest(FixtureCase):
             [("README.md", 4, "has 2 lines marked")],
         )
         self.assert_problems(
-            check("release-in-readme"),
+            check("release-versions"),
             edited(
                 "release-please-config.json",
                 '"path": "README.md" }',
@@ -1239,6 +1241,133 @@ class GeneratedFilesAndReleaseTest(FixtureCase):
                 )
             ],
         )
+
+    def test_c14_the_website_versions(self) -> None:
+        lock = "website/package-lock.json"
+        top = '  "version": "1.2.3",\n  "lockfileVersion"'
+        own = '      "name": "site",\n      "version": "1.2.3"'
+        manifest = "has 1.2.3: release-please bumps it with each release"
+        self.assert_problems(
+            check("release-versions"),
+            edited(lock, top, top.replace("1.2.3", "1.2.2")),
+            [(lock, 3, f'"version" is 1.2.2, but .release-please-manifest.json {manifest}')],
+        )
+        self.assert_problems(
+            check("release-versions"),
+            edited(lock, own, own.replace("1.2.3", "1.2.2")),
+            [(lock, 9, 'packages[""].version is 1.2.2, but .release-please-manifest.json')],
+        )
+        # As after release 1.4.3: release-please bumped package.json and left the lockfile behind.
+        behind = docs_fixture.FILES[lock].replace('"version": "1.2.3"', '"version": "1.2.2"')
+        self.assertEqual(behind.count("1.2.2"), 2)
+        self.assert_problems(
+            check("release-versions"),
+            {lock: behind},
+            [(lock, 3, '"version" is 1.2.2'), (lock, 9, 'packages[""].version is 1.2.2')],
+        )
+        self.assert_problems(
+            check("release-versions"),
+            edited("website/package.json", '"version": "1.2.3"', '"version": "1.2.2"'),
+            [("website/package.json", 3, '"version" is 1.2.2, but')],
+        )
+        # Each message names the fix: the version to set, and for the lockfile the npm command
+        # that writes both of its versions from package.json's.
+        problems = self.run_check(check("release-versions"), {lock: behind})
+        self.assertEqual(len(problems), 2)
+        for *_, message in problems:
+            self.assertTrue(
+                message.endswith(
+                    "(release-please-config.json, extra-files); set it to 1.2.3, or run"
+                    " `npm install --package-lock-only --ignore-scripts` in website/ once"
+                    " website/package.json has 1.2.3, which writes both lockfile versions"
+                ),
+                message,
+            )
+        problems = self.run_check(
+            check("release-versions"),
+            edited("website/package.json", '"version": "1.2.3"', '"version": "1.2.2"'),
+        )
+        self.assertEqual(len(problems), 1)
+        self.assertTrue(
+            problems[0][2].endswith("(release-please-config.json, extra-files); set it to 1.2.3"),
+            problems[0][2],
+        )
+        # A dependency's version is not the website's, whatever it is.
+        self.assert_problems(
+            check("release-versions"),
+            edited(lock, '"version": "7.4.12"', '"version": "1.2.2"'),
+            [],
+        )
+        # The manifest moved on alone: every copy is behind.
+        self.assert_problems(
+            check("release-versions"),
+            {".release-please-manifest.json": '{".":"1.2.4"}\n'},
+            [
+                ("README.md", 3, "the release line names 1.2.3"),
+                ("website/package.json", 3, '"version" is 1.2.3, but'),
+                (lock, 3, '"version" is 1.2.3, but .release-please-manifest.json has 1.2.4'),
+                (lock, 9, 'packages[""].version is 1.2.3'),
+            ],
+        )
+
+    def test_c14_the_extra_files_that_bump_the_website(self) -> None:
+        config = "release-please-config.json"
+        at = line(config, '"extra-files"')
+        root = """        {
+          "type": "json",
+          "path": "website/package-lock.json",
+          "jsonpath": "$.packages[''].version"
+        }"""
+        lock_needs = (
+            'extra-files needs { "type": "json", "path": "website/package-lock.json", "jsonpath":'
+            ' "$.version" } and { "type": "json", "path": "website/package-lock.json",'
+            ' "jsonpath": "$.packages[\'\'].version" }, and no other entry for'
+            " website/package-lock.json"
+        )
+        package_needs = (
+            'extra-files needs { "type": "json", "path": "website/package.json", "jsonpath":'
+            ' "$.version" }, and no other entry for website/package.json'
+        )
+        top_entry = (
+            '        { "type": "json", "path": "website/package-lock.json", "jsonpath": "$.version" }'
+            ",\n"
+        )
+        for changes in (
+            # release-please would leave the root package's version behind.
+            edited(config, ",\n" + root, ""),
+            # ... or the lockfile's own.
+            edited(config, top_entry, ""),
+            # Every version in the lockfile: its dependencies' too.
+            edited(config, "$.packages[''].version", "$..version"),
+            # Not a "json" entry, the only kind that reads a jsonpath.
+            edited(config, root, root.replace('"json"', '"generic"')),
+            # The root package's version twice.
+            edited(config, root, root + ",\n" + root),
+        ):
+            self.assert_problems(check("release-versions"), changes, [(config, at, lock_needs)])
+        package = '{ "type": "json", "path": "website/package.json", "jsonpath": "$.version" }'
+        for changes in (
+            edited(config, package + ",\n", ""),
+            edited(config, package, package.replace('"json"', '"generic"')),
+            edited(config, package, package.replace("$.version", "$.name")),
+        ):
+            self.assert_problems(check("release-versions"), changes, [(config, at, package_needs)])
+        # An entry's other keys, such as "glob", are release-please's business.
+        self.assert_problems(
+            check("release-versions"),
+            edited(config, package, package.replace(" }", ', "glob": false }')),
+            [],
+        )
+
+    def test_c14_needs_the_website_files(self) -> None:
+        # C14 names both among the files it reads (`sync_facts.py --list` prints them).
+        self.assertLessEqual(
+            {"website/package.json", "website/package-lock.json"},
+            set(check("release-versions").reads),
+        )
+        for path in ("website/package.json", "website/package-lock.json"):
+            with self.assertRaisesRegex(SourceShapeError, f"{path}: is missing"):
+                self.run_check(check("release-versions"), {path: None})
 
 
 class RangesAndCountsTest(FixtureCase):

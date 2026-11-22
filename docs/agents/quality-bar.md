@@ -459,8 +459,9 @@ CI fails when a copy drifts.
   gates, test counts, the website's checks, the range of decisions, the files a release bumps,
   the golden variants) and the copies it checks (versions named in the docs and `llms.txt`,
   PostgreSQL's among them, workflow pins, the CI jobs table, every `make` reference, the
-  generated-files table, the README's release line, the ranges of decisions and proposals, and
-  the counts of golden variants, TLA+ models and pgTAP tests, the deck's included).
+  generated-files table, the release's version in the README's release line and in
+  `website/package.json` and its lockfile, the ranges of decisions and proposals, and the counts
+  of golden variants, TLA+ models and pgTAP tests, the deck's included).
 - `make roadmap-check` keeps the website's copy of the roadmap in step with `.github/roadmap.toml`.
 - `make tokens-check` keeps `DESIGN.md`'s frontmatter, and the Urdu type of the e-mails, in step
   with the tokens.

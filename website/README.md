@@ -310,7 +310,15 @@ date, the not-advice notice and its sources.
 
 Every version in `package.json` is exact, and every package in `package-lock.json` was published
 at least seven days before it was locked; install new versions with
-`npm install --before=<a date a week ago>`. `overrides` in `package.json`:
+`npm install --before=<a date a week ago>`.
+
+The website's version is the release's. release-please bumps it in `package.json` and in two
+places in `package-lock.json`: the file's `version` and its root package's (`packages[""]`). npm
+copies those two from `package.json` whenever it rewrites the lockfile, as `npm install` does, so
+a lockfile left behind would change in the next dependency pull request. `make docs-check` fails
+when any of the three differs from `.release-please-manifest.json`.
+
+`overrides` in `package.json`:
 
 | Override                                     | Why                                                                                       |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
