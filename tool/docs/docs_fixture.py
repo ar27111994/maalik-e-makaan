@@ -53,7 +53,14 @@ RELEASE_PLEASE = """\
     ".": {
       "extra-files": [
         { "type": "generic", "path": "app/pubspec.yaml" },
-        { "type": "generic", "path": "README.md" }
+        { "type": "generic", "path": "README.md" },
+        { "type": "json", "path": "website/package.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "website/package-lock.json", "jsonpath": "$.version" },
+        {
+          "type": "json",
+          "path": "website/package-lock.json",
+          "jsonpath": "$.packages[''].version"
+        }
       ]
     }
   }
@@ -574,11 +581,48 @@ ORIGINS = """\
 }
 """
 
+WEBSITE_PACKAGE = """\
+{
+  "name": "site",
+  "version": "1.2.3",
+  "private": true,
+  "dependencies": {
+    "astro": "7.4.12"
+  }
+}
+"""
+
+# The layout npm writes: the website's version, then its root package with the same version, then
+# the dependencies, each with a version of its own.
+WEBSITE_LOCK = """\
+{
+  "name": "site",
+  "version": "1.2.3",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "site",
+      "version": "1.2.3",
+      "dependencies": {
+        "astro": "7.4.12"
+      }
+    },
+    "node_modules/astro": {
+      "version": "7.4.12",
+      "license": "MIT"
+    }
+  }
+}
+"""
+
 FILES: dict[str, str] = {
     "contracts/origins.json": ORIGINS,
     "commitlint.config.mjs": COMMITLINT,
     "release-please-config.json": RELEASE_PLEASE,
     ".release-please-manifest.json": '{".":"1.2.3"}\n',
+    "website/package.json": WEBSITE_PACKAGE,
+    "website/package-lock.json": WEBSITE_LOCK,
     "Makefile": MAKEFILE,
     ".github/workflows/ci.yml": CI,
     ".github/workflows/deploy.yml": DEPLOY,

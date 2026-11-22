@@ -25,6 +25,8 @@ T = TypeVar("T")
 COMMITLINT = "commitlint.config.mjs"
 RELEASE_PLEASE = "release-please-config.json"
 MANIFEST = ".release-please-manifest.json"
+WEBSITE_PACKAGE = "website/package.json"
+WEBSITE_LOCK = "website/package-lock.json"
 MAKEFILE = "Makefile"
 JOURNEYS = "app/uat/tests/journeys.spec.ts"
 PGTAP_DIR = "supabase/tests/database"
@@ -365,6 +367,87 @@ def parse_manifest(text: str) -> str:
     if not isinstance(version, str) or not SEMVER.fullmatch(version):
         raise SourceShapeError(MANIFEST, f"{version!r} is not a version X.Y.Z")
     return version
+
+
+@dataclass(frozen=True)
+class VersionField:
+    """A version an npm file holds: how the checks name it, its value and its line."""
+
+    name: str
+    value: str
+    line: int
+
+
+# A version line as npm writes package.json and package-lock.json: one key on its line.
+_NPM_VERSION_LINE = re.compile(r'^[ \t]*"version": "(?P<value>[^"\n]*)",?$', re.M)
+# The lockfile's root package, packages[""], as npm writes it: the key opens its object.
+_NPM_ROOT_PACKAGE = re.compile(r'^[ \t]*"": \{$', re.M)
+
+
+def _npm_json(path: str, text: str, parser: str) -> dict[str, Any]:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as error:
+        raise SourceShapeError(path, f"is not JSON ({error.msg}, line {error.lineno})") from None
+    if not isinstance(data, dict):
+        raise SourceShapeError(
+            path, f"is not a JSON object; update {parser} in tool/docs/fact_sources.py"
+        )
+    return data
+
+
+def _npm_version(
+    path: str, text: str, parser: str, name: str, value: object, start: int = 0
+) -> VersionField:
+    """`name`, whose value json.loads read, at the first version line from `start` on, which
+    must hold that value: anything else is a layout npm does not write."""
+    if not isinstance(value, str):
+        raise SourceShapeError(
+            path, f"has no string {name}; update {parser} in tool/docs/fact_sources.py"
+        )
+    match = _NPM_VERSION_LINE.search(text, start)
+    if match is None or match.group("value") != value:
+        raise SourceShapeError(
+            path,
+            f"does not have {name} on a line of its own where npm writes it;"
+            f" update {parser} in tool/docs/fact_sources.py",
+        )
+    return VersionField(name, value, _line(text, match.start()))
+
+
+def parse_website_package(text: str) -> VersionField:
+    """website/package.json's "version", which release-please bumps with each release."""
+    data = _npm_json(WEBSITE_PACKAGE, text, "parse_website_package")
+    return _npm_version(
+        WEBSITE_PACKAGE, text, "parse_website_package", '"version"', data.get("version")
+    )
+
+
+def parse_website_lock(text: str) -> tuple[VersionField, VersionField]:
+    """website/package-lock.json's "version" and packages[""].version, the website's own: npm
+    writes both from package.json's whenever it rewrites the lockfile, and release-please bumps
+    both with each release (every other version in the file is a dependency's)."""
+    parser = "parse_website_lock"
+    data = _npm_json(WEBSITE_LOCK, text, parser)
+    packages = data.get("packages")
+    root = packages.get("") if isinstance(packages, dict) else None
+    if not isinstance(root, dict):
+        raise SourceShapeError(
+            WEBSITE_LOCK,
+            f'has no root package (packages[""]), which lockfile version 2 and later have;'
+            f" update {parser} in tool/docs/fact_sources.py",
+        )
+    top = _npm_version(WEBSITE_LOCK, text, parser, '"version"', data.get("version"))
+    opened = _NPM_ROOT_PACKAGE.search(text)
+    own = _npm_version(
+        WEBSITE_LOCK,
+        text,
+        parser,
+        'packages[""].version',
+        root.get("version"),
+        opened.end() if opened else len(text),
+    )
+    return top, own
 
 
 # ── Makefile ───────────────────────────────────────────────────────────────────────────────
@@ -1175,6 +1258,14 @@ class Repo:
 
     def manifest(self) -> str:
         return self._cached("manifest", lambda: parse_manifest(self.text(MANIFEST)))
+
+    def website_package(self) -> VersionField:
+        return self._cached(
+            "website-package", lambda: parse_website_package(self.text(WEBSITE_PACKAGE))
+        )
+
+    def website_lock(self) -> tuple[VersionField, VersionField]:
+        return self._cached("website-lock", lambda: parse_website_lock(self.text(WEBSITE_LOCK)))
 
     def makefile(self) -> Makefile:
         return self._cached("makefile", lambda: parse_makefile(self.text(MAKEFILE)))

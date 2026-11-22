@@ -44,6 +44,8 @@ from fact_sources import (
     SECURITY,
     SUPABASE_CONFIG,
     TLA_DIR,
+    WEBSITE_LOCK,
+    WEBSITE_PACKAGE,
     Origins,
     Repo,
     SourceShapeError,
@@ -257,7 +259,8 @@ def render_subject_case(repo: Repo) -> str:
 
 
 def render_release_files(repo: Repo) -> str:
-    """The files the release pull request bumps: the manifest and every extra file."""
+    """The files the release pull request bumps: the manifest and every extra file, each once
+    (the website's lockfile has an entry for each of its two versions)."""
     paths = [MANIFEST]
     for entry in repo.release_please().extra_files:
         path = entry.get("path")
@@ -265,7 +268,8 @@ def render_release_files(repo: Repo) -> str:
             raise SourceShapeError(
                 RELEASE_PLEASE, f'the extra file {entry!r} has no "path"; give it one'
             )
-        paths.append(path)
+        if path not in paths:
+            paths.append(path)
     return prose_list([code(path) for path in paths])
 
 
@@ -1265,7 +1269,18 @@ def check_generated_files_table(repo: Repo, tracked: Tracked) -> list[Problem]:
     return problems
 
 
-def check_release_in_readme(repo: Repo, tracked: Tracked) -> list[Problem]:
+# Where the extra files bump the website's own version, and nowhere else in those files: every
+# other version in the lockfile is a dependency's. release-please's "json" updater (GenericJson,
+# a jsonpath-plus path) reaches the root package's empty key as `$.packages[''].version`;
+# .planning/STATE.md (Closed on 22 November 2026) has the proof, and website/README.md
+# (Dependencies) says why the lockfile's two versions are bumped at all.
+WEBSITE_VERSIONS: dict[str, tuple[str, ...]] = {
+    WEBSITE_PACKAGE: ("$.version",),
+    WEBSITE_LOCK: ("$.version", "$.packages[''].version"),
+}
+
+
+def check_release_versions(repo: Repo, tracked: Tracked) -> list[Problem]:
     version = repo.manifest()
     release = repo.release_please()
     text = repo.text(README)
@@ -1311,6 +1326,44 @@ def check_release_in_readme(repo: Repo, tracked: Tracked) -> list[Problem]:
                 " leaves README's release line behind",
             )
         )
+    for path, jsonpaths in WEBSITE_VERSIONS.items():
+        bumps = sorted(
+            (str(entry.get("type")), str(entry.get("jsonpath")))
+            for entry in release.extra_files
+            if entry.get("path") == path
+        )
+        if bumps != sorted(("json", jsonpath) for jsonpath in jsonpaths):
+            wanted = " and ".join(
+                f'{{ "type": "json", "path": "{path}", "jsonpath": "{jsonpath}" }}'
+                for jsonpath in jsonpaths
+            )
+            problems.append(
+                Problem(
+                    RELEASE_PLEASE,
+                    _line_containing(repo.text(RELEASE_PLEASE), '"extra-files"'),
+                    f"extra-files needs {wanted}, and no other entry for {path}: release-please"
+                    " bumps the website's own version there and nothing else",
+                )
+            )
+    fields = [(WEBSITE_PACKAGE, repo.website_package())]
+    fields += [(WEBSITE_LOCK, field) for field in repo.website_lock()]
+    for path, field in fields:
+        if field.value != version:
+            npm = (
+                ", or run `npm install --package-lock-only --ignore-scripts` in website/ once"
+                f" {WEBSITE_PACKAGE} has {version}, which writes both lockfile versions"
+                if path == WEBSITE_LOCK
+                else ""
+            )
+            problems.append(
+                Problem(
+                    path,
+                    field.line,
+                    f"{field.name} is {field.value}, but {MANIFEST} has {version}: release-please"
+                    f" bumps it with each release ({RELEASE_PLEASE}, extra-files); set it to"
+                    f" {version}{npm}",
+                )
+            )
     return problems
 
 
@@ -1771,10 +1824,12 @@ CHECKS: tuple[Check, ...] = (
     ),
     Check(
         "C14",
-        "release-in-readme",
-        (README, MANIFEST, RELEASE_PLEASE),
-        "README's release line (written by release-please) names the manifest's version",
-        check_release_in_readme,
+        "release-versions",
+        (README, MANIFEST, RELEASE_PLEASE, WEBSITE_PACKAGE, WEBSITE_LOCK),
+        "README's release line, website/package.json's version and website/package-lock.json's"
+        " two (all bumped by release-please) name the manifest's version, and release-please's"
+        " extra-files bump each of them",
+        check_release_versions,
     ),
     Check(
         "C15",
