@@ -49,9 +49,9 @@ others); Flutter writes their notices into every build's `NOTICES` asset.
 | clock               | 1.1.3   | Apache-2.0                                                                         |
 | file_picker         | 13.3.2  | MIT                                                                                |
 | flutter_riverpod    | 3.5.0   | MIT                                                                                |
-| go_router           | 18.1.3  | BSD-3-Clause                                                                       |
+| go_router           | 18.1.4  | BSD-3-Clause                                                                       |
 | http                | 1.6.0   | BSD-3-Clause                                                                       |
-| image               | 4.12.0  | MIT                                                                                |
+| image               | 4.13.1  | MIT                                                                                |
 | image_picker        | 1.2.4   | BSD-3-Clause (its licence file also carries an Apache-2.0 notice for aFileChooser) |
 | intl                | 0.20.3  | BSD-3-Clause                                                                       |
 | path_provider       | 2.1.6   | BSD-3-Clause                                                                       |
@@ -110,7 +110,7 @@ AGPL.
 | Atkinson Hyperlegible Next | 2.001                | SIL Open Font License 1.1                   | 2020-2024 The Atkinson Hyperlegible Next Project Authors |
 | Noto Sans Arabic           | 2.012                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
 | Noto Nastaliq Urdu         | 3.009                | SIL Open Font License 1.1                   | 2022 The Noto Project Authors                            |
-| MmIcons (subset of Lucide) | lucide-static 1.70.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
+| MmIcons (subset of Lucide) | lucide-static 1.73.0 | ISC; the icons derived from Feather are MIT | Lucide Icons and Contributors; Cole Bemis (Feather)      |
 
 The font files and their licence texts are in `packages/mm_ui/assets/fonts/`
 (`OFL-AtkinsonHyperlegibleNext.txt`, `OFL-NotoSansArabic.txt`, `OFL-NotoNastaliqUrdu.txt`,
@@ -126,7 +126,7 @@ language switch on English pages, renamed "MM Urdu Label") and Noto Nastaliq
 Urdu (the letters of the wordmark only), and publishes the three OFL texts at
 `/licences/`. The pitch deck (`website/deck/`) embeds the three in its PDF (Noto
 Nastaliq Urdu for the cover's wordmark only) and draws five Lucide icons
-(`website/deck/icons/`, with their ISC notice) from lucide-static 1.70.0.
+(`website/deck/icons/`, with their ISC notice) from lucide-static 1.73.0.
 
 What the licences ask:
 
@@ -163,8 +163,8 @@ Their locked transitive packages are MIT (`@supabase/auth-js`,
 | Package          | Version | Licence      |
 | ---------------- | ------- | ------------ |
 | astro            | 7.4.12  | MIT          |
-| @astrojs/mdx     | 8.1.3   | MIT          |
-| @astrojs/sitemap | 3.7.4   | MIT          |
+| @astrojs/mdx     | 8.1.6   | MIT          |
+| @astrojs/sitemap | 3.7.5   | MIT          |
 | subset-font      | 2.9.0   | BSD-3-Clause |
 
 Development only:
@@ -174,24 +174,24 @@ Development only:
 | @astrojs/check            | 0.9.12  | MIT        |
 | @axe-core/playwright      | 4.14.0  | MPL-2.0    |
 | @eslint/js                | 10.0.1  | MIT        |
-| @lhci/cli                 | 0.16.0  | Apache-2.0 |
-| @playwright/test          | 1.65.0  | Apache-2.0 |
+| @lhci/cli                 | 0.16.1  | Apache-2.0 |
+| @playwright/test          | 1.65.1  | Apache-2.0 |
 | @types/node               | 22.20.5 | MIT        |
-| eslint                    | 10.14.0 | MIT        |
+| eslint                    | 10.15.0 | MIT        |
 | eslint-plugin-astro       | 3.2.1   | MIT        |
 | eslint-plugin-jsx-a11y    | 6.10.2  | MIT        |
 | fast-check                | 4.10.2  | MIT        |
 | globals                   | 17.14.0 | MIT        |
 | parse5                    | 8.1.1   | MIT        |
 | postcss-html              | 2.0.0   | MIT        |
-| prettier                  | 3.9.10  | MIT        |
+| prettier                  | 3.10.1  | MIT        |
 | prettier-plugin-astro     | 1.1.2   | MIT        |
 | sharp                     | 0.35.5  | Apache-2.0 |
 | stylelint                 | 17.16.0 | MIT        |
 | stylelint-config-standard | 40.0.0  | MIT        |
 | stylelint-use-logical     | 2.1.3   | CC0-1.0    |
 | typescript                | 6.0.3   | Apache-2.0 |
-| typescript-eslint         | 8.72.1  | MIT        |
+| typescript-eslint         | 8.72.2  | MIT        |
 | vitest                    | 5.1.0   | MIT        |
 | yaml                      | 2.9.1   | ISC        |
 
@@ -204,17 +204,17 @@ Root `package.json` (development only):
 | @commitlint/cli                 | 21.2.4  | MIT     |
 | @commitlint/config-conventional | 21.2.4  | MIT     |
 | lefthook                        | 2.2.2   | MIT     |
-| lucide-static                   | 1.70.0  | ISC     |
-| markdownlint-cli2               | 0.24.0  | MIT     |
-| prettier                        | 3.9.10  | MIT     |
+| lucide-static                   | 1.73.0  | ISC     |
+| markdownlint-cli2               | 0.24.1  | MIT     |
+| prettier                        | 3.10.1  | MIT     |
 
 Browser UAT (`app/uat/package.json`, development only; `docs/uat.md`):
 
 | Package          | Version | Licence    |
 | ---------------- | ------- | ---------- |
-| @playwright/test | 1.65.0  | Apache-2.0 |
+| @playwright/test | 1.65.1  | Apache-2.0 |
 
-It installs `playwright` and `playwright-core` 1.65.0 (Apache-2.0) and, at run time, a Chromium
+It installs `playwright` and `playwright-core` 1.65.1 (Apache-2.0) and, at run time, a Chromium
 build for testing; none of it is distributed.
 
 Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
@@ -225,14 +225,14 @@ Python (`tool/requirements.txt`, `tool/requirements-lint.txt`,
 | fonttools            | 4.68.0    | MIT                                                              |
 | PyYAML               | 6.0.3     | MIT                                                              |
 | black                | 26.10.1   | MIT                                                              |
-| ruff                 | 0.17.4    | MIT                                                              |
+| ruff                 | 0.17.5    | MIT                                                              |
 | shellcheck-py        | 0.11.0.1  | MIT wrapper; the ShellCheck 0.11.0 binary it installs is GPL-3.0 |
 | shfmt-py             | 4.2.0     | MIT AND BSD-3-Clause (shfmt 3.14.1)                              |
 | squawk-cli           | 2.71.0    | Apache-2.0 OR MIT                                                |
 | editorconfig-checker | 3.11.1    | MIT                                                              |
 | actionlint-py        | 1.7.12.25 | MIT                                                              |
 | zizmor               | 1.32.0    | MIT                                                              |
-| z3-solver            | 5.3.3.0   | MIT                                                              |
+| z3-solver            | 5.4.1.0   | MIT                                                              |
 | tzdata               | 2026.6    | Apache-2.0 (the IANA 2026f data it carries is public domain)     |
 
 Locked transitive Python packages: click 8.5.0 (BSD-3-Clause), mypy-extensions
