@@ -391,25 +391,35 @@ else does then, since a picker may be handing over a copy.
     built again whenever the
     session changes, also when the same account's session starts again
     after a wipe (`AuthController` notifies then, although the status is the
-    same). Riverpod keeps a provider's last value through a rebuild until
-    the next one comes, also when that one fails; built for another user
-    than the build before, or for nobody, each of them drops it at once
+    same). Riverpod keeps a provider's last value through a rebuild until the
+    next one comes, also when that one fails; built for another user than the
+    build before, or for nobody, each of them drops it at once
     (`sessionChanged`: loading, with `SessionExpired` and no value), so none
-    of them holds the earlier account's value in the next account's
-    session, whatever a screen reads of it; built for a new session of the
-    same user, it keeps it until the new one comes. Two providers outside
-    them can: the unread count, built again for the next user, keeps the
-    earlier number until that build answers (`unreadCountProvider`), and the
-    links made for the document a sheet shows stay until the sheet closes,
+    of them holds the earlier account's value in the next account's session,
+    whatever a screen reads of it; built for a new session of the same user,
+    it keeps it until the new one comes. Outside them, these can hold the
+    earlier account's value. The unread count, built again for the next user,
+    keeps the earlier number until that build answers (`unreadCountProvider`).
+    The links made for the document a sheet shows stay until the sheet closes,
     made again every three minutes with whatever token is signed in then
-    (`documentLinksProvider`). A search watches no session either, but it
-    is keyed by the user as well as the portfolio and the words
-    (`searchProvider`): once another account signs in, the screen reads a
-    new one, which asks and shows loading until it answers, and the earlier
-    account's results go with the one no screen reads any more. A screen
-    shows `sessionChanged`'s state as it shows a first read, loading, not
-    as a failure with "Try again": nothing failed for the person signed
-    in. Every screen that shows the error of a
+    (`documentLinksProvider`). A list's photo links are kept from one run to
+    the next in a map made again, empty, for each user who signs in
+    (`_thumbnailLinksProvider` watches `currentUserIdProvider`), so the next
+    account's photos are signed with its own token, and a link the earlier
+    account's request brings after the change is never used; the list's value
+    (`documentThumbnailsProvider`) keeps the earlier links while its first run
+    after the change goes, as Riverpod keeps a value through a rebuild, but
+    the documents then have no rows to show them beside (`sessionChanged`), so
+    no screen shows them. The address the last e-mail was sent to stays in
+    memory for the whole run, across sign-outs, for the check-email screen
+    (`pendingEmailProvider`). A search watches no session either, but it is
+    keyed by the user as well as the portfolio and the words
+    (`searchProvider`): once another account signs in, the screen reads a new
+    one, which asks and shows loading until it answers, and the earlier
+    account's results go with the one no screen reads any more. A screen shows
+    `sessionChanged`'s state as it shows a first read, loading, not as a
+    failure with "Try again": nothing failed for the person signed in. Every
+    screen that shows the error of a
     provider that can hold that state for the user signed in asks
     `waitsForSession` first: that of an `SwrNotifier` (`SnapshotView`, the
     team, the portfolio details, the reports' scores, and a new tenancy,

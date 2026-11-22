@@ -275,7 +275,9 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   has signed in from another tab by the time the answer comes, nobody is signed out; when nobody
   holds the device, or the same account signed in again, it signs out as a deletion all the same,
   decided from the session gotrue holds rather than the status shown (the first version of the
-  rule, found by the next check, left the invitation after a sign-out in another tab). A
+  rule, found by the next check, left the invitation after a sign-out in another tab). That
+  check also found a documents list's photo links, signed for the earlier account, used again
+  beside the next account's rows; they are now made again for each user who signs in. A
   command that chooses the current portfolio after a request chooses nothing when the
   session it asked in has ended meanwhile, and a start signed in removes what
   other accounts left in the cache and their chosen portfolio. Display settings stay; an
