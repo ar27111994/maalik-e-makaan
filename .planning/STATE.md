@@ -9,18 +9,91 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-22)
 
-- **Publish jobs for the release files (D-25, branch `claude/release-publish-job`).** Release's
-  builds hold a read-only token and no OIDC token and hand their files to `publish-artefacts` and
-  `publish-ios`, which take them by the artifact's id on a fresh runner, attest, check and attach
-  them; `tool/github/check_release_provenance.py` is a structural check (permissions, secrets and
-  fixed templates) in place of the bash reader (`docs/operations.md`, Release provenance). It
-  applies from the first release after v1.4.2. Release pull request #109 (1.4.3, opened from #108's
-  record of release 1.4.2) is held, not merged, until this branch is merged (the owner's decisions
-  of 22 November 2026, D-22 to D-24, already are: #110 and #111), so that "after v1.4.2" stays true
-  and release-please folds this change into that release.
+- Release 1.4.3 was published on 22 November 2026 at 13:29 UTC (tag `v1.4.3`, commit 5b3d24f on
+  `main`; the Release run 45027774726, one attempt, 13:29 to 13:41 UTC). Every job that ran
+  passed. As Releasing step 3 says, the first Deploy call left the website to the second, and the
+  second left the backend and the web app to the first, so those three jobs were skipped. The
+  agent merged the release pull request (#109) at 13:29 UTC on the owner's standing word, 15
+  minutes after #112. For users it carries #110: Back cancels an account deletion until its
+  request is sent, and every sheet, dialog and menu closes when the signed-in account changes
+  (D-22, D-23). It also carries #111 (phone backups stay full, D-24, and the privacy page's
+  sentence on a new phone), #112 (the publish jobs, D-25), #108 (the record of 1.4.2) and one
+  change the changelog leaves out, #107 (the Dependabot updates of 22 November). No migration: 24
+  stay applied (`list_migrations`), and nothing under `supabase/` changed since v1.4.2, so
+  Releasing step 5 (the Auth templates) did not apply. Deploy's backend (`supabase db push` found
+  the database up to date, the four Edge Functions were redeployed, version 22 at 13:30 UTC, and
+  `health` answered `ok`), web app (its smoke tests on `https://app.mmakaan.app` and on the old
+  address) and website each passed.
+  **The functions went from version 20 (1.4.2's deploy) to 22 through a version 21 that no
+  workflow run and no tool call of the agent's session made.** `health` served version 20 until
+  08:09 UTC and version 21 from 08:14 UTC that day (the project's function logs). None of the
+  workflow runs then deploys: the Release run of 08:04 UTC (#108) skipped Deploy, and the others
+  were CI, Security, Scorecard and title checks. That day the agent's session called no Supabase
+  tool that writes, and its container holds no token for the Supabase CLI (read afterwards from
+  the session's transcripts and environment). The project's gateway and storage logs show calls
+  from Supabase's management API only at 08:10 to 08:11 UTC and at 13:30 UTC (the release's
+  deploy). Version 22's bundle hashes (`ezbr_sha256`) equal version 20's, so what runs now is the
+  tag's code. What made version 21 is a question for the owner (Waiting on the owner, below), as
+  the hosted project changes only by the process in `docs/operations.md`.
+  **It was the publish jobs' first real run (D-25), and every point of the check that Follow-ups
+  listed held but the last, a person's run of `SECURITY.md`'s command, which is still to do**
+  (now under Closed on 22 November 2026). The jobs ran in order: `release-please` (13:29 to
+  13:30) and `preflight`; the builds, `ios` (13:30 to 13:35) and `artefacts` (13:30 to 13:38);
+  each publish job after its own build, `publish-ios` (13:35 to 13:36) and `publish-artefacts`
+  (13:38 to 13:39); and `site` from 13:39, after both. The builds' token read Contents read and
+  Metadata read, and the publish jobs' Attestations write, Contents write and Metadata read (each
+  job's "GITHUB_TOKEN Permissions"; that list never names the OIDC token, so release.yml, which
+  gives the builds `contents: read` alone, is the evidence that they had none).
+  The builds ran on the `ubuntu-24.04` and `macos-26-arm64` images and the publish jobs on
+  `ubuntu-24.04`, all in the `release` environment (the publish jobs' certificates name it). Each
+  publish job took its build's artifact by its id (`release-ios-1`, 14756009671;
+  `release-android-web-1`, 14756568563) and logged the digest the build had recorded as both the
+  expected and the downloaded one; its `mv` and `rmdir build` passed on the real Flutter and
+  Gradle file names. Each build's `artifact-id` output, a number, reached its publish job (the
+  runner did not withhold it as possibly masked). The iOS attest step logged "Attestation created
+  for 2 subjects" (attestation 70762442, Rekor log index 4045682266), and the Android and web one
+  "for 7 subjects" (70763038, log index 4045760634); each check step logged only the two lines of
+  `gh --version` (2.104.0, 2026-11-12) and passed, and each attach step put its files on the
+  release. Eleven files are attached, named as 1.4.1's.
+  Checked by the agent afterwards, on downloads of all eleven files, with a script of 37 checks
+  through GitHub's REST API, all passed: `SHA256SUMS` and `SHA256SUMS-ios` match the files; each
+  provenance file holds one bundle with exactly 7 and 2 subjects, each with the downloaded file's
+  SHA-256 (the two lists among them); each DSSE signature verifies with its certificate's key;
+  the certificates name `.github/workflows/release.yml@refs/heads/main`, runner environment
+  `github-hosted`, source ref `refs/heads/main` and the tag's commit; and GitHub's attestation
+  store holds one attestation for each subject. The script does not check the certificate's chain
+  to Sigstore's root, its signed certificate timestamp, the transparency-log entry or that the
+  certificate was valid when the log took it: those need Sigstore's trusted root, which the
+  container cannot fetch (its proxy refuses the hosts, as for 1.4.2). The certificates also name
+  run 45027774726, attempt 1, which the script prints but does not check. The script passed on
+  v1.4.2's files first, and failed (2 checks) with one byte of a downloaded file changed. Not
+  passed: `SECURITY.md`'s `gh attestation verify` stopped at "error creating Sigstore verifier",
+  as for 1.4.2, and the container's `gh` is 2.89.0, older than the 2.102.0 `SECURITY.md` asks
+  for; a person's run is still needed (Waiting on the owner, below). The website's deploy listed
+  the release's eleven files and checked the site's six release-file links (the download page's)
+  against the release; `https://mmakaan.app/download/` shows "Version 1.4.3", "Released on 22
+  November 2026" and links to the three APKs, the unsigned `.ipa`, the web zip and `SHA256SUMS`,
+  and its footer reads "Version 1.4.3, released 22 November 2026" (read through the Vercel
+  connector at 13:42 UTC, as the proxy refuses the host). The Urdu download page, the site's
+  `llms.txt` and the web app's `version.json` were not read for this release.
+  GitHub read #109's `mergeable_state` as `blocked` before the merge, although every required
+  check had passed or been skipped, no review thread was open and Greptile had approved its head.
+  The merge went through, and the ruleset's evaluation of it (rule suite 5290042947) shows all
+  seven rules passing and the result "pass", not a bypass.
+- **Publish jobs for the release files (D-25, #112, merged on 22 November 2026 at 13:14 UTC as
+  78721ae; first released in 1.4.3, above).** Release's builds hold a read-only token and no OIDC
+  token and hand their files to `publish-artefacts` and `publish-ios`, which take them by the
+  artifact's id on a fresh runner, attest, check and attach them;
+  `tool/github/check_release_provenance.py` is a structural check (permissions, secrets and fixed
+  templates) in place of the bash reader (`docs/operations.md`, Release provenance). It applies
+  from the first release after v1.4.2. Release pull request #109 (1.4.3, opened from #108's
+  record of release 1.4.2) was held until #112 was merged. #110 and #111 (the owner's decisions
+  of 22 November 2026, D-22 to D-24) were merged before it, so release-please folded all three
+  into 1.4.3.
   **The dry run, 22 November 2026,** on the throwaway branch `claude/publish-dry-run` (never
-  merged), with the workflow `publish-dry-run.yml`: its commits 55fee42, a12bf1a and 5c5f7a9 sit on
-  this branch's first commit, def8ff8, and run 45004074850 ran a12bf1a, run 45005674247 5c5f7a9,
+  merged, and still on GitHub: the session's git proxy refused the agent's deletion, HTTP 403),
+  with the workflow `publish-dry-run.yml`: its commits 55fee42, a12bf1a and 5c5f7a9 sit on the
+  first commit of #112's branch, def8ff8, and run 45004074850 ran a12bf1a, run 45005674247 5c5f7a9,
   each in two attempts. Its build jobs wrote files of random bytes under the release's names. The
   publish jobs that attested (both in run 1, the Android one in run 2) were the template but for:
   their signer workflow and source ref (that workflow, that branch); a literal tag; no environment;
@@ -59,11 +132,19 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   index 4039734415) and iOS publish job (70715516, 4039724925), and run 45005674247's Android
   publish job (70718515, 4039860339). The exemption (`DRY_RUN_ATTESTERS` in that branch's copy of
   the check) let these hold `attestations: write`: both publish jobs in run 45004074850 (a12bf1a),
-  the Android one alone in run 45005674247 (5c5f7a9). Not proven by the dry run: the real signer
-  (`release.yml@refs/heads/main`), the real upload with `contents: write` from a job with no
-  checkout, that the real Flutter and Gradle file names match the `mv` list, release-please's
-  outputs and the `release` environment. The next release (1.4.3, as #109 stands) is the first full
-  test (Follow-ups, Open).
+  the Android one alone in run 45005674247 (5c5f7a9). What the dry run could not prove, release
+  1.4.3 showed (above): the real signer (`release.yml@refs/heads/main`), the real upload with
+  `contents: write` from a job with no checkout, that the real Flutter and Gradle file names match
+  the `mv` list, release-please's outputs and the `release` environment.
+- CI (2026-11-22, pull request #112): the pull-request run 45024637397 failed once, in Website,
+  where Lighthouse stopped with NO_NAVSTART ("Something went wrong with recording the trace over
+  your page load") on `/guides/rental-income-tax/`, at run 3 of 3; runs 1 and 2 on that page
+  passed. Lighthouse CI tries each run up to three times and reports the first error
+  (`runUntilSuccess` in `@lhci/cli` 0.16.1), so all three tries at run 3 failed. The push run
+  45024553712 of the same commit passed all 24 Lighthouse runs, and re-running the failed job
+  passed. #112 changed only a comment in the website (`website/src/lib/release.ts`, read at build
+  time), so it is taken as a fault of the trace, not of the page. If NO_NAVSTART comes back, it
+  becomes a CI follow-up (Follow-ups, Open).
 - Release 1.4.2 was published on 22 November 2026 at 05:46 UTC (tag `v1.4.2`, commit 9807197 on
   `main`; the Release run 44990804084, two attempts, 05:45 to 06:07 UTC). The agent merged the
   release pull request (#99) at 05:45 UTC on the owner's standing word, 13 minutes after #70.
@@ -234,8 +315,15 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   LinkedIn and the D-U-N-S record; the three Checkly monitors once the account's "Trial" (read
   on 15 November) ends; now that release 1.4.1 carries step 12 (16 November 2026),
   `ALLOWED_ORIGINS` set to the new origin alone and the old callback checked by hand; and
-  `SECURITY.md`'s `gh attestation verify` on a download of 1.4.0, 1.4.1 or 1.4.2 (Checking a
-  download), which the agent's container cannot run, as it cannot reach Sigstore's trusted root.
+  `SECURITY.md`'s `gh attestation verify` on a download of 1.4.0 to 1.4.3 (Checking a download;
+  1.4.3 first, the first release the publish jobs made), which the agent's container cannot run,
+  as it cannot reach Sigstore's trusted root. Since 22 November 2026, two more are the owner's.
+  The first is deleting the throwaway branch `claude/publish-dry-run`. The agent's session could
+  not, as its git proxy answered 403. A push to the branch would run its workflow, which attests,
+  though `SECURITY.md`'s command refuses what it signs (another workflow and another ref). The
+  second is saying what uploaded the four Edge Functions as version 21 between 08:09 and 08:14
+  UTC that day, which no workflow run and no tool call of the agent's session did (Current
+  Position, release 1.4.3).
 - Open note for the owner (15 November 2026): the owner also made an inbox for
   `hello@mmakaan.app` in Resend, with a receiving address; nothing is forwarded to it. The
   agent's advice: forwarding the mailbox there would put people's incoming messages at Resend,
@@ -257,8 +345,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   each release carries its attestation's Sigstore bundle as `maalik-e-makaan-vX.Y.Z.intoto.jsonl`
   (and `-ios.intoto.jsonl`), checked against every file it covers with `gh attestation verify
 --bundle` before it is attached. Up to 1.4.2 each build job did this itself, holding the
-  release's write token while the build tools ran; from the first release after v1.4.2 publish
-  jobs of their own do it on a fresh runner, and `tool/github/check_release_provenance.py`
+  release's write token while the build tools ran; from 1.4.3, publish jobs of their own do it
+  on a fresh runner, and `tool/github/check_release_provenance.py`
   (`make lint`) is a structural check of permissions, secrets and fixed templates in place of the
   bash reader, whose list of what it could not see goes with it (D-25; `docs/operations.md`,
   Release provenance). `SECURITY.md`, Checking a download, tells people how to check.
@@ -392,9 +480,9 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   also when the screen was left while it signed in again, and then sent the deletion (before #70,
   it sent none then, through an uncaught error): Cancel was disabled while it ran, and leaving was
   not cancelling. Whether back should cancel before the request goes was the owner's call: on 22
-  November 2026 they chose "Back cancels until sent" (D-22), built on the branch
-  `claude/deletion-back-and-sheets`, where leaving while the password is checked cancels and the
-  screen cannot be left while a request is on its way. A command that chooses the current
+  November 2026 they chose "Back cancels until sent" (D-22), built in #110 and released in 1.4.3:
+  leaving while the password is checked cancels, and the screen cannot be left while a request is
+  on its way (Closed on 22 November 2026, below). A command that chooses the current
   portfolio after a request chooses nothing when the session it asked in has ended meanwhile, and a
   start signed in removes what other accounts left in the cache and their chosen portfolio. Display
   settings stay; an invitation opened and not answered stays until it is answered or the account is
@@ -598,8 +686,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
 - `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
-  (`supabase db push`), so 24 migrations are applied; releases 1.3.1 to 1.4.2 carried none
-  (`list_migrations`, read again by the agent after 1.4.2). "After every
+  (`supabase db push`), so 24 migrations are applied; releases 1.3.1 to 1.4.3 carried none
+  (`list_migrations`, read again by the agent after 1.4.3). "After every
   migration" (`docs/operations.md`), done the same day with read-only queries:
   1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
      order, with nothing extra on either side.
@@ -907,18 +995,6 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
      `org.gradle.internal.plugins.portal.url.override` (a JVM-wide `systemProp.` line), with the
      costs of an internal name; a mirror adds a party to trust, and Gradle moves on to the next
      repository only when a module is missing, not after an error.
-- Release: the next release (1.4.3, as #109 stands), the first after the publish jobs (D-25), is
-  their first full test; the dry run (Current Position) could not prove the real signer, the real
-  upload, the real file names or release-please's outputs. Check, and record in that release's
-  record pull request as for 1.4.0: the two builds, then their publish jobs, run in order, and
-  `site` after both publish jobs; the builds' token reads Contents read and Metadata read, and the
-  publish jobs' Attestations write, Contents write and Metadata read; the release has 11 files,
-  named as 1.4.1's; each provenance file has exactly 7 and 2 subjects, with the SHA-256s that
-  `SHA256SUMS` and `SHA256SUMS-ios` list (and those two lists' own); the signer is `release.yml@refs/heads/main` at the tag's
-  commit, with Runner Environment `github-hosted`; the download page lists the files; and a person
-  runs `SECURITY.md`'s command on a download (the agent's container cannot reach Sigstore). A
-  publish job that fails because of its own definition cannot be fixed by a re-run, which runs that
-  run's workflow file: that build's files then wait for the next patch release.
 - Release: sign the APKs and the app bundle in a job of their own, so that no build tool reads
   the upload key (today the `artefacts` job holds the keystore and its passwords while Gradle's
   plugins run; `docs/operations.md`, Release provenance, What the check does not cover).
@@ -929,9 +1005,9 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Closed on 22 November 2026
 
-The owner answered three questions #70 left open, on 22 November 2026. The first two are built on
-the branch `claude/deletion-back-and-sheets`, and the third, phone backups (below), on
-`claude/full-phone-backups`.
+The owner answered three questions #70 left open, on 22 November 2026. The first two were built
+in #110 and the third, phone backups (below), in #111; release 1.4.3 (22 November 2026) carries
+all three.
 
 - Account deletion, in their words "Back cancels until sent" (D-22): Back pressed while the app is
   still checking the password cancels and sends nothing; once the delete request is on its way,
@@ -1000,8 +1076,14 @@ for the upload. The publish jobs are that answer (D-25). No commit of the branch
 of its facts are kept: `gh --version` prints two lines, the version and the address of its
 release (`docs/operations.md`, Release provenance); and a self-hosted runner, which can share its
 machine between jobs, is kept from the publish jobs by their template's `runs-on` and by
-`--deny-self-hosted-runners`. The branch and its worktree are deleted once the publish jobs'
-pull request is merged.
+`--deny-self-hosted-runners`. The branch and its worktree no longer exist (checked after release
+1.4.3, once the publish jobs' pull request, #112, was merged).
+
+The publish jobs' first full test, release 1.4.3, closes the open item on it. Every point it
+listed held (Current Position has the run and the evidence), except a person's run of
+`SECURITY.md`'s command on a download, which is still to do and is now the owner's (Waiting on
+the owner). That a publish job failing on its own definition waits for the next patch release
+stays in `docs/operations.md` (Release provenance, Re-runs).
 
 ### Closed on 15 November 2026
 
@@ -1029,9 +1111,12 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 ## Deployed
 
 - Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version
-  20 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-22), active,
-  verify_jwt off as in config.toml: release 1.4.2's Deploy run uploaded them from the tag with
-  the Supabase CLI at 05:47 UTC that day, as every release since 1.0.0 (2026-11-09) has.
+  22 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-22), active,
+  verify_jwt off as in config.toml: release 1.4.3's Deploy run uploaded them from the tag with
+  the Supabase CLI at 13:30 UTC that day, as every release since 1.0.0 (2026-11-09) has. Their
+  bundle hashes (`ezbr_sha256`) are those of version 20, release 1.4.2's upload. Version 21,
+  between 08:09 and 08:14 UTC that day, came from no workflow run and no tool call of the agent's
+  session; its source is a question for the owner (Current Position, release 1.4.3).
 - They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
   (version 1). A byte-for-byte comparison with the repository matched then, except one line of
   `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the
