@@ -372,9 +372,9 @@ void main() {
   // session ends. A sheet or dialog shows a copy of the record it was opened
   // on, and its buttons would act for whoever is signed in. The app shell
   // removes them at once, with no closing animation, so no frame after the
-  // change shows the earlier account's record; the screens below are pages,
-  // which the router keeps, and they show loading until that account's own
-  // answers.
+  // change shows the earlier account's record in them, and clears snack
+  // bars too; the screens below are pages, which the router keeps, and they
+  // show loading until that account's own answers.
   group('when the signed-in account changes', () {
     // Counts, over [frames] frames of 16 ms after another account's session
     // replaced the user's (the first at once), those on which any of
@@ -601,6 +601,95 @@ void main() {
       expect(find.byType(LeaseDetailScreen), findsOneWidget);
       expect(find.byType(OccupantSheet), findsNothing);
       expect(find.text('35202-7654321-2'), findsNothing);
+    });
+
+    // A dialog, and a sheet opened from it (a date picker or a list to
+    // choose from, say), are two routes on the root navigator: both go on
+    // the first frame, and each answers null.
+    testWidgets('a dialog and a sheet opened from it, both on the root '
+        'navigator, close together, each answering null', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      final page = tester.element(find.byType(LeaseDetailScreen));
+      late BuildContext dialog;
+      final dialogAnswer = showDialog<bool>(
+        context: page,
+        builder: (context) {
+          dialog = context;
+          return const AlertDialog(content: Text('Remove Sana Raza?'));
+        },
+      );
+      await tester.pumpAndSettle();
+      final sheetAnswer = showMmSheet<bool>(
+        dialog,
+        title: 'Sana Raza',
+        builder: (_) => const Text('35202-7654321-2'),
+      );
+      await tester.pumpAndSettle();
+      final root = Navigator.of(page, rootNavigator: true);
+      expect(Navigator.of(dialog), same(root));
+      expect(
+        Navigator.of(tester.element(find.text('35202-7654321-2'))),
+        same(root),
+      );
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.text('Remove Sana Raza?'),
+          find.text('35202-7654321-2'),
+          find.byType(Dialog),
+        ],
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(await sheetAnswer, isNull);
+      expect(await dialogAnswer, isNull);
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    // A snack bar that names a record (a member removed, a document
+    // deleted) goes too, on the first frame: one shown from a section's
+    // screen, on the messenger the frame gives the sections, and one shown
+    // from above them (a dialog's context), on the app's own messenger.
+    testWidgets("snack bars naming the earlier account's records go on the "
+        'first frame', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      final shown = [
+        showMmSnackbar(
+          tester.element(find.byType(LeaseDetailScreen)),
+          message: 'Sana Raza removed',
+        ),
+        showMmSnackbar(
+          tester.element(find.byType(MmAdaptiveScaffold)),
+          message: 'Bilal Ahmed removed',
+        ),
+      ];
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Sana Raza removed'), findsOneWidget);
+      expect(find.text('Bilal Ahmed removed'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.text('Sana Raza removed'),
+          find.text('Bilal Ahmed removed'),
+        ],
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      await Future.wait(shown);
+      expect(tester.takeException(), isNull);
     });
 
     // The same account all along is no change: a refreshed session (the

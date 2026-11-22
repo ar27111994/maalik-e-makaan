@@ -28,8 +28,9 @@ import 'package:mm_ui/mm_ui.dart';
 /// tab or by an e-mail link, or nobody is signed in any more), every sheet,
 /// dialog and menu open closes at once: each shows a copy of the
 /// record it was opened on (an occupant's CNIC and phone, a member's
-/// e-mail), and its buttons would act for whoever is signed in now. Screens
-/// stay, for the router.
+/// e-mail), and its buttons would act for whoever is signed in now. Snack
+/// bars go too, as one may name a record ("… removed"). Screens stay, for
+/// the router.
 class AppShell extends ConsumerStatefulWidget {
   const new({required this.shell, super.key});
 
@@ -66,13 +67,26 @@ class _AppShellState extends ConsumerState<AppShell> {
   /// route above its top page. They go without their closing animation, so
   /// no frame shows the earlier account's record leaving, and each one's
   /// future completes with null, as when it is dismissed: a confirm dialog
-  /// then answers no. Pages are left to the router.
+  /// then answers no. Pages are left to the router. One the user was
+  /// already closing is no longer above the page: it finishes its closing
+  /// animation, and its buttons ignore taps meanwhile.
+  ///
+  /// Snack bars go too, from the messenger above each navigator: the
+  /// app's, and the one the frame gives the sections, which the shell's own
+  /// context does not reach.
   void _closeOverlays() {
     final navigators = [
       Navigator.of(context, rootNavigator: true),
       for (final branch in shell.route.branches)
         ?branch.navigatorKey.currentState,
     ];
+    final messengers = {
+      for (final navigator in navigators)
+        ?ScaffoldMessenger.maybeOf(navigator.context),
+    };
+    for (final messenger in messengers) {
+      messenger.clearSnackBars();
+    }
     for (final navigator in navigators) {
       for (
         var top = _topRoute(navigator);

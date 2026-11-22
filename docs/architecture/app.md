@@ -496,18 +496,28 @@ else does then, since a picker may be handing over a copy.
     nobody; a refreshed or new session of the same account is no change) as
     the status changes, before the next frame, and on the root navigator and
     each section's, the one out of sight included, removes every route above
-    the top page (`Navigator.removeRoute`). They go without their closing
-    animation, so no frame after the change shows the earlier account's
-    record, an occupant's CNIC and phone included, and none of their buttons
-    can act with the next account's token: each one's future completes with
-    null, as when it is dismissed, so a confirm dialog answers no and sends
-    nothing ("Save anyway" included), and nothing in a sheet can be pressed
-    any more. Pages stay, for the router: at a sign-out it leaves them for the
-    sign-in screen as before, and the screens left open show loading for the
-    next account. A request a sheet or dialog sent before the change is one on
-    its way when the session ended (below). Only the shell does this, so it
-    covers whatever opens under it; outside it (the sign-in screens, creating
-    the first portfolio, an invitation) no sheet or dialog shows a record.
+    the top page (`Navigator.removeRoute`), two or more on one navigator
+    included (a dialog with a sheet opened from it). They go without their
+    closing animation, so no frame after the change shows the earlier
+    account's record in them, an occupant's CNIC and phone included, and none
+    of their buttons can act with the next account's token: each one's future
+    completes with null, as when it is dismissed, so a confirm dialog answers
+    no and sends nothing ("Save anyway" included), and nothing in a sheet can
+    be pressed any more. The exception is a sheet or dialog the user was
+    already closing as the account changed: it is no longer above the page,
+    so it finishes its closing animation (about a fifth of a second), and its
+    buttons ignore taps meanwhile. Snack bars go too, as one may name a
+    record (a member removed, a document deleted): the shell clears them
+    (`ScaffoldMessenger.clearSnackBars`) on the messenger above each
+    navigator, the app's and the one the frame gives the sections, which the
+    shell's own context does not reach, and in widget tests none shows on the
+    first frame after the change. Pages stay, for the router: at a
+    sign-out it leaves them for the sign-in screen as before, and the screens
+    left open show loading for the next account. A request a sheet or dialog
+    sent before the change is one on its way when the session ended (below).
+    Only the shell does this, so it covers whatever opens under it; outside it
+    (the sign-in screens, creating the first portfolio, an invitation) no
+    sheet or dialog shows a record.
     What it removes is what is above each navigator's top page: a sheet or
     dialog with a page opened above it on the same navigator (a screen opened
     from a sheet left open) would stay under that page, and no sheet does
@@ -626,10 +636,10 @@ else does then, since a picker may be handing over a copy.
     shows loading (nothing the earlier account loaded) until that account's
     first answer (the search, whose results area is empty while that account's
     portfolios load, shows loading once its search asks, with the words typed
-    still in the field), while every sheet, dialog and menu open above it
-    closes as the account changes, so none shows or acts on the earlier
-    account's record (a new tenant's form stays, with what is typed, and
-    sends with that account's token); the answer to a
+    still in the field), while every sheet, dialog, menu and snack bar open
+    above it closes as the account changes, so none shows or acts on the
+    earlier account's record (a new tenant's form stays, with what is typed,
+    and sends with that account's token); the answer to a
     request on its way when the session ended is not shown (with the same
     account signed in again inside one
     request, the new session's own read shows the server's state); a command
