@@ -270,6 +270,41 @@ void main() {
     expect(container.read(pendingInvitationProvider), isNull);
   });
 
+  // As above, and the deletion's own sign-out then finds gotrue failing
+  // before it announces the sign-out (its storage throws), so only
+  // signOut's `finally` can wipe. The other tab's sign-out wiped the device
+  // already; signOut forgets that as it starts, so the `finally` wipes
+  // again, as a deletion. No status follows (app.md, Hooks): the app goes
+  // on showing the plain sign-out, without the cause.
+  test('a deletion answered after its session was signed out in another '
+      'tab wipes the invitation when gotrue fails before announcing its own '
+      'sign-out', () async {
+    container.listen(accountDeletionProvider, (_, _) {});
+    await pumpEventQueue();
+    account.gate.close();
+    final deleting = container
+        .read(accountDeletionProvider.notifier)
+        .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+    await pumpEventQueue();
+    expect(account.calls.last.$1, 'deleteAccount');
+    session = null;
+    changes.add(const sb.AuthState(sb.AuthChangeEvent.signedOut, null));
+    await pumpEventQueue();
+    expect(container.read(authStatusProvider), const SignedOut());
+    expect(settings.values.keys, contains(AppSettings.pendingInvitationKey));
+    when(() => gotrue.signOut()).thenThrow(const sb.AuthException('storage'));
+    account.gate.open();
+    await deleting;
+    await pumpEventQueue();
+    verify(() => gotrue.signOut()).called(1);
+    expect(settings.values, {
+      AppSettings.localeKey: 'ur',
+      AppSettings.themeKey: 'dark',
+    });
+    expect(container.read(pendingInvitationProvider), isNull);
+    expect(container.read(authStatusProvider), const SignedOut());
+  });
+
   // Another account signs in from another tab while the deletion is on its
   // way. Its sign-in wipes the deleting session as a plain sign-out, which
   // keeps the invitation, and the deletion's answer signs nobody out: the
