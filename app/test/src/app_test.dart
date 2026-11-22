@@ -1237,6 +1237,57 @@ void main() {
       });
     }
 
+    // The first account's password check can still be out when another
+    // account signs in (another tab), its form goes with it, and that
+    // account starts its own deletion, which replaces the first. The first
+    // check's late answer then sends nothing and touches no form: the one
+    // it was started from is gone, and the screen is the next account's.
+    testWidgets('a password check answered after the next account started '
+        'its own deletion sends nothing, and only the later deletion is '
+        'sent', (tester) async {
+      final app = await deleting(tester, held: checking);
+      final answerEarlierCheck = app.auth.gate.holdLaterCallsApart();
+      app.account.gate.close();
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      await settleWhileBusy(tester);
+      app.account.gate.open();
+      await settleWhileBusy(tester);
+      expect(find.text('This cannot be undone'), findsOneWidget);
+      expect(button(tester, 'Delete my account').busy, isFalse);
+      await fill(tester, password: 'Other1234', email: otherAccount.email!);
+      app.account.gate.close();
+      await tapDelete(tester);
+      expect(app.auth.calls.map((call) => call.$1), [
+        'reauthenticate',
+        'reauthenticate',
+      ]);
+      answerEarlierCheck();
+      await settleWhileBusy(tester);
+      expect(tester.takeException(), isNull);
+      expect(find.text('Deletion cancelled'), findsNothing);
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(
+        app.account.calls.map((call) => call.$1),
+        isNot(contains('deleteAccount')),
+      );
+      app.auth.gate.open();
+      await settleWhileBusy(tester);
+      expect(
+        app.account.calls
+            .where((call) => call.$1 == 'deleteAccount')
+            .map((call) => call.$2),
+        [
+          [otherAccount.email],
+        ],
+      );
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(find.text('Your account has been deleted'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     // Another section while the password is checked cancels, as Back
     // does, but the section keeps its screens: the delete screen is still
     // there when the user comes back, no longer busy, and says that nothing
@@ -1310,6 +1361,37 @@ void main() {
         'signOut',
       ]);
       expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    // The notice is only for a deletion cancelled before its request: a
+    // wrong password, where nobody left, and a refused request, where one
+    // was sent, show their failure and no notice.
+    testWidgets('a wrong password, or a refused request, shows its failure '
+        'and no cancel notice', (tester) async {
+      final app = await _pumpApp(tester, location: Routes.deleteAccount);
+      await fill(tester);
+      app.auth.gate.failure = const RejectedFailure('invalid_credentials');
+      await tapDelete(tester);
+      await tester.pumpAndSettle();
+      app.auth.gate.failure = null;
+      expect(
+        tester.widget<MmPasswordField>(find.byType(MmPasswordField)).errorText,
+        'The e-mail or password is not right.',
+      );
+      expect(find.text('Deletion cancelled'), findsNothing);
+      await fill(tester, password: 'Secret12345');
+      app.account.gate.failure = const TemporarilyUnavailable();
+      await tapDelete(tester);
+      await tester.pumpAndSettle();
+      app.account.gate.failure = null;
+      expect(app.account.calls.last.$1, 'deleteAccount');
+      expect(find.byType(FailureBanner), findsOneWidget);
+      expect(find.text('Deletion cancelled'), findsNothing);
+      expect(button(tester, 'Delete my account').busy, isFalse);
+      expect(app.auth.calls.map((call) => call.$1), [
+        'reauthenticate',
+        'reauthenticate',
+      ]);
     });
 
     // The router's own redirect at a sign-out is never held up: the screen
