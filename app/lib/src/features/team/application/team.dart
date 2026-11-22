@@ -38,6 +38,9 @@ final class TeamController extends SwrNotifier<Team> {
   String get query => 'team.${portfolio.id}';
 
   @override
+  RecordScope<Team> get scope => InPortfolio(portfolio.id);
+
+  @override
   Stream<Snapshot<Team>> build() {
     ref.watch(teamRepositoryProvider);
     return super.build();

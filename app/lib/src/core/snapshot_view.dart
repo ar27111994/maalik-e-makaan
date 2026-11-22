@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_banner.dart';
@@ -11,7 +12,8 @@ import 'package:mm_ui/mm_ui.dart';
 
 /// What a screen shows of a query read stale-while-revalidate: the value
 /// (with a notice when it may be stale), else why it could not be read
-/// with a retry, else a skeleton while it loads.
+/// with a retry, else a skeleton while it loads (also while the first
+/// answer for the account signed in now is on its way: [waitsForSession]).
 class SnapshotView<T> extends StatelessWidget {
   const new({
     required this.state,
@@ -44,7 +46,7 @@ class SnapshotView<T> extends StatelessWidget {
         RefreshNotice(state: state, onRetry: onRetry),
         if (snapshot != null)
           builder(snapshot.value)
-        else if (state.error case final error?)
+        else if (state.error case final error? when !waitsForSession(state))
           MmErrorState(
             title: failedTitle,
             message: failureMessage(l10n, AppFailure.from(error)),

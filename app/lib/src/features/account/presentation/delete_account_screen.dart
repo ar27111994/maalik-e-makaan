@@ -38,7 +38,7 @@ class DeleteAccountScreen extends ConsumerWidget {
         preview: value,
         email: email,
       ),
-      AsyncValue(:final error?) => MmPage(
+      AsyncValue(:final error?) when !waitsForSession(preview) => MmPage(
         title: l10n.deleteAccountTitle,
         body: MmErrorState(
           title: l10n.deletionPreviewFailedTitle,

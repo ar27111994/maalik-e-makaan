@@ -211,6 +211,94 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   website, both privacy pages, `llms.txt` and the deck give it as the contact address, and since
   2026-11-15 Auth's e-mails and the invitations are sent from it too (above). It is the one
   mailbox on the domain that `make docs-check` allows (`NAMED_MAILBOXES`).
+- The device forgets the account (2026-11-13, branch `claude/signout-device-data`): signing out, a
+  session that ends by itself, a session replaced by another account's (an e-mail link) and
+  account deletion run `DeviceDataWipe` (`docs/architecture/app.md`, On the device). It removes
+  the record cache, the
+  portfolio last chosen and the camera's record, and on phones the pickers' copies, Android's
+  records of a lost pick with the camera's full-size original, and the files written to share
+  (once unchanged for ten minutes; younger ones at the next start or return to the app). The
+  pickers' copies, the camera's original included, also go as soon as they are read; at start-up
+  the camera's photos and record stay only while a lost photo may still come back (a day). A
+  deletion whose answer was lost signs out and wipes as a deletion, and says so. Every saved
+  entry names its portfolio in its key (`own`, `p:<id>` or `unknown`; each cached query declares
+  its `CacheScope`, and the ten models behind the record queries read `portfolio_id`), as the
+  owner decided on 15 November 2026 (D-21). Each list of portfolios the server answers (the newest
+  asked only) sets the portfolios the user is in and removes, from the keys alone, every entry
+  outside them, the unknown ones and the old `mm.swr.v1.` format included; a write is checked
+  again as it lands, and a read never shows what the rule rejects. A portfolio joined on another
+  device, opened here by its link and left before this device loads the list again is now
+  removed at that load (P9, closed). A store that does not answer holds up neither the other
+  removals nor the sign-out (three seconds each), and every wipe runs its own; the steps of
+  a pass over the files start together, and a plugin's record of a lost pick that answers after
+  five seconds has its copies discarded when it does. The list is shown and saved without
+  waiting for the store; a profile or list made from the one on show is saved for the epoch it
+  was asked for in; two reference models, a table of all 34 cached queries and the earlier
+  reviews' probes check it
+  (`test/src/data/cache/`). The cache serves one user at a time (16 November 2026, the owner's word
+  to make the rules hold more simply, with fewer mechanisms: a fix that needs a new mechanism is not
+  built, and the loss is named in `docs/architecture/app.md` instead): a wipe starts an epoch nobody
+  owns, each status serves its user, and every read, write, list answer and removal does anything
+  only while its user owns its epoch (`SwrCache.serve` and `serves`; `docs/architecture/app.md`, The
+  session the cache serves). It replaced five guards (the epoch's `clearedSince`, the list's
+  `_requireSession`, its shown-but-not-saved answer, `select(askedIn:)` and the wipe's
+  single-flight), and closed what an independent verifier found on 2026-11-16: a query built
+  between the wipe and the status saved the next account's answer under the ended one's key, a
+  list command asked for the list after its session ended during its request, a profile
+  notifier of one account read and saved under another's session, and the status followed a
+  replayed event. A second pass by that verifier the same day found that Riverpod kept the
+  earlier account's value in a provider rebuilt for the next account (now dropped,
+  `sessionChanged`), and a loss of the saved list that is now named and pinned. Both reference
+  models serve users too; built with each of three defects a cache could have, each predicts what
+  such a cache would do, and the cache must differ from it (the defects live in the tests, not in
+  `lib`). Greptile's review of 63b047d found three more, fixed on 21 November 2026: a write whose
+  late deletion answered after another account had signed in put the earlier account's value on
+  show (the write now asks again after that deletion, and what a notifier shows comes from
+  `SwrCache.save`, which asks once more after the write; the portfolio list, shown without
+  waiting for the store, sets its state with nothing awaited after its check); accepting an
+  invitation read the signed-in user only after the answer (the answer now belongs to the session
+  that asked); and two wipe tests wrote for an account the cache never served, so their write
+  never began. Two independent verifiers of that round found more, fixed the same day: the
+  delete-account screen kept the earlier account's preview, naming its portfolios, after another
+  account's session replaced it (the preview now watches the session); a read went on reading
+  after its listing of the keys answered for an ended session, and a build whose saved copy was
+  read then still sent its request with the next account's token (each now asks again); an
+  invitation's late answer forgot the one the next account had opened since (only the invitation
+  answered is forgotten); bootstrap's start-up wipe was run by no test (it now is); and five lines
+  were held by no test (now pinned). The last check of that round found that a screen left open
+  while another account's session replaced the user's said the session had ended, with "Try
+  again", to the person now signed in, until that account's first answer came; screens now show
+  that state as loading (`waitsForSession`, which knows `sessionChanged`'s state by a stack trace
+  only it gives its error), and a session that really expired still shows as one. The check
+  after it found a search's results still on show, and not asked again, after another account
+  signed in with the same portfolio current; a search is now keyed by the user too, as the
+  portfolio list is. A deletion's sign-out is the deleting account's alone: when another account
+  has signed in from another tab by the time the answer comes, nobody is signed out; when nobody
+  holds the device, or the same account signed in again, it signs out as a deletion all the same
+  (unless a store that does not answer holds up an earlier wipe with that sign-in queued behind it;
+  see Follow-ups), decided from the session gotrue holds rather than the status shown (the first
+  version of the rule, found by the next check, left the invitation after a sign-out in another
+  tab). That check also found a documents list's photo links, signed for the earlier account, used
+  again beside the next account's rows; they are now made again for each user who signs in. The
+  check after that found the deletion's sign-out reading the provider's ref after the answer, which
+  threw once the
+  delete screen was left (the back button, or the router at a sign-out), so the device kept the
+  deleted account's session and records; the command now reads everything it uses before its first
+  wait. It goes on without its screen, also when the screen is left while it signs in again, and
+  then sends the deletion (before, it sent none then, through an uncaught error): Cancel is disabled
+  while it runs, and leaving is not cancelling. Whether back should cancel before the request goes
+  is the owner's call. A command that chooses the current portfolio after a request chooses nothing
+  when the session it asked in has ended meanwhile, and a start signed in removes what other
+  accounts left in the cache and their chosen portfolio. Display settings stay; an invitation opened
+  and not answered stays until it is answered or the account is deleted on that device (unless
+  another account signed in there while it was being deleted, as the invitation may be that
+  account's, or the app was closed meanwhile: the next start shows the account until its refresh is
+  refused, and that sign-out wipes it as a plain one), because "sign out, then sign in with the
+  invited address" needs it. The website's how-it-works step and privacy page say this in both
+  languages, with what the app cannot delete (downloads, the browser's copies, the clipboard, other
+  devices, backups); the privacy page also names the two exceptions. The J14 browser-storage checks
+  in the UAT (after a plain sign-out, which keeps an unanswered invitation, and after each deletion,
+  which removes it) are written but not run here yet: they need the Docker stack.
 - The amount reader's work items 1, 3 and 4 (`docs/roadmap/amount-parser.md`), merged in #75 and
   released in 1.3.0: `contracts/amount_lexicon.json` (version 1,
   `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
@@ -569,6 +657,16 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 
 ### Open
 
+- Owner: Android Auto Backup is on (`allowBackup` is not set in `AndroidManifest.xml`), so the
+  session and the record cache reach the person's Google backup, as the preferences reach iCloud
+  on iPhone; the privacy page now says so. Turning it off, or excluding the preferences, is the
+  owner's decision with the lawyer (legal pack, question T7). The legal pack's data map (rows
+  14a to 14e, PR #66) describes the device before the wipe and needs the same update.
+- Owner: a sign-out that cannot reach the server leaves that session valid on it (refresh tokens
+  do not expire by time; `supabase/config.toml` sets no `[auth.sessions]` time-box or inactivity
+  timeout), so a copy of it in a phone backup can still sign in; the privacy page says so. A
+  session inactivity timeout on the hosted project, or retrying the server sign-out later, is the
+  owner's decision.
 - Licences: `MmIcons.ttf` has empty copyright fields (`THIRD_PARTY_NOTICES.md`, Gaps). dbus
   0.8.0 (MPL-2.0, Linux desktop only, unmodified): a distributed Linux build must say where its
   source is.
@@ -584,6 +682,49 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   a real phone.
 - App: the audit trail has no screen (TEAM-05; nothing in `app/lib` reads `audit_logs`).
 - App: the browser UAT does not reach the operations screens, reports or search (NFR-07).
+- App: a provider disposed while its fetch waits raises an uncaught error when the fetch goes on
+  (found on #70, 22 November 2026): `DashboardController.fetch` reads `ref` after an await
+  (`insights.dart`, `UnmountedRefException`), and `SwrCache._watch` (`swr_cache.dart`) throws a
+  fetch's `NetworkFailure` or `SessionExpired` once its listener has gone. Screens are right;
+  the errors reach only the handler of uncaught errors (`bootstrap.dart`, which prints them).
+  Read the dependencies before the first await, or ask `ref.mounted` after each, and have
+  `_watch` drop the error of a fetch whose subscriber has cancelled.
+- App: a re-authentication on its way when another tab signs the account out signs it back in
+  (found on #70, 22 November 2026; older than #70): `reauthenticate` (`auth_repository.dart`) is
+  a real `signInWithPassword`, whose answer gives the device, and every tab, a new session of
+  that account, while the delete screen reports an expired session and sends no deletion. The
+  owner's call; one way is to sign out again after it when the cache no longer serves the
+  session that asked.
+- App: the check-email screen shows the last address an e-mail was sent to for the whole run,
+  across sign-outs (found on #70, 22 November 2026; older than #70): `pendingEmailProvider`
+  (`auth_controller.dart`) is in memory, and nothing clears it at a sign-out or a wipe;
+  `docs/architecture/app.md` names it. Clear it when a session starts or ends, or accept it
+  there.
+- App: a sign-out whose gotrue fails before announcing it (its storage cannot remove the
+  sign-in-link verifier) wipes the device in `signOut`'s `finally` but applies no status, and
+  supabase_flutter, which removes the stored session only on that announcement, keeps it: the app
+  goes on showing the status it had, and the next start restores the session (found on #70, 22
+  November 2026; the status and the stored session behaved so before #70).
+  `docs/architecture/app.md` (Hooks) names it. Rare; the owner's call whether `signOut` should
+  then remove the stored session and apply the device's status itself.
+- App: a deletion answered while a store that does not answer holds up an earlier sign-out's wipe,
+  with the same account signed in again behind it, ends as a plain sign-out (found on #70, 22
+  November 2026): the deleting session was signed out elsewhere, that wipe waits for the store (up
+  to `wipePreferencesLimit`), and the same account's sign-in, queued behind it, clears the cause the
+  deletion's sign-out set. The sign-in screen does not say the account was deleted, and the
+  invitation stays unless gotrue's call to the server ends before the held wipe does.
+  `docs/architecture/app.md` (Hooks) and the command's doc comment name it; the privacy page does
+  not, as it needs a store that fails. The owner's call whether the privacy page should say it too.
+- App: a sheet left open while another account signs in (another tab) keeps the earlier account's
+  record on show, and its buttons, and a confirm dialog it opened (removing a member or an occupant,
+  withdrawing an invitation, deleting a document), still send their request, now with that account's
+  token, so row-level security decides what that account may do (found on #70, 22 November 2026;
+  older than #70). So do a new tenant's form and its warning, which names the earlier account's
+  tenant with that CNIC or phone: the form stays, so "Save anyway" saves. A confirm dialog that a
+  screen opened on a record sends nothing then, as that part of the screen has gone.
+  `docs/architecture/app.md` names it, and `app_test.dart` pins both.
+  The owner's call whether sheets and dialogs should close at an account change, or a sheet's
+  command ask whether the cache still serves the session it was opened in (`SwrCache.serves`).
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
@@ -608,6 +749,13 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   lockfile pub cannot satisfy still passes CI; `flutter pub get --enforce-lockfile` in CI would
   catch it (not yet done: it changes every Flutter job).
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
+
+### Closed on 15 November 2026
+
+The portfolio prune that knew a portfolio only from a saved list (P9: a portfolio joined on
+another device, opened here by its link and left before this device loads the list again). Saved
+entries now name their portfolio, the owner's decision (D-21); the privacy page keeps its plain
+sentence (the copy goes "the next time it loads your list of portfolios").
 
 ### Closed in e853378
 

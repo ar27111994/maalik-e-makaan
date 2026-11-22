@@ -31,6 +31,9 @@ final class CashBookController extends SwrNotifier<CashBook> {
   String get query => 'cash.$portfolioId';
 
   @override
+  RecordScope<CashBook> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<CashBook>> build() {
     ref.watch(handoverRepositoryProvider);
     return super.build();
@@ -49,12 +52,14 @@ final class CashBookController extends SwrNotifier<CashBook> {
     final current = state.value?.value;
     final next = current?.handovers.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.handovers(portfolioId, before: next);
     await show(
       CashBook(
         positions: current.positions,
         handovers: current.handovers.followedBy(more),
       ),
+      epoch: epoch,
     );
   }
 

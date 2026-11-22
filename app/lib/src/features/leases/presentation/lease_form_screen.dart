@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/command_state.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart' as dates;
 import 'package:maalik_e_makaan/src/core/dates.dart';
@@ -97,7 +98,11 @@ class LeaseFormScreen extends ConsumerWidget {
         title: l10n.newTenancyTitle,
         body: SnapshotView(
           state:
-              states.where((state) => state.hasError).firstOrNull ??
+              // A part that failed is shown first; one still on its way for
+              // the account signed in now has not failed.
+              states
+                  .where((state) => state.hasError && !waitsForSession(state))
+                  .firstOrNull ??
               states.first,
           onRetry: () {
             if (unitId != null) ref.invalidate(unitProvider(unitId));

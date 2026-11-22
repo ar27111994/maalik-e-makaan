@@ -85,6 +85,88 @@ void main() {
     );
   });
 
+  // The documents section left open while another account's session
+  // replaces the user's (another tab of the browser): the next account's
+  // photos are signed with its own token, none of the earlier account's
+  // links is used again, and none is ever paired with a row the section
+  // shows (it shows a photo for the rows of [documentsProvider] alone).
+  test("the next account's photos are signed again, with none of the "
+      "earlier account's links", () async {
+    final earlier = Uri.parse('https://files.example/front.jpg?token=1');
+    final next = Uri.parse('https://files.example/front.jpg?token=2');
+    final app = TestApp()..documents.pageLimit = 1;
+    app.documents.thumbnails = {cnicFrontScan.id: earlier};
+    final container = containerFor(app);
+    listen(container, documentThumbnailsProvider(_ali));
+    await pumpEventQueue();
+    expect(await container.read(documentThumbnailsProvider(_ali).future), {
+      cnicFrontScan.id: earlier,
+    });
+    final shown = <Uri>[];
+    container.listen(documentThumbnailsProvider(_ali), (_, thumbnails) {
+      final rows =
+          container.read(documentsProvider(_ali)).value?.value.items ??
+          const [];
+      shown.addAll([for (final row in rows) ?thumbnails.value?[row.id]]);
+    });
+    app.documents.thumbnails = {cnicFrontScan.id: next};
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    await pumpEventQueue();
+    expect(await container.read(documentThumbnailsProvider(_ali).future), {
+      cnicFrontScan.id: next,
+    });
+    expect(shown, isNot(contains(earlier)));
+    expect(
+      [
+        for (final call in app.documents.calls)
+          if (call.$1 == 'thumbnailLinks') call.$2,
+      ],
+      [
+        [cnicFrontScan.id],
+        [cnicFrontScan.id],
+      ],
+    );
+  });
+
+  test("the earlier account's photo links answered after the next account "
+      'signed in are not used', () async {
+    final earlier = Uri.parse('https://files.example/front.jpg?token=1');
+    final next = Uri.parse('https://files.example/front.jpg?token=2');
+    final app = TestApp()..documents.pageLimit = 1;
+    app.documents.thumbnails = {cnicFrontScan.id: earlier};
+    final container = containerFor(app);
+    listen(container, documentsProvider(_ali));
+    await pumpEventQueue();
+    app.documents.gate.close();
+    listen(container, documentThumbnailsProvider(_ali));
+    await pumpEventQueue();
+    expect(app.documents.calls.last.$1, 'thumbnailLinks');
+    final answerEarlier = app.documents.gate.holdLaterCallsApart();
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    await pumpEventQueue();
+    // The earlier account's links come once the next account has signed in.
+    answerEarlier();
+    await pumpEventQueue();
+    app.documents.thumbnails = {cnicFrontScan.id: next};
+    app.documents.gate.open();
+    await pumpEventQueue();
+    expect(await container.read(documentThumbnailsProvider(_ali).future), {
+      cnicFrontScan.id: next,
+    });
+    expect(
+      [
+        for (final call in app.documents.calls)
+          if (call.$1 == 'thumbnailLinks') call.$2,
+      ],
+      [
+        [cnicFrontScan.id],
+        [cnicFrontScan.id],
+      ],
+    );
+  });
+
   test("the cache keeps a record's documents apart", () async {
     final app = TestApp();
     final container = containerFor(app);

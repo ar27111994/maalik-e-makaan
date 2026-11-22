@@ -49,7 +49,7 @@ class PortfolioDetailsScreen extends ConsumerWidget {
     return MmPage(
       title: l10n.portfolioDetailsTitle,
       body: switch (state.error) {
-        final error? => MmErrorState(
+        final error? when !waitsForSession(state) => MmErrorState(
           title: l10n.portfolioDetailsLoadFailedTitle,
           message: failureMessage(l10n, AppFailure.from(error)),
           onRetry: retry,

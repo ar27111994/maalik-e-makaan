@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/below_text.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
@@ -318,7 +319,8 @@ class _Scores extends ConsumerWidget {
           builder: (facts) {
             final tenants = receivables.value?.value;
             if (tenants == null) {
-              if (receivables.error case final error?) {
+              if (receivables.error case final error?
+                  when !waitsForSession(receivables)) {
                 return MmErrorState(
                   title: l10n.scoresLoadFailedTitle,
                   message: failureMessage(l10n, AppFailure.from(error)),

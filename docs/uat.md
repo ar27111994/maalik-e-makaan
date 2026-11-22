@@ -281,17 +281,31 @@ Steps: Open the ledger; Use for dues; Rs 100,000; confirm.
 
 ### J14 Account deletion: the viewer, then the owner (Urdu)
 
-Steps: Settings; Delete account; password and e-mail; Delete my account. First the viewer, then
-the owner.
+Steps: first the viewer signs out from Settings and signs in again; then Settings; Delete
+account; password and e-mail; Delete my account. First the viewer, then the owner. Before the
+viewer signs out, the suite puts an unanswered invitation in the browser's storage
+(`mm.invitation.pending`), as opening an invitation link leaves one. After the sign-out and
+after each deletion, it reads the browser's `localStorage`: no `mm.swr.*`,
+`mm.portfolio.current`, `mm.documents.camera_target` or `sb-*-auth-token` key may be left, and
+`mm.settings.locale` must be. The invitation must still be there, unchanged, after the plain
+sign-out (the person may be signing in with the address it was sent to), and gone after the
+deletion. It is read once more just before the deletion is submitted, and must still be exactly
+what was planted: signing in again does not take it up (the running app read its preferences
+when it started, so it never saw this one; one it had seen would be answered at sign-in and,
+refused as not an invitation, forgotten), so its absence afterwards shows the deletion removed
+it. (A list still loading when the session ends is covered by the app's tests,
+`sign_out_wipe_test.dart`: a browser cannot hold a request open on cue.)
 
 ![Deleting the viewer's account, in Urdu](uat/ur-10-delete-account.png)
 
-| Expected                                                 | Actual                                                                                          |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| The viewer is told no portfolio goes with their account  | As expected                                                                                     |
-| The viewer's user and membership go; the portfolio stays | `auth.users` row gone; the portfolio keeps 1 member                                             |
-| The sole owner's portfolio goes with their account       | User gone; no row left in portfolios, leases, tenants, properties, payments, charges, documents |
-| Both are signed out with a confirmation                  | Sign-in screen with "Your account has been deleted" (in Urdu)                                   |
+| Expected                                                                                | Actual                                                                                          |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| The viewer is told no portfolio goes with their account                                 | As expected                                                                                     |
+| The viewer's user and membership go; the portfolio stays                                | `auth.users` row gone; the portfolio keeps 1 member                                             |
+| The sole owner's portfolio goes with their account                                      | User gone; no row left in portfolios, leases, tenants, properties, payments, charges, documents |
+| Both are signed out with a confirmation                                                 | Sign-in screen with "Your account has been deleted" (in Urdu)                                   |
+| A plain sign-out leaves no account key but an unanswered invitation; the language stays | Not run yet: added on 2026-11-13 and 2026-11-14, after this run                                 |
+| A deletion leaves no account key, the invitation included; the language stays           | Not run yet: added on 2026-11-13 and 2026-11-14, after this run                                 |
 
 ## Defects
 

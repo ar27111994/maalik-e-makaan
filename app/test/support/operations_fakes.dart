@@ -16,6 +16,7 @@ import 'fakes.dart';
 /// name and on the protected tariff.
 final lescoMeter = UtilityAccount(
   id: '0192d0c4-7777-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   unitId: groundFloor.id,
@@ -33,6 +34,7 @@ final lescoMeter = UtilityAccount(
 /// Gulberg House's gas: SNGPL, for the whole house, in the tenant's name.
 final sngplMeter = UtilityAccount(
   id: '0192d0c4-7777-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   type: UtilityType.gas,
@@ -46,6 +48,7 @@ final sngplMeter = UtilityAccount(
 /// An archived water connection.
 final oldWater = UtilityAccount(
   id: '0192d0c4-7777-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   type: UtilityType.water,
@@ -57,6 +60,7 @@ final oldWater = UtilityAccount(
 /// November's electricity bill: overdue, unpaid, over 200 units.
 final novemberBill = UtilityBill(
   id: '0192d0c4-8888-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   connection: lescoMeter.connection,
   billingMonth: MonthPeriod(2026, 11),
   amount: const Money.fromRupees(9850),
@@ -68,6 +72,7 @@ final novemberBill = UtilityBill(
 /// October's electricity bill: paid by the tenant and on their ledger.
 final octoberBill = UtilityBill(
   id: '0192d0c4-8888-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   connection: lescoMeter.connection,
   billingMonth: MonthPeriod(2026, 10),
   amount: const Money.fromRupees(7420),
@@ -83,6 +88,7 @@ final octoberBill = UtilityBill(
 /// November's gas bill: due in five days.
 final gasBill = UtilityBill(
   id: '0192d0c4-8888-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   connection: sngplMeter.connection,
   billingMonth: MonthPeriod(2026, 11),
   amount: const Money.fromRupees(2300),
@@ -93,6 +99,7 @@ final gasBill = UtilityBill(
 /// The electricity meter at Ali Raza's move-in, and the last two months.
 final moveInReading = MeterReading(
   id: '0192d0c4-9999-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   accountId: lescoMeter.id,
   reading: const Hundredths(1045000),
   readOn: CalendarDate(2026, 1, 15),
@@ -103,6 +110,7 @@ final moveInReading = MeterReading(
 );
 final octoberReading = MeterReading(
   id: '0192d0c4-9999-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   accountId: lescoMeter.id,
   reading: const Hundredths(1201000),
   readOn: CalendarDate(2026, 10, 1),
@@ -111,6 +119,7 @@ final octoberReading = MeterReading(
 );
 final novemberReading = MeterReading(
   id: '0192d0c4-9999-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   accountId: lescoMeter.id,
   reading: const Hundredths(1220500),
   readOn: CalendarDate(2026, 11, 1),
@@ -122,6 +131,7 @@ final novemberReading = MeterReading(
 /// Seepage in Ali Raza's bedroom, being fixed.
 final seepageJob = MaintenanceRequest(
   id: '0192d0c4-aaaa-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   unitId: groundFloor.id,
@@ -144,6 +154,7 @@ final seepageJob = MaintenanceRequest(
 /// The gate light, just reported.
 final gateLightJob = MaintenanceRequest(
   id: '0192d0c4-aaaa-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   title: 'Gate light not working',
@@ -156,6 +167,7 @@ final gateLightJob = MaintenanceRequest(
 /// A leaking tap, fixed in September.
 final tapJob = MaintenanceRequest(
   id: '0192d0c4-aaaa-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   unitId: firstFloor.id,
@@ -172,6 +184,7 @@ final tapJob = MaintenanceRequest(
 /// The plumber's first visit for the seepage.
 final plumberExpense = Expense(
   id: '0192d0c4-6666-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   unitId: groundFloor.id,
@@ -189,6 +202,7 @@ final plumberExpense = Expense(
 /// The year's property tax, paid by bank transfer.
 final taxExpense = Expense(
   id: '0192d0c4-6666-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   propertyName: gulbergHouse.name,
   category: ExpenseCategory.propertyTax,
@@ -205,6 +219,7 @@ final taxExpense = Expense(
 /// The accountant's fee, for the whole portfolio.
 final accountantExpense = Expense(
   id: '0192d0c4-6666-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   category: ExpenseCategory.legalProfessional,
   amount: const Money.fromRupees(15000),
   spentOn: CalendarDate(2026, 8, 15),
@@ -365,6 +380,8 @@ final class FakeOperationsRepository implements OperationsRepository {
     final job = draft.maintenanceRequestId;
     return Expense.fromRow({
       'id': id,
+      // Everything this fake holds is in Gulberg.
+      'portfolio_id': gulberg.id,
       ...draft.toWrite(),
       'property': place == null ? null : {'name': place.name},
       'unit': draft.unitId == null
@@ -470,6 +487,8 @@ final class FakeOperationsRepository implements OperationsRepository {
     final place = placeOf(placeList[gulberg.id]!, draft.propertyId)!;
     return UtilityAccount.fromRow({
       'id': id,
+      // Everything this fake holds is in Gulberg.
+      'portfolio_id': gulberg.id,
       ...draft.toInsert(),
       'property': {'name': place.name},
       'unit': draft.unitId == null
@@ -565,6 +584,7 @@ final class FakeOperationsRepository implements OperationsRepository {
     required String createdAt,
   }) => UtilityBill.fromRow({
     'id': id,
+    'portfolio_id': gulberg.id,
     'account': connection.toRow(),
     ...draft.toInsert(connection.id),
     'charge': null,
@@ -691,6 +711,8 @@ final class FakeOperationsRepository implements OperationsRepository {
     final lease = leaseId ?? draft.leaseId;
     return MeterReading.fromRow({
       'id': id,
+      // Everything this fake holds is in Gulberg.
+      'portfolio_id': gulberg.id,
       ...draft.toInsert(accountId),
       'lease_id': lease,
       'lease': lease == null
@@ -782,6 +804,8 @@ final class FakeOperationsRepository implements OperationsRepository {
     final lease = draft.leaseId;
     return MaintenanceRequest.fromRow({
       'id': id,
+      // Everything this fake holds is in Gulberg.
+      'portfolio_id': gulberg.id,
       ...draft.toInsert(),
       'property': {'name': place.name},
       'unit': draft.unitId == null

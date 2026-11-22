@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/src/app.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
+import 'package:maalik_e_makaan/src/features/leases/presentation/lease_detail_screen.dart';
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
@@ -331,6 +333,181 @@ void main() {
     expect(find.text('What needs attention'), findsOneWidget);
   });
 
+  testWidgets("the shell loads the next account's portfolios, not failing, "
+      "while its session replaces the user's", (tester) async {
+    // The list is read by a provider keyed by the user: the next account's
+    // is a new one, which loads as any first read does.
+    final app = await _pumpApp(tester);
+    final frames = await framesWhileReplaced(
+      tester,
+      app,
+      held: [app.portfolios.gate],
+      failure: find.text('Your portfolios could not be loaded'),
+      loading: find.bySemanticsLabel('Loading your portfolios'),
+    );
+    expect(frames, (failure: 0, loading: 10));
+    expect(find.text('What needs attention'), findsOneWidget);
+  });
+
+  // A sheet opened on a record copies it into its fields as it opens, and
+  // stays open above the page, which the router keeps, while another
+  // account's session replaces the user's (another tab signing in): the
+  // tenancy below shows loading, the sheet the earlier account's occupant,
+  // CNIC and phone included, until it is closed. Named, not fixed, in
+  // app.md (the providers' paragraph).
+  testWidgets("an occupant's sheet keeps the user's record while another "
+      "account's session replaces theirs, as the tenancy below loads", (
+    tester,
+  ) async {
+    final app = await _pumpApp(
+      tester,
+      location: Routes.lease(aliLease.id),
+      size: const Size(390, 3600),
+    );
+    final occupant = find.text('Sana Raza').last;
+    await tester.ensureVisible(occupant);
+    await tester.tap(occupant);
+    await tester.pumpAndSettle();
+    final sheet = find.byType(OccupantSheet);
+    final cnic = find.descendant(
+      of: sheet,
+      matching: find.text('35202-7654321-2'),
+    );
+    expect(cnic, findsOneWidget);
+    app.leases.gate.close();
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    var kept = 0;
+    var loading = 0;
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (cnic.evaluate().isNotEmpty) kept++;
+      if (find.bySemanticsLabel('Loading the tenancy').evaluate().isNotEmpty) {
+        loading++;
+      }
+    }
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaalikApp)),
+    );
+    expect(container.read(currentUserIdProvider), otherAccount.userId);
+    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
+    app.leases.gate.open();
+    await tester.pumpAndSettle();
+    expect(cnic, findsOneWidget);
+    expect(
+      find.descendant(of: sheet, matching: find.text('Sana Raza')),
+      findsOneWidget,
+    );
+  });
+
+  // A confirm dialog opened on a record keeps what it says above the page,
+  // as a sheet does, while another account's session replaces the user's.
+  // The part of the screen that opened it goes with the record (the screen
+  // shows loading), so confirming it then sends nothing (app.md, the
+  // providers' paragraph).
+  testWidgets("a confirm dialog opened on a tenant's screen keeps the "
+      "tenant's name while another account's session replaces the user's, "
+      'and confirming it then deletes nothing', (tester) async {
+    final app = await _pumpApp(
+      tester,
+      location: Routes.tenant(aliRaza.id),
+      size: const Size(390, 2400),
+    );
+    final delete = find.text('Delete').last;
+    await tester.ensureVisible(delete);
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    final dialog = find.byType(Dialog);
+    final title = find.descendant(
+      of: dialog,
+      matching: find.text('Delete Ali Raza?'),
+    );
+    expect(title, findsOneWidget);
+    app.tenants.gate.close();
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    var kept = 0;
+    var loading = 0;
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (title.evaluate().isNotEmpty) kept++;
+      if (find.bySemanticsLabel('Loading the tenant').evaluate().isNotEmpty) {
+        loading++;
+      }
+    }
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaalikApp)),
+    );
+    expect(container.read(currentUserIdProvider), otherAccount.userId);
+    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
+    app.tenants.gate.open();
+    await tester.pumpAndSettle();
+    expect(title, findsOneWidget);
+    final asked = app.tenants.calls.length;
+    await tester.tap(
+      find.descendant(of: dialog, matching: find.text('Delete')),
+    );
+    await tester.pumpAndSettle();
+    expect(dialog, findsNothing);
+    expect(app.tenants.calls.skip(asked), isEmpty);
+    expect(
+      app.tenants.calls.where((call) => call.$1 == 'deleteTenant'),
+      isEmpty,
+    );
+  });
+
+  // A confirm dialog opened on a sheet is the sheet's, and the sheet stays
+  // open (above), so confirming it still asks, now with the next account's
+  // session: row-level security decides what that account may do. Named,
+  // not fixed, in app.md (the providers' paragraph).
+  testWidgets('removing an occupant confirmed on its sheet after another '
+      "account's session replaced the user's is still asked for", (
+    tester,
+  ) async {
+    final app = await _pumpApp(
+      tester,
+      location: Routes.lease(aliLease.id),
+      size: const Size(390, 3600),
+    );
+    final occupant = find.text('Sana Raza').last;
+    await tester.ensureVisible(occupant);
+    await tester.tap(occupant);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OccupantSheet),
+        matching: find.widgetWithText(MmButton, 'Remove'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final dialog = find.byType(Dialog);
+    final title = find.descendant(
+      of: dialog,
+      matching: find.text('Remove Sana Raza?'),
+    );
+    expect(title, findsOneWidget);
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaalikApp)),
+    );
+    expect(container.read(currentUserIdProvider), otherAccount.userId);
+    expect(title, findsOneWidget);
+    await tester.tap(
+      find.descendant(of: dialog, matching: find.text('Remove')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      app.leases.calls
+          .where((call) => call.$1 == 'deleteOccupant')
+          .map((call) => call.$2),
+      [
+        ['occ-1'],
+      ],
+    );
+  });
+
   testWidgets('a session that ends elsewhere returns to sign-in, then back', (
     tester,
   ) async {
@@ -420,6 +597,65 @@ void main() {
     await tester.tap(find.text('Delete account'));
     await tester.pumpAndSettle();
     expect(find.text('This cannot be undone'), findsOneWidget);
+  });
+
+  group('a deletion on its way', () {
+    // Fills in the delete screen and deletes, the server's answer held.
+    Future<TestApp> deleting(WidgetTester tester) async {
+      final app = await _pumpApp(tester, location: Routes.deleteAccount);
+      await tester.enterText(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (widget) => widget is MmPasswordField && widget.label == 'Password',
+          ),
+          matching: find.byType(TextField),
+        ),
+        'Secret1234',
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (widget) =>
+                widget is MmTextField && widget.label.startsWith('Type'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        testEmail,
+      );
+      await tester.pump();
+      app.account.gate.close();
+      final delete = find.widgetWithText(MmButton, 'Delete my account');
+      await tester.ensureVisible(delete);
+      await tester.tap(delete);
+      await tester.pump();
+      expect(app.account.calls.last.$1, 'deleteAccount');
+      return app;
+    }
+
+    testWidgets('signs out when its screen is left with back', (tester) async {
+      final app = await deleting(tester);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('This cannot be undone'), findsNothing);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(find.text('Your account has been deleted'), findsOneWidget);
+    });
+
+    testWidgets('signs out as a deletion once its session was signed out in '
+        'another tab', (tester) async {
+      final app = await deleting(tester);
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+      expect(find.text('Your account has been deleted'), findsNothing);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(find.text('Your account has been deleted'), findsOneWidget);
+    });
   });
 
   testWidgets('an invitation link keeps its token through signing in', (

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/swr_notifier.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
@@ -82,6 +83,9 @@ final class DocumentsController extends SwrNotifier<Paged<Document>> {
       'documents.${list.portfolioId}.${list.owner.entity.db}.${list.owner.id}';
 
   @override
+  RecordScope<Paged<Document>> get scope => InPortfolio(list.portfolioId);
+
+  @override
   Stream<Snapshot<Paged<Document>>> build() {
     ref.watch(documentRepositoryProvider);
     return super.build();
@@ -102,12 +106,13 @@ final class DocumentsController extends SwrNotifier<Paged<Document>> {
     final current = state.value?.value;
     final next = current?.next;
     if (current == null || next == null) return;
+    final epoch = shownEpoch;
     final more = await _repository.documents(
       list.portfolioId,
       list.owner,
       after: next,
     );
-    await show(current.followedBy(more));
+    await show(current.followedBy(more), epoch: epoch);
   }
 
   /// Stores [attempt]'s file and records its document, named [name] and of
@@ -229,8 +234,12 @@ final FutureProviderFamily<DocumentLinksAt, Document> documentLinksProvider =
 /// that old are signed again, so a row first scrolled into view long after
 /// the list opened still finds a working link; a photo already drawn is
 /// not fetched again for that (its image is kept by document, not by link).
-/// Reopening the list signs them afresh. When they cannot be signed
-/// (offline), the rows keep their icons.
+/// Reopening the list signs them afresh, and so does another account
+/// signing in while it is open ([_thumbnailLinksProvider]): its value keeps
+/// the earlier account's links while that run goes, as Riverpod keeps a
+/// value through a rebuild, but the section shows a photo only in a row
+/// of [documentsProvider], which has none then ([sessionChanged]). When they
+/// cannot be signed (offline), the rows keep their icons.
 final FutureProviderFamily<Map<String, Uri>, DocumentList>
 documentThumbnailsProvider = FutureProvider.autoDispose
     .family<Map<String, Uri>, DocumentList>((ref, list) async {
@@ -265,11 +274,22 @@ documentThumbnailsProvider = FutureProvider.autoDispose
 
 /// The photo links [documentThumbnailsProvider] has signed for a list, kept
 /// from one of its runs to the next while the list is open.
+///
+/// They are the signed-in user's: made again, empty, when another account
+/// signs in (also from another tab, with the list open), so that its
+/// photos are signed with its own token. None of the earlier account's
+/// links is used again in its session, not even one its request brings
+/// after the change: that goes into the map the request began with, which
+/// nothing reads any more.
 final ProviderFamily<Map<String, ({Uri link, DateTime madeAt})>, DocumentList>
 _thumbnailLinksProvider = Provider.autoDispose
-    .family<Map<String, ({Uri link, DateTime madeAt})>, DocumentList>(
-      (ref, list) => {},
-    );
+    .family<Map<String, ({Uri link, DateTime madeAt})>, DocumentList>((
+      ref,
+      list,
+    ) {
+      ref.watch(currentUserIdProvider);
+      return {};
+    });
 
 /// Links to a file and when they were made.
 typedef DocumentLinksAt = ({DocumentLinks links, DateTime madeAt});

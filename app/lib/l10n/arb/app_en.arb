@@ -493,6 +493,14 @@
   "@accountDeletedBody": {
     "description": "Banner on the sign-in screen after account deletion."
   },
+  "deletionUnconfirmedTitle": "Your account may have been deleted",
+  "@deletionUnconfirmedTitle": {
+    "description": "Banner title on the sign-in screen when the answer to deleting the account never came: it may or may not be deleted."
+  },
+  "deletionUnconfirmedBody": "The answer to your request did not arrive, so this device has signed out and removed what it kept for your account, to be safe. If you can still sign in, your account was not deleted, and you can delete it again in Settings.",
+  "@deletionUnconfirmedBody": {
+    "description": "Banner on the sign-in screen when the answer to deleting the account never came. Says what to do if it still exists."
+  },
   "emailSentAgain": "We sent the e-mail again.",
   "@emailSentAgain": {
     "description": "Confirmation that an e-mail was sent again."

@@ -147,6 +147,79 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('asks again for the next account with the words typed, showing '
+      "none of the user's results while its session replaces theirs", (
+    tester,
+  ) async {
+    // The search is keyed by the user too: the next account's, in the same
+    // portfolio with the same words, is a new one, which loads as any
+    // first search does. The words stay in the field: what is typed belongs
+    // to whoever is at the device.
+    final app = await pumpScreen(tester, _search);
+    await _type(tester, 'ali');
+    expect(find.text('Ali Raza'), findsOneWidget);
+    app.insights.searchAnswer = [
+      {
+        'entity_type': 'property',
+        'entity_id': 'p-aliabad',
+        'title': 'Aliabad Flats',
+        'subtitle': 'Model Town, Lahore',
+        'score': 0.8,
+      },
+    ];
+    final frames = await framesWhileReplaced(
+      tester,
+      app,
+      held: [app.insights.gate],
+      failure: find.text('Ali Raza'),
+      loading: find.byType(MmSkeletonList),
+    );
+    expect(frames, (failure: 0, loading: 10));
+    expect(app.insights.calls.map((c) => c.$2), [
+      [gulberg.id, 'ali'],
+      [gulberg.id, 'ali'],
+    ]);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'ali',
+    );
+    expect(find.text('Ali Raza'), findsNothing);
+    expect(find.text('Aliabad Flats'), findsOneWidget);
+  });
+
+  testWidgets("shows an empty results area, none of the user's results, while "
+      "the next account's portfolios load", (tester) async {
+    // No portfolio is current until the next account's list answers, so the
+    // screen shows what it shows before any portfolio is known: neither
+    // results nor loading. Then its search asks, and loads (above).
+    final app = await pumpScreen(tester, _search);
+    await _type(tester, 'ali');
+    expect(find.text('Ali Raza'), findsOneWidget);
+    app.insights.searchAnswer = [
+      {
+        'entity_type': 'property',
+        'entity_id': 'p-aliabad',
+        'title': 'Aliabad Flats',
+        'subtitle': 'Model Town, Lahore',
+        'score': 0.8,
+      },
+    ];
+    final frames = await framesWhileReplaced(
+      tester,
+      app,
+      held: [app.portfolios.gate, app.insights.gate],
+      failure: find.text('Ali Raza'),
+      loading: find.byType(MmSkeletonList),
+    );
+    expect(frames, (failure: 0, loading: 0));
+    expect(app.insights.calls.map((c) => c.$2), [
+      [gulberg.id, 'ali'],
+      [gulberg.id, 'ali'],
+    ]);
+    expect(find.text('Ali Raza'), findsNothing);
+    expect(find.text('Aliabad Flats'), findsOneWidget);
+  });
+
   testWidgets('waits for a portfolio', (tester) async {
     await pumpScreen(tester, _search, app: TestApp(portfolios: const []));
     await _type(tester, 'ali');

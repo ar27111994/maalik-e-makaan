@@ -51,6 +51,62 @@ void main() {
     expect(find.textContaining('the last 10 minutes'), findsOneWidget);
   });
 
+  testWidgets("left open while another account's session replaces the "
+      "user's, shows that account's portfolios, not the user's", (
+    tester,
+  ) async {
+    final app = await pumpScreen(tester, DeleteAccountScreen.new, size: _tall);
+    expect(find.text('Gulberg Houses'), findsOneWidget);
+    // What the server answers for the other account.
+    app.account.preview = const DeletionPreview(
+      portfoliosToDelete: [
+        DoomedPortfolio(id: 'pb', name: 'Other Flats', otherMembers: 0),
+      ],
+      reauthMaxAge: Duration(minutes: 10),
+      secondFactorRequired: false,
+    );
+    // Another tab signed in as another account (on the web): the wipe, then
+    // its status. The router keeps a settings screen open for whoever is
+    // signed in.
+    await app.cache.clear();
+    app.auth.emit(const SignedIn(userId: 'other-user', email: 'b@example.com'));
+    await tester.pumpAndSettle();
+    expect(find.text('Gulberg Houses'), findsNothing);
+    expect(find.text('Model Town Flats'), findsNothing);
+    expect(find.text('Other Flats'), findsOneWidget);
+  });
+
+  testWidgets("while that account's preview is on its way, shows it "
+      'loading, not a failure (waitsForSession)', (tester) async {
+    final app = await pumpScreen(tester, DeleteAccountScreen.new, size: _tall);
+    app.account.preview = const DeletionPreview(
+      portfoliosToDelete: [
+        DoomedPortfolio(id: 'pb', name: 'Other Flats', otherMembers: 0),
+      ],
+      reauthMaxAge: Duration(minutes: 10),
+      secondFactorRequired: false,
+    );
+    app.account.gate.close();
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(
+        find.text('We could not check what would be deleted'),
+        findsNothing,
+      );
+      expect(find.text('Try again'), findsNothing);
+      expect(find.text('Gulberg Houses'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Checking what would be deleted'),
+        findsOneWidget,
+      );
+    }
+    app.account.gate.open();
+    await tester.pumpAndSettle();
+    expect(find.text('Other Flats'), findsOneWidget);
+  });
+
   testWidgets('with no portfolio of its own, none is deleted', (tester) async {
     await pumpScreen(
       tester,

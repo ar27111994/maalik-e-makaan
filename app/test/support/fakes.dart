@@ -6,6 +6,7 @@ import 'package:image/image.dart' as img;
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/paging.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
@@ -79,6 +80,14 @@ final class Gate {
     _completer = null;
   }
 
+  /// Holds the calls made from now on apart from those already held, until
+  /// [open]; the function it returns lets only those already held continue.
+  void Function() holdLaterCallsApart() {
+    final held = _completer;
+    _completer = Completer<void>();
+    return () => held?.complete();
+  }
+
   Future<void> pass() async {
     final completer = _completer;
     if (completer != null) await completer.future;
@@ -104,6 +113,13 @@ final class FakeAuthRepository implements AuthRepository {
 
   @override
   AuthStatus get status => _status;
+
+  /// Changes the session the device holds and, unlike [emit], does not
+  /// announce it: the real repository's [status] changes so before its
+  /// announcement, since gotrue changes its session before its listeners
+  /// hear of it, and the repository announces a change only once the wipe
+  /// it asks for has run.
+  set status(AuthStatus status) => _status = status;
 
   /// Like the real repository: the current status at once, then every
   /// change, subscribed as soon as the stream is listened to.
@@ -272,9 +288,19 @@ final class FakePortfolioRepository implements PortfolioRepository {
   /// Fails reads (not creation) with this when set.
   AppFailure? listFailure;
 
+  /// While set, each read waits until the test answers it, with a list of
+  /// its choice and in any order: [answers] holds one per read.
+  bool scripted = false;
+  final answers = <Completer<List<PortfolioMembership>>>[];
+
   @override
   Future<List<PortfolioMembership>> listMine(String userId) async {
     calls.add(('listMine', [userId]));
+    if (scripted) {
+      final answer = Completer<List<PortfolioMembership>>();
+      answers.add(answer);
+      return await answer.future;
+    }
     await gate.pass();
     final failure = listFailure;
     if (failure != null) throw failure;
@@ -371,9 +397,13 @@ final class FakePortfolioRepository implements PortfolioRepository {
     ),
   };
 
+  /// Holds reading settings, and nothing else, until open.
+  final detailsGate = Gate();
+
   @override
   Future<PortfolioDetails> details(String portfolioId) async {
     calls.add(('details', [portfolioId]));
+    await detailsGate.pass();
     await gate.pass();
     final failure = detailsFailure;
     if (failure != null) throw failure;
@@ -706,6 +736,10 @@ final class MemorySettingsStore implements SettingsStore {
   /// Thrown by every write while set, as by a device that cannot write.
   Exception? writeFailure;
 
+  /// Holds every string written until completed, as a device slow to
+  /// answer.
+  Completer<void>? holding;
+
   void _write() {
     final failure = writeFailure;
     if (failure != null) throw failure;
@@ -719,6 +753,7 @@ final class MemorySettingsStore implements SettingsStore {
 
   @override
   Future<void> setString(String key, String value) async {
+    await holding?.future;
     _write();
     values[key] = value;
   }
@@ -740,22 +775,313 @@ final class MemorySettingsStore implements SettingsStore {
 final class MemoryStore implements KeyValueStore {
   final Map<String, String> values = {};
 
-  @override
-  Future<String?> read(String key) async => values[key];
+  /// The keys whose deletion fails while they are listed here, as on a
+  /// store that refuses.
+  final undeletable = <String>{};
+
+  /// The keys whose deletion never answers while they are listed here, as
+  /// a platform call that hangs, or an app closed before it was made.
+  final silent = <String>{};
+
+  /// While set, no read answers, as a platform call that hangs.
+  bool hangingReads = false;
+
+  /// While set, every read waits for it, and then reads the value there is
+  /// when it completes.
+  Completer<void>? readsHeld;
 
   @override
-  Future<void> write(String key, String value) async => values[key] = value;
+  Future<String?> read(String key) async {
+    if (hangingReads) await Completer<void>().future;
+    if (readsHeld case final held?) await held.future;
+    return values[key];
+  }
+
+  /// The keys whose writes are held until [finishHeldWritesNewestFirst],
+  /// while they are listed here.
+  final holding = <String>{};
+  final _held = <(String, String, Completer<void>)>[];
+
+  /// How many writes are held.
+  int get heldWrites => _held.length;
+
+  /// Finishes the held writes, the newest first: a store may finish two
+  /// writes of one key in either order.
+  void finishHeldWritesNewestFirst() {
+    final held = [..._held.reversed];
+    _held.clear();
+    for (final (key, value, done) in held) {
+      values[key] = value;
+      done.complete();
+    }
+  }
+
+  /// Finishes the held writes in the order they were asked.
+  void finishHeldWritesOldestFirst() {
+    final held = [..._held];
+    _held.clear();
+    for (final (key, value, done) in held) {
+      values[key] = value;
+      done.complete();
+    }
+  }
+
+  /// Fails the held writes with [error], as a store that answers late that
+  /// it could not write.
+  void failHeldWrites(Object error) {
+    final held = [..._held];
+    _held.clear();
+    for (final (_, _, done) in held) {
+      done.completeError(error);
+    }
+  }
+
+  /// Thrown by every write while set, as by a store that is full.
+  Exception? writeFailure;
+
+  /// The keys whose writes are stored at once but never answer while they
+  /// are listed here, as a platform call that saved and then hung.
+  final landingSilently = <String>{};
 
   @override
-  Future<void> delete(String key) async => values.remove(key);
+  Future<void> write(String key, String value) async {
+    final failure = writeFailure;
+    if (failure != null) throw failure;
+    if (landingSilently.contains(key)) {
+      values[key] = value;
+      await Completer<void>().future;
+    }
+    if (holding.contains(key)) {
+      final done = Completer<void>();
+      _held.add((key, value, done));
+      await done.future;
+      return;
+    }
+    values[key] = value;
+  }
+
+  /// When set, the next deletion waits for it (and it is unset), as a
+  /// platform call still on its way; the deletions after it do not wait.
+  Completer<void>? nextDeletionHeld;
+
+  /// How many deletions wait for the completer they took from
+  /// [nextDeletionHeld].
+  int heldDeletions = 0;
 
   @override
-  Future<Set<String>> keys() async => values.keys.toSet();
+  Future<void> delete(String key) async {
+    if (nextDeletionHeld case final held?) {
+      nextDeletionHeld = null;
+      heldDeletions++;
+      await held.future;
+      heldDeletions--;
+    }
+    // Never answers: what follows is not reached.
+    if (silent.contains(key)) await Completer<void>().future;
+    if (undeletable.contains(key)) throw StateError('cannot delete $key');
+    values.remove(key);
+  }
+
+  /// Thrown by every listing of the keys while set, as by a store that
+  /// fails.
+  Exception? keysFailure;
+
+  /// While set, no listing of the keys answers, as a platform call that
+  /// hangs.
+  bool hangingKeys = false;
+
+  /// While set, every listing of the keys waits for it, and then lists the
+  /// keys there are when it completes.
+  Completer<void>? keysHeld;
+
+  @override
+  Future<Set<String>> keys() async {
+    if (hangingKeys) await Completer<void>().future;
+    if (keysHeld case final held?) await held.future;
+    final failure = keysFailure;
+    if (failure != null) throw failure;
+    return values.keys.toSet();
+  }
+}
+
+/// The scope the cache saves [query] under: the user's own for the
+/// portfolio list, the profile and the residence; else [portfolio]'s, or
+/// of no known portfolio when there is none.
+CacheScope<Object?> scopeOf(String query, {String? portfolio}) =>
+    switch (query) {
+      'portfolios' => OwnScope.portfolioList<Object?>(
+        (json) => [
+          // A list the test spoiled names none.
+          if (json is List)
+            for (final row in json) PortfolioMembership.fromRow(row).id,
+        ],
+      ),
+      'profile' => OwnScope.profile<Object?>(),
+      'residence' => OwnScope.residence<Object?>(),
+      _ =>
+        portfolio == null
+            ? const UnknownPortfolio<Object?>()
+            : InPortfolio<Object?>(portfolio),
+    };
+
+/// The key of [query]'s entry for [userId], tagged as [scopeOf] tags it.
+String cacheKey(String userId, String query, {String? portfolio}) =>
+    SwrCache.keyOf(
+      userId,
+      scopeOf(query, portfolio: portfolio).tagOf(null),
+      query,
+    );
+
+/// How a test answers the user's list of portfolios to the cache, as the
+/// portfolio list's controller does with a server's answer.
+extension ListAnswers on SwrCache {
+  /// Applies [ids] as the newest list of [userId]'s portfolios, and waits
+  /// for the removal it starts.
+  Future<void> answer(String userId, Iterable<String> ids) async {
+    applyPortfolios(userId, ids, asked: ask(), epoch: epoch);
+    await prune(userId);
+  }
+}
+
+/// What a test finds saved, read straight from the store whoever the cache
+/// serves, so that "nothing saved" is not merely "nothing the cache would
+/// show".
+extension SavedCopies on SwrCache {
+  /// The copy of [query] saved for [userId] under the tag [scope] names; for
+  /// a query whose portfolio comes from its value, the newest under any tag
+  /// but the user's own. Null when there is none.
+  Future<Snapshot<T>?> saved<T>(
+    String userId,
+    String query,
+    CacheScope<T> scope,
+    T Function(Object? json) decode,
+  ) async {
+    final known = scope.knownTag;
+    final mine = 'mm.swr.v2.$userId.';
+    final keys = known != null
+        ? [SwrCache.keyOf(userId, known, query)]
+        : [
+            for (final key in await store.keys())
+              if (key.startsWith(mine) &&
+                  !key.startsWith('${mine}own.') &&
+                  key.substring(mine.length).split('.').skip(1).join('.') ==
+                      query)
+                key,
+          ];
+    Snapshot<T>? newest;
+    for (final key in keys) {
+      final raw = await store.read(key);
+      if (raw == null) continue;
+      final entry = jsonDecode(raw) as Map<String, Object?>;
+      final snapshot = Snapshot(
+        decode(entry['value']),
+        savedAt: DateTime.parse(entry['saved_at']! as String),
+        source: SnapshotSource.cache,
+      );
+      if (newest == null || snapshot.savedAt.isAfter(newest.savedAt)) {
+        newest = snapshot;
+      }
+    }
+    return newest;
+  }
+}
+
+/// What a test puts in the cache before it starts, as an earlier run of the
+/// app saved it.
+extension SeededCache on SwrCache {
+  /// Puts [json] in the store as the value of [query] for [userId], saved
+  /// now, as the documented entry an earlier run left (whoever the cache
+  /// serves), tagged as [scopeOf] tags it: in [portfolio], else in the
+  /// portfolio a record's `portfolio_id` names, else in the fixture
+  /// portfolio the query names (`tenants.<portfolio id>.…`), else of no
+  /// known portfolio.
+  Future<DateTime> seed(
+    String userId,
+    String query,
+    Object? json, {
+    String? portfolio,
+  }) async {
+    final at = now();
+    final scope = scopeOf(
+      query,
+      portfolio: portfolio ?? _portfolioOf(query, json),
+    );
+    await store.write(
+      SwrCache.keyOf(userId, scope.tagOf(json), query),
+      jsonEncode({'saved_at': at.toIso8601String(), 'value': json}),
+    );
+    return at;
+  }
+
+  static String? _portfolioOf(String query, Object? json) {
+    if (json case {'portfolio_id': final String id}) return id;
+    final named = query.split('.');
+    if (named.length > 1 && {gulberg.id, plaza.id}.contains(named[1])) {
+      return named[1];
+    }
+    return null;
+  }
+}
+
+/// A [DeviceScratch] that records what it is asked, for a wipe's files.
+final class FakeDeviceScratch implements DeviceScratch {
+  final calls = <Call>[];
+
+  /// The paths [drainLostPicks] hands over.
+  List<String> lostPicks = const [];
+
+  /// Thrown by every method but [discard] while set, as by a plugin that
+  /// fails.
+  Exception? failure;
+
+  /// Holds [sweep] until completed, for a wipe still on its way.
+  Completer<void>? sweeping;
+
+  /// Holds [clearPickerCopies] until completed, as a plugin that hangs.
+  Completer<void>? clearing;
+
+  /// Holds [drainLostPicks] until completed, as a plugin that hangs.
+  Completer<void>? draining;
+
+  void _fail() {
+    final failure = this.failure;
+    if (failure != null) throw failure;
+  }
+
+  @override
+  Future<void> discard(Iterable<String> paths) async =>
+      calls.add(('discard', [...paths]));
+
+  @override
+  Future<void> clearPickerCopies({required DateTime before}) async {
+    calls.add(('clearPickerCopies', [before]));
+    await clearing?.future;
+    _fail();
+  }
+
+  @override
+  Future<List<String>> drainLostPicks() async {
+    calls.add(('drainLostPicks', const []));
+    await draining?.future;
+    _fail();
+    return lostPicks;
+  }
+
+  @override
+  Future<void> sweep({
+    required DateTime sharedBefore,
+    DateTime? copiesBefore,
+  }) async {
+    calls.add(('sweep', [sharedBefore, copiesBefore]));
+    await sweeping?.future;
+    _fail();
+  }
 }
 
 /// A house in [gulberg] with three units, and an archived plot.
 final gulbergHouse = Property(
   id: '0192d0c4-2222-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   name: 'Gulberg House',
   type: PropertyType.house,
   addressLine: '42-B, Main Boulevard',
@@ -776,6 +1102,7 @@ final gulbergHouse = Property(
 );
 final oldPlot = Property(
   id: '0192d0c4-2222-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   name: 'DHA plot',
   type: PropertyType.plot,
   city: 'Karachi',
@@ -785,6 +1112,7 @@ final oldPlot = Property(
 );
 const saddarPlaza = Property(
   id: '0192d0c4-2222-7000-8000-000000000003',
+  portfolioId: '0192d0c4-0000-7000-8000-000000000002',
   name: 'Saddar Plaza',
   type: PropertyType.plaza,
   city: 'Rawalpindi',
@@ -794,6 +1122,7 @@ const saddarPlaza = Property(
 
 final groundFloor = Unit(
   id: '0192d0c4-3333-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   label: 'Ground floor',
   type: UnitType.portion,
@@ -806,6 +1135,7 @@ final groundFloor = Unit(
 );
 final firstFloor = Unit(
   id: '0192d0c4-3333-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   label: 'First floor',
   type: UnitType.portion,
@@ -816,6 +1146,7 @@ final firstFloor = Unit(
 );
 final annexe = Unit(
   id: '0192d0c4-3333-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   propertyId: gulbergHouse.id,
   label: 'Annexe room',
   type: UnitType.room,
@@ -915,18 +1246,28 @@ final class FakePropertyRepository implements PropertyRepository {
     return property;
   }
 
-  Property _stored(Property p, {DateTime? archivedAt, String? createdAt}) =>
-      Property.fromRow({
-        ...p.toRow(),
-        ...p.toWrite(),
-        'archived_at': archivedAt?.toIso8601String(),
-        'created_at': createdAt ?? p.createdAt,
-      });
+  /// [p] as the server returns it: in [portfolioId] (else its own).
+  Property _stored(
+    Property p, {
+    DateTime? archivedAt,
+    String? createdAt,
+    String? portfolioId,
+  }) => Property.fromRow({
+    ...p.toRow(),
+    ...p.toWrite(),
+    'portfolio_id': portfolioId ?? p.portfolioId,
+    'archived_at': archivedAt?.toIso8601String(),
+    'created_at': createdAt ?? p.createdAt,
+  });
 
   @override
   Future<Property> createProperty(String portfolioId, Property property) async {
     await _write('createProperty', [portfolioId, property]);
-    final stored = _stored(property, createdAt: '2026-11-07T10:00:00+00:00');
+    final stored = _stored(
+      property,
+      createdAt: '2026-11-07T10:00:00+00:00',
+      portfolioId: portfolioId,
+    );
     (byPortfolio[portfolioId] ??= []).add(stored);
     return stored;
   }
@@ -936,7 +1277,12 @@ final class FakePropertyRepository implements PropertyRepository {
     await _write('updateProperty', [property]);
     final old = _all.firstWhere((p) => p.id == property.id);
     return _replace(
-      _stored(property, archivedAt: old.archivedAt, createdAt: old.createdAt),
+      _stored(
+        property,
+        archivedAt: old.archivedAt,
+        createdAt: old.createdAt,
+        portfolioId: old.portfolioId,
+      ),
     );
   }
 
@@ -989,13 +1335,19 @@ final class FakePropertyRepository implements PropertyRepository {
     );
   }
 
-  Unit _storedUnit(Unit u, {DateTime? archivedAt, String? createdAt}) =>
-      Unit.fromRow({
-        ...u.toRow(),
-        ...u.toWrite(),
-        'archived_at': archivedAt?.toIso8601String(),
-        'created_at': createdAt ?? u.createdAt,
-      });
+  /// [u] as the server returns it: in [portfolioId] (else its own).
+  Unit _storedUnit(
+    Unit u, {
+    DateTime? archivedAt,
+    String? createdAt,
+    String? portfolioId,
+  }) => Unit.fromRow({
+    ...u.toRow(),
+    ...u.toWrite(),
+    'portfolio_id': portfolioId ?? u.portfolioId,
+    'archived_at': archivedAt?.toIso8601String(),
+    'created_at': createdAt ?? u.createdAt,
+  });
 
   Unit _replaceUnit(Unit unit) {
     unitList[unitList.indexWhere((u) => u.id == unit.id)] = unit;
@@ -1005,7 +1357,11 @@ final class FakePropertyRepository implements PropertyRepository {
   @override
   Future<Unit> createUnit(String portfolioId, Unit unit) async {
     await _write('createUnit', [portfolioId, unit]);
-    final stored = _storedUnit(unit, createdAt: '2026-11-07T10:00:00+00:00');
+    final stored = _storedUnit(
+      unit,
+      createdAt: '2026-11-07T10:00:00+00:00',
+      portfolioId: portfolioId,
+    );
     unitList.add(stored);
     occupancy[stored.id] = Occupancy(
       status: stored.isAvailable
@@ -1021,7 +1377,12 @@ final class FakePropertyRepository implements PropertyRepository {
     await _write('updateUnit', [unit]);
     final old = unitList.firstWhere((u) => u.id == unit.id);
     return _replaceUnit(
-      _storedUnit(unit, archivedAt: old.archivedAt, createdAt: old.createdAt),
+      _storedUnit(
+        unit,
+        archivedAt: old.archivedAt,
+        createdAt: old.createdAt,
+        portfolioId: old.portfolioId,
+      ),
     );
   }
 
@@ -1047,6 +1408,7 @@ final class FakePropertyRepository implements PropertyRepository {
 /// Tenants of [gulberg]: a family man, a company, and an archived tenant.
 final aliRaza = Tenant(
   id: '0192d0c4-4444-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   fullName: 'Ali Raza',
   guardianName: 'Ahmed Raza',
   guardianRelation: GuardianRelation.sonOf,
@@ -1072,6 +1434,7 @@ final aliRaza = Tenant(
 );
 final techCorp = Tenant(
   id: '0192d0c4-4444-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   fullName: 'Indus Tech (Pvt) Ltd',
   kind: TenantKind.company,
   ntn: '1234567-8',
@@ -1081,6 +1444,7 @@ final techCorp = Tenant(
 );
 final formerTenant = Tenant(
   id: '0192d0c4-4444-7000-8000-000000000003',
+  portfolioId: gulberg.id,
   fullName: 'Hamid Ali',
   cnic: Cnic.parse('42101-7654321-3'),
   cnicExpiry: CalendarDate(2024, 1, 1),
@@ -1164,12 +1528,18 @@ final class FakeTenantRepository implements TenantRepository {
     ];
   }
 
-  Tenant _stored(Tenant t, {DateTime? archivedAt, String? createdAt}) =>
-      Tenant.fromRow({
-        ...t.toRow(),
-        'archived_at': archivedAt?.toIso8601String(),
-        'created_at': createdAt ?? t.createdAt,
-      });
+  /// [t] as the server returns it: in [portfolioId] (else its own).
+  Tenant _stored(
+    Tenant t, {
+    DateTime? archivedAt,
+    String? createdAt,
+    String? portfolioId,
+  }) => Tenant.fromRow({
+    ...t.toRow(),
+    'portfolio_id': portfolioId ?? t.portfolioId,
+    'archived_at': archivedAt?.toIso8601String(),
+    'created_at': createdAt ?? t.createdAt,
+  });
 
   Tenant _replace(Tenant tenant) {
     for (final list in byPortfolio.values) {
@@ -1182,7 +1552,11 @@ final class FakeTenantRepository implements TenantRepository {
   @override
   Future<Tenant> createTenant(String portfolioId, Tenant tenant) async {
     await _call('createTenant', [portfolioId, tenant]);
-    final stored = _stored(tenant, createdAt: '2026-11-07T10:00:00+00:00');
+    final stored = _stored(
+      tenant,
+      createdAt: '2026-11-07T10:00:00+00:00',
+      portfolioId: portfolioId,
+    );
     (byPortfolio[portfolioId] ??= []).add(stored);
     return stored;
   }
@@ -1192,7 +1566,12 @@ final class FakeTenantRepository implements TenantRepository {
     await _call('updateTenant', [tenant]);
     final old = _all.firstWhere((t) => t.id == tenant.id);
     return _replace(
-      _stored(tenant, archivedAt: old.archivedAt, createdAt: old.createdAt),
+      _stored(
+        tenant,
+        archivedAt: old.archivedAt,
+        createdAt: old.createdAt,
+        portfolioId: old.portfolioId,
+      ),
     );
   }
 
@@ -1220,6 +1599,7 @@ final class FakeTenantRepository implements TenantRepository {
 /// Ali Raza's tenancy of [groundFloor], and an ended one of [firstFloor].
 final aliLease = Lease(
   id: '0192d0c4-5555-7000-8000-000000000001',
+  portfolioId: gulberg.id,
   unitId: groundFloor.id,
   tenantId: aliRaza.id,
   status: LeaseStatus.active,
@@ -1248,6 +1628,7 @@ final aliLease = Lease(
 );
 final endedLease = Lease(
   id: '0192d0c4-5555-7000-8000-000000000002',
+  portfolioId: gulberg.id,
   unitId: firstFloor.id,
   tenantId: formerTenant.id,
   status: LeaseStatus.ended,
@@ -1329,6 +1710,7 @@ final class FakeLeaseRepository implements LeaseRepository {
     EndReason? endReason,
   }) => Lease(
     id: old.id,
+    portfolioId: old.portfolioId,
     unitId: old.unitId,
     tenantId: old.tenantId,
     status: status ?? old.status,
@@ -1375,6 +1757,7 @@ final class FakeLeaseRepository implements LeaseRepository {
     await _call('createLease', [id, portfolioId, unitId, tenantId, terms]);
     final lease = Lease(
       id: id,
+      portfolioId: portfolioId,
       unitId: unitId,
       tenantId: tenantId,
       status: LeaseStatus.active,

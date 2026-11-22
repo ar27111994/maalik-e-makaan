@@ -9,6 +9,7 @@ import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/dates.dart';
 import 'package:maalik_e_makaan/src/core/external_links.dart';
 import 'package:maalik_e_makaan/src/data/cache/swr_cache.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/data/providers.dart';
 import 'package:maalik_e_makaan/src/features/account/data/account_repository.dart';
 import 'package:maalik_e_makaan/src/features/account/data/profile.dart';
@@ -139,7 +140,13 @@ final class TestApp {
   /// screen is pumped; otherwise it is kept in [settings], as on a device.
   CameraTargetStore? cameraTargets;
   final MemoryStore store = MemoryStore();
-  late final SwrCache cache = SwrCache(store);
+
+  /// The cache over [store]. A test that starts the app again sets a new
+  /// one over the same store, as a new run of the app has.
+  late SwrCache cache = SwrCache(store);
+
+  /// The phone's folders and pickers, as the device wipe sees them.
+  final FakeDeviceScratch scratch = FakeDeviceScratch();
 
   /// The links the app asked to open in another app.
   final opened = <Uri>[];
@@ -150,6 +157,7 @@ final class TestApp {
   List<Override> get overrides => [
     settingsStoreProvider.overrideWithValue(settings),
     swrCacheProvider.overrideWithValue(cache),
+    deviceScratchProvider.overrideWithValue(scratch),
     authRepositoryProvider.overrideWithValue(auth),
     profileRepositoryProvider.overrideWithValue(profiles),
     residenceRepositoryProvider.overrideWithValue(residences),
@@ -332,6 +340,43 @@ Future<TestApp> pumpScreen(
     await tester.pump();
   }
   return testApp;
+}
+
+/// Another account, whose session replaces the user's in
+/// [framesWhileReplaced].
+const otherAccount = SignedIn(userId: 'other-user', email: 'other@example.com');
+
+/// Replaces the user's session with [otherAccount]'s while the screen stays
+/// open, as when another tab signs in as someone else: the device's saved
+/// copies are wiped, then that account's status comes. What [held] answers
+/// waits for [frames] frames of 16 ms; the counts say on how many of them
+/// [failure] and [loading] were found. Then the answers come, and the
+/// screen settles.
+Future<({int failure, int loading})> framesWhileReplaced(
+  WidgetTester tester,
+  TestApp app, {
+  required List<Gate> held,
+  required Finder failure,
+  required Finder loading,
+  int frames = 10,
+}) async {
+  for (final gate in held) {
+    gate.close();
+  }
+  await app.cache.clear();
+  app.auth.emit(otherAccount);
+  var failed = 0;
+  var loaded = 0;
+  for (var frame = 0; frame < frames; frame++) {
+    await tester.pump(const Duration(milliseconds: 16));
+    if (failure.evaluate().isNotEmpty) failed++;
+    if (loading.evaluate().isNotEmpty) loaded++;
+  }
+  for (final gate in held) {
+    gate.open();
+  }
+  await tester.pumpAndSettle();
+  return (failure: failed, loading: loaded);
 }
 
 /// Asserts the accessibility guidelines: 48 dp tap targets (Android) and

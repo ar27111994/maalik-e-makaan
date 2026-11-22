@@ -152,6 +152,7 @@ final class UtilityAccount {
     this.notes,
     this.archivedAt,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `utility_accounts` row selected with [UtilityAccount.columns].
@@ -159,6 +160,7 @@ final class UtilityAccount {
     final row = JsonRow.of(json, 'utility account');
     return UtilityAccount(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       propertyId: row.string('property_id'),
       propertyName: row.object('property').string('name'),
       unitId: row.optionalString('unit_id'),
@@ -183,7 +185,8 @@ final class UtilityAccount {
   /// The columns [UtilityAccount.fromRow] reads, with the property and
   /// unit embedded through their composite foreign keys.
   static const columns =
-      'id,property_id,unit_id,type,provider,provider_other,reference_number,'
+      'id,portfolio_id,'
+      'property_id,unit_id,type,provider,provider_other,reference_number,'
       'customer_id,meter_number,account_title,in_landlord_name,is_sub_meter,'
       'is_protected_consumer,responsibility,notes,archived_at,created_at,'
       'property:properties!utility_accounts_property_fkey(name),'
@@ -206,6 +209,10 @@ final class UtilityAccount {
   static final meterPattern = RegExp(r'^[0-9A-Z/-]{1,30}$');
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final String propertyId;
   final String propertyName;
 
@@ -262,6 +269,7 @@ final class UtilityAccount {
   /// What [UtilityAccount.fromRow] reads back (the offline cache).
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     'property_id': propertyId,
     'property': {'name': propertyName},
     'unit_id': unitId,
@@ -284,6 +292,7 @@ final class UtilityAccount {
 
   List<Object?> get _fields => [
     id,
+    portfolioId,
     propertyId,
     propertyName,
     unitId,
@@ -579,6 +588,7 @@ final class UtilityBill {
     this.charge,
     this.notes,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `utility_bills` row selected with [UtilityBill.columns].
@@ -588,6 +598,7 @@ final class UtilityBill {
     final charge = row.optionalObject('charge');
     return UtilityBill(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       connection: UtilityConnection.fromRow(row.object('account')),
       billingMonth: MonthPeriod.of(row.date('billing_month')),
       amount: row.money('amount'),
@@ -605,7 +616,8 @@ final class UtilityBill {
   /// The columns [UtilityBill.fromRow] reads, with the connection and the
   /// tenant's charge embedded.
   static const columns =
-      'id,billing_month,amount,due_date,units_consumed,status,paid_on,'
+      'id,portfolio_id,'
+      'billing_month,amount,due_date,units_consumed,status,paid_on,'
       'paid_by,notes,created_at,'
       'account:utility_accounts!utility_bills_account_fkey'
       '(${UtilityConnection.columns}),'
@@ -614,6 +626,10 @@ final class UtilityBill {
   static const maxNotesLength = 500;
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final UtilityConnection connection;
   final MonthPeriod billingMonth;
   final Money amount;
@@ -646,6 +662,7 @@ final class UtilityBill {
 
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     'account': connection.toRow(),
     'billing_month': billingMonth.first.toJson(),
     'amount': amount.toJson(),
@@ -661,6 +678,7 @@ final class UtilityBill {
 
   List<Object?> get _fields => [
     id,
+    portfolioId,
     connection,
     billingMonth,
     amount,
@@ -806,6 +824,7 @@ final class MeterReading {
     this.tenantName,
     this.notes,
     this.createdAt = '',
+    this.portfolioId,
   });
 
   /// Reads a `meter_readings` row selected with [MeterReading.columns].
@@ -814,6 +833,7 @@ final class MeterReading {
     final lease = row.optionalObject('lease');
     return MeterReading(
       id: row.string('id'),
+      portfolioId: row.optionalString('portfolio_id'),
       accountId: row.string('utility_account_id'),
       leaseId: row.optionalString('lease_id'),
       tenantName: lease?.object('tenant').string('full_name'),
@@ -828,13 +848,18 @@ final class MeterReading {
   /// The columns [MeterReading.fromRow] reads, with the tenant of its
   /// tenancy embedded.
   static const columns =
-      'id,utility_account_id,lease_id,reading,read_on,context,notes,'
+      'id,portfolio_id,'
+      'utility_account_id,lease_id,reading,read_on,context,notes,'
       'created_at,lease:leases!meter_readings_lease_fkey'
       '(tenant:tenants!leases_tenant_fkey(full_name))';
 
   static const maxNotesLength = 500;
 
   final String id;
+
+  /// The portfolio the row is of, as the server stores it; null for one
+  /// built here and not read back. It tags the saved copy (`CacheScope`).
+  final String? portfolioId;
   final String accountId;
   final Hundredths reading;
   final CalendarDate readOn;
@@ -850,6 +875,7 @@ final class MeterReading {
 
   Map<String, Object?> toRow() => {
     'id': id,
+    'portfolio_id': portfolioId,
     'utility_account_id': accountId,
     'lease_id': leaseId,
     'lease': tenantName == null
@@ -866,6 +892,7 @@ final class MeterReading {
 
   List<Object?> get _fields => [
     id,
+    portfolioId,
     accountId,
     leaseId,
     tenantName,

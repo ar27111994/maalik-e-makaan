@@ -880,6 +880,7 @@ final class FakeReminderRepository implements ReminderRepository {
   final logs = <ReminderLog>[
     ReminderLog(
       id: 'rem-1',
+      portfolioId: gulberg.id,
       leaseId: aliLease.id,
       channel: ReminderChannel.whatsapp,
       template: ReminderTemplate.overdue,
@@ -916,6 +917,7 @@ final class FakeReminderRepository implements ReminderRepository {
     if (writeFailures.isNotEmpty) throw writeFailures.removeAt(0);
     final log = ReminderLog(
       id: id,
+      portfolioId: portfolioId,
       leaseId: leaseId,
       channel: channel,
       template: template,

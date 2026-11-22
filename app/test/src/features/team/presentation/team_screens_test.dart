@@ -340,6 +340,20 @@ void main() {
       app.portfolios.gate.open();
       await tester.pumpAndSettle();
     });
+
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(tester, TeamScreen.new);
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.team.gate],
+        failure: find.text('The team could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the team'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(find.text('Bilal Ahmed'), findsOneWidget);
+    });
   });
 
   group('inviting', () {
@@ -570,6 +584,34 @@ void main() {
       expect(find.text('Welcome to Gulberg Houses'), findsOneWidget);
     });
 
+    testWidgets('answered after its session ended, it says so and offers no '
+        'second try of an invitation used up', (tester) async {
+      final app = _invited(
+        InvitationAccepted(portfolioId: plaza.id, role: MemberRole.manager),
+      )..team.gate.close();
+      await pumpScreen(
+        tester,
+        AcceptInvitationScreen.new,
+        app: app,
+        settle: false,
+      );
+      await tester.pump();
+      expect(find.text('Opening your invitation…'), findsOneWidget);
+      // The session ends while the answer is on its way.
+      await app.cache.clear();
+      app.team.gate.open();
+      await tester.pumpAndSettle();
+      expect(find.text('The invitation could not be opened'), findsOneWidget);
+      expect(
+        find.text('Your session has ended. Please sign in again.'),
+        findsOneWidget,
+      );
+      expect(find.text('Try again'), findsNothing);
+      expect(find.text('Not now'), findsNothing);
+      await _tap(tester, 'Go to the app');
+      expect(routeShown(Routes.home), findsOneWidget);
+    });
+
     testWidgets('setting it aside forgets it', (tester) async {
       final app = _invited()..team.gate.failure = const NetworkFailure();
       await pumpScreen(tester, AcceptInvitationScreen.new, app: app);
@@ -764,6 +806,20 @@ void main() {
       );
       app.portfolios.gate.open();
       await tester.pumpAndSettle();
+      expect(find.text('Gulberg Houses'), findsOneWidget);
+    });
+
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(tester, PortfolioDetailsScreen.new);
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.portfolios.detailsGate],
+        failure: find.text('The portfolio details could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the portfolio details'),
+      );
+      expect(frames, (failure: 0, loading: 10));
       expect(find.text('Gulberg Houses'), findsOneWidget);
     });
   });

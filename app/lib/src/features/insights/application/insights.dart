@@ -40,6 +40,9 @@ final class DashboardController extends SwrNotifier<Dashboard> {
   String get query => 'dashboard.${portfolio.id}';
 
   @override
+  RecordScope<Dashboard> get scope => InPortfolio(portfolio.id);
+
+  @override
   Stream<Snapshot<Dashboard>> build() {
     ref.watch(insightsRepositoryProvider);
     return super.build();
@@ -122,6 +125,9 @@ final class InsightExtrasController extends SwrNotifier<InsightExtras> {
   String get query => 'insight-extras.$portfolioId';
 
   @override
+  RecordScope<InsightExtras> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<InsightExtras>> build() {
     ref.watch(insightsRepositoryProvider);
     return super.build();
@@ -164,6 +170,9 @@ final class PaymentFactsController extends SwrNotifier<List<PaymentFact>> {
 
   @override
   String get query => 'payment-facts.$portfolioId';
+
+  @override
+  RecordScope<List<PaymentFact>> get scope => InPortfolio(portfolioId);
 
   @override
   Stream<Snapshot<List<PaymentFact>>> build() {
@@ -230,6 +239,9 @@ final class CashflowController extends SwrNotifier<List<CashflowMonth>> {
       'cashflow.${span.portfolioId}.${span.from.toIso()}.${span.to.toIso()}';
 
   @override
+  RecordScope<List<CashflowMonth>> get scope => InPortfolio(span.portfolioId);
+
+  @override
   Stream<Snapshot<List<CashflowMonth>>> build() {
     ref.watch(insightsRepositoryProvider);
     return super.build();
@@ -279,6 +291,10 @@ final class PerformanceController
       '${span.to.toIso()}';
 
   @override
+  RecordScope<List<PropertyPerformance>> get scope =>
+      InPortfolio(span.portfolioId);
+
+  @override
   Stream<Snapshot<List<PropertyPerformance>>> build() {
     ref.watch(insightsRepositoryProvider);
     return super.build();
@@ -325,6 +341,9 @@ final class TaxYearController extends SwrNotifier<TaxYearStatement> {
   String get query => 'tax-year.${of.portfolioId}.${of.taxYear.endYear}';
 
   @override
+  RecordScope<TaxYearStatement> get scope => InPortfolio(of.portfolioId);
+
+  @override
   Stream<Snapshot<TaxYearStatement>> build() {
     ref.watch(insightsRepositoryProvider);
     return super.build();
@@ -342,11 +361,16 @@ final class TaxYearController extends SwrNotifier<TaxYearStatement> {
   Object? encode(TaxYearStatement value) => value.toJson();
 }
 
-/// A search in a portfolio.
-typedef SearchOf = ({String portfolioId, String query});
+/// A search in a portfolio by the signed-in user.
+typedef SearchOf = ({String userId, String portfolioId, String query});
 
 /// Properties, units and tenants matching a search (SRCH-01). A search is
 /// asked for as it is typed, so it is not saved on the device.
+///
+/// It is keyed by the user too, as the portfolio list is: after another
+/// account signs in, the screen reads a new search, which asks and loads,
+/// and the earlier account's, which nobody reads, is disposed with its
+/// results.
 final FutureProviderFamily<List<SearchResult>, SearchOf> searchProvider =
     FutureProvider.autoDispose.family<List<SearchResult>, SearchOf>(
       (ref, search) => ref

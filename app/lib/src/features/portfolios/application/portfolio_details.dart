@@ -31,6 +31,9 @@ final class PortfolioDetailsController extends SwrNotifier<PortfolioDetails> {
   String get query => 'portfolio.$portfolioId';
 
   @override
+  RecordScope<PortfolioDetails> get scope => InPortfolio(portfolioId);
+
+  @override
   Stream<Snapshot<PortfolioDetails>> build() {
     ref.watch(portfolioRepositoryProvider);
     return super.build();
@@ -49,10 +52,11 @@ final class PortfolioDetailsController extends SwrNotifier<PortfolioDetails> {
   /// Saves [details] and shows them as stored. Throws [AppFailure]. The
   /// portfolio list is read again, so a new name shows everywhere.
   Future<PortfolioDetails> save(PortfolioDetails details) async {
+    final epoch = requestEpoch();
     final saved = await ref
         .read(portfolioRepositoryProvider)
         .updateDetails(details);
-    await show(saved);
+    await show(saved, epoch: epoch);
     await _reloadPortfolios();
     return saved;
   }

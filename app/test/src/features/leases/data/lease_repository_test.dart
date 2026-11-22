@@ -11,6 +11,7 @@ import '../../../../support/supabase.dart';
 /// A `leases` row with its embeds, as PostgREST returns it.
 final Map<String, Object?> _row = {
   'id': aliLease.id,
+  'portfolio_id': gulberg.id,
   'unit_id': groundFloor.id,
   'tenant_id': aliRaza.id,
   'status': 'active',

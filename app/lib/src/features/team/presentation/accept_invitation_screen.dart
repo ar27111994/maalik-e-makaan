@@ -89,11 +89,13 @@ class _AcceptInvitationScreenState extends ConsumerState<AcceptInvitationScreen>
           MmErrorState(
             title: l10n.invitationNotAcceptedTitle,
             message: failureMessage(l10n, failure),
-            onRetry: _accept,
+            // Tried again only while it is kept: one answered for a session
+            // that has ended since is used up.
+            onRetry: pending ? _accept : null,
           ),
           const SizedBox(height: MmSpace.s4),
           MmButton(
-            label: l10n.notNowAction,
+            label: pending ? l10n.notNowAction : l10n.goToAppAction,
             variant: MmButtonVariant.tertiary,
             onPressed: _setAside,
           ),

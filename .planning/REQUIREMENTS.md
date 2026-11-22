@@ -28,8 +28,13 @@ means done in code and tests, not released. Items marked ◐ say what remains.
 ### Accounts & access (AUTH)
 
 - ☑ AUTH-01: Email + password sign-up and sign-in, with email verification and password reset.
-- ☑ AUTH-02: The session persists, tokens refresh automatically, and signing out clears local
-  caches.
+- ☑ AUTH-02: The session persists, tokens refresh automatically, and when a session ends (signing
+  out, a session expired or revoked, or one replaced by another account's) the device forgets the
+  account: the record cache (a fetch that answers later included), the portfolio last chosen, the
+  camera's record and, on phones, the app's copies of photos and files and the files it wrote to
+  share (those changed in the last ten minutes at the next start or return to the app). Display
+  settings stay; an invitation opened and not answered stays until it is answered or the account
+  is deleted (`docs/architecture/app.md`, On the device).
 - ☑ AUTH-03: In-app account deletion. It removes the user and every portfolio where they are the
   sole owner, and removes their memberships elsewhere.
 - ☑ AUTH-04: A language chooser (English or Urdu) on first launch, persisted to the profile. The

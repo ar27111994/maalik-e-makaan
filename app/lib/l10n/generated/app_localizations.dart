@@ -794,6 +794,18 @@ abstract class AppLocalizations {
   /// **'Your sign-in, your profile and the portfolios you owned alone are gone. Thank you for using Maalik-e-Makaan.'**
   String get accountDeletedBody;
 
+  /// Banner title on the sign-in screen when the answer to deleting the account never came: it may or may not be deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account may have been deleted'**
+  String get deletionUnconfirmedTitle;
+
+  /// Banner on the sign-in screen when the answer to deleting the account never came. Says what to do if it still exists.
+  ///
+  /// In en, this message translates to:
+  /// **'The answer to your request did not arrive, so this device has signed out and removed what it kept for your account, to be safe. If you can still sign in, your account was not deleted, and you can delete it again in Settings.'**
+  String get deletionUnconfirmedBody;
+
   /// Confirmation that an e-mail was sent again.
   ///
   /// In en, this message translates to:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/data/device/device_data.dart';
 import 'package:maalik_e_makaan/src/routing/app_router.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_core/mm_core.dart';
@@ -26,6 +27,8 @@ class MaalikApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final router = ref.watch(routerProvider);
+    // Files shared ten minutes ago or more go when the app comes back.
+    ref.watch(deviceTidyOnResumeProvider);
     final locale = settings.locale;
     // Until a language is chosen, the first-launch screen shows in English
     // with both choices written in their own script.

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -91,7 +92,7 @@ void main() {
       tester,
     ) async {
       final app = TestApp();
-      await app.cache.write(testUserId, 'profile', {
+      await app.cache.seed(testUserId, 'profile', {
         ...ayesha.toRow(),
         'full_name': 'Old name',
       });
@@ -105,7 +106,7 @@ void main() {
 
     testWidgets('offline with a saved copy, it says so', (tester) async {
       final app = TestApp()..profiles.fetchFailure = const NetworkFailure();
-      await app.cache.write(testUserId, 'profile', ayesha.toRow());
+      await app.cache.seed(testUserId, 'profile', ayesha.toRow());
       await pumpScreen(tester, SettingsScreen.new, app: app, size: _tall);
       expect(find.textContaining('You are offline.'), findsOneWidget);
       expect(_valueOf(tester, 'Your name'), 'Ayesha Khan');
@@ -137,6 +138,22 @@ void main() {
       expect(find.bySemanticsLabel('Loading your details'), findsOneWidget);
       app.profiles.gate.open();
     });
+
+    testWidgets("load the next account's, not failing, while its session "
+        "replaces the user's", (tester) async {
+      // The profile is read by a provider keyed by the user: the next
+      // account's is a new one, which loads as any first read does.
+      final app = await pumpScreen(tester, SettingsScreen.new, size: _tall);
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.profiles.gate],
+        failure: find.text('Your details could not be loaded'),
+        loading: find.bySemanticsLabel('Loading your details'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(_valueOf(tester, 'Your name'), 'Ayesha Khan');
+    });
   });
 
   group('display settings', () {
@@ -147,6 +164,36 @@ void main() {
       await _tap(tester, find.text('اردو'));
       expect(app.settings.values[AppSettings.localeKey], 'ur');
       expect(app.profiles.calls.last.$2, [testUserId, AppLanguage.urdu]);
+    });
+
+    testWidgets('a language chosen as another account takes the session is '
+        'not saved to the first one, and says nothing', (tester) async {
+      final app = await pumpScreen(tester, SettingsScreen.new, size: _tall);
+      final asked = app.profiles.calls.length;
+      // The device is slow to keep the choice; meanwhile another account's
+      // e-mail link replaces the session.
+      app.settings.holding = Completer();
+      await tester.tap(find.text('اردو'));
+      await tester.pump();
+      app.auth.emit(
+        const SignedIn(
+          userId: '0192d0c4-7a5e-7c1e-9a4b-2f6d1e3c8a91',
+          email: 'sana.malik@example.com',
+        ),
+      );
+      await tester.pump();
+      app.settings.holding!.complete();
+      app.settings.holding = null;
+      await tester.pumpAndSettle();
+      expect(app.settings.values[AppSettings.localeKey], 'ur');
+      expect([
+        for (final (name, arguments) in app.profiles.calls.skip(asked))
+          if (name == 'updateLanguage') arguments.first,
+      ], isNot(contains(testUserId)));
+      expect(
+        find.textContaining('could not be saved to your account'),
+        findsNothing,
+      );
     });
 
     testWidgets('a language the profile could not take is still applied', (

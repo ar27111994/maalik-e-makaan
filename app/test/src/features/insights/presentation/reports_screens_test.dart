@@ -170,6 +170,21 @@ void main() {
       await _tap(tester, 'Try again');
       expect(shown('22/100'), findsOneWidget);
     });
+
+    testWidgets("wait for the next account's names, not failing, while its "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(tester, _reports, size: _tall);
+      // The next account's scores come at once; the names they need wait.
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.ledger.gate],
+        failure: find.text('The payment scores could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the payment scores'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(shown('22/100'), findsOneWidget);
+    });
   });
 
   group('the owner statement', () {
@@ -415,6 +430,20 @@ void main() {
         app: TestApp(portfolios: const []),
       );
       expect(find.text('Payment score'), findsNothing);
+    });
+
+    testWidgets("shows loading, not a failure, while another account's "
+        "session replaces the user's (waitsForSession)", (tester) async {
+      final app = await pumpScreen(tester, () => section(aliRaza.id));
+      final frames = await framesWhileReplaced(
+        tester,
+        app,
+        held: [app.insights.gate],
+        failure: find.text('The payment scores could not be loaded'),
+        loading: find.bySemanticsLabel('Loading the payment scores'),
+      );
+      expect(frames, (failure: 0, loading: 10));
+      expect(find.byType(MmScoreGauge), findsOneWidget);
     });
   });
 }

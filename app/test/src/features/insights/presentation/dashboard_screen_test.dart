@@ -32,6 +32,20 @@ Finder _row(String title) =>
     find.ancestor(of: find.text(title), matching: find.byType(MmListTile));
 
 void main() {
+  testWidgets("shows loading, not a failure, while another account's "
+      "session replaces the user's (waitsForSession)", (tester) async {
+    final app = await pumpScreen(tester, _dashboard, size: _tall);
+    final frames = await framesWhileReplaced(
+      tester,
+      app,
+      held: [app.insights.gate],
+      failure: find.text('The dashboard could not be loaded'),
+      loading: find.bySemanticsLabel('Loading the dashboard'),
+    );
+    expect(frames, (failure: 0, loading: 10));
+    expect(find.text('This month, November 2026'), findsOneWidget);
+  });
+
   testWidgets('shows the month, what needs attention and who owes', (
     tester,
   ) async {

@@ -11,6 +11,7 @@ import '../../../../support/supabase.dart';
 /// A `tenants` row as PostgREST returns it.
 final Map<String, Object?> _row = {
   'id': aliRaza.id,
+  'portfolio_id': gulberg.id,
   'kind': 'individual',
   'full_name': 'Ali Raza',
   'guardian_name': 'Ahmed Raza',

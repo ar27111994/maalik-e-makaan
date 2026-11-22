@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/core/display_text.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/core/failure_message.dart';
@@ -50,6 +51,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // The user, as the portfolio list is read: the next account's search is
+    // its own ([searchProvider]).
+    final userId = ref.watch(currentUserIdProvider);
     final portfolio = ref.watch(currentPortfolioProvider).value;
     final text = Theme.of(context).textTheme;
     return MmPage(
@@ -67,7 +71,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
           ),
           const SizedBox(height: MmSpace.s4),
-          if (portfolio == null)
+          // With nobody signed in, no portfolio is current either.
+          if (userId == null || portfolio == null)
             const SizedBox.shrink()
           else if (_query.isEmpty)
             Text(l10n.searchIntro, style: text.bodyLarge)
@@ -75,7 +80,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             Text(l10n.searchTooShort, style: text.bodyLarge)
           else
             _Results(
-              search: (portfolioId: portfolio.id, query: searchQuery(_query)),
+              search: (
+                userId: userId,
+                portfolioId: portfolio.id,
+                query: searchQuery(_query),
+              ),
             ),
         ],
       ),
