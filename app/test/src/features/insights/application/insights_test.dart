@@ -164,7 +164,7 @@ void main() {
   test('a search asks the repository', () async {
     final app = TestApp();
     final container = containerFor(app);
-    final search = (portfolioId: gulberg.id, query: 'gul');
+    final search = (userId: testUserId, portfolioId: gulberg.id, query: 'gul');
     listen(container, searchProvider(search));
     final results = await container.read(searchProvider(search).future);
     expect(results.map((r) => r.kind), [SearchKind.property, SearchKind.unit]);

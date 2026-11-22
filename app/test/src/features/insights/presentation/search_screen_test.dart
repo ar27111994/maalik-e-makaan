@@ -147,6 +147,39 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets("asks again for the next account, showing nothing of the user's "
+      'while its session replaces theirs', (tester) async {
+    // The search is keyed by the user too: the next account's, in the same
+    // portfolio with the same words, is a new one, which loads as any
+    // first search does.
+    final app = await pumpScreen(tester, _search);
+    await _type(tester, 'ali');
+    expect(find.text('Ali Raza'), findsOneWidget);
+    app.insights.searchAnswer = [
+      {
+        'entity_type': 'property',
+        'entity_id': 'p-aliabad',
+        'title': 'Aliabad Flats',
+        'subtitle': 'Model Town, Lahore',
+        'score': 0.8,
+      },
+    ];
+    final frames = await framesWhileReplaced(
+      tester,
+      app,
+      held: [app.insights.gate],
+      failure: find.text('Ali Raza'),
+      loading: find.byType(MmSkeletonList),
+    );
+    expect(frames, (failure: 0, loading: 10));
+    expect(app.insights.calls.map((c) => c.$2), [
+      [gulberg.id, 'ali'],
+      [gulberg.id, 'ali'],
+    ]);
+    expect(find.text('Ali Raza'), findsNothing);
+    expect(find.text('Aliabad Flats'), findsOneWidget);
+  });
+
   testWidgets('waits for a portfolio', (tester) async {
     await pumpScreen(tester, _search, app: TestApp(portfolios: const []));
     await _type(tester, 'ali');

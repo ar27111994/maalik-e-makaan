@@ -361,11 +361,16 @@ final class TaxYearController extends SwrNotifier<TaxYearStatement> {
   Object? encode(TaxYearStatement value) => value.toJson();
 }
 
-/// A search in a portfolio.
-typedef SearchOf = ({String portfolioId, String query});
+/// A search in a portfolio by the signed-in user.
+typedef SearchOf = ({String userId, String portfolioId, String query});
 
 /// Properties, units and tenants matching a search (SRCH-01). A search is
 /// asked for as it is typed, so it is not saved on the device.
+///
+/// It is keyed by the user too, as the portfolio list is: after another
+/// account signs in, the screen reads a new search, which asks and loads,
+/// and the earlier account's, which nobody reads, is disposed with its
+/// results.
 final FutureProviderFamily<List<SearchResult>, SearchOf> searchProvider =
     FutureProvider.autoDispose.family<List<SearchResult>, SearchOf>(
       (ref, search) => ref
