@@ -782,10 +782,13 @@ else does then, since a picker may be handing over a copy.
   app, a photo a phone's own camera app also saved to the gallery, the
   browser's own cache (pictures shown, files opened), text copied with the
   Copy buttons (and a keyboard's clipboard history), and the phone's backup
-  of the app's preferences (Android Auto Backup is on: `allowBackup` is not
-  set). A session whose sign-out could not reach the server stays valid on
-  it (refresh tokens do not expire by time, and no session time-box is set),
-  so a backup made before can still sign in.
+  of the app's preferences, with the session and the saved records. Phone
+  backups are full, the owner's decision (D-24): the manifest says
+  `android:allowBackup="true"` and names no backup rules or agent, which
+  `tool/android/check_manifest.py` keeps so, and iCloud and computer backups
+  take the iPhone's user defaults. A session whose sign-out could not reach
+  the server stays valid on it (refresh tokens do not expire by time, and no
+  session time-box is set), so a backup made before can still sign in.
 - **Moving the web app to another address.** The browser keeps the web app's
   storage per origin, and the app on a new origin cannot reach the old
   one's. The web app has moved (to `app.mmakaan.app`), and the earlier
