@@ -813,6 +813,14 @@
   "@deleteAccountConfirmAction": {
     "description": "Button that deletes the account for good."
   },
+  "deletionCancelledTitle": "Deletion cancelled",
+  "@deletionCancelledTitle": {
+    "description": "Heading on the deletion screen when the screen was left while the password was checked, which cancels the deletion before anything is sent."
+  },
+  "deletionCancelledBody": "You left this screen while your password was being checked, so nothing was sent and your account was not deleted.",
+  "@deletionCancelledBody": {
+    "description": "Shown on the deletion screen, still open in its section, after the user went to another section while the password was checked."
+  },
   "doomedPortfolioOnlyYou": "Only you use it",
   "@doomedPortfolioOnlyYou": {
     "description": "A deleted portfolio has no other members."

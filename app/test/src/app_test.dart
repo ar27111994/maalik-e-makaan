@@ -5,10 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/failure_banner.dart';
 import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
@@ -61,6 +63,16 @@ Finder _inNavigation(String label) => find.descendant(
   ),
   matching: find.text(label),
 );
+
+/// Taps the section [label] in a phone's navigation bar, at the middle of
+/// the bar: on a screen with a bottom bar of its own a label is laid out
+/// partly below the window, so a tap at its centre would miss.
+Future<void> _goToSection(WidgetTester tester, String label) {
+  final bar = tester.getRect(find.byType(NavigationBar));
+  return tester.tapAt(
+    Offset(tester.getCenter(_inNavigation(label)).dx, bar.center.dy),
+  );
+}
 
 void main() {
   testWidgets('first launch greets in both languages and keeps the choice', (
@@ -758,9 +770,59 @@ void main() {
   // way, Back waits for the answer, so leaving never looks like cancelling
   // (the owner's decision). Back is Android's button and its back gesture,
   // the app bar's arrow, and the browser's (the platform reporting the
-  // earlier address). Pages open without a transition here, so no swipe
-  // drags one away.
+  // earlier address). Pages open without a transition in these tests, so no
+  // swipe drags one away.
   group('deleting the account', () {
+    // Types [password] and [email] into the delete screen, in either
+    // language.
+    Future<void> fill(
+      WidgetTester tester, {
+      String password = 'Secret1234',
+      String email = testEmail,
+    }) async {
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(MmPasswordField),
+          matching: find.byType(TextField),
+        ),
+        password,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (widget) =>
+                widget is MmTextField &&
+                widget.keyboardType == TextInputType.emailAddress,
+          ),
+          matching: find.byType(TextField),
+        ),
+        email,
+      );
+      await tester.pump();
+    }
+
+    // Taps "Delete my account", the screen's one destructive button.
+    Future<void> tapDelete(WidgetTester tester) async {
+      final delete = find.byWidgetPredicate(
+        (widget) =>
+            widget is MmButton && widget.variant == MmButtonVariant.destructive,
+      );
+      await tester.ensureVisible(delete);
+      await tester.tap(delete);
+      await tester.pump();
+    }
+
+    MmButton button(WidgetTester tester, String label) =>
+        tester.widget<MmButton>(find.widgetWithText(MmButton, label));
+
+    // The button's progress turns for as long as a command runs, so pump
+    // past every transition rather than settle.
+    Future<void> settleWhileBusy(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+    }
+
     // Fills in the delete screen and deletes, with what [held] answers
     // held: the password check (the sign-in again) or the deletion.
     Future<TestApp> deleting(
@@ -768,31 +830,9 @@ void main() {
       required Gate Function(TestApp app) held,
     }) async {
       final app = await _pumpApp(tester, location: Routes.deleteAccount);
-      await tester.enterText(
-        find.descendant(
-          of: find.byWidgetPredicate(
-            (widget) => widget is MmPasswordField && widget.label == 'Password',
-          ),
-          matching: find.byType(TextField),
-        ),
-        'Secret1234',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byWidgetPredicate(
-            (widget) =>
-                widget is MmTextField && widget.label.startsWith('Type'),
-          ),
-          matching: find.byType(TextField),
-        ),
-        testEmail,
-      );
-      await tester.pump();
+      await fill(tester);
       held(app).close();
-      final delete = find.widgetWithText(MmButton, 'Delete my account');
-      await tester.ensureVisible(delete);
-      await tester.tap(delete);
-      await tester.pump();
+      await tapDelete(tester);
       expect(app.auth.calls.single.$1, 'reauthenticate');
       return app;
     }
@@ -880,19 +920,10 @@ void main() {
         await tester.pump();
         expect(app.account.calls.last.$1, 'deleteAccount');
         await back(tester);
-        // The button's progress turns for as long as the request is on
-        // its way, so pump past every transition rather than settle.
-        for (var i = 0; i < 4; i++) {
-          await tester.pump(const Duration(milliseconds: 250));
-        }
+        await settleWhileBusy(tester);
         expect(find.text('This cannot be undone'), findsOneWidget);
         expect(router(tester).state.uri.path, Routes.deleteAccount);
-        expect(
-          tester.widget<MmButton>(
-            find.widgetWithText(MmButton, 'Delete my account'),
-          ),
-          isA<MmButton>().having((button) => button.busy, 'busy', isTrue),
-        );
+        expect(button(tester, 'Delete my account').busy, isTrue);
         // The page says it cannot be popped, which a back gesture that
         // drags a page away asks before it starts.
         expect(
@@ -964,14 +995,140 @@ void main() {
     ) async {
       final app = await deleting(tester, held: sending);
       await tester.pump();
-      await tester.tap(_inNavigation('Dashboard'));
-      for (var i = 0; i < 4; i++) {
-        await tester.pump(const Duration(milliseconds: 250));
-      }
+      await _goToSection(tester, 'Dashboard');
+      await settleWhileBusy(tester);
       expect(find.text('This cannot be undone'), findsOneWidget);
       expect(router(tester).state.uri.path, Routes.deleteAccount);
       app.account.gate.open();
       await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    // Another account signed in meanwhile (another tab) gets the screen,
+    // which the router keeps for whoever is signed in, and may start its
+    // own deletion while the earlier request is still on its way. Back
+    // waits for every request on its way: the earlier one's answer must
+    // not let the screen go while the later one is out.
+    testWidgets('Back waits while any deletion is on its way, also one '
+        'another account started before the earlier one answered', (
+      tester,
+    ) async {
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
+      final answerEarlier = app.account.gate.holdLaterCallsApart();
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      await settleWhileBusy(tester);
+      // That account's preview answers, and its form is new.
+      app.account.gate.open();
+      await settleWhileBusy(tester);
+      expect(button(tester, 'Delete my account').busy, isFalse);
+      await fill(tester, password: 'Other1234', email: otherAccount.email!);
+      app.account.gate.close();
+      await tapDelete(tester);
+      await tester.pump();
+      expect(app.account.calls.map((call) => call.$1), [
+        'deletionPreview',
+        'deleteAccount',
+        'deletionPreview',
+        'deleteAccount',
+      ]);
+      // The earlier request answers: its account no longer holds the
+      // device, so nobody is signed out by it.
+      answerEarlier();
+      await settleWhileBusy(tester);
+      expect(app.auth.calls.map((call) => call.$1), [
+        'reauthenticate',
+        'reauthenticate',
+      ]);
+      await tester.binding.handlePopRoute();
+      await settleWhileBusy(tester);
+      expect(router(tester).state.uri.path, Routes.deleteAccount);
+      expect(find.text('This cannot be undone'), findsOneWidget);
+      expect(button(tester, 'Cancel').onPressed, isNull);
+      expect(
+        ModalRoute.of(tester.element(find.text('This cannot be undone')))!
+            .popDisposition,
+        RoutePopDisposition.doNotPop,
+      );
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(find.text('Your account has been deleted'), findsOneWidget);
+    });
+
+    // Another section while the password is checked cancels, as Back
+    // does, but the section keeps its screens: the delete screen is still
+    // there when the user comes back, no longer busy, and says that nothing
+    // was sent, in English and in Urdu.
+    for (final urdu in [false, true]) {
+      testWidgets('another section while the password is checked cancels, '
+          'and the screen says so when shown again${urdu ? ' (Urdu)' : ''}', (
+        tester,
+      ) async {
+        final app = await _pumpApp(
+          tester,
+          app: TestApp(language: urdu ? 'ur' : 'en'),
+          location: Routes.deleteAccount,
+        );
+        await fill(tester);
+        app.auth.gate.close();
+        await tapDelete(tester);
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(MmPasswordField)),
+        );
+        final notice = find.text(l10n.deletionCancelledBody);
+        expect(notice, findsNothing);
+        await _goToSection(tester, l10n.navDashboard);
+        await settleWhileBusy(tester);
+        expect(router(tester).state.uri.path, Routes.home);
+        await _goToSection(tester, l10n.navMore);
+        await settleWhileBusy(tester);
+        expect(router(tester).state.uri.path, Routes.deleteAccount);
+        expect(button(tester, l10n.deleteAccountConfirmAction).busy, isFalse);
+        expect(button(tester, l10n.cancelAction).onPressed, isNotNull);
+        expect(notice, findsOneWidget);
+        expect(find.text(l10n.deletionCancelledTitle), findsOneWidget);
+        // The check answers afterwards: still nothing is sent, and no
+        // failure is shown.
+        app.auth.gate.open();
+        await tester.pumpAndSettle();
+        expectNothingSent(app);
+        expect(notice, findsOneWidget);
+        expect(find.byType(FailureBanner), findsNothing);
+      });
+    }
+
+    // Deleting again from that screen before the cancelled check answers
+    // starts a deletion of its own, which is the one that sends; the
+    // cancelled one's answer changes nothing on the screen.
+    testWidgets('a deletion started again on the screen another section '
+        'cancelled sends once, and stays busy until answered', (tester) async {
+      final app = await deleting(tester, held: checking);
+      await _goToSection(tester, 'Dashboard');
+      await settleWhileBusy(tester);
+      await _goToSection(tester, 'More');
+      await settleWhileBusy(tester);
+      expect(find.text('Deletion cancelled'), findsOneWidget);
+      app.account.gate.close();
+      await tapDelete(tester);
+      expect(find.text('Deletion cancelled'), findsNothing);
+      // Both checks answer: the cancelled one sends nothing.
+      app.auth.gate.open();
+      await settleWhileBusy(tester);
+      expect(
+        app.account.calls.where((call) => call.$1 == 'deleteAccount'),
+        hasLength(1),
+      );
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(button(tester, 'Cancel').onPressed, isNull);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.map((call) => call.$1), [
+        'reauthenticate',
+        'reauthenticate',
+        'signOut',
+      ]);
       expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
     });
 

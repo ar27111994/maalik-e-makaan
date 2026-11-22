@@ -546,20 +546,26 @@ void main() {
         await pumpEventQueue();
         app.auth.gate.close();
         final deletion = container.read(accountDeletionProvider.notifier);
-        final deleting = deletion.deleteAccount(
-          password: 'Secret1234',
-          confirmEmail: testEmail,
-        );
+        var returned = false;
+        final deleting = deletion
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail)
+            .whenComplete(() => returned = true);
         await pumpEventQueue();
         expect(deletion.sending.value, isFalse);
+        expect(returned, isFalse);
         expect(deletion.leave(), isTrue);
+        // It returns at once, before the check answers, so a screen still
+        // shown (left for another section, which keeps it) is not busy.
+        await pumpEventQueue();
+        expect(returned, isTrue);
         if (gone) {
           screen.close();
           await pumpEventQueue();
           expect(container.read(accountDeletionProvider.exists), isFalse);
         }
         app.auth.gate.open();
-        await deleting;
+        expect(await deleting, isFalse);
+        await pumpEventQueue();
         expect(
           app.account.calls.map((c) => c.$1),
           isNot(contains('deleteAccount')),
@@ -594,13 +600,13 @@ void main() {
       await pumpEventQueue();
       // The earlier check answers first: it was left, so it sends nothing.
       releaseEarlier();
-      await earlier;
+      expect(await earlier, isFalse);
       expect(
         app.account.calls.map((c) => c.$1),
         isNot(contains('deleteAccount')),
       );
       app.auth.gate.open();
-      await later;
+      expect(await later, isTrue);
       expect(
         app.account.calls
             .where((c) => c.$1 == 'deleteAccount')
@@ -621,9 +627,12 @@ void main() {
       expect(deletion.leave(), isTrue);
       expect(deletion.sending.value, isFalse);
       // Leaving before a deletion starts cancels nothing of it.
-      await deletion.deleteAccount(
-        password: 'Secret1234',
-        confirmEmail: testEmail,
+      expect(
+        await deletion.deleteAccount(
+          password: 'Secret1234',
+          confirmEmail: testEmail,
+        ),
+        isTrue,
       );
       expect(app.account.calls.last.$1, 'deleteAccount');
       expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
@@ -674,6 +683,102 @@ void main() {
         expect(deletion.sending.value, isFalse);
       });
     }
+
+    // Another account signed in meanwhile may start its own deletion while
+    // the earlier one's request is still on its way. The screen stays until
+    // neither is: the earlier answer does not let it go.
+    test('two deletions on their way at once: its screen may be left only '
+        'once both are answered', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      app.account.gate.close();
+      final deletion = container.read(accountDeletionProvider.notifier);
+      final sent = <bool>[];
+      deletion.sending.addListener(() => sent.add(deletion.sending.value));
+      final earlier = deletion.deleteAccount(
+        password: 'Secret1234',
+        confirmEmail: testEmail,
+      );
+      await pumpEventQueue();
+      final answerEarlier = app.account.gate.holdLaterCallsApart();
+      await app.cache.clear();
+      app.auth.emit(_otherAccount);
+      await pumpEventQueue();
+      final later = deletion.deleteAccount(
+        password: 'Other1234',
+        confirmEmail: _otherAccount.email!,
+      );
+      await pumpEventQueue();
+      expect(
+        app.account.calls
+            .where((c) => c.$1 == 'deleteAccount')
+            .map((c) => c.$2),
+        [
+          [testEmail],
+          [_otherAccount.email],
+        ],
+      );
+      answerEarlier();
+      await expectLater(earlier, throwsA(isA<SessionExpired>()));
+      expect(deletion.sending.value, isTrue);
+      expect(deletion.leave(), isFalse);
+      app.account.gate.open();
+      expect(await later, isTrue);
+      expect(app.auth.calls.map((c) => c.$1), [
+        'reauthenticate',
+        'reauthenticate',
+        'signOut',
+      ]);
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(sent, [true, false]);
+      expect(deletion.sending.value, isFalse);
+      expect(deletion.leave(), isTrue);
+    });
+
+    // The later deletion stops at its password check (refused) while the
+    // earlier request is on its way: once that one answers, nothing is on
+    // its way any more, and the screen may be left.
+    test('the earlier answer frees its screen when a later deletion stopped '
+        'at its password check', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      app.account.gate.close();
+      final deletion = container.read(accountDeletionProvider.notifier);
+      final earlier = deletion.deleteAccount(
+        password: 'Secret1234',
+        confirmEmail: testEmail,
+      );
+      await pumpEventQueue();
+      final answerEarlier = app.account.gate.holdLaterCallsApart();
+      await app.cache.clear();
+      app.auth.emit(_otherAccount);
+      await pumpEventQueue();
+      app.auth.gate.failure = const RejectedFailure('invalid_credentials');
+      await expectLater(
+        deletion.deleteAccount(
+          password: 'Wrong1234',
+          confirmEmail: _otherAccount.email!,
+        ),
+        throwsA(isA<RejectedFailure>()),
+      );
+      app.auth.gate.failure = null;
+      expect(deletion.sending.value, isTrue);
+      answerEarlier();
+      await expectLater(earlier, throwsA(isA<SessionExpired>()));
+      expect(deletion.sending.value, isFalse);
+      expect(deletion.leave(), isTrue);
+      expect(
+        app.account.calls.where((c) => c.$1 == 'deleteAccount'),
+        hasLength(1),
+      );
+      app.account.gate.open();
+    });
 
     // The session ends elsewhere while the request is on its way: the
     // router leaves the screen for the sign-in screen (or the new password),

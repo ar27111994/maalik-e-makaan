@@ -364,24 +364,34 @@ else does then, since a picker may be handing over a copy.
   (`GoRoute.onExit` calls `AccountDeletionController.leave`: Back from
   Android's button or gesture, the app bar or the browser, Cancel, another
   section, a link, or the router's own redirect). Left while the password is
-  checked (the sign-in again), the deletion is cancelled: once the check
-  answers, nothing is sent and nobody is signed out, though the check has
-  given the device a new session of the same account, as any sign-in does.
-  Riverpod's `Ref.mounted` was not enough for this: it turns false only once
-  Riverpod disposes the provider, after the screen is gone at the next frame,
-  and a check that answered in between would still send. Once the request is
-  on its way (`sending`, until the command ends, its sign-out included), the
-  screen stays: its page cannot be popped (`PopScope`, which a back gesture
-  that drags a page away would ask first; pages open without a transition
-  here, so none does), Cancel waits, and `leave` says no, so Back, another
-  section and a link all wait for the answer, and leaving never looks like
-  cancelling. With another account signed in meanwhile (another tab) the
-  router keeps the screen, which waits too. Only the router's redirect at a
-  sign-out leaves it then, when nobody is signed in any more (or the account
-  is choosing a new password): `leave` lets it, and the command ends without
-  its screen, the same as with it, since it reads everything it uses before
-  its first wait. A request that never answers keeps the screen until the
-  app is closed (requests have no time limit), which is the case above.
+  checked (the sign-in again), the deletion is cancelled: the command returns
+  at once, and once the check answers, nothing is sent and nobody is signed
+  out, though the check has given the device a new session of the same
+  account, as any sign-in does. Another section cancels the same way, but
+  the section keeps its stack: the delete screen is still there when the
+  user comes back, no longer busy, with a notice that the deletion was
+  cancelled and nothing was sent (`deletionCancelledBody`, in English and
+  Urdu), and deleting again from it starts a deletion of its own, the only
+  one that sends. Riverpod's `Ref.mounted` was not enough for this: it turns
+  false only once Riverpod disposes the provider, after the screen is gone
+  at the next frame, and a check that answered in between would still send.
+  Once a request is on its way (`sending`, from the moment it is sent until
+  its command ends, its sign-out included), the screen stays: its page
+  cannot be popped (`PopScope`, which a back gesture that drags a page away
+  would ask first, though pages appear to open without a transition: seen in
+  widget tests, to be checked on a device), Cancel waits, and `leave` says
+  no, so Back, another section and a link all wait for the answer, and
+  leaving never looks like cancelling. With another account signed in
+  meanwhile (another tab) the router keeps the screen, which waits too, and
+  that account may start its own deletion there before the earlier request
+  is answered: `sending` counts the requests on their way, so the screen
+  waits until every one is answered, not only the first. Only the router's
+  redirect at a sign-out leaves it then, when nobody is signed in any more
+  (or the account is choosing a new password): `leave` lets it, and the
+  command ends without its screen, the same as with it, since it reads
+  everything it uses before its first wait. A request that never answers
+  keeps the screen until the app is closed (requests have no time limit),
+  which is the case above.
   Nothing is awaited between reading that session and gotrue dropping it, and
   on the web gotrue tells the other tabs before any message of theirs can be
   handled (its one wait between, removing the sign-in-link verifier from

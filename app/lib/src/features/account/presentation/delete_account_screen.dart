@@ -28,7 +28,9 @@ import 'package:mm_ui/mm_ui.dart';
 /// Back and Cancel cancel while the password is checked; once the request
 /// is on its way, both wait for its answer: the page cannot be
 /// popped, and the router keeps it whichever way it is left
-/// ([AccountDeletionController.leave]).
+/// ([AccountDeletionController.leave]). Another section cancels too, but
+/// keeps the screen in its own: shown again, it is no longer busy, and says
+/// that the deletion was cancelled and nothing was sent.
 class DeleteAccountScreen extends ConsumerWidget {
   const new({super.key});
 
@@ -95,6 +97,11 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
   final _typed = TextEditingController();
   AutovalidateMode _validation = AutovalidateMode.disabled;
 
+  /// Whether the last deletion was cancelled before its request was sent:
+  /// the screen was left for another section while the password was
+  /// checked, and that section kept it.
+  bool _cancelled = false;
+
   @override
   void initState() {
     super.initState();
@@ -116,13 +123,16 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
       setState(() => _validation = AutovalidateMode.onUserInteraction);
       return;
     }
+    setState(() => _cancelled = false);
     // Success signs out; the router then shows the sign-in screen, which
     // says the account was deleted.
-    await runCommand(
-      () => ref
+    var sent = true;
+    await runCommand(() async {
+      sent = await ref
           .read(accountDeletionProvider.notifier)
-          .deleteAccount(password: _password.text, confirmEmail: _typed.text),
-    );
+          .deleteAccount(password: _password.text, confirmEmail: _typed.text);
+    });
+    if (!sent && mounted) setState(() => _cancelled = true);
   }
 
   void _clearFailure(String _) {
@@ -199,6 +209,12 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
                   preview.reauthMaxAge.inMinutes,
                 ),
                 children: [
+                  if (_cancelled)
+                    MmBanner(
+                      tone: MmBannerTone.info,
+                      title: l10n.deletionCancelledTitle,
+                      message: l10n.deletionCancelledBody,
+                    ),
                   if (failure != null &&
                       passwordError == null &&
                       emailError == null)
