@@ -681,6 +681,17 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   the errors reach only the handler of uncaught errors (`bootstrap.dart`, which prints them).
   Read the dependencies before the first await, or ask `ref.mounted` after each, and have
   `_watch` drop the error of a fetch whose subscriber has cancelled.
+- App: a re-authentication on its way when another tab signs the account out signs it back in
+  (found on #70, 22 November 2026; older than #70): `reauthenticate` (`auth_repository.dart`) is
+  a real `signInWithPassword`, whose answer gives the device, and every tab, a new session of
+  that account, while the delete screen reports an expired session and sends no deletion. The
+  owner's call; one way is to sign out again after it when the cache no longer serves the
+  session that asked.
+- App: the check-email screen shows the last address an e-mail was sent to for the whole run,
+  across sign-outs (found on #70, 22 November 2026; older than #70): `pendingEmailProvider`
+  (`auth_controller.dart`) is in memory, and nothing clears it at a sign-out or a wipe;
+  `docs/architecture/app.md` names it. Clear it when a session starts or ends, or accept it
+  there.
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
