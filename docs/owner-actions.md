@@ -20,7 +20,8 @@ actions](release-readiness.md#owner-actions) keeps the history.
   branch](#delete-the-branch-claudepublish-dry-run-two-minutes).
 - **By 30 December:** [decide whether anyone pays before March
   2027](#decide-whether-anyone-pays-before-march-2027).
-- **Before launch, 28 February 2027:** [Google Play](#publish-on-google-play),
+- **Before launch, 28 February 2027:** [the lawyer's
+  review](#get-the-lawyers-review-back-and-settle-it), [Google Play](#publish-on-google-play),
   [Apple](#enrol-in-the-apple-developer-program), [the Urdu
   review](#review-the-urdu-and-hire-an-editor).
 - **Decisions, soonest first:** [residence Q1 to Q7](#residence-questions-q1-to-q7) (the screens are
@@ -80,7 +81,8 @@ store forms are filled in and before any analytics run. The agent also could not
    - Should a Pakistani hosting option be planned now?
 
 **Done when:** a firm is engaged with a fee and a deadline. **Then tell the agent:** the firm, the
-fee, the deadline and your answers.
+fee, the deadline and your answers. The review itself is a launch item of its own: [get the
+lawyer's review back](#get-the-lawyers-review-back-and-settle-it).
 
 ### Chase the D-U-N-S number (now)
 
@@ -239,6 +241,23 @@ web app ([details](roadmap/app-store.md#questions-for-the-owner)).
 
 **Done when:** the membership is active (steps 1 to 3); step 4 follows. **Then tell the agent:**
 that, the Team ID and your choices.
+
+### Get the lawyer's review back and settle it
+
+**Why:** launch needs the lawyer's written review, not only a firm engaged, and the privacy notice,
+the terms and the store forms follow from it ([details](roadmap/legal-review.md#done-when)).
+
+1. Once the firm has the pack ([ask lawyers for a
+   quote](#ask-lawyers-for-a-fixed-fee-quote-this-month)), get its review back as a signed memo or
+   letter, dated after November 2026.
+2. Go through it with the agent: each question for the lawyer answered or explicitly deferred, and
+   each change to the privacy notice, the terms or the guides agreed.
+3. Approve the changed texts in English and Urdu before the agent publishes them, and before the
+   store forms are filled in.
+
+**Done when:** the memo is in hand and every question in it is answered or deferred. **Then tell
+the agent:** that it arrived, and send the memo (it holds no personal data); the agent records what
+it decides and turns its changes into a pull request.
 
 ### Review the Urdu and hire an editor
 
