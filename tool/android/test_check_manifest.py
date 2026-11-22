@@ -13,6 +13,10 @@ import check_manifest
 HEADER = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
 INTERNET = '<uses-permission android:name="android.permission.INTERNET"/>'
 ICONS = 'android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"'
+# The phone's backup, kept full (decision D-24).
+BACKUP = 'android:allowBackup="true"'
+# What every application needs besides its components.
+REQUIRED = f"{ICONS} {BACKUP}"
 HOSTS = {"app.example.pk", "old.example.org"}
 
 
@@ -46,7 +50,7 @@ def app_links(data: str = DATA, verify: str = 'android:autoVerify="true"', **kwa
     )
 
 
-APPLICATION = f"<application {ICONS}>{app_links()}</application>"
+APPLICATION = f"<application {REQUIRED}>{app_links()}</application>"
 
 
 class CheckManifestTest(unittest.TestCase):
@@ -110,11 +114,66 @@ class CheckManifestTest(unittest.TestCase):
             '<application icon="@mipmap/ic_launcher" roundIcon="@mipmap/ic_launcher_round"/>',
         ):
             with self.subTest(application=application):
+                application = application.replace("<application", f"<application {BACKUP}", 1)
                 application = application.replace("/>", f">{app_links()}</application>")
                 path = self.manifest(INTERNET, application=application)
                 found = self.problems(path)
                 self.assertEqual(len(found), 1 if "android:icon" in application else 2)
                 self.assertTrue(all("<application> needs android:" in line for line in found))
+
+    def test_the_application_must_keep_the_phone_backup_on(self):
+        # Absent is Android's default (on), but D-24 has the choice written out and checked; any
+        # other value, aapt2's other spellings of true included, is refused.
+        for backup in (
+            "",
+            'android:allowBackup="false"',
+            'android:allowBackup="FALSE"',
+            'android:allowBackup="True"',
+            'android:allowBackup=" true"',
+            'android:allowBackup="@bool/backup"',
+            'allowBackup="true"',
+        ):
+            with self.subTest(backup=backup):
+                application = f"<application {ICONS} {backup}>{app_links()}</application>"
+                path = self.manifest(INTERNET, application=application)
+                self.assertEqual(self.problems(path), [f"{path}: <application> needs {BACKUP}"])
+
+    def test_backup_rules_or_an_agent_on_the_application_fail(self):
+        # Each would narrow what the phone's backup or a move to a new phone keeps, whatever it
+        # names, so each is refused while D-24 keeps the backup full.
+        for name, value in (
+            ("fullBackupContent", "@xml/backup_rules"),
+            ("fullBackupContent", "false"),
+            ("fullBackupContent", ""),
+            ("dataExtractionRules", "@xml/data_extraction_rules"),
+            ("backupAgent", ".BackupAgent"),
+        ):
+            with self.subTest(name=name, value=value):
+                application = (
+                    f'<application {REQUIRED} android:{name}="{value}">{app_links()}</application>'
+                )
+                found = self.problems(self.manifest(INTERNET, application=application))
+                self.assertEqual(len(found), 1)
+                self.assertIn(f"<application> names android:{name}, which would narrow", found[0])
+                self.assertIn("D-24", found[0])
+
+    def test_backup_rules_together_are_each_reported(self):
+        names = ("fullBackupContent", "dataExtractionRules", "backupAgent")
+        rules = " ".join(f'android:{name}="@xml/x"' for name in names)
+        application = f"<application {REQUIRED} {rules}>{app_links()}</application>"
+        found = self.problems(self.manifest(INTERNET, application=application))
+        self.assertEqual(len(found), len(names))
+        for name, line in zip(names, found, strict=True):
+            self.assertIn(f"<application> names android:{name}, which would narrow", line)
+
+    def test_backup_attributes_outside_the_android_namespace_do_not_count(self):
+        # The check reads only the android: attributes, as Android does, so these neither keep
+        # nor narrow the backup.
+        application = (
+            f'<application {REQUIRED} fullBackupContent="@xml/x" dataExtractionRules="@xml/x"'
+            f' backupAgent=".A">{app_links()}</application>'
+        )
+        self.assertEqual(self.problems(self.manifest(INTERNET, application=application)), [])
 
     def test_a_manifest_without_an_application_fails(self):
         path = self.manifest(INTERNET, application="")
@@ -159,7 +218,7 @@ class CheckManifestTest(unittest.TestCase):
         for name, (activity, expected) in cases.items():
             with self.subTest(name):
                 path = self.manifest(
-                    INTERNET, application=f"<application {ICONS}>{activity}</application>"
+                    INTERNET, application=f"<application {REQUIRED}>{activity}</application>"
                 )
                 found = self.problems(path)
                 self.assertEqual(len(found), len(expected), found)
@@ -168,7 +227,9 @@ class CheckManifestTest(unittest.TestCase):
 
     def application(self, *filters: str) -> Path:
         activity = f'<activity android:name=".MainActivity">{"".join(filters)}</activity>'
-        return self.manifest(INTERNET, application=f"<application {ICONS}>{activity}</application>")
+        return self.manifest(
+            INTERNET, application=f"<application {REQUIRED}>{activity}</application>"
+        )
 
     def test_hosts_and_paths_combine_within_a_filter_not_across_filters(self):
         # Android takes the cross product of a filter's schemes, hosts and paths, and never
@@ -295,7 +356,7 @@ class CheckManifestTest(unittest.TestCase):
                     self.assertIn(fragment, line)
                     self.assertIn("web link filter 2", line)
 
-    def component(self, element: str, application: str = f"<application {ICONS}>") -> Path:
+    def component(self, element: str, application: str = f"<application {REQUIRED}>") -> Path:
         """A manifest whose one App Links filter sits in `element` (an opening tag)."""
         tag = element[1:].split(" ", 1)[0].rstrip(">")
         return self.manifest(
@@ -367,7 +428,7 @@ class CheckManifestTest(unittest.TestCase):
             with self.subTest(name):
                 path = self.dir / "AndroidManifest.xml"
                 body = (
-                    f"{HEADER.replace('>', package + '>', 1)}{INTERNET}<application {ICONS}>"
+                    f"{HEADER.replace('>', package + '>', 1)}{INTERNET}<application {REQUIRED}>"
                     f"{target}{alias.format(target=named)}{intent_filter()}</activity-alias>"
                     "</application></manifest>"
                 )
@@ -378,12 +439,12 @@ class CheckManifestTest(unittest.TestCase):
             (
                 '<activity-alias android:name=".B" android:targetActivity=".A"'
                 ' android:enabled="false">',
-                f"<application {ICONS}>",
+                f"<application {REQUIRED}>",
                 'is on an <activity-alias> with android:enabled="false"',
             ),
             (
                 '<activity-alias android:name=".B" android:targetActivity=".A">',
-                f'<application {ICONS} android:enabled="false">',
+                f'<application {REQUIRED} android:enabled="false">',
                 'is in an <application> with android:enabled="false"',
             ),
         ):
@@ -399,17 +460,17 @@ class CheckManifestTest(unittest.TestCase):
         cases = {
             "on the activity": (
                 f'<activity android:name=".A" {permission}>',
-                f"<application {ICONS}>",
+                f"<application {REQUIRED}>",
                 "is on an <activity> with",
             ),
             "on the alias": (
                 f'<activity-alias android:name=".B" android:targetActivity=".A" {permission}>',
-                f"<application {ICONS}>{target}",
+                f"<application {REQUIRED}>{target}",
                 "is on an <activity-alias> with",
             ),
             "on the application, for an activity that sets none": (
                 '<activity android:name=".A">',
-                f"<application {ICONS} {permission}>",
+                f"<application {REQUIRED} {permission}>",
                 "is on an <activity> without its own permission, in an <application> with",
             ),
         }
@@ -442,19 +503,19 @@ class CheckManifestTest(unittest.TestCase):
         cases = {
             "on the alias's target": (
                 alias.format(extra=""),
-                f'<application {ICONS}><activity android:name=".A" {permission}/>',
+                f'<application {REQUIRED}><activity android:name=".A" {permission}/>',
             ),
             "on the application, for an alias": (
                 alias.format(extra=""),
-                f'<application {ICONS} {permission}><activity android:name=".A"/>',
+                f'<application {REQUIRED} {permission}><activity android:name=".A"/>',
             ),
             "on the target, with an empty one on the alias": (
                 alias.format(extra=' android:permission=""'),
-                f'<application {ICONS}><activity android:name=".A" {permission}/>',
+                f'<application {REQUIRED}><activity android:name=".A" {permission}/>',
             ),
             "on the application, with an empty one on the activity": (
                 '<activity android:name=".A" android:permission="">',
-                f"<application {ICONS} {permission}>",
+                f"<application {REQUIRED} {permission}>",
             ),
         }
         for name, (element, application) in cases.items():
@@ -490,7 +551,7 @@ class CheckManifestTest(unittest.TestCase):
         # The application's enabled, too.
         for value, expected in (("FALSE", "which starts nothing"), ("@bool/on", "cannot read")):
             with self.subTest(application=value):
-                application = f'<application {ICONS} android:enabled="{value}">'
+                application = f'<application {REQUIRED} android:enabled="{value}">'
                 found = self.problems(self.component('<activity android:name=".A">', application))
                 self.assertEqual(len(found), 3, found)
                 self.assertIn(expected, found[0])
@@ -499,7 +560,7 @@ class CheckManifestTest(unittest.TestCase):
         found = self.problems(
             self.component(
                 '<activity android:name=".A">',
-                f'<application {ICONS} android:enabled="false">',
+                f'<application {REQUIRED} android:enabled="false">',
             )
         )
         self.assertEqual(len(found), 3, found)
@@ -507,7 +568,7 @@ class CheckManifestTest(unittest.TestCase):
 
     def test_a_filter_outside_any_component_opens_nothing(self):
         path = self.manifest(
-            INTERNET, application=f"<application {ICONS}>{intent_filter()}</application>"
+            INTERNET, application=f"<application {REQUIRED}>{intent_filter()}</application>"
         )
         found = self.problems(path)
         self.assertEqual(len(found), 3, found)
@@ -674,7 +735,7 @@ class CheckManifestTest(unittest.TestCase):
             with self.subTest(name):
                 activity = f"{element}{intent_filter(data)}</activity>"
                 path = self.manifest(
-                    INTERNET, application=f"<application {ICONS}>{activity}</application>"
+                    INTERNET, application=f"<application {REQUIRED}>{activity}</application>"
                 )
                 found = self.problems(path)
                 self.assertEqual(len(found), 3, found)

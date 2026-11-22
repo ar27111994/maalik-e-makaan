@@ -52,7 +52,7 @@ Console.
   ([Android Developers Blog](https://android-developers.googleblog.com/2026/05/making-it-easier-to-build-publish-safer-apps.html)).
   The app uses `image_picker` and `file_picker` ([pubspec.yaml](../../app/pubspec.yaml)); the
   existing manifest check requires the `INTERNET` permission in the merged release manifest but
-  forbids nothing ([check_manifest.py](../../tool/android/check_manifest.py)).
+  forbids no permission ([check_manifest.py](../../tool/android/check_manifest.py)).
 - **Sideloaded apps.** Developer verification for apps installed outside Play began enforcement on
   30 September 2026 in four countries, with global expansion from 2027
   ([Android Developers Blog](https://android-developers.googleblog.com/2026/06/android-developer-verification.html)).

@@ -678,6 +678,13 @@ class AppLocalizationsUr extends AppLocalizations {
   String get deleteAccountConfirmAction => 'میرا اکاؤنٹ ڈیلیٹ کریں';
 
   @override
+  String get deletionCancelledTitle => 'اکاؤنٹ ڈیلیٹ کرنا روک دیا گیا';
+
+  @override
+  String get deletionCancelledBody =>
+      'پاس ورڈ چیک ہوتے وقت آپ یہ اسکرین چھوڑ گئے تھے، اس لیے کچھ نہیں بھیجا گیا اور آپ کا اکاؤنٹ ڈیلیٹ نہیں ہوا۔';
+
+  @override
   String get doomedPortfolioOnlyYou => 'اسے صرف آپ استعمال کرتے ہیں';
 
   @override

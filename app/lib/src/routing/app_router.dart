@@ -11,6 +11,7 @@ import 'package:maalik_e_makaan/src/auth/presentation/sign_in_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/sign_up_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/update_password_screen.dart';
 import 'package:maalik_e_makaan/src/auth/presentation/welcome_screen.dart';
+import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
 import 'package:maalik_e_makaan/src/features/account/presentation/delete_account_screen.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
 import 'package:maalik_e_makaan/src/features/documents/presentation/documents_section.dart';
@@ -392,6 +393,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     routes: [
                       GoRoute(
                         path: _child(Routes.deleteAccount, Routes.settings),
+                        // Every way of leaving asks the deletion:
+                        // leaving while the password is checked cancels it,
+                        // and once its request is on its way the screen
+                        // stays until it is answered.
+                        onExit: (context, state) =>
+                            !ref.read(accountDeletionProvider.exists) ||
+                            ref.read(accountDeletionProvider.notifier).leave(),
                         builder: (context, state) =>
                             const DeleteAccountScreen(),
                       ),

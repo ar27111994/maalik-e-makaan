@@ -186,6 +186,8 @@
   "deleteAccountConfirmBody": "اپنا پاس ورڈ لکھیں، کیونکہ ڈیلیٹ کرنے کے لیے پچھلے {minutes, plural, =1{1 منٹ} other{{minutes} منٹ}} کے اندر سائن اِن ضروری ہے۔ پھر اپنی ای میل لکھیں۔",
   "typeEmailToConfirm": "تصدیق کے لیے {email} لکھیں",
   "deleteAccountConfirmAction": "میرا اکاؤنٹ ڈیلیٹ کریں",
+  "deletionCancelledTitle": "اکاؤنٹ ڈیلیٹ کرنا روک دیا گیا",
+  "deletionCancelledBody": "پاس ورڈ چیک ہوتے وقت آپ یہ اسکرین چھوڑ گئے تھے، اس لیے کچھ نہیں بھیجا گیا اور آپ کا اکاؤنٹ ڈیلیٹ نہیں ہوا۔",
   "doomedPortfolioOnlyYou": "اسے صرف آپ استعمال کرتے ہیں",
   "doomedPortfolioOthers": "{count, plural, =1{1 اور شخص اسے نہیں دیکھ سکے گا} other{{count} اور لوگ اسے نہیں دیکھ سکیں گے}}",
   "checkEmailSentTo": "ہم نے اس ای میل پر ایک لنک بھیجا ہے:",

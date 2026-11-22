@@ -8,7 +8,11 @@ main manifest, and without the permission every request fails as if the phone
 were offline (v1.0.0 shipped that way). The application must also name the
 launcher icons that `make app-icons` writes (tool/design/build_app_icons.py),
 its round variant included, or launchers that use round icons fall back to a
-default. And the e-mail links (/auth/callback, /invite) must open the app on
+default. Phone backups stay full (decision D-24, the owner's "Full Backup"): the
+application says android:allowBackup="true", and names no backup rules
+(android:fullBackupContent, android:dataExtractionRules) and no backup agent,
+any of which would narrow what Google's backup or a move to a new phone keeps.
+And the e-mail links (/auth/callback, /invite) must open the app on
 every host of the web app: its origin and its earlier addresses in
 contracts/origins.json (decision D-20), each host with both paths in one
 https App Links filter that Android verifies (autoVerify) and can launch: VIEW,
@@ -40,11 +44,21 @@ ORIGINS = ROOT / "contracts/origins.json"
 # Supabase (auth, data, storage, Edge Functions) needs the network.
 REQUIRED_PERMISSIONS = ("android.permission.INTERNET",)
 
-# The launcher icons that tool/design/build_app_icons.py writes.
+# The launcher icons that tool/design/build_app_icons.py writes, and the phone's backup kept on
+# (D-24; "true" is Android's default too, written out so that the choice is seen and checked).
 REQUIRED_APPLICATION_ATTRIBUTES = {
     "icon": "@mipmap/ic_launcher",
     "roundIcon": "@mipmap/ic_launcher_round",
+    "allowBackup": "true",
 }
+
+# What would narrow the phone's backup, which D-24 keeps full: the older backup rules file
+# (fullBackupContent: Android 11 and earlier, and for an app that targets Android 12 or later, as
+# this one does, cloud backups on Android 12 and later when there is no dataExtractionRules), the
+# newer one (dataExtractionRules: Android 12 and later), and a backup agent of the app's own, which
+# decides what it backs up. With none of them, Android backs up and transfers everything in the
+# app's own folders but its cache and no-backup folders.
+NARROWING_BACKUP_ATTRIBUTES = ("fullBackupContent", "dataExtractionRules", "backupAgent")
 
 # The paths the web app's e-mail links open: Supabase Auth's callback (with its
 # ?code=…) and invite-member's /invite#token=….
@@ -343,6 +357,12 @@ def problems(manifest: Path, hosts: set[str] | None = None) -> list[str]:
         f'{manifest}: <application> needs android:{name}="{value}"'
         for name, value in REQUIRED_APPLICATION_ATTRIBUTES.items()
         if application.get(f"{ANDROID}{name}") != value
+    ]
+    found += [
+        f"{manifest}: <application> names android:{name}, which would narrow the phone's backup"
+        " (decision D-24 keeps it full)"
+        for name in NARROWING_BACKUP_ATTRIBUTES
+        if application.get(f"{ANDROID}{name}") is not None
     ]
     return found + app_link_problems(manifest, root, app_link_hosts() if hosts is None else hosts)
 

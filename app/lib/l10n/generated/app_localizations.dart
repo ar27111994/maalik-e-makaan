@@ -1214,6 +1214,18 @@ abstract class AppLocalizations {
   /// **'Delete my account'**
   String get deleteAccountConfirmAction;
 
+  /// Heading on the deletion screen when the screen was left while the password was checked, which cancels the deletion before anything is sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion cancelled'**
+  String get deletionCancelledTitle;
+
+  /// Shown on the deletion screen, still open in its section, after the user went to another section while the password was checked.
+  ///
+  /// In en, this message translates to:
+  /// **'You left this screen while your password was being checked, so nothing was sent and your account was not deleted.'**
+  String get deletionCancelledBody;
+
   /// A deleted portfolio has no other members.
   ///
   /// In en, this message translates to:

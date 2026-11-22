@@ -359,14 +359,48 @@ else does then, since a picker may be handing over a copy.
   no cause, wipes as a plain one: the invitation stays, and the sign-in screen
   does not say the account was deleted. Remembering a deletion from one run to
   the next would be a new mechanism; the privacy page names it with the other
-  exception. The command reads everything it uses before its first wait, so it
-  ends the same when its screen is left meanwhile (the back button, or the
-  router at that sign-out), which disposes its provider. Left while it signs
-  in again, it still sends the deletion once that answers: Cancel is disabled
-  while the command runs, and leaving the screen is not cancelling it. Nothing
-  is awaited between reading that session and gotrue dropping it, and on the
-  web gotrue tells the other tabs before any message of theirs can be handled
-  (its one wait between, removing the sign-in-link verifier from
+  exception. Back cancels a deletion until its request is sent (D-22): the
+  router asks the deletion as its screen is left, whichever way
+  (`GoRoute.onExit` calls `AccountDeletionController.leave`: Back from
+  Android's button or gesture, the app bar or the browser, Cancel, another
+  section, a link, or the router's own redirect). Left while the password is
+  checked (the sign-in again), the deletion is cancelled: the command returns
+  at once, and once the check answers, nothing is sent and nobody is signed
+  out, though the check has given the device a new session of the same
+  account, as any sign-in does. Another section cancels the same way, but
+  the section keeps its stack: the delete screen is still there when the
+  user comes back, no longer busy, with a notice that the deletion was
+  cancelled and nothing was sent (`deletionCancelledBody`, in English and
+  Urdu), and deleting again from it starts a deletion of its own, the only
+  one that sends. Riverpod's `Ref.mounted` was not enough for this: it turns
+  false only once Riverpod disposes the provider, after the screen is gone
+  at the next frame, and a check that answered in between would still send.
+  Once a request is on its way (`sending`, from the moment it is sent until
+  its command ends, its sign-out included), the screen stays: its page
+  cannot be popped (`PopScope`, which a back gesture that drags a page away
+  would ask first, though pages appear to open without a transition: seen in
+  widget tests, to be checked on a device), Cancel waits, and `leave` says
+  no, so Back, another section and a link all wait for the answer, and
+  leaving never looks like cancelling. With another account signed in
+  meanwhile (another tab) the router keeps the screen, which waits too, and
+  so does that account's Delete, as Cancel does, until the earlier request
+  is answered: started while it was out, that account's password check
+  would run while `leave` says no, so neither Back nor Cancel could cancel
+  it, and its request would go once the check answered. Its own deletion
+  starts once nothing is on its way, and Back and Cancel cancel it while
+  its password is checked, as for anyone. (While a form's own request is
+  on its way its Delete stays busy instead, keeping its colours and focus.)
+  `sending` also counts the requests on their way, as a defence: were two
+  ever out at once, the screen would wait until every one is answered, not
+  only the first. Only the router's redirect at a sign-out leaves it then,
+  when nobody is signed in any more (or the account is choosing a new
+  password): `leave` lets it, and the command ends without its screen, the
+  same as with it, since it reads everything it uses before its first wait.
+  A request that never answers keeps the screen until the app is closed
+  (requests have no time limit), which is the case above.
+  Nothing is awaited between reading that session and gotrue dropping it, and
+  on the web gotrue tells the other tabs before any message of theirs can be
+  handled (its one wait between, removing the sign-in-link verifier from
   `localStorage`, ends in microtasks). What is left is gotrue's own, between
   tabs, as for any sign-out: a sign-in in another tab whose message has not
   arrived yet crosses this tab's, and that tab drops the account it signed in,
@@ -430,9 +464,10 @@ else does then, since a picker may be handing over a copy.
     earlier account's value. The unread count, built again for the next user,
     keeps the earlier number until that build answers (`unreadCountProvider`).
     The links made for the document a sheet shows stay until the sheet closes,
-    made again every three minutes with whatever token is signed in then
-    (`documentLinksProvider`). A list's photo links are kept from one run to
-    the next in a map made again, empty, for each user who signs in
+    at the latest when the account changes (below), made again every three
+    minutes with whatever token is signed in then (`documentLinksProvider`). A
+    list's photo links are kept from one run to the next in a map made again,
+    empty, for each user who signs in
     (`_thumbnailLinksProvider` watches `currentUserIdProvider`), so the next
     account's photos are signed with its own token, and a link the earlier
     account's request brings after the change is never used; the list's value
@@ -452,28 +487,47 @@ else does then, since a picker may be handing over a copy.
     what is typed belongs to whoever is at the device, and a new tenant's form
     left open keeps it too, while an edit screen filled from a record goes
     with that record and is filled again from the next account's own read. A
-    sheet does not: it is opened with the record it is about (for example a
-    member or an invitation, with its e-mail address, an occupant, a charge,
-    a bill, a repair to resolve, a meter reading, a notification, a document,
-    ending a tenancy) and shows its own copy, above the page, which the
-    router keeps, so it goes on showing the earlier account's record, an
-    occupant's CNIC and phone included, until it is closed, as a document's
-    sheet keeps its links. So does a confirm dialog opened on a record (for
-    example a tenant's "Delete …?" with its name, an occupant's "Remove …?",
-    deleting or leaving a portfolio, and those of a member, an invitation, a
-    unit, a property, a utility connection, an expense, a bill, a reading, a
-    repair or a tenancy): it keeps what it says until it is closed.
-    Confirming a dialog that a screen opened on a record then sends nothing:
-    the part of the screen that opened it went with the record, and it asks
-    `mounted` after the dialog. A new tenant's warning that another tenant
-    has that CNIC or phone is the exception: it names the earlier account's
-    tenant, and the form that opened it stays, so "Save anyway" saves, as
-    the form does, with the next account's token. A sheet stays too, so its
-    buttons, and a dialog it opened (removing a member or an occupant,
-    withdrawing an invitation, deleting a document), still send their
-    request with the next account's token: row-level security decides what
-    that account may do. Closing the sheets and dialogs when the account
-    changes would be a new mechanism. A
+    sheet is opened with the record it is about (for example a member or an
+    invitation, with its e-mail address, an occupant, a charge, a bill, a
+    repair to resolve, a meter reading, a notification, a document, ending a
+    tenancy) and shows its own copy above the page, which the router keeps;
+    a confirm dialog opened on a record (for example a tenant's "Delete …?"
+    with its name, an occupant's "Remove …?", deleting or leaving a
+    portfolio, and those of a member, an invitation, a unit, a property, a
+    utility connection, an expense, a bill, a reading, a repair or a
+    tenancy) keeps what it says, and a new tenant's warning that another
+    tenant has that CNIC or phone names the earlier account's tenant. So
+    every sheet, dialog and menu closes when the signed-in account changes
+    (D-23): the app shell hears the signed-in user change (another account, or
+    nobody; a refreshed or new session of the same account is no change) as
+    the status changes, before the next frame, and on the root navigator and
+    each section's, the one out of sight included, removes every route above
+    the top page (`Navigator.removeRoute`), two or more on one navigator
+    included (a dialog with a sheet opened from it). They go without their
+    closing animation, so no frame after the change shows the earlier
+    account's record in them, an occupant's CNIC and phone included, and none
+    of their buttons can act with the next account's token: each one's future
+    completes with null, as when it is dismissed, so a confirm dialog answers
+    no and sends nothing ("Save anyway" included), and nothing in a sheet can
+    be pressed any more. The exception is a sheet or dialog the user was
+    already closing as the account changed: it is no longer above the page,
+    so it finishes its closing animation (about a fifth of a second), and its
+    buttons ignore taps meanwhile. Snack bars go too, as one may name a
+    record (a member removed, a document deleted): the shell clears them
+    (`ScaffoldMessenger.clearSnackBars`) on the messenger above each
+    navigator, the app's and the one the frame gives the sections, which the
+    shell's own context does not reach, and in widget tests none shows on the
+    first frame after the change. Pages stay, for the router: at a
+    sign-out it leaves them for the sign-in screen as before, and the screens
+    left open show loading for the next account. A request a sheet or dialog
+    sent before the change is one on its way when the session ended (below).
+    Only the shell does this, so it covers whatever opens under it; outside it
+    (the sign-in screens, creating the first portfolio, an invitation) no
+    sheet or dialog shows a record.
+    What it removes is what is above each navigator's top page: a sheet or
+    dialog with a page opened above it on the same navigator (a screen opened
+    from a sheet left open) would stay under that page, and no sheet does
+    that. A
     screen shows `sessionChanged`'s state as it shows a first read, loading,
     not as a failure with "Try again": nothing failed for the person signed
     in. Every
@@ -588,11 +642,10 @@ else does then, since a picker may be handing over a copy.
     shows loading (nothing the earlier account loaded) until that account's
     first answer (the search, whose results area is empty while that account's
     portfolios load, shows loading once its search asks, with the words typed
-    still in the field), while a sheet or a confirm dialog open above it
-    keeps the record it was opened with until it is closed (confirming a
-    dialog the screen opened on a record then sends nothing; a sheet's
-    buttons, a dialog the sheet opened, and a new tenant's form and its
-    warning send with that account's token); the answer to a
+    still in the field), while every sheet, dialog, menu and snack bar open
+    above it closes as the account changes, so none shows or acts on the
+    earlier account's record (a new tenant's form stays, with what is typed,
+    and sends with that account's token); the answer to a
     request on its way when the session ended is not shown (with the same
     account signed in again inside one
     request, the new session's own read shows the server's state); a command
@@ -729,10 +782,13 @@ else does then, since a picker may be handing over a copy.
   app, a photo a phone's own camera app also saved to the gallery, the
   browser's own cache (pictures shown, files opened), text copied with the
   Copy buttons (and a keyboard's clipboard history), and the phone's backup
-  of the app's preferences (Android Auto Backup is on: `allowBackup` is not
-  set). A session whose sign-out could not reach the server stays valid on
-  it (refresh tokens do not expire by time, and no session time-box is set),
-  so a backup made before can still sign in.
+  of the app's preferences, with the session and the saved records. Phone
+  backups are full, the owner's decision (D-24): the manifest says
+  `android:allowBackup="true"` and names no backup rules or agent, which
+  `tool/android/check_manifest.py` keeps so, and iCloud and computer backups
+  take the iPhone's user defaults. A session whose sign-out could not reach
+  the server stays valid on it (refresh tokens do not expire by time, and no
+  session time-box is set), so a backup made before can still sign in.
 - **Moving the web app to another address.** The browser keeps the web app's
   storage per origin, and the app on a new origin cannot reach the old
   one's. The web app has moved (to `app.mmakaan.app`), and the earlier

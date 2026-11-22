@@ -47,7 +47,7 @@ search-engine summaries.
 - **A Raast QR code encodes the payee, not proof of payment** _(summary)_
   ([State Bank QR annex](https://www.sbp.org.pk/disd/2022/CL2-Annex.pdf)).
 - **The Android manifest check** already fails a release that lacks a required permission
-  ([check_manifest.py](../../tool/android/check_manifest.py)); it checks nothing forbidden yet.
+  ([check_manifest.py](../../tool/android/check_manifest.py)); it forbids no permission yet.
 
 ## Design
 
