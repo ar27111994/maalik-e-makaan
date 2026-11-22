@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,7 @@ import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
@@ -599,9 +601,19 @@ void main() {
     expect(find.text('This cannot be undone'), findsOneWidget);
   });
 
-  group('a deletion on its way', () {
-    // Fills in the delete screen and deletes, the server's answer held.
-    Future<TestApp> deleting(WidgetTester tester) async {
+  // Back cancels a deletion until its request is sent; once it is on its
+  // way, Back waits for the answer, so leaving never looks like cancelling
+  // (the owner's decision). Back is Android's button and its back gesture,
+  // the app bar's arrow, and the browser's (the platform reporting the
+  // earlier address). Pages open without a transition here, so no swipe
+  // drags one away.
+  group('deleting the account', () {
+    // Fills in the delete screen and deletes, with what [held] answers
+    // held: the password check (the sign-in again) or the deletion.
+    Future<TestApp> deleting(
+      WidgetTester tester, {
+      required Gate Function(TestApp app) held,
+    }) async {
       final app = await _pumpApp(tester, location: Routes.deleteAccount);
       await tester.enterText(
         find.descendant(
@@ -623,29 +635,200 @@ void main() {
         testEmail,
       );
       await tester.pump();
-      app.account.gate.close();
+      held(app).close();
       final delete = find.widgetWithText(MmButton, 'Delete my account');
       await tester.ensureVisible(delete);
       await tester.tap(delete);
       await tester.pump();
-      expect(app.account.calls.last.$1, 'deleteAccount');
+      expect(app.auth.calls.single.$1, 'reauthenticate');
       return app;
     }
 
-    testWidgets('signs out when its screen is left with back', (tester) async {
-      final app = await deleting(tester);
+    Gate checking(TestApp app) => app.auth.gate;
+    Gate sending(TestApp app) => app.account.gate;
+
+    // A message from the platform on [channel].
+    Future<void> platform(
+      WidgetTester tester,
+      MethodChannel channel,
+      String method, [
+      Object? arguments,
+    ]) => tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      channel.name,
+      channel.codec.encodeMethodCall(MethodCall(method, arguments)),
+      (_) {},
+    );
+
+    final backs = <String, Future<void> Function(WidgetTester tester)>{
+      "Android's back button": (tester) =>
+          platform(tester, SystemChannels.navigation, 'popRoute'),
+      "Android's back gesture": (tester) async {
+        const edge = {
+          'touchOffset': [0.0, 400.0],
+          'progress': 0.0,
+          'swipeEdge': 0,
+        };
+        await platform(
+          tester,
+          SystemChannels.backGesture,
+          'startBackGesture',
+          edge,
+        );
+        await platform(
+          tester,
+          SystemChannels.backGesture,
+          'updateBackGestureProgress',
+          {
+            ...edge,
+            'touchOffset': [200.0, 400.0],
+            'progress': 0.6,
+          },
+        );
+        await platform(tester, SystemChannels.backGesture, 'commitBackGesture');
+      },
+      "the app bar's back": (tester) => tester.tap(find.byType(BackButton)),
+      "the browser's back": (tester) =>
+          tester.binding.handlePushRoute(Routes.settings),
+    };
+
+    GoRouter router(WidgetTester tester) =>
+        GoRouter.of(tester.element(find.byType(Navigator).first));
+
+    void expectNothingSent(TestApp app) {
+      expect(
+        app.account.calls.map((call) => call.$1),
+        isNot(contains('deleteAccount')),
+      );
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+    }
+
+    for (final MapEntry(key: name, value: back) in backs.entries) {
+      testWidgets('$name while the password is checked cancels: nothing is '
+          'sent and nobody is signed out', (tester) async {
+        final app = await deleting(tester, held: checking);
+        await back(tester);
+        await tester.pumpAndSettle();
+        expect(find.text('This cannot be undone'), findsNothing);
+        expect(find.text('Delete account'), findsOneWidget);
+        app.auth.gate.open();
+        await tester.pumpAndSettle();
+        expectNothingSent(app);
+        expect(router(tester).state.uri.path, Routes.settings);
+        expect(find.text('Delete account'), findsOneWidget);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaalikApp)),
+        );
+        expect(container.read(currentUserIdProvider), testUserId);
+      });
+
+      testWidgets('$name while the deletion is on its way does nothing: the '
+          'screen stays, and the deletion signs out as before', (tester) async {
+        final app = await deleting(tester, held: sending);
+        await tester.pump();
+        expect(app.account.calls.last.$1, 'deleteAccount');
+        await back(tester);
+        // The button's progress turns for as long as the request is on
+        // its way, so pump past every transition rather than settle.
+        for (var i = 0; i < 4; i++) {
+          await tester.pump(const Duration(milliseconds: 250));
+        }
+        expect(find.text('This cannot be undone'), findsOneWidget);
+        expect(router(tester).state.uri.path, Routes.deleteAccount);
+        expect(
+          tester.widget<MmButton>(
+            find.widgetWithText(MmButton, 'Delete my account'),
+          ),
+          isA<MmButton>().having((button) => button.busy, 'busy', isTrue),
+        );
+        // The page says it cannot be popped, which a back gesture that
+        // drags a page away asks before it starts.
+        expect(
+          ModalRoute.of(tester.element(find.text('This cannot be undone')))!
+              .popDisposition,
+          RoutePopDisposition.doNotPop,
+        );
+        app.account.gate.open();
+        await tester.pumpAndSettle();
+        expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+        expect(find.text('Your account has been deleted'), findsOneWidget);
+      });
+    }
+
+    // The screen is gone only at the next frame, and Riverpod disposes its
+    // provider after that: a check that answers in between, with the
+    // provider still there, must not send the deletion either.
+    testWidgets('Back cancels also when the password check answers before '
+        'the screen is gone', (tester) async {
+      final app = await deleting(tester, held: checking);
       await tester.binding.handlePopRoute();
+      app.auth.gate.open();
+      await tester.idle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaalikApp)),
+      );
+      expect(container.read(accountDeletionProvider.exists), isTrue);
+      expectNothingSent(app);
       await tester.pumpAndSettle();
-      expect(find.text('This cannot be undone'), findsNothing);
+      expectNothingSent(app);
+      expect(router(tester).state.uri.path, Routes.settings);
+    });
+
+    // Cancel does what Back does: it works while the password is checked,
+    // and waits once the request is on its way.
+    testWidgets('Cancel while the password is checked returns to Settings '
+        'and sends nothing', (tester) async {
+      final app = await deleting(tester, held: checking);
+      final cancel = find.widgetWithText(MmButton, 'Cancel');
+      expect(tester.widget<MmButton>(cancel).onPressed, isNotNull);
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+      expect(router(tester).state.uri.path, Routes.settings);
+      app.auth.gate.open();
+      await tester.pumpAndSettle();
+      expectNothingSent(app);
+    });
+
+    testWidgets('Cancel waits while the deletion is on its way', (
+      tester,
+    ) async {
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
+      expect(
+        tester
+            .widget<MmButton>(find.widgetWithText(MmButton, 'Cancel'))
+            .onPressed,
+        isNull,
+      );
       app.account.gate.open();
       await tester.pumpAndSettle();
       expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
-      expect(find.text('Your account has been deleted'), findsOneWidget);
     });
 
+    // The screen cannot be left any other way either while the request is
+    // on its way: another section of the navigation bar waits too.
+    testWidgets('another section waits while the deletion is on its way', (
+      tester,
+    ) async {
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
+      await tester.tap(_inNavigation('Dashboard'));
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+      expect(find.text('This cannot be undone'), findsOneWidget);
+      expect(router(tester).state.uri.path, Routes.deleteAccount);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    // The router's own redirect at a sign-out is never held up: the screen
+    // leaves for the sign-in screen, and the answer signs out as a
+    // deletion.
     testWidgets('signs out as a deletion once its session was signed out in '
         'another tab', (tester) async {
-      final app = await deleting(tester);
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
       await app.cache.clear();
       app.auth.emit(const SignedOut());
       await tester.pumpAndSettle();

@@ -359,14 +359,32 @@ else does then, since a picker may be handing over a copy.
   no cause, wipes as a plain one: the invitation stays, and the sign-in screen
   does not say the account was deleted. Remembering a deletion from one run to
   the next would be a new mechanism; the privacy page names it with the other
-  exception. The command reads everything it uses before its first wait, so it
-  ends the same when its screen is left meanwhile (the back button, or the
-  router at that sign-out), which disposes its provider. Left while it signs
-  in again, it still sends the deletion once that answers: Cancel is disabled
-  while the command runs, and leaving the screen is not cancelling it. Nothing
-  is awaited between reading that session and gotrue dropping it, and on the
-  web gotrue tells the other tabs before any message of theirs can be handled
-  (its one wait between, removing the sign-in-link verifier from
+  exception. Back cancels a deletion until its request is sent (D-22): the
+  router asks the deletion as its screen is left, whichever way
+  (`GoRoute.onExit` calls `AccountDeletionController.leave`: Back from
+  Android's button or gesture, the app bar or the browser, Cancel, another
+  section, a link, or the router's own redirect). Left while the password is
+  checked (the sign-in again), the deletion is cancelled: once the check
+  answers, nothing is sent and nobody is signed out, though the check has
+  given the device a new session of the same account, as any sign-in does.
+  Riverpod's `Ref.mounted` was not enough for this: it turns false only once
+  Riverpod disposes the provider, after the screen is gone at the next frame,
+  and a check that answered in between would still send. Once the request is
+  on its way (`sending`, until the command ends, its sign-out included), the
+  screen stays: its page cannot be popped (`PopScope`, which a back gesture
+  that drags a page away would ask first; pages open without a transition
+  here, so none does), Cancel waits, and `leave` says no, so Back, another
+  section and a link all wait for the answer, and leaving never looks like
+  cancelling. With another account signed in meanwhile (another tab) the
+  router keeps the screen, which waits too. Only the router's redirect at a
+  sign-out leaves it then, when nobody is signed in any more (or the account
+  is choosing a new password): `leave` lets it, and the command ends without
+  its screen, the same as with it, since it reads everything it uses before
+  its first wait. A request that never answers keeps the screen until the
+  app is closed (requests have no time limit), which is the case above.
+  Nothing is awaited between reading that session and gotrue dropping it, and
+  on the web gotrue tells the other tabs before any message of theirs can be
+  handled (its one wait between, removing the sign-in-link verifier from
   `localStorage`, ends in microtasks). What is left is gotrue's own, between
   tabs, as for any sign-out: a sign-in in another tab whose message has not
   arrived yet crosses this tab's, and that tab drops the account it signed in,

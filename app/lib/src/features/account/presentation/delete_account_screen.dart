@@ -24,6 +24,11 @@ import 'package:mm_ui/mm_ui.dart';
 /// app signs in again) and for the e-mail address typed out, and only then
 /// enables the destructive button. Afterwards the sign-in screen confirms
 /// that the account is gone.
+///
+/// Back and Cancel cancel while the password is checked; once the request
+/// is on its way, both wait for its answer: the page cannot be
+/// popped, and the router keeps it whichever way it is left
+/// ([AccountDeletionController.leave]).
 class DeleteAccountScreen extends ConsumerWidget {
   const new({super.key});
 
@@ -33,37 +38,51 @@ class DeleteAccountScreen extends ConsumerWidget {
     final preview = ref.watch(accountDeletionProvider);
     final status = ref.watch(authStatusProvider);
     final email = status is SignedIn ? status.email : null;
-    return switch (preview) {
-      AsyncValue(:final value?) when email != null => _DeleteAccountForm(
-        preview: value,
-        email: email,
+    return ValueListenableBuilder(
+      valueListenable: ref.read(accountDeletionProvider.notifier).sending,
+      builder: (context, sending, _) => PopScope(
+        canPop: !sending,
+        child: switch (preview) {
+          AsyncValue(:final value?) when email != null => _DeleteAccountForm(
+            preview: value,
+            email: email,
+            sending: sending,
+          ),
+          AsyncValue(:final error?) when !waitsForSession(preview) => MmPage(
+            title: l10n.deleteAccountTitle,
+            body: MmErrorState(
+              title: l10n.deletionPreviewFailedTitle,
+              message: failureMessage(l10n, AppFailure.from(error)),
+              onRetry: () => ref.invalidate(accountDeletionProvider),
+            ),
+          ),
+          _ => MmPage(
+            title: l10n.deleteAccountTitle,
+            body: Semantics(
+              label: l10n.loadingDeletionPreview,
+              child: const MmSkeleton.text(lines: 6),
+            ),
+          ),
+        },
       ),
-      AsyncValue(:final error?) when !waitsForSession(preview) => MmPage(
-        title: l10n.deleteAccountTitle,
-        body: MmErrorState(
-          title: l10n.deletionPreviewFailedTitle,
-          message: failureMessage(l10n, AppFailure.from(error)),
-          onRetry: () => ref.invalidate(accountDeletionProvider),
-        ),
-      ),
-      _ => MmPage(
-        title: l10n.deleteAccountTitle,
-        body: Semantics(
-          label: l10n.loadingDeletionPreview,
-          child: const MmSkeleton.text(lines: 6),
-        ),
-      ),
-    };
+    );
   }
 }
 
 class _DeleteAccountForm extends ConsumerStatefulWidget {
-  const new({required this.preview, required this.email});
+  const new({
+    required this.preview,
+    required this.email,
+    required this.sending,
+  });
 
   final DeletionPreview preview;
 
   /// The account's address, which the user types to confirm.
   final String email;
+
+  /// Whether the deletion's request is on its way, when Cancel waits.
+  final bool sending;
 
   @override
   ConsumerState<_DeleteAccountForm> createState() => _DeleteAccountFormState();
@@ -216,7 +235,7 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
         secondary: MmButton(
           label: l10n.cancelAction,
           variant: MmButtonVariant.secondary,
-          onPressed: busy ? null : () => context.go(Routes.settings),
+          onPressed: widget.sending ? null : () => context.go(Routes.settings),
         ),
         primary: MmButton(
           label: l10n.deleteAccountConfirmAction,
