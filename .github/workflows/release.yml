@@ -196,8 +196,11 @@ jobs:
           name: release-android-web-${{ github.run_attempt }}
           path: dist/
           if-no-files-found: error
-          # publish-artefacts reads it minutes later; a week leaves time to look at the files of
-          # a failed run (the same files a release makes public).
+          # publish-artefacts reads it minutes later, and a re-run of publish-artefacts alone
+          # reads it by the same id for as long as it is kept (the dry run of 22 November 2026
+          # showed it). A week leaves time for that, and to look at the files of a failed run
+          # (the same files a release makes public); after it, re-run this job instead
+          # (docs/operations.md, Releasing, step 4).
           retention-days: 7
           compression-level: 0 # APKs, the app bundle and the zips are compressed already
 
@@ -266,7 +269,7 @@ jobs:
           name: release-ios-${{ github.run_attempt }}
           path: dist/
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 7 # as artefacts': publish-ios re-run alone reads it for this long
           compression-level: 0 # the .ipa is a zip already
 
   publish-artefacts:
