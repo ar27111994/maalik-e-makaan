@@ -467,9 +467,10 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   replaces the bash reader, and the follow-up branch that extended it
   (`claude/release-provenance-followup`) was never pushed and is not merged. Built in
   `docs/operations.md` (Releasing; Release provenance, which also names what the check does not
-  cover). It applies from the first release after v1.4.2: release pull request #109 (1.4.3) is
-  held until this decision's pull request is merged, so that release-please folds it into that
-  release.
+  cover). It applies from the first release after v1.4.2: release pull request #109 (1.4.3) was
+  held until this decision's pull request (#112) was merged, so release-please folded it into
+  1.4.3, the first release the publish jobs made (22 November 2026; `.planning/STATE.md`, Current
+  Position).
 
 ## Open Proposals
 

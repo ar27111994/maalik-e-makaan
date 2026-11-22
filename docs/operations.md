@@ -1321,7 +1321,7 @@ the files that job attaches:
   `SHA256SUMS-ios` (before v1.4.0 the iOS build attested the `.ipa` alone).
 
 Up to v1.4.2, each build job attested and attached its own files, and held the release's write
-token and the OIDC token to do so; the publish jobs make the provenance of the releases after it.
+token and the OIDC token to do so; the publish jobs make the provenance of v1.4.3 and later.
 The file is JSON Lines, one Sigstore bundle on its one line, and `gh attestation verify --bundle`
 reads it (`SECURITY.md`, Checking a download, has the commands; `slsa-verifier` does not apply).
 It is not in `SHA256SUMS`, which is one of its subjects and written before it; its own signature
@@ -1330,23 +1330,24 @@ protects it.
 **The handoff.** The publish job downloads by the artifact's id
 (`artifact-ids: ${{ needs.<build>.outputs.artifact-id || 'missing' }}`), never by its name, with
 `digest-mismatch: error`, so it gets the bytes the build uploaded, by the digest GitHub recorded
-at the upload, or nothing. An artifact that another job of the run made or replaced under the same
-name has another id: in the dry run, an upload with `overwrite: true` under a build's artifact
-name deleted the original, and the download by the original id failed ("None of the provided
-artifact IDs were found"). A job of the run can stop a publish job that way, but not change what
-it attaches. An empty id would make the download take every artifact of the run, and the runner
-leaves a job output empty when it may hold a masked value (in the dry run, "Skip output
-'artifact-id' since it may contain secret"); `|| 'missing'` makes it no id, and the download fails
-("Invalid artifact ID: 'missing'"). The artifact's name carries the run attempt
-(`release-android-web-N`, `release-ios-N`), so a re-run build never meets an earlier attempt's
-artifact by name. GitHub already keeps names apart by attempt (the dry run uploaded one fixed name
-in two attempts with no conflict), so the number is a safeguard only. The selection moves the
-release's names for that build into `dist/` with `mv`, then runs `rmdir build`: a missing name
-fails `mv`, and anything else the artifact holds (a file named as the other build's, a hidden
-file, a folder) fails `rmdir`, so neither is attested or attached (the dry run's decoy `.ipa`
-failed there). A name that is a folder passes both, and fails at the provenance check, before any
-upload. The two publish jobs attach fixed, disjoint names, so neither's `--clobber` replaces the
-other's files.
+at the upload, or nothing (in release 1.4.3, each publish job logged the digest its build had
+recorded as both the expected and the downloaded one). An artifact that another job of the run
+made or replaced under the same name has another id: in the dry run, an upload with
+`overwrite: true` under a build's artifact name deleted the original, and the download by the
+original id failed ("None of the provided artifact IDs were found"). A job of the run can stop a
+publish job that way, but not change what it attaches. An empty id would make the download take
+every artifact of the run, and the runner leaves a job output empty when it may hold a masked value
+(in the dry run, "Skip output 'artifact-id' since it may contain secret"); `|| 'missing'` makes it
+no id, and the download fails ("Invalid artifact ID: 'missing'"). The artifact's name carries the
+run attempt (`release-android-web-N`, `release-ios-N`), so a re-run build never meets an earlier
+attempt's artifact by name. GitHub already keeps names apart by attempt (the dry run uploaded one
+fixed name in two attempts with no conflict), so the number is a safeguard only. The selection moves
+the release's names for that build into `dist/` with `mv`, then runs `rmdir build`: a missing name
+fails `mv`, and anything else the artifact holds (a file named as the other build's, a hidden file,
+a folder) fails `rmdir`, so neither is attested or attached (the dry run's decoy `.ipa` failed
+there). A name that is a folder passes both, and fails at the provenance check, before any upload.
+The two publish jobs attach fixed, disjoint names, so neither's `--clobber` replaces the other's
+files.
 
 **The check before the upload.** Each publish job checks the provenance file against every other
 file in `dist/` with `gh attestation verify --bundle` and the options `SECURITY.md` gives:
@@ -1357,16 +1358,17 @@ for the releases after v1.4.2 it vouches for the publish job's runner, and for t
 far as their labels, which the check below holds; every release from v1.4.0 on passes it. The step
 logs `gh --version`, which prints two lines, the version and the address of its release. A check
 that passes prints nothing outside a terminal, so the step's log holds those two lines alone, as
-release 1.4.2's did. A check that fails exits non-zero, and the step runs under `bash -e` (the
-runner's `-e -o pipefail`), so the step passing is the evidence that every file matched: in the
-dry run, the build's own app bundle passed, while the bundle with one byte more, other bytes under
-a subject's name (`SHA256SUMS`) and a file the bundle does not name each exited 1. A file's own
-bytes under another name pass, since the check goes by digest. The source ref is
-`refs/heads/main`, written literally, so a run started by hand (Run workflow) from another branch
-fails there and attaches nothing in that run: start Release by hand from `main` only. That holds
-exactly with `gh` 2.102.0 or later on the runner: an older `gh` compares the branch name without
-regard to case, so look at the version the step logs, and if it is older, say so in the release's
-notes and do not rely on the check for a branch whose name differs from `main` only in case.
+each publish job's did in release 1.4.3 (gh 2.104.0). A check that fails exits non-zero, and the
+step runs under `bash -e` (the runner's `-e -o pipefail`), so the step passing is the evidence that
+every file matched: in the dry run, the build's own app bundle passed, while the bundle with one
+byte more, other bytes under a subject's name (`SHA256SUMS`) and a file the bundle does not name
+each exited 1. A file's own bytes under another name pass, since the check goes by digest. The
+source ref is `refs/heads/main`, written literally, so a run started by hand (Run workflow) from
+another branch fails there and attaches nothing in that run: start Release by hand from `main` only.
+That holds exactly with `gh` 2.102.0 or later on the runner: an older `gh` compares the branch name
+without regard to case, so look at the version the step logs, and if it is older, say so in the
+release's notes and do not rely on the check for a branch whose name differs from `main` only in
+case.
 
 **The check in `make lint`.** `tool/github/check_release_provenance.py` (`make lint`, the
 pre-commit hook) keeps this so. It reads the workflows' structure and values, never shell, and no
