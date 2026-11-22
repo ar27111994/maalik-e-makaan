@@ -885,13 +885,23 @@ now writes `android:allowBackup="true"` out, and `tool/android/check_manifest.py
 value and any backup rules or agent on the application. The privacy page's backups bullet already
 said that a backup can hold the sign-in and the app's copy of the records, in English and Urdu; it
 now also says that a new phone that brings the old phone's data across gets them too. The decision
-is the owner's, so the legal pack (PR #66, branch `claude/legal-pack`) needs: question T7 to say
-that whether the backup must be turned off is decided (its other questions, the unencrypted cache, a
-session timeout and whether the privacy page says enough, stay the lawyer's); its data map to say
-that backups are full (row 14g, the phone's own backup, and its retention row, which still reads
-"[Owner: Auto Backup off, or the preferences left out of it]"); and the README's "Android's Auto
-Backup" item, which asks to turn it off or leave the preferences out, closed with D-24. A session
-timeout on the hosted project stays open (Open, above).
+is the owner's, so the legal pack (PR #66, branch `claude/legal-pack`) needs:
+
+- question T7 to say that whether the backup must be turned off is decided (its other questions,
+  the unencrypted cache, a session timeout and whether the privacy page says enough, stay the
+  lawyer's), and its "Still open with PR #70" bullet, which says that `android:allowBackup` is not
+  set and that the backup is the owner's to decide, to say that D-24 keeps the backup on and full,
+  with only the session timeout still the owner's;
+- its data map to say that backups are full: row 14g (the phone's own backup) and its retention
+  row, which still reads "[Owner: Auto Backup off, or the preferences left out of it]"; source note
+  14g, which says the manifest "sets no `android:allowBackup`", to say that the manifest now writes
+  `android:allowBackup="true"` and the check keeps it so; and finding 5's sentence "The owner's
+  points on Auto Backup and a session timeout are in the README", as only the session timeout is
+  still the owner's;
+- the README's "Android's Auto Backup" item, which asks to turn it off or leave the preferences
+  out, closed with D-24.
+
+A session timeout on the hosted project stays open (Open, above).
 
 ### Closed on 15 November 2026
 

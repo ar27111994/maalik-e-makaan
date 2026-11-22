@@ -375,11 +375,19 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   (Android's default, set so that the choice is seen), and `tool/android/check_manifest.py`
   (`make lint`, and CI on the merged release manifest) keeps it so: it refuses any other value, and
   any `android:fullBackupContent`, `android:dataExtractionRules` or `android:backupAgent` on the
-  application, each of which would narrow the backup. What it costs: a sign-in kept in a backup made
-  before a sign-out that could not reach the server can still sign in, since refresh tokens do not
-  expire by time and `supabase/config.toml` sets no session time-box (a timeout on the hosted
-  project stays the owner's open follow-up in `.planning/STATE.md`). What the backups hold, read on
-  22 November 2026:
+  application, each of which would narrow the backup. If Android lint's DataExtractionRules check
+  warns that no `dataExtractionRules` file for Android 12 and later is set, the warning is expected:
+  this decision adds no rules file on purpose, as a full backup needs none (below) and the check
+  would refuse one; CI runs only lint's fatal checks (`lintVital`, part of a release build). What it
+  costs: the copy in Google Drive is end-to-end encrypted only on a phone with a screen lock, as
+  that encryption "is enabled on devices running Android 9 or higher as long as the user has enabled
+  backup in Android 9 or higher and has set a screen lock (PIN, pattern, or password) for their
+  device" (the Auto Backup page, below); without one, the backup, tenants' CNICs among it, is
+  "protected by the user's Google Account credentials" alone (the same page). And a sign-in kept in
+  a backup made before a sign-out that could not reach the server can still sign in, since refresh
+  tokens do not expire by time and `supabase/config.toml` sets no session time-box (a timeout on the
+  hosted project stays the owner's open follow-up in `.planning/STATE.md`). What the backups hold,
+  read on 22 November 2026:
   - **Android's cloud backup.** "Back up user data with Auto Backup"
     ([source](https://developer.android.com/identity/data/autobackup)): of `android:allowBackup`,
     "The default value is `true`, but we recommend explicitly setting the attribute in your
@@ -387,12 +395,12 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     `getFilesDir()`, `getDatabasePath()` and `getExternalFilesDir()`, and "excludes files in
     directories returned by `getCacheDir()`, `getCodeCacheDir()`, and `getNoBackupFilesDir()`". It
     goes to "a private folder in the user's Google Drive account, limited to 25 MB per app" (above
-    that nothing goes to the cloud until the data is smaller again), only the latest is kept, and
-    it "is end-to-end encrypted on devices running Android 9 or higher using the device's PIN,
-    pattern, or password". A backup runs when the person has backup turned on, at least 24 hours
-    after the last, with the phone idle and on Wi-Fi (unless they allowed mobile data); it is
-    restored "whenever the app is installed, whether from the Play Store, during device setup ...,
-    or by running `adb` install".
+    that nothing goes to the cloud until the data is smaller again), only the latest is kept, and it
+    "is end-to-end encrypted on devices running Android 9 or higher using the device's PIN, pattern,
+    or password" (only with a screen lock set, as what it costs says). A backup runs when the person
+    has backup turned on, at least 24 hours after the last, with the phone idle and on Wi-Fi (unless
+    they allowed mobile data); it is restored "whenever the app is installed, whether from the Play
+    Store, during device setup ..., or by running `adb` install".
   - **Android 12 and later** (the app targets API level 36, Flutter 3.47.9's default). Their rules
     file is the one `android:dataExtractionRules` names, which "Applications can set"
     ([`<application>`](https://developer.android.com/guide/topics/manifest/application-element)),
@@ -407,7 +415,8 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     `android:allowBackup="false"` disables cloud-based backup and restore (such as Google Drive
     backups) but doesn't disable device-to-device transfers for the app" (the Auto Backup page).
     `adb backup` leaves out the data of an app that targets Android 12 or later unless the app is
-    debuggable (Android 12 behaviour changes), so a computer is not a backup of the app on Android.
+    debuggable (Android 12 behaviour changes), so `adb backup` on a computer does not copy the
+    app's data; that page says nothing of a phone maker's own backup tool for a computer.
   - **The iPhone.** Apple's File System Programming Guide
     ([source](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemOverview/FileSystemOverview.html)):
     "The contents of the `Library` directory (with the exception of the `Caches` subdirectory) are
@@ -427,8 +436,11 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
     (`shared_preferences_async_android_options.dart`:20), "a file in the "datastore/" subdirectory
     in the application context's files directory"
     ([source](https://developer.android.com/reference/kotlin/androidx/datastore/preferences/package-summary)),
-    on the iPhone the standard user defaults. Photos, picked files and shared files stay in the
-    cache folder on Android and in `tmp/` and `Library/Caches` on the iPhone
+    on the iPhone the standard user defaults. On Android the image and file pickers also keep a
+    note of a pick, with paths into the cache folder, in shared-preferences files of their own,
+    backed up too: `flutter_image_picker_shared_preference` (image_picker_android 0.8.13+25) and
+    `flutter_file_picker_lost_data` (android_file_picker 2.1.4). Photos, picked files and shared
+    files stay in the cache folder on Android and in `tmp/` and `Library/Caches` on the iPhone
     (`docs/architecture/app.md`, On the device), which no backup takes.
 
 ## Open Proposals
