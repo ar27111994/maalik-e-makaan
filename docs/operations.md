@@ -4,6 +4,9 @@ How the hosted backend runs on its own, what an operator sets up once, and how t
 is healthy. Everything here applies to the hosted Supabase project and to `supabase start`; the
 plain-Postgres test database (`tool/db/test.sh`) has no scheduler, network or Vault.
 
+What is waiting on the owner, with the steps, is in [`owner-actions.md`](owner-actions.md); this
+runbook keeps the reasons and the full procedures.
+
 ## Scheduled jobs (pg_cron)
 
 | Job                     | Schedule         | Command                                    | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -743,7 +746,8 @@ is removed when you next open that address."
 ### Moving the addresses (the order, 2026-11)
 
 The owner's steps, with the agent's pull request between them; `docs/release-readiness.md`, Owner
-actions, item 13, tracks them in the same order. **On 15 November 2026:** steps 2 to 8 are done.
+actions, item 13, has them in the same order, and [`owner-actions.md`](owner-actions.md) the steps
+still open. **On 15 November 2026:** steps 2 to 8 are done.
 The pull request is merged (#74), release 1.3.0 deployed the move, and the owner reported Auth's
 Site URL moved and the `APP_URL` repository variable deleted the same day. Release 1.3.1 (15:50
 UTC that day) carried Search Console's file, and steps 1, 11 and the move of the app's e-mail to

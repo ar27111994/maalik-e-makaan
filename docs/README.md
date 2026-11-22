@@ -1,7 +1,8 @@
 # Documentation
 
 Where each topic is written down. Start with the [README](../README.md) for what the product is
-and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull request.
+and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull request. What is waiting
+on the owner is in [`owner-actions.md`](owner-actions.md).
 
 ## Architecture
 
@@ -20,19 +21,20 @@ and how to run it, and [CONTRIBUTING.md](../CONTRIBUTING.md) before a pull reque
 
 | Document                                                 | What it covers                                                                                                                                                                                                                                                   |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`owner-actions.md`](owner-actions.md)                   | What is waiting on the owner: every open action and decision with its steps, due dates first, and the standing rules for changes made by hand                                                                                                                    |
 | [`operations.md`](operations.md)                         | Scheduled jobs, storage cleanup set-up, health checks, monitoring and alerts, Edge Function secrets, Vercel hosting, the Deploy workflow, releasing, rollback, backups and restore, account deletion, time-zone data, applying a migration to the hosted project |
 | [`../SECURITY.md`](../SECURITY.md)                       | Reporting a vulnerability                                                                                                                                                                                                                                        |
 | [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) | Third-party packages, fonts and icons, their licences and what each asks                                                                                                                                                                                         |
 
 ## Quality
 
-| Document                                                                     | What it covers                                                                                   |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [`uat.md`](uat.md)                                                           | Browser UAT: the landlord journeys on a local Supabase stack (`make test-uat`), results, defects |
-| [`release-readiness.md`](release-readiness.md)                               | The v1.0 release-readiness verdict, the checklist with evidence, and the owner's actions         |
-| [`design-qa.md`](design-qa.md)                                               | The automated design gates, the review checklist, the verdicts per surface and open follow-ups   |
-| [`../formal/README.md`](../formal/README.md)                                 | The formal verification tracks (TLA+, Lean 4, Z3, Bend), their findings and how to run them      |
-| [`../packages/mm_ui/example/README.md`](../packages/mm_ui/example/README.md) | The design-system gallery and its screenshots, the UAT record                                    |
+| Document                                                                     | What it covers                                                                                          |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| [`uat.md`](uat.md)                                                           | Browser UAT: the landlord journeys on a local Supabase stack (`make test-uat`), results, defects        |
+| [`release-readiness.md`](release-readiness.md)                               | The v1.0 release-readiness verdict, the checklist with evidence, and the history of the owner's actions |
+| [`design-qa.md`](design-qa.md)                                               | The automated design gates, the review checklist, the verdicts per surface and open follow-ups          |
+| [`../formal/README.md`](../formal/README.md)                                 | The formal verification tracks (TLA+, Lean 4, Z3, Bend), their findings and how to run them             |
+| [`../packages/mm_ui/example/README.md`](../packages/mm_ui/example/README.md) | The design-system gallery and its screenshots, the UAT record                                           |
 
 ## Planning
 

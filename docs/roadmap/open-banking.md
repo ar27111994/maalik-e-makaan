@@ -2,7 +2,8 @@
 
 Milestone **Money that moves** (`money`), due 30 November 2028. Issue `open-banking` in
 [`.github/roadmap.toml`](../../.github/roadmap.toml). One step cannot wait: comments on the State
-Bank's draft regulations close on **30 November 2026**. Everything else waits for the final rules.
+Bank's draft regulations close on **30 November 2026**; its steps are in
+[`owner-actions.md`](../owner-actions.md). Everything else waits for the final rules.
 
 Part of the [roadmap](README.md). "Decision 1", "decision 2" and "decision 3" below are the
 owner's decisions of 11 November 2026, and the index describes each one and its foundation work:

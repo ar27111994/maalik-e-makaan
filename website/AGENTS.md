@@ -49,5 +49,5 @@ npm run deck && npm run build && npm run test:e2e   # the pitch deck PDF, links,
 make test-web          # the whole CI sequence, with Lighthouse (from the repository root)
 ```
 
-Open before launch (`.planning/STATE.md`, Blockers): a native Urdu editor, a lawyer on the
-privacy policy and terms, and a check of the official legal texts.
+Open before launch ([`docs/owner-actions.md`](../docs/owner-actions.md)): a native Urdu editor, a
+lawyer on the privacy policy and terms, and a check of the official legal texts.

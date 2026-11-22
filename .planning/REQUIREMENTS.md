@@ -19,9 +19,10 @@ Status on 2026-11-08, after the release-readiness fixes on top of commit e853378
 is ticked when the app (`app/lib/src`), the database or the site implements it and automated
 tests cover it: the app's unit, widget and golden tests, the 21 committed pgTAP suites, the Edge
 Function tests and the website's unit and end-to-end suites. The browser UAT (`docs/uat.md`: 14
-journeys on the release web build against a local Supabase stack) passes, and the
-release-readiness audit's verdict and owner actions are in `docs/release-readiness.md`. "Done"
-means done in code and tests, not released. Items marked ◐ say what remains.
+journeys on the release web build against a local Supabase stack) passes, the
+release-readiness audit's verdict is in `docs/release-readiness.md`, and what is waiting on the
+owner is in `docs/owner-actions.md`. "Done" means done in code and tests, not released. Items
+marked ◐ say what remains.
 
 ## Must-Have (v1.0)
 
@@ -286,12 +287,13 @@ means done in code and tests, not released. Items marked ◐ say what remains.
     maintenance), reports or search, whose REST requests (including foreign-key embed names
     such as `utility_bills_charge_id_fkey`) are still checked against the SQL only; there are no
     Flutter integration tests on Android or iOS.
-- ◐ NFR-08: CI/CD:
+- ☑ NFR-08: CI/CD:
   - quality, security and coverage gates;
   - Dependabot;
   - conventional commits and release-please;
   - deploys to Vercel and Supabase.
-  - Remains: the first production run of the Deploy workflow (see `STATE.md`, Blockers).
+  - Done since 2026-11-09: the first production run of the Deploy workflow, with release 1.0.0
+    (the Release run 42662198834), and a deploy with every release since.
 - ☑ NFR-09: Privacy: CNIC masking, consent capture, account deletion and minimal collection.
 
 ## Should-Have (v1.x)
