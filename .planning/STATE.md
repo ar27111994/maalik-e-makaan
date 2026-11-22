@@ -7,8 +7,52 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-16)
+## Current Position (2026-11-22)
 
+- Release 1.4.2 was published on 22 November 2026 at 05:46 UTC (tag `v1.4.2`, commit 9807197 on
+  `main`; the Release run 44990804084, two attempts, 05:45 to 06:07 UTC). The agent merged the
+  release pull request (#99) at 05:45 UTC on the owner's standing word, 13 minutes after #70.
+  For users it carries #70: signing out, a session that ends for another reason and deleting the
+  account now remove what the app kept on the phone or computer for that account (the record
+  cache, the last-chosen portfolio, the camera's record, and on phones the pickers' copies and
+  files written to share), and the record cache serves one account at a time. It also carries
+  #98 (the record of 1.4.1) and three changes the changelog leaves out: #100 (the Dependabot
+  updates of 16 November), #96 (the pull-request title action 6.1.2) and #91 (the Gradle wrapper
+  9.9.0). No migration: 24 stay applied (`list_migrations`), and nothing under `supabase/`
+  changed since v1.4.1, so Releasing step 5 (the Auth templates) did not apply.
+  **The first attempt failed in one job.** "Build and attach artefacts" stopped in its Android
+  step at 05:48 UTC: Gradle could not resolve
+  `org.jetbrains.kotlin:kotlin-gradle-plugins-bom:2.2.20` for the `kotlin-dsl` plugin of the
+  Flutter SDK's own included build (`:gradle`, which provides
+  `dev.flutter.flutter-plugin-loader`), because the Gradle Plugin Portal sends that request on to
+  `repo.maven.apache.org`, which answered 429 Too Many Requests, on the first try and again on
+  Flutter's one retry, 100 ms later. That job attached nothing, so the release had only the three
+  iOS files, which the iOS build attached at 05:52 UTC. The rest of attempt 1 passed: preflight;
+  the iOS build; Deploy's backend (`supabase db push` found the database up to date, the four
+  Edge Functions were redeployed, version 20 at 05:47 UTC, and `health` answered 200) and web app
+  (its smoke tests on `https://app.mmakaan.app` and on the old address, whose `/auth/callback`
+  still clears its storage and goes on); and the website, whose download page then linked to the
+  iPhone file alone. CI's Android release build of the same commit passed in those same minutes,
+  on a restored Gradle cache (Follow-ups, Open, has why that matters). As `docs/operations.md`,
+  Releasing step 4, says, the agent re-ran the failed jobs once, at 05:55 UTC (attempt 2): the
+  Android and web build passed and attached its seven files and their provenance file by 06:05
+  UTC, and the website was deployed again by 06:07 UTC, its smoke tests passing, with the
+  release's eleven files listed.
+  Checked by the agent afterwards, on downloads of all eleven files: each matches the digest
+  GitHub gives for it, and the seven build files have the SHA-256s that `SHA256SUMS` and
+  `SHA256SUMS-ios` list (`sha256sum -c`, all OK). Both provenance files were read against them:
+  seven and two subjects, each with the listed SHA-256, signed for
+  `.github/workflows/release.yml@refs/heads/main` at commit 9807197 on a GitHub-hosted runner (the
+  Android one in attempt 2, the iOS one in attempt 1), one transparency-log entry each. Not
+  passed: `SECURITY.md`'s `gh attestation verify`, run on all nine files, stopped at "error
+  creating Sigstore verifier", since the container's proxy refuses `tuf-repo-cdn.sigstore.dev`
+  and `tuf-repo.github.com`, where `gh` fetches Sigstore's trusted root; the owner's own run is
+  still needed. The download page, in English and Urdu, shows 1.4.2 and links to the v1.4.2
+  files; the site's `llms.txt` and `https://app.mmakaan.app/version.json` say 1.4.2 (read through
+  the Vercel connector, as the proxy refuses both hosts). The daily query of Monitoring and
+  alerts returned no rows (07:17 UTC). Merged after the release, the same day: #107 (the
+  Dependabot updates of 22 November, among them Gradle 9.9.1, AGP 9.5.2 and actions/setup-java
+  6.3.0).
 - Release 1.4.1 was published on 16 November 2026 at 15:46 UTC (tag `v1.4.1`, commit 17888e9 on
   `main`; the Release run 43899955940, 15:46 to 15:58 UTC; every job passed, as the agent read
   it). The agent merged the release pull request (#87) on the owner's standing word, after the
@@ -130,8 +174,10 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   its hash; the old address's storage emptied; App Links on a phone with the 1.3.1 APK); leaked
   password protection in Auth; `tool/db/time_zone_skew.sql` in the SQL editor; the website on
   LinkedIn and the D-U-N-S record; the three Checkly monitors once the account's "Trial" (read
-  on 15 November) ends; and, now that release 1.4.1 carries step 12 (16 November 2026),
-  `ALLOWED_ORIGINS` set to the new origin alone and the old callback checked by hand.
+  on 15 November) ends; now that release 1.4.1 carries step 12 (16 November 2026),
+  `ALLOWED_ORIGINS` set to the new origin alone and the old callback checked by hand; and
+  `SECURITY.md`'s `gh attestation verify` on a download of 1.4.0, 1.4.1 or 1.4.2 (Checking a
+  download), which the agent's container cannot run, as it cannot reach Sigstore's trusted root.
 - Open note for the owner (15 November 2026): the owner also made an inbox for
   `hello@mmakaan.app` in Resend, with a receiving address; nothing is forwarded to it. The
   agent's advice: forwarding the mailbox there would put people's incoming messages at Resend,
@@ -482,8 +528,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   Phase 12 release-readiness commit), each of which records a matching schema fingerprint
   (20261109081109: 1,185 objects, `fa5a29f9984e169a032725898e5b93b2`).
 - `20261112092618_residence.sql` was applied on 15 November 2026 by release 1.3.0's Deploy run
-  (`supabase db push`), so 24 migrations are applied; releases 1.3.1, 1.4.0 and 1.4.1 carried
-  none (`list_migrations`, read again by the agent after 1.4.1). "After every
+  (`supabase db push`), so 24 migrations are applied; releases 1.3.1 to 1.4.2 carried none
+  (`list_migrations`, read again by the agent after 1.4.2). "After every
   migration" (`docs/operations.md`), done the same day with read-only queries:
   1. Versions: the hosted history (`list_migrations`) lists the 24 local versions, in the same
      order, with nothing extra on either side.
@@ -752,6 +798,45 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   the batch of 22 November kept 1.31.1 again. Flutter 3.50.0 and 3.50.1 (stable, 11 and 20
   November) pin test_api 0.7.14, so moving `FLUTTER_VERSION` to 3.50 lifts this; that is its
   own change, with the analyzer, the goldens and every Flutter job.
+- Release: one rate limit of Maven Central can stop a release's Android build, as it stopped
+  release 1.4.2's first attempt (22 November 2026, Current Position). The Release workflow's
+  `artefacts` job restores no Gradle cache, so every release build fetches each Gradle plugin and
+  library afresh; CI's Android release build caches them (`actions/setup-java` with
+  `cache: gradle`: `~/.gradle/caches` and `~/.gradle/wrapper`, keyed on a hash of the Gradle
+  files and restored only on that exact key). At 05:46 UTC that day CI's build of the release
+  commit restored the cache CI had saved on `main` for 50bb156 at 05:38, and passed; the release
+  build, with none, met the 429. Gradle retries a 429 itself (its source: three attempts, waiting
+  1 s and then 2 s) before it disables the repository for the build, and Flutter 3.47.9 retries
+  a build that fails on the network once, after 100 ms: neither waits as long as a rate limit
+  lasts. Until a fix is chosen, a release whose build fails on the network is re-run as step 4
+  of Releasing says. Whichever option is chosen goes in the build job of the publish split now
+  planned (`artefacts` with a read-only token; attest, check and attach in `publish-artefacts`
+  on a fresh runner): a cache there can change the bytes a build makes, not what the publish job
+  holds, and the split's record of what its check does not cover (it says no cache is restored)
+  changes with it. The options, none of them chosen yet:
+  1. **`cache: gradle` in the build job**, one line as in CI. The release would restore what CI
+     saved on `main` for the same Gradle files, which a release commit never changes (it touches
+     version files only), so 1.4.2's first attempt would have found it. Costs: the signed build
+     then takes input from every job of every CI run on `main`, any of which can save a key first
+     (GitHub keeps caches per branch, not per job or workflow), so a poisoned plugin in the cache
+     would be built into files whose provenance truthfully names release.yml; zizmor 1.32.0 does
+     not flag it (tried on a copy, the gate and the auditor persona). It misses after a change to
+     the Gradle files until CI on `main` has saved the new key, and it restores about 1.7 GB.
+     `cache-read-only: true` would keep the release from saving, not from reading. Gradle's
+     dependency verification (checksums of every dependency in the repository, checked on every
+     build) would make a poisoned entry fail, at the cost of regenerating them with each update.
+  2. **A retry with long waits around the Android step** (say up to three tries, minutes apart).
+     No new input to trust, but a real failure takes longer, and a limit that outlasts the waits
+     still stops the release.
+  3. **Gradle's own retry settings** (`org.gradle.internal.network.retry.max.attempts` and
+     `org.gradle.internal.network.retry.initial.backOff`, as `systemProp.` lines in a
+     `gradle.properties`). They reach Flutter's included build too, but they are internal names
+     that Gradle does not document and may change, and they slow every real failure as well.
+  4. **A mirror of Maven Central** listed before it. The request that failed came from the
+     Flutter SDK's included build (`:gradle`) through the Gradle Plugin Portal's redirect, which
+     `app/android/settings.gradle.kts` does not govern, so only an init script on the runner
+     (`~/.gradle/init.d`) would reach it; it adds a party to trust, and Gradle moves on to the
+     next repository only when a module is missing, not after an error.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed on 15 November 2026
@@ -780,9 +865,9 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
 ## Deployed
 
 - Edge Functions `health`, `invite-member`, `delete-account` and `storage-cleanup` are version
-  19 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-16), active,
-  verify_jwt off as in config.toml: release 1.4.1's Deploy run uploaded them from the tag with
-  the Supabase CLI at 15:47 UTC that day, as every release since 1.0.0 (2026-11-09) has.
+  20 on the hosted project (`list_edge_functions`, read by the agent on 2026-11-22), active,
+  verify_jwt off as in config.toml: release 1.4.2's Deploy run uploaded them from the tag with
+  the Supabase CLI at 05:47 UTC that day, as every release since 1.0.0 (2026-11-09) has.
 - They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
   (version 1). A byte-for-byte comparison with the repository matched then, except one line of
   `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the
