@@ -168,19 +168,34 @@ A malformed optional secret breaks only the feature that uses it (the function a
 because CORS needs it on every request. `supabase/functions/.env.example` lists the same secrets
 for local development.
 
-`ALLOWED_ORIGINS` names both web app origins,
+`ALLOWED_ORIGINS` is `https://app.mmakaan.app` alone (set by the owner after step 12 of the
+move, [Domains](#domains), which release 1.4.1 carried on 16 November 2026; reported on 22
+November 2026). Before that it named both web app origins,
 `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (set by the owner, reported on 14
-November 2026), until the owner narrows it after step 12 of the move ([Domains](#domains)), which
-release 1.4.1 carried on 16 November 2026. Since that release's deploy no page of the earlier
-address runs the app, and the owner sets it to
-`https://app.mmakaan.app` alone (or removes it, which means `APP_URL`'s origin); a tab still open on
-the earlier address gets CORS errors from the functions until it is reloaded and sent on. The Deploy
-workflow's `web` job checks before it builds that the functions accept the web app's origin (a CORS
-preflight to `health` must answer 204), and fails otherwise; it checks only the origin. No secret
-holds the website's address.
-`APP_URL` is `https://app.mmakaan.app` since 14 November 2026 (the owner), so invitation links
-open on the new address ([Domains](#domains), step 8, has what that means before the release).
-No workflow reads a secret's value, and none depends on which address `APP_URL` holds.
+November 2026). Since release 1.4.1's deploy no page of the earlier address runs the app, and a
+tab still open there gets CORS errors from the functions until it is reloaded and sent on. The
+Deploy workflow's `web` job checks before it builds that the functions accept the web app's
+origin (a CORS preflight to `health` must answer 204), and fails otherwise; it checks only the
+origin, not that the earlier one is refused. No secret holds the website's address.
+`APP_URL` is `https://app.mmakaan.app` (set by the owner, reported on 14 November 2026), so
+invitation links open on the new address ([Domains](#domains), step 8, has what that means
+before the release). No workflow reads a secret's value, and none depends on which address
+`APP_URL` holds.
+
+**A version of the functions that no Deploy run made: check the secrets first.** Supabase's
+documentation says only that a secret takes effect without a redeploy, not that changing one
+makes a new version of the functions. In this project's logs, though, each of the seven versions
+no Deploy run made from 12 to 22 November 2026 (10, 11, 13 to 16 and 21) can be matched to a
+secret change the record reports: five appeared while someone was in the dashboard, and the
+other two within minutes of a call from it. Only one of those changes has a time on record,
+`MAIL_FROM` at 14:13 UTC on 15 November 2026, inside version 13's window (14:09 to 14:14 UTC),
+and versions 10 and 11 fit only if `ALLOWED_ORIGINS` and `APP_URL` were set on the evening of 13
+November (UTC), not on the 14th as reported, which is still open (`.planning/STATE.md`, Deployed,
+lists each version, its window and the evidence). So when `list_edge_functions`, or `version` in
+the function logs (`function_edge_logs`), shows a version no Deploy run made, compare when it
+first appeared with the update times on the dashboard's Edge Functions Secrets page before
+looking further. If no secret changed then, check who can reach the project: the organisation's
+members and the account's access tokens.
 
 ## E-mail
 
@@ -733,10 +748,11 @@ The pull request is merged (#74), release 1.3.0 deployed the move, and the owner
 Site URL moved and the `APP_URL` repository variable deleted the same day. Release 1.3.1 (15:50
 UTC that day) carried Search Console's file, and steps 1, 11 and the move of the app's e-mail to
 the domain (step 13) were done the same day, with the homepage and the company's website of
-step 10. **On 16 November 2026:** release 1.4.1 carried the callback's release (step 12). Left:
-the checks by hand (step 9, and the e-mails with `dmarc=pass` of step 13), the company's other
-records (step 10), and step 12's two steps for the owner (`ALLOWED_ORIGINS` and the old callback
-checked by hand).
+step 10. **On 16 November 2026:** release 1.4.1 carried the callback's release (step 12). **On 22
+November 2026:** the owner reported `ALLOWED_ORIGINS` set to the new origin alone (step 12).
+Left: the checks by hand (step 9, and the e-mails with `dmarc=pass` of step 13), the company's
+other records (step 10), and step 12's two checks, that the functions refuse the old origin and
+the old callback by hand.
 
 **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
 Edge Function secret and in the GitHub repository variable, and by the owner's decision of that
@@ -787,9 +803,9 @@ variable at all (Moving again).
    and Deploy's `supabase` job, before the backend, read these settings with the Management API
    and stop while one is missing (only a warning if the token may not read them; the builds and
    the deploy then go ahead, so check by hand).
-5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it holds both app
-   origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no redeploy needed).
-   Deploy's `web` job checks it before it builds.
+5. **Edge Function secret `ALLOWED_ORIGINS`. Done on 14 November 2026:** it held both app
+   origins, `https://app.mmakaan.app,https://maalik-e-makaan.vercel.app` (no redeploy needed),
+   until step 12 narrowed it. Deploy's `web` job checks it before it builds.
 6. **Merge the pull request. Done on 15 November 2026** (#74, commit 8cd3c15). From the merge,
    the README and `llms.txt` on `main` name `https://app.mmakaan.app`, and nothing changes in
    production until the release: a site refresh of the last tag builds that tag's own addresses.
@@ -862,7 +878,7 @@ variable at all (Moving again).
     rejects the 308, `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web
     app answers `X-Robots-Tag: noindex` on every path, so the Domain property lists it as
     excluded, not as an error: the website is what search engines index (D-01).
-12. **The callback's release. Done on 16 November 2026, except the owner's two steps below:**
+12. **The callback's release. Done on 16 November 2026, except the owner's two checks below:**
     release 1.4.1 (the Release run 43899955940, at 15:46 UTC; it waited until 14:00 UTC, 24 hours
     after the move's deploy, and 1.3.1 and 1.4.0 went without it). Pull request #84 answers the
     old address's `/auth/callback` with the page too, so it clears that address's storage and
@@ -871,8 +887,23 @@ variable at all (Moving again).
     release's Deploy job checked it on Vercel: `/auth/callback?code=smoke-test` on the old address
     answered 200 with the page that clears its storage and goes to the new origin, and the App
     Links file was still answered there.
-    Still to do: the owner sets `ALLOWED_ORIGINS` to `https://app.mmakaan.app` alone (or removes
-    it, which means `APP_URL`'s origin), and checks the callback by hand: open
+    **`ALLOWED_ORIGINS`. Done, as the owner reported on 22 November 2026:** it holds
+    `https://app.mmakaan.app` alone. Release 1.4.3's preflight from that origin answered 204 at
+    13:31 UTC that day, so the functions accept it. That they refuse the earlier origin is not yet
+    shown: that preflight passes with the earlier origin listed too, and the function logs do not
+    record the `Origin` header. Still to do, the owner's first check: either the digest the
+    dashboard's Edge Functions Secrets page gives for the secret reads
+    `12b910158cd00f4da96e302d18ce68d3a4492a24b3625762297e37e018f627f9` (the SHA-256 of
+    `https://app.mmakaan.app` exactly), or this preflight answers 403, with no
+    `access-control-allow-origin` header and the code `origin_not_allowed` (with
+    `Origin: https://app.mmakaan.app` it answers 204):
+
+    ```sh
+    curl -sS -i -X OPTIONS -H 'Origin: https://maalik-e-makaan.vercel.app' \
+      -H 'Access-Control-Request-Method: GET' https://<project-ref>.supabase.co/functions/v1/health
+    ```
+
+    The owner's second check, the callback by hand: open
     `https://maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, add a key `flutter.x` in the
     developer tools (Application, Local storage), then open
     `https://maalik-e-makaan.vercel.app/auth/callback?code=x`. The browser goes on to
@@ -881,6 +912,7 @@ variable at all (Moving again).
     language choice at once, so read that request in the developer tools' Network tab (with
     "Preserve log" ticked) rather than in the address bar. Either way the key is gone when the
     old address's file is opened again.
+
 13. **The mail. Done on 15 November 2026, except the e-mail checks (DMARC "PASS", the reset and the
     invitation).** The mailbox's DNS records, as Dynadot sets them (MX, SPF, DKIM, and its own
     `_dmarc` record, `p=none`); leave the mailbox's own SPF record as Dynadot wrote it, and add no
@@ -1599,7 +1631,7 @@ an applied one (CONTRIBUTING.md). What can be rolled back, and how:
 
 | What                   | Roll back by                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The web app            | Vercel dashboard, project `maalik-e-makaan`, Deployments: the previous production deployment, Promote to Production (or `vercel rollback <deployment-url> --scope ar27111994s-projects`). Takes effect at once; the database must still suit the older app (migrations add, they do not remove). Never to a deployment from before D-20: it has the old `APP_URL` and nothing that sends people on, and would serve that build on both hosts, so links requested on the new address would go to the old one. Roll forward instead. A deployment from before step 12's release (1.3.0, 1.3.1) serves the earlier `/auth/callback` with the app again, which keeps storage there, until the next deploy; once `ALLOWED_ORIGINS` names only the origin, that app also gets CORS errors from the Edge Functions. Roll forward there too where possible.                                                                                                                                                        |
+| The web app            | Vercel dashboard, project `maalik-e-makaan`, Deployments: the previous production deployment, Promote to Production (or `vercel rollback <deployment-url> --scope ar27111994s-projects`). Takes effect at once; the database must still suit the older app (migrations add, they do not remove). Never to a deployment from before D-20: it has the old `APP_URL` and nothing that sends people on, and would serve that build on both hosts, so links requested on the new address would go to the old one. Roll forward instead. A deployment from before step 12's release (1.3.0, 1.3.1) serves the earlier `/auth/callback` with the app again, which keeps storage there, until the next deploy; and since `ALLOWED_ORIGINS` names only the origin (the owner, reported on 22 November 2026), that app also gets CORS errors from the Edge Functions. Roll forward there too where possible.                                                                                                         |
 | The website            | The same, project `maalik-e-makaan-site`, and never to a deployment from before D-20 either: its canonical and hreflang links, sitemap and `robots.txt` name the old address and it has no redirect, which undoes the change of address in Search Console. Roll forward instead.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Edge Functions         | Check out the previous tag and deploy its functions with the CLI: `supabase functions deploy --project-ref <project-ref> --use-api` (with `SUPABASE_ACCESS_TOKEN` set; `verify_jwt` comes from that tag's `supabase/config.toml`). Not with Deploy by hand on a tag: that runs the tag's own `deploy.yml`, which also redeploys its web app and website. A tag from before D-20 reads the web app's address from the `APP_URL` repository variable, which holds the new address since 14 November 2026. Such a run would put that tag's web app on both hosts, built for `app.mmakaan.app` but with nothing on the old host that sends people on or clears its storage, so a link requested on the old host would open on the new one, where its verifier is missing; and that tag's website on every site host, with the old address in its canonical links and no redirect. Once the variable is deleted ([Domains](#domains), step 8), those two jobs of such a tag stop at "Deployment is configured". |
 | A migration            | A new migration that undoes it (forward fix), through the usual process (After every migration). If it destroyed data, restore that data from a backup (below) into a scratch project and copy the rows back.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |

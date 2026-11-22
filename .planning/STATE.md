@@ -9,6 +9,23 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 ## Current Position (2026-11-22)
 
+- **Two of the owner's steps, reported by the owner on 22 November 2026** (in answer to the
+  question on version 21, below; no date, time or output given):
+  1. **The Edge Function secret `ALLOWED_ORIGINS` is `https://app.mmakaan.app` alone**
+     (`docs/operations.md`, Domains, step 12). Shown: the functions accepted that origin at
+     13:31:20 UTC on version 22, when release 1.4.3's preflight from it got 204 (the Release run
+     45027774726, job "Deploy the release / Web app (Vercel)"; the function logs have the same
+     request). If the change came before then, as version 21 at 08:09 to 08:14 UTC suggests, the
+     new value also parses. Not shown: that the old origin is refused. That preflight also got
+     204 on version 20, when the secret held both origins, and would get it with the secret unset
+     (the default is `APP_URL`'s origin); the function logs record no `Origin` header, no browser
+     called a function from 20 to 22 November, and the agent's container cannot reach the
+     functions (its proxy refuses the host). The dashboard's digest for the secret, or a
+     preflight from the old origin, would show it (Waiting on the owner). The other half of step
+     12, the check by hand of the old callback, is still the owner's.
+  2. **`tool/db/time_zone_skew.sql` was run on the hosted project.** The agent ran an equivalent
+     query read-only through the connector: nine rows, none for `Asia/Karachi`, each explained by
+     a `tzdata` release the server lacks (Hosted Supabase Project has the rows).
 - Release 1.4.3 was published on 22 November 2026 at 13:29 UTC (tag `v1.4.3`, commit 5b3d24f on
   `main`; the Release run 45027774726, one attempt, 13:29 to 13:41 UTC). Every job that ran
   passed. As Releasing step 3 says, the first Deploy call left the website to the second, and the
@@ -24,17 +41,30 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   the database up to date, the four Edge Functions were redeployed, version 22 at 13:30 UTC, and
   `health` answered `ok`), web app (its smoke tests on `https://app.mmakaan.app` and on the old
   address) and website each passed.
-  **The functions went from version 20 (1.4.2's deploy) to 22 through a version 21 that no
-  workflow run and no tool call of the agent's session made.** `health` served version 20 until
-  08:09 UTC and version 21 from 08:14 UTC that day (the project's function logs). None of the
-  workflow runs then deploys: the Release run of 08:04 UTC (#108) skipped Deploy, and the others
-  were CI, Security, Scorecard and title checks. That day the agent's session called no Supabase
-  tool that writes, and its container holds no token for the Supabase CLI (read afterwards from
-  the session's transcripts and environment). The project's gateway and storage logs show calls
-  from Supabase's management API only at 08:10 to 08:11 UTC and at 13:30 UTC (the release's
-  deploy). Version 22's bundle hashes (`ezbr_sha256`) equal version 20's, so what runs now is the
-  tag's code. What made version 21 is a question for the owner (Waiting on the owner, below), as
-  the hosted project changes only by the process in `docs/operations.md`.
+  **The functions went from version 20 (1.4.2's deploy) to 22 through a version 21 that no Deploy
+  run made, most likely the owner's change of `ALLOWED_ORIGINS` (above).** `health` served version
+  20 until 08:09:20 UTC and version 21 from 08:14:21 UTC that day (the project's function logs).
+  None of the workflow runs then deploys: the Release run of 08:04 UTC (#108) skipped Deploy, and
+  the others were CI, Security, Scorecard and title checks. That day the agent's session called no
+  Supabase tool that writes, and its container holds no token for the Supabase CLI (read afterwards
+  from the session's transcripts and environment). No `supabase link` reached the project then: the
+  gateway logs show the CLI's checks only at 05:46 and 13:30 UTC, the two releases' deploys. The
+  CLI's upload itself leaves no line in the project's logs, and nor would a deploy from the
+  dashboard or through the Management API, so the logs cannot rule those out. Each of the four
+  functions is at version 22, so each had one version between the two deploys: that fits a change to
+  the secrets all four share, not an edit of one function (a deploy of all four would fit too).
+  Asked, the owner reported setting the secret, without a date or time. The evidence that this made
+  version 21 is strong but circumstantial: someone was in the dashboard at 08:10 to 08:11 UTC (calls
+  from Supabase's management API), inside that window. Of the seven versions no Deploy run made from
+  12 to 22 November, five appeared while the dashboard was in use and two within minutes of a call
+  from it; each can be matched to a secret change the record reports, though only one of those
+  changes has a time on record and two fit only if a date on record is a day out (Deployed, below,
+  lists them and what is open). Supabase's documentation says only that a secret needs no redeploy,
+  not that it makes a version. The Secrets page's update time for the secret would settle it
+  (Waiting on the owner, below). Version 22's bundle hashes (`ezbr_sha256`) equal version 20's, so
+  what runs now is the tag's code. Version 21's own bundle was never read (the tools return only the
+  current version); it was the same code only if the secret change made it, as a secret change does
+  not touch the bundle.
   **It was the publish jobs' first real run (D-25), and every point of the check that Follow-ups
   listed held but the last, a person's run of `SECURITY.md`'s command, which is still to do**
   (now under Closed on 22 November 2026). The jobs ran in order: `release-please` (13:29 to
@@ -209,7 +239,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   `.github/workflows/release.yml@refs/heads/main` at commit 17888e9, one transparency-log entry
   each. Not run by the agent: `gh attestation verify` (its container cannot reach Sigstore).
   Now the owner's (`docs/operations.md`, Domains, step 12): `ALLOWED_ORIGINS` set to
-  `https://app.mmakaan.app` alone, and the check by hand of the old callback.
+  `https://app.mmakaan.app` alone (reported done on 22 November 2026), and the check by hand of
+  the old callback.
   Merged the same day after the release: #96 (the pull-request title action, 6.1.2) and #91
   (the Gradle wrapper, 9.9.0), Dependabot's two updates that needed nothing else.
 - Release 1.4.0 was published on 15 November 2026 at 20:25 UTC (tag `v1.4.0`, commit 433395a on
@@ -269,8 +300,9 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   tabs still open there). `redirect_smoke_test.sh --moved` checks the callback in CI and after each
   deploy, and its wait covers it (`tool/web/test_redirect_smoke_test.py`); the Deploy workflow's
   Edge Functions preflight checks only the origin. It waited until 14:00 UTC on 16 November 2026,
-  24 hours after the move's deploy, and went out at 15:46 UTC. Still to do, by the owner:
-  `ALLOWED_ORIGINS` set to `https://app.mmakaan.app` alone, and the check by hand of
+  24 hours after the move's deploy, and went out at 15:46 UTC. On 22 November 2026 the owner
+  reported `ALLOWED_ORIGINS` set to `https://app.mmakaan.app` alone (Current Position). Still to
+  do, by the owner: the check that the functions refuse the old origin, and the check by hand of
   `docs/operations.md`, Domains, step 12. A late link (asked for in a tab open on the old address
   since before the move, the only app whose links name the old callback, and opened after that
   release) cannot finish; D-20 and Where it never clears say why the window stays. Two app
@@ -311,19 +343,33 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   over sharing the company mailbox's login. Also still the owner's: the rest of step 9's checks
   by hand (the reset and invitation e-mails with `dmarc=pass`; an old invitation address with
   its hash; the old address's storage emptied; App Links on a phone with the 1.3.1 APK); leaked
-  password protection in Auth; `tool/db/time_zone_skew.sql` in the SQL editor; the website on
-  LinkedIn and the D-U-N-S record; the three Checkly monitors once the account's "Trial" (read
-  on 15 November) ends; now that release 1.4.1 carries step 12 (16 November 2026),
-  `ALLOWED_ORIGINS` set to the new origin alone and the old callback checked by hand; and
-  `SECURITY.md`'s `gh attestation verify` on a download of 1.4.0 to 1.4.3 (Checking a download;
-  1.4.3 first, the first release the publish jobs made), which the agent's container cannot run,
-  as it cannot reach Sigstore's trusted root. Since 22 November 2026, two more are the owner's.
-  The first is deleting the throwaway branch `claude/publish-dry-run`. The agent's session could
-  not, as its git proxy answered 403. A push to the branch would run its workflow, which attests,
-  though `SECURITY.md`'s command refuses what it signs (another workflow and another ref). The
-  second is saying what uploaded the four Edge Functions as version 21 between 08:09 and 08:14
-  UTC that day, which no workflow run and no tool call of the agent's session did (Current
-  Position, release 1.4.3).
+  password protection in Auth; the website on LinkedIn and the D-U-N-S record; the three Checkly
+  monitors once the account's "Trial" (read on 15 November) ends; now that release 1.4.1 carries
+  step 12 (16 November 2026), the old callback checked by hand; and `SECURITY.md`'s
+  `gh attestation verify` on a download of 1.4.0 to 1.4.3 (Checking a download; 1.4.3 first, the
+  first release the publish jobs made), which the agent's container cannot run, as it cannot
+  reach Sigstore's trusted root. Reported by the owner on 22 November 2026 (Current Position):
+  `ALLOWED_ORIGINS` set to the new origin alone, and `tool/db/time_zone_skew.sql` run.
+  Since 22 November 2026, two more are the owner's. The first is deleting the throwaway branch
+  `claude/publish-dry-run`. The agent's session could not, as its git proxy answered 403. A push
+  to the branch would run its workflow, which attests, though `SECURITY.md`'s command refuses
+  what it signs (another workflow and another ref). The second is reading the dashboard's Edge
+  Functions Secrets page, which settles three things. If it shows only a relative time, such as
+  "2 hours ago", hovering over it may give the exact time; otherwise tell the agent what it
+  shows.
+  - `ALLOWED_ORIGINS`'s last update. 22 November between 08:09 and 08:14 UTC (13:09 and 13:14
+    Pakistan time) would settle that the change made version 21 (Current Position, release
+    1.4.3). Any other time means version 21 is unexplained again: then check the organisation's
+    members and the account's access tokens, and revoke what is not known.
+  - `ALLOWED_ORIGINS`'s digest. It should be
+    `12b910158cd00f4da96e302d18ce68d3a4492a24b3625762297e37e018f627f9`, the SHA-256 of
+    `https://app.mmakaan.app` exactly, which would show the old origin refused; a preflight from
+    the old origin answering 403 would show the same (`docs/operations.md`, Domains, step 12).
+  - `APP_URL`'s last update, if it has not changed since. 13 November between 17:39 and 17:49 UTC
+    (22:39 and 22:49 Pakistan time) would explain versions 10 and 11, and mean that `APP_URL` and
+    the two-origin `ALLOWED_ORIGINS` were set that evening, not on 14 November, the date reported.
+    14 November would mean a secret change that made no version, an exception to the rule
+    `docs/operations.md`, Edge Function secrets, draws (Deployed, below, lists the versions).
 - Open note for the owner (15 November 2026): the owner also made an inbox for
   `hello@mmakaan.app` in Resend, with a receiving address; nothing is forwarded to it. The
   agent's advice: forwarding the mailbox there would put people's incoming messages at Resend,
@@ -387,8 +433,9 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   item 13, has the steps): the Dynadot records are in and Vercel reports the three hosts as
   correctly configured (2026-11-13); the new addresses were checked over HTTPS in a browser,
   Auth's redirect URLs list all four callbacks with the Site URL left as it was, and the Edge
-  Function secret `ALLOWED_ORIGINS` holds both app origins (reported 2026-11-14). The owner also
-  set `APP_URL` to `https://app.mmakaan.app` that day, ahead of the order, in the Edge Function
+  Function secret `ALLOWED_ORIGINS` held both app origins (reported 2026-11-14; the new origin
+  alone since, as the owner reported on 2026-11-22). The owner also reported on 2026-11-14
+  setting `APP_URL` to `https://app.mmakaan.app`, ahead of the order, in the Edge Function
   secret and in the GitHub repository variable. So invitation e-mails already link to the new
   address, which serves the web app from before the move until the release (a sign-up started
   there cannot finish its e-mail link), and the workflows on `main` would build for the new
@@ -710,14 +757,36 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
      `portfolio_members.user_id`; so the Membership model's `caretaker_first` configurations do
      not describe the hosted project. The replay's outcomes were all as expected.
 
-  Still to run on the hosted project, by the owner in the SQL editor (the file is too long for
-  the connector's query call): `tool/db/time_zone_skew.sql` (`docs/operations.md`, Time-zone
-  data). The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and
-  speaker notes) says 23 reviewed write functions and 23 database suites, as releases 1.3.0 to
-  1.4.0 have. The deck's notes named 1.3.0 as the released app and counted five releases
-  since 1.0.0 until after 1.4.0; they now take both from the manifest and the changelog
-  (`{{version}}`, `{{laterReleases}}`; `website/deck/README.md`), and a unit test refuses a
-  slide that writes either out.
+  `tool/db/time_zone_skew.sql` (`docs/operations.md`, Time-zone data), 22 November 2026: the
+  owner reported running it, without saying where or giving its output. The agent then ran an
+  equivalent read-only through the connector. The file (380 kB) is too long for one query call,
+  so the agent sent a 13.6 kB query that rebuilds the script's 5,684 expected rows (418 zones;
+  their md5 under the hosted ICU `en-US` ordering, `ec9f81c2854cb5989fc91f854d1a08ac`, is the
+  script's own) and keeps its join and filter word for word; the script's own 52 rows for
+  `Asia/Karachi` and the three zones below gave the same result. Nine rows, none for
+  `Asia/Karachi` and none with a NULL `server_seconds`:
+  - `America/Inuvik`, 1 January 2027 to 2030: server -25200, app -21600 (`tzdata` 2026d, the
+    Northwest Territories on -06 all year);
+  - `America/Winnipeg`, 1 January 2027 to 2030: server -21600, app -18000 (2026e, Manitoba on
+    -05 for good);
+  - `America/Havana`, 1 January 2027: server -18000, app -14400 (2026f, Cuba on -04 until
+    November 2027).
+
+  The server shows no `tzdata` version (`pg_config` is refused), but its offsets fit 2026c alone:
+  it has the changes of 2026a to 2026c and none of 2026d to 2026f; the app's pin is 2026f. 2026c
+  is the release PostgreSQL 17.11 bundles (its release notes, and `src/timezone/data/tzdata.zi`
+  at `REL_17_11`); which tz files Supabase's image reads was not traced, so the offsets are the
+  evidence. Nothing reads a stored zone in SQL yet, so the rows change nothing. The two already
+  disagree, though, for Inuvik and Winnipeg each winter from 1 November 2026 and for Havana until
+  14 March 2027, so once the push planner's SQL helpers read stored zones, people there may get
+  alerts an hour early or late until the Supabase image reaches 2026f or later.
+
+  The pitch deck's trust slide (`website/deck/slides/trust.html`, slide and speaker notes) says
+  23 reviewed write functions and 23 database suites, as releases 1.3.0 to 1.4.0 have. The
+  deck's notes named 1.3.0 as the released app and counted five releases since 1.0.0 until after
+  1.4.0; they now take both from the manifest and the changelog (`{{version}}`,
+  `{{laterReleases}}`; `website/deck/README.md`), and a unit test refuses a slide that writes
+  either out.
 
 - `20261109081109_uat_display_fixes.sql` (UAT D5 and D6: "vacant since" as a Pakistan date;
   automatic late fees without the English note, and the note removed from those already written)
@@ -761,7 +830,8 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   no backward links (`Asia/Calcutta`, `US/Eastern` are absent). The contract generator never reads
   it: `tool/contracts/time_zones.py` reads the PyPI `tzdata` pinned in `tool/requirements.txt`
   (`make bootstrap` installs it into `.venv`). `tool/db/time_zone_skew.sql` here returns one row,
-  `America/Havana` on 1 January 2027 (2026f changed Cuba's clock).
+  `America/Havana` on 1 January 2027 (2026f changed Cuba's clock); on the hosted project, whose
+  offsets fit tzdata 2026c, it returns nine (Hosted Supabase Project).
 - `*.supabase.co` and `supabase.com` are blocked from the container. Use the Supabase MCP tools
   for the hosted project; `search_docs` reads the documentation.
 - `git ls-remote` against GitHub works, which is how GitHub Actions get pinned to commit SHAs.
@@ -794,9 +864,10 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
   is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done, with
   steps 1, 11 and 13 (except its e-mail checks) and step 10's homepage and company website (the
   same day). Waiting on the owner: step 9's checks by hand and the e-mails with `dmarc=pass`, the
-  website on LinkedIn and the D-U-N-S record, and, step 12 being released (1.4.1),
-  `ALLOWED_ORIGINS` and the check by hand of the old callback
-  (`docs/release-readiness.md`, Owner actions, item 13).
+  website on LinkedIn and the D-U-N-S record, and, step 12 being released (1.4.1), its two
+  checks: that the functions refuse the old origin, and the old callback by hand
+  (`docs/release-readiness.md`, Owner actions, item 13; step 12's `ALLOWED_ORIGINS` was reported
+  done on 2026-11-22).
   Apple enrols an
   organisation only if its website is on a domain associated with it, with work e-mail there; the
   same domain serves Meta's verification and the e-mail sending subdomains.
@@ -1001,6 +1072,11 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 - Release, optional: move from `actions/attest-build-provenance` to `actions/attest`, changing
   `PUBLISH_TEMPLATE` and release.yml together. Immutable releases would need draft releases that
   a last job publishes after both publish jobs; not planned.
+- Deploy: the step "The Edge Functions accept the origin" (`deploy.yml`) requires 204 to a
+  preflight from the web app's origin alone, so no deploy shows that an earlier address is
+  refused. Once the owner has confirmed that `ALLOWED_ORIGINS` holds the new origin alone
+  (Waiting on the owner), it can also send a preflight from each `app.legacy` address in
+  `contracts/origins.json` and require 403; before that, the check could stop a deploy.
 - Design system: the open items in `docs/design-qa.md`, Follow-ups.
 
 ### Closed on 22 November 2026
@@ -1115,14 +1191,35 @@ no-break amount rule in `DESIGN.md`. As the commit records: the `MmListTile`, `M
   verify_jwt off as in config.toml: release 1.4.3's Deploy run uploaded them from the tag with
   the Supabase CLI at 13:30 UTC that day, as every release since 1.0.0 (2026-11-09) has. Their
   bundle hashes (`ezbr_sha256`) are those of version 20, release 1.4.2's upload. Version 21,
-  between 08:09 and 08:14 UTC that day, came from no workflow run and no tool call of the agent's
-  session; its source is a question for the owner (Current Position, release 1.4.3).
+  between 08:09 and 08:14 UTC that day, came from no Deploy run; most likely the owner's change
+  of the secret `ALLOWED_ORIGINS` made it, which the dashboard's Secrets page can confirm
+  (Current Position, release 1.4.3). Its bundle was never read.
 - They were first deployed on 2026-11-05, from commit b41771d through the Supabase connector
   (version 1). A byte-for-byte comparison with the repository matched then, except one line of
   `invite-member/email.ts` where three `\u` escapes in a regular expression arrived as the
   literal characters (same behaviour); the CLI uploads take the files as they are. Live checks
   that day: health 200; the other three refused unauthenticated calls with 401 and allowed the
   app's origin.
+- The versions no Deploy run made, 12 to 22 November 2026, from `version` in the function logs
+  of `health`, the only function called then. Each window runs from the last request on the old
+  version to the first on the new; the dashboard's calls are those from Supabase's management
+  API in the gateway and storage logs. Each version can be matched to a secret change the record
+  reports, with the caveats below, which is why `docs/operations.md`, Edge Function secrets,
+  says to check the secrets first; Supabase does not document that a secret change makes a
+  version.
+  - 10 and 11, 13 November, 17:39 to 17:44 and 17:44 to 17:49 UTC: a dashboard call in each
+    (17:40:58, 17:46:43). `ALLOWED_ORIGINS` (both origins) and `APP_URL` fit only if they were
+    set that evening (22:39 to 22:49 Pakistan time), not on 14 November as reported; 14 November
+    shows no new version (Waiting on the owner).
+  - 13, 15 November, 14:09 to 14:14 UTC: a dashboard call at 14:12:36. `MAIL_FROM` was changed
+    at 14:13 UTC, the one change with a time on record.
+  - 14, 14:19 to 14:24 UTC: no dashboard call inside (the last came at 14:18:36, just before).
+    Fits `MAIL_REPLY_TO`, set that day at a time not recorded.
+  - 15 and 16, 15:34 to 15:39 and 15:39 to 15:44 UTC: a dashboard call at 15:39:07, inside 15's
+    window and just before 16's. Fit `RESEND_API_KEY` and `MAIL_FROM` with the display name, set
+    after Resend verified the domain at 15:21 UTC, at times not recorded.
+  - 21, 22 November, 08:09 to 08:14 UTC: dashboard calls at 08:10:19, 08:11:26 and 08:11:39.
+    Fits `ALLOWED_ORIGINS` set to the new origin alone, reported that day without a time.
 
 ## Hosting
 
