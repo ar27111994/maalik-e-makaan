@@ -331,6 +331,22 @@ void main() {
     expect(find.text('What needs attention'), findsOneWidget);
   });
 
+  testWidgets("the shell loads the next account's portfolios, not failing, "
+      "while its session replaces the user's", (tester) async {
+    // The list is read by a provider keyed by the user: the next account's
+    // is a new one, which loads as any first read does.
+    final app = await _pumpApp(tester);
+    final frames = await framesWhileReplaced(
+      tester,
+      app,
+      held: [app.portfolios.gate],
+      failure: find.text('Your portfolios could not be loaded'),
+      loading: find.bySemanticsLabel('Loading your portfolios'),
+    );
+    expect(frames, (failure: 0, loading: 10));
+    expect(find.text('What needs attention'), findsOneWidget);
+  });
+
   testWidgets('a session that ends elsewhere returns to sign-in, then back', (
     tester,
   ) async {
