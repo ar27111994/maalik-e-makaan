@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.4](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.3...v1.4.4) (2026-11-22)
+
+
+### Bug fixes
+
+* **app:** remove the earlier account's snack bar at once when the account changes ([#115](https://github.com/ar27111994/maalik-e-makaan/issues/115)) ([385d79d](https://github.com/ar27111994/maalik-e-makaan/commit/385d79d0e33b31d9cffe1bd06253ae129dd92675))
+
+
+### Documentation
+
+* **docs:** record release 1.4.3, the first the publish jobs made ([#113](https://github.com/ar27111994/maalik-e-makaan/issues/113)) ([eb35d11](https://github.com/ar27111994/maalik-e-makaan/commit/eb35d11121aa348d6b2d68995192f4281b53e0bc))
+* **docs:** record the owner's ALLOWED_ORIGINS and time-zone steps, and explain version 21 ([#117](https://github.com/ar27111994/maalik-e-makaan/issues/117)) ([d0e733b](https://github.com/ar27111994/maalik-e-makaan/commit/d0e733b88337bce4a78aa1b90f7b973e20a1f1e8))
+
 ## [1.4.3](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.2...v1.4.3) (2026-11-22)
 
 
