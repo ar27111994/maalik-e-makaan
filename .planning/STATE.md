@@ -16,13 +16,13 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
      13:31:20 UTC on version 22, when release 1.4.3's preflight from it got 204 (the Release run
      45027774726, job "Deploy the release / Web app (Vercel)"; the function logs have the same
      request). If the change came before then, as version 21 at 08:09 to 08:14 UTC suggests, the
-     new value also parses. Not shown: that the old origin is refused. That preflight also got
-     204 on version 20, when the secret held both origins, and would get it with the secret unset
-     (the default is `APP_URL`'s origin); the function logs record no `Origin` header, no browser
-     called a function from 20 to 22 November, and the agent's container cannot reach the
-     functions (its proxy refuses the host). The dashboard's digest for the secret, or a
-     preflight from the old origin, would show it (Waiting on the owner). The other half of step
-     12, the check by hand of the old callback, is still the owner's.
+     new value also parses. The old origin is refused: at 16:35 UTC the owner's preflight from
+     it (`docs/operations.md`, Domains, step 12, has the command) answered 403 with the code
+     `origin_not_allowed` and no `access-control-allow-origin` header. Release 1.4.3's preflight
+     alone could not show it: it also got 204 on version 20, when the secret held both origins,
+     the function logs record no `Origin` header, and the agent's container cannot reach the
+     functions (its proxy refuses the host). The other half of step 12, the check by hand of the
+     old callback, is still the owner's.
   2. **`tool/db/time_zone_skew.sql` was run on the hosted project.** The agent ran an equivalent
      query read-only through the connector: nine rows, none for `Asia/Karachi`, each explained by
      a `tzdata` release the server lacks (Hosted Supabase Project has the rows).
@@ -301,8 +301,9 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   deploy, and its wait covers it (`tool/web/test_redirect_smoke_test.py`); the Deploy workflow's
   Edge Functions preflight checks only the origin. It waited until 14:00 UTC on 16 November 2026,
   24 hours after the move's deploy, and went out at 15:46 UTC. On 22 November 2026 the owner
-  reported `ALLOWED_ORIGINS` set to `https://app.mmakaan.app` alone (Current Position). Still to
-  do, by the owner: the check that the functions refuse the old origin, and the check by hand of
+  reported `ALLOWED_ORIGINS` set to `https://app.mmakaan.app` alone, and the functions refuse the
+  old origin (the owner's preflight, 403, the same day; Current Position). Still to do, by the
+  owner: the check by hand of
   `docs/operations.md`, Domains, step 12. A late link (asked for in a tab open on the old address
   since before the move, the only app whose links name the old callback, and opened after that
   release) cannot finish; D-20 and Where it never clears say why the window stays. Two app
@@ -354,17 +355,13 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   `claude/publish-dry-run`. The agent's session could not, as its git proxy answered 403. A push
   to the branch would run its workflow, which attests, though `SECURITY.md`'s command refuses
   what it signs (another workflow and another ref). The second is reading the dashboard's Edge
-  Functions Secrets page, which settles three things. If it shows only a relative time, such as
+  Functions Secrets page, which settles two things. If it shows only a relative time, such as
   "2 hours ago", hovering over it may give the exact time; otherwise tell the agent what it
   shows.
   - `ALLOWED_ORIGINS`'s last update. 22 November between 08:09 and 08:14 UTC (13:09 and 13:14
     Pakistan time) would settle that the change made version 21 (Current Position, release
     1.4.3). Any other time means version 21 is unexplained again: then check the organisation's
     members and the account's access tokens, and revoke what is not known.
-  - `ALLOWED_ORIGINS`'s digest. It should be
-    `12b910158cd00f4da96e302d18ce68d3a4492a24b3625762297e37e018f627f9`, the SHA-256 of
-    `https://app.mmakaan.app` exactly, which would show the old origin refused; a preflight from
-    the old origin answering 403 would show the same (`docs/operations.md`, Domains, step 12).
   - `APP_URL`'s last update, if it has not changed since. 13 November between 17:39 and 17:49 UTC
     (22:39 and 22:49 Pakistan time) would explain versions 10 and 11, and mean that `APP_URL` and
     the two-origin `ALLOWED_ORIGINS` were set that evening, not on 14 November, the date reported.
@@ -864,10 +861,9 @@ owner's decisions by date. The ones that hold up the launch milestone (due 2027-
   is merged and released (1.3.0, 2026-11-15), and the owner's steps up to step 8 are done, with
   steps 1, 11 and 13 (except its e-mail checks) and step 10's homepage and company website (the
   same day). Waiting on the owner: step 9's checks by hand and the e-mails with `dmarc=pass`, the
-  website on LinkedIn and the D-U-N-S record, and, step 12 being released (1.4.1), its two
-  checks: that the functions refuse the old origin, and the old callback by hand
-  (`docs/release-readiness.md`, Owner actions, item 13; step 12's `ALLOWED_ORIGINS` was reported
-  done on 2026-11-22).
+  website on LinkedIn and the D-U-N-S record, and, step 12 being released (1.4.1), its check by
+  hand of the old callback (`docs/release-readiness.md`, Owner actions, item 13; step 12's
+  `ALLOWED_ORIGINS` was reported done on 2026-11-22, and the old origin's refusal shown that day).
   Apple enrols an
   organisation only if its website is on a domain associated with it, with work e-mail there; the
   same domain serves Meta's verification and the e-mail sending subdomains.

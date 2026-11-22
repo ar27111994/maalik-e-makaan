@@ -751,8 +751,8 @@ the domain (step 13) were done the same day, with the homepage and the company's
 step 10. **On 16 November 2026:** release 1.4.1 carried the callback's release (step 12). **On 22
 November 2026:** the owner reported `ALLOWED_ORIGINS` set to the new origin alone (step 12).
 Left: the checks by hand (step 9, and the e-mails with `dmarc=pass` of step 13), the company's
-other records (step 10), and step 12's two checks, that the functions refuse the old origin and
-the old callback by hand.
+other records (step 10), and step 12's check by hand of the old callback (that the functions
+refuse the old origin was shown the same day).
 
 **`APP_URL` was moved early (the owner, 14 November 2026)**, a day ahead of this order, in the
 Edge Function secret and in the GitHub repository variable, and by the owner's decision of that
@@ -878,7 +878,7 @@ variable at all (Moving again).
     rejects the 308, `website/vercel.json`'s rule can say `"statusCode": 301` instead. The web
     app answers `X-Robots-Tag: noindex` on every path, so the Domain property lists it as
     excluded, not as an error: the website is what search engines index (D-01).
-12. **The callback's release. Done on 16 November 2026, except the owner's two checks below:**
+12. **The callback's release. Done on 16 November 2026, except the owner's check by hand below:**
     release 1.4.1 (the Release run 43899955940, at 15:46 UTC; it waited until 14:00 UTC, 24 hours
     after the move's deploy, and 1.3.1 and 1.4.0 went without it). Pull request #84 answers the
     old address's `/auth/callback` with the page too, so it clears that address's storage and
@@ -889,21 +889,19 @@ variable at all (Moving again).
     Links file was still answered there.
     **`ALLOWED_ORIGINS`. Done, as the owner reported on 22 November 2026:** it holds
     `https://app.mmakaan.app` alone. Release 1.4.3's preflight from that origin answered 204 at
-    13:31 UTC that day, so the functions accept it. That they refuse the earlier origin is not yet
-    shown: that preflight passes with the earlier origin listed too, and the function logs do not
-    record the `Origin` header. Still to do, the owner's first check: either the digest the
-    dashboard's Edge Functions Secrets page gives for the secret reads
-    `12b910158cd00f4da96e302d18ce68d3a4492a24b3625762297e37e018f627f9` (the SHA-256 of
-    `https://app.mmakaan.app` exactly), or this preflight answers 403, with no
-    `access-control-allow-origin` header and the code `origin_not_allowed` (with
-    `Origin: https://app.mmakaan.app` it answers 204):
+    13:31 UTC that day, so the functions accept it. That they refuse the earlier origin was shown
+    the same day: at 16:35 UTC the owner's preflight from it, the command below, answered 403 with
+    the code `origin_not_allowed` and no `access-control-allow-origin` header. Release 1.4.3's
+    preflight alone could not show it, as it passes with the earlier origin listed too, and the
+    function logs do not record the `Origin` header. To check again (with
+    `Origin: https://app.mmakaan.app` the same command answers 204):
 
     ```sh
     curl -sS -i -X OPTIONS -H 'Origin: https://maalik-e-makaan.vercel.app' \
       -H 'Access-Control-Request-Method: GET' https://<project-ref>.supabase.co/functions/v1/health
     ```
 
-    The owner's second check, the callback by hand: open
+    Still to do, the owner's check of the callback by hand: open
     `https://maalik-e-makaan.vercel.app/.well-known/assetlinks.json`, add a key `flutter.x` in the
     developer tools (Application, Local storage), then open
     `https://maalik-e-makaan.vercel.app/auth/callback?code=x`. The browser goes on to
