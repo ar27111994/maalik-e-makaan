@@ -284,12 +284,13 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   threw once the
   delete screen was left (the back button, or the router at a sign-out), so the device kept the
   deleted account's session and records; the command now reads everything it uses before its first
-  wait. It goes on without its screen, also when the screen is left while it signs in again, and
-  then sends the deletion (before, it sent none then, through an uncaught error): Cancel is disabled
-  while it runs, and leaving is not cancelling. Whether back should cancel before the request goes
-  was the owner's call: on 22 November 2026 they chose "Back cancels until sent" (D-22), built on
-  the branch `claude/deletion-back-and-sheets`, where leaving while the password is checked cancels
-  and the screen cannot be left once the request is sent. A command that chooses the current
+  wait. As #70 shipped it (since replaced by D-22, below), the command went on without its screen,
+  also when the screen was left while it signed in again, and then sent the deletion (before #70,
+  it sent none then, through an uncaught error): Cancel was disabled while it ran, and leaving was
+  not cancelling. Whether back should cancel before the request goes was the owner's call: on 22
+  November 2026 they chose "Back cancels until sent" (D-22), built on the branch
+  `claude/deletion-back-and-sheets`, where leaving while the password is checked cancels and the
+  screen cannot be left while a request is on its way. A command that chooses the current
   portfolio after a request chooses nothing when the session it asked in has ended meanwhile, and a
   start signed in removes what other accounts left in the cache and their chosen portfolio. Display
   settings stay; an invitation opened and not answered stays until it is answered or the account is
@@ -766,15 +767,20 @@ The owner answered two questions #70 left open, on 22 November 2026; both are bu
   still checking the password cancels and sends nothing; once the delete request is on its way,
   Back is blocked, so leaving never looks like cancelling. The router asks the deletion whichever
   way its screen is left (`GoRoute.onExit`, `AccountDeletionController.leave`); Cancel does the
-  same; the sign-out rules for an answer that deleted or may have deleted are unchanged.
+  same; the sign-out rules for an answer that deleted or may have deleted are unchanged. The
+  branch's check found two gaps, both closed there: Back waits for every request on its way (a
+  count), also one that another account, signed in meanwhile in another tab, started before the
+  earlier one answered; and another section, which cancels as Back does but keeps the screen in its
+  own, now finds it no longer busy, saying the deletion was cancelled and nothing was sent.
   `app_test.dart` ("deleting the account") and `account_test.dart` pin it.
 - Two accounts on one device, in their words "Close sheets on account change" (D-23): a sheet left
   open while another account signs in (another tab) kept the earlier account's record on show, an
   occupant's CNIC and phone included, and its buttons and the dialogs it opened sent their requests
   with that account's token; a new tenant's warning kept "Save anyway". Every sheet, dialog and menu
-  now closes when the signed-in account changes, from one listener in the app shell, and a refreshed
-  or new session of the same account keeps them. `app_test.dart` ("when the signed-in account
-  changes") pins it.
+  now closes when the signed-in account changes, from one listener in the app shell, and so does
+  every snack bar (one may name a record); a refreshed or new session of the same account keeps
+  them. `app_test.dart` ("when the signed-in account changes") pins it, two routes on one navigator
+  included.
 
 ### Closed on 15 November 2026
 

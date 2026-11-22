@@ -337,21 +337,26 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   looks like cancelling. Both hold for every way the screen is left: Android's button and back
   gesture, the app bar's arrow, the browser's back, another section and a link; the router asks the
   deletion each time (`GoRoute.onExit`), and only its own redirect at a sign-out leaves the screen
-  while the request is on its way. Cancel does what Back does (an engineering choice of the same
-  day, for consistency): it works while the password is checked and waits once the request is
-  sent. The sign-out rules for an answer that deleted or may have deleted are unchanged. Built in
-  `docs/architecture/app.md` (On the device, Hooks).
+  while a request is on its way. Back waits for every request on its way, also one that another
+  account, signed in meanwhile in another tab, sent from the same screen before the earlier one was
+  answered. Another section cancels as Back does, but keeps the screen in its own: shown again, it
+  is no longer busy and says that the deletion was cancelled and nothing was sent. Cancel does what
+  Back does (an engineering choice of the same day, for consistency): it works while the password
+  is checked and waits once the request is sent. The sign-out rules for an answer that deleted or
+  may have deleted are unchanged. Built in `docs/architecture/app.md` (On the device, Hooks).
 
 - D-23: **Sheets and dialogs close when the signed-in account changes.** (Decided by the owner,
   22 November 2026, in their words "Close sheets on account change", answering a question #70
   left open.) When another account signs in on the device (in another tab, or by an e-mail link) or
   nobody is signed in any more, every open sheet, dialog and menu closes at once, without its
   closing animation, so the earlier account's details on show (an occupant's CNIC and phone, a
-  member's or invitee's e-mail) go, and their buttons cannot act as the next account. A refreshed
-  or new session of the same account changes nothing. The owner's standing rule holds: fewer mechanisms,
-  so this is one small change in the app shell, not a check in every sheet; screens stay, for the
-  router. Built in `docs/architecture/app.md` (On the device, Writes after a removal, The session
-  the cache serves).
+  member's or invitee's e-mail) go, and their buttons cannot act as the next account; a sheet the
+  user was already closing finishes its closing animation, with its buttons ignoring taps. Snack
+  bars are cleared too (an engineering choice of the same day), as one may name a record. A
+  refreshed or new session of the same account changes nothing. The owner's standing rule holds:
+  fewer mechanisms, so this is one small change in the app shell, not a check in every sheet;
+  screens stay, for the router. Built in `docs/architecture/app.md` (On the device, Writes after a
+  removal, The session the cache serves).
 
 ## Open Proposals
 
