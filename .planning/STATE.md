@@ -884,8 +884,9 @@ iCloud or computer backup on the iPhone, may include the sign-in and the saved r
 now writes `android:allowBackup="true"` out, and `tool/android/check_manifest.py` refuses any other
 value and any backup rules or agent on the application. The privacy page's backups bullet already
 said that a backup can hold the sign-in and the app's copy of the records, in English and Urdu; it
-now also says that a new phone that brings the old phone's data across gets them too. The decision
-is the owner's, so the legal pack (PR #66, branch `claude/legal-pack`) needs:
+now also says that a new phone that brings the old phone's data across can get them too ("can": a
+move between an Android phone and an iPhone brings neither, as D-24 explains). The decision is the
+owner's, so the legal pack (PR #66, branch `claude/legal-pack`) needs:
 
 - question T7 to say that whether the backup must be turned off is decided (its other questions,
   the unencrypted cache, a session timeout and whether the privacy page says enough, stay the

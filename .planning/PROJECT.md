@@ -368,7 +368,12 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   backup on Android, iCloud or a computer on iPhone") "can include your sign-in and the app's copy
   of your records as they were when it was made", and, in a sentence added with this decision, "When
   you get a new phone and bring your old phone's data across, your sign-in and the app's copy of
-  your records are copied to the new phone too". The app neither turns the backup off nor leaves its
+  your records can be copied to the new phone too". It says "can" because a move between an Android
+  phone and an iPhone, either way, brings neither: the Auto Backup page (below) offers a move of an
+  app's data to or from an iPhone only through a `<cross-platform-transfer>` section in the app's
+  rules file, from Android 16 QPR2, which "must include the `<platform-specific-params>` element"
+  naming the iPhone app, or through the app's own backup agent; this decision adds neither, and
+  nothing in `app/ios` sets up such a move. The app neither turns the backup off nor leaves its
   preferences out of it. The device wipe's pull request (#70) had left this to the owner with the
   lawyer (question T7 of the legal pack, PR #66); it is now the owner's decision, and the pack's
   data map is to say that backups are full. The manifest writes `android:allowBackup="true"` out
