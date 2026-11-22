@@ -270,6 +270,37 @@ void main() {
     expect(container.read(pendingInvitationProvider), isNull);
   });
 
+  // Another account signs in from another tab while the deletion is on its
+  // way. Its sign-in wipes the deleting session as a plain sign-out, which
+  // keeps the invitation, and the deletion's answer signs nobody out: the
+  // invitation stays, as it may be that account's (named in app.md, Hooks,
+  // and on the privacy page).
+  test('a deletion answered after another account signed in from another '
+      'tab keeps that account and the invitation', () async {
+    container.listen(accountDeletionProvider, (_, _) {});
+    await pumpEventQueue();
+    account.gate.close();
+    final deleting = container
+        .read(accountDeletionProvider.notifier)
+        .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+    await pumpEventQueue();
+    expect(account.calls.last.$1, 'deleteAccount');
+    session = _session(id: _otherId, token: 'b');
+    changes.add(sb.AuthState(sb.AuthChangeEvent.signedIn, session));
+    await pumpEventQueue();
+    account.gate.open();
+    await expectLater(deleting, throwsA(isA<SessionExpired>()));
+    await pumpEventQueue();
+    expect(container.read(authStatusProvider), isA<SignedIn>());
+    expect(container.read(currentUserIdProvider), _otherId);
+    expect(store.values, isEmpty);
+    expect(settings.values, {
+      AppSettings.localeKey: 'ur',
+      AppSettings.themeKey: 'dark',
+      AppSettings.pendingInvitationKey: 'invitation.verifier',
+    });
+  });
+
   test('a list still loading when the user signs out leaves no copy', () async {
     store.values.clear();
     portfolios.gate.close();

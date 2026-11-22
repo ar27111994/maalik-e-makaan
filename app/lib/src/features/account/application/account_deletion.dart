@@ -53,9 +53,11 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// as one that deleted or may have, either sign-out is the deleting
   /// account's alone: when another account holds the device by then
   /// (signed in from another tab), that account is not signed out and the
-  /// command throws [SessionExpired]. When nobody does (the session was
-  /// signed out elsewhere, whose wipe kept the invitation) or the same
-  /// account signed in again, the device is signed out as above.
+  /// command throws [SessionExpired]; the invitation stays, since that
+  /// account's sign-in replaced the session with a plain sign-out's wipe,
+  /// and the invitation may be that account's now. When nobody does (the
+  /// session was signed out elsewhere, whose wipe kept the invitation) or
+  /// the same account signed in again, the device is signed out as above.
   ///
   /// It reads everything it uses before its first wait, and [ref] not
   /// after: the delete screen is this autoDispose provider's only listener,

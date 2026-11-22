@@ -283,14 +283,15 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   deleted account's session and records; the command now reads everything it uses before its first
   wait. A command that chooses the current portfolio after a request chooses nothing when the
   session it asked in has ended meanwhile, and a start signed in removes what other accounts left
-  in the cache and their chosen portfolio. Display settings stay; an
-  invitation opened and not answered stays until it is answered or the account is deleted on
-  that device, because "sign out, then sign in with the invited address" needs it. The website's
-  how-it-works step and privacy page say this in both languages, with what the app cannot delete
-  (downloads, the browser's copies, the clipboard, other devices, backups). The J14
-  browser-storage checks in the UAT (after a plain sign-out, which keeps an unanswered
-  invitation, and after each deletion, which removes it) are written but not run here yet: they
-  need the Docker stack.
+  in the cache and their chosen portfolio. Display settings stay; an invitation opened and not
+  answered stays until it is answered or the account is deleted on that device (unless another
+  account signed in there while it was being deleted: the invitation may be that account's),
+  because "sign out, then sign in with the invited address" needs it. The website's how-it-works
+  step and privacy page say this in both languages, with what the app cannot delete (downloads,
+  the browser's copies, the clipboard, other devices, backups); the privacy page also names the
+  exception. The J14 browser-storage checks in the UAT (after a plain sign-out, which keeps an
+  unanswered invitation, and after each deletion, which removes it) are written but not run here
+  yet: they need the Docker stack.
 - The amount reader's work items 1, 3 and 4 (`docs/roadmap/amount-parser.md`), merged in #75 and
   released in 1.3.0: `contracts/amount_lexicon.json` (version 1,
   `"reviewed": false`; the native-speaker review is the owner's, work item 2, through
