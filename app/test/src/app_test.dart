@@ -438,6 +438,65 @@ void main() {
     expect(find.text('This cannot be undone'), findsOneWidget);
   });
 
+  group('a deletion on its way', () {
+    // Fills in the delete screen and deletes, the server's answer held.
+    Future<TestApp> deleting(WidgetTester tester) async {
+      final app = await _pumpApp(tester, location: Routes.deleteAccount);
+      await tester.enterText(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (widget) => widget is MmPasswordField && widget.label == 'Password',
+          ),
+          matching: find.byType(TextField),
+        ),
+        'Secret1234',
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byWidgetPredicate(
+            (widget) =>
+                widget is MmTextField && widget.label.startsWith('Type'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        testEmail,
+      );
+      await tester.pump();
+      app.account.gate.close();
+      final delete = find.widgetWithText(MmButton, 'Delete my account');
+      await tester.ensureVisible(delete);
+      await tester.tap(delete);
+      await tester.pump();
+      expect(app.account.calls.last.$1, 'deleteAccount');
+      return app;
+    }
+
+    testWidgets('signs out when its screen is left with back', (tester) async {
+      final app = await deleting(tester);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('This cannot be undone'), findsNothing);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(find.text('Your account has been deleted'), findsOneWidget);
+    });
+
+    testWidgets('signs out as a deletion once its session was signed out in '
+        'another tab', (tester) async {
+      final app = await deleting(tester);
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+      expect(find.text('Your account has been deleted'), findsNothing);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(find.text('Your account has been deleted'), findsOneWidget);
+    });
+  });
+
   testWidgets('an invitation link keeps its token through signing in', (
     tester,
   ) async {

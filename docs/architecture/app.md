@@ -334,13 +334,16 @@ else does then, since a picker may be handing over a copy.
   neither signed out nor wiped, and the command throws `SessionExpired`. When
   nobody does (the session was signed out elsewhere, a plain sign-out's wipe,
   which kept the invitation) or the same account signed in again, the device
-  is signed out as a deletion all the same. Nothing is awaited between reading
-  that session and gotrue dropping it, and on the web gotrue tells the other
-  tabs before any message of theirs can be handled (its one wait between,
-  removing the sign-in-link verifier from `localStorage`, ends in microtasks).
-  What is left is gotrue's own, between tabs, as for any sign-out: a sign-in
-  in another tab whose message has not arrived yet crosses this tab's, and
-  that tab drops the account it signed in, which this one then holds.
+  is signed out as a deletion all the same. The command reads everything it
+  uses before its first wait, so it ends the same when its screen is left
+  meanwhile (the back button, or the router at that sign-out), which disposes
+  its provider. Nothing is awaited between reading that session and gotrue
+  dropping it, and on the web gotrue tells the other tabs before any message
+  of theirs can be handled (its one wait between, removing the sign-in-link
+  verifier from `localStorage`, ends in microtasks). What is left is gotrue's
+  own, between tabs, as for any sign-out: a sign-in in another tab whose
+  message has not arrived yet crosses this tab's, and that tab drops the
+  account it signed in, which this one then holds.
   `bootstrap` calls `tidyDeviceAtStart` once Supabase has read the stored
   session (the last two columns of the table), and the root widget watches
   `deviceTidyOnResumeProvider`.

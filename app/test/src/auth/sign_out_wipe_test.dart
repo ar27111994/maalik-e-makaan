@@ -234,6 +234,42 @@ void main() {
     },
   );
 
+  // The session is signed out in another tab while the deletion is on its
+  // way. The router then leaves the delete screen, the provider's only
+  // listener, so the provider is gone when the answer comes. That sign-out's
+  // wipe kept the invitation; the deletion's answer removes it.
+  test('a deletion answered after its session was signed out in another '
+      'tab, its screen gone, wipes the invitation', () async {
+    final screen = container.listen(accountDeletionProvider, (_, _) {});
+    await pumpEventQueue();
+    account.gate.close();
+    final deleting = container
+        .read(accountDeletionProvider.notifier)
+        .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+    await pumpEventQueue();
+    expect(account.calls.last.$1, 'deleteAccount');
+    session = null;
+    changes.add(const sb.AuthState(sb.AuthChangeEvent.signedOut, null));
+    await pumpEventQueue();
+    expect(container.read(authStatusProvider), const SignedOut());
+    expect(settings.values.keys, contains(AppSettings.pendingInvitationKey));
+    screen.close();
+    await pumpEventQueue();
+    expect(container.read(accountDeletionProvider.exists), isFalse);
+    account.gate.open();
+    await deleting;
+    await pumpEventQueue();
+    expect(
+      container.read(authStatusProvider),
+      const SignedOut(cause: SignOutCause.accountDeleted),
+    );
+    expect(settings.values, {
+      AppSettings.localeKey: 'ur',
+      AppSettings.themeKey: 'dark',
+    });
+    expect(container.read(pendingInvitationProvider), isNull);
+  });
+
   test('a list still loading when the user signs out leaves no copy', () async {
     store.values.clear();
     portfolios.gate.close();

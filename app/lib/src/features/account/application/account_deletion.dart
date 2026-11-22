@@ -57,6 +57,12 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// signed out elsewhere, whose wipe kept the invitation) or the same
   /// account signed in again, the device is signed out as above.
   ///
+  /// It reads everything it uses before its first wait, and [ref] not
+  /// after: the delete screen is this autoDispose provider's only listener,
+  /// and leaving it (the back button, or the router at a sign-out) disposes
+  /// the provider while the command runs. The command goes on without its
+  /// screen.
+  ///
   /// Throws [AppFailure] when the account was certainly not deleted:
   /// `invalid_credentials` for a wrong password, `does_not_match_account`
   /// when [confirmEmail] is not the account's.
@@ -65,6 +71,8 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
     required String confirmEmail,
   }) async {
     final auth = ref.read(authStatusProvider.notifier);
+    final device = ref.read(authRepositoryProvider);
+    final accounts = ref.read(accountRepositoryProvider);
     final session = ref.read(sessionProvider);
     final cache = ref.read(swrCacheProvider)
       ..require(session?.userId, session?.epoch ?? 0);
@@ -72,43 +80,53 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
     await auth.reauthenticate(password);
     cache.require(userId, epoch);
     try {
-      await ref
-          .read(accountRepositoryProvider)
-          .deleteAccount(confirmEmail: confirmEmail);
+      await accounts.deleteAccount(confirmEmail: confirmEmail);
     } on AppFailure catch (failure) {
       if (!mayHaveDeleted(failure)) rethrow;
-      await _signOutDeleted(userId, SignOutCause.deletionUnconfirmed);
+      await _signOutDeleted(
+        device,
+        auth,
+        userId,
+        SignOutCause.deletionUnconfirmed,
+      );
       return;
     }
-    await _signOutDeleted(userId, SignOutCause.accountDeleted);
+    await _signOutDeleted(device, auth, userId, SignOutCause.accountDeleted);
   }
 
-  /// Signs the device out with [cause] after [userId]'s account was
-  /// deleted, or may have been, unless another account holds the device
-  /// now: then it throws [SessionExpired] and signs nobody out.
+  /// Signs the device out through [auth] with [cause] after [userId]'s
+  /// account was deleted, or may have been, unless another account holds
+  /// the device now: then it throws [SessionExpired] and signs nobody out.
+  /// Static, so that it cannot reach [ref], which may be disposed by now.
   ///
-  /// Decided from the session the device holds ([AuthRepository.status])
-  /// as it signs out, with nothing awaited in between: gotrue changes that
-  /// session before it announces the change, and the status the app shows
-  /// ([authStatusProvider]) follows only once the wipe for the change has
-  /// run, so until then it, and maybe the cache, still name the deleting
-  /// account. Whether the cache serves the session that asked does not
-  /// decide either: its epoch moves at any sign-out, also one after which
-  /// nobody, or the same account, holds the device.
+  /// Decided from the session the device holds ([device]'s
+  /// [AuthRepository.status]) as it signs out, with nothing awaited in
+  /// between: gotrue changes that session before it announces the change,
+  /// and the status the app shows ([authStatusProvider]) follows only once
+  /// the wipe for the change has run, so until then it, and maybe the
+  /// cache, still name the deleting account. Whether the cache serves the
+  /// session that asked does not decide either: its epoch moves at any
+  /// sign-out, also one after which nobody, or the same account, holds the
+  /// device.
   ///
   /// gotrue drops the session before its first await, and on the web its
   /// one wait before it tells the other tabs ends in microtasks, so no
   /// message of theirs comes in between. A sign-in in another tab whose
   /// message has not arrived yet is not seen: it crosses this sign-out, as
   /// it would any, and that tab drops the account it signed in.
-  Future<void> _signOutDeleted(String userId, SignOutCause cause) async {
-    final holder = switch (ref.read(authRepositoryProvider).status) {
+  static Future<void> _signOutDeleted(
+    AuthRepository device,
+    AuthController auth,
+    String userId,
+    SignOutCause cause,
+  ) async {
+    final holder = switch (device.status) {
       SignedIn(userId: final held) ||
       RecoveringPassword(userId: final held) => held,
       SignedOut() => null,
     };
     if (holder != null && holder != userId) throw const SessionExpired();
-    await ref.read(authStatusProvider.notifier).signOut(cause: cause);
+    await auth.signOut(cause: cause);
   }
 }
 

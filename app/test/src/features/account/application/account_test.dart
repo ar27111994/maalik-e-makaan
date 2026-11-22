@@ -493,11 +493,56 @@ void main() {
       }
     }
 
+    // The delete screen is the provider's only listener in the app, and the
+    // provider is autoDispose: leaving the screen while the command runs
+    // (the back button, or the router at a sign-out) disposes it. The
+    // command goes on without its screen: what it asks the device and the
+    // server, it read before its first wait.
+    for (final failure in <AppFailure?>[null, const NetworkFailure()]) {
+      final cause = failure == null
+          ? SignOutCause.accountDeleted
+          : SignOutCause.deletionUnconfirmed;
+      for (final (name, held) in [
+        ('while it signs in again', (TestApp app) => app.auth.gate),
+        ('while the deletion is on its way', (TestApp app) => app.account.gate),
+      ]) {
+        test('a deletion (${failure?.runtimeType ?? 'deleted'}) whose screen '
+            'is left $name deletes and signs out as $cause', () async {
+          final app = TestApp();
+          final container = containerFor(app);
+          final screen = listen(container, accountDeletionProvider);
+          listen(container, authStatusProvider);
+          await pumpEventQueue();
+          app.account.gate.failure = failure;
+          held(app).close();
+          final deleting = container
+              .read(accountDeletionProvider.notifier)
+              .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+          await pumpEventQueue();
+          screen.close();
+          await pumpEventQueue();
+          expect(container.read(accountDeletionProvider.exists), isFalse);
+          held(app).open();
+          await deleting;
+          expect(app.account.calls.last.$1, 'deleteAccount');
+          expect(app.auth.calls.map((c) => c.$1), [
+            'reauthenticate',
+            'signOut',
+          ]);
+          expect(app.auth.calls.last.$2, [cause]);
+          await pumpEventQueue();
+          expect(container.read(authStatusProvider), SignedOut(cause: cause));
+        });
+      }
+    }
+
     // The deleting session ends elsewhere (signed out in another tab) while
     // the deletion is on its way: its own wipe was a plain sign-out's, so
     // the deletion's answer still signs the device out as a deletion,
     // which removes the invitation and says the account is gone. The same
-    // account signed in again is signed out too: it was just deleted.
+    // account signed in again is signed out too: it was just deleted. In
+    // the app the router leaves the delete screen at that sign-out, which
+    // disposes the provider before the answer comes.
     for (final failure in <AppFailure?>[null, const NetworkFailure()]) {
       final cause = failure == null
           ? SignOutCause.accountDeleted
@@ -510,40 +555,48 @@ void main() {
           const RecoveringPassword(userId: testUserId),
         ),
       ]) {
-        test('a deletion answered (${failure?.runtimeType ?? 'deleted'}) '
-            'after its session signed out elsewhere, $name, signs out as '
-            '$cause', () async {
-          final app = TestApp();
-          final container = containerFor(app);
-          listen(container, accountDeletionProvider);
-          listen(container, authStatusProvider);
-          await pumpEventQueue();
-          app.account.gate
-            ..failure = failure
-            ..close();
-          final deleting = container
-              .read(accountDeletionProvider.notifier)
-              .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
-          await pumpEventQueue();
-          expect(app.account.calls.last.$1, 'deleteAccount');
-          await app.cache.clear();
-          app.auth.emit(const SignedOut());
-          await pumpEventQueue();
-          if (since != null) {
-            app.auth.emit(since);
+        for (final screenLeft in [false, true]) {
+          test('a deletion answered (${failure?.runtimeType ?? 'deleted'}) '
+              'after its session signed out elsewhere, $name, '
+              '${screenLeft ? 'its screen left' : 'its screen open'}, signs '
+              'out as $cause', () async {
+            final app = TestApp();
+            final container = containerFor(app);
+            final screen = listen(container, accountDeletionProvider);
+            listen(container, authStatusProvider);
             await pumpEventQueue();
-            expect(container.read(authStatusProvider), since);
-          }
-          app.account.gate.open();
-          await deleting;
-          expect(app.auth.calls.map((c) => c.$1), [
-            'reauthenticate',
-            'signOut',
-          ]);
-          expect(app.auth.calls.last.$2, [cause]);
-          await pumpEventQueue();
-          expect(container.read(authStatusProvider), SignedOut(cause: cause));
-        });
+            app.account.gate
+              ..failure = failure
+              ..close();
+            final deleting = container
+                .read(accountDeletionProvider.notifier)
+                .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+            await pumpEventQueue();
+            expect(app.account.calls.last.$1, 'deleteAccount');
+            await app.cache.clear();
+            app.auth.emit(const SignedOut());
+            await pumpEventQueue();
+            if (screenLeft) {
+              screen.close();
+              await pumpEventQueue();
+              expect(container.read(accountDeletionProvider.exists), isFalse);
+            }
+            if (since != null) {
+              app.auth.emit(since);
+              await pumpEventQueue();
+              expect(container.read(authStatusProvider), since);
+            }
+            app.account.gate.open();
+            await deleting;
+            expect(app.auth.calls.map((c) => c.$1), [
+              'reauthenticate',
+              'signOut',
+            ]);
+            expect(app.auth.calls.last.$2, [cause]);
+            await pumpEventQueue();
+            expect(container.read(authStatusProvider), SignedOut(cause: cause));
+          });
+        }
       }
     }
 

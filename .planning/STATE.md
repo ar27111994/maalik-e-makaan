@@ -275,12 +275,15 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   has signed in from another tab by the time the answer comes, nobody is signed out; when nobody
   holds the device, or the same account signed in again, it signs out as a deletion all the same,
   decided from the session gotrue holds rather than the status shown (the first version of the
-  rule, found by the next check, left the invitation after a sign-out in another tab). That
-  check also found a documents list's photo links, signed for the earlier account, used again
-  beside the next account's rows; they are now made again for each user who signs in. A
-  command that chooses the current portfolio after a request chooses nothing when the
-  session it asked in has ended meanwhile, and a start signed in removes what
-  other accounts left in the cache and their chosen portfolio. Display settings stay; an
+  rule, found by the next check, left the invitation after a sign-out in another tab). That check
+  also found a documents list's photo links, signed for the earlier account, used again beside the
+  next account's rows; they are now made again for each user who signs in. The check after that
+  found the deletion's sign-out reading the provider's ref after the answer, which threw once the
+  delete screen was left (the back button, or the router at a sign-out), so the device kept the
+  deleted account's session and records; the command now reads everything it uses before its first
+  wait. A command that chooses the current portfolio after a request chooses nothing when the
+  session it asked in has ended meanwhile, and a start signed in removes what other accounts left
+  in the cache and their chosen portfolio. Display settings stay; an
   invitation opened and not answered stays until it is answered or the account is deleted on
   that device, because "sign out, then sign in with the invited address" needs it. The website's
   how-it-works step and privacy page say this in both languages, with what the app cannot delete
