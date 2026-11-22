@@ -680,6 +680,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAccountConfirmAction => 'Delete my account';
 
   @override
+  String get deletionCancelledTitle => 'Deletion cancelled';
+
+  @override
+  String get deletionCancelledBody =>
+      'You left this screen while your password was being checked, so nothing was sent and your account was not deleted.';
+
+  @override
   String get doomedPortfolioOnlyYou => 'Only you use it';
 
   @override

@@ -494,46 +494,322 @@ void main() {
     }
 
     // The delete screen is the provider's only listener in the app, and the
-    // provider is autoDispose: leaving the screen while the command runs
-    // (the back button, or the router at a sign-out) disposes it. The
-    // command goes on without its screen: what it asks the device and the
-    // server, it read before its first wait.
+    // provider is autoDispose: leaving the screen disposes it. Once the
+    // request is on its way, only the router at a sign-out leaves the
+    // screen, before the answer comes. The command goes on without
+    // its screen: what it asks the device and the server, it read before
+    // its first wait.
     for (final failure in <AppFailure?>[null, const NetworkFailure()]) {
       final cause = failure == null
           ? SignOutCause.accountDeleted
           : SignOutCause.deletionUnconfirmed;
-      for (final (name, held) in [
-        ('while it signs in again', (TestApp app) => app.auth.gate),
-        ('while the deletion is on its way', (TestApp app) => app.account.gate),
-      ]) {
-        test('a deletion (${failure?.runtimeType ?? 'deleted'}) whose screen '
-            'is left $name deletes and signs out as $cause', () async {
-          final app = TestApp();
-          final container = containerFor(app);
-          final screen = listen(container, accountDeletionProvider);
-          listen(container, authStatusProvider);
-          await pumpEventQueue();
-          app.account.gate.failure = failure;
-          held(app).close();
-          final deleting = container
-              .read(accountDeletionProvider.notifier)
-              .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
-          await pumpEventQueue();
+      test('a deletion (${failure?.runtimeType ?? 'deleted'}) whose screen '
+          'is gone while the deletion is on its way deletes and signs out as '
+          '$cause', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        final screen = listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        app.account.gate
+          ..failure = failure
+          ..close();
+        final deleting = container
+            .read(accountDeletionProvider.notifier)
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail);
+        await pumpEventQueue();
+        expect(app.account.calls.last.$1, 'deleteAccount');
+        screen.close();
+        await pumpEventQueue();
+        expect(container.read(accountDeletionProvider.exists), isFalse);
+        app.account.gate.open();
+        await deleting;
+        expect(app.auth.calls.map((c) => c.$1), ['reauthenticate', 'signOut']);
+        expect(app.auth.calls.last.$2, [cause]);
+        await pumpEventQueue();
+        expect(container.read(authStatusProvider), SignedOut(cause: cause));
+      });
+    }
+
+    // Back while the password is checked cancels: the router asks
+    // `leave` as the screen goes, whichever way it goes, and the command
+    // then sends nothing once the check answers, whether or not the screen
+    // is gone by then (it leaves through a transition, and Riverpod disposes
+    // the provider a frame after that).
+    for (final gone in [false, true]) {
+      test('left while it signs in again (Back), it sends no deletion and '
+          'signs nobody out${gone ? ', its screen gone' : ''}', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        final screen = listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        app.auth.gate.close();
+        final deletion = container.read(accountDeletionProvider.notifier);
+        var returned = false;
+        final deleting = deletion
+            .deleteAccount(password: 'Secret1234', confirmEmail: testEmail)
+            .whenComplete(() => returned = true);
+        await pumpEventQueue();
+        expect(deletion.sending.value, isFalse);
+        expect(returned, isFalse);
+        expect(deletion.leave(), isTrue);
+        // It returns at once, before the check answers, so a screen still
+        // shown (left for another section, which keeps it) is not busy.
+        await pumpEventQueue();
+        expect(returned, isTrue);
+        if (gone) {
           screen.close();
           await pumpEventQueue();
           expect(container.read(accountDeletionProvider.exists), isFalse);
-          held(app).open();
-          await deleting;
-          expect(app.account.calls.last.$1, 'deleteAccount');
-          expect(app.auth.calls.map((c) => c.$1), [
-            'reauthenticate',
-            'signOut',
-          ]);
-          expect(app.auth.calls.last.$2, [cause]);
+        }
+        app.auth.gate.open();
+        expect(await deleting, isFalse);
+        await pumpEventQueue();
+        expect(
+          app.account.calls.map((c) => c.$1),
+          isNot(contains('deleteAccount')),
+        );
+        expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+        expect(container.read(authStatusProvider), signedIn);
+        expect(deletion.sending.value, isFalse);
+      });
+    }
+
+    test('a deletion started again after one left while signing in sends '
+        'once, the later one', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      final deletion = container.read(accountDeletionProvider.notifier);
+      app.auth.gate.close();
+      final earlier = deletion.deleteAccount(
+        password: 'Secret1234',
+        confirmEmail: 'earlier@example.com',
+      );
+      await pumpEventQueue();
+      expect(deletion.leave(), isTrue);
+      // A screen opened again starts another while the first is checked.
+      final releaseEarlier = app.auth.gate.holdLaterCallsApart();
+      final later = deletion.deleteAccount(
+        password: 'Secret1234',
+        confirmEmail: testEmail,
+      );
+      await pumpEventQueue();
+      // The earlier check answers first: it was left, so it sends nothing.
+      releaseEarlier();
+      expect(await earlier, isFalse);
+      expect(
+        app.account.calls.map((c) => c.$1),
+        isNot(contains('deleteAccount')),
+      );
+      app.auth.gate.open();
+      expect(await later, isTrue);
+      expect(
+        app.account.calls
+            .where((c) => c.$1 == 'deleteAccount')
+            .map((c) => c.$2),
+        [
+          [testEmail],
+        ],
+      );
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    test('with no deletion running, its screen may be left', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      await pumpEventQueue();
+      final deletion = container.read(accountDeletionProvider.notifier);
+      expect(deletion.leave(), isTrue);
+      expect(deletion.sending.value, isFalse);
+      // Leaving before a deletion starts cancels nothing of it.
+      expect(
+        await deletion.deleteAccount(
+          password: 'Secret1234',
+          confirmEmail: testEmail,
+        ),
+        isTrue,
+      );
+      expect(app.account.calls.last.$1, 'deleteAccount');
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    // Once the request is on its way, Back waits for its answer:
+    // `leave` says no while anyone is signed in, also another account (the
+    // router keeps a settings screen open for whoever is signed in), and
+    // the deletion completes and signs out as before.
+    for (final (name, since) in <(String, AuthStatus?)>[
+      ('the deleting account', null),
+      ('another account', _otherAccount),
+    ]) {
+      test('while the deletion is on its way, with $name signed in, its '
+          'screen may not be left', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        app.account.gate.close();
+        final deletion = container.read(accountDeletionProvider.notifier);
+        final sent = <bool>[];
+        deletion.sending.addListener(() => sent.add(deletion.sending.value));
+        final deleting = deletion.deleteAccount(
+          password: 'Secret1234',
+          confirmEmail: testEmail,
+        );
+        await pumpEventQueue();
+        expect(app.account.calls.last.$1, 'deleteAccount');
+        expect(deletion.sending.value, isTrue);
+        if (since != null) {
+          await app.cache.clear();
+          app.auth.emit(since);
           await pumpEventQueue();
-          expect(container.read(authStatusProvider), SignedOut(cause: cause));
-        });
-      }
+        }
+        expect(deletion.leave(), isFalse);
+        expect(deletion.leave(), isFalse);
+        app.account.gate.open();
+        if (since == null) {
+          await deleting;
+          expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+        } else {
+          await expectLater(deleting, throwsA(isA<SessionExpired>()));
+          expect(app.auth.calls.map((c) => c.$1), ['reauthenticate']);
+        }
+        expect(sent, [true, false]);
+        expect(deletion.sending.value, isFalse);
+      });
+    }
+
+    // Another account signed in meanwhile may start its own deletion while
+    // the earlier one's request is still on its way. The screen stays until
+    // neither is: the earlier answer does not let it go.
+    test('two deletions on their way at once: its screen may be left only '
+        'once both are answered', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      app.account.gate.close();
+      final deletion = container.read(accountDeletionProvider.notifier);
+      final sent = <bool>[];
+      deletion.sending.addListener(() => sent.add(deletion.sending.value));
+      final earlier = deletion.deleteAccount(
+        password: 'Secret1234',
+        confirmEmail: testEmail,
+      );
+      await pumpEventQueue();
+      final answerEarlier = app.account.gate.holdLaterCallsApart();
+      await app.cache.clear();
+      app.auth.emit(_otherAccount);
+      await pumpEventQueue();
+      final later = deletion.deleteAccount(
+        password: 'Other1234',
+        confirmEmail: _otherAccount.email!,
+      );
+      await pumpEventQueue();
+      expect(
+        app.account.calls
+            .where((c) => c.$1 == 'deleteAccount')
+            .map((c) => c.$2),
+        [
+          [testEmail],
+          [_otherAccount.email],
+        ],
+      );
+      answerEarlier();
+      await expectLater(earlier, throwsA(isA<SessionExpired>()));
+      expect(deletion.sending.value, isTrue);
+      expect(deletion.leave(), isFalse);
+      app.account.gate.open();
+      expect(await later, isTrue);
+      expect(app.auth.calls.map((c) => c.$1), [
+        'reauthenticate',
+        'reauthenticate',
+        'signOut',
+      ]);
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(sent, [true, false]);
+      expect(deletion.sending.value, isFalse);
+      expect(deletion.leave(), isTrue);
+    });
+
+    // The later deletion stops at its password check (refused) while the
+    // earlier request is on its way: once that one answers, nothing is on
+    // its way any more, and the screen may be left.
+    test('the earlier answer frees its screen when a later deletion stopped '
+        'at its password check', () async {
+      final app = TestApp();
+      final container = containerFor(app);
+      listen(container, accountDeletionProvider);
+      listen(container, authStatusProvider);
+      await pumpEventQueue();
+      app.account.gate.close();
+      final deletion = container.read(accountDeletionProvider.notifier);
+      final earlier = deletion.deleteAccount(
+        password: 'Secret1234',
+        confirmEmail: testEmail,
+      );
+      await pumpEventQueue();
+      final answerEarlier = app.account.gate.holdLaterCallsApart();
+      await app.cache.clear();
+      app.auth.emit(_otherAccount);
+      await pumpEventQueue();
+      app.auth.gate.failure = const RejectedFailure('invalid_credentials');
+      await expectLater(
+        deletion.deleteAccount(
+          password: 'Wrong1234',
+          confirmEmail: _otherAccount.email!,
+        ),
+        throwsA(isA<RejectedFailure>()),
+      );
+      app.auth.gate.failure = null;
+      expect(deletion.sending.value, isTrue);
+      answerEarlier();
+      await expectLater(earlier, throwsA(isA<SessionExpired>()));
+      expect(deletion.sending.value, isFalse);
+      expect(deletion.leave(), isTrue);
+      expect(
+        app.account.calls.where((c) => c.$1 == 'deleteAccount'),
+        hasLength(1),
+      );
+      app.account.gate.open();
+    });
+
+    // The session ends elsewhere while the request is on its way: the
+    // router leaves the screen for the sign-in screen (or the new password),
+    // and `leave` lets it, so the screen never fights that redirect; the
+    // deletion's answer still signs out as a deletion.
+    for (final ended in <AuthStatus>[
+      const SignedOut(),
+      const RecoveringPassword(userId: testUserId),
+    ]) {
+      test('while the deletion is on its way, the router leaves its screen '
+          'once the session ended (${ended.runtimeType})', () async {
+        final app = TestApp();
+        final container = containerFor(app);
+        listen(container, accountDeletionProvider);
+        listen(container, authStatusProvider);
+        await pumpEventQueue();
+        app.account.gate.close();
+        final deletion = container.read(accountDeletionProvider.notifier);
+        final deleting = deletion.deleteAccount(
+          password: 'Secret1234',
+          confirmEmail: testEmail,
+        );
+        await pumpEventQueue();
+        await app.cache.clear();
+        app.auth.emit(ended);
+        await pumpEventQueue();
+        expect(deletion.leave(), isTrue);
+        app.account.gate.open();
+        await deleting;
+        expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      });
     }
 
     // The deleting session ends elsewhere (signed out in another tab) while

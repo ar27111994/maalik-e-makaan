@@ -24,6 +24,16 @@ import 'package:mm_ui/mm_ui.dart';
 /// app signs in again) and for the e-mail address typed out, and only then
 /// enables the destructive button. Afterwards the sign-in screen confirms
 /// that the account is gone.
+///
+/// Back and Cancel cancel while the password is checked; once the request
+/// is on its way, both wait for its answer: the page cannot be
+/// popped, and the router keeps it whichever way it is left
+/// ([AccountDeletionController.leave]). Another section cancels too, but
+/// keeps the screen in its own: shown again, it is no longer busy, and says
+/// that the deletion was cancelled and nothing was sent. Another account
+/// signed in meanwhile (another tab) gets the screen, and its Delete waits
+/// for the earlier request's answer, so that Back and Cancel can always
+/// cancel its own deletion while its password is checked.
 class DeleteAccountScreen extends ConsumerWidget {
   const new({super.key});
 
@@ -33,37 +43,53 @@ class DeleteAccountScreen extends ConsumerWidget {
     final preview = ref.watch(accountDeletionProvider);
     final status = ref.watch(authStatusProvider);
     final email = status is SignedIn ? status.email : null;
-    return switch (preview) {
-      AsyncValue(:final value?) when email != null => _DeleteAccountForm(
-        preview: value,
-        email: email,
+    return ValueListenableBuilder(
+      valueListenable: ref.read(accountDeletionProvider.notifier).sending,
+      builder: (context, sending, _) => PopScope(
+        canPop: !sending,
+        child: switch (preview) {
+          AsyncValue(:final value?) when email != null => _DeleteAccountForm(
+            preview: value,
+            email: email,
+            sending: sending,
+          ),
+          AsyncValue(:final error?) when !waitsForSession(preview) => MmPage(
+            title: l10n.deleteAccountTitle,
+            body: MmErrorState(
+              title: l10n.deletionPreviewFailedTitle,
+              message: failureMessage(l10n, AppFailure.from(error)),
+              onRetry: () => ref.invalidate(accountDeletionProvider),
+            ),
+          ),
+          _ => MmPage(
+            title: l10n.deleteAccountTitle,
+            body: Semantics(
+              label: l10n.loadingDeletionPreview,
+              child: const MmSkeleton.text(lines: 6),
+            ),
+          ),
+        },
       ),
-      AsyncValue(:final error?) when !waitsForSession(preview) => MmPage(
-        title: l10n.deleteAccountTitle,
-        body: MmErrorState(
-          title: l10n.deletionPreviewFailedTitle,
-          message: failureMessage(l10n, AppFailure.from(error)),
-          onRetry: () => ref.invalidate(accountDeletionProvider),
-        ),
-      ),
-      _ => MmPage(
-        title: l10n.deleteAccountTitle,
-        body: Semantics(
-          label: l10n.loadingDeletionPreview,
-          child: const MmSkeleton.text(lines: 6),
-        ),
-      ),
-    };
+    );
   }
 }
 
 class _DeleteAccountForm extends ConsumerStatefulWidget {
-  const new({required this.preview, required this.email});
+  const new({
+    required this.preview,
+    required this.email,
+    required this.sending,
+  });
 
   final DeletionPreview preview;
 
   /// The account's address, which the user types to confirm.
   final String email;
+
+  /// Whether a deletion's request is on its way, this form's or one an
+  /// earlier account sent from the screen: Cancel waits, and so does
+  /// Delete.
+  final bool sending;
 
   @override
   ConsumerState<_DeleteAccountForm> createState() => _DeleteAccountFormState();
@@ -75,6 +101,11 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
   final _password = TextEditingController();
   final _typed = TextEditingController();
   AutovalidateMode _validation = AutovalidateMode.disabled;
+
+  /// Whether the last deletion was cancelled before its request was sent:
+  /// the screen was left for another section while the password was
+  /// checked, and that section kept it.
+  bool _cancelled = false;
 
   @override
   void initState() {
@@ -97,13 +128,16 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
       setState(() => _validation = AutovalidateMode.onUserInteraction);
       return;
     }
+    setState(() => _cancelled = false);
     // Success signs out; the router then shows the sign-in screen, which
     // says the account was deleted.
-    await runCommand(
-      () => ref
+    var sent = true;
+    await runCommand(() async {
+      sent = await ref
           .read(accountDeletionProvider.notifier)
-          .deleteAccount(password: _password.text, confirmEmail: _typed.text),
-    );
+          .deleteAccount(password: _password.text, confirmEmail: _typed.text);
+    });
+    if (!sent && mounted) setState(() => _cancelled = true);
   }
 
   void _clearFailure(String _) {
@@ -180,6 +214,12 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
                   preview.reauthMaxAge.inMinutes,
                 ),
                 children: [
+                  if (_cancelled)
+                    MmBanner(
+                      tone: MmBannerTone.info,
+                      title: l10n.deletionCancelledTitle,
+                      message: l10n.deletionCancelledBody,
+                    ),
                   if (failure != null &&
                       passwordError == null &&
                       emailError == null)
@@ -216,14 +256,22 @@ class _DeleteAccountFormState extends ConsumerState<_DeleteAccountForm>
         secondary: MmButton(
           label: l10n.cancelAction,
           variant: MmButtonVariant.secondary,
-          onPressed: busy ? null : () => context.go(Routes.settings),
+          onPressed: widget.sending ? null : () => context.go(Routes.settings),
         ),
         primary: MmButton(
           label: l10n.deleteAccountConfirmAction,
           icon: MmIcons.delete,
           variant: MmButtonVariant.destructive,
           busy: busy,
-          onPressed: blocked || !_typedMatches ? null : _delete,
+          // Waits while another deletion's request is on its way, one an
+          // earlier account sent before this one signed in (another tab):
+          // started then, its password check would run while the screen
+          // cannot be left, so neither Back nor Cancel could cancel it.
+          // While this form's own command runs, the busy button already
+          // ignores presses and keeps its colours and focus.
+          onPressed: blocked || !_typedMatches || (widget.sending && !busy)
+              ? null
+              : _delete,
         ),
       ),
     );

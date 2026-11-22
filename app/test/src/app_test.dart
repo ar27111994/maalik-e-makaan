@@ -1,13 +1,17 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:maalik_e_makaan/l10n/generated/app_localizations.dart';
 import 'package:maalik_e_makaan/src/app.dart';
 import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
+import 'package:maalik_e_makaan/src/core/failure_banner.dart';
+import 'package:maalik_e_makaan/src/features/account/application/account_deletion.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
@@ -15,6 +19,7 @@ import 'package:maalik_e_makaan/src/features/leases/presentation/lease_detail_sc
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
+import 'package:maalik_e_makaan/src/features/team/presentation/team_screen.dart';
 import 'package:maalik_e_makaan/src/routing/routes.dart';
 import 'package:maalik_e_makaan/src/settings/app_settings.dart';
 import 'package:mm_ui/mm_ui.dart';
@@ -49,12 +54,25 @@ Future<TestApp> _pumpApp(
   return testApp;
 }
 
+/// One frame at 60 Hz.
+const _frame = Duration(milliseconds: 16);
+
 Finder _inNavigation(String label) => find.descendant(
   of: find.byWidgetPredicate(
     (widget) => widget is NavigationBar || widget is NavigationRail,
   ),
   matching: find.text(label),
 );
+
+/// Taps the section [label] in a phone's navigation bar, at the middle of
+/// the bar: on a screen with a bottom bar of its own a label is laid out
+/// partly below the window, so a tap at its centre would miss.
+Future<void> _goToSection(WidgetTester tester, String label) {
+  final bar = tester.getRect(find.byType(NavigationBar));
+  return tester.tapAt(
+    Offset(tester.getCenter(_inNavigation(label)).dx, bar.center.dy),
+  );
+}
 
 void main() {
   testWidgets('first launch greets in both languages and keeps the choice', (
@@ -349,163 +367,401 @@ void main() {
     expect(find.text('What needs attention'), findsOneWidget);
   });
 
-  // A sheet opened on a record copies it into its fields as it opens, and
-  // stays open above the page, which the router keeps, while another
-  // account's session replaces the user's (another tab signing in): the
-  // tenancy below shows loading, the sheet the earlier account's occupant,
-  // CNIC and phone included, until it is closed. Named, not fixed, in
-  // app.md (the providers' paragraph).
-  testWidgets("an occupant's sheet keeps the user's record while another "
-      "account's session replaces theirs, as the tenancy below loads", (
-    tester,
-  ) async {
-    final app = await _pumpApp(
-      tester,
-      location: Routes.lease(aliLease.id),
-      size: const Size(390, 3600),
-    );
-    final occupant = find.text('Sana Raza').last;
-    await tester.ensureVisible(occupant);
-    await tester.tap(occupant);
-    await tester.pumpAndSettle();
-    final sheet = find.byType(OccupantSheet);
-    final cnic = find.descendant(
-      of: sheet,
-      matching: find.text('35202-7654321-2'),
-    );
-    expect(cnic, findsOneWidget);
-    app.leases.gate.close();
-    await app.cache.clear();
-    app.auth.emit(otherAccount);
-    var kept = 0;
-    var loading = 0;
-    for (var frame = 0; frame < 10; frame++) {
-      await tester.pump(const Duration(milliseconds: 16));
-      if (cnic.evaluate().isNotEmpty) kept++;
-      if (find.bySemanticsLabel('Loading the tenancy').evaluate().isNotEmpty) {
-        loading++;
+  // Sheets, dialogs and menus close when the signed-in account changes
+  // (the owner's decision): another tab signs in as someone else, or the
+  // session ends. A sheet or dialog shows a copy of the record it was opened
+  // on, and its buttons would act for whoever is signed in. The app shell
+  // removes them at once, with no closing animation, so no frame after the
+  // change shows the earlier account's record in them, and clears snack
+  // bars too; the screens below are pages, which the router keeps, and they
+  // show loading until that account's own answers.
+  group('when the signed-in account changes', () {
+    // Counts, over [frames] frames of 16 ms after another account's session
+    // replaced the user's (the first at once), those on which any of
+    // [earlier] is found and those on which [loading] is. What [held]
+    // answers waits until then.
+    Future<({int earlier, int loading})> replaced(
+      WidgetTester tester,
+      TestApp app, {
+      required List<Finder> earlier,
+      required Finder loading,
+      List<Gate> held = const [],
+      int frames = 10,
+    }) async {
+      for (final gate in held) {
+        gate.close();
       }
-    }
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MaalikApp)),
-    );
-    expect(container.read(currentUserIdProvider), otherAccount.userId);
-    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
-    app.leases.gate.open();
-    await tester.pumpAndSettle();
-    expect(cnic, findsOneWidget);
-    expect(
-      find.descendant(of: sheet, matching: find.text('Sana Raza')),
-      findsOneWidget,
-    );
-  });
-
-  // A confirm dialog opened on a record keeps what it says above the page,
-  // as a sheet does, while another account's session replaces the user's.
-  // The part of the screen that opened it goes with the record (the screen
-  // shows loading), so confirming it then sends nothing (app.md, the
-  // providers' paragraph).
-  testWidgets("a confirm dialog opened on a tenant's screen keeps the "
-      "tenant's name while another account's session replaces the user's, "
-      'and confirming it then deletes nothing', (tester) async {
-    final app = await _pumpApp(
-      tester,
-      location: Routes.tenant(aliRaza.id),
-      size: const Size(390, 2400),
-    );
-    final delete = find.text('Delete').last;
-    await tester.ensureVisible(delete);
-    await tester.tap(delete);
-    await tester.pumpAndSettle();
-    final dialog = find.byType(Dialog);
-    final title = find.descendant(
-      of: dialog,
-      matching: find.text('Delete Ali Raza?'),
-    );
-    expect(title, findsOneWidget);
-    app.tenants.gate.close();
-    await app.cache.clear();
-    app.auth.emit(otherAccount);
-    var kept = 0;
-    var loading = 0;
-    for (var frame = 0; frame < 10; frame++) {
-      await tester.pump(const Duration(milliseconds: 16));
-      if (title.evaluate().isNotEmpty) kept++;
-      if (find.bySemanticsLabel('Loading the tenant').evaluate().isNotEmpty) {
-        loading++;
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      var shown = 0;
+      var waiting = 0;
+      for (var frame = 0; frame < frames; frame++) {
+        await tester.pump(frame == 0 ? Duration.zero : _frame);
+        if (earlier.any((finder) => finder.evaluate().isNotEmpty)) shown++;
+        if (loading.evaluate().isNotEmpty) waiting++;
       }
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaalikApp)),
+      );
+      expect(container.read(currentUserIdProvider), otherAccount.userId);
+      for (final gate in held) {
+        gate.open();
+      }
+      await tester.pumpAndSettle();
+      return (earlier: shown, loading: waiting);
     }
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MaalikApp)),
-    );
-    expect(container.read(currentUserIdProvider), otherAccount.userId);
-    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
-    app.tenants.gate.open();
-    await tester.pumpAndSettle();
-    expect(title, findsOneWidget);
-    final asked = app.tenants.calls.length;
-    await tester.tap(
-      find.descendant(of: dialog, matching: find.text('Delete')),
-    );
-    await tester.pumpAndSettle();
-    expect(dialog, findsNothing);
-    expect(app.tenants.calls.skip(asked), isEmpty);
-    expect(
-      app.tenants.calls.where((call) => call.$1 == 'deleteTenant'),
-      isEmpty,
-    );
-  });
 
-  // A confirm dialog opened on a sheet is the sheet's, and the sheet stays
-  // open (above), so confirming it still asks, now with the next account's
-  // session: row-level security decides what that account may do. Named,
-  // not fixed, in app.md (the providers' paragraph).
-  testWidgets('removing an occupant confirmed on its sheet after another '
-      "account's session replaced the user's is still asked for", (
-    tester,
-  ) async {
-    final app = await _pumpApp(
+    Future<void> openOccupant(WidgetTester tester) async {
+      final occupant = find.text('Sana Raza').last;
+      await tester.ensureVisible(occupant);
+      await tester.tap(occupant);
+      await tester.pumpAndSettle();
+      expect(find.byType(OccupantSheet), findsOneWidget);
+    }
+
+    // The occupant's sheet, name and CNIC, wherever they show.
+    final occupantShown = [
+      find.byType(OccupantSheet),
+      find.text('Sana Raza'),
+      find.text('35202-7654321-2'),
+    ];
+
+    testWidgets("an occupant's sheet closes, with nothing of the occupant on "
+        'any frame after the change, as the tenancy below loads', (
       tester,
-      location: Routes.lease(aliLease.id),
-      size: const Size(390, 3600),
-    );
-    final occupant = find.text('Sana Raza').last;
-    await tester.ensureVisible(occupant);
-    await tester.tap(occupant);
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(OccupantSheet),
-        matching: find.widgetWithText(MmButton, 'Remove'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final dialog = find.byType(Dialog);
-    final title = find.descendant(
-      of: dialog,
-      matching: find.text('Remove Sana Raza?'),
-    );
-    expect(title, findsOneWidget);
-    await app.cache.clear();
-    app.auth.emit(otherAccount);
-    await tester.pumpAndSettle();
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(MaalikApp)),
-    );
-    expect(container.read(currentUserIdProvider), otherAccount.userId);
-    expect(title, findsOneWidget);
-    await tester.tap(
-      find.descendant(of: dialog, matching: find.text('Remove')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      app.leases.calls
-          .where((call) => call.$1 == 'deleteOccupant')
-          .map((call) => call.$2),
-      [
-        ['occ-1'],
-      ],
-    );
+    ) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      expect(
+        find.descendant(
+          of: find.byType(OccupantSheet),
+          matching: find.text('35202-7654321-2'),
+        ),
+        findsOneWidget,
+      );
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: occupantShown,
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      // The page stays: the router keeps it, and it shows the next
+      // account's own read.
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets("a member's sheet closes, with nothing of the member on any "
+        'frame after the change', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.team,
+        size: const Size(390, 2400),
+      );
+      await tester.tap(find.text('Bilal Ahmed').last);
+      await tester.pumpAndSettle();
+      expect(find.byType(MemberSheet), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.byType(MemberSheet),
+          find.textContaining('bilal.ahmed@', findRichText: true),
+        ],
+        loading: find.bySemanticsLabel('Loading the team'),
+        held: [app.team.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.byType(MemberSheet), findsNothing);
+      // Only the team was read again, for the next account.
+      expect(
+        app.team.calls.map((c) => c.$1),
+        everyElement(isIn(['members', 'pendingInvitations'])),
+      );
+    });
+
+    testWidgets("a confirm dialog opened on a tenant's screen closes, and "
+        'nothing is deleted', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.tenant(aliRaza.id),
+        size: const Size(390, 2400),
+      );
+      final delete = find.text('Delete').last;
+      await tester.ensureVisible(delete);
+      await tester.tap(delete);
+      await tester.pumpAndSettle();
+      expect(find.text('Delete Ali Raza?'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [find.byType(Dialog), find.text('Delete Ali Raza?')],
+        loading: find.bySemanticsLabel('Loading the tenant'),
+        held: [app.tenants.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.byType(Dialog), findsNothing);
+      expect(app.tenants.calls.where((c) => c.$1 == 'deleteTenant'), isEmpty);
+    });
+
+    testWidgets("removing an occupant: the dialog on the occupant's sheet "
+        'closes with the sheet, and nothing is removed', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(OccupantSheet),
+          matching: find.widgetWithText(MmButton, 'Remove'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Remove Sana Raza?'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [find.byType(Dialog), ...occupantShown],
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(app.leases.calls.where((c) => c.$1 == 'deleteOccupant'), isEmpty);
+    });
+
+    testWidgets("a new tenant's warning about another tenant closes, so its "
+        '"Save anyway" cannot save for the earlier account', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.newTenant,
+        size: const Size(390, 4000),
+      );
+      Finder input(String label) => find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) =>
+              (widget is MmTextField && widget.label == label) ||
+              (widget is MmPhoneField && widget.label == label),
+        ),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(input('Full name').first, 'Ali R.');
+      await tester.enterText(input('Phone').first, '03001112233');
+      await tester.pump();
+      final save = find.widgetWithText(MmButton, 'Save');
+      await tester.ensureVisible(save);
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      expect(find.text('Is this the same tenant?'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.byType(Dialog),
+          find.textContaining('Ali Raza already has', findRichText: true),
+        ],
+        // The form is the next account's to fill or leave: what is typed
+        // belongs to whoever is at the device.
+        loading: find.text('Ali R.'),
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(find.text('Save anyway'), findsNothing);
+      expect(app.tenants.calls.where((c) => c.$1 == 'createTenant'), isEmpty);
+    });
+
+    testWidgets('a sheet left open in another section closes too', (
+      tester,
+    ) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      // A section's sheet covers that section only: the navigation bar
+      // still switches sections, and the section keeps its sheet.
+      await tester.tap(_inNavigation('Money'));
+      await tester.pumpAndSettle();
+      expect(find.text('Who owes what'), findsOneWidget);
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      await tester.pumpAndSettle();
+      await tester.tap(_inNavigation('Tenants'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(find.text('35202-7654321-2'), findsNothing);
+    });
+
+    // A dialog, and a sheet opened from it (a date picker or a list to
+    // choose from, say), are two routes on the root navigator: both go on
+    // the first frame, and each answers null.
+    testWidgets('a dialog and a sheet opened from it, both on the root '
+        'navigator, close together, each answering null', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      final page = tester.element(find.byType(LeaseDetailScreen));
+      late BuildContext dialog;
+      final dialogAnswer = showDialog<bool>(
+        context: page,
+        builder: (context) {
+          dialog = context;
+          return const AlertDialog(content: Text('Remove Sana Raza?'));
+        },
+      );
+      await tester.pumpAndSettle();
+      final sheetAnswer = showMmSheet<bool>(
+        dialog,
+        title: 'Sana Raza',
+        builder: (_) => const Text('35202-7654321-2'),
+      );
+      await tester.pumpAndSettle();
+      final root = Navigator.of(page, rootNavigator: true);
+      expect(Navigator.of(dialog), same(root));
+      expect(
+        Navigator.of(tester.element(find.text('35202-7654321-2'))),
+        same(root),
+      );
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.text('Remove Sana Raza?'),
+          find.text('35202-7654321-2'),
+          find.byType(Dialog),
+        ],
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      expect(await sheetAnswer, isNull);
+      expect(await dialogAnswer, isNull);
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    // A snack bar that names a record (a member removed, a document
+    // deleted) goes too, on the first frame: one shown from a section's
+    // screen, on the messenger the frame gives the sections, and one shown
+    // from above them (a dialog's context), on the app's own messenger.
+    testWidgets("snack bars naming the earlier account's records go on the "
+        'first frame', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      final shown = [
+        showMmSnackbar(
+          tester.element(find.byType(LeaseDetailScreen)),
+          message: 'Sana Raza removed',
+        ),
+        showMmSnackbar(
+          tester.element(find.byType(MmAdaptiveScaffold)),
+          message: 'Bilal Ahmed removed',
+        ),
+      ];
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Sana Raza removed'), findsOneWidget);
+      expect(find.text('Bilal Ahmed removed'), findsOneWidget);
+      final frames = await replaced(
+        tester,
+        app,
+        earlier: [
+          find.text('Sana Raza removed'),
+          find.text('Bilal Ahmed removed'),
+        ],
+        loading: find.bySemanticsLabel('Loading the tenancy'),
+        held: [app.leases.gate],
+      );
+      expect(frames, (earlier: 0, loading: 10));
+      await Future.wait(shown);
+      expect(tester.takeException(), isNull);
+    });
+
+    // The same account all along is no change: a refreshed session (the
+    // same status, which notifies nobody), and a new session of the same
+    // account after the device was wiped (a new epoch, which notifies every
+    // listener of the status although it is the same).
+    for (final wiped in [false, true]) {
+      testWidgets(
+        'the same account ${wiped ? 'in a new session' : 'refreshed'} keeps '
+        'the sheet open',
+        (tester) async {
+          final app = await _pumpApp(
+            tester,
+            location: Routes.lease(aliLease.id),
+            size: const Size(390, 3600),
+          );
+          await openOccupant(tester);
+          final container = ProviderScope.containerOf(
+            tester.element(find.byType(MaalikApp)),
+          );
+          var heard = 0;
+          container.listen(authStatusProvider, (_, _) => heard++);
+          if (wiped) await app.cache.clear();
+          app.auth.emit(signedIn);
+          await tester.pumpAndSettle();
+          expect(heard, wiped ? 1 : 0);
+          expect(find.byType(OccupantSheet), findsOneWidget);
+          expect(
+            find.descendant(
+              of: find.byType(OccupantSheet),
+              matching: find.text('35202-7654321-2'),
+            ),
+            findsOneWidget,
+          );
+        },
+      );
+    }
+
+    testWidgets('a session that ends with a sheet and its dialog open goes '
+        'to sign-in, and signing in again opens neither', (tester) async {
+      final app = await _pumpApp(
+        tester,
+        location: Routes.lease(aliLease.id),
+        size: const Size(390, 3600),
+      );
+      await openOccupant(tester);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(OccupantSheet),
+          matching: find.widgetWithText(MmButton, 'Remove'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Remove Sana Raza?'), findsOneWidget);
+      await app.cache.clear();
+      app.auth.emit(const SignedOut());
+      // The first frame after the sign-out, while the router moves on.
+      await tester.pump(Duration.zero);
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.byType(OccupantSheet), findsNothing);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, testEmail);
+      await tester.enterText(find.byType(TextField).last, 'Secret1234');
+      await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+      await tester.pumpAndSettle();
+      expect(find.byType(LeaseDetailScreen), findsOneWidget);
+      expect(find.byType(OccupantSheet), findsNothing);
+      expect(find.byType(Dialog), findsNothing);
+      expect(app.leases.calls.where((c) => c.$1 == 'deleteOccupant'), isEmpty);
+    });
   });
 
   testWidgets('a session that ends elsewhere returns to sign-in, then back', (
@@ -599,53 +855,552 @@ void main() {
     expect(find.text('This cannot be undone'), findsOneWidget);
   });
 
-  group('a deletion on its way', () {
-    // Fills in the delete screen and deletes, the server's answer held.
-    Future<TestApp> deleting(WidgetTester tester) async {
-      final app = await _pumpApp(tester, location: Routes.deleteAccount);
+  // Back cancels a deletion until its request is sent; once it is on its
+  // way, Back waits for the answer, so leaving never looks like cancelling
+  // (the owner's decision). Back is Android's button and its back gesture,
+  // the app bar's arrow, and the browser's (the platform reporting the
+  // earlier address). Pages open without a transition in these tests, so no
+  // swipe drags one away.
+  group('deleting the account', () {
+    // Types [password] and [email] into the delete screen, in either
+    // language.
+    Future<void> fill(
+      WidgetTester tester, {
+      String password = 'Secret1234',
+      String email = testEmail,
+    }) async {
       await tester.enterText(
         find.descendant(
-          of: find.byWidgetPredicate(
-            (widget) => widget is MmPasswordField && widget.label == 'Password',
-          ),
+          of: find.byType(MmPasswordField),
           matching: find.byType(TextField),
         ),
-        'Secret1234',
+        password,
       );
       await tester.enterText(
         find.descendant(
           of: find.byWidgetPredicate(
             (widget) =>
-                widget is MmTextField && widget.label.startsWith('Type'),
+                widget is MmTextField &&
+                widget.keyboardType == TextInputType.emailAddress,
           ),
           matching: find.byType(TextField),
         ),
-        testEmail,
+        email,
       );
       await tester.pump();
-      app.account.gate.close();
-      final delete = find.widgetWithText(MmButton, 'Delete my account');
+    }
+
+    // Taps "Delete my account", the screen's one destructive button.
+    Future<void> tapDelete(WidgetTester tester) async {
+      final delete = find.byWidgetPredicate(
+        (widget) =>
+            widget is MmButton && widget.variant == MmButtonVariant.destructive,
+      );
       await tester.ensureVisible(delete);
       await tester.tap(delete);
       await tester.pump();
-      expect(app.account.calls.last.$1, 'deleteAccount');
+    }
+
+    MmButton button(WidgetTester tester, String label) =>
+        tester.widget<MmButton>(find.widgetWithText(MmButton, label));
+
+    // The button's progress turns for as long as a command runs, so pump
+    // past every transition rather than settle.
+    Future<void> settleWhileBusy(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+    }
+
+    // Fills in the delete screen and deletes, with what [held] answers
+    // held: the password check (the sign-in again) or the deletion.
+    Future<TestApp> deleting(
+      WidgetTester tester, {
+      required Gate Function(TestApp app) held,
+    }) async {
+      final app = await _pumpApp(tester, location: Routes.deleteAccount);
+      await fill(tester);
+      held(app).close();
+      await tapDelete(tester);
+      expect(app.auth.calls.single.$1, 'reauthenticate');
       return app;
     }
 
-    testWidgets('signs out when its screen is left with back', (tester) async {
-      final app = await deleting(tester);
+    Gate checking(TestApp app) => app.auth.gate;
+    Gate sending(TestApp app) => app.account.gate;
+
+    // A message from the platform on [channel].
+    Future<void> platform(
+      WidgetTester tester,
+      MethodChannel channel,
+      String method, [
+      Object? arguments,
+    ]) => tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      channel.name,
+      channel.codec.encodeMethodCall(MethodCall(method, arguments)),
+      (_) {},
+    );
+
+    final backs = <String, Future<void> Function(WidgetTester tester)>{
+      "Android's back button": (tester) =>
+          platform(tester, SystemChannels.navigation, 'popRoute'),
+      "Android's back gesture": (tester) async {
+        const edge = {
+          'touchOffset': [0.0, 400.0],
+          'progress': 0.0,
+          'swipeEdge': 0,
+        };
+        await platform(
+          tester,
+          SystemChannels.backGesture,
+          'startBackGesture',
+          edge,
+        );
+        await platform(
+          tester,
+          SystemChannels.backGesture,
+          'updateBackGestureProgress',
+          {
+            ...edge,
+            'touchOffset': [200.0, 400.0],
+            'progress': 0.6,
+          },
+        );
+        await platform(tester, SystemChannels.backGesture, 'commitBackGesture');
+      },
+      "the app bar's back": (tester) => tester.tap(find.byType(BackButton)),
+      "the browser's back": (tester) =>
+          tester.binding.handlePushRoute(Routes.settings),
+    };
+
+    GoRouter router(WidgetTester tester) =>
+        GoRouter.of(tester.element(find.byType(Navigator).first));
+
+    void expectNothingSent(TestApp app) {
+      expect(
+        app.account.calls.map((call) => call.$1),
+        isNot(contains('deleteAccount')),
+      );
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+    }
+
+    for (final MapEntry(key: name, value: back) in backs.entries) {
+      testWidgets('$name while the password is checked cancels: nothing is '
+          'sent and nobody is signed out', (tester) async {
+        final app = await deleting(tester, held: checking);
+        await back(tester);
+        await tester.pumpAndSettle();
+        expect(find.text('This cannot be undone'), findsNothing);
+        expect(find.text('Delete account'), findsOneWidget);
+        app.auth.gate.open();
+        await tester.pumpAndSettle();
+        expectNothingSent(app);
+        expect(router(tester).state.uri.path, Routes.settings);
+        expect(find.text('Delete account'), findsOneWidget);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaalikApp)),
+        );
+        expect(container.read(currentUserIdProvider), testUserId);
+      });
+
+      testWidgets('$name while the deletion is on its way does nothing: the '
+          'screen stays, and the deletion signs out as before', (tester) async {
+        final app = await deleting(tester, held: sending);
+        await tester.pump();
+        expect(app.account.calls.last.$1, 'deleteAccount');
+        await back(tester);
+        await settleWhileBusy(tester);
+        expect(find.text('This cannot be undone'), findsOneWidget);
+        expect(router(tester).state.uri.path, Routes.deleteAccount);
+        expect(button(tester, 'Delete my account').busy, isTrue);
+        // The page says it cannot be popped, which a back gesture that
+        // drags a page away asks before it starts.
+        expect(
+          ModalRoute.of(tester.element(find.text('This cannot be undone')))!
+              .popDisposition,
+          RoutePopDisposition.doNotPop,
+        );
+        app.account.gate.open();
+        await tester.pumpAndSettle();
+        expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+        expect(find.text('Your account has been deleted'), findsOneWidget);
+      });
+    }
+
+    // The screen is gone only at the next frame, and Riverpod disposes its
+    // provider after that: a check that answers in between, with the
+    // provider still there, must not send the deletion either.
+    testWidgets('Back cancels also when the password check answers before '
+        'the screen is gone', (tester) async {
+      final app = await deleting(tester, held: checking);
       await tester.binding.handlePopRoute();
+      app.auth.gate.open();
+      await tester.idle();
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaalikApp)),
+      );
+      expect(container.read(accountDeletionProvider.exists), isTrue);
+      expectNothingSent(app);
       await tester.pumpAndSettle();
-      expect(find.text('This cannot be undone'), findsNothing);
+      expectNothingSent(app);
+      expect(router(tester).state.uri.path, Routes.settings);
+    });
+
+    // Cancel does what Back does: it works while the password is checked,
+    // and waits once the request is on its way.
+    testWidgets('Cancel while the password is checked returns to Settings '
+        'and sends nothing', (tester) async {
+      final app = await deleting(tester, held: checking);
+      final cancel = find.widgetWithText(MmButton, 'Cancel');
+      expect(tester.widget<MmButton>(cancel).onPressed, isNotNull);
+      await tester.tap(cancel);
+      await tester.pumpAndSettle();
+      expect(router(tester).state.uri.path, Routes.settings);
+      app.auth.gate.open();
+      await tester.pumpAndSettle();
+      expectNothingSent(app);
+    });
+
+    // Delete, meanwhile, stays busy rather than disabled: a busy button
+    // keeps its colours and keyboard focus, and ignores presses.
+    testWidgets('Cancel waits while the deletion is on its way', (
+      tester,
+    ) async {
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
+      expect(
+        tester
+            .widget<MmButton>(find.widgetWithText(MmButton, 'Cancel'))
+            .onPressed,
+        isNull,
+      );
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(button(tester, 'Delete my account').onPressed, isNotNull);
+      await tapDelete(tester);
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    // The screen cannot be left any other way either while the request is
+    // on its way: another section of the navigation bar waits too.
+    testWidgets('another section waits while the deletion is on its way', (
+      tester,
+    ) async {
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
+      await _goToSection(tester, 'Dashboard');
+      await settleWhileBusy(tester);
+      expect(find.text('This cannot be undone'), findsOneWidget);
+      expect(router(tester).state.uri.path, Routes.deleteAccount);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    // Another account signed in meanwhile (another tab) gets the screen,
+    // which the router keeps for whoever is signed in, and the screen waits
+    // for the earlier request there too. Delete waits as well, as Cancel
+    // does: started while the earlier request was out, that account's
+    // password check would run while the screen could not be left, so
+    // neither Back nor Cancel could stop it. It is enabled once the earlier
+    // request is answered, and that account's own request then keeps the
+    // screen in turn.
+    testWidgets('another account signed in while a deletion is on its way '
+        'can delete only once it is answered, and Back waits meanwhile', (
+      tester,
+    ) async {
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
+      final answerEarlier = app.account.gate.holdLaterCallsApart();
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      await settleWhileBusy(tester);
+      // That account's preview answers, and its form is new.
+      app.account.gate.open();
+      await settleWhileBusy(tester);
+      expect(button(tester, 'Delete my account').busy, isFalse);
+      await fill(tester, password: 'Other1234', email: otherAccount.email!);
+      expect(button(tester, 'Delete my account').onPressed, isNull);
+      expect(button(tester, 'Cancel').onPressed, isNull);
+      await tapDelete(tester);
+      await tester.binding.handlePopRoute();
+      await settleWhileBusy(tester);
+      expect(router(tester).state.uri.path, Routes.deleteAccount);
+      expect(
+        ModalRoute.of(tester.element(find.text('This cannot be undone')))!
+            .popDisposition,
+        RoutePopDisposition.doNotPop,
+      );
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+      expect(app.account.calls.map((call) => call.$1), [
+        'deletionPreview',
+        'deleteAccount',
+        'deletionPreview',
+      ]);
+      // The earlier request answers: its account no longer holds the
+      // device, so nobody is signed out by it, and the screen is free.
+      answerEarlier();
+      await settleWhileBusy(tester);
+      expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+      expect(button(tester, 'Delete my account').onPressed, isNotNull);
+      expect(button(tester, 'Cancel').onPressed, isNotNull);
+      app.account.gate.close();
+      await tapDelete(tester);
+      await tester.pump();
+      expect(
+        app.account.calls
+            .where((call) => call.$1 == 'deleteAccount')
+            .map((call) => call.$2),
+        [
+          [testEmail],
+          [otherAccount.email],
+        ],
+      );
+      await tester.binding.handlePopRoute();
+      await settleWhileBusy(tester);
+      expect(router(tester).state.uri.path, Routes.deleteAccount);
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(button(tester, 'Cancel').onPressed, isNull);
       app.account.gate.open();
       await tester.pumpAndSettle();
       expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
       expect(find.text('Your account has been deleted'), findsOneWidget);
     });
 
+    // The next account presses Delete while the earlier request is out,
+    // then leaves, and the earlier request answers only after that: the
+    // press started nothing, so no password is checked and nothing is sent
+    // for that account. Once the earlier request is answered its own
+    // deletion starts, and leaving while its password is checked cancels
+    // it, as for anyone.
+    final leavings = <String, Future<void> Function(WidgetTester tester)>{
+      'Back': (tester) => tester.binding.handlePopRoute(),
+      'Cancel': (tester) => tester.tap(find.widgetWithText(MmButton, 'Cancel')),
+    };
+    for (final MapEntry(key: name, value: leave) in leavings.entries) {
+      testWidgets("$name cancels the next account's deletion while its "
+          'password is checked, also when it signed in while an earlier '
+          'deletion was on its way', (tester) async {
+        final app = await deleting(tester, held: sending);
+        await tester.pump();
+        final answerEarlier = app.account.gate.holdLaterCallsApart();
+        await app.cache.clear();
+        app.auth.emit(otherAccount);
+        await settleWhileBusy(tester);
+        app.account.gate.open();
+        await settleWhileBusy(tester);
+        await fill(tester, password: 'Other1234', email: otherAccount.email!);
+        app.auth.gate.close();
+        await tapDelete(tester);
+        await leave(tester);
+        await settleWhileBusy(tester);
+        expect(router(tester).state.uri.path, Routes.deleteAccount);
+        app.account.gate.close();
+        app.auth.gate.open();
+        await settleWhileBusy(tester);
+        expect(
+          app.account.calls
+              .where((call) => call.$1 == 'deleteAccount')
+              .map((call) => call.$2),
+          [
+            [testEmail],
+          ],
+        );
+        expect(app.auth.calls.map((call) => call.$1), ['reauthenticate']);
+        app.account.gate.open();
+        answerEarlier();
+        await settleWhileBusy(tester);
+        expect(button(tester, 'Delete my account').busy, isFalse);
+        app.auth.gate.close();
+        await tapDelete(tester);
+        expect(button(tester, 'Delete my account').busy, isTrue);
+        await leave(tester);
+        await tester.pumpAndSettle();
+        expect(router(tester).state.uri.path, Routes.settings);
+        app.auth.gate.open();
+        await tester.pumpAndSettle();
+        expect(app.auth.calls.map((call) => call.$1), [
+          'reauthenticate',
+          'reauthenticate',
+        ]);
+        expect(
+          app.account.calls.where((call) => call.$1 == 'deleteAccount'),
+          hasLength(1),
+        );
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaalikApp)),
+        );
+        expect(container.read(currentUserIdProvider), otherAccount.userId);
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    // The first account's password check can still be out when another
+    // account signs in (another tab), its form goes with it, and that
+    // account starts its own deletion, which replaces the first. The first
+    // check's late answer then sends nothing and touches no form: the one
+    // it was started from is gone, and the screen is the next account's.
+    testWidgets('a password check answered after the next account started '
+        'its own deletion sends nothing, and only the later deletion is '
+        'sent', (tester) async {
+      final app = await deleting(tester, held: checking);
+      final answerEarlierCheck = app.auth.gate.holdLaterCallsApart();
+      app.account.gate.close();
+      await app.cache.clear();
+      app.auth.emit(otherAccount);
+      await settleWhileBusy(tester);
+      app.account.gate.open();
+      await settleWhileBusy(tester);
+      expect(find.text('This cannot be undone'), findsOneWidget);
+      expect(button(tester, 'Delete my account').busy, isFalse);
+      await fill(tester, password: 'Other1234', email: otherAccount.email!);
+      app.account.gate.close();
+      await tapDelete(tester);
+      expect(app.auth.calls.map((call) => call.$1), [
+        'reauthenticate',
+        'reauthenticate',
+      ]);
+      answerEarlierCheck();
+      await settleWhileBusy(tester);
+      expect(tester.takeException(), isNull);
+      expect(find.text('Deletion cancelled'), findsNothing);
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(
+        app.account.calls.map((call) => call.$1),
+        isNot(contains('deleteAccount')),
+      );
+      app.auth.gate.open();
+      await settleWhileBusy(tester);
+      expect(
+        app.account.calls
+            .where((call) => call.$1 == 'deleteAccount')
+            .map((call) => call.$2),
+        [
+          [otherAccount.email],
+        ],
+      );
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+      expect(find.text('Your account has been deleted'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    // Another section while the password is checked cancels, as Back
+    // does, but the section keeps its screens: the delete screen is still
+    // there when the user comes back, no longer busy, and says that nothing
+    // was sent, in English and in Urdu.
+    for (final urdu in [false, true]) {
+      testWidgets('another section while the password is checked cancels, '
+          'and the screen says so when shown again${urdu ? ' (Urdu)' : ''}', (
+        tester,
+      ) async {
+        final app = await _pumpApp(
+          tester,
+          app: TestApp(language: urdu ? 'ur' : 'en'),
+          location: Routes.deleteAccount,
+        );
+        await fill(tester);
+        app.auth.gate.close();
+        await tapDelete(tester);
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(MmPasswordField)),
+        );
+        final notice = find.text(l10n.deletionCancelledBody);
+        expect(notice, findsNothing);
+        await _goToSection(tester, l10n.navDashboard);
+        await settleWhileBusy(tester);
+        expect(router(tester).state.uri.path, Routes.home);
+        await _goToSection(tester, l10n.navMore);
+        await settleWhileBusy(tester);
+        expect(router(tester).state.uri.path, Routes.deleteAccount);
+        expect(button(tester, l10n.deleteAccountConfirmAction).busy, isFalse);
+        expect(button(tester, l10n.cancelAction).onPressed, isNotNull);
+        expect(notice, findsOneWidget);
+        expect(find.text(l10n.deletionCancelledTitle), findsOneWidget);
+        // The check answers afterwards: still nothing is sent, and no
+        // failure is shown.
+        app.auth.gate.open();
+        await tester.pumpAndSettle();
+        expectNothingSent(app);
+        expect(notice, findsOneWidget);
+        expect(find.byType(FailureBanner), findsNothing);
+      });
+    }
+
+    // Deleting again from that screen before the cancelled check answers
+    // starts a deletion of its own, which is the one that sends; the
+    // cancelled one's answer changes nothing on the screen.
+    testWidgets('a deletion started again on the screen another section '
+        'cancelled sends once, and stays busy until answered', (tester) async {
+      final app = await deleting(tester, held: checking);
+      await _goToSection(tester, 'Dashboard');
+      await settleWhileBusy(tester);
+      await _goToSection(tester, 'More');
+      await settleWhileBusy(tester);
+      expect(find.text('Deletion cancelled'), findsOneWidget);
+      app.account.gate.close();
+      await tapDelete(tester);
+      expect(find.text('Deletion cancelled'), findsNothing);
+      // Both checks answer: the cancelled one sends nothing.
+      app.auth.gate.open();
+      await settleWhileBusy(tester);
+      expect(
+        app.account.calls.where((call) => call.$1 == 'deleteAccount'),
+        hasLength(1),
+      );
+      expect(button(tester, 'Delete my account').busy, isTrue);
+      expect(button(tester, 'Cancel').onPressed, isNull);
+      app.account.gate.open();
+      await tester.pumpAndSettle();
+      expect(app.auth.calls.map((call) => call.$1), [
+        'reauthenticate',
+        'reauthenticate',
+        'signOut',
+      ]);
+      expect(app.auth.calls.last.$2, [SignOutCause.accountDeleted]);
+    });
+
+    // The notice is only for a deletion cancelled before its request: a
+    // wrong password, where nobody left, and a refused request, where one
+    // was sent, show their failure and no notice.
+    testWidgets('a wrong password, or a refused request, shows its failure '
+        'and no cancel notice', (tester) async {
+      final app = await _pumpApp(tester, location: Routes.deleteAccount);
+      await fill(tester);
+      app.auth.gate.failure = const RejectedFailure('invalid_credentials');
+      await tapDelete(tester);
+      await tester.pumpAndSettle();
+      app.auth.gate.failure = null;
+      expect(
+        tester.widget<MmPasswordField>(find.byType(MmPasswordField)).errorText,
+        'The e-mail or password is not right.',
+      );
+      expect(find.text('Deletion cancelled'), findsNothing);
+      await fill(tester, password: 'Secret12345');
+      app.account.gate.failure = const TemporarilyUnavailable();
+      await tapDelete(tester);
+      await tester.pumpAndSettle();
+      app.account.gate.failure = null;
+      expect(app.account.calls.last.$1, 'deleteAccount');
+      expect(find.byType(FailureBanner), findsOneWidget);
+      expect(find.text('Deletion cancelled'), findsNothing);
+      expect(button(tester, 'Delete my account').busy, isFalse);
+      expect(app.auth.calls.map((call) => call.$1), [
+        'reauthenticate',
+        'reauthenticate',
+      ]);
+    });
+
+    // The router's own redirect at a sign-out is never held up: the screen
+    // leaves for the sign-in screen, and the answer signs out as a
+    // deletion.
     testWidgets('signs out as a deletion once its session was signed out in '
         'another tab', (tester) async {
-      final app = await deleting(tester);
+      final app = await deleting(tester, held: sending);
+      await tester.pump();
       await app.cache.clear();
       app.auth.emit(const SignedOut());
       await tester.pumpAndSettle();
