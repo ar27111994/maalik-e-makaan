@@ -95,6 +95,12 @@ final class AccountDeletionController extends AsyncNotifier<DeletionPreview> {
   /// account. Whether the cache serves the session that asked does not
   /// decide either: its epoch moves at any sign-out, also one after which
   /// nobody, or the same account, holds the device.
+  ///
+  /// gotrue drops the session before its first await, and on the web its
+  /// one wait before it tells the other tabs ends in microtasks, so no
+  /// message of theirs comes in between. A sign-in in another tab whose
+  /// message has not arrived yet is not seen: it crosses this sign-out, as
+  /// it would any, and that tab drops the account it signed in.
   Future<void> _signOutDeleted(String userId, SignOutCause cause) async {
     final holder = switch (ref.read(authRepositoryProvider).status) {
       SignedIn(userId: final held) ||

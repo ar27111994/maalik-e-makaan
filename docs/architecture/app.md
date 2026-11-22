@@ -315,38 +315,43 @@ else does then, since a picker may be handing over a copy.
   read, another tab signing out, whatever its `signOutReason`) and, in
   `signOut`'s `finally`, when that event never came (gotrue failed before
   announcing it). It also wipes, as a sign-out, when the session the device
-  holds is another account's than the one it held, without a sign-out
-  between them: an e-mail link of account B opened while A is signed in. Account
+  holds is another account's than the one it held, without a sign-out between
+  them: an e-mail link of account B opened while A is signed in. Account
   deletion signs out with `SignOutCause.accountDeleted`, which wipes the
   invitation too. When the deletion's answer is lost or the server failed
   part-way (`mayHaveDeleted`: a `NetworkFailure`, `ServerFailure` or
-  `UnexpectedFailure` after the re-authentication succeeded), it signs out
-  all the same with `SignOutCause.deletionUnconfirmed`, wiped as a deletion;
-  the sign-in screen says the account may be gone and how to check. A
-  refusal, a rate limit or a busy database (503, rolled back) signs nobody
-  out. The deletion asks nothing once the cache no longer serves the
-  session it read before its request, and sends no deletion once that
-  session ends while it signs in again. Either sign-out is the deleting
-  account's alone, decided from the session the device holds as it signs
-  out (`AuthRepository.status`, which gotrue changes before it announces
-  the change, ahead of the status the app shows, which waits for the wipe):
-  when another account holds the device by the time the answer comes
-  (signed in from another tab), that account is neither signed out nor
-  wiped, and the command throws `SessionExpired`. When
-  nobody does (the session was signed out elsewhere, a plain sign-out's
-  wipe, which kept the invitation) or the same account signed in again,
-  the device is signed out as a deletion all the same. `bootstrap` calls
-  `tidyDeviceAtStart` once Supabase has read the stored session (the last
-  two columns of the table), and the root widget watches
+  `UnexpectedFailure` after the re-authentication succeeded), it signs out all
+  the same with `SignOutCause.deletionUnconfirmed`, wiped as a deletion; the
+  sign-in screen says the account may be gone and how to check. A refusal, a
+  rate limit or a busy database (503, rolled back) signs nobody out. The
+  deletion asks nothing once the cache no longer serves the session it read
+  before its request, and sends no deletion once that session ends while it
+  signs in again. Either sign-out is the deleting account's alone, decided
+  from the session the device holds as it signs out (`AuthRepository.status`,
+  which gotrue changes before it announces the change, ahead of the status the
+  app shows, which waits for the wipe): when another account holds the device
+  by the time the answer comes (signed in from another tab), that account is
+  neither signed out nor wiped, and the command throws `SessionExpired`. When
+  nobody does (the session was signed out elsewhere, a plain sign-out's wipe,
+  which kept the invitation) or the same account signed in again, the device
+  is signed out as a deletion all the same. Nothing is awaited between reading
+  that session and gotrue dropping it, and on the web gotrue tells the other
+  tabs before any message of theirs can be handled (its one wait between,
+  removing the sign-in-link verifier from `localStorage`, ends in microtasks).
+  What is left is gotrue's own, between tabs, as for any sign-out: a sign-in
+  in another tab whose message has not arrived yet crosses this tab's, and
+  that tab drops the account it signed in, which this one then holds.
+  `bootstrap` calls `tidyDeviceAtStart` once Supabase has read the stored
+  session (the last two columns of the table), and the root widget watches
   `deviceTidyOnResumeProvider`.
 - **Other devices.** Signing out is local (gotrue's default scope): another
-  phone or browser keeps its copy until its own session ends there, which
-  for a deleted account is when its next refresh is refused, within an hour
-  of its next use online (an access token lives an hour). That wipe is a plain sign-out, so the invitation it
-  holds stays. A member's device removes a deleted or left portfolio's
-  entries the next time it loads the list of portfolios online, and at the
-  latest when its session ends; only a store that fails can leave one longer
-  (Writes after a removal).
+  phone or browser keeps its copy until its own session ends there, which for
+  a deleted account is when its next refresh is refused, within an hour of its
+  next use online (an access token lives an hour). That wipe is a plain
+  sign-out, so the invitation it holds stays. A member's device removes a
+  deleted or left portfolio's entries the next time it loads the list of
+  portfolios online, and at the latest when its session ends; only a store
+  that fails can leave one longer (Writes after a removal).
 - **Writes after a removal.** Two things remove saved entries: the wipe and
   the portfolio list.
   - _The session the cache serves._ The cache serves one user at a time,
@@ -424,9 +429,9 @@ else does then, since a picker may be handing over a copy.
     session that has ended, also between two requests of one command
     (`PortfoliosController.create` lists the portfolios after creating
     one), and the answer to a request on its way when it ended is neither
-    shown nor saved (`SwrCache.write` and `SwrCache.save` return null). For a value made from
-    the one on show ("load more", a notification marked read, a language
-    saved, an owner-abroad answer), `SwrNotifier.shownEpoch` or the
+    shown nor saved (`SwrCache.write` and `SwrCache.save` return null). For a
+    value made from the one on show ("load more", a notification marked read,
+    a language saved, an owner-abroad answer), `SwrNotifier.shownEpoch` or the
     controller's own gives the epoch that value was asked for in. Between a
     wipe's start and the status that follows it (a few milliseconds; at most
     `wipePreferencesLimit` with a store that hangs) the signed-in user still
