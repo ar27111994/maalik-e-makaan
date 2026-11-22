@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maalik_e_makaan/src/app.dart';
+import 'package:maalik_e_makaan/src/auth/auth_controller.dart';
 import 'package:maalik_e_makaan/src/auth/auth_repository.dart';
 import 'package:maalik_e_makaan/src/core/failure.dart';
 import 'package:maalik_e_makaan/src/features/documents/application/lost_photo.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/camera_target.dart';
 import 'package:maalik_e_makaan/src/features/documents/data/document.dart';
+import 'package:maalik_e_makaan/src/features/leases/presentation/lease_detail_screen.dart';
 import 'package:maalik_e_makaan/src/features/notifications/application/notifications.dart';
 import 'package:maalik_e_makaan/src/features/portfolios/data/portfolio.dart';
 import 'package:maalik_e_makaan/src/features/team/data/team.dart';
@@ -345,6 +347,57 @@ void main() {
     );
     expect(frames, (failure: 0, loading: 10));
     expect(find.text('What needs attention'), findsOneWidget);
+  });
+
+  // A sheet opened on a record copies it into its fields as it opens, and
+  // stays open above the page, which the router keeps, while another
+  // account's session replaces the user's (another tab signing in): the
+  // tenancy below shows loading, the sheet the earlier account's occupant,
+  // CNIC and phone included, until it is closed. Named, not fixed, in
+  // app.md (the providers' paragraph).
+  testWidgets("an occupant's sheet keeps the user's record while another "
+      "account's session replaces theirs, as the tenancy below loads", (
+    tester,
+  ) async {
+    final app = await _pumpApp(
+      tester,
+      location: Routes.lease(aliLease.id),
+      size: const Size(390, 3600),
+    );
+    final occupant = find.text('Sana Raza').last;
+    await tester.ensureVisible(occupant);
+    await tester.tap(occupant);
+    await tester.pumpAndSettle();
+    final sheet = find.byType(OccupantSheet);
+    final cnic = find.descendant(
+      of: sheet,
+      matching: find.text('35202-7654321-2'),
+    );
+    expect(cnic, findsOneWidget);
+    app.leases.gate.close();
+    await app.cache.clear();
+    app.auth.emit(otherAccount);
+    var kept = 0;
+    var loading = 0;
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (cnic.evaluate().isNotEmpty) kept++;
+      if (find.bySemanticsLabel('Loading the tenancy').evaluate().isNotEmpty) {
+        loading++;
+      }
+    }
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MaalikApp)),
+    );
+    expect(container.read(currentUserIdProvider), otherAccount.userId);
+    expect((kept: kept, loading: loading), (kept: 10, loading: 10));
+    app.leases.gate.open();
+    await tester.pumpAndSettle();
+    expect(cnic, findsOneWidget);
+    expect(
+      find.descendant(of: sheet, matching: find.text('Sana Raza')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a session that ends elsewhere returns to sign-in, then back', (

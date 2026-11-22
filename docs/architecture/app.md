@@ -428,10 +428,17 @@ else does then, since a picker may be handing over a copy.
     search asks, and the screen shows loading until it answers. The words
     typed stay in the field, and the next account's search asks with them:
     what is typed belongs to whoever is at the device, and a new tenant's form
-    left open keeps it too, while a form filled from a record goes with that
-    record and is filled again from the next account's own read. A screen
-    shows `sessionChanged`'s state as it shows a first read, loading, not as a
-    failure with "Try again": nothing failed for the person signed in. Every
+    left open keeps it too, while an edit screen filled from a record goes
+    with that record and is filled again from the next account's own read. A
+    sheet does not: it is opened with the record it is about (an occupant, a
+    charge, a bill, a notification, a document, ending a tenancy) and shows
+    its own copy, above the page, which the router keeps, so it goes on
+    showing the earlier account's record, an occupant's CNIC and phone
+    included, until it is closed, as a document's sheet keeps its links;
+    closing the sheets when the account changes would be a new mechanism. A
+    screen shows `sessionChanged`'s state as it shows a first read, loading,
+    not as a failure with "Try again": nothing failed for the person signed
+    in. Every
     screen that shows the error of a
     provider that can hold that state for the user signed in asks
     `waitsForSession` first: that of an `SwrNotifier` (`SnapshotView`, the
@@ -543,7 +550,8 @@ else does then, since a picker may be handing over a copy.
     shows loading (nothing the earlier account loaded) until that account's
     first answer (the search, whose results area is empty while that account's
     portfolios load, shows loading once its search asks, with the words typed
-    still in the field); the answer to a
+    still in the field), while a sheet open above it keeps the record it was
+    opened with until it is closed; the answer to a
     request on its way when the session ended is not shown (with the same
     account signed in again inside one
     request, the new session's own read shows the server's state); a command
