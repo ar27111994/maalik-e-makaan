@@ -235,11 +235,12 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   waiting for the store; a profile or list made from the one on show is saved for the epoch it
   was asked for in; two reference models, a table of all 34 cached queries and the earlier
   reviews' probes check it
-  (`test/src/data/cache/`). The cache serves one user at a time (16 November 2026, the owner's
-  word to make the rules hold more simply): a wipe starts an epoch nobody owns, each status
-  serves its user, and every read, write, list answer and removal does anything only while its
-  user owns its epoch (`SwrCache.serve` and `serves`; `docs/architecture/app.md`, The session
-  the cache serves). It replaced five guards (the epoch's `clearedSince`, the list's
+  (`test/src/data/cache/`). The cache serves one user at a time (16 November 2026, the owner's word
+  to make the rules hold more simply, with fewer mechanisms: a fix that needs a new mechanism is not
+  built, and the loss is named in `docs/architecture/app.md` instead): a wipe starts an epoch nobody
+  owns, each status serves its user, and every read, write, list answer and removal does anything
+  only while its user owns its epoch (`SwrCache.serve` and `serves`; `docs/architecture/app.md`, The
+  session the cache serves). It replaced five guards (the epoch's `clearedSince`, the list's
   `_requireSession`, its shown-but-not-saved answer, `select(askedIn:)` and the wipe's
   single-flight), and closed what an independent verifier found on 2026-11-16: a query built
   between the wipe and the status saved the next account's answer under the ended one's key, a
@@ -273,12 +274,14 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
   signed in with the same portfolio current; a search is now keyed by the user too, as the
   portfolio list is. A deletion's sign-out is the deleting account's alone: when another account
   has signed in from another tab by the time the answer comes, nobody is signed out; when nobody
-  holds the device, or the same account signed in again, it signs out as a deletion all the same,
-  decided from the session gotrue holds rather than the status shown (the first version of the
-  rule, found by the next check, left the invitation after a sign-out in another tab). That check
-  also found a documents list's photo links, signed for the earlier account, used again beside the
-  next account's rows; they are now made again for each user who signs in. The check after that
-  found the deletion's sign-out reading the provider's ref after the answer, which threw once the
+  holds the device, or the same account signed in again, it signs out as a deletion all the same
+  (unless a store that does not answer holds up an earlier wipe with that sign-in queued behind it;
+  see Follow-ups), decided from the session gotrue holds rather than the status shown (the first
+  version of the rule, found by the next check, left the invitation after a sign-out in another
+  tab). That check also found a documents list's photo links, signed for the earlier account, used
+  again beside the next account's rows; they are now made again for each user who signs in. The
+  check after that found the deletion's sign-out reading the provider's ref after the answer, which
+  threw once the
   delete screen was left (the back button, or the router at a sign-out), so the device kept the
   deleted account's session and records; the command now reads everything it uses before its first
   wait. It goes on without its screen, also when the screen is left while it signs in again, and
@@ -664,9 +667,6 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   timeout), so a copy of it in a phone backup can still sign in; the privacy page says so. A
   session inactivity timeout on the hosted project, or retrying the server sign-out later, is the
   owner's decision.
-- Owner: moving the web app to `app.mmakaan.app` leaves the old origin's `localStorage` (session,
-  record cache, invitation) in every browser that used it; the old address should clear it
-  before it redirects (`docs/operations.md`, Moving the web app to another address).
 - Licences: `MmIcons.ttf` has empty copyright fields (`THIRD_PARTY_NOTICES.md`, Gaps). dbus
   0.8.0 (MPL-2.0, Linux desktop only, unmodified): a distributed Linux build must say where its
   source is.
@@ -720,8 +720,9 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   withdrawing an invitation, deleting a document), still send their request, now with that account's
   token, so row-level security decides what that account may do (found on #70, 22 November 2026;
   older than #70). So do a new tenant's form and its warning, which names the earlier account's
-  tenant with that CNIC or phone. A confirm dialog that a screen opened sends nothing then, as that
-  part of the screen has gone. `docs/architecture/app.md` names it, and `app_test.dart` pins both.
+  tenant with that CNIC or phone: the form stays, so "Save anyway" saves. A confirm dialog that a
+  screen opened on a record sends nothing then, as that part of the screen has gone.
+  `docs/architecture/app.md` names it, and `app_test.dart` pins both.
   The owner's call whether sheets and dialogs should close at an account change, or a sheet's
   command ask whether the cache still serves the session it was opened in (`SwrCache.serves`).
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
