@@ -896,9 +896,19 @@ owner's, so the legal pack (PR #66, branch `claude/legal-pack`) needs:
 - its data map to say that backups are full: row 14g (the phone's own backup) and its retention
   row, which still reads "[Owner: Auto Backup off, or the preferences left out of it]"; source note
   14g, which says the manifest "sets no `android:allowBackup`", to say that the manifest now writes
-  `android:allowBackup="true"` and the check keeps it so; and finding 5's sentence "The owner's
-  points on Auto Backup and a session timeout are in the README", as only the session timeout is
-  still the owner's;
+  `android:allowBackup="true"` and the check keeps it so; source 14's list of the owner's open
+  points ("Auto Backup, a session timeout on the hosted project, the old address's storage"), to
+  drop Auto Backup; and finding 5's sentence "The owner's points on Auto Backup and a session
+  timeout are in the README", as only the session timeout is still the owner's;
+- its draft privacy notices, in English and Urdu (`privacy-notice.en.md`, `privacy-notice.ur.md`):
+  the owner bracket "[Owner: Android's Auto Backup, and a session timeout on the hosted project
+  (data map, row 14g). Lawyer: T7]" to drop the Auto Backup half and keep the session timeout (and
+  row 42 of the English notice's changes table, which names "Auto Backup and the session's
+  validity (row 14g)" among the brackets, to match); and their word-for-word copy of the live
+  page's backups bullet to gain the new-phone sentence as each live page now words it ("When you
+  get a new phone and bring your old phone's data across, your sign-in and the app's copy of your
+  records can be copied to the new phone too", and the Urdu page's sentence in the Urdu notice), so
+  that row 42's "Kept word for word" stays true;
 - the README's "Android's Auto Backup" item, which asks to turn it off or leave the preferences
   out, closed with D-24.
 
