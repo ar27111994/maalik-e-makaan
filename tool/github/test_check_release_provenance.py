@@ -248,6 +248,23 @@ MUTANTS = {
         in_job("ios", "    runs-on: macos-26\n", "    runs-on: self-hosted\n"),
         [(HANDOFF.format("ios"), "it does not run on macos-26, its GitHub-hosted runner")],
     ),
+    # A label that only starts with a GitHub-hosted one names no GitHub-hosted runner, so only a
+    # self-hosted runner could take the job: the runner is compared as the whole label.
+    "build: artefacts on a label that starts with its runner's": (
+        RELEASE,
+        in_job("artefacts", "    runs-on: ubuntu-24.04\n", "    runs-on: ubuntu-24.04-builder\n"),
+        [
+            (
+                HANDOFF.format("artefacts"),
+                "it does not run on ubuntu-24.04, its GitHub-hosted runner",
+            )
+        ],
+    ),
+    "build: ios on a label that starts with its runner's": (
+        RELEASE,
+        in_job("ios", "    runs-on: macos-26\n", "    runs-on: macos-26-builder\n"),
+        [(HANDOFF.format("ios"), "it does not run on macos-26, its GitHub-hosted runner")],
+    ),
     "build: an output name with a typo": (
         RELEASE,
         in_job(
@@ -861,6 +878,12 @@ MUTANTS = {
         f"{crp.WORKFLOWS}/release-yml.yml",
         new_file(SIGNS),
         [f"{crp.WORKFLOWS}/release-yml.yml" + LOOKALIKE[0]],
+    ),
+    # Any character, a letter included, not only a hyphen or another non-word character.
+    "releaseXyml.yml: a letter in place of the dot, which older gh takes for release.yml too": (
+        f"{crp.WORKFLOWS}/releaseXyml.yml",
+        new_file(SIGNS),
+        [f"{crp.WORKFLOWS}/releaseXyml.yml" + LOOKALIKE[0]],
     ),
     "pr-title.yml: no top-level permissions": (
         f"{crp.WORKFLOWS}/pr-title.yml",
