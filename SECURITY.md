@@ -143,7 +143,7 @@ by one.
   artifact id, attests them, checks each against the provenance file and attaches them. Up to
   v1.4.2, each build job attested and attached its own files, and held the release's write
   token to do so. A check in `make lint` holds the publish jobs to a fixed shape and the builds
-  to GitHub-hosted runners. It keeps every other job but release-please from writing to a
+  to GitHub-hosted runners' labels. It keeps every other job but release-please from writing to a
   release or signing as the Release workflow, and release-please, which runs only its pinned
   action, to a fixed shape too (`docs/operations.md`, Release provenance). A change to the check
   itself is read in review.

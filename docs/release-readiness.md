@@ -546,14 +546,16 @@ Optional hardening: move the `ANDROID_*` secrets from the repository into the `r
 only the Release workflow's `artefacts` job reads them, and it runs in that environment. A
 deployment branch rule can then keep them to `main` (Settings, Environments, `release`, Deployment
 branches and tags: Selected branches and tags, the branch `main` alone). Never a rule for tags
-alone, such as `v*`: the Release workflow runs on a push to `main`, so its `preflight`, `artefacts`
-and `ios` jobs, which all run in `release`, run for the branch `main`, and such a rule would stop
-every release at `preflight`. The rule keeps the signing secrets from a run on any other branch (Run
-workflow on a branch, or a branch pushed with a workflow changed to name the environment); it
-protects nothing merged to `main`, and no secret left at repository level, which a workflow on any
-branch can read. Keep the Supabase secrets at repository level, since jobs in different
-environments, or in none, read them: the weekly Backup's `backup` job, which has no environment (so
-a scheduled run waits for no reviewer), reads `SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`;
+alone, such as `v*`: the Release workflow runs on a push to `main`, so its `preflight`, `artefacts`,
+`ios`, `publish-artefacts` and `publish-ios` jobs, which all run in `release`, run for the branch
+`main`, and such a rule would stop every release at `preflight`. The rule keeps the signing
+secrets, and the publish jobs (the only jobs besides release-please that hold `contents: write`),
+from a run on any other branch (Run workflow on a branch, or a branch pushed with a workflow
+changed to name the environment); it protects nothing merged to `main`, and no secret left at
+repository level, which a workflow on any branch can read. Keep the Supabase secrets at
+repository level, since jobs in different environments, or in none, read them: the weekly
+Backup's `backup` job, which has no environment (so a scheduled run waits for no reviewer), reads
+`SUPABASE_ACCESS_TOKEN` and `SUPABASE_DB_PASSWORD`;
 Release's `preflight` job, in `release`, reads `SUPABASE_ACCESS_TOKEN` for the Auth check; and
 Deploy's `supabase` job, in `production`, reads both. Moved into one environment, they would be
 missing from the others' jobs (the Auth check fails without the token), or kept as copies in
