@@ -1003,6 +1003,15 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
 - Release: sign the APKs and the app bundle in a job of their own, so that no build tool reads
   the upload key (today the `artefacts` job holds the keystore and its passwords while Gradle's
   plugins run; `docs/operations.md`, Release provenance, What the check does not cover).
+- Release: see release-please bump `website/package-lock.json` in a real release pull request,
+  on lines 3 and 9 only (its `version` and `packages[""].version`). That is the live proof of the
+  fix closed on 22 November 2026 (Closed, below), which so far rests on an offline run of the
+  release-please the action bundles. The next one is 1.4.4's, #114, once release-please rebuilds
+  it after the fix merges: opened before the fix, it lists no lockfile.
+- Release: no check holds `app/pubspec.yaml`'s `version` (`# x-release-please-version`) to
+  `.release-please-manifest.json`, though release-please bumps it with each release. C14
+  (`release-versions` in `make docs-check`) holds `README.md`'s release line and the website's
+  three versions; it could read the pubspec's too (found in review on 22 November 2026).
 - Release, optional: move from `actions/attest-build-provenance` to `actions/attest`, changing
   `PUBLISH_TEMPLATE` and release.yml together. Immutable releases would need draft releases that
   a last job publishes after both publish jobs; not planned.
@@ -1109,6 +1118,22 @@ With `clearSnackBars()` alone, three of the five snack bar tests fail, the norma
 the earlier messages on all ten frames; with `removeCurrentSnackBar()` alone, the snack bar waiting
 comes in; in the other order, its future never completes. The page-transition check on a device
 stays open (Open, above).
+
+The website's lockfile no longer falls behind each release. release-please bumped
+`website/package.json`'s `version` and not `website/package-lock.json`, whose own `version` and
+root package's (`packages[""]`) npm writes from `package.json`'s whenever it rewrites the
+lockfile. So the next pull request that ran npm in `website/` carried an unrelated version change,
+as #73, #100 and #107 did (1.0.0 to 1.2.0, 1.2.0 to 1.4.1 and 1.4.1 to 1.4.2), and release 1.4.3
+left the lockfile at 1.4.2. `release-please-config.json` now bumps both, as two `json` entries
+(`$.version` and `$.packages[''].version`), and the lockfile reads 1.4.3. `make docs-check` (C14,
+renamed `release-versions`) holds both, and `package.json`'s, equal to the manifest's, and fails
+when an entry is missing or the lockfile has any other entry. Checked by the agent with the
+release-please the Release workflow runs, 17.6.0 (bundled by release-please-action v5.0.0 at
+45996ed, the commit release.yml pins): its own extra-file updates, built from the new config,
+change those two lines of a copy of the lockfile and no other byte, and so does the npm package of
+17.6.0 installed from the action's lockfile. npm 10.9.9's `npm install --package-lock-only` leaves
+the new lockfile byte for byte as it is, and changes exactly those two lines of the old one. The
+first release pull request built with the fix is still to see (Open, above).
 
 ### Closed on 15 November 2026
 

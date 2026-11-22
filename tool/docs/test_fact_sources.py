@@ -296,6 +296,81 @@ class ManifestTest(unittest.TestCase):
                 fs.parse_manifest(text)
 
 
+class WebsiteVersionsTest(unittest.TestCase):
+    def test_the_package_and_lockfile_versions_with_their_lines(self) -> None:
+        self.assertEqual(
+            fs.parse_website_package(docs_fixture.WEBSITE_PACKAGE),
+            fs.VersionField('"version"', "1.2.3", 3),
+        )
+        self.assertEqual(
+            fs.parse_website_lock(docs_fixture.WEBSITE_LOCK),
+            (
+                fs.VersionField('"version"', "1.2.3", 3),
+                fs.VersionField('packages[""].version', "1.2.3", 9),
+            ),
+        )
+        # Values that differ are read as they are; whether they agree is C14's.
+        lock = docs_fixture.WEBSITE_LOCK.replace('"version": "1.2.3"', '"version": "1.2.2"', 1)
+        self.assertEqual([field.value for field in fs.parse_website_lock(lock)], ["1.2.2", "1.2.3"])
+        # A package.json without a final line break, as some editors save it.
+        package = docs_fixture.WEBSITE_PACKAGE.rstrip("\n")
+        self.assertEqual(fs.parse_website_package(package).line, 3)
+
+    def test_a_package_json_of_another_shape(self) -> None:
+        for text, message in (
+            ("{", r"website/package\.json: is not JSON \(Expecting"),
+            ("[]", "is not a JSON object; update parse_website_package"),
+            ('{\n  "name": "site"\n}\n', 'has no string "version"; update parse_website_package'),
+            ('{\n  "version": 1\n}\n', 'has no string "version"'),
+            ('{"name": "site", "version": "1.2.3"}\n', 'does not have "version" on a line of'),
+            # A nested version first: the first version line is not the package's.
+            (
+                '{\n  "engines": {\n    "version": "9.9.9"\n  },\n  "version": "1.2.3"\n}\n',
+                "where npm writes it; update parse_website_package",
+            ),
+        ):
+            with self.assertRaisesRegex(SourceShapeError, message):
+                fs.parse_website_package(text)
+
+    def test_a_lockfile_of_another_shape(self) -> None:
+        lock = docs_fixture.WEBSITE_LOCK
+        own = '      "name": "site",\n      "version": "1.2.3",\n'
+        for text, message in (
+            ("{", r"website/package-lock\.json: is not JSON"),
+            ("[]", "is not a JSON object; update parse_website_lock"),
+            ('{\n  "version": "1.2.3"\n}\n', r'has no root package \(packages\[""\]\)'),
+            ('{\n  "version": "1.2.3",\n  "packages": []\n}\n', "has no root package"),
+            ('{\n  "version": "1.2.3",\n  "packages": {}\n}\n', "has no root package"),
+            ('{\n  "packages": {\n    "": "site"\n  }\n}\n', "has no root package"),
+            (
+                lock.replace('  "version": "1.2.3",\n  "lockfileVersion"', '  "lockfileVersion"'),
+                'has no string "version"; update parse_website_lock',
+            ),
+            (
+                lock.replace(own, '      "name": "site",\n'),
+                r'has no string packages\[""\]\.version',
+            ),
+            # The root package on one line: its version is not where npm writes it.
+            (
+                lock.replace(
+                    '    "": {\n' + own, '    "": { "name": "site", "version": "1.2.3",\n'
+                ),
+                r'does not have packages\[""\]\.version on a line of its own',
+            ),
+            # A version line between the root package's key and its own version is a dependency's.
+            (
+                lock.replace(
+                    own,
+                    '      "name": "site",\n      "engines": {\n'
+                    '        "version": "9.9.9"\n      },\n      "version": "1.2.3",\n',
+                ),
+                r'packages\[""\]\.version on a line of its own where npm writes it',
+            ),
+        ):
+            with self.assertRaisesRegex(SourceShapeError, message):
+                fs.parse_website_lock(text)
+
+
 class MakefileTest(unittest.TestCase):
     def setUp(self) -> None:
         self.makefile = fs.parse_makefile(docs_fixture.MAKEFILE)
@@ -841,6 +916,9 @@ class RepoTest(unittest.TestCase):
             self.assertEqual(repo.app_majors()["go_router"], 18)
             self.assertEqual(repo.python_floor(), "3.12")
             self.assertEqual(repo.manifest(), "1.2.3")
+            self.assertEqual(repo.website_package().value, "1.2.3")
+            self.assertEqual([f.line for f in repo.website_lock()], [3, 9])
+            self.assertIs(repo.website_lock(), repo.website_lock())
             self.assertEqual(repo.mm_variants(), ("light", "dark", "largeText"))
             self.assertEqual(repo.tla_models(), ("Alpha", "Beta"))
             self.assertEqual((repo.supabase_major(), repo.ci_postgres()), (17, 16))
