@@ -668,6 +668,13 @@ the owner of the area named. Checked against the code on 2026-11-08 (documentati
   a real phone.
 - App: the audit trail has no screen (TEAM-05; nothing in `app/lib` reads `audit_logs`).
 - App: the browser UAT does not reach the operations screens, reports or search (NFR-07).
+- App: a provider disposed while its fetch waits raises an uncaught error when the fetch goes on
+  (found on #70, 22 November 2026): `DashboardController.fetch` reads `ref` after an await
+  (`insights.dart`, `UnmountedRefException`), and `SwrCache._watch` (`swr_cache.dart`) throws a
+  fetch's `NetworkFailure` or `SessionExpired` once its listener has gone. Screens are right;
+  the errors reach only the handler of uncaught errors (`bootstrap.dart`, which prints them).
+  Read the dependencies before the first await, or ask `ref.mounted` after each, and have
+  `_watch` drop the error of a fetch whose subscriber has cancelled.
 - App: a voided Urdu receipt with tax withheld, a certificate and a note still takes two A5 pages
   (it flows on rather than being cut off); the usual one is one page (UAT D8).
 - App: after the language is chosen, the router drops `/auth/callback` from `from` (it is a
