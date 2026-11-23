@@ -214,6 +214,18 @@ class PathTest(unittest.TestCase):
             ),
         )
 
+    def test_a_relative_move_after_an_open_subpath_counts_from_where_it_ended(self) -> None:
+        # SVG keeps the current point at an open subpath's last point; the fill's closing line
+        # does not move it, so the hole starts at (5, 22) + (7, -8) = (12, 14), not (12, 2).
+        self.assertEqual(
+            bai.parse_path("M5 10H27V22H5m7 -8v4h8v-4z"),
+            bai.parse_path("M5 10H27V22H5ZM12 14V18H20V14Z"),
+        )
+        self.assertEqual(
+            bai.parse_path("M5 10H27V22H5zm7 4v4h8v-4z"),
+            bai.parse_path("M5 10H27V22H5ZM12 14V18H20V14Z"),
+        )  # after Z the current point is the start, (5, 10)
+
     def test_moves_and_still_lines_draw_nothing(self) -> None:
         self.assertEqual(
             bai.parse_path("M0 0M1 1 2 2 1 2L1 2"), bai.parse_path("M1 1 2 2 1 2Z")

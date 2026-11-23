@@ -400,8 +400,11 @@ def parse_path(data: str, *, flags_apart: bool = False) -> tuple[Contour, ...]:
             raise IconError("the path must start with M, and a number cannot follow Z")
         if command in "Mm":
             dx, dy = reader.number(command), reader.number(command)
+            # A relative move counts from the current point: where an open subpath ended, which
+            # closing it for the fill does not change, or the last start after Z.
+            here_x, here_y = x, y
             close()
-            x, y = (x + dx, y + dy) if command == "m" else (dx, dy)
+            x, y = (here_x + dx, here_y + dy) if command == "m" else (dx, dy)
             start = (x, y)
             edges, started = [], True
             command = "l" if command == "m" else "L"  # further pairs draw lines
