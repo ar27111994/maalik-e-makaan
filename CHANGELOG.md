@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/ar27111994/maalik-e-makaan/compare/v1.5.0...v1.5.1) (2026-11-23)
+
+
+### Documentation
+
+* **docs:** record release 1.5.0, and re-running a build that never got a runner ([#122](https://github.com/ar27111994/maalik-e-makaan/issues/122)) ([faa8d6b](https://github.com/ar27111994/maalik-e-makaan/commit/faa8d6b364ba149f3f0d68e9f5300b2450b619c7))
+
 ## [1.5.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.4...v1.5.0) (2026-11-23)
 
 
