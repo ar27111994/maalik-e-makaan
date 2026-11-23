@@ -1283,7 +1283,13 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
      again after it. The artifact is kept for 7 days (`retention-days: 7`), and after that the
      download fails.
    - **A build that failed:** re-run it (Re-run failed jobs, or Re-run this job on it), which
-     GitHub allows for 30 days after the run. Its publish job and the website run again after it,
+     GitHub allows for 30 days after the run. This includes a build GitHub cancelled without
+     starting it, with no runner and no steps and the annotation "The job was not acquired by
+     Runner of type hosted even after multiple attempts". GitHub gives up after about 15 minutes
+     when its macOS arm64 runners are short, as the iOS builds of release 1.5.0 and of CI on the
+     same commit showed (`.planning/STATE.md`, release 1.5.0). It is GitHub's capacity, not the
+     code: re-run it once the queue clears. CI's "CI passed" reports such a job as `abandoned` and
+     fails until a re-run of the failed jobs passes. Its publish job and the website run again after it,
      with the new attempt's artifact.
    - **A publish job that failed, after those 7 days:** its build succeeded, so Re-run failed jobs
      does not run the build again, and the download fails again. Re-run the build job instead,
@@ -1294,6 +1300,13 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
      build, its publish job and the website then run again, with the new attempt's artifact.
    - **Never Re-run all jobs:** release-please then finds the release already made and reports no
      new one, so every build, publish and website job after it is skipped.
+   - **After a newer release:** every re-run that runs the website again deploys it from its own
+     run's tag (`needs.release-please.outputs.tag`), so re-running a build or publish job of an
+     older release once a newer one is out puts the older release's pages and download links back
+     on the website. Look first (`gh release list --limit 1`, or the releases page). If a newer
+     release is out, re-run only if the older release's files are still needed, and then run Site
+     refresh by hand (Actions, Site refresh, Run workflow), which deploys the latest release's
+     website again.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
    `git diff --stat <previous tag> vX.Y.Z -- supabase/templates/` lists it), paste that body into
    its Auth template in the dashboard (E-mail, step 6), with the subject from

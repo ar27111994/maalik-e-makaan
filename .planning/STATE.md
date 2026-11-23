@@ -25,6 +25,27 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   small m. It is now in every icon and in the website's header, favicons and Open Graph cards
   (D-26, `docs/roadmap/app-icon.md`); the owner's look-alike and trade mark check
   (`docs/owner-actions.md`), the iOS Icon Composer file and the store artwork are still to do.
+- Release 1.5.0 was published on 23 November 2026 at 17:02 UTC (tag `v1.5.0`, commit a7d7fae on
+  `main`; the Release run 45223202492). For users it carries #121: the twin-gables mark (D-26) on
+  every app icon, the website's header and favicons and the Open Graph cards. It also carries the
+  records #118 and #120. No migration, and nothing under `supabase/` changed since v1.4.4.
+  **Attempt 1** (17:02 to 17:20 UTC) built, attested and attached the Android and web files,
+  deployed the backend, the web app and then the website. But GitHub cancelled the iOS build at
+  17:17 UTC without ever starting it: no runner, no steps, and the annotations "The job was not
+  acquired by Runner of type hosted even after multiple attempts" and "Due to capacity
+  constraints, jobs targeting macOS arm64 runners may experience longer queue times". The same
+  shortage cancelled CI's iOS build on the same commit (CI run 45223202307), which GitHub then
+  reported to "CI passed" as `abandoned`, so main's CI went red.
+  **Attempt 2:** the agent re-ran the failed jobs of each run once (`docs/operations.md`,
+  Releasing, step 4). The release's iOS build got a runner at 17:20, attached its files at 17:27,
+  and the website was deployed again at 17:28 with the iPhone link. CI's iOS build passed at 17:35,
+  and with it "CI passed".
+  The release has all eleven files, and the agent's check of them (`verify_release.py`, as for
+  1.4.3) passed all 37 checks, with the same limit: it does not chain to Sigstore's root. The
+  iPhone build's 120 px icon (Apple's CgBI PNG, decoded by the agent) is the twin gables on
+  #1D3F8F. `https://mmakaan.app/` serves the new `favicon.svg`, and its download page shows
+  "Version 1.5.0" with the new header mark (read through the Vercel connector, since the proxy
+  refuses the host).
 - Release 1.4.4 was published on 22 November 2026 at 17:08 UTC (tag `v1.4.4`, commit 6d96433 on
   `main`; the Release run 45047683037, one attempt, 17:07 to 17:18 UTC). Every job that ran
   passed; as for 1.4.3, the first Deploy call left the website to the second, and the second left
