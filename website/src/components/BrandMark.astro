@@ -1,23 +1,14 @@
 ---
-/** The site's mark: a house on a cobalt tile. Decorative; the site name beside it is the text. */
-import {
-  MARK_HOUSE_PATH,
-  MARK_STROKE_WIDTH,
-  MARK_TILE_RADIUS,
-  MARK_VIEWBOX,
-} from "../lib/brand.ts";
+/**
+ * The site's mark: the twin-gables house, filled, on a cobalt tile. Decorative; the site name
+ * beside it is the text. In forced colours the tile goes and the house is drawn in the text colour.
+ */
+import { MARK_GLYPH_PATH, MARK_TILE_RADIUS, MARK_VIEWBOX } from "../lib/brand.ts";
 ---
 
 <svg class="brand-mark" viewBox={MARK_VIEWBOX} aria-hidden="true" focusable="false">
-  <rect class="brand-mark__tile" width="32" height="32" rx={MARK_TILE_RADIUS}></rect>
-  <path
-    class="brand-mark__glyph"
-    d={MARK_HOUSE_PATH}
-    fill="none"
-    stroke-width={MARK_STROKE_WIDTH}
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  ></path>
+  <rect class="brand-mark__tile" width="100%" height="100%" rx={MARK_TILE_RADIUS}></rect>
+  <path class="brand-mark__glyph" d={MARK_GLYPH_PATH}></path>
 </svg>
 
 <style>
@@ -32,7 +23,7 @@ import {
   }
 
   .brand-mark__glyph {
-    stroke: var(--mm-color-on-primary);
+    fill: var(--mm-color-on-primary);
   }
 
   @media (forced-colors: active) {
@@ -41,7 +32,7 @@ import {
     }
 
     .brand-mark__glyph {
-      stroke: currentcolor;
+      fill: currentcolor;
     }
   }
 </style>

@@ -23,7 +23,7 @@ import sharp from "sharp";
 import { parse } from "yaml";
 import { SITE } from "../src/config/site.ts";
 import { LOCALE_INFO, LOCALES, type Locale } from "../src/i18n/locales.ts";
-import { markSvg } from "../src/lib/brand.ts";
+import { MARK_VIEWBOX, markSvg } from "../src/lib/brand.ts";
 import { formatMoney, Money } from "../src/lib/money/index.ts";
 
 const root = new URL("../", import.meta.url);
@@ -183,7 +183,7 @@ async function writeIcons(): Promise<void> {
   // Apple's touch icon is square and opaque; the system rounds the corners itself.
   const touch = await sharp(
     Buffer.from(
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="180" height="180"><rect width="32" height="32" fill="${light("primary")}"/>${markSvg(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${MARK_VIEWBOX}" width="180" height="180"><rect width="100%" height="100%" fill="${light("primary")}"/>${markSvg(
         { tile: light("primary"), glyph: light("onPrimary"), size: 32 },
       )
         .replace(/^<svg[^>]*>/, "")
