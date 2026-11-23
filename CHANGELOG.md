@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.4...v1.5.0) (2026-11-23)
+
+
+### Features
+
+* **app:** give the app icons, favicons and social cards the twin-gables mark ([#121](https://github.com/ar27111994/maalik-e-makaan/issues/121)) ([fd1a06f](https://github.com/ar27111994/maalik-e-makaan/commit/fd1a06fe112a125abd7c6a817a042b76b0708471))
+
+
+### Documentation
+
+* **docs:** list every open owner action on one page, docs/owner-actions.md ([#118](https://github.com/ar27111994/maalik-e-makaan/issues/118)) ([3b62428](https://github.com/ar27111994/maalik-e-makaan/commit/3b624283c17b839e9f59b9445b807b33838fb3e3))
+* **docs:** record the reply to the State Bank, the icon's mark and release 1.4.4 ([#120](https://github.com/ar27111994/maalik-e-makaan/issues/120)) ([8dd021b](https://github.com/ar27111994/maalik-e-makaan/commit/8dd021b378ea629780c417c2bcbdddd07486d9dd))
+
 ## [1.4.4](https://github.com/ar27111994/maalik-e-makaan/compare/v1.4.3...v1.4.4) (2026-11-22)
 
 
