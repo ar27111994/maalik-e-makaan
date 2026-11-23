@@ -7,8 +7,35 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
 
 # Project State: Maalik-e-Makaan
 
-## Current Position (2026-11-22)
+## Current Position (2026-11-23)
 
+- **The reply to the State Bank's draft Open Banking Regulations was sent on 23 November 2026**,
+  reported by the owner that day: by e-mail, as a PDF signed by the owner as AR LABS's chief
+  executive and sole director, a week before comments closed on 30 November. The agent drafted it
+  from the draft the owner supplied (the agent's container cannot reach `sbp.org.pk`), and two
+  independent checks matched every quote and section reference against the draft's text. It asks
+  for four changes and makes two further points, each with proposed wording;
+  `docs/roadmap/open-banking.md`, What is true now, lists them. Neither the reply nor the address
+  it went to is kept in the repository.
+- **The app icon's mark was chosen on 23 November 2026: twin gables.** The owner's brief was to
+  keep the house, make it more distinct and memorable, and use the two Ms. Of five concepts scored
+  by three judges (brand, platform and craft), twin gables scored 25 of 30 and the runner-up, a
+  negative M cut into a solid house, 20; the owner chose it from a comparison of both against
+  today's outline house. The roofline is a capital M and two arched doorways cut the walls into a
+  small m. It is now in every icon and in the website's header, favicons and Open Graph cards
+  (D-26, `docs/roadmap/app-icon.md`); the iOS Icon Composer file and the store artwork are still to
+  do.
+- Release 1.4.4 was published on 22 November 2026 at 17:08 UTC (tag `v1.4.4`, commit 6d96433 on
+  `main`; the Release run 45047683037, one attempt, 17:07 to 17:18 UTC). Every job that ran
+  passed; as for 1.4.3, the first Deploy call left the website to the second, and the second left
+  the backend and the web app to the first. For users it carries #115: the earlier account's snack
+  bar goes at once when the account changes. It also carries #113 and #117 (records) and #116,
+  which release-please used for the first time: it set `website/package-lock.json` to 1.4.4 with
+  the other version files (`release-please-config.json`, `extra-files`). No migration, and nothing
+  under `supabase/` changed since v1.4.3. The agent's check of the release files
+  (`verify_release.py`, as for 1.4.3) passed all 37 checks, with the same limit: it does not
+  chain to Sigstore's root, which a person's `gh attestation verify` still has to do
+  (`docs/owner-actions.md`).
 - **Two of the owner's steps, reported by the owner on 22 November 2026** (in answer to the
   question on version 21, below; no date, time or output given):
   1. **The Edge Function secret `ALLOWED_ORIGINS` is `https://app.mmakaan.app` alone**

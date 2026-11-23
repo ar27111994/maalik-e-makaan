@@ -43,10 +43,39 @@ search-engine summaries, because the primary pages could not be fetched.
 - **One report conflicts.** NextGen wrote in August 2026 that a framework had been "rolled out"
   ([NextGen](https://nextgen.pk/news/sbp-open-banking-framework-pakistan)); every other outlet
   describes a draft.
-- **The draft text was not read**
-  ([draft PDF](https://www.sbp.org.pk/assets/document/Open_Banking_Regulations_for_Public_Consulatation_Draft.pdf)).
-  Provider categories, capital, the interface standard, how long a consent lasts and the banks'
-  timetable are unknown.
+- **The draft was read on 23 November 2026**, from a copy of the
+  [PDF](https://www.sbp.org.pk/assets/document/Open_Banking_Regulations_for_Public_Consulatation_Draft.pdf)
+  the owner supplied (17 pages; the agent's container cannot reach `sbp.org.pk`). What matters
+  here:
+  - every provider of account information (AISP) or payment initiation is authorised by the State
+    Bank under the Rules for PSOs/PSPs of 2014 (§6(i)), with a board and an IT steering committee
+    (§9) and a personalised reply to each complaint within 24 hours (Annexure-A);
+  - "transactional history" has no minimum fields (§5.2), so nothing yet requires the sender's
+    name or the Raast or IBFT reference;
+  - each consent request is checked three times: the provider runs NADRA BVS, the bank sends an
+    OTP to the customer's registered mobile, and the customer authorises with an M-PIN or T-PIN
+    in the bank's own app (§7.2, §7.3);
+  - on revocation or expiry, the provider deletes or irreversibly anonymises the data and
+    anything derived from it within 30 days (§13(ii)), and keeps customer data in Pakistan unless
+    a cloud provider under BPRD Circular No. 01 of 2023 holds it (§13(iii));
+  - nothing says who consents for a joint account (§2(ix), §7.2 to §7.5).
+- **AR LABS replied on 23 November 2026**, by e-mail, signed by its chief executive and sole
+  director, as a possible future user of account information (it holds no licence). It asks for
+  four changes, each with proposed wording:
+  - a proportionate, read-only category: a new §6(vi) lets a licensed AISP pass information to a
+    firm the customer names, under written limits, and a new §6(vii) a "Limited AISP" licence for
+    account information only;
+  - minimum fields in transaction data, among them the counterparty's name, the payer's remarks
+    and the Raast or IBFT reference (an addition to §5.2);
+  - consent that can be limited to incoming payments, to a period and with or without the
+    balance (§7.1(i)(e)), and payment reconciliation named as a use case (§5.3.2);
+  - rules for joint and family accounts: who may consent, each holder authenticated on their own
+    mobile, every holder notified and able to revoke (new §7.6 and §7.7).
+
+  It also makes two further points: a provider may rely on NADRA BVS the bank has already done for
+  the consenting person, with the OTP, the M-PIN or T-PIN and §12 still applying (§7.2(i)); and a
+  record the customer has saved as their own, such as a receipt, survives the §13(ii) deletion.
+
 - **"Account information" is already an EMI service** in the State Bank's EMI Regulations
   ([SBP EMI Regulations](https://www.sbp.org.pk/assets/document/C3-Enclosure-Regulations-EMIs.pdf)).
 - **Nothing reads a bank account today.** The schema holds `portfolios.bank_iban`, checked by
@@ -58,8 +87,9 @@ search-engine summaries, because the primary pages could not be fetched.
 
 ## Design
 
-**Comment now.** A response of about two pages, from AR LABS as a prospective user of account
-information, sent by 30 November 2026. Reading the draft PDF is the first step. It asks for:
+**Comment now (sent 23 November 2026).** A response of two pages, from AR LABS as a prospective
+user of account information, sent before comments closed on 30 November 2026 (What is true now
+has what it asked). It asked for:
 
 - a proportionate, read-only account-information category for small software firms;
 - the remitter's name and the Raast or IBFT reference in transaction data, without which rent
@@ -171,7 +201,8 @@ reaches analytics; counts of connections and imports come from server aggregates
 
 ## Questions for the owner
 
-1. Will AR LABS send comments on the draft by 30 November 2026, and who signs them?
+1. Answered on 23 November 2026: AR LABS sent comments, signed by its chief executive and sole
+   director.
 2. Resident landlords' Pakistani accounts only (the research's recommendation), or Pakistani
    accounts held by owners abroad too? Roshan Digital Accounts if the rules allow?
 3. Is a partner provider acceptable, given that landlords consent to it as well as to AR LABS?

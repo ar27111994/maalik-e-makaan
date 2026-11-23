@@ -1,6 +1,6 @@
 # Owner actions
 
-Up to date as of 22 November 2026.
+Up to date as of 23 November 2026.
 
 Everything waiting on you, the owner: what only you can do, and the decisions only you can make.
 Each item says what to do, when it is done and what to tell the agent. Never send a password, a key,
@@ -10,8 +10,8 @@ actions](release-readiness.md#owner-actions) keeps the history.
 
 ## At a glance
 
-- **This week, by 30 November:** [answer the State Bank](#answer-the-state-bank-by-30-november);
-  [ask lawyers for a quote](#ask-lawyers-for-a-fixed-fee-quote-this-month); [chase the D-U-N-S
+- **This week, by 30 November:** [ask lawyers for a
+  quote](#ask-lawyers-for-a-fixed-fee-quote-this-month); [chase the D-U-N-S
   number](#chase-the-d-u-n-s-number-now); [agree the glossary and shortlist
   editors](#agree-the-glossary-and-shortlist-editors-by-30-november); [start recruiting the
   pilot](#start-recruiting-the-pilot-from-late-november). Two take two minutes each: [read two times
@@ -36,24 +36,6 @@ actions](release-readiness.md#owner-actions) keeps the history.
   rules](#standing-rules), [recently done](#recently-done).
 
 ## This week (by 30 November 2026)
-
-### Answer the State Bank (by 30 November)
-
-**Why:** comments on the State Bank's draft open-banking rules close on 30 November, and rent paid
-by bank transfer can only be matched to a tenant if bank data carries the sender's name and the
-transfer reference ([details](roadmap/open-banking.md#design)).
-
-1. Decide whether AR LABS replies, and who signs (not replying is a valid answer).
-2. Read the [draft
-   (PDF)](https://www.sbp.org.pk/assets/document/Open_Banking_Regulations_for_Public_Consulatation_Draft.pdf),
-   which the agent could not open, and ask the agent for a two-page reply asking for: a read-only
-   category for small software firms; the sender's name and the Raast or IBFT reference in
-   transaction data; consent limited to incoming payments; and rules for joint and family accounts.
-3. E-mail it with the subject "Feedback on Draft Open Banking Regulations" (the address is in the
-   State Bank's notice), or post it to its Payment Systems Policy & Oversight Department, Karachi.
-
-**Done when:** sent by 30 November, or you have decided not to. **Then tell the agent:** which, the
-date, who signed, and the text as sent.
 
 ### Ask lawyers for a fixed-fee quote (this month)
 
@@ -138,7 +120,7 @@ many joined of each kind (never names or phone numbers).
 
 **Why:** the Edge Functions got a new version, 21, on 22 November between 13:09 and 13:14 Pakistan
 time (08:09 to 08:14 UTC), and no deploy made it. Your change of `ALLOWED_ORIGINS` most likely did;
-its time settles that ([details](../.planning/STATE.md#current-position-2026-11-22), release 1.4.3).
+its time settles that ([details](../.planning/STATE.md#current-position-2026-11-23), release 1.4.3).
 
 1. In the Supabase dashboard, open the project, then Edge Functions, then Secrets.
 2. Read when `ALLOWED_ORIGINS` and `APP_URL` were last updated. If it shows only "2 hours ago" or
@@ -153,7 +135,7 @@ November between 22:39 and 22:49 Pakistan time would also explain two earlier ve
 ### Delete the branch `claude/publish-dry-run` (two minutes)
 
 **Why:** a push to it would run a test workflow that makes real attestations, and the agent's own
-delete was refused ([details](../.planning/STATE.md#current-position-2026-11-22), "The dry run").
+delete was refused ([details](../.planning/STATE.md#current-position-2026-11-23), "The dry run").
 
 1. On <https://github.com/ar27111994/maalik-e-makaan/branches>, click the branch's bin icon, or run
    `git push origin --delete claude/publish-dry-run` from a clone signed in as you.
@@ -384,13 +366,13 @@ accept it ([details](../.planning/PROJECT.md#open-proposals)).
   3](roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)). PostHog's data
   processing agreement is due earlier, with the [lawyer's
   pack](#ask-lawyers-for-a-fixed-fee-quote-this-month), before any analytics ship.
-- Before the store artwork: screenshots plain or framed with captions, and which screens come first
-  (the overdue list, a receipt, the caretaker handover)
-  ([app-icon](roadmap/app-icon.md#questions-for-the-owner)).
 - Letterheads and onboarding (co-owners, residence and price); how long identity documents are kept,
   with the lawyer; Meta's verification, Firebase and Apple's push key; the AI and speech-to-text
   providers; and the 2027 and 2028 plans (WhatsApp, mandates, tenants, oversight, hostels, Raast
   partners, open banking after the reply).
+- Before the store artwork, with the launch milestone: screenshots plain or framed with captions,
+  and which screens come first (the overdue list, a receipt, the caretaker handover)
+  ([app-icon](roadmap/app-icon.md#questions-for-the-owner)).
 
 ## Checks by hand
 
@@ -574,10 +556,13 @@ DNS record, a Vercel project or an Auth setting.
 
 ## Recently done
 
-- 23 November 2026: the app icon's mark chosen, the twin gables (D-26): a filled house whose two
-  gables make a capital M and whose arched doorways make a small m. It is on the app's launcher
-  icons, the Play icon, the web app's icons and the website's favicons and cards; the iOS Icon
-  Composer file and the store artwork follow ([app-icon](roadmap/app-icon.md)).
+- 23 November 2026: the reply to the State Bank's draft open-banking rules sent by e-mail, the PDF
+  signed by you as chief executive and sole director ([what it
+  asked](roadmap/open-banking.md#what-is-true-now)); and the app icon's mark chosen, the twin gables
+  (D-26): a filled house whose two gables make a capital M and whose arched doorways make a small m.
+  It is on the app's launcher icons, the Play icon, the web app's icons and the website's favicons
+  and cards; the iOS Icon Composer file and the store artwork follow
+  ([app-icon](roadmap/app-icon.md)).
 - 22 November 2026: `ALLOWED_ORIGINS` narrowed to the new web app address (move, step 12), and the
   functions refuse the old one (your check that day answered 403). That change most likely made the
   Edge Functions' version 21 that morning, which [the Secrets
