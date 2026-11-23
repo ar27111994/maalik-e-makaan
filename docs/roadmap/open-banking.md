@@ -43,8 +43,10 @@ search-engine summaries, because the primary pages could not be fetched.
 - **One report conflicts.** NextGen wrote in August 2026 that a framework had been "rolled out"
   ([NextGen](https://nextgen.pk/news/sbp-open-banking-framework-pakistan)); every other outlet
   describes a draft.
-- **The draft was read on 23 November 2026**, from the PDF the owner supplied (17 pages; the
-  agent's container cannot reach `sbp.org.pk`). What matters here:
+- **The draft was read on 23 November 2026**, from a copy of the
+  [PDF](https://www.sbp.org.pk/assets/document/Open_Banking_Regulations_for_Public_Consulatation_Draft.pdf)
+  the owner supplied (17 pages; the agent's container cannot reach `sbp.org.pk`). What matters
+  here:
   - every provider of account information (AISP) or payment initiation is authorised by the State
     Bank under the Rules for PSOs/PSPs of 2014 (§6(i)), with a board and an IT steering committee
     (§9) and a personalised reply to each complaint within 24 hours (Annexure-A);
