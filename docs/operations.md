@@ -1300,6 +1300,13 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
      build, its publish job and the website then run again, with the new attempt's artifact.
    - **Never Re-run all jobs:** release-please then finds the release already made and reports no
      new one, so every build, publish and website job after it is skipped.
+   - **After a newer release:** every re-run that runs the website again deploys it from its own
+     run's tag (`needs.release-please.outputs.tag`), so re-running a build or publish job of an
+     older release once a newer one is out puts the older release's pages and download links back
+     on the website. Look first (`gh release list --limit 1`, or the releases page). If a newer
+     release is out, re-run only if the older release's files are still needed, and then run Site
+     refresh by hand (Actions, Site refresh, Run workflow), which deploys the latest release's
+     website again.
 5. If the release changed a file in `supabase/templates/` (its changelog says so, or
    `git diff --stat <previous tag> vX.Y.Z -- supabase/templates/` lists it), paste that body into
    its Auth template in the dashboard (E-mail, step 6), with the subject from
