@@ -123,11 +123,13 @@ Maalik-e-Makaan.
 - **How it is kept.** The generator reads the outline from `brand.ts` (lines and circular arcs, with
   SVG's rules for arcs), fills it with the exact area of each pixel it covers, and refuses an
   outline that crosses or touches itself or whose holes do not turn the other way (where that
-  exactness would fail), arc flags written together (which Android's vector parser misreads), one
-  that reaches past the adaptive or maskable safe circle (counting each arc's farthest point), and
-  one under 48 dp across. Its tests compare every icon's pixels with an exact render made from the
-  designer's description and pass only if each is that render rounded up or down. The website's
-  header draws the same path, and in forced colours draws the house alone in the text colour.
+  exactness would fail; judged within 1/1024 of a unit of its arcs), numbers written so that
+  Android's vector parser misreads them (arc flags together, a plus sign or a tab between
+  numbers), one that reaches past the adaptive or maskable safe circle (counting each arc's
+  farthest point), and one under 48 dp across. Its tests compare every icon's pixels with an exact
+  render made from the designer's description and pass only if each is that render rounded up or
+  down. The website's header draws the same path, and in forced colours draws the house alone in
+  the text colour.
 
 ### Residence (decision 1)
 

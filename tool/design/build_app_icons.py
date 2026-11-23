@@ -8,9 +8,11 @@ The mark is defined once, in website/src/lib/brand.ts: the "twin gables" house (
 one filled outline of straight lines and circular arcs, on a 32 x 32 tile whose corners have a
 radius of MARK_TILE_RADIUS. The tile takes the `primary` colour token and the house `onPrimary`
 (design/tokens/maalik.tokens.json). The website draws its favicons from the same definition
-(website/scripts/generate-og.ts); this draws the app's. It refuses a glyph that it could not fill
-exactly (check_outline) and one that a platform's mask would cut or that Android would show too
-small (check_geometry).
+(website/scripts/generate-og.ts); this draws the app's. It refuses path data that a browser or
+Android's vector parser would read otherwise (parse_path); a mark whose tile SVG would round
+otherwise, whose house a platform's mask would cut or that Android would show too small
+(check_geometry); and a glyph that it could not fill exactly, judged within 1/1024 of a unit of
+its arcs (check_outline).
 
 The PNGs are rasterised here, with the standard library only, so the check runs wherever the
 other design tools run (CI's hygiene job has Python but not the website's Node packages) and
@@ -65,9 +67,10 @@ import re
 import struct
 import sys
 import zlib
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NoReturn
 
 ROOT = Path(__file__).resolve().parents[2]
 BRAND = Path("website/src/lib/brand.ts")
@@ -137,6 +140,11 @@ class Line:
     start: Point
     end: Point
 
+    def points(self, tolerance: float) -> Iterator[Point]:
+        """The points after the start, as Arc.points gives them: the end alone, at any
+        [tolerance]."""
+        yield self.end
+
 
 @dataclass(frozen=True)
 class Arc:
@@ -169,23 +177,25 @@ class Arc:
         """Whether the arc passes the point of its circle in [direction] from the centre."""
         return self.turn(direction) <= self.turn(_minus(self.end, self.centre))
 
-    def points(self, tolerance: float) -> list[Point]:
+    def points(self, tolerance: float) -> Iterator[Point]:
         """Points after the start, ending at the end, whose chords stray at most [tolerance]
         from the arc: it is cut at every quarter turn, and each piece halved until its chords
-        are close enough."""
+        are close enough. They come one at a time, so a caller can stop part-way."""
         (ux, uy), (vx, vy) = self._frame()
         end = _minus(self.end, self.centre)
         whole = self.turn(end)
         quarters = [(vx, vy), (-ux, -uy), (-vx, -vy)]  # a quarter, a half and three quarters on
         corners = [(ux, uy)] + [q for turn, q in enumerate(quarters, 1) if turn < whole]
         corners.append((end[0] / self.radius, end[1] / self.radius))
-        units = [
+        units = (
             unit
             for before, after in itertools.pairwise(corners)
             for unit in _halves(before, after, self.radius, tolerance)
-        ]
+        )
         cx, cy = self.centre
-        return [(cx + x * self.radius, cy + y * self.radius) for x, y in units[:-1]] + [self.end]
+        for (x, y), _ in itertools.pairwise(units):  # all but the last, which is the end itself
+            yield cx + x * self.radius, cy + y * self.radius
+        yield self.end
 
 
 Edge = Line | Arc
@@ -196,18 +206,20 @@ def _minus(a: Point, b: Point) -> Point:
     return a[0] - b[0], a[1] - b[1]
 
 
-def _halves(start: Point, end: Point, radius: float, tolerance: float) -> list[Point]:
+def _halves(start: Point, end: Point, radius: float, tolerance: float) -> Iterator[Point]:
     """Unit vectors after [start] up to [end] (at most a quarter turn apart, so their sum is never
     short) such that each chord between them, on a circle of [radius], strays at most [tolerance]
     from its arc."""
     dx, dy = end[0] - start[0], end[1] - start[1]
     half_chord_squared = (dx * dx + dy * dy) / 4
     if radius * (1 - math.sqrt(1 - half_chord_squared)) <= tolerance:
-        return [end]
+        yield end
+        return
     sx, sy = start[0] + end[0], start[1] + end[1]
     length = math.sqrt(sx * sx + sy * sy)
     middle = (sx / length, sy / length)
-    return _halves(start, middle, radius, tolerance) + _halves(middle, end, radius, tolerance)
+    yield from _halves(start, middle, radius, tolerance)
+    yield from _halves(middle, end, radius, tolerance)
 
 
 @dataclass(frozen=True)
@@ -221,14 +233,25 @@ class Mark:
     path: str
     contours: tuple[Contour, ...]
 
-    def polygons(self, tolerance: float) -> tuple[tuple[Point, ...], ...]:
+    def polygons(self, tolerance: float, most: int | None = None) -> tuple[tuple[Point, ...], ...]:
         """The contours as polygons (each closed: its last point joins its first), every arc
-        drawn as chords at most [tolerance] from it."""
+        drawn as chords at most [tolerance] from it. With [most], an outline that would take
+        more sides than that is refused as soon as it passes the limit, before the rest of it is
+        drawn: a long arc of a huge circle takes millions of chords."""
         found = []
+        sides = 0
         for contour in self.contours:
             points: list[Point] = [contour[0].start]
             for edge in contour:
-                points += edge.points(tolerance) if isinstance(edge, Arc) else [edge.end]
+                for point in edge.points(tolerance):
+                    sides += 1
+                    if most is not None and sides > most:
+                        raise IconError(
+                            f"the glyph's outline needs more than {most} straight sides to follow "
+                            f"its arcs within {tolerance:g} units: an arc is too large, or there "
+                            "are too many edges"
+                        )
+                    points.append(point)
             found.append(tuple(points[:-1]))  # the last point is the first again
         return tuple(found)
 
@@ -267,38 +290,78 @@ class Mark:
         return min(xs), min(ys), max(xs), max(ys)
 
 
-_SEPARATOR = r"[\s,]*"
-_NUMBER = re.compile(rf"{_SEPARATOR}([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)")
-_FLAG = re.compile(rf"{_SEPARATOR}([01])")  # SVG lets arc flags run together: "a2 2 0 01 4 0"
-# What Android's path parser (libs/hwui/PathParser.cpp, extract()) takes as the end of a number
-# after a flag: a space, a comma or a minus sign. It reads "01" as one number, not as two flags.
-# (At the end of the data, the missing number is the problem.)
-_APART = re.compile(r"[ ,-]|$")
-_COMMAND = re.compile(rf"{_SEPARATOR}([A-Za-z])")
-_REST = re.compile(_SEPARATOR)
+# SVG's path grammar (SVG 2, https://www.w3.org/TR/SVG2/paths.html#PathDataBNF, as SVG 1.1):
+# whitespace is these five characters, and a comma, with whitespace around it, may stand between
+# two arguments (also between repeated groups) and nowhere else: before or after a command
+# letter a browser stops drawing at it. Digits are ASCII: Python's \s, \d and float() also
+# take other characters (a vertical tab, a no-break space, another script's digits).
+_SPACE = re.compile(r"[\t\n\f\r ]*")
+_COMMA_SPACE = re.compile(r"[\t\n\f\r ]*(?:,[\t\n\f\r ]*)?")
+_NUMBER = re.compile(r"[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?")
+_FLAG = re.compile("[01]")  # SVG lets arc flags run together: "a2 2 0 01 4 0"
+_LETTER = re.compile("[A-Za-z]")
+# The Android vector takes the path as it is written, and Android's path parser (AOSP
+# libs/hwui/PathParser.cpp, extract()) ends a number only at a space, a comma, a minus sign (not
+# an exponent's) or the next command's letter. Whatever else follows a number it takes as part of
+# it, and strtof() then reads only as far as it can: "01" is one number, not two flags, "2+2" is
+# 2, "1e1.5" is 10, "1<tab>2" is 1. Nor is any space but a plain one a space to it ("1,<tab>-2"
+# reads -2 twice). So the Android reading wants plain spaces, and after every number one of
+# those, or the end. (A second dot also ends a number there, but that form is refused too, to
+# keep the rule short.)
+_ANDROID_END = re.compile(r"[ ,A-Za-z-]|$")
+_NOT_ANDROID_SPACE = re.compile(r"[\t\n\f\r]")
 
 
 class _PathReader:
-    """Reads an SVG path's data one command or argument at a time; with [flags_apart], each arc
-    flag must be followed by a space, a comma or a minus sign."""
+    """Reads an SVG path's data one command or argument at a time, by SVG's grammar: whitespace
+    around commands and arguments, a comma only between two arguments. With [android], it also
+    refuses what Android's path parser would read otherwise: any space but a plain one, and a
+    number (an arc flag too) followed by anything but a space, a comma, a minus sign, the next
+    command or the end."""
 
-    def __init__(self, data: str, flags_apart: bool = False) -> None:
+    def __init__(self, data: str, android: bool = False) -> None:
         self.data = data
         self.position = 0
-        self.flags_apart = flags_apart
+        self.android = android
+        self.after_argument = False  # whether a comma may come next
+        space = _NOT_ANDROID_SPACE.search(data) if android else None
+        if space:
+            self._misread(space.start())
 
-    def _take(self, pattern: re.Pattern[str]) -> str | None:
-        match = pattern.match(self.data, self.position)
-        if not match:
+    def _misread(self, position: int) -> NoReturn:
+        raise IconError(
+            f"Android's path parser would misread the path at {self.data[position:]!r}: it ends "
+            "a number only at a plain space, a comma, a minus sign or the next command, so keep "
+            "the numbers apart with those"
+        )
+
+    def _take(self, pattern: re.Pattern[str], separator: re.Pattern[str]) -> str | None:
+        """The text [pattern] matches past [separator], taken; None if it is not there."""
+        start = separator.match(self.data, self.position).end()  # always matches
+        found = pattern.match(self.data, start)
+        if not found:
+            if self.data.startswith(",", start):
+                raise IconError(
+                    f"the path has a comma where SVG allows none, at {self.data[start:]!r}: a "
+                    "comma may stand only between two numbers, and a browser stops drawing at "
+                    "any other"
+                )
             return None
-        self.position = match.end()
-        return match.group(1)
+        self.position = found.end()
+        return found.group()
+
+    def _argument(self, pattern: re.Pattern[str]) -> str | None:
+        found = self._take(pattern, _COMMA_SPACE if self.after_argument else _SPACE)
+        if found and self.android and not _ANDROID_END.match(self.data, self.position):
+            self._misread(self.position - len(found))
+        self.after_argument = True
+        return found
 
     def done(self) -> bool:
-        return _REST.fullmatch(self.data, self.position) is not None
+        return _SPACE.match(self.data, self.position).end() == len(self.data)
 
     def number(self, command: str) -> float:
-        found = self._take(_NUMBER)
+        found = self._argument(_NUMBER)
         if found is None:
             raise IconError(f"the path's {command} command lacks a number")
         value = float(found)
@@ -307,23 +370,20 @@ class _PathReader:
         return value
 
     def flag(self, command: str) -> bool:
-        found = self._take(_FLAG)
+        found = self._argument(_FLAG)
         if found is None:
             raise IconError(f"the path's {command} command needs a flag of 0 or 1")
-        if self.flags_apart and not _APART.match(self.data, self.position):
-            raise IconError(
-                f"write each flag of the path's {command} command apart from what follows it (a "
-                "space or a comma): Android's path parser reads flags run together as one number"
-            )
         return found == "1"
 
     def command(self) -> str | None:
         """The next command letter, or None when a number (a repeated argument) comes next."""
-        if _NUMBER.match(self.data, self.position):
+        separator = _COMMA_SPACE if self.after_argument else _SPACE
+        if _NUMBER.match(self.data, separator.match(self.data, self.position).end()):
             return None
-        found = self._take(_COMMAND)
+        found = self._take(_LETTER, _SPACE)
         if found is None:
             raise IconError(f"cannot read the path at {self.data[self.position :].strip()!r}")
+        self.after_argument = False
         return found
 
 
@@ -360,12 +420,13 @@ def _arc(
     return Arc(start, end, centre, radius, clockwise)
 
 
-def parse_path(data: str, *, flags_apart: bool = False) -> tuple[Contour, ...]:
+def parse_path(data: str, *, android: bool = False) -> tuple[Contour, ...]:
     """The contours that an SVG path of straight lines and circular arcs outlines (M, L, H, V,
     A and Z, absolute or relative, with repeated arguments). A filled subpath closes itself, so
     every contour ends where it starts. Curves and elliptical arcs are refused, and with
-    [flags_apart] so are arc flags run together, which SVG allows and Android does not."""
-    reader = _PathReader(data, flags_apart)
+    [android] so is what SVG allows but Android's path parser reads otherwise (arc flags run
+    together, a plus sign or a tab between numbers: see _PathReader)."""
+    reader = _PathReader(data, android)
     contours: list[Contour] = []
     edges: list[Edge] | None = None  # the open subpath's edges, if one is open
     started = False
@@ -459,15 +520,22 @@ def read_mark(path: Path) -> Mark:
     glyph = _constant(source, "MARK_GLYPH_PATH", r'"([^"]*)"')
     return Mark(
         size=float(viewbox[2]),
-        tile_radius=float(_constant(source, "MARK_TILE_RADIUS", r"(\d+(?:\.\d+)?)")),
+        # ASCII digits, as TypeScript reads them: Python's \d and float() take other scripts'.
+        tile_radius=float(_constant(source, "MARK_TILE_RADIUS", r"([0-9]+(?:\.[0-9]+)?)")),
         path=glyph,
         # The Android vector takes the path as it is written (foreground_xml).
-        contours=parse_path(glyph, flags_apart=True),
+        contours=parse_path(glyph, android=True),
     )
 
 
 # The outline's crossings and directions are judged on chords this close to its arcs (mark units).
 OUTLINE_FLATNESS = 1 / 1024
+# check_outline compares every two sides, so it refuses an outline of more sides than this
+# (about 6 s of checking at the limit; the twin gables' 143 take a few milliseconds) rather than
+# run for hours. A whole circle as large as the safe zones allow takes 512 sides at
+# OUTLINE_FLATNESS, so this is room for eight. check_geometry, which build runs first, bounds
+# each arc, but not the number of edges.
+OUTLINE_MOST_SIDES = 8 * 512
 
 
 def _sides(polygon: Sequence[Point]) -> list[tuple[Point, Point]]:
@@ -525,8 +593,16 @@ def check_outline(mark: Mark) -> None:
     nesting judged at its first point (never on another contour) holds for all of it. Such an
     outline winds every point of the glyph once and the same way round, so the non-zero and
     even-odd rules fill the same shape and area_coverage's running sum is each pixel's exact
-    share."""
-    polygons = mark.polygons(OUTLINE_FLATNESS)
+    share. First of all it refuses an outline of more than OUTLINE_MOST_SIDES sides.
+
+    All of this is judged on polygons whose chords stray at most OUTLINE_FLATNESS (1/1024 of a
+    unit) inside each arc, not on the arcs: an edge that comes nearer an arc than its chords sag
+    is judged against the chords. Between an arc and its chords, an edge from outside the arc
+    passes though it cuts into the arc (and the rasteriser, whose chords lie nearer the arc,
+    then counts that sliver twice), and an edge from inside is refused though it clears the arc.
+    So the guarantee holds for an outline whose parts that do not meet stay more than
+    OUTLINE_FLATNESS apart; the twin gables' nearest are 1.7 units apart (a roof and a wall)."""
+    polygons = mark.polygons(OUTLINE_FLATNESS, OUTLINE_MOST_SIDES)
     edges = [side for polygon in polygons for side in _sides(polygon)]
     for index, (p, q) in enumerate(edges):
         for r, s in edges[index + 1 :]:
@@ -1082,9 +1158,27 @@ def manifest_json(current: str, name: str, palette: Palette) -> str:
 
 
 def check_geometry(mark: Mark) -> None:
-    """Refuses a mark whose house a mask would cut, or that Android would show too small. A
-    house inside these circles also lies inside the tile, the rounded tile and the legacy circle,
-    wholly opaque there."""
+    """Refuses a mark whose tile a browser would draw otherwise (corners of a radius over half
+    its side, which SVG draws as half), whose house a mask would cut, or that Android would show
+    too small.
+
+    A house that passes lies inside the tile, at every size. A square of side s whose corners
+    have a radius r <= s/2 contains the circle of radius s/2 about its centre: its edges are s/2
+    from the centre, and each corner's arc, centred a = s/2 - r from it along both axes, comes
+    nearest at its ends, sqrt(a^2 + (a + r)^2) >= a + r = s/2 away. The legacy round icons'
+    circle is the case r = s/2. The adaptive limit keeps the house within 33/72 of the side of
+    the centre (33 dp at 2.25 dp a unit: 14.67 of the 32 units) and the maskable one within
+    0.4 * 16/15 of it (13.65 units), both short of s/2 (16 units). The house passes both, so it
+    stays at least 0.073 s inside: 2.35 px on the 32 px favicon, the smallest tile drawn. That
+    is more than the 1.21 px (half a pixel's diagonal and half a pixel of shape_coverage's ramp)
+    that keeps every pixel the house touches wholly opaque, as render assumes; a tile under
+    17 px across would need a check of its own."""
+    if not 0 <= mark.tile_radius <= mark.size / 2:
+        raise IconError(
+            f"MARK_TILE_RADIUS must be from 0 to {mark.size / 2:g} (half the tile's side), not "
+            f"{mark.tile_radius:g}: SVG draws a larger one as half the side, so the website's "
+            "tile and the icons' would differ"
+        )
     reach = mark.reach()
     dp = ADAPTIVE_VISIBLE_DP / mark.size
     if reach * dp > ADAPTIVE_SAFE_DIAMETER_DP / 2:
@@ -1118,8 +1212,10 @@ def build(root: Path) -> Outputs:
     mark = read_mark(root / BRAND)
     palette = read_palette(root / TOKENS)
     name = read_app_name(root / APP_STRINGS)
-    check_outline(mark)
+    # Geometry first: it measures each arc where it runs, while check_outline draws arcs as
+    # chords, so an arc far outside the tile is refused before it is drawn.
     check_geometry(mark)
+    check_outline(mark)
     manifest = root / WEB / "manifest.json"
     adaptive = adaptive_icon_xml()
     texts = {

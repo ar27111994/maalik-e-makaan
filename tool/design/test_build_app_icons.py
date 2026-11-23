@@ -16,6 +16,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 import zlib
+from html.parser import HTMLParser
 from pathlib import Path
 from unittest import mock
 
@@ -284,26 +285,90 @@ class PathTest(unittest.TestCase):
         # line, and ends 1e-150 apart still have a square.
         (flat,) = bai.parse_path("M0 0 A1e154 1e154 0 0 1 4 0")
         self.assertEqual(flat[0].radius, 1e154)
-        self.assertEqual(flat[0].points(1e-3), [(4, 0)])
+        self.assertEqual(list(flat[0].points(1e-3)), [(4, 0)])
         (tiny,) = bai.parse_path("M0 0 A1 1 0 1 1 1e-150 0")
         self.assertAlmostEqual(tiny[0].radius, 1)
 
-    def test_flags_apart_as_android_reads_them(self) -> None:
-        # SVG lets arc flags run together; Android's parser splits numbers only at a space, a
-        # comma or a minus sign, so the mark (read with flags_apart) must keep them apart.
-        compact = "M0 0a2 2 0 01 4 0"
-        self.assertEqual(bai.parse_path(compact), bai.parse_path("M0 0a2 2 0 0 1 4 0"))
-        for path in ("M0 0a2 2 0 0 1 4 0", "M0 0a2,2,0,0,1,4,0", "M4 0a2 2 0 0 1-4 0"):
+    def test_commas_stand_only_between_arguments(self) -> None:
+        # SVG 2's path grammar: a comma, with whitespace around it, between two arguments (also
+        # between repeated groups); only whitespace before or after a command letter. A browser
+        # stops drawing at a comma anywhere else, so the generator refuses it.
+        square = bai.parse_path("M5 10H27V22H5Z")
+        for path in (
+            "M5,10H27V22H5Z",
+            "M5 , 10 L27 ,10 , 27 22,5 22Z",
+            " M 5 10 H 27 V 22 H 5 Z ",
+            "M5\t10\nH27\rV22\fH5 Z",  # SVG's five whitespace characters
+        ):
             with self.subTest(path=path):
-                bai.parse_path(path, flags_apart=True)
-        for path in (compact, "M0 0a2 2 0 0 1.5 0", "M0 0a2 2 0 0\t1 4 0"):
+                self.assertEqual(bai.parse_path(path), square)
+        for path, rest in (
+            ("M5 10H27,V22H5Z", ",V22H5Z"),  # before a command
+            (",M5 10H27V22H5Z", ",M5 10H27V22H5Z"),
+            ("M5 10H27V22H5 ,Z", ",Z"),
+            ("M,5 10H27V22H5Z", ",5 10H27V22H5Z"),  # after a command
+            ("M5 10H27V22H5Z,M5 10H6V11Z", ",M5 10H6V11Z"),
+            ("M5,,10H27V22H5Z", ",10H27V22H5Z"),  # two between arguments
+            ("M5 10H27V22H5Z,", ","),  # after the last
+        ):
             with (
                 self.subTest(path=path),
-                self.assertRaisesRegex(bai.IconError, "Android's path parser reads flags"),
+                self.assertRaisesRegex(
+                    bai.IconError, re.escape(f"has a comma where SVG allows none, at {rest!r}")
+                ),
             ):
-                bai.parse_path(path, flags_apart=True)
+                bai.parse_path(path)
+        # SVG's whitespace and ASCII digits only: not a vertical tab, a no-break space or another
+        # script's digits (Eastern Arabic five), which Python's \s, \d and float() all take.
+        for path in ("M5\v10H27V22H5Z", "M5\u00a010H27V22H5Z", "M\u0665 10H27V22H5Z"):
+            with (
+                self.subTest(path=path),
+                self.assertRaisesRegex(bai.IconError, "the path's M command lacks a number"),
+            ):
+                bai.parse_path(path)
+
+    def test_the_android_reading_refuses_what_android_misreads(self) -> None:
+        # The Android vector takes the mark's path as written, and Android's path parser (AOSP
+        # libs/hwui/PathParser.cpp) ends a number only at a plain space, a comma, a minus sign or
+        # the next command: to it a flag, a plus sign, a dot or a tab after a number is part of
+        # that number. So the mark is read with android=True, which refuses all of them.
+        compact = "M0 0a2 2 0 01 4 0"
+        self.assertEqual(bai.parse_path(compact), bai.parse_path("M0 0a2 2 0 0 1 4 0"))
+        for path in (
+            "M0 0a2 2 0 0 1 4 0",
+            "M0 0a2,2,0,0,1,4,0",
+            "M4 0a2 2 0 0 1-4 0",  # a minus sign ends a number
+            "M0 0L-1-2 3,-4 5 , 6Z",
+            "M+1 2 L +3 4,+5 6",  # a plus sign after a command, a space or a comma
+            "M0 0L1e+2 3E-1 2e1-3Z",  # an exponent's sign is its number's own
+            GABLES,
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(bai.parse_path(path, android=True), bai.parse_path(path))
+        for path, at in (
+            (compact, "01 4 0"),  # Android reads one number, 1
+            ("M0 0a2 2 0 0 1.5 0", "1.5 0"),
+            ("M0 0A2+2 0 0 0 4 0", "2+2 0 0 0 4 0"),  # a plus sign as the separator
+            ("M0 0L1+2", "1+2"),
+            ("M0 0L1e1.5 2 3", "1e1.5 2 3"),  # Android reads 10 and loses the .5
+            ("M0 0L.5.5", ".5.5"),  # one Android would split, refused to keep the rule simple
+            ("M0 0L1\t2", "\t2"),  # Android reads 1 and loses the 2
+            ("M0 0L1\n2", "\n2"),
+            ("M0 0L1,\t-2", "\t-2"),  # Android reads -2 twice
+            ("M0 0L1 2\rZ", "\rZ"),
+            ("\fM0 0L1 2", "\fM0 0L1 2"),
+            ("M0 0a2 2 0 0\t1 4 0", "\t1 4 0"),
+        ):
+            with (
+                self.subTest(path=path),
+                self.assertRaisesRegex(
+                    bai.IconError,
+                    re.escape(f"Android's path parser would misread the path at {at!r}: it ends"),
+                ),
+            ):
+                bai.parse_path(path, android=True)
         with self.assertRaisesRegex(bai.IconError, "the path's a command lacks a number"):
-            bai.parse_path("M0 0a2 2 0 0 1", flags_apart=True)
+            bai.parse_path("M0 0a2 2 0 0 1", android=True)
 
 
 class ArcTest(unittest.TestCase):
@@ -375,18 +440,26 @@ class InputsTest(unittest.TestCase):
         for old, new, problem in (
             ('"M6 24V18', 'HOUSE + "M6 24V18', "MARK_GLYPH_PATH as a plain literal"),
             ("export const MARK_TILE_RADIUS = 8;", "", "MARK_TILE_RADIUS as a plain literal"),
+            # An ASCII number, as TypeScript needs (not an Eastern Arabic eight).
+            ("MARK_TILE_RADIUS = 8;", "MARK_TILE_RADIUS = \u0668;", "MARK_TILE_RADIUS as a plain"),
             ('MARK_VIEWBOX = "0 0 32 32"', 'MARK_VIEWBOX = "0 0 32 24"', "a square"),
             ('MARK_VIEWBOX = "0 0 32 32"', 'MARK_VIEWBOX = "4 4 32 32"', "from the origin"),
             ('fill="${glyph}"/>', 'fill="${glyph}" stroke="${glyph}"/>', "strokes the mark"),
             ('fill="${glyph}"/>', 'fill="none" stroke-width="2"/>', "strokes the mark"),
             ("A2 2 0 0 0 18 16.5", "C22 14 18 14 18 16.5", "command C is not supported"),
             # As SVGO writes arcs: SVG reads it, Android's vector parser would not.
-            ("A2 2 0 0 0 18 16.5", "A2 2 0 00 18 16.5", "Android's path parser reads flags"),
+            ("A2 2 0 0 0 18 16.5", "A2 2 0 00 18 16.5", "Android's path parser would misread"),
+            ("A2 2 0 0 0 18 16.5", "A2+2 0 0 0 18 16.5", "would misread the path at '2+2 0 0"),
         ):
             with self.subTest(new=new):
                 self.assertIn(old, source)
                 with self.assertRaisesRegex(bai.IconError, re.escape(problem)):
                     bai.read_mark(self.brand(source.replace(old, new)))
+        # A radius past half the tile's side is read, and refused by check_geometry.
+        wide = bai.read_mark(self.brand(source.replace("RADIUS = 8;", "RADIUS = 16.5;")))
+        self.assertEqual(wide.tile_radius, 16.5)
+        with self.assertRaisesRegex(bai.IconError, "MARK_TILE_RADIUS must be from 0 to 16"):
+            bai.check_geometry(wide)
 
     def test_the_palette_comes_from_the_tokens(self) -> None:
         palette = bai.read_palette(bai.ROOT / bai.TOKENS)
@@ -461,6 +534,74 @@ class OutlineTest(unittest.TestCase):
             with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, problem):
                 bai.check_outline(mark(path))
 
+    def test_arcs_are_judged_by_their_chords(self) -> None:
+        # check_outline judges the polygon of chords within OUTLINE_FLATNESS of each arc, not the
+        # arc itself, so an edge that comes that close to an arc can be judged either way. On a
+        # circle of radius 8: the chord after its top, how far it sags inside the arc, and which
+        # way is out.
+        circle = "M8 16A8 8 0 0 1 24 16A8 8 0 0 1 8 16Z"
+        (polygon,) = mark(circle).polygons(bai.OUTLINE_FLATNESS)
+        top = polygon.index((16, 8))
+        (x0, y0), (x1, y1) = polygon[top], polygon[top + 1]
+        mx, my = (x0 + x1) / 2 - 16, (y0 + y1) / 2 - 16
+        middle = math.hypot(mx, my)  # from the centre to the chord
+        sag = 8 - middle
+        self.assertTrue(1e-4 < sag <= bai.OUTLINE_FLATNESS)
+        nx, ny = mx / middle, my / middle
+
+        def triangle(depth: float, apex: float) -> str:
+            """A triangle whose base, 0.1 long, runs along the chord [depth] outside it, and whose
+            apex is [apex] further out: an island when that is outwards, else a hole."""
+            d = middle + depth
+            corners = [
+                (16 + nx * d - ny * 0.05, 16 + ny * d + nx * 0.05),
+                (16 + nx * d + ny * 0.05, 16 + ny * d - nx * 0.05),
+                (16 + nx * (d + apex), 16 + ny * (d + apex)),
+            ]
+            if (bai._signed_area(corners) > 0) != (apex > 0):  # a hole turns the other way
+                corners.reverse()
+            return "M" + "L".join(f"{x!r} {y!r}" for x, y in corners) + "Z"
+
+        # An island whose base lies between the chord and the arc overlaps the circle, yet passes;
+        # a hole there lies wholly inside the circle, yet is refused.
+        self.assertLess(middle + sag / 2, 8)  # the island's base runs inside the circle
+        self.assertLess(math.hypot(middle + sag / 2, 0.05), 8)  # the hole's base, ends and all
+        bai.check_outline(mark(circle + triangle(sag / 2, 1)))
+        with self.assertRaisesRegex(bai.IconError, "crosses itself near"):
+            bai.check_outline(mark(circle + triangle(sag / 2, -1)))
+        # Inside the chord, the hole passes and the island is refused, as the arcs would be.
+        bai.check_outline(mark(circle + triangle(-sag / 2, -1)))
+        with self.assertRaisesRegex(bai.IconError, "crosses itself near"):
+            bai.check_outline(mark(circle + triangle(-sag / 2, 1)))
+
+    def test_an_outline_too_detailed_to_check_is_refused(self) -> None:
+        # A long arc of a circle 1e9 units across would take millions of chords, compared in
+        # pairs: the check stops once the outline passes its limit, before drawing the rest.
+        with self.assertRaisesRegex(bai.IconError, "needs more than 4096 straight sides"):
+            bai.check_outline(mark("M10 16A1000000000 1000000000 0 1 1 22 16Z"))
+        # An arc counts its chords and a line one side, up to the limit and not past it.
+        half = mark("M12 16A4 4 0 0 1 20 16Z")
+        sides = sum(len(polygon) for polygon in half.polygons(bai.OUTLINE_FLATNESS))
+        self.assertEqual(sides, 129)  # 128 chords and the line back
+        with mock.patch.object(bai, "OUTLINE_MOST_SIDES", sides):
+            bai.check_outline(half)
+        with (
+            mock.patch.object(bai, "OUTLINE_MOST_SIDES", sides - 1),
+            self.assertRaisesRegex(bai.IconError, "needs more than 128 straight sides"),
+        ):
+            bai.check_outline(half)
+        with mock.patch.object(bai, "OUTLINE_MOST_SIDES", 6):
+            bai.check_outline(mark("M10 4H22L28 16L22 28H10L4 16Z"))  # a hexagon
+            with self.assertRaisesRegex(bai.IconError, "needs more than 6 straight sides"):
+                bai.check_outline(mark("M10 4H22L28 14L26 24L16 28L6 24L4 14Z"))
+        # The limit leaves room for eight whole circles as large as the safe zones allow (the
+        # maskable one: 13.65 units), each 512 sides; the twin gables take 143.
+        circle = mark("M2.4 16A13.6 13.6 0 1 1 29.6 16A13.6 13.6 0 1 1 2.4 16Z")
+        bai.check_geometry(circle)
+        self.assertEqual(sum(map(len, circle.polygons(bai.OUTLINE_FLATNESS))), 512)
+        self.assertEqual(sum(map(len, mark(GABLES).polygons(bai.OUTLINE_FLATNESS))), 143)
+        self.assertEqual(bai.OUTLINE_MOST_SIDES, 8 * 512)
+
     def test_the_doubled_outline_would_have_been_filled_wrongly(self) -> None:
         # Why touching is refused: the square drawn twice fills its edge pixels whole, where a
         # browser fills them by half, and adds 45 to its area.
@@ -494,6 +635,44 @@ class GeometryTest(unittest.TestCase):
         self.assertEqual(mark("M12 6A4 4 0 0 1 20 6Z").reach(), 14)
         self.assertAlmostEqual(mark("M12 6A4 4 0 0 0 20 6Z").reach(), math.hypot(4, 10))
         self.assertEqual(mark("M12 16A4 4 0 0 1 20 16Z").reach(), 4)  # around the centre itself
+
+    def test_the_tile_corners_are_at_most_half_its_side(self) -> None:
+        # SVG draws a rect's rx as at most half its width, so a larger MARK_TILE_RADIUS would draw
+        # one tile on the website and another here. Half the side draws a circle.
+        contours = bai.parse_path(GABLES)
+        for radius in (0, 8, 16):
+            bai.check_geometry(bai.Mark(32, radius, GABLES, contours))
+        for radius in (16.25, 40, -1):
+            with (
+                self.subTest(radius=radius),
+                self.assertRaisesRegex(
+                    bai.IconError,
+                    re.escape(
+                        f"MARK_TILE_RADIUS must be from 0 to 16 (half the tile's side), not {radius:g}"
+                    ),
+                ),
+            ):
+                bai.check_geometry(bai.Mark(32, radius, GABLES, contours))
+
+    def test_the_reach_limits_keep_the_house_inside_the_tile(self) -> None:
+        # check_geometry's argument: the adaptive limit is 33/72 of the tile's side from its
+        # centre (14.67 units of 32) and the maskable one 0.4 * 16/15 (13.65 units), both short
+        # of the 16 units of the circle every tile with corners of at most 16 contains.
+        self.assertAlmostEqual(33 / 2.25, 14.6667, places=4)
+        adaptive = bai.ADAPTIVE_SAFE_DIAMETER_DP / 2 / (bai.ADAPTIVE_VISIBLE_DP / 32)
+        maskable = bai.MASKABLE_SAFE_SHARE / 2 / bai.MASKABLE_GLYPH_SCALE * 32
+        self.assertEqual((round(adaptive, 4), round(maskable, 4)), (14.6667, 13.6533))
+        self.assertLess(max(adaptive, maskable), 16)
+        # Every point of a corner's arc is at least 16 from the centre, the nearest at its ends.
+        for radius in (0, 4, 8, 12, 16):
+            corner = 16 - radius  # the corner arc's centre, from the tile's centre on each axis
+            arc = [
+                math.hypot(corner + radius * math.cos(t), corner + radius * math.sin(t))
+                for t in (math.pi / 2 * k / 64 for k in range(65))
+            ]
+            with self.subTest(radius=radius):
+                self.assertAlmostEqual(min(arc), math.hypot(corner, corner + radius))
+                self.assertGreaterEqual(min(arc), 16 - 1e-12)
 
     def test_a_house_past_a_limit_is_refused(self) -> None:
         for path, problem in (
@@ -926,6 +1105,23 @@ class OutputsTest(unittest.TestCase):
             / size
         )
 
+    def test_the_house_lies_where_the_tile_is_opaque(self) -> None:
+        # check_geometry's argument, on every icon with an alpha channel: each pixel the house
+        # touches is wholly opaque, inside the tile's or the circle's anti-aliased edge.
+        found = 0
+        for icon in bai.icons(self.palette):
+            if icon.alpha:
+                _, image = self.outputs.images[icon.path]
+                scale = icon.size * icon.share * icon.glyph_scale / 32
+                offset = (icon.size - 32 * scale) / 2
+                glyph = bai.fill_coverage(self.gables, icon.size, scale, offset)
+                alphas = {a for a, cover in zip(image[3::4], glyph, strict=True) if cover}
+                with self.subTest(path=icon.path):
+                    self.assertEqual(alphas, {255})
+                    self.assertLess(min(image[3::4]), 255 if icon.shape != "square" else 256)
+                found += 1
+        self.assertEqual(found, 14)  # ten legacy icons, Play, the favicon and two web icons
+
     def test_the_maskable_icons_keep_the_house_inside_the_safe_circle(self) -> None:
         for size in (192, 512):
             with self.subTest(size=size):
@@ -992,15 +1188,32 @@ class OutputsTest(unittest.TestCase):
         self.assertEqual(sum(icon.get("purpose") == "maskable" for icon in manifest["icons"]), 2)
 
     def test_the_web_page_links_generated_icons(self) -> None:
-        page = (bai.ROOT / bai.WEB / "index.html").read_text(encoding="utf-8")
-        links = re.findall(r'<link rel="(?:icon|apple-touch-icon)"[^>]*href="([^"]+)"', page)
-        self.assertEqual(len(links), 2)
-        for link in links:
-            self.assertIn(f"{bai.WEB}/{link}", self.outputs.images)
+        # Each icon link's rel with its own href, whatever the attributes' order: two links that
+        # swapped their files would fail here.
+        icons: list[tuple[str, str]] = []
+
+        class Links(HTMLParser):
+            def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+                found = dict(attrs)
+                if tag == "link" and "icon" in (found.get("rel") or ""):
+                    icons.append((found["rel"], found.get("href")))
+
+        Links().feed((bai.ROOT / bai.WEB / "index.html").read_text(encoding="utf-8"))
+        self.assertEqual(
+            sorted(icons),
+            [("apple-touch-icon", "icons/Icon-apple-180.png"), ("icon", "favicon.png")],
+        )
+        # Each points to a generated icon, committed as generated: the favicon is the 32 px tile,
+        # transparent outside its rounded corners.
+        for _, href in icons:
+            path = f"{bai.WEB}/{href}"
+            with self.subTest(href=href):
+                self.assertIsNone(bai._image_problem(bai.ROOT, path, *self.outputs.images[path]))
+        self.assertEqual(self.size_and_type(f"{bai.WEB}/favicon.png"), (32, 32, bai.RGBA))
+        self.assertEqual(pixels(*self.outputs.images[f"{bai.WEB}/favicon.png"])[0][3], 0)
         # iOS shows transparency as black, so its touch icon is an opaque full square; and it
         # applies no maskable circle, so the house there is at the tile's scale, as on the iOS
         # app icon, not shrunk as on the maskable icons.
-        self.assertIn("icons/Icon-apple-180.png", links)
         touch = f"{bai.WEB}/icons/Icon-apple-180.png"
         self.assertEqual(self.size_and_type(touch), (180, 180, bai.RGB))
         self.assertAlmostEqual(self.reach(touch), self.reach(f"{bai.WEB}/icons/Icon-512.png"), 2)
@@ -1096,6 +1309,17 @@ class WriteAndCheckTest(unittest.TestCase):
         with self.assertRaisesRegex(bai.IconError, "maskable"):
             bai.write(self.root)
         self.assertEqual({path: path.read_bytes() for path in self.root.rglob("*.png")}, before)
+
+    def test_a_house_past_the_safe_zone_is_refused_before_its_outline_is_drawn(self) -> None:
+        # check_geometry measures each arc where it runs, so it refuses this long arc of a
+        # circle 1e9 units across before check_outline would draw it as chords.
+        brand = self.root / bai.BRAND
+        source = brand.read_text(encoding="utf-8")
+        huge = source.replace(GABLES, "M10 16A1000000000 1000000000 0 1 1 22 16Z")
+        self.assertNotEqual(huge, source)
+        brand.write_text(huge, encoding="utf-8")
+        with self.assertRaisesRegex(bai.IconError, r"reaches \d+\.\d\d dp from the adaptive icon"):
+            bai.problems(self.root)
 
     def test_a_losslessly_reencoded_icon_is_left_alone(self) -> None:
         bai.write(self.root)
