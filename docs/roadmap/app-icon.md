@@ -123,13 +123,16 @@ Maalik-e-Makaan.
 - **How it is kept.** The generator reads the outline from `brand.ts` (lines and circular arcs, with
   SVG's rules for arcs), fills it with the exact area of each pixel it covers, and refuses an
   outline that crosses or touches itself or whose holes do not turn the other way (where that
-  exactness would fail; judged within 1/1024 of a unit of its arcs), numbers written so that
-  Android's vector parser misreads them (arc flags together, a plus sign or a tab between
-  numbers), one that reaches past the adaptive or maskable safe circle (counting each arc's
-  farthest point), and one under 48 dp across. Its tests compare every icon's pixels with an exact
-  render made from the designer's description and pass only if each is that render rounded up or
-  down. The website's header draws the same path, and in forced colours draws the house alone in
-  the text colour.
+  exactness would fail; judged within 1/1024 of a unit of its arcs); path data that browsers may
+  read otherwise (a comma anywhere but between two numbers, a number that ends in a dot such as
+  `18.`) or Android's vector parser may (arc flags together, a plus sign or a tab between
+  numbers); a number more than 1e9 from 0, on which Android, browsers and the generator part
+  ways; a `MARK_VIEWBOX` other than `0 0 N N`, the square `markSvg`'s tile fills; a tile corner
+  radius over half its side; a house that reaches past the adaptive or maskable safe circle
+  (counting each arc's farthest point); and one under 48 dp across. Its tests compare every icon's
+  pixels with an exact render made from the designer's description and pass only if each is that
+  render rounded up or down. The website's header draws the same path, and in forced colours draws
+  the house alone in the text colour.
 
 ### Residence (decision 1)
 
@@ -170,8 +173,8 @@ letterheads are not ready at the first submission, the set is updated when they 
 
 - **Thin strokes disappear at small sizes or under Liquid Glass.** The chosen mark is filled: walls,
   pier and doorways are 4 units and the roof over each doorway 3.8; only the eaves are thinner, 2 by
-  3 unit points (at most 1.7 units thick) that soften at 16 px. Check them again in every appearance
-  when the Icon Composer file is made.
+  3 unit points (at most 1.66 units thick) that soften at 16 px. Check them again in every
+  appearance when the Icon Composer file is made.
 - **A look-alike or a registered mark.** A roof that makes an M is a known property-logo idea, and
   some people read the mark as a letter before a house. No look-alike or trade mark search has been
   done (the agent cannot reach the sites); the owner's check is in [owner

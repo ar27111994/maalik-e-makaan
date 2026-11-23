@@ -8,11 +8,12 @@ The mark is defined once, in website/src/lib/brand.ts: the "twin gables" house (
 one filled outline of straight lines and circular arcs, on a 32 x 32 tile whose corners have a
 radius of MARK_TILE_RADIUS. The tile takes the `primary` colour token and the house `onPrimary`
 (design/tokens/maalik.tokens.json). The website draws its favicons from the same definition
-(website/scripts/generate-og.ts); this draws the app's. It refuses path data that a browser or
-Android's vector parser would read otherwise (parse_path); a mark whose tile SVG would round
-otherwise, whose house a platform's mask would cut or that Android would show too small
-(check_geometry); and a glyph that it could not fill exactly, judged within 1/1024 of a unit of
-its arcs (check_outline).
+(website/scripts/generate-og.ts); this draws the app's. It refuses a viewBox other than the
+square markSvg's tile fills (read_mark); path data that browsers or Android's vector parser may
+read otherwise, or with numbers too large for them all to draw alike (parse_path); a mark whose
+tile SVG would round otherwise, whose house a platform's mask would cut or that Android would
+show too small (check_geometry); and a glyph that it could not fill exactly, judged within
+1/1024 of a unit of its arcs (check_outline).
 
 The PNGs are rasterised here, with the standard library only, so the check runs wherever the
 other design tools run (CI's hygiene job has Python but not the website's Node packages) and
@@ -292,12 +293,16 @@ class Mark:
 
 # SVG's path grammar (SVG 2, https://www.w3.org/TR/SVG2/paths.html#PathDataBNF, as SVG 1.1):
 # whitespace is these five characters, and a comma, with whitespace around it, may stand between
-# two arguments (also between repeated groups) and nowhere else: before or after a command
-# letter a browser stops drawing at it. Digits are ASCII: Python's \s, \d and float() also
-# take other characters (a vertical tab, a no-break space, another script's digits).
+# two arguments (also between repeated groups) and nowhere else; browsers differ on a comma
+# anywhere else (Chrome reads past one before a command letter but stops at one after Z). A dot
+# in a number needs a digit after it, as browsers read numbers: Firefox and Chrome stop drawing
+# at "18." or "1.e1" (SVG 1.1's grammar let a number end in a dot; Android reads one too). Digits
+# are ASCII: Python's \s, \d and float() also take other characters (a vertical tab, a no-break
+# space, another script's digits).
 _SPACE = re.compile(r"[\t\n\f\r ]*")
 _COMMA_SPACE = re.compile(r"[\t\n\f\r ]*(?:,[\t\n\f\r ]*)?")
-_NUMBER = re.compile(r"[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][-+]?[0-9]+)?")
+_NUMBER = re.compile(r"[-+]?(?:[0-9]*\.[0-9]+|[0-9]+)(?:[eE][-+]?[0-9]+)?")
+_LONE_DOT = re.compile(r"\.(?![0-9])")  # after a number, the dot of "18." or "1.e1"
 _FLAG = re.compile("[01]")  # SVG lets arc flags run together: "a2 2 0 01 4 0"
 _LETTER = re.compile("[A-Za-z]")
 # The Android vector takes the path as it is written, and Android's path parser (AOSP
@@ -305,19 +310,26 @@ _LETTER = re.compile("[A-Za-z]")
 # an exponent's) or the next command's letter. Whatever else follows a number it takes as part of
 # it, and strtof() then reads only as far as it can: "01" is one number, not two flags, "2+2" is
 # 2, "1e1.5" is 10, "1<tab>2" is 1. Nor is any space but a plain one a space to it ("1,<tab>-2"
-# reads -2 twice). So the Android reading wants plain spaces, and after every number one of
-# those, or the end. (A second dot also ends a number there, but that form is refused too, to
-# keep the rule short.)
+# reads -2 twice). The drawable's XML would not hold those spaces as written either: XML turns a
+# tab, LF or CR in an attribute into a space and forbids a form feed; it is PathParser, given
+# them directly, that misreads them. So the Android reading wants plain spaces, and after every
+# number one of those, or the end. (A second dot also ends a number there, but that form is
+# refused too, to keep the rule short.)
 _ANDROID_END = re.compile(r"[ ,A-Za-z-]|$")
 _NOT_ANDROID_SPACE = re.compile(r"[\t\n\f\r]")
+# The largest number a path may hold, either side of 0. The mark lives on a 32-unit tile, and the
+# readers part ways on numbers far beyond it: Android's parser fails on one past a 32-bit float
+# (strtof overflows at about 3.4e38), Skia skips an arc whose radius is 1e20 or more, and this
+# generator misjudges how far an arc turns once its radius passes about 1e16.
+PATH_NUMBER_MOST = 1e9
 
 
 class _PathReader:
     """Reads an SVG path's data one command or argument at a time, by SVG's grammar: whitespace
-    around commands and arguments, a comma only between two arguments. With [android], it also
-    refuses what Android's path parser would read otherwise: any space but a plain one, and a
-    number (an arc flag too) followed by anything but a space, a comma, a minus sign, the next
-    command or the end."""
+    around commands and arguments, a comma only between two arguments, a digit after every dot,
+    and no number beyond PATH_NUMBER_MOST from 0. With [android], it also refuses what Android's
+    path parser may read otherwise: any space but a plain one, and a number (an arc flag too)
+    followed by anything but a space, a comma, a minus sign, the next command or the end."""
 
     def __init__(self, data: str, android: bool = False) -> None:
         self.data = data
@@ -330,7 +342,7 @@ class _PathReader:
 
     def _misread(self, position: int) -> NoReturn:
         raise IconError(
-            f"Android's path parser would misread the path at {self.data[position:]!r}: it ends "
+            f"Android's path parser may misread the path at {self.data[position:]!r}: it ends "
             "a number only at a plain space, a comma, a minus sign or the next command, so keep "
             "the numbers apart with those"
         )
@@ -343,8 +355,9 @@ class _PathReader:
             if self.data.startswith(",", start):
                 raise IconError(
                     f"the path has a comma where SVG allows none, at {self.data[start:]!r}: a "
-                    "comma may stand only between two numbers, and a browser stops drawing at "
-                    "any other"
+                    "comma may stand only between two numbers, and browsers differ on a comma "
+                    "anywhere else (Chrome reads past one before a command letter but stops at "
+                    "one after Z)"
                 )
             return None
         self.position = found.end()
@@ -352,6 +365,12 @@ class _PathReader:
 
     def _argument(self, pattern: re.Pattern[str]) -> str | None:
         found = self._take(pattern, _COMMA_SPACE if self.after_argument else _SPACE)
+        if found and _LONE_DOT.match(self.data, self.position):
+            raise IconError(
+                "the path has a number that ends in a dot, at "
+                f"{self.data[self.position - len(found) :]!r}: browsers read a dot only with a "
+                "digit after it, and stop drawing there"
+            )
         if found and self.android and not _ANDROID_END.match(self.data, self.position):
             self._misread(self.position - len(found))
         self.after_argument = True
@@ -365,8 +384,12 @@ class _PathReader:
         if found is None:
             raise IconError(f"the path's {command} command lacks a number")
         value = float(found)
-        if not math.isfinite(value):
-            raise IconError(f"the path's {command} command has a number too large to draw: {found}")
+        if abs(value) > PATH_NUMBER_MOST:  # infinity too
+            raise IconError(
+                f"the path's {command} command has the number {found}, more than "
+                f"{PATH_NUMBER_MOST:g} from 0: Android, browsers and this generator do not draw "
+                "numbers that large alike, and the mark lives on a 32-unit tile"
+            )
         return value
 
     def flag(self, command: str) -> bool:
@@ -382,7 +405,10 @@ class _PathReader:
             return None
         found = self._take(_LETTER, _SPACE)
         if found is None:
-            raise IconError(f"cannot read the path at {self.data[self.position :].strip()!r}")
+            # Past SVG's whitespace only: str.strip() would also take a vertical tab, a no-break
+            # space or a NEL, the very character that stops the reading.
+            rest = self.data[_SPACE.match(self.data, self.position).end() :]
+            raise IconError(f"cannot read the path at {rest!r}")
         self.after_argument = False
         return found
 
@@ -423,9 +449,11 @@ def _arc(
 def parse_path(data: str, *, android: bool = False) -> tuple[Contour, ...]:
     """The contours that an SVG path of straight lines and circular arcs outlines (M, L, H, V,
     A and Z, absolute or relative, with repeated arguments). A filled subpath closes itself, so
-    every contour ends where it starts. Curves and elliptical arcs are refused, and with
-    [android] so is what SVG allows but Android's path parser reads otherwise (arc flags run
-    together, a plus sign or a tab between numbers: see _PathReader)."""
+    every contour ends where it starts. Curves and elliptical arcs are refused, so are what
+    browsers read otherwise (a number that ends in a dot, a comma anywhere but between two
+    numbers) and numbers beyond PATH_NUMBER_MOST, and with [android] so is what SVG allows but
+    Android's path parser may read otherwise (arc flags run together, a plus sign or a tab
+    between numbers: see _PathReader)."""
     reader = _PathReader(data, android)
     contours: list[Contour] = []
     edges: list[Edge] | None = None  # the open subpath's edges, if one is open
@@ -512,14 +540,30 @@ def _constant(source: str, name: str, pattern: str) -> str:
 
 def read_mark(path: Path) -> Mark:
     source = path.read_text(encoding="utf-8")
-    viewbox = _constant(source, "MARK_VIEWBOX", r'"([^"]*)"').split()
-    if len(viewbox) != 4 or viewbox[:2] != ["0", "0"] or viewbox[2] != viewbox[3]:
-        raise IconError(f"MARK_VIEWBOX must be a square from the origin, not {viewbox}")
+    # Exactly as the website writes it into its SVGs, in ASCII digits: Python's split() and
+    # float() would also take a no-break space, another script's digits, "3.2e1" or "nan".
+    viewbox = _constant(source, "MARK_VIEWBOX", r'"([^"]*)"')
+    square = re.fullmatch(r"0 0 ([1-9][0-9]*) \1", viewbox)
+    if not square:
+        raise IconError(
+            f'MARK_VIEWBOX must be a square from the origin, "0 0 N N" in ASCII digits, not '
+            f"{viewbox!r}"
+        )
+    side = square.group(1)
+    # markSvg draws the tile as a <rect> that must fill that square, or the website's favicons
+    # would show another tile than the icons here.
+    rect = re.search(r'<rect width="([^"]*)" height="([^"]*)"', source)
+    if not rect or rect.groups() != (side, side):
+        drawn = f"it has {rect.group()} ...>" if rect else "it has no such <rect>"
+        raise IconError(
+            f'markSvg in {BRAND} must draw the tile as <rect width="{side}" height="{side}" ...>, '
+            f"the square MARK_VIEWBOX sets; {drawn}"
+        )
     if re.search(r"\bstroke[\w-]*=", source):
         raise IconError(f"{BRAND} strokes the mark, which is filled: the icons here have no stroke")
     glyph = _constant(source, "MARK_GLYPH_PATH", r'"([^"]*)"')
     return Mark(
-        size=float(viewbox[2]),
+        size=float(side),
         # ASCII digits, as TypeScript reads them: Python's \d and float() take other scripts'.
         tile_radius=float(_constant(source, "MARK_TILE_RADIUS", r"([0-9]+(?:\.[0-9]+)?)")),
         path=glyph,
@@ -600,8 +644,11 @@ def check_outline(mark: Mark) -> None:
     is judged against the chords. Between an arc and its chords, an edge from outside the arc
     passes though it cuts into the arc (and the rasteriser, whose chords lie nearer the arc,
     then counts that sliver twice), and an edge from inside is refused though it clears the arc.
-    So the guarantee holds for an outline whose parts that do not meet stay more than
-    OUTLINE_FLATNESS apart; the twin gables' nearest are 1.7 units apart (a roof and a wall)."""
+    So the verdict is the arcs' own only for an outline in which no edge comes within twice
+    OUTLINE_FLATNESS of an arc (a chord strays up to that from its arc, so two arcs' chords up to
+    twice) except at a corner they share, and there not between the arc and its last chord. The
+    twin gables' arches stay 3.82 units from every edge they share no corner with (the roofs),
+    and each wall meets its arch along the arch's tangent, outside its circle."""
     polygons = mark.polygons(OUTLINE_FLATNESS, OUTLINE_MOST_SIDES)
     edges = [side for polygon in polygons for side in _sides(polygon)]
     for index, (p, q) in enumerate(edges):
