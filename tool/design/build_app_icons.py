@@ -322,6 +322,15 @@ _NOT_ANDROID_SPACE = re.compile(r"[\t\n\f\r]")
 # (strtof overflows at about 3.4e38), Skia skips an arc whose radius is 1e20 or more, and this
 # generator misjudges how far an arc turns once its radius passes about 1e16.
 PATH_NUMBER_MOST = 1e9
+# The farthest a point the path reaches may lie from 0 on either axis, its moves included.
+# Android, Chrome and Firefox add a path's relative steps up in 32-bit floats, which hold a number
+# under 2048 to 2^-13 of a unit but read 999999990 as 1e9: "M999999990 0m-999999984 24" starts
+# at (6, 24) here and at (0, 24) there.
+PATH_POINT_MOST = 1024
+# An arc's ends must lie at least 1/ARC_LEAST_SPAN of its radius apart. Chrome finds an arc's
+# angles in 32-bit floats: with its ends 2e-5 of the radius apart or nearer, it may draw a small
+# arc as its whole circle and a large one as nothing.
+ARC_LEAST_SPAN = 1024
 
 
 class _PathReader:
@@ -389,6 +398,13 @@ class _PathReader:
                 f"the path's {command} command has the number {found}, more than "
                 f"{PATH_NUMBER_MOST:g} from 0: Android, browsers and this generator do not draw "
                 "numbers that large alike, and the mark lives on a 32-unit tile"
+            )
+        mantissa, _, exponent = found.lower().partition("e")
+        if len(mantissa.lstrip("+-").partition(".")[0]) >= 40 or (exponent and int(exponent) > 38):
+            raise IconError(
+                f"the path's {command} command writes the number {found}, which Chrome stops "
+                "drawing at: it reads 40 or more digits before a dot, or an exponent over 38, as "
+                "no number"
             )
         return value
 
@@ -462,6 +478,15 @@ def parse_path(data: str, *, android: bool = False) -> tuple[Contour, ...]:
     start = (0.0, 0.0)
     command = ""
 
+    def reached(command: str) -> None:
+        if max(abs(x), abs(y)) > PATH_POINT_MOST:
+            raise IconError(
+                f"the path's {command} command reaches ({x:g}, {y:g}), more than "
+                f"{PATH_POINT_MOST} from 0 on an axis: Android and browsers add a path up in "
+                "32-bit floats, which do not hold such points exactly, and the mark lives on a "
+                "32-unit tile"
+            )
+
     def close() -> None:
         nonlocal edges, x, y
         if edges is not None and (x, y) != start:
@@ -494,6 +519,7 @@ def parse_path(data: str, *, android: bool = False) -> tuple[Contour, ...]:
             here_x, here_y = x, y
             close()
             x, y = (here_x + dx, here_y + dy) if command == "m" else (dx, dy)
+            reached(command)
             start = (x, y)
             edges, started = [], True
             command = "l" if command == "m" else "L"  # further pairs draw lines
@@ -510,7 +536,15 @@ def parse_path(data: str, *, android: bool = False) -> tuple[Contour, ...]:
             large, clockwise = reader.flag(command), reader.flag(command)
             dx, dy = reader.number(command), reader.number(command)
             x, y = (x + dx, y + dy) if command == "a" else (dx, dy)
+            reached(command)
             edge = _arc(here, (x, y), rx, ry, large, clockwise)
+            if isinstance(edge, Arc) and math.dist(here, (x, y)) * ARC_LEAST_SPAN < edge.radius:
+                raise IconError(
+                    f"the arc from {here!r} to {(x, y)!r} has its ends less than "
+                    f"1/{ARC_LEAST_SPAN} of its radius ({edge.radius:g}) apart: Chrome, in 32-bit "
+                    "floats, may draw such an arc as its whole circle, or a nearly whole one as "
+                    "nothing; draw a line, or a circle as two arcs"
+                )
         else:
             if command in "Ll":
                 dx, dy = reader.number(command), reader.number(command)
@@ -521,6 +555,7 @@ def parse_path(data: str, *, android: bool = False) -> tuple[Contour, ...]:
             else:
                 value = reader.number(command)
                 y = y + value if command == "v" else value
+            reached(command)
             edge = Line(here, (x, y)) if (x, y) != here else None
         if edge is not None:
             edges.append(edge)

@@ -126,8 +126,9 @@ Maalik-e-Makaan.
   exactness would fail; judged within 1/1024 of a unit of its arcs); path data that browsers may
   read otherwise (a comma anywhere but between two numbers, a number that ends in a dot such as
   `18.`) or Android's vector parser may (arc flags together, a plus sign or a tab between
-  numbers); a number more than 1e9 from 0, on which Android, browsers and the generator part
-  ways; a `MARK_VIEWBOX` other than `0 0 N N`, the square `markSvg`'s tile fills; a tile corner
+  numbers); a number more than 1e9 from 0, a point more than 1,024 from 0, an arc whose ends lie
+  under 1/1024 of its radius apart, or a number Chrome reads as none (40 or more digits before
+  the dot, an exponent over 38), on which Android, browsers and the generator part ways; a `MARK_VIEWBOX` other than `0 0 N N`, the square `markSvg`'s tile fills; a tile corner
   radius over half its side; a house that reaches past the adaptive or maskable safe circle
   (counting each arc's farthest point); and one under 48 dp across. Its tests compare every icon's
   pixels with an exact render made from the designer's description and pass only if each is that

@@ -296,8 +296,8 @@ class PathTest(unittest.TestCase):
             with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, re.escape(problem)):
                 bai.parse_path(path)
         # Just inside those limits: ends 1e-150 apart still have a square.
-        (tiny,) = bai.parse_path("M0 0 A1 1 0 1 1 1e-150 0")
-        self.assertAlmostEqual(tiny[0].radius, 1)
+        tiny = bai._arc((0, 0), (1e-150, 0), 1, 1, large=True, clockwise=True)
+        self.assertAlmostEqual(tiny.radius, 1)
         # The arc's own limits, which the bound on numbers now keeps the path from reaching: a
         # radius whose square, or ends whose distance, would leave a float's range.
         for start, end, radius, problem in (
@@ -315,9 +315,11 @@ class PathTest(unittest.TestCase):
         flat = bai._arc((0, 0), (4, 0), 1e154, 1e154, large=False, clockwise=True)
         self.assertEqual(flat.radius, 1e154)
         self.assertEqual(list(flat.points(1e-3)), [(4, 0)])
-        (largest,) = bai.parse_path("M0 0 A1e9 1e9 0 0 1 4 0")
-        self.assertEqual(largest[0].radius, 1e9)
-        self.assertEqual(list(largest[0].points(1e-3)), [(4, 0)])
+        (widest,) = bai.parse_path("M0 0 A4096 4096 0 0 1 4 0")
+        self.assertEqual(widest[0].radius, 4096)
+        for path in ("M0 0 A4097 4097 0 0 1 4 0", "M0 0 A1e9 1e9 0 0 1 4 0"):
+            with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, "1/1024 of its"):
+                bai.parse_path(path)
 
     def test_numbers_far_beyond_the_tile_are_refused(self) -> None:
         # The mark lives on a 32-unit tile, and the readers part ways on numbers far beyond it:
@@ -326,8 +328,8 @@ class PathTest(unittest.TestCase):
         # at most 1e9 from 0, in either reading; 1e9 itself is allowed.
         for android in (False, True):
             self.assertEqual(
-                bai.parse_path("M-1e9 0L1000000000 0 0 1E+9Z", android=android),
-                bai.parse_path("M-1000000000 0L1e9 0 0 1e9Z"),
+                bai.parse_path("M0 0A2 2 -1e9 0 1 4 0Z", android=android),
+                bai.parse_path("M0 0A2 2 1000000000 0 1 4 0Z"),
             )
             for path, problem in (
                 ("M1e309 0 4 4 0 4", "M command has the number 1e309, more than 1e+09 from 0"),
@@ -345,6 +347,43 @@ class PathTest(unittest.TestCase):
                     bai.parse_path(path, android=android)
         with self.assertRaisesRegex(bai.IconError, "Android, browsers and this generator do not"):
             bai.parse_path("M0 0 L1e20 0")
+
+    def test_what_32_bit_renderers_draw_otherwise_is_refused(self) -> None:
+        rest = GABLES.removeprefix("M6 24")
+        gables = bai.parse_path(GABLES, android=True)
+        # Points beyond 1024 units: 32-bit floats read 999999990 as 1e9.
+        for start, problem in (
+            ("M999999990 0m-999999984 24", "M command reaches (1e+09, 0), more than 1024"),
+            ("M16777217 0m-16777211 24", "M command reaches (1.67772e+07, 0), more than 1024"),
+        ):
+            with (
+                self.subTest(start=start),
+                self.assertRaisesRegex(bai.IconError, re.escape(problem)),
+            ):
+                bai.parse_path(start + rest, android=True)
+        self.assertEqual(bai.parse_path("M1000 0m-994 24" + rest, android=True), gables)
+        self.assertEqual(len(bai.parse_path("M0 0L1024 0 0 1Z")), 1)
+        for path in ("M0 0L1024.5 0 0 1Z", "M0 0H-1025", "M0 0V2000", "M0 0A2 2 0 0 1 1025 0"):
+            with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, "more than 1024"):
+                bai.parse_path(path)
+        # An arc whose ends are under 1/1024 of its radius apart: Chrome may draw it whole.
+        for old, new in (
+            ("A2 2 0 0 0 18 16.5", "A1e9 1e9 0 0 0 18 16.5"),
+            ("L28 18H26", "L28 18A1000 1000 0 0 0 27.99999 18H26"),
+            ("A2 2 0 0 0 10 16.5", "A0.1 0.1 0 1 1 13.99999 16.5L10 16.5"),
+        ):
+            with self.subTest(new=new), self.assertRaisesRegex(bai.IconError, "1/1024 of its"):
+                bai.parse_path(GABLES.replace(old, new), android=True)
+        # Numbers in forms Chrome reads as none, whatever their value.
+        for number in ("0e39", "-0.0E+039", "0" * 38 + "27"):
+            with (
+                self.subTest(number=number),
+                self.assertRaisesRegex(bai.IconError, f"writes the number {re.escape(number)}"),
+            ):
+                bai.parse_path(f"M5 10h{number}H27V22H5Z", android=True)
+        for number in ("0e38", "0e+038", "1e-50", "0" * 37 + "27", "27." + "0" * 60):
+            with self.subTest(number=number):
+                bai.parse_path(f"M5 10h{number}H27V22H5Z", android=True)
 
     def test_a_number_needs_a_digit_after_its_dot(self) -> None:
         # Browsers read a dot in a number only with a digit after it: Firefox and Chrome stop
@@ -572,6 +611,11 @@ class InputsTest(unittest.TestCase):
             ),
             (
                 '<rect width="32" height="32"',
+                '<rect width="32" height="31"',
+                'sets; it has <rect width="32" height="31" ...>',
+            ),
+            (
+                '<rect width="32" height="32"',
                 '<rect height="32" width="32"',
                 "it has no such <rect>",
             ),
@@ -732,7 +776,7 @@ class OutlineTest(unittest.TestCase):
         # A long arc of a circle 1e9 units across would take millions of chords, compared in
         # pairs: the check stops once the outline passes its limit, before drawing the rest.
         with self.assertRaisesRegex(bai.IconError, "needs more than 4096 straight sides"):
-            bai.check_outline(mark("M10 16A1000000000 1000000000 0 1 1 22 16Z"))
+            bai.check_outline(mark("M10 16A12000 12000 0 1 1 22 16Z"))
         # An arc counts its chords and a line one side, up to the limit and not past it.
         half = mark("M12 16A4 4 0 0 1 20 16Z")
         sides = sum(len(polygon) for polygon in half.polygons(bai.OUTLINE_FLATNESS))
@@ -1484,7 +1528,7 @@ class WriteAndCheckTest(unittest.TestCase):
         # circle 1e9 units across before check_outline would draw it as chords.
         brand = self.root / bai.BRAND
         source = brand.read_text(encoding="utf-8")
-        huge = source.replace(GABLES, "M10 16A1000000000 1000000000 0 1 1 22 16Z")
+        huge = source.replace(GABLES, "M10 16A12000 12000 0 1 1 22 16Z")
         self.assertNotEqual(huge, source)
         brand.write_text(huge, encoding="utf-8")
         with self.assertRaisesRegex(bai.IconError, r"reaches \d+\.\d\d dp from the adaptive icon"):
