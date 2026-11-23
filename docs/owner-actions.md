@@ -13,7 +13,8 @@ actions](release-readiness.md#owner-actions) keeps the history.
 - **This week, by 30 November:** [ask lawyers for a
   quote](#ask-lawyers-for-a-fixed-fee-quote-this-month); [chase the D-U-N-S
   number](#chase-the-d-u-n-s-number-now); [agree the glossary and shortlist
-  editors](#agree-the-glossary-and-shortlist-editors-by-30-november); [start recruiting the
+  editors](#agree-the-glossary-and-shortlist-editors-by-30-november); [check the mark against
+  look-alikes](#check-the-mark-against-look-alikes-by-30-november); [start recruiting the
   pilot](#start-recruiting-the-pilot-from-late-november). Two take two minutes each: [read two times
   on the Secrets page](#read-two-times-on-the-secrets-page-two-minutes) and [delete a
   branch](#delete-the-branch-claudepublish-dry-run-two-minutes).
@@ -101,6 +102,20 @@ launch](#review-the-urdu-and-hire-an-editor)
 
 **Done when:** you have answered and three editors are shortlisted. **Then tell the agent:** your
 answers, and that the shortlist is ready (no names needed).
+
+### Check the mark against look-alikes (by 30 November)
+
+**Why:** a roof that makes an M is a known property-logo idea, and the agent could not reach the
+sites to check whether the twin gables looks like another property app's icon or a registered mark.
+The website shows the mark from the next release, and the store listings will carry it
+([details](roadmap/app-icon.md#risks)).
+
+1. Open the app icons of makaan.com, Zameen, Graana, Agency21 and Lamudi side by side with the twin
+   gables.
+2. Search IPO Pakistan's trade mark register for similar marks in classes 9, 36 and 42.
+
+**Done when:** both are done. **Then tell the agent:** nothing close, or which icon or mark looks
+close (a screenshot, or its application number).
 
 ### Start recruiting the pilot (from late November)
 
@@ -561,8 +576,8 @@ DNS record, a Vercel project or an Auth setting.
   asked](roadmap/open-banking.md#what-is-true-now)); and the app icon's mark chosen, the twin gables
   (D-26): a filled house whose two gables make a capital M and whose arched doorways make a small m.
   It is on the app's launcher icons, the Play icon, the web app's icons and the website's favicons
-  and cards; the iOS Icon Composer file and the store artwork follow
-  ([app-icon](roadmap/app-icon.md)).
+  and cards; [the look-alike check](#check-the-mark-against-look-alikes-by-30-november), the iOS
+  Icon Composer file and the store artwork follow ([app-icon](roadmap/app-icon.md)).
 - 22 November 2026: `ALLOWED_ORIGINS` narrowed to the new web app address (move, step 12), and the
   functions refuse the old one (your check that day answered 403). That change most likely made the
   Edge Functions' version 21 that morning, which [the Secrets

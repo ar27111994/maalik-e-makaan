@@ -18,7 +18,8 @@ gives the same pixels on every machine: the arithmetic is addition, subtraction,
 division and square roots, which IEEE 754 rounds the same everywhere (no sine or cosine from the C
 library). Arcs become chords that stray at most FLATNESS pixels from them, and a pixel's coverage
 is the exact share of its square that the outline encloses, summed edge by edge along each row: no
-SVG renderer is needed, and no pixel differs from an exact render by more than rounding. The
+SVG renderer is needed, and every pixel is its exact coverage rounded up or down (within one level
+in 255). The
 check decodes each PNG and compares its format (size, bit depth, colour type) and its pixels, not
 its bytes: another zlib build, other row filters or a lossless optimiser that keeps the format
 give the same image. A file converted to another colour type or bit depth fails, because the
@@ -48,6 +49,8 @@ Outputs (all committed):
     favicon.png, icons/Icon-192.png, icons/Icon-512.png,
     icons/Icon-maskable-192.png, icons/Icon-maskable-512.png (the house at 15/16 of its size,
         inside the maskable safe circle)
+    icons/Icon-apple-180.png   the home-screen icon iOS takes from index.html's apple-touch-icon:
+        an opaque full square, the house at the tile's scale as on the iOS app icon
     manifest.json: name and short_name (appName in app/lib/l10n/arb/app_en.arb),
         theme_color (`primary`) and background_color (`bg`); its other keys are kept
 """
@@ -62,7 +65,7 @@ import re
 import struct
 import sys
 import zlib
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -267,16 +270,22 @@ class Mark:
 _SEPARATOR = r"[\s,]*"
 _NUMBER = re.compile(rf"{_SEPARATOR}([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)")
 _FLAG = re.compile(rf"{_SEPARATOR}([01])")  # SVG lets arc flags run together: "a2 2 0 01 4 0"
+# What Android's path parser (libs/hwui/PathParser.cpp, extract()) takes as the end of a number
+# after a flag: a space, a comma or a minus sign. It reads "01" as one number, not as two flags.
+# (At the end of the data, the missing number is the problem.)
+_APART = re.compile(r"[ ,-]|$")
 _COMMAND = re.compile(rf"{_SEPARATOR}([A-Za-z])")
 _REST = re.compile(_SEPARATOR)
 
 
 class _PathReader:
-    """Reads an SVG path's data one command or argument at a time."""
+    """Reads an SVG path's data one command or argument at a time; with [flags_apart], each arc
+    flag must be followed by a space, a comma or a minus sign."""
 
-    def __init__(self, data: str) -> None:
+    def __init__(self, data: str, flags_apart: bool = False) -> None:
         self.data = data
         self.position = 0
+        self.flags_apart = flags_apart
 
     def _take(self, pattern: re.Pattern[str]) -> str | None:
         match = pattern.match(self.data, self.position)
@@ -292,12 +301,20 @@ class _PathReader:
         found = self._take(_NUMBER)
         if found is None:
             raise IconError(f"the path's {command} command lacks a number")
-        return float(found)
+        value = float(found)
+        if not math.isfinite(value):
+            raise IconError(f"the path's {command} command has a number too large to draw: {found}")
+        return value
 
     def flag(self, command: str) -> bool:
         found = self._take(_FLAG)
         if found is None:
             raise IconError(f"the path's {command} command needs a flag of 0 or 1")
+        if self.flags_apart and not _APART.match(self.data, self.position):
+            raise IconError(
+                f"write each flag of the path's {command} command apart from what follows it (a "
+                "space or a comma): Android's path parser reads flags run together as one number"
+            )
         return found == "1"
 
     def command(self) -> str | None:
@@ -315,7 +332,8 @@ def _arc(
 ) -> Edge | None:
     """The edge an SVG arc command draws, by SVG 2's rules (appendix F.6): none between equal
     ends, a line when a radius is 0, and a radius too short to span the ends lengthened until it
-    does. Only circular arcs are drawn here (rx equal to ry, so the rotation does not matter)."""
+    does. Only circular arcs are drawn here (rx equal to ry, so the rotation does not matter), and
+    only where their squares and their centre stay within a float's range."""
     if start == end:
         return None
     rx, ry = abs(rx), abs(ry)
@@ -325,20 +343,29 @@ def _arc(
         raise IconError(f"the mark's arcs must be circular, not {rx:g} by {ry:g}")
     hx, hy = (start[0] - end[0]) / 2, (start[1] - end[1]) / 2
     half_squared = hx * hx + hy * hy
+    if not half_squared:
+        raise IconError(
+            f"the arc from ({start[0]:g}, {start[1]:g}) ends too close to its start to draw"
+        )
     radius = max(rx, math.sqrt(half_squared))
     # The centre lies on the chord's perpendicular bisector, on the side the two flags choose.
     along = math.sqrt(max(0.0, radius * radius - half_squared) / half_squared)
     if large == clockwise:
         along = -along
     centre = (along * hy + (start[0] + end[0]) / 2, -along * hx + (start[1] + end[1]) / 2)
+    if not all(math.isfinite(value) for value in (*centre, radius)):
+        raise IconError(
+            f"the arc from ({start[0]:g}, {start[1]:g}) of radius {rx:g} is too large to draw"
+        )
     return Arc(start, end, centre, radius, clockwise)
 
 
-def parse_path(data: str) -> tuple[Contour, ...]:
+def parse_path(data: str, *, flags_apart: bool = False) -> tuple[Contour, ...]:
     """The contours that an SVG path of straight lines and circular arcs outlines (M, L, H, V,
     A and Z, absolute or relative, with repeated arguments). A filled subpath closes itself, so
-    every contour ends where it starts. Curves and elliptical arcs are refused."""
-    reader = _PathReader(data)
+    every contour ends where it starts. Curves and elliptical arcs are refused, and with
+    [flags_apart] so are arc flags run together, which SVG allows and Android does not."""
+    reader = _PathReader(data, flags_apart)
     contours: list[Contour] = []
     edges: list[Edge] | None = None  # the open subpath's edges, if one is open
     started = False
@@ -431,7 +458,8 @@ def read_mark(path: Path) -> Mark:
         size=float(viewbox[2]),
         tile_radius=float(_constant(source, "MARK_TILE_RADIUS", r"(\d+(?:\.\d+)?)")),
         path=glyph,
-        contours=parse_path(glyph),
+        # The Android vector takes the path as it is written (foreground_xml).
+        contours=parse_path(glyph, flags_apart=True),
     )
 
 
@@ -460,6 +488,21 @@ def _crosses(p: Point, q: Point, r: Point, s: Point) -> bool:
     return _side(p, q, r) * _side(p, q, s) < 0 and _side(r, s, p) * _side(r, s, q) < 0
 
 
+def _on(a: Point, b: Point, c: Point) -> bool:
+    """Whether [c] lies on the edge from [a] to [b], its ends included."""
+    return (
+        _side(a, b, c) == 0
+        and min(a[0], b[0]) <= c[0] <= max(a[0], b[0])
+        and min(a[1], b[1]) <= c[1] <= max(a[1], b[1])
+    )
+
+
+def _touches(p: Point, q: Point, r: Point, s: Point) -> bool:
+    """Whether two edges meet without crossing: an end of one lies on the other (edges that
+    share a corner, run along each other or end on each other)."""
+    return _on(p, q, r) or _on(p, q, s) or _on(r, s, p) or _on(r, s, q)
+
+
 def _encloses(polygon: Sequence[Point], point: Point) -> bool:
     x, y = point
     inside = False
@@ -471,16 +514,32 @@ def _encloses(polygon: Sequence[Point], point: Point) -> bool:
 
 def check_outline(mark: Mark) -> None:
     """Refuses a glyph that the rasteriser could not fill exactly: an outline that crosses
-    itself, a contour that encloses nothing, or contours whose directions do not alternate with
-    their nesting (a hole turns against the contour around it). What is left winds every point of
-    the glyph once and the same way round, so the non-zero and even-odd rules fill the same shape
-    and area_coverage's running sum is each pixel's exact share."""
+    itself, or touches itself anywhere but where one edge follows another along a contour (the
+    same shape drawn twice, a contour on another's edge); a contour that encloses nothing; or
+    contours whose directions do not alternate with their nesting (a hole turns against the
+    contour around it). What is left are contours that meet nowhere but at the corners where one
+    edge follows another, so each lies wholly inside or wholly outside every other one, and the
+    nesting judged at its first point (never on another contour) holds for all of it. Such an
+    outline winds every point of the glyph once and the same way round, so the non-zero and
+    even-odd rules fill the same shape and area_coverage's running sum is each pixel's exact
+    share."""
     polygons = mark.polygons(OUTLINE_FLATNESS)
     edges = [side for polygon in polygons for side in _sides(polygon)]
     for index, (p, q) in enumerate(edges):
         for r, s in edges[index + 1 :]:
             if _crosses(p, q, r, s):
                 raise IconError(f"the glyph's outline crosses itself near ({p[0]:g}, {p[1]:g})")
+    numbered = [
+        (number, index, side)
+        for number, polygon in enumerate(polygons)
+        for index, side in enumerate(_sides(polygon))
+    ]
+    for position, (number, index, (p, q)) in enumerate(numbered):
+        last = len(polygons[number]) - 1
+        for other, later, (r, s) in numbered[position + 1 :]:
+            follows = other == number and (later == index + 1 or (index, later) == (0, last))
+            if not follows and _touches(p, q, r, s):
+                raise IconError(f"the glyph's outline touches itself near ({p[0]:g}, {p[1]:g})")
     turns = set()
     for index, polygon in enumerate(polygons):
         area = _signed_area(polygon)
@@ -598,15 +657,17 @@ def _add_edge(cells: list[float], size: int, start: Point, end: Point) -> None:
         cells[base + last] += height * tail_area
 
 
-def area_coverage(polygons: Iterable[Sequence[Point]], size: int) -> list[float]:
+def area_coverage(polygons: Sequence[Sequence[Point]], size: int) -> list[float]:
     """The share (0 to 1) of each pixel of a [size] x [size] image, row after row, that the
     closed [polygons] (in pixel coordinates) cover: exact wherever no point is wound twice or
-    both ways, which check_outline ensures for the mark. What lies outside the canvas is clamped
-    onto its edge, which keeps the winding of every point inside it."""
+    both ways, which check_outline ensures for the mark. The polygons must lie on the canvas,
+    their edges included (check_geometry keeps the mark well inside it); one that does not is
+    refused, since moving its corners onto the canvas would move its sloping edges too."""
+    if any(not (0 <= x <= size and 0 <= y <= size) for polygon in polygons for x, y in polygon):
+        raise IconError(f"the glyph runs off the {size} x {size} canvas")
     cells = [0.0] * (size * size + 2)  # the last row's changes may fall two cells past its end
     for polygon in polygons:
-        points = [(min(max(x, 0.0), size), min(max(y, 0.0), size)) for x, y in polygon]
-        for start, end in _sides(points):
+        for start, end in _sides(polygon):
             _add_edge(cells, size, start, end)
     return [min(abs(total), 1.0) for total in itertools.accumulate(cells[: size * size])]
 
@@ -891,10 +952,13 @@ def icons(palette: Palette) -> list[Icon]:
             glyph=TINTED_GLYPH,
             alpha=False,
         ),
-        # The web: the tile as the website draws it, and full squares for masks (and for iOS,
-        # whose home screen takes the apple-touch-icon in index.html), the house a little smaller
-        # there to keep inside the maskable safe circle.
+        # The web: the tile as the website draws it, and full squares for masks, the house a
+        # little smaller there to keep inside the maskable safe circle.
         Icon(f"{WEB}/favicon.png", 32, "tile", 1, alpha=True, **light),
+        # iOS's home screen takes the apple-touch-icon in index.html, rounds its corners as it
+        # does the app's own icon and shows transparency as black: an opaque full square, the
+        # house at the tile's scale as on AppIcon.png (it has no maskable circle to keep inside).
+        Icon(f"{WEB}/icons/Icon-apple-180.png", 180, "square", 1, alpha=False, **light),
     ]
     for size in (192, 512):
         found += [

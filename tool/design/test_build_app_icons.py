@@ -258,9 +258,40 @@ class PathTest(unittest.TestCase):
             ("M0 0 #1", "cannot read the path at '#1'"),
             ("", "draws nothing"),
             ("M3 3", "draws nothing"),
+            # Numbers past a float's range, and arcs whose squares or centre would leave it.
+            ("M1e309 0 4 4 0 4", "M command has a number too large to draw: 1e309"),
+            ("M0 0 L-2e308 0", "L command has a number too large to draw: -2e308"),
+            ("M0 0 A1e155 1e155 0 0 1 4 0", "the arc from (0, 0) of radius 1e+155 is too large"),
+            ("M0 0 A2 2 0 0 1 1e200 0", "the arc from (0, 0) of radius 2 is too large to draw"),
+            ("M0 0 A1e150 1e150 0 0 1 1e-150 0", "of radius 1e+150 is too large to draw"),
+            ("M0 0 A1 1 0 1 1 1e-200 0", "the arc from (0, 0) ends too close to its start"),
         ):
             with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, re.escape(problem)):
                 bai.parse_path(path)
+        # Just inside those limits: a radius whose square still fits draws an arc so flat it is a
+        # line, and ends 1e-150 apart still have a square.
+        (flat,) = bai.parse_path("M0 0 A1e154 1e154 0 0 1 4 0")
+        self.assertEqual(flat[0].radius, 1e154)
+        self.assertEqual(flat[0].points(1e-3), [(4, 0)])
+        (tiny,) = bai.parse_path("M0 0 A1 1 0 1 1 1e-150 0")
+        self.assertAlmostEqual(tiny[0].radius, 1)
+
+    def test_flags_apart_as_android_reads_them(self) -> None:
+        # SVG lets arc flags run together; Android's parser splits numbers only at a space, a
+        # comma or a minus sign, so the mark (read with flags_apart) must keep them apart.
+        compact = "M0 0a2 2 0 01 4 0"
+        self.assertEqual(bai.parse_path(compact), bai.parse_path("M0 0a2 2 0 0 1 4 0"))
+        for path in ("M0 0a2 2 0 0 1 4 0", "M0 0a2,2,0,0,1,4,0", "M4 0a2 2 0 0 1-4 0"):
+            with self.subTest(path=path):
+                bai.parse_path(path, flags_apart=True)
+        for path in (compact, "M0 0a2 2 0 0 1.5 0", "M0 0a2 2 0 0\t1 4 0"):
+            with (
+                self.subTest(path=path),
+                self.assertRaisesRegex(bai.IconError, "Android's path parser reads flags"),
+            ):
+                bai.parse_path(path, flags_apart=True)
+        with self.assertRaisesRegex(bai.IconError, "the path's a command lacks a number"):
+            bai.parse_path("M0 0a2 2 0 0 1", flags_apart=True)
 
 
 class ArcTest(unittest.TestCase):
@@ -337,6 +368,8 @@ class InputsTest(unittest.TestCase):
             ('fill="${glyph}"/>', 'fill="${glyph}" stroke="${glyph}"/>', "strokes the mark"),
             ('fill="${glyph}"/>', 'fill="none" stroke-width="2"/>', "strokes the mark"),
             ("A2 2 0 0 0 18 16.5", "C22 14 18 14 18 16.5", "command C is not supported"),
+            # As SVGO writes arcs: SVG reads it, Android's vector parser would not.
+            ("A2 2 0 0 0 18 16.5", "A2 2 0 00 18 16.5", "Android's path parser reads flags"),
         ):
             with self.subTest(new=new):
                 self.assertIn(old, source)
@@ -402,12 +435,29 @@ class OutlineTest(unittest.TestCase):
             ("M4 4 28 28 28 4 4 28Z", "crosses itself near"),  # a bow tie
             ("M4 4H28V28H4ZM10 2H22V30H10Z", "crosses itself near"),  # two that overlap
             ("M16 4A8 8 0 0 1 16 20A8 8 0 0 1 16 4ZM4 12H28V14H4Z", "crosses itself near"),
+            # Contours that touch: the same shape twice (every edge wound twice, so its edge
+            # pixels would be filled whole), and a square inside another sharing its corner.
+            ("M4.5 4.5H27.5V27.5H4.5ZM4.5 4.5H27.5V27.5H4.5Z", "touches itself near"),
+            ("M4 4H28V28H4ZM4 4H16V16H4Z", "touches itself near"),
+            ("M4 4H28V28H4ZM28 4H30V28H28Z", "touches itself near"),  # side by side, one edge
+            ("M4 4H16V16H4ZM16 16H28V28H16Z", "touches itself near"),  # corner to corner
+            ("M4 4H28V28H16V20H20V28H4Z", "touches itself near"),  # one contour, pinched
             ("M4 4 8 8 12 12Z", "encloses nothing"),
             ("M4 4H28V28H4ZM10 10H22V22H10Z", "must alternate direction"),  # a hole wound twice
             ("M4 4H12V12H4ZM20 20V28H28V20Z", "must alternate direction"),  # apart, opposite ways
         ):
             with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, problem):
                 bai.check_outline(mark(path))
+
+    def test_the_doubled_outline_would_have_been_filled_wrongly(self) -> None:
+        # Why touching is refused: the square drawn twice fills its edge pixels whole, where a
+        # browser fills them by half, and adds 45 to its area.
+        once = mark("M4.5 4.5H27.5V27.5H4.5Z")
+        twice = mark("M4.5 4.5H27.5V27.5H4.5ZM4.5 4.5H27.5V27.5H4.5Z")
+        single = bai.area_coverage(once.polygons(bai.FLATNESS), 32)
+        double = bai.area_coverage(twice.polygons(bai.FLATNESS), 32)
+        self.assertEqual((single[10 * 32 + 4], double[10 * 32 + 4]), (0.5, 1.0))
+        self.assertEqual((sum(single), sum(double)), (23 * 23, 24 * 24 - 4 * 0.5))
 
 
 class GeometryTest(unittest.TestCase):
@@ -419,7 +469,8 @@ class GeometryTest(unittest.TestCase):
         self.assertEqual(gables.box(), (4, 6, 28, 24))
         dp = 72 / 32
         self.assertAlmostEqual(gables.reach() * dp, 28.81, places=2)  # under the 33 dp radius
-        self.assertEqual((24 * dp, 18 * dp), (54, 40.5))  # wider than 48 dp
+        left, top, right, bottom = gables.box()
+        self.assertEqual(((right - left) * dp, (bottom - top) * dp), (54, 40.5))  # over 48 dp
         # At the tile's own scale it would reach just past a maskable icon's 40% circle; at the
         # maskable icons' 15/16 it stays inside, at 37.5%.
         self.assertGreater(gables.reach() / 32, 0.4)
@@ -513,16 +564,30 @@ class RasterTest(unittest.TestCase):
         self.assertEqual(shares[2 * 4 + 1 : 2 * 4 + 3], [0.75, 0.75])
         self.assertAlmostEqual(sum(shares), 16 - 1)
 
-    def test_what_lies_outside_the_canvas_is_clamped(self) -> None:
-        # Past the top left: the two pixels it covers whole, and halves and a quarter beyond.
-        shares = bai.area_coverage([[(-2, -2), (2.5, -2), (2.5, 2.5), (-2, 2.5)]], 4)
-        self.assertEqual(shares, [1, 1, 0.5, 0, 1, 1, 0.5, 0, 0.5, 0.5, 0.25, 0, 0, 0, 0, 0])
-        # Past the right edge, where the last column's change falls into the next row's first
-        # cell, and past the bottom right, two cells past the image.
-        right = bai.area_coverage([[(2.5, 1), (6, 1), (6, 3), (2.5, 3)]], 4)
+    def test_edges_on_the_canvas_edge_are_drawn(self) -> None:
+        # Up to the right edge, where the last column's change falls into the next row's first
+        # cell, and in the bottom right corner, two cells past the image.
+        right = bai.area_coverage([[(2.5, 1), (4, 1), (4, 3), (2.5, 3)]], 4)
         self.assertEqual(right, [0, 0, 0, 0, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0, 0])
-        corner = bai.area_coverage([[(1, 3), (5, 3), (5, 5), (1, 5)]], 4)
+        corner = bai.area_coverage([[(1, 3), (4, 3), (4, 4), (1, 4)]], 4)
         self.assertEqual(corner, [0] * 12 + [0, 1, 1, 1])
+        whole = bai.area_coverage([[(0, 0), (4, 0), (4, 4), (0, 4)]], 4)
+        self.assertEqual(whole, [1] * 16)
+
+    def test_a_shape_off_the_canvas_is_refused(self) -> None:
+        # Moving corners onto the canvas would move sloping edges too: this triangle lies wholly
+        # outside the canvas, yet clamped it would cover 2 pixels.
+        for polygon in (
+            [(-4, 2), (2, -4), (-4, -4)],
+            [(-2, -2), (2.5, -2), (2.5, 2.5), (-2, 2.5)],
+            [(2.5, 1), (4.001, 1), (4.001, 3), (2.5, 3)],
+            [(1, 3), (4, 3), (4, 4.5), (1, 4.5)],
+        ):
+            with (
+                self.subTest(polygon=polygon),
+                self.assertRaisesRegex(bai.IconError, "runs off the 4 x 4 canvas"),
+            ):
+                bai.area_coverage([polygon], 4)
 
     def test_shapes(self) -> None:
         square = bai.shape_coverage("square", 8, 8, 0)
@@ -590,8 +655,8 @@ class ExactRenderTest(unittest.TestCase):
 
     def test_every_pixel_is_the_exact_share_rounded(self) -> None:
         # Ten legacy icons; Play and the 512 px web icon; iOS; the favicon; the 192 px web icon;
-        # and the two maskable icons.
-        self.assertEqual(len(self.placements), 16)
+        # the iOS touch icon; and the two maskable icons.
+        self.assertEqual(len(self.placements), 17)
         for size, scale, offset in self.placements:
             with self.subTest(size=size, scale=scale):
                 exact = exact_shares([twin_gables(scale, offset)], size)
@@ -796,12 +861,17 @@ class OutputsTest(unittest.TestCase):
             f"{bai.WEB}/icons/Icon-512.png": (512, 512, bai.RGBA),
             f"{bai.WEB}/icons/Icon-maskable-192.png": (192, 192, bai.RGB),
             f"{bai.WEB}/icons/Icon-maskable-512.png": (512, 512, bai.RGB),
+            f"{bai.WEB}/icons/Icon-apple-180.png": (180, 180, bai.RGB),
         }
         self.assertEqual({path: self.size_and_type(path) for path in self.outputs.images}, expected)
 
     def test_full_square_icons_are_opaque_to_the_corners(self) -> None:
         primary = bytes.fromhex(self.palette.primary[1:])
-        for path, channels in ((bai.PLAY_ICON, 4), (f"{bai.APP_ICON_SET}/AppIcon.png", 3)):
+        for path, channels in (
+            (bai.PLAY_ICON, 4),
+            (f"{bai.APP_ICON_SET}/AppIcon.png", 3),
+            (f"{bai.WEB}/icons/Icon-apple-180.png", 3),
+        ):
             rows = pixels(*self.outputs.images[path])
             corners = [
                 row[start : start + channels]
@@ -915,8 +985,14 @@ class OutputsTest(unittest.TestCase):
         self.assertEqual(len(links), 2)
         for link in links:
             self.assertIn(f"{bai.WEB}/{link}", self.outputs.images)
-        # iOS shows transparency as black: its touch icon must be opaque.
-        self.assertIn("icons/Icon-maskable-192.png", links)
+        # iOS shows transparency as black, so its touch icon is an opaque full square; and it
+        # applies no maskable circle, so the house there is at the tile's scale, as on the iOS
+        # app icon, not shrunk as on the maskable icons.
+        self.assertIn("icons/Icon-apple-180.png", links)
+        touch = f"{bai.WEB}/icons/Icon-apple-180.png"
+        self.assertEqual(self.size_and_type(touch), (180, 180, bai.RGB))
+        self.assertAlmostEqual(self.reach(touch), self.reach(f"{bai.WEB}/icons/Icon-512.png"), 2)
+        self.assertGreater(self.reach(touch), self.reach(f"{bai.WEB}/icons/Icon-maskable-192.png"))
 
 
 class WriteAndCheckTest(unittest.TestCase):

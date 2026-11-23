@@ -31,12 +31,12 @@ in the consoles.
   ([`build_app_icons.py`](../../tool/design/build_app_icons.py)) draws them all from the mark and
   the tokens: Android's adaptive icon, with the same layer as its monochrome one, and PNGs for
   Android 7 ([res/](../../app/android/app/src/main/res/)); the iOS asset catalogue's 1,024 px icon
-  in its default, dark and tinted appearances; the web app's favicon, icons and maskable icons, and
-  the manifest's name and colours ([manifest.json](../../app/web/manifest.json)); and the Play
-  listing's 512 px icon. `make app-icons-check` runs in CI's hygiene job beside `tokens-check`,
-  like the repository's other generated files
-  ([conventions](../agents/conventions.md#generated-files)). The website draws its own favicons,
-  touch icon, logo and Open Graph cards from the same definition (`npm run og`).
+  in its default, dark and tinted appearances; the web app's favicon, icons, maskable icons and iOS
+  home-screen icon, and the manifest's name and colours
+  ([manifest.json](../../app/web/manifest.json)); and the Play listing's 512 px icon.
+  `make app-icons-check` runs in CI's hygiene job beside `tokens-check`, like the repository's other
+  generated files ([conventions](../agents/conventions.md#generated-files)). The website draws its
+  own favicons, touch icon, logo and Open Graph cards from the same definition (`npm run og`).
 - **Android** wants 108 dp foreground, background and monochrome layers, with the logo between 48 dp
   and 66 dp; adaptive icons start at API 26, and the app's minimum is API 24. From Android 16 QPR 2
   the system themes apps that ship no monochrome layer itself
@@ -80,18 +80,28 @@ in the consoles.
     (the foreground a filled vector), and legacy PNG mipmaps for API 24 and 25;
   - iOS: the asset catalogue's 1,024 px icon, plain, dark and tinted;
   - web: `favicon.png`, the 192 and 512 px icons, the maskable icons with the house at 15/16 of its
-    size, inside the 40% circle, and the manifest's colours from the tokens;
+    size, inside the 40% circle, a 180 px full square for iOS's home screen (the `apple-touch-icon`,
+    the house at the tile's scale as on the iOS icon), and the manifest's colours from the tokens;
   - the Play 512 px icon.
 
   The website's favicons, touch icon and Open Graph cards come from the same definition through
   `npm run og` in `website/`.
 
+- **iOS by hand, once.** An `AppIcon.icon` made in Icon Composer and committed as source; this needs
+  a Mac. Keep a generated asset-catalogue icon for iOS 15 to 18 unless a simulator test shows Xcode
+  produces one from the `.icon` file.
+- **Screenshots from code.** A fictional portfolio seeded by script (fictional names, no real phone
+  numbers or CNICs), captured in English and in right-to-left Urdu by integration tests on an
+  Android emulator and, in the macOS release job, an iOS simulator. The sets can then be redone for
+  every release. Captions, if any, go through the Urdu review.
+
 ### The mark
 
-Chosen by the owner on 23 November 2026 (D-26), from three finalists rendered at every size, under
-every launcher mask and in the themed and tinted appearances: the website's house outline as it
-was, an M inside a house, and the twin gables. The brief that morning was a house that carries the
-two Ms of Maalik-e-Makaan.
+Chosen by the owner on 23 November 2026 (D-26), from two finalists shown beside today's outline
+house at 16 to 96 px, under Android's circle mask and in one colour (five concepts were scored by
+three judges: twin gables 25 of 30, the runner-up, an M cut into a solid house, 20). The brief was
+to keep the house and make it more distinct and memorable, perhaps with the two Ms of
+Maalik-e-Makaan.
 
 - **What it is.** A filled white house on the cobalt tile (`primary`, with `onPrimary` on it; in
   the dark appearance, the dark theme's `primary` on its `onPrimary`). Two steep gables make the
@@ -110,21 +120,14 @@ two Ms of Maalik-e-Makaan.
   least 48 across). At the tile's own scale it would reach 40.02% of a maskable icon's width from
   its centre, just past the 40% circle, so the maskable icons draw it at 15/16 of that scale about
   the centre: 37.5%, and at 512 px 15 px a unit, every edge on a whole unit still on a whole pixel.
-- **How it is kept.** The generator reads the outline from `brand.ts` (lines and circular arcs,
-  with SVG's rules for arcs), fills it with the exact area of each pixel it covers, and refuses an
-  outline that crosses itself or whose holes do not turn the other way (where that exactness would
-  fail), one that reaches past the adaptive or maskable safe circle (counting each arc's farthest
-  point), and one under 48 dp across. Its tests compare every icon's pixels with an exact render
-  made from the designer's description and pass only if each is that render rounded up or down. The
-  website's header draws the same path, and in forced colours draws the house alone in the text
-  colour.
-- **iOS by hand, once.** An `AppIcon.icon` made in Icon Composer and committed as source; this needs
-  a Mac. Keep a generated asset-catalogue icon for iOS 15 to 18 unless a simulator test shows Xcode
-  produces one from the `.icon` file.
-- **Screenshots from code.** A fictional portfolio seeded by script (fictional names, no real phone
-  numbers or CNICs), captured in English and in right-to-left Urdu by integration tests on an
-  Android emulator and, in the macOS release job, an iOS simulator. The sets can then be redone for
-  every release. Captions, if any, go through the Urdu review.
+- **How it is kept.** The generator reads the outline from `brand.ts` (lines and circular arcs, with
+  SVG's rules for arcs), fills it with the exact area of each pixel it covers, and refuses an
+  outline that crosses or touches itself or whose holes do not turn the other way (where that
+  exactness would fail), arc flags written together (which Android's vector parser misreads), one
+  that reaches past the adaptive or maskable safe circle (counting each arc's farthest point), and
+  one under 48 dp across. Its tests compare every icon's pixels with an exact render made from the
+  designer's description and pass only if each is that render rounded up or down. The website's
+  header draws the same path, and in forced colours draws the house alone in the text colour.
 
 ### Residence (decision 1)
 
@@ -163,9 +166,14 @@ letterheads are not ready at the first submission, the set is updated when they 
 
 ## Risks
 
-- **Thin strokes disappear at small sizes or under Liquid Glass.** The chosen mark is filled, with
-  nothing narrower than its 4-unit walls and the 3.8 units of roof over each doorway; check it again
-  in every appearance when the Icon Composer file is made.
+- **Thin strokes disappear at small sizes or under Liquid Glass.** The chosen mark is filled: walls,
+  pier and doorways are 4 units and the roof over each doorway 3.8; only the eaves are thinner, 2 by
+  3 unit points (at most 1.7 units thick) that soften at 16 px. Check them again in every appearance
+  when the Icon Composer file is made.
+- **A look-alike or a registered mark.** A roof that makes an M is a known property-logo idea, and
+  some people read the mark as a letter before a house. No look-alike or trade mark search has been
+  done (the agent cannot reach the sites); the owner's check is in [owner
+  actions](../owner-actions.md#check-the-mark-against-look-alikes-by-30-november).
 - **Poor automatic theming** if the monochrome layer is missing. The generator always writes one,
   and the check fails without it.
 - **A blank icon on older iOS** if the fallback is removed untested. Test on an iOS 15 simulator
@@ -178,7 +186,7 @@ letterheads are not ready at the first submission, the set is updated when they 
 ## Done when
 
 - [ ] No Flutter default icon or colour remains on Android, iOS or the web app.
-- [ ] `make app-icons-check` passes in CI and fails when an output is stale.
+- [x] `make app-icons-check` passes in CI and fails when an output is stale.
 - [x] The Android icon looks right under the circle and squircle masks and as a themed icon.
 - [ ] The iOS icon renders in default, dark, clear and tinted appearances, and shows on the oldest
       supported iOS.
@@ -186,10 +194,12 @@ letterheads are not ready at the first submission, the set is updated when they 
 - [ ] Both stores have the icon, the feature graphic and screenshot sets in English and Urdu, made
       from fictional data.
 
-The two ticked on 23 November 2026, for the twin gables: the generated Android vector, rendered on
-its own by librsvg, under circle and squircle masks with the 66 dp circle drawn, and its
-monochrome layer themed light and dark; and both maskable icons with the 40% circle drawn, under
-circle, squircle and 80%-circle masks. Not yet seen on a device or an emulator.
+The masks and the safe zone ticked on 23 November 2026, for the twin gables: the generated Android
+vector, rendered on its own by librsvg, under circle and squircle masks with the 66 dp circle
+drawn, and its monochrome layer themed light and dark; and both maskable icons with the 40% circle
+drawn, under circle, squircle and 80%-circle masks. Not yet seen on a device or an emulator. And
+`make app-icons-check`, in CI's hygiene job since #51; the generator's tests show it fails on a
+stale, damaged or stray output.
 
 ## Questions for the owner
 

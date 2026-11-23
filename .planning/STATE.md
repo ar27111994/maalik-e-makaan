@@ -23,8 +23,8 @@ progress: { total_phases: 12, completed_phases: 9, percent: 75 }
   negative M cut into a solid house, 20; the owner chose it from a comparison of both against
   today's outline house. The roofline is a capital M and two arched doorways cut the walls into a
   small m. It is now in every icon and in the website's header, favicons and Open Graph cards
-  (D-26, `docs/roadmap/app-icon.md`); the iOS Icon Composer file and the store artwork are still to
-  do.
+  (D-26, `docs/roadmap/app-icon.md`); the owner's look-alike and trade mark check
+  (`docs/owner-actions.md`), the iOS Icon Composer file and the store artwork are still to do.
 - Release 1.4.4 was published on 22 November 2026 at 17:08 UTC (tag `v1.4.4`, commit 6d96433 on
   `main`; the Release run 45047683037, one attempt, 17:07 to 17:18 UTC). Every job that ran
   passed; as for 1.4.3, the first Deploy call left the website to the second, and the second left

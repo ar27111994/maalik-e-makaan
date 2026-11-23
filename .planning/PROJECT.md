@@ -472,26 +472,28 @@ threads with one trustworthy ledger and adds the Pakistan-specific work global t
   1.4.3, the first release the publish jobs made (22 November 2026; `.planning/STATE.md`, Current
   Position).
 
-- D-26: **The mark is the twin gables.** (Decided by the owner, 23 November 2026, in their words
-  "Go with the twin gables", from three finalists rendered at every size and in every launcher
-  mask: the website's house outline as it was, an M inside a house, and this one; the owner's
-  brief that morning was a house with the two Ms of Maalik-e-Makaan.) A filled white house on the
-  cobalt tile (`primary`, `onPrimary` on it): two steep gables make the roofline a capital M, the
-  eaves reach 2 units past the walls, and two arched doorways cut the walls into a small m. It is
-  one closed outline on the 32-unit tile, `MARK_GLYPH_PATH` in `website/src/lib/brand.ts`: walls,
+- D-26: **The mark is the twin gables.** (Decided by the owner, 23 November 2026, in their words "Go
+  with the twin gables", from two finalists shown beside today's outline house at 16 to 96 px, under
+  Android's circle mask and in one colour (five concepts were scored by three judges: twin gables 25
+  of 30, the runner-up, an M cut into a solid house, 20); the brief was to keep the house and make
+  it more distinct and memorable, perhaps with the two Ms of Maalik-e-Makaan.) A filled white house
+  on the cobalt tile (`primary`, `onPrimary` on it): two steep gables make the roofline a capital M,
+  the eaves reach 2 units past the walls, and two arched doorways cut the walls into a small m. It
+  is one closed outline on the 32-unit tile, `MARK_GLYPH_PATH` in `website/src/lib/brand.ts`: walls,
   pier and doorways 4 units wide, the doorways' heads half circles of radius 2, and every level and
   upright edge on an even unit, so on whole pixels at 16, 32, 48 and 64 px. It replaces the white
   outline house (a 2-unit stroke). Why: a filled shape stays legible at 16 px and in a themed or
   tinted icon, where a thin stroke fades, and it carries the name's two Ms with no letters, which
   would not serve both scripts. Measured: area 215.43 square units, box 4 to 28 by 6 to 24, reach
-  12.81 units from the tile's centre (the bottom corners). In Android's adaptive icon that is
-  28.81 dp from the centre, inside the 33 dp of its safe circle, and 54 by 40.5 dp, over the 48 dp
-  a logo needs. A maskable web icon draws it at 15/16 of the tile's scale, 37.5% of the icon's
-  width from its centre, inside the 40% circle (at full scale it would reach 40.02%). The website's
-  header, favicons and Open Graph cards and `tool/design/build_app_icons.py` (`make app-icons`) all
-  draw that one definition; the generator now fills outlines of lines and circular arcs exactly and
-  refuses one that crosses itself or leaves a safe zone ([app-icon](../docs/roadmap/app-icon.md)).
-  Still to come: the iOS Icon Composer file (a Mac) and the store artwork.
+  12.81 units from the tile's centre (the bottom corners). In Android's adaptive icon that is 28.81
+  dp from the centre, inside the 33 dp of its safe circle, and 54 by 40.5 dp, over the 48 dp a logo
+  needs. A maskable web icon draws it at 15/16 of the tile's scale, 37.5% of the icon's width from
+  its centre, inside the 40% circle (at full scale it would reach 40.02%). The website's header,
+  favicons and Open Graph cards and `tool/design/build_app_icons.py` (`make app-icons`) all draw
+  that one definition; the generator now fills outlines of lines and circular arcs exactly and
+  refuses one that crosses or touches itself or leaves a safe zone
+  ([app-icon](../docs/roadmap/app-icon.md)). Still to come: the owner's look-alike and trade mark
+  check, the iOS Icon Composer file (a Mac) and the store artwork.
 
 ## Open Proposals
 
