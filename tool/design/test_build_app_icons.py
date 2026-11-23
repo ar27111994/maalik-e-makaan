@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import contextlib
 import io
+import itertools
 import json
+import math
 import re
+import runpy
 import shutil
 import struct
 import sys
@@ -19,13 +22,17 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).parent))
 import build_app_icons as bai
 
-HOUSE = "M8 15.5 16 8.5l8 7M10.5 13.5V24h11V13.5M14 24v-5h4v5"
+# The owner's mark of 23 November 2026, "twin gables", as website/src/lib/brand.ts holds it.
+GABLES = (
+    "M6 24V18H4L12 6L16 12L20 6L28 18H26V24H22V16.5A2 2 0 0 0 18 16.5V24H14V16.5"
+    "A2 2 0 0 0 10 16.5V24Z"
+)
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 INPUTS = (bai.BRAND, bai.TOKENS, bai.APP_STRINGS, Path(bai.WEB) / "manifest.json")
 
 
-def mark(path: str, size: float = 32, stroke: float = 2) -> bai.Mark:
-    return bai.Mark(size, 8, stroke, path, bai.parse_path(path))
+def mark(path: str, size: float = 32) -> bai.Mark:
+    return bai.Mark(size, 8, path, bai.parse_path(path))
 
 
 def xml(text: str) -> ET.Element:
@@ -83,49 +90,220 @@ def flip(data: bytes, index: int) -> bytes:
     return data[:index] + bytes([data[index] ^ 0xFF]) + data[index + 1 :]
 
 
+# --- An exact render, worked out here independently of the generator -----------------------
+
+
+def _right_of(column: int, xa: float, xb: float) -> float:
+    """The mean, along an edge running straight from x = [xa] to x = [xb] (in step with y), of
+    how much of the pixel column [column, column + 1] lies to the edge's right."""
+
+    def antiderivative(x: float) -> float:  # of column + 1 - clamp(x, column, column + 1)
+        t = x - column
+        return t if t <= 0 else 0.5 if t >= 1 else t - t * t / 2
+
+    if xa == xb:
+        return column + 1 - min(max(xa, column), column + 1)
+    return (antiderivative(xb) - antiderivative(xa)) / (xb - xa)
+
+
+def exact_shares(polygons: list[list[tuple[float, float]]], size: int) -> list[float]:
+    """Each pixel's exact share of [polygons] (closed, inside the canvas, each point wound at
+    most once and the same way), row after row: the integral of the winding number over the
+    pixel's square, which is, for each edge and each row it crosses, the area of the pixel to
+    the edge's right, signed by the edge's direction. Pixels wholly right of an edge take its
+    whole height; for the pixels it passes through, the mean width to its right is found from
+    the antiderivative of the clamped distance."""
+    steps = [[0.0] * (size + 1) for _ in range(size)]
+    within = [[0.0] * size for _ in range(size)]
+    for polygon in polygons:
+        for (x0, y0), (x1, y1) in zip(polygon, polygon[1:] + polygon[:1], strict=True):
+            if y0 == y1:
+                continue
+            sign = 1.0 if y1 > y0 else -1.0
+            (ax, ay), (bx, by) = sorted([(x0, y0), (x1, y1)], key=lambda point: point[1])
+            for row in range(math.floor(ay), math.ceil(by)):
+                top, bottom = max(row, ay), min(row + 1, by)
+                xt = ax + (bx - ax) * (top - ay) / (by - ay)
+                xb = ax + (bx - ax) * (bottom - ay) / (by - ay)
+                height = (bottom - top) * sign
+                left, right = min(xt, xb), max(xt, xb)
+                for column in range(math.floor(left), math.ceil(right)):
+                    within[row][column] += height * _right_of(column, xt, xb)
+                steps[row][math.ceil(right)] += height
+    shares = []
+    for row in range(size):
+        level = 0.0
+        for column in range(size):
+            level += steps[row][column]
+            shares.append(min(1.0, abs(level + within[row][column])))
+    return shares
+
+
+def twin_gables(scale: float, offset: float, flatness: float = 1e-6) -> list[tuple[float, float]]:
+    """The chosen mark, built from the designer's description rather than from its path: two
+    gables peaking at (12, 6) and (20, 6) over a valley at (16, 12), eaves at (4, 18) and
+    (28, 18), walls down to y 24, and two doorways 4 wide whose heads are half circles of
+    radius 2 springing at y 16.5. Its arcs are chords at most [flatness] pixels from them."""
+    radius = 2 * scale
+    count = math.ceil(math.pi / math.sqrt(8 * flatness / radius))
+
+    def head(centre: float) -> list[tuple[float, float]]:  # from the right spring over the top
+        return [
+            (centre + 2 * math.cos(-math.pi * k / count), 16.5 + 2 * math.sin(-math.pi * k / count))
+            for k in range(1, count)
+        ]
+
+    outline = [
+        *((6, 24), (6, 18), (4, 18), (12, 6), (16, 12), (20, 6), (28, 18), (26, 18), (26, 24)),
+        *((22, 24), (22, 16.5), *head(20), (18, 16.5), (18, 24), (14, 24), (14, 16.5)),
+        *(*head(12), (10, 16.5), (10, 24)),
+    ]
+    return [(offset + u * scale, offset + v * scale) for u, v in outline]
+
+
+def worst_rounding(coverage: bytes, shares: list[float]) -> float:
+    """How far, in levels of 255, the generator's bytes stray from the exact shares."""
+    return max(abs(byte - share * 255) for byte, share in zip(coverage, shares, strict=True))
+
+
 class PathTest(unittest.TestCase):
-    def test_the_house(self) -> None:
+    def test_the_twin_gables(self) -> None:
+        (contour,) = bai.parse_path(GABLES)
+        lines = [edge for edge in contour if isinstance(edge, bai.Line)]
+        arcs = [edge for edge in contour if isinstance(edge, bai.Arc)]
+        self.assertEqual((len(lines), len(arcs)), (15, 2))  # Z closes the ground line
         self.assertEqual(
-            bai.parse_path(HOUSE),
+            [edge.start for edge in contour],
+            [
+                *((6, 24), (6, 18), (4, 18), (12, 6), (16, 12), (20, 6), (28, 18), (26, 18)),
+                *((26, 24), (22, 24), (22, 16.5), (18, 16.5), (18, 24), (14, 24), (14, 16.5)),
+                *((10, 16.5), (10, 24)),
+            ],
+        )
+        self.assertEqual(contour[-1].end, contour[0].start)
+        # Each doorway's head: a half circle of radius 2, over the top (anticlockwise on screen).
+        self.assertEqual(
+            arcs,
+            [
+                bai.Arc((22, 16.5), (18, 16.5), (20, 16.5), 2, clockwise=False),
+                bai.Arc((14, 16.5), (10, 16.5), (12, 16.5), 2, clockwise=False),
+            ],
+        )
+
+    def test_relative_and_compact_commands_draw_the_same(self) -> None:
+        absolute = bai.parse_path(GABLES)
+        for path in (
+            "m6 24v-6h-2l8-12 4 6 4-6 8 12h-2v6h-4v-7.5a2 2 0 0 0-4 0v7.5h-4v-7.5a2 2 0 0 0-4 0v7.5z",
+            "M6,24V18H4L12,6,16,12,20,6,28,18H26V24H22V16.5A2,2,0,0,0,18,16.5V24H14V16.5"
+            "A2,2,0,0,0,10,16.5V24",  # no Z: a filled subpath closes itself
+            "M6 24V18H4L12 6L16 12L20 6L28 18H26V24H22V16.5a2 2 0 00-4 0V24H14V16.5a2 2 0 00-4 0V24Z",
+            " M 6 24 V 18 H 4 L 12 6 16 12 20 6 28 18 H 26 V 24 H 22 V 16.5 A 2 2 45 0 0 18 16.5 "
+            "V 24 H 14 V 16.5 A -2 -2 0 0 0 10 16.5 V 24 Z ",  # a circle ignores the rotation
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(bai.parse_path(path), absolute)
+        self.assertEqual(bai.parse_path("M1e0 .1 4-1"), bai.parse_path("M1 0.1L4 -1Z"))
+
+    def test_a_subpath_after_z_starts_where_the_last_one_did(self) -> None:
+        line = bai.Line
+        self.assertEqual(
+            bai.parse_path("M1 1 3 1 3 3zl0 3 2 0"),
             (
-                ((8, 15.5), (16, 8.5), (24, 15.5)),
-                ((10.5, 13.5), (10.5, 24), (21.5, 24), (21.5, 13.5)),
-                ((14, 24), (14, 19), (18, 19), (18, 24)),
+                (line((1, 1), (3, 1)), line((3, 1), (3, 3)), line((3, 3), (1, 1))),
+                (line((1, 1), (1, 4)), line((1, 4), (3, 4)), line((3, 4), (1, 1))),
             ),
         )
 
-    def test_relative_and_absolute_commands_draw_the_same(self) -> None:
-        absolute = bai.parse_path("M1 1 L4 1 L4 5 H1 V1")
-        self.assertEqual(bai.parse_path("m1 1 3 0 0 4h-3v-4"), absolute)
-        self.assertEqual(bai.parse_path("M1,1L4,1,4,5H1V1"), absolute)
-        self.assertEqual(bai.parse_path(" M 1 1 l 3 0 l 0 4 h -3 v -4 "), absolute)
-        self.assertEqual(bai.parse_path("M1e0 .1 4-1"), (((1, 0.1), (4, -1)),))
-
-    def test_close_returns_to_the_start_and_the_next_line_starts_there(self) -> None:
-        self.assertEqual(bai.parse_path("M0 0 4 0 4 4Z"), (((0, 0), (4, 0), (4, 4), (0, 0)),))
+    def test_moves_and_still_lines_draw_nothing(self) -> None:
         self.assertEqual(
-            bai.parse_path("M1 1 2 1zl0 3"),
-            (((1, 1), (2, 1), (1, 1)), ((1, 1), (1, 4))),
+            bai.parse_path("M0 0M1 1 2 2 1 2L1 2"), bai.parse_path("M1 1 2 2 1 2Z")
+        )  # a lone move, and a line to where it already is
+
+    def test_arcs_follow_svg(self) -> None:
+        # The sweep flag picks the direction; with the large-arc flag it picks the centre too.
+        small = bai.parse_path("M0 0A5 5 0 0 1 6 0Z")[0][0]
+        self.assertEqual(small, bai.Arc((0, 0), (6, 0), (3, 4), 5, clockwise=True))
+        large = bai.parse_path("M0 0A5 5 0 1 1 6 0Z")[0][0]
+        self.assertEqual(large, bai.Arc((0, 0), (6, 0), (3, -4), 5, clockwise=True))
+        self.assertEqual(mark("M0 0A5 5 0 0 1 6 0Z").box(), (0, -1, 6, 0))
+        self.assertEqual(mark("M0 0A5 5 0 1 1 6 0Z").box(), (-2, -9, 8, 0))
+        self.assertEqual(mark("M0 0A5 5 0 1 0 6 0Z").box(), (-2, 0, 8, 9))
+        # A radius too short to span its ends is lengthened until it does.
+        self.assertEqual(
+            bai.parse_path("M0 0A1 1 0 0 1 4 0Z")[0][0],
+            bai.Arc((0, 0), (4, 0), (2, 0), 2, clockwise=True),
+        )
+        # A radius of 0 draws a line, and an arc that ends where it starts draws nothing.
+        self.assertEqual(bai.parse_path("M0 0A0 3 0 0 1 4 0L4 4"), bai.parse_path("M0 0 4 0 4 4"))
+        self.assertEqual(
+            bai.parse_path("M0 0A2 2 0 0 1 0 0L4 0 4 4"), bai.parse_path("M0 0 4 0 4 4")
         )
 
-    def test_a_lone_move_draws_nothing(self) -> None:
-        self.assertEqual(bai.parse_path("M0 0M1 1 2 2"), (((1, 1), (2, 2)),))
-
-    def test_curves_and_broken_paths_are_refused(self) -> None:
-        for path in (
-            "M0 0 C1 1 2 2 3 3",
-            "M0 0 A1 1 0 0 1 2 2",
-            "L1 1",
-            "1 1",
-            "M0",
-            "M0 0 L1",
-            "M0 0 Z 1 1",
-            "Z",
-            "M0 0 L1 #",
-            "",
+    def test_curves_ellipses_and_broken_paths_are_refused(self) -> None:
+        for path, problem in (
+            ("M0 0 C1 1 2 2 3 3", "command C is not supported"),
+            ("M0 0 Q1 1 2 2", "command Q is not supported"),
+            ("M0 0 A1 2 0 0 1 2 2", "must be circular, not 1 by 2"),
+            ("M0 0 A2 2 0 2 1 4 0", "needs a flag of 0 or 1"),
+            ("M0 0 A2 2 0 0", "needs a flag of 0 or 1"),
+            ("M0 0 A2 2 0 0 1 4", "A command lacks a number"),
+            ("L1 1", "must start with M"),
+            ("1 1", "must start with M"),
+            ("M0", "M command lacks a number"),
+            ("M0 0 L1", "L command lacks a number"),
+            ("M0 0 Z 1 1", "a number cannot follow Z"),
+            ("Z", "closes a shape it has not started"),
+            ("M0 0 Z Z", "closes a shape it has not started"),
+            ("M0 0 L1 #", "L command lacks a number"),
+            ("M0 0 #1", "cannot read the path at '#1'"),
+            ("", "draws nothing"),
+            ("M3 3", "draws nothing"),
         ):
-            with self.subTest(path=path), self.assertRaises(bai.IconError):
+            with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, re.escape(problem)):
                 bai.parse_path(path)
+
+
+class ArcTest(unittest.TestCase):
+    def test_turns_grow_with_the_angle(self) -> None:
+        # A whole circle's quarters, from the start in the arc's own sense.
+        arc = bai.Arc((1, 0), (0, -1), (0, 0), 1, clockwise=True)
+        turns = [
+            arc.turn((math.cos(k * math.pi / 8), math.sin(k * math.pi / 8))) for k in range(16)
+        ]
+        self.assertEqual([round(turn, 9) for turn in turns[::4]], [0, 1, 2, 3])
+        self.assertEqual(turns, sorted(turns))
+        self.assertLess(turns[-1], 4)
+        self.assertTrue(arc.covers((-1, 0)))  # half way round three quarters
+        # A quarter turn anticlockwise on screen, from 3 o'clock up to 12.
+        quarter = bai.Arc((1, 0), (0, -1), (0, 0), 1, clockwise=False)
+        self.assertEqual(quarter.turn((0, -1)), 1)
+        self.assertEqual(quarter.turn((0, 1)), 3)
+        self.assertTrue(quarter.covers((1, -1)))
+        self.assertFalse(quarter.covers((-1, 0)))  # past its end
+
+    def test_chords_stay_within_the_tolerance(self) -> None:
+        # A quarter, a half, three quarters and nearly a whole circle, each way round.
+        for path in (
+            "M12 6A4 4 0 0 1 16 2",
+            "M12 6A4 4 0 0 0 20 6",
+            "M12 6A4 4 0 1 1 16 2",
+            "M12 6A4 4 0 1 0 12 6.01",
+        ):
+            (contour,) = bai.parse_path(path)
+            arc = contour[0]
+            for tolerance in (0.1, 1e-3, 1e-6):
+                with self.subTest(path=path, tolerance=tolerance):
+                    points = [arc.start, *arc.points(tolerance)]
+                    self.assertEqual(points[-1], arc.end)
+                    for (x0, y0), (x1, y1) in itertools.pairwise(points):
+                        for x, y in ((x0, y0), ((x0 + x1) / 2, (y0 + y1) / 2)):
+                            distance = math.hypot(x - arc.centre[0], y - arc.centre[1])
+                            self.assertLessEqual(arc.radius - distance, tolerance * (1 + 1e-9))
+                            self.assertLessEqual(distance - arc.radius, 1e-12)
+                    # The chords turn the arc's way all along: none doubles back.
+                    for a, b, c in zip(points, points[1:], points[2:], strict=False):
+                        side = bai._side(a, b, c)
+                        self.assertGreater(side if arc.clockwise else -side, 0)
 
 
 class InputsTest(unittest.TestCase):
@@ -140,24 +318,29 @@ class InputsTest(unittest.TestCase):
 
     def test_the_repository_mark(self) -> None:
         found = bai.read_mark(bai.ROOT / bai.BRAND)
-        self.assertEqual((found.size, found.tile_radius, found.stroke_width), (32, 8, 2))
-        self.assertEqual(found.path, HOUSE)
-        self.assertEqual(found.strokes, bai.parse_path(HOUSE))
+        self.assertEqual((found.size, found.tile_radius), (32, 8))
+        self.assertEqual(found.path, GABLES)
+        self.assertEqual(found.contours, bai.parse_path(GABLES))
 
-    def test_the_mark_needs_plain_literals_and_round_strokes(self) -> None:
+    def test_the_mark_needs_plain_literals_and_a_filled_glyph(self) -> None:
         source = (bai.ROOT / bai.BRAND).read_text(encoding="utf-8")
-        self.assertEqual(bai.read_mark(self.brand(source)).path, HOUSE)
-        for old, new in (
-            ("export const MARK_STROKE_WIDTH = 2;", "export const MARK_STROKE_WIDTH = WIDTH;"),
-            ("export const MARK_TILE_RADIUS = 8;", ""),
-            ('MARK_VIEWBOX = "0 0 32 32"', 'MARK_VIEWBOX = "0 0 32 24"'),
-            ('MARK_VIEWBOX = "0 0 32 32"', 'MARK_VIEWBOX = "4 4 32 32"'),
-            ('stroke-linecap="round"', 'stroke-linecap="square"'),
-            ('stroke-linejoin="round"', 'stroke-linejoin="miter"'),
+        self.assertEqual(bai.read_mark(self.brand(source)).path, GABLES)
+        # Prettier puts the long path on the line after its name; on the same line reads too.
+        one_line = re.sub(r"MARK_GLYPH_PATH =\s+", "MARK_GLYPH_PATH = ", source)
+        self.assertNotEqual(one_line, source)
+        self.assertEqual(bai.read_mark(self.brand(one_line)).path, GABLES)
+        for old, new, problem in (
+            ('"M6 24V18', 'HOUSE + "M6 24V18', "MARK_GLYPH_PATH as a plain literal"),
+            ("export const MARK_TILE_RADIUS = 8;", "", "MARK_TILE_RADIUS as a plain literal"),
+            ('MARK_VIEWBOX = "0 0 32 32"', 'MARK_VIEWBOX = "0 0 32 24"', "a square"),
+            ('MARK_VIEWBOX = "0 0 32 32"', 'MARK_VIEWBOX = "4 4 32 32"', "from the origin"),
+            ('fill="${glyph}"/>', 'fill="${glyph}" stroke="${glyph}"/>', "strokes the mark"),
+            ('fill="${glyph}"/>', 'fill="none" stroke-width="2"/>', "strokes the mark"),
+            ("A2 2 0 0 0 18 16.5", "C22 14 18 14 18 16.5", "command C is not supported"),
         ):
             with self.subTest(new=new):
                 self.assertIn(old, source)
-                with self.assertRaises(bai.IconError):
+                with self.assertRaisesRegex(bai.IconError, re.escape(problem)):
                     bai.read_mark(self.brand(source.replace(old, new)))
 
     def test_the_palette_comes_from_the_tokens(self) -> None:
@@ -190,19 +373,98 @@ class InputsTest(unittest.TestCase):
             bai.read_app_name(path)
 
 
-class GeometryTest(unittest.TestCase):
-    def test_the_house_sits_inside_every_safe_zone(self) -> None:
-        house = bai.read_mark(bai.ROOT / bai.BRAND)
-        bai.check_geometry(house)
-        # From the tile's centre to the far side of a bottom corner's round join.
-        self.assertAlmostEqual(house.reach(), 1 + (5.5**2 + 8**2) ** 0.5)
-        self.assertLess(house.reach() * 72 / 32, 66 / 2)  # adaptive icon, in dp
-        self.assertLess(house.reach() / 32, 0.4)  # maskable icon, share of its width
+class OutlineTest(unittest.TestCase):
+    def test_the_twin_gables_are_one_outline_wound_once(self) -> None:
+        gables = mark(GABLES)
+        bai.check_outline(gables)
+        (polygon,) = gables.polygons(1e-9)
+        # The designer's area: 228 for the outline with straight doorway heads, less two half
+        # circles of radius 2. Clockwise on screen, so the signed area is positive.
+        self.assertAlmostEqual(bai._signed_area(polygon), 228 - 4 * math.pi, places=8)
+        # Every level or upright edge on an even unit, so on whole pixels at 16, 32, 48 and 64 px.
+        axis = [
+            edge.start[0] if edge.start[0] == edge.end[0] else edge.start[1]
+            for edge in gables.edges()
+            if isinstance(edge, bai.Line)
+            and (edge.start[0] == edge.end[0] or edge.start[1] == edge.end[1])
+        ]
+        self.assertEqual(len(axis), 11)
+        self.assertTrue(all(value % 2 == 0 for value in axis))
 
-    def test_a_house_past_a_safe_zone_is_refused(self) -> None:
-        for path in ("M2 16 30 16", "M3.5 16 16 16"):  # past the adaptive, then the maskable
-            with self.subTest(path=path), self.assertRaises(bai.IconError):
+    def test_a_hole_is_allowed_when_it_turns_the_other_way(self) -> None:
+        bai.check_outline(mark("M4 4H28V28H4ZM10 10V22H22V10Z"))  # clockwise, then anticlockwise
+        bai.check_outline(mark("M4 4H12V12H4ZM20 20H28V28H20Z"))  # two apart, the same way
+        # An island in the hole turns the outer contour's way again.
+        bai.check_outline(mark("M2 2H30V30H2ZM8 8V24H24V8ZM12 12H20V20H12Z"))
+
+    def test_outlines_the_rasteriser_could_not_fill_exactly_are_refused(self) -> None:
+        for path, problem in (
+            ("M4 4 28 28 28 4 4 28Z", "crosses itself near"),  # a bow tie
+            ("M4 4H28V28H4ZM10 2H22V30H10Z", "crosses itself near"),  # two that overlap
+            ("M16 4A8 8 0 0 1 16 20A8 8 0 0 1 16 4ZM4 12H28V14H4Z", "crosses itself near"),
+            ("M4 4 8 8 12 12Z", "encloses nothing"),
+            ("M4 4H28V28H4ZM10 10H22V22H10Z", "must alternate direction"),  # a hole wound twice
+            ("M4 4H12V12H4ZM20 20V28H28V20Z", "must alternate direction"),  # apart, opposite ways
+        ):
+            with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, problem):
+                bai.check_outline(mark(path))
+
+
+class GeometryTest(unittest.TestCase):
+    def test_the_twin_gables_sit_inside_every_safe_zone(self) -> None:
+        gables = bai.read_mark(bai.ROOT / bai.BRAND)
+        bai.check_geometry(gables)
+        # From the tile's centre to the bottom corners (6, 24) and (26, 24), just past the eaves.
+        self.assertAlmostEqual(gables.reach(), math.hypot(10, 8))
+        self.assertEqual(gables.box(), (4, 6, 28, 24))
+        dp = 72 / 32
+        self.assertAlmostEqual(gables.reach() * dp, 28.81, places=2)  # under the 33 dp radius
+        self.assertEqual((24 * dp, 18 * dp), (54, 40.5))  # wider than 48 dp
+        # At the tile's own scale it would reach just past a maskable icon's 40% circle; at the
+        # maskable icons' 15/16 it stays inside, at 37.5%.
+        self.assertGreater(gables.reach() / 32, 0.4)
+        self.assertAlmostEqual(gables.reach() * bai.MASKABLE_GLYPH_SCALE / 32, 0.3752, places=4)
+
+    def test_a_reach_counts_an_arc_only_where_it_runs(self) -> None:
+        # A half circle around (16, 6): over the top it passes (16, 2), 14 from the centre;
+        # under, its ends are the farthest points.
+        self.assertEqual(mark("M12 6A4 4 0 0 1 20 6Z").reach(), 14)
+        self.assertAlmostEqual(mark("M12 6A4 4 0 0 0 20 6Z").reach(), math.hypot(4, 10))
+        self.assertEqual(mark("M12 16A4 4 0 0 1 20 16Z").reach(), 4)  # around the centre itself
+
+    def test_a_house_past_a_limit_is_refused(self) -> None:
+        for path, problem in (
+            # Corners past the adaptive icon's 66 dp circle (15.13 units, 34.05 dp).
+            ("M1 14H31V18H1Z", "reaches 34.05 dp from the adaptive icon's centre"),
+            # A dome whose top alone passes it: (16, 1) is 15 from the centre.
+            ("M4 24V18H13V4A3 3 0 0 1 19 4V18H28V24Z", "reaches 33.75 dp"),
+            # 20 units wide is 45 dp: smaller than Android's 48 dp logo.
+            ("M6 10H26V22H6Z", "is 45.00 dp across in the adaptive icon, less than the 48 dp"),
+            # Inside the adaptive circle, but past the maskable one even at 15/16 (13.84 units).
+            ("M2.2 15H29.8V17H2.2Z", "reaches 40.54% of a maskable icon's width"),
+            # The dome turned inwards: only its corners count, and they are past the maskable.
+            ("M4 24V18H13V4A3 3 0 0 0 19 4V18H28V24Z", "reaches 42.25% of a maskable icon"),
+        ):
+            with self.subTest(path=path), self.assertRaisesRegex(bai.IconError, re.escape(problem)):
                 bai.check_geometry(mark(path))
+        # Either side of each limit, with a flat diamond whose side points are its reach and
+        # whose width is twice that. The adaptive circle (14.67 units) lies outside the maskable
+        # one (13.65 units at 15/16), so a house just inside the first stops at the second.
+        for reach, problem in (
+            (66 / 2 / 2.25 - 1e-4, "past its safe circle of 40%"),
+            (66 / 2 / 2.25 + 1e-4, "past the 33 dp of its safe circle"),
+            (0.4 * 32 * 16 / 15 - 1e-6, None),
+            (0.4 * 32 * 16 / 15 + 1e-6, "past its safe circle of 40%"),
+            (48 / 2 / 2.25 + 1e-6, None),
+            (48 / 2 / 2.25 - 1e-6, "less than the 48 dp"),
+        ):
+            diamond = mark(f"M{16 - reach} 16L16 12L{16 + reach} 16L16 20Z")
+            with self.subTest(reach=reach):
+                if problem is None:
+                    bai.check_geometry(diamond)
+                else:
+                    with self.assertRaisesRegex(bai.IconError, re.escape(problem)):
+                        bai.check_geometry(diamond)
 
 
 class RasterTest(unittest.TestCase):
@@ -212,25 +474,55 @@ class RasterTest(unittest.TestCase):
             [255, 255, 191, 128, 64, 0, 0],
         )
 
-    def test_a_stroke_covers_the_pixels_under_it(self) -> None:
-        # A stroke 2 px wide along y = 8.5 (offset 0.5) spans rows 7.5 to 9.5.
-        cells = bai.stroke_coverage(mark("M2 8 14 8", size=16), 16, 1.0, 0.5)
-        column = [cells[row * 16 + 8] for row in range(16)]
-        self.assertEqual(column[6:11], [0, 128, 255, 128, 0])
-        self.assertEqual(sum(column), 511)
-        # The round caps end the stroke a radius past its ends.
-        row = cells[8 * 16 : 9 * 16]
-        self.assertEqual(row[0], 0)
-        self.assertEqual(row[1], 128)
-        self.assertEqual(row[2:15], b"\xff" * 13)
-        self.assertEqual(row[15], 128)
+    def test_a_rectangle_covers_exactly_its_area(self) -> None:
+        # From x 1.25 to 3.5 and y 0.5 to 2: a pixel's share is its overlap across times down.
+        left, top, right, bottom = 1.25, 0.5, 3.5, 2.0
+        expected = [
+            max(0.0, min(x + 1, right) - max(x, left)) * max(0.0, min(y + 1, bottom) - max(y, top))
+            for y in range(4)
+            for x in range(4)
+        ]
+        rectangle = [(left, top), (right, top), (right, bottom), (left, bottom)]
+        for polygon in (rectangle, rectangle[::-1]):  # either way round
+            shares = bai.area_coverage([polygon], 4)
+            self.assertEqual([round(share, 12) for share in shares], expected)
+        self.assertEqual(
+            list(bai.fill_coverage(mark(f"M{left} {top}H{right}V{bottom}H{left}Z"), 4, 1.0, 0.0)),
+            [int(share * 255 + 0.5) for share in expected],
+        )
 
-    def test_where_two_strokes_meet_their_coverage_adds_up(self) -> None:
-        # Pixel (4, 4) has a vertical stroke over its left half and a horizontal stroke over its
-        # top half: three quarters covered, where the nearer stroke alone says a half.
-        cells = bai.stroke_coverage(mark("M3.5 0 3.5 12M0 3.5 12 3.5", size=12), 12, 1.0, 0.0)
-        self.assertEqual(cells[4 * 12 + 4], 191)
-        self.assertEqual(cells[4 * 12 + 8], 128)  # only the horizontal stroke
+    def test_sloping_edges_match_the_exact_reference(self) -> None:
+        # Edges that cross many pixels in a row, two, and one; a triangle each way round.
+        triangle = [(0.3, 0.2), (7.7, 1.1), (2.2, 7.9)]
+        steep = [(3.1, 0.0), (3.9, 8.0), (2.6, 8.0)]
+        for polygon in (triangle, triangle[::-1], steep):
+            with self.subTest(polygon=polygon):
+                shares = bai.area_coverage([polygon], 8)
+                exact = exact_shares([polygon], 8)
+                self.assertLess(max(abs(a - b) for a, b in zip(shares, exact, strict=True)), 1e-12)
+        x0, y0, x1, y1, x2, y2 = (value for point in triangle for value in point)
+        area = abs((x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0)) / 2
+        self.assertAlmostEqual(sum(bai.area_coverage([triangle], 8)), area, places=12)
+
+    def test_holes_are_cut_out_exactly(self) -> None:
+        outer = [(0, 0), (4, 0), (4, 4), (0, 4)]
+        hole = [(1.5, 1.5), (1.5, 2.5), (2.5, 2.5), (2.5, 1.5)]  # the other way round
+        shares = bai.area_coverage([outer, hole], 4)
+        self.assertEqual(shares[0], 1)
+        self.assertEqual(shares[1 * 4 + 1 : 1 * 4 + 3], [0.75, 0.75])
+        self.assertEqual(shares[2 * 4 + 1 : 2 * 4 + 3], [0.75, 0.75])
+        self.assertAlmostEqual(sum(shares), 16 - 1)
+
+    def test_what_lies_outside_the_canvas_is_clamped(self) -> None:
+        # Past the top left: the two pixels it covers whole, and halves and a quarter beyond.
+        shares = bai.area_coverage([[(-2, -2), (2.5, -2), (2.5, 2.5), (-2, 2.5)]], 4)
+        self.assertEqual(shares, [1, 1, 0.5, 0, 1, 1, 0.5, 0, 0.5, 0.5, 0.25, 0, 0, 0, 0, 0])
+        # Past the right edge, where the last column's change falls into the next row's first
+        # cell, and past the bottom right, two cells past the image.
+        right = bai.area_coverage([[(2.5, 1), (6, 1), (6, 3), (2.5, 3)]], 4)
+        self.assertEqual(right, [0, 0, 0, 0, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0, 0])
+        corner = bai.area_coverage([[(1, 3), (5, 3), (5, 5), (1, 5)]], 4)
+        self.assertEqual(corner, [0] * 12 + [0, 1, 1, 1])
 
     def test_shapes(self) -> None:
         square = bai.shape_coverage("square", 8, 8, 0)
@@ -253,25 +545,77 @@ class RasterTest(unittest.TestCase):
     def test_an_opaque_icon_must_fill_its_canvas(self) -> None:
         icon = bai.Icon("x.png", 16, "tile", 1, "#000000", "#FFFFFF", alpha=False)
         with self.assertRaises(bai.IconError):
-            bai.render(mark(HOUSE), icon)
+            bai.render(mark(GABLES), icon)
 
     def test_render_blends_the_colours_by_coverage(self) -> None:
         icon = bai.Icon("x.png", 32, "tile", 1, "#102030", "#F0E0D0", alpha=True)
-        header, image = bai.render(mark(HOUSE), icon)
+        header, image = bai.render(mark(GABLES), icon)
         self.assertEqual(header, struct.pack(">IIBBBBB", 32, 32, 8, bai.RGBA, 0, 0, 0))
         self.assertEqual(len(image), 32 * 32 * 4)
         rows = pixels(header, image)
-        self.assertEqual(rows[0][:4], bytes([0x10, 0x20, 0x30, 0]))  # transparent corner
-        self.assertEqual(rows[16][:4], bytes([0x10, 0x20, 0x30, 255]))  # edge of the tile
-        self.assertEqual(rows[23][14 * 4 : 15 * 4], bytes([0xF0, 0xE0, 0xD0, 255]))  # the floor
+        tile, glyph = bytes([0x10, 0x20, 0x30]), bytes([0xF0, 0xE0, 0xD0])
+        self.assertEqual(rows[0][:4], tile + b"\x00")  # transparent corner
+        self.assertEqual(rows[16][:4], tile + b"\xff")  # edge of the tile
+        self.assertEqual(rows[23][14 * 4 : 15 * 4], glyph + b"\xff")  # the pier
+        self.assertEqual(rows[23][12 * 4 : 13 * 4], tile + b"\xff")  # a doorway
+        # The level and upright edges lie on whole pixels, sharp (the wall at x 6); the roofs
+        # and the doorway heads are anti-aliased, in colours between the two.
+        self.assertEqual(rows[20][5 * 4 : 7 * 4], tile + b"\xff" + glyph + b"\xff")
         colours = {rows[y][x * 4 : x * 4 + 3] for y in range(32) for x in range(32)}
-        self.assertGreater(len(colours), 10)  # anti-aliased edges in between
+        self.assertGreater(len(colours - {tile, glyph}), 5)
+
+    def test_a_smaller_glyph_shrinks_about_the_tile_centre(self) -> None:
+        # At 15/16 on a 512 px square: 15 px a unit from 16 px in, so the outer walls at x 6
+        # and 26 land on whole pixels, 106 and 406, and the ground at y 24 on 376.
+        icon = bai.Icon("x.png", 512, "square", 1, "#000000", "#FFFFFF", False, 15 / 16)
+        coverage = bai.fill_coverage(mark(GABLES), 512, 15, 16)
+        self.assertEqual(bai.render(mark(GABLES), icon)[1][::3], coverage)
+        row = coverage[370 * 512 : 371 * 512]
+        self.assertEqual((row[105], row[106], row[405], row[406]), (0, 255, 255, 0))
+        self.assertEqual((coverage[375 * 512 + 256], coverage[376 * 512 + 256]), (255, 0))
+
+
+class ExactRenderTest(unittest.TestCase):
+    """The generator's coverage of the real mark, at every size and place an icon draws it,
+    against an exact render made here from the designer's description."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.gables = bai.read_mark(bai.ROOT / bai.BRAND)
+        placements = set()
+        for icon in bai.icons(bai.read_palette(bai.ROOT / bai.TOKENS)):
+            scale = icon.size * icon.share * icon.glyph_scale / 32
+            placements.add((icon.size, scale, (icon.size - 32 * scale) / 2))
+        cls.placements = sorted(placements)
+
+    def test_every_pixel_is_the_exact_share_rounded(self) -> None:
+        # Ten legacy icons; Play and the 512 px web icon; iOS; the favicon; the 192 px web icon;
+        # and the two maskable icons.
+        self.assertEqual(len(self.placements), 16)
+        for size, scale, offset in self.placements:
+            with self.subTest(size=size, scale=scale):
+                exact = exact_shares([twin_gables(scale, offset)], size)
+                worst = worst_rounding(bai.fill_coverage(self.gables, size, scale, offset), exact)
+                # Half a level of rounding, a quarter for the chords (FLATNESS), and the
+                # reference's own chords, a thousandth.
+                self.assertLessEqual(worst, 0.5 + 0.25 + 0.001)
+                self.assertAlmostEqual(sum(exact) / scale**2, 228 - 4 * math.pi, places=4)
+
+    def test_the_comparison_sees_a_coarser_or_turned_arc(self) -> None:
+        exact = exact_shares([twin_gables(32, 0)], 1024)
+        bai.fill_coverage.cache_clear()
+        self.addCleanup(bai.fill_coverage.cache_clear)
+        with mock.patch.object(bai, "FLATNESS", bai.FLATNESS * 1000):
+            coarse = bai.fill_coverage(self.gables, 1024, 32.0, 0.0)
+        self.assertGreater(worst_rounding(coarse, exact), 1)
+        turned = mark(GABLES.replace("A2 2 0 0 0", "A2 2 0 0 1"))  # doorways with round sills
+        self.assertGreater(worst_rounding(bai.fill_coverage(turned, 1024, 32.0, 0.0), exact), 100)
 
 
 class PngTest(unittest.TestCase):
     def test_a_written_png_reads_back(self) -> None:
         icon = bai.Icon("x.png", 8, "square", 1, "#000000", "#FFFFFF", alpha=False)
-        content = bai.render(mark(HOUSE), icon)
+        content = bai.render(mark(GABLES), icon)
         data = bai.png_file(*content)
         self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
         self.assertEqual(bai.png_image(data), content)
@@ -285,7 +629,7 @@ class PngTest(unittest.TestCase):
     def test_every_row_filter_is_undone(self) -> None:
         for alpha in (False, True):
             icon = bai.Icon("x.png", 24, "square", 1, "#1D3F8F", "#FFFFFF", alpha=alpha)
-            header, image = bai.render(mark(HOUSE), icon)
+            header, image = bai.render(mark(GABLES), icon)
             for kinds in ([0], [1], [2], [3], [4], [4, 3, 2, 1, 0]):
                 with self.subTest(alpha=alpha, kinds=kinds):
                     scanlines = filtered(header, image, kinds)
@@ -424,6 +768,7 @@ class OutputsTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.outputs = bai.build(bai.ROOT)
         cls.palette = bai.read_palette(bai.ROOT / bai.TOKENS)
+        cls.gables = bai.read_mark(bai.ROOT / bai.BRAND)
 
     def size_and_type(self, path: str) -> tuple[int, int, int]:
         width, height, _, colour_type = struct.unpack(">IIBB", self.outputs.images[path][0][:10])
@@ -469,15 +814,42 @@ class OutputsTest(unittest.TestCase):
                     alpha = {value for row in rows for value in row[3::4]}
                     self.assertEqual(alpha, {255})
 
-    def test_the_tinted_icon_is_grey(self) -> None:
+    def test_the_tinted_icon_is_the_glyphs_coverage_in_grey(self) -> None:
         rows = pixels(*self.outputs.images[f"{bai.APP_ICON_SET}/AppIcon-tinted.png"])
         self.assertTrue(all(row[0::3] == row[1::3] == row[2::3] for row in rows))
+        # Black to white: each pixel's grey is the house's coverage, checked against an exact
+        # render in ExactRenderTest.
+        coverage = bai.fill_coverage(self.gables, 1024, 32.0, 0.0)
+        self.assertEqual(b"".join(row[0::3] for row in rows), coverage)
 
     def test_the_dark_icon_uses_the_dark_theme(self) -> None:
         rows = pixels(*self.outputs.images[f"{bai.APP_ICON_SET}/AppIcon-dark.png"])
         self.assertEqual(rows[0][:3], bytes.fromhex(self.palette.dark_on_primary[1:]))
-        floor = rows[24 * 32][16 * 32 * 3 : 16 * 32 * 3 + 3]  # the house's floor, mark (16, 24)
-        self.assertEqual(floor, bytes.fromhex(self.palette.dark_primary[1:]))
+        pier = rows[20 * 32][16 * 32 * 3 : 16 * 32 * 3 + 3]  # the pier between the doorways
+        self.assertEqual(pier, bytes.fromhex(self.palette.dark_primary[1:]))
+
+    def reach(self, path: str) -> float:
+        """How far from the centre the farthest corner of any pixel the house touches lies, as
+        a share of the icon's width."""
+        header, image = self.outputs.images[path]
+        size, channels = struct.unpack(">I", header[:4])[0], 4 if header[9] == bai.RGBA else 3
+        primary = bytes.fromhex(self.palette.primary[1:])
+        return (
+            max(
+                math.hypot(abs(x + 0.5 - size / 2) + 0.5, abs(y + 0.5 - size / 2) + 0.5)
+                for y, row in enumerate(pixels(header, image))
+                for x in range(size)
+                if row[x * channels : x * channels + 3] != primary
+            )
+            / size
+        )
+
+    def test_the_maskable_icons_keep_the_house_inside_the_safe_circle(self) -> None:
+        for size in (192, 512):
+            with self.subTest(size=size):
+                self.assertLess(self.reach(f"{bai.WEB}/icons/Icon-maskable-{size}.png"), 0.4)
+                # At the tile's own scale, the plain icon's house reaches past that circle.
+                self.assertGreater(self.reach(f"{bai.WEB}/icons/Icon-{size}.png"), 0.4)
 
     def test_the_ios_set_lists_exactly_its_images(self) -> None:
         contents = json.loads(self.outputs.texts[f"{bai.APP_ICON_SET}/Contents.json"])
@@ -512,19 +884,17 @@ class OutputsTest(unittest.TestCase):
         colours = xml(self.outputs.texts[f"{bai.RES}/values/ic_launcher_background.xml"])
         self.assertEqual(colours.find("color").text, self.palette.primary)
 
-    def test_the_foreground_draws_the_mark_in_the_safe_zone(self) -> None:
+    def test_the_foreground_fills_the_mark_in_the_safe_zone(self) -> None:
         vector = xml(self.outputs.texts[f"{bai.RES}/drawable/ic_launcher_foreground.xml"])
         self.assertEqual(vector.get(f"{ANDROID}viewportWidth"), "108")
         group = vector.find("group")
         self.assertEqual(group.get(f"{ANDROID}translateX"), "18")
         self.assertEqual(group.get(f"{ANDROID}scaleX"), "2.25")
-        path = group.find("path")
-        self.assertEqual(path.get(f"{ANDROID}pathData"), HOUSE)
-        self.assertEqual(path.get(f"{ANDROID}strokeColor"), self.palette.on_primary)
-        self.assertEqual(path.get(f"{ANDROID}strokeWidth"), "2")
-        self.assertEqual(path.get(f"{ANDROID}strokeLineCap"), "round")
-        self.assertEqual(path.get(f"{ANDROID}strokeLineJoin"), "round")
-        self.assertIsNone(path.get(f"{ANDROID}fillColor"))
+        (path,) = group.findall("path")
+        self.assertEqual(
+            dict(path.attrib),
+            {f"{ANDROID}pathData": GABLES, f"{ANDROID}fillColor": self.palette.on_primary},
+        )  # filled, with no stroke: the monochrome layer is this drawable too
 
     def test_the_web_manifest(self) -> None:
         manifest = json.loads(self.outputs.texts[f"{bai.WEB}/manifest.json"])
@@ -577,6 +947,21 @@ class WriteAndCheckTest(unittest.TestCase):
         self.assertEqual(bai.problems(self.root), [])
         self.assertEqual(bai.write(self.root), [])  # nothing left to change
 
+    def test_a_rerun_writes_the_same_bytes(self) -> None:
+        bai.write(self.root)
+        written = {
+            path: path.read_bytes() for path in sorted(self.root.rglob("*")) if path.is_file()
+        }
+        for path in written:
+            if path.suffix == ".png":
+                path.unlink()
+        bai.fill_coverage.cache_clear()
+        bai.write(self.root)
+        self.assertEqual(
+            {path: path.read_bytes() for path in sorted(self.root.rglob("*")) if path.is_file()},
+            written,
+        )
+
     def test_check_finds_edits_and_strays_and_write_mends_them(self) -> None:
         bai.write(self.root)
         favicon = self.root / bai.WEB / "favicon.png"
@@ -600,6 +985,29 @@ class WriteAndCheckTest(unittest.TestCase):
         self.assertIn(f"removed {bai.APP_ICON_SET}/Icon-App-20x20@1x.png", bai.write(self.root))
         self.assertFalse(stray.exists())
         self.assertEqual(bai.problems(self.root), [])
+
+    def test_a_changed_mark_is_reported_and_a_bad_one_refused(self) -> None:
+        bai.write(self.root)
+        brand = self.root / bai.BRAND
+        source = brand.read_text(encoding="utf-8")
+        # Doorways 1 unit narrower: the vector and every PNG change.
+        brand.write_text(source.replace("H22V16.5A2 2", "H21V16.5A1 1"), encoding="utf-8")
+        self.assertEqual(
+            set(bai.problems(self.root)),
+            {
+                f"{bai.RES}/drawable/ic_launcher_foreground.xml is missing or stale",
+                f"{bai.APP_ICON_SET}/AppIcon.png does not hold the generated pixels",
+                f"{bai.WEB}/favicon.png does not hold the generated pixels",
+            },
+        )
+        # Eaves 2 units wider pass the maskable circle: refused, and nothing is written.
+        before = {path: path.read_bytes() for path in self.root.rglob("*.png")}
+        wide = source.replace("H4L12 6", "H2L12 6").replace("L28 18", "L30 18")
+        self.assertNotEqual(wide, source)
+        brand.write_text(wide, encoding="utf-8")
+        with self.assertRaisesRegex(bai.IconError, "maskable"):
+            bai.write(self.root)
+        self.assertEqual({path: path.read_bytes() for path in self.root.rglob("*.png")}, before)
 
     def test_a_losslessly_reencoded_icon_is_left_alone(self) -> None:
         bai.write(self.root)
@@ -681,9 +1089,23 @@ class WriteAndCheckTest(unittest.TestCase):
                 self.assertEqual(bai.main([]), 0)
                 self.assertIn("wrote app/web/favicon.png", out.getvalue())
                 self.assertEqual(bai.main(["--check"]), 0)
+                (self.root / bai.WEB / "manifest.json").write_text("{", encoding="utf-8")
+                self.assertEqual(bai.main([]), 1)
+                self.assertIn("error: app/web/manifest.json is not valid JSON", err.getvalue())
                 (self.root / bai.TOKENS).write_text("{}", encoding="utf-8")
                 self.assertEqual(bai.main(["--check"]), 1)
                 self.assertIn("error: no colour token light.primary", err.getvalue())
+
+    def test_the_script_runs_main(self) -> None:
+        err = io.StringIO()
+        with (
+            mock.patch.object(sys, "argv", ["build_app_icons.py", "--bogus"]),
+            contextlib.redirect_stderr(err),
+            self.assertRaises(SystemExit) as caught,
+        ):
+            runpy.run_path(str(Path(bai.__file__)), run_name="__main__")
+        self.assertEqual(caught.exception.code, 2)
+        self.assertIn("usage: tool/design/build_app_icons.py [--check]", err.getvalue())
 
 
 if __name__ == "__main__":

@@ -11,29 +11,32 @@ owner's decisions of 11 November 2026, and the index describes each one and its 
 
 ## Why it matters
 
-On a landlord's home screen the app shows Flutter's default blue logo, which says nothing about
-whose app it is and looks like a test build. A recognisable icon of its own, and screenshots that
-show the real screens in English and Urdu, are what a landlord sees first in Google Play and the App
-Store, and both stores need them before a listing can go live.
+Until 12 November 2026 the app showed Flutter's default blue logo on a landlord's home screen,
+which said nothing about whose app it was and looked like a test build. A recognisable icon of its
+own, and screenshots that show the real screens in English and Urdu, are what a landlord sees first
+in Google Play and the App Store, and both stores need them before a listing can go live.
 
 ## What is true now
 
 Facts marked _(summary)_ or "secondary" were not read on the platform owner's own page; confirm them
 in the consoles.
 
-- **Every launcher icon is Flutter's default.** On 11 November 2026 the Android
-  `mipmap-hdpi/ic_launcher.png` was byte-identical to Flutter's template, and the iOS 1,024 px icon
-  and the web icons are the templates too. Android has only bitmap `mipmap-*dpi` folders and no
-  `mipmap-anydpi-v26`, so there is no adaptive or monochrome icon
-  ([res/](../../app/android/app/src/main/res/)). The web manifest still carries Flutter's colour
-  `#0175C2` ([manifest.json](../../app/web/manifest.json)).
-- **The website already has a mark:** a white house outline on `#1D3F8F`
-  ([favicon.svg](../../website/public/favicon.svg)), the brand blue of the design tokens
+- **The mark is chosen: the twin gables** (the owner, 23 November 2026, D-26): a filled white
+  house on the brand's cobalt, `#1D3F8F` ([The mark](#the-mark), below). It replaced the website's
+  white house outline, a 2-unit stroke, which the icons had used as a starting point. It is defined
+  once, in [`brand.ts`](../../website/src/lib/brand.ts), in the colours of the design tokens
   ([maalik.tokens.json](../../design/tokens/maalik.tokens.json)). `design/icons/icons.json` is the
   source of the in-app icon font, not of launcher icons ([design/icons/](../../design/icons/)).
-- **Generated files already follow one pattern:** `make tokens` and `make icons` rebuild outputs,
-  and their `-check` targets fail CI on stale ones ([Makefile](../../Makefile),
-  [conventions](../agents/conventions.md#generated-files)).
+- **The launcher icons are the app's own** (since 12 November 2026, #51). `make app-icons`
+  ([`build_app_icons.py`](../../tool/design/build_app_icons.py)) draws them all from the mark and
+  the tokens: Android's adaptive icon, with the same layer as its monochrome one, and PNGs for
+  Android 7 ([res/](../../app/android/app/src/main/res/)); the iOS asset catalogue's 1,024 px icon
+  in its default, dark and tinted appearances; the web app's favicon, icons and maskable icons, and
+  the manifest's name and colours ([manifest.json](../../app/web/manifest.json)); and the Play
+  listing's 512 px icon. `make app-icons-check` runs in CI's hygiene job beside `tokens-check`,
+  like the repository's other generated files
+  ([conventions](../agents/conventions.md#generated-files)). The website draws its own favicons,
+  touch icon, logo and Open Graph cards from the same definition (`npm run og`).
 - **Android** wants 108 dp foreground, background and monochrome layers, with the logo between 48 dp
   and 66 dp; adaptive icons start at API 26, and the app's minimum is API 24. From Android 16 QPR 2
   the system themes apps that ship no monochrome layer itself
@@ -66,19 +69,55 @@ in the consoles.
 
 ## Design
 
-- **One master, no text.** One SVG master in `design/app-icon/` (to be created): a simple filled
-  shape that reads at 24 px, with a one-colour version for Android's monochrome layer and iOS's
-  tinted appearance. Text would vanish under Liquid Glass and could not serve both scripts. The
-  website's house on brand blue is the natural starting point, so the site and the app match; the
-  owner decides.
+- **One master, no text.** The master is the glyph's outline, `MARK_GLYPH_PATH` in
+  [`brand.ts`](../../website/src/lib/brand.ts): a simple filled shape that reads at 16 px. Its
+  outline alone is the one-colour version, for Android's monochrome layer and iOS's tinted
+  appearance. Text would vanish under Liquid Glass and could not serve both scripts. The website
+  and the app draw the same mark.
 - **A generator, not hand-made files.** `tool/design/build_app_icons.py` with `make app-icons` and
   `make app-icons-check`, run in CI beside `tokens-check`. It writes:
-  - Android: `mipmap-anydpi-v26/ic_launcher.xml` with foreground, background and monochrome layers,
-    and legacy PNG mipmaps for API 24 and 25;
-  - web: `favicon.png`, the 192 and 512 px icons, the maskable icons with the logo inside the 40%
-    circle, and the manifest's colours from the tokens;
-  - the website's favicon and touch icon, if the mark changes;
+  - Android: `mipmap-anydpi-v26/ic_launcher.xml` with foreground, background and monochrome layers
+    (the foreground a filled vector), and legacy PNG mipmaps for API 24 and 25;
+  - iOS: the asset catalogue's 1,024 px icon, plain, dark and tinted;
+  - web: `favicon.png`, the 192 and 512 px icons, the maskable icons with the house at 15/16 of its
+    size, inside the 40% circle, and the manifest's colours from the tokens;
   - the Play 512 px icon.
+
+  The website's favicons, touch icon and Open Graph cards come from the same definition through
+  `npm run og` in `website/`.
+
+### The mark
+
+Chosen by the owner on 23 November 2026 (D-26), from three finalists rendered at every size, under
+every launcher mask and in the themed and tinted appearances: the website's house outline as it
+was, an M inside a house, and the twin gables. The brief that morning was a house that carries the
+two Ms of Maalik-e-Makaan.
+
+- **What it is.** A filled white house on the cobalt tile (`primary`, with `onPrimary` on it; in
+  the dark appearance, the dark theme's `primary` on its `onPrimary`). Two steep gables make the
+  roofline a capital M; the eaves reach 2 units past the walls; two arched doorways cut the walls
+  into a small m. It is one closed outline on the 32-unit tile, of 15 straight edges and 2 half
+  circles of radius 2 (the doorways' heads, springing at y 16.5). Walls, pier and doorways are 4
+  units wide, and every level and upright edge lies on an even unit, so all 11 of them land on whole
+  pixels at 16, 32, 48 and 64 px.
+- **Why.** A filled shape stays legible at 16 px and in a monochrome, themed or tinted icon, where
+  the earlier 2-unit stroke faded; it carries the name's two Ms in the house itself, with no letter
+  of either script; and it keeps the website's house and colours, so the site and the app match.
+- **Measured.** Area 215.43 square units (228 less two half circles of radius 2), centroid (16,
+  15.84), box 4 to 28 across and 6 to 24 down, reach 12.81 units from the tile's centre (the bottom
+  corners; the eave tips reach 12.17). In Android's adaptive icon, at 2.25 dp a unit, it reaches
+  28.81 dp from the centre (the safe circle allows 33) and is 54 by 40.5 dp (a logo should be at
+  least 48 across). At the tile's own scale it would reach 40.02% of a maskable icon's width from
+  its centre, just past the 40% circle, so the maskable icons draw it at 15/16 of that scale about
+  the centre: 37.5%, and at 512 px 15 px a unit, every edge on a whole unit still on a whole pixel.
+- **How it is kept.** The generator reads the outline from `brand.ts` (lines and circular arcs,
+  with SVG's rules for arcs), fills it with the exact area of each pixel it covers, and refuses an
+  outline that crosses itself or whose holes do not turn the other way (where that exactness would
+  fail), one that reaches past the adaptive or maskable safe circle (counting each arc's farthest
+  point), and one under 48 dp across. Its tests compare every icon's pixels with an exact render
+  made from the designer's description and pass only if each is that render rounded up or down. The
+  website's header draws the same path, and in forced colours draws the house alone in the text
+  colour.
 - **iOS by hand, once.** An `AppIcon.icon` made in Icon Composer and committed as source; this needs
   a Mac. Keep a generated asset-catalogue icon for iOS 15 to 18 unless a simulator test shows Xcode
   produces one from the `.icon` file.
@@ -100,12 +139,16 @@ letterheads are not ready at the first submission, the set is updated when they 
 
 ## Work
 
-1. **Owner:** choose the mark and its colours, including the one-colour version.
+1. **Owner:** choose the mark and its colours, including the one-colour version. Done 23 November
+   2026: the twin gables in the brand's colours, its outline alone the one-colour version (D-26,
+   [The mark](#the-mark)).
 2. **M:** SVG master, the generator, `make app-icons` and its CI check; Android adaptive, monochrome
-   and legacy icons; web icons and manifest colours.
+   and legacy icons; web icons and manifest colours. Done 12 November 2026 (#51); on 23 November
+   2026 the generator learned to fill outlines with arcs exactly, for the chosen mark.
 3. **M:** iOS `AppIcon.icon` and the decision on the older-iOS fallback, tested on iOS 15 and iOS 26
    simulators.
-4. **S:** Play 512 px icon and the 1,024 × 500 feature graphic, with an Urdu variant.
+4. **S:** Play 512 px icon and the 1,024 × 500 feature graphic, with an Urdu variant. The icon is
+   generated (`app/android/store/play-icon-512.png`); the feature graphic is still to make.
 5. **M:** screenshot harness and fictional seed; the Android phone set in English and Urdu (first
    half of the former L item).
 6. **M:** the iPhone set in English and Urdu from the macOS job, and the iPad set if iPad stays
@@ -113,15 +156,16 @@ letterheads are not ready at the first submission, the set is updated when they 
 
 ## Depends on / Unblocks
 
-- **Depends on:** the owner's choice of mark, a Mac for the iOS icon, [urdu-review](urdu-review.md)
-  for Urdu captions and the feature graphic's Urdu text.
+- **Depends on:** a Mac for the iOS icon, [urdu-review](urdu-review.md) for Urdu captions and the
+  feature graphic's Urdu text. (The owner's choice of mark came on 23 November 2026.)
 - **Unblocks:** [play-store](play-store.md) and [app-store](app-store.md), which cannot submit
   without the icon, the feature graphic and the screenshots.
 
 ## Risks
 
-- **Thin strokes disappear at small sizes or under Liquid Glass.** Use filled shapes and check the
-  icon at 24 px and in every appearance before committing.
+- **Thin strokes disappear at small sizes or under Liquid Glass.** The chosen mark is filled, with
+  nothing narrower than its 4-unit walls and the 3.8 units of roof over each doorway; check it again
+  in every appearance when the Icon Composer file is made.
 - **Poor automatic theming** if the monochrome layer is missing. The generator always writes one,
   and the check fails without it.
 - **A blank icon on older iOS** if the fallback is removed untested. Test on an iOS 15 simulator
@@ -135,16 +179,22 @@ letterheads are not ready at the first submission, the set is updated when they 
 
 - [ ] No Flutter default icon or colour remains on Android, iOS or the web app.
 - [ ] `make app-icons-check` passes in CI and fails when an output is stale.
-- [ ] The Android icon looks right under the circle and squircle masks and as a themed icon.
+- [x] The Android icon looks right under the circle and squircle masks and as a themed icon.
 - [ ] The iOS icon renders in default, dark, clear and tinted appearances, and shows on the oldest
       supported iOS.
-- [ ] The maskable web icons pass the 40% safe-zone preview.
+- [x] The maskable web icons pass the 40% safe-zone preview.
 - [ ] Both stores have the icon, the feature graphic and screenshot sets in English and Urdu, made
       from fictional data.
 
+The two ticked on 23 November 2026, for the twin gables: the generated Android vector, rendered on
+its own by librsvg, under circle and squircle masks with the 66 dp circle drawn, and its
+monochrome layer themed light and dark; and both maskable icons with the 40% circle drawn, under
+circle, squircle and 80%-circle masks. Not yet seen on a device or an emulator.
+
 ## Questions for the owner
 
-- What is the mark: the website's house, a key, a door, a ledger?
-- Should an Urdu letterform appear in it at all?
+Answered on 23 November 2026: the mark is the twin gables, a house with no letter of either script
+in it (D-26). Still open:
+
 - Screenshot style: plain screens, or framed with captions?
 - Which flows come first: the overdue list, a receipt, the caretaker handover?

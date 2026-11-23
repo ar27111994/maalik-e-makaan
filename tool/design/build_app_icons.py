@@ -4,18 +4,21 @@
     python3 tool/design/build_app_icons.py           # write the icons
     python3 tool/design/build_app_icons.py --check   # verify the committed icons are current
 
-The mark is defined once, in website/src/lib/brand.ts: a house drawn in straight strokes
-(MARK_HOUSE_PATH, MARK_STROKE_WIDTH wide, round caps and joins) on a 32 x 32 tile whose corners
-have a radius of MARK_TILE_RADIUS. The tile takes the `primary` colour token and the house
-`onPrimary` (design/tokens/maalik.tokens.json). The website draws its favicons from the same
-definition (website/scripts/generate-og.ts); this draws the app's.
+The mark is defined once, in website/src/lib/brand.ts: the "twin gables" house (MARK_GLYPH_PATH),
+one filled outline of straight lines and circular arcs, on a 32 x 32 tile whose corners have a
+radius of MARK_TILE_RADIUS. The tile takes the `primary` colour token and the house `onPrimary`
+(design/tokens/maalik.tokens.json). The website draws its favicons from the same definition
+(website/scripts/generate-og.ts); this draws the app's. It refuses a glyph that it could not fill
+exactly (check_outline) and one that a platform's mask would cut or that Android would show too
+small (check_geometry).
 
 The PNGs are rasterised here, with the standard library only, so the check runs wherever the
 other design tools run (CI's hygiene job has Python but not the website's Node packages) and
-gives the same pixels on every machine. A stroke with round caps and joins is the union of
-capsules around its segments, so a pixel's coverage comes from its distance to the nearest
-segment (and to the tile's edge), and is sampled where two strokes share a pixel: no SVG renderer
-is needed, and the result matches librsvg's to within ordinary anti-aliasing differences. The
+gives the same pixels on every machine: the arithmetic is addition, subtraction, multiplication,
+division and square roots, which IEEE 754 rounds the same everywhere (no sine or cosine from the C
+library). Arcs become chords that stray at most FLATNESS pixels from them, and a pixel's coverage
+is the exact share of its square that the outline encloses, summed edge by edge along each row: no
+SVG renderer is needed, and no pixel differs from an exact render by more than rounding. The
 check decodes each PNG and compares its format (size, bit depth, colour type) and its pixels, not
 its bytes: another zlib build, other row filters or a lossless optimiser that keeps the format
 give the same image. A file converted to another colour type or bit depth fails, because the
@@ -30,7 +33,7 @@ Outputs (all committed):
     mipmap-anydpi-v26/ic_launcher.xml, ic_launcher_round.xml
         adaptive icon: a solid background colour, the house as the foreground and as the
         monochrome layer for themed icons (Android 13 and later)
-    drawable/ic_launcher_foreground.xml   the house as a vector, in the 66 dp safe zone
+    drawable/ic_launcher_foreground.xml   the house as a filled vector, in the 66 dp safe zone
     values/ic_launcher_background.xml     the background colour (`primary`)
     mipmap-<density>/ic_launcher.png, ic_launcher_round.png
         legacy icons for Android 7.0 and 7.1 (minSdk 24; adaptive icons start at 8.0)
@@ -43,7 +46,8 @@ Outputs (all committed):
         earlier versions show the plain one.
   web (app/web/)
     favicon.png, icons/Icon-192.png, icons/Icon-512.png,
-    icons/Icon-maskable-192.png, icons/Icon-maskable-512.png
+    icons/Icon-maskable-192.png, icons/Icon-maskable-512.png (the house at 15/16 of its size,
+        inside the maskable safe circle)
     manifest.json: name and short_name (appName in app/lib/l10n/arb/app_en.arb),
         theme_color (`primary`) and background_color (`bg`); its other keys are kept
 """
@@ -51,12 +55,14 @@ Outputs (all committed):
 from __future__ import annotations
 
 import functools
+import itertools
 import json
 import math
 import re
 import struct
 import sys
 import zlib
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -76,14 +82,20 @@ GENERATED_BY = (
 )
 
 # Android adaptive icons: two 108 dp layers, of which every launcher mask shows the central
-# 72 dp and keeps at least the circle of 66 dp. The mark's 32-unit tile is mapped onto those
-# 72 dp, so the house keeps the proportions it has on the tile.
+# 72 dp and keeps at least the circle of 66 dp, and a logo at least 48 dp across. The mark's
+# 32-unit tile is mapped onto those 72 dp (2.25 dp a unit), so the house keeps the proportions it
+# has on the tile.
 ADAPTIVE_CANVAS_DP = 108
 ADAPTIVE_VISIBLE_DP = 72
 ADAPTIVE_SAFE_DIAMETER_DP = 66
+ADAPTIVE_LOGO_MIN_DP = 48
 
-# A maskable web icon keeps its content inside a centred circle of 80% of its width.
+# A maskable web icon keeps its content inside a centred circle of 80% of its width (a radius of
+# 40%). The house's bottom corners reach just past that circle at the tile's own scale, so the
+# maskable icons draw it at 15/16 of that scale about the tile's centre; at 512 px that is 15 px a
+# unit, which keeps every edge on a whole unit on a whole pixel.
 MASKABLE_SAFE_SHARE = 0.8
+MASKABLE_GLYPH_SCALE = 15 / 16
 
 # Legacy launcher icons follow Material's product-icon keylines on a 48 dp grid: a square
 # 152/192 of the icon and a circle 176/192, which look the same size.
@@ -116,115 +128,292 @@ Point = tuple[float, float]
 
 
 @dataclass(frozen=True)
+class Line:
+    """A straight edge of the glyph's outline."""
+
+    start: Point
+    end: Point
+
+
+@dataclass(frozen=True)
+class Arc:
+    """A circular edge of the glyph's outline: from [start] to [end] around [centre], turning
+    clockwise on screen (where y grows downwards) when [clockwise], as SVG's sweep flag 1 does."""
+
+    start: Point
+    end: Point
+    centre: Point
+    radius: float
+    clockwise: bool
+
+    def _frame(self) -> tuple[Point, Point]:
+        """Unit vectors from the centre: towards the start, and a quarter turn on from it."""
+        ux = (self.start[0] - self.centre[0]) / self.radius
+        uy = (self.start[1] - self.centre[1]) / self.radius
+        return (ux, uy), ((-uy, ux) if self.clockwise else (uy, -ux))
+
+    def turn(self, direction: Point) -> float:
+        """How far round from the start, in the arc's sense, the point of its circle in
+        [direction] from the centre lies: 0 at the start, 1 a quarter turn on, 2 half a turn,
+        towards 4 for a whole one. It grows with the angle, without trigonometry."""
+        (ux, uy), (vx, vy) = self._frame()
+        x = direction[0] * ux + direction[1] * uy
+        y = direction[0] * vx + direction[1] * vy
+        along = x / (abs(x) + abs(y))
+        return 1 - along if y >= 0 else 3 + along
+
+    def covers(self, direction: Point) -> bool:
+        """Whether the arc passes the point of its circle in [direction] from the centre."""
+        return self.turn(direction) <= self.turn(_minus(self.end, self.centre))
+
+    def points(self, tolerance: float) -> list[Point]:
+        """Points after the start, ending at the end, whose chords stray at most [tolerance]
+        from the arc: it is cut at every quarter turn, and each piece halved until its chords
+        are close enough."""
+        (ux, uy), (vx, vy) = self._frame()
+        end = _minus(self.end, self.centre)
+        whole = self.turn(end)
+        quarters = [(vx, vy), (-ux, -uy), (-vx, -vy)]  # a quarter, a half and three quarters on
+        corners = [(ux, uy)] + [q for turn, q in enumerate(quarters, 1) if turn < whole]
+        corners.append((end[0] / self.radius, end[1] / self.radius))
+        units = [
+            unit
+            for before, after in itertools.pairwise(corners)
+            for unit in _halves(before, after, self.radius, tolerance)
+        ]
+        cx, cy = self.centre
+        return [(cx + x * self.radius, cy + y * self.radius) for x, y in units[:-1]] + [self.end]
+
+
+Edge = Line | Arc
+Contour = tuple[Edge, ...]
+
+
+def _minus(a: Point, b: Point) -> Point:
+    return a[0] - b[0], a[1] - b[1]
+
+
+def _halves(start: Point, end: Point, radius: float, tolerance: float) -> list[Point]:
+    """Unit vectors after [start] up to [end] (at most a quarter turn apart, so their sum is never
+    short) such that each chord between them, on a circle of [radius], strays at most [tolerance]
+    from its arc."""
+    dx, dy = end[0] - start[0], end[1] - start[1]
+    half_chord_squared = (dx * dx + dy * dy) / 4
+    if radius * (1 - math.sqrt(1 - half_chord_squared)) <= tolerance:
+        return [end]
+    sx, sy = start[0] + end[0], start[1] + end[1]
+    length = math.sqrt(sx * sx + sy * sy)
+    middle = (sx / length, sy / length)
+    return _halves(start, middle, radius, tolerance) + _halves(middle, end, radius, tolerance)
+
+
+@dataclass(frozen=True)
 class Mark:
-    """The brand mark: [strokes] are polylines in a [size] x [size] box."""
+    """The brand mark: a glyph whose outline is [contours] (each closed, of straight and circular
+    edges, filled by the non-zero rule) in a [size] x [size] box, on a tile with corners of
+    [tile_radius]."""
 
     size: float
     tile_radius: float
-    stroke_width: float
     path: str
-    strokes: tuple[tuple[Point, ...], ...]
+    contours: tuple[Contour, ...]
 
-    def segments(self) -> tuple[tuple[Point, Point], ...]:
-        return tuple(
-            (stroke[index], stroke[index + 1])
-            for stroke in self.strokes
-            for index in range(len(stroke) - 1)
-        )
+    def polygons(self, tolerance: float) -> tuple[tuple[Point, ...], ...]:
+        """The contours as polygons (each closed: its last point joins its first), every arc
+        drawn as chords at most [tolerance] from it."""
+        found = []
+        for contour in self.contours:
+            points: list[Point] = [contour[0].start]
+            for edge in contour:
+                points += edge.points(tolerance) if isinstance(edge, Arc) else [edge.end]
+            found.append(tuple(points[:-1]))  # the last point is the first again
+        return tuple(found)
+
+    def edges(self) -> list[Edge]:
+        return [edge for contour in self.contours for edge in contour]
 
     def reach(self) -> float:
-        """How far the stroked house reaches from the tile's centre, in mark units."""
+        """How far the glyph reaches from the tile's centre, in mark units: to its farthest
+        corner, or to the farthest point of an arc's circle where the arc passes it."""
         centre = self.size / 2
-        return self.stroke_width / 2 + max(
-            math.hypot(x - centre, y - centre) for stroke in self.strokes for x, y in stroke
-        )
+        points = []
+        for edge in self.edges():
+            points.append(edge.start)
+            if isinstance(edge, Arc):
+                away = _minus(edge.centre, (centre, centre))
+                distance = math.hypot(*away)
+                if distance and edge.covers(away):
+                    out = edge.radius / distance
+                    points.append((edge.centre[0] + away[0] * out, edge.centre[1] + away[1] * out))
+        return max(math.hypot(x - centre, y - centre) for x, y in points)
+
+    def box(self) -> tuple[float, float, float, float]:
+        """The glyph's left, top, right and bottom: its corners, and each arc's leftmost,
+        topmost, rightmost and bottommost points where the arc passes them."""
+        points = []
+        for edge in self.edges():
+            points.append(edge.start)
+            if isinstance(edge, Arc):
+                cx, cy = edge.centre
+                points += [
+                    (cx + dx * edge.radius, cy + dy * edge.radius)
+                    for dx, dy in ((1, 0), (0, 1), (-1, 0), (0, -1))
+                    if edge.covers((dx, dy))
+                ]
+        xs, ys = [x for x, _ in points], [y for _, y in points]
+        return min(xs), min(ys), max(xs), max(ys)
 
 
-_NUMBER = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
-_PATH_TOKEN = re.compile(rf"[\s,]*(?:(?P<command>[A-Za-z])|(?P<number>{_NUMBER}))[\s,]*")
+_SEPARATOR = r"[\s,]*"
+_NUMBER = re.compile(rf"{_SEPARATOR}([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)")
+_FLAG = re.compile(rf"{_SEPARATOR}([01])")  # SVG lets arc flags run together: "a2 2 0 01 4 0"
+_COMMAND = re.compile(rf"{_SEPARATOR}([A-Za-z])")
+_REST = re.compile(_SEPARATOR)
 
 
-def _path_tokens(data: str) -> list[str | float]:
-    tokens: list[str | float] = []
-    position = 0
-    while position < len(data):
-        match = _PATH_TOKEN.match(data, position)
-        if not match or match.end() == position:
-            raise IconError(f"cannot read the path at {data[position:]!r}")
-        command = match["command"]
-        tokens.append(command if command else float(match["number"]))
-        position = match.end()
-    return tokens
+class _PathReader:
+    """Reads an SVG path's data one command or argument at a time."""
+
+    def __init__(self, data: str) -> None:
+        self.data = data
+        self.position = 0
+
+    def _take(self, pattern: re.Pattern[str]) -> str | None:
+        match = pattern.match(self.data, self.position)
+        if not match:
+            return None
+        self.position = match.end()
+        return match.group(1)
+
+    def done(self) -> bool:
+        return _REST.fullmatch(self.data, self.position) is not None
+
+    def number(self, command: str) -> float:
+        found = self._take(_NUMBER)
+        if found is None:
+            raise IconError(f"the path's {command} command lacks a number")
+        return float(found)
+
+    def flag(self, command: str) -> bool:
+        found = self._take(_FLAG)
+        if found is None:
+            raise IconError(f"the path's {command} command needs a flag of 0 or 1")
+        return found == "1"
+
+    def command(self) -> str | None:
+        """The next command letter, or None when a number (a repeated argument) comes next."""
+        if _NUMBER.match(self.data, self.position):
+            return None
+        found = self._take(_COMMAND)
+        if found is None:
+            raise IconError(f"cannot read the path at {self.data[self.position :].strip()!r}")
+        return found
 
 
-def parse_path(data: str) -> tuple[tuple[Point, ...], ...]:
-    """The polylines that an SVG path of straight lines draws (M, L, H, V and Z commands,
-    absolute or relative, with repeated arguments). Curves and arcs are refused."""
-    tokens = _path_tokens(data)
-    strokes: list[list[Point]] = []
-    current: list[Point] | None = None
+def _arc(
+    start: Point, end: Point, rx: float, ry: float, large: bool, clockwise: bool
+) -> Edge | None:
+    """The edge an SVG arc command draws, by SVG 2's rules (appendix F.6): none between equal
+    ends, a line when a radius is 0, and a radius too short to span the ends lengthened until it
+    does. Only circular arcs are drawn here (rx equal to ry, so the rotation does not matter)."""
+    if start == end:
+        return None
+    rx, ry = abs(rx), abs(ry)
+    if not rx or not ry:
+        return Line(start, end)
+    if rx != ry:
+        raise IconError(f"the mark's arcs must be circular, not {rx:g} by {ry:g}")
+    hx, hy = (start[0] - end[0]) / 2, (start[1] - end[1]) / 2
+    half_squared = hx * hx + hy * hy
+    radius = max(rx, math.sqrt(half_squared))
+    # The centre lies on the chord's perpendicular bisector, on the side the two flags choose.
+    along = math.sqrt(max(0.0, radius * radius - half_squared) / half_squared)
+    if large == clockwise:
+        along = -along
+    centre = (along * hy + (start[0] + end[0]) / 2, -along * hx + (start[1] + end[1]) / 2)
+    return Arc(start, end, centre, radius, clockwise)
+
+
+def parse_path(data: str) -> tuple[Contour, ...]:
+    """The contours that an SVG path of straight lines and circular arcs outlines (M, L, H, V,
+    A and Z, absolute or relative, with repeated arguments). A filled subpath closes itself, so
+    every contour ends where it starts. Curves and elliptical arcs are refused."""
+    reader = _PathReader(data)
+    contours: list[Contour] = []
+    edges: list[Edge] | None = None  # the open subpath's edges, if one is open
+    started = False
     x = y = 0.0
     start = (0.0, 0.0)
     command = ""
-    index = 0
 
-    def number() -> float:
-        nonlocal index
-        if index >= len(tokens) or isinstance(tokens[index], str):
-            raise IconError(f"the path's {command} command lacks a number")
-        value = tokens[index]
-        index += 1
-        return float(value)
+    def close() -> None:
+        nonlocal edges, x, y
+        if edges is not None and (x, y) != start:
+            edges.append(Line((x, y), start))
+        if edges:
+            contours.append(tuple(edges))
+        edges = None
+        x, y = start
 
-    while index < len(tokens):
-        item = tokens[index]
-        if isinstance(item, str):
-            if item not in "MmLlHhVvZz":
+    while not reader.done():
+        letter = reader.command()
+        if letter is not None:
+            if letter not in "MmLlHhVvAaZz":
                 raise IconError(
-                    f"the path command {item} is not supported: the mark is drawn in "
-                    "straight lines (M, L, H, V, Z)"
+                    f"the path command {letter} is not supported: the mark is drawn in straight "
+                    "lines and circular arcs (M, L, H, V, A, Z)"
                 )
-            command = item
-            index += 1
+            command = letter
             if command in "Zz":
-                if current is None:
+                if edges is None:
                     raise IconError("the path closes a shape it has not started")
-                current.append(start)
-                x, y = start
-                current = None
+                close()
                 continue
         elif not command or command in "Zz":
             raise IconError("the path must start with M, and a number cannot follow Z")
         if command in "Mm":
-            dx, dy = number(), number()
+            dx, dy = reader.number(command), reader.number(command)
+            close()
             x, y = (x + dx, y + dy) if command == "m" else (dx, dy)
             start = (x, y)
-            current = [start]
-            strokes.append(current)
+            edges, started = [], True
             command = "l" if command == "m" else "L"  # further pairs draw lines
             continue
-        if current is None:
-            if not strokes:
+        if edges is None:
+            if not started:
                 raise IconError("the path must start with M")
-            current = [start]
-            strokes.append(current)
-        if command in "Ll":
-            dx, dy = number(), number()
-            x, y = (x + dx, y + dy) if command == "l" else (dx, dy)
-        elif command in "Hh":
-            value = number()
-            x = x + value if command == "h" else value
+            edges = []  # after Z, the next subpath starts where the last one did
+        here: Point = (x, y)
+        edge: Edge | None
+        if command in "Aa":
+            rx, ry = reader.number(command), reader.number(command)
+            reader.number(command)  # the ellipse's rotation, which a circle does not have
+            large, clockwise = reader.flag(command), reader.flag(command)
+            dx, dy = reader.number(command), reader.number(command)
+            x, y = (x + dx, y + dy) if command == "a" else (dx, dy)
+            edge = _arc(here, (x, y), rx, ry, large, clockwise)
         else:
-            value = number()
-            y = y + value if command == "v" else value
-        current.append((x, y))
-    if not strokes:
+            if command in "Ll":
+                dx, dy = reader.number(command), reader.number(command)
+                x, y = (x + dx, y + dy) if command == "l" else (dx, dy)
+            elif command in "Hh":
+                value = reader.number(command)
+                x = x + value if command == "h" else value
+            else:
+                value = reader.number(command)
+                y = y + value if command == "v" else value
+            edge = Line(here, (x, y)) if (x, y) != here else None
+        if edge is not None:
+            edges.append(edge)
+    close()
+    if not contours:
         raise IconError("the path draws nothing")
-    return tuple(tuple(stroke) for stroke in strokes if len(stroke) > 1)
+    return tuple(contours)
 
 
 def _constant(source: str, name: str, pattern: str) -> str:
-    match = re.search(rf"^export const {name} = {pattern};$", source, re.MULTILINE)
+    # Prettier moves a literal too long for its line to the next one.
+    match = re.search(rf"^export const {name} =\s+{pattern};$", source, re.MULTILINE)
     if not match:
         raise IconError(f"{BRAND} must define {name} as a plain literal")
     return match.group(1)
@@ -235,17 +424,74 @@ def read_mark(path: Path) -> Mark:
     viewbox = _constant(source, "MARK_VIEWBOX", r'"([^"]*)"').split()
     if len(viewbox) != 4 or viewbox[:2] != ["0", "0"] or viewbox[2] != viewbox[3]:
         raise IconError(f"MARK_VIEWBOX must be a square from the origin, not {viewbox}")
-    number = r"(\d+(?:\.\d+)?)"
-    mark_path = _constant(source, "MARK_HOUSE_PATH", r'"([^"]*)"')
-    if 'stroke-linecap="round"' not in source or 'stroke-linejoin="round"' not in source:
-        raise IconError("the mark's strokes must have round caps and joins, as drawn here")
+    if re.search(r"\bstroke[\w-]*=", source):
+        raise IconError(f"{BRAND} strokes the mark, which is filled: the icons here have no stroke")
+    glyph = _constant(source, "MARK_GLYPH_PATH", r'"([^"]*)"')
     return Mark(
         size=float(viewbox[2]),
-        tile_radius=float(_constant(source, "MARK_TILE_RADIUS", number)),
-        stroke_width=float(_constant(source, "MARK_STROKE_WIDTH", number)),
-        path=mark_path,
-        strokes=parse_path(mark_path),
+        tile_radius=float(_constant(source, "MARK_TILE_RADIUS", r"(\d+(?:\.\d+)?)")),
+        path=glyph,
+        contours=parse_path(glyph),
     )
+
+
+# The outline's crossings and directions are judged on chords this close to its arcs (mark units).
+OUTLINE_FLATNESS = 1 / 1024
+
+
+def _sides(polygon: Sequence[Point]) -> list[tuple[Point, Point]]:
+    """A closed polygon's edges, as (start, end) pairs: the last joins its last point to its
+    first."""
+    return list(zip(polygon, [*polygon[1:], polygon[0]], strict=True))
+
+
+def _signed_area(polygon: Sequence[Point]) -> float:
+    """Positive when the polygon turns clockwise on screen (y grows downwards)."""
+    return sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in _sides(polygon)) / 2
+
+
+def _side(a: Point, b: Point, c: Point) -> float:
+    """Which side of the line from [a] to [b] the point [c] lies: positive, negative or 0 on it."""
+    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+
+
+def _crosses(p: Point, q: Point, r: Point, s: Point) -> bool:
+    """Whether two edges cross each other's interiors (edges that only touch do not)."""
+    return _side(p, q, r) * _side(p, q, s) < 0 and _side(r, s, p) * _side(r, s, q) < 0
+
+
+def _encloses(polygon: Sequence[Point], point: Point) -> bool:
+    x, y = point
+    inside = False
+    for (x0, y0), (x1, y1) in _sides(polygon):
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            inside = not inside
+    return inside
+
+
+def check_outline(mark: Mark) -> None:
+    """Refuses a glyph that the rasteriser could not fill exactly: an outline that crosses
+    itself, a contour that encloses nothing, or contours whose directions do not alternate with
+    their nesting (a hole turns against the contour around it). What is left winds every point of
+    the glyph once and the same way round, so the non-zero and even-odd rules fill the same shape
+    and area_coverage's running sum is each pixel's exact share."""
+    polygons = mark.polygons(OUTLINE_FLATNESS)
+    edges = [side for polygon in polygons for side in _sides(polygon)]
+    for index, (p, q) in enumerate(edges):
+        for r, s in edges[index + 1 :]:
+            if _crosses(p, q, r, s):
+                raise IconError(f"the glyph's outline crosses itself near ({p[0]:g}, {p[1]:g})")
+    turns = set()
+    for index, polygon in enumerate(polygons):
+        area = _signed_area(polygon)
+        if not area:
+            raise IconError(f"a contour of the glyph encloses nothing, at {polygon[0]}")
+        depth = sum(
+            _encloses(other, polygon[0]) for number, other in enumerate(polygons) if number != index
+        )
+        turns.add((area > 0) != (depth % 2 == 1))
+    if len(turns) > 1:
+        raise IconError("the glyph's contours must alternate direction: a hole turns the other way")
 
 
 @dataclass(frozen=True)
@@ -303,77 +549,77 @@ def _coverage(distance: float) -> int:
     return int(share * 255 + 0.5)
 
 
-Segment = tuple[float, float, float, float]  # start x, start y, dx, dy in pixels
-
-# A pixel's square reaches this far from its centre: a stroke further away covers none of it.
-HALF_DIAGONAL = math.sqrt(0.5)
-# Pixels that two strokes cover in part (where the house's lines meet) are measured on a grid
-# of this many samples a side: one distance ramp cannot add two strokes' coverage.
-SAMPLES = 16
+# Arcs are drawn as chords that stray at most this far from them, in pixels. A convex arc runs
+# at most 4 pixels inside one pixel's square, so the chords move no pixel's coverage by more than
+# a quarter of one level in 255: every pixel stays the exact coverage, rounded up or down.
+FLATNESS = 0.25 / 255 / 4
 
 
-def _distance(x: float, y: float, segment: Segment) -> float:
-    x0, y0, dx, dy = segment
-    px, py = x - x0, y - y0
-    length2 = dx * dx + dy * dy
-    along = (px * dx + py * dy) / length2 if length2 else 0.0
-    along = 0.0 if along < 0 else 1.0 if along > 1 else along
-    ex, ey = px - along * dx, py - along * dy
-    return math.sqrt(ex * ex + ey * ey)
+def _add_edge(cells: list[float], size: int, start: Point, end: Point) -> None:
+    """Adds an edge to [cells], row by row: for each pixel it crosses, the change from the pixel
+    before in the share of the row's height to the right of the edge, signed by its direction
+    (downwards adds). A running sum along the rows then gives each pixel its share of the shape,
+    exactly, as in font-rs. The edge lies in the canvas, its x up to [size]: the last column's
+    change falls into the next row's first cell, where the running sum needs it."""
+    (x0, y0), (x1, y1) = start, end
+    if y0 == y1:
+        return  # a level edge leaves no area to its right
+    sign = 1.0
+    if y0 > y1:
+        (x0, y0), (x1, y1), sign = (x1, y1), (x0, y0), -1.0
+    slope = (x1 - x0) / (y1 - y0)
+    for row in range(math.floor(y0), math.ceil(y1)):
+        top, bottom = max(float(row), y0), min(row + 1.0, y1)
+        xa = x0 + (top - y0) * slope
+        xb = x1 if bottom == y1 else x0 + (bottom - y0) * slope
+        height = (bottom - top) * sign
+        left, right = (xa, xb) if xa <= xb else (xb, xa)
+        first, last = math.floor(left), math.ceil(right)
+        base = row * size
+        if last <= first + 1:  # within one pixel: what lies right of the edge's middle
+            inside = (xa + xb) / 2 - first
+            cells[base + first] += height * (1 - inside)
+            cells[base + first + 1] += height * inside
+            continue
+        across = 1 / (right - left)  # the share of the height spent crossing each whole pixel
+        head, tail = first + 1 - left, right - (last - 1)  # how far it crosses the end pixels
+        head_area = across * head * head / 2
+        tail_area = across * tail * tail / 2
+        cells[base + first] += height * head_area
+        if last == first + 2:
+            cells[base + first + 1] += height * (1 - head_area - tail_area)
+        else:
+            second = across * (head + 0.5)
+            cells[base + first + 1] += height * (second - head_area)
+            for column in range(first + 2, last - 1):
+                cells[base + column] += height * across
+            before_tail = second + (last - first - 3) * across
+            cells[base + last - 1] += height * (1 - before_tail - tail_area)
+        cells[base + last] += height * tail_area
+
+
+def area_coverage(polygons: Iterable[Sequence[Point]], size: int) -> list[float]:
+    """The share (0 to 1) of each pixel of a [size] x [size] image, row after row, that the
+    closed [polygons] (in pixel coordinates) cover: exact wherever no point is wound twice or
+    both ways, which check_outline ensures for the mark. What lies outside the canvas is clamped
+    onto its edge, which keeps the winding of every point inside it."""
+    cells = [0.0] * (size * size + 2)  # the last row's changes may fall two cells past its end
+    for polygon in polygons:
+        points = [(min(max(x, 0.0), size), min(max(y, 0.0), size)) for x, y in polygon]
+        for start, end in _sides(points):
+            _add_edge(cells, size, start, end)
+    return [min(abs(total), 1.0) for total in itertools.accumulate(cells[: size * size])]
 
 
 @functools.lru_cache(maxsize=32)
-def stroke_coverage(mark: Mark, size: int, scale: float, offset: float) -> bytes:
-    """Coverage of the house in a [size] x [size] image where the mark's point (u, v) lands at
-    pixel coordinates (offset + u * scale, offset + v * scale)."""
-    radius = mark.stroke_width / 2 * scale
-    nearest = [math.inf] * (size * size)
-    touched = bytearray(size * size)
-    shared: set[int] = set()
-    segments = [
-        (offset + u0 * scale, offset + v0 * scale, (u1 - u0) * scale, (v1 - v0) * scale)
-        for (u0, v0), (u1, v1) in mark.segments()
+def fill_coverage(mark: Mark, size: int, scale: float, offset: float) -> bytes:
+    """Coverage (0 to 255) of the glyph in a [size] x [size] image where the mark's point
+    (u, v) lands at pixel coordinates (offset + u * scale, offset + v * scale)."""
+    polygons = [
+        [(offset + u * scale, offset + v * scale) for u, v in polygon]
+        for polygon in mark.polygons(FLATNESS / scale)
     ]
-    for segment in segments:
-        x0, y0, dx, dy = segment
-        reach = radius + 1
-        left = max(0, math.floor(min(x0, x0 + dx) - reach))
-        right = min(size - 1, math.ceil(max(x0, x0 + dx) + reach))
-        top = max(0, math.floor(min(y0, y0 + dy) - reach))
-        bottom = min(size - 1, math.ceil(max(y0, y0 + dy) + reach))
-        for row in range(top, bottom + 1):
-            y = row + 0.5
-            base = row * size
-            for column in range(left, right + 1):
-                index = base + column
-                distance = _distance(column + 0.5, y, segment)
-                if distance < radius + HALF_DIAGONAL:
-                    if touched[index]:
-                        shared.add(index)
-                    touched[index] = 1
-                if distance < nearest[index]:
-                    nearest[index] = distance
-    coverage = bytearray(_coverage(distance - radius) for distance in nearest)
-    for index in sorted(shared):
-        if nearest[index] <= radius - HALF_DIAGONAL:
-            continue  # wholly inside one stroke
-        row, column = divmod(index, size)
-        near = [
-            segment
-            for segment in segments
-            if _distance(column + 0.5, row + 0.5, segment) < radius + HALF_DIAGONAL
-        ]
-        inside = sum(
-            any(
-                _distance(column + (sx + 0.5) / SAMPLES, row + (sy + 0.5) / SAMPLES, segment)
-                <= radius
-                for segment in near
-            )
-            for sy in range(SAMPLES)
-            for sx in range(SAMPLES)
-        )
-        coverage[index] = int(inside * 255 / (SAMPLES * SAMPLES) + 0.5)
-    return bytes(coverage)
+    return bytes(int(share * 255 + 0.5) for share in area_coverage(polygons, size))
 
 
 def shape_coverage(shape: str, size: int, side: float, radius: float) -> bytes:
@@ -402,7 +648,8 @@ def shape_coverage(shape: str, size: int, side: float, radius: float) -> bytes:
 @dataclass(frozen=True)
 class Icon:
     """One PNG of the mark: the house in [glyph] on a [shape] of [tile], the shape filling
-    [share] of the [size] x [size] canvas; the house keeps its place on the mark's tile."""
+    [share] of the [size] x [size] canvas; the house keeps its place on the mark's tile, drawn at
+    [glyph_scale] of the tile's scale about its centre."""
 
     path: str
     size: int
@@ -411,18 +658,20 @@ class Icon:
     tile: str
     glyph: str
     alpha: bool  # write an alpha channel; an opaque icon must fill its canvas
+    glyph_scale: float = 1.0
 
 
 def render(mark: Mark, icon: Icon) -> tuple[bytes, bytes]:
     """The PNG header fields (IHDR) and the pixels of [icon], row after row."""
     side = icon.size * icon.share
-    scale = side / mark.size
-    offset = (icon.size - side) / 2
-    glyph = stroke_coverage(mark, icon.size, scale, offset)
+    scale = side * icon.glyph_scale / mark.size
+    offset = (icon.size - mark.size * scale) / 2
+    glyph = fill_coverage(mark, icon.size, scale, offset)
     full = icon.shape == "square" and icon.share == 1
     if not icon.alpha and not full:
         raise IconError(f"{icon.path}: an icon without alpha must fill its canvas")
-    shape = None if full else shape_coverage(icon.shape, icon.size, side, mark.tile_radius * scale)
+    radius = mark.tile_radius * side / mark.size
+    shape = None if full else shape_coverage(icon.shape, icon.size, side, radius)
     tile, ink = _rgb(icon.tile), _rgb(icon.glyph)
     # The house lies where the shape is opaque (check_geometry), so a pixel is the tile's colour
     # blended towards the house's by the house's coverage, and its alpha is the shape's coverage:
@@ -643,13 +892,22 @@ def icons(palette: Palette) -> list[Icon]:
             alpha=False,
         ),
         # The web: the tile as the website draws it, and full squares for masks (and for iOS,
-        # whose home screen takes the apple-touch-icon in index.html).
+        # whose home screen takes the apple-touch-icon in index.html), the house a little smaller
+        # there to keep inside the maskable safe circle.
         Icon(f"{WEB}/favicon.png", 32, "tile", 1, alpha=True, **light),
     ]
     for size in (192, 512):
         found += [
             Icon(f"{WEB}/icons/Icon-{size}.png", size, "tile", 1, alpha=True, **light),
-            Icon(f"{WEB}/icons/Icon-maskable-{size}.png", size, "square", 1, alpha=False, **light),
+            Icon(
+                f"{WEB}/icons/Icon-maskable-{size}.png",
+                size,
+                "square",
+                1,
+                alpha=False,
+                glyph_scale=MASKABLE_GLYPH_SCALE,
+                **light,
+            ),
         ]
     return found
 
@@ -691,10 +949,7 @@ def foreground_xml(mark: Mark, palette: Palette) -> str:
         f'        android:scaleY="{_decimal(scale)}">\n'
         "        <path\n"
         f'            android:pathData="{mark.path}"\n'
-        f'            android:strokeColor="{palette.on_primary}"\n'
-        f'            android:strokeWidth="{_decimal(mark.stroke_width)}"\n'
-        '            android:strokeLineCap="round"\n'
-        '            android:strokeLineJoin="round" />\n'
+        f'            android:fillColor="{palette.on_primary}" />\n'
         "    </group>\n"
         "</vector>\n"
     )
@@ -760,17 +1015,29 @@ def manifest_json(current: str, name: str, palette: Palette) -> str:
 
 
 def check_geometry(mark: Mark) -> None:
-    """Refuses a mark whose house a mask would cut. A house inside these circles also lies
-    inside the tile, the rounded tile and the legacy circle, wholly opaque there."""
+    """Refuses a mark whose house a mask would cut, or that Android would show too small. A
+    house inside these circles also lies inside the tile, the rounded tile and the legacy circle,
+    wholly opaque there."""
     reach = mark.reach()
-    adaptive = reach * ADAPTIVE_VISIBLE_DP / mark.size
-    if adaptive > ADAPTIVE_SAFE_DIAMETER_DP / 2:
+    dp = ADAPTIVE_VISIBLE_DP / mark.size
+    if reach * dp > ADAPTIVE_SAFE_DIAMETER_DP / 2:
         raise IconError(
-            f"the house reaches {adaptive:.1f} dp from the adaptive icon's centre, past the "
-            f"{ADAPTIVE_SAFE_DIAMETER_DP / 2:g} dp safe zone"
+            f"the house reaches {reach * dp:.2f} dp from the adaptive icon's centre, past the "
+            f"{ADAPTIVE_SAFE_DIAMETER_DP / 2:g} dp of its safe circle"
         )
-    if reach > mark.size * MASKABLE_SAFE_SHARE / 2:
-        raise IconError("the house reaches past a maskable icon's safe circle")
+    left, top, right, bottom = mark.box()
+    across = max(right - left, bottom - top) * dp
+    if across < ADAPTIVE_LOGO_MIN_DP:
+        raise IconError(
+            f"the house is {across:.2f} dp across in the adaptive icon, less than the "
+            f"{ADAPTIVE_LOGO_MIN_DP} dp Android asks of a logo"
+        )
+    maskable = reach * MASKABLE_GLYPH_SCALE / mark.size
+    if maskable > MASKABLE_SAFE_SHARE / 2:
+        raise IconError(
+            f"the house reaches {maskable:.2%} of a maskable icon's width from its centre, past "
+            f"its safe circle of {MASKABLE_SAFE_SHARE / 2:.0%}"
+        )
 
 
 @dataclass(frozen=True)
@@ -784,6 +1051,7 @@ def build(root: Path) -> Outputs:
     mark = read_mark(root / BRAND)
     palette = read_palette(root / TOKENS)
     name = read_app_name(root / APP_STRINGS)
+    check_outline(mark)
     check_geometry(mark)
     manifest = root / WEB / "manifest.json"
     adaptive = adaptive_icon_xml()

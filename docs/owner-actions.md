@@ -13,8 +13,7 @@ actions](release-readiness.md#owner-actions) keeps the history.
 - **This week, by 30 November:** [answer the State Bank](#answer-the-state-bank-by-30-november);
   [ask lawyers for a quote](#ask-lawyers-for-a-fixed-fee-quote-this-month); [chase the D-U-N-S
   number](#chase-the-d-u-n-s-number-now); [agree the glossary and shortlist
-  editors](#agree-the-glossary-and-shortlist-editors-by-30-november); [choose the icon's
-  mark](#choose-the-app-icons-mark-by-30-november); [start recruiting the
+  editors](#agree-the-glossary-and-shortlist-editors-by-30-november); [start recruiting the
   pilot](#start-recruiting-the-pilot-from-late-november). Two take two minutes each: [read two times
   on the Secrets page](#read-two-times-on-the-secrets-page-two-minutes) and [delete a
   branch](#delete-the-branch-claudepublish-dry-run-two-minutes).
@@ -120,19 +119,6 @@ launch](#review-the-urdu-and-hire-an-editor)
 
 **Done when:** you have answered and three editors are shortlisted. **Then tell the agent:** your
 answers, and that the shortlist is ready (no names needed).
-
-### Choose the app icon's mark (by 30 November)
-
-**Why:** the launcher icons use the website's house on brand blue as a starting point, which you
-have not confirmed, and the store artwork follows the mark
-([details](roadmap/app-icon.md#questions-for-the-owner)).
-
-1. Keep the house, or choose another mark (a key, a door, a ledger); with an Urdu letter in it, or
-   not.
-2. Later, before the store artwork: screenshots plain or framed with captions, and which screens
-   come first (the overdue list, a receipt, the caretaker handover).
-
-**Done when:** the mark is chosen. **Then tell the agent:** your choice.
 
 ### Start recruiting the pilot (from late November)
 
@@ -398,6 +384,9 @@ accept it ([details](../.planning/PROJECT.md#open-proposals)).
   3](roadmap/README.md#decision-3-privacy-first-analytics-support-and-e-mail-d-18)). PostHog's data
   processing agreement is due earlier, with the [lawyer's
   pack](#ask-lawyers-for-a-fixed-fee-quote-this-month), before any analytics ship.
+- Before the store artwork: screenshots plain or framed with captions, and which screens come first
+  (the overdue list, a receipt, the caretaker handover)
+  ([app-icon](roadmap/app-icon.md#questions-for-the-owner)).
 - Letterheads and onboarding (co-owners, residence and price); how long identity documents are kept,
   with the lawyer; Meta's verification, Firebase and Apple's push key; the AI and speech-to-text
   providers; and the 2027 and 2028 plans (WhatsApp, mandates, tenants, oversight, hostels, Raast
@@ -585,6 +574,10 @@ DNS record, a Vercel project or an Auth setting.
 
 ## Recently done
 
+- 23 November 2026: the app icon's mark chosen, the twin gables (D-26): a filled house whose two
+  gables make a capital M and whose arched doorways make a small m. It is on the app's launcher
+  icons, the Play icon, the web app's icons and the website's favicons and cards; the iOS Icon
+  Composer file and the store artwork follow ([app-icon](roadmap/app-icon.md)).
 - 22 November 2026: `ALLOWED_ORIGINS` narrowed to the new web app address (move, step 12), and the
   functions refuse the old one (your check that day answered 403). That change most likely made the
   Edge Functions' version 21 that morning, which [the Secrets

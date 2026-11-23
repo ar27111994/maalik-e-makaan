@@ -673,7 +673,7 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
 
 ## Active Decisions
 
-- PROJECT.md D-01…D-25 record the decisions, and P-01 and P-02 the open proposals. The ones that
+- PROJECT.md D-01…D-26 record the decisions, and P-01 and P-02 the open proposals. The ones that
   carry most weight:
   - D-04: RLS plus composite foreign keys;
   - D-05: exact money;
@@ -705,7 +705,10 @@ and goes to https://app.mmakaan.app`, with the App Links file still answered the
     `android:allowBackup="true"` and no backup rules, which the manifest check keeps so;
   - D-25 (the agent, 2026-11-22, under the owner's word to use fewer mechanisms): only publish jobs
     of their own put files on a release or sign its provenance (release-please creates the release
-    and its tag), and the release check is structural, not a reader of shell.
+    and its tag), and the release check is structural, not a reader of shell;
+  - D-26 (the owner, 2026-11-23, "Go with the twin gables"): the mark is a filled house whose two
+    gables make a capital M and whose two arched doorways make a small m, defined once in
+    `website/src/lib/brand.ts`; the app's icons, the favicons and the Open Graph cards draw it.
 - Open proposals, waiting for the owner: P-01 automatic WhatsApp reminders (against D-11); P-02
   Raast Request-to-Pay and open banking (against "recorded, not processed"). The website's promise
   of no analytics is withdrawn by D-18; its new text waits for the lawyer's review.

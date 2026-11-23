@@ -1,7 +1,7 @@
 // The committed icons and Open Graph images (written by `npm run og`).
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { markSvg, MARK_HOUSE_PATH } from "../../src/lib/brand.ts";
+import { markSvg, MARK_GLYPH_PATH } from "../../src/lib/brand.ts";
 import { ogImage } from "../../src/lib/seo/meta.ts";
 
 const file = (path: string) => readFileSync(new URL(`../../public/${path}`, import.meta.url));
@@ -37,7 +37,17 @@ describe("icons", () => {
 
   test("favicon.svg is the mark, drawn from the shared definition", () => {
     const svg = file("favicon.svg").toString("utf8");
-    expect(svg).toContain(MARK_HOUSE_PATH);
+    expect(svg).toContain(MARK_GLYPH_PATH);
     expect(svg.trim()).toBe(markSvg({ tile: "#1D3F8F", glyph: "#FFFFFF" }));
+  });
+
+  test("the mark's house is filled, with no stroke, as the app's icons draw it", () => {
+    const svg = markSvg({ tile: "#1D3F8F", glyph: "#FFFFFF", size: 64 });
+    expect(svg).toContain(`<path d="${MARK_GLYPH_PATH}" fill="#FFFFFF"/>`);
+    expect(svg).not.toMatch(/stroke/);
+    expect(svg).toMatch(/width="64" height="64"/);
+    // One closed outline of straight lines and circular arcs (tool/design/build_app_icons.py).
+    expect(MARK_GLYPH_PATH).toMatch(/^M[^M]*Z$/);
+    expect(MARK_GLYPH_PATH).toMatch(/^[MLHVAZ\d .]+$/);
   });
 });
