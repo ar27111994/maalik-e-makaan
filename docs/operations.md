@@ -1283,7 +1283,13 @@ A debug build is signed with the debug key, which is not listed, so it stays unv
      again after it. The artifact is kept for 7 days (`retention-days: 7`), and after that the
      download fails.
    - **A build that failed:** re-run it (Re-run failed jobs, or Re-run this job on it), which
-     GitHub allows for 30 days after the run. Its publish job and the website run again after it,
+     GitHub allows for 30 days after the run. This includes a build GitHub cancelled without
+     starting it, with no runner and no steps and the annotation "The job was not acquired by
+     Runner of type hosted even after multiple attempts". GitHub gives up after about 15 minutes
+     when its macOS arm64 runners are short, as the iOS builds of release 1.5.0 and of CI on the
+     same commit showed (`.planning/STATE.md`, release 1.5.0). It is GitHub's capacity, not the
+     code: re-run it once the queue clears. CI's "CI passed" reports such a job as `abandoned` and
+     fails until a re-run of the failed jobs passes. Its publish job and the website run again after it,
      with the new attempt's artifact.
    - **A publish job that failed, after those 7 days:** its build succeeded, so Re-run failed jobs
      does not run the build again, and the download fails again. Re-run the build job instead,
