@@ -121,7 +121,8 @@ now done in the US.
 ## Work
 
 1. **S:** the review pack, with first drafts of the privacy changes for decisions 1 to 3 in both
-   languages, the data map and the question list.
+   languages, the data map and the question list. The first version of the review pack is in
+   [`docs/legal/README.md`](../legal/README.md).
 2. **Owner:** the request for quotation; choose a firm; set the deadline.
 3. **M:** terms rewrite: governing law and forum; the roles of AR LABS, owner, caretaker and tenant;
    the owner's warranty; liability; paid-plan clauses; the prevailing language.
